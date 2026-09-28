@@ -1,0 +1,5 @@
+numbering: session=[1:false, 2:true], overlay=[1:second]
+identity: session=UNVERIFIED, target=CURRENT, available=true, lit=true
+hidden detail: phase=SHOWN, target=CURRENT, available=true, selection=[], reason=record 1 is hidden by this step's filter, or not in this log
+replace active: published count=2, saved count=1, lit=original
+out-of-range play while active: ok=true, node reason=walk 'DEMO_edit' has 1 step(s) — there is no step 99

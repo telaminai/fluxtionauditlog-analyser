@@ -1,0 +1,1056 @@
+[
+  {
+    "stage": "original head",
+    "engine": "fast",
+    "seconds": 235.3,
+    "runs": [
+      {
+        "name": "m69-s0-clear-drops-graph-digest",
+        "verdict": "caught",
+        "sourceSha256": "c597f4d898b22f7495d83ae3f9f33a1e5292f1292a04125cabdc9ee46a357195",
+        "baselineGreen": true,
+        "namedFailures": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.ui.TopologyGraphDigestTest",
+            "method": "clearDropsTheDigest",
+            "kind": "failure"
+          }
+        ],
+        "sourceRestoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "restoredExit": 0
+      },
+      {
+        "name": "m69-s1-filter-stated-flag",
+        "verdict": "caught",
+        "sourceSha256": "fee1704085c5ef31930aeccd9f828a68c65e3121843634cbaad7fe511573bc25",
+        "baselineGreen": true,
+        "namedFailures": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.config.WalkPersistenceTest",
+            "method": "aDefaultFilterIsStillStated",
+            "kind": "failure"
+          }
+        ],
+        "sourceRestoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "restoredExit": 0
+      },
+      {
+        "name": "m69-s1-extras-written-back",
+        "verdict": "caught",
+        "sourceSha256": "fee1704085c5ef31930aeccd9f828a68c65e3121843634cbaad7fe511573bc25",
+        "baselineGreen": true,
+        "namedFailures": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.config.WalkPersistenceTest",
+            "method": "unknownKeysUnderAWalkSurvive",
+            "kind": "failure"
+          }
+        ],
+        "sourceRestoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "restoredExit": 0
+      },
+      {
+        "name": "m69-s1-unknown-run-basis-absent",
+        "verdict": "caught",
+        "sourceSha256": "fee1704085c5ef31930aeccd9f828a68c65e3121843634cbaad7fe511573bc25",
+        "baselineGreen": true,
+        "namedFailures": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.config.WalkPersistenceTest",
+            "method": "anUnknownRunBasisStaysUnknown",
+            "kind": "failure"
+          }
+        ],
+        "sourceRestoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "restoredExit": 0
+      },
+      {
+        "name": "m69-s1-snapshot-restores-walks",
+        "verdict": "caught",
+        "sourceSha256": "8b12a28bdaff8b632aafe59735ef4f604bbd6ac2a9e9aecdf42c52cb6a50b96d",
+        "baselineGreen": true,
+        "namedFailures": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.config.WalkPersistenceTest",
+            "method": "projectSnapshotRestoreAndClearCarryWalks",
+            "kind": "failure"
+          }
+        ],
+        "sourceRestoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "restoredExit": 0
+      },
+      {
+        "name": "m69-s1-clear-clears-walks",
+        "verdict": "caught",
+        "sourceSha256": "8b12a28bdaff8b632aafe59735ef4f604bbd6ac2a9e9aecdf42c52cb6a50b96d",
+        "baselineGreen": true,
+        "namedFailures": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.config.WalkPersistenceTest",
+            "method": "projectSnapshotRestoreAndClearCarryWalks",
+            "kind": "failure"
+          }
+        ],
+        "sourceRestoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "restoredExit": 0
+      },
+      {
+        "name": "m69-s1-machine-save-global-tier",
+        "verdict": "caught",
+        "sourceSha256": "fee1704085c5ef31930aeccd9f828a68c65e3121843634cbaad7fe511573bc25",
+        "baselineGreen": true,
+        "namedFailures": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.config.WalkPersistenceTest",
+            "method": "aMachineSaveWritesTheGlobalTiersWalks",
+            "kind": "failure"
+          }
+        ],
+        "sourceRestoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "restoredExit": 0
+      },
+      {
+        "name": "m69-s1-share-recognises-walk-count",
+        "verdict": "caught",
+        "sourceSha256": "2452dedd41142f6de8990d6babf292c5a3564fa90a69e54282190f9edd901df7",
+        "baselineGreen": true,
+        "namedFailures": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.config.WalkPersistenceTest",
+            "method": "aWalkOnlyShareLeavesReportsAlone",
+            "kind": "failure"
+          }
+        ],
+        "sourceRestoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "restoredExit": 0
+      },
+      {
+        "name": "m69-s1-share-exports-walks",
+        "verdict": "caught",
+        "sourceSha256": "2452dedd41142f6de8990d6babf292c5a3564fa90a69e54282190f9edd901df7",
+        "baselineGreen": true,
+        "namedFailures": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.config.WalkPersistenceTest",
+            "method": "aWalkOnlyShareLeavesReportsAlone",
+            "kind": "failure"
+          }
+        ],
+        "sourceRestoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "restoredExit": 0
+      },
+      {
+        "name": "m69-s1-share-applies-walks",
+        "verdict": "caught",
+        "sourceSha256": "2452dedd41142f6de8990d6babf292c5a3564fa90a69e54282190f9edd901df7",
+        "baselineGreen": true,
+        "namedFailures": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.config.WalkPersistenceTest",
+            "method": "aWalkOnlyShareLeavesReportsAlone",
+            "kind": "failure"
+          }
+        ],
+        "sourceRestoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "restoredExit": 0
+      },
+      {
+        "name": "m69-s1-bin-restore-never-replaces",
+        "verdict": "caught",
+        "sourceSha256": "3ea0d8640b63d367b8ec2aecf9f9027f29df954bd021628087b30fc880089b2e",
+        "baselineGreen": true,
+        "namedFailures": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.config.WalkPersistenceTest",
+            "method": "deleteRestoreRename",
+            "kind": "failure"
+          }
+        ],
+        "sourceRestoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "restoredExit": 0
+      },
+      {
+        "name": "m69-s1-rename-refuses-collision",
+        "verdict": "caught",
+        "sourceSha256": "3ea0d8640b63d367b8ec2aecf9f9027f29df954bd021628087b30fc880089b2e",
+        "baselineGreen": true,
+        "namedFailures": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.config.WalkPersistenceTest",
+            "method": "deleteRestoreRename",
+            "kind": "failure"
+          }
+        ],
+        "sourceRestoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "restoredExit": 0
+      },
+      {
+        "name": "m69-s1-chart-digest-excludes-open",
+        "verdict": "caught",
+        "sourceSha256": "fee1704085c5ef31930aeccd9f828a68c65e3121843634cbaad7fe511573bc25",
+        "baselineGreen": true,
+        "namedFailures": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.config.WalkPersistenceTest",
+            "method": "definitionDigests",
+            "kind": "failure"
+          }
+        ],
+        "sourceRestoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "restoredExit": 0
+      },
+      {
+        "name": "m69-s1-view-allow-list",
+        "verdict": "caught",
+        "sourceSha256": "ad99703b9d139e117b203e02fab8ebc99914e97cd74ec858a1e5e2ddc799a60d",
+        "baselineGreen": true,
+        "namedFailures": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.walk.WalkStepsTest",
+            "method": "fieldsOutsideTheAllowListAreRefusedByName",
+            "kind": "failure"
+          }
+        ],
+        "sourceRestoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "restoredExit": 0
+      },
+      {
+        "name": "m69-s1-target-family-allow-list",
+        "verdict": "caught",
+        "sourceSha256": "ad99703b9d139e117b203e02fab8ebc99914e97cd74ec858a1e5e2ddc799a60d",
+        "baselineGreen": true,
+        "namedFailures": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.walk.WalkStepsTest",
+            "method": "unsupportedTargetFamiliesAreRefused",
+            "kind": "failure"
+          }
+        ],
+        "sourceRestoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "restoredExit": 0
+      },
+      {
+        "name": "m69-s1-detail-needs-record",
+        "verdict": "caught",
+        "sourceSha256": "ad99703b9d139e117b203e02fab8ebc99914e97cd74ec858a1e5e2ddc799a60d",
+        "baselineGreen": true,
+        "namedFailures": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.walk.WalkStepsTest",
+            "method": "selectedTargetsNeedTheirSelection",
+            "kind": "failure"
+          }
+        ],
+        "sourceRestoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "restoredExit": 0
+      },
+      {
+        "name": "m69-s1-unknown-is-never-equal",
+        "verdict": "caught",
+        "sourceSha256": "e020fbb89bf12bb2e78bab0d34fb576c0249c2b7bf338878d13d62855dd7c9e9",
+        "baselineGreen": true,
+        "namedFailures": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.walk.WalkIdentityTest",
+            "method": "unknownIsNeverEqual",
+            "kind": "failure"
+          }
+        ],
+        "sourceRestoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "restoredExit": 0
+      },
+      {
+        "name": "m69-s1-run-basis-unknown-file",
+        "verdict": "caught",
+        "sourceSha256": "e020fbb89bf12bb2e78bab0d34fb576c0249c2b7bf338878d13d62855dd7c9e9",
+        "baselineGreen": true,
+        "namedFailures": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.walk.WalkIdentityTest",
+            "method": "aRunBasisWithAnUnknownFileIsUnknown",
+            "kind": "failure"
+          }
+        ],
+        "sourceRestoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "restoredExit": 0
+      },
+      {
+        "name": "m69-s2-node-refuses-stale-ticket",
+        "verdict": "caught",
+        "sourceSha256": "b87f6e02013a7506f879ffdc3d15af428e678305f075b2b0027c1f39ea53feac",
+        "baselineGreen": true,
+        "namedFailures": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.session.WalkPlaybackTest",
+            "method": "aStalePreparationIsRefused",
+            "kind": "failure"
+          }
+        ],
+        "sourceRestoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "restoredExit": 0
+      },
+      {
+        "name": "m69-s2-node-close-ends",
+        "verdict": "caught",
+        "sourceSha256": "b87f6e02013a7506f879ffdc3d15af428e678305f075b2b0027c1f39ea53feac",
+        "baselineGreen": true,
+        "namedFailures": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.session.WalkPlaybackTest",
+            "method": "aCloseEndsTheWalk",
+            "kind": "failure"
+          }
+        ],
+        "sourceRestoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "restoredExit": 0
+      },
+      {
+        "name": "m69-s2-node-new-generation-ends",
+        "verdict": "caught",
+        "sourceSha256": "b87f6e02013a7506f879ffdc3d15af428e678305f075b2b0027c1f39ea53feac",
+        "baselineGreen": true,
+        "namedFailures": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.session.WalkPlaybackTest",
+            "method": "aNewGenerationEndsTheWalk",
+            "kind": "failure"
+          }
+        ],
+        "sourceRestoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "restoredExit": 0
+      },
+      {
+        "name": "m69-s2-node-identity-reresolves",
+        "verdict": "caught",
+        "sourceSha256": "b87f6e02013a7506f879ffdc3d15af428e678305f075b2b0027c1f39ea53feac",
+        "baselineGreen": true,
+        "namedFailures": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.session.WalkPlaybackTest",
+            "method": "anIdentityChangeReResolves",
+            "kind": "failure"
+          }
+        ],
+        "sourceRestoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "restoredExit": 0
+      },
+      {
+        "name": "m69-s2-node-boundaries",
+        "verdict": "caught",
+        "sourceSha256": "b87f6e02013a7506f879ffdc3d15af428e678305f075b2b0027c1f39ea53feac",
+        "baselineGreen": true,
+        "namedFailures": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.session.WalkPlaybackTest",
+            "method": "navigateAndBoundaries",
+            "kind": "failure"
+          }
+        ],
+        "sourceRestoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "restoredExit": 0
+      },
+      {
+        "name": "m69-s2-node-lights-available-only",
+        "verdict": "caught",
+        "sourceSha256": "b87f6e02013a7506f879ffdc3d15af428e678305f075b2b0027c1f39ea53feac",
+        "baselineGreen": true,
+        "namedFailures": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.session.WalkPlaybackTest",
+            "method": "preparedLightsTheAvailableTargets",
+            "kind": "failure"
+          }
+        ],
+        "sourceRestoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "restoredExit": 0
+      },
+      {
+        "name": "m69-s2-node-end-remembers-step",
+        "verdict": "caught",
+        "sourceSha256": "b87f6e02013a7506f879ffdc3d15af428e678305f075b2b0027c1f39ea53feac",
+        "baselineGreen": true,
+        "namedFailures": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.session.WalkPlaybackTest",
+            "method": "endRemembersTheStep",
+            "kind": "failure"
+          }
+        ],
+        "sourceRestoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "restoredExit": 0
+      },
+      {
+        "name": "m69-s2-node-refused-view-not-shown",
+        "verdict": "caught",
+        "sourceSha256": "b87f6e02013a7506f879ffdc3d15af428e678305f075b2b0027c1f39ea53feac",
+        "baselineGreen": true,
+        "namedFailures": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.session.WalkPlaybackTest",
+            "method": "aRefusedViewIsNotShown",
+            "kind": "failure"
+          }
+        ],
+        "sourceRestoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "restoredExit": 0
+      },
+      {
+        "name": "m69-s2-resolver-changed-record-not-lit",
+        "verdict": "caught",
+        "sourceSha256": "a2a8398abf1def876f158aab96e9d9066b9f33857d60b22d0728a108d1f88914",
+        "baselineGreen": true,
+        "namedFailures": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.walk.WalkResolverTest",
+            "method": "aChangedRecordIsNotLit",
+            "kind": "failure"
+          }
+        ],
+        "sourceRestoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "restoredExit": 0
+      },
+      {
+        "name": "m69-s2-resolver-run-basis",
+        "verdict": "caught",
+        "sourceSha256": "a2a8398abf1def876f158aab96e9d9066b9f33857d60b22d0728a108d1f88914",
+        "baselineGreen": true,
+        "namedFailures": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.walk.WalkResolverTest",
+            "method": "theRunBasisCatchesAChartOnlyStep",
+            "kind": "failure"
+          }
+        ],
+        "sourceRestoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "restoredExit": 0
+      },
+      {
+        "name": "m69-s2-resolver-undrawn-not-lit",
+        "verdict": "caught",
+        "sourceSha256": "a2a8398abf1def876f158aab96e9d9066b9f33857d60b22d0728a108d1f88914",
+        "baselineGreen": true,
+        "namedFailures": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.walk.WalkResolverTest",
+            "method": "anUndrawnChartIsNotLit",
+            "kind": "failure"
+          }
+        ],
+        "sourceRestoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "restoredExit": 0
+      },
+      {
+        "name": "m69-s2-resolver-missing-node",
+        "verdict": "caught",
+        "sourceSha256": "a2a8398abf1def876f158aab96e9d9066b9f33857d60b22d0728a108d1f88914",
+        "baselineGreen": true,
+        "namedFailures": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.walk.WalkResolverTest",
+            "method": "aRenamedNodeIsUnresolved",
+            "kind": "failure"
+          }
+        ],
+        "sourceRestoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "restoredExit": 0
+      },
+      {
+        "name": "m69-s2-resolver-external-unresolved",
+        "verdict": "caught",
+        "sourceSha256": "a2a8398abf1def876f158aab96e9d9066b9f33857d60b22d0728a108d1f88914",
+        "baselineGreen": true,
+        "namedFailures": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.walk.WalkResolverTest",
+            "method": "externalSeriesAreUnresolved",
+            "kind": "failure"
+          }
+        ],
+        "sourceRestoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "restoredExit": 0
+      },
+      {
+        "name": "m69-s2-resolver-graph-digest",
+        "verdict": "caught",
+        "sourceSha256": "a2a8398abf1def876f158aab96e9d9066b9f33857d60b22d0728a108d1f88914",
+        "baselineGreen": true,
+        "namedFailures": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.walk.WalkResolverTest",
+            "method": "aChangedGraphIsHistorical",
+            "kind": "failure"
+          }
+        ],
+        "sourceRestoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "restoredExit": 0
+      },
+      {
+        "name": "m69-s2-presenter-filter-dimensions",
+        "verdict": "caught",
+        "sourceSha256": "0d08a2151f253d2c221ced23849f0bbeccfebab1093ce430ea56eccb04db800b",
+        "baselineGreen": true,
+        "namedFailures": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.ui.WalkPresenterTest",
+            "method": "aStepFilterIsOneChange",
+            "kind": "failure"
+          }
+        ],
+        "sourceRestoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "restoredExit": 0
+      },
+      {
+        "name": "m69-s2-presenter-closed-chart-not-opened",
+        "verdict": "caught",
+        "sourceSha256": "0d08a2151f253d2c221ced23849f0bbeccfebab1093ce430ea56eccb04db800b",
+        "baselineGreen": true,
+        "namedFailures": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.ui.WalkPresenterTest",
+            "method": "aClosedChartIsNotOpened",
+            "kind": "failure"
+          }
+        ],
+        "sourceRestoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "restoredExit": 0
+      },
+      {
+        "name": "m69-s2-presenter-focus-digest",
+        "verdict": "caught",
+        "sourceSha256": "0d08a2151f253d2c221ced23849f0bbeccfebab1093ce430ea56eccb04db800b",
+        "baselineGreen": true,
+        "namedFailures": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.ui.WalkPresenterTest",
+            "method": "aFocusIsBoundToItsDefinition",
+            "kind": "failure"
+          }
+        ],
+        "sourceRestoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "restoredExit": 0
+      },
+      {
+        "name": "m69-s2-chart-stale-size",
+        "verdict": "caught",
+        "sourceSha256": "4a2911b5b16b121b979151d521378f8029d4b3c9bb8fe947eb40e796f200ecbd",
+        "baselineGreen": true,
+        "namedFailures": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.ui.ChartDrawnFactFrameTest",
+            "method": "theDrawnFactFollowsThePaint",
+            "kind": "failure"
+          }
+        ],
+        "sourceRestoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "restoredExit": 0
+      },
+      {
+        "name": "m69-s2-chart-stale-data",
+        "verdict": "caught",
+        "sourceSha256": "4a2911b5b16b121b979151d521378f8029d4b3c9bb8fe947eb40e796f200ecbd",
+        "baselineGreen": true,
+        "namedFailures": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.ui.ChartDrawnFactFrameTest",
+            "method": "theDrawnFactFollowsThePaint",
+            "kind": "failure"
+          }
+        ],
+        "sourceRestoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "restoredExit": 0
+      },
+      {
+        "name": "m69-s2-chart-no-room-named",
+        "verdict": "caught",
+        "sourceSha256": "4a2911b5b16b121b979151d521378f8029d4b3c9bb8fe947eb40e796f200ecbd",
+        "baselineGreen": true,
+        "namedFailures": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.ui.ChartDrawnFactFrameTest",
+            "method": "theDrawnFactFollowsThePaint",
+            "kind": "failure"
+          }
+        ],
+        "sourceRestoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "restoredExit": 0
+      },
+      {
+        "name": "m69-s2-chart-unpainted-not-settled",
+        "verdict": "caught",
+        "sourceSha256": "4a2911b5b16b121b979151d521378f8029d4b3c9bb8fe947eb40e796f200ecbd",
+        "baselineGreen": true,
+        "namedFailures": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.ui.ChartDrawnFactFrameTest",
+            "method": "theDrawnFactFollowsThePaint",
+            "kind": "failure"
+          }
+        ],
+        "sourceRestoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "restoredExit": 0
+      },
+      {
+        "name": "m69-s3-popup-never-dismisses",
+        "verdict": "caught",
+        "sourceSha256": "2bf86a2d302c6d5b33f0afd4cf85556cb4fee24e45911f2942bd2516849baf07",
+        "baselineGreen": true,
+        "namedFailures": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.ui.WalkPlaybackFrameTest",
+            "method": "theSaveMenuSavesWhatIsLit",
+            "kind": "failure"
+          }
+        ],
+        "sourceRestoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "restoredExit": 0
+      },
+      {
+        "name": "m69-s3-strip-before-dismissal",
+        "verdict": "caught",
+        "sourceSha256": "2bf86a2d302c6d5b33f0afd4cf85556cb4fee24e45911f2942bd2516849baf07",
+        "baselineGreen": true,
+        "namedFailures": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.ui.WalkPlaybackFrameTest",
+            "method": "theStripStepsAndEnds",
+            "kind": "failure"
+          }
+        ],
+        "sourceRestoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "restoredExit": 0
+      },
+      {
+        "name": "m69-s3-menu-close-swallowed",
+        "verdict": "caught",
+        "sourceSha256": "2bf86a2d302c6d5b33f0afd4cf85556cb4fee24e45911f2942bd2516849baf07",
+        "baselineGreen": true,
+        "namedFailures": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.ui.WalkPlaybackFrameTest",
+            "method": "theSaveMenuSavesWhatIsLit",
+            "kind": "failure"
+          }
+        ],
+        "sourceRestoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "restoredExit": 0
+      },
+      {
+        "name": "m69-s3-own-light-does-not-end",
+        "verdict": "caught",
+        "sourceSha256": "89723f08b52d03345f7ea83a128aea24aac445eae791beb2b6446316ec2f96c8",
+        "baselineGreen": true,
+        "namedFailures": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.ui.WalkPlaybackFrameTest",
+            "method": "theStripStepsAndEnds",
+            "kind": "failure"
+          }
+        ],
+        "sourceRestoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "restoredExit": 0
+      },
+      {
+        "name": "m69-s3-dismissal-reports-end",
+        "verdict": "caught",
+        "sourceSha256": "89723f08b52d03345f7ea83a128aea24aac445eae791beb2b6446316ec2f96c8",
+        "baselineGreen": true,
+        "namedFailures": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.ui.WalkPlaybackFrameTest",
+            "method": "theStripStepsAndEnds",
+            "kind": "failure"
+          }
+        ],
+        "sourceRestoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "restoredExit": 0
+      },
+      {
+        "name": "m69-s3-saved-by-a-person",
+        "verdict": "caught",
+        "sourceSha256": "89723f08b52d03345f7ea83a128aea24aac445eae791beb2b6446316ec2f96c8",
+        "baselineGreen": true,
+        "namedFailures": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.ui.WalkPlaybackFrameTest",
+            "method": "theSaveMenuSavesWhatIsLit",
+            "kind": "failure"
+          }
+        ],
+        "sourceRestoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "restoredExit": 0
+      },
+      {
+        "name": "m69-s3-bind-graph-digest",
+        "verdict": "caught",
+        "sourceSha256": "20120e631d2bbd433aadec9d2dd4fbbd2920940b1ab01bd5fdd5525133987b9b",
+        "baselineGreen": true,
+        "namedFailures": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.ui.WalkPlaybackFrameTest",
+            "method": "theSaveMenuSavesWhatIsLit",
+            "kind": "failure"
+          }
+        ],
+        "sourceRestoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "restoredExit": 0
+      },
+      {
+        "name": "m69-s3-save-generation-check",
+        "verdict": "caught",
+        "sourceSha256": "20120e631d2bbd433aadec9d2dd4fbbd2920940b1ab01bd5fdd5525133987b9b",
+        "baselineGreen": true,
+        "namedFailures": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.ui.WalkAuthoringTest",
+            "method": "aSaveAcrossAGenerationIsRefused",
+            "kind": "failure"
+          }
+        ],
+        "sourceRestoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "restoredExit": 0
+      },
+      {
+        "name": "m69-s3-capture-excludes-unwalkable",
+        "verdict": "caught",
+        "sourceSha256": "20120e631d2bbd433aadec9d2dd4fbbd2920940b1ab01bd5fdd5525133987b9b",
+        "baselineGreen": true,
+        "namedFailures": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.ui.WalkAuthoringTest",
+            "method": "aCaptureNamesWhatItCannotSave",
+            "kind": "failure"
+          }
+        ],
+        "sourceRestoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "restoredExit": 0
+      },
+      {
+        "name": "m69-s3-replace-keeps-author",
+        "verdict": "caught",
+        "sourceSha256": "20120e631d2bbd433aadec9d2dd4fbbd2920940b1ab01bd5fdd5525133987b9b",
+        "baselineGreen": true,
+        "namedFailures": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.ui.WalkAuthoringTest",
+            "method": "aSaveStoresAndPersists",
+            "kind": "failure"
+          }
+        ],
+        "sourceRestoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "restoredExit": 0
+      },
+      {
+        "name": "m69-s4-one-operation",
+        "verdict": "caught",
+        "sourceSha256": "2fcc5b8a0db93f0fa2937b8924abd2d714a942c18188564526043716ce2b994e",
+        "baselineGreen": true,
+        "namedFailures": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.ui.WalkVerbTest",
+            "method": "oneOperationPerCall",
+            "kind": "failure"
+          }
+        ],
+        "sourceRestoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "restoredExit": 0
+      },
+      {
+        "name": "m69-s4-alien-fields-refused",
+        "verdict": "caught",
+        "sourceSha256": "2fcc5b8a0db93f0fa2937b8924abd2d714a942c18188564526043716ce2b994e",
+        "baselineGreen": true,
+        "namedFailures": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.ui.WalkVerbTest",
+            "method": "oneOperationPerCall",
+            "kind": "failure"
+          }
+        ],
+        "sourceRestoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "restoredExit": 0
+      },
+      {
+        "name": "m69-s4-saved-by-the-assistant",
+        "verdict": "caught",
+        "sourceSha256": "2fcc5b8a0db93f0fa2937b8924abd2d714a942c18188564526043716ce2b994e",
+        "baselineGreen": true,
+        "namedFailures": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.ui.WalkVerbTest",
+            "method": "aSaveIsBoundAndAttributed",
+            "kind": "failure"
+          }
+        ],
+        "sourceRestoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "restoredExit": 0
+      },
+      {
+        "name": "m69-s4-observational-needs-log",
+        "verdict": "caught",
+        "sourceSha256": "2fcc5b8a0db93f0fa2937b8924abd2d714a942c18188564526043716ce2b994e",
+        "baselineGreen": true,
+        "namedFailures": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.ui.WalkVerbTest",
+            "method": "observationalStepsNeedALog",
+            "kind": "failure"
+          }
+        ],
+        "sourceRestoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "restoredExit": 0
+      },
+      {
+        "name": "m69-s4-delete-ends-showing",
+        "verdict": "caught",
+        "sourceSha256": "2fcc5b8a0db93f0fa2937b8924abd2d714a942c18188564526043716ce2b994e",
+        "baselineGreen": true,
+        "namedFailures": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.ui.WalkVerbTest",
+            "method": "deletingTheShowingWalkEndsIt",
+            "kind": "failure"
+          }
+        ],
+        "sourceRestoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "restoredExit": 0
+      },
+      {
+        "name": "m69-s4-step-counted-from-1",
+        "verdict": "caught",
+        "sourceSha256": "2fcc5b8a0db93f0fa2937b8924abd2d714a942c18188564526043716ce2b994e",
+        "baselineGreen": true,
+        "namedFailures": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.ui.WalkVerbTest",
+            "method": "playReportsAndReadsBack",
+            "kind": "failure"
+          }
+        ],
+        "sourceRestoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "restoredExit": 0
+      },
+      {
+        "name": "m69-s4-play-reads-the-session",
+        "verdict": "caught",
+        "sourceSha256": "2fcc5b8a0db93f0fa2937b8924abd2d714a942c18188564526043716ce2b994e",
+        "baselineGreen": true,
+        "namedFailures": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.ui.WalkVerbTest",
+            "method": "playReportsAndReadsBack",
+            "kind": "failure"
+          }
+        ],
+        "sourceRestoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "restoredExit": 0
+      },
+      {
+        "name": "m69-s4-context-warns-other-run",
+        "verdict": "caught",
+        "sourceSha256": "2fcc5b8a0db93f0fa2937b8924abd2d714a942c18188564526043716ce2b994e",
+        "baselineGreen": true,
+        "namedFailures": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.ui.WalkVerbTest",
+            "method": "context",
+            "kind": "failure"
+          }
+        ],
+        "sourceRestoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "restoredExit": 0
+      },
+      {
+        "name": "m69-s4-read-identity-per-operation",
+        "verdict": "caught",
+        "sourceSha256": "4f9c212260d799e9477c834650b7539d1d79604dcf7dde67b4df540e8c64de83",
+        "baselineGreen": true,
+        "namedFailures": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.ui.WalkVerbTest",
+            "method": "readIdentityPolicyPerOperation",
+            "kind": "failure"
+          }
+        ],
+        "sourceRestoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "restoredExit": 0
+      },
+      {
+        "name": "m69-s4-tab-uses-the-verb-path",
+        "verdict": "caught",
+        "sourceSha256": "89723f08b52d03345f7ea83a128aea24aac445eae791beb2b6446316ec2f96c8",
+        "baselineGreen": true,
+        "namedFailures": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.ui.WalkVerbFrameTest",
+            "method": "theVerbAndTheTabAreOnePath",
+            "kind": "failure"
+          }
+        ],
+        "sourceRestoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "restoredExit": 0
+      },
+      {
+        "name": "m69-s4-project-panel-count",
+        "verdict": "caught",
+        "sourceSha256": "67a99190fef7bed0b7aa14be98b1f7f01812e42d3d9db1aaaa3cabd25f2b666e",
+        "baselineGreen": true,
+        "namedFailures": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.ui.WalkVerbFrameTest",
+            "method": "theVerbAndTheTabAreOnePath",
+            "kind": "failure"
+          }
+        ],
+        "sourceRestoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "restoredExit": 0
+      },
+      {
+        "name": "m69-s4-list-refreshes-on-save",
+        "verdict": "caught",
+        "sourceSha256": "89723f08b52d03345f7ea83a128aea24aac445eae791beb2b6446316ec2f96c8",
+        "baselineGreen": true,
+        "namedFailures": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.ui.WalkVerbFrameTest",
+            "method": "theVerbAndTheTabAreOnePath",
+            "kind": "failure"
+          }
+        ],
+        "sourceRestoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "restoredExit": 0
+      },
+      {
+        "name": "m69-s4-walk-is-destructive-to-mcp",
+        "verdict": "caught",
+        "sourceSha256": "b6eccb404080ecda577eece4d8250208dab7758034bc769eb0994cf1e49b17c8",
+        "baselineGreen": true,
+        "namedFailures": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.mcp.McpToolsTest",
+            "method": "exposesExactlyTheVerbSchemasVerbSet",
+            "kind": "failure"
+          }
+        ],
+        "sourceRestoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "restoredExit": 0
+      }
+    ]
+  },
+  {
+    "stage": "representation fix",
+    "engine": "fast",
+    "seconds": 8.0,
+    "runs": [
+      {
+        "name": "m69-review-record-representation",
+        "verdict": "caught",
+        "sourceSha256": "18aa4a086f8c81cba81cafbbe82f4704ac9f805ca17dfa7bcc15c4f9882f9d59",
+        "baselineGreen": true,
+        "namedFailures": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.walk.WalkResolverTest",
+            "method": "recordRepresentationMustBeKnownAndMatch",
+            "kind": "failure"
+          }
+        ],
+        "sourceRestoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "restoredExit": 0
+      },
+      {
+        "name": "m69-s2-resolver-changed-record-not-lit",
+        "verdict": "caught",
+        "sourceSha256": "18aa4a086f8c81cba81cafbbe82f4704ac9f805ca17dfa7bcc15c4f9882f9d59",
+        "baselineGreen": true,
+        "namedFailures": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.walk.WalkResolverTest",
+            "method": "aChangedRecordIsNotLit",
+            "kind": "failure"
+          }
+        ],
+        "sourceRestoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "restoredExit": 0
+      },
+      {
+        "name": "m69-s2-resolver-run-basis",
+        "verdict": "caught",
+        "sourceSha256": "18aa4a086f8c81cba81cafbbe82f4704ac9f805ca17dfa7bcc15c4f9882f9d59",
+        "baselineGreen": true,
+        "namedFailures": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.walk.WalkResolverTest",
+            "method": "theRunBasisCatchesAChartOnlyStep",
+            "kind": "failure"
+          }
+        ],
+        "sourceRestoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "restoredExit": 0
+      }
+    ]
+  }
+]
