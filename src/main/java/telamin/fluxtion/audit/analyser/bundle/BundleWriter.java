@@ -138,6 +138,7 @@ public final class BundleWriter {
             Files.deleteIfExists(job.out());
             throw e;
         } finally {
+            forget(folder);            // the owner channel closed with the try-with-resources above
             deleteTree(folder);
         }
     }
@@ -154,6 +155,41 @@ public final class BundleWriter {
         reapCorpses(parent);
     }
 
+    /**
+     * The markers this JVM holds, by REAL path (reaper review, 2026-09-28). On POSIX an {@code fcntl} lock belongs to
+     * the process, not the descriptor, and {@link java.nio.channels.FileLock} says as much: closing ANY channel to the
+     * file can release every lock the JVM holds on it. So the reaper must never open, or even read, a marker this JVM
+     * owns: that would disarm a live capture, silently ({@code FileLock.isValid()} still says true), and the next
+     * analyser's reaper would find it free and delete a capture still running. Ownership is therefore settled here,
+     * in memory, before anything touches the file.
+     *
+     * <p>Keyed on {@code toRealPath()}, which resolves without opening the file: the same folder reached two ways (a
+     * symlinked exchange directory, {@code /tmp} and {@code /private/tmp}) is one key, where a normalised spelling
+     * would be two, and the second would open the marker. An entry lapses when its channel closes, so a capture that
+     * ends by any route stops being skipped.
+     */
+    private static final java.util.Map<Path, java.nio.channels.FileChannel> OWNED = new java.util.concurrent.ConcurrentHashMap<>();
+
+    /** Whether this JVM holds {@code marker}: decided without opening it. */
+    static boolean ownedHere(Path marker) {
+        Path key;
+        try {
+            key = marker.toRealPath();
+        } catch (IOException gone) {
+            return false;                                  // no marker there: nothing to own, and nothing to open
+        }
+        var ch = OWNED.get(key);
+        if (ch == null) return false;
+        if (ch.isOpen()) return true;
+        OWNED.remove(key, ch);
+        return false;
+    }
+
+    /** Forget a finished capture's claim: tidying, since {@link #ownedHere} already lapses with the channel. */
+    static void forget(Path folder) {
+        OWNED.values().removeIf(ch -> !ch.isOpen());
+    }
+
     /** Create the owner marker, name this host in it, and lock it for as long as the returned channel is open. */
     static java.nio.channels.FileChannel claim(Path folder) throws IOException {
         var ch = java.nio.channels.FileChannel.open(folder.resolve(OWNER),
@@ -162,6 +198,7 @@ public final class BundleWriter {
             ch.lock();
             ch.write(java.nio.ByteBuffer.wrap(HOST.getBytes(StandardCharsets.UTF_8)));
             ch.force(true);
+            OWNED.put(folder.resolve(OWNER).toRealPath(), ch);
             return ch;
         } catch (IOException | RuntimeException e) {
             ch.close();
@@ -181,6 +218,9 @@ public final class BundleWriter {
         }
         for (Path p : candidates) {
             Path marker = p.resolve(OWNER);
+            // FIRST, before anything opens or reads this file: even Files.readString would close a descriptor to it
+            // and, on POSIX, release this JVM's own lock (see OWNED)
+            if (ownedHere(marker)) continue;
             String host;
             try {
                 host = Files.readString(marker, StandardCharsets.UTF_8);

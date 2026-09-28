@@ -2318,6 +2318,10 @@ starter 1.0.74, and M19.4/M19.8 are archived; that order is kept in [`completed/
       is still refused (spec §13.2).
     - [EB.F7] ☐ **Rule 9: the walk SAVE's generation check is in the frame** (`ui/WalkAuthoring.java`), not a node.
       Capture applies the rule in its node; the walk save should too.
+    - [EB.R5] ☑ **The reaper disarmed its own capture** (reaper review, `6d692032`): reaping closed a descriptor to a
+      marker this JVM owned, which on POSIX releases the lock. Fixed by real-path ownership, settled before the file
+      is touched. Blast radius: two analysers on one machine, one exchange directory; it failed closed (no bundle,
+      not a wrong one). Spec §13.7.
     - [EB.F9] ☐ **Before merge (convergence review):** provoke the moved-generation rule from the frame by ANOTHER
       LOG OPENED off the event thread; today the frame provokes only a close in the same task.
     - [EB.F10] ☐ **Before merge:** an excerpt of a log that is not time ordered. "First at or after, to last at or

@@ -474,3 +474,31 @@ second process, and the witness for "death releases it" is that process exiting.
 ANOTHER LOG OPENED off the event thread, not only by a close in the same task; an excerpt of a log that is not time
 ordered; and `flush()` inside an effect under a read-only profile, a project switch in flight, and `preSave`
 syncing open charts (tracker EB.F9–F11).
+
+### 13.7 After the reaper review (`review/evidence-bundle-reaper`, `6d692032`): the reaper disarmed its own capture
+
+**Taken, reimplemented.** On POSIX an `fcntl` lock belongs to the process, not the descriptor, and
+`java.nio.channels.FileLock` warns of it: closing any channel to a file can release every lock the JVM holds on it.
+`reapCorpses` opened, and even read, every candidate marker, including this JVM's own. It correctly concluded a
+capture was live, then closed the channel and released that capture's lock. Nothing in the holding JVM can see this:
+`FileLock.isValid()` still says true. Another analyser's reaper would then find the lock free and delete a capture
+still running. Measured from a second process: `held` before our own reap, `free` after.
+
+**Severity (the review's, accepted):** an issue, not a demo blocker. It needs two analysers on one machine sharing
+an exchange directory, and it fails closed: the folder vanishes, `write()` throws, the output is deleted, and no
+bundle is produced.
+
+**Fix:** ownership is settled in memory before anything touches the file.
+- `claim` records its channel under the marker's **real path**, and the reaper tests that first. `toRealPath()`
+  resolves without opening the file, and one folder reached two ways (a symlinked exchange directory, `/tmp` and
+  `/private/tmp`) is one key. A normalised spelling would be two keys, and the second would open the marker.
+- An entry lapses when its channel closes, so a capture that ends by any route becomes reapable.
+- Nothing else in the loop opens the marker before the check. The bundle's members are packed from `bundle/`, so
+  packing never reads it either.
+
+**Witnesses, all through a second process:**
+- the review's `ReapDoesNotDisarmItsOwnLockTest` (red before the fix, on this branch);
+- a symlinked-path case;
+- a SIGKILLed neighbour's folder reaped once the OS releases its lock, the "however it ends" half no test had
+  covered.
+

@@ -72,6 +72,23 @@ class BundleWriterReapTest {
     }
 
     @Test
+    @DisplayName("a neighbour KILLED outright (SIGKILL, no cleanup) leaves a folder that is then reaped: however it ends")
+    void aKilledNeighboursFolderIsReaped(@TempDir Path dir) throws Exception {
+        Path live = folder(dir, ".capture-killed-outright", BundleWriter.HOST);
+        Process holder = new ProcessBuilder(Path.of(System.getProperty("java.home"), "bin", "java").toString(),
+                "-cp", System.getProperty("java.class.path"), CaptureLockHolder.class.getName(),
+                live.resolve(BundleWriter.OWNER).toString()).redirectErrorStream(true).start();
+        var in = new BufferedReader(new InputStreamReader(holder.getInputStream(), StandardCharsets.UTF_8));
+        assertEquals("locked", in.readLine(), "control: the neighbour holds its lock");
+        BundleWriter.delete(Files.writeString(dir.resolve("a.fexp"), "DEMO"));
+        assertTrue(Files.exists(live), "control: while it lives, it is not reaped");
+        holder.destroyForcibly();                          // SIGKILL on POSIX: no finally, no close, nothing
+        assertTrue(holder.waitFor(30, TimeUnit.SECONDS));
+        BundleWriter.delete(Files.writeString(dir.resolve("b.fexp"), "DEMO"));
+        assertFalse(Files.exists(live), "the OS released the dead process's lock, so its folder is a corpse");
+    }
+
+    @Test
     @DisplayName("a live capture in THIS JVM survives")
     void aLiveCaptureInThisJvmSurvives(@TempDir Path dir) throws Exception {
         Path live = folder(dir, ".capture-mine", BundleWriter.HOST);

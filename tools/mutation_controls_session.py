@@ -1309,8 +1309,9 @@ CONTROLS = [
     ('cv-a-derived-table-is-left-out', BUNDLE_PROFILE,
      '                if (s.call().containsKey("recordIndex")) {\n', '                if (false) {\n',
      'BundleExcerptTest#aDerivedTableIsLeftOut'),
-    ('cv-the-working-folder-always-goes', WRITER,
-     '        } finally {\n            deleteTree(folder);\n', '        } finally {\n',
+    ('cv-the-working-folder-always-goes', WRITER,     # re-anchored after the reaper review's forget() in the same finally
+     '            forget(folder);            // the owner channel closed with the try-with-resources above\n            deleteTree(folder);\n',
+     '            forget(folder);            // the owner channel closed with the try-with-resources above\n',
      'BundleExcerptTest#aFailedCaptureLeavesNothing'),
     ('cv-delete-takes-a-leftover-folder', WRITER,
      '            if (!ownerDead) continue;\n            deleteTree(p);\n', '            if (!ownerDead) continue;\n',
@@ -1340,7 +1341,9 @@ CONTROLS = [
      'BundleWriterReapTest#anotherHostsFolderIsNeverReaped'),
     ('cv-a-capture-holds-its-claim', WRITER,
      '            ch.lock();\n            ch.write(', '            ch.write(',
-     'BundleWriterReapTest#aClaimedFolderSurvives'),
+     # the in-JVM ownership check now skips our own folder with or without the lock; the lock is what ANOTHER
+     # process sees, so the witness asks one (re-pointed after the reaper review; the old witness survived)
+     'ReapDoesNotDisarmItsOwnLockTest#reapingDoesNotReleaseThisJvmsLock'),
     ('cv-a-capture-reaps-before-it-starts', WRITER,
      '        reapCorpses(parent);\n        Path folder = Files.createTempDirectory', '        Path folder = Files.createTempDirectory',
      'BundleWriterReapTest#aWrittenBundleCarriesNoMarker'),
@@ -1372,4 +1375,20 @@ CONTROLS = [
     ('cv-the-manifest-says-read-so-far', WRITER,
      '                    cut.put("readSoFar", true);\n', '',
      'EvidenceCaptureFrameTest#aGrowingLogBundlesWhatWasRead'),
+    # Reaper review (review/evidence-bundle-reaper, 6d692032): reaping must never open a marker this JVM owns, because
+    # on POSIX closing ANY descriptor to it releases the JVM's own lock. Only a second process can see the difference,
+    # so every witness here asks one.
+    ('cv-reap-never-opens-its-own-marker', WRITER,
+     '            if (ownedHere(marker)) continue;\n            String host;', '            String host;',
+     'ReapDoesNotDisarmItsOwnLockTest#reapingDoesNotReleaseThisJvmsLock'),
+    ('cv-a-claim-records-ownership', WRITER,
+     '            OWNED.put(folder.resolve(OWNER).toRealPath(), ch);\n', '',
+     'ReapDoesNotDisarmItsOwnLockTest#ownershipIsSettledByPath'),
+    ('cv-ownership-is-by-real-path', WRITER,
+     '            key = marker.toRealPath();\n',
+     '            key = marker.toAbsolutePath().normalize(); if (key == null) marker.toRealPath();\n',   # still compiles
+     'ReapDoesNotDisarmItsOwnLockTest#ownershipSurvivesAnotherSpellingOfThePath'),
+    ('cv-ownership-lapses-with-the-channel', WRITER,
+     '        if (ch.isOpen()) return true;\n', '        if (true) return true;\n',
+     'BundleWriterReapTest#aClaimedFolderSurvives'),
 ]
