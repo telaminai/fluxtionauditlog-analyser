@@ -73,4 +73,52 @@ class ContextSurfacesFrameTest {
             assertEquals(banner.get(), surfaces.get("identityBanner"));
         }
     }
+
+    // ---- step 2: context's log.identity, branches 2 and 3 — characterised BEFORE the fold, unchanged after it ------
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> identity(Map<String, Object> ctx) {
+        return ctx.get("log") instanceof Map<?, ?> log ? (Map<String, Object>) ((Map<String, Object>) log).get("identity") : null;
+    }
+
+    @Test
+    @DisplayName("branch 2: a session verdict is stated as log.identity {state, reason}, and the banner view agrees")
+    @SuppressWarnings("unchecked")
+    void aSessionVerdictIsStated(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        try (var f = new AsyncOpenInterleavingFrameTest.Frame(tmp)) {
+            onEdt(() -> { f.frame.setSize(1200, 800); f.frame.setVisible(true); });
+            onEdt(() -> render(f.ex, "open", Map.of("log", Path.of(LOG).toAbsolutePath().toString())));
+            awaitLoaded(f.ex);
+            SessionDriver session = (SessionDriver) field(f.frame, "session");
+            assertNull(identity(context(f)), "control: an unchanged file with no verdict states no identity at all");
+
+            onEdt(() -> session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogIdentityObserved(
+                    session.snapshot().logGeneration(), "REPLACEMENT", "DEMO replaced on disk")));
+            Map<String, Object> ctx = context(f);
+            assertEquals(Map.of("state", "replacement", "reason", "DEMO replaced on disk"), identity(ctx),
+                    "the session's verdict, as context has always worded it");
+            var banner = (Map<String, Object>) ((Map<String, Object>) ctx.get("surfaces")).get("identityBanner");
+            assertEquals("REPLACEMENT", banner.get("verdict"), "and the banner was told the same verdict");
+        }
+    }
+
+    @Test
+    @DisplayName("branch 3: a store that never looks at its file is stated 'not assessed', never read as a check that passed")
+    void aStoreThatDoesNotLookIsNotAssessed(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        var reader = new AsyncOpenInterleavingFrameTest.DelayedReader(false, "DEMO_node");
+        reader.release.countDown();                                        // no delay: read at once
+        java.nio.file.Path file = java.nio.file.Files.writeString(tmp.resolve("demo.slow"), "placeholder");
+        try (var f = new AsyncOpenInterleavingFrameTest.Frame(tmp, reader)) {
+            onEdt(() -> { f.frame.setSize(1200, 800); f.frame.setVisible(true); });
+            onEdt(() -> render(f.ex, "open", Map.of("log", file.toString())));
+            awaitLoaded(f.ex);
+            Map<String, Object> id = identity(context(f));
+            assertNotNull(id, "a store that does not look must SAY so — its silence would read as a passed check");
+            assertEquals("not assessed", id.get("state"));
+            assertEquals("this log's reader does not report whether its file has changed since it was read, so no change "
+                    + "being shown is not evidence that there was none", id.get("reason"));
+        }
+    }
 }
