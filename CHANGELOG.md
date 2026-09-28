@@ -6,6 +6,15 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Added
+
+- **Evidence bundles from the command line**: `--pack <folder> <out.fexp>` writes one file with a manifest of
+  every member's sha256 and size. `--verify <bundle.fexp>` checks it and prints its identity (the manifest's
+  sha256). `--unpack <bundle.fexp> [--into <dir>]` verifies, then extracts it to a fresh working copy and never
+  modifies the received file. Verification refuses a changed, missing, unlisted, duplicated or escaping member
+  and names it. The bundle is unsigned: it shows that nothing changed, not who sent it, and every output says
+  so. It holds an investigation to show, not a replay.
+
 ### Changed
 
 - **A spotlight walk states the "not re-checked" caveat once**, on its first step that rests on records or

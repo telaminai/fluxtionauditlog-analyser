@@ -32,7 +32,13 @@ public class Main {
     static final String REST_FLAG = "--rest";
     public static final String REST_PROPERTY = "analyser.rest";
 
+    /** Evidence bundle v1 (spec-evidence-bundle-packaging.md r2 §3.3): headless, before any UI, like {@code --mcp}. */
+    static final java.util.Set<String> BUNDLE_FLAGS = java.util.Set.of("--pack", "--verify", "--unpack");
+
     public static void main(String[] args) {
+        if (args.length > 0 && BUNDLE_FLAGS.contains(args[0])) {
+            System.exit(bundle(args, System.out, System.err));
+        }
         // BEFORE anything else: the bridge is headless and must touch no Swing/AWT class, so this has to
         // come ahead of the theme/taskbar/frame bootstrap below (spec-assistant-actions-mcp §9)
         for (String arg : args) {
@@ -95,6 +101,61 @@ public class Main {
         });
     }
 
+    /**
+     * {@code --pack <folder> <out.fexp>}, {@code --verify <bundle.fexp>}, {@code --unpack <bundle.fexp> [--into <dir>]}.
+     * Returns the exit code: 0 ok, 1 refused, 2 usage. Everything it prints states the limits, and nothing it prints
+     * says or implies that the sender is authenticated (D-3).
+     */
+    static int bundle(String[] args, java.io.PrintStream out, java.io.PrintStream err) {
+        String version = ReleaseNotes.version();
+        try {
+            switch (args[0]) {
+                case "--pack" -> {
+                    if (args.length != 3) { err.println("usage: --pack <folder> <out.fexp>"); return 2; }
+                    String id = telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.pack(Path.of(args[1]), Path.of(args[2]),
+                            java.time.Instant.now(), version);
+                    out.println("packed " + args[2]);
+                    out.println("identity: " + id);
+                    limits(out);
+                    return 0;
+                }
+                case "--verify" -> {
+                    if (args.length != 2) { err.println("usage: --verify <bundle.fexp>"); return 2; }
+                    var v = telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.verify(Path.of(args[1]));
+                    return report(v, out, err);
+                }
+                default -> {
+                    Path into = Path.of(System.getProperty("user.home"), ".fluxtion-analyser", "bundles");
+                    if (args.length == 4 && "--into".equals(args[2])) into = Path.of(args[3]);
+                    else if (args.length != 2) { err.println("usage: --unpack <bundle.fexp> [--into <dir>]"); return 2; }
+                    var u = telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.unpack(Path.of(args[1]), into);
+                    int code = report(u.verification(), out, err);
+                    if (code == 0) out.println("working copy: " + u.workingCopy() + "  (the received bundle is unchanged)");
+                    return code;
+                }
+            }
+        } catch (java.io.IOException e) {
+            err.println("REFUSED: " + e.getMessage());
+            return 1;
+        }
+    }
+
+    private static int report(telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.Verification v,
+                              java.io.PrintStream out, java.io.PrintStream err) {
+        if (v.identity() != null) out.println("identity: " + v.identity());
+        if (!v.ok()) {
+            err.println("REFUSED: " + v.refusal());
+            return 1;
+        }
+        out.println("verified: " + v.members().size() + " members, each matching the manifest's sha256 and size");
+        limits(out);
+        return 0;
+    }
+
+    private static void limits(java.io.PrintStream out) {
+        for (String l : telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.LIMITS) out.println("limit: " + l);
+    }
+
     static boolean isHelpFlag(String arg) {
         return "--help".equals(arg) || "-h".equals(arg);
     }
@@ -136,6 +197,15 @@ public class Main {
                   analyser --rest [log] open the desktop app with the REST transport ON and no first-run
                                         dialog — for an agent starting the analyser on a fresh machine.
                                         The setting persists (Settings ▸ Assistant) and stdout says so.
+                  analyser --pack <folder> <out.fexp>
+                                        write an evidence bundle from a folder: a manifest of every
+                                        file's sha256 and size, then the files, in one zip
+                  analyser --verify <bundle.fexp>
+                                        check every member against the manifest; prints the bundle's
+                                        identity. It does NOT authenticate the sender (unsigned)
+                  analyser --unpack <bundle.fexp> [--into <dir>]
+                                        verify, then extract into a fresh working copy; nothing is
+                                        extracted if verification fails
                   analyser --help       show this message
                 """.formatted(ReleaseNotes.version());
     }

@@ -15,6 +15,8 @@ SESSION = J + 'session/'
 NODE = SESSION + 'node/'
 UI = J + 'ui/'
 PARSE = J + 'parse/'
+BUNDLE = 'src/main/java/telamin/fluxtion/audit/analyser/bundle/EvidenceBundle.java'
+MAIN = 'src/main/java/telamin/fluxtion/audit/analyser/Main.java'
 GRAPHML = 'src/main/resources/telamin/fluxtion/audit/analyser/analyser/session/generated/SessionProcessor.graphml'
 
 CONTROLS = [
@@ -1070,4 +1072,48 @@ CONTROLS = [
     ('eb-b1-context-publishes-the-generation', UI + 'MainFrame.java',
      '                if (session != null) log.put("generation", sessionSnapshot().logGeneration());\n', '',
      'ContextLogGenerationFrameTest#theGenerationIsPublishedAndMoves'),
+    # Evidence bundle v1, B2: the format and its CLI (spec-evidence-bundle-packaging.md r2 §3.3). The size check in
+    # read() has no control: a changed member of another length also fails its sha256, so removing the size check
+    # changes only the refusal's wording, never the verdict — an equivalent mutant, declared here.
+    ('eb-b2-refuses-a-changed-sha', BUNDLE,
+     '            if (!sha256(bytes).equals(m.sha256())) return refused(identity, "changed member: " + m.path() + " (sha256 differs)");\n', '',
+     'EvidenceBundleTest#membersThatDoNotMatchAreRefused'),
+    ('eb-b2-refuses-a-missing-member', BUNDLE,
+     '            if (bytes == null) return refused(identity, "missing member: " + m.path());\n',
+     '            if (bytes == null) continue;\n',
+     'EvidenceBundleTest#membersThatDoNotMatchAreRefused'),
+    ('eb-b2-refuses-an-unlisted-member', BUNDLE,
+     '            if (!seen.contains(name)) return refused(identity, "unlisted member: " + name);\n', '',
+     'EvidenceBundleTest#membersThatDoNotMatchAreRefused'),
+    ('eb-b2-refuses-a-dot-dot-segment', BUNDLE,
+     '            if (seg.isEmpty() || seg.equals(".") || seg.equals("..")) return "path escape: " + path;\n',
+     '            if (seg.equals(".")) return "path escape: " + path;\n',
+     'EvidenceBundleTest#escapingPathsAreRefused'),
+    ('eb-b2-refuses-a-backslash', BUNDLE,
+     'path.contains(":") || path.contains("\\\\")) return', 'path.contains(":")) return',
+     'EvidenceBundleTest#escapingPathsAreRefused'),
+    ('eb-b2-refuses-a-duplicate-entry', BUNDLE,
+     '                if (entries.put(name, bytes) != null) return refused(null, "duplicate member: " + name);\n',
+     '                entries.put(name, bytes);\n',
+     'EvidenceBundleTest#aDuplicateEntryIsRefused'),
+    ('eb-b2-refuses-another-format', BUNDLE,
+     '        if (!(format instanceof Number n) || n.intValue() != FORMAT) {\n',
+     '        if (!(format instanceof Number n)) {\n',
+     'EvidenceBundleTest#aBadManifestIsRefused'),
+    ('eb-b2-unpacks-nothing-on-refusal', BUNDLE,
+     '        if (!read.verification().ok()) return new Unpacked(read.verification(), null);\n', '',
+     'EvidenceBundleTest#unpackIsVerifiedFreshAndLeavesTheBundleAlone'),
+    ('eb-b2-the-clock-is-the-callers', BUNDLE,
+     '        m.put("createdAt", createdAt.toString());\n',
+     '        m.put("createdAt", Instant.now().toString());\n',
+     'EvidenceBundleTest#theIdentityIsPinnedAndDeterministic'),
+    ('eb-b2-verify-states-the-limits', MAIN,
+     '        out.println("verified: " + v.members().size() + " members, each matching the manifest\'s sha256 and size");\n'
+     '        limits(out);\n',
+     '        out.println("verified: " + v.members().size() + " members, each matching the manifest\'s sha256 and size");\n',
+     'MainBundleTest#theHappyPath'),
+    ('eb-b2-a-refusal-exits-one', MAIN,
+     '            err.println("REFUSED: " + v.refusal());\n            return 1;\n',
+     '            err.println("REFUSED: " + v.refusal());\n            return 0;\n',
+     'MainBundleTest#aRefusalExitsOne'),
 ]
