@@ -17,6 +17,8 @@ class WalkResolverTest {
 
     /** A world with records r0..r2, one chart "c", a graph with nodes a and b, all at known digests. */
     static final class World implements WalkResolver.Facts {
+        String representation = "HeapLogStore";
+        public String recordRepresentation() { return representation; }
         List<String> records = List.of("sha256:r0", "sha256:r1", "sha256:r2");
         List<String> run = List.of("sha256:run");
         Map<String, String> charts = Map.of("c", "sha256:def");
@@ -49,6 +51,28 @@ class WalkResolverTest {
         var r = v(t("records:row:1", "record", "sha256:r1"), new World());
         assertEquals(WalkIdentity.State.CURRENT, r.state());
         assertTrue(r.available());
+    }
+
+    @Test
+    @DisplayName("M69 review R4: equal text from a different or unknown representation is not current")
+    void recordRepresentationMustBeKnownAndMatch() {
+        World now = new World();
+        for (String saved : List.of("DEMO-other-representation", "")) {
+            var target = new WalkSpec.Target("records:row:1", "claim",
+                    new WalkSpec.Basis("record", "sha256:r1", saved));
+            var verdict = v(target, now);
+            assertEquals(WalkIdentity.State.UNRESOLVED, verdict.state(),
+                    "equal text must not certify a different or unknown record representation: " + saved);
+            assertFalse(verdict.available(), "an unbound representation must not light the record");
+            assertTrue(verdict.reason().contains("representation"), "the refusal must name its actual basis");
+        }
+        now.representation = null;
+        var unknown = v(t("records:row:1", "record", "sha256:r1"), now);
+        assertEquals(WalkIdentity.State.UNRESOLVED, unknown.state(), "unknown current representation is not equal");
+        now.representation = "HeapLogStore";
+        var matching = v(t("records:row:1", "record", "sha256:r1"), now);
+        assertEquals(WalkIdentity.State.CURRENT, matching.state(), "a known matching representation still works");
+        assertTrue(matching.available(), "the positive control remains available");
     }
 
     @Test

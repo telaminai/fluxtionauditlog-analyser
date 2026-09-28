@@ -234,6 +234,7 @@ final class WalkPresenter {
         List<String> runNow = WalkIdentity.runBasis(frame.runBasisNow());
         return new WalkResolver.Facts() {
             public int recordCount() { return store == null ? 0 : store.size(); }
+            public String recordRepresentation() { return store == null ? null : store.getClass().getSimpleName(); }
             public String recordDigest(int index) { return store == null ? null : WalkIdentity.recordDigest(store.rawText(index)); }
             public List<String> runBasis() { return runNow; }
             public String chartDefinitionDigest(String chart) {

@@ -11,7 +11,8 @@ import java.util.List;
  *
  * <p>The rules, per basis kind:
  * <ul>
- *   <li><b>record</b> — the record must be in range and its digest must match. A record whose digest differs, or was
+ *   <li><b>record</b> — the record must be in range, its representation known and equal, and its digest must match.
+ *       A record whose digest differs, or was
  *       never taken, is <b>not lit</b>: pointing at it would re-point the author's caption at other text (W-A5);</li>
  *   <li><b>chart</b> — lit only when it drew (§3.6); its state is the worse of its definition digest and the walk's run
  *       basis, and a chart with external series is unresolved, because its population is not the log's alone;</li>
@@ -29,6 +30,9 @@ public final class WalkResolver {
         int recordCount();
 
         String recordDigest(int index);
+
+        /** The current raw-text representation, or null when it is not established. */
+        String recordRepresentation();
 
         List<String> runBasis();
 
@@ -61,6 +65,11 @@ public final class WalkResolver {
                 if (index < 0 || index >= now.recordCount()) {
                     yield new Verdict(WalkIdentity.State.UNRESOLVED, false,
                             "record " + index + " is not in this log (" + now.recordCount() + " records)");
+                }
+                String representation = now.recordRepresentation();
+                if (representation == null || representation.isBlank() || !representation.equals(t.basis().representation())) {
+                    yield new Verdict(WalkIdentity.State.UNRESOLVED, false,
+                            "record " + index + "'s representation is unknown or differs from when this walk was saved");
                 }
                 WalkIdentity.State s = WalkIdentity.compare(t.basis().digest(), now.recordDigest(index));
                 yield switch (s) {

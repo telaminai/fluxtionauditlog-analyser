@@ -24,6 +24,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ### Fixed
 
+- Spotlight walks refuse to light a saved record when its raw-text representation is unknown or differs,
+  even when the text digest matches.
+
 - **A cleared topology no longer leaves its file's digest behind.** The topology panel's graph digest survived *Close
   graph* and a graph supplied by the log's source, so session recovery could record the previous graph's digest
   beside a different graph. The digest now belongs to the graph on screen, and is absent when none has an established
