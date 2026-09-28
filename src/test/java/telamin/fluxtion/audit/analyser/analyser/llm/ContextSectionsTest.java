@@ -268,8 +268,10 @@ class ContextSectionsTest {
     }
 
     static final int FULL_BYTES = 1709;
-    static final int MENUS_BYTES = 541;
-    static final int PAIRING_BYTES = 817;
+    // +11 each when the 'surfaces' section was added: the scope names every available section, so every
+    // PROJECTION pays for a section it did not ask for. The full response is unchanged, as it carries no scope.
+    static final int MENUS_BYTES = 552;
+    static final int PAIRING_BYTES = 828;
 
     private static int bytes(ActionResult r) {
         return r.toJson().getBytes(StandardCharsets.UTF_8).length;

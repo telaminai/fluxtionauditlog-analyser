@@ -61,8 +61,15 @@ public final class GraphTabs extends JPanel {
      * ({@link LogTablePanel#identityBannerText}), so the surfaces cannot disagree about whether the file changed;
      * this says only what that means for a chart.
      */
+    /** View-model spike: the words for a view the session has already decided to show. */
+    static String identityBannerText(telamin.fluxtion.audit.analyser.analyser.session.view.IdentityBannerView view) {
+        return view.shown() ? identityBannerText(view.verdict(), view.reason()) : null;
+    }
+
     static String identityBannerText(String verdict, String reason) {
-        if (LogTablePanel.identityBannerText(verdict, reason) == null) return null;
+        // PR #55 second element: the POLICY is view.shown(), decided in the node. This no longer asks
+        // LogTablePanel whether to draw — it only answers what this surface says when it does.
+        if (!telamin.fluxtion.audit.analyser.analyser.session.view.IdentityBannerView.warns(verdict)) return null;
         // Review O1: the verdict and the recovery lead, so a narrow pane still shows a complete sentence; the reason
         // follows, and the whole note is the tooltip.
         return "⚠ Charts not verified against the file on disk — reopen the log to redraw them · "

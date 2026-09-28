@@ -4102,7 +4102,7 @@ public final class MainFrame extends JFrame {
         boolean followable = !S3Source.isS3(location) && loaded.supportsFollow();
         driver.submit(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogOpened(opId, location, provenance,
                 arrival.ids(), arrival.scanned(), arrival.total(), level == null ? null : level.toString(),
-                provenanceSource, followable));
+                provenanceSource, followable, loaded.readThroughAssessed()));
         if (driver.processor().operationGate.accepted()) sessionLogGeneration = driver.snapshot().logGeneration();
         if (!driver.processor().operationGate.accepted()) {
             supersedeRecoveryLog(opId);
@@ -4591,11 +4591,8 @@ public final class MainFrame extends JFrame {
      */
     private void onSessionSnapshot(telamin.fluxtion.audit.analyser.analyser.session.SessionSnapshot next) {
         publishPairing();
-        // M68.5, the review's "table not suspended": the table states the session's file-identity verdict, from here
-        tablePanel.setIdentityNote(LogTablePanel.identityBannerText(next.logIdentity(), next.logIdentityReason()));
-        // M68.7 (owner, Q4): the charts and the detail pane state the same verdict, from the same snapshot
-        graphTabs.setIdentityNote(GraphTabs.identityBannerText(next.logIdentity(), next.logIdentityReason()));
-        detailPanel.setIdentityNote(DetailPanel.identityBannerText(next.logIdentity(), next.logIdentityReason()));
+        // M68.5/M68.7 were three hand-fed call sites here. The identityBannerView node decides WHEN the verdict
+        // has changed and RenderIdentityBannerEffect draws it on all three — see identityBannerBackends.
         renderFollow(next);                      // M44.5: Follow's controls and its poll timer
         renderLogEvidence(next);                 // M44.5: the log's line, tooltip, Reports tab and time-order report
     }
@@ -4644,6 +4641,35 @@ public final class MainFrame extends JFrame {
                         @Override public String name() { return "swing"; }
                         @Override public void render(telamin.fluxtion.audit.analyser.analyser.session.view.StatusLineView v) {
                             status.setText(statusLineText(v));
+                        }
+                    });
+
+    /**
+     * View-model spike, second element: the three surfaces that state the file-identity verdict.
+     *
+     * <p>They used to be hand-fed from {@code onSessionSnapshot}, and two of them asked the third whether to draw
+     * at all — {@code GraphTabs} and {@code DetailPanel} each began by calling
+     * {@code LogTablePanel.identityBannerText(...)} and returning null when it did. The decision is now
+     * {@code view.shown()}, made once in the node; each backend only chooses its own words.
+     */
+    private final telamin.fluxtion.audit.analyser.analyser.session.view.ViewBackends<telamin.fluxtion.audit.analyser.analyser.session.view.IdentityBannerView> identityBannerBackends =
+            new telamin.fluxtion.audit.analyser.analyser.session.view.ViewBackends<telamin.fluxtion.audit.analyser.analyser.session.view.IdentityBannerView>()
+                    .register(new telamin.fluxtion.audit.analyser.analyser.session.view.ViewBackend<>() {
+                        @Override public String name() { return "table"; }
+                        @Override public void render(telamin.fluxtion.audit.analyser.analyser.session.view.IdentityBannerView v) {
+                            tablePanel.setIdentityNote(LogTablePanel.identityBannerText(v));
+                        }
+                    })
+                    .register(new telamin.fluxtion.audit.analyser.analyser.session.view.ViewBackend<>() {
+                        @Override public String name() { return "charts"; }
+                        @Override public void render(telamin.fluxtion.audit.analyser.analyser.session.view.IdentityBannerView v) {
+                            graphTabs.setIdentityNote(GraphTabs.identityBannerText(v));
+                        }
+                    })
+                    .register(new telamin.fluxtion.audit.analyser.analyser.session.view.ViewBackend<>() {
+                        @Override public String name() { return "detail"; }
+                        @Override public void render(telamin.fluxtion.audit.analyser.analyser.session.view.IdentityBannerView v) {
+                            detailPanel.setIdentityNote(DetailPanel.identityBannerText(v));
                         }
                     });
 
@@ -5624,6 +5650,10 @@ public final class MainFrame extends JFrame {
                     // view-model spike: the session decided this view is current and new; every backend draws it
                     new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ViewRendered(opId, "statusLine",
                             statusLineBackends.render(e.view()));
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.RenderIdentityBannerEffect e ->
+                    // second element: three surfaces, one verdict — each composes its own sentence
+                    new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ViewRendered(opId,
+                            "identityBanner", identityBannerBackends.render(e.view()));
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ShowStatusEffect e -> {
                 status.setText(e.text());
                 yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StatusShown(
@@ -6791,10 +6821,16 @@ public final class MainFrame extends JFrame {
                 if (observedNow != null) {
                     log.put("identity", Map.of("state", observedNow.verdict().name().toLowerCase(java.util.Locale.ROOT),
                             "reason", observedNow.reason(), "readsSuspended", observedNow.suspendsReads()));
-                } else if (identitySnap.logIdentity() != null) {
-                    log.put("identity", Map.of("state", identitySnap.logIdentity().toLowerCase(java.util.Locale.ROOT),
-                            "reason", String.valueOf(identitySnap.logIdentityReason())));
-                } else if (!store.readThroughAssessed()) {
+                } else if (identitySnap.identityBanner() != null && identitySnap.identityBanner().verdict() != null
+                        && !telamin.fluxtion.audit.analyser.analyser.session.view.IdentityBannerView.NOT_ASSESSED
+                                .equals(identitySnap.identityBanner().verdict())) {
+                    // readable-surfaces step 2: a PROJECTION of the verdict the banner was told, not a second
+                    // composition of it — the same view surfaces.identityBanner publishes
+                    log.put("identity", Map.of("state", identitySnap.identityBanner().verdict().toLowerCase(java.util.Locale.ROOT),
+                            "reason", String.valueOf(identitySnap.identityBanner().reason())));
+                } else if (identitySnap.identityBanner() != null
+                        && telamin.fluxtion.audit.analyser.analyser.session.view.IdentityBannerView.NOT_ASSESSED
+                                .equals(identitySnap.identityBanner().verdict())) {
                     // independent review R3: a store that never looks at its file is SAID not to — its null identity
                     // would otherwise read exactly like a check that passed (agents only: the status bar speaks only
                     // of a change, and there is none to speak of)
@@ -6822,6 +6858,18 @@ public final class MainFrame extends JFrame {
                 log.put("streamEnd", streamEndFacts(store.streamEnd(), store.size()));
             }
             if (!log.isEmpty()) out.put("log", log);
+            // readable-surfaces: what the SURFACES were last told to state. A projection of the session's view
+            // models, not a second assembly — every value here is the record the backends were handed, by the
+            // names the audit log uses for the same render. The keys above say what the session KNOWS; these say
+            // what a person looking at the screen is being SHOWN, and the two can differ (the status line's
+            // consistency gates hold a view back; a VERIFIED banner is not drawn at all).
+            if (need.test("surfaces")) {
+                var snap = sessionSnapshot();
+                Map<String, Object> surfaces = new java.util.LinkedHashMap<>();
+                if (snap.statusLine() != null) surfaces.put("statusLine", snap.statusLine().fields());
+                if (snap.identityBanner() != null) surfaces.put("identityBanner", snap.identityBanner().fields());
+                if (!surfaces.isEmpty()) out.put("surfaces", surfaces);
+            }
             // §E: absent means absent. No key at all rather than a null an agent might read as ""
             if (logProvenance() != null) out.put("provenance", logProvenance());
             if (logProvenanceSource() != null) out.put("provenanceSource", logProvenanceSource());   // M38.3: declared, never inferred — and by whom

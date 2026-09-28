@@ -230,12 +230,17 @@ CONTROLS = [
      '        return input == null ? null : new telamin.fluxtion.audit.analyser.analyser.report.ReportVerb.CoverageData(\n                java.util.List.of(), telamin.fluxtion.audit.analyser.analyser.topology.CoverageService.assess(store, filtered, filter, input).scalarLine(), java.util.List.of(), null);',
      'ReportCoverageTest#theFrameDoesNotDecideCoverageForAReport'),
     # ---- set 13 (owner request, 2026-09-26): the stated gaps closed before one review
+    # Re-anchored by PR #58: the POLICY moved to IdentityBannerView.warns (one decision, three surfaces), so the
+    # panel now asks rather than repeats it. The control still witnesses the same behaviour at its new text; the
+    # policy itself has its own control below (vm-banner-shown-is-the-policy).
     ('set13-a-table-banner', UI + 'LogTablePanel.java',
-     '        if (!"UNVERIFIED".equals(verdict) && !"REPLACEMENT".equals(verdict)) return null;',
+     '        if (!telamin.fluxtion.audit.analyser.analyser.session.view.IdentityBannerView.warns(verdict)) return null;',
      '        if (true) return null;',
      'LogTablePanelIdentityBannerTest#theBannerStatesOnlyAChange'),
+    # Re-anchored by PR #58: the hand-fed call site in onSessionSnapshot became the table's registered backend.
+    # Same witness -- without it the table shows no banner -- at the one place that now draws it.
     ('set13-a-rendered-from-snapshot', UI + 'MainFrame.java',
-     '        tablePanel.setIdentityNote(LogTablePanel.identityBannerText(next.logIdentity(), next.logIdentityReason()));\n',
+     '                            tablePanel.setIdentityNote(LogTablePanel.identityBannerText(v));\n',
      '',
      'LogTablePanelIdentityBannerTest#theFrameRendersItFromTheSnapshot'),
     ('set13-b-focus-drawn', UI + 'TopologyPanel.java',
@@ -355,20 +360,25 @@ CONTROLS = [
      's.emptyLogClaim());', 's.streamEnd());',
      'LogFindingsOnEverySurfaceFrameTest#aOneMemberSetOpenedInTheFrameIsWordedAsItsFile'),
     # ---- M68.7 (owner, Q4 2026-09-26): the charts and the detail pane state the file-identity verdict
+    # Re-anchored by PR #58, with set13-a-rendered-from-snapshot: the hand-fed call site became this surface's
+    # registered backend. Same witness -- the charts state nothing -- at the one place that now draws it.
     ('m68-7-charts-not-rendered', UI + 'MainFrame.java',
-     '        graphTabs.setIdentityNote(GraphTabs.identityBannerText(next.logIdentity(), next.logIdentityReason()));\n',
+     '                            graphTabs.setIdentityNote(GraphTabs.identityBannerText(v));\n',
      '',
      'IdentityMarkFrameTest#anInPlaceRewriteIsStatedOnTheTableTheChartsAndTheDetailPane'),
     ('m68-7-detail-not-rendered', UI + 'MainFrame.java',
-     '        detailPanel.setIdentityNote(DetailPanel.identityBannerText(next.logIdentity(), next.logIdentityReason()));\n',
+     '                            detailPanel.setIdentityNote(DetailPanel.identityBannerText(v));\n',
      '',
      'IdentityMarkFrameTest#anInPlaceRewriteIsStatedOnTheTableTheChartsAndTheDetailPane'),
     ('m68-7-chart-banner-hidden', UI + 'GraphTabs.java',
      '        identityBanner.setVisible(note != null);\n        revalidate();\n    }\n\n    /** The banner\'s text, or null while it is hidden. */',
      '        identityBanner.setVisible(false);\n        revalidate();\n    }\n\n    /** The banner\'s text, or null while it is hidden. */',
      'IdentityMarkSurfacesTest#theBannersAreOnThePanels'),
+    # Re-anchored by PR #58: the surfaces shared the table's rule by CALLING it (two panels asking a third
+    # whether to draw). They now share it by both asking IdentityBannerView.warns, which is the same invariant
+    # stated once -- so the witness moves to the shared predicate as this surface uses it.
     ('m68-7-chart-text-bypasses-rule', UI + 'GraphTabs.java',
-     '        if (LogTablePanel.identityBannerText(verdict, reason) == null) return null;\n',
+     '        if (!telamin.fluxtion.audit.analyser.analyser.session.view.IdentityBannerView.warns(verdict)) return null;\n',
      '',
      'IdentityMarkSurfacesTest#theSurfacesShareTheTablesRule'),
     # ---- M68.7 review (34f4d800) R1: the mark must reach the SCREEN, not only the label's own flag; O2: theme colour
@@ -648,4 +658,86 @@ CONTROLS = [
     ('vm-swing-backend-draws', UI + 'MainFrame.java',
      '                            status.setText(statusLineText(v));\n', '',
      'LogFindingsOnEverySurfaceFrameTest#theFollowLineKeepsTheProvenanceAndTheOrderWarning'),
+
+    # ---- the second element: the file-identity banner (PR #58)
+    # A view equal to the last one is not redrawn -- the cost claim (0 new records for a second element) rests
+    # on this line. Named against anAppendIsNotAVerdictChange, NOT anUnchangedVerdictIsNotRedrawn: a repeated
+    # identical LogIdentityObserved is already stopped upstream (OpenLog.onLogIdentityObserved returns `moved`),
+    # so that scenario never reaches this line and the mutation SURVIVED it. An append does move OpenLog, so the
+    # trigger fires and this line is the only thing standing between it and a redraw. Found by the gate.
+    ('vm-banner-unchanged-not-redrawn', NODE + 'IdentityBanner.java',
+     'if (view.equals(emitted)) return false;', '',
+     'IdentityBannerViewTest#anAppendIsNotAVerdictChange'),
+    # WHETHER a banner belongs on screen is the session's decision, made once, not three surfaces' guess.
+    ('vm-banner-shown-is-the-policy', SESSION + 'view/IdentityBannerView.java',
+     'return "UNVERIFIED".equals(verdict) || "REPLACEMENT".equals(verdict);', 'return verdict != null;',
+     'IdentityBannerViewTest#aClearVerdictIsAlsoAView'),
+    # The banner's audit records the diff, like the line's.
+    ('vm-banner-audit-records-the-diff', NODE + 'IdentityBanner.java',
+     'Map<String, Object> changed = view.changedFrom(emitted);', 'Map<String, Object> changed = view.fields();',
+     'IdentityBannerViewTest#theAuditSaysWhatTheBannerWasTold'),
+
+    # ---- readable surfaces: the snapshot publishes what the surfaces were TOLD
+    # Without this the snapshot says only what the session knows, and a reader cannot tell the two apart.
+    ('rs-snapshot-publishes-the-views', SESSION + 'SessionSnapshot.java',
+     'p.statusLineView.view(), p.identityBannerView.view(),', 'null, null,',
+     'PublishedSurfacesTest#theSnapshotCarriesWhatWasStated'),
+    # And it publishes the view OBJECT the backends were handed -- not an equal one rebuilt beside the node.
+    ('rs-published-view-is-not-recomputed', SESSION + 'SessionSnapshot.java',
+     'p.statusLineView.view(), p.identityBannerView.view(),',
+     'p.statusLineView.view() == null ? null : new telamin.fluxtion.audit.analyser.analyser.session.view'
+     '.StatusLineView(p.statusLineView.view().generation(), p.statusLineView.view().following(), '
+     'p.statusLineView.view().location(), p.statusLineView.view().provenance(), p.statusLineView.view().records(), '
+     'p.statusLineView.view().firstLogTime(), p.statusLineView.view().lastLogTime(), '
+     'p.statusLineView.view().knownComplete(), p.statusLineView.view().timeOrderViolations(), '
+     'p.statusLineView.view().producerWarning(), p.statusLineView.view().pendingRecords(), '
+     'p.statusLineView.view().eofIncluded(), p.statusLineView.view().readFailure(), '
+     'p.statusLineView.view().reopenedReason()), p.identityBannerView.view(),',
+     'PublishedSurfacesTest#theSnapshotCarriesWhatWasStated'),
+    # context reaches it: a key with no section is unreachable by projection, and the static check says so.
+    ('rs-context-publishes-surfaces', UI + 'MainFrame.java',
+     'if (!surfaces.isEmpty()) out.put("surfaces", surfaces);', 'if (false) surfaces.clear();',
+     'ContextSectionsTest#theSectionTableCoversEveryKeyTheBuilderPuts'),
+    # readable-surfaces step 1, the runtime half: what the live context payload carries. The static section test sees
+    # the `surfaces` key; only executing context() sees what is inside it.
+    ('rs-context-carries-the-status-line', UI + 'MainFrame.java',
+     '                if (snap.statusLine() != null) surfaces.put("statusLine", snap.statusLine().fields());\n',
+     '',
+     'ContextSurfacesFrameTest#theLiveContextCarriesTheSurfaces'),
+    ('rs-context-carries-the-identity-banner', UI + 'MainFrame.java',
+     '                if (snap.identityBanner() != null) surfaces.put("identityBanner", snap.identityBanner().fields());\n',
+     '',
+     'ContextSurfacesFrameTest#theLiveContextCarriesTheSurfaces'),
+    # an ABSENT field (trap 2): a projection one name short must fail on the name list, not pass on what it contains
+    ('rs-context-projects-every-field', UI + 'MainFrame.java',
+     'surfaces.put("statusLine", snap.statusLine().fields());',
+     'surfaces.put("statusLine", new java.util.LinkedHashMap<>(snap.statusLine().fields()) {{ remove("generation"); }});',
+     'ContextSurfacesFrameTest#theLiveContextCarriesTheSurfaces'),
+    # readable-surfaces step 2: context's log.identity branches 2 and 3 are projections of the published banner view.
+    # If OpenLog drops the fact, an ASSESSED file with no verdict reads as not assessed: context states an identity
+    # where it stated none. (Reached: every open runs onLogOpened.)
+    ('rs2-openlog-holds-the-assessment', NODE + 'OpenLog.java',
+     '        readThroughAssessed = event.readThroughAssessed();\n', '',
+     'ContextSurfacesFrameTest#aSessionVerdictIsStated'),
+    # If the view never states NOT_ASSESSED, a store that does not look has NO verdict, and context says nothing: its
+    # silence reads as a check that passed.
+    ('rs2-view-states-not-assessed', SESSION + 'view/IdentityBannerView.java',
+     '        if (verdict == null && !assessed) return new IdentityBannerView(generation, NOT_ASSESSED, null, false);\n', '',
+     'ContextSurfacesFrameTest#aStoreThatDoesNotLookIsNotAssessed'),
+    ('rs2-node-passes-the-assessment', NODE + 'IdentityBanner.java',
+     'openLog.identityReason(), openLog.readThroughAssessed());',
+     'openLog.identityReason(), true);',
+     'ContextSurfacesFrameTest#aStoreThatDoesNotLookIsNotAssessed'),
+    # the adapter reports the store's OWN answer, not an assumed one
+    ('rs2-adapter-reports-the-store', UI + 'MainFrame.java',
+     '                provenanceSource, followable, loaded.readThroughAssessed()));',
+     '                provenanceSource, followable, true));',
+     'ContextSurfacesFrameTest#aStoreThatDoesNotLookIsNotAssessed'),
+    # branch 2 must not word NOT_ASSESSED as a verdict ("not_assessed", reason "null")
+    ('rs2-branch-two-is-a-verdict-only', UI + 'MainFrame.java',
+     '                } else if (identitySnap.identityBanner() != null && identitySnap.identityBanner().verdict() != null\n'
+     '                        && !telamin.fluxtion.audit.analyser.analyser.session.view.IdentityBannerView.NOT_ASSESSED\n'
+     '                                .equals(identitySnap.identityBanner().verdict())) {',
+     '                } else if (identitySnap.identityBanner() != null && identitySnap.identityBanner().verdict() != null) {',
+     'ContextSurfacesFrameTest#aStoreThatDoesNotLookIsNotAssessed'),
 ]

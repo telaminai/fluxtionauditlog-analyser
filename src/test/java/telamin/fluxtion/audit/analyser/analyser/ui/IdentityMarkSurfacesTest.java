@@ -66,13 +66,26 @@ class IdentityMarkSurfacesTest {
     @Test
     @DisplayName("the frame renders all three from the one snapshot, in the one place")
     void theFrameRendersThemFromTheSnapshot() throws Exception {
+        // PR #55 second element, RE-ANCHORED: these surfaces are no longer hand-fed from onSessionSnapshot. The
+        // identityBannerView node decides when the verdict changed and RenderIdentityBannerEffect draws it on every
+        // registered backend. The property is unchanged — all three surfaces state the verdict — so the check moves
+        // to where it is now guaranteed, rather than being deleted with the call sites.
         String frame = Files.readString(Path.of("src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java"));
-        int at = frame.indexOf("private void onSessionSnapshot(");
-        String body = frame.substring(at, frame.indexOf("\n    }\n", at));
-        assertTrue(body.contains("graphTabs.setIdentityNote(GraphTabs.identityBannerText(next.logIdentity(), next.logIdentityReason()))"),
-                "the charts' banner comes from the snapshot: " + body);
-        assertTrue(body.contains("detailPanel.setIdentityNote(DetailPanel.identityBannerText(next.logIdentity(), next.logIdentityReason()))"),
-                "the detail pane's banner comes from the snapshot: " + body);
+        int at = frame.indexOf("identityBannerBackends =");
+        assertTrue(at > 0, "the identity banner's backends are registered in MainFrame");
+        String registration = frame.substring(at, frame.indexOf("\n\n", at));
+        for (String backend : new String[]{"\"table\"", "\"charts\"", "\"detail\""}) {
+            assertTrue(registration.contains(backend), backend + " is a registered backend: " + registration);
+        }
+        assertTrue(registration.contains("graphTabs.setIdentityNote(GraphTabs.identityBannerText("),
+                "the charts' backend composes its own words: " + registration);
+        assertTrue(registration.contains("detailPanel.setIdentityNote(DetailPanel.identityBannerText("),
+                "the detail pane's backend composes its own words: " + registration);
+
+        String snapshot = frame.substring(frame.indexOf("private void onSessionSnapshot("));
+        snapshot = snapshot.substring(0, snapshot.indexOf("\n    }\n"));
+        assertFalse(snapshot.contains("setIdentityNote"),
+                "and onSessionSnapshot no longer feeds them by hand: " + snapshot);
     }
 
     @Test

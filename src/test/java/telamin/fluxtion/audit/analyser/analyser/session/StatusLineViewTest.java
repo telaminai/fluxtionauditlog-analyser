@@ -199,6 +199,9 @@ class StatusLineViewTest {
         String entry = renders.get(1).lines().filter(l -> l.contains("- statusLineView:")).findFirst().orElse("");
         assertTrue(entry.contains("following: true"), entry);
         assertFalse(entry.contains("provenance:"), "a field that did not change is not repeated: " + entry);
-        assertEquals(2, sink.matching("backends: recorder").size(), "the answer names the backend that drew it");
+        // PR #55 second element found this: "backends: recorder" matched ANY view's answer, so a second element
+        // rendering to the same recorder broke it. A render answer is only evidence about the element it names.
+        assertEquals(2, sink.matching("rendered: statusLine").size(),
+                "the answer names the element AND the backend that drew it");
     }
 }

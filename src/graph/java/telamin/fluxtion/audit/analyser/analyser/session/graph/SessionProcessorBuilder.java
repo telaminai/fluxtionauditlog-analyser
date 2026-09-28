@@ -97,6 +97,10 @@ public class SessionProcessorBuilder implements FluxtionGraphBuilder {
         // view-model spike: the status line as a node — what it states, and when it is told, decided here
         telamin.fluxtion.audit.analyser.analyser.session.node.StatusLine statusLine =
                 new telamin.fluxtion.audit.analyser.analyser.session.node.StatusLine(openLog, logEvidence, effects);
+        // view-model spike, second element: the file-identity banner. Reads only openLog — no new fact and no
+        // consistency gate, which is why it measures the FLOOR cost of a view node (PREDICTIONS-2.md).
+        telamin.fluxtion.audit.analyser.analyser.session.node.IdentityBanner identityBanner =
+                new telamin.fluxtion.audit.analyser.analyser.session.node.IdentityBanner(openLog, effects);
 
         // These names become the instanceIds in nodeLogs and the node ids in the GraphML — they are
         // what a reader of the audit log sees, so they are the vocabulary of the rule, not of Java.
@@ -116,6 +120,7 @@ public class SessionProcessorBuilder implements FluxtionGraphBuilder {
         cfg.addNode(pairingQualifier, "pairingQualifier");
         cfg.addNode(logEvidence, "logEvidence");
         cfg.addNode(statusLine, "statusLineView");
+        cfg.addNode(identityBanner, "identityBannerView");
         cfg.addNode(new telamin.fluxtion.audit.analyser.analyser.session.node.DesignSession(gate), "designSession");
         cfg.addNode(new telamin.fluxtion.audit.analyser.analyser.session.node.SessionRecovery(gate), "sessionRecovery");
 

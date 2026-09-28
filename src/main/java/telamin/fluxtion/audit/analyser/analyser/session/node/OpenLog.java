@@ -26,6 +26,12 @@ public class OpenLog implements EventLogSource {
     private String provenanceSource;
     /** M44.5: whether Follow is on for this log. */
     private boolean following;
+    /**
+     * readable-surfaces step 2: whether the opened store LOOKS at its file when asked what changed (the store's own
+     * {@code readThroughAssessed}). Reported with the open, like {@code followable}, so a verdict that was never
+     * looked for is known to the session and not only to whoever holds the store.
+     */
+    private boolean readThroughAssessed;
 
     /**
      * The evidence a derived node needs, held HERE rather than re-observed there.
@@ -68,6 +74,7 @@ public class OpenLog implements EventLogSource {
         sampled = 0;
         total = 0;
         mostVerboseLevel = null;
+        readThroughAssessed = false;
         identity = null;                        // M68.5: a deliberate close ends the story; a later open is not a reopen
         identityReason = null;
         auditLog.info("openLog", "none").info("via", "LogClosed");
@@ -90,6 +97,7 @@ public class OpenLog implements EventLogSource {
         sampled = event.sampled();
         total = event.total();
         mostVerboseLevel = event.mostVerboseLevel();
+        readThroughAssessed = event.readThroughAssessed();
         // M68.5: a log reopened at the SAME path because the previous content was replaced says so, whatever the
         // reload's own status line says afterwards — the announcement is state, not a transient message
         boolean reopenedAfterReplacement = "REPLACEMENT".equals(identity) && java.util.Objects.equals(previousPath, event.logPath());
@@ -119,6 +127,7 @@ public class OpenLog implements EventLogSource {
         sampled = 0;
         total = 0;
         mostVerboseLevel = null;
+        readThroughAssessed = false;
         identity = null;
         identityReason = null;
         auditLog.info("openLog", "none").info("via", "LogCleared");
@@ -197,6 +206,11 @@ public class OpenLog implements EventLogSource {
      */
     public long generation() {
         return generation;
+    }
+
+    /** Whether the open log's store looks at its file when asked what changed; false when none is open. */
+    public boolean readThroughAssessed() {
+        return readThroughAssessed;
     }
 
     public boolean isOpen() {
