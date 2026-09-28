@@ -12,7 +12,7 @@ The review is
 records the audience decision (§3.4), and corrects two of its facts (§12).
 
 **Where it comes from:**
-- the combined proposal and its discussion log (L-1…L-33) on PR #52, branch `proposal/evidence-bundles`,
+- the combined proposal and its discussion log (L-1…L-33), from PR #52, now in `docs/proposals/evidence-bundle/`,
   `docs/proposals/evidence-bundle/`;
 - M69 spotlight walks, shipped in 1.26.0 ([`spec-spotlight-walks.md`](spec-spotlight-walks.md)).
 
@@ -348,7 +348,7 @@ Predictions are committed before code, as usual.
 ## 13. r5: converging on `.fexp` (owner, 2026-09-28)
 
 The owner's goal changed the verdict of §3.2: *"the `.fexp` is the product. Few skills, or none."* The plan and its
-reasoning are `docs/proposals/evidence-bundle-convergence.md` (branch `review/evidence-bundle-v1`). §3.1's rule
+reasoning are `docs/proposals/evidence-bundle-convergence.md`. §3.1's rule
 still decides it, now to the end: **nothing was left for a skill.**
 
 ### 13.1 Capture is one operation on the running analyser
@@ -448,7 +448,7 @@ Moving the walk save's check into a node is a separate follow-up (tracker EB.F7)
 - **The driver** drives the operation. Its refusal logic moved to Java, and its Python test keeps only the EP-A7
   bookkeeping. Review F4's two absence checks now assert that the key exists and what it holds.
 
-### 13.6 After the convergence review (`review/evidence-bundle-convergence`, `097e0752`)
+### 13.6 After the convergence review (`docs/handoff/review_evidence_bundle_convergence_2026_09_28_claude.md`; its age-gate commit was not merged)
 
 **A shared exchange directory.** `BundleWriter.delete` removed every `.capture-*` folder beside its output. The
 hazard is real: within one analyser two captures cannot overlap (the node refuses while one is writing), but a
@@ -492,7 +492,7 @@ tests hold it:
   capture is asked for;
 - an open chart edited in the same task: syncing inside a dispatch is safe.
 
-### 13.7 After the reaper review (`review/evidence-bundle-reaper`, `6d692032`): the reaper disarmed its own capture
+### 13.7 After the reaper review (`docs/handoff/review_evidence_bundle_reaper_2026_09_28_claude.md`): the reaper disarmed its own capture
 
 **Taken, reimplemented.** On POSIX an `fcntl` lock belongs to the process, not the descriptor, and
 `java.nio.channels.FileLock` warns of it: closing any channel to a file can release every lock the JVM holds on it.
@@ -518,3 +518,20 @@ bundle is produced.
 - a symlinked-path case;
 - a SIGKILLed neighbour's folder reaped once the OS releases its lock, the "however it ends" half no test had
   covered.
+
+### 13.8 The review record
+
+Every review of this delivery is kept in `main`, with its scored predictions, and so is the design discussion. The
+branches they were written on were deleted after the merge (PR #63):
+- the v1 review: `docs/handoff/review_evidence_bundle_v1_2026_09_28_claude.md`, with its predictions;
+- the convergence plan: `docs/proposals/evidence-bundle-convergence.md`;
+- the convergence review: `docs/handoff/review_evidence_bundle_convergence_2026_09_28_claude.md`, with its
+  predictions;
+- the reaper review: `docs/handoff/review_evidence_bundle_reaper_2026_09_28_claude.md`, and the EB.F9 provocation
+  note `docs/handoff/evidence/eb-f9-moved-generation-provoked.md`;
+- the narrow EB.F6/EB.F11 review: `docs/handoff/review_evidence_bundle_f6_f11_2026_09_28_claude.md`, with its
+  predictions;
+- the design discussion, L-1…L-33 and the archived versions: `docs/proposals/evidence-bundle/` (PR #52, closed).
+
+The reviewers' own code changes on those branches were not merged: the age gate was rejected (§13.6), and the reaper
+fix was reimplemented, with its tests taken as written (§13.7).
