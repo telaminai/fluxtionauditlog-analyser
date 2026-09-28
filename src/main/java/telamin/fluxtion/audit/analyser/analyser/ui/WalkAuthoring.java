@@ -193,10 +193,30 @@ final class WalkAuthoring {
         return null;
     }
 
+    /**
+     * Review PR57 R2: an edit that keeps a chart step saved on another run is refused. A walk has ONE run basis, and
+     * saving rebinds it, so appending or replacing on run B would silently turn a chart step recorded on run A from
+     * historical into current. Record targets carry their own digests and structural targets none, so neither is at
+     * risk; only a kept chart target is.
+     */
+    private String mixedRun(WalkSpec w, List<WalkSpec.Step> kept) {
+        boolean keepsChart = kept.stream().flatMap(s -> s.targets().stream())
+                .anyMatch(t -> "chart".equals(t.basis().kind()));
+        if (!keepsChart) return null;
+        if (WalkIdentity.compareRuns(w.runBasis(), WalkIdentity.runBasis(frame.runBasisNow())) == WalkIdentity.State.CURRENT) {
+            return null;
+        }
+        return "walk '" + w.name() + "' was saved against another run, and it has chart steps that describe that run — "
+                + "editing it here would rebind them to this one. Nothing was saved: save the new step as a new walk, "
+                + "or reopen the run it was saved on";
+    }
+
     /** Append a captured step to an existing walk. */
     String append(String name, Capture c) {
         WalkSpec w = WalkBin.find(frame.config().walks, name);
         if (w == null) return "no walk called '" + name + "'";
+        String mixed = mixedRun(w, w.steps());
+        if (mixed != null) return mixed;
         List<WalkSpec.Step> steps = new ArrayList<>(w.steps());
         steps.add(c.step());
         return save(name, w.title(), steps, w.author(), c.generation());
@@ -207,6 +227,10 @@ final class WalkAuthoring {
         WalkSpec w = WalkBin.find(frame.config().walks, name);
         if (w == null) return "no walk called '" + name + "'";
         if (index < 0 || index >= w.steps().size()) return "walk '" + name + "' has no step " + (index + 1);
+        List<WalkSpec.Step> kept = new ArrayList<>(w.steps());
+        kept.remove(index);
+        String mixed = mixedRun(w, kept);
+        if (mixed != null) return mixed;
         List<WalkSpec.Step> steps = new ArrayList<>(w.steps());
         steps.set(index, c.step());
         return save(name, w.title(), steps, w.author(), c.generation());

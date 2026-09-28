@@ -31,6 +31,7 @@ class WalkAuthoringTest {
         final List<SpotlightOverlay.Lit> lit = new ArrayList<>();
         long generation = 1;
         int persisted;
+        List<String> run = List.of("sha256:run");
 
         Rig() {
             graphs.bind(store, filter);
@@ -44,7 +45,7 @@ class WalkAuthoringTest {
         public String selectedTabWord() { return "summary"; }
         public int selectedRecord() { return 2; }
         public List<SpotlightOverlay.Lit> lit() { return lit; }
-        public List<String> runBasisNow() { return List.of("sha256:run"); }
+        public List<String> runBasisNow() { return run; }
         public LogFingerprint fingerprint() { return null; }
         public long generation() { return generation; }
         public void persist() { persisted++; }
@@ -122,5 +123,45 @@ class WalkAuthoringTest {
         assertNotNull(c.step().view().filter(), "the filter is captured whole");
         assertEquals(1, c.generation());
         assertFalse(c.step().targets().get(0).basis().digest().isBlank(), "and bound to the record's text");
+    }
+
+    @Test
+    @DisplayName("review PR57 R2: appending or replacing on another run never rebinds a kept chart step — it is refused")
+    void anEditOnAnotherRunDoesNotRebindKeptChartSteps() {
+        Rig rig = new Rig();
+        rig.graphs.addGraph("DEMO");
+        WalkAuthoring a = new WalkAuthoring(rig);
+        var chart = a.bind(new WalkSpec.Step("run A claim", new WalkSpec.View("graph", WalkSpec.Filter.ALL, null, "DEMO", null),
+                List.of(new WalkSpec.Target("graph:DEMO", "run A value", null))));
+        var status = a.bind(new WalkSpec.Step("", WalkSpec.View.NONE, List.of(new WalkSpec.Target("status", "s", null))));
+        assertNull(a.save("w", "", List.of(chart, status), WalkSpec.AUTHOR_PERSON, 1));
+        WalkSpec onA = rig.config.walks.get(0);
+        assertEquals(List.of("sha256:run"), onA.runBasis(), "control: saved on run A");
+
+        rig.run = List.of("sha256:run-B");                       // the same log name, another run
+        var added = new WalkAuthoring.Capture(status, List.of(), rig.generation);
+        String appended = a.append("w", added);
+        assertNotNull(appended, "appending on run B would move the kept chart step's basis to B");
+        assertTrue(appended.contains("another run"), appended);
+        String replaced = a.replace("w", 1, added);
+        assertNotNull(replaced, "replacing the status step keeps the chart step, so it is refused the same way");
+        assertEquals(onA, rig.config.walks.get(0), "and the walk is exactly as it was: its chart still HISTORICAL on B");
+
+        // replacing the chart step itself keeps no chart: nothing is left whose basis could move, so it is allowed
+        assertNull(a.replace("w", 0, added), "no kept step depends on the run");
+        assertEquals(List.of("sha256:run-B"), rig.config.walks.get(0).runBasis(), "and the walk now says run B");
+    }
+
+    @Test
+    @DisplayName("review PR57 R2: on the SAME run, and for walks with no chart steps, append and replace still work")
+    void anEditOnTheSameRunOrWithoutChartsWorks() {
+        Rig rig = new Rig();
+        WalkAuthoring a = new WalkAuthoring(rig);
+        var status = a.bind(new WalkSpec.Step("", WalkSpec.View.NONE, List.of(new WalkSpec.Target("status", "s", null))));
+        assertNull(a.save("w", "", List.of(status), WalkSpec.AUTHOR_PERSON, 1));
+        rig.run = List.of("sha256:run-B");
+        assertNull(a.append("w", new WalkAuthoring.Capture(status, List.of(), rig.generation)),
+                "a structural walk has no run to disagree with");
+        assertEquals(2, rig.config.walks.get(0).steps().size());
     }
 }

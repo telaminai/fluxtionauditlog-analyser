@@ -893,4 +893,17 @@ CONTROLS = [
      '        WalkSpec.Filter f = view.filter() == null ? WalkSpec.Filter.ALL : view.filter();\n        if (frame.filter() != null) {',
      '        WalkSpec.Filter f = view.filter();\n        if (f != null && frame.filter() != null) {',
      'WalkPresenterTest#anOmittedFilterAppliesTheDefaults'),
+    # R2: an edit on another run never rebinds a kept chart step
+    ('m69-r2-append-refuses-mixed-run', UI + 'WalkAuthoring.java',
+     '        String mixed = mixedRun(w, w.steps());\n        if (mixed != null) return mixed;',
+     '        String mixed = null;',
+     'WalkAuthoringTest#anEditOnAnotherRunDoesNotRebindKeptChartSteps'),
+    ('m69-r2-replace-refuses-mixed-run', UI + 'WalkAuthoring.java',
+     '        String mixed = mixedRun(w, kept);\n        if (mixed != null) return mixed;',
+     '        String mixed = null;',
+     'WalkAuthoringTest#anEditOnAnotherRunDoesNotRebindKeptChartSteps'),
+    ('m69-r2-only-kept-charts-count', UI + 'WalkAuthoring.java',
+     '        if (!keepsChart) return null;',
+     '',
+     'WalkAuthoringTest#anEditOnTheSameRunOrWithoutChartsWorks'),
 ]
