@@ -28,6 +28,7 @@ graph-raised event (8 → 9); a ticking clock shows the recorder's second read. 
   dispatcher. The replay runner supplies the matcher.
 - **R-D8. Our own replay writer and reader** fix the clock read and the redispatch duplicate, with no Fluxtion core
   release (§3.2). This replaces R-D6's dispatcher hook: the match is made in our runner.
+- **R-D9. The serialiser supports exactly the event types the processor handles**, known statically (§3.2).
 - **R-D7. R0 goes ahead** (the compiler key through the plugin's build). **Licensing is deferred**; the owner will
   decide it.
 
@@ -139,8 +140,15 @@ dispatcher hook needed):
   limit 3), the runner names record 7, *"the recorded run raised RiskBreachEvent[…]; this build raised nothing"*.
   §6's second exception does not arise on generator 1.0.75, because a queued event keeps its triggering input's
   instant in production too.
-- **Which records are raised** is known from the input types the processor gives the writer, which marks the others
-  `# raised` (a YAML comment, so Fluxtion's parser still reads the file). The writer cannot see where an outside
+- **The serialiser is fixed by the processor's handled types, known statically** (owner, R-D9). The builder reads
+  them from the nodes' `@OnEventHandler` methods and hands them to the writer, and the generator compiles the set
+  into the processor. A handled type the writer cannot encode **fails the build**, by name. The reader resolves
+  event types **only from the recipient's own build's handled set**; a replay naming anything else is refused and
+  never loaded, so an untrusted bundle cannot make the recipient instantiate an arbitrary class. Measured in the R1
+  spike, with a witness for each refusal.
+- **Which records are raised** is declared beside the node that raises them (`raisedByGraph(RiskBreachEvent.class)`),
+  because the raise sits in a method body that reflection cannot see (a bytecode scan could). The writer marks those
+  records `# raised` (a YAML comment, so Fluxtion's parser still reads the file). The writer cannot see where an outside
   `onEvent` call starts. A wrong declaration is still caught: a raised type declared as an input is injected and
   duplicated, which the comparison names; an input declared as raised is never injected, which the matcher names.
 

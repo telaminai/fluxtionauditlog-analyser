@@ -27,8 +27,10 @@ public class ReplayCapture implements Auditor {
     public static final String NAME = "replayCapture";
     @Inject
     private final Clock clock;
-    /** The types that arrive from OUTSIDE the processor. Any other event it hears was raised by the graph itself. */
-    private Set<Class<?>> inputs = new HashSet<>();
+    /** Every event type the processor handles, known when it is built; nothing else is written or read. */
+    private Set<Class<?>> handled = new HashSet<>();
+    /** The handled types the graph raises on itself; declared, because a method body is not visible statically. */
+    private Set<Class<?>> raised = new HashSet<>();
     private transient Writer target;
     private transient Consumer<Object> observer;
 
@@ -36,11 +38,41 @@ public class ReplayCapture implements Auditor {
 
     public ReplayCapture() { this(null); }
 
-    public Set<Class<?>> getInputs() { return inputs; }
+    public Set<Class<?>> getHandled() { return handled; }
 
-    public void setInputs(Set<Class<?>> inputs) { this.inputs.clear(); this.inputs.addAll(inputs); }
+    public void setHandled(Set<Class<?>> handled) { this.handled.clear(); this.handled.addAll(handled); }
 
-    public ReplayCapture inputs(Class<?>... types) { setInputs(new HashSet<>(Arrays.asList(types))); return this; }
+    public Set<Class<?>> getRaised() { return raised; }
+
+    public void setRaised(Set<Class<?>> raised) { this.raised.clear(); this.raised.addAll(raised); }
+
+    /**
+     * Build time: the processor's handled types, each checked encodable NOW, so an event the writer cannot write
+     * fails the build by name rather than the first cycle in production.
+     */
+    public ReplayCapture handles(Set<Class<?>> types) {
+        types.forEach(ReplayCapture::checkEncodable);
+        setHandled(types);
+        return this;
+    }
+
+    public ReplayCapture raisedByGraph(Class<?>... types) {
+        for (Class<?> t : types) {
+            if (!handled.contains(t)) throw new IllegalArgumentException(t.getName() + " is raised but not handled");
+        }
+        setRaised(new HashSet<>(Arrays.asList(types)));
+        return this;
+    }
+
+    static void checkEncodable(Class<?> type) {
+        if (!type.isRecord()) throw new IllegalArgumentException("ReplayCapture cannot write " + type.getName() + ": not a record");
+        for (RecordComponent c : type.getRecordComponents()) {
+            Class<?> t = c.getType();
+            if (!(t == String.class || t.isPrimitive() || Number.class.isAssignableFrom(t) || t == Boolean.class)) {
+                throw new IllegalArgumentException("ReplayCapture cannot write " + type.getName() + "." + c.getName() + ": " + t.getName());
+            }
+        }
+    }
 
     public void setTarget(Writer target) { this.target = target; }
 
@@ -55,12 +87,12 @@ public class ReplayCapture implements Auditor {
 
     @Override
     public void eventReceived(Object event) {
-        if (isFramework(event)) return;
+        if (isFramework(event) || !handled.contains(event.getClass())) return;
         if (observer != null) { observer.accept(event); return; }
         if (target == null) return;
         try {
             // a YAML comment marks a graph-raised record, so Fluxtion's own parser still reads the file
-            target.append(inputs.contains(event.getClass()) ? "---\n" : "---\n# raised\n")
+            target.append(raised.contains(event.getClass()) ? "---\n# raised\n" : "---\n")
                     .append("!!com.telamin.fluxtion.runtime.event.ReplayRecord\nevent: !!")
                     .append(event.getClass().getName()).append(' ').append(encode(event))
                     .append("\nwallClockTime: ").append(Long.toString(clock.getProcessTime())).append('\n');

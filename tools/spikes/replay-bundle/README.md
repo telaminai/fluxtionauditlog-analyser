@@ -155,6 +155,18 @@ Recorded on the hard clock, **ticking on every read**:
 | the same build | 7 | 1 | 8 of 8 | **only `endTime` differs** (8 records): every `eventTime` and `logTime` identical, the raised breach's included |
 | a changed build (risk limit 3, not 2) | 7 | 0 | 7 | **DIVERGES at record 7**: *"the recorded run raised RiskBreachEvent[orderId=ord-2, liveOrders=2]; this build raised nothing"* |
 
+**The serialiser is fixed by the processor's handled types, known statically (owner, 2026-09-28).** The builder reads
+them from the nodes' `@OnEventHandler` methods (`EventTypes.handledBy`), and the generator compiles the set into the
+processor: `replayCapture.setHandled(RiskBreachEvent, MarketDataEvent, OrderUpdateEvent)`. From that one set:
+- **Build-time refusal:** a handled type the writer cannot encode fails when the processor is built, by name
+  (*"ReplayCapture cannot write …Unencodable.items: java.util.List"*), not on the first event in production.
+- **An allow-listed reader:** the runner reads a replay only against the types the **recipient's own build**
+  handles. A replay naming any other type is refused and never loaded (*"the replay names a type this build does not
+  handle: …Events$NotHandled"*). The first R1 reader called `Class.forName` on names from the file and invoked their
+  constructors, so an untrusted bundle could have made the recipient instantiate an arbitrary class.
+- **What stays declared:** which handled types the graph raises on itself (`raisedByGraph(RiskBreachEvent.class)`).
+  `RiskMonitor` raises it inside a method body, which reflection cannot see; a bytecode scan could.
+
 What this settles:
 - **The clock-read fault (finding 7) is fixed by our writer**, with no Fluxtion change.
 - **The redispatch duplicate (finding 3) is fixed by our reader.** The breach is matched, not injected, and a

@@ -14,13 +14,21 @@ public final class ReplayReader {
     private static final Pattern EVENT = Pattern.compile("^event: !!(\\S+) \\{(.*)}$", Pattern.MULTILINE);
     private static final Pattern TIME = Pattern.compile("^wallClockTime: (-?\\d+)$", Pattern.MULTILINE);
 
-    public static List<Entry> read(String yaml) throws ReflectiveOperationException {
+    /**
+     * Reads a replay against the types THIS build handles. A name outside them is refused, never loaded: the bundle
+     * is untrusted, and the recipient's own build is the allow-list.
+     */
+    public static List<Entry> read(String yaml, java.util.Set<Class<?>> handled) throws ReflectiveOperationException {
+        java.util.Map<String, Class<?>> byName = new java.util.HashMap<>();
+        handled.forEach(c -> byName.put(c.getName(), c));
         List<Entry> out = new ArrayList<>();
         for (String doc : yaml.split("(?m)^---$")) {
             if (doc.isBlank()) continue;
             Matcher e = EVENT.matcher(doc), t = TIME.matcher(doc);
             if (!e.find() || !t.find()) throw new IllegalArgumentException("not a replay record: " + doc.strip());
-            out.add(new Entry(build(Class.forName(e.group(1)), e.group(2)), Long.parseLong(t.group(1)),
+            Class<?> type = byName.get(e.group(1));
+            if (type == null) throw new IllegalArgumentException("the replay names a type this build does not handle: " + e.group(1));
+            out.add(new Entry(build(type, e.group(2)), Long.parseLong(t.group(1)),
                     doc.contains("\n# raised\n") || doc.startsWith("# raised\n") || doc.startsWith("\n# raised\n")));
         }
         return out;

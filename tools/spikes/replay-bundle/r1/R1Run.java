@@ -56,10 +56,27 @@ public class R1Run {
         }
         Files.writeString(out.resolve("captured-audit.yaml"), captured);
         Files.writeString(out.resolve("replay.yaml"), replay.toString());
-        List<ReplayReader.Entry> entries = ReplayReader.read(replay.toString());
+        java.util.Set<Class<?>> handled = ((ReplayCapture) make(CAPTURE).getAuditorById(ReplayCapture.NAME)).getHandled();
+        System.out.println("handled, derived at build time: " + handled.stream().map(Class::getSimpleName).sorted().toList()
+                + "; raised: " + ((ReplayCapture) p.getAuditorById(ReplayCapture.NAME)).getRaised().stream().map(Class::getSimpleName).toList());
+        List<ReplayReader.Entry> entries = ReplayReader.read(replay.toString(), handled);
+        // witness: a replay naming a type this build does not handle is refused, never loaded
+        try {
+            ReplayReader.read(replay.toString().replaceFirst("Events\\$MarketDataEvent", "Events\\$NotHandled"), handled);
+            System.out.println("WITNESS FAILED: an unhandled type was read");
+        } catch (IllegalArgumentException refused) {
+            System.out.println("refused: " + refused.getMessage());
+        }
         System.out.println("captured: audit records " + count(captured) + ", replay records " + entries.size()
                 + " (" + entries.stream().filter(ReplayReader.Entry::raised).count() + " raised)");
 
+        // witness: a handled type the writer cannot encode fails when the processor is BUILT, by name
+        try {
+            new ReplayCapture().handles(java.util.Set.of(Unencodable.class));
+            System.out.println("WITNESS FAILED: an unencodable type was accepted");
+        } catch (IllegalArgumentException refused) {
+            System.out.println("build-time refusal: " + refused.getMessage());
+        }
         replay(out, "same-build", CAPTURE, entries, captured);
         replay(out, "changed-build", CHANGED, entries, captured);
     }
@@ -105,6 +122,8 @@ public class R1Run {
                 + count(replayed) + ", byte-identical " + captured.toString().equals(replayed.toString())
                 + (divergences.isEmpty() ? ", no divergence" : ", DIVERGES: " + divergences));
     }
+
+    record Unencodable(java.util.List<String> items) { }
 
     static long count(CharSequence log) { return log.toString().lines().filter(l -> l.equals("---")).count(); }
 }

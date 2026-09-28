@@ -2,6 +2,7 @@ package com.acme.demo.builder;
 
 import com.acme.demo.event.Events;
 import com.acme.demo.node.Nodes;
+import com.acme.demo.replay.EventTypes;
 import com.acme.demo.replay.ReplayCapture;
 import com.telamin.fluxtion.builder.compile.config.FluxtionCompilerConfig;
 import com.telamin.fluxtion.builder.compile.config.FluxtionGraphBuilder;
@@ -24,7 +25,9 @@ public class DemoQuoteCaptureProcessorBuilder implements FluxtionGraphBuilder {
         cfg.addNode(risk, "riskMonitor");
         cfg.addNode(breaches, "breachHandler");
         cfg.addEventAudit();
-        cfg.addAuditor(new ReplayCapture().inputs(Events.MarketDataEvent.class, Events.OrderUpdateEvent.class), ReplayCapture.NAME);
+        cfg.addAuditor(new ReplayCapture()
+                .handles(EventTypes.handledBy(prices, spread, orders, publisher, risk, breaches))
+                .raisedByGraph(Events.RiskBreachEvent.class), ReplayCapture.NAME);
     }
 
     @Override
