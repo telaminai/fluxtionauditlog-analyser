@@ -1,0 +1,2 @@
+2026-09-28T12:15:44.662528Z START trace=<scratch>/native-trace-v3.log note="press/release/click with source window; drags counted"
+2026-09-28T12:15:45.742256Z PRESSED btn=1 down=[1] src= srcWindow=MainFrame(Fluxtion Audit Log Analyser) under= onTable=true sel=1 adjusting=false popupShowing=none

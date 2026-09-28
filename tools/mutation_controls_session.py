@@ -24,6 +24,25 @@ CAPTURE = NODE + 'EvidenceCapture.java'
 GRAPHML = 'src/main/resources/telamin/fluxtion/audit/analyser/analyser/session/generated/SessionProcessor.graphml'
 
 CONTROLS = [
+    # Native gesture cancellation: every witness starts with a Robot drag through the OS router.
+    ('mouse-loss-table-hook', UI + 'MainFrame.java',
+     '                tablePanel.cancelMouseGesture();', '                // table cancellation removed',
+     'TableDragCancellationFrameTest#aModalEndsTheNativeTableDragAndTheNextDragStillWorks'),
+    ('mouse-loss-table-timer', UI + 'LogTablePanel.java',
+     '        table.setAutoscrolls(false);', '        // autoscroller cancellation removed',
+     'TableDragCancellationFrameTest#aModalEndsTheNativeTableDragAndTheNextDragStillWorks'),
+    ('mouse-loss-slider-hook', UI + 'MainFrame.java',
+     '                timeSlider.cancelMouseGesture();', '                // slider cancellation removed',
+     'TableDragCancellationFrameTest#aModalEndsTheNativeSliderEdgePanWithoutChangingItsRange'),
+    ('mouse-loss-autoscroll-restored', UI + 'LogTablePanel.java',
+     '        table.setAutoscrolls(autoscrolls);', '        // autoscroll setting restore removed',
+     'TableDragCancellationFrameTest#aModalEndsTheNativeTableDragAndTheNextDragStillWorks'),
+    ('mouse-loss-column-adjustment', UI + 'LogTablePanel.java',
+     '        table.getColumnModel().getSelectionModel().setValueIsAdjusting(false);', '        // column adjustment reset removed',
+     'TableDragCancellationFrameTest#aModalEndsTheNativeTableDragAndTheNextDragStillWorks'),
+    ('mouse-loss-nonmodal-preserved', UI + 'MainFrame.java',
+     '                if (!blockedByOwnedModal(e.getOppositeWindow())) return;', '                // cancel every focus loss again',
+     'TableDragCancellationFrameTest#aNonModalFocusLossKeepsSelectionDeferredUntilRelease'),
     # ---- M44.4a: facts replace the observation funnel
     ('m44-graph-open-is-its-own-fact', NODE + 'OpenGraph.java',
      '    public boolean isOpen() {\n        return open;', '    public boolean isOpen() {\n        return graphPath != null;',
@@ -1410,4 +1429,29 @@ CONTROLS = [
     ('cv-f9-another-log-opened-from-the-frame', CAPTURE,
      '        if (!openLog.isOpen() || openLog.generation() != e.generation()) {\n', '        if (!openLog.isOpen()) {\n',
      'EvidenceCaptureFrameTest#anotherLogOpenedDuringTheWriteDeletesTheBundle'),
+    # ---- the mouse-trace field diagnostic (the runaway-table hunt)
+    # NOT controlled: the `where == null` guard. Removing it is an EQUIVALENT MUTANT -- Path.of(null) throws,
+    # the catch returns null, and installIfRequested's observable result is the same null it returns with the
+    # guard. The only difference is a line on stderr. MouseTraceTest#offUnlessAsked still holds the behaviour;
+    # it simply cannot be witnessed by mutating that line, and registering a control that always passes would
+    # be worse than having none.
+    # The signal: the table believes a drag is in progress while no button is down.
+    ('mousetrace-suspect-is-the-stuck-state', UI + 'MouseTrace.java',
+     'if (adjusting && buttonsDown.isEmpty() && size > 0 && everSawPress) {', 'if (false) {',
+     'MouseTraceTest#theStuckStateIsFlagged'),
+    # ...and NOT every programmatic selection, or the real signal is invisible in the noise.
+    ('mousetrace-does-not-cry-wolf', UI + 'MouseTrace.java',
+     'if (adjusting && buttonsDown.isEmpty() && size > 0 && everSawPress) {',
+     'if (grew && buttonsDown.isEmpty()) {',
+     'MouseTraceTest#anOrdinarySelectionIsNotFlagged'),
+    # ...and not on the selection-model churn a log open causes, which a real capture produced three times.
+    ('mousetrace-ignores-model-churn', UI + 'MouseTrace.java',
+     'if (adjusting && buttonsDown.isEmpty() && size > 0 && everSawPress) {',
+     'if (adjusting && buttonsDown.isEmpty()) {',
+     'MouseTraceTest#modelChurnWithAnEmptySelectionIsNotSuspect'),
+    # A bad destination must not stop the app starting.
+    ('mousetrace-never-fatal', UI + 'MouseTrace.java',
+     '            System.err.println("[mouseTrace] not installed: " + e);\n            return null;',
+     '            throw new IllegalStateException(e);',
+     'MouseTraceTest#aBadDestinationIsNotFatal'),
 ]

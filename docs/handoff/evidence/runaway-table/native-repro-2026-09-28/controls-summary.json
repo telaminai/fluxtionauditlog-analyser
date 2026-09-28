@@ -1,0 +1,53 @@
+{
+  "seconds": 42.1,
+  "runs": [
+    {
+      "name": "mouse-loss-table-hook",
+      "sha256": "4ef9b1f15976e0bb019c4ad1f04c27592a5e91a388c7ea16a826b017faacb0b8",
+      "baselineGreen": true,
+      "failures": [
+        {
+          "class": "telamin.fluxtion.audit.analyser.analyser.ui.TableDragCancellationFrameTest",
+          "method": "aModalEndsTheNativeTableDragAndTheNextDragStillWorks",
+          "kind": "failure",
+          "message": "org.opentest4j.AssertionFailedError: losing window focus cancels the table's adjusting gesture ==> expected: <false> but was: <true>"
+        }
+      ],
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "restoredExit": 0
+    },
+    {
+      "name": "mouse-loss-table-timer",
+      "sha256": "ea97ed448a2ed64c39d7ba030d1fdfebf4212fa289ebe447a7802962c8d5ef7f",
+      "baselineGreen": true,
+      "failures": [
+        {
+          "class": "telamin.fluxtion.audit.analyser.analyser.ui.TableDragCancellationFrameTest",
+          "method": "aModalEndsTheNativeTableDragAndTheNextDragStillWorks",
+          "kind": "failure",
+          "message": "org.opentest4j.AssertionFailedError: no table selection growth after window loses drag ==> array lengths differ, expected: <13> but was: <17>"
+        }
+      ],
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "restoredExit": 0
+    },
+    {
+      "name": "mouse-loss-slider-hook",
+      "sha256": "4ef9b1f15976e0bb019c4ad1f04c27592a5e91a388c7ea16a826b017faacb0b8",
+      "baselineGreen": true,
+      "failures": [
+        {
+          "class": "telamin.fluxtion.audit.analyser.analyser.ui.TableDragCancellationFrameTest",
+          "method": "aModalEndsTheNativeSliderEdgePanWithoutChangingItsRange",
+          "kind": "failure",
+          "message": "org.opentest4j.AssertionFailedError: losing window focus cancels the slider gesture ==> expected: <-1> but was: <0>"
+        }
+      ],
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "restoredExit": 0
+    }
+  ]
+}
