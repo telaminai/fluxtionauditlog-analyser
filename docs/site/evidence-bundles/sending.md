@@ -33,8 +33,10 @@ report {bundle: {path: "breach-0900.fexp", notes: "# The 09:00 breach\n\nThe spr
 - **`notes`** (optional) is your account, in Markdown. It travels as `notes/NOTES.md`.
 - **`from` / `to`** (optional, epoch millis) make the bundle an **excerpt**, described below.
 - **`replay`** (optional) is the path of the run's replay records, written by a replay writer in the same run as
-  the log. Put the file in the exchange directory, as for any file the assistant points the analyser at. They are packed as the `replay/` member. The analyser first checks that each replay record is one of the
-  log's records, at its `eventTime`, in order. It refuses replay records from another run, and refuses them with a
+  the log. Put the file in the exchange directory, as for any file the assistant points the analyser at. They are packed as the `replay/` member. The analyser first checks that each replay record matches one of
+  the log's records, in order: the same type, at its `eventTime`, with the same content as the event the log prints.
+  It refuses replay records that do not match, naming the first; where the log does not print an event, it says how
+  many inputs it could match by type and instant only. It also refuses them with a
   window or while Follow is on, because the run may not have ended. It counts the log's exported-service calls, which replay records cannot
   carry. See [Commands and file format](reference.md#the-manifest-with-replay-records-format-2).
 

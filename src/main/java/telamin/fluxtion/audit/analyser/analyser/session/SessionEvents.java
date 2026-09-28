@@ -382,19 +382,29 @@ public final class SessionEvents {
      * @param replayProblem    why the replay does not pair with the open log, in words, or null when it pairs
      * @param replaySha256     the digest of exactly the bytes that were paired
      * @param replayUncarried  the log's records of the replay's own event types that it does not carry
+     * @param replayUnproven   the replay records matched by type and instant only (the log does not print the event)
      */
     public record BundleCaptureRequested(long request, String path, String notes, Long from, Long to,
                                          String observedIdentity, String freshness, boolean onePlainFile,
                                          int windowRecords, String origin, String replay, int replayRecords,
                                          int serviceCalls, String replayProblem, String replaySha256,
-                                         int replayUncarried) {
+                                         int replayUncarried, int replayUnproven) {
+        /** A request with a replay, before the content check was observed. */
+        public BundleCaptureRequested(long request, String path, String notes, Long from, Long to,
+                                      String observedIdentity, String freshness, boolean onePlainFile,
+                                      int windowRecords, String origin, String replay, int replayRecords,
+                                      int serviceCalls, String replayProblem, String replaySha256, int replayUncarried) {
+            this(request, path, notes, from, to, observedIdentity, freshness, onePlainFile, windowRecords, origin,
+                    replay, replayRecords, serviceCalls, replayProblem, replaySha256, replayUncarried, 0);
+        }
+
         /** A request with a replay, before the uncarried count was observed. */
         public BundleCaptureRequested(long request, String path, String notes, Long from, Long to,
                                       String observedIdentity, String freshness, boolean onePlainFile,
                                       int windowRecords, String origin, String replay, int replayRecords,
                                       int serviceCalls, String replayProblem, String replaySha256) {
             this(request, path, notes, from, to, observedIdentity, freshness, onePlainFile, windowRecords, origin,
-                    replay, replayRecords, serviceCalls, replayProblem, replaySha256, 0);
+                    replay, replayRecords, serviceCalls, replayProblem, replaySha256, 0, 0);
         }
 
         /** A request with no replay. */
@@ -402,7 +412,7 @@ public final class SessionEvents {
                                       String observedIdentity, String freshness, boolean onePlainFile,
                                       int windowRecords, String origin) {
             this(request, path, notes, from, to, observedIdentity, freshness, onePlainFile, windowRecords, origin,
-                    null, 0, 0, null, null, 0);
+                    null, 0, 0, null, null, 0, 0);
         }
     }
 

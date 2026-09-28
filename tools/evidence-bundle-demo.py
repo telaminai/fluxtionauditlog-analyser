@@ -379,7 +379,7 @@ def replay_sender(an, inbox):
     an.settle("the series log")
     ok, lines, _ = capture(an, "wrong-log.fexp", replay=RECORDED_REPLAY.name)
     check(not ok and "the replay does not belong to this log" in lines[0] and not (exchange / "wrong-log.fexp").exists(),
-          "R2 replay records from another run are refused by name, and nothing is written", "; ".join(lines))
+          "R2 replay records that do not match the open log are refused by name, and nothing is written", "; ".join(lines))
     an.must("open", {"log": str(RECORDED_LOG), "graphml": str(RECORDED_GRAPH), "provenance": "DEMO quote service"})
     an.settle("the recorded run")
     an.must("walk", {"name": REPLAY_WALK, "title": "The breach, in the recorded run", "steps": [
@@ -390,8 +390,8 @@ def replay_sender(an, inbox):
           "; ".join(lines))
     ok, lines, path = capture(an, "recorded-run.fexp", notes="# Recorded run (DEMO)\n", replay=RECORDED_REPLAY.name)
     print("  recorded run, with its replay records:\n    " + "\n    ".join(lines))
-    check(ok and any("the run's 7 recorded inputs, paired with the log in order" in l for l in lines),
-          "R2 the whole recorded run is written with its 7 replay records, paired in order", "; ".join(lines))
+    check(ok and any("the run's 7 recorded inputs, matched to the log in order by type, instant and content" in l for l in lines),
+          "R2 the whole recorded run is written with its 7 replay records, matched in order by content", "; ".join(lines))
     with zipfile.ZipFile(path) as z:
         check("replay/demo-quote-recorded.replay.yaml" in z.namelist(), "R2 the replay records travel as the replay/ member")
         check(json.loads(z.read("manifest.json")).get("format") == 2, "R2 a bundle with replay records is format 2")

@@ -244,7 +244,7 @@ class EvidenceCaptureFrameTest {
             assertEquals(Boolean.TRUE, echo.get().get("ok"), "a paired replay is capturable: " + echo.get());
             Map<String, Object> c = awaitDecided(f);
             assertEquals("WRITTEN", c.get("phase"), String.valueOf(c));
-            assertTrue(String.valueOf(c.get("lines")).contains("the run's 7 recorded inputs, paired with the log in order"),
+            assertTrue(String.valueOf(c.get("lines")).contains("the run's 7 recorded inputs, matched to the log in order by type, instant and content"),
                     String.valueOf(c.get("lines")));
             var v = telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.verify(ex.resolve("run.fexp"));
             assertTrue(v.ok(), v.refusal());

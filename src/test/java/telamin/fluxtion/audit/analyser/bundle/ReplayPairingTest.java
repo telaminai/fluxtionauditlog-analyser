@@ -45,7 +45,7 @@ class ReplayPairingTest {
         var o = observe(REPLAY, OTHER_RUN);
         assertFalse(o.pairs());
         assertTrue(o.problem().contains("its record 0 (MarketDataEvent at 1767258000060)"), o.problem());
-        assertTrue(o.problem().contains("another run"), o.problem());
+        assertTrue(o.problem().contains("it is not this log's input"), o.problem());   // never "another run": unknowable
         assertEquals(0, o.serviceCalls(), "the series run makes no exported-service calls");
     }
 
@@ -131,6 +131,39 @@ class ReplayPairingTest {
         assertTrue(o.pairs(), o.problem());
         assertEquals(2, o.serviceCalls());
         assertEquals(0, o.uncarried());
+    }
+
+    @Test
+    void aWrongPayloadIsRefused_notPairedByTypeAndInstant() throws Exception {
+        // PR #70 review, finding 1 (RB-4's witness): the first input's bid changed from 100.1 to 999.1, its type and
+        // instant untouched. Before the fix it paired: problem null, seven records. It must be refused, naming both texts.
+        Path wrong = Files.writeString(tmp.resolve("wrong-bid.replay.yaml"),
+                Files.readString(REPLAY).replaceFirst("bid: 100.1,", "bid: 999.1,"));
+        var o = observe(wrong, AUDIT);
+        assertFalse(o.pairs(), "a wrong payload must not pair");
+        assertEquals("its record 0 (MarketDataEvent at 1767258000060) matches log record 0 by type and instant, but not "
+                + "by content: the log has 'MarketDataEvent[symbol=DEMO-A, bid=100.1, ask=100.3]', the replay "
+                + "'MarketDataEvent[symbol=DEMO-A, bid=999.1, ask=100.3]'", o.problem());
+        var right = observe(REPLAY, AUDIT);
+        assertEquals(0, right.unproven(), "control: every input of the true replay is matched by its content");
+    }
+
+    @Test
+    void aLogThatDoesNotPrintTheEventIsStated_notClaimed() throws Exception {
+        // a log written with printEventToString off: nothing to compare content with, so each input is matched by type
+        // and instant only, and the count says so (the capture states it; nothing calls it proven)
+        Path bare = Files.writeString(tmp.resolve("bare-audit.yaml"),
+                Files.readString(AUDIT).replaceAll("(?m)^\\s*eventToString: .*\\n", ""));
+        var o = observe(REPLAY, bare);
+        assertTrue(o.pairs(), o.problem());
+        assertEquals(7, o.unproven(), "all seven by type and instant only");
+    }
+
+    @Test
+    void recordTextIsTheRecordsToString() {
+        assertEquals("MarketDataEvent[symbol=DEMO-A, bid=100.1, ask=100.3]",
+                ReplayPairing.recordText("MarketDataEvent", "symbol: \"DEMO-A\", bid: 100.1, ask: 100.3"));
+        assertEquals("S[s=a, b \"q\"\n, n=null]", ReplayPairing.recordText("S", "s: \"a, b \\\"q\\\"\\n\", n: null"));
     }
 
     @Test

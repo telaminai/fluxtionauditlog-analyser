@@ -224,6 +224,21 @@ class EvidenceCaptureTest {
     }
 
     @Test
+    @DisplayName("PR #70 review 1: inputs the log cannot check by content are stated as matched by type and instant only")
+    void unprovenInputsAreStated() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = opened(a);
+        d.submit(new SessionEvents.BundleCaptureRequested(29, PATH, null, null, null, null, "unchanged-metadata", true,
+                -1, "test", REPLAY, 7, 0, null, "abc", 0, 3));
+        var e = a.captures.get(0);
+        assertEquals(3, e.replayUnproven(), "the count travels with the write, to the manifest");
+        d.post(new SessionEvents.BundleWritten(e.ticket(), e.generation(), PATH, "sha256:demo", List.of()));
+        List<String> lines = capture(d).lines();
+        assertTrue(lines.get(0).contains("by type, instant and content for 4 of them"), lines.toString());
+        assertTrue(lines.get(1).contains("3 input(s) are matched by type and instant only"), lines.toString());
+    }
+
+    @Test
     @DisplayName("second review S4: under Follow a replay is refused even before any growth is seen — one moment needs Follow off")
     void aReplayUnderFollowIsRefusedBeforeGrowthIsSeen() {
         FakeSessionAdapter a = new FakeSessionAdapter();
@@ -247,7 +262,7 @@ class EvidenceCaptureTest {
         d.post(new SessionEvents.BundleWritten(e.ticket(), e.generation(), PATH, "sha256:demo", List.of("left out: DEMO")));
         List<String> lines = capture(d).lines();
         assertEquals("left out: DEMO", lines.get(0), "the writer's lines first");
-        assertTrue(lines.get(1).contains("the run's 7 recorded inputs, paired with the log in order"), lines.toString());
+        assertTrue(lines.get(1).contains("the run's 7 recorded inputs, matched to the log in order by type, instant and content"), lines.toString());
         assertTrue(lines.get(2).contains("2 exported-service call(s) the replay does not carry"), lines.toString());
 
         // review S1: a replay that does not carry every record of its own types says so, rather than read as the run

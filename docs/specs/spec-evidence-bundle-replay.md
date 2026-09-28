@@ -195,8 +195,16 @@ the bundle (first delivery, r4).
 **Pairing, because a replay file from another run is the likeliest mistake** (built in R2, `ReplayPairing`). The
 frame observes it and the node decides.
 - **The rule.** A replay holds the run's inputs only (R-D10), each stamped with its cycle's instant (§3.3). So each
-  replay record must match a log record with the same event name and the same `eventTime`, **in order, within the
-  log**. The log records in between are the ones the graph raised itself, and service calls.
+  replay record must match a log record with the same event name, the same `eventTime` **and the same content**,
+  **in order, within the log**. The log records in between are the ones the graph raised itself, and service calls.
+- **Content (PR #70 review, finding 1).** Name and instant alone let a wrong payload pair: a replay with its first bid
+  changed from 100.1 to 999.1 paired, seven records. So the pairing rebuilds each replay record as its record's
+  `toString` prints it (`MarketDataEvent[symbol=DEMO-A, bid=100.1, ask=100.3]`) and requires it to equal the log's
+  `eventToString`. A log record of the same type and instant with other content is not this input, and the search
+  goes on past it (a graph-raised event may share an input's type and instant); if none matches, the refusal names
+  both texts. **Where the log does not print the event** (`printEventToString` off, or a non-record `toString`),
+  content cannot be compared: that input is matched by type and instant only, and the capture's lines and the
+  manifest's `contentChecked` say how many were, rather than calling them checked.
 - **Refused, naming the first record that has no match.** A replay from another run fails at record 0. A replay
   re-stamped by a writer that read the clock again (UP-FLX-53) fails at the first record it moved. Records out of order
   fail too. *r1 said the replay lines up one to one with the log minus service calls; that was written before R-D10,

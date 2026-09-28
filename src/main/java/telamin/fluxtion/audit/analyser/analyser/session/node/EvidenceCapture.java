@@ -52,6 +52,7 @@ public class EvidenceCapture implements EventLogSource {
     private int replayRecords;
     private int serviceCalls;
     private int uncarried;
+    private int unproven;
     private boolean withReplay;
 
     public EvidenceCapture(OpenLog openLog, OperationGate gate, EffectQueue effects) {
@@ -92,12 +93,13 @@ public class EvidenceCapture implements EventLogSource {
         replayRecords = e.replayRecords();
         serviceCalls = e.serviceCalls();
         uncarried = e.replayUncarried();
+        unproven = e.replayUnproven();
         answer = new CaptureState.Answer(e.request(), true, "");
         auditLog.info("capture", path).info("generation", generation).info("ticket", ticket);
         if (resumeFollow) effects.request(new SessionEffects.SetFollowEffect(0L, ticket, false));
         boolean readSoFar = "changed-on-disk".equals(e.freshness()) && openLog.following();
         effects.request(new SessionEffects.CaptureBundleEffect(0L, ticket, generation, e.path(), e.notes(), e.from(), e.to(),
-                readSoFar, e.replay(), e.replayRecords(), e.serviceCalls(), e.replaySha256()));
+                readSoFar, e.replay(), e.replayRecords(), e.serviceCalls(), e.replaySha256(), e.replayUnproven()));
         return true;
     }
 
@@ -200,8 +202,14 @@ public class EvidenceCapture implements EventLogSource {
     /** What the author is told about the replay the bundle carries: what it is, and what it cannot reproduce. */
     private List<String> withReplayLines(List<String> written) {
         List<String> out = new java.util.ArrayList<>(written);
-        out.add("replay: the run's " + replayRecords + " recorded inputs, paired with the log in order; a recipient can "
-                + "replay them into their own build and compare");
+        // PR #70 review, finding 1: say exactly how each input was matched to the log, never more
+        out.add("replay: the run's " + replayRecords + " recorded inputs, matched to the log in order by type, instant and "
+                + (unproven == 0 ? "content" : "content for " + (replayRecords - unproven) + " of them")
+                + "; a recipient can replay them into their own build and compare");
+        if (unproven > 0) {
+            out.add("replay: " + unproven + " input(s) are matched by type and instant only: the log does not print their "
+                    + "content, so it cannot show they are this run's inputs");
+        }
         if (uncarried > 0) {
             // review S1: a replay cut short pairs too; say what it does not carry rather than read as the whole run
             out.add("replay: the log holds " + uncarried + " record(s) of the replay's own event types that it does not "

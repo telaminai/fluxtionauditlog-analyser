@@ -50,11 +50,21 @@ public final class BundleWriter {
      * @param replayRecords  how many records the pairing read from it
      * @param serviceCalls   the log's exported-service calls, which a replay does not carry
      * @param replaySha256   the digest of the bytes the pairing read; a copy that differs is refused
+     * @param replayUnproven how many replay records the pairing could match by type and instant only
      */
     public record Job(Path out, Path log, Path graph, String settingsName, byte[] settingsBytes, String notes,
                       BundleExcerpt.Taken excerpt, Instant createdAt, String version, int thresholdMb,
                       String expectedLogSha256, boolean readSoFar, Path replay, int replayRecords, int serviceCalls,
-                      String replaySha256) {
+                      String replaySha256, int replayUnproven) {
+        /** A capture whose every replay record was checked by content, or with no replay. */
+        public Job(Path out, Path log, Path graph, String settingsName, byte[] settingsBytes, String notes,
+                   BundleExcerpt.Taken excerpt, Instant createdAt, String version, int thresholdMb,
+                   String expectedLogSha256, boolean readSoFar, Path replay, int replayRecords, int serviceCalls,
+                   String replaySha256) {
+            this(out, log, graph, settingsName, settingsBytes, notes, excerpt, createdAt, version, thresholdMb,
+                    expectedLogSha256, readSoFar, replay, replayRecords, serviceCalls, replaySha256, 0);
+        }
+
         /** A capture with no replay. */
         public Job(Path out, Path log, Path graph, String settingsName, byte[] settingsBytes, String notes,
                    BundleExcerpt.Taken excerpt, Instant createdAt, String version, int thresholdMb,
@@ -175,6 +185,7 @@ public final class BundleWriter {
                 }
                 replay = new LinkedHashMap<>();
                 replay.put("records", job.replayRecords());
+                replay.put("contentChecked", job.replayRecords() - job.replayUnproven());
                 replay.put("serviceCalls", job.serviceCalls());
             }
             String identity = EvidenceBundle.pack(payload, job.out(), job.createdAt(), job.version(), cut, replay);

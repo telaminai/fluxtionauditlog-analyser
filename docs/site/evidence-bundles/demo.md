@@ -32,7 +32,7 @@ Before any log is open it asks for a capture, which must refuse. Then, through `
 **Then the recorded run, with its replay records.** The sender opens a run recorded with a replay writer and asks
 for a bundle with its replay records. The analyser first refuses, by name:
 
-- replay records from another run (with the longer DEMO series log open);
+- replay records that do not match the open log (with the longer DEMO series log open);
 - a time window with replay records.
 
 Then it writes the whole recorded run, format 2, carrying the run's 7 recorded inputs.

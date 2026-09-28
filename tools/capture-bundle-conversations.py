@@ -224,12 +224,12 @@ def sender(t):
            show=["phase", "path"])
     await_capture(ep, "recorded-run.fexp")
     t.context(["capture"])
-    t.agent("Written as `recorded-run.fexp`, and it carries **the run's 7 recorded inputs, paired with the log in "
-            "order**: the analyser checked that each one is one of the log's records at the instant its cycle ran, "
-            "so they cannot be from another run. The eighth record, the breach, is not among them because the graph "
+    t.agent("Written as `recorded-run.fexp`, and it carries **the run's 7 recorded inputs, matched to the log in "
+            "order by type, instant and content**: the analyser checked that each one is a log record of the same type, "
+            "at the instant its cycle ran, whose printed event is exactly the recorded one. The eighth record, the breach, is not among them because the graph "
             "raised it itself; a replay raises it again. The log holds no exported-service calls, so nothing the "
             "replay records cannot carry.",
-            cites=["the run's 7 recorded inputs, paired with the log in order"])
+            cites=["the run's 7 recorded inputs, matched to the log in order by type, instant and content"])
     t.shot("bundle-conv-recorded-run.png", "The recorded run the second bundle carries: eight records, the last "
            "the breach the graph raised itself")
 

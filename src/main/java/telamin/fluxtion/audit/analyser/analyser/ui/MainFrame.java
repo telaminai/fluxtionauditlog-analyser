@@ -5891,7 +5891,7 @@ public final class MainFrame extends JFrame {
                 observed, state == null ? null : state.toString(), onePlainFile, windowRecords, origin, replay,
                 pairing == null ? 0 : pairing.records(), pairing == null ? 0 : pairing.serviceCalls(),
                 pairing == null ? null : pairing.problem(), pairing == null ? null : pairing.sha256(),
-                pairing == null ? 0 : pairing.uncarried()));
+                pairing == null ? 0 : pairing.uncarried(), pairing == null ? 0 : pairing.unproven()));
         var capture = sessionSnapshot().capture();
         if (capture.answer().request() == request && !capture.answer().accepted()) {
             return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("capture refused: " + capture.answer().reason());
@@ -5959,7 +5959,7 @@ public final class MainFrame extends JFrame {
                 settingsName, settingsBytes, e.notes(), taken, java.time.Instant.now(),
                 telamin.fluxtion.audit.analyser.analyser.core.ReleaseNotes.version(), config.memoryThresholdMb, expected,
                 e.readSoFar(), e.replay() == null ? null : Path.of(e.replay()), e.replayRecords(), e.serviceCalls(),
-                e.replaySha256());
+                e.replaySha256(), e.replayUnproven());
         telamin.fluxtion.audit.analyser.analyser.core.Background.run(() -> {
                     try {
                         return telamin.fluxtion.audit.analyser.bundle.BundleWriter.write(job);

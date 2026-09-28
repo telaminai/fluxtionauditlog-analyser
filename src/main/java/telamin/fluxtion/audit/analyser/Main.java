@@ -162,6 +162,11 @@ public class Main {
                         ? " (it was still growing when captured: these are the records read so far)" : ""));
         if (v.replay() != null) out.println("replay: " + v.replay().get("member") + ", the run's "
                 + whole(v.replay().get("records")) + " recorded inputs"
+                + (v.replay().get("contentChecked") instanceof Number c && v.replay().get("records") instanceof Number n
+                        ? (c.longValue() == n.longValue() ? " (all matched to the log by content)"
+                           : " (" + c.longValue() + " matched to the log by content, " + (n.longValue() - c.longValue())
+                             + " by type and instant only)")
+                        : "")
                 + (v.replay().get("serviceCalls") instanceof Number n && n.longValue() > 0
                         ? "; the log holds " + n.longValue() + " exported-service call(s) the replay does not carry, so a"
                           + " replay diverges from the first cycle that depends on one"

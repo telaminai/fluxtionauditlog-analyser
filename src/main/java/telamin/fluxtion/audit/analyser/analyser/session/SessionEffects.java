@@ -124,11 +124,11 @@ public sealed interface SessionEffects {
      */
     record CaptureBundleEffect(long opId, long ticket, long generation, String path, String notes, Long from, Long to,
                                boolean readSoFar, String replay, int replayRecords, int serviceCalls,
-                               String replaySha256) implements SessionEffects {
+                               String replaySha256, int replayUnproven) implements SessionEffects {
         /** A capture with no replay. */
         public CaptureBundleEffect(long opId, long ticket, long generation, String path, String notes, Long from, Long to,
                                    boolean readSoFar) {
-            this(opId, ticket, generation, path, notes, from, to, readSoFar, null, 0, 0, null);
+            this(opId, ticket, generation, path, notes, from, to, readSoFar, null, 0, 0, null, 0);
         }
     }
 
