@@ -18,6 +18,11 @@ It runs in three clock modes:
 - `per-read-shared`: the same ticking clock, but the recorder records the instant the processor's clock fixes on
   receipt, as a `YamlReplayRecordWriter` installed as an auditor does.
 
+Two more modes test what an installed recorder RECORDS:
+- `record-all`: the inputs and the event the graph raises on itself. The generated dispatcher passes both through
+  `auditEvent`: `processReentrantEvent` queues it, then `onEventInternal` → `handleEvent` → `auditEvent`.
+- `record-all-whitelist`: the same, with `classWhiteList` naming only the processor's input types.
+
 ## Result
 
 | capture clock | replayed audit log | analyser: records, digests equal |
@@ -25,6 +30,8 @@ It runs in three clock modes:
 | `per-event` | **byte-identical** | 8 and 8, **8 of 8** |
 | `per-read` | differs in `eventTime`, `logTime` and `endTime` in every record. **A harness artefact:** the recorder read a different instant than the processor did. | 8 and 8, 0 of 8 |
 | `per-read-shared` | **every input's `eventTime` and `logTime` identical.** Only `endTime` differs (every record), plus the time fields of the one record the graph raised itself. | 8 and 8 |
+| `record-all` | **diverges:** 9 records instead of 8, because the breach appears twice (raised by the graph, AND injected from the recording) | 8 and 9 |
+| `record-all-whitelist` | **byte-identical**: 7 replay records (inputs only), and the graph reproduces the breach itself | 8 and 8 |
 
 The 8 records are 7 inputs plus a `RiskBreachEvent` the graph raises on itself. Replay reproduced it from the
 graph's own logic; it was not fed in.
@@ -56,19 +63,23 @@ make the times identical was right for every input; `per-read-shared` measures i
    - `YamlReplayRunner` takes a `CloneableDataFlow`, and has `afterTime`, `beforeTime` and `betweenTimes`: a built-in
      time window.
    - A replay record's time field is `wallClockTime`, where the guide says `eventTime`.
-3. **Internally raised events.** Here only external inputs were recorded, as a caller would feed them. A
-   `YamlReplayRecordWriter` installed as an auditor sees every event. If that includes events the graph raises on
-   itself, replaying them would inject them twice. **Unverified:** it needs a processor generated with the auditor
-   installed.
+3. **Internally raised events: an installed recorder sees them, and recording them breaks replay.** The generated code
+   shows the path: a graph-raised event reaches `auditEvent` exactly as an input does. Recorded and replayed, it is
+   injected AND raised again: 9 records, a duplicate breach. **Whitelisting the input types fixes it**, and the replay
+   is byte-identical. So a recorder must name its processor's inputs, never `recordAll()`.
 4. **A time-windowed replay is not a replay of the window.** `betweenTimes` skips earlier events, but the processor's
    state at the window's start depends on them. A replayable excerpt must replay from the start, or from a checkpoint.
 5. **Licensing: unresolved.** The guide calls replay a commercial compiler feature. In 1.0 the runner ships in
    `fluxtion-builder-api-all-java8`; its own licence terms are not stated in the jar (the `LICENSE.txt` there is a
    bundled dependency's).
+6. **Where the recorder belongs** (owner, 2026-09-28). Mongoose is multithreaded, so replay recording is not a
+   Mongoose-wide setting. It is installed at the processor, or the agent that drives it: the single-threaded point of
+   consumption, whose order is the order to replay. A Mongoose-wide service may be the WRITER (the sink the records go
+   to); the recording point is per processor.
 
 ## Rerun
 
 ```
 mvn -o -q compile                     # the analyser's classes, for the digest comparison if wanted
-tools/spikes/replay-bundle/run.sh     # prints both modes' verdicts
+tools/spikes/replay-bundle/run.sh     # prints every mode's verdict
 ```

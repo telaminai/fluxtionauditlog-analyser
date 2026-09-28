@@ -32,5 +32,14 @@ public final class Events {
      * dispatcher through {@code processReentrantEvent}, so it arrives in the audit log as an ordinary
      * record with no external cause — see {@link com.acme.demo.node.Nodes.RiskMonitor}.
      */
-    public record RiskBreachEvent(String orderId, int liveOrders) { }
+    /** SPIKE: a JavaBean too, so the record-everything mode can record it (as an installed auditor would see it). */
+    public static final class RiskBreachEvent {
+        private String orderId; private int liveOrders;
+        public RiskBreachEvent() { }
+        public RiskBreachEvent(String orderId, int liveOrders) { this.orderId = orderId; this.liveOrders = liveOrders; }
+        public String getOrderId() { return orderId; } public void setOrderId(String v) { orderId = v; }
+        public int getLiveOrders() { return liveOrders; } public void setLiveOrders(int v) { liveOrders = v; }
+        public String orderId() { return orderId; } public int liveOrders() { return liveOrders; }
+        @Override public String toString() { return "RiskBreachEvent[orderId=" + orderId + ", liveOrders=" + liveOrders + "]"; }
+    }
 }

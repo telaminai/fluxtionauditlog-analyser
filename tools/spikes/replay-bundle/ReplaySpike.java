@@ -35,6 +35,11 @@ public class ReplaySpike {
         // per-read-shared: the recorder takes the PROCESSOR's clock reading for each event, as a YamlReplayRecordWriter
         // installed as an auditor does, instead of reading the clock on its own (the per-read harness's mistake)
         boolean shared = mode.equals("per-read-shared");
+        // record-all: record what an INSTALLED auditor sees — the inputs AND the event the graph raises on itself, which
+        // the generated dispatcher also passes through auditEvent (processReentrantEvent -> onEventInternal)
+        boolean recordAll = mode.startsWith("record-all");
+        // record-all-whitelist: the same, with the writer's own whitelist naming only the processor's INPUT types
+        boolean whitelist = mode.equals("record-all-whitelist");
         Files.createDirectories(out);
 
         // ---- capture
@@ -52,6 +57,7 @@ public class ReplaySpike {
         // dispatch, as an installed auditor records at receipt, before anything the graph raises in that cycle
         recorderClock.setClockStrategy(ClockStrategy.registerClockEvent(shared ? () -> tick[0] + 10 : () -> tick[0]));
         YamlReplayRecordWriter recorder = new YamlReplayRecordWriter(recorderClock);
+        if (whitelist) recorder.classWhiteList(Events.MarketDataEvent.class, Events.OrderUpdateEvent.class);
         recorder.setTargetWriter(replayYaml);
         recorder.init();
         List<Object> events = List.of(
@@ -66,6 +72,9 @@ public class ReplaySpike {
             if (!perRead) tick[0] += 10;             // time moves between events, never within one
             recorder.eventReceived(e);
             p.onEvent(e);
+            if (recordAll && e instanceof Events.OrderUpdateEvent o && o.orderId().equals("ord-3")) {
+                recorder.eventReceived(new Events.RiskBreachEvent("ord-2", 2));   // raised by riskMonitor in that cycle
+            }
         }
         Files.writeString(out.resolve("captured-audit.yaml"), capturedAudit);
         Files.writeString(out.resolve("replay-record.yaml"), replayYaml.toString());

@@ -13,7 +13,7 @@ cp -R "$REPO/examples/fixture-generator/src/main/java/." "$WORK/src/"
 cp "$HERE/Events.java" "$WORK/src/com/acme/demo/event/Events.java"      # the input events as JavaBeans (finding 1)
 javac -proc:none -d "$WORK/classes" -cp "$CP" \
   $(find "$WORK/src" -name "*.java" ! -name GenerateFixtures.java ! -path "*/builder/*") "$HERE/ReplaySpike.java"
-for mode in per-event per-read per-read-shared; do
+for mode in per-event per-read per-read-shared record-all record-all-whitelist; do
   java -cp "$WORK/classes:$CP" ReplaySpike "$WORK/out-$mode" "$mode" 2>/dev/null
   if cmp -s "$WORK/out-$mode/captured-audit.yaml" "$WORK/out-$mode/replayed-audit.yaml"; then
     echo "$mode: replayed audit log is BYTE-IDENTICAL to the captured one"
