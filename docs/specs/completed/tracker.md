@@ -1,3 +1,62 @@
+## M69 · Spotlight walks — saved, stepped explanations on the overlay — ☑ SHIPPED in 1.26.0 (merged `5cdd12ec`, 2026-09-28)
+
+Spec: [`spec-spotlight-walks.md`](../spec-spotlight-walks.md) (r4, consolidated). **Owner, 2026-09-27:**
+- forward/back arrows on the overlay, not a separate player;
+- walks stored like reports, and useful outside an evidence bundle;
+- a right-click on a live spotlight opens a save menu;
+- the walkthrough is needed regardless of the evidence-bundle proposal;
+- accept r3, consolidate, fold the R5 fix into M69, re-plan, and build it.
+
+It delivers feature request 40 / proposal P1 (▸ *Spring authoring observed acceptance*). Review:
+[`review_spec_m69_spotlight_walks_2026_09_27_codex.md`](../../handoff/review_spec_m69_spotlight_walks_2026_09_27_codex.md)
+(R1–R9).
+
+- [M69.0] ☑ **Owner decisions, 2026-09-27:**
+  - O-1: a new `walk` verb;
+  - O-2: a press outside the strip ends the walk, with *Play from step N*;
+  - O-3: ~~playback is presentation state~~ **superseded by the owner before any code: playback is a session node**
+    ("the logic, transitions and state mutation in the orchestrator in a single place");
+  - O-4: the right-click save menu is in v1.
+
+  r3 accepted; r4 consolidated.
+- [M69.P] ☑ Predictions committed before code (`docs/handoff/evidence/m69-spotlight-walks-2026-09-27/PREDICTIONS.md`).
+- [M69.S0] ☑ **R5:** the graph digest belongs to the current graph (cleared on `clearGraph` and `loadFromSource`).
+  `TopologyGraphDigestTest`, red before the fix; control `m69-s0-clear-drops-graph-digest`.
+- [M69.S1] ☑ `WalkSpec` model, validation (`WalkSteps`), identity helpers (`WalkIdentity`), and storage in every tier
+  and share path, plus the machine-local bin (`WalkBin`, `DeletedWalk`). `WalkPersistenceTest`, `WalkStepsTest` and
+  `WalkIdentityTest`, 25 tests; 17 `m69-s1-*` controls. The D-SP4 guard is narrowed to the one phrase the owner
+  allowed, "spotlight walk" (W-A1 headless, W-A7, W-A9, W-A16, W-A17 storage half).
+- [M69.S2] ☑ `FilterState.setAll`; `ChartPanel`'s paint outcome (`drawnFact`); **the `walkPlayback` session node**
+  (facts, effects, regenerated with `-Pregen`); `WalkResolver` and `WalkPresenter` (performers only); the snapshot's
+  `walkPlayback`. Tests: `WalkPlaybackTest` (12, on the real generated processor), `WalkResolverTest` (12),
+  `WalkPresenterTest` (7), and `ChartDrawnFactFrameTest` (2, display, in both CI frame lists). 21 `m69-s2-*` controls
+  (W-A4, W-A5, W-A6, W-A8, W-A13–W-A16).
+- [M69.S3] ☑ The overlay strip (`SpotlightOverlay.Strip`, ◀ ▶ ✕ and Open chart); input classified before dismissal
+  (a popup trigger never dismisses, and the press that closes the menu is swallowed); keyboard focus taken and
+  restored; the right-click save menu (Save as new walk, Add to walk, Replace this step); `WalkAuthoring`, the one save
+  path, with a capture-coherence refusal. Tests: `WalkPlaybackFrameTest` (2, real presses), `WalkArrowKeysFrameTest`
+  (1, needs a focus owner — it skips on the owner's Mac and runs under CI's Xvfb), and `WalkAuthoringTest` (5).
+  10 `m69-s3-*` controls (W-A2, W-A3, W-A12).
+- [M69.S4] ☑ The `walk` verb (the seventeenth; `WalkVerb`, one operation per call, refused whole) through
+  `VerbSchemas`, the dispatcher (read identity per operation: a save reads records, play and the bin do not), the
+  executor, both manifests, the MCP tool list (destructive) and `ContextSections`; `context.walks`; the Reports tab's
+  **Spotlight walks** list (`WalksPanel`, every button a `walk` operation) and the Project panel count; the user guide
+  (*Save it as a walk*), the FAQ security answer, CHANGELOG. Tests: `WalkVerbTest` (10) and `WalkVerbFrameTest` (1,
+  display, in both CI lists); 13 `m69-s4-*` controls (W-A10, W-A17 UI half, W-A9 from the tab). **Open:** the W-A11
+  capture — `tools/capture-docs.py --walk` drives it, but needs Screen Recording permission on the owner's machine;
+  and the skills mention, which waits for the next hash-pinned skills publication (RESULTS § *Not done in S4*).
+- [M69.R] ☑ Merged as `5cdd12ec` (PR #57, 2026-09-28), for 1.26.0. After the PR57 implementation review (R1–R9, all
+  fixed), its fix review (F1, F4, F5, F6 fixed, F3 withdrawn) and a stale-baseline follow-up to F1, the gates at
+  `f1d0086a` were:
+  - headless 2698 / 0 / 0 / 148, 359 reports, no orphans;
+  - display gate 148 / 0 / 0 / 2 (focus-bound skips);
+  - all 101 M69 controls caught;
+  - preflight: 29 suites, 350 anchors;
+  - CI green on every job.
+
+  W-A4 is shown in bytes (`WalkReviewFrameTest#playbackPersistsNothing`). Follow-ups are in the live tracker, ▸
+  *M69 follow-ups*.
+
 ## PR #51 — chart and report lifecycle, merged 2026-09-27 (for 1.25.0)
 
 Six defects found by regression-testing 1.24.0 through the socket, filed as GitHub issues #46–#50 plus a spotlight

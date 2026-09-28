@@ -27,6 +27,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   - a step that names a record outside the log is refused whole, and the previous step stays on screen;
   - a step without a filter resets to the defaults, not to whatever you had selected;
   - each callout carries the number the strip states;
+  - a saved record whose raw-text representation is unknown or differs is not lit, even when its text digest
+    matches;
   - a step that points at the topology canvas is *not shown* when the record it names is not the one selected —
     the canvas follows the selection, so lighting it would point at a different record;
   - importing settings over a playing walk ends it with the reason, exactly as saving over it does, and switching
@@ -39,9 +41,6 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   chart steps were saved against another run is refused rather than silently moving those charts to this run.
 
 ### Fixed
-
-- Spotlight walks refuse to light a saved record when its raw-text representation is unknown or differs,
-  even when the text digest matches.
 
 - **A cleared topology no longer leaves its file's digest behind.** The topology panel's graph digest survived *Close
   graph* and a graph supplied by the log's source, so session recovery could record the previous graph's digest

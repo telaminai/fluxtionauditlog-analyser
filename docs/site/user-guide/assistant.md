@@ -233,6 +233,15 @@ analyser itself, with no assistant connected.
   one whose identity cannot be checked is marked *(unresolved)*. A walk never opens, edits or saves a chart,
   a filter or a focus of yours — it only selects what is already there. A chart that is closed is named, with
   an **Open chart** button for you to press.
+- **A walk never claims more than it can show.** If the log's file changes after it was read, the walk's record
+  targets are marked *unresolved* and go out. A step whose record its own filter hides is *not shown*, and so is
+  a detail pane or topology canvas that would describe a different record. A step naming a record the log does
+  not have is refused whole, and the previous step stays on screen. With Follow off, nothing re-reads the file,
+  so a step that rests on records or charts says that *current* means unchanged since it was saved, not unchanged
+  on disk.
+- **Editing a walk while it plays.** Saving over it, deleting it, importing settings over it or switching project
+  ends it and says why; renaming it keeps it playing. Adding to a walk whose chart steps were saved against
+  another run is refused, rather than silently moving those charts to this run.
 - **Walks travel with the project.** Settings export shares them with the reports, and a walk made of tabs,
   panels and graph nodes — no records — plays with no log open at all.
 

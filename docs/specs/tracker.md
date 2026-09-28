@@ -1447,57 +1447,17 @@ Sequence AFTER W4/W5/W11/W13: this is the optimisation of the optimisation, not 
 `fluxtion.sourceFingerprint`? If yes, W13 is a graph change, fails gate 11.5, and needs its own release.
 
 ---
-## M69 · Spotlight walks — saved, stepped explanations on the overlay — ◧ SPEC ACCEPTED r4 2026-09-27; building on `feat/m69-spotlight-walks`
+## M69 follow-ups — spotlight walks shipped in 1.26.0 (▸ [`completed/tracker.md`](completed/tracker.md) ▸ *M69*)
 
-Spec: [`spec-spotlight-walks.md`](spec-spotlight-walks.md) (r4, consolidated). **Owner, 2026-09-27:**
-- forward/back arrows on the overlay, not a separate player;
-- walks stored like reports, and useful outside an evidence bundle;
-- a right-click on a live spotlight opens a save menu;
-- the walkthrough is needed regardless of the evidence-bundle proposal;
-- accept r3, consolidate, fold the R5 fix into M69, re-plan, and build it.
-
-It delivers feature request 40 / proposal P1 (▸ *Spring authoring observed acceptance*). Review:
-[`review_spec_m69_spotlight_walks_2026_09_27_codex.md`](../handoff/review_spec_m69_spotlight_walks_2026_09_27_codex.md)
-(R1–R9).
-
-- [M69.0] ☑ **Owner decisions, 2026-09-27:**
-  - O-1: a new `walk` verb;
-  - O-2: a press outside the strip ends the walk, with *Play from step N*;
-  - O-3: ~~playback is presentation state~~ **superseded by the owner before any code: playback is a session node**
-    ("the logic, transitions and state mutation in the orchestrator in a single place");
-  - O-4: the right-click save menu is in v1.
-
-  r3 accepted; r4 consolidated.
-- [M69.P] ☑ Predictions committed before code (`docs/handoff/evidence/m69-spotlight-walks-2026-09-27/PREDICTIONS.md`).
-- [M69.S0] ☑ **R5:** the graph digest belongs to the current graph (cleared on `clearGraph` and `loadFromSource`).
-  `TopologyGraphDigestTest`, red before the fix; control `m69-s0-clear-drops-graph-digest`.
-- [M69.S1] ☑ `WalkSpec` model, validation (`WalkSteps`), identity helpers (`WalkIdentity`), and storage in every tier
-  and share path, plus the machine-local bin (`WalkBin`, `DeletedWalk`). `WalkPersistenceTest`, `WalkStepsTest` and
-  `WalkIdentityTest`, 25 tests; 17 `m69-s1-*` controls. The D-SP4 guard is narrowed to the one phrase the owner
-  allowed, "spotlight walk" (W-A1 headless, W-A7, W-A9, W-A16, W-A17 storage half).
-- [M69.S2] ☑ `FilterState.setAll`; `ChartPanel`'s paint outcome (`drawnFact`); **the `walkPlayback` session node**
-  (facts, effects, regenerated with `-Pregen`); `WalkResolver` and `WalkPresenter` (performers only); the snapshot's
-  `walkPlayback`. Tests: `WalkPlaybackTest` (12, on the real generated processor), `WalkResolverTest` (12),
-  `WalkPresenterTest` (7), and `ChartDrawnFactFrameTest` (2, display, in both CI frame lists). 21 `m69-s2-*` controls
-  (W-A4, W-A5, W-A6, W-A8, W-A13–W-A16).
-- [M69.S3] ☑ The overlay strip (`SpotlightOverlay.Strip`, ◀ ▶ ✕ and Open chart); input classified before dismissal
-  (a popup trigger never dismisses, and the press that closes the menu is swallowed); keyboard focus taken and
-  restored; the right-click save menu (Save as new walk, Add to walk, Replace this step); `WalkAuthoring`, the one save
-  path, with a capture-coherence refusal. Tests: `WalkPlaybackFrameTest` (2, real presses), `WalkArrowKeysFrameTest`
-  (1, needs a focus owner — it skips on the owner's Mac and runs under CI's Xvfb), and `WalkAuthoringTest` (5).
-  10 `m69-s3-*` controls (W-A2, W-A3, W-A12).
-- [M69.S4] ☑ The `walk` verb (the seventeenth; `WalkVerb`, one operation per call, refused whole) through
-  `VerbSchemas`, the dispatcher (read identity per operation: a save reads records, play and the bin do not), the
-  executor, both manifests, the MCP tool list (destructive) and `ContextSections`; `context.walks`; the Reports tab's
-  **Spotlight walks** list (`WalksPanel`, every button a `walk` operation) and the Project panel count; the user guide
-  (*Save it as a walk*), the FAQ security answer, CHANGELOG. Tests: `WalkVerbTest` (10) and `WalkVerbFrameTest` (1,
-  display, in both CI lists); 13 `m69-s4-*` controls (W-A10, W-A17 UI half, W-A9 from the tab). **Open:** the W-A11
-  capture — `tools/capture-docs.py --walk` drives it, but needs Screen Recording permission on the owner's machine;
-  and the skills mention, which waits for the next hash-pinned skills publication (RESULTS § *Not done in S4*).
-- [M69.R] ◧ Gates, run locally: headless 2,663 run, 0 failed; frame suites 137 run, 0 failed, 2 skipped (focus-bound,
-  CI runs them); mutation gate 311 of 311; preflight 28 suites and 311 anchors; the sweep; `mkdocs --strict`. RESULTS
-  scored (`docs/handoff/evidence/m69-spotlight-walks-2026-09-27/RESULTS.md`). PR #57: CI green on every job,
-  including `ui-frame` (no skips). Open: the owner's go. No merge or release without it.
+- [M69.F1] ☐ **W-A11: a native capture of a walk** for the docs site. `python3 tools/capture-docs.py --walk` drives it;
+  it needs Screen Recording permission on the owner's machine.
+- [M69.F2] ☐ **The skills mention of walks** (`point-at-the-fault`), at the next hash-pinned skills publication.
+- [M69.F3] ☐ **Present the unassessed-log caveat once per walk**, not on every record or chart step. With Follow off it
+  is always present, and the strip paints only three reason lines (fix review, F5).
+- [M69.F4] ☐ **Strip reasons beyond three lines**, which a six-target step can exceed (implementation review, optional).
+- [M69.F5] ☐ **The two project-transition report sites carry no control.** A walk ends on a project switch through
+  the spotlight dismissal first, so deleting them breaks no test. They are kept because they move the bulk diff's
+  baseline.
 
 ## M64 · Spotlight — the tutor points at the thing on screen — ◧ .1–.12 SHIPPED (.10–.12 in 1.15.0, 2026-09-18; archived); .13 open
 _Report: `docs/handoff/completed/report_m64_spotlight.txt`. **One of the spec's assumptions was wrong and is corrected in it:**
@@ -2319,8 +2279,7 @@ the design-first first look); **1.23.0** (2026-09-26 — M68.7 and the reader's 
 starter 1.0.74, and M19.4/M19.8 are archived; that order is kept in [`completed/tracker.md`](completed/tracker.md) ▸
 *Tidy 2026-09-27*.
 
-0. ◧ **M69 spotlight walks — in progress** (owner, 2026-09-27; needed regardless of the evidence-bundle proposal). Spec
-   r4 accepted; building S0 to S4 on `feat/m69-spotlight-walks` (▸ *M69*).
+0. ☑ **M69 spotlight walks — shipped in 1.26.0** (merged `5cdd12ec`, 2026-09-28). Follow-ups ▸ *M69 follow-ups*.
 1. ☐ **Owner decisions — they unblock the most.**
    - **G14:** accept its three residual risks, then run it once, supervised. It is run on demand by the owner and is
      not a release gate (owner, 2026-09-26 — ▸ *Spring-side work block*).

@@ -100,7 +100,11 @@ architecture, conventions). This file is only the rules that must never be skipp
 ## Current work
 
 `docs/specs/tracker.md` has the delivery order; fully-shipped milestones live in
-`docs/specs/completed/tracker.md`. **Latest: 1.25.0 released 2026-09-27**: PR #51, six defects found by testing
+`docs/specs/completed/tracker.md`. **Latest: 1.26.0 (2026-09-28)**: M69 spotlight walks (PR #57, merged `5cdd12ec`) —
+saved, stepped explanations replayed with ◀ ▶ on the overlay, stored like reports; the `walk` verb (the SEVENTEENTH);
+the right-click save menu; the Reports tab list and `context.walks`. Playback is the `walkPlayback` session node's
+(rule 9): a frozen definition, definition changes as facts, the session's file-identity verdict constraining what a
+step may certify. Follow-ups: tracker ▸ *M69 follow-ups*. **1.25.0 released 2026-09-27**: PR #51, six defects found by testing
 1.24.0 through the socket (issues #46–#50 and a spotlight overlap). Updating a report no longer empties it (a call
 changes only what it names); re-sent chart notes replace; a pinned note no longer erases the time axis; a step
 chart's closing value holds to the window edge; neighbouring spotlight callouts slide apart; and `graph {delete}` /
