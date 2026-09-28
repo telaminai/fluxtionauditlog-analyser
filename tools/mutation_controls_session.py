@@ -841,7 +841,7 @@ CONTROLS = [
      # re-anchored for review PR57 R6: the verb REPORTS the delete; whether a showing walk ends is the node's decision
      '        frame.post(new SessionEvents.WalkDefinitionChanged(name, null, null));\n',
      '',
-     'WalkVerbTest#deletingTheShowingWalkEndsIt'),
+     'WalkVerbTest#aDeleteOrRenameIsReportedNotDecided'),
     ('m69-s4-step-counted-from-1', UI + 'WalkVerb.java',
      '            from = n.intValue() - 1;',
      '            from = n.intValue();',
@@ -994,4 +994,56 @@ CONTROLS = [
      '        basis.add("records:" + recordCount);',
      '',
      'WalkIdentityTest#aFollowAppendMovesTheRunBasis'),
+    # ================================================================================================
+    # PR57 fix review (second round) — the bulk walk paths, the topology selection, the unassessed log
+    # ================================================================================================
+
+    # F1: a Settings import replaces walks by name; without this line the session is never told, and a walk
+    # shown from a definition that has just been replaced carries on as though nothing happened.
+    ('m69-r6b-import-reports-walks', UI + 'MainFrame.java',
+     '        reportWalkChanges();   // review PR57 R6: an import replaces walks by name, and the session must be told\n',
+     '',
+     'WalkReviewFrameTest#animportOfTheShowingWalkIsReported'),
+    # ...and an import that re-states what was already there must NOT end a showing walk.
+    ('m69-r6b-unchanged-import-is-not-a-change', J + 'walk/WalkChanges.java',
+     'if (!now.equals(was.get(name))) changes.add(new Change(name, now));',
+     'changes.add(new Change(name, now));',
+     'WalkChangesTest#anUnchangedWalkIsNotAChange'),
+    # A walk the bulk path REMOVED is reported as gone, not merely left out of the diff.
+    ('m69-r6b-removal-is-reported', J + 'walk/WalkChanges.java',
+     '        was.forEach((name, gone) -> {\n            if (!is.containsKey(name)) changes.add(new Change(name, null));\n        });\n',
+     '',
+     'WalkChangesTest#aRemovalIsReported'),
+    # F6: a restore is a mutation, so it reports like the others.
+    ('m69-r6b-restore-reports', UI + 'WalkVerb.java',
+     '        frame.post(new SessionEvents.WalkDefinitionChanged(name, WalkBin.find(frame.config().walks, name), null));\n',
+     '',
+     'WalkVerbTest#restoringReportsTheDefinition'),
+
+    # F4: the topology canvas carries a record cursor, so it describes the SELECTION, like the detail pane.
+    ('m69-r5b-topology-is-selection-dependent', UI + 'WalkPresenter.java',
+     '                || p.target().family() == SpotlightTarget.Family.TOPOLOGY);',
+     ');',
+     'WalkPresenterTest#aHiddenRecordDoesNotLightTheTopologyCanvas'),
+    # ...and the refusal names the surface the person is actually looking at.
+    ('m69-r5b-refusal-names-the-surface', UI + 'WalkPresenter.java',
+     "                ? \"the topology's step cursor\" : \"the detail pane\";",
+     '                ? "the detail pane" : "the detail pane";',
+     'WalkPresenterTest#aHiddenRecordDoesNotLightTheTopologyCanvas'),
+
+    # F5: a log nothing has re-checked says what "current" does and does not mean.
+    ('m69-r1b-unassessed-log-is-said-so', NODE + 'WalkPlayback.java',
+     'reason = withIdentityCaveat(e.note());', 'reason = e.note();',
+     'WalkPlaybackTest#anUnassessedLogIsSaidSo'),
+    # ...only while the file is unassessed: once a verdict exists the caveat goes.
+    ('m69-r1b-caveat-goes-when-assessed', NODE + 'WalkPlayback.java',
+     'if (openLog.identity() != null || !restsOnTheLogsContents()) return note;',
+     'if (!restsOnTheLogsContents()) return note;',
+     'WalkPlaybackTest#anAssessedLogCarriesNoCaveat'),
+    # ...and only for a step that actually rests on the log's contents.
+    ('m69-r1b-caveat-only-for-content-steps', NODE + 'WalkPlayback.java',
+     '        return definition.steps().get(step).targets().stream()\n'
+     '                .anyMatch(t -> "record".equals(t.basis().kind()) || "chart".equals(t.basis().kind()));',
+     '        return true;',
+     'WalkPlaybackTest#aStructuralStepIsNotCaveated'),
 ]

@@ -26,7 +26,14 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   - a step whose record its own filter hides is *not shown*;
   - a step that names a record outside the log is refused whole, and the previous step stays on screen;
   - a step without a filter resets to the defaults, not to whatever you had selected;
-  - each callout carries the number the strip states.
+  - each callout carries the number the strip states;
+  - a step that points at the topology canvas is *not shown* when the record it names is not the one selected —
+    the canvas follows the selection, so lighting it would point at a different record;
+  - a walk that ends because its definition changed now does so however it changed: importing settings over it, or
+    switching project away from it, ends it exactly as saving over it does;
+  - on a log whose file has never been re-checked (no Follow, or a reader that cannot say), a step resting on
+    records or charts says so, because *current* there means unchanged since the step was saved, not unchanged on
+    disk.
 
   Changing a walk while it plays ends it with the reason, and renaming it keeps it playing. Adding to a walk whose
   chart steps were saved against another run is refused rather than silently moving those charts to this run.

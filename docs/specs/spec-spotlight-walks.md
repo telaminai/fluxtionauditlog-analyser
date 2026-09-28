@@ -145,10 +145,22 @@ claims that a previous screen depicts the requested step.
 
 - **A step's summary is never better than its worst required target.** One historical target makes the step
   partly historical, and the strip says which.
+- **A target that describes the SELECTION is available only if the selection is what the step asked for** (review
+  R5, extended by its fix review). That is the detail pane, its node blocks, and the **topology canvas**, which
+  carries a step cursor bound to a record and kept in step with the table. `records:row:<n>` names its own index and
+  is already refused by its bounds when the filter hides it; `topology:node:<id>` names a node that is there
+  whatever is selected; `topology:verdict` states the pairing, which is not record-scoped.
 - **`LogFingerprint`** (count and first/last times) stays a mismatch *warning* shown beside the walk. It is never a
   basis for "current".
 - **Capture is coherent.** Digests and the view are read in one EDT turn, against one store and one log generation.
   If the generation changes before the save completes, the save is refused, and the person or agent is told.
+- **A verdict the session has not formed is not a clean bill of health** (PR57 fix review). A record digest binds one
+  record's text under one store representation; it says nothing about the file on disk, and neither does the run
+  basis, whose file digests are taken when the log opens and whose record count does not move for an in-place
+  rewrite of the same length. The session's file-identity verdict is the only thing that sees such a rewrite, and an
+  unassessed log — Follow has not polled, or this reader cannot say — has no verdict. A step that rests on a record
+  or chart basis therefore states, once, that *current* here means unchanged since the step was saved, not unchanged
+  on disk. It is a caveat, not a refusal: refusing would stop every walk on a reader that cannot report.
 
 ### 3.6 A chart drew only if its paint says so (review R3)
 

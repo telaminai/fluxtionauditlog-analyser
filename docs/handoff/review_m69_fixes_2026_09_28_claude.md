@@ -50,30 +50,41 @@ the boundary is; a pure helper computing the facts from before/after lists is th
 a showing walk's config never differs from its frozen copy, so reading config instead would be an equivalent
 mutant."*
 
-**Refuted.** The premise is completeness of `WalkDefinitionChanged` coverage, and F1 and F3 show it does not hold.
+**Refuted.** The premise is completeness of `WalkDefinitionChanged` coverage, and F1 shows it does not hold.
 Two scenarios distinguish the mutant:
 
 1. **F1's import.** Frozen: the presenter plays the old 3-step definition. Mutant (`WalkBin.find(config.walks, …)`):
    it plays the *new* definition at that index, or refuses when the new one has fewer steps. Different observable
    behaviour.
-2. **F3's project switch.** `config.walks` is cleared. Frozen: playback continues. Mutant: `find` returns null and
-   the presenter refuses with *"walk '…' is no longer saved"*. Different observable behaviour.
+2. **A project transition.** `config.walks` is cleared while the node still holds its frozen copy. Frozen:
+   playback continues to the moment the view change dismisses it. Mutant: `find` returns null and the presenter
+   refuses with *"walk '…' is no longer saved"* — a different message, at a different moment. Weaker than (1),
+   which is on its own sufficient.
 
-So the mutant is distinguishable **today**. The honest statement is the other way round: once F1 and F3 are closed
+So the mutant is distinguishable **today**. The honest statement is the other way round: once F1 is closed
 the equivalence argument becomes sound — which is a reason to close them, not a reason the control is unnecessary.
 
-## F3 — a project switch clears `config.walks` without telling the node *(moderate; incomplete fix of R6)*
+## F3 — a project transition clears `config.walks` without telling the node *(NOT a defect; I tried to demonstrate it and disproved it)*
 
 **Where.** `ProjectProfile.java:320` (`c.walks.clear()` in `clearProjectScoped`) and `:295`
-(`into.walks.addAll(s.walks())`). Neither posts.
+(`into.walks.addAll(s.walks())`). Neither posts, which is true and is what I first reported.
 
-**Failure scenario.** The mitigation is indirect and has a hole. A project switch closes the log, and
-`WalkPlayback.onLogChanged` ends the walk — but only via `logOpenAtStart && !openLog.isOpen()`. Play a walk while
-**no log is open** (nothing in `onWalkPlayRequested` requires one; `logOpenAtStart` is then false and
-`generation` is −1), switch projects, and open no log in the new project: the walk keeps showing, over a project
-whose config never contained it. Opening any log in the new project does end it ("a log was opened").
+**What I predicted.** Play a walk while **no log is open** (nothing in `onWalkPlayRequested` requires one, so
+`logOpenAtStart` is false and the log-close route cannot fire), leave the project, and the walk should keep
+showing over a project whose config never contained it.
 
-**Disposition.** Narrow, but it is the same class as F1 and the same one-line shape of fix.
+**What actually happened.** I wrote that frame test. The walk **ended** — with
+`"ended: the spotlight went out (a click, Escape, or a view change from outside the walk)"`. Applying project
+settings is itself a view change, so the existing dismissal path covers it. **My F3 finding was wrong**, and the
+test that was meant to prove it is the reason I know.
+
+**What remains, and what I did.** The coverage is *incidental*: the walk ends for a reason that does not name the
+cause, and it rests on the view-change dismissal rather than on a decision about the walks. I kept a two-line fix
+(the two project arms report through the same helper as the import), so the coverage becomes intentional and the
+reason accurate. **It carries no regression of its own and therefore no mutation control** — the two project call
+sites are unguarded, and deleting them would break no test. That is a deliberate, disclosed gap rather than a
+control I could not make non-vacuous; the honest alternative is to revert those two lines, which the owner may
+prefer.
 
 ## F4 — `topology` is selection-dependent and R5 does not cover it *(moderate; incomplete fix of R5)*
 
