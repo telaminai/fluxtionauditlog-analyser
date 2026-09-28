@@ -1447,6 +1447,21 @@ Sequence AFTER W4/W5/W11/W13: this is the optimisation of the optimisation, not 
 `fluxtion.sourceFingerprint`? If yes, W13 is a graph change, fails gate 11.5, and needs its own release.
 
 ---
+## M70 · Evidence bundle replay — the second delivery — ☐ SPEC r1 DRAFTED 2026-09-28 ([spec](spec-evidence-bundle-replay.md); spike `tools/spikes/replay-bundle/`)
+
+Record at the processor (the single-threaded consumption point), replay into the recipient's build with data-driven
+time, compare in the analyser. YAML only for the demo. Spike: byte-identical replay when the recorder stamps the
+receipt instant; the shipped writer does not (UP-FLX-53); graph-raised events are matched at the redispatch queue in
+replay mode (owner design, UP-FLX-54).
+- [M70.R0] ☐ Prove the auditor path on a DEMO processor generated with the recorder — **needs the owner's go** (compiler key)
+- [M70.R1] ☐ The recorded fixture (log + replay + graph from one run, no service calls)
+- [M70.R2] ☐ The `replay` member: pairing by content, whole-log only, manifest format 2, `serviceCalls`
+- [M70.R3] ☐ `--replay-compare` and the measured rule
+- [M70.R4] ☐ The runner (JBang), and the demo driver's replay leg
+- [M70.R5] ☐ Docs site *Replay*; CHANGELOG
+- Open for the owner: licensing on the recipient's side; where the redispatch match lives; processor vs agent.
+
+---
 ## M69 follow-ups — spotlight walks shipped in 1.26.0 (▸ [`completed/tracker.md`](completed/tracker.md) ▸ *M69*)
 
 - [M69.F1] ☐ **W-A11: a native capture of a walk** for the docs site. `python3 tools/capture-docs.py --walk` drives it;

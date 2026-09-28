@@ -12,7 +12,7 @@ rm -rf "$WORK"; mkdir -p "$WORK/src" "$WORK/classes"
 cp -R "$REPO/examples/fixture-generator/src/main/java/." "$WORK/src/"
 cp "$HERE/Events.java" "$WORK/src/com/acme/demo/event/Events.java"      # the input events as JavaBeans (finding 1)
 javac -proc:none -d "$WORK/classes" -cp "$CP" \
-  $(find "$WORK/src" -name "*.java" ! -name GenerateFixtures.java ! -path "*/builder/*") "$HERE/ReplaySpike.java"
+  $(find "$WORK/src" -name "*.java" ! -name GenerateFixtures.java ! -path "*/builder/*") "$HERE/ReplaySpike.java" "$HERE/RecorderClockProbe.java"
 for mode in per-event per-read per-read-shared record-all record-all-whitelist; do
   java -cp "$WORK/classes:$CP" ReplaySpike "$WORK/out-$mode" "$mode" 2>/dev/null
   if cmp -s "$WORK/out-$mode/captured-audit.yaml" "$WORK/out-$mode/replayed-audit.yaml"; then
@@ -22,3 +22,4 @@ for mode in per-event per-read per-read-shared record-all record-all-whitelist; 
       | grep '^[<>]' | sed 's/^[<>] *//' | cut -d: -f1 | sort | uniq -c || true      # diff exits 1 when the files differ
   fi
 done
+echo "recorder clock probe (finding 7):"; java -cp "$WORK/classes:$CP" RecorderClockProbe 2>/dev/null | grep -v "^updating"

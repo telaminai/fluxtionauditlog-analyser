@@ -480,6 +480,49 @@ alternative history is worse than no replay, because it presents as evidence.
 **Cost to us if unfixed.** The analyser cannot tell a replayed log from a live one, and has no basis to
 warn that a log it is showing came from an incomplete replay.
 
+### UP-FLX-53 ☐ The replay recorder stamps a second clock reading, not the instant the cycle ran at
+
+**Target** `fluxtion` (builder/replay) · **Priority** high for replay, and it grows with nanosecond timestamps
+· _Not filed yet (2026-09-28)._
+
+**Evidence: read from the 1.0.16 bytecode, and measured**
+(`tools/spikes/replay-bundle/RecorderClockProbe.java`, finding 7 of that spike).
+- The processor's `Clock` is a `FirstAfterEvent` auditor. On receipt it fixes `processTime` with one strategy read.
+- The audit log's `eventTime` and `logTime` are that instant.
+- `YamlReplayRecordWriter.eventReceived` then stores `clock.getWallClockTime()`, which is a **fresh** read. With the
+  processor's own clock passed in, and a clock that ticks per read, the probe gives `processTime = 1000` and a
+  recorded `wallClockTime: 1001`.
+
+**Why it matters.** On replay the data-driven clock returns the recorded value, so each input's cycle runs at the
+recorder's instant, not at the one the audit log shows. Replay with data-driven time is otherwise exact: the same
+spike replays the DEMO processor byte-identically when the two readings agree. So this one read is the difference
+between "replay reproduces the log" and "replay reproduces it to within the gap between two reads". At millisecond
+resolution the gap is usually 0, so the fault passes every casual test; with nanosecond timestamps it is almost
+never 0.
+
+**Ask.** Stamp `clock.getProcessTime()`, the instant fixed on receipt, or make it the default and name the other.
+
+### UP-FLX-54 ☐ An installed replay recorder also records events the graph raises on itself
+
+**Target** `fluxtion` (builder/replay; relates to M50.8, the compiler-derived capture set) · **Priority** high,
+because nothing warns · _Not filed yet (2026-09-28)._
+
+**Evidence: measured** (`tools/spikes/replay-bundle`, modes `record-all` and `record-all-whitelist`).
+- A re-entrant event (`processReentrantEvent`) is queued, then dispatched through `onEventInternal` → `handleEvent`
+  → `auditEvent`, exactly as an input is. So an auditor-installed recorder records it.
+- On replay it is injected from the recording AND raised again by the graph: the DEMO run's 8 audit records become 9,
+  with a duplicated `RiskBreachEvent`.
+- With `classWhiteList` naming only the input types, the replay is byte-identical.
+
+**Ask (owner's design, 2026-09-28).** A replay mode on the callback dispatcher that makes redispatch a choice:
+- Record everything, graph-raised events included.
+- On replay, match each event the graph queues (`queueReentrantEvent`) against the next recorded event. On a match,
+  consume the recorded event and dispatch once, at its recorded instant. On a mismatch, report where the replay
+  diverged.
+
+This removes the duplicate and turns graph-raised events into a divergence check. The fallback, if this is delayed,
+is for the generator to emit the processor's input types as the recorder's default whitelist.
+
 ---
 
 ## 1c · Fluxtion compiler — diagnostics measured by the experience loop
