@@ -199,7 +199,7 @@ class WalkPresenterTest {
         WalkSpec w = new WalkSpec("w", "", "assistant", "", "", null, List.of(),
                 List.of(new WalkSpec.Step("", view(new WalkSpec.Filter(5L, 6L, "DIMENSION", null, ""), null, null, null),
                         List.of(new WalkSpec.Target("status", "", null)))), Map.of());
-        var past = (SessionEvents.WalkViewApplied) p.applyView(new SessionEffects.ApplyWalkViewEffect(0, 2, 1, w, 4));
+        var past = (SessionEvents.WalkViewApplied) p.applyView(new SessionEffects.ApplyWalkViewEffect(0, 2, 1, w, 4, true));
         assertFalse(past.ok());
         assertTrue(past.reason().contains("1 step"), past.reason());
         assertEquals(0, rig.filterChanges, "a refused step changes nothing");

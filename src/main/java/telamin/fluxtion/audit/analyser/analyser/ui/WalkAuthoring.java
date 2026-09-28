@@ -59,6 +59,9 @@ final class WalkAuthoring {
 
         /** Report a fact to the session (review PR57 R6: every saved definition is reported; the node decides). */
         void post(Object fact);
+
+        /** The session's published file-identity verdict (review PR57 R1), or null when none. */
+        String sessionIdentity();
     }
 
     /** A captured step, what could not be saved in it, and the generation it was read under. */
@@ -143,7 +146,9 @@ final class WalkAuthoring {
             case "record" -> {
                 int index = p.target().family() == SpotlightTarget.Family.RECORDS_ROW ? p.target().number()
                         : view.record() == null ? -1 : view.record();
-                String digest = store == null || index < 0 || index >= store.size() ? ""
+                // review PR57 R1: no record text is read while the session says the file changed after it was read
+                String digest = store == null || index < 0 || index >= store.size()
+                        || !WalkIdentity.recordsTrusted(frame.sessionIdentity()) ? ""
                         : WalkIdentity.recordDigest(store.rawText(index));
                 yield new WalkSpec.Basis("record", digest, store == null ? "" : store.getClass().getSimpleName());
             }
@@ -178,6 +183,11 @@ final class WalkAuthoring {
         for (int i = 0; i < steps.size(); i++) {
             String p = WalkSteps.problem(steps.get(i));
             if (p != null) return "step " + (i + 1) + ": " + p;
+        }
+        if (!WalkIdentity.recordsTrusted(frame.sessionIdentity()) && steps.stream().flatMap(s -> s.targets().stream())
+                .anyMatch(t -> "record".equals(t.basis().kind()))) {
+            return "the file behind this log changed after it was read (" + frame.sessionIdentity() + "), so a step "
+                    + "pointing at its records cannot be bound to them — reopen the log, then save";
         }
         if (capturedGeneration != frame.generation()) {
             return "another log was opened while this walk was being saved — nothing was saved, because its steps "

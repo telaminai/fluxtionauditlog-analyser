@@ -51,6 +51,8 @@ class WalkAuthoringTest {
         public void persist() { persisted++; }
         final List<Object> posted = new ArrayList<>();
         public void post(Object fact) { posted.add(fact); }
+        String identity;
+        public String sessionIdentity() { return identity; }
     }
 
     @Test
@@ -165,5 +167,21 @@ class WalkAuthoringTest {
         assertNull(a.append("w", new WalkAuthoring.Capture(status, List.of(), rig.generation)),
                 "a structural walk has no run to disagree with");
         assertEquals(2, rig.config.walks.get(0).steps().size());
+    }
+
+    @Test
+    @DisplayName("review PR57 R1: while the session's identity is degraded a capture reads no record text, and the save is refused")
+    void aDegradedIdentityRefusesRecordBinding() {
+        Rig rig = new Rig();
+        rig.identity = "UNVERIFIED";
+        WalkAuthoring a = new WalkAuthoring(rig);
+        var step = a.bind(new WalkSpec.Step("", WalkSpec.View.NONE, List.of(new WalkSpec.Target("records:row:1", "c", null))));
+        assertEquals("", step.targets().get(0).basis().digest(), "no digest was taken from a file that changed");
+        String refused = a.save("w", "", List.of(step), WalkSpec.AUTHOR_PERSON, 1);
+        assertNotNull(refused, "a record step cannot be bound while the file is not verified");
+        assertTrue(refused.contains("changed after it was read"), refused);
+        assertTrue(rig.config.walks.isEmpty());
+        var structural = a.bind(new WalkSpec.Step("", WalkSpec.View.NONE, List.of(new WalkSpec.Target("status", "", null))));
+        assertNull(a.save("s", "", List.of(structural), WalkSpec.AUTHOR_PERSON, 1), "a structural walk still saves");
     }
 }

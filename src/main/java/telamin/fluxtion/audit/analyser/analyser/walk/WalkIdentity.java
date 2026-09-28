@@ -57,6 +57,29 @@ public final class WalkIdentity {
      * A run basis from the read identity's per-file digests. An empty list, or any null or blank digest (a file that
      * changed while it was read), makes the basis unknown: the empty list.
      */
+    /**
+     * Review PR57 R1: whether record text may be read to certify a record, given the SESSION's published file-identity
+     * verdict. {@code UNVERIFIED} and {@code REPLACEMENT} mean the file behind the log changed after it was read, so no
+     * record can be certified current against it. The session node decides with this for playback; authoring applies
+     * the same rule to the verdict the session published.
+     */
+    public static boolean recordsTrusted(String sessionVerdict) {
+        return !"UNVERIFIED".equals(sessionVerdict) && !"REPLACEMENT".equals(sessionVerdict);
+    }
+
+    /**
+     * Review PR57 R1: the run a chart step describes — the opening file digests PLUS the session's current record
+     * count. The digests are taken when the log opens and do not see a Follow append, so without the count a chart saved
+     * before an append would read as CURRENT against the grown log. Unknown digests make the whole basis unknown.
+     */
+    public static List<String> runBasisOf(List<String> fileDigests, long recordCount) {
+        List<String> files = runBasis(fileDigests);
+        if (files.isEmpty()) return List.of();
+        List<String> basis = new java.util.ArrayList<>(files);
+        basis.add("records:" + recordCount);
+        return List.copyOf(basis);
+    }
+
     public static List<String> runBasis(List<String> fileDigests) {
         if (fileDigests == null || fileDigests.isEmpty()) return List.of();
         for (String d : fileDigests) if (d == null || d.isBlank()) return List.of();

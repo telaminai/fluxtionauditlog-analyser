@@ -82,7 +82,9 @@ class WalkPlaybackTest {
         d.post(new SessionEvents.WalkPlayRequested(0, walkOf("tour", 1), 0, "test"));
         prepared(d, List.of(target(1, false)));
         assertEquals("NOT_SHOWN", walk(d).phase());
-        assertEquals(0, a.walkLights.size());
+        // review PR57 R1: the node always states what is lit — here, nothing — so a previous light is taken down
+        assertEquals(1, a.walkLights.size(), "one light effect, stating the lit set");
+        assertEquals(List.of(), a.walkLights.get(0).targets(), "and it names no target: nothing is lit");
     }
 
     @Test

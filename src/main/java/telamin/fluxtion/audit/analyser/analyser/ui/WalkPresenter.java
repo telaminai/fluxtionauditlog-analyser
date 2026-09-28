@@ -106,19 +106,23 @@ final class WalkPresenter {
         // only now does the previous step's spotlight go out: a refused view leaves the previous step on screen
         frame.clearWalkSpotlight();
         List<String> notes = apply(step.view());
-        prepare(e.ticket(), e.generation(), walk, e.step(), notes);
+        prepare(e.ticket(), e.generation(), walk, e.step(), notes, e.recordsTrusted());
         return new SessionEvents.WalkViewApplied(e.opId(), e.ticket(), true, "");
     }
 
     SessionEvents.Result resolveAgain(SessionEffects.ResolveWalkTargetsEffect e) {
         WalkSpec walk = e.walk();
         if (e.step() >= 0 && e.step() < walk.steps().size()) {
-            prepare(e.ticket(), e.generation(), walk, e.step(), List.of(e.why()));
+            prepare(e.ticket(), e.generation(), walk, e.step(), List.of(e.why()), e.recordsTrusted());
         }
         return new SessionEvents.WalkAcknowledged(e.opId(), e.ticket(), "resolve");
     }
 
     SessionEvents.Result light(SessionEffects.LightWalkTargetsEffect e) {
+        if (e.targets().isEmpty()) {                       // the node says nothing is lit now: take the walk's light down
+            frame.clearWalkSpotlight();
+            return new SessionEvents.WalkTargetsLit(e.opId(), e.ticket(), 0, "");
+        }
         List<Numbered> requests = new ArrayList<>();
         for (SessionEvents.WalkTargetState t : e.targets()) {
             requests.add(new Numbered(new SpotlightTarget.Request(t.target(), t.caption()), t.n()));
@@ -183,7 +187,7 @@ final class WalkPresenter {
 
     // ---- preparation: bounded, cancellable, non-blocking (§3.4) ---------------------------------------------
 
-    private void prepare(long ticket, long generation, WalkSpec walk, int stepIndex, List<String> notes) {
+    private void prepare(long ticket, long generation, WalkSpec walk, int stepIndex, List<String> notes, boolean trusted) {
         cancel();
         preparing = ticket;
         WalkSpec.Step step = walk.steps().get(stepIndex);
@@ -198,7 +202,7 @@ final class WalkPresenter {
             preparing = -1;
             List<String> all = new ArrayList<>(notes);
             if (timedOut && !ready(charts)) all.add("a chart did not finish drawing in " + (PREPARE_BOUND_MS / 1000) + " s");
-            frame.post(new SessionEvents.WalkStepPrepared(ticket, generation, states(walk, step), String.join("; ", all)));
+            frame.post(new SessionEvents.WalkStepPrepared(ticket, generation, states(walk, step, trusted), String.join("; ", all)));
         });
         timer.setInitialDelay(0);
         timer.start();
@@ -225,8 +229,8 @@ final class WalkPresenter {
     }
 
     /** Every target's state, in step order and numbered from 1, each with its identity verdict and on-screen check. */
-    List<SessionEvents.WalkTargetState> states(WalkSpec walk, WalkSpec.Step step) {
-        WalkResolver.Facts facts = facts();
+    List<SessionEvents.WalkTargetState> states(WalkSpec walk, WalkSpec.Step step, boolean trusted) {
+        WalkResolver.Facts facts = facts(trusted);
         List<SessionEvents.WalkTargetState> out = new ArrayList<>();
         int n = 1;
         for (WalkSpec.Target t : step.targets()) {
@@ -257,12 +261,16 @@ final class WalkPresenter {
                 || p.target().family() == SpotlightTarget.Family.DETAIL_NODE);
     }
 
-    /** The frame's current facts, read on the EDT at resolution time. */
-    WalkResolver.Facts facts() {
-        LogStore store = frame.store();
-        List<String> runNow = WalkIdentity.runBasis(frame.runBasisNow());
+    /**
+     * The frame's current facts, read on the EDT at resolution time. Review PR57 R1: when the session says record text
+     * cannot be trusted, NO record text is read and no run basis is claimed, so the resolver can only say unresolved.
+     */
+    WalkResolver.Facts facts(boolean trusted) {
+        LogStore store = trusted ? frame.store() : null;
+        LogStore counted = frame.store();
+        List<String> runNow = trusted ? WalkIdentity.runBasis(frame.runBasisNow()) : List.of();
         return new WalkResolver.Facts() {
-            public int recordCount() { return store == null ? 0 : store.size(); }
+            public int recordCount() { return counted == null ? 0 : counted.size(); }
             public String recordRepresentation() { return store == null ? null : store.getClass().getSimpleName(); }
             public String recordDigest(int index) { return store == null ? null : WalkIdentity.recordDigest(store.rawText(index)); }
             public List<String> runBasis() { return runNow; }

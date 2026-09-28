@@ -73,6 +73,7 @@ class WalkVerbTest {
         public List<SpotlightOverlay.Lit> lit() { return List.of(); }
         public LogFingerprint fingerprint() { return null; }
         public long generation() { return 1; }
+        public String sessionIdentity() { return null; }
     }
 
     private static List<Object> steps(String... targets) {
@@ -244,10 +245,14 @@ class WalkVerbTest {
     }
 
     @Test
-    @DisplayName("§3.9 read identity: saving is a records read; playing and the bin are not")
+    @DisplayName("§3.9 read identity (review PR57 R1): saving and playing read records; the bin, the list and end do not")
     void readIdentityPolicyPerOperation() {
         assertTrue(telamin.fluxtion.audit.analyser.analyser.llm.ActionDispatcherAccess.readsRecords("walk", Map.of("steps", List.of())));
-        assertFalse(telamin.fluxtion.audit.analyser.analyser.llm.ActionDispatcherAccess.readsRecords("walk", Map.of("play", true)));
+        // review PR57 R1: playing READS record text (each record target is digested), so it honours the policy too
+        assertTrue(telamin.fluxtion.audit.analyser.analyser.llm.ActionDispatcherAccess.readsRecords("walk", Map.of("play", true)));
+        assertFalse(telamin.fluxtion.audit.analyser.analyser.llm.ActionDispatcherAccess.readsRecords("walk", Map.of("name", "w", "delete", true)),
+                "the bin and the list stay available");
+        assertFalse(telamin.fluxtion.audit.analyser.analyser.llm.ActionDispatcherAccess.readsRecords("walk", Map.of("end", true)));
         assertFalse(telamin.fluxtion.audit.analyser.analyser.llm.ActionDispatcherAccess.readsRecords("walk", Map.of("restore", true)));
     }
 }

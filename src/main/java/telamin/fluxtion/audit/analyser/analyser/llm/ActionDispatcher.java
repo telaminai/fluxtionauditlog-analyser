@@ -122,7 +122,10 @@ public final class ActionDispatcher {
      * playing, listing and the bin read no record text and are never suspended.
      */
     static boolean readsRecords(String action, Map<String, Object> params) {
-        return READS_RECORDS.contains(action) || "walk".equals(action) && params.containsKey("steps");
+        // review PR57 R1: playing READS record text too (the presenter digests each record target), so it honours the
+        // policy like a save; listing, the bin, rename, delete and end read none and stay available
+        return READS_RECORDS.contains(action)
+                || "walk".equals(action) && (params.containsKey("steps") || params.containsKey("play"));
     }
 
     private static ActionResult withIdentityNote(ActionResult result,

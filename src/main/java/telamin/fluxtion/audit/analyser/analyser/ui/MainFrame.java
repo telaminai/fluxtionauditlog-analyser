@@ -2514,6 +2514,7 @@ public final class MainFrame extends JFrame {
         @Override public long generation() { return session == null ? -1 : sessionSnapshot().logGeneration(); }
         @Override public void persist() { persistWalks(); }
         @Override public void post(Object fact) { if (session != null) session().post(fact); }
+        @Override public String sessionIdentity() { return session == null ? null : sessionSnapshot().logIdentity(); }
     });
 
     /** M69: the walks were edited — store them through the profile's edit funnel, as putReport does. */
@@ -2528,7 +2529,11 @@ public final class MainFrame extends JFrame {
 
     /** M69 §3.5: the run basis — the read identity's file digests for what is loaded now. */
     private java.util.List<String> walkRunBasisNow() {
-        return loadedLogIdentity.stream().map(i -> i.sha256()).toList();
+        // review PR57 R1: the opening file digests PLUS the session's current record count, so a Follow append —
+        // which the opening digests do not see — moves the run a chart describes
+        return telamin.fluxtion.audit.analyser.analyser.walk.WalkIdentity.runBasisOf(
+                loadedLogIdentity.stream().map(i -> i.sha256()).toList(),
+                session == null ? store == null ? 0 : store.size() : sessionSnapshot().total());
     }
 
     /** M69 S4: the {@code walk} verb, through the save path above and the session for play and end. */

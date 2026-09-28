@@ -177,4 +177,31 @@ class WalkReviewFrameTest {
             assertTrue(again.get().ok(), "a valid replay of the showing walk is accepted: " + again.get().toMap());
         }
     }
+
+    @Test
+    @DisplayName("R1: when the session's identity becomes UNVERIFIED, a record target is re-resolved UNRESOLVED, and not lit")
+    void aDegradedIdentityConstrainsTheTargets(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        try (var f = opened(tmp)) {
+            SpotlightOverlay overlay = (SpotlightOverlay) field(f.frame, "spotlight");
+            var session = (telamin.fluxtion.audit.analyser.analyser.session.SessionDriver) field(f.frame, "session");
+            var record = Map.of("view", Map.of("tab", "summary", "record", 0), "targets", List.of(target("records:row:0", "record claim")));
+            call(f, "walk", Map.of("name", "DEMO_record", "steps", List.of(record)));
+            call(f, "walk", Map.of("name", "DEMO_record", "play", true));
+            await("record lit", () -> "SHOWN".equals(walk(f).phase()) && overlay.isLit());
+            long ticket = walk(f).ticket();
+
+            onEdt(() -> session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogIdentityObserved(
+                    session.snapshot().logGeneration(), "UNVERIFIED", "DEMO identity probe")));
+            await("re-resolved", () -> walk(f).ticket() > ticket && !"PREPARING".equals(walk(f).phase()));
+            onEdt(() -> {
+                assertEquals("UNVERIFIED", session.snapshot().logIdentity(), "control: the session's verdict moved");
+                var t = walk(f).targets().get(0);
+                assertEquals("UNRESOLVED", t.state(), "a record read from a file that changed cannot be certified: " + t);
+                assertFalse(t.available(), "so it is not available: " + t);
+                assertFalse(overlay.lit().stream().anyMatch(l -> l.target().equals("records:row:0")),
+                        "and not lit: " + overlay.lit());
+            });
+        }
+    }
 }

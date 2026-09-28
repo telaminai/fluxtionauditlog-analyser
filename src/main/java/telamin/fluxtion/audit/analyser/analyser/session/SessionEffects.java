@@ -82,8 +82,8 @@ public sealed interface SessionEffects {
      * it involves, and resolve its targets. Answered at once by {@link SessionEvents.WalkViewApplied}; the prepared
      * step arrives later as {@link SessionEvents.WalkStepPrepared}, carrying {@code ticket} and {@code generation}.
      */
-    record ApplyWalkViewEffect(long opId, long ticket, long generation, telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec walk, int step)
-            implements SessionEffects {
+    record ApplyWalkViewEffect(long opId, long ticket, long generation, telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec walk, int step,
+                               boolean recordsTrusted) implements SessionEffects {
     }
 
     /** Light these targets (the available ones, numbered in step order) on the overlay. */
@@ -95,7 +95,8 @@ public sealed interface SessionEffects {
     }
 
     /** Re-resolve the showing step's targets without re-applying its view — the log's identity changed. */
-    record ResolveWalkTargetsEffect(long opId, long ticket, long generation, telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec walk, int step, String why)
+    record ResolveWalkTargetsEffect(long opId, long ticket, long generation, telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec walk, int step, String why,
+                                    boolean recordsTrusted)
             implements SessionEffects {
     }
 

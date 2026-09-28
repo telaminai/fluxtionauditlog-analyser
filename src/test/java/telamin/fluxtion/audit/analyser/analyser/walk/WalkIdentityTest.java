@@ -92,4 +92,15 @@ class WalkIdentityTest {
         assertEquals(WalkIdentity.State.HISTORICAL, WalkIdentity.worse(WalkIdentity.State.HISTORICAL, WalkIdentity.State.CURRENT));
         assertEquals(WalkIdentity.State.CURRENT, WalkIdentity.worse(WalkIdentity.State.CURRENT, WalkIdentity.State.CURRENT));
     }
+
+    @Test
+    @DisplayName("review PR57 R1: a Follow append moves the chart run basis — the opening digests alone did not")
+    void aFollowAppendMovesTheRunBasis() {
+        var before = WalkIdentity.runBasisOf(java.util.List.of("sha256:file"), 25);
+        var after = WalkIdentity.runBasisOf(java.util.List.of("sha256:file"), 26);
+        assertEquals(WalkIdentity.State.HISTORICAL, WalkIdentity.compareRuns(before, after),
+                "the same file, one record longer, is a different run for a chart");
+        assertEquals(WalkIdentity.State.CURRENT, WalkIdentity.compareRuns(before, WalkIdentity.runBasisOf(java.util.List.of("sha256:file"), 25)));
+        assertEquals(java.util.List.of(), WalkIdentity.runBasisOf(java.util.List.of(), 25), "no digests: the run is unknown");
+    }
 }

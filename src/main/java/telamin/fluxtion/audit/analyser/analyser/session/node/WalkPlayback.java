@@ -167,7 +167,9 @@ public class WalkPlayback implements EventLogSource {
         reason = e.note();
         lastShown.put(walk, step);
         auditLog.info("walkShown", phase).info("lit", available.size()).info("of", targets.size());
-        if (!available.isEmpty()) effects.request(new SessionEffects.LightWalkTargetsEffect(0L, ticket, available));
+        // review PR57 R1: ALWAYS say what is lit, even nothing — a re-resolution that makes every target unavailable must
+        // take down the light the previous preparation put up, not leave it pointing at what can no longer be certified
+        effects.request(new SessionEffects.LightWalkTargetsEffect(0L, ticket, available));
         return true;
     }
 
@@ -209,10 +211,20 @@ public class WalkPlayback implements EventLogSource {
             auditLog.info("walkReresolve", String.valueOf(identityAtStart));
             effects.request(new SessionEffects.ResolveWalkTargetsEffect(0L, ticket, generation, definition, step,
                     "the log's identity is now " + identityAtStart
-                            + (openLog.identityReason() == null ? "" : ": " + openLog.identityReason())));
+                            + (openLog.identityReason() == null ? "" : ": " + openLog.identityReason()),
+                    recordsTrusted()));
             return true;
         }
         return false;
+    }
+
+    /**
+     * Review PR57 R1: the node decides whether this step's record text may be read to certify anything. When the
+     * session's verdict is that the file changed after it was read, the presenter reads NO record text, so record
+     * targets resolve unresolved and are not lit, and charts are marked unresolved.
+     */
+    private boolean recordsTrusted() {
+        return telamin.fluxtion.audit.analyser.analyser.walk.WalkIdentity.recordsTrusted(openLog.identity());
     }
 
     /** Review PR57 R7: the answer to THIS request, published for the caller that carried its id. */
@@ -226,7 +238,7 @@ public class WalkPlayback implements EventLogSource {
         reason = "";
         targets = List.of();
         auditLog.info("decision", "applyWalkView").info("ticket", ticket);
-        effects.request(new SessionEffects.ApplyWalkViewEffect(0L, ticket, generation, definition, step));
+        effects.request(new SessionEffects.ApplyWalkViewEffect(0L, ticket, generation, definition, step, recordsTrusted()));
     }
 
     private void end(String why) {
