@@ -514,6 +514,8 @@ never 0.
   `addAuditor` auditor are constructed but never called, so there is no audit log and no clock reading.
 - Re-entrancy is compiled out: 6 `"re-entrancy support disabled"` guards. The DEMO graph raises an event on itself.
 - `cfg.setSupportReentrancy(true)` and `performanceProfile(DEFAULT)` change nothing.
+- **End to end:** in one harness, the committed processor writes 2 audit records for 2 events, and the one
+  regenerated today writes 0.
 - The output needs runtime ≥ 1.0.15 (`callbacksPending`). The processor that the same source produced before,
   and that is committed, calls every auditor.
 

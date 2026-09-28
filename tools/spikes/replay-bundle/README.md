@@ -120,13 +120,20 @@ generated today reads `target generator version: 1.0.75` and has:
   against the fixture generator's pinned 1.0.13. Pinning 1.0.16 compiles it, and then every run records 0 events
   and writes 0 audit records.
 
-**Isolated, three ways:**
+**Isolated, four ways:**
 1. The **untouched** fixture generator, regenerated today, gives the same empty `auditEvent` and disabled
    re-entrancy, in both `DemoQuoteProcessor` and `DemoQuoteTracedProcessor`. **Its builders make no
    `performanceProfile` call.**
 2. The builder API on the classpath (1.0.13 or 1.0.16) makes no difference.
 3. Asking explicitly, with `cfg.setSupportReentrancy(true)` and
    `cfg.performanceProfile(PerformanceProfile.DEFAULT)`, makes no difference.
+
+4. **A positive control in the same harness.** The owner challenged the finding ("otherwise audit logging would
+   not work"), rightly, so it was run end to end. The committed `DemoQuoteProcessor`, renamed and compiled beside
+   the new ones (same runtime 1.0.16, same events, same `setAuditLogProcessor`, `init()` and `start()`), writes
+   **2 audit records for 2 events**. Every processor generated today writes **0**. Nothing in the generated class
+   calls `eventReceived` or `processingComplete` on any auditor, and `FluxtionCompilerConfig.dispatchOnlyVersion`
+   defaults to `false`.
 
 The 1.0.16 builder-api source defaults are `supportReentrancy = true` and `addEventAudit()` → `EventLogManager`. So
 the builder asks for both, and the hosted generator drops them. The owner's reading is that it is the
