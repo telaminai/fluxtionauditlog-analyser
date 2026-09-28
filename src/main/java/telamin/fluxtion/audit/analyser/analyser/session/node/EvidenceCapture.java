@@ -86,7 +86,9 @@ public class EvidenceCapture implements EventLogSource {
         answer = new CaptureState.Answer(e.request(), true, "");
         auditLog.info("capture", path).info("generation", generation).info("ticket", ticket);
         if (resumeFollow) effects.request(new SessionEffects.SetFollowEffect(0L, ticket, false));
-        effects.request(new SessionEffects.CaptureBundleEffect(0L, ticket, generation, e.path(), e.notes(), e.from(), e.to()));
+        boolean readSoFar = "changed-on-disk".equals(e.freshness()) && openLog.following();
+        effects.request(new SessionEffects.CaptureBundleEffect(0L, ticket, generation, e.path(), e.notes(), e.from(), e.to(),
+                readSoFar));
         return true;
     }
 
@@ -102,12 +104,13 @@ public class EvidenceCapture implements EventLogSource {
             }
         }
         if ("changed-on-disk".equals(e.freshness())) {
-            // under Follow a producer is still writing: reopening does not help, stopping Follow and the producer does.
-            // Refusing a growing log is the conservative rule; bundling only what was read so far is the owner's call
-            return openLog.following()
-                    ? "the log is still growing under Follow (its file changed since the last read): stop Follow once the "
-                      + "producer has stopped, then capture"
-                    : "the log file changed on disk since it was read; reopen it first";
+            // owner, 2026-09-28 (EB.F6): under Follow a changed file is a GROWING one (a replacement or a rewrite was
+            // refused above, by identity), and the bundle holds what was read so far. Outside Follow it is refused.
+            if (!openLog.following()) return "the log file changed on disk since it was read; reopen it first";
+            if (openLog.total() == 0) {
+                return "the log is still growing under Follow and nothing has been read from it yet: capture once a "
+                        + "record has been read";
+            }
         }
         if (!e.onePlainFile()) {
             return "the log is not one plain file (a rolled set, a directory or a remote store): a bundle carries one file";

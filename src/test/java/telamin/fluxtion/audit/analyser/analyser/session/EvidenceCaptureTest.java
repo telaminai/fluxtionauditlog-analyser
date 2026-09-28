@@ -90,12 +90,40 @@ class EvidenceCaptureTest {
         d.submit(request(5, null, "changed-on-disk", true));
         refusedWritingNothing(d, a, 5, "changed on disk");
 
-        FakeSessionAdapter live = new FakeSessionAdapter();
-        SessionDriver f = opened(live);
-        f.submit(new SessionEvents.FollowToggled(f.snapshot().logGeneration(), true));
-        f.submit(request(5, null, "changed-on-disk", true));
-        refusedWritingNothing(f, live, 5, "still growing under Follow");
-        assertFalse(f.snapshot().capture().answer().reason().contains("reopen"), "reopening does not stop a producer");
+        assertFalse(a.captures.stream().anyMatch(SessionEffects.CaptureBundleEffect::readSoFar));
+    }
+
+    /** A log whose session has read {@code total} records, with Follow on. */
+    static SessionDriver following(FakeSessionAdapter a, int total) {
+        SessionDriver d = new SessionDriver(a);
+        SessionFixtures.openLog(d, a, "/logs/demo-quote-audit.yaml", "DECLARED", java.util.Set.of(), total, total, null);
+        d.submit(new SessionEvents.FollowToggled(d.snapshot().logGeneration(), true));
+        assertTrue(d.snapshot().following(), "control: Follow is on");
+        return d;
+    }
+
+    @Test
+    @DisplayName("EB.F6: a log still growing under Follow is captured as the records READ SO FAR, not refused")
+    void aGrowingLogBundlesWhatWasRead() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = following(a, 10);
+        d.submit(request(18, null, "changed-on-disk", true));
+        assertTrue(capture(d).answer().accepted(), capture(d).answer().reason());
+        assertEquals(1, a.captures.size());
+        assertTrue(a.captures.get(0).readSoFar(), "the write is asked for as what was read, never the growing file");
+        FakeSessionAdapter still = new FakeSessionAdapter();
+        SessionDriver s = following(still, 10);
+        s.submit(ok(19));
+        assertFalse(still.captures.get(0).readSoFar(), "control: a log that is not growing is captured whole");
+    }
+
+    @Test
+    @DisplayName("EB.F6: a log growing under Follow with nothing read yet is refused by name")
+    void aGrowingLogWithNothingReadIsRefused() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = following(a, 0);
+        d.submit(request(20, null, "changed-on-disk", true));
+        refusedWritingNothing(d, a, 20, "nothing has been read from it yet");
     }
 
     @Test

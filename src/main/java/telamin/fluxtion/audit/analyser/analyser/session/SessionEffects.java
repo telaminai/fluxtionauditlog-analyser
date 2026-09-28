@@ -115,9 +115,12 @@ public sealed interface SessionEffects {
      * settings bytes, and for a window the excerpt), and start the file work off this thread. Answered at once by
      * {@link SessionEvents.CaptureStarted}; the outcome arrives later as {@link SessionEvents.BundleWritten} or
      * {@link SessionEvents.BundleWriteFailed}, carrying {@code ticket} and {@code generation}.
+     *
+     * <p>{@code readSoFar} (owner, 2026-09-28, EB.F6): the log is still growing under Follow, so the bundle holds the
+     * records read so far, as an excerpt of all of them, and never the file, which has more than was read.
      */
-    record CaptureBundleEffect(long opId, long ticket, long generation, String path, String notes, Long from, Long to)
-            implements SessionEffects {
+    record CaptureBundleEffect(long opId, long ticket, long generation, String path, String notes, Long from, Long to,
+                               boolean readSoFar) implements SessionEffects {
     }
 
     /** Delete a bundle this capture wrote, with any working folder left beside it; answer {@link SessionEvents.BundleDeleted}. */

@@ -388,10 +388,17 @@ file grows between polls whenever a producer is writing: the skill refused almos
 and its advice, *"reopen it"*, was wrong, since reopening does not stop a producer. This is not judgement a
 capturer makes, and the skill keeps nothing. It is a **rule the skill never stated, and the rule is the owner's to
 choose**:
-- **now:** refuse, conservatively, and say what works: *"the log is still growing under Follow … stop Follow once the
-  producer has stopped, then capture"*;
-- **the alternative:** bundle the records read so far, which is an excerpt of `0..N-1`. Chart steps then read as
-  historical on the other side, because the run they were saved against is the opening read.
+- ~~refuse, and say to stop Follow~~ (r5, superseded);
+- **decided (owner, 2026-09-28, EB.F6): bundle what has been read so far.** Under Follow a changed file is a
+  growing one; a replacement or rewrite is refused earlier, by identity. The bundle is an excerpt of every record
+  the session read (`0..N-1`, where a live read's unterminated last record is pending, not read). The manifest's
+  `excerpt` carries `readSoFar: true`, `--verify` says so, and the author sees a `read so far:` line. A growing log
+  with nothing read yet is refused by name.
+
+**Correction.** r5 said chart steps would read as *historical* on the other side. They do not. Like any excerpt,
+every walk and report is re-based: the excerpt's own fingerprint and run basis are computed by the recipient's own
+functions, so chart steps are current. `EvidenceCaptureFrameTest#aGrowingLogBundlesWhatWasRead` holds the rule
+end to end: Follow on, the file appended to, the bundle holding exactly the records read.
 
 A related fact, stated rather than refused: pausing Follow stops the analyser reading, not the producer writing.
 A whole-log copy whose sha256 differs from the opening read adds a `note:` line.

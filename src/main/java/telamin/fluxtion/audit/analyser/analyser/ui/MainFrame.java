@@ -5900,11 +5900,22 @@ public final class MainFrame extends JFrame {
                 return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CaptureStarted(e.opId(), ticket);
             }
             taken = telamin.fluxtion.audit.analyser.bundle.BundleExcerpt.take(store, range);
+        } else if (e.readSoFar()) {
+            // EB.F6: the file has more than was read; the bundle holds exactly what this store read, as an excerpt of it
+            var range = telamin.fluxtion.audit.analyser.bundle.BundleExcerpt.all(store);
+            if (range == null) {
+                // the node refused a growing log with nothing read; the store cannot change within one dispatch
+                session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleWriteFailed(ticket, generation,
+                        "internal: nothing had been read, though the session had records; nothing was written"));
+                return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CaptureStarted(e.opId(), ticket);
+            }
+            taken = telamin.fluxtion.audit.analyser.bundle.BundleExcerpt.take(store, range);
         }
         String expected = loadedLogIdentity.size() == 1 ? loadedLogIdentity.get(0).sha256() : null;
         var job = new telamin.fluxtion.audit.analyser.bundle.BundleWriter.Job(Path.of(e.path()), log, graph,
                 settings.getFileName().toString(), settingsBytes, e.notes(), taken, java.time.Instant.now(),
-                telamin.fluxtion.audit.analyser.analyser.core.ReleaseNotes.version(), config.memoryThresholdMb, expected);
+                telamin.fluxtion.audit.analyser.analyser.core.ReleaseNotes.version(), config.memoryThresholdMb, expected,
+                e.readSoFar());
         telamin.fluxtion.audit.analyser.analyser.core.Background.run(() -> {
                     try {
                         return telamin.fluxtion.audit.analyser.bundle.BundleWriter.write(job);

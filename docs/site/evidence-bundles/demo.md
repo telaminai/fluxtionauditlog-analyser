@@ -48,5 +48,6 @@ A typical run on one machine: from a received file to the walk's last step in ab
 **1.2 s** for the excerpt, plus about 2.5 s to start the analyser. Results, the timings and the screenshots go to
 `/tmp/fluxtion-evidence-demo/results.json` and `…/recipient/shots/`.
 
-`--default-window` leaves the window at a fresh install's size, which shows the one known rough edge: the chart
-step reports *"no room — widen the window"*.
+The demo **pins the recipient's window at 1440×900**. At a fresh install's default size (1200×800) a chart step
+reports *"no room — widen the window"*; the fix is to widen the window, not to change the layout.
+`--default-window` leaves the window at the default, to show it.

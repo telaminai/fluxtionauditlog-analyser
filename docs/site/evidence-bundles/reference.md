@@ -66,7 +66,8 @@ the checks only the running analyser can make. They now exit 2 and say so.
 - The walk and report fingerprints in the profile member already record the log's provenance and record count, so
   the manifest does not repeat them unverified.
 - **An excerpt adds `excerpt`** after `graph`: `{"firstRecord":4,"lastRecord":8,"sourceRecords":10,"from":…,"to":…}`.
-  A recipient never reads a slice as the whole log.
+  A recipient never reads a slice as the whole log. A log captured while still growing adds `"readSoFar":true`, and
+  `sourceRecords` is then the number of records read.
 
 ## Context fields
 

@@ -2301,10 +2301,9 @@ starter 1.0.74, and M19.4/M19.8 are archived; that order is kept in [`completed/
       time-window **excerpt** with re-based walks and reports (owner, 2026-09-28); notes as a member; both skills,
       `--pack` and `--bundle-profile` removed. The driver: 43 checks, whole log and excerpt.
     Follow-ups:
-    - [EB.F1] ☐ **A chart spotlight at the default window.** At 1200×800 a chart target reports *"no room at 192×247
-      px — widen the window"*, so a cold recipient's first chart step is not lit (`evidence-bundle-demo.py
-      --default-window` reproduces it). Pre-existing, M64/M69; it is the demo's first impression. Fix before a demo
-      on a fresh install, or pin the window in the demo.
+    - [EB.F1] ☑ **Accepted (owner, 2026-09-28): a pinned window.** At 1200×800 a chart target reports *"no room at
+      192×247 px — widen the window"* (`evidence-bundle-demo.py --default-window` reproduces it). The demo pins
+      1440×900, and the docs tell a recipient to widen the window. The layout is not changed.
     - [EB.F2] ☑ moot: the skills were deleted in the convergence (EB.C1), so there is nothing for a generated project
       to carry.
     - [EB.F3] ☐ **Another machine.** EP-A6 was run on one machine with two homes; a second machine (or a CI runner)
@@ -2313,9 +2312,10 @@ starter 1.0.74, and M19.4/M19.8 are archived; that order is kept in [`completed/
       point at a working copy that may later be deleted.
     - [EB.F5] ☐ **Second delivery:** external-series CSVs as members, flags, replay. (Excerpts moved into the first,
       EB.C1.)
-    - [EB.F6] ☐ **Owner decision: a log still growing under Follow.** Capture refuses it now, and says to stop Follow
-      once the producer has stopped (spec r5 §13.2). The alternative is to bundle the records read so far, whose chart
-      steps would read as historical on the other side.
+    - [EB.F6] ☑ **Decided (owner, 2026-09-28): what has been read so far.** A log still growing under Follow is
+      captured as an excerpt of every record the session read, marked `readSoFar` in the manifest. Walks and reports
+      are re-based onto it, so their steps stay current. Nothing read yet is refused. Outside Follow, a changed file
+      is still refused (spec §13.2).
     - [EB.F7] ☐ **Rule 9: the walk SAVE's generation check is in the frame** (`ui/WalkAuthoring.java`), not a node.
       Capture applies the rule in its node; the walk save should too.
     - [EB.F9] ☐ **Before merge (convergence review):** provoke the moved-generation rule from the frame by ANOTHER

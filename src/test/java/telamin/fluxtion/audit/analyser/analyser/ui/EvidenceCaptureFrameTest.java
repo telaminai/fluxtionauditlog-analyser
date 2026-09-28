@@ -129,11 +129,10 @@ class EvidenceCaptureFrameTest {
     }
 
     @Test
-    @DisplayName("EP-A1 through the verb: under Follow the file grew — freshness refuses it, and says stop Follow, not reopen")
-    void changedOnDisk(@TempDir Path tmp) throws Exception {
-        // Outside Follow, the read-through identity observes any change first (the cases above). Under Follow there is
-        // no read-through observation (MainFrame.observeReadIdentity), so FRESHNESS is the only witness: the one state
-        // in which this refusal is the one that fires.
+    @DisplayName("EB.F6 through the verb: under Follow the file grew — the bundle holds the records READ, not the file")
+    void aGrowingLogBundlesWhatWasRead(@TempDir Path tmp) throws Exception {
+        // Outside Follow the read-through identity refuses any change (the cases above). Under Follow a change is growth:
+        // the owner's rule (2026-09-28) is to bundle what was read so far, as an excerpt of every record read.
         assumeFalse(GraphicsEnvironment.isHeadless());
         Path log = Files.copy(DEMO_LOG, Files.createDirectories(tmp.resolve("logs")).resolve("demo-quote-audit.yaml"));
         try (var f = shown(tmp)) {
@@ -141,6 +140,15 @@ class EvidenceCaptureFrameTest {
             openLog(f, log);
             onEdt(() -> render(f.ex, "open", Map.of("follow", true)));
             awaitLoaded(f.ex);
+            // what the session has READ: under a live read the unterminated last record is pending, not served
+            AtomicReference<Integer> read = new AtomicReference<>();
+            onEdt(() -> {
+                @SuppressWarnings("unchecked")
+                var logCtx = (Map<String, Object>) ((Map<String, Object>) render(f.ex, "context",
+                        Map.of("sections", List.of("log"))).get("context")).get("log");
+                read.set(((Number) logCtx.get("records")).intValue());
+            });
+            assertTrue(read.get() > 0, "control: the session has read records");
             AtomicReference<Map<String, Object>> echo = new AtomicReference<>();
             onEdt(() -> {        // one task: the append and the request, with no Follow poll between them
                 try {
@@ -149,10 +157,26 @@ class EvidenceCaptureFrameTest {
                 } catch (java.io.IOException e) {
                     throw new java.io.UncheckedIOException(e);
                 }
-                echo.set(ask(f, bundle("a.fexp")));
+                echo.set(ask(f, bundle("growing.fexp")));
             });
-            refused(echo.get(), "the log is still growing under Follow");
-            assertEquals(List.of(), leftBehind(ex));
+            assertEquals(Boolean.TRUE, echo.get().get("ok"), "a growing log is captured, not refused: " + echo.get());
+            Map<String, Object> c = awaitDecided(f);
+            assertEquals("WRITTEN", c.get("phase"), String.valueOf(c));
+            assertTrue(((List<?>) c.get("lines")).stream().anyMatch(l -> String.valueOf(l).startsWith("read so far: ")),
+                    "and the author is told it holds what was read: " + c.get("lines"));
+            var v = EvidenceBundle.verify(ex.resolve("growing.fexp"));
+            assertTrue(v.ok(), v.refusal());
+            assertNotNull(v.excerpt(), "the manifest states the cut");
+            assertEquals(Boolean.TRUE, v.excerpt().get("readSoFar"), "and that it is what was read so far");
+            try (ZipFile z = new ZipFile(ex.resolve("growing.fexp").toFile())) {
+                assertNotNull(z.getEntry("log/demo-quote-audit.yaml"), "the log member");
+                String member = new String(z.getInputStream(z.getEntry("log/demo-quote-audit.yaml")).readAllBytes(), StandardCharsets.UTF_8);
+                assertFalse(member.contains("1767258000999"), "the record written after the last read is not in the bundle");
+                assertEquals(read.get().intValue(), member.split("eventLogRecord:", -1).length - 1,
+                        "exactly the records the session had read, no more");
+                assertEquals(read.get().longValue(), ((Number) v.excerpt().get("sourceRecords")).longValue(),
+                        "and the manifest counts what was read");
+            }
         }
     }
 

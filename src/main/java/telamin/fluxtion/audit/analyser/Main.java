@@ -151,7 +151,9 @@ public class Main {
         }
         out.println("verified: " + v.members().size() + " members, each matching the manifest's sha256 and size");
         if (v.excerpt() != null) out.println("excerpt: the log is records " + whole(v.excerpt().get("firstRecord")) + ".."
-                + whole(v.excerpt().get("lastRecord")) + " of " + whole(v.excerpt().get("sourceRecords")) + ", not the whole log");
+                + whole(v.excerpt().get("lastRecord")) + " of " + whole(v.excerpt().get("sourceRecords")) + ", not the whole log"
+                + (Boolean.TRUE.equals(v.excerpt().get("readSoFar"))
+                        ? " (it was still growing when captured: these are the records read so far)" : ""));
         limits(out);
         return 0;
     }

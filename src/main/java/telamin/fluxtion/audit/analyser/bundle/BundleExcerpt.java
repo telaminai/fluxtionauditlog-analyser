@@ -41,6 +41,12 @@ public final class BundleExcerpt {
      * The record range {@code from}..{@code to} selects in {@code store}, or null when it selects none. Either bound may be
      * null (open-ended). A record with no log time is inside the range only between two records that are.
      */
+    /** Every record the store holds, or null when it holds none: for a log still growing, what was read so far. */
+    public static Range all(LogStore store) {
+        int n = store.size();
+        return n == 0 ? null : new Range(0, n - 1, n, null, null);
+    }
+
     public static Range range(LogStore store, Long from, Long to) {
         LogIndex idx = store.index();
         int n = store.size(), first = -1, last = -1;

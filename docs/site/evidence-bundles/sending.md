@@ -28,7 +28,7 @@ message, if the recipient needs to know the file is the one you packed.
     - no log is open;
     - a load is still pending;
     - the log file's identity is not established (it was replaced, or changed after it was read);
-    - the file changed on disk. Under Follow, the log is still growing: stop Follow once the producer has stopped;
+    - the file changed on disk since it was read, outside Follow;
     - the log is not one plain file (a rolled set, a directory or a remote store);
     - a bundle is already being written.
 2. **It writes the project's pending edits now**, so a chart, report or walk you saved a moment ago is in the
@@ -43,6 +43,17 @@ message, if the recipient needs to know the file is the one you packed.
    See [what does not travel](index.md#what-does-not-travel-and-why).
 5. **It checks the copy is coherent.** If another log is opened, or the log is closed, while the bundle is being
    written, the bundle would mix two sessions. It is refused and deleted, along with its working folder.
+
+## A log that is still growing
+
+Under Follow, a producer may still be writing to the log. The bundle then holds **what has been read so far**: an
+excerpt of every record the analyser read before the capture, never the file, which already has more. It works
+like a time-window excerpt:
+- walks and reports are re-based and stay current;
+- the manifest marks it `readSoFar`;
+- `--verify` and the capture's own lines say so.
+
+If nothing has been read yet, the capture is refused.
 
 ## An excerpt: only the part that matters
 

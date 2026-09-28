@@ -48,7 +48,14 @@ public final class BundleWriter {
      */
     public record Job(Path out, Path log, Path graph, String settingsName, byte[] settingsBytes, String notes,
                       BundleExcerpt.Taken excerpt, Instant createdAt, String version, int thresholdMb,
-                      String expectedLogSha256) { }
+                      String expectedLogSha256, boolean readSoFar) {
+        /** A capture of a log that is not still growing. */
+        public Job(Path out, Path log, Path graph, String settingsName, byte[] settingsBytes, String notes,
+                   BundleExcerpt.Taken excerpt, Instant createdAt, String version, int thresholdMb, String expectedLogSha256) {
+            this(out, log, graph, settingsName, settingsBytes, notes, excerpt, createdAt, version, thresholdMb,
+                    expectedLogSha256, false);
+        }
+    }
 
     /** What was written: the identity, and every line the author must see (left out, dangling, redacted, excerpt). */
     public record Written(String identity, List<String> lines) { }
@@ -99,7 +106,13 @@ public final class BundleWriter {
                 cut.put("sourceRecords", r.sourceRecords());
                 if (r.from() != null) cut.put("from", r.from());
                 if (r.to() != null) cut.put("to", r.to());
+                if (job.readSoFar()) {
+                    cut.put("readSoFar", true);
+                    lines.add("read so far: the log was still growing under Follow, so the bundle holds the "
+                            + r.sourceRecords() + " records read before the capture, not what was written after them");
+                }
                 lines.add("excerpt: records " + r.first() + ".." + r.last() + " of " + r.sourceRecords()
+                        + (job.readSoFar() ? " read" : "")
                         + ", re-read and matched record by record; walks and reports are re-based onto it");
             }
             if (job.graph() != null) {

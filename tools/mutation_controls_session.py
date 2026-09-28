@@ -1117,9 +1117,9 @@ CONTROLS = [
      '        m.put("createdAt", Instant.now().toString());\n',
      'EvidenceBundleTest#theIdentityIsPinnedAndDeterministic'),
     ('eb-b2-verify-states-the-limits', MAIN,
-     '                + whole(v.excerpt().get("lastRecord")) + " of " + whole(v.excerpt().get("sourceRecords")) + ", not the whole log");\n'
+     '                        ? " (it was still growing when captured: these are the records read so far)" : ""));\n'
      '        limits(out);\n',
-     '                + whole(v.excerpt().get("lastRecord")) + " of " + whole(v.excerpt().get("sourceRecords")) + ", not the whole log");\n',
+     '                        ? " (it was still growing when captured: these are the records read so far)" : ""));\n',
      'MainBundleTest#theHappyPath'),
     ('eb-b2-a-refusal-exits-one', MAIN,
      '            err.println("REFUSED: " + v.refusal());\n            return 1;\n',
@@ -1208,7 +1208,8 @@ CONTROLS = [
     # Declared, not registered: BundleWriter's delete-on-failure (pack deletes its own output on failure and nothing
     # fails after pack, so no case reaches it); the between-pass mismatch in unpack; startCapture's internal
     # empty-range failure (the node refuses an empty window at the request, and the store cannot change within one
-    # dispatch, so nothing reaches it); the reaper's cannot-tell branch (a filesystem without locking); the observation's list-size test
+    # dispatch, so nothing reaches it), and its read-so-far twin (the node refuses a growing log with nothing read); the
+    # reaper's cannot-tell branch (a filesystem without locking); the observation's list-size test
     # for one plain file: registered as a candidate against EvidenceCaptureFrameTest#notOnePlainFile, it SURVIVED
     # (2026-09-28), because the observation's other conditions already refuse a rolled set — masked, and now shown.
     ('cv-refuses-no-log', CAPTURE,
@@ -1222,9 +1223,6 @@ CONTROLS = [
      'EvidenceCaptureTest#anUnestablishedIdentityIsRefused'),
     ('cv-refuses-a-changed-file', CAPTURE,
      '        if ("changed-on-disk".equals(e.freshness())) {\n', '        if (false) {\n',
-     'EvidenceCaptureTest#aChangedFileIsRefused'),
-    ('cv-names-a-growing-log', CAPTURE,
-     '            return openLog.following()\n', '            return false\n',
      'EvidenceCaptureTest#aChangedFileIsRefused'),
     ('cv-refuses-not-one-plain-file', CAPTURE,
      '        if (!e.onePlainFile()) {\n', '        if (false) {\n',
@@ -1259,7 +1257,7 @@ CONTROLS = [
     ('cv-the-frame-observes-freshness', UI + 'MainFrame.java',
      '                observed, state == null ? null : state.toString(), onePlainFile, windowRecords, origin));\n',
      '                observed, null, onePlainFile, windowRecords, origin));\n',
-     'EvidenceCaptureFrameTest#changedOnDisk'),
+     'EvidenceCaptureFrameTest#aGrowingLogBundlesWhatWasRead'),   # EB.F6: the observation is what tells growth
     ('cv-the-frame-observes-the-identity', UI + 'MainFrame.java',
      '        String observed = identity == null ? null : identity.verdict().name().toLowerCase(java.util.Locale.ROOT);\n',
      '        String observed = null;\n',
@@ -1356,4 +1354,22 @@ CONTROLS = [
     ('cv-the-frame-counts-the-window', UI + 'MainFrame.java',
      '            windowRecords = range == null ? 0 : range.size();\n', '            windowRecords = 1;\n',
      'EvidenceCaptureFrameTest#anExcerpt'),
+    # EB.F6 (owner, 2026-09-28): a log still growing under Follow is captured as the records READ so far. Replaces
+    # cv-names-a-growing-log, whose property (the refusal named Follow) the owner's decision retired.
+    ('cv-a-growing-log-is-captured-as-read', CAPTURE,
+     '        boolean readSoFar = "changed-on-disk".equals(e.freshness()) && openLog.following();\n',
+     '        boolean readSoFar = false;\n',
+     'EvidenceCaptureTest#aGrowingLogBundlesWhatWasRead'),
+    ('cv-outside-follow-a-change-refuses', CAPTURE,
+     '            if (!openLog.following()) return "the log file changed on disk since it was read; reopen it first";\n', '',
+     'EvidenceCaptureTest#aChangedFileIsRefused'),
+    ('cv-a-growing-log-with-nothing-read-refuses', CAPTURE,
+     '            if (openLog.total() == 0) {\n', '            if (false) {\n',
+     'EvidenceCaptureTest#aGrowingLogWithNothingReadIsRefused'),
+    ('cv-the-frame-takes-what-was-read', UI + 'MainFrame.java',
+     '        } else if (e.readSoFar()) {\n', '        } else if (false) {\n',
+     'EvidenceCaptureFrameTest#aGrowingLogBundlesWhatWasRead'),
+    ('cv-the-manifest-says-read-so-far', WRITER,
+     '                    cut.put("readSoFar", true);\n', '',
+     'EvidenceCaptureFrameTest#aGrowingLogBundlesWhatWasRead'),
 ]
