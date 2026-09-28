@@ -34,6 +34,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   its audit level mid-run. It loads only the event types your processor handles, and
   replays each record at its recorded instant on a data-driven clock. It writes the audit log for
   `--replay-compare`.
+- **The start page's DEMO is regenerated with the current Fluxtion toolchain.** A cycle now reads the clock once,
+  so the DEMO log's times moved: the breach is at 09:00:00.180. The events and every node's values are unchanged.
 - **The DEMO records a replay.** `examples/fixture-generator` gains a replay writer compiled into the processor. It
   records only the inputs the caller names, stamped with the instant each cycle ran at, for exactly the event types
   the processor handles. It also writes a recorded run's log, replay records and graph, and writes them only after

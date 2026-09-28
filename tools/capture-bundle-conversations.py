@@ -165,7 +165,7 @@ def build(name, risk_limit=None):
 
 # ---- the conversations -----------------------------------------------------------------------------------------------
 
-NOTES = "# The 09:00 breach (DEMO)\n\nThe spread widened two cycles before the risk limit was reached.\n"
+NOTES = "# The 09:00 breach (DEMO)\n\nThe spread narrowed three cycles before the risk limit was reached.\n"
 
 
 def sender(t):

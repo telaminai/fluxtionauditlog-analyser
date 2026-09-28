@@ -294,7 +294,7 @@ def sender_session():
                       "external": [{"path": str(exchange / "venue-latency.csv"), "label": "venue latency",
                                     "time": "t", "timeFormat": "epochMillis", "value": "latencyMs"}]})
     an.must("report", {"name": REPORT, "title": "The 09:00 breach", "sections": [
-        {"kind": "narrative", "text": "The spread widened two cycles before the risk limit was reached."},
+        {"kind": "narrative", "text": "The spread narrowed three cycles before the risk limit was reached."},
         {"kind": "record", "recordIndex": 7},
         {"kind": "chart", "graph": CHART}]})
     an.must("walk", {"name": WALK, "title": "Why the spread moved", "steps": [
@@ -307,7 +307,7 @@ def sender_session():
     return an
 
 
-NOTES = "# The 09:00 breach (DEMO)\n\nThe spread widened two cycles before the risk limit was reached.\n"
+NOTES = "# The 09:00 breach (DEMO)\n\nThe spread narrowed three cycles before the risk limit was reached.\n"
 # the excerpt window: records 4..8 of the DEMO log, which hold the breach record (7) and the cycles before it
 EXCERPT = (1767258000140, 1767258000210)
 

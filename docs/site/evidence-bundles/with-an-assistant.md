@@ -26,16 +26,16 @@ The **asks** and the **agent's answers** are written by hand. **Every tool call,
         "to": 1767258000230,
         "openedBy": "the command line that started this analyser",
         "freshness": {
-          "reload": "explicitly reopen the same path; no automatic replacement",
           "members": [
             {
-              "loaded": "{…}",
+              "state": "unchanged-metadata",
               "onDisk": "{…}",
-              "state": "unchanged-metadata"
+              "loaded": "{…}"
             }
           ],
-          "state": "unchanged-metadata",
-          "basis": "size, modification time and file identity; unchanged metadata does not prove identical bytes"
+          "reload": "explicitly reopen the same path; no automatic replacement",
+          "basis": "size, modification time and file identity; unchanged metadata does not prove identical bytes",
+          "state": "unchanged-metadata"
         },
         "generation": 1,
         "following": false,
@@ -67,7 +67,7 @@ The agent saves the finding as a **walk** first, because flags do not travel and
 
 ??? example "→ `analyser_report`"
     ```json
-    → analyser_report {"bundle": {"path": "breach-0900.fexp", "notes": "# The 09:00 breach (DEMO)\n\nThe spread widened two cycles before the risk limit was reached.\n"}}
+    → analyser_report {"bundle": {"path": "breach-0900.fexp", "notes": "# The 09:00 breach (DEMO)\n\nThe spread narrowed three cycles before the risk limit was reached.\n"}}
     ← {
       "phase": "WRITING",
       "path": "/private<exchange-dir>/breach-0900.fexp",
@@ -83,13 +83,13 @@ The agent saves the finding as a **walk** first, because flags do not travel and
       "capture": {
         "phase": "WRITTEN",
         "path": "/private<exchange-dir>/breach-0900.fexp",
-        "identity": "sha256:fa0869fc73d4…"
+        "identity": "sha256:85c1d94b7952…"
       }
     }
     ```
 
 
-> **Agent:** Done: `breach-0900.fexp` is in your exchange directory, with the log, its graph, the walk *The 09:00 breach* and your notes. It also lists what it **left out**, because it describes your machine, not the investigation. Send the file however you like, and send its identity line (`sha256:fa0869fc73d4…`) by another route, such as a chat message: the bundle is unsigned, and matching that line is how the recipient knows the file is the one you packed.
+> **Agent:** Done: `breach-0900.fexp` is in your exchange directory, with the log, its graph, the walk *The 09:00 breach* and your notes. It also lists what it **left out**, because it describes your machine, not the investigation. Send the file however you like, and send its identity line (`sha256:85c1d94b7952…`) by another route, such as a chat message: the bundle is unsigned, and matching that line is how the recipient knows the file is the one you packed.
 
 
 ![The walk the bundle carries, on step 2: the breach record lit with its caption. The recipient sees exactly this](../assets/bundle-conv-walk.png)
@@ -143,7 +143,7 @@ The processor that wrote this log had a replay writer compiled in: it recorded e
       "capture": {
         "phase": "WRITTEN",
         "path": "/private<exchange-dir>/recorded-run.fexp",
-        "identity": "sha256:28bbd3b1d73b…",
+        "identity": "sha256:ee11b9eaefdb…",
         "lines": [
           "replay: the run's 7 recorded inputs, paired with the log in order; a recipient can replay them into their o…"
         ]
@@ -170,7 +170,7 @@ The recipient's agent works with **commands**, not the running analyser: checkin
 ??? example "→ shell: `analyser --verify`"
     ```console
     $ analyser --verify ~/Downloads/recorded-run.fexp
-    identity: sha256:28bbd3b1d73b…
+    identity: sha256:ee11b9eaefdb…
     verified: 5 members, each matching the manifest's sha256 and size
     replay: replay/demo-quote-recorded.replay.yaml, the run's 7 recorded inputs
     limit: unsigned: verification detects a changed member; it does not authenticate the sender
@@ -197,7 +197,7 @@ The recipient's agent works with **commands**, not the running analyser: checkin
 ??? example "→ shell: `analyser --replay-compare`"
     ```console
     $ analyser --replay-compare ~/Downloads/recorded-run.fexp ~/work/replayed.yaml
-    identity: sha256:28bbd3b1d73b…
+    identity: sha256:ee11b9eaefdb…
     verified: 5 members, each matching the manifest's sha256 and size
     replay: AGREES, 8 of 8 records (endTime and thread excepted, differing on 8: when and where a cycle ran, which a replay cannot know)
     limit: unsigned: verification detects a changed member; it does not authenticate the sender
@@ -212,30 +212,30 @@ The recipient's agent works with **commands**, not the running analyser: checkin
 ??? example "→ shell: `analyser --unpack`"
     ```console
     $ analyser --unpack ~/Downloads/recorded-run.fexp
-    identity: sha256:28bbd3b1d73b…
+    identity: sha256:ee11b9eaefdb…
     verified: 5 members, each matching the manifest's sha256 and size
     replay: replay/demo-quote-recorded.replay.yaml, the run's 7 recorded inputs
     limit: unsigned: verification detects a changed member; it does not authenticate the sender
     limit: replay: the recorded inputs reproduce this log only on a build whose graph matches, and only as far as the processor reads nothing the records do not carry
-    working copy: ~/work/copies/bundle-28bbd3b1d73b-2974535595234109042  (the received bundle is unchanged)
+    working copy: ~/work/copies/bundle-ee11b9eaefdb-15139471133939563263  (the received bundle is unchanged)
     (exit 0)
     ```
 
 
 ??? example "→ `analyser_open`"
     ```json
-    → analyser_open {"project": "~/work/copies/bundle-28bbd3b1d73b-2974535595234109042/profile/project.flux…"}
+    → analyser_open {"project": "~/work/copies/bundle-ee11b9eaefdb-15139471133939563263/profile/project.flu…"}
     ← {
-      "project": "bundle-28bbd3b1d73b-2974535595234109042"
+      "project": "bundle-ee11b9eaefdb-15139471133939563263"
     }
     ```
 
 
 ??? example "→ `analyser_open`"
     ```json
-    → analyser_open {"log": "~/work/copies/bundle-28bbd3b1d73b-2974535595234109042/log/demo-quote-recor…", "graphml": "~/work/copies/bundle-28bbd3b1d73b-2974535595234109042/graph/demo-quote-rec…", "provenance": "evidence bundle recorded-run.fexp"}
+    → analyser_open {"log": "~/work/copies/bundle-ee11b9eaefdb-15139471133939563263/log/demo-quote-reco…", "graphml": "~/work/copies/bundle-ee11b9eaefdb-15139471133939563263/graph/demo-quote-re…", "provenance": "evidence bundle recorded-run.fexp"}
     ← {
-      "log": "~/work/copies/bundle-28bbd3b1d73b-2974535595234109042/log/demo-quote-recor…"
+      "log": "~/work/copies/bundle-ee11b9eaefdb-15139471133939563263/log/demo-quote-reco…"
     }
     ```
 
@@ -276,10 +276,11 @@ The recipient's agent works with **commands**, not the running analyser: checkin
 ??? example "→ shell: `analyser --replay-compare`"
     ```console
     $ analyser --replay-compare ~/Downloads/recorded-run.fexp ~/work/replayed-risk-change.yaml
-    identity: sha256:28bbd3b1d73b…
+    identity: sha256:ee11b9eaefdb…
     verified: 5 members, each matching the manifest's sha256 and size
     replay: DIVERGES at record 6 (OrderUpdateEvent): eventLogRecord.nodeLogs.riskMonitor: the bundled log has '{ liveOrders: 2, limit: 2, redispatch: true}', and the replay has no such line
     replay: the 6 record(s) before it agree
+    replay: a divergence is a difference in behaviour OR in something the processor read outside the recorded inputs and the injected clock (a wall-clock read, hash order, a random value)
     limit: unsigned: verification detects a changed member; it does not authenticate the sender
     limit: replay: the recorded inputs reproduce this log only on a build whose graph matches, and only as far as the processor reads nothing the records do not carry
     (exit 1)
@@ -308,10 +309,10 @@ The recipient's agent works with **commands**, not the running analyser: checkin
           "target": "records:row:6",
           "caption": "diverges here: on the branch the risk monitor logs nothing, and no breach follows",
           "bounds": {
+            "width": 616,
             "height": 32,
             "x": 352,
-            "y": 373,
-            "width": 616
+            "y": 373
           }
         }
       ]

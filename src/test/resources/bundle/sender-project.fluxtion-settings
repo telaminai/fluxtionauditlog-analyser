@@ -66,7 +66,7 @@ report.0.name=breach-0900
 report.0.s.0.call.count=0
 report.0.s.0.col.count=0
 report.0.s.0.kind=NARRATIVE
-report.0.s.0.text=The spread widened two cycles before the risk limit was reached.
+report.0.s.0.text=The spread narrowed three cycles before the risk limit was reached.
 report.0.s.1.call.count=0
 report.0.s.1.col.count=0
 report.0.s.1.kind=RECORD
@@ -107,7 +107,9 @@ walk.0.s.0.t.count=1
 walk.0.s.0.view.tab=topology
 walk.0.s.1.caption=the record where the limit is reached
 walk.0.s.1.t.0.basis=record
-walk.0.s.1.t.0.basis.digest=sha256\:ee42ead01cae0ef35e04e676f317624a1caaf982714f1aa523d160a60b95de7a
+# record 7 of the DEMO log as refreshed by M70.R0c (one clock read per cycle); the graph and chart basis digests
+# above and below are from the capture and are not asserted by any test
+walk.0.s.1.t.0.basis.digest=sha256\:192319593c1392bbbe1586427a82a24eeb9d2d887ba8c1cf966edf2c5bb9e94b
 walk.0.s.1.t.0.basis.rep=HeapLogStore
 walk.0.s.1.t.0.caption=the breach record
 walk.0.s.1.t.0.target=records\:row\:7

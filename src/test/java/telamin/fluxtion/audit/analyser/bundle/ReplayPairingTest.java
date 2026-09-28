@@ -17,8 +17,11 @@ class ReplayPairingTest {
 
     private static final Path AUDIT = Path.of("src/test/resources/replay/demo-quote-recorded-audit.yaml");
     private static final Path REPLAY = Path.of("src/test/resources/replay/demo-quote-recorded.replay.yaml");
-    /** The shipped DEMO log: a different run of the same graph, with two exported-service calls. */
-    private static final Path OTHER_RUN = Path.of("src/main/resources/demo/demo-quote-audit.yaml");
+    /**
+     * A genuinely different run of the same graph: the longer series log. Not the short DEMO log, jar or fixture: since
+     * M70.R0c both are the recorded run's inputs on the same clock, so the replay really does pair with them (RB-9).
+     */
+    private static final Path OTHER_RUN = Path.of("src/test/resources/topology/demo-quote-series.yaml");
 
     @TempDir
     Path tmp;
@@ -43,7 +46,7 @@ class ReplayPairingTest {
         assertFalse(o.pairs());
         assertTrue(o.problem().contains("its record 0 (MarketDataEvent at 1767258000060)"), o.problem());
         assertTrue(o.problem().contains("another run"), o.problem());
-        assertEquals(2, o.serviceCalls(), "the shipped DEMO log's suspendQuoting and resumeQuoting are counted");
+        assertEquals(0, o.serviceCalls(), "the series run makes no exported-service calls");
     }
 
     @Test

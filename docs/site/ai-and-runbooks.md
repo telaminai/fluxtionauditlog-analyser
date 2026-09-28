@@ -98,11 +98,11 @@ that there is a saved analysis for exactly this kind of incident, and that a res
 Then — with its **own** file tool, not the analyser — it reads `ops/restart-quote-service.md`, because the
 analyser handed it the path and nothing else.
 
-> **Agent:** At 09:00:00.300 the risk limit was breached on `ord-2` with two live orders — a *breach* in
+> **Agent:** At 09:00:00.180 the risk limit was breached on `ord-2` with two live orders — a *breach* in
 > this system's vocabulary is the RiskBreachEvent that follows liveOrders exceeding the limit, and the
 > glossary says it's routine, not an outage. I ran the saved *spread breach* analysis; the chart of
-> `quotePublisher.spread` is in your Graph tab — it widened from 0.011 to 0.020 in the two cycles before
-> the breach, so the spread moved first. The `restart` runbook says: confirm `liveOrders` reads 0 before
+> `quotePublisher.spread` is in your Graph tab — it narrowed from 0.020 to 0.011 at 09:00:00.140, three cycles
+> before the breach, so the spread moved first. The `restart` runbook says: confirm `liveOrders` reads 0 before
 > restarting, restart through the deployment tool, then verify the next log opens with a MarketDataEvent
 > within 5 s and spread back near 0.01. I have not run anything.
 

@@ -1,10 +1,3 @@
-/*
- * This source code is protected under international copyright law.  All rights
- * reserved and protected by the copyright holders.
- * This file is confidential and only available to authorized individuals with the
- * permission of the copyright holders.  If you encounter this file and do not have
- * permission, please contact the copyright holders and delete this file.
- */
 package com.acme.demo.generated;
 
 import com.acme.demo.api.QuoteControl;
@@ -54,9 +47,9 @@ import java.util.function.Consumer;
  *
  * <pre>
  * generation time           : Not available
- * api version               : unknown api version
- * analyser version          : unknown analyser version
- * target generator version  : unknown generator version
+ * api version               : 1.0.16
+ * analyser version          : 1.0.71
+ * target generator version  : 1.0.75
  * </pre>
  *
  * Event classes supported:
@@ -80,7 +73,8 @@ public class DemoQuoteTracedProcessor
         /*--- @ExportService end ---*/
         DataFlow,
         InternalEventProcessor,
-        BatchHandler {
+        BatchHandler,
+        com.telamin.fluxtion.runtime.node.NodeNameLookup {
 
   //Node declarations
   private final transient CallbackDispatcherImpl callbackDispatcher = new CallbackDispatcherImpl();
@@ -107,6 +101,10 @@ public class DemoQuoteTracedProcessor
   private boolean initCalled = false;
   private boolean processing = false;
   private boolean buffering = false;
+  //M50/W1 - written by CallbackDispatcherImpl when it queues, cleared when it drains empty. Read on
+  //the event path instead of walking processor->dispatcher->ArrayDeque to be told the queue is empty.
+  //Measured saving on a 3-event-type graph: 0.098ns of a 5.61ns event on a JIT; nothing on native+PGO.
+  private boolean callbacksPending = false;
   private final transient IdentityHashMap<Object, BooleanSupplier> dirtyFlagSupplierMap =
       new IdentityHashMap<>(3);
   private final transient IdentityHashMap<Object, Consumer<Boolean>> dirtyFlagUpdateMap =
@@ -140,7 +138,11 @@ public class DemoQuoteTracedProcessor
                 "com.acme.demo.api.QuoteControl",
                 ProcessorDescriptor.Service.Direction.EXPORTED)
           },
-          new DescriptorSupport.Meta(null, null, null, null));
+          new DescriptorSupport.Meta(
+              null,
+              "1.0.71",
+              "de849dc6785ee1f13da506afebd8db510ae090af3f6bbcb8ef1d2bdfad4e2c8e",
+              null));
 
   @Override
   public ProcessorDescriptor getDescriptor() {
@@ -161,6 +163,8 @@ public class DemoQuoteTracedProcessor
     eventLogger.printThreadName = true;
     eventLogger.traceLevel = LogLevel.TRACE;
     eventLogger.clock = clock;
+    eventLogger.binaryRecord = false;
+    eventLogger.recordEndTime = true;
     context.setClock(clock);
     serviceRegistry.setDataFlowContext(context);
     //node auditors
@@ -266,9 +270,25 @@ public class DemoQuoteTracedProcessor
     } else {
       processing = true;
       onEventInternal(event);
-      callbackDispatcher.dispatchQueuedCallbacks();
+      if (callbacksPending) {
+        final boolean sharedBefore = clock.shareReading(true);
+        callbackDispatcher.dispatchQueuedCallbacks();
+        clock.shareReading(sharedBefore);
+      }
       processing = false;
     }
+  }
+
+  /**
+   * M50/W1 - the dispatcher tells this processor when it has queued work, and when the queue has
+   * drained empty. Keeping the answer in a field this processor owns is what lets the event path
+   * skip walking into the dispatcher and its ArrayDeque on every event to be told there is nothing
+   * to do. The dispatcher owns the WRITE because it sees every queueing path - a node holding the
+   * dispatcher directly can queue without this processor ever seeing the call.
+   */
+  @Override
+  public void callbacksPending(boolean pending) {
+    callbacksPending = pending;
   }
 
   @Override
@@ -468,15 +488,11 @@ public class DemoQuoteTracedProcessor
   private void auditEvent(Object typedEvent) {
     clock.eventReceived(typedEvent);
     eventLogger.eventReceived(typedEvent);
-    nodeNameLookup.eventReceived(typedEvent);
-    serviceRegistry.eventReceived(typedEvent);
   }
 
   private void auditEvent(Event typedEvent) {
     clock.eventReceived(typedEvent);
     eventLogger.eventReceived(typedEvent);
-    nodeNameLookup.eventReceived(typedEvent);
-    serviceRegistry.eventReceived(typedEvent);
   }
 
   private void auditInvocation(Object node, String nodeName, String methodName, Object typedEvent) {
@@ -514,8 +530,6 @@ public class DemoQuoteTracedProcessor
   private void afterEvent() {
     clock.processingComplete();
     eventLogger.processingComplete();
-    nodeNameLookup.processingComplete();
-    serviceRegistry.processingComplete();
     isDirty_orderTracker = false;
     isDirty_priceListener = false;
     isDirty_spreadCalculator = false;
@@ -578,22 +592,104 @@ public class DemoQuoteTracedProcessor
     return isDirty_priceListener;
   }
 
+  /**
+   * M50/W4 — nodes resolved by a generated switch, not by a populated map: registering them would
+   * publish every node into the auditor's HashMaps and stop the graph being dissolved.
+   */
+  @SuppressWarnings("unchecked")
+  @Override
+  public <T> T getInstanceById(String id) throws NoSuchFieldException {
+    switch (id) {
+      case "breachHandler":
+        return (T) breachHandler;
+      case "orderTracker":
+        return (T) orderTracker;
+      case "priceListener":
+        return (T) priceListener;
+      case "quotePublisher":
+        return (T) quotePublisher;
+      case "riskMonitor":
+        return (T) riskMonitor;
+      case "spreadCalculator":
+        return (T) spreadCalculator;
+      case "eventLogger":
+        return (T) eventLogger;
+      case "nodeNameLookup":
+        return (T) nodeNameLookup;
+      case "callbackDispatcher":
+        return (T) callbackDispatcher;
+      case "subscriptionManager":
+        return (T) subscriptionManager;
+      case "context":
+        return (T) context;
+      case "serviceRegistry":
+        return (T) serviceRegistry;
+      case "clock":
+        return (T) clock;
+      default:
+        throw new NoSuchFieldException(id);
+    }
+  }
+
+  /** M50/W4 — the reverse direction, also generated. */
+  @Override
+  public String lookupInstanceName(Object node) {
+    if (node == breachHandler) {
+      return "breachHandler";
+    }
+    if (node == orderTracker) {
+      return "orderTracker";
+    }
+    if (node == priceListener) {
+      return "priceListener";
+    }
+    if (node == quotePublisher) {
+      return "quotePublisher";
+    }
+    if (node == riskMonitor) {
+      return "riskMonitor";
+    }
+    if (node == spreadCalculator) {
+      return "spreadCalculator";
+    }
+    if (node == eventLogger) {
+      return "eventLogger";
+    }
+    if (node == nodeNameLookup) {
+      return "nodeNameLookup";
+    }
+    if (node == callbackDispatcher) {
+      return "callbackDispatcher";
+    }
+    if (node == subscriptionManager) {
+      return "subscriptionManager";
+    }
+    if (node == context) {
+      return "context";
+    }
+    if (node == serviceRegistry) {
+      return "serviceRegistry";
+    }
+    if (node == clock) {
+      return "clock";
+    }
+    return null;
+  }
+
   @Override
   public <T> T getNodeById(String id) throws NoSuchFieldException {
     try {
-      return nodeNameLookup.getInstanceById(id);
+      return getInstanceById(id);
     } catch (NoSuchFieldException miss) {
-      // Auditors live on the SEP as public fields rather than in
-      // nodeNameLookup. Fall back to a reflective field probe so
-      // callers (especially DataFlow.getServiceById) have a single
-      // unified lookup path — no need to know whether the id maps to
-      // a regular node or an auditor.
+      // Auditors live on the SEP as fields rather than in nodeNameLookup, so callers
+      // (especially DataFlow.getServiceById) get one unified lookup path. The auditor
+      // half is a generated switch, not a reflective probe: reflection here would
+      // require native-image reflection configuration from every user, and would fail
+      // at runtime rather than at build time.
       try {
         @SuppressWarnings("unchecked")
-        T t = (T) this.getClass().getField(id).get(this);
+        T t = (T) getAuditorById(id);
         return t;
-      } catch (IllegalAccessException unreachable) {
-        throw new NoSuchFieldException(id);
       } catch (NoSuchFieldException stillMissing) {
         throw miss;
       }
@@ -601,9 +697,20 @@ public class DemoQuoteTracedProcessor
   }
 
   @Override
-  public <A extends Auditor> A getAuditorById(String id)
-      throws NoSuchFieldException, IllegalAccessException {
-    return (A) this.getClass().getField(id).get(this);
+  @SuppressWarnings("unchecked")
+  public <A extends Auditor> A getAuditorById(String id) throws NoSuchFieldException {
+    switch (id) {
+      case "clock":
+        return (A) clock;
+      case "eventLogger":
+        return (A) eventLogger;
+      case "nodeNameLookup":
+        return (A) nodeNameLookup;
+      case "serviceRegistry":
+        return (A) serviceRegistry;
+      default:
+        throw new NoSuchFieldException(id);
+    }
   }
 
   @Override
@@ -629,8 +736,7 @@ public class DemoQuoteTracedProcessor
   @Override
   public String getLastAuditLogRecord() {
     try {
-      EventLogManager eventLogManager =
-          (EventLogManager) this.getClass().getField(EventLogManager.NODE_NAME).get(this);
+      EventLogManager eventLogManager = getAuditorById(EventLogManager.NODE_NAME);
       return eventLogManager.lastRecordAsString();
     } catch (Throwable e) {
       return "";
