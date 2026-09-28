@@ -118,6 +118,7 @@ nav:
       - Log-source plugins: user-guide/plugins.md
   - Evidence bundles:
       - What a bundle is: evidence-bundles/index.md
+      - With your assistant: evidence-bundles/with-an-assistant.md
       - Sending an investigation: evidence-bundles/sending.md
       - Opening a bundle you were sent: evidence-bundles/opening.md
       - Commands and file format: evidence-bundles/reference.md
