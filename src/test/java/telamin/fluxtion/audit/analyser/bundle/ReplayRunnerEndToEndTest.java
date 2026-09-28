@@ -150,8 +150,10 @@ class ReplayRunnerEndToEndTest {
 
         var c = ReplayCompare.compare(bundle, out, 256);
         assertFalse(c.agrees());
-        assertTrue(c.divergence().startsWith("record 6 (OrderUpdateEvent): eventLogRecord.nodeLogs.riskMonitor:"),
-                "the first difference is the risk monitor's own record, before the breach it no longer raises: " + c.divergence());
+        // the WHOLE message: a prefix check passed while the tail compared the risk monitor's entry with an endTime
+        assertEquals("record 6 (OrderUpdateEvent): eventLogRecord.nodeLogs.riskMonitor: the bundled log has "
+                + "'{ liveOrders: 2, limit: 2, redispatch: true}', and the replay has no such line", c.divergence(),
+                "with the limit at 3 the risk monitor does not log at all on the cycle that breached");
     }
 
     @Test

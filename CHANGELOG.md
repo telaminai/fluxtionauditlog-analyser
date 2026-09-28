@@ -20,7 +20,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   bundle, then compares its log with a replayed one record by record. Every line must be exact except `endTime`,
   the live clock reading at the end of a cycle, which a replay cannot know. It prints `AGREES, N of N records` and
   exits 0. Otherwise it prints `DIVERGES at record k (Event): path: 'bundled' ≠ 'replayed'`, the first difference
-  with both values, or the first record one side has and the other does not, and exits 1. A bundle with no replay
+  with both values. A line one side has and the other lacks, such as a node that logged nothing on replay, is named
+  as missing. The first record one side has and the other does not is named too. Either way it exits 1. A bundle with no replay
   records, or with an excerpt, is refused. Besides `endTime`, the `thread` a cycle ran on is excepted, because a
   replay runs on its own thread.
 - **The replay runner: `tools/replay/ReplayBundle.java`.** Run it with JBang against your own build:

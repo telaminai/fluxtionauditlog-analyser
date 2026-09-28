@@ -110,9 +110,13 @@ public final class ReplayCompare {
     }
 
     /**
-     * The first difference between two records outside the excepted lines, as {@code path: 'mine' ≠ 'theirs'}, or null
-     * when they agree. Excepted lines are compared by position: a record whose {@code endTime} line moved, or is
-     * missing on one side, still differs.
+     * The first difference between two records outside the excepted lines, or null when they agree. Excepted lines are
+     * compared by position: a record whose {@code endTime} line moved, or is missing on one side, still differs.
+     *
+     * <p>Two lines with the same key differ in VALUE: {@code path: 'mine' ≠ 'theirs'}. Two lines with different keys
+     * mean a line one side has and the other does not, and it is named as that, by its own path (found by the capture
+     * of the replay docs, M70.R5: a node that did not log in the replay was reported against the next line's value,
+     * {@code riskMonitor: '{…}' ≠ '1767258000180'}, which read as a value change and was not one).
      */
     static String firstDifference(List<String> a, List<String> b) {
         int n = Math.max(a.size(), b.size());
@@ -123,10 +127,13 @@ public final class ReplayCompare {
                     && indent(x) == indent(y) && key(x).equals(key(y))) {
                 continue;
             }
-            List<String> ctx = x != null ? a : b;
-            String path = path(ctx, i);
-            return path + ": " + (x == null ? "(nothing)" : "'" + value(x) + "'") + " ≠ "
-                    + (y == null ? "(nothing)" : "'" + value(y) + "'");
+            if (x != null && y != null && key(x).equals(key(y)) && indent(x) == indent(y)) {
+                return path(a, i) + ": '" + value(x) + "' ≠ '" + value(y) + "'";
+            }
+            // a line only one side has: the bundled line is missing from the replay unless the replay's comes first
+            boolean bundledOnly = x != null && (y == null || b.subList(i, b.size()).stream().noneMatch(x::equals));
+            if (bundledOnly) return path(a, i) + ": the bundled log has '" + value(x) + "', and the replay has no such line";
+            return path(b, i) + ": the replay has '" + value(y) + "', and the bundled log has no such line";
         }
         return null;
     }

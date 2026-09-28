@@ -76,6 +76,20 @@ public class ReplayCompareTest {
     }
 
     @Test
+    @DisplayName("a node that did not log in the replay is named as a missing line, never as a value change")
+    void aMissingNodeEntryIsNamedAsMissing(@TempDir Path tmp) throws Exception {
+        var c = compare(tmp, replayed().replaceFirst("\n        - orderTracker: \\{ orderId: ord-1, live: 1}", ""));
+        assertFalse(c.agrees());
+        assertEquals("record 1 (OrderUpdateEvent): eventLogRecord.nodeLogs.orderTracker: the bundled log has "
+                + "'{ orderId: ord-1, live: 1}', and the replay has no such line", c.divergence());
+        // and one the replay has that the log does not
+        var extra = compare(java.nio.file.Files.createDirectories(tmp.resolve("extra")), replayed().replaceFirst("(- orderTracker: \\{ orderId: ord-1, live: 1})",
+                "$1\n        - auditor: { note: extra}"));
+        assertEquals("record 1 (OrderUpdateEvent): eventLogRecord.nodeLogs.auditor: the replay has '{ note: extra}', "
+                + "and the bundled log has no such line", extra.divergence());
+    }
+
+    @Test
     @DisplayName("only endTime is excepted: an input's eventTime that differs is a divergence")
     void anEventTimeIsNeverExcepted(@TempDir Path tmp) throws Exception {
         var c = compare(tmp, replayed().replaceFirst("eventTime: 1767258000100", "eventTime: 1767258000110"));
@@ -129,8 +143,9 @@ public class ReplayCompareTest {
         assertTrue(c.agrees(), c.divergence());
         assertEquals(8, c.excepted());
         // but only as that key, in that place: a thread line cannot stand in for an endTime line
-        assertEquals("eventLogRecord.endTime: '5' ≠ 'x'", ReplayCompare.firstDifference(
-                java.util.List.of("eventLogRecord: ", "    endTime: 5"), java.util.List.of("eventLogRecord: ", "    thread: x")));
+        assertEquals("eventLogRecord.endTime: the bundled log has '5', and the replay has no such line",
+                ReplayCompare.firstDifference(java.util.List.of("eventLogRecord: ", "    endTime: 5"),
+                        java.util.List.of("eventLogRecord: ", "    thread: x")));
     }
 
     @Test
@@ -138,7 +153,7 @@ public class ReplayCompareTest {
     void theExceptionIsPositional() {
         var a = java.util.List.of("eventLogRecord: ", "    eventTime: 1", "    endTime: 5");
         assertNull(ReplayCompare.firstDifference(a, java.util.List.of("eventLogRecord: ", "    eventTime: 1", "    endTime: 9")));
-        assertEquals("eventLogRecord.endTime: '5' ≠ (nothing)",
+        assertEquals("eventLogRecord.endTime: the bundled log has '5', and the replay has no such line",
                 ReplayCompare.firstDifference(a, java.util.List.of("eventLogRecord: ", "    eventTime: 1")));
     }
 }
