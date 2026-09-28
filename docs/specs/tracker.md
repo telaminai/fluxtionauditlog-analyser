@@ -2280,6 +2280,11 @@ starter 1.0.74, and M19.4/M19.8 are archived; that order is kept in [`completed/
 *Tidy 2026-09-27*.
 
 0. ☑ **M69 spotlight walks — shipped in 1.26.0** (merged `5cdd12ec`, 2026-09-28). Follow-ups ▸ *M69 follow-ups*.
+0a. ◧ **Evidence bundle packaging, first delivery** (owner, 2026-09-28: package, verify, open and walk; replay
+    deferred, D-0 amended, L-33). Spec DRAFT r1:
+    [`spec-evidence-bundle-packaging.md`](spec-evidence-bundle-packaging.md), branch `spec/evidence-bundle-packaging`.
+    Its open question is the placement: how much belongs in the UI and how much in skills (§3). Prerequisite:
+    M69.F3.
 1. ☐ **Owner decisions — they unblock the most.**
    - **G14:** accept its three residual risks, then run it once, supervised. It is run on demand by the owner and is
      not a release gate (owner, 2026-09-26 — ▸ *Spring-side work block*).
