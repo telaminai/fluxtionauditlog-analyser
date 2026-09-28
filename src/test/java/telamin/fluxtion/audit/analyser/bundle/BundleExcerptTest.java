@@ -173,7 +173,9 @@ class BundleExcerptTest {
             }
         }
         Path out = Files.writeString(ex.resolve("y.fexp"), "DEMO");
-        Files.createDirectories(ex.resolve(".capture-123/log"));
+        // a killed capture's folder: its marker names this host and nothing holds its lock (BundleWriterReapTest)
+        Files.createDirectories(ex.resolve(".capture-123/bundle/log"));
+        Files.writeString(ex.resolve(".capture-123").resolve(BundleWriter.OWNER), BundleWriter.HOST);
         BundleWriter.delete(out);
         try (var list = Files.list(ex)) {
             assertEquals(List.of(), list.toList(), "delete removes the bundle and a working folder left beside it");

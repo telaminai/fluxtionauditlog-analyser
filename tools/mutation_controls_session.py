@@ -1206,7 +1206,9 @@ CONTROLS = [
      'BundleProfileTest#ordinaryProsePassesUntouched'),
     # Convergence (2026-09-28): capture moved into the analyser. The evidenceCapture node decides; the frame performs.
     # Declared, not registered: BundleWriter's delete-on-failure (pack deletes its own output on failure and nothing
-    # fails after pack, so no case reaches it); the between-pass mismatch in unpack; the observation's list-size test
+    # fails after pack, so no case reaches it); the between-pass mismatch in unpack; startCapture's internal
+    # empty-range failure (the node refuses an empty window at the request, and the store cannot change within one
+    # dispatch, so nothing reaches it); the reaper's cannot-tell branch (a filesystem without locking); the observation's list-size test
     # for one plain file: registered as a candidate against EvidenceCaptureFrameTest#notOnePlainFile, it SURVIVED
     # (2026-09-28), because the observation's other conditions already refuse a rolled set — masked, and now shown.
     ('cv-refuses-no-log', CAPTURE,
@@ -1255,8 +1257,8 @@ CONTROLS = [
      '            flushProject();\n            settings = project.activeFile();\n', '            settings = project.activeFile();\n',
      'EvidenceCaptureFrameTest#aCaptureFlushesAndWrites'),
     ('cv-the-frame-observes-freshness', UI + 'MainFrame.java',
-     '                observed, state == null ? null : state.toString(), onePlainFile, origin));\n',
-     '                observed, null, onePlainFile, origin));\n',
+     '                observed, state == null ? null : state.toString(), onePlainFile, windowRecords, origin));\n',
+     '                observed, null, onePlainFile, windowRecords, origin));\n',
      'EvidenceCaptureFrameTest#changedOnDisk'),
     ('cv-the-frame-observes-the-identity', UI + 'MainFrame.java',
      '        String observed = identity == null ? null : identity.verdict().name().toLowerCase(java.util.Locale.ROOT);\n',
@@ -1313,7 +1315,7 @@ CONTROLS = [
      '        } finally {\n            deleteTree(folder);\n', '        } finally {\n',
      'BundleExcerptTest#aFailedCaptureLeavesNothing'),
     ('cv-delete-takes-a-leftover-folder', WRITER,
-     '''            for (Path p : list.filter(p -> p.getFileName().toString().startsWith(".capture-")).toList()) deleteTree(p);\n''', '',
+     '            if (!ownerDead) continue;\n            deleteTree(p);\n', '            if (!ownerDead) continue;\n',
      'BundleExcerptTest#aFailedCaptureLeavesNothing'),
     ('cv-the-notes-travel', WRITER,
      '''                Files.writeString(notes, job.notes().endsWith("\\n") ? job.notes() : job.notes() + "\\n", StandardCharsets.UTF_8);\n''', '',
@@ -1324,4 +1326,34 @@ CONTROLS = [
     ('cv-a-retired-flag-says-so', MAIN,
      '        if (RETIRED_BUNDLE_FLAGS.contains(args[0])) {\n            err.println(', '        if (false) {\n            err.println(',
      'MainBundleTest#theRetiredFlagsSaySo'),
+    # Convergence review (097e0752 proposed an age gate; rejected: no bound on a capture's length exists, a working
+    # folder's mtime stops moving once its children exist, and clocks and network mounts can make a live capture
+    # look old). A working folder is reaped only on positive evidence its owner is dead: this host's marker, lock free.
+    ('cv-reap-only-when-the-owner-is-dead', WRITER,
+     '                ownerDead = lock != null;                              // null: held by another live process\n',
+     '                ownerDead = true;\n',
+     'BundleWriterReapTest#aLiveNeighbourSurvivesAndIsReapedOnlyOnceItsOwnerDies'),
+    ('cv-reap-not-a-live-capture-in-this-jvm', WRITER,
+     '                ownerDead = false;                                     // held by a live capture in this JVM\n',
+     '                ownerDead = true;\n',
+     'BundleWriterReapTest#aLiveCaptureInThisJvmSurvives'),
+    ('cv-reap-only-this-hosts', WRITER,
+     '            if (!HOST.equals(host)) continue;                          // another machine\'s: its lock means nothing here\n', '',
+     'BundleWriterReapTest#anotherHostsFolderIsNeverReaped'),
+    ('cv-a-capture-holds-its-claim', WRITER,
+     '            ch.lock();\n            ch.write(', '            ch.write(',
+     'BundleWriterReapTest#aClaimedFolderSurvives'),
+    ('cv-a-capture-reaps-before-it-starts', WRITER,
+     '        reapCorpses(parent);\n        Path folder = Files.createTempDirectory', '        Path folder = Files.createTempDirectory',
+     'BundleWriterReapTest#aWrittenBundleCarriesNoMarker'),
+    ('cv-the-marker-is-never-packed', WRITER,
+     'EvidenceBundle.pack(payload, job.out()', 'EvidenceBundle.pack(folder, job.out()',
+     'BundleWriterReapTest#aWrittenBundleCarriesNoMarker'),
+    # Convergence review, question 2: an empty window is the node's refusal, from the count the frame observes.
+    ('cv-an-empty-window-is-refused', CAPTURE,
+     '        if ((e.from() != null || e.to() != null) && e.windowRecords() == 0) {\n', '        if (false) {\n',
+     'EvidenceCaptureTest#anEmptyWindowIsRefused'),
+    ('cv-the-frame-counts-the-window', UI + 'MainFrame.java',
+     '            windowRecords = range == null ? 0 : range.size();\n', '            windowRecords = 1;\n',
+     'EvidenceCaptureFrameTest#anExcerpt'),
 ]

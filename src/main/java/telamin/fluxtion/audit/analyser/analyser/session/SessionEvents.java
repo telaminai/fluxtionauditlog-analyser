@@ -374,9 +374,12 @@ public final class SessionEvents {
      * @param observedIdentity the read-through identity observed at this request, lower case, or null when none ran
      * @param freshness        the log file's freshness state ({@code unchanged-metadata}, {@code changed-on-disk}, …)
      * @param onePlainFile     whether the log is exactly one regular local file
+     * @param windowRecords    for a window ({@code from}/{@code to}), how many records it selects in the open log, as
+     *                         observed at this request; -1 when no window was asked for
      */
     public record BundleCaptureRequested(long request, String path, String notes, Long from, Long to,
-                                         String observedIdentity, String freshness, boolean onePlainFile, String origin) {
+                                         String observedIdentity, String freshness, boolean onePlainFile,
+                                         int windowRecords, String origin) {
     }
 
     public record FollowSet(long opId, long ticket, boolean on) implements Result {

@@ -434,3 +434,36 @@ Moving the walk save's check into a node is a separate follow-up (tracker EB.F7)
   library.
 - **The driver** drives the operation. Its refusal logic moved to Java, and its Python test keeps only the EP-A7
   bookkeeping. Review F4's two absence checks now assert that the key exists and what it holds.
+
+### 13.6 After the convergence review (`review/evidence-bundle-convergence`, `097e0752`)
+
+**A shared exchange directory.** `BundleWriter.delete` removed every `.capture-*` folder beside its output. The
+hazard is real: within one analyser two captures cannot overlap (the node refuses while one is writing), but a
+project-relative exchange directory (#21) is shared by every analyser that opens the project. The review proposed an
+age gate (reap a folder older than ten minutes). **Rejected, on three grounds:**
+- no bound on a capture's length exists: there is no capture timeout and no effect deadline, and a whole 142 MB log
+  copied to a slow mount can take minutes;
+- the gate reads the working folder's own mtime, which stops moving once its children exist, so a long write looks
+  old;
+- a clock step, or a network mount's server-side mtime, can make a live capture look old.
+
+**Taken instead: owned folders.** Each capture writes an `.owner` marker naming its host and holds an exclusive OS
+lock on it for its whole life. The OS releases the lock when the process ends, however it ends. A folder is reaped
+only on positive evidence that its owner is dead: this host's marker, with the lock free. An unmarked folder,
+another host's, or one whose lock cannot be tested is left alone. There are no clocks and no guessed constant. The
+members moved into a `bundle/` subfolder, so the marker is never packed. The witness for a live owner is a real
+second process, and the witness for "death releases it" is that process exiting.
+
+**The review's two rule 9 questions, settled:**
+- **`onePlainFile` is an observation, not a decision.** "Is the open log exactly one regular local file?" is a fact
+  only the adapter can know, like freshness. The node decides what it means. Passing the raw store shape instead
+  would move store knowledge into the node.
+- **The empty-window refusal was the frame deciding.** It is now observed as a count
+  (`BundleCaptureRequested.windowRecords`), and the node refuses. The refusal is immediate and named. The frame's
+  remaining check is an invariant that cannot fire within one dispatch, reported as an internal failure, not a
+  refusal.
+
+**Open before merge (the review's list, not done here):** the moved-generation rule provoked from the frame by
+ANOTHER LOG OPENED off the event thread, not only by a close in the same task; an excerpt of a log that is not time
+ordered; and `flush()` inside an effect under a read-only profile, a project switch in flight, and `preSave`
+syncing open charts (tracker EB.F9–F11).

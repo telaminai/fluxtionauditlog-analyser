@@ -26,7 +26,7 @@ class EvidenceCaptureTest {
 
     /** A request as the frame makes it: a settled, single, unchanged file unless a case says otherwise. */
     static SessionEvents.BundleCaptureRequested request(long id, String identity, String freshness, boolean onePlainFile) {
-        return new SessionEvents.BundleCaptureRequested(id, PATH, null, null, null, identity, freshness, onePlainFile, "test");
+        return new SessionEvents.BundleCaptureRequested(id, PATH, null, null, null, identity, freshness, onePlainFile, -1, "test");
     }
 
     static SessionEvents.BundleCaptureRequested ok(long id) {
@@ -105,6 +105,17 @@ class EvidenceCaptureTest {
         SessionDriver d = opened(a);
         d.submit(request(6, null, "unchanged-metadata", false));
         refusedWritingNothing(d, a, 6, "not one plain file");
+    }
+
+    @Test
+    @DisplayName("an excerpt window that selects no records — observed by the frame — is refused by the node, by name")
+    void anEmptyWindowIsRefused() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = opened(a);
+        d.submit(new SessionEvents.BundleCaptureRequested(16, PATH, null, 1L, 2L, null, "unchanged-metadata", true, 0, "test"));
+        refusedWritingNothing(d, a, 16, "nothing to excerpt");
+        d.submit(new SessionEvents.BundleCaptureRequested(17, PATH, null, 1L, 2L, null, "unchanged-metadata", true, 3, "test"));
+        assertTrue(capture(d).answer().accepted(), "control: a window that selects records is accepted: " + capture(d).answer().reason());
     }
 
     @Test

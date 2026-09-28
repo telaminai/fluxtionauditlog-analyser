@@ -2318,6 +2318,12 @@ starter 1.0.74, and M19.4/M19.8 are archived; that order is kept in [`completed/
       steps would read as historical on the other side.
     - [EB.F7] ☐ **Rule 9: the walk SAVE's generation check is in the frame** (`ui/WalkAuthoring.java`), not a node.
       Capture applies the rule in its node; the walk save should too.
+    - [EB.F9] ☐ **Before merge (convergence review):** provoke the moved-generation rule from the frame by ANOTHER
+      LOG OPENED off the event thread; today the frame provokes only a close in the same task.
+    - [EB.F10] ☐ **Before merge:** an excerpt of a log that is not time ordered. "First at or after, to last at or
+      before" assumes monotonic time; build such a log and check what the excerpt holds.
+    - [EB.F11] ☐ **Before merge:** `flush()` inside the capture effect, under a read-only profile, a project switch in
+      flight, and `preSave` syncing open charts from inside a dispatch.
     - [EB.F8] ☐ **Unwitnessed defensive branches, declared:** the writer's delete-on-failure, unpack's between-passes
       mismatch, the one-plain-file list-size test (masked by the observation's other conditions: a candidate control survived).
 1. ☐ **Owner decisions — they unblock the most.**

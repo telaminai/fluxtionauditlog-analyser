@@ -15,6 +15,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   file that changed or whose identity is not established, a log still growing under Follow, a log that is not one
   plain file, or a bundle already being written. It writes the project's pending edits first, pauses Follow while
   it copies, and if another log is opened or the log is closed meanwhile, it refuses and deletes what it wrote.
+  In an exchange directory shared by several analysers, it never touches another capture's working folder; a
+  folder left by a capture that was killed is cleared once its owner is provably gone.
   `context.capture` says when it is done, its identity, and what was left out, redacted or excerpted.
 - **An excerpt instead of the whole log**: `from` and `to` pack only the records in that time window, each record's
   exact text, re-read and matched against the source before the bundle stands. Walks and reports are re-based onto

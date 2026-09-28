@@ -112,6 +112,11 @@ public class EvidenceCapture implements EventLogSource {
         if (!e.onePlainFile()) {
             return "the log is not one plain file (a rolled set, a directory or a remote store): a bundle carries one file";
         }
+        // convergence review: the frame OBSERVES how many records the window selects; refusing an empty one is ours
+        if ((e.from() != null || e.to() != null) && e.windowRecords() == 0) {
+            return "no record's log time is between " + (e.from() == null ? "the start" : e.from()) + " and "
+                    + (e.to() == null ? "the end" : e.to()) + ": nothing to excerpt";
+        }
         return null;
     }
 

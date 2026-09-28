@@ -5849,9 +5849,14 @@ public final class MainFrame extends JFrame {
                 && members instanceof java.util.List<?> list && list.size() == 1
                 && !(list.get(0) instanceof Map<?, ?> m && m.get("loaded") instanceof Map<?, ?> loaded
                      && Boolean.TRUE.equals(loaded.get("directory")));
+        int windowRecords = -1;
+        if (from != null || to != null) {
+            var range = store == null ? null : telamin.fluxtion.audit.analyser.bundle.BundleExcerpt.range(store, from, to);
+            windowRecords = range == null ? 0 : range.size();
+        }
         long request = ++captureRequests;
         session.submit(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleCaptureRequested(request, path, notes, from, to,
-                observed, state == null ? null : state.toString(), onePlainFile, origin));
+                observed, state == null ? null : state.toString(), onePlainFile, windowRecords, origin));
         var capture = sessionSnapshot().capture();
         if (capture.answer().request() == request && !capture.answer().accepted()) {
             return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("capture refused: " + capture.answer().reason());
@@ -5888,8 +5893,10 @@ public final class MainFrame extends JFrame {
         if (e.from() != null || e.to() != null) {
             var range = telamin.fluxtion.audit.analyser.bundle.BundleExcerpt.range(store, e.from(), e.to());
             if (range == null) {
+                // not a refusal (the node refused an empty window at the request, from what was observed): the store
+                // cannot change within one dispatch, so this reports a broken invariant as the failure it is
                 session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleWriteFailed(ticket, generation,
-                        "no record's log time is between " + e.from() + " and " + e.to() + ": nothing to excerpt"));
+                        "internal: the window selected no records, though the request observed some; nothing was written"));
                 return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CaptureStarted(e.opId(), ticket);
             }
             taken = telamin.fluxtion.audit.analyser.bundle.BundleExcerpt.take(store, range);

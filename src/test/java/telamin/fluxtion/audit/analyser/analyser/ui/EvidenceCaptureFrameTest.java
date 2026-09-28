@@ -292,6 +292,10 @@ class EvidenceCaptureFrameTest {
             assertEquals(8, ((Number) v.excerpt().get("lastRecord")).intValue());
             assertTrue(((List<?>) c.get("lines")).stream().anyMatch(l -> String.valueOf(l).startsWith("excerpt: records 4..8 of 10")),
                     String.valueOf(c.get("lines")));
+            AtomicReference<Map<String, Object>> empty = new AtomicReference<>();
+            onEdt(() -> empty.set(ask(f, Map.of("bundle", Map.of("path", "none.fexp", "from", 1L, "to", 2L)))));
+            refused(empty.get(), "nothing to excerpt");        // at once, as a named verb error: the node's refusal
+            assertFalse(Files.exists(ex.resolve("none.fexp")));
         }
     }
 }
