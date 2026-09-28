@@ -1452,7 +1452,7 @@ Sequence AFTER W4/W5/W11/W13: this is the optimisation of the optimisation, not 
 - [M69.F1] ☐ **W-A11: a native capture of a walk** for the docs site. `python3 tools/capture-docs.py --walk` drives it;
   it needs Screen Recording permission on the owner's machine.
 - [M69.F2] ☐ **The skills mention of walks** (`point-at-the-fault`), at the next hash-pinned skills publication.
-- [M69.F3] ☐ **Present the unassessed-log caveat once per walk**, not on every record or chart step. With Follow off it
+- [M69.F3] ☑ (EB.B0, `feat/evidence-bundle-v1`, unmerged) **Present the unassessed-log caveat once per walk**, not on every record or chart step. With Follow off it
   is always present, and the strip paints only three reason lines (fix review, F5).
 - [M69.F4] ☐ **Strip reasons beyond three lines**, which a six-target step can exceed (implementation review, optional).
 - [M69.F5] ☐ **The two project-transition report sites carry no control.** A walk ends on a project switch through
@@ -2281,16 +2281,33 @@ starter 1.0.74, and M19.4/M19.8 are archived; that order is kept in [`completed/
 
 0. ☑ **M69 spotlight walks — shipped in 1.26.0** (merged `5cdd12ec`, 2026-09-28). Follow-ups ▸ *M69 follow-ups*.
 0a. ◧ **Evidence bundle packaging, first delivery** (owner, 2026-09-28: package, verify, open and walk; replay
-    deferred, D-0 amended, L-33). Spec **DRAFT r2**:
-    [`spec-evidence-bundle-packaging.md`](spec-evidence-bundle-packaging.md), branch `spec/evidence-bundle-packaging`.
-    Placement decided: **C**, with no verb, menu or dialog. The CLI owns the format (`--pack`, `--verify`,
-    `--unpack`), and `context` gains one field, `log.generation`. Flags and excerpts are out of the first delivery.
-    Slices:
-    - [EB.B0] ☐ M69.F3: the caveat once per walk;
-    - [EB.B1] ☐ `context.log.generation`;
-    - [EB.B2] ☐ the CLI: `--pack`, `--verify`, `--unpack`;
-    - [EB.B3] ☐ the `capture-evidence-bundle` and `open-evidence-bundle` skills;
-    - [EB.B4] ☐ a cold-recipient rehearsal (EP-A6, another home).
+    deferred, D-0 amended, L-33). Spec **r3, implemented**:
+    [`spec-evidence-bundle-packaging.md`](spec-evidence-bundle-packaging.md), branch **`feat/evidence-bundle-v1`**
+    (unmerged, awaiting review). Placement **C**, with no verb, menu or dialog. The CLI owns the format (`--pack`,
+    `--verify`, `--unpack`, and in r3 `--bundle-profile`); `context` gains `log.generation` and, in r3,
+    `project.unsavedEdits`. Flags and excerpts are out of the first delivery. Results:
+    `docs/handoff/evidence/evidence-bundle-v1-2026-09-28/RESULTS.md`. Slices:
+    - [EB.B0] ☑ M69.F3: the caveat once per walk (and, found in B4, once when an agent steps by `play`);
+    - [EB.B1] ☑ `context.log.generation`;
+    - [EB.B2] ☑ the CLI: `--pack`, `--verify`, `--unpack`;
+    - [EB.B3] ☑ the `capture-evidence-bundle` and `open-evidence-bundle` skills, `--bundle-profile`,
+      `context.project.unsavedEdits`;
+    - [EB.B4] ☑ a cold-recipient rehearsal, driven: `tools/evidence-bundle-demo.py`, 20 checks, timed. Two homes on
+      two paths, **one machine**.
+    Follow-ups:
+    - [EB.F1] ☐ **A chart spotlight at the default window.** At 1200×800 a chart target reports *"no room at 192×247
+      px — widen the window"*, so a cold recipient's first chart step is not lit (`evidence-bundle-demo.py
+      --default-window` reproduces it). Pre-existing, M64/M69; it is the demo's first impression. Fix before a demo
+      on a fresh install, or pin the window in the demo.
+    - [EB.F2] ☐ **Owner decision: should a generated project carry the two skills?** They live in
+      `docs/evidence-bundle/`, outside the playground-seeded `docs/skills/` library; carrying them means an
+      `m19-skills/3` index (cross-repo, `upstream-asks.md`).
+    - [EB.F3] ☐ **Another machine.** EP-A6 was run on one machine with two homes; a second machine (or a CI runner)
+      is the stronger form.
+    - [EB.F4] ☐ **Small:** the empty "Graph 1" a log open creates travels in the profile; the recipient's recents
+      point at a working copy that may later be deleted.
+    - [EB.F5] ☐ **Second delivery:** excerpts (a time window, the cut recorded), external-series CSVs as members,
+      flags, replay.
 1. ☐ **Owner decisions — they unblock the most.**
    - **G14:** accept its three residual risks, then run it once, supervised. It is run on demand by the owner and is
      not a release gate (owner, 2026-09-26 — ▸ *Spring-side work block*).

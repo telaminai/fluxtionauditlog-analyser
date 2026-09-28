@@ -1,7 +1,8 @@
 # Evidence bundle packaging — first delivery (package, verify, open, walk; no replay)
 
-**Status: DRAFT r2 (2026-09-28), revised after review.** No code exists yet. Branch
-`spec/evidence-bundle-packaging`.
+**Status: r3 (2026-09-28), IMPLEMENTED on `feat/evidence-bundle-v1`, awaiting review.** r3 records what building it
+and driving it end to end changed (§11, §12). The executable reference is `tools/evidence-bundle-demo.py`; the
+results are in `docs/handoff/evidence/evidence-bundle-v1-2026-09-28/RESULTS.md`.
 
 The review is
 [`review_spec_evidence_bundle_packaging_2026_09_28_claude.md`](../handoff/review_spec_evidence_bundle_packaging_2026_09_28_claude.md)
@@ -99,6 +100,14 @@ That is one implementation of the format, with pinned fixtures, still no UI and 
 skill** is choosing what goes in the folder: the log, the graph, the allow-listed Settings export. That is judgement,
 and it varies per investigation.
 
+**r3, a fourth flag by the same rule: `--bundle-profile <settings> <out>`.** Building the capture showed that "the
+allow-listed Settings export" has no headless route: the export is a dialog. A skill filtering profile keys itself
+would re-implement `SettingsShare`'s categories, and the first key it missed would carry a source root or a key off
+the machine. That is the rule's "re-implement something a recipient must trust", so the analyser writes it
+(`BundleProfile`): GRAPHS, REPORTS and VIEW only; a chart with external series or markers left out and named, with
+each walk step and report section that showed it; and a refusal, naming the key, if any kept value is shaped like a
+machine path. It reads the open project's profile or, with none open, the person's own settings file.
+
 ### 3.4 The audience: decided, so it is not relitigated
 
 **The first demo's recipient is technical or has an agent**: the owner presents it, and drives it with an agent.
@@ -124,6 +133,16 @@ The `capture-evidence-bundle` skill:
    - `log.identity.state` is `unverified` or `replacement` (the file is not the one that was read);
    - the log's store is not a plain file.
 3. Records **`log.generation`**, assembles the folder, and runs `--pack`.
+
+**r3 corrections, from driving it:**
+- **`log.identity` may be absent**: it is published only once an identity check has run. Absence is not a refusal;
+  the skill says the bundle's sha256 is then the only statement of the bytes read. The always-present signal is
+  **`log.freshness`**: `changed-on-disk` refuses, and "not one plain file" is read from its `members` (exactly one,
+  not a directory).
+- **The profile FILE lags the session.** Project writes are debounced (800 ms, `ProjectSession`), and a walk saved
+  just before capture was missing from the first driven bundle. The analyser now publishes
+  **`context.project.unsavedEdits`**, read from the one owner of that fact, and the skill waits for it to clear,
+  refusing if it never does (a failed write). That is a second field, beside `log.generation`.
 4. Re-reads `context` and **refuses, deleting the bundle, if `log.generation` moved.** It is the same rule the
    analyser already enforces for a walk save, exposed rather than duplicated. **The analyser change is one field.**
 
@@ -171,7 +190,12 @@ profile/project.fluxtion-settings    the allow-listed Settings export: GRAPHS, R
 }
 ```
 
-`--pack` writes it, and `--verify` prints its identity. `limits` is fixed text, and every surface that shows a
+`--pack` writes it, and `--verify` prints its identity.
+
+**r3, the manifest as shipped:** `format`, `createdAt`, `analyser`, `log.member`, `graph.member`, `members` and
+`limits`, in that fixed key order. `provenance` and `log.records` in the example above are **not written**:
+`--pack` sees only a folder, and anything it wrote about the log would have to come from the skill unverified. The
+walk and report fingerprints in the profile already carry both. `limits` is fixed text, and every surface that shows a
 verified bundle shows it.
 
 ## 5. Open (the `open-evidence-bundle` skill)
@@ -179,7 +203,9 @@ verified bundle shows it.
 1. `--unpack <bundle>`: verify, then extract into a fresh working copy. The skill stops if the exit code is non-zero.
 2. `open {project: <copy>/profile/…}`, then `open {log: <copy>/log/…}`, then `open {graphml: …}`. All three are
    shipped routes.
-3. `walk {play: true}` on the bundle's walk.
+3. `walk {play: true}` on the bundle's walk. An agent steps with `walk {play: true, step: n}`, the verb's only way to
+   step; **r3:** a play of the walk already showing, on the same log, continues that showing, so the M69.F3 caveat is
+   not re-stated on every step (found by the driver; `WalkPlayback`, `eb-b4-play-continues-the-showing`).
 4. **The view:** the walk's first step restores its own (M69 §3.3). The sender's live filter and selection are not
    carried in v1.
 
@@ -227,6 +253,20 @@ chart basis. Show it **once per walk**.
 | **B3 · the skills** | `capture-evidence-bundle` and `open-evidence-bundle`, built from the owner's capture and load experiments minus the profile pointer | EP-A1, A8, A9, A12 |
 | **B4 · rehearsal** | a cold recipient on a DEMO incident, from another path and another home, timed | EP-A6, A7, A10, A11, measured timings |
 
+**r3, status (evidence: `RESULTS.md`, `tools/evidence-bundle-demo.py`, the named tests and controls):**
+
+| id | status | how it is shown |
+|---|---|---|
+| EP-A1 | RAN | `test_evidence_bundle_demo.py`: every §4.1 refusal by name, on contexts shaped like real ones; live, the driver's capture on a real session with no log refuses and writes nothing. The moved-generation deletion is code only, not provoked live. |
+| EP-A2…A5 | RAN | `EvidenceBundleTest`, `MainBundleTest`; eleven `eb-b2-*` controls; the driver re-hashes the received file after unpack, open, the walk and a second unpack |
+| EP-A6 | RAN, same machine | two isolated homes on two paths; the recipient has none of the sender's settings or files. **Not** another machine. |
+| EP-A7 | RAN | the recipient's own profile is byte-identical; the machine-tier keys that change are listed: last-opened log and graph, three recents lists, the active project |
+| EP-A8 | RAN | all three steps SHOWN, every target CURRENT and lit, at a 1440×900 window. **At the default 1200×800 the chart step is not lit** (§12) |
+| EP-A9 | RAN | `BundleProfileTest` on a real sender profile; seven `eb-b3-*` controls |
+| EP-A10 | RAN | `MainBundleTest`, `EvidenceBundleSkillsTest`, the driver |
+| EP-A11 | RAN, by eye | the recipient's three walk-step screenshots, painted by the app: DEMO data and neutral paths only |
+| EP-A12 | RAN | the recipient has no source roots; the walk and report work |
+
 Predictions are committed before code, as usual.
 
 ## 9. Not in the first delivery, and why
@@ -253,6 +293,7 @@ Predictions are committed before code, as usual.
 | rev | date | by | what |
 |---|---|---|---|
 | r1 | 2026-09-28 | Claude (analyser session) | First draft, from the combined proposal and the owner's L-33 decisions. The placement question was left open. |
+| r3 | 2026-09-28 | Claude (analyser session), after implementing B0–B4 | **Implemented.** A fourth headless flag, `--bundle-profile`, by §3.1's rule (§3.3). A second `context` field, `project.unsavedEdits`, because the profile file lags the session (§4.1). The refusal fields as they really are: `log.identity` may be absent, `log.freshness` is the constant signal (§4.1). The manifest as shipped, without `provenance`/`records` (§4.3). An agent stepping a walk by `play` continues the showing (§5). The skills live in `docs/evidence-bundle/`, not the bundle-seeding `docs/skills/` library (§12). Acceptance status in §7. |
 | r2 | 2026-09-28 | Claude (analyser session), after the review | The placement question is decided: **C**, with no verb, menu or dialog. The review's rule is adopted (§3.1). **Argued back:** the CLI owns the whole format, `--pack`, `--verify` and `--unpack`, because the manifest and unpacking are trust-relevant too (§3.3). **The audience is decided:** technical or agent-led, no menu item, with the trigger that would add one (§3.4). **Flags are dropped:** they persist nowhere. **The paths question is restated:** GRAPHS carries home-relative external-series paths, so those charts are excluded and named. The whole-log cost is stated (64–142 MB) and **excerpts move to the second delivery**. Follow is paused and restored rather than refused. Coherence is **one `context` field** (`log.generation`); a pending load is already `inFlight`. EP-A11 is reduced to the by-eye check; **EP-A12** is added (no source roots). The plan is B0–B4. |
 
 ## 12. Where the review was wrong, or not yet shown
@@ -263,5 +304,17 @@ Predictions are committed before code, as usual.
   external-series and marker paths, home-relative (`SettingsShare:182`).
 - **EP-A6 (another machine, another home) is ASSUMED by the review**, not shown. r2 keeps it as an acceptance that
   must be RAN in B4.
+- **r3, found by driving it (none was predicted):**
+  - the profile file lags the session by the save debounce (§4.1);
+  - at the default window (1200×800) a chart spotlight reports *"no room at 192×247 px — widen the window"*: a
+    cold recipient cannot see a chart step until they enlarge the window. Pre-existing, not a bundle defect, but it
+    is the demo's first impression; tracker ▸ EB follow-ups;
+  - the empty "Graph 1" chart a log open creates travels in the profile;
+  - a hand-written project profile is normalised (and given a nonce) on the analyser's first write of it, which a
+    naive before/after check blames on whatever happened in between. EP-A7's baseline is the analyser's own write.
+- **The skills are not in `docs/skills/`.** That library is what the playground seeds a generated project with,
+  through a published, pinned index, and `CanonicalSkillsTest` requires every skill in it to be indexed. Whether a
+  generated project carries these two is that contract's decision (a v3 index), so they live in
+  `docs/evidence-bundle/`, with `EvidenceBundleSkillsTest` holding them to what the analyser publishes.
 - **Capture hashing in a skill** would be a second implementation of a trust-relevant format; see §3.3. This is a
   disagreement with the review's split, not an error in its facts.

@@ -104,4 +104,18 @@ class MainBundleTest {
         assertEquals(2, run("--unpack", "a.fexp", "--elsewhere", "x").code());
         assertTrue(run("--verify").err().startsWith("usage: --verify"));
     }
+
+    @Test
+    @DisplayName("--bundle-profile: exit 0 naming what was left out; exit 1 when the settings cannot be read; 2 on usage")
+    void bundleProfile(@TempDir Path tmp) throws Exception {
+        Path profile = telamin.fluxtion.audit.analyser.bundle.BundleProfileTest.senderProfile(tmp);
+        Path out = tmp.resolve("p.fluxtion-settings");
+        Run r = run("--bundle-profile", profile.toString(), out.toString());
+        assertEquals(0, r.code(), r.all());
+        assertTrue(r.out().contains("left out: chart 'Venue feed latency (external CSV)'"), r.out());
+        assertTrue(r.out().contains("dangling: walk 'why-the-spread-moved' step 4"), r.out());
+        assertTrue(Files.exists(out));
+        assertEquals(1, run("--bundle-profile", tmp.resolve("absent").toString(), tmp.resolve("q").toString()).code());
+        assertEquals(2, run("--bundle-profile", profile.toString()).code());
+    }
 }

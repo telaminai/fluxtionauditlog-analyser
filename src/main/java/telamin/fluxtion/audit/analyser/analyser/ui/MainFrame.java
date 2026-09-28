@@ -7135,6 +7135,10 @@ public final class MainFrame extends JFrame {
                 proj.put("settings", project.activeFile().toString());
                 proj.put("root", telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile
                         .baseDirFor(project.activeFile()).toString());        // M37: the project's directory
+                // evidence bundle v1 (spec r3 §4.1): project writes are debounced, so the file can lag the session by
+                // one window, or indefinitely when a write fails. A tool that copies the FILE waits for this to clear
+                // instead of guessing a delay. Read from the one owner of that fact, never recomputed here.
+                proj.put("unsavedEdits", project.isDirty());
             } else {
                 proj.put("note", "your own settings — no project is open");
             }

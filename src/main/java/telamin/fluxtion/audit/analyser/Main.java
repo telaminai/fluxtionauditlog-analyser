@@ -33,7 +33,7 @@ public class Main {
     public static final String REST_PROPERTY = "analyser.rest";
 
     /** Evidence bundle v1 (spec-evidence-bundle-packaging.md r2 §3.3): headless, before any UI, like {@code --mcp}. */
-    static final java.util.Set<String> BUNDLE_FLAGS = java.util.Set.of("--pack", "--verify", "--unpack");
+    static final java.util.Set<String> BUNDLE_FLAGS = java.util.Set.of("--pack", "--verify", "--unpack", "--bundle-profile");
 
     public static void main(String[] args) {
         if (args.length > 0 && BUNDLE_FLAGS.contains(args[0])) {
@@ -117,6 +117,14 @@ public class Main {
                     out.println("packed " + args[2]);
                     out.println("identity: " + id);
                     limits(out);
+                    return 0;
+                }
+                case "--bundle-profile" -> {
+                    if (args.length != 3) { err.println("usage: --bundle-profile <settings-file> <out.fluxtion-settings>"); return 2; }
+                    var x = telamin.fluxtion.audit.analyser.bundle.BundleProfile.export(Path.of(args[1]), Path.of(args[2]));
+                    out.println("profile " + args[2] + ": saved charts and focuses, reports and walks, hidden columns; nothing else");
+                    for (String l : x.leftOut()) out.println("left out: " + l);
+                    for (String d : x.dangling()) out.println("dangling: " + d);
                     return 0;
                 }
                 case "--verify" -> {
@@ -206,6 +214,11 @@ public class Main {
                   analyser --unpack <bundle.fexp> [--into <dir>]
                                         verify, then extract into a fresh working copy; nothing is
                                         extracted if verification fails
+                  analyser --bundle-profile <settings-file> <out.fluxtion-settings>
+                                        write the part of a project profile (or of your own settings)
+                                        that an evidence bundle carries: saved charts and focuses,
+                                        reports and walks, hidden columns. A chart with external data
+                                        is left out and named; no path, key or machine setting leaves
                   analyser --help       show this message
                 """.formatted(ReleaseNotes.version());
     }

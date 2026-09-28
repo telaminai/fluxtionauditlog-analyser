@@ -14,11 +14,24 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   modifies the received file. Verification refuses a changed, missing, unlisted, duplicated or escaping member
   and names it. The bundle is unsigned: it shows that nothing changed, not who sent it, and every output says
   so. It holds an investigation to show, not a replay.
+- **`--bundle-profile <settings> <out>`** writes what an evidence bundle may carry from a project profile (or from
+  your own settings when no project is open): saved charts and named focuses, reports and walks, hidden columns.
+  A chart with an external CSV series or markers is left out and named, along with each walk step and report
+  section that showed it. Source roots, runbooks, environments, processors, keys and assistant settings never
+  leave. A kept value shaped like a machine path refuses the export.
+- **Two skills, `capture-evidence-bundle` and `open-evidence-bundle`** (`docs/evidence-bundle/`), and an *Evidence
+  bundles* section on the docs site: what a bundle is, sending one, opening one, the commands and format, and the demo. An agent can package an investigation, and open one it was sent, from a fresh working
+  copy that leaves your own project untouched. `tools/evidence-bundle-demo.py` runs the whole thing on the DEMO log
+  with a sender and a cold recipient, and checks every step.
+- **`context.project.unsavedEdits`**: whether a project edit is still waiting for its (debounced) write to the
+  profile file, so a tool copying that file can wait for it rather than copy a stale one.
 
 ### Changed
 
 - **A spotlight walk states the "not re-checked" caveat once**, on its first step that rests on records or
   charts, instead of on every such step. With Follow off it was always present, and it filled the strip.
+  Stepping a walk from the socket with `walk {play, step}` now continues the walk already showing, so the caveat
+  is not stated again on each step.
 - **`context.log.generation`**: the session's log generation, so a tool copying the open log can tell whether
   another log was opened while it copied.
 

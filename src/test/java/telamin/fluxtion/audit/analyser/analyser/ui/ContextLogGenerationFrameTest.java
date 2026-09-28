@@ -21,6 +21,10 @@ import static telamin.fluxtion.audit.analyser.analyser.ui.AsyncOpenInterleavingF
  * Evidence bundle v1, B1 (spec §4.1): {@code context.log.generation} lets a capture skill detect that another log was
  * opened while it was copying — the same rule the analyser applies internally to a walk save, exposed rather than
  * duplicated. On a real frame: it is the session's own generation, and it moves when another log is opened.
+ *
+ * <p>With it, {@code context.project.unsavedEdits} (spec r3 §4.1): a capture copies the project profile FILE, and
+ * project writes are debounced, so the file lags the session by one window. Found by driving the demo: a walk saved
+ * a moment before capture was not in the bundle. The capture waits for this to clear instead of guessing a delay.
  */
 class ContextLogGenerationFrameTest {
 
@@ -56,6 +60,47 @@ class ContextLogGenerationFrameTest {
             Object second = generation(f);
             assertTrue(((Number) second).longValue() > ((Number) first).longValue(),
                     "opening another log moves it, which is how a capture knows its copy is incoherent: " + first + " -> " + second);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Object unsaved(AsyncOpenInterleavingFrameTest.Frame f) throws Exception {
+        AtomicReference<Object> out = new AtomicReference<>();
+        onEdt(() -> {
+            var ctx = (Map<String, Object>) render(f.ex, "context", Map.of("sections", java.util.List.of("project"))).get("context");
+            out.set(((Map<String, Object>) ctx.get("project")).get("unsavedEdits"));
+        });
+        return out.get();
+    }
+
+    @Test
+    @DisplayName("context.project.unsavedEdits is true while a project edit is waiting to be written, and false once the file has it")
+    void theProjectSaysWhenItsFileLagsTheSession(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        Path profile = java.nio.file.Files.createDirectories(tmp.resolve("proj/.analyser")).resolve("project.fluxtion-settings");
+        java.nio.file.Files.writeString(profile, "share.version=1\n");
+        try (var f = new AsyncOpenInterleavingFrameTest.Frame(tmp)) {
+            onEdt(() -> { f.frame.setSize(1200, 800); f.frame.setVisible(true); });
+            onEdt(() -> render(f.ex, "open", Map.of("project", profile.toString())));
+            onEdt(() -> render(f.ex, "open", Map.of("log",
+                    Path.of("src/main/resources/demo/demo-quote-audit.yaml").toAbsolutePath().toString())));
+            awaitLoaded(f.ex);
+            for (int i = 0; i < 40 && !Boolean.FALSE.equals(unsaved(f)); i++) Thread.sleep(100);
+            assertEquals(Boolean.FALSE, unsaved(f), "a settled project has nothing waiting");
+
+            AtomicReference<Object> during = new AtomicReference<>();
+            onEdt(() -> {
+                render(f.ex, "report", Map.of("name", "demo-lag", "sections",
+                        java.util.List.of(Map.of("kind", "narrative", "text", "DEMO"))));
+                var ctx = (Map<String, Object>) render(f.ex, "context", Map.of("sections", java.util.List.of("project"))).get("context");
+                during.set(((Map<String, Object>) ctx.get("project")).get("unsavedEdits"));
+            });
+            assertEquals(Boolean.TRUE, during.get(), "straight after a save the FILE does not yet hold it, and context says so");
+            assertFalse(java.nio.file.Files.readString(profile).contains("demo-lag"), "which is the lag a capture would copy");
+
+            for (int i = 0; i < 50 && !Boolean.FALSE.equals(unsaved(f)); i++) Thread.sleep(100);
+            assertEquals(Boolean.FALSE, unsaved(f), "the debounced write lands and the flag clears");
+            assertTrue(java.nio.file.Files.readString(profile).contains("demo-lag"), "and only then does the file hold the edit");
         }
     }
 }

@@ -84,6 +84,10 @@ public class WalkPlayback implements EventLogSource {
             return true;
         }
         answer(e, true);
+        // Evidence bundle v1 (found driving the demo): an agent steps a walk with {play, step: n}, the verb's only way to
+        // step, so a play of the walk ALREADY SHOWING, on the same log, continues that showing rather than starting one.
+        boolean continuing = name.equals(walk) && logOpenAtStart == openLog.isOpen()
+                && generation == (openLog.isOpen() ? openLog.generation() : -1);
         definition = e.walk();
         walk = name;
         count = steps;
@@ -91,7 +95,7 @@ public class WalkPlayback implements EventLogSource {
         logOpenAtStart = openLog.isOpen();
         generation = logOpenAtStart ? openLog.generation() : -1;
         identityAtStart = openLog.identity();
-        caveatStated = false;                 // M69.F3: a new showing states the caveat again, once
+        if (!continuing) caveatStated = false;   // M69.F3: a new showing states the caveat again, once
         auditLog.info("walkPlay", walk).info("step", step + 1).info("origin", String.valueOf(e.origin()));
         prepare();
         return true;

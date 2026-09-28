@@ -359,4 +359,20 @@ class WalkPlaybackTest {
         prepared(d, List.of(new SessionEvents.WalkTargetState(1, "records:row:1", "here", "CURRENT", true, "")));
         assertTrue(walk(d).reason().contains(CAVEAT), "a new showing states it again: " + walk(d).reason());
     }
+
+    @Test
+    void anAgentSteppingByPlayContinuesTheShowingSoTheCaveatIsNotRepeated() {
+        // evidence bundle v1, found by tools/evidence-bundle-demo.py: the verb steps with {play, step: n}, and every step
+        // re-stated the caveat, on a bundle where Follow is always off
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = opened(a);
+        d.post(new SessionEvents.WalkPlayRequested(0, twoRecordSteps(), 0, "test"));
+        prepared(d, List.of(new SessionEvents.WalkTargetState(1, "records:row:1", "here", "CURRENT", true, "")));
+        assertTrue(walk(d).reason().contains(CAVEAT), "control: step 1 states it: " + walk(d).reason());
+
+        d.post(new SessionEvents.WalkPlayRequested(0, twoRecordSteps(), 1, "test"));
+        prepared(d, List.of(new SessionEvents.WalkTargetState(1, "records:row:2", "there", "CURRENT", true, "")));
+        assertFalse(walk(d).reason().contains(CAVEAT),
+                "a play of the walk already showing continues it, so step 2 does not repeat it: " + walk(d).reason());
+    }
 }

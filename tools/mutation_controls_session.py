@@ -17,6 +17,7 @@ UI = J + 'ui/'
 PARSE = J + 'parse/'
 BUNDLE = 'src/main/java/telamin/fluxtion/audit/analyser/bundle/EvidenceBundle.java'
 MAIN = 'src/main/java/telamin/fluxtion/audit/analyser/Main.java'
+BUNDLE_PROFILE = 'src/main/java/telamin/fluxtion/audit/analyser/bundle/BundleProfile.java'
 GRAPHML = 'src/main/resources/telamin/fluxtion/audit/analyser/analyser/session/generated/SessionProcessor.graphml'
 
 CONTROLS = [
@@ -1066,8 +1067,13 @@ CONTROLS = [
      "        if (openLog.identity() != null || !restsOnTheLogsContents()) return note;",
      'WalkPlaybackTest#theCaveatIsStatedOncePerWalk'),
     ('eb-b0-caveat-again-per-showing', NODE + 'WalkPlayback.java',
-     '        caveatStated = false;                 // M69.F3: a new showing states the caveat again, once\n', '',
+     '        if (!continuing) caveatStated = false;   // M69.F3: a new showing states the caveat again, once\n', '',
      'WalkPlaybackTest#theCaveatIsStatedOncePerWalk'),
+    # evidence bundle v1, B4 (found driving the demo): a play of the walk already showing continues that showing
+    ('eb-b4-play-continues-the-showing', NODE + 'WalkPlayback.java',
+     '        boolean continuing = name.equals(walk) && logOpenAtStart == openLog.isOpen()\n',
+     '        boolean continuing = false && name.equals(walk) && logOpenAtStart == openLog.isOpen()\n',
+     'WalkPlaybackTest#anAgentSteppingByPlayContinuesTheShowingSoTheCaveatIsNotRepeated'),
     # evidence bundle v1, B1: context.log.generation, the capture skill's coherence check
     ('eb-b1-context-publishes-the-generation', UI + 'MainFrame.java',
      '                if (session != null) log.put("generation", sessionSnapshot().logGeneration());\n', '',
@@ -1116,4 +1122,32 @@ CONTROLS = [
      '            err.println("REFUSED: " + v.refusal());\n            return 1;\n',
      '            err.println("REFUSED: " + v.refusal());\n            return 0;\n',
      'MainBundleTest#aRefusalExitsOne'),
+    # Evidence bundle v1, B3: what leaves the machine (BundleProfile), the flag that writes it, and the one context
+    # field the capture waits on (spec r3 §4.1, §4.2).
+    ('eb-b3-external-chart-left-out', BUNDLE_PROFILE,
+     '            boolean external = !g.external().isEmpty() || g.markers().stream().anyMatch(GraphSpec.MarkerSpec::isExternal);\n',
+     '            boolean external = g.markers().stream().anyMatch(GraphSpec.MarkerSpec::isExternal);\n',
+     'BundleProfileTest#theExternalChartIsLeftOutAndNamed'),
+    ('eb-b3-only-the-allow-list', BUNDLE_PROFILE,
+     '            EnumSet.of(SettingsShare.Category.GRAPHS, SettingsShare.Category.REPORTS, SettingsShare.Category.VIEW);\n',
+     '            EnumSet.of(SettingsShare.Category.GRAPHS, SettingsShare.Category.REPORTS, SettingsShare.Category.VIEW,\n'
+     '                    SettingsShare.Category.RUNBOOKS);\n',
+     'BundleProfileTest#onlyTheAllowListedFamiliesLeave'),
+    ('eb-b3-a-path-refuses', BUNDLE_PROFILE,
+     '            if (PATH_SHAPED.matcher(v).find()) {\n',
+     '            if (false && PATH_SHAPED.matcher(v).find()) {\n',
+     'BundleProfileTest#aPathShapedValueRefuses'),
+    ('eb-b3-names-the-dangling-step', BUNDLE_PROFILE,
+     '                    dangling.add("walk \'" + w.name() + "\' step " + (i + 1) + " shows left-out chart \'" + graph + "\'");\n', '',
+     'BundleProfileTest#theExternalChartIsLeftOutAndNamed'),
+    ('eb-b3-cli-names-what-was-left-out', MAIN,
+     '                    for (String l : x.leftOut()) out.println("left out: " + l);\n', '',
+     'MainBundleTest#bundleProfile'),
+    ('eb-b3-the-profile-flag-is-routed', MAIN,
+     'java.util.Set.of("--pack", "--verify", "--unpack", "--bundle-profile")',
+     'java.util.Set.of("--pack", "--verify", "--unpack")',
+     'EvidenceBundleSkillsTest#theFlagsExist'),
+    ('eb-b3-context-publishes-unsaved-edits', UI + 'MainFrame.java',
+     '                proj.put("unsavedEdits", project.isDirty());\n', '',
+     'ContextLogGenerationFrameTest#theProjectSaysWhenItsFileLagsTheSession'),
 ]

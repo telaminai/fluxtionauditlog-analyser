@@ -66,6 +66,8 @@ jobs:
         run: python3 tools/test_g14_runner.py
       - name: Docs-only classifier tests (which changes may skip the expensive jobs)
         run: python3 tools/test_ci_docs_only.py
+      - name: Evidence bundle driver tests (the capture skill's refusals, headless)
+        run: python3 tools/test_evidence_bundle_demo.py
       # UI classes are only constructed, never shown, so the headless ubuntu runner is fine.
       - run: mvn -B verify
 
