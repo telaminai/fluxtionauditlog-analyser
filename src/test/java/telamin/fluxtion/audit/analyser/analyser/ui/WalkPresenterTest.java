@@ -110,6 +110,29 @@ class WalkPresenterTest {
     }
 
     @Test
+    @DisplayName("review PR57 R8: a step with NO filter object applies the documented defaults, not the dirty selection")
+    void anOmittedFilterAppliesTheDefaults() {
+        Rig rig = new Rig();
+        rig.filter.setAll(1L, 2L, FilterState.GroupMode.RAW_EVENT, Set.of("Other"), "dirty");
+        var parsed = telamin.fluxtion.audit.analyser.analyser.walk.WalkSteps.parse(
+                List.of(Map.of("view", Map.of("tab", "topology"), "targets", List.of("status"))));
+        assertTrue(parsed.ok(), parsed.error());
+        assertNull(parsed.steps().get(0).view().filter(), "control: the step really carries no filter object");
+
+        new WalkPresenter(rig).apply(parsed.steps().get(0).view());
+
+        assertEquals(FilterState.GroupMode.DIMENSION, rig.filter.groupMode(), "grouping defaults");
+        assertEquals("", rig.filter.text(), "no text filter survives into the step");
+        assertNull(rig.filter.dimensions(), "every dimension");
+        assertNull(rig.filter.fromMillis(), "the whole time range");
+
+        // an older or imported definition arrives the same way: a view whose filter is null
+        rig.filter.setAll(1L, 2L, FilterState.GroupMode.RAW_EVENT, Set.of("Other"), "dirty");
+        new WalkPresenter(rig).apply(new WalkSpec.View("summary", null, null, null, null));
+        assertEquals("", rig.filter.text(), "a stored step without a filter takes the defaults too");
+    }
+
+    @Test
     @DisplayName("W-A4 / R2: an open chart is selected, and nothing is persisted")
     void anOpenChartIsSelectedWithoutAWrite() {
         Rig rig = new Rig();

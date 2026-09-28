@@ -131,8 +131,10 @@ final class WalkPresenter {
     /** Apply the view in the documented order; return the notes on what could not be applied, and why. */
     List<String> apply(WalkSpec.View view) {
         List<String> notes = new ArrayList<>();
-        WalkSpec.Filter f = view.filter();
-        if (f != null && frame.filter() != null) {
+        // review PR57 R8 (§3.3): a stored step without a filter takes EVERY default — never the person's current
+        // selection. Applied here, at playback, so older and imported definitions are covered as well as new ones.
+        WalkSpec.Filter f = view.filter() == null ? WalkSpec.Filter.ALL : view.filter();
+        if (frame.filter() != null) {
             frame.filter().setAll(f.from(), f.to(), FilterState.GroupMode.valueOf(f.groupMode()),
                     f.dimensions() == null ? null : new HashSet<>(f.dimensions()), f.text());
         }

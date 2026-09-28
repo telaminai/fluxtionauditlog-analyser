@@ -888,4 +888,9 @@ CONTROLS = [
      '            Long n = telamin.fluxtion.audit.analyser.analyser.walk.WalkSteps.integral(step, 1, WalkSpec.MAX_STEPS);',
      '            Long n = step instanceof Number nn && nn.intValue() >= 1 ? (long) nn.intValue() : null;',
      'WalkVerbTest#playReportsAndReadsBack'),
+    # R8: an omitted filter takes the defaults
+    ('m69-r8-omitted-filter-defaults', UI + 'WalkPresenter.java',
+     '        WalkSpec.Filter f = view.filter() == null ? WalkSpec.Filter.ALL : view.filter();\n        if (frame.filter() != null) {',
+     '        WalkSpec.Filter f = view.filter();\n        if (f != null && frame.filter() != null) {',
+     'WalkPresenterTest#anOmittedFilterAppliesTheDefaults'),
 ]
