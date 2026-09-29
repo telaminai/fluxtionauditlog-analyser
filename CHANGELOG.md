@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+- **Pop out the assistant (OA-2).** The assistant can move to its own resizable window and back (Pop out / Dock, or close the window to dock it). It is the same conversation, draft and request in either place — moving it never sends again or cancels — and it stays open while the analyser changes tabs. The docked tab says where it went, with Show and Dock. The window's place is remembered on this machine only and restored within today's screens; it follows the theme. Scrolling or copying in the docked assistant no longer ends a showing walk.
+
 - **The onboard assistant's turns are decided by the session (OA-1).** Send, Cancel and New chat are session facts; a reply, an error or an action result that arrives after Cancel, New chat or a change of project, log or graph can no longer append, run an action or clear a newer busy state. Every action result — a render success too — goes back to the model, and each action shown is the dispatcher's actual result, labelled OK, REFUSED or NOT RUN. With no log open, context, topology and source verbs work; record verbs refuse by name. A turn states when it is requesting, running an action, complete, cancelled, superseded, failed, or at a limit; a new per-turn action budget (Settings ▸ Assistant) sits beside the per-reply cap and round limit. With no key, nothing is sent: the panel offers Configure provider, Copy prompt and Connect a CLI assistant. A provider reply with no text is a bounded failure rather than a raw body.
 ## [1.28.0] - 2026-09-29
 

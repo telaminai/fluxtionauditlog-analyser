@@ -202,6 +202,17 @@ public final class AssistantPanel extends JPanel {
         return draft.getText();
     }
 
+    /** Where the conversation is scrolled to, so a move between hosts can put it back. */
+    public java.awt.Point scrollPosition() {
+        return viewScroll.getViewport().getViewPosition();
+    }
+
+    /** Put the conversation back where it was (after a move between hosts has laid it out again). */
+    public void restoreScrollPosition(java.awt.Point p) {
+        if (p == null) return;
+        SwingUtilities.invokeLater(() -> viewScroll.getViewport().setViewPosition(p));
+    }
+
     /** For tests and the host: the composer. */
     JTextArea composerArea() {
         return draft;

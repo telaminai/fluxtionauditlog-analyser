@@ -173,6 +173,12 @@ public final class AppConfig {
 
     // window bounds (-1 = unset)
     public int windowX = -1, windowY = -1, windowW = 1200, windowH = 800;
+    /**
+     * OA-2: the assistant's own window — whether it was last popped out, and where. Machine tier (a screen layout is a
+     * property of this machine, never of a project or a bundle); restored only within today's usable screen bounds.
+     */
+    public boolean assistantPoppedOut = false;
+    public int assistantX = -1, assistantY = -1, assistantW = 520, assistantH = 720;
 
     public void addRecent(String path) {
         addRecent(recentFiles, path);

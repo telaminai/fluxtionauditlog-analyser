@@ -1571,4 +1571,23 @@ CONTROLS = [
      '                config.assistantActionsInProcess, config.maxActionRounds, config.maxActionsPerReply, config.maxActionsPerTurn);',
      '                config.assistantActionsInProcess && store != null, config.maxActionRounds, config.maxActionsPerReply, config.maxActionsPerTurn);',
      'AssistantLiveFrameTest#aLiveTurnWithNoLog'),
+    # ---- OA-2 (spec §3): one assistant, two hosts ---------------------------------------------------------------------
+    # the duplicate model the spec warns about: a second panel in the window, so the draft (and composer) do not move
+    ('oa-one-panel-two-hosts', UI + 'MainFrame.java',
+     '            assistantWindow.getContentPane().add(assistantPanel, BorderLayout.CENTER);',
+     '            assistantWindow.getContentPane().add(new AssistantPanel(assistantTranscript), BorderLayout.CENTER);',
+     'AssistantHostFrameTest#oneConversationAcrossHosts'),
+    ('oa-close-docks', UI + 'MainFrame.java',
+     '                if (session != null) session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantHostRequested(true, "the assistant window was closed"));',
+     '                ((java.awt.Window) e.getSource()).setVisible(false);',
+     'AssistantHostFrameTest#closingTheWindowDocks'),
+    ('oa-no-stranded-window', UI + 'MainFrame.java',
+     '        return new java.awt.Rectangle(Math.max(home.x, x), y, w, h);', '        return wanted;',
+     'AssistantPlacementTest#aRemovedMonitorDoesNotStrandTheWindow'),
+    ('oa-docked-pass-through', UI + 'SpotlightOverlay.java',
+     '        if (region != null && region.contains(x, y)) return false;\n', '',
+     'AssistantPlacementTest#theDockedAssistantsPressesAreItsOwn'),
+    ('oa-popout-follows-theme', UI + 'MainFrame.java',
+     '        if (assistantWindow != null) SwingUtilities.updateComponentTreeUI(assistantWindow);   // OA-2: the popout too\n', '',
+     'AssistantHostFrameTest#reachableAtTheDefaultSizeAndThemed'),
 ]

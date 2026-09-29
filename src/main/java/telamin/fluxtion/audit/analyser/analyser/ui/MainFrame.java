@@ -2032,6 +2032,7 @@ public final class MainFrame extends JFrame {
     private void applyTheme(String theme) {
         ThemeManager.apply(theme);
         SwingUtilities.updateComponentTreeUI(this);
+        if (assistantWindow != null) SwingUtilities.updateComponentTreeUI(assistantWindow);   // OA-2: the popout too
         detailPanel.refresh();     // re-colour with the theme-appropriate palette
         reportsPanel.rerender();   // the reading surface and report callouts use explicit theme-derived colours
         renderProducerFindings(false); // re-colour finding cards and severity labels on a theme switch
@@ -2925,6 +2926,7 @@ public final class MainFrame extends JFrame {
         // M69: the strip's presses and a right-click are REPORTED; walkPlayback decides what they mean
         spotlight.setOnStrip(this::walkStripPressed);
         spotlight.setOnPopup(this::showWalkSaveMenu);
+        spotlight.setPassThrough(this::assistantPassThrough);   // OA-2: the docked assistant's presses are its own
         addComponentListener(new java.awt.event.ComponentAdapter() {
             @Override public void componentResized(java.awt.event.ComponentEvent e) {
                 if (!applyingJavaSpotlight) relightSpotlight();
@@ -3873,6 +3875,15 @@ public final class MainFrame extends JFrame {
             @Override public String showHost(boolean docked) { return showAssistantHost(docked); }
         }, (route, key) -> assistantClients.create(route, key));
         assistantPanel.setProviderConfigured(() -> config != null && config.apiKey != null && !config.apiKey.isBlank());
+        // OA-2: the host preference is machine-tier; a popped-out assistant comes back popped out, once the window shows
+        addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override public void windowOpened(java.awt.event.WindowEvent e) {
+                if (config.assistantPoppedOut && session != null) {
+                    session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantHostRequested(
+                            false, "restored from the last session"));
+                }
+            }
+        });
         assistantPanel.setIntents(new AssistantPanel.Intents() {
             @Override public void send(String draft) {
                 long entry = assistantTranscript.add(telamin.fluxtion.audit.analyser.analyser.assistant.AssistantTranscript.Kind.USER, draft);
@@ -3933,9 +3944,136 @@ public final class MainFrame extends JFrame {
         if (w != null && w != this) w.toFront();
     }
 
-    /** Performs the host effect (OA-2 replaces this with the real popout). */
+    // ---- OA-2: one assistant, two hosts. The SAME AssistantPanel is reparented, so there is one composer, one draft,
+    // one conversation and one active request; the side tab holds a placeholder while it is in its own window. -------
+
+    /** The assistant's own window: unowned, so it is not always above the analyser; resizable, never modal. */
+    private JFrame assistantWindow;
+    private JPanel assistantPlaceholder;
+
+    /** Performs the host effect: move the one panel, preserving its draft, selection and scroll. */
     private String showAssistantHost(boolean docked) {
-        return docked ? null : "the assistant window is not available in this build";
+        java.awt.Point scroll = assistantPanel.scrollPosition();
+        if (docked) {
+            if (assistantWindow != null) {
+                rememberAssistantBounds();
+                assistantWindow.getContentPane().remove(assistantPanel);
+                assistantWindow.setVisible(false);
+                assistantWindow.dispose();
+            }
+            if (assistantPlaceholder != null) assistantDock.remove(assistantPlaceholder);
+            assistantDock.add(assistantPanel, BorderLayout.CENTER);
+        } else {
+            if (assistantWindow == null) assistantWindow = buildAssistantWindow();
+            assistantDock.remove(assistantPanel);
+            if (assistantPlaceholder == null) assistantPlaceholder = buildAssistantPlaceholder();
+            assistantDock.add(assistantPlaceholder, BorderLayout.CENTER);
+            assistantWindow.getContentPane().add(assistantPanel, BorderLayout.CENTER);
+            assistantWindow.setBounds(assistantWindowBounds());
+            assistantWindow.setVisible(true);
+        }
+        config.assistantPoppedOut = !docked;
+        saveConfigQuietly();
+        assistantDock.revalidate();
+        assistantDock.repaint();
+        assistantPanel.revalidate();
+        assistantPanel.restoreScrollPosition(scroll);
+        return null;
+    }
+
+    private JFrame buildAssistantWindow() {
+        JFrame w = new JFrame(AssistantPanel.WINDOW_TITLE);
+        w.setIconImages(getIconImages());
+        w.getContentPane().setLayout(new BorderLayout());
+        w.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
+        w.getRootPane().getAccessibleContext().setAccessibleName("Analyser assistant window");
+        w.addWindowListener(new java.awt.event.WindowAdapter() {
+            // Closing the window DOCKS the assistant: it never resets the chat, cancels a request or exits (§3)
+            @Override public void windowClosing(java.awt.event.WindowEvent e) {
+                if (session != null) session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantHostRequested(true, "the assistant window was closed"));
+            }
+        });
+        w.addComponentListener(new java.awt.event.ComponentAdapter() {
+            @Override public void componentMoved(java.awt.event.ComponentEvent e) { rememberAssistantBounds(); }
+            @Override public void componentResized(java.awt.event.ComponentEvent e) { rememberAssistantBounds(); }
+        });
+        return w;
+    }
+
+    private JPanel buildAssistantPlaceholder() {
+        JPanel p = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 8, 8));
+        p.getAccessibleContext().setAccessibleName("The assistant is in a separate window");
+        p.add(new JLabel("The assistant is in a separate window."));
+        JButton show = new JButton("Show");
+        show.addActionListener(e -> { if (assistantWindow != null) assistantWindow.toFront(); });
+        JButton dock = new JButton("Dock");
+        dock.addActionListener(e -> session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantHostRequested(true, "placeholder")));
+        p.add(show);
+        p.add(dock);
+        return p;
+    }
+
+    private void rememberAssistantBounds() {
+        if (assistantWindow == null || !assistantWindow.isShowing()) return;
+        java.awt.Rectangle b = assistantWindow.getBounds();
+        config.assistantX = b.x;
+        config.assistantY = b.y;
+        config.assistantW = b.width;
+        config.assistantH = b.height;
+    }
+
+    /** Where the window goes: its remembered place when that is still on a screen, else beside the analyser. */
+    java.awt.Rectangle assistantWindowBounds() {
+        java.awt.Rectangle remembered = new java.awt.Rectangle(config.assistantX, config.assistantY,
+                Math.max(360, config.assistantW), Math.max(320, config.assistantH));
+        java.util.List<java.awt.Rectangle> screens = usableScreens();
+        return placeWithin(remembered, screens, getBounds());
+    }
+
+    /** Each screen's usable area (its bounds less the menu bar, dock or task bar). */
+    private static java.util.List<java.awt.Rectangle> usableScreens() {
+        java.util.List<java.awt.Rectangle> out = new java.util.ArrayList<>();
+        java.awt.Toolkit tk = java.awt.Toolkit.getDefaultToolkit();
+        for (java.awt.GraphicsDevice d : java.awt.GraphicsEnvironment.getLocalGraphicsEnvironment().getScreenDevices()) {
+            java.awt.GraphicsConfiguration gc = d.getDefaultConfiguration();
+            java.awt.Rectangle b = gc.getBounds();
+            java.awt.Insets in = tk.getScreenInsets(gc);
+            out.add(new java.awt.Rectangle(b.x + in.left, b.y + in.top, b.width - in.left - in.right, b.height - in.top - in.bottom));
+        }
+        return out;
+    }
+
+    /**
+     * Pure placement (tested headless): keep {@code wanted} when its title bar is on a usable screen, shrunk to fit it;
+     * otherwise put it beside {@code owner} on the owner's screen. A removed monitor never strands the window.
+     */
+    static java.awt.Rectangle placeWithin(java.awt.Rectangle wanted, java.util.List<java.awt.Rectangle> screens,
+                                          java.awt.Rectangle owner) {
+        if (screens.isEmpty()) return wanted;
+        if (wanted.x >= -10000 && wanted.y >= -10000 && (wanted.x != -1 || wanted.y != -1)) {
+            java.awt.Rectangle titleBar = new java.awt.Rectangle(wanted.x, wanted.y, wanted.width, 32);
+            for (java.awt.Rectangle s : screens) {
+                java.awt.Rectangle seen = s.intersection(titleBar);
+                if (!seen.isEmpty() && seen.width >= 120) {
+                    int w = Math.min(wanted.width, s.width), h = Math.min(wanted.height, s.height);
+                    int x = Math.max(s.x, Math.min(wanted.x, s.x + s.width - w));
+                    int y = Math.max(s.y, Math.min(wanted.y, s.y + s.height - h));
+                    return new java.awt.Rectangle(x, y, w, h);
+                }
+            }
+        }
+        java.awt.Rectangle home = screens.get(0);
+        for (java.awt.Rectangle s : screens) if (s.contains(owner.getLocation())) home = s;
+        int w = Math.min(Math.max(360, wanted.width), home.width), h = Math.min(Math.max(320, wanted.height), home.height);
+        int x = Math.min(owner.x + owner.width, home.x + home.width - w);
+        int y = Math.max(home.y, Math.min(owner.y, home.y + home.height - h));
+        return new java.awt.Rectangle(Math.max(home.x, x), y, w, h);
+    }
+
+    /** OA-2: the frame's overlay lets presses inside the DOCKED assistant through — so scrolling or copying there keeps a walk. */
+    private java.awt.Rectangle assistantPassThrough() {
+        if (!assistantDock.isShowing() || !assistantDock.isAncestorOf(assistantPanel)) return null;
+        return SwingUtilities.convertRectangle(assistantDock.getParent(), assistantDock.getBounds(), spotlight);
     }
 
     /** Render the assistant from the snapshot: a surface, deciding nothing. */
@@ -8404,6 +8542,10 @@ public final class MainFrame extends JFrame {
             // OA-1: exit cancels pending assistant work through the session, then stops its workers
             step(() -> { if (session != null) session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantCancelRequested("the analyser is exiting")); });
             step(() -> { if (assistantAdapter != null) assistantAdapter.shutdown(); });
+            step(() -> {                              // OA-2: the window is disposed with the analyser; its place is kept
+                rememberAssistantBounds();
+                if (assistantWindow != null) assistantWindow.dispose();
+            });
             step(() -> { if (followTimer != null) followTimer.stop(); });
             step(() -> { if (designFollowTimer != null) designFollowTimer.stop(); });
             step(() -> { if (mcpIndicatorTimer != null) mcpIndicatorTimer.stop(); });

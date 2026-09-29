@@ -116,6 +116,11 @@ public final class ConfigStore {
         readList(p, "searchHistory", c.searchHistory);
         c.lastRunVersion = p.getProperty("lastRunVersion", c.lastRunVersion);
         c.windowX = parseInt(p.getProperty("windowX"), c.windowX);
+        c.assistantPoppedOut = Boolean.parseBoolean(p.getProperty("assistant.window.poppedOut", Boolean.toString(c.assistantPoppedOut)));
+        c.assistantX = parseInt(p.getProperty("assistant.window.x"), c.assistantX);
+        c.assistantY = parseInt(p.getProperty("assistant.window.y"), c.assistantY);
+        c.assistantW = parseInt(p.getProperty("assistant.window.w"), c.assistantW);
+        c.assistantH = parseInt(p.getProperty("assistant.window.h"), c.assistantH);
         c.windowY = parseInt(p.getProperty("windowY"), c.windowY);
         c.windowW = parseInt(p.getProperty("windowW"), c.windowW);
         c.windowH = parseInt(p.getProperty("windowH"), c.windowH);
@@ -199,6 +204,11 @@ public final class ConfigStore {
         put(p, "mcp.codexRegistrationInstalled", Boolean.toString(c.mcpCodexRegistrationInstalled));
         put(p, "mcp.claudeRegistrationInstalled", Boolean.toString(c.mcpClaudeRegistrationInstalled));
         put(p, "windowX", Integer.toString(c.windowX));
+        put(p, "assistant.window.poppedOut", Boolean.toString(c.assistantPoppedOut));
+        put(p, "assistant.window.x", Integer.toString(c.assistantX));
+        put(p, "assistant.window.y", Integer.toString(c.assistantY));
+        put(p, "assistant.window.w", Integer.toString(c.assistantW));
+        put(p, "assistant.window.h", Integer.toString(c.assistantH));
         put(p, "windowY", Integer.toString(c.windowY));
         put(p, "windowW", Integer.toString(c.windowW));
         put(p, "windowH", Integer.toString(c.windowH));
