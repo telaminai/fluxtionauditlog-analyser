@@ -60,6 +60,47 @@ class AssistantNativeFrameTest {
         robot.waitForIdle();
     }
 
+    /**
+     * Records every native mouse press that reaches {@code target} (or a child), as the toolkit delivers it. A press that
+     * reached its component is the precondition; whether the window also became ACTIVE is a window manager's business
+     * (Xvfb has none), and the walk's rule is about the press, not the activation.
+     */
+    static final class PressesReaching implements AutoCloseable {
+        final java.util.concurrent.atomic.AtomicInteger count = new java.util.concurrent.atomic.AtomicInteger();
+        private final java.awt.event.AWTEventListener listener;
+
+        PressesReaching(java.awt.Component target) {
+            listener = e -> {
+                if (e.getID() == java.awt.event.MouseEvent.MOUSE_PRESSED && e.getSource() instanceof java.awt.Component c
+                        && (c == target || SwingUtilities.isDescendingFrom(c, target))) count.incrementAndGet();
+            };
+            java.awt.Toolkit.getDefaultToolkit().addAWTEventListener(listener, java.awt.AWTEvent.MOUSE_EVENT_MASK);
+        }
+
+        @Override public void close() {
+            java.awt.Toolkit.getDefaultToolkit().removeAWTEventListener(listener);
+        }
+    }
+
+    /** Give the composer keyboard focus: a native click first, then an explicit request (fixture set-up, as PR #62's). */
+    static boolean focusComposer(Robot robot, JComponent composer) throws Exception {
+        click(robot, composer);
+        onEdt(() -> {
+            java.awt.Window w = SwingUtilities.getWindowAncestor(composer);
+            w.toFront();
+            w.requestFocus();
+            composer.requestFocusInWindow();
+        });
+        long until = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(4);
+        AtomicReference<Boolean> focused = new AtomicReference<>(false);
+        while (System.nanoTime() < until) {
+            onEdt(() -> focused.set(composer.isFocusOwner()));
+            if (focused.get()) return true;
+            Thread.sleep(50);
+        }
+        return false;
+    }
+
     /** A two-step walk over record rows (the centre table), saved through the walk verb and shown from step 1. */
     static void showWalk(AsyncOpenInterleavingFrameTest.Frame f) throws Exception {
         onEdt(() -> render(f.ex, "walk", Map.of("name", "tour", "steps", List.of(
@@ -81,10 +122,8 @@ class AssistantNativeFrameTest {
             showWalk(f);
             onEdt(() -> panel(f.frame).hostButton().doClick());                      // pop out
             onEdt(() -> panel(f.frame).composerArea().setText(""));
-            click(robot, panel(f.frame).composerArea());
-            AtomicReference<Boolean> focused = new AtomicReference<>();
-            onEdt(() -> focused.set(panel(f.frame).composerArea().isFocusOwner()));
-            assumeTrue(focused.get(), "the OS must give the assistant window's composer focus — a SKIP, not a pass");
+            assumeTrue(focusComposer(robot, panel(f.frame).composerArea()),
+                    "the assistant window's composer must hold keyboard focus — a SKIP, not a pass");
             assertTrue(walk(f).showing(), "a native click in the assistant window did not end the walk");
             type(robot, KeyEvent.VK_A, KeyEvent.VK_B, KeyEvent.VK_LEFT, KeyEvent.VK_C);
             AtomicReference<String> text = new AtomicReference<>();
@@ -95,9 +134,10 @@ class AssistantNativeFrameTest {
             click(robot, panel(f.frame).conversationView());                          // select/scroll the conversation
             assertTrue(walk(f).showing(), "selecting in the assistant's conversation keeps the walk");
             JComponent table = (JComponent) field(field(f.frame, "tablePanel"), "table");
-            click(robot, table);                                                       // an outside press in the analyser
-            onEdt(() -> { });
-            assumeTrue(f.frame.isActive() || f.frame.isFocused(), "the press must reach the analyser window — a SKIP, not a pass");
+            try (PressesReaching reached = new PressesReaching(f.frame.getRootPane())) {
+                click(robot, table);                                                   // an outside press in the analyser
+                assumeTrue(reached.count.get() > 0, "the native press must reach the analyser window — a SKIP, not a pass");
+            }
             await("an unrelated press in the analyser ended the walk", () -> !walk(f).showing());
         } finally {
             robot.mouseMove(before.x, before.y);
@@ -121,8 +161,10 @@ class AssistantNativeFrameTest {
             AtomicReference<Boolean> visible = new AtomicReference<>();
             onEdt(() -> visible.set(panel(f.frame).conversationView().isShowing()));
             assumeTrue(visible.get(), "the docked assistant must be on screen beside the walk — a SKIP, not a pass");
-            click(robot, panel(f.frame).conversationView());
-            assumeTrue(f.frame.isActive(), "the press must reach the analyser window — a SKIP, not a pass");
+            try (PressesReaching reached = new PressesReaching(f.frame.getRootPane())) {
+                click(robot, panel(f.frame).conversationView());
+                assumeTrue(reached.count.get() > 0, "the native press must reach the analyser window — a SKIP, not a pass");
+            }
             assertTrue(walk(f).showing(), "a native click in the docked assistant did not end the walk");
             JComponent table = (JComponent) field(field(f.frame, "tablePanel"), "table");
             click(robot, table);
