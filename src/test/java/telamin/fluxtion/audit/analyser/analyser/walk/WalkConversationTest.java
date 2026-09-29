@@ -119,4 +119,22 @@ class WalkConversationTest {
         assertEquals(1, WalkConversation.prefix(w, 2).size(), "a step with no reveal keeps what was shown");
         assertEquals(2, WalkConversation.prefix(w, 3).size());
     }
+
+    @Test
+    void theTotalByteLimitIncludesTheAuthorAndJsonEscaping() {
+        var authored = conversation(List.of(turn("t1", "user", "DEMO question")));
+        authored.put("author", "A".repeat(WalkConversation.MAX_TOTAL_BYTES));
+        assertFalse(WalkConversation.parse(authored).ok(), "the author is part of the bounded conversation");
+        List<Map<String, Object>> escaped = new ArrayList<>();
+        for (int i = 0; i < 33; i++) escaped.add(turn("t" + i, "user", "\"".repeat(8192)));
+        assertFalse(WalkConversation.parse(conversation(escaped)).ok(), "escaped JSON bytes count toward the total conversation limit");
+    }
+
+    @Test
+    void aVersionCannotWrapToTheSupportedVersion() {
+        var raw = conversation(List.of(turn("t1", "user", "DEMO question")));
+        raw.put("version", 4294967297L);
+        assertFalse(WalkConversation.parse(raw).ok(), "an unknown large version must not wrap to version one");
+    }
+
 }

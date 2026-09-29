@@ -154,4 +154,16 @@ class ConversationWalkStorageTest {
         WalkSpec w = new WalkSpec("x", "", "person", "", "", null, List.of(), List.of(), Map.of());
         assertNull(w.conversation());
     }
+
+    @Test
+    void aSharedCountIsBoundedBeforeMaterialisingTurns() {
+        Properties p = new Properties();
+        ConfigStore.writeWalks(p, List.of(withDialogue("bounded")));
+        p.setProperty("walk.0.conv.t.count", "100000");
+        List<WalkSpec> read = new ArrayList<>();
+        ConfigStore.readWalks(p, read);
+        assertTrue(read.get(0).conversation().turns().size() <= 201, "an untrusted count must be capped before allocating turn objects");
+        assertNotNull(telamin.fluxtion.audit.analyser.analyser.walk.WalkConversation.problem(read.get(0).conversation()), "an oversized count must remain invalid, not become a valid truncated dialogue");
+    }
+
 }

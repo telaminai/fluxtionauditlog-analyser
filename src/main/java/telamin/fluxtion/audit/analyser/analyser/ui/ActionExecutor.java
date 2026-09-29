@@ -1065,7 +1065,10 @@ public final class ActionExecutor implements RenderExecutor {
             if (answer.isDone()) return;
             try {
                 checkGuard(guard);
-                var pending = app.prepareJavaSpotlight(params, () -> revealSpotlightRows(params));
+                var pending = app.prepareJavaSpotlight(params, () -> {
+                    checkGuard(guard); // asynchronous preparation has finished: check again before ANY reveal/apply
+                    revealSpotlightRows(params);
+                });
                 answer.whenComplete((value, failure) -> { if (answer.isCancelled()) pending.cancel(false); });
                 pending.whenComplete((value, failure) -> {
                     if (failure == null) answer.complete(value); else answer.completeExceptionally(failure);

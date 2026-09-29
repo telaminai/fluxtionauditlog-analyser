@@ -27,6 +27,31 @@ RUNNER = 'tools/replay/ReplayBundle.java'
 GRAPHML = 'src/main/resources/telamin/fluxtion/audit/analyser/analyser/session/generated/SessionProcessor.graphml'
 
 CONTROLS = [
+    # Independent PR77 review: boundary regressions, each red on the reviewed head.
+    ('oa-review-provider-words', J + 'assistant/AssistantAdapter.java',
+     'new SessionEvents.AssistantCompletionFailed(ticket, round, safeFailure(ex))',
+     'new SessionEvents.AssistantCompletionFailed(ticket, round, bounded(rootMessage(ex), key))',
+     'AssistantAdapterTest#providerFailureWordsNeverBecomeSessionFacts'),
+    ('oa-review-action-name', J + 'assistant/AssistantAdapter.java',
+     'return telamin.fluxtion.audit.analyser.analyser.llm.VerbSchemas.all().containsKey(name) ? name : "?";',
+     'return name;', 'AssistantAdapterTest#anUnknownActionNameStaysOutOfSessionFacts'),
+    ('oa-review-retry-manifest', NODE + 'AssistantLoop.java',
+     '        if (history.isEmpty()) manifestSent = false; // the discarded first prompt held the only manifest\n', '',
+     'AssistantLoopTest#cancellingTheFirstRequestDoesNotLoseTheManifest'),
+    ('oa3-review-total-bytes', J + 'walk/WalkConversation.java',
+     'if (total > MAX_TOTAL_BYTES) return', 'if (false) return',
+     'WalkConversationTest#theTotalByteLimitIncludesTheAuthorAndJsonEscaping'),
+    ('oa3-review-version-overflow', J + 'walk/WalkConversation.java',
+     'if (n.doubleValue() != WalkSpec.CONVERSATION_VERSION) {',
+     'if (n.intValue() != WalkSpec.CONVERSATION_VERSION) {',
+     'WalkConversationTest#aVersionCannotWrapToTheSupportedVersion'),
+    ('oa3-review-count-allocation', J + 'config/ConfigStore.java',
+     'int boundedCount = Math.min(tc, telamin.fluxtion.audit.analyser.analyser.walk.WalkConversation.MAX_TURNS + 1);',
+     'int boundedCount = tc;', 'ConversationWalkStorageTest#aSharedCountIsBoundedBeforeMaterialisingTurns'),
+    ('oa-review-deferred-source-guard', UI + 'ActionExecutor.java',
+     '                    checkGuard(guard); // asynchronous preparation has finished: check again before ANY reveal/apply\n', '',
+     'JavaSourceSpotlightFrameTest#anEndedAssistantCannotApplyACompletedSourceLookup'),
+
     ('ws-newer-graph-cancels-bundle', NODE + 'OperationGate.java',
      'if (bundleStage == BundleStage.PREPARING && "OPENED".equals(event.source())) {',
      'if (false) {', 'BundleOpenReplayTest#newerExplicitGraphSupersedesBundlePreparation'),
@@ -1564,7 +1589,8 @@ CONTROLS = [
      '                    checkGuard(guard);\n                    out[0] = body.call();',
      '                    out[0] = body.call();', 'AssistantGuardTest#anEndedTurnChangesNothing'),
     ('oa-key-never-in-errors', J + 'assistant/AssistantAdapter.java',
-     'if (key != null && key.length() >= 8) out = out.replace(key, "‹key›");', '',
+     'new SessionEvents.AssistantCompletionFailed(ticket, round, safeFailure(ex))',
+     'new SessionEvents.AssistantCompletionFailed(ticket, round, bounded(rootMessage(ex), null))',
      'AssistantAdapterTest#anErrorIsBoundedAndKeyless'),
     # the old store gate (LlmPanel's `actionsOn = … && store != null`) withheld context and topology with no log open
     ('oa-no-store-gate', UI + 'MainFrame.java',

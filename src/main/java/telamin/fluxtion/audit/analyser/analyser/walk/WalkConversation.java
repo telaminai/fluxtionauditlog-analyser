@@ -51,8 +51,8 @@ public final class WalkConversation {
         if (!(v instanceof Number n) || n.doubleValue() != Math.rint(n.doubleValue())) {
             return refuse("'conversation.version' is required, a whole number");
         }
-        if (n.intValue() != WalkSpec.CONVERSATION_VERSION) {
-            return refuse("conversation version " + n.intValue() + " is not supported by this analyser (it reads version "
+        if (n.doubleValue() != WalkSpec.CONVERSATION_VERSION) {
+            return refuse("conversation version " + n + " is not supported by this analyser (it reads version "
                     + WalkSpec.CONVERSATION_VERSION + "): upgrade to author it");
         }
         String kind = m.get("kind") == null ? "" : String.valueOf(m.get("kind"));
@@ -97,6 +97,11 @@ public final class WalkConversation {
             if (bytes > MAX_TURN_BYTES) return at + "is " + bytes + " bytes; a turn holds at most " + MAX_TURN_BYTES;
             total += bytes + t.id().length() + t.role().length();
         }
+        // The documented budget is serialized UTF-8 JSON, including author, field names and escaping.
+        var json = new java.util.LinkedHashMap<String, Object>();
+        json.put("version", c.version()); json.put("kind", c.kind()); json.put("author", c.author());
+        json.put("turns", c.turns().stream().map(t -> Map.of("id", t.id(), "role", t.role(), "text", t.text())).toList());
+        total = telamin.fluxtion.audit.analyser.analyser.llm.Json.write(json).getBytes(StandardCharsets.UTF_8).length;
         if (total > MAX_TOTAL_BYTES) return "the conversation is " + total + " bytes; at most " + MAX_TOTAL_BYTES;
         return null;
     }

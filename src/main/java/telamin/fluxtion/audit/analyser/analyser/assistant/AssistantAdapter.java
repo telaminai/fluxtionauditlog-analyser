@@ -40,8 +40,8 @@ import java.util.concurrent.atomic.AtomicInteger;
  * the task throws before touching anything. The node rejects the stale result as well; the guard is what stops the effect.
  *
  * <p><b>Credentials.</b> The key is read from the configuration when a request is performed, is used by the provider
- * client only, and is never put in a fact, a transcript entry or an error. A provider error is bounded and any
- * occurrence of the key in it is replaced, defensively.
+ * client only, and is never put in a fact, a transcript entry or an error. Failure facts contain only a safe category
+ * or HTTP status; provider error bodies never enter session state.
  */
 public final class AssistantAdapter {
 
@@ -156,7 +156,7 @@ public final class AssistantAdapter {
                 long prompt = transcript.add(AssistantTranscript.Kind.PROMPT, content);
                 env.post(new SessionEvents.AssistantContextPrepared(ticket, prompt));
             } catch (RuntimeException ex) {
-                env.post(new SessionEvents.AssistantContextFailed(ticket, bounded(rootMessage(ex), null)));
+                env.post(new SessionEvents.AssistantContextFailed(ticket, safeFailure(ex)));
             }
         }));
         return new SessionEvents.AssistantEffectStarted(e.opId(), ticket, "prepareContext");
@@ -184,7 +184,7 @@ public final class AssistantAdapter {
                 Thread.currentThread().interrupt();
                 env.post(new SessionEvents.AssistantCompletionFailed(ticket, round, "the request was stopped"));
             } catch (Exception ex) {
-                env.post(new SessionEvents.AssistantCompletionFailed(ticket, round, bounded(rootMessage(ex), key)));
+                env.post(new SessionEvents.AssistantCompletionFailed(ticket, round, safeFailure(ex)));
             }
         }));
         return new SessionEvents.AssistantEffectStarted(e.opId(), ticket, "requestCompletion:" + round);
@@ -245,7 +245,11 @@ public final class AssistantAdapter {
     static String verbOf(String block) {
         try {
             Object root = Json.parse(block);
-            if (root instanceof Map<?, ?> m && m.get("action") != null) return m.get("action").toString();
+            if (root instanceof Map<?, ?> m && m.get("action") != null) {
+                String name = m.get("action").toString();
+                // Only schema vocabulary may enter session facts; an unknown name is provider-authored text.
+                return telamin.fluxtion.audit.analyser.analyser.llm.VerbSchemas.all().containsKey(name) ? name : "?";
+            }
         } catch (RuntimeException ignored) {
             // an unparseable block is still dispatched, and refused by the dispatcher with its own words
         }
@@ -287,6 +291,19 @@ public final class AssistantAdapter {
         while (r.getCause() != null && r.getCause() != r) r = r.getCause();
         String m = r.getMessage();
         return r.getClass().getSimpleName() + (m == null ? "" : ": " + m);
+    }
+
+    /** Failure facts carry a safe category/status, never arbitrary exception or provider-response text. */
+    static String safeFailure(Throwable failure) {
+        Throwable root = failure;
+        while (root.getCause() != null && root.getCause() != root) root = root.getCause();
+        String message = root.getMessage();
+        var status = java.util.regex.Pattern.compile("^(Anthropic|OpenAI) HTTP ([1-5][0-9]{2})(?::|$)")
+                .matcher(message == null ? "" : message);
+        if (status.find()) return status.group(1) + " HTTP " + status.group(2);
+        if (root instanceof java.net.http.HttpTimeoutException) return "request timed out";
+        if (root instanceof java.io.IOException) return "provider or context I/O failed";
+        return "request processing failed";
     }
 
     /** At most 300 characters, one line, and never the key, however the transport phrased its error. */

@@ -281,4 +281,16 @@ class AssistantLoopTest {
             assertFalse(c.getName().matches("(?i)text|body|content"), "an entry names its text, it does not hold it");
         }
     }
+
+    @Test
+    void cancellingTheFirstRequestDoesNotLoseTheManifest() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = new SessionDriver(a);
+        sendAndPrepare(d, a, 1, 2);
+        d.post(new SessionEvents.AssistantCancelRequested("test"));
+        var next = sendAndPrepare(d, a, 3, 4);
+        assertTrue(a.assistantContexts.get(1).includeManifest(), "retry after the first unanswered request must carry the action manifest");
+        assertEquals(List.of(new SessionEffects.HistoryMessage("user", "TEXT", List.of(4L))), next.history(), "discarded context must not be retained as an unanswered user message");
+    }
+
 }

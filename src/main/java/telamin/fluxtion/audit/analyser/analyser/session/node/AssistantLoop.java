@@ -365,6 +365,7 @@ public class AssistantLoop implements EventLogSource {
         while (!history.isEmpty() && "user".equals(history.get(history.size() - 1).role())) {
             history.remove(history.size() - 1);
         }
+        if (history.isEmpty()) manifestSent = false; // the discarded first prompt held the only manifest
         if (!note.isBlank()) {
             reason = note;
             entries.add(new AssistantState.Entry(0, AssistantState.NOTE, turn, terminal, "", note, 0));

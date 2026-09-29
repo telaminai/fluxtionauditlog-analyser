@@ -253,4 +253,36 @@ class AssistantAdapterTest {
         assertTrue(provider.bodies.get(1).contains("unknown verb"), "the refusal went back to the model");
         assertEquals(List.of(), h.render.calls, "nothing was rendered");
     }
+
+    @Test
+    void providerFailureWordsNeverBecomeSessionFacts() throws Exception {
+        start();
+        String privateWords = "DEMO-question-private-phrase";
+        provider.server.removeContext("/v1/messages");
+        provider.server.createContext("/v1/messages", ex -> {
+            ex.getRequestBody().readAllBytes();
+            byte[] body = ("{\"error\":\"" + privateWords + " " + KEY + "\"}").getBytes(StandardCharsets.UTF_8);
+            ex.sendResponseHeaders(400, body.length);
+            ex.getResponseBody().write(body); ex.close();
+        });
+        h.send(privateWords); h.settle();
+        assertEquals("FAILED", h.state().phase(), "HTTP rejection must finish the turn");
+        assertTrue(h.state().reason().contains("400"), "the safe status code still explains the failure");
+        assertFalse(h.state().toString().contains(privateWords), "provider error words must not enter the snapshot");
+        assertFalse(h.driver.auditSink().records().toString().contains(privateWords), "provider error words must not enter the session audit");
+    }
+
+    @Test
+    void anUnknownActionNameStaysOutOfSessionFacts() throws Exception {
+        start();
+        String words = "DEMO-private-action-words";
+        provider.replies.add(action("{\"action\":\"" + words + "\"}"));
+        provider.replies.add("The action was refused.");
+        h.send("Try the invalid action"); h.settle();
+        assertEquals("COMPLETE", h.state().phase(), "the refusal is fed back and the turn completes");
+        assertFalse(h.state().toString().contains(words), "unrecognised action words must not enter the snapshot");
+        assertFalse(h.driver.auditSink().records().toString().contains(words), "unrecognised action words must not enter the session audit");
+        assertTrue(provider.bodies.get(1).contains(words), "the actual refusal remains in private provider history");
+    }
+
 }

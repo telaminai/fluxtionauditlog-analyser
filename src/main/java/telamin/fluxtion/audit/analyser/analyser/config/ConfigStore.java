@@ -604,7 +604,9 @@ public final class ConfigStore {
                     get.apply("conv.v");
                     List<telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec.Turn> turns = new java.util.ArrayList<>();
                     int tc = parseInt(get.apply("conv.t.count"), 0);
-                    for (int t = 0; t < tc; t++) {
+                    // Keep one overflow sentinel so validation refuses it, without allocating an untrusted count.
+                    int boundedCount = Math.min(tc, telamin.fluxtion.audit.analyser.analyser.walk.WalkConversation.MAX_TURNS + 1);
+                    for (int t = 0; t < boundedCount; t++) {
                         turns.add(new telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec.Turn(get.apply("conv.t." + t + ".id"),
                                 get.apply("conv.t." + t + ".role"), get.apply("conv.t." + t + ".text")));
                     }
