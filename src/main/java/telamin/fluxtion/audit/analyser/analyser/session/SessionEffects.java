@@ -21,6 +21,12 @@ public sealed interface SessionEffects {
     record LoadProfileEffect(long opId, String profilePath) implements SessionEffects {
     }
 
+    /** Verify and unpack a bundle off the event thread; report the result with the same operation id. */
+    record PrepareBundleEffect(long opId, String bundlePath) implements SessionEffects { }
+
+    /** Open the verified graph and log after the bundled project has been applied. */
+    record OpenBundleEvidenceEffect(long opId, SessionEvents.BundlePlan plan) implements SessionEffects { }
+
     /**
      * Start a new, empty project at this path and make it the loaded one.
      *

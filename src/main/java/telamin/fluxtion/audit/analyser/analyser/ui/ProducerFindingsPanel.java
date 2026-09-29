@@ -81,7 +81,7 @@ final class ProducerFindingsPanel extends JPanel {
                                        DesignDocument design, String designPath, DesignFiles files,
                                        Consumer<DiagnosticLocation> show) {
         Fluid.Panel card = card();
-        JPanel header = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        Fluid.Panel header = column();
         header.setOpaque(false);
         JLabel severity = new JLabel(finding.severity());
         Color ink = switch (finding.severity().toUpperCase(java.util.Locale.ROOT)) {
@@ -94,9 +94,10 @@ final class ProducerFindingsPanel extends JPanel {
         severity.setBackground(UiTheme.mix(UiTheme.surface(), ink, 0.12f));
         severity.setBorder(BorderFactory.createEmptyBorder(3, 7, 3, 7));
         header.add(severity);
-        JLabel code = new JLabel(finding.code());
+        JTextArea code = Fluid.text(finding.code());
         code.setFont(UiTheme.mono(12));
         code.setForeground(UiTheme.mutedForeground());
+        header.add(Box.createVerticalStrut(5));
         header.add(code);
         card.add(header);
         card.add(Box.createVerticalStrut(9));
@@ -112,20 +113,25 @@ final class ProducerFindingsPanel extends JPanel {
         card.add(Box.createVerticalStrut(12));
         card.add(muted(location.reason() + (location.candidates().isEmpty()
                 ? "" : " · lines " + location.candidates())));
-        JPanel actions = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
+        Fluid.Panel actions = column();
         actions.setOpaque(false);
         JButton primary = new JButton(location.available()
                 ? location.approximate() ? "Show (approximate)" : "Show" : "Unavailable");
         primary.setEnabled(location.available());
         primary.setToolTipText(location.reason());
         primary.addActionListener(e -> show.accept(location));
+        primary.setAlignmentX(Component.LEFT_ALIGNMENT);
+        primary.setMaximumSize(primary.getPreferredSize());
         actions.add(primary);
         DiagnosticLocation related = DiagnosticLocation.related(finding, design, files);
         if (related.available()) {
             JButton secondary = new JButton(related.mode().equals("DESIGN")
-                    ? "Show quoted declaration (approximate)" : "Show node source");
+                    ? "Show declaration" : "Show node source");
             secondary.setToolTipText(related.reason());
             secondary.addActionListener(e -> show.accept(related));
+            secondary.setAlignmentX(Component.LEFT_ALIGNMENT);
+            secondary.setMaximumSize(secondary.getPreferredSize());
+            actions.add(Box.createVerticalStrut(5));
             actions.add(secondary);
         }
         card.add(Box.createVerticalStrut(5));

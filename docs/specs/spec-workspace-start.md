@@ -1,6 +1,6 @@
 # Workspace start page and Swing reading surfaces
 
-**Status:** proposed for PR #71 review, 2026-09-29. This records the owner's newer start-page direction and supersedes the layout and no-log navigation portions of [the shipped start-page spec](completed/spec-start-page.md). Its empty-state and no-first-run-modal principles still apply.
+**Status:** PR #71 with review corrections, 2026-09-29. This records the owner's newer start-page direction and supersedes the layout and no-log navigation portions of [the shipped start-page spec](completed/spec-start-page.md). Its empty-state and no-first-run-modal principles still apply.
 
 ## Intent
 
@@ -16,10 +16,13 @@ An empty analyser opens to a full-width workspace choice, rather than placing a 
 | Author a new project | Open the existing new-project flow; no template download is implied. |
 | Author from template | Open the existing template catalogue and destination flow. |
 | Recent projects | Show the machine's recent-project list; selecting one uses an explicit project switch and opens the project workspace even if it has no log. It does not reopen a prior log implicitly. |
+| Open project | Choose an existing project workspace even when it is absent from the recent list. |
 | Open audit log / Open GraphML | Use the existing file chooser and open paths. A standalone graph can show the investigation workspace without a log. |
 | Open sample project | Install the bundled DEMO assets under the analyser's local demo directory, create a project profile there if absent, and open that project, log and graph. It requires no API key or network and never overwrites an existing demo profile. |
 
 The start card replaces the entire application work area. The time-range controls, toolbar, left navigation, output tabs, menus and status bar are hidden while it is shown; they return together in the project or evidence workspace. This keeps irrelevant controls from competing with the first decision. A project is itself a workspace: once selected, the start card gives way to the investigation layout. The page remains scrollable and its action cards reflow rather than clip at narrow widths.
+
+Help → Start page always shows those same choices, including over a project with no log. If a project, graph, design or log workspace exists, **Return to workspace** is visible and restores it without changing evidence. Project declarations stay in the workspace Project panel. Verification progress and file-drop refusals appear on the start page itself because the application status bar is hidden there.
 
 Each choice has a small theme-coloured vector icon beside its title. Icons reinforce the action's meaning but the text and accessible name carry it; they must remain legible in both light and dark themes and at display scaling.
 
@@ -27,9 +30,13 @@ Optional source setup on the start page is labelled as **global source defaults*
 
 The same page accepts drag and drop. A single `.fexp` uses the verified bundle open; a `.graphml` opens Topology; a Spring `.xml` uses the design-session open; other files keep the audit-log open behavior, including logs with unusual names. A dropped `.fexp` alongside other files is refused as an ambiguous mixed request. For a log, graph and design dropped together, the first of each type is opened and extra files are named as ignored.
 
+Bundle opening is one session request from the start. Verification and unpacking report back with the original operation ID; a newer project or bundle request supersedes a late result. A successful current result then applies the bundled project before opening its graph and log. A stale completion, including a stale refusal, changes no workspace and shows no obsolete warning.
+
 ## Reading surfaces
 
 Producer findings separate the result context from each finding. A finding shows severity and code, then the message, reason, suggested fix, optional XML declaration, location explanation and available source actions. Text from a producer result is rendered as plain Swing text, not HTML; all existing statements and source-action semantics remain. Cards, borders and severity colours derive from the current light or dark theme and are rebuilt after a theme change.
+
+At a 220-pixel sidebar width, walk management remains reachable through More and the walk/step list stacks vertically. At a 330-pixel chart width, the series editor tracks viewport width so Add, Pick and formula resolution stay visible. Finding codes, explanations and fixes wrap within the reading width.
 
 ## Acceptance checks
 
@@ -41,6 +48,6 @@ Producer findings separate the result context from each finding. A finding shows
 6. The public-data sweep prints nothing beyond the rule files' exemption, Maven tests pass, and display-backed UI tests catch a wrong full-width layout or a missing action.
 7. File drops on the start page and active workspace route each supported type to the same entrance as its menu or card; a `.fexp` or Spring XML never falls through to the audit-log reader.
 
-`python3 tools/test_start_workspace.py` drives the display-backed frame tests with real DEMO files and Swing file-list transfers. It checks that the expected cases actually ran, with no skip, including a verified `.fexp` drop, a Spring design/GraphML/log sequence, a recent project with no log, a sample project with its own profile, and every step of the saved guided tour.
+`python3 tools/test_start_workspace.py` drives the display-backed frame tests with real DEMO files and Swing file-list transfers. It checks that the expected cases actually ran, with no skip, including a verified `.fexp` drop, a native file-list drag onto explanatory text, a delayed bundle/result race, visible mixed-drop refusal, narrow panel geometry, a Spring design/GraphML/log sequence, a recent project with no log, a sample project with its own profile, and every step of the saved guided tour. `BundleOpenReplayTest` and the `ws-stale-bundle-verification-refused` mutation control pin the session decision independently of worker timing.
 
 The reviewer should challenge this information hierarchy and the wording of each choice with concrete first-run and return-user scenarios. In particular, assess whether “experiment,” “incident,” and “sample project” are understandable without knowing this repository's terminology.

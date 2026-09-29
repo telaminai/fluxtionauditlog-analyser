@@ -57,6 +57,8 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
     public SessionEvents.Result perform(SessionEffects effect) throws Exception {
         performed.add(effect);
         return switch (effect) {
+            case SessionEffects.PrepareBundleEffect e -> new SessionEvents.Pending(e.opId(), "verifying " + e.bundlePath());
+            case SessionEffects.OpenBundleEvidenceEffect e -> new SessionEvents.Pending(e.opId(), "opening " + e.plan().logPath());
             case SessionEffects.ScanLogEvidenceEffect e -> new SessionEvents.ScanScheduled(e.opId(), e.generation());
             // M69: the recording backend for walk playback — what the node ASKED, and a plain answer
             case SessionEffects.ApplyWalkViewEffect e -> {

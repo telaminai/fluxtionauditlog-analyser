@@ -54,7 +54,7 @@ public final class StartPanel extends JPanel {
         /** A locally observed presence fact only — never key validity or a future build's winner. */
         boolean fluxtionKeyPresent();
 
-        /** Back to the records table, for a page raised over an open log (Help ▸ Start page). */
+        /** Return to the active workspace when Help ▸ Start page was raised over one. */
         void backToRecords();
         default void openProjectDesign() { }
         default void openProjectDiagnostics() { }
@@ -65,25 +65,23 @@ public final class StartPanel extends JPanel {
         default void investigateIncident() { }
         default void openGraphml() { }
         default void openRecentProject(String path) { }
+        default void openExistingProject() { }
         default void restoreSession(long generation) { }
         default void dismissSessionRestore(long generation) { }
 
     }
 
     private final JPanel recoveryOffer = new JPanel(new BorderLayout(8, 8));
-    private final JPanel contents = new JPanel(new CardLayout());
-    private final Box projectLanding = Box.createVerticalBox();
     private final Box recentProjects = Box.createVerticalBox();
+    private final JTextArea operationFeedback = Fluid.text("");
     private List<String> lastRecents;
-    private JScrollPane projectScroll;
-    private java.util.Map<String, Object> lastProjectContext;
     private final Actions actions;
     private final Consumer<String> status;
 
     /** Components whose colour is theme-derived, re-resolved on a theme switch. */
     private final List<Runnable> recolour = new ArrayList<>();
 
-    /** The "back to the records" row — present always, visible only over an open log. */
+    /** The return row — visible whenever a project, graph, design or log workspace exists. */
     private final JComponent returnRow;
 
     /** The optional AI-client offer; dismissal is deliberately only for this rendered Start Page. */
@@ -104,6 +102,12 @@ public final class StartPanel extends JPanel {
         returnRow = returnToRecords();
         col.add(returnRow);
         col.add(hero());
+        operationFeedback.setOpaque(true);
+        operationFeedback.setBackground(UiTheme.accentWash(0.12f));
+        recolour.add(() -> operationFeedback.setBackground(UiTheme.accentWash(0.12f)));
+        operationFeedback.setBorder(BorderFactory.createEmptyBorder(8, 10, 8, 10));
+        operationFeedback.setVisible(false);
+        col.add(operationFeedback);
         col.add(Box.createVerticalStrut(20));
         col.add(heading("Start work"));
         col.add(row(
@@ -122,6 +126,8 @@ public final class StartPanel extends JPanel {
         col.add(Box.createVerticalStrut(20));
         col.add(heading("Open directly"));
         col.add(row(
+                card("Open project", "Choose an existing project workspace on this machine.", false,
+                        actions::openExistingProject),
                 card("Open audit log", "Choose a local audit log file.", false, actions::openOwnLog),
                 card("Open GraphML", "View a processor topology file.", false, actions::openGraphml),
                 card("Open sample project", "Explore a local DEMO project with a log, graph and source.", false,
@@ -153,20 +159,14 @@ public final class StartPanel extends JPanel {
         scroll.getViewport().setOpaque(false);
         scroll.setOpaque(false);
         this.scroll = scroll;
-        contents.add(scroll, "demo");
-        projectLanding.setBorder(BorderFactory.createEmptyBorder(22, 26, 22, 26));
-        projectScroll = new JScrollPane(Fluid.column(projectLanding),
-                ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED, ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-        projectScroll.setBorder(BorderFactory.createEmptyBorder());
-        contents.add(projectScroll, "project");
-        add(contents, BorderLayout.CENTER);
+        add(scroll, BorderLayout.CENTER);
         recoveryOffer.setBorder(BorderFactory.createEmptyBorder(8, 18, 8, 18));
         recoveryOffer.setVisible(false);
         add(recoveryOffer, BorderLayout.NORTH);
         applyColours();
     }
 
-    /** The same declared facts as the Project panel, with explicit actions on the landing only. */
+    /** Show a recovery offer without replacing the shared start choices. */
     public void renderProject(java.util.Map<String, Object> context) {
         recoveryOffer.removeAll();
         if (context != null && context.get("restoration") instanceof java.util.Map<?,?> restore) {
@@ -183,48 +183,8 @@ public final class StartPanel extends JPanel {
             recoveryOffer.setVisible(!"idle".equals(restore.get("state")) && !"none".equals(restore.get("state")));
         } else recoveryOffer.setVisible(false);
         recoveryOffer.revalidate(); recoveryOffer.repaint();
-        boolean active = context != null && context.get("project") instanceof java.util.Map<?, ?> p
-                && Boolean.TRUE.equals(p.get("active"));
-        ((CardLayout) contents.getLayout()).show(contents, active ? "project" : "demo");
-        if (!active || java.util.Objects.equals(lastProjectContext, context)) return;
-        boolean resetScroll = lastProjectContext == null || !java.util.Objects.equals(lastProjectContext.get("project"), context.get("project"))
-                || (context.get("restoration") instanceof java.util.Map<?,?> r && "offered".equals(r.get("state"))
-                    && !java.util.Objects.equals(lastProjectContext.get("restoration"), r));
-        lastProjectContext = new java.util.LinkedHashMap<>(context);
-        projectLanding.removeAll();
-        var model = ProjectModel.from(context);
-        projectLanding.add(projectHeading("Your project"));
-        projectLanding.add(wrapping("Project declarations are available. Open evidence explicitly to inspect a run."));
-        for (var section : model.sections()) {
-            projectLanding.add(Box.createVerticalStrut(12));
-            projectLanding.add(projectHeading(section.title()));
-            for (var r : section.rows()) {
-                // Dynamic project contents must not accumulate listeners in the theme recolour list.
-                var text = wrapping(r.primary() + (r.secondary() == null ? "" : " — " + r.secondary()));
-                text.setFont(UIManager.getFont("Label.font"));
-                projectLanding.add(text);
-            }
-        }
-        JPanel actionsRow = new JPanel(new java.awt.GridLayout(0, 2, 8, 8));
-        addAction(actionsRow, "Open audit log…", actions::openOwnLog);
-        addAction(actionsRow, "Open topology…", actions::openProjectTopology);
-        addAction(actionsRow, "Open design…", actions::openProjectDesign);
-        addAction(actionsRow, "Open diagnostics…", actions::openProjectDiagnostics);
-        addAction(actionsRow, "New project…", actions::newProject);
-        if (context.containsKey("log")) addAction(actionsRow, "Back to records", actions::backToRecords);
-        projectLanding.add(Box.createVerticalStrut(16));
-        actionsRow.setAlignmentX(LEFT_ALIGNMENT);
-        projectLanding.add(actionsRow);
-        if (resetScroll) SwingUtilities.invokeLater(() -> projectScroll.getViewport().setViewPosition(new Point(0, 0)));
-        projectLanding.revalidate();
-        projectLanding.repaint();
-    }
-
-    private static JLabel projectHeading(String text) {
-        JLabel label = new JLabel(text);
-        label.setFont(label.getFont().deriveFont(Font.BOLD));
-        label.setAlignmentX(LEFT_ALIGNMENT);
-        return label;
+        // Project declarations remain in the investigation's Project panel. The start page
+        // always offers the same entrances, including Open project and Return to workspace.
     }
 
     private static void addAction(JPanel into, String label, Runnable action) {
@@ -240,7 +200,7 @@ public final class StartPanel extends JPanel {
         lastRecents = next;
         recentProjects.removeAll();
         if (next.isEmpty()) {
-            recentProjects.add(body("No recent projects yet. Create one or open a project from the Project menu."));
+            recentProjects.add(body("No recent projects yet. Use Open project above to choose a workspace."));
         } else {
             for (String path : next) {
                 Path file = Path.of(path);
@@ -365,13 +325,19 @@ public final class StartPanel extends JPanel {
     /**
      * The way back, shown ONLY when there is something to go back to.
      *
-     * <p>Raised over an open log (Help ▸ Start page) the page would otherwise be a one-way door: the
-     * records are still loaded but the table is behind the card, and nothing on screen says how to
-     * return. Hidden when no log is open, because an exit that leads nowhere is worse than none —
-     * it implies the reader has lost something they never had.
+     * <p>Raised over a project, graph, design or log (Help ▸ Start page), the page would otherwise
+     * be a one-way door. Hidden only when there is no workspace to return to.
      */
-    public void showReturnToRecords(boolean logOpen) {
-        returnRow.setVisible(logOpen);
+    public void showReturnToRecords(boolean workspaceOpen) {
+        returnRow.setVisible(workspaceOpen);
+        revalidate();
+        repaint();
+    }
+
+    public void showOperationFeedback(String message) {
+        operationFeedback.setText(message == null ? "" : message);
+        operationFeedback.setVisible(message != null && !message.isBlank());
+        operationFeedback.revalidate();
         revalidate();
         repaint();
     }
@@ -381,8 +347,8 @@ public final class StartPanel extends JPanel {
         p.setOpaque(false);
         p.setAlignmentX(LEFT_ALIGNMENT);
         p.setMaximumSize(new Dimension(Integer.MAX_VALUE, 26));
-        p.add(link("\u2190 Back to the records", actions::backToRecords));
-        p.setVisible(false);        // no log open is the common case, and then there is no way back
+        p.add(link("\u2190 Return to workspace", actions::backToRecords));
+        p.setVisible(false);        // initial empty state has no workspace to return to
         return p;
     }
 

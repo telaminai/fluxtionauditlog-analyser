@@ -27,6 +27,10 @@ RUNNER = 'tools/replay/ReplayBundle.java'
 GRAPHML = 'src/main/resources/telamin/fluxtion/audit/analyser/analyser/session/generated/SessionProcessor.graphml'
 
 CONTROLS = [
+    # PR71 review R1: the first of two pending bundle verifications must not consume the second's slot.
+    ('ws-stale-bundle-verification-refused', NODE + 'SessionBoundary.java',
+     '        if (!gate.accepted()) {\n', '        if (false) {\n',
+     'BundleOpenReplayTest#lateFirstBundleCannotStealASecondPendingBundle'),
     # Native gesture cancellation: every witness starts with a Robot drag through the OS router.
     ('mouse-loss-table-hook', UI + 'MainFrame.java',
      '                tablePanel.cancelMouseGesture();', '                // table cancellation removed',

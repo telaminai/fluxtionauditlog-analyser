@@ -18,6 +18,8 @@ import javax.swing.JTextArea;
 import javax.swing.ListSelectionModel;
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -39,6 +41,7 @@ final class WalksPanel extends JPanel {
     private final DefaultListModel<String> stepLabels = new DefaultListModel<>();
     private final JList<String> steps = new JList<>(stepLabels);
     private final JTextArea detail = new JTextArea();
+    private final JSplitPane split;
     /** Asks for a new name, or null. */
     Function<WalkSpec, String> renamePrompt = w -> {
         Object typed = JOptionPane.showInputDialog(this, "Rename the walk \"" + w.name() + "\" to:", "Rename walk",
@@ -70,7 +73,8 @@ final class WalksPanel extends JPanel {
         this.walks = walks;
         this.walk = walk;
         this.restorable = restorable;
-        JPanel bar = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 2));
+        JPanel bar = new JPanel(new BorderLayout(0, 2));
+        JPanel mainActions = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 2));
         play.addActionListener(e -> withSelected(w -> run(Map.of("name", w.name(), "play", true))));
         playFrom.addActionListener(e -> withSelected(w -> {
             int step = steps.getSelectedIndex();
@@ -102,9 +106,12 @@ final class WalksPanel extends JPanel {
         more.setToolTipText("Rename, delete or restore spotlight walks");
         more.setComponentPopupMenu(actions);
         more.addActionListener(e -> actions.show(more, 0, more.getHeight()));
-        bar.add(play);
-        bar.add(playFrom);
-        bar.add(more);
+        mainActions.add(play);
+        mainActions.add(more);
+        bar.add(mainActions, BorderLayout.NORTH);
+        JPanel stepAction = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
+        stepAction.add(playFrom);
+        bar.add(stepAction, BorderLayout.SOUTH);
         add(bar, BorderLayout.NORTH);
         detail.setEditable(false);
         detail.setLineWrap(true);
@@ -124,9 +131,20 @@ final class WalksPanel extends JPanel {
         JPanel walkDetail = new JPanel(new BorderLayout());
         walkDetail.add(new JScrollPane(detail), BorderLayout.NORTH);
         walkDetail.add(new JScrollPane(steps), BorderLayout.CENTER);
-        JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, new JScrollPane(list), walkDetail);
+        split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, new JScrollPane(list), walkDetail);
         split.setDividerLocation(180);
+        split.setResizeWeight(0.32);
         add(split, BorderLayout.CENTER);
+        addComponentListener(new ComponentAdapter() {
+            @Override public void componentResized(ComponentEvent e) {
+                int orientation = getWidth() < 360 ? JSplitPane.VERTICAL_SPLIT : JSplitPane.HORIZONTAL_SPLIT;
+                if (split.getOrientation() != orientation) {
+                    split.setOrientation(orientation);
+                    javax.swing.SwingUtilities.invokeLater(() -> split.setDividerLocation(
+                            orientation == JSplitPane.VERTICAL_SPLIT ? 90 : Math.min(180, getWidth() / 3)));
+                }
+            }
+        });
     }
 
     static String deleteWarning(WalkSpec w) {

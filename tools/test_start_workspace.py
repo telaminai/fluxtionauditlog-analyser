@@ -20,6 +20,10 @@ CASES = {
         "guidedTourChoiceSavesAndPlaysTheDemoSpotlightWalk",
         "droppingSpringDesignThenGraphAndLogOpensTheirRealViews",
         "droppingVerifiedExperimentOpensItsOwnProjectGraphAndLog",
+        "delayedBundleCompletionCannotReplaceANewerProject",
+        "nativeFileDropOnHeroTextOpensAuditLog",
+        "mixedDropRefusalIsVisibleOnTheStartPage",
+        "narrowWalkSeriesAndFindingControlsRemainReachable",
     },
     "ProjectLandingTest": {
         "fullStartPageRoutesDistinctChoicesAndRecentProjectToItsWorkspace",

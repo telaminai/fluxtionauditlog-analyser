@@ -27,24 +27,25 @@ class ProjectLandingTest {
                 public void investigateIncident() { calls.add("incident"); }
                 public void openGraphml() { calls.add("graphml"); }
                 public void openRecentProject(String path) { calls.add("recent:" + path); }
+                public void openExistingProject() { calls.add("open-project"); }
                 public void openGuidedTour() { calls.add("tour"); }
             }, null);
             String recent = "/tmp/DEMO/.analyser/project.fluxtion-settings";
             panel.setRecentProjects(List.of(recent));
             assertTrue(text(panel).contains("global source roots are defaults; an active project can override them"));
             for (String name : List.of("Take a guided tour", "Load an experiment", "Investigate an incident", "Author a new project",
-                    "Author from template", "Open audit log", "Open GraphML", "Open sample project")) {
+                    "Author from template", "Open project", "Open audit log", "Open GraphML", "Open sample project")) {
                 assertNotNull(action(panel, name), "start page action: " + name);
                 action(panel, name).doClick();
             }
             assertNotNull(buttonContaining(panel, recent), "recent project appears as a workspace action");
             buttonContaining(panel, recent).doClick();
-            assertEquals(List.of("tour", "bundle", "incident", "new", "template", "log", "graphml",
+            assertEquals(List.of("tour", "bundle", "incident", "new", "template", "open-project", "log", "graphml",
                     "sample:true", "recent:" + recent), calls);
         });
     }
 
-    @Test void projectLandingShowsSavedIntentAndUsesExplicitOpenActions() throws Exception {
+    @Test void activeProjectKeepsStartChoicesAndReturnActionVisible() throws Exception {
         SwingUtilities.invokeAndWait(() -> {
             List<String> calls = new ArrayList<>();
             var panel = new StartPanel(new StartPanel.Actions() {
@@ -63,15 +64,16 @@ class ProjectLandingTest {
             ctx.put("savedGraphs", List.of(Map.of("name", "PnL", "open", false, "input", "waiting for input")));
             ctx.put("processorDeclarations", List.of(Map.of("name", "Live graph", "kind", "runtime", "status", "runtime processor; no fixed generated type declared")));
             panel.renderProject(ctx);
-            assertTrue(text(panel).contains("PnL — waiting for input"));
-            assertTrue(text(panel).contains("runtime processor; no fixed generated type declared"));
+            assertTrue(visibleIn(panel, action(panel, "Load an experiment")));
+            assertTrue(visibleIn(panel, action(panel, "Open project")));
+            panel.showReturnToRecords(true);
+            assertTrue(visibleIn(panel, buttonContaining(panel, "Return to workspace")));
             assertTrue(calls.isEmpty(), "rendering never opens evidence or a demo");
-            button(panel, "Open design…").doClick();
-            assertEquals(List.of("design"), calls);
+            buttonContaining(panel, "Return to workspace").doClick();
+            assertEquals(List.of("back"), calls);
             ctx.put("log", Map.of("path", "/demo/run.yml"));
             panel.renderProject(ctx);
-            button(panel, "Back to records").doClick();
-            assertEquals(List.of("design", "back"), calls);
+            assertTrue(visibleIn(panel, action(panel, "Load an experiment")));
         });
     }
     private static String text(Container parent) {
@@ -105,5 +107,12 @@ class ProjectLandingTest {
             if (c instanceof Container child) { JButton b = buttonContaining(child, text); if (b != null) return b; }
         }
         return null;
+    }
+    private static boolean visibleIn(Container root, Component child) {
+        if (child == null) return false;
+        for (Component c = child; c != root; c = c.getParent()) {
+            if (c == null || !c.isVisible()) return false;
+        }
+        return root.isVisible();
     }
 }

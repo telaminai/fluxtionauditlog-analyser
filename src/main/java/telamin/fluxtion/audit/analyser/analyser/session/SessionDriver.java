@@ -290,6 +290,8 @@ public final class SessionDriver {
     public static String name(SessionEffects effect) {
         return switch (effect) {
             case SessionEffects.LoadProfileEffect ignored -> "loadProfile";
+            case SessionEffects.PrepareBundleEffect ignored -> "prepareBundle";
+            case SessionEffects.OpenBundleEvidenceEffect ignored -> "openBundleEvidence";
             case SessionEffects.CreateProfileEffect ignored -> "createProfile";
             case SessionEffects.ApplyProfileEffect ignored -> "applyProfile";
             case SessionEffects.RestoreSettingsEffect ignored -> "restoreSettings";

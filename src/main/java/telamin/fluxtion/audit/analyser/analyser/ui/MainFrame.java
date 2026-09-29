@@ -1228,26 +1228,27 @@ public final class MainFrame extends JFrame {
     }
 
     private void loadExperiment(Path bundle) {
-        Path parent = Path.of(System.getProperty("user.home"), ".fluxtion-analyser", "bundles");
         status.setText("Verifying and opening evidence bundle…");
-        Background.run(() -> {
-            try { return telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.unpack(bundle, parent); }
-            catch (java.io.IOException ex) { throw new java.io.UncheckedIOException(ex); }
-        }, this::openUnpackedExperiment,
-                error -> {
-                    status.setText("Evidence bundle could not be opened");
-                    JOptionPane.showMessageDialog(this, "Could not open the evidence bundle: " + error.getMessage(),
-                            "Load experiment", JOptionPane.ERROR_MESSAGE);
-                });
+        startPanel.showOperationFeedback("Verifying " + bundle.getFileName() + "…");
+        if (recovery != null) recovery.capture();
+        sessionInteractive = true;
+        sessionProblem = null;
+        var driver = session();
+        driver.submit(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.OpenProjectRequested(
+                driver.nextOpId(), bundle.toString(),
+                telamin.fluxtion.audit.analyser.analyser.session.TransitionKind.OPEN_BUNDLE, "evidence-bundle"));
+        syncBusyWithGate();
     }
 
-    private void openUnpackedExperiment(telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.Unpacked unpacked) {
+    /** Pure preparation: every outcome, including refusal, is reported to the session graph with its request id. */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileLoaded prepareBundle(
+            long opId, String bundlePath) throws java.io.IOException {
+        Path parent = Path.of(System.getProperty("user.home"), ".fluxtion-analyser", "bundles");
+        var unpacked = telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.unpack(Path.of(bundlePath), parent);
         var verification = unpacked.verification();
         if (!verification.ok()) {
-            status.setText("Evidence bundle refused: " + verification.refusal());
-            JOptionPane.showMessageDialog(this, "REFUSED: " + verification.refusal(),
-                    "Load experiment", JOptionPane.WARNING_MESSAGE);
-            return;
+            return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileLoaded(
+                    opId, bundlePath, false, null, 0, "Evidence bundle refused: " + verification.refusal());
         }
         Path root = unpacked.workingCopy();
         Path profile = root.resolve("profile/project.fluxtion-settings");
@@ -1256,19 +1257,21 @@ public final class MainFrame extends JFrame {
         var graphs = verification.members().stream().map(telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.Member::path)
                 .filter(name -> name.startsWith("graph/")).toList();
         if (!java.nio.file.Files.isRegularFile(profile) || logs.size() != 1 || graphs.size() > 1) {
-            status.setText("Verified bundle has no single project and audit log to open");
-            JOptionPane.showMessageDialog(this, "The verified bundle has no single project and audit log to open.\n"
-                    + "Working copy: " + root, "Load experiment", JOptionPane.WARNING_MESSAGE);
-            return;
+            return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileLoaded(
+                    opId, bundlePath, false, null, 0,
+                    "Verified bundle has no single project and audit log to open.");
         }
-        if (!requestProject(profile, telamin.fluxtion.audit.analyser.analyser.session.TransitionKind.EXPLICIT_SWITCH,
-                "evidence-bundle")) return;
-        if (!graphs.isEmpty()) topologyPanel.load(root.resolve(graphs.getFirst()));
-        openFile(root.resolve(logs.getFirst()), OpenRequest.HUMAN);
+        var parsed = telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.load(profile,
+                new telamin.fluxtion.audit.analyser.analyser.config.AppConfig(),
+                new telamin.fluxtion.audit.analyser.analyser.config.SettingsShare());
+        if (!parsed.loaded()) return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileLoaded(
+                opId, profile.toString(), false, null, 0, parsed.message());
         String limits = String.join("\n", telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.limits(verification));
-        JOptionPane.showMessageDialog(this, "Verified bundle " + verification.identity() + "\n"
-                + "Working copy: " + root + "\nThe project is open; the audit log is loading.\n\n" + limits,
-                "Experiment verified", JOptionPane.INFORMATION_MESSAGE);
+        var plan = new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundlePlan(
+                profile.toString(), graphs.isEmpty() ? null : root.resolve(graphs.getFirst()).toString(),
+                root.resolve(logs.getFirst()).toString(), verification.identity(), root.toString(), limits);
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileLoaded(
+                opId, profile.toString(), true, null, 0, null, plan);
     }
 
     /** Source roots the demo added for this session only — never written to any config tier. */
@@ -2111,6 +2114,7 @@ public final class MainFrame extends JFrame {
                     return openDroppedFiles(files);
                 } catch (Exception error) {
                     status.setText("Could not read dropped files: " + error.getMessage());
+                    startPanel.showOperationFeedback("Could not read dropped files: " + error.getMessage());
                 }
                 return false;
             }
@@ -2118,6 +2122,28 @@ public final class MainFrame extends JFrame {
         setTransferHandler(handler);
         workspaceCards.setTransferHandler(handler);
         startPanel.setTransferHandler(handler);
+        installTextFileDrop(startPanel, handler);
+    }
+
+    /** Swing text components have their own native drop target, so the ancestor never sees a file drop. */
+    private void installTextFileDrop(java.awt.Container parent, TransferHandler files) {
+        for (java.awt.Component child : parent.getComponents()) {
+            if (child instanceof javax.swing.text.JTextComponent text) {
+                TransferHandler original = text.getTransferHandler();
+                text.setTransferHandler(new TransferHandler() {
+                    @Override public boolean canImport(TransferSupport support) {
+                        return support.isDataFlavorSupported(DataFlavor.javaFileListFlavor)
+                                || original != null && original.canImport(support);
+                    }
+                    @Override public boolean importData(TransferSupport support) {
+                        return support.isDataFlavorSupported(DataFlavor.javaFileListFlavor)
+                                ? files.importData(support)
+                                : original != null && original.importData(support);
+                    }
+                });
+            }
+            if (child instanceof java.awt.Container nested) installTextFileDrop(nested, files);
+        }
     }
 
     enum DropKind { BUNDLE, GRAPHML, DESIGN, LOG }
@@ -2134,10 +2160,15 @@ public final class MainFrame extends JFrame {
     private boolean openDroppedFiles(List<File> files) {
         if (files == null || files.isEmpty()) return false;
         var selected = new java.util.EnumMap<DropKind, Path>(DropKind.class);
-        for (File file : files) selected.putIfAbsent(dropKind(file.getName()), file.toPath());
+        var ignored = new java.util.ArrayList<String>();
+        for (File file : files) {
+            if (selected.putIfAbsent(dropKind(file.getName()), file.toPath()) != null)
+                ignored.add(file.getName());
+        }
         if (selected.containsKey(DropKind.BUNDLE)) {
             if (files.size() != 1) {
                 status.setText("Drop an .fexp by itself; no files from this mixed drop were opened.");
+                startPanel.showOperationFeedback(status.getText());
                 return false;
             }
             loadExperiment(selected.get(DropKind.BUNDLE));
@@ -2170,8 +2201,10 @@ public final class MainFrame extends JFrame {
             openFile(log, OpenRequest.HUMAN);
             opened = true;
         }
-        if (files.size() > selected.size())
-            status.setText("Opened the first file of each type; additional dropped files were ignored.");
+        if (!ignored.isEmpty()) {
+            status.setText("Opened the first file of each type. Ignored: " + String.join(", ", ignored));
+            startPanel.showOperationFeedback(status.getText());
+        }
         return opened;
     }
 
@@ -3655,6 +3688,7 @@ public final class MainFrame extends JFrame {
             @Override public void openDemo(Path log, boolean withGraph) { openDemoLog(log, withGraph); }
             @Override public void openSampleProject() { MainFrame.this.openSampleProject(); }
             @Override public void openGuidedTour() { MainFrame.this.openSampleProject(true); }
+            @Override public void openExistingProject() { chooseAndOpenProject(); }
             @Override public void showTab(String name) { selectTab(name); }
             @Override public void openOwnLog() { chooseFile(); }
             @Override public void openSettings() {
@@ -6186,6 +6220,32 @@ public final class MainFrame extends JFrame {
             telamin.fluxtion.audit.analyser.analyser.session.SessionEffects effect) throws Exception {
         long opId = effect.opId();
         return switch (effect) {
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.PrepareBundleEffect e -> {
+                var driver = session;
+                Background.run(() -> {
+                    try { return prepareBundle(opId, e.bundlePath()); }
+                    catch (java.io.IOException ex) { throw new java.io.UncheckedIOException(ex); }
+                }, result -> {
+                    driver.post(result);
+                    syncBusyWithGate();
+                    // The processor has finished its accepted apply effect by now. Mirror the resulting
+                    // project in the recovery journal, as synchronous requestProject does after submit.
+                    if (result.bundlePlan() != null && driver.processor().operationGate.accepted()
+                            && project.activeFile() != null
+                            && project.activeFile().toString().equals(result.bundlePlan().profilePath())) {
+                        projectDesignChanged();
+                        if (recovery != null) recovery.activate(project.activeFile(), project.activeNonce(), null);
+                    }
+                }, error -> {
+                    driver.post(
+                        new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileLoaded(
+                                opId, e.bundlePath(), false, null, 0,
+                                "Evidence bundle could not be opened: " + rootMessage(error)));
+                    syncBusyWithGate();
+                });
+                yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Pending(
+                        opId, "verifying " + e.bundlePath());
+            }
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.LoadProfileEffect e -> {
                 // Slice-1 honesty: ProjectSession.open reads the profile AND swaps the settings, so
                 // "loaded" here means both. Splitting them is a later slice; what is already true and
@@ -6208,6 +6268,24 @@ public final class MainFrame extends JFrame {
                 reportWalkChanges();      // review PR57 R6: a project's walks are that project's
                 yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileApplied(
                         opId, e.profilePath(), e.name());
+            }
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.OpenBundleEvidenceEffect e -> {
+                var plan = e.plan();
+                if (plan.graphPath() != null) topologyPanel.load(Path.of(plan.graphPath()));
+                startPanel.showOperationFeedback("Verified " + plan.identity() + ". The audit log is loading.\n"
+                        + "Working copy: " + plan.workingCopy() + "\n" + plan.limits());
+                var pending = startLoad(opId, plan.logPath(), null, OpenRequest.HUMAN);
+                SwingUtilities.invokeLater(() -> {
+                    if (session == null || session.processor().operationGate.expectedOpId() != opId) return;
+                    var notice = new JOptionPane("Verified bundle " + plan.identity() + "\n"
+                            + "Working copy: " + plan.workingCopy()
+                            + "\nThe project is open; the audit log is loading.\n\n" + plan.limits(),
+                            JOptionPane.INFORMATION_MESSAGE);
+                    var dialog = notice.createDialog(this, "Experiment verified");
+                    dialog.setModal(false);
+                    dialog.setVisible(true);
+                });
+                yield pending;
             }
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.RestoreSettingsEffect e -> {
                 project.close();
@@ -6270,6 +6348,7 @@ public final class MainFrame extends JFrame {
             }
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ShowWarningEffect e -> {
                 sessionProblem = e.text();
+                startPanel.showOperationFeedback(e.text());
                 if (sessionInteractive) {
                     JOptionPane.showMessageDialog(this, e.text(), "Project", JOptionPane.WARNING_MESSAGE);
                 } else {

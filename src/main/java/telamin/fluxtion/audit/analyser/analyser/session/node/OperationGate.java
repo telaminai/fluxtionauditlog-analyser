@@ -5,6 +5,7 @@ import com.telamin.fluxtion.runtime.audit.EventLogSource;
 import com.telamin.fluxtion.runtime.audit.EventLogger;
 import com.telamin.fluxtion.runtime.audit.NullEventLogger;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents;
+import telamin.fluxtion.audit.analyser.analyser.session.TransitionKind;
 
 /**
  * Mechanism, not policy: does the result that just arrived answer the request that is in flight?
@@ -51,6 +52,7 @@ public class OperationGate implements EventLogSource {
     private boolean accepted;
     /** M44.3 D-A4: what the operation in flight is for, or null — so a hung load is reportable. */
     private String inFlightWhat;
+    private boolean bundleInFlight;
 
     @Override
     public void setLogger(EventLogger log) {
@@ -61,7 +63,9 @@ public class OperationGate implements EventLogSource {
     public boolean onOpenProjectRequested(SessionEvents.OpenProjectRequested event) {
         expectedOpId = event.opId();
         accepted = true;
-        inFlightWhat = null;                    // review B2: a project transition supersedes a pending open
+        bundleInFlight = event.kind() == TransitionKind.OPEN_BUNDLE;
+        inFlightWhat = event.kind() == TransitionKind.OPEN_BUNDLE
+                ? "verifying " + event.profilePath() : null;
         auditLog.info("fact", "request").info("opId", event.opId()).info("kind", event.kind().name());
         return true;
     }
@@ -71,6 +75,7 @@ public class OperationGate implements EventLogSource {
         // D-A3: a newer request supersedes — the older one's result now arrives stale and is refused
         expectedOpId = event.opId();
         accepted = true;
+        bundleInFlight = false;
         inFlightWhat = "opening " + event.location();
         auditLog.info("fact", "request").info("opId", event.opId()).info("what", "openLog");
         return true;
@@ -96,6 +101,7 @@ public class OperationGate implements EventLogSource {
         if (superseded != null) {
             expectedOpId = event.opId();
             inFlightWhat = null;
+            bundleInFlight = false;
             auditLog.info("superseded", superseded);
         }
         return true;
@@ -111,17 +117,25 @@ public class OperationGate implements EventLogSource {
     public boolean onLogOpened(SessionEvents.LogOpened event) {
         boolean ok = check(event.opId(), "LogOpened");
         if (accepted) inFlightWhat = null;
+        if (accepted) bundleInFlight = false;
         return ok;
     }
     @OnEventHandler
     public boolean onLogOpenFailed(SessionEvents.LogOpenFailed event) {
         boolean ok = check(event.opId(), "LogOpenFailed");
         if (accepted) inFlightWhat = null;
+        if (accepted) bundleInFlight = false;
         return ok;
     }
     @OnEventHandler
     public boolean onProfileLoaded(SessionEvents.ProfileLoaded event) {
-        return check(event.opId(), "ProfileLoaded");
+        boolean current = check(event.opId(), "ProfileLoaded");
+        if (current && bundleInFlight) {
+            if (!event.ok()) inFlightWhat = null;
+            else if (event.bundlePlan() != null) inFlightWhat = "opening " + event.bundlePlan().logPath();
+            if (!event.ok()) bundleInFlight = false;
+        }
+        return current;
     }
 
     @OnEventHandler
@@ -151,7 +165,12 @@ public class OperationGate implements EventLogSource {
 
     @OnEventHandler
     public boolean onEffectFailed(SessionEvents.EffectFailed event) {
-        return check(event.opId(), "EffectFailed");
+        boolean current = check(event.opId(), "EffectFailed");
+        if (current && bundleInFlight) {
+            inFlightWhat = null;
+            bundleInFlight = false;
+        }
+        return current;
     }
 
     /**

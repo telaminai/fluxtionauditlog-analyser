@@ -152,8 +152,16 @@ public final class SessionEvents {
      * log starts describing intentions.
      */
     public record ProfileLoaded(long opId, String profilePath, boolean ok, String name,
-                                int unknownKeys, String reason) implements Result {
+                                int unknownKeys, String reason, BundlePlan bundlePlan) implements Result {
+        public ProfileLoaded(long opId, String profilePath, boolean ok, String name,
+                             int unknownKeys, String reason) {
+            this(opId, profilePath, ok, name, unknownKeys, reason, null);
+        }
     }
+
+    /** Facts extracted from a verified bundle, before any active project is changed. */
+    public record BundlePlan(String profilePath, String graphPath, String logPath,
+                             String identity, String workingCopy, String limits) { }
 
     /** The profile's settings are now genuinely in force. This is the authoritative fact. */
     public record ProfileApplied(long opId, String profilePath, String name) implements Result {

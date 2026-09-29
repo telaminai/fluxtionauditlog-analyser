@@ -113,7 +113,7 @@ class SwingUiPolishTest {
             assertTrue(labels.contains("Why this matters"), labels.toString());
             assertTrue(labels.contains("Suggested fix"), labels.toString());
             assertTrue(labels.contains("XML declaration"), labels.toString());
-            assertTrue(labels.contains("DEMO_RULE"), labels.toString());
+            assertTrue(bodies.contains("DEMO_RULE"), bodies.toString());
             assertTrue(bodies.contains("A binding is missing"), bodies.toString());
             assertTrue(bodies.contains("The handler cannot run."), bodies.toString());
             assertTrue(bodies.contains("Add the DEMO binding."), bodies.toString());

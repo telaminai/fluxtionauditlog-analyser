@@ -453,7 +453,7 @@ public final class GraphPanel extends JPanel {
         JPanel keyActions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 2, 0));
         keyActions.add(add);
         keyActions.add(pick);
-        addKeyRow.add(keyActions, BorderLayout.EAST);
+        addKeyRow.add(keyActions, BorderLayout.SOUTH);
 
         // author / edit a formula (migrated here from the toolbar)
         exprField.setToolTipText("A formula over instanceId.key values, e.g. askMakerOrder.price - bidMakerOrder.price");
@@ -475,12 +475,16 @@ public final class GraphPanel extends JPanel {
         c.gridx = 1; c.gridwidth = 2; c.weightx = 1; c.fill = java.awt.GridBagConstraints.HORIZONTAL; fx.add(exprField, c);
         c.gridwidth = 1; c.weightx = 0; c.fill = java.awt.GridBagConstraints.NONE;
         c.gridx = 0; c.gridy = 1; fx.add(new JLabel("label:"), c);
-        c.gridx = 1; c.weightx = 1; c.fill = java.awt.GridBagConstraints.HORIZONTAL; fx.add(exprLabelField, c);
-        c.gridx = 2; c.weightx = 0; c.fill = java.awt.GridBagConstraints.NONE; fx.add(resolveCombo, c);
+        c.gridx = 1; c.gridwidth = 2; c.weightx = 1; c.fill = java.awt.GridBagConstraints.HORIZONTAL; fx.add(exprLabelField, c);
+        c.gridx = 0; c.gridy = 2; c.gridwidth = 1; c.weightx = 0; c.fill = java.awt.GridBagConstraints.NONE;
+        fx.add(new JLabel("missing:"), c);
+        c.gridx = 1; c.gridwidth = 2; c.weightx = 1; c.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        fx.add(resolveCombo, c);
         JPanel fxButtons = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
         fxButtons.add(addFxButton);
         fxButtons.add(newFx);
-        c.gridx = 0; c.gridy = 2; c.gridwidth = 3; c.anchor = java.awt.GridBagConstraints.LINE_START; fx.add(fxButtons, c);
+        c.gridx = 0; c.gridy = 3; c.gridwidth = 3; c.weightx = 0;
+        c.fill = java.awt.GridBagConstraints.NONE; c.anchor = java.awt.GridBagConstraints.LINE_START; fx.add(fxButtons, c);
 
         JPanel bottom = new JPanel(new BorderLayout(4, 4));
         bottom.add(addKeyRow, BorderLayout.NORTH);
@@ -491,7 +495,7 @@ public final class GraphPanel extends JPanel {
         listWrap.add(listScroll, BorderLayout.CENTER);
         listWrap.add(listButtons, BorderLayout.SOUTH);
         seriesEditorTabs.addTab("Series", listWrap);
-        JScrollPane addScroll = new JScrollPane(bottom,
+        JScrollPane addScroll = new JScrollPane(Fluid.column(bottom),
                 JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         addScroll.setBorder(BorderFactory.createEmptyBorder());
         seriesEditorTabs.addTab("Add series", addScroll);

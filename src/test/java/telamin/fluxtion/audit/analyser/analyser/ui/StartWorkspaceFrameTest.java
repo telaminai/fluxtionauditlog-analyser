@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import javax.swing.JPanel;
+import javax.swing.JButton;
 import javax.swing.JSplitPane;
 import javax.swing.SwingUtilities;
 import javax.swing.JComponent;
@@ -18,6 +19,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.awt.Robot;
+import java.awt.Point;
+import java.awt.event.InputEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.List;
 
@@ -125,6 +132,16 @@ class StartWorkspaceFrameTest {
                     assertTrue(((JPanel) field(frame.get(), "workspaceChrome")).isVisible());
                     assertTrue(frame.get().getJMenuBar().isVisible());
                     assertNull(field(frame.get(), "store"), "a project switch never invents a previous log");
+                    invoke(frame.get(), "showStartPage", new Class<?>[]{});
+                    assertTrue(((JPanel) field(frame.get(), "workspaceChrome")).isVisible() == false);
+                    assertNotNull(buttonContaining(start, "Open project"));
+                    assertNotNull(buttonContaining(start, "Load an experiment"));
+                    javax.swing.JButton back = buttonContaining(start, "Return to workspace");
+                    assertNotNull(back);
+                    assertTrue(back.isVisible());
+                    back.doClick();
+                    assertTrue(((JPanel) field(frame.get(), "workspaceChrome")).isVisible());
+                    assertTrue(project.hasProject());
                 } catch (ReflectiveOperationException e) { throw new AssertionError(e); }
             });
         } finally {
@@ -232,10 +249,14 @@ class StartWorkspaceFrameTest {
             telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.pack(payload, bundle,
                     Instant.parse("2026-01-01T00:00:00Z"), "test");
             SwingUtilities.invokeAndWait(() -> frame.set(new MainFrame()));
+            java.util.concurrent.atomic.AtomicBoolean sawIdentity = new java.util.concurrent.atomic.AtomicBoolean();
             javax.swing.Timer dismiss = new javax.swing.Timer(100, event -> {
                 for (java.awt.Window window : java.awt.Window.getWindows()) {
                     if (window instanceof javax.swing.JDialog dialog && dialog.isShowing()
-                            && dialog.getTitle().equals("Experiment verified")) dialog.dispose();
+                            && dialog.getTitle().equals("Experiment verified")) {
+                        sawIdentity.set(true);
+                        dialog.dispose();
+                    }
                 }
             });
             dismiss.start();
@@ -248,11 +269,293 @@ class StartWorkspaceFrameTest {
                 assertTrue(project.hasProject());
                 assertTrue(project.activeFile().startsWith(Path.of(System.getProperty("user.home"),
                         ".fluxtion-analyser", "bundles")), "the bundle opens in an isolated working copy");
+                assertTrue(sawIdentity.get(), "identity and working-copy limits must be shown after verification");
             } finally { dismiss.stop(); }
         } finally {
             if (frame.get() != null) SwingUtilities.invokeAndWait(frame.get()::dispose);
             System.setProperty("user.home", previousHome);
         }
+    }
+
+    @Test void delayedBundleCompletionCannotReplaceANewerProject() throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless(), "requires a display");
+        String previousHome = System.getProperty("user.home");
+        System.setProperty("user.home", Files.createDirectories(temporary.resolve("race-home")).toString());
+        AtomicReference<MainFrame> frame = new AtomicReference<>();
+        try {
+            Path payload = Files.createDirectories(temporary.resolve("race-payload"));
+            Path bundledProfile = payload.resolve("profile/project.fluxtion-settings");
+            telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.save(bundledProfile,
+                    new telamin.fluxtion.audit.analyser.analyser.config.AppConfig(),
+                    new telamin.fluxtion.audit.analyser.analyser.config.SettingsShare());
+            Files.createDirectories(payload.resolve("log"));
+            Files.copy(Path.of("src/test/resources/topology/demo-quote-audit.yaml"), payload.resolve("log/demo.yaml"));
+            Path bundle = temporary.resolve("slow.fexp");
+            telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.pack(payload, bundle,
+                    Instant.parse("2026-01-01T00:00:00Z"), "DEMO");
+            Path newer = telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.pathFor(
+                    Files.createDirectories(temporary.resolve("newer-project")));
+            telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.save(newer,
+                    new telamin.fluxtion.audit.analyser.analyser.config.AppConfig(),
+                    new telamin.fluxtion.audit.analyser.analyser.config.SettingsShare());
+            SwingUtilities.invokeAndWait(() -> frame.set(new MainFrame()));
+            onEdt(() -> {
+                frame.get().setSize(1000, 760);
+                frame.get().setVisible(true);
+                invoke(frame.get(), "loadExperiment", new Class<?>[]{Path.class}, bundle);
+                var start = (StartPanel) field(frame.get(), "startPanel");
+                var feedback = (javax.swing.JTextArea) field(start, "operationFeedback");
+                assertTrue(feedback.isShowing() && feedback.getText().contains("Verifying"),
+                        "verification progress belongs to the visible start page");
+                Path copies = Path.of(System.getProperty("user.home"), ".fluxtion-analyser", "bundles");
+                long end = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(8);
+                while (System.nanoTime() < end) {
+                    if (Files.isDirectory(copies)) {
+                        try (var paths = Files.walk(copies)) {
+                            if (paths.anyMatch(p -> p.endsWith("project.fluxtion-settings"))) break;
+                        }
+                    }
+                    Thread.sleep(10);
+                }
+                invoke(frame.get(), "requestProject", new Class<?>[]{Path.class,
+                        telamin.fluxtion.audit.analyser.analyser.session.TransitionKind.class, String.class},
+                        newer, telamin.fluxtion.audit.analyser.analyser.session.TransitionKind.EXPLICIT_SWITCH,
+                        "newer-choice");
+                return null;
+            });
+            for (int i = 0; i < 120 && onEdt(() -> ((telamin.fluxtion.audit.analyser.analyser.session.SessionDriver)
+                    field(frame.get(), "session")).processor().operationGate.accepted()); i++) Thread.sleep(20);
+            assertFalse(onEdt(() -> ((telamin.fluxtion.audit.analyser.analyser.session.SessionDriver)
+                    field(frame.get(), "session")).processor().operationGate.accepted()),
+                    "the old verification result must have reached the session and been refused");
+            var project = (telamin.fluxtion.audit.analyser.analyser.config.ProjectSession) field(frame.get(), "project");
+            assertEquals(newer, onEdt(project::activeFile));
+            assertNull(onEdt(() -> field(frame.get(), "store")), "the stale bundle log must not open");
+            assertFalse(onEdt(() -> ((TopologyPanel) field(frame.get(), "topologyPanel")).hasGraph()));
+            assertFalse(onEdt(() -> java.util.Arrays.stream(java.awt.Window.getWindows())
+                    .anyMatch(w -> w instanceof javax.swing.JDialog dialog && dialog.isShowing()
+                            && dialog.getTitle().contains("experiment"))), "no obsolete bundle dialog may appear");
+        } finally {
+            if (frame.get() != null) SwingUtilities.invokeAndWait(frame.get()::dispose);
+            System.setProperty("user.home", previousHome);
+        }
+    }
+
+    @Test void nativeFileDropOnHeroTextOpensAuditLog() throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless(), "requires a display");
+        String previousHome = System.getProperty("user.home");
+        System.setProperty("user.home", Files.createDirectories(temporary.resolve("native-home")).toString());
+        AtomicReference<MainFrame> frame = new AtomicReference<>();
+        AtomicReference<javax.swing.JFrame> sourceFrame = new AtomicReference<>();
+        AtomicReference<javax.swing.JLabel> source = new AtomicReference<>();
+        try {
+            File log = Path.of("src/test/resources/topology/demo-quote-audit.yaml").toAbsolutePath().toFile();
+            onEdt(() -> {
+                MainFrame f = new MainFrame();
+                f.setBounds(20, 30, 800, 700);
+                f.setVisible(true);
+                frame.set(f);
+                javax.swing.JFrame sf = new javax.swing.JFrame("DEMO drag source");
+                javax.swing.JLabel label = new javax.swing.JLabel("Drag DEMO log", javax.swing.SwingConstants.CENTER);
+                label.setTransferHandler(new TransferHandler() {
+                    @Override public int getSourceActions(JComponent c) { return COPY; }
+                    @Override protected Transferable createTransferable(JComponent c) {
+                        return new Transferable() {
+                            public DataFlavor[] getTransferDataFlavors() { return new DataFlavor[]{DataFlavor.javaFileListFlavor}; }
+                            public boolean isDataFlavorSupported(DataFlavor flavor) { return DataFlavor.javaFileListFlavor.equals(flavor); }
+                            public Object getTransferData(DataFlavor flavor) { return List.of(log); }
+                        };
+                    }
+                });
+                label.addMouseMotionListener(new MouseAdapter() {
+                    @Override public void mouseDragged(MouseEvent e) {
+                        label.getTransferHandler().exportAsDrag(label, e, TransferHandler.COPY);
+                    }
+                });
+                sf.add(label);
+                sf.setBounds(850, 40, 230, 150);
+                sf.setVisible(true);
+                sourceFrame.set(sf);
+                source.set(label);
+                return null;
+            });
+            Robot robot = new Robot();
+            robot.setAutoDelay(15);
+            robot.waitForIdle();
+            Point from = onEdt(() -> {
+                Point p = source.get().getLocationOnScreen(); p.translate(80, 60); return p;
+            });
+            Point to = onEdt(() -> {
+                var start = (StartPanel) field(frame.get(), "startPanel");
+                javax.swing.JTextArea hero = findText(start, "Open evidence,");
+                assertNotNull(hero);
+                Point p = hero.getLocationOnScreen(); p.translate(35, 10); return p;
+            });
+            robot.mouseMove(from.x, from.y);
+            robot.mousePress(InputEvent.BUTTON1_DOWN_MASK);
+            for (int i = 1; i <= 40; i++) robot.mouseMove(
+                    from.x + (to.x - from.x) * i / 40, from.y + (to.y - from.y) * i / 40);
+            robot.mouseRelease(InputEvent.BUTTON1_DOWN_MASK);
+            robot.waitForIdle();
+            for (int i = 0; i < 200 && onEdt(() -> field(frame.get(), "store") == null); i++) Thread.sleep(20);
+            assertNotNull(onEdt(() -> field(frame.get(), "store")),
+                    "a native file-list drop on the hero text must reach the start-page opener");
+        } finally {
+            if (sourceFrame.get() != null) SwingUtilities.invokeAndWait(sourceFrame.get()::dispose);
+            if (frame.get() != null) SwingUtilities.invokeAndWait(frame.get()::dispose);
+            System.setProperty("user.home", previousHome);
+        }
+    }
+
+    @Test void mixedDropRefusalIsVisibleOnTheStartPage() throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless(), "requires a display");
+        String previousHome = System.getProperty("user.home");
+        System.setProperty("user.home", Files.createDirectories(temporary.resolve("mixed-home")).toString());
+        AtomicReference<MainFrame> frame = new AtomicReference<>();
+        try {
+            Path bundle = Files.writeString(temporary.resolve("DEMO-invalid.fexp"), "invalid");
+            File log = Path.of("src/test/resources/topology/demo-quote-audit.yaml").toAbsolutePath().toFile();
+            onEdt(() -> {
+                MainFrame f = new MainFrame();
+                f.setSize(1000, 760);
+                f.setVisible(true);
+                frame.set(f);
+                assertFalse((Boolean) invoke(f, "openDroppedFiles", new Class<?>[]{List.class},
+                        List.of(bundle.toFile(), log)));
+                StartPanel start = (StartPanel) field(f, "startPanel");
+                javax.swing.JTextArea feedback = (javax.swing.JTextArea) field(start, "operationFeedback");
+                assertTrue(feedback.isShowing(), "the refusal must be on the visible start page");
+                assertTrue(feedback.getText().contains(".fexp"));
+                assertNull(field(f, "store"));
+                assertFalse(((telamin.fluxtion.audit.analyser.analyser.config.ProjectSession)
+                        field(f, "project")).hasProject());
+                return null;
+            });
+            new Robot().waitForIdle();
+            assertTrue(onEdt(() -> {
+                var start = (StartPanel) field(frame.get(), "startPanel");
+                var feedback = (javax.swing.JTextArea) field(start, "operationFeedback");
+                return feedback.getVisibleRect().width > 0 && feedback.getVisibleRect().height > 0;
+            }), "the visible refusal must occupy readable space");
+        } finally {
+            if (frame.get() != null) SwingUtilities.invokeAndWait(frame.get()::dispose);
+            System.setProperty("user.home", previousHome);
+        }
+    }
+
+    @Test void narrowWalkSeriesAndFindingControlsRemainReachable() throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless(), "requires a display");
+        AtomicReference<javax.swing.JFrame> window = new AtomicReference<>();
+        try {
+            onEdt(() -> {
+                var walk = new telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec("DEMO walk", "",
+                        "person", "2026-01-01T00:00:00Z", "2026-01-01T00:00:00Z", null,
+                        List.of(), DemoTour.steps(), java.util.Map.of());
+                var walks = new WalksPanel(() -> List.of(walk),
+                        ignored -> telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("walk", "DEMO", java.util.Map.of()),
+                        List::of);
+                walks.refresh();
+                var f = new javax.swing.JFrame("DEMO narrow pane");
+                f.setContentPane(walks);
+                f.setBounds(25, 30, 220, 600);
+                f.setVisible(true);
+                window.set(f);
+                return null;
+            });
+            new Robot().waitForIdle();
+            onEdt(() -> {
+                WalksPanel walks = (WalksPanel) window.get().getContentPane();
+                javax.swing.JButton more = buttonContaining(walks, "More");
+                assertNotNull(more);
+                assertTrue(more.getVisibleRect().width > 0 && more.getVisibleRect().height > 0,
+                        "walk management must be visible in a 220-pixel pane");
+                more.doClick();
+                assertTrue(more.getComponentPopupMenu().isShowing(), "Rename and Restore must open");
+                more.getComponentPopupMenu().setVisible(false);
+                assertEquals(javax.swing.JSplitPane.VERTICAL_SPLIT,
+                        ((javax.swing.JSplitPane) walks.getComponent(1)).getOrientation());
+                return null;
+            });
+            onEdt(() -> {
+                GraphPanel graph = new GraphPanel();
+                graph.bind(new telamin.fluxtion.audit.analyser.analyser.parse.HeapLogStore(
+                        telamin.fluxtion.audit.analyser.analyser.parse.Samples.sample()),
+                        new telamin.fluxtion.audit.analyser.analyser.filter.FilterState());
+                window.get().setContentPane(graph);
+                window.get().setSize(330, 600);
+                var toggle = (javax.swing.JToggleButton) field(graph, "editSeriesButton");
+                toggle.doClick();
+                return null;
+            });
+            new Robot().waitForIdle();
+            onEdt(() -> {
+                GraphPanel graph = (GraphPanel) window.get().getContentPane();
+                var tabs = (javax.swing.JTabbedPane) field(graph, "seriesEditorTabs");
+                tabs.setSelectedIndex(1);
+                JButton add = buttonContaining(tabs, "Add");
+                JButton pick = buttonContaining(tabs, "Pick");
+                assertNotNull(add); assertNotNull(pick);
+                assertTrue(add.getVisibleRect().width > 0 && add.getVisibleRect().height > 0,
+                        "Add must not be clipped at 330 pixels");
+                assertTrue(pick.getVisibleRect().width > 0 && pick.getVisibleRect().height > 0,
+                        "Pick must not be clipped at 330 pixels");
+                var resolver = (javax.swing.JComboBox<?>) field(graph, "resolveCombo");
+                assertTrue(resolver.getVisibleRect().width > 0, "formula resolution must remain reachable");
+                var key = (javax.swing.JComboBox<?>) field(graph, "keyCombo");
+                assertTrue(key.getItemCount() > 0, "the DEMO log provides a key to add");
+                add.doClick();
+                assertEquals(1, ((List<?>) field(graph, "activeKeys")).size(), "Add creates the chosen series");
+                return null;
+            });
+            onEdt(() -> {
+                var finding = new telamin.fluxtion.audit.analyser.analyser.design.ProducerResult.Finding(
+                        "DEMO_RULE_WITH_A_LONG_CODE", "WARNING", "A binding is missing",
+                        "The handler cannot run.", "Add the DEMO binding.",
+                        java.util.Map.of("kind", "UNKNOWN"), java.util.Map.of(), List.of());
+                var result = new telamin.fluxtion.audit.analyser.analyser.design.ProducerResult(
+                        "/tmp/DEMO/result.json", "validate", "", "", List.of(finding),
+                        java.util.Map.of(), java.util.Map.of());
+                var findings = new ProducerFindingsPanel();
+                findings.render(result, null, null, null, "", ignored -> { });
+                window.get().setContentPane(findings);
+                window.get().setSize(220, 600);
+                return null;
+            });
+            new Robot().waitForIdle();
+            onEdt(() -> {
+                var findings = (ProducerFindingsPanel) window.get().getContentPane();
+                javax.swing.JTextArea code = findText(findings, "DEMO_RULE_WITH_A_LONG_CODE");
+                javax.swing.JTextArea message = findText(findings, "A binding is missing");
+                javax.swing.JTextArea reason = findText(findings, "The handler cannot run.");
+                javax.swing.JTextArea fix = findText(findings, "Add the DEMO binding.");
+                assertNotNull(code); assertNotNull(message);
+                assertNotNull(reason); assertNotNull(fix);
+                assertTrue(code.getVisibleRect().height > 0, "the finding code must be painted");
+                assertTrue(message.getWidth() >= 130, "the finding message should use the narrow card's width");
+                assertTrue(reason.getWidth() >= 130 && fix.getWidth() >= 130,
+                        "the reason and fix should use the same reading width");
+                return null;
+            });
+        } finally {
+            if (window.get() != null) SwingUtilities.invokeAndWait(window.get()::dispose);
+        }
+    }
+
+    private static javax.swing.JTextArea findText(java.awt.Container root, String prefix) {
+        for (var c : root.getComponents()) {
+            if (c instanceof javax.swing.JTextArea text && text.getText().startsWith(prefix)) return text;
+            if (c instanceof java.awt.Container child) {
+                var found = findText(child, prefix);
+                if (found != null) return found;
+            }
+        }
+        return null;
+    }
+
+    private static Object invoke(Object target, String name, Class<?>[] types, Object... args) throws ReflectiveOperationException {
+        Method method = target.getClass().getDeclaredMethod(name, types);
+        method.setAccessible(true);
+        return method.invoke(target, args);
     }
 
     private static javax.swing.JButton buttonContaining(java.awt.Container root, String text) {
