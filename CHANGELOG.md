@@ -9,27 +9,49 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ### Added
 
 - **An evidence bundle can carry the run's replay records.** Name them with
-  `report {bundle: {path, replay: <file>}}`. They must pair with the open log: each replay record is one of the
-  log's records, at its `eventTime`, in order. A replay from another run is refused, naming its first record that
-  does not match. It is also refused with a time window, or while the log is still growing, because a replay needs
+  `report {bundle: {path, replay: <file>}}`. Each replay record must match one of the open log's records, in
+  order: the same event type, at its `eventTime`, and the same content, compared with the event the log prints.
+  Replay records that do not match are refused, naming the first that does not and, for a content difference, both
+  texts. Where the log does not print an event, that input can be matched by type and instant only, and the capture
+  says how many were, rather than calling them checked. It is also refused with a time window, or while Follow is on, because a replay needs
   the whole run. The records are packed as the `replay/` member of a **format 2** bundle, and a bundle without them
   stays format 1, unchanged. The capture says how many recorded inputs it carries, and how many exported-service
-  calls the log holds that replay records cannot carry. `--verify` prints the same, with the bundle's replay limit.
-  Nothing in the analyser replays them: you replay them into your own build, then compare.
+  calls the log holds that replay records cannot carry. `--verify` prints the same, with the bundle's replay limit, and refuses a format 2 bundle whose replay does not state
+  its records count.
+  Nothing in the analyser replays them: you replay them into your own build, then compare. The replay file must sit
+  in the exchange directory, like any file the analyser reads for an assistant. Replay records that do not carry
+  every record of their own event types, such as a replay cut short, are named in the capture.
 - **`--replay-compare <bundle.fexp> <replayed-audit.yaml>`: does a replay give the same audit log?** It verifies the
   bundle, then compares its log with a replayed one record by record. Every line must be exact except `endTime`,
   the live clock reading at the end of a cycle, which a replay cannot know. It prints `AGREES, N of N records` and
   exits 0. Otherwise it prints `DIVERGES at record k (Event): path: 'bundled' ≠ 'replayed'`, the first difference
   with both values. A line one side has and the other lacks, such as a node that logged nothing on replay, is named
   as missing. The first record one side has and the other does not is named too. Either way it exits 1. A bundle with no replay
-  records, or with an excerpt, is refused. Besides `endTime`, the `thread` a cycle ran on is excepted, because a
-  replay runs on its own thread.
+  records, or with an excerpt, is refused. A log with CRLF line endings compares as the same log. Besides `endTime`, the `thread` a cycle ran on is excepted, because a
+  replay runs on its own thread. Only the record's own `endTime` and `thread` are excepted, found by key path: the one
+  `eventLogRecord.thread` line before `nodeLogs`, and the one `eventLogRecord.endTime` line that ends the record. A
+  node's value of the same name is compared, and so is a line a logged string's newline puts at the record's own
+  indent; a comment, a preamble or an unusual first line does not change which lines are the record's own.
 - **The replay runner: `tools/replay/ReplayBundle.java`.** Run it with JBang against your own build:
   `jbang tools/replay/ReplayBundle.java --bundle run.fexp --processor <class> --cp <your build> --out replayed.yaml`.
-  It checks that your build is the bundle's processor, comparing the nodes and edges of your build's GraphML with
-  the bundle's, and refuses by name when they differ. It loads only the event types your processor handles, and
-  replays each record at its recorded instant on a data-driven clock. It writes the audit log for
-  `--replay-compare`.
+  It checks that your build's graph matches the bundle's: the node ids and edges of your build's GraphML and the
+  bundle's must be the same, and it refuses by name when they differ. That is graph compatibility, not the same code.
+  It reads the manifest as JSON, in any valid spelling, and holds it to the bundle schema: one replay member, at most
+  one graph, and every member listed. It holds every member to its digest and size, within a per-member limit and a
+  whole-bundle limit, before your build runs on them. No member is held in memory whole: the replay is read a line at
+  a time, and the graph as a stream, within its own limits (8 MiB, 100,000 nodes and edges; no DOCTYPE). It reads the whole replay member before your processor runs, and refuses a malformed record, or a count
+  other than the manifest's. It writes its output only when the replay completes. It warns when the bundled log
+  changes its audit level mid-run. It loads only the event types your processor handles, and replays each record at
+  its recorded instant on a data-driven clock. It writes the audit log for `--replay-compare`: every record the
+  processor emits from the first recorded input on, whatever it says. What its own set-up emits before that is
+  left out, so a build generated with tracing on agrees with its own bundle.
+- **The docs say what a replay check shows, and no more.** *Evidence bundles ▸ With an assistant* walks through a
+  replay with an assistant, recorded from a real run. Its prose says that pairing is consistency evidence, not proof
+  of which run wrote the records, and that a log with no exported-service calls is not thereby complete. It also says
+  a graph match is graph compatibility, not the same code, and an agreeing replay is evidence for those inputs only.
+  *Commands and file format* describes the runner's manifest, member and whole-replay checks.
+- **The start page's DEMO is regenerated with the current Fluxtion toolchain.** A cycle now reads the clock once,
+  so the DEMO log's times moved: the breach is at 09:00:00.180. The events and every node's values are unchanged.
 - **The DEMO records a replay.** `examples/fixture-generator` gains a replay writer compiled into the processor. It
   records only the inputs the caller names, stamped with the instant each cycle ran at, for exactly the event types
   the processor handles. It also writes a recorded run's log, replay records and graph, and writes them only after

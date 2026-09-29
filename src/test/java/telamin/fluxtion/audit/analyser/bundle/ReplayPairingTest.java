@@ -17,8 +17,11 @@ class ReplayPairingTest {
 
     private static final Path AUDIT = Path.of("src/test/resources/replay/demo-quote-recorded-audit.yaml");
     private static final Path REPLAY = Path.of("src/test/resources/replay/demo-quote-recorded.replay.yaml");
-    /** The shipped DEMO log: a different run of the same graph, with two exported-service calls. */
-    private static final Path OTHER_RUN = Path.of("src/main/resources/demo/demo-quote-audit.yaml");
+    /**
+     * A genuinely different run of the same graph: the longer series log. Not the short DEMO log, jar or fixture: since
+     * M70.R0c both are the recorded run's inputs on the same clock, so the replay really does pair with them (RB-9).
+     */
+    private static final Path OTHER_RUN = Path.of("src/test/resources/topology/demo-quote-series.yaml");
 
     @TempDir
     Path tmp;
@@ -42,8 +45,8 @@ class ReplayPairingTest {
         var o = observe(REPLAY, OTHER_RUN);
         assertFalse(o.pairs());
         assertTrue(o.problem().contains("its record 0 (MarketDataEvent at 1767258000060)"), o.problem());
-        assertTrue(o.problem().contains("another run"), o.problem());
-        assertEquals(2, o.serviceCalls(), "the shipped DEMO log's suspendQuoting and resumeQuoting are counted");
+        assertTrue(o.problem().contains("it is not this log's input"), o.problem());   // never "another run": unknowable
+        assertEquals(0, o.serviceCalls(), "the series run makes no exported-service calls");
     }
 
     @Test
@@ -94,6 +97,79 @@ class ReplayPairingTest {
         var o = observe(withRaised, AUDIT);
         assertTrue(o.pairs(), o.problem());
         assertEquals(8, o.records());
+    }
+
+    @Test
+    void aReplayCutShortStillPairs_andSaysWhatItDoesNotCarry() throws Exception {
+        // review S1: its one record IS one of the log's, so it pairs; but it carries 1 input of the 7, and says so
+        String text = Files.readString(REPLAY);
+        Path cut = Files.writeString(tmp.resolve("cut.replay.yaml"), text.substring(0, text.indexOf("---", 1)));
+        var o = observe(cut, AUDIT);
+        assertTrue(o.pairs(), o.problem());
+        assertEquals(1, o.records());
+        // its one record is a MarketDataEvent, so its own types are that one: the log's other two are not in it
+        assertEquals(2, o.uncarried(), "two of the log's three MarketDataEvents are not in it");
+        assertEquals(0, observe(REPLAY, AUDIT).uncarried(), "control: the whole replay carries every one");
+    }
+
+    @Test
+    void aLastRecordCutOffIsNamedAsCutOff() throws Exception {
+        // review S2: cut mid-record, and cut mid-number, are both named as a cut, not as "another run"
+        String text = Files.readString(REPLAY);
+        Path noTime = Files.writeString(tmp.resolve("no-time.replay.yaml"), text.substring(0, text.lastIndexOf("wallClockTime")));
+        assertTrue(observe(noTime, AUDIT).problem().contains("is cut off"), observe(noTime, AUDIT).problem());
+        Path midNumber = Files.writeString(tmp.resolve("mid.replay.yaml"), text.substring(0, text.length() - 6) + "\n");
+        assertTrue(observe(midNumber, AUDIT).problem().contains("it is the last, so it may be cut off"),
+                observe(midNumber, AUDIT).problem());
+    }
+
+    @Test
+    void theTestDemoLogPairs_andItsServiceCallsAreCountedForReal() throws Exception {
+        // RB-9, observed rather than assumed: the short DEMO TEST fixture holds the recorded run's inputs on the same
+        // clock, then two exported-service calls; the replay belongs to it, and the calls are counted
+        var o = observe(REPLAY, Path.of("src/test/resources/topology/demo-quote-audit.yaml"));
+        assertTrue(o.pairs(), o.problem());
+        assertEquals(2, o.serviceCalls());
+        assertEquals(0, o.uncarried());
+    }
+
+    @Test
+    void aWrongPayloadIsRefused_notPairedByTypeAndInstant() throws Exception {
+        // PR #70 review, finding 1 (RB-4's witness): the first input's bid changed from 100.1 to 999.1, its type and
+        // instant untouched. Before the fix it paired: problem null, seven records. It must be refused, naming both texts.
+        Path wrong = Files.writeString(tmp.resolve("wrong-bid.replay.yaml"),
+                Files.readString(REPLAY).replaceFirst("bid: 100.1,", "bid: 999.1,"));
+        var o = observe(wrong, AUDIT);
+        assertFalse(o.pairs(), "a wrong payload must not pair");
+        assertEquals("its record 0 (MarketDataEvent at 1767258000060) matches log record 0 by type and instant, but not "
+                + "by content: the log has 'MarketDataEvent[symbol=DEMO-A, bid=100.1, ask=100.3]', the replay "
+                + "'MarketDataEvent[symbol=DEMO-A, bid=999.1, ask=100.3]'", o.problem());
+        var right = observe(REPLAY, AUDIT);
+        assertEquals(0, right.unproven(), "control: every input of the true replay is matched by its content");
+    }
+
+    @Test
+    void aLogThatDoesNotPrintTheEventIsStated_notClaimed() throws Exception {
+        // a log written with printEventToString off: nothing to compare content with, so each input is matched by type
+        // and instant only, and the count says so (the capture states it; nothing calls it proven)
+        Path bare = Files.writeString(tmp.resolve("bare-audit.yaml"),
+                Files.readString(AUDIT).replaceAll("(?m)^\\s*eventToString: .*\\n", ""));
+        var o = observe(REPLAY, bare);
+        assertTrue(o.pairs(), o.problem());
+        assertEquals(7, o.unproven(), "all seven by type and instant only");
+    }
+
+    @Test
+    void recordTextIsTheRecordsToString() {
+        assertEquals("MarketDataEvent[symbol=DEMO-A, bid=100.1, ask=100.3]",
+                ReplayPairing.recordText("MarketDataEvent", "symbol: \"DEMO-A\", bid: 100.1, ask: 100.3"));
+        assertEquals("S[s=a, b \"q\"\n, n=null]", ReplayPairing.recordText("S", "s: \"a, b \\\"q\\\"\\n\", n: null"));
+    }
+
+    @Test
+    void aByteOrderMarkIsAccepted() throws Exception {
+        Path bom = Files.writeString(tmp.resolve("bom.replay.yaml"), "\uFEFF" + Files.readString(REPLAY));
+        assertTrue(observe(bom, AUDIT).pairs(), observe(bom, AUDIT).problem());
     }
 
     @Test

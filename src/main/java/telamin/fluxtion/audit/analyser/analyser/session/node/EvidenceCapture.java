@@ -51,6 +51,8 @@ public class EvidenceCapture implements EventLogSource {
     // the replay this capture carries (replay spec §4.1), for the lines the node publishes when it is written
     private int replayRecords;
     private int serviceCalls;
+    private int uncarried;
+    private int unproven;
     private boolean withReplay;
 
     public EvidenceCapture(OpenLog openLog, OperationGate gate, EffectQueue effects) {
@@ -90,12 +92,14 @@ public class EvidenceCapture implements EventLogSource {
         withReplay = e.replay() != null;
         replayRecords = e.replayRecords();
         serviceCalls = e.serviceCalls();
+        uncarried = e.replayUncarried();
+        unproven = e.replayUnproven();
         answer = new CaptureState.Answer(e.request(), true, "");
         auditLog.info("capture", path).info("generation", generation).info("ticket", ticket);
         if (resumeFollow) effects.request(new SessionEffects.SetFollowEffect(0L, ticket, false));
         boolean readSoFar = "changed-on-disk".equals(e.freshness()) && openLog.following();
         effects.request(new SessionEffects.CaptureBundleEffect(0L, ticket, generation, e.path(), e.notes(), e.from(), e.to(),
-                readSoFar, e.replay(), e.replayRecords(), e.serviceCalls(), e.replaySha256()));
+                readSoFar, e.replay(), e.replayRecords(), e.serviceCalls(), e.replaySha256(), e.replayUnproven()));
         return true;
     }
 
@@ -130,10 +134,12 @@ public class EvidenceCapture implements EventLogSource {
         if (e.replay() != null) {
             // replay spec §4.3: the processor's state at a window's start depends on every earlier input
             if (e.from() != null || e.to() != null) return "a replay needs the whole run: drop the window or the replay";
-            // a log still growing is captured as what was read so far, and a replay of the whole run is not that
-            if (openLog.following() && "changed-on-disk".equals(e.freshness())) {
-                return "the log is still growing, and the bundle would hold only what was read so far: a replay needs "
-                        + "the whole run, so capture it once the run has ended";
+            // second review (S4): under Follow the producer may still be writing, so the log copied later off this
+            // thread may hold records the replay records paired now do not: one moment needs Follow off, whether or not
+            // growth has been seen yet
+            if (openLog.following()) {
+                return "the log is being followed, so the run may not have ended: a replay needs the whole run, so turn "
+                        + "Follow off once it has ended, then capture";
             }
             // the frame OBSERVED whether the replay pairs with the open log; refusing one that does not is ours
             if (e.replayProblem() != null) return "the replay does not belong to this log: " + e.replayProblem();
@@ -196,8 +202,20 @@ public class EvidenceCapture implements EventLogSource {
     /** What the author is told about the replay the bundle carries: what it is, and what it cannot reproduce. */
     private List<String> withReplayLines(List<String> written) {
         List<String> out = new java.util.ArrayList<>(written);
-        out.add("replay: the run's " + replayRecords + " recorded inputs, paired with the log in order; a recipient can "
-                + "replay them into their own build and compare");
+        // PR #70 review, finding 1: say exactly how each input was matched to the log, never more
+        out.add("replay: the run's " + replayRecords + " recorded inputs, matched to the log in order by type, instant and "
+                + (unproven == 0 ? "content" : "content for " + (replayRecords - unproven) + " of them")
+                + "; a recipient can replay them into their own build and compare");
+        if (unproven > 0) {
+            out.add("replay: " + unproven + " input(s) are matched by type and instant only: the log does not print their "
+                    + "content, so it cannot show they are this run's inputs");
+        }
+        if (uncarried > 0) {
+            // review S1: a replay cut short pairs too; say what it does not carry rather than read as the whole run
+            out.add("replay: the log holds " + uncarried + " record(s) of the replay's own event types that it does not "
+                    + "carry: raised by the graph itself, or inputs the replay is missing (a replay cut short); "
+                    + "--replay-compare names the first that matters");
+        }
         if (serviceCalls > 0) {
             out.add("replay: the log holds " + serviceCalls + " exported-service call(s) the replay does not carry, so a "
                     + "replay diverges from the first cycle that depends on one");

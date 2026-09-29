@@ -11,6 +11,7 @@ import java.time.Instant;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -146,6 +147,113 @@ public class ReplayCompareTest {
         assertEquals("eventLogRecord.endTime: the bundled log has '5', and the replay has no such line",
                 ReplayCompare.firstDifference(java.util.List.of("eventLogRecord: ", "    endTime: 5"),
                         java.util.List.of("eventLogRecord: ", "    thread: x")));
+    }
+
+    @Test
+    @DisplayName("review R3: a log written with CRLF line endings is the same log, and agrees")
+    void aCrlfLogAgrees(@TempDir Path tmp) throws Exception {
+        var c = compare(tmp, replayed().replace("\n", "\r\n"));
+        assertTrue(c.agrees(), c.divergence());
+        assertEquals(8, c.records());
+    }
+
+    @Test
+    @DisplayName("review N2: only the record's OWN endTime and thread are excepted, never a node's nested value of that name")
+    void aNestedThreadValueIsCompared() {
+        var a = java.util.List.of("eventLogRecord: ", "    eventTime: 1", "    nodeLogs: ", "        thread:", "            name: a");
+        var b = java.util.List.of("eventLogRecord: ", "    eventTime: 1", "    nodeLogs: ", "        thread:", "            name: b");
+        assertEquals("eventLogRecord.nodeLogs.thread.name: 'a' ≠ 'b'", ReplayCompare.firstDifference(a, b));
+        var nestedThread = java.util.List.of("eventLogRecord: ", "    nodeLogs: ", "        thread: x");
+        var otherThread = java.util.List.of("eventLogRecord: ", "    nodeLogs: ", "        thread: y");
+        assertEquals("eventLogRecord.nodeLogs.thread: 'x' ≠ 'y'", ReplayCompare.firstDifference(nestedThread, otherThread));
+        // control: the record's own thread IS excepted
+        assertEquals(null, ReplayCompare.firstDifference(java.util.List.of("eventLogRecord: ", "    thread: x"),
+                java.util.List.of("eventLogRecord: ", "    thread: y")));
+    }
+
+    @Test
+    @DisplayName("PR #70 review 1: a comment never sets the record's field scope, so a nested thread is still compared")
+    void aCommentDoesNotSetTheHeaderScope() throws Exception {
+        // the review's probe: an indented comment first under the header, then a node value called thread
+        String log = replayed().replaceFirst("eventLogRecord: \n", "eventLogRecord: \n            # DEMO indented YAML comment\n")
+                .replaceFirst("        - priceListener: \\{ symbol: DEMO-A, mid: 100.19999999999999}",
+                        "        - priceListener:\n            thread: DEMO-old");
+        assertTrue(log.contains("thread: DEMO-old"), "fixture anchor moved");
+        var c = ReplayCompare.firstDifference(ReplayCompare.lines(log), ReplayCompare.lines(log.replace("DEMO-old", "DEMO-new")));
+        assertEquals("eventLogRecord.nodeLogs.priceListener.thread: 'DEMO-old' ≠ 'DEMO-new'", c);
+        // the record's own thread, under the same comment, is still excepted
+        String header = log.replaceFirst("    thread: com.acme.demo.GenerateFixtures.main\\(\\)", "    thread: main");
+        assertNotEquals(log, header, "header anchor moved");
+        assertNull(ReplayCompare.firstDifference(ReplayCompare.lines(log), ReplayCompare.lines(header)));
+    }
+
+    /** The replayed fixture's first record, as {@code compare} hands one record to the comparison. */
+    private static String firstRecord() throws Exception {
+        String text = replayed();
+        return text.substring("---\n".length(), text.indexOf("\n---\n", 1) + 1);
+    }
+
+    private static final String NESTED = "        - priceListener: { symbol: DEMO-A, mid: 100.19999999999999}";
+    private static final String OWN_THREAD = "    thread: com.acme.demo.GenerateFixtures.main()";
+
+    /** The difference between {@code record} and itself with {@code from} changed to {@code to} once, or null. */
+    private static String changed(String record, String from, String to) {
+        assertTrue(record.contains(from), "anchor moved: " + from);
+        return ReplayCompare.firstDifference(ReplayCompare.lines(record), ReplayCompare.lines(record.replaceFirst(
+                java.util.regex.Pattern.quote(from), java.util.regex.Matcher.quoteReplacement(to))));
+    }
+
+    @Test
+    @DisplayName("PR #70 re-review S1: only eventLogRecord.thread and .endTime are excepted, whatever comes first in the record")
+    void theExceptionIsAnchoredOnTheRecordsOwnKeys() throws Exception {
+        String record = firstRecord().replace(NESTED, "        - priceListener:\n            thread: DEMO-old");
+        // the re-review's three shapes: another top-level key first; an indented non-field first line; a list item first
+        for (String shape : java.util.List.of(
+                "demoPreamble: \n            demoKey: 1\n" + record,
+                record.replaceFirst("eventLogRecord: \n", "eventLogRecord: \n            DEMO odd line\n"),
+                record.replaceFirst("eventLogRecord: \n", "eventLogRecord: \n            - DEMO item\n"))) {
+            assertEquals("eventLogRecord.nodeLogs.priceListener.thread: 'DEMO-old' ≠ 'DEMO-new'",
+                    changed(shape, "thread: DEMO-old", "thread: DEMO-new"), "a nested thread is compared:\n" + shape);
+            assertNull(changed(shape, OWN_THREAD, "    thread: main"), "the record's own thread is excepted:\n" + shape);
+            assertNull(changed(shape, "    endTime: 1767258000060", "    endTime: 1767258000099"),
+                    "the record's own endTime is excepted:\n" + shape);
+        }
+        // a column-0 comment inside the record is not its key: the record's own thread is still its own
+        String commented = record.replaceFirst("eventLogRecord: \n", "eventLogRecord: \n# DEMO note\n");
+        assertNull(changed(commented, OWN_THREAD, "    thread: main"), commented);
+    }
+
+    @Test
+    @DisplayName("PR #70 re-review S2: a logged string's raw newline cannot make a business value the record's own thread or endTime")
+    void aRawNewlineInAValueIsNeverExcepted() throws Exception {
+        String record = firstRecord();
+        // runtime 1.0.16 writes a String's newline raw: here a node value continues at the field indent
+        String inNodeLogs = record.replace(NESTED, "        - priceListener: { symbol: DEMO-A, note: DEMO line one\n"
+                + "    thread: DEMO-old, mid: 100.19999999999999}");
+        assertEquals("eventLogRecord.thread: 'DEMO-old, mid: 100.19999999999999}' ≠ 'DEMO-new, mid: 100.19999999999999}'",
+                changed(inNodeLogs, "thread: DEMO-old", "thread: DEMO-new"));
+        String endInNodeLogs = record.replace(NESTED, "        - priceListener: { symbol: DEMO-A, note: DEMO line one\n"
+                + "    endTime: 5, mid: 100.19999999999999}");
+        assertEquals("eventLogRecord.endTime: '5, mid: 100.19999999999999}' ≠ '6, mid: 100.19999999999999}'",
+                changed(endInNodeLogs, "endTime: 5,", "endTime: 6,"));
+        // in the printed event, before the record's own thread: two thread lines, so neither is the record's own
+        String inEvent = record.replace("bid=100.1, ask=100.3]", "bid=100.1\n    thread: DEMO-old, ask=100.3]");
+        assertEquals("eventLogRecord.thread: 'DEMO-old, ask=100.3]' ≠ 'DEMO-new, ask=100.3]'",
+                changed(inEvent, "thread: DEMO-old", "thread: DEMO-new"));
+        // the same, in a record that has no line of its own to double: each rule holds alone
+        String noOwnThread = inNodeLogs.replace(OWN_THREAD + "\n", "");
+        assertEquals("eventLogRecord.thread: 'DEMO-old, mid: 100.19999999999999}' ≠ 'DEMO-new, mid: 100.19999999999999}'",
+                changed(noOwnThread, "thread: DEMO-old", "thread: DEMO-new"), "a thread after nodeLogs is not the record's");
+        String noOwnEnd = endInNodeLogs.replace("    endTime: 1767258000060\n", "");
+        assertEquals("eventLogRecord.endTime: '5, mid: 100.19999999999999}' ≠ '6, mid: 100.19999999999999}'",
+                changed(noOwnEnd, "endTime: 5,", "endTime: 6,"), "an endTime that is not the last line is not the record's");
+        var nestedLast = java.util.List.of("eventLogRecord: ", "    nodeLogs: ", "        - n:", "            endTime: 5");
+        assertEquals("eventLogRecord.nodeLogs.n.endTime: '5' ≠ '6'", ReplayCompare.firstDifference(nestedLast,
+                java.util.List.of("eventLogRecord: ", "    nodeLogs: ", "        - n:", "            endTime: 6")),
+                "a nested endTime on the last line is a node's, by its path");
+        // control: the ordinary record's own lines are still excepted
+        assertNull(changed(record, OWN_THREAD, "    thread: main"));
+        assertNull(changed(record, "    endTime: 1767258000060", "    endTime: 1767258000099"));
     }
 
     @Test

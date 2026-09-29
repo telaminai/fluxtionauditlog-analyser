@@ -224,6 +224,35 @@ class EvidenceCaptureTest {
     }
 
     @Test
+    @DisplayName("PR #70 review 1: inputs the log cannot check by content are stated as matched by type and instant only")
+    void unprovenInputsAreStated() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = opened(a);
+        d.submit(new SessionEvents.BundleCaptureRequested(29, PATH, null, null, null, null, "unchanged-metadata", true,
+                -1, "test", REPLAY, 7, 0, null, "abc", 0, 3));
+        var e = a.captures.get(0);
+        assertEquals(3, e.replayUnproven(), "the count travels with the write, to the manifest");
+        d.post(new SessionEvents.BundleWritten(e.ticket(), e.generation(), PATH, "sha256:demo", List.of()));
+        List<String> lines = capture(d).lines();
+        assertTrue(lines.get(0).contains("by type, instant and content for 4 of them"), lines.toString());
+        assertTrue(lines.get(1).contains("3 input(s) are matched by type and instant only"), lines.toString());
+    }
+
+    @Test
+    @DisplayName("second review S4: under Follow a replay is refused even before any growth is seen — one moment needs Follow off")
+    void aReplayUnderFollowIsRefusedBeforeGrowthIsSeen() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = following(a, 10);
+        d.submit(withReplay(27, null, "unchanged-metadata", null, 0));
+        refusedWritingNothing(d, a, 27, "turn Follow off once it has ended");
+        // control: the same request without Follow is accepted
+        FakeSessionAdapter b = new FakeSessionAdapter();
+        SessionDriver still = opened(b);
+        still.submit(withReplay(28, null, "unchanged-metadata", null, 0));
+        assertTrue(capture(still).answer().accepted(), capture(still).answer().reason());
+    }
+
+    @Test
     @DisplayName("replay: written, the node says what it carries, and names the service calls it cannot")
     void aWrittenReplayIsDescribedAndItsLimitNamed() {
         FakeSessionAdapter a = new FakeSessionAdapter();
@@ -233,8 +262,20 @@ class EvidenceCaptureTest {
         d.post(new SessionEvents.BundleWritten(e.ticket(), e.generation(), PATH, "sha256:demo", List.of("left out: DEMO")));
         List<String> lines = capture(d).lines();
         assertEquals("left out: DEMO", lines.get(0), "the writer's lines first");
-        assertTrue(lines.get(1).contains("the run's 7 recorded inputs, paired with the log in order"), lines.toString());
+        assertTrue(lines.get(1).contains("the run's 7 recorded inputs, matched to the log in order by type, instant and content"), lines.toString());
         assertTrue(lines.get(2).contains("2 exported-service call(s) the replay does not carry"), lines.toString());
+
+        // review S1: a replay that does not carry every record of its own types says so, rather than read as the run
+        FakeSessionAdapter c = new FakeSessionAdapter();
+        SessionDriver cut = opened(c);
+        cut.submit(new SessionEvents.BundleCaptureRequested(26, PATH, null, null, null, null, "unchanged-metadata", true,
+                -1, "test", REPLAY, 1, 0, null, "abc", 6));
+        var g = c.captures.get(0);
+        cut.post(new SessionEvents.BundleWritten(g.ticket(), g.generation(), PATH, "sha256:demo", List.of()));
+        assertTrue(capture(cut).lines().stream().anyMatch(l -> l.contains("6 record(s) of the replay's own event types that it does not carry")),
+                capture(cut).lines().toString());
+        assertTrue(capture(d).lines().stream().noneMatch(l -> l.contains("does not carry: raised")),
+                "control: the whole replay says nothing of the kind");
 
         // and a bundle with no replay says nothing about one
         FakeSessionAdapter b = new FakeSessionAdapter();

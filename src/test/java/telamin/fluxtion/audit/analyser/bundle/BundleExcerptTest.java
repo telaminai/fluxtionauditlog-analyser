@@ -27,7 +27,8 @@ import static org.junit.jupiter.api.Assertions.*;
 class BundleExcerptTest {
 
     static final Path DEMO_LOG = Path.of("src/main/resources/demo/demo-quote-audit.yaml");
-    static final long FROM = 1767258000200L, TO = 1767258000330L;      // records 4..8, which hold the breach (7)
+    // records 4..8, which hold the breach (7); re-derived when M70.R0c refreshed the DEMO (one clock read per cycle)
+    static final long FROM = 1767258000140L, TO = 1767258000210L;
 
     static LogStore demo() throws IOException {
         return LogStores.open(DEMO_LOG, 256);
@@ -127,7 +128,7 @@ class BundleExcerptTest {
     @DisplayName("re-base: a walk or a report pointing outside the excerpt is left out and named — never silently shifted")
     void whatCannotBeReBasedIsLeftOutAndNamed(@TempDir Path tmp) throws Exception {
         try (LogStore s = demo()) {
-            var taken = BundleExcerpt.take(s, BundleExcerpt.range(s, null, 1767258000250L));      // records 0..5: no 7
+            var taken = BundleExcerpt.take(s, BundleExcerpt.range(s, null, 1767258000170L));      // records 0..5: no 7
             var checked = BundleExcerpt.write(taken, tmp.resolve("x.yaml"), 256);
             Path out = tmp.resolve("p.fluxtion-settings");
             var x = BundleProfile.export(profile(tmp), out, new BundleProfile.Rebase(0, 5, checked.runBasis(), checked.index()));
@@ -190,7 +191,7 @@ class BundleExcerptTest {
         Files.writeString(p, Files.readString(p).replace("walk.0.s.1.view.record=7\n", ""));
         assertNull(loaded(p).walks.get(0).steps().get(1).view().record(), "control: the step has no view record now");
         try (LogStore s = demo()) {
-            var taken = BundleExcerpt.take(s, BundleExcerpt.range(s, null, 1767258000250L));
+            var taken = BundleExcerpt.take(s, BundleExcerpt.range(s, null, 1767258000170L));
             var checked = BundleExcerpt.write(taken, tmp.resolve("x.yaml"), 256);
             var x = BundleProfile.export(p, tmp.resolve("o.fluxtion-settings"), new BundleProfile.Rebase(0, 5, checked.runBasis(), checked.index()));
             assertTrue(x.leftOut().stream().anyMatch(l -> l.startsWith("walk 'why-the-spread-moved' (step 2 points at record 7")),

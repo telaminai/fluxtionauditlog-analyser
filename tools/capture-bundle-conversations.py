@@ -165,7 +165,7 @@ def build(name, risk_limit=None):
 
 # ---- the conversations -----------------------------------------------------------------------------------------------
 
-NOTES = "# The 09:00 breach (DEMO)\n\nThe spread widened two cycles before the risk limit was reached.\n"
+NOTES = "# The 09:00 breach (DEMO)\n\nThe spread narrowed three cycles before the risk limit was reached.\n"
 
 
 def sender(t):
@@ -204,9 +204,11 @@ def sender(t):
     await_log(ep, 8)
     t.you("This run was recorded with a replay writer. Send the dev team the minute around the breach, with its replay "
           "records, so they can check it on their own build.")
+    shutil.copy(RECORDED_REPLAY, cd.EXPORT_DIR / RECORDED_REPLAY.name)   # a read the analyser confines to it
     t.prose("The processor that wrote this log had a replay writer compiled in: it recorded each input the service "
-            "received, at the instant its cycle ran, next to the audit log. The agent names that file.")
-    t.attempt("report", {"bundle": {"path": "recorded-run.fexp", "replay": str(RECORDED_REPLAY),
+            "received, at the instant its cycle ran, next to the audit log. That file is in the exchange directory, "
+            "the one place the assistant may point the analyser at a file, and the agent names it.")
+    t.attempt("report", {"bundle": {"path": "recorded-run.fexp", "replay": RECORDED_REPLAY.name,
                                     "from": 1767258000100, "to": 1767258000180}},
               expect="a replay needs the whole run")
     t.agent("The analyser refused a time window with the replay records, and it is right to: the processor's state "
@@ -217,17 +219,20 @@ def sender(t):
         {"caption": "the graph raises the breach itself", "view": {"tab": "summary", "record": 7},
          "targets": [{"target": "records:row:7", "caption": "raised by riskMonitor, not sent in"}]}]},
            show=["walk", "name", "saved"])
-    t.call("report", {"bundle": {"path": "recorded-run.fexp", "replay": str(RECORDED_REPLAY),
+    t.call("report", {"bundle": {"path": "recorded-run.fexp", "replay": RECORDED_REPLAY.name,
                                  "notes": "# Recorded run (DEMO)\n\nReplay it into your build and compare.\n"}},
            show=["phase", "path"])
     await_capture(ep, "recorded-run.fexp")
     t.context(["capture"])
-    t.agent("Written as `recorded-run.fexp`, and it carries **the run's 7 recorded inputs, paired with the log in "
-            "order**: the analyser checked that each one is one of the log's records at the instant its cycle ran, "
-            "so they cannot be from another run. The eighth record, the breach, is not among them because the graph "
-            "raised it itself; a replay raises it again. The log holds no exported-service calls, so nothing the "
-            "replay records cannot carry.",
-            cites=["the run's 7 recorded inputs, paired with the log in order"])
+    t.agent("Written as `recorded-run.fexp`, and it carries **the run's 7 recorded inputs, matched to the log in "
+            "order by type, instant and content**: the analyser checked that each one is a log record of the same type, "
+            "at the instant its cycle ran, whose printed event is exactly the recorded one. That is consistency "
+            "evidence: the records agree with this log, which is not proof that the run that wrote it also wrote them. "
+            "The eighth record, the breach, is not among them because the graph raised it itself; a replay raises it "
+            "again. The log holds no exported-service calls, so there are none the replay would miss. That is not a "
+            "completeness check: anything else the processor read, such as a file or a random value, is invisible to "
+            "the analyser and would not be replayed.",
+            cites=["the run's 7 recorded inputs, matched to the log in order by type, instant and content"])
     t.shot("bundle-conv-recorded-run.png", "The recorded run the second bundle carries: eight records, the last "
            "the breach the graph raised itself")
 
@@ -261,12 +266,14 @@ def recipient(t):
              "--cp", ours, "--out", out])
     t.shell("analyser --replay-compare ~/Downloads/recorded-run.fexp ~/work/replayed.yaml",
             ["java", "-jar", jar, "--replay-compare", bundle, out])
-    t.agent("Our build gives the same audit log. The runner first checked that our build **is** the bundle's processor: the "
-            "same nodes and edges as the graph the bundle carries. It then replayed the 7 inputs at their recorded "
-            "instants, and the graph raised the breach again by itself: 8 audit records. The analyser compared "
-            "them with the bundled log and they agree, 8 of 8. The only lines allowed to differ are when and where "
-            "each cycle ran (`endTime`, `thread`), which a replay cannot know.",
-            cites=["graph: your build's nodes and edges are the bundle's", "replay: AGREES, 8 of 8 records"])
+    t.agent("Our build gives the same audit log on this run. The runner first checked that our build's graph matches "
+            "the bundle's: the same node ids and edges. That shows it is wired the same way, not that it is the same "
+            "code; the replay is what tests the behaviour. It then replayed the 7 inputs at their recorded instants, "
+            "and the graph raised the breach again by itself: 8 audit records. The analyser compared them with the "
+            "bundled log and they agree, 8 of 8. The only lines allowed to differ are when and where each cycle ran "
+            "(`endTime`, `thread`), which a replay cannot know. That is evidence for these recorded inputs, not "
+            "proof of everything the build does.",
+            cites=["graph: your build's node ids and edges match the bundle's", "replay: AGREES, 8 of 8 records"])
 
     printed = t.shell("analyser --unpack ~/Downloads/recorded-run.fexp",
                       ["java", "-jar", jar, "--unpack", bundle, "--into", WORK / "copies"])

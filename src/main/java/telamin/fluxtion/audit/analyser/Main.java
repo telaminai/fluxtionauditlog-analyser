@@ -162,6 +162,11 @@ public class Main {
                         ? " (it was still growing when captured: these are the records read so far)" : ""));
         if (v.replay() != null) out.println("replay: " + v.replay().get("member") + ", the run's "
                 + whole(v.replay().get("records")) + " recorded inputs"
+                + (v.replay().get("contentChecked") instanceof Number c && v.replay().get("records") instanceof Number n
+                        ? (c.longValue() == n.longValue() ? " (all matched to the log by content)"
+                           : " (" + c.longValue() + " matched to the log by content, " + (n.longValue() - c.longValue())
+                             + " by type and instant only)")
+                        : "")
                 + (v.replay().get("serviceCalls") instanceof Number n && n.longValue() > 0
                         ? "; the log holds " + n.longValue() + " exported-service call(s) the replay does not carry, so a"
                           + " replay diverges from the first cycle that depends on one"
@@ -174,7 +179,8 @@ public class Main {
     static final int REPLAY_COMPARE_THRESHOLD_MB = 256;
 
     /**
-     * {@code --replay-compare}: 0 when the replayed log reproduces the bundled one (every record exact but {@code endTime}),
+     * {@code --replay-compare}: 0 when the replayed log reproduces the bundled one (every record exact but its own
+     * {@code endTime} and {@code thread}),
      * 1 when it diverges or the bundle is refused. The bundle is verified first, and the verdict states its limits.
      */
     private static int replayVerdict(telamin.fluxtion.audit.analyser.bundle.ReplayCompare.Verdict c,
@@ -194,6 +200,9 @@ public class Main {
         } else {
             out.println("replay: DIVERGES at " + c.divergence());
             out.println("replay: the " + c.records() + " record(s) before it agree");
+            // second review (S5): a divergence is not always the build: say what else can make one
+            out.println("replay: a divergence is a difference in behaviour OR in something the processor read outside the "
+                    + "recorded inputs and the injected clock (a wall-clock read, hash order, a random value)");
             code = 1;
         }
         if (v.replay() != null && v.replay().get("serviceCalls") instanceof Number n && n.longValue() > 0) {
@@ -262,7 +271,8 @@ public class Main {
                                         extracted if verification fails
                   analyser --replay-compare <bundle.fexp> <replayed-audit.yaml>
                                         verify, then compare a replayed audit log with the bundle's:
-                                        every record exact but endTime; names the first difference
+                                        every record exact but endTime and thread; names the
+                                        first difference
                   analyser --help       show this message
                 """.formatted(ReleaseNotes.version());
     }

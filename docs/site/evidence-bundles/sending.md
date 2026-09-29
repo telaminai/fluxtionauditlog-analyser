@@ -4,10 +4,26 @@ The running analyser writes the bundle. Only the live session knows whether a ca
 load is still pending, whether the file changed since it was read, whether another log is opened while the copy is
 made. So capture is one operation on the analyser, not a procedure anyone follows.
 
-## Ask for it
+## Ask your assistant
 
-From an AI assistant connected to the analyser ([Connecting an LLM](../connect-an-llm.md)), or any client of the
-action socket:
+With an AI assistant connected to the analyser ([Connecting an LLM](../connect-an-llm.md)), you ask in your own
+words, and it saves your finding as a walk, captures the bundle and tells you what it left out:
+
+> **You:** I've worked out why the quote service misbehaved at 09:00. Package the investigation for the dev team,
+> with a short walk through what I found.
+
+> **You:** This run was recorded with a replay writer. Send the dev team the minute around the breach, with its
+> replay records, so they can check it on their own build.
+
+The second is refused, by name, because replay records need the whole run. The assistant explains why and sends
+the whole run instead. Both conversations are recorded in full, every call and echo, in
+[Evidence bundles with your assistant](with-an-assistant.md).
+
+![The recorded run a bundle with replay records carries: eight records, the last the breach the graph raised itself](../assets/bundle-conv-recorded-run.png)
+
+## What the assistant asks for
+
+The operation it runs, which any client of the action socket can run too:
 
 ```
 report {bundle: {path: "breach-0900.fexp", notes: "# The 09:00 breach\n\nThe spread moved first."}}
@@ -16,6 +32,13 @@ report {bundle: {path: "breach-0900.fexp", notes: "# The 09:00 breach\n\nThe spr
 - **`path`** is written inside the exchange directory (*AI ▸ Report exchange directory…*), and never overwrites.
 - **`notes`** (optional) is your account, in Markdown. It travels as `notes/NOTES.md`.
 - **`from` / `to`** (optional, epoch millis) make the bundle an **excerpt**, described below.
+- **`replay`** (optional) is the path of the run's replay records, written by a replay writer in the same run as
+  the log. Put the file in the exchange directory, as for any file the assistant points the analyser at. They are packed as the `replay/` member. The analyser first checks that each replay record matches one of
+  the log's records, in order: the same type, at its `eventTime`, with the same content as the event the log prints.
+  It refuses replay records that do not match, naming the first; where the log does not print an event, it says how
+  many inputs it could match by type and instant only. It also refuses them with a
+  window or while Follow is on, because the run may not have ended. It counts the log's exported-service calls, which replay records cannot
+  carry. See [Commands and file format](reference.md#the-manifest-with-replay-records-format-2).
 
 The bundle is written in the background. `context.capture` says when it is done: `phase: WRITTEN` with its
 **identity**, or `phase: REFUSED` with the reason. It also lists anything that was **left out**, **redacted** or

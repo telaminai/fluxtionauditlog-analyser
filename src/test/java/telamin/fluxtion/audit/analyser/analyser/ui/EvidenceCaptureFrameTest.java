@@ -225,23 +225,26 @@ class EvidenceCaptureFrameTest {
     void aReplayIsCarriedOnlyWhenItPairs(@TempDir Path tmp) throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless());
         Path recordedLog = Path.of("src/test/resources/replay/demo-quote-recorded-audit.yaml").toAbsolutePath();
-        Path replay = Path.of("src/test/resources/replay/demo-quote-recorded.replay.yaml").toAbsolutePath();
         try (var f = shown(tmp)) {
             Path ex = exchange(f, tmp);
-            // the recorded run's replay against ANOTHER run's log (the shipped DEMO): refused by the node, nothing left
-            openLog(f, DEMO_LOG);
+            // a read the analyser confines (review R4): the replay records sit in the exchange directory, named relative
+            Files.copy(Path.of("src/test/resources/replay/demo-quote-recorded.replay.yaml"), ex.resolve("demo-quote-recorded.replay.yaml"));
+            String replay = "demo-quote-recorded.replay.yaml";
+            // the recorded run's replay against ANOTHER run's log: refused by the node, nothing left
+            // a genuinely different run: the series log (the short DEMO log, since M70.R0c, IS the recorded run's inputs and pairs)
+            openLog(f, Path.of("src/test/resources/topology/demo-quote-series.yaml").toAbsolutePath());
             AtomicReference<Map<String, Object>> echo = new AtomicReference<>();
-            onEdt(() -> echo.set(ask(f, Map.of("bundle", Map.of("path", "wrong.fexp", "replay", replay.toString())))));
+            onEdt(() -> echo.set(ask(f, Map.of("bundle", Map.of("path", "wrong.fexp", "replay", replay)))));
             refused(echo.get(), "the replay does not belong to this log");
             assertEquals(List.of(), leftBehind(ex), "a refused capture writes nothing");
 
             // against its own log: written, format 2, with the replay member and what the node says of it
             openLog(f, recordedLog);
-            onEdt(() -> echo.set(ask(f, Map.of("bundle", Map.of("path", "run.fexp", "replay", replay.toString())))));
+            onEdt(() -> echo.set(ask(f, Map.of("bundle", Map.of("path", "run.fexp", "replay", replay)))));
             assertEquals(Boolean.TRUE, echo.get().get("ok"), "a paired replay is capturable: " + echo.get());
             Map<String, Object> c = awaitDecided(f);
             assertEquals("WRITTEN", c.get("phase"), String.valueOf(c));
-            assertTrue(String.valueOf(c.get("lines")).contains("the run's 7 recorded inputs, paired with the log in order"),
+            assertTrue(String.valueOf(c.get("lines")).contains("the run's 7 recorded inputs, matched to the log in order by type, instant and content"),
                     String.valueOf(c.get("lines")));
             var v = telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.verify(ex.resolve("run.fexp"));
             assertTrue(v.ok(), v.refusal());
@@ -494,7 +497,8 @@ class EvidenceCaptureFrameTest {
             openLog(f, DEMO_LOG);
             AtomicReference<Map<String, Object>> echo = new AtomicReference<>();
             onEdt(() -> echo.set(render(f.ex, "report", Map.of("bundle",
-                    Map.of("path", "part.fexp", "from", 1767258000200L, "to", 1767258000330L)))));
+                    // records 4..8, re-derived when M70.R0c refreshed the DEMO (one clock read per cycle)
+                    Map.of("path", "part.fexp", "from", 1767258000140L, "to", 1767258000210L)))));
             assertEquals(Boolean.TRUE, echo.get().get("ok"), String.valueOf(echo.get()));
             Map<String, Object> c = awaitDecided(f);
             assertEquals("WRITTEN", c.get("phase"), String.valueOf(c));

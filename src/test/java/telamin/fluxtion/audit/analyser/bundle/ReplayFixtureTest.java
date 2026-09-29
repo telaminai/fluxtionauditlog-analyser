@@ -121,4 +121,46 @@ class ReplayFixtureTest {
         String dropped = replayText.substring(0, replayText.lastIndexOf("---"));
         assertTrue(mismatches(auditText, dropped).get(0).contains("7 inputs in the log, 6 replay records"));
     }
+
+    @org.junit.jupiter.api.Test
+    @org.junit.jupiter.api.DisplayName("PR #70 review 6 (RB-2): of two events of one type, the external one is recorded, the graph's is not")
+    void onlyTheExternalObjectIsRecorded(@org.junit.jupiter.api.io.TempDir Path tmp) throws Exception {
+        // the generated processor, driven live as a producer drives it: the recorded run's inputs, then an EXTERNAL
+        // RiskBreachEvent, the type the graph also raises itself on the fifth input. Only identity tells them apart
+        Path build = ReplayRunnerEndToEndTest.build(tmp, "same", null);
+        String[] live = LiveRecording.run(tmp, build, Files.readString(REPLAY), true);
+        List<ReplayRecord> recorded = replay(live[0]);
+        List<AuditRecord> logged = audit(live[1]);
+        assertEquals(2, logged.stream().filter(r -> r.event().equals(RAISED)).count(),
+                "the log holds both breaches, the graph's and the external one: " + logged);
+        assertEquals(8, recorded.size(), "the seven inputs and the external breach, never the graph's: " + live[0]);
+        assertEquals(1, recorded.stream().filter(r -> r.event().equals(RAISED)).count(), live[0]);
+        assertTrue(live[0].contains("RiskBreachEvent {orderId: \"DEMO-external\", liveOrders: 8}"),
+                "the one recorded breach is the external object: " + live[0]);
+        // and the first seven are the fixture's inputs, as it recorded them
+        assertTrue(live[0].startsWith(Files.readString(REPLAY)), "the live run records the fixture's inputs exactly");
+    }
+
+    @org.junit.jupiter.api.Test
+    @org.junit.jupiter.api.DisplayName("PR #70 review 9: the captured fixtures keep the producer's own trailing spaces, as .gitattributes says")
+    void theProducersBytesAreKept() throws Exception {
+        for (Path p : List.of(AUDIT, DIR.resolve("demo-quote-recorded.replayed-audit.yaml"))) {
+            String text = Files.readString(p);
+            assertEquals(8, text.split("eventLogRecord: \n", -1).length - 1, p + ": every record header as Fluxtion wrote it");
+            assertEquals(8, text.split("    nodeLogs: \n", -1).length - 1, p + ": every nodeLogs key as Fluxtion wrote it");
+            // its narrow exception, and only that (re-review S4): no other line of .gitattributes reaches this file
+            String self = DIR.resolve(p.getFileName()).toString();
+            List<String> reaching = new ArrayList<>();
+            for (String line : Files.readAllLines(Path.of(".gitattributes"))) {
+                String t = line.strip();
+                if (t.isEmpty() || t.startsWith("#")) continue;
+                String pattern = t.split("\\s+")[0];
+                boolean reaches = pattern.equals(self) || (!pattern.contains("/") && java.nio.file.FileSystems.getDefault()
+                        .getPathMatcher("glob:" + pattern).matches(p.getFileName()))
+                        || java.nio.file.FileSystems.getDefault().getPathMatcher("glob:" + pattern).matches(Path.of(self));
+                if (reaches) reaching.add(t);
+            }
+            assertEquals(List.of(self + " whitespace=-blank-at-eol"), reaching, p + ": exactly its narrow exception");
+        }
+    }
 }

@@ -185,7 +185,7 @@ at `…140` and the shipped writer wrote `…150`.
 ### 4.1 A new member, paired by content
 
 ```
-replay/<processor>.replay.yaml      the processor's replay records, byte for byte
+replay/<file>                       the run's replay records, byte for byte, under the name the author's file had
 ```
 
 The capture's author points at the replay file (`report {bundle: {…, replay: <path>}}`). The `evidenceCapture` node
@@ -195,8 +195,16 @@ the bundle (first delivery, r4).
 **Pairing, because a replay file from another run is the likeliest mistake** (built in R2, `ReplayPairing`). The
 frame observes it and the node decides.
 - **The rule.** A replay holds the run's inputs only (R-D10), each stamped with its cycle's instant (§3.3). So each
-  replay record must match a log record with the same event name and the same `eventTime`, **in order, within the
-  log**. The log records in between are the ones the graph raised itself, and service calls.
+  replay record must match a log record with the same event name, the same `eventTime` **and the same content**,
+  **in order, within the log**. The log records in between are the ones the graph raised itself, and service calls.
+- **Content (PR #70 review, finding 1).** Name and instant alone let a wrong payload pair: a replay with its first bid
+  changed from 100.1 to 999.1 paired, seven records. So the pairing rebuilds each replay record as its record's
+  `toString` prints it (`MarketDataEvent[symbol=DEMO-A, bid=100.1, ask=100.3]`) and requires it to equal the log's
+  `eventToString`. A log record of the same type and instant with other content is not this input, and the search
+  goes on past it (a graph-raised event may share an input's type and instant); if none matches, the refusal names
+  both texts. **Where the log does not print the event** (`printEventToString` off, or a non-record `toString`),
+  content cannot be compared: that input is matched by type and instant only, and the capture's lines and the
+  manifest's `contentChecked` say how many were, rather than calling them checked.
 - **Refused, naming the first record that has no match.** A replay from another run fails at record 0. A replay
   re-stamped by a writer that read the clock again (UP-FLX-53) fails at the first record it moved. Records out of order
   fail too. *r1 said the replay lines up one to one with the log minus service calls; that was written before R-D10,
@@ -207,11 +215,25 @@ frame observes it and the node decides.
 - **A limit, deliberately.** A replay that also recorded the graph's own event still pairs: that event is in the log
   at that instant. Replaying it would raise the event twice, and that is the comparison's to find (§6), not the
   pairing's. Pairing asks only whether the replay belongs to this log.
+- **A second limit, found by the demo driver (R5).** Pairing is by content, so a *different run* whose inputs are the
+  same events at the same instants pairs too. The short DEMO **test fixture** (`src/test/resources/topology/demo-quote-audit.yaml`, not the jar's copy) and the
+  recorded run are exactly that: the same
+  input script on the same clock, the DEMO log adding two service calls at the end. That is honest by construction:
+  those records ARE the replay's inputs. The capture then counts the service calls and warns, and `--replay-compare`
+  shows where the logs differ.
+- **A third limit (review N4): the log names an event type by its SIMPLE class name**, so pairing matches on it:
+  `a.Foo` and `b.Foo` are indistinguishable here. The runner is not affected, since it resolves the full name
+  against the build's own handled types.
+- **What a replay does not carry of its own types** (review S1). A replay cut short still pairs, because each record
+  it has IS one of the log's. So the pairing counts the log's records of the replay's own event types that it does
+  not carry, and the node says so: they are events the graph raised itself, or inputs the replay is missing. It does
+  not refuse, because an event the graph raises can share a type with an input.
 - **The copy is held to the paired bytes.** The pairing digests the file in the same pass that reads it. The writer
   copies the file later, off the event thread, and refuses a copy whose digest differs: *"the replay file changed
   after it was paired with the log; nothing was written"*.
 
-**Also refused, by name:** a replay with a window (§4.3), and a replay while the log is still growing under Follow,
+**Also refused, by name:** a replay with a window (§4.3), and a replay while Follow is on, whether or not growth has
+been seen yet (second review S4: a producer still writing could add records between the pairing and the copy),
 because the bundle would then hold only what was read so far.
 
 **What the author is told** (the node's lines, when it is written): *"replay: the run's N recorded inputs, paired
@@ -265,11 +287,18 @@ jbang tools/replay/ReplayBundle.java --bundle run.fexp \
    A type outside them is refused and never loaded.
 4. It feeds each record into a fresh instance of your processor with a data-driven clock set to the record's instant.
    The graph raises its own events again by itself.
-5. It writes the processor's audit log, framed as the producer's is, without the runner's own set-up records, and
-   prints the `--replay-compare` command to run next.
+5. It writes the processor's audit log, framed as the producer's is: every record the processor emits from the first
+   replay input on, whatever it says (PR #70 review 3). What the runner's own set-up emits before that is left out by
+   WHEN it is written: a build generated with tracing on writes a record for the set-up's control event, one with
+   tracing off writes none (re-review C1). It prints the `--replay-compare` command to run next. The file appears only
+   when the replay completes.
 
-It refuses, by name, exit 1: a build that is not the bundle's processor; a bundle with no replay records; a processor
-not on the classpath; a record type the build does not handle; an output file that exists. Exit 2 is usage.
+It refuses, by name, exit 1: a build whose graph's node ids and edges do not match the bundle's (a match is graph
+compatibility, not the same code); a manifest that is not JSON, or not the bundle schema (one replay member, at most
+one graph, every member listed); a member that does not match its digest and size, or is over the per-member or
+whole-bundle limit; a malformed replay record anywhere in the member, or a count other than the manifest's, before
+the processor runs (PR #70 review 2, 4, 7); a bundle with no replay records; a processor not on the classpath; a
+record type the build does not handle; an output file that exists. Exit 2 is usage.
 
 **Why outside the analyser.** Replay runs the recipient's code, their build on their classpath. The analyser has
 never executed a user's processor, and the placement rule (first delivery, §3.1) does not require it to. The runner's
@@ -345,9 +374,9 @@ follow-up; the demo is the CLI verdict.
 | RB-4 | a replay file from another run is refused at capture, naming the first unmatched input | a correctly paired file passes |
 | RB-5 | a window together with a replay is refused by name | a whole-log capture with a replay succeeds |
 | RB-6 | the runner refuses a build whose graph differs, naming the difference | the matching build replays |
-| RB-7 | the recorder stamps the receipt instant | `RecorderClockProbe`: the shipped writer, with a ticking clock, records a different instant; the DEMO recorder does not |
+| RB-7 | the recorder stamps the receipt instant | `ReplayCodecRoundTripTest#theWriterStampsTheReceiptInstant`: the DEMO's `ReplayCapture` on a clock that ticks per read records the cycle's instant, never a later read; control `rq-stamps-the-receipt-instant`. (`RecorderClockProbe` shows Fluxtion's own writer does not, by hand.) |
 | RB-8 | a format-1 bundle still verifies and unpacks, unchanged | `EvidenceBundle` refuses a format-2 bundle with its `replay` member removed but still in the manifest |
-| RB-9 | a log holding exported-service calls is captured with `serviceCalls: K` and the warning | the shipped 10-cycle DEMO log replays to a divergence the comparison names, and it never reads as agreeing |
+| RB-9 | a log holding exported-service calls is captured with `serviceCalls: K` and the warning | `ReplayRunnerEndToEndTest#aLogWithServiceCallsDivergesAtTheFirstCall`: the short DEMO test fixture pairs (its 7 inputs are the recorded run's) with `serviceCalls: 2`, observed for real; the runner replays it and `--replay-compare` DIVERGES at record 8, the first `ExportFunctionAuditEvent`, never AGREES; control `rp-counts-the-logs-service-calls`. (r1 named the jar's DEMO log, which since R0b no longer pairs: second review finding 1.) |
 
 Every acceptance runs in `mvn test` from committed fixtures. The runner's end-to-end run joins
 `tools/evidence-bundle-demo.py`.
@@ -396,6 +425,88 @@ Every acceptance runs in `mvn test` from committed fixtures. The runner's end-to
    generated source ships in the analyser's jar as a resource (`src/main/resources/demo/`), and it compiles against the
    Fluxtion runtime with no compiler key (the spike's `run.sh` does exactly this). For a real incident, is the build named in the bundle (a Maven coordinate and a
    commit), and does the runner fetch it?
+
+## 10a. The pre-review (2026-09-28): what it found, and what was done
+
+An independent agent reviewed the whole range (`v1.27.0…feat/evidence-bundle-replay`) before the PR's review.
+Every finding was checked against the code before anything was changed:
+
+| finding | disposition | its check (rule 8) |
+|---|---|---|
+| R1 a null String replayed as `"ul"` | fixed: `null` written bare, a String must be quoted, one left-to-right unescape | `ReplayCodecRoundTripTest`; `rq-null-is-written-bare` |
+| R2 strings with line endings, `char ','`, `BigDecimal` | fixed: controls and U+0085/2028/2029 escaped; chars quoted; the encodable set is exactly what the readers decode | round trip through BOTH readers; `rq-escapes-every-line-ending`, `rq-encodable-is-what-the-readers-read`, `rn-refuses-an-unquoted-string` |
+| R3 a CRLF log never agreed | fixed: a trailing `\r` dropped per line | `ReplayCompareTest#aCrlfLogAgrees`; `rc-a-crlf-log-is-the-same-log` |
+| R4 the `replay` read was unconfined | fixed: `ExportGuard.resolveRead`, as every verb read | `ReplayConfinementTest`; `ax-the-replay-read-is-confined` |
+| R5 painted screenshots | open, before merge: native regeneration needs Screen Recording | the PR's checklist |
+| S1 a replay cut short paired as the whole run | fixed as a statement, not a refusal: the uncarried records of its own types are counted and named (a graph-raised event may share an input's type) | `ReplayPairingTest#aReplayCutShortStillPairs…`; `rp-counts-what-a-replay-does-not-carry` |
+| S2 a cut-off last record, mis-worded | fixed: named as cut off | `ReplayPairingTest#aLastRecordCutOffIsNamedAsCutOff` |
+| S3 the pairing reads the file on the event thread | **not fixed, recorded**: it streams in bounded memory, so a large replay stalls the window for its read time. Moving it off the thread needs the capture request to become asynchronous (observe, then submit the fact), a rule 9 change of its own | tracker M70.R2a |
+| S4 the runner held every member, and checked no digest | fixed: only `replay/` and `graph/` kept, each held to the manifest | `ReplayRunnerEndToEndTest#whatCannotBeReplayedIsRefused`; `rn-holds-members-to-the-manifest` |
+| S5 format-1 listing a `replay/` member verified | fixed: the member rule enforced on read both ways | `ReplayBundleTest#theMemberRuleHoldsOnRead`; `eb-format1-lists-no-replay-member` |
+| S6 audit-level changes mid-run | fixed as a warning from the runner | `ReplayRunnerEndToEndTest#aLevelChangeInTheLogIsWarnedAbout`; `rn-warns-of-a-level-change` |
+| N1 text said only `endTime` | fixed | read |
+| N2 a nested `thread` value was excepted | fixed: only the record's own fields, at its field indent | `ReplayCompareTest#aNestedThreadValueIsCompared`; `rc-only-the-records-own-fields-are-excepted` |
+| N3 a byte-order mark refused a replay | fixed, in the pairing and both readers | `ReplayPairingTest#aByteOrderMarkIsAccepted`, `ReplayCodecRoundTripTest#aBomAndCrlfAreRead` |
+| N4 simple class names | recorded as a limit (§4.1) | — |
+| N5 a bad `--level`; one exit code for refused and diverges | `--level` fixed (usage, exit 2). **Exit 1 for both kept**: every bundle command uses 1 for "not accepted", and a script reads the `DIVERGES`/`REFUSED` line | `ReplayRunnerEndToEndTest` |
+| N6 the member's name | fixed in §4.1 | read |
+| (rule 9 nit) the frame composed "no log is open" | fixed: with no log the frame observes nothing, and the node refuses in its own words | — |
+
+**Found while closing them:** the mutation harness's JSON-lines reader split rows on U+2028 (`splitlines()`), so a
+test message carrying one crashed the gate. `GateLauncher` now escapes U+0085/2028/2029 and the reader splits on
+`\n` only; the engine's self-test passes. Two controls first survived because their test *threw* instead of
+asserting (the gate counts only a named assertion); both tests now assert.
+
+## 10b. The second pre-review (2026-09-28, a different model): what it found, and what was done
+
+It re-ran the evidence (2850/0/0/170; demo 57/57; 29/29 sampled controls) and judged §7 item by item:
+
+| finding | disposition | its check |
+|---|---|---|
+| 1 RB-9's witness was dead: the jar's DEMO log no longer pairs (R0b), and the only service-call test fed the count by hand | fixed: RB-9 now runs on the DEMO test fixture, which pairs, with the count observed and a real replay DIVERGING at the first call; §4.1's "short log" now names the test fixture | `aLogWithServiceCallsDivergesAtTheFirstCall`, `theTestDemoLogPairs_andItsServiceCallsAreCountedForReal`; `rp-counts-the-logs-service-calls` |
+| 2 RB-7 had no check CI runs | fixed: the DEMO `ReplayCapture` itself, on a ticking clock | `theWriterStampsTheReceiptInstant`; `rq-stamps-the-receipt-instant` |
+| 3 the runner bounded only the two members it keeps | fixed: every member bounded (`BoundedStream`) | `everyMemberIsBounded`; `rn-bounds-every-member` |
+| 4 a replay under Follow was refused only once growth was seen | fixed: refused whenever Follow is on | `aReplayUnderFollowIsRefusedBeforeGrowthIsSeen`; `rp-refuses-a-replay-of-a-growing-log` (re-anchored) |
+| 5 a divergence may be non-determinism, not the build | fixed as a statement on every DIVERGES | `MainBundleTest#replayCompareExitsByVerdict` |
+| 6 a `\u` escape's bound was off by one | fixed in both readers | read |
+| 7 mkdocs unverified there; painted screenshots | mkdocs passes here; screenshots open before merge (and M70.R0c, now decided: option a) | — |
+
+## 10c. The independent review (2026-09-28, [review](../handoff/review_pr70_evidence_bundle_replay_2026_09_28_codex.md)): what it found, and what was done
+
+The review ran §10a and §10b as claims. Nine findings; each fix has a regression that failed first by a named
+assertion, and a registered control (rule 8). Predictions were recorded before the fixes
+([predictions](../handoff/response_pr70_review_2026_09_28_predictions.md)).
+
+| finding | disposition | its check |
+|---|---|---|
+| 1 an indented comment set the header scope, so a nested `thread` was excepted: a false AGREES | fixed: the record's field scope is the first CONTENT line under its top-level key; comments set nothing | `ReplayCompareTest#aCommentDoesNotSetTheHeaderScope`; `rc-a-comment-sets-no-header-scope` |
+| 2 many hashed `replay/` members exhausted the runner's heap before cardinality was checked | fixed: the manifest schema (one replay, at most one graph) and a whole-bundle limit are checked before any member is read; every member is held to its declared size as it streams; the replay is spooled and read a line at a time. **The re-review (S3):** a listed, hashed ~32 MiB graph still exhausted the heap, as a DOM; the graph is now spooled and read as a stream, bounded to 8 MiB and 100,000 elements, a DOCTYPE refused, and an `OutOfMemoryError` is a named refusal | three `-Xmx64m` child-JVM tests in `ReplayRunnerEndToEndTest`, and `aLargeGraphIsReadAsAStream`; five `rn-` controls, and `rn-the-graph-has-a-byte-bound`, `rn-the-graph-elements-are-bounded`, `rn-a-graph-doctype-is-refused` |
+| 3 a text filter dropped a business record naming the control event | fixed: the filter is removed. **Corrected by the re-review (C1):** the claim that set-up emits no audit record was true only of a build generated with tracing off; with tracing on, the set-up's control event is written into the sink, and a tracing build DIVERGED from its own bundle. What set-up emits is now left out by when it is written (before the first replay input) | `anInputNamingTheControlEventKeepsItsRecord` (a direct capture of the same build, bundled, replays and AGREES); `aTracingBuildAgreesWithItsOwnBundle`; `rn-no-record-is-dropped-for-its-text`, `rn-set-up-is-left-out-by-when` |
+| 4 malformed replays silently lost input | the grammar was already strict in both readers (`abc55322`); now the whole member is read and built before the processor runs, its count must be the manifest's `replay.records`, and a nameless component is a refusal in both readers | `aReplayThatLosesInputIsRefused`, `bothReadersRequireTheWholeGrammar`; `rn-the-count-is-the-manifests`, `rn-a-component-needs-its-name`, `rq-demo-reader-a-component-needs-its-name` |
+| 5 the guidance claimed run identity, completeness and the same code | fixed in the capture script and the regenerated page, and in `reference.md`. Pairing now also compares content where the log prints it, at the owner's direction (`caebf31f`); it remains consistency evidence, and an unprinted input is matched by type and instant only and counted | `EvidenceBundleDocsTest#theReplayIsDescribedAsTheChecksShowIt`; `dg-no-run-identity-claim` |
+| 6 RB-2's identity guard had no effective regression | fixed: the review's live probe is a regression; an external `RiskBreachEvent` and the graph's own, one type | `ReplayFixtureTest#onlyTheExternalObjectIsRecorded`; `rq-records-only-the-named-object` (9 recorded where 8 are expected) |
+| 7 a valid pretty-printed manifest was refused by the runner's regex | fixed: a strict RFC 8259 reader and the bundle schema; `3375.0` is `3375` | `anyValidSpellingOfTheManifestReplays`; three `rn-json-` controls |
+| 8 painted previews stand in for native captures | **blocked**: this session has no Screen Recording permission (a full-screen `screencapture` is black; the window capture finds no window). The four images are unchanged; the page's text was regenerated | — |
+| 9 32 trailing-space lines in the captured fixtures | kept: a narrow `whitespace=-blank-at-eol` for the two captured fixtures, as for c21 | `ReplayFixtureTest#theProducersBytesAreKept`; `rf-the-producers-bytes-are-kept` |
+
+Not changed, disclosed: the analyser's own JSON reader is laxer than the runner's (it takes the last of a duplicated
+key, ignores content after the value, and truncates a fractional size); the runner refuses each of those, so no
+manifest is read two different ways and still replays. Sharing one strict reader is a follow-up.
+
+## 10d. The re-review (2026-09-29, [re-review](../handoff/review_pr70_rereview_2026_09_29_claude.md)): what it found, and what was done
+
+The re-review ran §10c as claims: merge after two corrections. Predictions were recorded first
+([predictions](../handoff/response_pr70_rereview_2026_09_29_predictions.md)); each item was reproduced before it was
+fixed.
+
+| item | disposition | its check |
+|---|---|---|
+| C1 a build generated with tracing on DIVERGED from its own bundle: its set-up control event reached the sink (a defect `7621157d` introduced) | fixed: nothing written before the first replay input reaches the sink; no text filter | `aTracingBuildAgreesWithItsOwnBundle`; `rn-set-up-is-left-out-by-when` |
+| C2 the four images were painted | adopted the re-review's native 3360×2100 captures with the page from the same run; every image read | read (rule 1) |
+| S1 three shapes still moved the header scope; the `path()` comment skip had no control | fixed: a line is excepted only as the record's own `eventLogRecord.thread` (unique, before `nodeLogs`) or `eventLogRecord.endTime` (unique, last) | `theExceptionIsAnchoredOnTheRecordsOwnKeys`; five new `rc-` controls, one retargeted |
+| S2 a logged string's raw newline could make a business value an excepted line | fixed by the same rule: an ambiguous record excepts nothing | `aRawNewlineInAValueIsNeverExcepted` |
+| S3 a listed ~32 MiB graph exhausted 512 MiB, unnamed | fixed: spooled, StAX, 8 MiB and 100,000 elements, DOCTYPE refused; an `OutOfMemoryError` is a named refusal | `aLargeGraphIsReadAsAStream`; `rn-the-graph-has-a-byte-bound`, `rn-the-graph-elements-are-bounded`, `rn-a-graph-doctype-is-refused` |
+| S4 nits | fixed: a replay states its count (runner and `--verify`), a directory entry holds nothing, the move is cleaned up, no broader whitespace exception; the message-only controls stated. **Deferred (M70.R6):** "The graph is the same" and "the run's N recorded inputs", because they change the page, which must be recaptured with its images | `aReplayStatesItsCount_andADirectoryHoldsNothing`, `theProducersBytesAreKept`; `rn-a-replay-states-its-count`, `eb-format2-states-its-records`, `rn-a-directory-holds-nothing`, `rf-no-broader-whitespace-exception` |
 
 ## 11. Revision history
 

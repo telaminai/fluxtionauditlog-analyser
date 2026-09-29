@@ -128,6 +128,35 @@ class ReplayBundleTest {
         assertTrue(w.refusal().contains("a format 1 manifest states a replay"), w.refusal());
     }
 
+    @Test
+    @DisplayName("review S5: on read too, a format 1 manifest may list no replay/ member, and a format 2 exactly one")
+    void theMemberRuleHoldsOnRead(@TempDir Path tmp) throws Exception {
+        Path folder = EvidenceBundleTest.demoFolder(tmp);
+        Files.createDirectories(folder.resolve("replay"));
+        Files.copy(REPLAY, folder.resolve("replay/r.replay.yaml"));
+        Path good = tmp.resolve("good.fexp");
+        EvidenceBundle.pack(folder, good, EvidenceBundleTest.AT, "test", null, new LinkedHashMap<>(Map.of("records", 7, "serviceCalls", 0)));
+        String manifest = manifest(good);
+
+        // format 1, still listing the replay/ member: a replay carried without its claim
+        String f1 = manifest.replace("\"format\":2", "\"format\":1").replaceFirst(",\"replay\":\\{[^}]*}", "");
+        assertTrue(f1.contains("replay/r.replay.yaml") && !f1.contains("\"replay\":{"), f1);
+        var e1 = EvidenceBundleTest.entries(good);
+        e1.put(EvidenceBundle.MANIFEST, f1.getBytes(StandardCharsets.UTF_8));
+        var v1 = EvidenceBundle.verify(EvidenceBundleTest.zip(tmp.resolve("f1.fexp"), e1));
+        assertFalse(v1.ok());
+        assertTrue(v1.refusal().contains("lists a replay/ member it does not state"), v1.refusal());
+
+        // format 2 listing two replay/ members
+        String two = manifest.replace("{\"path\":\"replay/r.replay.yaml\"",
+                "{\"path\":\"replay/q.replay.yaml\",\"sha256\":\"" + "0".repeat(64) + "\",\"bytes\":0},{\"path\":\"replay/r.replay.yaml\"");
+        var e2 = EvidenceBundleTest.entries(good);
+        e2.put(EvidenceBundle.MANIFEST, two.getBytes(StandardCharsets.UTF_8));
+        var v2 = EvidenceBundle.verify(EvidenceBundleTest.zip(tmp.resolve("two.fexp"), e2));
+        assertFalse(v2.ok());
+        assertTrue(v2.refusal().contains("lists 2 replay/ members, not one"), v2.refusal());
+    }
+
     private static String manifest(Path bundle) throws IOException {
         return new String(EvidenceBundleTest.entries(bundle).get(EvidenceBundle.MANIFEST), StandardCharsets.UTF_8);
     }

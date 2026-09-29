@@ -1,0 +1,879 @@
+{
+ "head": "0624fe30",
+ "engine": "fast",
+ "requested": [
+  "rp-refuses-a-replay-with-a-window",
+  "rp-refuses-a-replay-of-a-growing-log",
+  "rp-refuses-an-unpaired-replay",
+  "rp-pairing-matches-the-time",
+  "rp-pairing-refuses-a-non-record",
+  "rp-writer-holds-the-copy-to-the-digest",
+  "rp-format2-needs-its-member",
+  "rp-format1-states-no-replay",
+  "rp-verify-states-the-replay-limit",
+  "rc-only-endtime-is-excepted",
+  "rc-a-changed-line-diverges",
+  "rc-a-missing-line-is-named-missing",
+  "rc-a-count-difference-diverges",
+  "rc-refuses-a-bundle-without-replay-records",
+  "rc-a-divergence-exits-one",
+  "rn-refuses-a-different-graph",
+  "rn-loads-only-handled-types",
+  "rn-replays-at-the-recorded-instant",
+  "rn-the-header-names-the-repository",
+  "rq-escapes-every-line-ending",
+  "rq-null-is-written-bare",
+  "rq-encodable-is-what-the-readers-read",
+  "rn-refuses-an-unquoted-string",
+  "rc-a-crlf-log-is-the-same-log",
+  "rc-a-comment-sets-no-header-scope",
+  "rc-only-the-records-own-fields-are-excepted",
+  "rp-counts-what-a-replay-does-not-carry",
+  "eb-format1-lists-no-replay-member",
+  "rn-holds-members-to-the-manifest",
+  "rn-warns-of-a-level-change",
+  "ax-the-replay-read-is-confined",
+  "rq-stamps-the-receipt-instant",
+  "rn-bounds-every-member",
+  "rp-counts-the-logs-service-calls",
+  "rp-pairs-by-content-not-only-type-and-instant",
+  "rn-validates-the-whole-replay-grammar",
+  "rn-one-replay-member-before-reading",
+  "rn-an-unlisted-member-is-never-read",
+  "rn-the-members-together-are-bounded",
+  "rn-other-members-are-streamed-not-held",
+  "rn-a-member-is-read-no-further-than-declared",
+  "rn-no-record-is-dropped-for-its-text",
+  "rq-records-only-the-named-object",
+  "dg-no-run-identity-claim",
+  "rf-the-producers-bytes-are-kept",
+  "rn-the-count-is-the-manifests",
+  "rn-a-component-needs-its-name",
+  "rq-demo-reader-a-component-needs-its-name",
+  "rn-json-nothing-after-the-value",
+  "rn-json-a-key-once",
+  "rn-json-a-whole-number-is-whole"
+ ],
+ "caught": [
+  "rp-refuses-a-replay-with-a-window",
+  "rp-refuses-a-replay-of-a-growing-log",
+  "rp-refuses-an-unpaired-replay",
+  "rp-pairing-matches-the-time",
+  "rp-pairing-refuses-a-non-record",
+  "rp-writer-holds-the-copy-to-the-digest",
+  "rp-format2-needs-its-member",
+  "rp-format1-states-no-replay",
+  "rp-verify-states-the-replay-limit",
+  "rc-only-endtime-is-excepted",
+  "rc-a-changed-line-diverges",
+  "rc-a-missing-line-is-named-missing",
+  "rc-a-count-difference-diverges",
+  "rc-refuses-a-bundle-without-replay-records",
+  "rc-a-divergence-exits-one",
+  "rn-refuses-a-different-graph",
+  "rn-loads-only-handled-types",
+  "rn-replays-at-the-recorded-instant",
+  "rn-the-header-names-the-repository",
+  "rq-escapes-every-line-ending",
+  "rq-null-is-written-bare",
+  "rq-encodable-is-what-the-readers-read",
+  "rn-refuses-an-unquoted-string",
+  "rc-a-crlf-log-is-the-same-log",
+  "rc-a-comment-sets-no-header-scope",
+  "rc-only-the-records-own-fields-are-excepted",
+  "rp-counts-what-a-replay-does-not-carry",
+  "eb-format1-lists-no-replay-member",
+  "rn-holds-members-to-the-manifest",
+  "rn-warns-of-a-level-change",
+  "ax-the-replay-read-is-confined",
+  "rq-stamps-the-receipt-instant",
+  "rn-bounds-every-member",
+  "rp-counts-the-logs-service-calls",
+  "rp-pairs-by-content-not-only-type-and-instant",
+  "rn-validates-the-whole-replay-grammar",
+  "rn-one-replay-member-before-reading",
+  "rn-an-unlisted-member-is-never-read",
+  "rn-the-members-together-are-bounded",
+  "rn-other-members-are-streamed-not-held",
+  "rn-a-member-is-read-no-further-than-declared",
+  "rn-no-record-is-dropped-for-its-text",
+  "rq-records-only-the-named-object",
+  "dg-no-run-identity-claim",
+  "rf-the-producers-bytes-are-kept",
+  "rn-the-count-is-the-manifests",
+  "rn-a-component-needs-its-name",
+  "rq-demo-reader-a-component-needs-its-name",
+  "rn-json-nothing-after-the-value",
+  "rn-json-a-key-once",
+  "rn-json-a-whole-number-is-whole"
+ ],
+ "requestedEqualsCaught": true,
+ "seconds": 88.6,
+ "runs": [
+  {
+   "name": "rp-refuses-a-replay-with-a-window",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "EvidenceCaptureTest#aReplayWithAWindowIsRefused",
+     "message": "org.opentest4j.AssertionFailedError: refused:  ==> expected: <false> but was: <true>"
+    }
+   ],
+   "restoredExit": 0
+  },
+  {
+   "name": "rp-refuses-a-replay-of-a-growing-log",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "EvidenceCaptureTest#aReplayOfAGrowingLogIsRefused",
+     "message": "org.opentest4j.AssertionFailedError: refused:  ==> expected: <false> but was: <true>"
+    }
+   ],
+   "restoredExit": 0
+  },
+  {
+   "name": "rp-refuses-an-unpaired-replay",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "EvidenceCaptureTest#aReplayFromAnotherRunIsRefused",
+     "message": "org.opentest4j.AssertionFailedError: refused:  ==> expected: <false> but was: <true>"
+    }
+   ],
+   "restoredExit": 0
+  },
+  {
+   "name": "rp-pairing-matches-the-time",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "ReplayPairingTest#aReplayRestampedByAWriterThatReadTheClockAgainIsRefused",
+     "message": "org.opentest4j.AssertionFailedError: expected: <false> but was: <true>"
+    }
+   ],
+   "restoredExit": 0
+  },
+  {
+   "name": "rp-pairing-refuses-a-non-record",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "ReplayPairingTest#aFileThatIsNotAReplayIsRefusedWithoutLoadingAnything",
+     "message": "org.opentest4j.AssertionFailedError: a file framed with anything but '---' is not a replay file ==> expected: <false> but was: <true>"
+    }
+   ],
+   "restoredExit": 0
+  },
+  {
+   "name": "rp-writer-holds-the-copy-to-the-digest",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "ReplayBundleTest#aReplayChangedAfterPairingIsRefused",
+     "message": "org.opentest4j.AssertionFailedError: Expected java.io.IOException to be thrown, but nothing was thrown."
+    }
+   ],
+   "restoredExit": 0
+  },
+  {
+   "name": "rp-format2-needs-its-member",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "ReplayBundleTest#claimAndMemberGoTogether",
+     "message": "org.opentest4j.AssertionFailedError: expected: <false> but was: <true>"
+    }
+   ],
+   "restoredExit": 0
+  },
+  {
+   "name": "rp-format1-states-no-replay",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "ReplayBundleTest#claimAndMemberGoTogether",
+     "message": "org.opentest4j.AssertionFailedError: manifest.json cannot be read: a format 1 manifest lists a replay/ member it does not state ==> expected: <true> but was: <false>"
+    }
+   ],
+   "restoredExit": 0
+  },
+  {
+   "name": "rp-verify-states-the-replay-limit",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "MainBundleTest#aReplayBundleSaysWhatItCarries",
+     "message": "org.opentest4j.AssertionFailedError: identity: sha256:1afd1c45710403cb7a6f507b99fcd96dd036af5992ba8c63df1ffc1969dce5a0\nverified: 2 members, each matching the manifest's sha256 and size\nreplay: replay/demo-quote-recorded."
+    }
+   ],
+   "restoredExit": 0
+  },
+  {
+   "name": "rc-only-endtime-is-excepted",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "ReplayCompareTest#anEventTimeIsNeverExcepted",
+     "message": "org.opentest4j.AssertionFailedError: expected: <false> but was: <true>"
+    }
+   ],
+   "restoredExit": 0
+  },
+  {
+   "name": "rc-a-changed-line-diverges",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "ReplayCompareTest#aChangedNodeValueDiverges",
+     "message": "org.opentest4j.AssertionFailedError: expected: <false> but was: <true>"
+    }
+   ],
+   "restoredExit": 0
+  },
+  {
+   "name": "rc-a-missing-line-is-named-missing",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "ReplayCompareTest#aMissingNodeEntryIsNamedAsMissing",
+     "message": "org.opentest4j.AssertionFailedError: expected: <record 1 (OrderUpdateEvent): eventLogRecord.nodeLogs.orderTracker: the bundled log has '{ orderId: ord-1, live: 1}', and the replay has no such line> but was: <record 1 (Or"
+    }
+   ],
+   "restoredExit": 0
+  },
+  {
+   "name": "rc-a-count-difference-diverges",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "ReplayCompareTest#aMissingRecordDiverges",
+     "message": "org.opentest4j.AssertionFailedError: expected: <false> but was: <true>"
+    }
+   ],
+   "restoredExit": 0
+  },
+  {
+   "name": "rc-refuses-a-bundle-without-replay-records",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "ReplayCompareTest#whatCannotBeComparedIsRefused",
+     "message": "org.opentest4j.AssertionFailedError: expected a refusal naming 'carries no replay records', but it compared: agrees=true, divergence=null ==> expected: not <null>"
+    }
+   ],
+   "restoredExit": 0
+  },
+  {
+   "name": "rc-a-divergence-exits-one",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "MainBundleTest#replayCompareExitsByVerdict",
+     "message": "org.opentest4j.AssertionFailedError: identity: sha256:bf269a8d94ae601195afd6eecc25fca75b7e7fc9dc51aff85d77ef2e9ef6c19a\nverified: 4 members, each matching the manifest's sha256 and size\nreplay: DIVERGES at record 7: the b"
+    }
+   ],
+   "restoredExit": 0
+  },
+  {
+   "name": "rn-refuses-a-different-graph",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "ReplayRunnerEndToEndTest#aDifferentGraphIsRefused",
+     "message": "org.opentest4j.AssertionFailedError: expected: <1> but was: <0>"
+    }
+   ],
+   "restoredExit": 0
+  },
+  {
+   "name": "rn-loads-only-handled-types",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "ReplayRunnerEndToEndTest#whatCannotBeReplayedIsRefused",
+     "message": "org.opentest4j.AssertionFailedError: REFUSED: java.lang.NullPointerException: Cannot invoke \"java.lang.Class.isRecord()\" because \"<local2>\" is null\n ==> expected: <true> but was: <false>"
+    }
+   ],
+   "restoredExit": 0
+  },
+  {
+   "name": "rn-replays-at-the-recorded-instant",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "ReplayRunnerEndToEndTest#theBundlesOwnBuildAgrees",
+     "message": "org.opentest4j.AssertionFailedError: null / record 0 (MarketDataEvent): eventLogRecord.eventTime: '1767258000060' ≠ '0' ==> expected: <true> but was: <false>"
+    }
+   ],
+   "restoredExit": 0
+  },
+  {
+   "name": "rn-the-header-names-the-repository",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "ReplayRunnerEndToEndTest#theRunnerResolvesWhereTheAnalyserDoes",
+     "message": "org.opentest4j.AssertionFailedError: expected: <[]> but was: <[//REPOS does not name https://repo.repsy.io/mvn/fluxtion/fluxtion-public: fluxtion-runtime is not on Maven Central]>"
+    }
+   ],
+   "restoredExit": 0
+  },
+  {
+   "name": "rq-escapes-every-line-ending",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "ReplayCodecRoundTripTest#everythingRoundTrips",
+     "message": "org.opentest4j.AssertionFailedError: a record is one line, whatever its strings hold: [U+2028] ==> expected: <true> but was: <false>"
+    }
+   ],
+   "restoredExit": 0
+  },
+  {
+   "name": "rq-null-is-written-bare",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "ReplayCodecRoundTripTest#nullIsNotTheWordNull",
+     "message": "org.opentest4j.AssertionFailedError: ---\n!!com.telamin.fluxtion.runtime.event.ReplayRecord\nevent: !!com.acme.demo.probe.Probe {s: \"null\", c: \"a\", boxedC: \"null\", i: -7, l: -9223372036854775808, d: 0.0, boxedD: \"null\", f:"
+    }
+   ],
+   "restoredExit": 0
+  },
+  {
+   "name": "rq-encodable-is-what-the-readers-read",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "ReplayCodecRoundTripTest#anUnreadableTypeFailsAtBuildTime",
+     "message": "org.opentest4j.AssertionFailedError: Expected java.lang.reflect.InvocationTargetException to be thrown, but nothing was thrown."
+    }
+   ],
+   "restoredExit": 0
+  },
+  {
+   "name": "rn-refuses-an-unquoted-string",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "ReplayCodecRoundTripTest#anUnquotedStringIsRefused",
+     "message": "org.opentest4j.AssertionFailedError: Expected java.lang.reflect.InvocationTargetException to be thrown, but nothing was thrown."
+    }
+   ],
+   "restoredExit": 0
+  },
+  {
+   "name": "rc-a-crlf-log-is-the-same-log",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "ReplayCompareTest#aCrlfLogAgrees",
+     "message": "org.opentest4j.AssertionFailedError: record 0 (MarketDataEvent): eventLogRecord: '' ≠ '' ==> expected: <true> but was: <false>"
+    }
+   ],
+   "restoredExit": 0
+  },
+  {
+   "name": "rc-a-comment-sets-no-header-scope",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "ReplayCompareTest#aCommentDoesNotSetTheHeaderScope",
+     "message": "org.opentest4j.AssertionFailedError: expected: <eventLogRecord.nodeLogs.priceListener.thread: 'DEMO-old' ≠ 'DEMO-new'> but was: <null>"
+    }
+   ],
+   "restoredExit": 0
+  },
+  {
+   "name": "rc-only-the-records-own-fields-are-excepted",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "ReplayCompareTest#aNestedThreadValueIsCompared",
+     "message": "org.opentest4j.AssertionFailedError: expected: <eventLogRecord.nodeLogs.thread: 'x' ≠ 'y'> but was: <null>"
+    }
+   ],
+   "restoredExit": 0
+  },
+  {
+   "name": "rp-counts-what-a-replay-does-not-carry",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "ReplayPairingTest#aReplayCutShortStillPairs_andSaysWhatItDoesNotCarry",
+     "message": "org.opentest4j.AssertionFailedError: two of the log's three MarketDataEvents are not in it ==> expected: <2> but was: <0>"
+    }
+   ],
+   "restoredExit": 0
+  },
+  {
+   "name": "eb-format1-lists-no-replay-member",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "ReplayBundleTest#theMemberRuleHoldsOnRead",
+     "message": "org.opentest4j.AssertionFailedError: expected: <false> but was: <true>"
+    }
+   ],
+   "restoredExit": 0
+  },
+  {
+   "name": "rn-holds-members-to-the-manifest",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "ReplayRunnerEndToEndTest#whatCannotBeReplayedIsRefused",
+     "message": "org.opentest4j.AssertionFailedError: graph: your build's node ids and edges match the bundle's (graph/demo-quote-recorded-processor.graphml); this does not show it is the same code\nmembers: every member matches the manif"
+    }
+   ],
+   "restoredExit": 0
+  },
+  {
+   "name": "rn-warns-of-a-level-change",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "ReplayRunnerEndToEndTest#aLevelChangeInTheLogIsWarnedAbout",
+     "message": "org.opentest4j.AssertionFailedError: graph: your build's node ids and edges match the bundle's (graph/demo-quote-recorded-processor.graphml); this does not show it is the same code\nmembers: every member matches the manif"
+    }
+   ],
+   "restoredExit": 0
+  },
+  {
+   "name": "ax-the-replay-read-is-confined",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "ReplayConfinementTest#aReplayOutsideTheExchangeDirectoryIsRefusedBeforeAnythingReadsIt",
+     "message": "java.lang.AssertionError: report {bundle: {replay}} must refuse, not throw: java.lang.NullPointerException: Cannot invoke \"java.nio.file.Path.toString()\" because the return value of \"telamin.fluxtion.audit.analyser.analy"
+    }
+   ],
+   "restoredExit": 0
+  },
+  {
+   "name": "rq-stamps-the-receipt-instant",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "ReplayCodecRoundTripTest#theWriterStampsTheReceiptInstant",
+     "message": "org.opentest4j.AssertionFailedError: recorded the cycle's instant 1000, not a later read (the clock is now at 1002): ---\n!!com.telamin.fluxtion.runtime.event.ReplayRecord\nevent: !!com.acme.demo.probe.Probe {s: \"x\", c: \"a"
+    }
+   ],
+   "restoredExit": 0
+  },
+  {
+   "name": "rn-bounds-every-member",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "ReplayRunnerEndToEndTest#everyMemberIsBounded",
+     "message": "org.opentest4j.AssertionFailedError: graph: your build's node ids and edges match the bundle's (graph/demo-quote-recorded-processor.graphml); this does not show it is the same code\nmembers: every member matches the manif"
+    }
+   ],
+   "restoredExit": 0
+  },
+  {
+   "name": "rp-counts-the-logs-service-calls",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "ReplayPairingTest#theTestDemoLogPairs_andItsServiceCallsAreCountedForReal",
+     "message": "org.opentest4j.AssertionFailedError: expected: <2> but was: <0>"
+    }
+   ],
+   "restoredExit": 0
+  },
+  {
+   "name": "rp-pairs-by-content-not-only-type-and-instant",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "ReplayPairingTest#aWrongPayloadIsRefused_notPairedByTypeAndInstant",
+     "message": "org.opentest4j.AssertionFailedError: a wrong payload must not pair ==> expected: <false> but was: <true>"
+    }
+   ],
+   "restoredExit": 0
+  },
+  {
+   "name": "rn-validates-the-whole-replay-grammar",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "ReplayRunnerEndToEndTest#aMalformedReplayDocumentIsRefused",
+     "message": "org.opentest4j.AssertionFailedError: REFUSED: the replay member holds 1 records, and the manifest says 7\n ==> expected: <true> but was: <false>"
+    }
+   ],
+   "restoredExit": 0
+  },
+  {
+   "name": "rn-one-replay-member-before-reading",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "ReplayRunnerEndToEndTest#manyReplayMembersAreRefusedBeforeAnyIsRead",
+     "message": "org.opentest4j.AssertionFailedError: updating event log config:EventLogConfig{level=INFO, logRecordProcessor=null, sourceId=null, groupId=null}\ngraph: your build's node ids and edges match the bundle's (graph/demo-quote-"
+    }
+   ],
+   "restoredExit": 0
+  },
+  {
+   "name": "rn-an-unlisted-member-is-never-read",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "ReplayRunnerEndToEndTest#manyReplayMembersAreRefusedBeforeAnyIsRead",
+     "message": "org.opentest4j.AssertionFailedError: REFUSED: java.lang.NullPointerException: Cannot invoke \"ReplayBundle$Listed.bytes()\" because \"<local11>\" is null\n ==> expected: <true> but was: <false>"
+    }
+   ],
+   "restoredExit": 0
+  },
+  {
+   "name": "rn-the-members-together-are-bounded",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "ReplayRunnerEndToEndTest#aLargeValidBundleReplaysInBoundedMemory",
+     "message": "org.opentest4j.AssertionFailedError: updating event log config:EventLogConfig{level=INFO, logRecordProcessor=null, sourceId=null, groupId=null}\ngraph: your build's node ids and edges match the bundle's (graph/demo-quote-"
+    }
+   ],
+   "restoredExit": 0
+  },
+  {
+   "name": "rn-other-members-are-streamed-not-held",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "ReplayRunnerEndToEndTest#aLargeValidBundleReplaysInBoundedMemory",
+     "message": "org.opentest4j.AssertionFailedError: Exception in thread \"main\" java.lang.OutOfMemoryError: Java heap space\n\tat java.base/java.io.InputStream.readNBytes(InputStream.java:448)\n\tat java.base/java.io.InputStream.readAllByte"
+    }
+   ],
+   "restoredExit": 0
+  },
+  {
+   "name": "rn-a-member-is-read-no-further-than-declared",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "ReplayRunnerEndToEndTest#aMemberLongerThanDeclaredIsCutOff",
+     "message": "org.opentest4j.AssertionFailedError: Exception in thread \"main\" java.lang.OutOfMemoryError: Java heap space\n\tat java.base/java.io.InputStream.readNBytes(InputStream.java:408)\n\tat java.base/java.io.InputStream.readAllByte"
+    }
+   ],
+   "restoredExit": 0
+  },
+  {
+   "name": "rn-no-record-is-dropped-for-its-text",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "ReplayRunnerEndToEndTest#anInputNamingTheControlEventKeepsItsRecord",
+     "message": "org.opentest4j.AssertionFailedError: the first input's record was dropped for its text: graph: your build's node ids and edges match the bundle's (graph/demo-quote-recorded-processor.graphml); this does not show it is th"
+    }
+   ],
+   "restoredExit": 0
+  },
+  {
+   "name": "rq-records-only-the-named-object",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "ReplayFixtureTest#onlyTheExternalObjectIsRecorded",
+     "message": "org.opentest4j.AssertionFailedError: the seven inputs and the external breach, never the graph's: ---\n!!com.telamin.fluxtion.runtime.event.ReplayRecord\nevent: !!com.acme.demo.event.Events$MarketDataEvent {symbol: \"DEMO-A"
+    }
+   ],
+   "restoredExit": 0
+  },
+  {
+   "name": "dg-no-run-identity-claim",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "EvidenceBundleDocsTest#theReplayIsDescribedAsTheChecksShowIt",
+     "message": "org.opentest4j.AssertionFailedError: an unsupported claim: cannot be from another run ==> expected: <false> but was: <true>"
+    }
+   ],
+   "restoredExit": 0
+  },
+  {
+   "name": "rf-the-producers-bytes-are-kept",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "ReplayFixtureTest#theProducersBytesAreKept",
+     "message": "org.opentest4j.AssertionFailedError: src/test/resources/replay/demo-quote-recorded-audit.yaml: every record header as Fluxtion wrote it ==> expected: <8> but was: <7>"
+    }
+   ],
+   "restoredExit": 0
+  },
+  {
+   "name": "rn-the-count-is-the-manifests",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "ReplayRunnerEndToEndTest#aReplayThatLosesInputIsRefused",
+     "message": "org.opentest4j.AssertionFailedError: graph: your build's node ids and edges match the bundle's (graph/demo-quote-recorded-processor.graphml); this does not show it is the same code\nmembers: every member matches the manif"
+    }
+   ],
+   "restoredExit": 0
+  },
+  {
+   "name": "rn-a-component-needs-its-name",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "ReplayCodecRoundTripTest#bothReadersRequireTheWholeGrammar",
+     "message": "org.opentest4j.AssertionFailedError: java.lang.StringIndexOutOfBoundsException: Range [0, -1) out of bounds for length 5 ==> expected: <true> but was: <false>"
+    }
+   ],
+   "restoredExit": 0
+  },
+  {
+   "name": "rq-demo-reader-a-component-needs-its-name",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "ReplayCodecRoundTripTest#bothReadersRequireTheWholeGrammar",
+     "message": "org.opentest4j.AssertionFailedError: java.lang.StringIndexOutOfBoundsException: Range [0, -1) out of bounds for length 5 ==> expected: <true> but was: <false>"
+    }
+   ],
+   "restoredExit": 0
+  },
+  {
+   "name": "rn-json-nothing-after-the-value",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "ReplayRunnerEndToEndTest#anyValidSpellingOfTheManifestReplays",
+     "message": "org.opentest4j.AssertionFailedError: {\"format\":2,\"createdAt\":\"2026-09-28T12:00:00Z\",\"analyser\":\"test\",\"log\":{\"member\":\"log/demo-quote-recorded-audit.yaml\"},\"graph\":{\"member\":\"graph/demo-quote-recorded-processor.graphml\"}"
+    }
+   ],
+   "restoredExit": 0
+  },
+  {
+   "name": "rn-json-a-key-once",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "ReplayRunnerEndToEndTest#anyValidSpellingOfTheManifestReplays",
+     "message": "org.opentest4j.AssertionFailedError: {\"format\":1,\"format\":2,\"createdAt\":\"2026-09-28T12:00:00Z\",\"analyser\":\"test\",\"log\":{\"member\":\"log/demo-quote-recorded-audit.yaml\"},\"graph\":{\"member\":\"graph/demo-quote-recorded-processo"
+    }
+   ],
+   "restoredExit": 0
+  },
+  {
+   "name": "rn-json-a-whole-number-is-whole",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "ReplayRunnerEndToEndTest#anyValidSpellingOfTheManifestReplays",
+     "message": "org.opentest4j.AssertionFailedError: REFUSED: manifest.json: a member needs path, sha256 and a non-negative whole bytes\n ==> expected: <0> but was: <1>"
+    }
+   ],
+   "restoredExit": 0
+  }
+ ]
+}

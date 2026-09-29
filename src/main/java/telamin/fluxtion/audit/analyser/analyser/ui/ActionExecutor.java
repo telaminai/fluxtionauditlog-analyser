@@ -245,9 +245,21 @@ public final class ActionExecutor implements RenderExecutor {
                     if (replay != null && !(replay instanceof String r && !r.isBlank())) {
                         return ActionResult.error("bundle 'replay' is the path of the run's replay records");
                     }
+                    // a READ, so the read confinement every other verb read has (D-F4): inside the exchange directory,
+                    // or a file the person picked this session; nothing else is opened, or even tested for existence
+                    String replayPath = null;
+                    if (replay != null) {
+                        var cfg = exportConfig == null ? null : exportConfig.get();
+                        var read = telamin.fluxtion.audit.analyser.analyser.llm.ExportGuard.resolveRead((String) replay,
+                                cfg != null && cfg.assistantExports,
+                                telamin.fluxtion.audit.analyser.analyser.config.ExchangeDir.of(cfg).dir(), readGrants.get());
+                        if (read.error() != null) return ActionResult.error("bundle 'replay': " + read.error());
+                        replayPath = read.path().toString();
+                    }
+                    final String confinedReplay = replayPath;
                     return onEdt(() -> app == null
                             ? ActionResult.error("'report' is not enabled here")
-                            : app.captureBundle(out.path().toString(), (String) notes, from, to, (String) replay));
+                            : app.captureBundle(out.path().toString(), (String) notes, from, to, confinedReplay));
                 }
                 if (params.containsKey("restore")) {
                     if (params.size() != 1) return ActionResult.error("report 'restore' must be used alone");

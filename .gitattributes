@@ -34,3 +34,11 @@ docs/handoff/evidence/m68-1-rereview-2026-09-24/set7-p38-e2e-4251bae3.txt whites
 # MA-0's whitespace-only fixture is three blank lines and nothing else: the blank lines at its end ARE the fixture.
 # Only the end-of-file check is switched off, so a trailing space or a tab-space fault would still be caught.
 src/test/resources/conformance/c27-whitespace-only.yaml whitespace=-blank-at-eof
+
+# The replay fixtures (M70.R1) are what the generated DEMO processor wrote: its recorded run's audit log, and the log a
+# replay of it wrote (GenerateFixtures.writeReplay, which refuses to write them unless the replay reproduces the log).
+# Fluxtion writes `eventLogRecord: ` and `nodeLogs: ` WITH a trailing space, as c21 above records, and --replay-compare
+# compares these bytes line for line, so trimming them would change the comparison's evidence (PR #70 review 9). Only
+# the end-of-line check is switched off; ReplayFixtureTest#theProducersBytesAreKept fails if they are ever trimmed.
+src/test/resources/replay/demo-quote-recorded-audit.yaml whitespace=-blank-at-eol
+src/test/resources/replay/demo-quote-recorded.replayed-audit.yaml whitespace=-blank-at-eol

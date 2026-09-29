@@ -14,7 +14,7 @@ report {bundle: {path, notes?, from?, to?, replay?}}
 | `path` | the `.fexp`, inside the exchange directory; never overwritten |
 | `notes` | your account, packed as `notes/NOTES.md` |
 | `from`, `to` | epoch millis: pack only that window of records, as an excerpt ([Sending](sending.md#an-excerpt-only-the-part-that-matters)) |
-| `replay` | the path of the run's replay records, written by a replay writer in the same run as the log. Packed as the `replay/` member. They must pair with the log: each record is one of the log's records, at its `eventTime`, in order. Refused with `from`/`to`, while the log is still growing, or when they do not pair. The log's exported-service calls are counted, because replay records do not carry them |
+| `replay` | the path of the run's replay records, written by a replay writer in the same run as the log. Like every file the analyser reads for an assistant, it must be **inside the exchange directory** (a relative name resolves there), or a file you picked this session. Packed as the `replay/` member. Each record must match one of the log's records, in order: the same type, at its `eventTime`, with the same content as the event the log prints (`eventToString`). Where the log does not print an event, that input is matched by type and instant only, and the capture and `--verify` say how many were. Refused with `from`/`to`, while Follow is on (the run may not have ended), or when a record does not match. The log's exported-service calls are counted, because replay records do not carry them |
 
 The echo says `phase: WRITING`. **`context.capture`** then says `WRITTEN`, with the `identity` and `lines` (what
 was left out, redacted or excerpted), or `REFUSED`, with the `reason`. A refusal the analyser can make at once, such
@@ -100,9 +100,19 @@ jbang tools/replay/ReplayBundle.java --bundle breach-0900.fexp \
 It runs your build, which is why it is a separate program and not part of the analyser. It checks the build first,
 feeds the replay records in, and writes the audit log `--replay-compare` reads:
 
-- **Is your build the bundle's processor?** It compares the nodes and edges of your build's GraphML
+- **Does your build's graph match the bundle's?** It compares the node ids and edges of your build's GraphML
   (`<Class>.graphml`, written by the generator beside the class) with the bundle's `graph/` member. It refuses
-  naming the difference. `--skip-graph-check` goes on anyway and prints `graph: NOT checked`.
+  naming the difference. A match is graph compatibility: the same nodes, wired the same way. It does not show the
+  same code, which is what the replay tests. `--skip-graph-check` goes on anyway and prints `graph: NOT checked`.
+- **The bundle is what its manifest says.** The manifest is read as JSON, in any valid spelling, and held to the
+  bundle schema: one replay member, at most one graph, every member listed. Every member must match its digest and
+  size, within a per-member limit (`-DreplayBundle.maxMemberBytes`, 512 MiB) and a whole-bundle limit
+  (`-DreplayBundle.maxBundleBytes`, 4 GiB). The graph has its own limits (`-DreplayBundle.maxGraphBytes`, 8 MiB;
+  `-DreplayBundle.maxGraphElements`, 100,000 nodes and edges) and is read as a stream; a DOCTYPE in it is refused.
+  No member is held in memory whole.
+- **The whole replay, before your build runs.** Every replay record is read and built first. A malformed record
+  anywhere, or a count other than the manifest's, is refused before your processor sees an input. The audit log
+  appears only when the replay completes.
 - **Only your build's event types.** A replay record is read only as one of the event types your processor's
   `handleEvent` methods take. Any other type is refused and never loaded.
 - **The recorded instant.** Each record is fed in on a data-driven clock set to its instant, so the processor reads
@@ -121,6 +131,10 @@ where a cycle ran, never what it computed. `endTime` is the live clock reading a
 the clock at the recorded instant. `thread` names the thread the cycle ran on, and your replay runs on its own. Nothing
 else is excepted: an input's `eventTime`, the times of an event the graph raised itself, and every node's values must
 all agree. The exceptions are by position, so a record whose `endTime` line is missing on one side still differs.
+Only the record's **own** two lines are excepted: the one line whose key path is `eventLogRecord.thread`, before
+`nodeLogs`, and the one whose path is `eventLogRecord.endTime`, the record's last line. A node's value named `thread`
+is compared. So is a line a logged string puts at the record's own indent (Fluxtion writes a string's newline as it
+is): where the record's own line is not unambiguous, nothing is excepted, and the record differs rather than agrees.
 
 - **Agrees:** `replay: AGREES, 8 of 8 records (endTime and thread excepted, differing on 8: when and where a cycle
   ran, which a replay cannot know)`.

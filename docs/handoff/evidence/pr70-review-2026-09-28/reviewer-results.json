@@ -1,0 +1,73 @@
+{
+  "head": "faf0fd2c",
+  "headless": [
+    2855,
+    0,
+    0,
+    170
+  ],
+  "reports": 380,
+  "orphans": [],
+  "frame": [
+    15,
+    0,
+    0,
+    0
+  ],
+  "caught": 33,
+  "exactRequestedSet": true,
+  "demo": {
+    "passed": 57,
+    "failed": 0
+  },
+  "manualRecorderMutation": {
+    "head": "2f71c970",
+    "identityGuardRemoved": [
+      47,
+      0,
+      0,
+      0
+    ],
+    "restored": [
+      47,
+      0,
+      0,
+      0
+    ],
+    "sourceRestoredByteIdentical": true
+  },
+  "publicationChecks": {
+    "headless": [
+      2855,
+      0,
+      0,
+      170
+    ],
+    "reports": 380,
+    "orphans": [],
+    "specLinks": [
+      3,
+      0,
+      0,
+      0
+    ]
+  },
+  "ciFinal": {
+    "run": 36486319466,
+    "head": "faf0fd2c",
+    "conclusion": "success",
+    "build": [
+      2855,
+      0,
+      0,
+      170
+    ],
+    "display": [
+      168,
+      0,
+      0,
+      0
+    ],
+    "controlsCaughtExactlyOnce": 482
+  }
+}

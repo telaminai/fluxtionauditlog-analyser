@@ -87,6 +87,16 @@ public final class AuditText {
      * True when {@code s} holds nothing but whitespace and byte-order marks, wherever they sit. Used only
      * where a reader decides whether there is anything to sniff at all ({@code YamlAuditReader}).
      */
+    /**
+     * {@code s} without leading byte-order marks: the one rule, for a reader outside this package that reads a line of a
+     * file the analyser was handed (the replay pairing, M70 review N3), so it does not keep a copy of its own.
+     */
+    public static String withoutLeadingBom(String s) {
+        int i = 0;
+        while (i < s.length() && isBom(s.charAt(i))) i++;
+        return s.substring(i);
+    }
+
     public static boolean isBlankIgnoringBoms(String s) {
         for (int i = 0; i < s.length(); i++) {
             char c = s.charAt(i);
