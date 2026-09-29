@@ -366,6 +366,10 @@ public final class EvidenceBundle {
         if (!member.startsWith(REPLAY_DIR) || members.stream().noneMatch(mm -> mm.path().equals(member))) {
             throw new IllegalArgumentException("the replay member " + member + " is not listed");
         }
+        // the count is required (PR #70 re-review S4): the writer always states it, and a reader holds the member to it
+        if (!(r.get("records") instanceof Number n) || n.doubleValue() < 0 || n.doubleValue() != Math.rint(n.doubleValue())) {
+            throw new IllegalArgumentException("a format " + FORMAT_REPLAY + " manifest's replay needs its records count");
+        }
         return Map.copyOf((Map<String, Object>) r);
     }
 

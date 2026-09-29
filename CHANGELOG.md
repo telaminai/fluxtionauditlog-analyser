@@ -16,7 +16,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   says how many were, rather than calling them checked. It is also refused with a time window, or while Follow is on, because a replay needs
   the whole run. The records are packed as the `replay/` member of a **format 2** bundle, and a bundle without them
   stays format 1, unchanged. The capture says how many recorded inputs it carries, and how many exported-service
-  calls the log holds that replay records cannot carry. `--verify` prints the same, with the bundle's replay limit.
+  calls the log holds that replay records cannot carry. `--verify` prints the same, with the bundle's replay limit, and refuses a format 2 bundle whose replay does not state
+  its records count.
   Nothing in the analyser replays them: you replay them into your own build, then compare. The replay file must sit
   in the exchange directory, like any file the analyser reads for an assistant. Replay records that do not carry
   every record of their own event types, such as a replay cut short, are named in the capture.

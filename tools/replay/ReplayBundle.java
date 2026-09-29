@@ -234,7 +234,12 @@ public class ReplayBundle {
                 Files.deleteIfExists(part);
                 throw x;
             }
-            Files.move(part, a.out());
+            try {
+                Files.move(part, a.out());                    // refuses an --out that appeared since the check
+            } catch (IOException x) {
+                Files.deleteIfExists(part);
+                throw x;
+            }
             out.println(graphLine);
             out.println("members: every member matches the manifest (for the bundle's identity: analyser --verify)");
             if (taken.levelChanges() > 0) {
@@ -339,12 +344,10 @@ public class ReplayBundle {
             }
             if (replays != 1) throw new Refused("the bundle lists " + replays + " replay/ members, not one");
             if (!member.startsWith("replay/") || !members.containsKey(member)) throw new Refused("the replay member " + member + " is not listed");
-            Object n = rm.get("records");
-            if (n != null) {
-                Long c = whole(n);
-                if (c == null || c < 0 || c > Integer.MAX_VALUE) throw new Refused("manifest.json: replay records is not a count");
-                replayRecords = (int) (long) c;
-            }
+            // the count is required (re-review S4): the analyser always writes it, and the runner holds the member to it
+            Long c = whole(rm.get("records"));
+            if (c == null || c < 0 || c > Integer.MAX_VALUE) throw new Refused("manifest.json: the replay's records is not a count");
+            replayRecords = (int) (long) c;
             replayMember = member;
         }
         return new Manifest(f.intValue(), members, replayMember, replayRecords);
@@ -367,7 +370,11 @@ public class ReplayBundle {
         try (ZipInputStream zip = new ZipInputStream(Files.newInputStream(bundle))) {
             ZipEntry e;
             while ((e = zip.getNextEntry()) != null) {
-                if (e.isDirectory()) continue;
+                if (e.isDirectory()) {
+                    // a directory holds nothing: one with content is refused before it is inflated (re-review S4)
+                    if (zip.read() >= 0) throw new Refused("the directory entry " + e.getName() + " has content");
+                    continue;
+                }
                 String name = e.getName();
                 if (manifest == null) {
                     if (!name.equals("manifest.json")) throw new Refused("no manifest.json first: this is not an evidence bundle");

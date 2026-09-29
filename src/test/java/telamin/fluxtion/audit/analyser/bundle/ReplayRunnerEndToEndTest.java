@@ -618,6 +618,39 @@ class ReplayRunnerEndToEndTest {
         assertFalse(Files.exists(out), "nothing written");
     }
 
+    @Test
+    @DisplayName("PR #70 re-review S4: a replay must state its records count; a directory entry must be empty")
+    @SuppressWarnings("unchecked")
+    void aReplayStatesItsCount_andADirectoryHoldsNothing(@TempDir Path tmp) throws Exception {
+        Path bundle = ReplayCompareTest.bundle(tmp);
+        Path build = build(tmp, "same", null);
+        var entries = EvidenceBundleTest.entries(bundle);
+        var m = manifest(entries);
+        ((java.util.Map<String, Object>) m.get("replay")).remove("records");
+        putManifest(entries, m, Style.COMPACT);
+        Path uncounted = EvidenceBundleTest.zip(tmp.resolve("uncounted.fexp"), entries);
+        var v = EvidenceBundle.verify(uncounted);
+        assertFalse(v.ok(), "verify once printed 'the run's null recorded inputs' for this");
+        assertTrue(v.refusal().contains("manifest's replay needs its records count"), v.refusal());
+        Run r = runner(tmp, "--bundle", uncounted.toString(), "--processor", PROCESSOR, "--cp", build.toString(),
+                "--out", tmp.resolve("u.yaml").toString());
+        assertEquals(1, r.code(), r.out());
+        assertTrue(r.err().contains("REFUSED: manifest.json: the replay's records is not a count"), r.err());
+
+        var padded = EvidenceBundleTest.entries(bundle);
+        padded.put("pad/", new byte[1024]);            // a directory entry, with content the runner never needs
+        Run d = runner(tmp, "--bundle", EvidenceBundleTest.zip(tmp.resolve("pad.fexp"), padded).toString(),
+                "--processor", PROCESSOR, "--cp", build.toString(), "--out", tmp.resolve("d.yaml").toString());
+        assertEquals(1, d.code(), d.out());
+        assertTrue(d.err().contains("REFUSED: the directory entry pad/ has content"), d.err());
+        // control: an empty directory entry is allowed, as before
+        var empty = EvidenceBundleTest.entries(bundle);
+        empty.put("pad/", new byte[0]);
+        Run e = runner(tmp, "--bundle", EvidenceBundleTest.zip(tmp.resolve("empty-dir.fexp"), empty).toString(),
+                "--processor", PROCESSOR, "--cp", build.toString(), "--out", tmp.resolve("e.yaml").toString());
+        assertEquals(0, e.code(), e.err());
+    }
+
     // ---- PR #70 review 3: the runner's set-up is left out by when it happens, never by what a record says --------
 
     @Test

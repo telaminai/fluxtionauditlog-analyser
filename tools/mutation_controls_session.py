@@ -1395,6 +1395,8 @@ CONTROLS = [
     ('rn-one-replay-member-before-reading', RUNNER,
      '            if (replays != 1) throw new Refused("the bundle lists " + replays + " replay/ members, not one");\n', '',
      'ReplayRunnerEndToEndTest#manyReplayMembersAreRefusedBeforeAnyIsRead'),
+    # guards the refusal's NAME only (re-review S4): undone, the member is still refused unread, by a
+    # NullPointerException refusal; the named refusal is the user-visible contract it keeps
     ('rn-an-unlisted-member-is-never-read', RUNNER,
      '                if (want == null) throw new Refused(name + " is not listed in the manifest");\n', '',
      'ReplayRunnerEndToEndTest#manyReplayMembersAreRefusedBeforeAnyIsRead'),
@@ -1444,11 +1446,29 @@ CONTROLS = [
     ('rn-a-graph-doctype-is-refused', RUNNER,
      '                if (e == javax.xml.stream.XMLStreamConstants.DTD) throw new Refused(name + " has a DOCTYPE, which the runner does not read");\n',
      '', 'ReplayRunnerEndToEndTest#aLargeGraphIsReadAsAStream'),
+    # re-review S4: a replay states its count (both readers); a directory entry holds nothing
+    ('rn-a-replay-states-its-count', RUNNER,
+     '            if (c == null || c < 0 || c > Integer.MAX_VALUE) throw new Refused("manifest.json: the replay\'s records is not a count");\n',
+     '            if (c == null) c = -1L;\n',
+     'ReplayRunnerEndToEndTest#aReplayStatesItsCount_andADirectoryHoldsNothing'),
+    ('eb-format2-states-its-records', BUNDLE,
+     '        if (!(r.get("records") instanceof Number n) || n.doubleValue() < 0 || n.doubleValue() != Math.rint(n.doubleValue())) {\n',
+     '        if (false) {\n',
+     'ReplayRunnerEndToEndTest#aReplayStatesItsCount_andADirectoryHoldsNothing'),
+    ('rn-a-directory-holds-nothing', RUNNER,
+     '                    if (zip.read() >= 0) throw new Refused("the directory entry " + e.getName() + " has content");\n', '',
+     'ReplayRunnerEndToEndTest#aReplayStatesItsCount_andADirectoryHoldsNothing'),
+    ('rf-no-broader-whitespace-exception', '.gitattributes',
+     'src/test/resources/replay/demo-quote-recorded-audit.yaml whitespace=-blank-at-eol\n',
+     'src/test/resources/replay/*.yaml -whitespace\nsrc/test/resources/replay/demo-quote-recorded-audit.yaml whitespace=-blank-at-eol\n',
+     'ReplayFixtureTest#theProducersBytesAreKept'),
     # finding 4: the member is read whole and counted before the processor runs; no reader takes a nameless field
     ('rn-the-count-is-the-manifests', RUNNER,
      '            if (taken.declaredRecords() != null && taken.declaredRecords() != inputs) {\n',
      '            if (false) {\n',
      'ReplayRunnerEndToEndTest#aReplayThatLosesInputIsRefused'),
+    # this and the next guard the refusal's NAME only (re-review S4): undone, a nameless component is still refused
+    # before anything runs, by a StringIndexOutOfBoundsException refusal
     ('rn-a-component-needs-its-name', RUNNER,
      '            if (colon < 0) throw new Refused(type.getName() + ": not a component: " + kv.strip());\n', '',
      'ReplayCodecRoundTripTest#bothReadersRequireTheWholeGrammar'),

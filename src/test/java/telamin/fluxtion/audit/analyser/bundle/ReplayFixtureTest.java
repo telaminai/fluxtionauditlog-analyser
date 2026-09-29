@@ -148,8 +148,19 @@ class ReplayFixtureTest {
             String text = Files.readString(p);
             assertEquals(8, text.split("eventLogRecord: \n", -1).length - 1, p + ": every record header as Fluxtion wrote it");
             assertEquals(8, text.split("    nodeLogs: \n", -1).length - 1, p + ": every nodeLogs key as Fluxtion wrote it");
-            assertTrue(Files.readString(Path.of(".gitattributes")).contains(DIR.resolve(p.getFileName()) + " whitespace=-blank-at-eol"),
-                    p + " has its narrow whitespace exception, and only that");
+            // its narrow exception, and only that (re-review S4): no other line of .gitattributes reaches this file
+            String self = DIR.resolve(p.getFileName()).toString();
+            List<String> reaching = new ArrayList<>();
+            for (String line : Files.readAllLines(Path.of(".gitattributes"))) {
+                String t = line.strip();
+                if (t.isEmpty() || t.startsWith("#")) continue;
+                String pattern = t.split("\\s+")[0];
+                boolean reaches = pattern.equals(self) || (!pattern.contains("/") && java.nio.file.FileSystems.getDefault()
+                        .getPathMatcher("glob:" + pattern).matches(p.getFileName()))
+                        || java.nio.file.FileSystems.getDefault().getPathMatcher("glob:" + pattern).matches(Path.of(self));
+                if (reaches) reaching.add(t);
+            }
+            assertEquals(List.of(self + " whitespace=-blank-at-eol"), reaching, p + ": exactly its narrow exception");
         }
     }
 }
