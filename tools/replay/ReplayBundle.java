@@ -59,9 +59,10 @@ import java.util.zip.ZipInputStream;
  *   <li>a replay record names an event type your processor does not handle. The allow-list is YOUR build's: the event
  *   types its generated {@code handleEvent} methods take. Nothing the bundle names is loaded otherwise.</li>
  * </ul>
- * The audit log is written as the producer's fixtures are: each record framed by {@code ---}, every record the
- * processor emits, whatever it says. The runner's set-up (the clock, the level, the sink) emits none. The file appears
- * only when the replay completes.
+ * The audit log is written as the producer's fixtures are: each record framed by {@code ---}. What the runner's own
+ * set-up (the clock, the level, the sink) emits, before the first recorded input, is left out: a build generated with
+ * tracing on writes a record for it. Every record after that is written, whatever it says. The file appears only when
+ * the replay completes.
  */
 public class ReplayBundle {
 
@@ -202,13 +203,15 @@ public class ReplayBundle {
                 DataFlow p = (DataFlow) type.getDeclaredConstructor().newInstance();
                 p.init();
                 long[] now = {0};
+                boolean[] replaying = {false};
                 p.onEvent(ClockStrategy.registerClockEvent(() -> now[0]));      // data-driven: each record's instant
                 p.setAuditLogLevel(EventLogControlEvent.LogLevel.valueOf(a.level()));
-                // every record the processor emits is written, whatever it says (PR #70 review 3: a filter on the text
-                // "event: EventLogControlEvent" deleted a business record that printed it). The set-up above emits no
-                // audit record into this sink, in either order (observed on runtime 1.0.16, and asserted by
-                // ReplayRunnerEndToEndTest#theBundlesOwnBuildAgrees), so there is nothing of the runner's to leave out
+                // what the runner's set-up emits is left out by WHEN it is written, before the first replay input, never
+                // by what a record says (PR #70 review 3: a text filter deleted a business record that printed the
+                // phrase). A build generated with tracing on writes a record for the set-up's own control event into
+                // this sink (re-review C1); one with tracing off writes none. Every record after it is written
                 p.setAuditLogProcessor(r -> {
+                    if (!replaying[0]) return;
                     try {
                         log.write("---\n");
                         log.write(r.toString());
@@ -218,6 +221,7 @@ public class ReplayBundle {
                         throw new java.io.UncheckedIOException(x);
                     }
                 });
+                replaying[0] = true;
                 forEachRecord(taken.replay(), handled, e -> {
                     now[0] = (Long) e[1];
                     p.onEvent(e[0]);

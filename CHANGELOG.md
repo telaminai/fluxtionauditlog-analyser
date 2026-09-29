@@ -40,8 +40,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   at a time. It reads the whole replay member before your processor runs, and refuses a malformed record, or a count
   other than the manifest's. It writes its output only when the replay completes. It warns when the bundled log
   changes its audit level mid-run. It loads only the event types your processor handles, and replays each record at
-  its recorded instant on a data-driven clock. It writes the audit log for `--replay-compare`, every record the
-  processor emits.
+  its recorded instant on a data-driven clock. It writes the audit log for `--replay-compare`: every record the
+  processor emits from the first recorded input on, whatever it says. What its own set-up emits before that is
+  left out, so a build generated with tracing on agrees with its own bundle.
 - **The docs say what a replay check shows, and no more.** *Evidence bundles ▸ With an assistant* walks through a
   replay with an assistant, recorded from a real run. Its prose says that pairing is consistency evidence, not proof
   of which run wrote the records, and that a log with no exported-service calls is not thereby complete. It also says

@@ -1397,8 +1397,11 @@ CONTROLS = [
      '                var bounded = new BoundedStream(zip, name, Long.MAX_VALUE, "the manifest\'s " + want.bytes() + " bytes");\n',
      'ReplayRunnerEndToEndTest#aMemberLongerThanDeclaredIsCutOff'),
     # finding 3: the runner's set-up is left out by when it happens; a record's text never decides
-    # the set-up emits no record into the sink (a guard removing one survived as an equivalent mutant, so there is
-    # none); theBundlesOwnBuildAgrees asserts that. The control re-adds the text filter the review found
+    # re-review C1: what set-up writes is left out by WHEN (before the first replay input); a build generated with
+    # tracing on writes one such record, so the guard is not equivalent. The second control re-adds the text filter
+    ('rn-set-up-is-left-out-by-when', RUNNER,
+     '                    if (!replaying[0]) return;\n', '',
+     'ReplayRunnerEndToEndTest#aTracingBuildAgreesWithItsOwnBundle'),
     ('rn-no-record-is-dropped-for-its-text', RUNNER,
      '                        log.write("---\\n");\n',
      '                        if (r.toString().contains("event: EventLogControlEvent")) return;\n                        log.write("---\\n");\n',

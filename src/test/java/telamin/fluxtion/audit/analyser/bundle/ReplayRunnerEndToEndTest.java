@@ -42,6 +42,14 @@ class ReplayRunnerEndToEndTest {
 
     /** A recipient's build: the DEMO sources (no builder: it needs the compiler), compiled, with the generator's GraphML. */
     static Path build(Path tmp, String name, String riskLimit) throws Exception {
+        return build(tmp, name, riskLimit, false);
+    }
+
+    /**
+     * As above; {@code tracing} is the generator's trace option switched on in the generated processor, the only
+     * change (PR #70 re-review C1: a tracing build writes a record for the control events set-up dispatches).
+     */
+    static Path build(Path tmp, String name, String riskLimit, boolean tracing) throws Exception {
         Path src = tmp.resolve(name + "-src"), classes = Files.createDirectories(tmp.resolve(name + "-classes"));
         List<String> files = new ArrayList<>();
         try (Stream<Path> walk = Files.walk(DEMO_SRC)) {
@@ -55,6 +63,12 @@ class ReplayRunnerEndToEndTest {
                     String was = "new com.acme.demo.node.Nodes.RiskMonitor(orderTracker, 2)";
                     assertTrue(text.contains(was), "the changed build edits the generated processor's risk limit");
                     text = text.replace(was, "new com.acme.demo.node.Nodes.RiskMonitor(orderTracker, " + riskLimit + ")");
+                }
+                if (tracing && rel.endsWith("DemoQuoteRecordedProcessor.java")) {
+                    assertTrue(text.contains("eventLogger.trace = false;") && text.contains("eventLogger.traceLevel = LogLevel.NONE;"),
+                            "the tracing build edits the generated processor's trace option");
+                    text = text.replace("eventLogger.trace = false;", "eventLogger.trace = true;")
+                            .replace("eventLogger.traceLevel = LogLevel.NONE;", "eventLogger.traceLevel = LogLevel.INFO;");
                 }
                 Files.writeString(to, text);
                 files.add(to.toString());
@@ -571,6 +585,39 @@ class ReplayRunnerEndToEndTest {
         var c = ReplayCompare.compare(bundle, out, 256);
         assertTrue(c.agrees(), c.refusal() + " / " + c.divergence());
         assertEquals(8, c.records());
+    }
+
+    @Test
+    @DisplayName("PR #70 re-review C1: a build generated with tracing on replays its own bundle and AGREES, no set-up record")
+    void aTracingBuildAgreesWithItsOwnBundle(@TempDir Path tmp) throws Exception {
+        Path build = build(tmp, "tracing", null, true);
+        // the tracing build's own run, driven directly as a producer drives it, bundled with its replay records
+        String replayText = Files.readString(ReplayBundleTest.REPLAY);
+        String[] direct = LiveRecording.run(tmp, build, replayText, false);
+        Path log = tmp.resolve("tracing-audit.yaml");
+        Files.writeString(log, direct[1]);
+        ReplayPairing.Observed o;
+        try (var store = telamin.fluxtion.audit.analyser.analyser.parse.LogStores.open(log, 256)) {
+            o = ReplayPairing.observe(ReplayBundleTest.REPLAY, store.index(), store.size());
+        }
+        assertTrue(o.pairs(), o.problem());
+        Path own = tmp.resolve("tracing.fexp");
+        BundleWriter.write(new BundleWriter.Job(own, log, ReplayBundleTest.GRAPH, "project.fluxtion-settings",
+                Files.readAllBytes(BundleProfileTest.FIXTURE), null, null, java.time.Instant.now(), "test", 256, null, false,
+                ReplayBundleTest.REPLAY, o.records(), o.serviceCalls(), o.sha256()));
+        // and the committed bundle, which a non-tracing build wrote: the reviewer's probe
+        for (Path bundle : List.of(own, ReplayCompareTest.bundle(tmp.resolve("committed")))) {
+            Path out = tmp.resolve(bundle.getFileName() + ".replayed.yaml");
+            Run r = runner(tmp, "--bundle", bundle.toString(), "--processor", PROCESSOR, "--cp", build.toString(),
+                    "--out", out.toString());
+            assertEquals(0, r.code(), r.err());
+            assertFalse(Files.readString(out).lines().anyMatch(l -> l.strip().equals("event: EventLogControlEvent")),
+                    bundle.getFileName() + ": the runner's set-up is not in the replayed log");
+            assertTrue(r.out().contains("(8 audit records)"), bundle.getFileName() + ": " + r.out());
+            var c = ReplayCompare.compare(bundle, out, 256);
+            assertTrue(c.agrees(), bundle.getFileName() + ": " + c.refusal() + " / " + c.divergence());
+            assertEquals(8, c.records());
+        }
     }
 
     // ---- PR #70 review 4: a replay is read whole, and counted, before your processor runs --------------------------

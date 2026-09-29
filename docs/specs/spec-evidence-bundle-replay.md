@@ -287,8 +287,10 @@ jbang tools/replay/ReplayBundle.java --bundle run.fexp \
    A type outside them is refused and never loaded.
 4. It feeds each record into a fresh instance of your processor with a data-driven clock set to the record's instant.
    The graph raises its own events again by itself.
-5. It writes the processor's audit log, framed as the producer's is, every record the processor emits (the runner's
-   set-up emits none; PR #70 review 3), and prints the `--replay-compare` command to run next. The file appears only
+5. It writes the processor's audit log, framed as the producer's is: every record the processor emits from the first
+   replay input on, whatever it says (PR #70 review 3). What the runner's own set-up emits before that is left out by
+   WHEN it is written: a build generated with tracing on writes a record for the set-up's control event, one with
+   tracing off writes none (re-review C1). It prints the `--replay-compare` command to run next. The file appears only
    when the replay completes.
 
 It refuses, by name, exit 1: a build whose graph's node ids and edges do not match the bundle's (a match is graph
@@ -479,7 +481,7 @@ assertion, and a registered control (rule 8). Predictions were recorded before t
 |---|---|---|
 | 1 an indented comment set the header scope, so a nested `thread` was excepted: a false AGREES | fixed: the record's field scope is the first CONTENT line under its top-level key; comments set nothing | `ReplayCompareTest#aCommentDoesNotSetTheHeaderScope`; `rc-a-comment-sets-no-header-scope` |
 | 2 many hashed `replay/` members exhausted the runner's heap before cardinality was checked | fixed: the manifest schema (one replay, at most one graph) and a whole-bundle limit are checked before any member is read; every member is held to its declared size as it streams; the replay is spooled and read a line at a time; only the graph is held | three `-Xmx64m` child-JVM tests in `ReplayRunnerEndToEndTest`; five `rn-` controls |
-| 3 a text filter dropped a business record naming the control event | fixed: the filter is removed. The runner's set-up emits no audit record into the sink (observed; a set-up guard survived as an equivalent mutant) | `anInputNamingTheControlEventKeepsItsRecord` (a direct capture of the same build, bundled, replays and AGREES); `rn-no-record-is-dropped-for-its-text` |
+| 3 a text filter dropped a business record naming the control event | fixed: the filter is removed. **Corrected by the re-review (C1):** the claim that set-up emits no audit record was true only of a build generated with tracing off; with tracing on, the set-up's control event is written into the sink, and a tracing build DIVERGED from its own bundle. What set-up emits is now left out by when it is written (before the first replay input) | `anInputNamingTheControlEventKeepsItsRecord` (a direct capture of the same build, bundled, replays and AGREES); `aTracingBuildAgreesWithItsOwnBundle`; `rn-no-record-is-dropped-for-its-text`, `rn-set-up-is-left-out-by-when` |
 | 4 malformed replays silently lost input | the grammar was already strict in both readers (`abc55322`); now the whole member is read and built before the processor runs, its count must be the manifest's `replay.records`, and a nameless component is a refusal in both readers | `aReplayThatLosesInputIsRefused`, `bothReadersRequireTheWholeGrammar`; `rn-the-count-is-the-manifests`, `rn-a-component-needs-its-name`, `rq-demo-reader-a-component-needs-its-name` |
 | 5 the guidance claimed run identity, completeness and the same code | fixed in the capture script and the regenerated page, and in `reference.md`. Pairing now also compares content where the log prints it, at the owner's direction (`caebf31f`); it remains consistency evidence, and an unprinted input is matched by type and instant only and counted | `EvidenceBundleDocsTest#theReplayIsDescribedAsTheChecksShowIt`; `dg-no-run-identity-claim` |
 | 6 RB-2's identity guard had no effective regression | fixed: the review's live probe is a regression; an external `RiskBreachEvent` and the graph's own, one type | `ReplayFixtureTest#onlyTheExternalObjectIsRecorded`; `rq-records-only-the-named-object` (9 recorded where 8 are expected) |
