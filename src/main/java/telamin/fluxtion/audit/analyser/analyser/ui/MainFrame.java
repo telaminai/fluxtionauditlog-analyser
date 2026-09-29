@@ -82,7 +82,19 @@ public final class MainFrame extends JFrame {
     private final java.util.List<String> designWentOut = new java.util.ArrayList<>();
     private final java.util.Map<String, String> designSpotlightRevisions = new java.util.HashMap<>();
     private final SourceService sourceService = new SourceService();
-    private final LlmPanel llmPanel = new LlmPanel();
+    // OA-1/OA-2 (spec-onboard-assistant-journeys.md): ONE assistant surface, rendered from the session's assistantLoop
+    // decision; its words live in the transcript, never in the session. The dock is the side tab's slot for it.
+    private final telamin.fluxtion.audit.analyser.analyser.assistant.AssistantTranscript assistantTranscript = new telamin.fluxtion.audit.analyser.analyser.assistant.AssistantTranscript();
+    private final AssistantPanel assistantPanel = new AssistantPanel(assistantTranscript);
+    private final JPanel assistantDock = new JPanel(new BorderLayout());
+    private telamin.fluxtion.audit.analyser.analyser.assistant.AssistantAdapter assistantAdapter;
+    /** The provider transport. A test replaces it to point the REAL adapter at a local fake server. */
+    telamin.fluxtion.audit.analyser.analyser.assistant.AssistantAdapter.ClientFactory assistantClients = telamin.fluxtion.audit.analyser.analyser.assistant.AssistantAdapter.PROVIDERS;
+    /** The last send the panel reported, so its draft is cleared once the session ACCEPTS it — and only then. */
+    private long assistantSendRequest;
+    private long assistantDraftCleared;
+    /** The live REST endpoint, for Copy prompt's hand-off to an external client; null when the transport is off. */
+    private String restUrl, restToken;
     private final GraphTabs graphTabs = new GraphTabs();
     private ReportsPanel reportsPanel;   // constructed in the ctor once its collaborators exist
     private final TopologyPanel topologyPanel = new TopologyPanel();
@@ -226,7 +238,6 @@ public final class MainFrame extends JFrame {
         topologyPanel.bindNamedFocuses(() -> config.namedFocuses, this::onGraphsEdited);
         actionExecutor = new ActionExecutor(
                 () -> store, () -> filter, graphTabs, tablePanel, this::flagRowsFromAction);
-        llmPanel.setVocabularySupplier(this::vocabularyText);   // M38.2: the glossary reaches the assistant's prompt
         actionControl = new AppControlAdapter();
         actionExecutor.bind(topologyPanel, actionControl);
         installSpotlight();                          // M64: the glass pane, and re-measuring on resize
@@ -272,8 +283,7 @@ public final class MainFrame extends JFrame {
                 || sessionSnapshot().timeOrder().isClean() ? null
                 : "time order is violated in this log — time-anchored answers may be approximate; "
                         + "see 'context'.timeOrder");   // M30 D-R4
-        llmPanel.bind(() -> config, () -> selectedRecords, sourceService::selectedFqn,
-                this::currentLogFileInfo, () -> store, actionExecutor, sourceService);
+        installAssistant();                           // OA-1: the assistant's adapter and its surface
         // M19.7: `--rest` turns the transport on for this launch AND persists it, and says so — an
         // agent-enabled setting that survives is what the next human launch needs; the sin would be
         // persisting it silently, not persisting it
@@ -3672,7 +3682,8 @@ public final class MainFrame extends JFrame {
         walksPanel.refresh();
         sideTabs.addTab("Reports", reportsPanel);
         reportsPanel.refresh();
-        sideTabs.addTab("Analyser assistant", llmPanel);
+        assistantDock.add(assistantPanel, BorderLayout.CENTER);
+        sideTabs.addTab("Analyser assistant", assistantDock);
 
         mainSplit.setMinimumSize(new Dimension(200, 120));
         sideTabs.setMinimumSize(new Dimension(200, 120));
@@ -3681,7 +3692,7 @@ public final class MainFrame extends JFrame {
         // to suit whichever tab is showing, so the divider walks about as you switch between them. Pinning
         // the minimums stops the content forcing a move; restoring the location below covers the rest.
         for (java.awt.Component tab : new java.awt.Component[]{
-                summaryPanel, sourcePanel, graphTabs, topologyPanel, llmPanel}) {
+                summaryPanel, sourcePanel, graphTabs, topologyPanel, assistantDock}) {
             if (tab instanceof JComponent c) c.setMinimumSize(new Dimension(200, 120));
         }
         startPanel = new StartPanel(new StartPanel.Actions() {
@@ -3825,9 +3836,126 @@ public final class MainFrame extends JFrame {
         return b;
     }
 
+    /**
+     * The ONE construction of the verb dispatcher, shared by the external bridge and the onboard assistant (OA-A17):
+     * the same schema, scope and identity refusal, and record verbs refuse cleanly while no log is loaded instead of the
+     * whole manifest being withheld. The server checks the header token, so the dispatcher itself is token-free.
+     */
+    telamin.fluxtion.audit.analyser.analyser.llm.ActionDispatcher actionDispatcher() {
+        return new telamin.fluxtion.audit.analyser.analyser.llm.ActionDispatcher(
+                false, null,
+                () -> {
+                    if (store == null) throw new IllegalStateException("no log loaded");
+                    return store.index().snapshot();
+                },
+                row -> store == null ? null : store.rawText(row),
+                row -> store == null ? null : store.record(row),   // parsed under the reader's grammar
+                actionExecutor);
+    }
+
+    // ---- OA-1: the onboard assistant — the adapter performs, the panel reports and renders; assistantLoop decides ----
+
+    private void installAssistant() {
+        assistantAdapter = new telamin.fluxtion.audit.analyser.analyser.assistant.AssistantAdapter(assistantTranscript, new telamin.fluxtion.audit.analyser.analyser.assistant.AssistantAdapter.Environment() {
+            @Override public telamin.fluxtion.audit.analyser.analyser.config.AppConfig config() { return config; }
+            @Override public java.util.List<LogRecord> selection() { return selectedRecords; }
+            @Override public String epFqn() { return sourceService.selectedFqn(); }
+            @Override public telamin.fluxtion.audit.analyser.analyser.llm.LogFileInfo fileInfo() { return currentLogFileInfo(); }
+            @Override public String vocabulary() { return vocabularyText(); }
+            @Override public telamin.fluxtion.audit.analyser.analyser.source.SourceService sources() { return sourceService; }
+            @Override public telamin.fluxtion.audit.analyser.analyser.llm.ActionDispatcher dispatcher() { return actionDispatcher(); }
+            @Override public telamin.fluxtion.audit.analyser.analyser.session.AssistantState current() {
+                return sessionSnapshot().assistant();
+            }
+            @Override public void post(Object fact) {
+                SwingUtilities.invokeLater(() -> { if (session != null) session().post(fact); });
+            }
+            @Override public String showHost(boolean docked) { return showAssistantHost(docked); }
+        }, (route, key) -> assistantClients.create(route, key));
+        assistantPanel.setProviderConfigured(() -> config != null && config.apiKey != null && !config.apiKey.isBlank());
+        assistantPanel.setIntents(new AssistantPanel.Intents() {
+            @Override public void send(String draft) {
+                long entry = assistantTranscript.add(telamin.fluxtion.audit.analyser.analyser.assistant.AssistantTranscript.Kind.USER, draft);
+                assistantSendRequest++;
+                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantSendRequested(assistantSendRequest, entry, assistantRoute()));
+            }
+            @Override public void cancel() { session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantCancelRequested("Cancel pressed")); }
+            @Override public void newChat() { session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantNewChatRequested("")); }
+            @Override public void copyPrompt(String draft) { copyAssistantPrompt(draft); }
+            @Override public void host(boolean docked) {
+                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantHostRequested(docked, "assistant panel"));
+            }
+            @Override public void configureProvider() {
+                ConfigPanel.show(MainFrame.this, config, MainFrame.this::onConfigChanged, MainFrame.this::readerSummaries);
+            }
+            @Override public void connectCliAssistant() { openMcpSetup(); }
+            @Override public void showAnalyser() { toFront(); requestFocus(); }
+            @Override public void askAboutEvidence() {
+                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantHandoffRequested("assistant panel"));
+            }
+        });
+    }
+
+    /** The route a Send is made by, captured now: provider, model, whether a key exists (never the key), the budgets. */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantRoute assistantRoute() {
+        boolean hasKey = config.apiKey != null && !config.apiKey.isBlank();
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantRoute(config.llmProvider, config.llmModel, config.llmBaseUrl, hasKey,
+                config.assistantActionsInProcess, config.maxActionRounds, config.maxActionsPerReply, config.maxActionsPerTurn);
+    }
+
+    /**
+     * Copy prompt (§4.1): an explicitly LOCAL clipboard action. It is not a conversation turn and nothing is sent; the
+     * prompt is shown in a dialog saying so, never in the conversation, so it cannot be mistaken for a reply.
+     */
+    private void copyAssistantPrompt(String draft) {
+        String context = selectedRecords == null || selectedRecords.isEmpty() ? ""
+                : telamin.fluxtion.audit.analyser.analyser.llm.PromptBuilder.recordContext(selectedRecords,
+                        sourceService.selectedFqn(), sourceService, currentLogFileInfo(), vocabularyText());
+        String prompt = telamin.fluxtion.audit.analyser.analyser.llm.PromptBuilder.fullPrompt(context,
+                draft == null || draft.isBlank() ? "Explain this record." : draft);
+        if (restUrl != null) {   // hand an agentic external client the live endpoint it can drive
+            prompt = prompt + "\n\n" + telamin.fluxtion.audit.analyser.analyser.llm.PromptBuilder.restActionManifest(
+                    restUrl, restToken, config.maxActionsPerReply);
+        }
+        java.awt.Toolkit.getDefaultToolkit().getSystemClipboard().setContents(
+                new java.awt.datatransfer.StringSelection(prompt), null);
+        JTextArea shown = new JTextArea(prompt, 18, 70);
+        shown.setEditable(false);
+        shown.setLineWrap(true);
+        JOptionPane.showMessageDialog(SwingUtilities.getWindowAncestor(assistantPanel), new JScrollPane(shown),
+                "Copied to your clipboard — NOT sent anywhere", JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    /** Bring the assistant's active host forward: its tab when docked, its window otherwise (OA-2). */
+    private void revealAssistant() {
+        if (sideTabs != null && assistantDock.isAncestorOf(assistantPanel)) sideTabs.setSelectedComponent(assistantDock);
+        java.awt.Window w = SwingUtilities.getWindowAncestor(assistantPanel);
+        if (w != null && w != this) w.toFront();
+    }
+
+    /** Performs the host effect (OA-2 replaces this with the real popout). */
+    private String showAssistantHost(boolean docked) {
+        return docked ? null : "the assistant window is not available in this build";
+    }
+
+    /** Render the assistant from the snapshot: a surface, deciding nothing. */
+    private void renderAssistant(telamin.fluxtion.audit.analyser.analyser.session.SessionSnapshot next) {
+        var state = next.assistant();
+        if (state.answer().accepted() && state.answer().request() == assistantSendRequest
+                && assistantDraftCleared != assistantSendRequest) {
+            assistantDraftCleared = assistantSendRequest;
+            assistantPanel.draftAccepted();
+        }
+        boolean hasKey = config != null && config.apiKey != null && !config.apiKey.isBlank();
+        assistantPanel.setRoute(!hasKey ? "no provider configured"
+                : "via " + config.llmProvider + (config.llmModel == null || config.llmModel.isBlank() ? "" : " · " + config.llmModel)
+                        + " — your question and its context are sent there");
+        assistantPanel.render(state, null);
+    }
+
     private void explainSelection() {
-        if (sideTabs != null) sideTabs.setSelectedComponent(llmPanel);
-        llmPanel.prepareExplain();
+        revealAssistant();
+        assistantPanel.primeDraft("Explain this record — what happened in this cycle and why?");
     }
 
     /** Start or stop the opt-in localhost REST transport to match {@code config.assistantActionsRest}. */
@@ -3837,21 +3965,14 @@ public final class MainFrame extends JFrame {
             try {
                 // the server checks the header token, so the dispatcher itself is token-free; a null store
                 // yields a clean "no log loaded" error rather than an NPE
-                telamin.fluxtion.audit.analyser.analyser.llm.ActionDispatcher d = new telamin.fluxtion.audit.analyser.analyser.llm.ActionDispatcher(
-                        false, null,
-                        () -> {
-                            if (store == null) throw new IllegalStateException("no log loaded");
-                            return store.index().snapshot();
-                        },
-                        row -> store == null ? null : store.rawText(row),
-                        row -> store == null ? null : store.record(row),   // parsed under the reader's grammar
-                        actionExecutor);
+                telamin.fluxtion.audit.analyser.analyser.llm.ActionDispatcher d = actionDispatcher();
                 // publish the live url+token to the well-known file so an MCP client (M13) can find this
                 // run's ephemeral port/token from a static config; removed again on stop/exit
                 actionServer = new telamin.fluxtion.audit.analyser.analyser.net.ActionServer(d, actionToken, config.maxActionsPerReply, 10.0,
                         telamin.fluxtion.audit.analyser.analyser.net.RestEndpointFile.wellKnown());
                 actionServer.start();
-                llmPanel.setRestEndpoint(actionServer.url(), actionToken);
+                restUrl = actionServer.url();
+                restToken = actionToken;
                 // status bar shows only a token prefix (screenshots/screen-shares); the full token goes to
                 // the console and the copy-prompt seed where it's actually needed
                 String tokenHint = actionToken.substring(0, Math.min(8, actionToken.length())) + "…";
@@ -3866,7 +3987,8 @@ public final class MainFrame extends JFrame {
         } else if (!wanted && actionServer != null) {
             actionServer.stop();
             actionServer = null;
-            llmPanel.setRestEndpoint(null, null);
+            restUrl = null;
+            restToken = null;
             status.setText("Assistant REST transport stopped.");
         }
     }
@@ -5139,6 +5261,7 @@ public final class MainFrame extends JFrame {
         renderWalkStrip(next.walkPlayback());    // M69: the walk's strip, as walkPlayback decided it
         if (walksPanel != null) walksPanel.render(next.walkPlayback());
         renderLogEvidence(next);                 // M44.5: the log's line, tooltip, Reports tab and time-order report
+        renderAssistant(next);                   // OA-1: the assistant, as assistantLoop decided it
     }
 
     /** M44.5: Follow is the session's state (OpenLog). Read off the EDT too, which the volatile snapshot allows. */
@@ -6341,6 +6464,11 @@ public final class MainFrame extends JFrame {
                 scanWhenInstalled(e.generation());
                 yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ScanScheduled(opId, e.generation());
             }
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.PrepareAssistantContextEffect e -> assistantAdapter.perform(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.RequestAssistantCompletionEffect e -> assistantAdapter.perform(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.RunAssistantActionEffect e -> assistantAdapter.perform(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.CancelAssistantTransportEffect e -> assistantAdapter.perform(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ShowAssistantHostEffect e -> assistantAdapter.perform(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ShowStatusEffect e -> {
                 status.setText(e.text());
                 yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StatusShown(
@@ -8273,6 +8401,9 @@ public final class MainFrame extends JFrame {
     private void finishExit() {
         flushProject();   // a debounce window must not eat the last edit of a session
         try {
+            // OA-1: exit cancels pending assistant work through the session, then stops its workers
+            step(() -> { if (session != null) session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantCancelRequested("the analyser is exiting")); });
+            step(() -> { if (assistantAdapter != null) assistantAdapter.shutdown(); });
             step(() -> { if (followTimer != null) followTimer.stop(); });
             step(() -> { if (designFollowTimer != null) designFollowTimer.stop(); });
             step(() -> { if (mcpIndicatorTimer != null) mcpIndicatorTimer.stop(); });

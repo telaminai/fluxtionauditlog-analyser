@@ -1060,9 +1060,11 @@ public final class ActionExecutor implements RenderExecutor {
         if (SwingUtilities.isEventDispatchThread())
             return ActionResult.error("Java source spotlight requires asynchronous preparation; invoke off the EDT");
         var answer = new java.util.concurrent.CompletableFuture<ActionResult>();
+        final java.util.function.BooleanSupplier guard = GUARD.get();
         SwingUtilities.invokeLater(() -> {
             if (answer.isDone()) return;
             try {
+                checkGuard(guard);
                 var pending = app.prepareJavaSpotlight(params, () -> revealSpotlightRows(params));
                 answer.whenComplete((value, failure) -> { if (answer.isCancelled()) pending.cancel(false); });
                 pending.whenComplete((value, failure) -> {
@@ -1736,14 +1738,41 @@ public final class ActionExecutor implements RenderExecutor {
         return out;
     }
 
+    // ---- OA-1: the onboard assistant's guard (spec-onboard-assistant-journeys.md §5) ---------------------------------
+    //
+    // The assistant runs a verb from a worker, as the external bridge does. Before each event-thread task a verb performs,
+    // the worker's guard is evaluated INSIDE that task, so the decision "is this turn still current" and the Swing
+    // mutation cannot be separated by a Cancel landing between them. The node rejects a stale result as well; this is
+    // what stops the effect. Unbound (the bridge, a menu, a test) it is never consulted.
+
+    private static final ThreadLocal<java.util.function.BooleanSupplier> GUARD = new ThreadLocal<>();
+
+    /** Bind (or, with null, clear) the calling worker's guard. */
+    public static void bindGuard(java.util.function.BooleanSupplier guard) {
+        if (guard == null) GUARD.remove(); else GUARD.set(guard);
+    }
+
+    /** Thrown inside an event-thread task whose assistant turn has ended; nothing in that task ran. */
+    public static final class Superseded extends RuntimeException {
+        public Superseded() {
+            super("the assistant's turn ended before this step ran; nothing was changed by it");
+        }
+    }
+
+    private static void checkGuard(java.util.function.BooleanSupplier guard) {
+        if (guard != null && !guard.getAsBoolean()) throw new Superseded();
+    }
+
     /** Run {@code body} on the EDT and return its result (render verbs mutate Swing state). */
     <T> T onEdt(Callable<T> body) {
         if (SwingUtilities.isEventDispatchThread()) return call(body);
+        final java.util.function.BooleanSupplier guard = GUARD.get();
         @SuppressWarnings("unchecked") final T[] out = (T[]) new Object[1];
         final RuntimeException[] err = new RuntimeException[1];
         try {
             SwingUtilities.invokeAndWait(() -> {
                 try {
+                    checkGuard(guard);
                     out[0] = body.call();
                 } catch (Exception e) {
                     err[0] = e instanceof RuntimeException re ? re : new RuntimeException(e);

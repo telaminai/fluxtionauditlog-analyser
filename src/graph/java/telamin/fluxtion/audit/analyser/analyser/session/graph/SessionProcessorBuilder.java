@@ -113,6 +113,10 @@ public class SessionProcessorBuilder implements FluxtionGraphBuilder {
         cfg.addNode(pairingQualifier, "pairingQualifier");
         cfg.addNode(logEvidence, "logEvidence");
         // M69: spotlight-walk playback — every transition and decision about a showing walk, in one place (owner)
+        // OA-1 (spec-onboard-assistant-journeys.md §5): the onboard assistant's turns, tickets, budgets and basis, in one place
+        telamin.fluxtion.audit.analyser.analyser.session.node.AssistantLoop assistantLoop =
+                new telamin.fluxtion.audit.analyser.analyser.session.node.AssistantLoop(openLog, openGraph, activeProject, effects);
+        cfg.addNode(assistantLoop, "assistantLoop");
         cfg.addNode(new telamin.fluxtion.audit.analyser.analyser.session.node.WalkPlayback(openLog, effects), "walkPlayback");
         // evidence bundle capture (convergence): the capture skill's decisions, in the session (rule 9)
         cfg.addNode(new telamin.fluxtion.audit.analyser.analyser.session.node.EvidenceCapture(openLog, gate, effects), "evidenceCapture");

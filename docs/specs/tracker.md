@@ -1482,7 +1482,7 @@ analyser views change, plus labelled simulated/recorded dialogue synchronized wi
 journey-specific `.fexp` downloads. **[Proposed spec r1](spec-onboard-assistant-journeys.md)**; no implementation
 or acceptance is claimed. Existing M69 and evidence-bundle follow-ups retain their status.
 
-- [OA-1] ☐ Session-owned live action loop, coherent context, cancellation and no-log tools; real provider acceptance remains distinct from fake-server tests.
+- [OA-1] ◐ Session-owned live action loop, coherent context, cancellation and no-log tools; real provider acceptance remains distinct from fake-server tests. **Implemented** on `feat/onboard-assistant-journeys` (`assistantLoop` node, `AssistantAdapter`, `AssistantPanel`; fake-provider and real-frame tests; 12 controls). **Not accepted:** the authorised live-provider run (OA-A2 second half) is UNVERIFIED.
 - [OA-2] ☐ One docked/popout chat model, preserved draft/history, native focus and narrow/theme checks.
 - [OA-3] ☐ Typed dialogue and stable step bindings; selected-turn capture/editor, project/share/bin round trips and export privacy.
 - [OA-4] ☐ Conversation and real walk effects synchronized under one ticket; Back/resume, truthful refusals and fresh live-chat handoff.

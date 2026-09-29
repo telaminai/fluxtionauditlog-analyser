@@ -30,6 +30,14 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
     final List<SessionEffects.CaptureBundleEffect> captures = new java.util.ArrayList<>();
     final List<SessionEffects.DeleteBundleEffect> deletes = new java.util.ArrayList<>();
     final List<SessionEffects.EndWalkEffect> walkEnds = new ArrayList<>();
+    /** OA-1: what assistantLoop asked the adapter to do, in order. */
+    final List<SessionEffects.PrepareAssistantContextEffect> assistantContexts = new ArrayList<>();
+    final List<SessionEffects.RequestAssistantCompletionEffect> assistantRequests = new ArrayList<>();
+    final List<SessionEffects.RunAssistantActionEffect> assistantActions = new ArrayList<>();
+    final List<SessionEffects.CancelAssistantTransportEffect> assistantCancels = new ArrayList<>();
+    final List<SessionEffects.ShowAssistantHostEffect> assistantHosts = new ArrayList<>();
+    /** The verb each action entry names, as the real adapter would read it from the block. */
+    final java.util.Map<Long, String> assistantVerbs = new java.util.HashMap<>();
     /** Set to have the fake refuse a walk step's view. */
     boolean refuseWalkViews;
 
@@ -84,6 +92,28 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
             case SessionEffects.CaptureBundleEffect e -> {
                 captures.add(e);
                 yield new SessionEvents.CaptureStarted(e.opId(), e.ticket());
+            }
+            // OA-1: the assistant's effects are recorded, answered at once, and their outcomes posted by the test
+            case SessionEffects.PrepareAssistantContextEffect e -> {
+                assistantContexts.add(e);
+                yield new SessionEvents.AssistantEffectStarted(e.opId(), e.ticket(), "prepareContext");
+            }
+            case SessionEffects.RequestAssistantCompletionEffect e -> {
+                assistantRequests.add(e);
+                yield new SessionEvents.AssistantEffectStarted(e.opId(), e.ticket(), "requestCompletion:" + e.round());
+            }
+            case SessionEffects.RunAssistantActionEffect e -> {
+                assistantActions.add(e);
+                yield new SessionEvents.AssistantEffectStarted(e.opId(), e.ticket(),
+                        "action:" + assistantVerbs.getOrDefault(e.action(), "?"));
+            }
+            case SessionEffects.CancelAssistantTransportEffect e -> {
+                assistantCancels.add(e);
+                yield new SessionEvents.AssistantEffectStarted(e.opId(), e.ticket(), "cancelTransport");
+            }
+            case SessionEffects.ShowAssistantHostEffect e -> {
+                assistantHosts.add(e);
+                yield new SessionEvents.AssistantHostShown(e.opId(), e.docked(), true, "");
             }
             case SessionEffects.DeleteBundleEffect e -> {
                 deletes.add(e);

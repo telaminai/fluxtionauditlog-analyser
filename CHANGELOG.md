@@ -6,6 +6,7 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+- **The onboard assistant's turns are decided by the session (OA-1).** Send, Cancel and New chat are session facts; a reply, an error or an action result that arrives after Cancel, New chat or a change of project, log or graph can no longer append, run an action or clear a newer busy state. Every action result — a render success too — goes back to the model, and each action shown is the dispatcher's actual result, labelled OK, REFUSED or NOT RUN. With no log open, context, topology and source verbs work; record verbs refuse by name. A turn states when it is requesting, running an action, complete, cancelled, superseded, failed, or at a limit; a new per-turn action budget (Settings ▸ Assistant) sits beside the per-reply cap and round limit. With no key, nothing is sent: the panel offers Configure provider, Copy prompt and Connect a CLI assistant. A provider reply with no text is a bounded failure rather than a raw body.
 ## [1.28.0] - 2026-09-29
 
 - Opening a topology while an evidence bundle is still being prepared now keeps the newer graph; the late bundle cannot switch projects or load its log.

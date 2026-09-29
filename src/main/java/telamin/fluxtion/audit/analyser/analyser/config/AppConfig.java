@@ -88,6 +88,8 @@ public final class AppConfig {
     public boolean assistantActionsRest = false;   // localhost REST transport (opt-in; §5.2)
     public int maxActionRounds = 3;
     public int maxActionsPerReply = 20;
+    /** OA-1: an onboard turn's action budget across all its rounds — independent of the per-reply cap (spec §4.2). */
+    public int maxActionsPerTurn = 30;
 
     // M42: machine-local setup reminders only. They intentionally hold neither the endpoint/token nor an
     // absolute launch path: a client re-discovers this app's fresh loopback endpoint through the bridge.

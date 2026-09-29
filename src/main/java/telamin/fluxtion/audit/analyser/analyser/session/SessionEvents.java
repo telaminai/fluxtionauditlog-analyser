@@ -422,4 +422,83 @@ public final class SessionEvents {
     /** The file work failed; nothing was left behind (the writer deletes what it started). */
     public record BundleWriteFailed(long ticket, long generation, String reason) {
     }
+
+    // ---- the onboard assistant: decided by the assistantLoop node, performed by the frame (OA-1) -------------------
+    //
+    // No event carries a credential, and none carries the words of a question or an answer: the adapter writes them to
+    // the append-only AssistantTranscript and names them by id. The session audit record therefore holds what was
+    // decided about a conversation, never its content.
+
+    /**
+     * The route a turn is sent by, captured when Send was pressed: which provider and model, whether a key exists (not
+     * the key), and the configured budgets. Immutable, so a Settings change during a turn cannot reach it.
+     */
+    public record AssistantRoute(String provider, String model, String baseUrl, boolean hasKey, boolean actions,
+                                 int maxRounds, int maxActionsPerReply, int maxActionsPerTurn) {
+        public AssistantRoute {
+            provider = provider == null || provider.isBlank() ? "anthropic" : provider.trim();
+            model = model == null ? "" : model.trim();
+            baseUrl = baseUrl == null ? "" : baseUrl.trim();
+        }
+    }
+
+    /** Send pressed: the draft is transcript entry {@code draft}; {@code request} correlates the answer (0 = none). */
+    public record AssistantSendRequested(long request, long draft, AssistantRoute route) {
+    }
+
+    /** Cancel pressed, or the application is exiting. */
+    public record AssistantCancelRequested(String reason) {
+    }
+
+    /** New chat: invalidate any pending turn, then start an empty conversation. */
+    public record AssistantNewChatRequested(String reason) {
+    }
+
+    /** Dock ({@code docked} true) or pop out the assistant. Presentation only. */
+    public record AssistantHostRequested(boolean docked, String origin) {
+    }
+
+    /**
+     * "Ask about this evidence" (§6.2): end the demonstration and open a fresh live thread. It never inherits the walk's
+     * dialogue: the new conversation starts empty and nothing simulated is sent anywhere.
+     */
+    public record AssistantHandoffRequested(String origin) {
+    }
+
+    /** Answered at once by every assistant effect whose outcome arrives later. */
+    public record AssistantEffectStarted(long opId, long ticket, String what) implements Result {
+    }
+
+    /** The host was moved (or not): answers {@code ShowAssistantHostEffect}. */
+    public record AssistantHostShown(long opId, boolean docked, boolean ok, String reason) implements Result {
+    }
+
+    /** The first-turn content was composed as transcript entry {@code prompt} (hidden), for {@code ticket}. */
+    public record AssistantContextPrepared(long ticket, long prompt) {
+    }
+
+    /** The context could not be assembled; nothing was sent. */
+    public record AssistantContextFailed(long ticket, String reason) {
+    }
+
+    /**
+     * The provider replied in {@code round}: the reply is transcript entry {@code reply}, and the {@code analyser-action}
+     * blocks found in it are entries {@code actions}, in order. The node decides which of them run.
+     */
+    public record AssistantCompletionReceived(long ticket, int round, long reply, java.util.List<Long> actions) {
+        public AssistantCompletionReceived {
+            actions = java.util.List.copyOf(actions == null ? java.util.List.of() : actions);
+        }
+    }
+
+    /** The provider request failed (a transport error, a timeout, an HTTP error); {@code reason} is already bounded. */
+    public record AssistantCompletionFailed(long ticket, int round, String reason) {
+    }
+
+    /**
+     * Action entry {@code action} was dispatched through the same dispatcher as the external bridge. {@code result} is the
+     * transcript entry holding the ACTUAL structured result; {@code ok} is that result's own ok, never the model's claim.
+     */
+    public record AssistantActionFinished(long ticket, long action, String verb, boolean ok, long result) {
+    }
 }

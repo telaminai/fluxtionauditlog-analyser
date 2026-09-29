@@ -42,6 +42,18 @@ import telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.Cleared;
 import telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ReadCompleted;
 import telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ReadRequested;
 import telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ResultReadCompleted;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantActionFinished;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantCancelRequested;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantCompletionFailed;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantCompletionReceived;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantContextFailed;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantContextPrepared;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantEffectStarted;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantHandoffRequested;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantHostRequested;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantHostShown;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantNewChatRequested;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantSendRequested;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleCaptureRequested;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleDeleted;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleWriteFailed;
@@ -83,6 +95,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.WalkStepPr
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.WalkTargetsLit;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.WalkViewApplied;
 import telamin.fluxtion.audit.analyser.analyser.session.node.ActiveProject;
+import telamin.fluxtion.audit.analyser.analyser.session.node.AssistantLoop;
 import telamin.fluxtion.audit.analyser.analyser.session.node.AuditInstallation;
 import telamin.fluxtion.audit.analyser.analyser.session.node.CoverageClaim;
 import telamin.fluxtion.audit.analyser.analyser.session.node.DesignSession;
@@ -126,6 +139,18 @@ import telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Requ
  *   <li>telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ReadCompleted
  *   <li>telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ReadRequested
  *   <li>telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ResultReadCompleted
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantActionFinished
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantCancelRequested
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantCompletionFailed
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantCompletionReceived
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantContextFailed
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantContextPrepared
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantEffectStarted
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantHandoffRequested
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantHostRequested
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantHostShown
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantNewChatRequested
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantSendRequested
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleCaptureRequested
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleDeleted
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleWriteFailed
@@ -220,6 +245,9 @@ public class SessionProcessor
       new com.telamin.fluxtion.runtime.node.MutableDataFlowContext(
           nodeNameLookup, callbackDispatcher, subscriptionManager, callbackDispatcher);;
   public final transient EffectQueue effectQueue = new EffectQueue();
+  public final transient AssistantLoop assistantLoop =
+      new telamin.fluxtion.audit.analyser.analyser.session.node.AssistantLoop(
+          openLog, openGraph, activeProject, effectQueue);;
   public final transient EvidenceCapture evidenceCapture =
       new telamin.fluxtion.audit.analyser.analyser.session.node.EvidenceCapture(
           openLog, operationGate, effectQueue);;
@@ -272,6 +300,54 @@ public class SessionProcessor
             new ProcessorDescriptor.Input(
                 "Activated",
                 "telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Activated",
+                false),
+            new ProcessorDescriptor.Input(
+                "AssistantActionFinished",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantActionFinished",
+                false),
+            new ProcessorDescriptor.Input(
+                "AssistantCancelRequested",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantCancelRequested",
+                false),
+            new ProcessorDescriptor.Input(
+                "AssistantCompletionFailed",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantCompletionFailed",
+                false),
+            new ProcessorDescriptor.Input(
+                "AssistantCompletionReceived",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantCompletionReceived",
+                false),
+            new ProcessorDescriptor.Input(
+                "AssistantContextFailed",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantContextFailed",
+                false),
+            new ProcessorDescriptor.Input(
+                "AssistantContextPrepared",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantContextPrepared",
+                false),
+            new ProcessorDescriptor.Input(
+                "AssistantEffectStarted",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantEffectStarted",
+                false),
+            new ProcessorDescriptor.Input(
+                "AssistantHandoffRequested",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantHandoffRequested",
+                false),
+            new ProcessorDescriptor.Input(
+                "AssistantHostRequested",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantHostRequested",
+                false),
+            new ProcessorDescriptor.Input(
+                "AssistantHostShown",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantHostShown",
+                false),
+            new ProcessorDescriptor.Input(
+                "AssistantNewChatRequested",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantNewChatRequested",
+                false),
+            new ProcessorDescriptor.Input(
+                "AssistantSendRequested",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantSendRequested",
                 false),
             new ProcessorDescriptor.Input(
                 "BundleCaptureRequested",
@@ -471,7 +547,7 @@ public class SessionProcessor
           new DescriptorSupport.Meta(
               null,
               "1.0.71",
-              "8d239e5ec96f03776dfaa4d81d10f850d3a7588648459a9eb82039e140a5983c",
+              "6d56967998a6d85b6b349a9f080e9cc4ccbc6ae1d6222b014c67bfa4651b3388",
               null));
 
   @Override
@@ -641,6 +717,42 @@ public class SessionProcessor
     } else if (event instanceof ResultReadCompleted) {
       ResultReadCompleted typedEvent = (ResultReadCompleted) event;
       handleEvent(typedEvent);
+    } else if (event instanceof AssistantActionFinished) {
+      AssistantActionFinished typedEvent = (AssistantActionFinished) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof AssistantCancelRequested) {
+      AssistantCancelRequested typedEvent = (AssistantCancelRequested) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof AssistantCompletionFailed) {
+      AssistantCompletionFailed typedEvent = (AssistantCompletionFailed) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof AssistantCompletionReceived) {
+      AssistantCompletionReceived typedEvent = (AssistantCompletionReceived) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof AssistantContextFailed) {
+      AssistantContextFailed typedEvent = (AssistantContextFailed) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof AssistantContextPrepared) {
+      AssistantContextPrepared typedEvent = (AssistantContextPrepared) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof AssistantEffectStarted) {
+      AssistantEffectStarted typedEvent = (AssistantEffectStarted) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof AssistantHandoffRequested) {
+      AssistantHandoffRequested typedEvent = (AssistantHandoffRequested) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof AssistantHostRequested) {
+      AssistantHostRequested typedEvent = (AssistantHostRequested) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof AssistantHostShown) {
+      AssistantHostShown typedEvent = (AssistantHostShown) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof AssistantNewChatRequested) {
+      AssistantNewChatRequested typedEvent = (AssistantNewChatRequested) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof AssistantSendRequested) {
+      AssistantSendRequested typedEvent = (AssistantSendRequested) event;
+      handleEvent(typedEvent);
     } else if (event instanceof BundleCaptureRequested) {
       BundleCaptureRequested typedEvent = (BundleCaptureRequested) event;
       handleEvent(typedEvent);
@@ -808,6 +920,66 @@ public class SessionProcessor
 
   @OnEventHandler(failBuildIfMissingBooleanReturn = false)
   public void onEvent(ResultReadCompleted event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(AssistantActionFinished event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(AssistantCancelRequested event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(AssistantCompletionFailed event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(AssistantCompletionReceived event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(AssistantContextFailed event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(AssistantContextPrepared event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(AssistantEffectStarted event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(AssistantHandoffRequested event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(AssistantHostRequested event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(AssistantHostShown event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(AssistantNewChatRequested event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(AssistantSendRequested event) {
     processEvent(event);
   }
 
@@ -1084,6 +1256,102 @@ public class SessionProcessor
     afterEvent();
   }
 
+  public void handleEvent(AssistantActionFinished typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(assistantLoop, "assistantLoop", "onActionFinished", typedEvent);
+    assistantLoop.onActionFinished(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(AssistantCancelRequested typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(assistantLoop, "assistantLoop", "onCancelRequested", typedEvent);
+    assistantLoop.onCancelRequested(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(AssistantCompletionFailed typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(assistantLoop, "assistantLoop", "onCompletionFailed", typedEvent);
+    assistantLoop.onCompletionFailed(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(AssistantCompletionReceived typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(assistantLoop, "assistantLoop", "onCompletionReceived", typedEvent);
+    assistantLoop.onCompletionReceived(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(AssistantContextFailed typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(assistantLoop, "assistantLoop", "onContextFailed", typedEvent);
+    assistantLoop.onContextFailed(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(AssistantContextPrepared typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(assistantLoop, "assistantLoop", "onContextPrepared", typedEvent);
+    assistantLoop.onContextPrepared(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(AssistantEffectStarted typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(assistantLoop, "assistantLoop", "onEffectStarted", typedEvent);
+    assistantLoop.onEffectStarted(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(AssistantHandoffRequested typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(assistantLoop, "assistantLoop", "onHandoffRequested", typedEvent);
+    assistantLoop.onHandoffRequested(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(AssistantHostRequested typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(assistantLoop, "assistantLoop", "onHostRequested", typedEvent);
+    assistantLoop.onHostRequested(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(AssistantHostShown typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(assistantLoop, "assistantLoop", "onHostShown", typedEvent);
+    assistantLoop.onHostShown(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(AssistantNewChatRequested typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(assistantLoop, "assistantLoop", "onNewChatRequested", typedEvent);
+    assistantLoop.onNewChatRequested(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(AssistantSendRequested typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(assistantLoop, "assistantLoop", "onSendRequested", typedEvent);
+    assistantLoop.onSendRequested(typedEvent);
+    afterEvent();
+  }
+
   public void handleEvent(BundleCaptureRequested typedEvent) {
     auditEvent(typedEvent);
     //Default, no filter methods
@@ -1133,6 +1401,10 @@ public class SessionProcessor
       auditInvocation(auditInstallation, "auditInstallation", "recomputeOnStateChange", typedEvent);
       isDirty_auditInstallation = auditInstallation.recomputeOnStateChange();
     }
+    if (guardCheck_assistantLoop()) {
+      auditInvocation(assistantLoop, "assistantLoop", "onWorkspaceChanged", typedEvent);
+      assistantLoop.onWorkspaceChanged();
+    }
     if (guardCheck_logEvidence()) {
       auditInvocation(logEvidence, "logEvidence", "onOpenLogChanged", typedEvent);
       logEvidence.onOpenLogChanged();
@@ -1151,6 +1423,10 @@ public class SessionProcessor
     if (guardCheck_auditInstallation()) {
       auditInvocation(auditInstallation, "auditInstallation", "recomputeOnStateChange", typedEvent);
       isDirty_auditInstallation = auditInstallation.recomputeOnStateChange();
+    }
+    if (guardCheck_assistantLoop()) {
+      auditInvocation(assistantLoop, "assistantLoop", "onWorkspaceChanged", typedEvent);
+      assistantLoop.onWorkspaceChanged();
     }
     if (guardCheck_logEvidence()) {
       auditInvocation(logEvidence, "logEvidence", "onOpenLogChanged", typedEvent);
@@ -1173,6 +1449,10 @@ public class SessionProcessor
     //Default, no filter methods
     auditInvocation(openLog, "openLog", "onFollowToggled", typedEvent);
     isDirty_openLog = openLog.onFollowToggled(typedEvent);
+    if (guardCheck_assistantLoop()) {
+      auditInvocation(assistantLoop, "assistantLoop", "onWorkspaceChanged", typedEvent);
+      assistantLoop.onWorkspaceChanged();
+    }
     if (guardCheck_logEvidence()) {
       auditInvocation(logEvidence, "logEvidence", "onOpenLogChanged", typedEvent);
       logEvidence.onOpenLogChanged();
@@ -1191,6 +1471,10 @@ public class SessionProcessor
     if (guardCheck_auditInstallation()) {
       auditInvocation(auditInstallation, "auditInstallation", "recomputeOnStateChange", typedEvent);
       isDirty_auditInstallation = auditInstallation.recomputeOnStateChange();
+    }
+    if (guardCheck_assistantLoop()) {
+      auditInvocation(assistantLoop, "assistantLoop", "onWorkspaceChanged", typedEvent);
+      assistantLoop.onWorkspaceChanged();
     }
     if (guardCheck_logEvidence()) {
       auditInvocation(logEvidence, "logEvidence", "onOpenLogChanged", typedEvent);
@@ -1213,6 +1497,10 @@ public class SessionProcessor
       auditInvocation(auditInstallation, "auditInstallation", "recomputeOnStateChange", typedEvent);
       isDirty_auditInstallation = auditInstallation.recomputeOnStateChange();
     }
+    if (guardCheck_assistantLoop()) {
+      auditInvocation(assistantLoop, "assistantLoop", "onWorkspaceChanged", typedEvent);
+      assistantLoop.onWorkspaceChanged();
+    }
     if (guardCheck_logEvidence()) {
       auditInvocation(logEvidence, "logEvidence", "onOpenLogChanged", typedEvent);
       logEvidence.onOpenLogChanged();
@@ -1231,6 +1519,10 @@ public class SessionProcessor
     if (guardCheck_auditInstallation()) {
       auditInvocation(auditInstallation, "auditInstallation", "recomputeOnStateChange", typedEvent);
       isDirty_auditInstallation = auditInstallation.recomputeOnStateChange();
+    }
+    if (guardCheck_assistantLoop()) {
+      auditInvocation(assistantLoop, "assistantLoop", "onWorkspaceChanged", typedEvent);
+      assistantLoop.onWorkspaceChanged();
     }
     if (guardCheck_logEvidence()) {
       auditInvocation(logEvidence, "logEvidence", "onOpenLogChanged", typedEvent);
@@ -1251,6 +1543,10 @@ public class SessionProcessor
     }
     auditInvocation(openLog, "openLog", "onLogAppended", typedEvent);
     isDirty_openLog = openLog.onLogAppended(typedEvent);
+    if (guardCheck_assistantLoop()) {
+      auditInvocation(assistantLoop, "assistantLoop", "onWorkspaceChanged", typedEvent);
+      assistantLoop.onWorkspaceChanged();
+    }
     if (guardCheck_logEvidence()) {
       auditInvocation(logEvidence, "logEvidence", "onOpenLogChanged", typedEvent);
       logEvidence.onOpenLogChanged();
@@ -1272,6 +1568,10 @@ public class SessionProcessor
     }
     auditInvocation(openLog, "openLog", "onLogCleared", typedEvent);
     isDirty_openLog = openLog.onLogCleared(typedEvent);
+    if (guardCheck_assistantLoop()) {
+      auditInvocation(assistantLoop, "assistantLoop", "onWorkspaceChanged", typedEvent);
+      assistantLoop.onWorkspaceChanged();
+    }
     if (guardCheck_logEvidence()) {
       auditInvocation(logEvidence, "logEvidence", "onOpenLogChanged", typedEvent);
       logEvidence.onOpenLogChanged();
@@ -1293,6 +1593,10 @@ public class SessionProcessor
     }
     auditInvocation(openLog, "openLog", "onLogClosed", typedEvent);
     isDirty_openLog = openLog.onLogClosed(typedEvent);
+    if (guardCheck_assistantLoop()) {
+      auditInvocation(assistantLoop, "assistantLoop", "onWorkspaceChanged", typedEvent);
+      assistantLoop.onWorkspaceChanged();
+    }
     if (guardCheck_logEvidence()) {
       auditInvocation(logEvidence, "logEvidence", "onOpenLogChanged", typedEvent);
       logEvidence.onOpenLogChanged();
@@ -1314,6 +1618,10 @@ public class SessionProcessor
     //Default, no filter methods
     auditInvocation(openLog, "openLog", "onLogIdentityObserved", typedEvent);
     isDirty_openLog = openLog.onLogIdentityObserved(typedEvent);
+    if (guardCheck_assistantLoop()) {
+      auditInvocation(assistantLoop, "assistantLoop", "onWorkspaceChanged", typedEvent);
+      assistantLoop.onWorkspaceChanged();
+    }
     if (guardCheck_logEvidence()) {
       auditInvocation(logEvidence, "logEvidence", "onOpenLogChanged", typedEvent);
       logEvidence.onOpenLogChanged();
@@ -1334,6 +1642,10 @@ public class SessionProcessor
     if (guardCheck_auditInstallation()) {
       auditInvocation(auditInstallation, "auditInstallation", "recomputeOnStateChange", typedEvent);
       isDirty_auditInstallation = auditInstallation.recomputeOnStateChange();
+    }
+    if (guardCheck_assistantLoop()) {
+      auditInvocation(assistantLoop, "assistantLoop", "onWorkspaceChanged", typedEvent);
+      assistantLoop.onWorkspaceChanged();
     }
     if (guardCheck_logEvidence()) {
       auditInvocation(logEvidence, "logEvidence", "onOpenLogChanged", typedEvent);
@@ -1356,6 +1668,10 @@ public class SessionProcessor
     }
     auditInvocation(openLog, "openLog", "onLogOpened", typedEvent);
     isDirty_openLog = openLog.onLogOpened(typedEvent);
+    if (guardCheck_assistantLoop()) {
+      auditInvocation(assistantLoop, "assistantLoop", "onWorkspaceChanged", typedEvent);
+      assistantLoop.onWorkspaceChanged();
+    }
     if (guardCheck_logEvidence()) {
       auditInvocation(logEvidence, "logEvidence", "onOpenLogChanged", typedEvent);
       logEvidence.onOpenLogChanged();
@@ -1400,6 +1716,10 @@ public class SessionProcessor
       auditInvocation(auditInstallation, "auditInstallation", "recomputeOnStateChange", typedEvent);
       isDirty_auditInstallation = auditInstallation.recomputeOnStateChange();
     }
+    if (guardCheck_assistantLoop()) {
+      auditInvocation(assistantLoop, "assistantLoop", "onWorkspaceChanged", typedEvent);
+      assistantLoop.onWorkspaceChanged();
+    }
     if (guardCheck_logEvidence()) {
       auditInvocation(logEvidence, "logEvidence", "onOpenLogChanged", typedEvent);
       logEvidence.onOpenLogChanged();
@@ -1433,6 +1753,10 @@ public class SessionProcessor
     if (guardCheck_auditInstallation()) {
       auditInvocation(auditInstallation, "auditInstallation", "recomputeOnStateChange", typedEvent);
       isDirty_auditInstallation = auditInstallation.recomputeOnStateChange();
+    }
+    if (guardCheck_assistantLoop()) {
+      auditInvocation(assistantLoop, "assistantLoop", "onWorkspaceChanged", typedEvent);
+      assistantLoop.onWorkspaceChanged();
     }
     if (guardCheck_logEvidence()) {
       auditInvocation(logEvidence, "logEvidence", "onOpenLogChanged", typedEvent);
@@ -1478,6 +1802,10 @@ public class SessionProcessor
       auditInvocation(auditInstallation, "auditInstallation", "recomputeOnStateChange", typedEvent);
       isDirty_auditInstallation = auditInstallation.recomputeOnStateChange();
     }
+    if (guardCheck_assistantLoop()) {
+      auditInvocation(assistantLoop, "assistantLoop", "onWorkspaceChanged", typedEvent);
+      assistantLoop.onWorkspaceChanged();
+    }
     if (guardCheck_logEvidence()) {
       auditInvocation(logEvidence, "logEvidence", "onOpenLogChanged", typedEvent);
       logEvidence.onOpenLogChanged();
@@ -1509,6 +1837,10 @@ public class SessionProcessor
       auditInvocation(auditInstallation, "auditInstallation", "recomputeOnStateChange", typedEvent);
       isDirty_auditInstallation = auditInstallation.recomputeOnStateChange();
     }
+    if (guardCheck_assistantLoop()) {
+      auditInvocation(assistantLoop, "assistantLoop", "onWorkspaceChanged", typedEvent);
+      assistantLoop.onWorkspaceChanged();
+    }
     if (guardCheck_logEvidence()) {
       auditInvocation(logEvidence, "logEvidence", "onOpenLogChanged", typedEvent);
       logEvidence.onOpenLogChanged();
@@ -1527,6 +1859,10 @@ public class SessionProcessor
     if (guardCheck_auditInstallation()) {
       auditInvocation(auditInstallation, "auditInstallation", "recomputeOnStateChange", typedEvent);
       isDirty_auditInstallation = auditInstallation.recomputeOnStateChange();
+    }
+    if (guardCheck_assistantLoop()) {
+      auditInvocation(assistantLoop, "assistantLoop", "onWorkspaceChanged", typedEvent);
+      assistantLoop.onWorkspaceChanged();
     }
     if (guardCheck_logEvidence()) {
       auditInvocation(logEvidence, "logEvidence", "onOpenLogChanged", typedEvent);
@@ -1576,6 +1912,10 @@ public class SessionProcessor
       auditInvocation(auditInstallation, "auditInstallation", "recomputeOnStateChange", typedEvent);
       isDirty_auditInstallation = auditInstallation.recomputeOnStateChange();
     }
+    if (guardCheck_assistantLoop()) {
+      auditInvocation(assistantLoop, "assistantLoop", "onWorkspaceChanged", typedEvent);
+      assistantLoop.onWorkspaceChanged();
+    }
     if (guardCheck_logEvidence()) {
       auditInvocation(logEvidence, "logEvidence", "onOpenLogChanged", typedEvent);
       logEvidence.onOpenLogChanged();
@@ -1594,6 +1934,10 @@ public class SessionProcessor
     if (guardCheck_auditInstallation()) {
       auditInvocation(auditInstallation, "auditInstallation", "recomputeOnStateChange", typedEvent);
       isDirty_auditInstallation = auditInstallation.recomputeOnStateChange();
+    }
+    if (guardCheck_assistantLoop()) {
+      auditInvocation(assistantLoop, "assistantLoop", "onWorkspaceChanged", typedEvent);
+      assistantLoop.onWorkspaceChanged();
     }
     if (guardCheck_logEvidence()) {
       auditInvocation(logEvidence, "logEvidence", "onOpenLogChanged", typedEvent);
@@ -1801,6 +2145,66 @@ public class SessionProcessor
       auditEvent(typedEvent);
       auditInvocation(designSession, "designSession", "result", typedEvent);
       designSession.result(typedEvent);
+    } else if (event instanceof AssistantActionFinished) {
+      AssistantActionFinished typedEvent = (AssistantActionFinished) event;
+      auditEvent(typedEvent);
+      auditInvocation(assistantLoop, "assistantLoop", "onActionFinished", typedEvent);
+      assistantLoop.onActionFinished(typedEvent);
+    } else if (event instanceof AssistantCancelRequested) {
+      AssistantCancelRequested typedEvent = (AssistantCancelRequested) event;
+      auditEvent(typedEvent);
+      auditInvocation(assistantLoop, "assistantLoop", "onCancelRequested", typedEvent);
+      assistantLoop.onCancelRequested(typedEvent);
+    } else if (event instanceof AssistantCompletionFailed) {
+      AssistantCompletionFailed typedEvent = (AssistantCompletionFailed) event;
+      auditEvent(typedEvent);
+      auditInvocation(assistantLoop, "assistantLoop", "onCompletionFailed", typedEvent);
+      assistantLoop.onCompletionFailed(typedEvent);
+    } else if (event instanceof AssistantCompletionReceived) {
+      AssistantCompletionReceived typedEvent = (AssistantCompletionReceived) event;
+      auditEvent(typedEvent);
+      auditInvocation(assistantLoop, "assistantLoop", "onCompletionReceived", typedEvent);
+      assistantLoop.onCompletionReceived(typedEvent);
+    } else if (event instanceof AssistantContextFailed) {
+      AssistantContextFailed typedEvent = (AssistantContextFailed) event;
+      auditEvent(typedEvent);
+      auditInvocation(assistantLoop, "assistantLoop", "onContextFailed", typedEvent);
+      assistantLoop.onContextFailed(typedEvent);
+    } else if (event instanceof AssistantContextPrepared) {
+      AssistantContextPrepared typedEvent = (AssistantContextPrepared) event;
+      auditEvent(typedEvent);
+      auditInvocation(assistantLoop, "assistantLoop", "onContextPrepared", typedEvent);
+      assistantLoop.onContextPrepared(typedEvent);
+    } else if (event instanceof AssistantEffectStarted) {
+      AssistantEffectStarted typedEvent = (AssistantEffectStarted) event;
+      auditEvent(typedEvent);
+      auditInvocation(assistantLoop, "assistantLoop", "onEffectStarted", typedEvent);
+      assistantLoop.onEffectStarted(typedEvent);
+    } else if (event instanceof AssistantHandoffRequested) {
+      AssistantHandoffRequested typedEvent = (AssistantHandoffRequested) event;
+      auditEvent(typedEvent);
+      auditInvocation(assistantLoop, "assistantLoop", "onHandoffRequested", typedEvent);
+      assistantLoop.onHandoffRequested(typedEvent);
+    } else if (event instanceof AssistantHostRequested) {
+      AssistantHostRequested typedEvent = (AssistantHostRequested) event;
+      auditEvent(typedEvent);
+      auditInvocation(assistantLoop, "assistantLoop", "onHostRequested", typedEvent);
+      assistantLoop.onHostRequested(typedEvent);
+    } else if (event instanceof AssistantHostShown) {
+      AssistantHostShown typedEvent = (AssistantHostShown) event;
+      auditEvent(typedEvent);
+      auditInvocation(assistantLoop, "assistantLoop", "onHostShown", typedEvent);
+      assistantLoop.onHostShown(typedEvent);
+    } else if (event instanceof AssistantNewChatRequested) {
+      AssistantNewChatRequested typedEvent = (AssistantNewChatRequested) event;
+      auditEvent(typedEvent);
+      auditInvocation(assistantLoop, "assistantLoop", "onNewChatRequested", typedEvent);
+      assistantLoop.onNewChatRequested(typedEvent);
+    } else if (event instanceof AssistantSendRequested) {
+      AssistantSendRequested typedEvent = (AssistantSendRequested) event;
+      auditEvent(typedEvent);
+      auditInvocation(assistantLoop, "assistantLoop", "onSendRequested", typedEvent);
+      assistantLoop.onSendRequested(typedEvent);
     } else if (event instanceof BundleCaptureRequested) {
       BundleCaptureRequested typedEvent = (BundleCaptureRequested) event;
       auditEvent(typedEvent);
@@ -2092,6 +2496,10 @@ public class SessionProcessor
       auditInvocation(auditInstallation, "auditInstallation", "recomputeOnStateChange", typedEvent);
       isDirty_auditInstallation = auditInstallation.recomputeOnStateChange();
     }
+    if (guardCheck_assistantLoop()) {
+      auditInvocation(assistantLoop, "assistantLoop", "onWorkspaceChanged", typedEvent);
+      assistantLoop.onWorkspaceChanged();
+    }
     if (guardCheck_logEvidence()) {
       auditInvocation(logEvidence, "logEvidence", "onOpenLogChanged", typedEvent);
       logEvidence.onOpenLogChanged();
@@ -2121,6 +2529,7 @@ public class SessionProcessor
     auditor.nodeRegistered(subscriptionManager, "subscriptionManager");
     auditor.nodeRegistered(context, "context");
     auditor.nodeRegistered(activeProject, "activeProject");
+    auditor.nodeRegistered(assistantLoop, "assistantLoop");
     auditor.nodeRegistered(auditInstallation, "auditInstallation");
     auditor.nodeRegistered(coverageClaim, "coverageClaim");
     auditor.nodeRegistered(designSession, "designSession");
@@ -2222,6 +2631,10 @@ public class SessionProcessor
     return isDirty_operationGate;
   }
 
+  private boolean guardCheck_assistantLoop() {
+    return isDirty_activeProject | isDirty_openGraph | isDirty_openLog;
+  }
+
   private boolean guardCheck_auditInstallation() {
     return isDirty_openGraph;
   }
@@ -2306,6 +2719,8 @@ public class SessionProcessor
         return (T) clock;
       case "activeProject":
         return (T) activeProject;
+      case "assistantLoop":
+        return (T) assistantLoop;
       case "auditInstallation":
         return (T) auditInstallation;
       case "coverageClaim":
@@ -2373,6 +2788,9 @@ public class SessionProcessor
     }
     if (node == activeProject) {
       return "activeProject";
+    }
+    if (node == assistantLoop) {
+      return "assistantLoop";
     }
     if (node == auditInstallation) {
       return "auditInstallation";
