@@ -167,6 +167,36 @@ class BundleProvenanceFrameTest {
         }
     }
 
+    @Test
+    @DisplayName("notes carry an author's own structure verbatim — no schema is needed to keep an experiment's shape")
+    void notesCarryWhateverStructureTheAuthorWrites(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        String account = """
+                ## Hypothesis
+                DEMO rounding the mid to 4dp changes nothing a recipient can see.
+
+                ## Outcome
+                It moves three values across two records, out of seven inputs.
+                """;
+        try (var f = shown(tmp)) {
+            Path dir = exchange(f, tmp);
+            openLog(f, EvidenceCaptureFrameTest.DEMO_LOG);
+            onEdt(() -> render(f.ex, "report", Map.of("bundle",
+                    Map.of("path", "structured.fexp", "notes", account))));
+            assertEquals("WRITTEN", awaitDecided(f).get("phase"));
+
+            try (var zip = new java.util.zip.ZipFile(dir.resolve("structured.fexp").toFile())) {
+                var entry = zip.getEntry("notes/NOTES.md");
+                assertNotNull(entry, "theAccountIsPacked");
+                String packed = new String(zip.getInputStream(entry).readAllBytes(),
+                        java.nio.charset.StandardCharsets.UTF_8);
+                assertTrue(packed.contains("## Hypothesis"), "headingsSurviveVerbatim: " + packed);
+                assertTrue(packed.contains("## Outcome"), "headingsSurviveVerbatim: " + packed);
+                assertTrue(packed.contains("three values across two records"), "bodySurvivesVerbatim");
+            }
+        }
+    }
+
     private static Object onEdtGet(java.util.function.Supplier<Object> body) throws Exception {
         AtomicReference<Object> out = new AtomicReference<>();
         onEdt(() -> out.set(body.get()));
