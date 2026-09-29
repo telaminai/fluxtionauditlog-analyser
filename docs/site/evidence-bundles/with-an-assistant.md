@@ -27,15 +27,15 @@ The **asks** and the **agent's answers** are written by hand. **Every tool call,
         "openedBy": "the command line that started this analyser",
         "freshness": {
           "basis": "size, modification time and file identity; unchanged metadata does not prove identical bytes",
-          "reload": "explicitly reopen the same path; no automatic replacement",
+          "state": "unchanged-metadata",
           "members": [
             {
               "state": "unchanged-metadata",
-              "loaded": "{…}",
-              "onDisk": "{…}"
+              "onDisk": "{…}",
+              "loaded": "{…}"
             }
           ],
-          "state": "unchanged-metadata"
+          "reload": "explicitly reopen the same path; no automatic replacement"
         },
         "generation": 1,
         "following": false,
@@ -83,13 +83,13 @@ The agent saves the finding as a **walk** first, because flags do not travel and
       "capture": {
         "phase": "WRITTEN",
         "path": "/private<exchange-dir>/breach-0900.fexp",
-        "identity": "sha256:c5da1025d513…"
+        "identity": "sha256:fd2282746aac…"
       }
     }
     ```
 
 
-> **Agent:** Done: `breach-0900.fexp` is in your exchange directory, with the log, its graph, the walk *The 09:00 breach* and your notes. It also lists what it **left out**, because it describes your machine, not the investigation. Send the file however you like, and send its identity line (`sha256:c5da1025d513…`) by another route, such as a chat message: the bundle is unsigned, and matching that line is how the recipient knows the file is the one you packed.
+> **Agent:** Done: `breach-0900.fexp` is in your exchange directory, with the log, its graph, the walk *The 09:00 breach* and your notes. It also lists what it **left out**, because it describes your machine, not the investigation. Send the file however you like, and send its identity line (`sha256:fd2282746aac…`) by another route, such as a chat message: the bundle is unsigned, and matching that line is how the recipient knows the file is the one you packed.
 
 
 ![The walk the bundle carries, on step 2: the breach record lit with its caption. The recipient sees exactly this](../assets/bundle-conv-walk.png)
@@ -143,7 +143,7 @@ The processor that wrote this log had a replay writer compiled in: it recorded e
       "capture": {
         "phase": "WRITTEN",
         "path": "/private<exchange-dir>/recorded-run.fexp",
-        "identity": "sha256:ffd5a9bd63e2…",
+        "identity": "sha256:f5b4dbcb0bc6…",
         "lines": [
           "replay: the run's 7 recorded inputs, matched to the log in order by type, instant and content; a recipient …"
         ]
@@ -170,7 +170,7 @@ The recipient's agent works with **commands**, not the running analyser: checkin
 ??? example "→ shell: `analyser --verify`"
     ```console
     $ analyser --verify ~/Downloads/recorded-run.fexp
-    identity: sha256:ffd5a9bd63e2…
+    identity: sha256:f5b4dbcb0bc6…
     verified: 5 members, each matching the manifest's sha256 and size
     replay: replay/demo-quote-recorded.replay.yaml, the run's 7 recorded inputs (all matched to the log by content)
     limit: unsigned: verification detects a changed member; it does not authenticate the sender
@@ -197,7 +197,7 @@ The recipient's agent works with **commands**, not the running analyser: checkin
 ??? example "→ shell: `analyser --replay-compare`"
     ```console
     $ analyser --replay-compare ~/Downloads/recorded-run.fexp ~/work/replayed.yaml
-    identity: sha256:ffd5a9bd63e2…
+    identity: sha256:f5b4dbcb0bc6…
     verified: 5 members, each matching the manifest's sha256 and size
     replay: AGREES, 8 of 8 records (endTime and thread excepted, differing on 8: when and where a cycle ran, which a replay cannot know)
     limit: unsigned: verification detects a changed member; it does not authenticate the sender
@@ -212,30 +212,30 @@ The recipient's agent works with **commands**, not the running analyser: checkin
 ??? example "→ shell: `analyser --unpack`"
     ```console
     $ analyser --unpack ~/Downloads/recorded-run.fexp
-    identity: sha256:ffd5a9bd63e2…
+    identity: sha256:f5b4dbcb0bc6…
     verified: 5 members, each matching the manifest's sha256 and size
     replay: replay/demo-quote-recorded.replay.yaml, the run's 7 recorded inputs (all matched to the log by content)
     limit: unsigned: verification detects a changed member; it does not authenticate the sender
     limit: replay: the recorded inputs reproduce this log only on a build whose graph matches, and only as far as the processor reads nothing the records do not carry
-    working copy: ~/work/copies/bundle-ffd5a9bd63e2-13354762424643379169  (the received bundle is unchanged)
+    working copy: ~/work/copies/bundle-f5b4dbcb0bc6-6072611105841858619  (the received bundle is unchanged)
     (exit 0)
     ```
 
 
 ??? example "→ `analyser_open`"
     ```json
-    → analyser_open {"project": "~/work/copies/bundle-ffd5a9bd63e2-13354762424643379169/profile/project.flu…"}
+    → analyser_open {"project": "~/work/copies/bundle-f5b4dbcb0bc6-6072611105841858619/profile/project.flux…"}
     ← {
-      "project": "bundle-ffd5a9bd63e2-13354762424643379169"
+      "project": "bundle-f5b4dbcb0bc6-6072611105841858619"
     }
     ```
 
 
 ??? example "→ `analyser_open`"
     ```json
-    → analyser_open {"log": "~/work/copies/bundle-ffd5a9bd63e2-13354762424643379169/log/demo-quote-reco…", "graphml": "~/work/copies/bundle-ffd5a9bd63e2-13354762424643379169/graph/demo-quote-re…", "provenance": "evidence bundle recorded-run.fexp"}
+    → analyser_open {"log": "~/work/copies/bundle-f5b4dbcb0bc6-6072611105841858619/log/demo-quote-recor…", "graphml": "~/work/copies/bundle-f5b4dbcb0bc6-6072611105841858619/graph/demo-quote-rec…", "provenance": "evidence bundle recorded-run.fexp"}
     ← {
-      "log": "~/work/copies/bundle-ffd5a9bd63e2-13354762424643379169/log/demo-quote-reco…"
+      "log": "~/work/copies/bundle-f5b4dbcb0bc6-6072611105841858619/log/demo-quote-recor…"
     }
     ```
 
@@ -276,7 +276,7 @@ The recipient's agent works with **commands**, not the running analyser: checkin
 ??? example "→ shell: `analyser --replay-compare`"
     ```console
     $ analyser --replay-compare ~/Downloads/recorded-run.fexp ~/work/replayed-risk-change.yaml
-    identity: sha256:ffd5a9bd63e2…
+    identity: sha256:f5b4dbcb0bc6…
     verified: 5 members, each matching the manifest's sha256 and size
     replay: DIVERGES at record 6 (OrderUpdateEvent): eventLogRecord.nodeLogs.riskMonitor: the bundled log has '{ liveOrders: 2, limit: 2, redispatch: true}', and the replay has no such line
     replay: the 6 record(s) before it agree
