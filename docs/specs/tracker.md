@@ -1474,6 +1474,21 @@ graph-raised events stay in the audit log but are not recorded as external repla
 - [M71.F1] ☐ Optional follow-up: improve the tour's instructional sequence and narrow report/list reading width; revisit the template dialog's choice hierarchy. These do not hold PR #71.
 
 ---
+
+## Onboard assistant and conversation journeys — proposed 2026-09-29
+
+Owner direction: a fully working onboard LLM assistant with an optional popout that remains useful while
+analyser views change, plus labelled simulated/recorded dialogue synchronized with spotlight walks and
+journey-specific `.fexp` downloads. **[Proposed spec r1](spec-onboard-assistant-journeys.md)**; no implementation
+or acceptance is claimed. Existing M69 and evidence-bundle follow-ups retain their status.
+
+- [OA-1] ☐ Session-owned live action loop, coherent context, cancellation and no-log tools; real provider acceptance remains distinct from fake-server tests.
+- [OA-2] ☐ One docked/popout chat model, preserved draft/history, native focus and narrow/theme checks.
+- [OA-3] ☐ Typed dialogue and stable step bindings; selected-turn capture/editor, project/share/bin round trips and export privacy.
+- [OA-4] ☐ Conversation and real walk effects synchronized under one ticket; Back/resume, truthful refusals and fresh live-chat handoff.
+- [OA-5] ☐ One DEMO investigation bundle and catalogue page; verified published bytes, native captures and independent recipient.
+- [OA-6] ☐ Provider, display, regression/mutation and release acceptance; no partial slice labelled the complete feature.
+
 ## M69 follow-ups — spotlight walks shipped in 1.26.0 (▸ [`completed/tracker.md`](completed/tracker.md) ▸ *M69*)
 
 - [M69.F1] ☑ **W-A11: a native capture of a walk** for the docs site. The full `python3 tools/capture-docs.py`
