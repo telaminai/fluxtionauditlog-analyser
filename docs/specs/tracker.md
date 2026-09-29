@@ -1466,6 +1466,21 @@ replay mode (owner design, UP-FLX-54).
 - Decided: our own replay writer and reader (R-D8), no Fluxtion core release; the redispatch match is made in our runner. Open for the owner: licensing (deferred); processor vs agent.
 
 ---
+
+## Onboard assistant and conversation journeys — proposed 2026-09-29
+
+Owner direction: a fully working onboard LLM assistant with an optional popout that remains useful while
+analyser views change, plus labelled simulated/recorded dialogue synchronized with spotlight walks and
+journey-specific `.fexp` downloads. **[Proposed spec r1](spec-onboard-assistant-journeys.md)**; no implementation
+or acceptance is claimed. Existing M69 and evidence-bundle follow-ups retain their status.
+
+- [OA-1] ☐ Session-owned live action loop, coherent context, cancellation and no-log tools; real provider acceptance remains distinct from fake-server tests.
+- [OA-2] ☐ One docked/popout chat model, preserved draft/history, native focus and narrow/theme checks.
+- [OA-3] ☐ Typed dialogue and stable step bindings; selected-turn capture/editor, project/share/bin round trips and export privacy.
+- [OA-4] ☐ Conversation and real walk effects synchronized under one ticket; Back/resume, truthful refusals and fresh live-chat handoff.
+- [OA-5] ☐ One DEMO investigation bundle and catalogue page; verified published bytes, native captures and independent recipient.
+- [OA-6] ☐ Provider, display, regression/mutation and release acceptance; no partial slice labelled the complete feature.
+
 ## M69 follow-ups — spotlight walks shipped in 1.26.0 (▸ [`completed/tracker.md`](completed/tracker.md) ▸ *M69*)
 
 - [M69.F1] ☐ **W-A11: a native capture of a walk** for the docs site. `python3 tools/capture-docs.py --walk` drives it;
