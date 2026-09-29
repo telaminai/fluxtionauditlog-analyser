@@ -1,0 +1,2 @@
+5c79e357: mvn -o -q test
+2935 total / 0 failures / 0 errors / 193 skips; 398 source-mapped reports; no orphans.

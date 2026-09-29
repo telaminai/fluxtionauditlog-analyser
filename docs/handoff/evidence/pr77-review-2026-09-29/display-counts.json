@@ -1,0 +1,90 @@
+[
+  {
+    "suite": "AssistantLiveFrameTest",
+    "exit": 0,
+    "counts": [
+      2,
+      0,
+      0,
+      0
+    ],
+    "reports": 1
+  },
+  {
+    "suite": "AssistantHostFrameTest",
+    "exit": 0,
+    "counts": [
+      4,
+      0,
+      0,
+      0
+    ],
+    "reports": 1
+  },
+  {
+    "suite": "AssistantNativeFrameTest",
+    "exit": 0,
+    "counts": [
+      2,
+      0,
+      0,
+      0
+    ],
+    "reports": 1
+  },
+  {
+    "suite": "ConversationEditorFrameTest",
+    "exit": 0,
+    "counts": [
+      1,
+      0,
+      0,
+      0
+    ],
+    "reports": 1
+  },
+  {
+    "suite": "ConversationJourneyFrameTest",
+    "exit": 0,
+    "counts": [
+      2,
+      0,
+      0,
+      0
+    ],
+    "reports": 1
+  },
+  {
+    "suite": "WalkPlaybackFrameTest",
+    "exit": 0,
+    "counts": [
+      2,
+      0,
+      0,
+      0
+    ],
+    "reports": 1
+  },
+  {
+    "suite": "WalkReviewFrameTest",
+    "exit": 0,
+    "counts": [
+      11,
+      0,
+      0,
+      0
+    ],
+    "reports": 1
+  },
+  {
+    "suite": "EvidenceCaptureFrameTest",
+    "exit": 0,
+    "counts": [
+      15,
+      0,
+      0,
+      0
+    ],
+    "reports": 1
+  }
+]

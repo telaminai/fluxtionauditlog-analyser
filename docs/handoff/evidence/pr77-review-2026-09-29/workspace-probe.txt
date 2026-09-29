@@ -1,0 +1,5 @@
+ViewFilterChanged during provider request: REQUESTING
+Independent open while assistant open held: RUNNING_ACTION
+Next action requested: 11
+Frozen: false
+Basis adopted: no project · log DEMO-persons-log.yaml (#1) · no graph

@@ -1,0 +1,380 @@
+[
+  {
+    "name": "oa-review-provider-words",
+    "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/assistant/AssistantAdapter.java",
+    "sha256": "0cf3f30bd2935029ba6cec9f459721d7c8340175aa07a1d8b4627e502eb34026",
+    "baselineGreen": true,
+    "restoredByteIdentical": true,
+    "classesRestoredByteIdentical": true,
+    "verdict": "caught",
+    "seconds": 3.7,
+    "mutatedSuites": [
+      {
+        "name": "AssistantAdapterTest",
+        "tests": 1,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "providerFailureWordsNeverBecomeSessionFacts"
+        ],
+        "assertions": [
+          {
+            "test": "providerFailureWordsNeverBecomeSessionFacts",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: provider error words must not enter the snapshot ==> expected: <false> but was: <true>"
+          }
+        ]
+      }
+    ],
+    "restoredSuites": [
+      {
+        "name": "AssistantAdapterTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "providerFailureWordsNeverBecomeSessionFacts"
+        ],
+        "assertions": []
+      }
+    ]
+  },
+  {
+    "name": "oa-review-action-name",
+    "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/assistant/AssistantAdapter.java",
+    "sha256": "0cf3f30bd2935029ba6cec9f459721d7c8340175aa07a1d8b4627e502eb34026",
+    "baselineGreen": true,
+    "restoredByteIdentical": true,
+    "classesRestoredByteIdentical": true,
+    "verdict": "caught",
+    "seconds": 3.7,
+    "mutatedSuites": [
+      {
+        "name": "AssistantAdapterTest",
+        "tests": 1,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "anUnknownActionNameStaysOutOfSessionFacts"
+        ],
+        "assertions": [
+          {
+            "test": "anUnknownActionNameStaysOutOfSessionFacts",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: unrecognised action words must not enter the snapshot ==> expected: <false> but was: <true>"
+          }
+        ]
+      }
+    ],
+    "restoredSuites": [
+      {
+        "name": "AssistantAdapterTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "anUnknownActionNameStaysOutOfSessionFacts"
+        ],
+        "assertions": []
+      }
+    ]
+  },
+  {
+    "name": "oa-review-retry-manifest",
+    "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/AssistantLoop.java",
+    "sha256": "5436ea6f5ac8aa4e230c173237c687a6bdf5f4c45e7c02fa8a6728bc3aa99d65",
+    "baselineGreen": true,
+    "restoredByteIdentical": true,
+    "classesRestoredByteIdentical": true,
+    "verdict": "caught",
+    "seconds": 1.3,
+    "mutatedSuites": [
+      {
+        "name": "AssistantLoopTest",
+        "tests": 1,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "cancellingTheFirstRequestDoesNotLoseTheManifest"
+        ],
+        "assertions": [
+          {
+            "test": "cancellingTheFirstRequestDoesNotLoseTheManifest",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: retry after the first unanswered request must carry the action manifest ==> expected: <true> but was: <false>"
+          }
+        ]
+      }
+    ],
+    "restoredSuites": [
+      {
+        "name": "AssistantLoopTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "cancellingTheFirstRequestDoesNotLoseTheManifest"
+        ],
+        "assertions": []
+      }
+    ]
+  },
+  {
+    "name": "oa3-review-total-bytes",
+    "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/walk/WalkConversation.java",
+    "sha256": "83f8ab8c52fe2c05941f18efbdf23d037e6f3eb9a7de54dfb04dd513986dc997",
+    "baselineGreen": true,
+    "restoredByteIdentical": true,
+    "classesRestoredByteIdentical": true,
+    "verdict": "caught",
+    "seconds": 1.1,
+    "mutatedSuites": [
+      {
+        "name": "WalkConversationTest",
+        "tests": 1,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "theTotalByteLimitIncludesTheAuthorAndJsonEscaping"
+        ],
+        "assertions": [
+          {
+            "test": "theTotalByteLimitIncludesTheAuthorAndJsonEscaping",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: the author is part of the bounded conversation ==> expected: <false> but was: <true>"
+          }
+        ]
+      }
+    ],
+    "restoredSuites": [
+      {
+        "name": "WalkConversationTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "theTotalByteLimitIncludesTheAuthorAndJsonEscaping"
+        ],
+        "assertions": []
+      }
+    ]
+  },
+  {
+    "name": "oa3-review-version-overflow",
+    "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/walk/WalkConversation.java",
+    "sha256": "83f8ab8c52fe2c05941f18efbdf23d037e6f3eb9a7de54dfb04dd513986dc997",
+    "baselineGreen": true,
+    "restoredByteIdentical": true,
+    "classesRestoredByteIdentical": true,
+    "verdict": "caught",
+    "seconds": 1.0,
+    "mutatedSuites": [
+      {
+        "name": "WalkConversationTest",
+        "tests": 1,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "aVersionCannotWrapToTheSupportedVersion"
+        ],
+        "assertions": [
+          {
+            "test": "aVersionCannotWrapToTheSupportedVersion",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: an unknown large version must not wrap to version one ==> expected: <false> but was: <true>"
+          }
+        ]
+      }
+    ],
+    "restoredSuites": [
+      {
+        "name": "WalkConversationTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "aVersionCannotWrapToTheSupportedVersion"
+        ],
+        "assertions": []
+      }
+    ]
+  },
+  {
+    "name": "oa3-review-count-allocation",
+    "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/config/ConfigStore.java",
+    "sha256": "9fc4d05b76052a9f69558aa70e58f791d38dafebb42d65a25914b2af50c32305",
+    "baselineGreen": true,
+    "restoredByteIdentical": true,
+    "classesRestoredByteIdentical": true,
+    "verdict": "caught",
+    "seconds": 1.2,
+    "mutatedSuites": [
+      {
+        "name": "ConversationWalkStorageTest",
+        "tests": 1,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "aSharedCountIsBoundedBeforeMaterialisingTurns"
+        ],
+        "assertions": [
+          {
+            "test": "aSharedCountIsBoundedBeforeMaterialisingTurns",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: an untrusted count must be capped before allocating turn objects ==> expected: <true> but was: <false>"
+          }
+        ]
+      }
+    ],
+    "restoredSuites": [
+      {
+        "name": "ConversationWalkStorageTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "aSharedCountIsBoundedBeforeMaterialisingTurns"
+        ],
+        "assertions": []
+      }
+    ]
+  },
+  {
+    "name": "oa-review-deferred-source-guard",
+    "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/ActionExecutor.java",
+    "sha256": "4c75daeda5228376493e6685d38131c8b50bb644a782d6f80881f4e995c7fce4",
+    "baselineGreen": true,
+    "restoredByteIdentical": true,
+    "classesRestoredByteIdentical": true,
+    "verdict": "caught",
+    "seconds": 5.8,
+    "mutatedSuites": [
+      {
+        "name": "JavaSourceSpotlightFrameTest",
+        "tests": 1,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "anEndedAssistantCannotApplyACompletedSourceLookup"
+        ],
+        "assertions": [
+          {
+            "test": "anEndedAssistantCannotApplyACompletedSourceLookup",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: an ended assistant must refuse at the final source-apply boundary ==> expected: <false> but was: <true>"
+          }
+        ]
+      }
+    ],
+    "restoredSuites": [
+      {
+        "name": "JavaSourceSpotlightFrameTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "anEndedAssistantCannotApplyACompletedSourceLookup"
+        ],
+        "assertions": []
+      }
+    ]
+  },
+  {
+    "name": "oa-edt-guard",
+    "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/ActionExecutor.java",
+    "sha256": "4c75daeda5228376493e6685d38131c8b50bb644a782d6f80881f4e995c7fce4",
+    "baselineGreen": true,
+    "restoredByteIdentical": true,
+    "classesRestoredByteIdentical": true,
+    "verdict": "caught",
+    "seconds": 2.6,
+    "mutatedSuites": [
+      {
+        "name": "AssistantGuardTest",
+        "tests": 1,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "anEndedTurnChangesNothing"
+        ],
+        "assertions": [
+          {
+            "test": "anEndedTurnChangesNothing",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: the Swing mutation did not run ==> expected: <false> but was: <true>"
+          }
+        ]
+      }
+    ],
+    "restoredSuites": [
+      {
+        "name": "AssistantGuardTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "anEndedTurnChangesNothing"
+        ],
+        "assertions": []
+      }
+    ]
+  },
+  {
+    "name": "oa-key-never-in-errors",
+    "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/assistant/AssistantAdapter.java",
+    "sha256": "0cf3f30bd2935029ba6cec9f459721d7c8340175aa07a1d8b4627e502eb34026",
+    "baselineGreen": true,
+    "restoredByteIdentical": true,
+    "classesRestoredByteIdentical": true,
+    "verdict": "caught",
+    "seconds": 3.5,
+    "mutatedSuites": [
+      {
+        "name": "AssistantAdapterTest",
+        "tests": 1,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "anErrorIsBoundedAndKeyless"
+        ],
+        "assertions": [
+          {
+            "test": "anErrorIsBoundedAndKeyless",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: the key never appears in an error: the provider request failed: IOException: Anthropic HTTP 401: {\"error\":\"denied for key sk-DEMO-not-a-real-key-000000\"} ==> expected: <false> but was: <true>"
+          }
+        ]
+      }
+    ],
+    "restoredSuites": [
+      {
+        "name": "AssistantAdapterTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "anErrorIsBoundedAndKeyless"
+        ],
+        "assertions": []
+      }
+    ]
+  }
+]

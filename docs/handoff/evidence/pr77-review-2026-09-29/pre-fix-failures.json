@@ -1,0 +1,85 @@
+[
+  {
+    "suite": "telamin.fluxtion.audit.analyser.analyser.assistant.AssistantAdapterTest",
+    "counts": [
+      7,
+      2,
+      0,
+      0
+    ],
+    "failures": [
+      {
+        "test": "anUnknownActionNameStaysOutOfSessionFacts",
+        "message": "unrecognised action words must not enter the snapshot ==> expected: <false> but was: <true>"
+      },
+      {
+        "test": "providerFailureWordsNeverBecomeSessionFacts",
+        "message": "provider error words must not enter the snapshot ==> expected: <false> but was: <true>"
+      }
+    ]
+  },
+  {
+    "suite": "telamin.fluxtion.audit.analyser.analyser.config.ConversationWalkStorageTest",
+    "counts": [
+      10,
+      1,
+      0,
+      0
+    ],
+    "failures": [
+      {
+        "test": "aSharedCountIsBoundedBeforeMaterialisingTurns",
+        "message": "an untrusted count must be capped before allocating turn objects ==> expected: <true> but was: <false>"
+      }
+    ]
+  },
+  {
+    "suite": "telamin.fluxtion.audit.analyser.analyser.session.AssistantLoopTest",
+    "counts": [
+      15,
+      1,
+      0,
+      0
+    ],
+    "failures": [
+      {
+        "test": "cancellingTheFirstRequestDoesNotLoseTheManifest",
+        "message": "retry after the first unanswered request must carry the action manifest ==> expected: <true> but was: <false>"
+      }
+    ]
+  },
+  {
+    "suite": "telamin.fluxtion.audit.analyser.analyser.ui.JavaSourceSpotlightFrameTest",
+    "counts": [
+      1,
+      1,
+      0,
+      0
+    ],
+    "failures": [
+      {
+        "test": "anEndedAssistantCannotApplyACompletedSourceLookup(Path)",
+        "message": "an ended assistant must refuse at the final source-apply boundary ==> expected: <false> but was: <true>"
+      }
+    ]
+  },
+  {
+    "suite": "telamin.fluxtion.audit.analyser.analyser.walk.WalkConversationTest",
+    "counts": [
+      8,
+      2,
+      0,
+      0
+    ],
+    "failures": [
+      {
+        "test": "theTotalByteLimitIncludesTheAuthorAndJsonEscaping",
+        "message": "the author is part of the bounded conversation ==> expected: <false> but was: <true>"
+      },
+      {
+        "test": "aVersionCannotWrapToTheSupportedVersion",
+        "message": "an unknown large version must not wrap to version one ==> expected: <false> but was: <true>"
+      }
+    ]
+  }
+]

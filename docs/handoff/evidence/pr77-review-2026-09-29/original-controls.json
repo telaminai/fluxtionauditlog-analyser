@@ -1,0 +1,1640 @@
+[
+  {
+    "name": "m69-s4-saved-by-the-assistant",
+    "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/WalkVerb.java",
+    "sha256": "b3bc93ba9f4e365bc1736f4efce294d812a05cc7ebee23867a1523b1099b4ee3",
+    "baselineGreen": true,
+    "restoredByteIdentical": true,
+    "classesRestoredByteIdentical": true,
+    "verdict": "caught",
+    "seconds": 3.9,
+    "mutatedSuites": [
+      {
+        "name": "WalkVerbTest",
+        "tests": 1,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "aSaveIsBoundAndAttributed"
+        ],
+        "assertions": [
+          {
+            "test": "aSaveIsBoundAndAttributed",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: expected: <assistant> but was: <person>"
+          }
+        ]
+      }
+    ],
+    "restoredSuites": [
+      {
+        "name": "WalkVerbTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "aSaveIsBoundAndAttributed"
+        ],
+        "assertions": []
+      }
+    ]
+  },
+  {
+    "name": "m69-r6-replace-ends-the-showing",
+    "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/WalkPlayback.java",
+    "sha256": "51d0e8f80f173990e10c006c890eab0d53123d99f0474ce1d8758c765f9c5124",
+    "baselineGreen": true,
+    "restoredByteIdentical": true,
+    "classesRestoredByteIdentical": true,
+    "verdict": "caught",
+    "seconds": 1.8,
+    "mutatedSuites": [
+      {
+        "name": "WalkPlaybackTest",
+        "tests": 1,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "aDefinitionChangeIsTheNodesDecision"
+        ],
+        "assertions": [
+          {
+            "test": "aDefinitionChangeIsTheNodesDecision",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: a replacement with different steps ends the showing ==> expected: <false> but was: <true>"
+          }
+        ]
+      }
+    ],
+    "restoredSuites": [
+      {
+        "name": "WalkPlaybackTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "aDefinitionChangeIsTheNodesDecision"
+        ],
+        "assertions": []
+      }
+    ]
+  },
+  {
+    "name": "oa-ticket-guard",
+    "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/AssistantLoop.java",
+    "sha256": "ca99a832c9165ad597bf1283c0a8e4cc3a957eadfae9e0988cb08794023cef97",
+    "baselineGreen": true,
+    "restoredByteIdentical": true,
+    "classesRestoredByteIdentical": true,
+    "verdict": "caught",
+    "seconds": 1.6,
+    "mutatedSuites": [
+      {
+        "name": "AssistantLoopTest",
+        "tests": 1,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "aLateReplyCannotAnswerTheNextTurn"
+        ],
+        "assertions": [
+          {
+            "test": "aLateReplyCannotAnswerTheNextTurn",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: the old turn's reply ran no action in the new turn ==> expected: <0> but was: <1>"
+          }
+        ]
+      }
+    ],
+    "restoredSuites": [
+      {
+        "name": "AssistantLoopTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "aLateReplyCannotAnswerTheNextTurn"
+        ],
+        "assertions": []
+      }
+    ]
+  },
+  {
+    "name": "oa-every-result-fed-back",
+    "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/AssistantLoop.java",
+    "sha256": "ca99a832c9165ad597bf1283c0a8e4cc3a957eadfae9e0988cb08794023cef97",
+    "baselineGreen": true,
+    "restoredByteIdentical": true,
+    "classesRestoredByteIdentical": true,
+    "verdict": "caught",
+    "seconds": 1.2,
+    "mutatedSuites": [
+      {
+        "name": "AssistantLoopTest",
+        "tests": 1,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "everyResultIsFedBack"
+        ],
+        "assertions": [
+          {
+            "test": "everyResultIsFedBack",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: the query result AND the render success are both sent back \u2014 the actual results, by id ==> expected: <HistoryMessage[role=user, kind=RESULTS, entries=[20, 21]]> but was: <HistoryMessage[role=user, kind=RESULTS, entries=[]]>"
+          }
+        ]
+      }
+    ],
+    "restoredSuites": [
+      {
+        "name": "AssistantLoopTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "everyResultIsFedBack"
+        ],
+        "assertions": []
+      }
+    ]
+  },
+  {
+    "name": "oa-per-reply-cap",
+    "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/AssistantLoop.java",
+    "sha256": "ca99a832c9165ad597bf1283c0a8e4cc3a957eadfae9e0988cb08794023cef97",
+    "baselineGreen": true,
+    "restoredByteIdentical": true,
+    "classesRestoredByteIdentical": true,
+    "verdict": "caught",
+    "seconds": 1.2,
+    "mutatedSuites": [
+      {
+        "name": "AssistantLoopTest",
+        "tests": 1,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "thePerReplyCapIsEnforced"
+        ],
+        "assertions": [
+          {
+            "test": "thePerReplyCapIsEnforced",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: only the cap's worth ran ==> expected: <2> but was: <3>"
+          }
+        ]
+      }
+    ],
+    "restoredSuites": [
+      {
+        "name": "AssistantLoopTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "thePerReplyCapIsEnforced"
+        ],
+        "assertions": []
+      }
+    ]
+  },
+  {
+    "name": "oa-round-limit",
+    "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/AssistantLoop.java",
+    "sha256": "ca99a832c9165ad597bf1283c0a8e4cc3a957eadfae9e0988cb08794023cef97",
+    "baselineGreen": true,
+    "restoredByteIdentical": true,
+    "classesRestoredByteIdentical": true,
+    "verdict": "caught",
+    "seconds": 1.1,
+    "mutatedSuites": [
+      {
+        "name": "AssistantLoopTest",
+        "tests": 1,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "theRoundLimitEndsTheTurn"
+        ],
+        "assertions": [
+          {
+            "test": "theRoundLimitEndsTheTurn",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: no second round ==> expected: <1> but was: <2>"
+          }
+        ]
+      }
+    ],
+    "restoredSuites": [
+      {
+        "name": "AssistantLoopTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "theRoundLimitEndsTheTurn"
+        ],
+        "assertions": []
+      }
+    ]
+  },
+  {
+    "name": "oa-turn-budget",
+    "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/AssistantLoop.java",
+    "sha256": "ca99a832c9165ad597bf1283c0a8e4cc3a957eadfae9e0988cb08794023cef97",
+    "baselineGreen": true,
+    "restoredByteIdentical": true,
+    "classesRestoredByteIdentical": true,
+    "verdict": "caught",
+    "seconds": 1.1,
+    "mutatedSuites": [
+      {
+        "name": "AssistantLoopTest",
+        "tests": 1,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "thePerTurnBudgetEndsTheTurn"
+        ],
+        "assertions": [
+          {
+            "test": "thePerTurnBudgetEndsTheTurn",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: exactly the turn's budget ran ==> expected: <4> but was: <5>"
+          }
+        ]
+      }
+    ],
+    "restoredSuites": [
+      {
+        "name": "AssistantLoopTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "thePerTurnBudgetEndsTheTurn"
+        ],
+        "assertions": []
+      }
+    ]
+  },
+  {
+    "name": "oa-workspace-supersedes",
+    "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/AssistantLoop.java",
+    "sha256": "ca99a832c9165ad597bf1283c0a8e4cc3a957eadfae9e0988cb08794023cef97",
+    "baselineGreen": true,
+    "restoredByteIdentical": true,
+    "classesRestoredByteIdentical": true,
+    "verdict": "caught",
+    "seconds": 1.3,
+    "mutatedSuites": [
+      {
+        "name": "AssistantLoopTest",
+        "tests": 1,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "aWorkspaceChangeSupersedesTheTurn"
+        ],
+        "assertions": [
+          {
+            "test": "aWorkspaceChangeSupersedesTheTurn",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: expected: <SUPERSEDED> but was: <REQUESTING>"
+          }
+        ]
+      }
+    ],
+    "restoredSuites": [
+      {
+        "name": "AssistantLoopTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "aWorkspaceChangeSupersedesTheTurn"
+        ],
+        "assertions": []
+      }
+    ]
+  },
+  {
+    "name": "oa-own-open-continues",
+    "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/AssistantLoop.java",
+    "sha256": "ca99a832c9165ad597bf1283c0a8e4cc3a957eadfae9e0988cb08794023cef97",
+    "baselineGreen": true,
+    "restoredByteIdentical": true,
+    "classesRestoredByteIdentical": true,
+    "verdict": "caught",
+    "seconds": 1.2,
+    "mutatedSuites": [
+      {
+        "name": "AssistantLoopTest",
+        "tests": 1,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "theTurnsOwnOpenContinues"
+        ],
+        "assertions": [
+          {
+            "test": "theTurnsOwnOpenContinues",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: its own open does not end the turn ==> expected: <RUNNING_ACTION> but was: <SUPERSEDED>"
+          }
+        ]
+      }
+    ],
+    "restoredSuites": [
+      {
+        "name": "AssistantLoopTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "theTurnsOwnOpenContinues"
+        ],
+        "assertions": []
+      }
+    ]
+  },
+  {
+    "name": "oa-no-key-refused",
+    "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/AssistantLoop.java",
+    "sha256": "ca99a832c9165ad597bf1283c0a8e4cc3a957eadfae9e0988cb08794023cef97",
+    "baselineGreen": true,
+    "restoredByteIdentical": true,
+    "classesRestoredByteIdentical": true,
+    "verdict": "caught",
+    "seconds": 1.1,
+    "mutatedSuites": [
+      {
+        "name": "AssistantLoopTest",
+        "tests": 1,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "noKeyNeverSends"
+        ],
+        "assertions": [
+          {
+            "test": "noKeyNeverSends",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: no context was assembled ==> expected: <0> but was: <1>"
+          }
+        ]
+      }
+    ],
+    "restoredSuites": [
+      {
+        "name": "AssistantLoopTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "noKeyNeverSends"
+        ],
+        "assertions": []
+      }
+    ]
+  },
+  {
+    "name": "oa-cancel-stops-transport",
+    "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/AssistantLoop.java",
+    "sha256": "ca99a832c9165ad597bf1283c0a8e4cc3a957eadfae9e0988cb08794023cef97",
+    "baselineGreen": true,
+    "restoredByteIdentical": true,
+    "classesRestoredByteIdentical": true,
+    "verdict": "caught",
+    "seconds": 1.2,
+    "mutatedSuites": [
+      {
+        "name": "AssistantLoopTest",
+        "tests": 1,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "aLateReplyAfterCancelDoesNothing"
+        ],
+        "assertions": [
+          {
+            "test": "aLateReplyAfterCancelDoesNothing",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: the transport is asked to stop the cancelled ticket ==> expected: <[1]> but was: <[]>"
+          }
+        ]
+      }
+    ],
+    "restoredSuites": [
+      {
+        "name": "AssistantLoopTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "aLateReplyAfterCancelDoesNothing"
+        ],
+        "assertions": []
+      }
+    ]
+  },
+  {
+    "name": "oa-edt-guard",
+    "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/ActionExecutor.java",
+    "sha256": "e3b9106e86750e4cdd5da7177c1ecd3b69d2573b705c82806147d429da285301",
+    "baselineGreen": true,
+    "restoredByteIdentical": true,
+    "classesRestoredByteIdentical": true,
+    "verdict": "caught",
+    "seconds": 2.3,
+    "mutatedSuites": [
+      {
+        "name": "AssistantGuardTest",
+        "tests": 1,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "anEndedTurnChangesNothing"
+        ],
+        "assertions": [
+          {
+            "test": "anEndedTurnChangesNothing",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: the Swing mutation did not run ==> expected: <false> but was: <true>"
+          }
+        ]
+      }
+    ],
+    "restoredSuites": [
+      {
+        "name": "AssistantGuardTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "anEndedTurnChangesNothing"
+        ],
+        "assertions": []
+      }
+    ]
+  },
+  {
+    "name": "oa-key-never-in-errors",
+    "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/assistant/AssistantAdapter.java",
+    "sha256": "68a7ca400c7b74886be1d08566e7b5169372c956e2453a862e0d6dab39694dc5",
+    "baselineGreen": true,
+    "restoredByteIdentical": true,
+    "classesRestoredByteIdentical": true,
+    "verdict": "caught",
+    "seconds": 3.5,
+    "mutatedSuites": [
+      {
+        "name": "AssistantAdapterTest",
+        "tests": 1,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "anErrorIsBoundedAndKeyless"
+        ],
+        "assertions": [
+          {
+            "test": "anErrorIsBoundedAndKeyless",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: the key never appears in an error: the provider request failed: IOException: Anthropic HTTP 401: {\"error\":\"denied for key sk-DEMO-not-a-real-key-000000\"} ==> expected: <false> but was: <true>"
+          }
+        ]
+      }
+    ],
+    "restoredSuites": [
+      {
+        "name": "AssistantAdapterTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "anErrorIsBoundedAndKeyless"
+        ],
+        "assertions": []
+      }
+    ]
+  },
+  {
+    "name": "oa-no-store-gate",
+    "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java",
+    "sha256": "de002ff70b98f6cc92e0b74c57c87f1365b0c26b21b401ddc610d279b425a83a",
+    "baselineGreen": true,
+    "restoredByteIdentical": true,
+    "classesRestoredByteIdentical": true,
+    "verdict": "caught",
+    "seconds": 6.7,
+    "mutatedSuites": [
+      {
+        "name": "AssistantLiveFrameTest",
+        "tests": 1,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "aLiveTurnWithNoLog"
+        ],
+        "assertions": [
+          {
+            "test": "aLiveTurnWithNoLog",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: expected: <[context, aggregate, spotlight]> but was: <[, , ]>"
+          }
+        ]
+      }
+    ],
+    "restoredSuites": [
+      {
+        "name": "AssistantLiveFrameTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "aLiveTurnWithNoLog"
+        ],
+        "assertions": []
+      }
+    ]
+  },
+  {
+    "name": "oa-one-panel-two-hosts",
+    "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java",
+    "sha256": "de002ff70b98f6cc92e0b74c57c87f1365b0c26b21b401ddc610d279b425a83a",
+    "baselineGreen": true,
+    "restoredByteIdentical": true,
+    "classesRestoredByteIdentical": true,
+    "verdict": "caught",
+    "seconds": 6.0,
+    "mutatedSuites": [
+      {
+        "name": "AssistantHostFrameTest",
+        "tests": 1,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "oneConversationAcrossHosts"
+        ],
+        "assertions": [
+          {
+            "test": "oneConversationAcrossHosts",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: Unexpected null value, expected: <javax.swing.JFrame> but was: <null>"
+          }
+        ]
+      }
+    ],
+    "restoredSuites": [
+      {
+        "name": "AssistantHostFrameTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "oneConversationAcrossHosts"
+        ],
+        "assertions": []
+      }
+    ]
+  },
+  {
+    "name": "oa-close-docks",
+    "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java",
+    "sha256": "de002ff70b98f6cc92e0b74c57c87f1365b0c26b21b401ddc610d279b425a83a",
+    "baselineGreen": true,
+    "restoredByteIdentical": true,
+    "classesRestoredByteIdentical": true,
+    "verdict": "caught",
+    "seconds": 16.7,
+    "mutatedSuites": [
+      {
+        "name": "AssistantHostFrameTest",
+        "tests": 1,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "closingTheWindowDocks"
+        ],
+        "assertions": [
+          {
+            "test": "closingTheWindowDocks",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: closing the window docked the assistant ==> expected: <telamin.fluxtion.audit.analyser.analyser.ui.MainFrame[frame0,360,240,1200x800,invalid,layout=java.awt.BorderLayout,title=Fluxtion Audit Log Analyser,resizable,normal,defaultCloseOperation=DO_NOTHING_ON_CLOSE,rootPane=javax.swing.JRootPane[,0,28,1200x772,layout=javax.swing.JRootPane$RootLayout,alignmentX=0.0,alignmentY=0.0,border=,flags=16777673,maximumSize=,minimumSize=,preferredSize=],rootPaneCheckingEnabled=true]> but was: <javax.swing.JFrame[frame1,1400,240,520x720,invalid,hidden,layout=java.awt.BorderLayout,title=Analyser assistant,resizable,normal,defaultCloseOperation=DO_NOTHING_ON_CLOSE,rootPane=javax.swing.JRootPane[,0,28,520x692,layout=javax.swing.JRootPane$RootLayout,alignmentX=0.0,alignmentY=0.0,border=,flags=16777673,maximumSize=,minimumSize=,preferredSize=],rootPaneCheckingEnabled=true]>"
+          }
+        ]
+      }
+    ],
+    "restoredSuites": [
+      {
+        "name": "AssistantHostFrameTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "closingTheWindowDocks"
+        ],
+        "assertions": []
+      }
+    ]
+  },
+  {
+    "name": "oa-no-stranded-window",
+    "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java",
+    "sha256": "de002ff70b98f6cc92e0b74c57c87f1365b0c26b21b401ddc610d279b425a83a",
+    "baselineGreen": true,
+    "restoredByteIdentical": true,
+    "classesRestoredByteIdentical": true,
+    "verdict": "caught",
+    "seconds": 2.1,
+    "mutatedSuites": [
+      {
+        "name": "AssistantPlacementTest",
+        "tests": 1,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "aRemovedMonitorDoesNotStrandTheWindow"
+        ],
+        "assertions": [
+          {
+            "test": "aRemovedMonitorDoesNotStrandTheWindow",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: entirely on the remaining screen: java.awt.Rectangle[x=3000,y=200,width=520,height=720] ==> expected: <true> but was: <false>"
+          }
+        ]
+      }
+    ],
+    "restoredSuites": [
+      {
+        "name": "AssistantPlacementTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "aRemovedMonitorDoesNotStrandTheWindow"
+        ],
+        "assertions": []
+      }
+    ]
+  },
+  {
+    "name": "oa-docked-pass-through",
+    "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/SpotlightOverlay.java",
+    "sha256": "6f907a6e42fd32753fa9697f06afbbd28406dfc01051f69fd4d3fad88d4b3718",
+    "baselineGreen": true,
+    "restoredByteIdentical": true,
+    "classesRestoredByteIdentical": true,
+    "verdict": "caught",
+    "seconds": 1.8,
+    "mutatedSuites": [
+      {
+        "name": "AssistantPlacementTest",
+        "tests": 1,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "theDockedAssistantsPressesAreItsOwn"
+        ],
+        "assertions": [
+          {
+            "test": "theDockedAssistantsPressesAreItsOwn",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: inside the docked assistant: routed to it, not to the overlay ==> expected: <false> but was: <true>"
+          }
+        ]
+      }
+    ],
+    "restoredSuites": [
+      {
+        "name": "AssistantPlacementTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "theDockedAssistantsPressesAreItsOwn"
+        ],
+        "assertions": []
+      }
+    ]
+  },
+  {
+    "name": "oa-popout-follows-theme",
+    "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java",
+    "sha256": "de002ff70b98f6cc92e0b74c57c87f1365b0c26b21b401ddc610d279b425a83a",
+    "baselineGreen": true,
+    "restoredByteIdentical": true,
+    "classesRestoredByteIdentical": true,
+    "verdict": "caught",
+    "seconds": 6.8,
+    "mutatedSuites": [
+      {
+        "name": "AssistantHostFrameTest",
+        "tests": 1,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "reachableAtTheDefaultSizeAndThemed"
+        ],
+        "assertions": [
+          {
+            "test": "reachableAtTheDefaultSizeAndThemed",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: the popped-out panel follows the theme ==> expected: <javax.swing.plaf.ColorUIResource[r=60,g=63,b=65]> but was: <com.apple.laf.AquaImageFactory$SystemColorProxy[r=238,g=238,b=238]>"
+          }
+        ]
+      }
+    ],
+    "restoredSuites": [
+      {
+        "name": "AssistantHostFrameTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "reachableAtTheDefaultSizeAndThemed"
+        ],
+        "assertions": []
+      }
+    ]
+  },
+  {
+    "name": "oa-window-disposed-with-analyser",
+    "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java",
+    "sha256": "de002ff70b98f6cc92e0b74c57c87f1365b0c26b21b401ddc610d279b425a83a",
+    "baselineGreen": true,
+    "restoredByteIdentical": true,
+    "classesRestoredByteIdentical": true,
+    "verdict": "caught",
+    "seconds": 8.6,
+    "mutatedSuites": [
+      {
+        "name": "AssistantHostFrameTest",
+        "tests": 1,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "theWindowGoesWithTheAnalyser"
+        ],
+        "assertions": [
+          {
+            "test": "theWindowGoesWithTheAnalyser",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: found on CI: the assistant window outlived its analyser ==> expected: <true> but was: <false>"
+          }
+        ]
+      }
+    ],
+    "restoredSuites": [
+      {
+        "name": "AssistantHostFrameTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "theWindowGoesWithTheAnalyser"
+        ],
+        "assertions": []
+      }
+    ]
+  },
+  {
+    "name": "oa3-binding-validated",
+    "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/WalkAuthoring.java",
+    "sha256": "9cb9ca30ea7b07f73c96b9ecb069fceb37da8ce2c6feb39506d216dedf56f985",
+    "baselineGreen": true,
+    "restoredByteIdentical": true,
+    "classesRestoredByteIdentical": true,
+    "verdict": "caught",
+    "seconds": 3.8,
+    "mutatedSuites": [
+      {
+        "name": "ConversationWalkVerbTest",
+        "tests": 1,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "aBadBindingStoresNothing"
+        ],
+        "assertions": [
+          {
+            "test": "aBadBindingStoresNothing",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: expected: <false> but was: <true>"
+          }
+        ]
+      }
+    ],
+    "restoredSuites": [
+      {
+        "name": "ConversationWalkVerbTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "aBadBindingStoresNothing"
+        ],
+        "assertions": []
+      }
+    ]
+  },
+  {
+    "name": "oa3-serializer-keeps-bindings",
+    "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/config/ConfigStore.java",
+    "sha256": "1d45c1628fb5e1e9c684090a5ce26d748a511c35040b54e92fa81fa32dccaa2a",
+    "baselineGreen": true,
+    "restoredByteIdentical": true,
+    "classesRestoredByteIdentical": true,
+    "verdict": "caught",
+    "seconds": 1.6,
+    "mutatedSuites": [
+      {
+        "name": "ConversationWalkStorageTest",
+        "tests": 1,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "theDialogueRoundTrips"
+        ],
+        "assertions": [
+          {
+            "test": "theDialogueRoundTrips",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: expected: <[WalkSpec[name=j, title=The admin reset re-arms the alarm, author=assistant, createdAt=2026-09-27T18:02:11Z, updatedAt=2026-09-27T18:05:00Z, fingerprint=LogFingerprint[logName=demo.yaml, records=67, firstTime=1, lastTime=9, provenance=null, provenanceSource=null], runBasis=[sha256:file1], steps=[Step[caption=The alarm is raised on the third rejected row., view=View[tab=graph, filter=Filter[from=10, to=90, groupMode=RAW_EVENT, dimensions=[Row, Tick], text=rejected], record=null, graph=Alarm lifecycle, focus=null], targets=[Target[target=graph:Alarm lifecycle:note:1, caption=RAISED: 3 rejected, basis=Basis[kind=chart, digest=sha256:c1, representation=]]], id=s1, through=t1], Step[caption=, view=View[tab=topology, filter=Filter[from=null, to=null, groupMode=DIMENSION, dimensions=null, text=], record=36, graph=null, focus=FocusRef[name=alarm path, digest=sha256:f1]], targets=[Target[target=records:row:36, caption=the reset, basis=Basis[kind=record, digest=sha256:r36, representation=HeapLogStore]], Target[target=topology:node:feedAlarm, caption=, basis=Basis[kind=graph, digest=, representation=]]], id=s2, through=t2]], extras={}, conversation=Conversation[version=1, kind=edited-recording, author=DEMO author, turns=[Turn[id=t1, role=user, text=Where did the application first log a breach?], Turn[id=t2, role=assistant, text=At record 16: its RiskBreachEvent.\nSee the detail pane.]]]]]> but was: <[WalkSpec[name=j, title=The admin reset re-arms the alarm, author=assistant, createdAt=2026-09-27T18:02:11Z, updatedAt=2026-09-27T18:05:00Z, fingerprint=LogFingerprint[logName=demo.yaml, records=67, firstTime=1, lastTime=9, provenance=null, provenanceSource=null], runBasis=[sha256:file1], steps=[Step[caption=The alarm is raised on the third rejected row., view=View[tab=graph, filter=Filter[from=10, to=90, groupMode=RAW_EVENT, dimensions=[Row, Tick], text=rejected], record=null, graph=Alarm lifecycle, focus=null], targets=[Target[target=graph:Alarm lifecycle:note:1, caption=RAISED: 3 rejected, basis=Basis[kind=chart, digest=sha256:c1, representation=]]], id=s1, through=null], Step[caption=, view=View[tab=topology, filter=Filter[from=null, to=null, groupMode=DIMENSION, dimensions=null, text=], record=36, graph=null, focus=FocusRef[name=alarm path, digest=sha256:f1]], targets=[Target[target=records:row:36, caption=the reset, basis=Basis[kind=record, digest=sha256:r36, representation=HeapLogStore]], Target[target=topology:node:feedAlarm, caption=, basis=Basis[kind=graph, digest=, representation=]]], id=s2, through=null]], extras={}, conversation=Conversation[version=1, kind=edited-recording, author=DEMO author, turns=[Turn[id=t1, role=user, text=Where did the application first log a breach?], Turn[id=t2, role=assistant, text=At record 16: its RiskBreachEvent.\nSee the detail pane.]]]]]>"
+          }
+        ]
+      }
+    ],
+    "restoredSuites": [
+      {
+        "name": "ConversationWalkStorageTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "theDialogueRoundTrips"
+        ],
+        "assertions": []
+      }
+    ]
+  },
+  {
+    "name": "oa3-share-validates",
+    "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/config/SettingsShare.java",
+    "sha256": "8c6bec5ec656a45ef51fa8a66beb9c32d7f59144641c4f3f56b658be7667e64a",
+    "baselineGreen": true,
+    "restoredByteIdentical": true,
+    "classesRestoredByteIdentical": true,
+    "verdict": "caught",
+    "seconds": 1.4,
+    "mutatedSuites": [
+      {
+        "name": "ConversationWalkStorageTest",
+        "tests": 1,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "malformedSharedDialogueIsRefused"
+        ],
+        "assertions": [
+          {
+            "test": "malformedSharedDialogueIsRefused",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: 0 report(s) \u00b7 2 spotlight walk(s) \u2014 the author's commentary, attributed as declared \u00b7 1 carrying dialogue (2 turns of labelled, unverified conversation) ==> expected: <true> but was: <false>"
+          }
+        ]
+      }
+    ],
+    "restoredSuites": [
+      {
+        "name": "ConversationWalkStorageTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "malformedSharedDialogueIsRefused"
+        ],
+        "assertions": []
+      }
+    ]
+  },
+  {
+    "name": "oa3-redaction-covers-dialogue",
+    "site": "src/main/java/telamin/fluxtion/audit/analyser/bundle/BundleProfile.java",
+    "sha256": "0807c276e8d0eafe7c8c4dd5e9bccb6d770028932e44a4467dc22d6c0a569bed",
+    "baselineGreen": true,
+    "restoredByteIdentical": true,
+    "classesRestoredByteIdentical": true,
+    "verdict": "caught",
+    "seconds": 1.2,
+    "mutatedSuites": [
+      {
+        "name": "ConversationBundleProfileTest",
+        "tests": 1,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "aPathInATurnIsRedacted"
+        ],
+        "assertions": [
+          {
+            "test": "aPathInATurnIsRedacted",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: the machine path never leaves ==> expected: <false> but was: <true>"
+          }
+        ]
+      }
+    ],
+    "restoredSuites": [
+      {
+        "name": "ConversationBundleProfileTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "aPathInATurnIsRedacted"
+        ],
+        "assertions": []
+      }
+    ]
+  },
+  {
+    "name": "oa3-turn-size-limit",
+    "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/walk/WalkConversation.java",
+    "sha256": "a5d0c96b008d5546cac913e71dcbcc5bdcd074bd8000213cb63c2e9d13f81f4a",
+    "baselineGreen": true,
+    "restoredByteIdentical": true,
+    "classesRestoredByteIdentical": true,
+    "verdict": "caught",
+    "seconds": 1.1,
+    "mutatedSuites": [
+      {
+        "name": "WalkConversationTest",
+        "tests": 1,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "boundsAreEnforced"
+        ],
+        "assertions": [
+          {
+            "test": "boundsAreEnforced",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: this conversation must be refused, and was accepted ==> expected: <false> but was: <true>"
+          }
+        ]
+      }
+    ],
+    "restoredSuites": [
+      {
+        "name": "WalkConversationTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "boundsAreEnforced"
+        ],
+        "assertions": []
+      }
+    ]
+  },
+  {
+    "name": "oa3-edit-changes-kind",
+    "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/walk/ConversationDraft.java",
+    "sha256": "32371f7398dd48d36bf316b99c3308b7718ef3eb8755621d0b4371c1287ec69b",
+    "baselineGreen": true,
+    "restoredByteIdentical": true,
+    "classesRestoredByteIdentical": true,
+    "verdict": "caught",
+    "seconds": 1.0,
+    "mutatedSuites": [
+      {
+        "name": "ConversationDraftTest",
+        "tests": 1,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "theKindFollowsWhatHappened"
+        ],
+        "assertions": [
+          {
+            "test": "theKindFollowsWhatHappened",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: editing captured words changes the kind ==> expected: <edited-recording> but was: <recorded>"
+          }
+        ]
+      }
+    ],
+    "restoredSuites": [
+      {
+        "name": "ConversationDraftTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "theKindFollowsWhatHappened"
+        ],
+        "assertions": []
+      }
+    ]
+  },
+  {
+    "name": "oa3-excerpt-discloses-words",
+    "site": "src/main/java/telamin/fluxtion/audit/analyser/bundle/BundleProfile.java",
+    "sha256": "0807c276e8d0eafe7c8c4dd5e9bccb6d770028932e44a4467dc22d6c0a569bed",
+    "baselineGreen": true,
+    "restoredByteIdentical": true,
+    "classesRestoredByteIdentical": true,
+    "verdict": "caught",
+    "seconds": 1.2,
+    "mutatedSuites": [
+      {
+        "name": "ConversationBundleProfileTest",
+        "tests": 1,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "anExcerptDisclosesUnrebasedWords"
+        ],
+        "assertions": [
+          {
+            "test": "anExcerptDisclosesUnrebasedWords",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: [] ==> expected: <true> but was: <false>"
+          }
+        ]
+      }
+    ],
+    "restoredSuites": [
+      {
+        "name": "ConversationBundleProfileTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "anExcerptDisclosesUnrebasedWords"
+        ],
+        "assertions": []
+      }
+    ]
+  },
+  {
+    "name": "oa3-dialogue-edit-ends-walk",
+    "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/WalkPlayback.java",
+    "sha256": "51d0e8f80f173990e10c006c890eab0d53123d99f0474ce1d8758c765f9c5124",
+    "baselineGreen": true,
+    "restoredByteIdentical": true,
+    "classesRestoredByteIdentical": true,
+    "verdict": "caught",
+    "seconds": 1.2,
+    "mutatedSuites": [
+      {
+        "name": "ConversationWalkPlaybackTest",
+        "tests": 1,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "aDialogueEditEndsTheShowing"
+        ],
+        "assertions": [
+          {
+            "test": "aDialogueEditEndsTheShowing",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: a changed conversation is a changed walk ==> expected: <false> but was: <true>"
+          }
+        ]
+      }
+    ],
+    "restoredSuites": [
+      {
+        "name": "ConversationWalkPlaybackTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "aDialogueEditEndsTheShowing"
+        ],
+        "assertions": []
+      }
+    ]
+  },
+  {
+    "name": "oa4-refused-step-keeps-accepted-prefix",
+    "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java",
+    "sha256": "de002ff70b98f6cc92e0b74c57c87f1365b0c26b21b401ddc610d279b425a83a",
+    "baselineGreen": true,
+    "restoredByteIdentical": true,
+    "classesRestoredByteIdentical": true,
+    "verdict": "caught",
+    "seconds": 10.4,
+    "mutatedSuites": [
+      {
+        "name": "ConversationJourneyFrameTest",
+        "tests": 1,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "aJourneyPlays"
+        ],
+        "assertions": [
+          {
+            "test": "aJourneyPlays",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: a refused step's answer is never shown as if its evidence were ==> expected: <false> but was: <true>"
+          }
+        ]
+      }
+    ],
+    "restoredSuites": [
+      {
+        "name": "ConversationJourneyFrameTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "aJourneyPlays"
+        ],
+        "assertions": []
+      }
+    ]
+  },
+  {
+    "name": "oa4-accepted-step-tracked",
+    "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/WalkPlayback.java",
+    "sha256": "51d0e8f80f173990e10c006c890eab0d53123d99f0474ce1d8758c765f9c5124",
+    "baselineGreen": true,
+    "restoredByteIdentical": true,
+    "classesRestoredByteIdentical": true,
+    "verdict": "caught",
+    "seconds": 1.6,
+    "mutatedSuites": [
+      {
+        "name": "ConversationWalkPlaybackTest",
+        "tests": 1,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "aRefusedStepKeepsTheAcceptedPrefix"
+        ],
+        "assertions": [
+          {
+            "test": "aRefusedStepKeepsTheAcceptedPrefix",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: the dialogue stays at step 1's prefix ==> expected: <0> but was: <1>"
+          }
+        ]
+      }
+    ],
+    "restoredSuites": [
+      {
+        "name": "ConversationWalkPlaybackTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "aRefusedStepKeepsTheAcceptedPrefix"
+        ],
+        "assertions": []
+      }
+    ]
+  },
+  {
+    "name": "oa4-pending-turn-blocks-demo",
+    "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/WalkPlayback.java",
+    "sha256": "51d0e8f80f173990e10c006c890eab0d53123d99f0474ce1d8758c765f9c5124",
+    "baselineGreen": true,
+    "restoredByteIdentical": true,
+    "classesRestoredByteIdentical": true,
+    "verdict": "caught",
+    "seconds": 1.1,
+    "mutatedSuites": [
+      {
+        "name": "ConversationWalkPlaybackTest",
+        "tests": 1,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "aPendingLiveTurnBlocksADialogueWalk"
+        ],
+        "assertions": [
+          {
+            "test": "aPendingLiveTurnBlocksADialogueWalk",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: expected: <false> but was: <true>"
+          }
+        ]
+      }
+    ],
+    "restoredSuites": [
+      {
+        "name": "ConversationWalkPlaybackTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "aPendingLiveTurnBlocksADialogueWalk"
+        ],
+        "assertions": []
+      }
+    ]
+  },
+  {
+    "name": "oa4-handoff-ends-demo",
+    "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/WalkPlayback.java",
+    "sha256": "51d0e8f80f173990e10c006c890eab0d53123d99f0474ce1d8758c765f9c5124",
+    "baselineGreen": true,
+    "restoredByteIdentical": true,
+    "classesRestoredByteIdentical": true,
+    "verdict": "caught",
+    "seconds": 1.1,
+    "mutatedSuites": [
+      {
+        "name": "ConversationWalkPlaybackTest",
+        "tests": 1,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "theHandoffStartsAFreshThread"
+        ],
+        "assertions": [
+          {
+            "test": "theHandoffStartsAFreshThread",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: expected: <false> but was: <true>"
+          }
+        ]
+      }
+    ],
+    "restoredSuites": [
+      {
+        "name": "ConversationWalkPlaybackTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "theHandoffStartsAFreshThread"
+        ],
+        "assertions": []
+      }
+    ]
+  },
+  {
+    "name": "oa4-live-send-ends-demo",
+    "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/WalkPlayback.java",
+    "sha256": "51d0e8f80f173990e10c006c890eab0d53123d99f0474ce1d8758c765f9c5124",
+    "baselineGreen": true,
+    "restoredByteIdentical": true,
+    "classesRestoredByteIdentical": true,
+    "verdict": "caught",
+    "seconds": 1.1,
+    "mutatedSuites": [
+      {
+        "name": "ConversationWalkPlaybackTest",
+        "tests": 1,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "aLiveQuestionEndsTheDemonstration"
+        ],
+        "assertions": [
+          {
+            "test": "aLiveQuestionEndsTheDemonstration",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: expected: <false> but was: <true>"
+          }
+        ]
+      }
+    ],
+    "restoredSuites": [
+      {
+        "name": "ConversationWalkPlaybackTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "aLiveQuestionEndsTheDemonstration"
+        ],
+        "assertions": []
+      }
+    ]
+  },
+  {
+    "name": "oa4-demo-has-no-composer",
+    "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/AssistantPanel.java",
+    "sha256": "4cdf0bba17dc7f79eba0120e18d241231b05fc4026639f87a70ffbe5a7e50568",
+    "baselineGreen": true,
+    "restoredByteIdentical": true,
+    "classesRestoredByteIdentical": true,
+    "verdict": "caught",
+    "seconds": 8.8,
+    "mutatedSuites": [
+      {
+        "name": "ConversationJourneyFrameTest",
+        "tests": 1,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "aJourneyPlays"
+        ],
+        "assertions": [
+          {
+            "test": "aJourneyPlays",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: no composer in a demonstration ==> expected: <false> but was: <true>"
+          }
+        ]
+      }
+    ],
+    "restoredSuites": [
+      {
+        "name": "ConversationJourneyFrameTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "aJourneyPlays"
+        ],
+        "assertions": []
+      }
+    ]
+  },
+  {
+    "name": "oa4-playback-writes-nothing",
+    "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/WalkPresenter.java",
+    "sha256": "2576f1039de6ff4abd26033030734028ee0873f785129082f56b23f4a00591ae",
+    "baselineGreen": true,
+    "restoredByteIdentical": true,
+    "classesRestoredByteIdentical": true,
+    "verdict": "caught",
+    "seconds": 9.3,
+    "mutatedSuites": [
+      {
+        "name": "ConversationJourneyFrameTest",
+        "tests": 1,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "aJourneyPlays"
+        ],
+        "assertions": [
+          {
+            "test": "aJourneyPlays",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: the record is lit; the closed chart is not ==> expected: <PARTLY_SHOWN> but was: <SHOWN>"
+          }
+        ]
+      }
+    ],
+    "restoredSuites": [
+      {
+        "name": "ConversationJourneyFrameTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "aJourneyPlays"
+        ],
+        "assertions": []
+      }
+    ]
+  },
+  {
+    "name": "oa4-handoff-carries-nothing",
+    "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java",
+    "sha256": "de002ff70b98f6cc92e0b74c57c87f1365b0c26b21b401ddc610d279b425a83a",
+    "baselineGreen": true,
+    "restoredByteIdentical": true,
+    "classesRestoredByteIdentical": true,
+    "verdict": "caught",
+    "seconds": 7.3,
+    "mutatedSuites": [
+      {
+        "name": "ConversationJourneyFrameTest",
+        "tests": 1,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "theHandoffIsAFreshThread"
+        ],
+        "assertions": [
+          {
+            "test": "theHandoffIsAFreshThread",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: the fresh thread starts empty: nothing of the demo is carried ==> expected: <> but was: <Question (scripted):\nWhat does this DEMO log contain?\n\nAnswer (scripted \u2014 not a live model):\nDEMO quote records, one per processor cycle.\n\n\u2500\u2500 What the analyser shows for step 2 \u2500\u2500\nPartly shown \u2014 chart 'DEMO spread' is closed \u2014 open it to see this step; the file behind this log has not been re-checked since it was read, so 'current' here means unchanged since this step was saved, not unchanged on disk\n  1. records:row:2 \u2014 current\n  2. graph:DEMO spread \u2014 not available: the chart is not open\n>"
+          }
+        ]
+      }
+    ],
+    "restoredSuites": [
+      {
+        "name": "ConversationJourneyFrameTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "theHandoffIsAFreshThread"
+        ],
+        "assertions": []
+      }
+    ]
+  },
+  {
+    "name": "oa5-page-states-the-bytes",
+    "site": "docs/site/journeys/find-the-first-recorded-breach.md",
+    "sha256": "2c112195dbb6820931fd465f0ddbb42fe6620b629fcecfd5c8e2fe533ba150cc",
+    "baselineGreen": true,
+    "restoredByteIdentical": true,
+    "classesRestoredByteIdentical": true,
+    "verdict": "caught",
+    "seconds": 0.5,
+    "mutatedSuites": [
+      {
+        "name": "JourneyCatalogueTest",
+        "tests": 1,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "thePageDescribesTheActualBytes"
+        ],
+        "assertions": [
+          {
+            "test": "thePageDescribesTheActualBytes",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: the sha256 stated is the file's: cbd8f28dbc50263d45678cc926f089e6ad5cffab1a990f37e8ec87b20fa21743 ==> expected: <true> but was: <false>"
+          }
+        ]
+      }
+    ],
+    "restoredSuites": [
+      {
+        "name": "JourneyCatalogueTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "thePageDescribesTheActualBytes"
+        ],
+        "assertions": []
+      }
+    ]
+  },
+  {
+    "name": "oa5-page-says-no-replay-runs",
+    "site": "docs/site/journeys/find-the-first-recorded-breach.md",
+    "sha256": "2c112195dbb6820931fd465f0ddbb42fe6620b629fcecfd5c8e2fe533ba150cc",
+    "baselineGreen": true,
+    "restoredByteIdentical": true,
+    "classesRestoredByteIdentical": true,
+    "verdict": "caught",
+    "seconds": 0.5,
+    "mutatedSuites": [
+      {
+        "name": "JourneyCatalogueTest",
+        "tests": 1,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "thePageDescribesTheActualBytes"
+        ],
+        "assertions": [
+          {
+            "test": "thePageDescribesTheActualBytes",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: expected: <true> but was: <false>"
+          }
+        ]
+      }
+    ],
+    "restoredSuites": [
+      {
+        "name": "JourneyCatalogueTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "thePageDescribesTheActualBytes"
+        ],
+        "assertions": []
+      }
+    ]
+  },
+  {
+    "name": "oa5-transcript-is-the-bundled-dialogue",
+    "site": "docs/site/journeys/find-the-first-recorded-breach.md",
+    "sha256": "2c112195dbb6820931fd465f0ddbb42fe6620b629fcecfd5c8e2fe533ba150cc",
+    "baselineGreen": true,
+    "restoredByteIdentical": true,
+    "classesRestoredByteIdentical": true,
+    "verdict": "caught",
+    "seconds": 0.5,
+    "mutatedSuites": [
+      {
+        "name": "JourneyCatalogueTest",
+        "tests": 1,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "thePageTranscriptIsTheBundledDialogue"
+        ],
+        "assertions": [
+          {
+            "test": "thePageTranscriptIsTheBundledDialogue",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: the page carries turn t4 as bundled, after the one before ==> expected: <true> but was: <false>"
+          }
+        ]
+      }
+    ],
+    "restoredSuites": [
+      {
+        "name": "JourneyCatalogueTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "thePageTranscriptIsTheBundledDialogue"
+        ],
+        "assertions": []
+      }
+    ]
+  }
+]
