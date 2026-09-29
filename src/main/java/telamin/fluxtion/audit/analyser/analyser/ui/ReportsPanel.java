@@ -14,7 +14,9 @@ import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JList;
+import javax.swing.JMenuItem;
 import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.JTable;
@@ -25,6 +27,7 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Font;
+import java.awt.FlowLayout;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -40,8 +43,7 @@ import java.util.function.Supplier;
  * the PDF: a fingerprint mismatch banners BEFORE the sections; a filter difference is an OFFER — a
  * button that applies the stored context — never an automatic act (M20.5/D-R5's pattern).
  *
- * <p>Swing, so untested by rule 4; every decision with logic in it lives in the report package and is
- * pinned there.
+ * <p>The report package owns the decisions; Swing tests cover the controls and their placement.
  */
 public final class ReportsPanel extends JPanel {
 
@@ -73,6 +75,10 @@ public final class ReportsPanel extends JPanel {
         Color tint(Color accent) {
             return mix(accent, panelBg, dark ? 0.82f : 0.88f);
         }
+
+        Color readingBg() {
+            return mix(Color.WHITE, panelBg, dark ? 0.94f : 0.30f);
+        }
     }
 
     private static Color mix(Color a, Color b, float towardB) {
@@ -101,6 +107,11 @@ public final class ReportsPanel extends JPanel {
     private final DefaultListModel<String> names = new DefaultListModel<>();
     private final JList<String> list = new JList<>(names);
     private final JPanel detail = new JPanel();
+    private final JButton exportButton = new JButton("Export PDF…");
+    private final JMenuItem renameItem = new JMenuItem("Rename…");
+    private final JMenuItem deleteItem = new JMenuItem("Delete…");
+    private final JMenuItem restoreItem = new JMenuItem("Restore deleted…");
+    private JScrollPane detailScroll;
     private final javax.swing.JTabbedPane categories = new javax.swing.JTabbedPane();
     private final ProducerFindingsPanel producerFindings = new ProducerFindingsPanel();
     /**
@@ -134,33 +145,41 @@ public final class ReportsPanel extends JPanel {
         this.deleteReport = deleteReport;
         this.renameReport = renameReport;
 
-        // the agent exports with report {path}; the human gets the same door as a button — the two
-        // surfaces must stay in parity, or one side's report is not quite the other's
-        // FlowLayout wraps at a narrow sidebar but reports only one row's preferred height, clipping
-        // Delete and Restore below the toolbar. Each action gets a visible row at the default width.
-        JPanel bar = new JPanel(new java.awt.GridLayout(0, 1, 0, 4));
-        JButton export = new JButton("Export PDF…");
-        export.addActionListener(e -> {
+        // Report actions belong to the report category. Walks and producer findings have their own controls.
+        JPanel bar = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 2));
+        exportButton.addActionListener(e -> {
             String name = list.getSelectedValue();
             if (name != null) exportPdf.accept(name);
         });
-        bar.add(export);
-        // #23: the way out. Until this, a report could be created and replaced by name and never
-        // removed — the Reports tab only grew. Both act on the SELECTION, like Export.
-        JButton rename = new JButton("Rename…");
-        rename.addActionListener(e -> renameSelected());
-        bar.add(rename);
-        JButton delete = new JButton("Delete…");
-        delete.addActionListener(e -> deleteSelected());
-        bar.add(delete);
-        JButton restoreButton = new JButton("Restore deleted…");
-        restoreButton.setToolTipText("Bring back a report deleted from this project on this machine");
-        restoreButton.addActionListener(e -> restoreDeleted());
-        bar.add(restoreButton);
-        add(bar, BorderLayout.NORTH);
+        bar.add(exportButton);
+        renameItem.addActionListener(e -> renameSelected());
+        deleteItem.addActionListener(e -> deleteSelected());
+        restoreItem.setToolTipText("Bring back a report deleted from this project on this machine");
+        restoreItem.addActionListener(e -> restoreDeleted());
+        JPopupMenu actions = new JPopupMenu();
+        actions.add(renameItem);
+        actions.add(deleteItem);
+        actions.addSeparator();
+        actions.add(restoreItem);
+        JButton more = new JButton("More ▾");
+        more.setToolTipText("Rename, delete or restore reports");
+        more.setComponentPopupMenu(actions);
+        more.addActionListener(e -> actions.show(more, 0, more.getHeight()));
+        bar.add(more);
 
         detail.setLayout(new BoxLayout(detail, BoxLayout.Y_AXIS));
-        detail.setBorder(BorderFactory.createEmptyBorder(8, 10, 8, 10));
+        detail.setBorder(BorderFactory.createEmptyBorder(18, 20, 18, 20));
+        list.setCellRenderer((source, value, index, selected, focus) -> {
+            JLabel label = (JLabel) new javax.swing.DefaultListCellRenderer()
+                    .getListCellRendererComponent(source, value, index, selected, focus);
+            ReportSpec spec = reportNamed(value);
+            if (spec != null) {
+                label.setText("<html>" + html(spec.title()) + "<br><small>" + html(spec.name()) + "</small></html>");
+                label.setToolTipText(spec.name());
+                label.setBorder(BorderFactory.createEmptyBorder(4, 6, 4, 6));
+            }
+            return label;
+        });
         list.addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) renderSelected();
         });
@@ -168,15 +187,19 @@ public final class ReportsPanel extends JPanel {
         // sizes this view to its own preferred width, so one long unwrapped line — the "written
         // against …" provenance line is the usual culprit — widens the entire report and everything
         // below it is laid out to match, off the right-hand edge and behind a horizontal scrollbar.
-        JScrollPane detailScroll = new JScrollPane(Fluid.column(detail),
+        detailScroll = new JScrollPane(Fluid.column(detail),
                 JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
                 JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,
                 new JScrollPane(list), detailScroll);
         split.setDividerLocation(180);
-        categories.addTab("Investigation reports", split);
+        JPanel reportsView = new JPanel(new BorderLayout());
+        reportsView.add(bar, BorderLayout.NORTH);
+        reportsView.add(split, BorderLayout.CENTER);
+        categories.addTab("Investigation reports", reportsView);
         categories.addTab("Producer findings", producerFindings);
         add(categories, BorderLayout.CENTER);
+        updateActions();
     }
 
     /** M69 S4: the Spotlight walks list, as a category beside the reports it is stored like. */
@@ -212,6 +235,7 @@ public final class ReportsPanel extends JPanel {
         } else {
             renderSelected();
         }
+        updateActions();
     }
 
     /** Re-render the open report (the filter changed, the log changed — the evidence is live). */
@@ -250,6 +274,25 @@ public final class ReportsPanel extends JPanel {
     public void setRestore(Supplier<List<String>> restorable, Function<String, String> restoreReport) {
         this.restorable = restorable == null ? List::of : restorable;
         this.restoreReport = restoreReport == null ? n -> "restore is not available here" : restoreReport;
+        updateActions();
+    }
+
+    private void updateActions() {
+        boolean selected = selectedSpec() != null;
+        exportButton.setEnabled(selected);
+        renameItem.setEnabled(selected);
+        deleteItem.setEnabled(selected);
+        restoreItem.setEnabled(!restorable.get().isEmpty());
+    }
+
+    private ReportSpec reportNamed(String name) {
+        for (ReportSpec report : reports.get()) if (report.name().equals(name)) return report;
+        return null;
+    }
+
+    private static String html(String text) {
+        return text == null ? "" : text.replace("&", "&amp;").replace("<", "&lt;")
+                .replace(">", "&gt;").replace("\"", "&quot;");
     }
 
     private void restoreDeleted() {
@@ -311,6 +354,10 @@ public final class ReportsPanel extends JPanel {
 
     private void renderSelected() {
         theme = Theme.current();                   // the theme can change between renders
+        Color reading = theme.readingBg();
+        detail.setBackground(reading);
+        if (detailScroll != null) detailScroll.getViewport().setBackground(reading);
+        updateActions();
         detail.removeAll();
         String name = list.getSelectedValue();
         ReportSpec spec = null;
@@ -325,7 +372,7 @@ public final class ReportsPanel extends JPanel {
         ReportResolver.Resolution res = resolve.apply(spec);
 
         JTextArea title = Fluid.text(spec.title());
-        title.setFont(title.getFont().deriveFont(Font.BOLD, 15f));
+        title.setFont(title.getFont().deriveFont(Font.BOLD, 18f));
         detail.add(title);
         if (spec.fingerprint() != null) {
             detail.add(muted("written against " + spec.fingerprint().describe()

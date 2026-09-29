@@ -24,8 +24,8 @@ import java.util.List;
  * Graph a numeric/boolean {@code instanceId.key} from nodeLogs over time (spec §8.7). Keys are
  * discovered from the filtered records; added series honour the shared filter and re-extract when it
  * changes. Series can be added, <b>removed individually</b>, cleared, styled (stairs/line/points),
- * zoomed and exported to CSV. Multiple {@code GraphPanel}s can coexist (see {@code GraphTabs}) for
- * side-by-side comparisons.
+ * zoomed and exported to CSV. Multiple {@code GraphPanel}s can coexist (see {@code GraphTabs}) and be
+ * selected by name.
  */
 public final class GraphPanel extends JPanel {
 
@@ -51,6 +51,7 @@ public final class GraphPanel extends JPanel {
     private final JButton addFxButton = new JButton("Add f(x)");
     private final JPanel centerHolder = new JPanel(new BorderLayout());
     private final JSplitPane seriesSplit = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
+    private final JTabbedPane seriesEditorTabs = new JTabbedPane();
     private JComponent seriesPanel;
 
     // the plot key rendered as a Swing key in a reserved strip to the right of the plot,
@@ -122,38 +123,51 @@ public final class GraphPanel extends JPanel {
             if (pendingReason != null) startExtraction();   // an immediate request may already have merged it
         });
         extractDebounce.setRepeats(false);
+        addComponentListener(new java.awt.event.ComponentAdapter() {
+            @Override public void componentResized(java.awt.event.ComponentEvent e) {
+                if (editSeriesButton.isSelected()) layoutSeriesEditor();
+            }
+        });
 
         keyCombo.setRenderer(graphKeyRenderer());
 
         // top toolbar: VIEW controls only — series authoring lives in the "Series…" side panel (declutter).
         // The "Series…" toggle itself lives on the plot overlay, above the series key it manages.
-        JPanel row1 = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 2));
+        JPanel row1 = new JPanel(new BorderLayout(4, 0));
+        JPanel viewControls = new JPanel(new FlowLayout(FlowLayout.LEFT, 3, 2));
         editSeriesButton.setToolTipText("Show the Series panel — add/remove keys, author and edit formulas");
         editSeriesButton.setFocusable(false);
         editSeriesButton.addActionListener(e -> setSeriesPanelVisible(editSeriesButton.isSelected()));
-        row1.add(new JLabel("style:"));
-        row1.add(styleCombo);
+        styleCombo.setToolTipText("Plot style");
+        styleCombo.getAccessibleContext().setAccessibleName("Plot style");
+        viewControls.add(styleCombo);
         JButton zoomIn = new JButton("+");
         JButton zoomOut = new JButton("−");
         JButton fit = new JButton("Fit");
-        JButton export = new JButton("Export CSV");
-        JButton exportPng = new JButton("Export PNG");
+        JMenuItem exportCsvItem = new JMenuItem("CSV…");
+        JMenuItem exportPngItem = new JMenuItem("PNG…");
+        JPopupMenu exportMenu = new JPopupMenu();
+        exportMenu.add(exportCsvItem);
+        exportMenu.add(exportPngItem);
+        JButton export = new JButton("Export ▾");
+        export.setComponentPopupMenu(exportMenu);
+        export.addActionListener(e -> exportMenu.show(export, 0, export.getHeight()));
         // Zoom and pin both change the visible window and sit side by side, but only one of them is kept:
         // zoom is a lens on ChartPanel and is never written, while a pin is graph.N.from/to in the profile
         // and comes back on reload. Nothing on screen said so, and an owner lost a zoom expecting it back.
         zoomIn.setToolTipText("Zoom in. A zoom is a view, not part of the chart — it is not saved. Use 📌 to keep a window.");
         zoomOut.setToolTipText("Zoom out. A zoom is a view, not part of the chart — it is not saved. Use 📌 to keep a window.");
-        fit.setToolTipText("Fit the data to the plot. A view, not part of the chart — it is not saved. Use 📌 to keep a window.");
+        fit.setToolTipText("Fit the data to the plot, including zero when useful. This view is not saved; use 📌 to keep a window.");
         pinButton.setToolTipText("Pin this graph to a fixed time window: it stops following the shared filter, "
                 + "and unlike a zoom the window is SAVED with the chart and restored on reload");
         pinButton.setFocusable(false);
         pinButton.addActionListener(e -> { if (pinButton.isSelected()) pinToCurrentWindow(); else unpin(); });
-        row1.add(zoomIn);
-        row1.add(zoomOut);
-        row1.add(fit);
-        row1.add(pinButton);
-        row1.add(export);
-        row1.add(exportPng);
+        viewControls.add(zoomIn);
+        viewControls.add(zoomOut);
+        viewControls.add(fit);
+        viewControls.add(pinButton);
+        row1.add(viewControls, BorderLayout.CENTER);
+        row1.add(export, BorderLayout.EAST);
         add(row1, BorderLayout.NORTH);
 
         // the plot key as an key in its reserved right strip, Edit-series toggle on top
@@ -178,8 +192,8 @@ public final class GraphPanel extends JPanel {
 
         buildSeriesPanel();
 
-        export.addActionListener(e -> exportCsv());
-        exportPng.addActionListener(e -> exportPng());
+        exportCsvItem.addActionListener(e -> exportCsv());
+        exportPngItem.addActionListener(e -> exportPng());
         styleCombo.addActionListener(e -> {
             chart.setStyle(switch (styleCombo.getSelectedIndex()) {
                 case 1 -> ChartPanel.Style.LINE;
@@ -433,14 +447,18 @@ public final class GraphPanel extends JPanel {
         });
         JButton pick = new JButton("Pick…");
         pick.addActionListener(e -> pickKeys());
-        JPanel addKeyRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 2));
-        addKeyRow.add(new JLabel("Add key:"));
-        addKeyRow.add(keyCombo);
-        addKeyRow.add(add);
-        addKeyRow.add(pick);
+        JPanel addKeyRow = new JPanel(new BorderLayout(4, 0));
+        addKeyRow.setBorder(UiTheme.section("Add key"));
+        addKeyRow.add(keyCombo, BorderLayout.CENTER);
+        JPanel keyActions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 2, 0));
+        keyActions.add(add);
+        keyActions.add(pick);
+        addKeyRow.add(keyActions, BorderLayout.EAST);
 
         // author / edit a formula (migrated here from the toolbar)
         exprField.setToolTipText("A formula over instanceId.key values, e.g. askMakerOrder.price - bidMakerOrder.price");
+        exprField.setColumns(12);
+        exprLabelField.setColumns(8);
         resolveCombo.setToolTipText("locf = carry each ref's last value (cross-node formulas); strict = same-record only");
         exprCompletion = new ExprCompletion(exprField);   // dropdown of matching keys/labels as you type
         addFxButton.addActionListener(e -> addFormulaFromUi());
@@ -468,13 +486,18 @@ public final class GraphPanel extends JPanel {
         bottom.add(addKeyRow, BorderLayout.NORTH);
         bottom.add(fx, BorderLayout.CENTER);
 
-        JPanel panel = new JPanel(new BorderLayout(4, 4));
+        JPanel panel = new JPanel(new BorderLayout());
         JPanel listWrap = new JPanel(new BorderLayout());
         listWrap.add(listScroll, BorderLayout.CENTER);
         listWrap.add(listButtons, BorderLayout.SOUTH);
-        panel.add(listWrap, BorderLayout.CENTER);
-        panel.add(bottom, BorderLayout.SOUTH);
-        panel.setPreferredSize(new java.awt.Dimension(330, 0));
+        seriesEditorTabs.addTab("Series", listWrap);
+        JScrollPane addScroll = new JScrollPane(bottom,
+                JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        addScroll.setBorder(BorderFactory.createEmptyBorder());
+        seriesEditorTabs.addTab("Add series", addScroll);
+        panel.add(seriesEditorTabs, BorderLayout.CENTER);
+        panel.setPreferredSize(new java.awt.Dimension(280, 210));
+        panel.setMinimumSize(new java.awt.Dimension(200, 150));
         seriesPanel = panel;
     }
 
@@ -482,19 +505,38 @@ public final class GraphPanel extends JPanel {
         legendLabels.setVisible(!show);   // the Series panel already lists every series — hide the plot key
         positionLegendOverlay();
         if (show) {
+            seriesEditorTabs.setSelectedIndex(seriesListModel.isEmpty() ? 1 : 0);
             centerHolder.remove(chart);
+            seriesSplit.setOrientation(getWidth() < 800 ? JSplitPane.VERTICAL_SPLIT : JSplitPane.HORIZONTAL_SPLIT);
             seriesSplit.setLeftComponent(chart);
             seriesSplit.setRightComponent(seriesPanel);
             centerHolder.add(seriesSplit, BorderLayout.CENTER);
             centerHolder.revalidate();
             centerHolder.repaint();
-            SwingUtilities.invokeLater(() -> seriesSplit.setDividerLocation(Math.max(200, getWidth() - 350)));
+            layoutSeriesEditor();
+            SwingUtilities.invokeLater(this::layoutSeriesEditor);
         } else {
             centerHolder.remove(seriesSplit);
             seriesSplit.setRightComponent(null);   // release the panel so it can be re-added later
             centerHolder.add(chart, BorderLayout.CENTER);
             centerHolder.revalidate();
             centerHolder.repaint();
+        }
+    }
+
+    /** A narrow Graph tab uses the pane's full width for both plot and editor. */
+    private void layoutSeriesEditor() {
+        if (!editSeriesButton.isSelected() || seriesSplit.getParent() == null) return;
+        boolean narrow = getWidth() < 800;
+        int orientation = narrow ? JSplitPane.VERTICAL_SPLIT : JSplitPane.HORIZONTAL_SPLIT;
+        boolean changed = seriesSplit.getOrientation() != orientation;
+        if (changed) seriesSplit.setOrientation(orientation);
+        seriesSplit.setResizeWeight(narrow ? 0.5 : 1.0);
+        if (changed || seriesSplit.getDividerLocation() <= 0) {
+            int extent = narrow ? centerHolder.getHeight() : centerHolder.getWidth();
+            seriesSplit.setDividerLocation(narrow
+                    ? Math.max(150, (int) (extent * 0.5))
+                    : Math.max(250, extent - 280));
         }
     }
 

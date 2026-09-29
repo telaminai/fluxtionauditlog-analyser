@@ -75,7 +75,7 @@ class WalkVerbFrameTest {
             onEdt(() -> assertEquals("step " + showing.get("step") + " of " + showing.get("of"), overlay.strip().position(),
                     "and the strip shows the same step"));
 
-            panel.stepPrompt = w -> 2;
+            onEdt(() -> panel.selectStep(2));
             onEdt(panel.playFrom::doClick);
             await("played from step 2", () -> walk(f).step() == 1 && "SHOWN".equals(walk(f).phase()));
 

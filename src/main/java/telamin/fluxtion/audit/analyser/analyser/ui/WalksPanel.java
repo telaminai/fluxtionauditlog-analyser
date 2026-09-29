@@ -8,20 +8,23 @@ import javax.swing.BorderFactory;
 import javax.swing.DefaultListModel;
 import javax.swing.JButton;
 import javax.swing.JList;
+import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.JTextArea;
+import javax.swing.ListSelectionModel;
 import java.awt.BorderLayout;
-import java.awt.GridLayout;
+import java.awt.FlowLayout;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
- * M69 S4 (spec-spotlight-walks.md §3.10) — the Reports tab's list of spotlight walks: Play, Play from step N, Rename,
+ * M69 S4 (spec-spotlight-walks.md §3.10) — the Reports tab's list of spotlight walks: Play, Play selected step, Rename,
  * Delete and Restore deleted… Every button is a {@code walk} operation through {@link WalkVerb}, the path the
  * assistant's verb takes, so the tab and the verb cannot disagree about what a delete or a play does. The panel
  * decides nothing about playback; it renders the walks and says what the session reported.
@@ -33,19 +36,9 @@ final class WalksPanel extends JPanel {
     private final Supplier<List<String>> restorable;
     private final DefaultListModel<String> names = new DefaultListModel<>();
     private final JList<String> list = new JList<>(names);
+    private final DefaultListModel<String> stepLabels = new DefaultListModel<>();
+    private final JList<String> steps = new JList<>(stepLabels);
     private final JTextArea detail = new JTextArea();
-
-    /** Asks for a step number (1-based), or null. Replaceable so a test can answer it. */
-    Function<WalkSpec, Integer> stepPrompt = w -> {
-        Object typed = JOptionPane.showInputDialog(this, "Play \"" + w.displayTitle() + "\" from step (1–" + w.steps().size() + "):",
-                "Play from step", JOptionPane.PLAIN_MESSAGE, null, null, "1");
-        if (typed == null) return null;
-        try {
-            return Integer.parseInt(typed.toString().trim());
-        } catch (NumberFormatException e) {
-            return -1;
-        }
-    };
     /** Asks for a new name, or null. */
     Function<WalkSpec, String> renamePrompt = w -> {
         Object typed = JOptionPane.showInputDialog(this, "Rename the walk \"" + w.name() + "\" to:", "Rename walk",
@@ -66,10 +59,10 @@ final class WalksPanel extends JPanel {
             JOptionPane.WARNING_MESSAGE);
 
     final JButton play = new JButton("Play");
-    final JButton playFrom = new JButton("Play from step…");
-    final JButton rename = new JButton("Rename…");
-    final JButton delete = new JButton("Delete…");
-    final JButton restore = new JButton("Restore deleted…");
+    final JButton playFrom = new JButton("Play selected step");
+    final JMenuItem rename = new JMenuItem("Rename…");
+    final JMenuItem delete = new JMenuItem("Delete…");
+    final JMenuItem restore = new JMenuItem("Restore deleted…");
 
     WalksPanel(Supplier<List<WalkSpec>> walks, Function<Map<String, Object>, ActionResult> walk,
                Supplier<List<String>> restorable) {
@@ -77,11 +70,11 @@ final class WalksPanel extends JPanel {
         this.walks = walks;
         this.walk = walk;
         this.restorable = restorable;
-        JPanel bar = new JPanel(new GridLayout(0, 1, 0, 4));
+        JPanel bar = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 2));
         play.addActionListener(e -> withSelected(w -> run(Map.of("name", w.name(), "play", true))));
         playFrom.addActionListener(e -> withSelected(w -> {
-            Integer step = stepPrompt.apply(w);
-            if (step != null) run(Map.of("name", w.name(), "play", true, "step", step));
+            int step = steps.getSelectedIndex();
+            if (step >= 0) run(Map.of("name", w.name(), "play", true, "step", step + 1));
         }));
         rename.addActionListener(e -> withSelected(w -> {
             String to = renamePrompt.apply(w);
@@ -100,16 +93,38 @@ final class WalksPanel extends JPanel {
             String name = restoreChooser.apply(gone);
             if (name != null && run(Map.of("restore", name))) select(name);
         });
-        for (JButton b : List.of(play, playFrom, rename, delete, restore)) bar.add(b);
+        JPopupMenu actions = new JPopupMenu();
+        actions.add(rename);
+        actions.add(delete);
+        actions.addSeparator();
+        actions.add(restore);
+        JButton more = new JButton("More ▾");
+        more.setToolTipText("Rename, delete or restore spotlight walks");
+        more.setComponentPopupMenu(actions);
+        more.addActionListener(e -> actions.show(more, 0, more.getHeight()));
+        bar.add(play);
+        bar.add(playFrom);
+        bar.add(more);
         add(bar, BorderLayout.NORTH);
         detail.setEditable(false);
         detail.setLineWrap(true);
         detail.setWrapStyleWord(true);
-        detail.setBorder(BorderFactory.createEmptyBorder(8, 10, 8, 10));
+        detail.setRows(6);
+        detail.setBorder(BorderFactory.createEmptyBorder(10, 12, 10, 12));
+        steps.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        steps.addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting() && !updatingSteps) {
+                renderStepDetail();
+                updateActions();
+            }
+        });
         list.addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) renderSelected();
         });
-        JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, new JScrollPane(list), new JScrollPane(detail));
+        JPanel walkDetail = new JPanel(new BorderLayout());
+        walkDetail.add(new JScrollPane(detail), BorderLayout.NORTH);
+        walkDetail.add(new JScrollPane(steps), BorderLayout.CENTER);
+        JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, new JScrollPane(list), walkDetail);
         split.setDividerLocation(180);
         add(split, BorderLayout.CENTER);
     }
@@ -130,11 +145,7 @@ final class WalksPanel extends JPanel {
         if (selected != null && names.contains(selected)) list.setSelectedValue(selected, true);
         else if (!names.isEmpty()) list.setSelectedIndex(0);
         else renderSelected();
-        boolean any = !names.isEmpty();
-        play.setEnabled(any);
-        playFrom.setEnabled(any);
-        rename.setEnabled(any);
-        delete.setEnabled(any);
+        updateActions();
     }
 
     void select(String name) {
@@ -145,12 +156,18 @@ final class WalksPanel extends JPanel {
         return list.getSelectedValue();
     }
 
+    void selectStep(int oneBased) {
+        steps.setSelectedIndex(oneBased - 1);
+    }
+
     String detailText() {
         return detail.getText();
     }
 
     /** The showing walk changed: the detail line that says so is re-rendered from the published state. */
     private WalkPlaybackState showing = WalkPlaybackState.IDLE;
+    private String renderedWalk;
+    private boolean updatingSteps;
 
     void render(WalkPlaybackState state) {
         WalkPlaybackState s = state == null ? WalkPlaybackState.IDLE : state;
@@ -165,31 +182,62 @@ final class WalksPanel extends JPanel {
     private void renderSelected() {
         WalkSpec w = selected();
         if (w == null) {
+            renderedWalk = null;
+            stepLabels.clear();
             detail.setText(names.isEmpty()
                     ? "No spotlight walks yet.\n\nLight something (or ask the assistant to), right-click the spotlight "
                     + "and choose Save as new walk…"
                     : "");
+            updateActions();
             return;
         }
+        int selectedStep = w.name().equals(renderedWalk) ? steps.getSelectedIndex() : 0;
+        renderedWalk = w.name();
+        updatingSteps = true;
+        stepLabels.clear();
+        for (int i = 0; i < w.steps().size(); i++) {
+            WalkSpec.Step s = w.steps().get(i);
+            boolean current = showing.showing() && w.name().equals(showing.walk()) && showing.step() == i;
+            stepLabels.addElement((current ? "▶ " : "    ") + (i + 1) + ". "
+                    + (s.caption().isBlank() ? "(no caption)" : s.caption()));
+        }
+        if (selectedStep >= 0 && selectedStep < stepLabels.size()) steps.setSelectedIndex(selectedStep);
+        updatingSteps = false;
+        renderStepDetail();
+        updateActions();
+    }
+
+    private void renderStepDetail() {
+        WalkSpec w = selected();
+        if (w == null) return;
         StringBuilder out = new StringBuilder(w.displayTitle()).append('\n');
         out.append(w.steps().size()).append(" step").append(w.steps().size() == 1 ? "" : "s").append(" · ")
                 .append(w.authorLabel());
         if (w.updatedAt() != null && !w.updatedAt().isBlank()) out.append(" · saved ").append(w.updatedAt());
-        out.append('\n');
         if (showing.showing() && w.name().equals(showing.walk())) {
-            out.append("Showing now: step ").append(showing.step() + 1).append(" of ").append(showing.count()).append('\n');
+            out.append("\nShowing now: step ").append(showing.step() + 1).append(" of ").append(showing.count());
         }
-        for (int i = 0; i < w.steps().size(); i++) {
-            WalkSpec.Step s = w.steps().get(i);
-            out.append('\n').append(i + 1).append(". ");
-            out.append(s.caption().isBlank() ? "(no caption)" : s.caption());
-            for (WalkSpec.Target t : s.targets()) {
-                out.append("\n    ").append(t.target());
-                if (!t.caption().isBlank()) out.append(" — ").append(t.caption());
+        int index = steps.getSelectedIndex();
+        if (index >= 0 && index < w.steps().size()) {
+            WalkSpec.Step step = w.steps().get(index);
+            out.append("\n\nSelected step ").append(index + 1).append(": ")
+                    .append(step.caption().isBlank() ? "(no caption)" : step.caption());
+            for (WalkSpec.Target target : step.targets()) {
+                out.append("\n").append(target.target());
+                if (!target.caption().isBlank()) out.append(" — ").append(target.caption());
             }
         }
         detail.setText(out.toString());
         detail.setCaretPosition(0);
+    }
+
+    private void updateActions() {
+        boolean selected = selected() != null;
+        play.setEnabled(selected);
+        playFrom.setEnabled(selected && steps.getSelectedIndex() >= 0);
+        rename.setEnabled(selected);
+        delete.setEnabled(selected);
+        restore.setEnabled(!restorable.get().isEmpty());
     }
 
     private WalkSpec selected() {

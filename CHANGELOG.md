@@ -6,6 +6,14 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Changed
+
+- **The Swing analyser gives charts and reports more room.** Open graphs use one selector instead of a wrapping
+  tab strip; report, walk and chart actions use compact menus; saved walks offer a selectable step list. The
+  Edit series panel moves below the plot in a narrow pane, and reports have a distinct reading surface and
+  human-readable titles in their list. Chart grids use round value and UTC time ticks, and the value range
+  includes zero when doing so does not flatten a narrow-range series.
+
 ### Added
 
 - **An evidence bundle can carry the run's replay records.** Name them with

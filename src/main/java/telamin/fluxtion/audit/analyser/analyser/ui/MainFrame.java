@@ -1887,6 +1887,7 @@ public final class MainFrame extends JFrame {
         ThemeManager.apply(theme);
         SwingUtilities.updateComponentTreeUI(this);
         detailPanel.refresh();     // re-colour with the theme-appropriate palette
+        reportsPanel.rerender();   // the reading surface and report callouts use explicit theme-derived colours
         sourcePanel.refresh();
         topologyPanel.refreshTheme();
         // these hold explicit colours derived from the OLD theme: updateComponentTreeUI keeps the value

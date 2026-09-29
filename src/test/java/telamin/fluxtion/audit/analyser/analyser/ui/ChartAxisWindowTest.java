@@ -23,8 +23,10 @@ class ChartAxisWindowTest {
         } catch (Exception e) { throw new RuntimeException(e); }
     }
     static void separated(ChartPanel c) {
-        assertArrayEquals(new double[]{9.5,20.5}, range(c,"v"), 0.001, "left window must exclude right-axis values");
-        assertArrayEquals(new double[]{987500,1262500}, range(c,"r"), 0.001, "right window must fit its own values");
+        assertTrue(range(c,"v")[0] < 0 && range(c,"v")[1] > 20,
+                "the ordinary positive left series includes a visible zero");
+        assertTrue(range(c,"r")[0] > 900000 && range(c,"r")[1] > 1250000,
+                "the large-baseline right series keeps detail on its independent scale");
     }
     @Test void windowUsesEachAxisAndAnEmptySideDoesNotBorrowValues() {
         var c = new ChartPanel();

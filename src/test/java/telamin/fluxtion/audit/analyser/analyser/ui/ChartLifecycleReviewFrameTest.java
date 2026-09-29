@@ -92,7 +92,7 @@ class ChartLifecycleReviewFrameTest {
                 }
             });
             timer.start();
-            try { button(tabs,"Delete chart").doClick(); } finally { timer.stop(); }
+            try { ((javax.swing.JMenuItem)field(tabs,"deleteItem")).doClick(); } finally { timer.stop(); }
             assertTrue(handled.get(), "the production Delete button required confirmation");
         }
         @Override public void close() throws Exception {
@@ -209,7 +209,7 @@ class ChartLifecycleReviewFrameTest {
     @Test void closeAndReloadKeepDefinitionAndOpenRestoresItsContent() throws Exception {
         try(var f=new Fixture(chart("One",true),chart("Two",true))) {
             edt(()->{
-                f.openRow("Two");button(f.tabs,"Close graph").doClick();f.flush();
+                f.openRow("Two");((javax.swing.JMenuItem)field(f.tabs,"closeItem")).doClick();f.flush();
                 assertNull(f.tabs.graphNamed("Two"));assertFalse(f.saved("Two").open());
                 assertEquals("keep this explanation",f.saved("Two").explanation());
                 return null;
