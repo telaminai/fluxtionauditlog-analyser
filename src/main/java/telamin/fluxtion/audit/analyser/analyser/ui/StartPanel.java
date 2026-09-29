@@ -74,6 +74,12 @@ public final class StartPanel extends JPanel {
     private final JPanel recoveryOffer = new JPanel(new BorderLayout(8, 8));
     private final Box recentProjects = Box.createVerticalBox();
     private final JTextArea operationFeedback = Fluid.text("");
+    private final JPanel workstreams = new Fluid.Panel();
+    private final JPanel leftWorkstreams = new Fluid.Panel();
+    private final JPanel rightWorkstreams = new Fluid.Panel();
+    private final JComponent[] workstreamSections = new JComponent[4];
+    private boolean workstreamsWide;
+    private boolean workstreamsArranged;
     private List<String> lastRecents;
     private final Actions actions;
     private final Consumer<String> status;
@@ -109,47 +115,51 @@ public final class StartPanel extends JPanel {
         operationFeedback.setVisible(false);
         col.add(operationFeedback);
         col.add(Box.createVerticalStrut(20));
-        col.add(heading("Start work"));
-        col.add(row(
+        workstreamSections[0] = workstream("Start here",
+                row(
                 card("Take a guided tour", "Open the DEMO project and play a saved spotlight introduction.",
                         true, actions::openGuidedTour),
+                card("Open sample project", "Explore a local DEMO project with a log, graph and source.", false,
+                        actions::openSampleProject)),
+                row(
                 card("Load an experiment", "Open a verified .fexp evidence bundle in a disposable working copy.",
                         false, actions::openExperiment),
+                card("Open audit log", "Choose a local audit log file.", false, actions::openOwnLog)),
+                row(
                 card("Investigate an incident", "Choose an audit log or evidence bundle to examine.",
                         false, actions::investigateIncident)));
-        col.add(Box.createVerticalStrut(10));
-        col.add(row(
+
+        recentProjects.setAlignmentX(LEFT_ALIGNMENT);
+        setRecentProjects(List.of());
+        workstreamSections[1] = workstream("My work",
+                row(card("Open project", "Choose an existing project workspace on this machine.", false,
+                                actions::openExistingProject),
+                        card("Open GraphML", "View a processor topology file.", false, actions::openGraphml)),
+                subheading("Recent projects"), recentProjects);
+
+        workstreamSections[2] = workstream("New work",
+                row(
                 card("Author a new project", "Create a project profile for your own source and processors.",
                         false, actions::newProject),
                 card("Author from template", "Start from a guided project template.",
                         false, actions::newProjectFromTemplate)));
-        col.add(Box.createVerticalStrut(20));
-        col.add(heading("Open directly"));
-        col.add(row(
-                card("Open project", "Choose an existing project workspace on this machine.", false,
-                        actions::openExistingProject),
-                card("Open audit log", "Choose a local audit log file.", false, actions::openOwnLog),
-                card("Open GraphML", "View a processor topology file.", false, actions::openGraphml),
-                card("Open sample project", "Explore a local DEMO project with a log, graph and source.", false,
-                        actions::openSampleProject)));
 
-        col.add(Box.createVerticalStrut(20));
-        col.add(heading("Recent projects"));
-        recentProjects.setAlignmentX(LEFT_ALIGNMENT);
-        col.add(recentProjects);
-        setRecentProjects(List.of());
-
-        col.add(Box.createVerticalStrut(20));
-        col.add(heading("Set up authoring"));
         fluxtionKeyCard = card("", "", false, actions::openFluxtionKey);
         refreshFluxtionKeyStatus();
-        col.add(row(fluxtionKeyCard));
-
         aiClientOffer = aiClientOffer();
-        col.add(aiClientOffer);
+        workstreamSections[3] = workstream("Configuration", footer(), aiClientOffer,
+                subheading("Processor regeneration"), row(fluxtionKeyCard));
+        workstreams.setOpaque(false);
+        workstreams.setAlignmentX(LEFT_ALIGNMENT);
+        arrangeWorkstreams(false);
+        workstreams.addComponentListener(new java.awt.event.ComponentAdapter() {
+            @Override public void componentResized(java.awt.event.ComponentEvent event) {
+                arrangeWorkstreams(workstreams.getWidth() >= 900);
+            }
+        });
+        col.add(workstreams);
 
         col.add(Box.createVerticalStrut(18));
-        col.add(footer());
         col.add(Box.createVerticalGlue());
 
         JScrollPane scroll = new JScrollPane(Fluid.column(col),
@@ -204,7 +214,12 @@ public final class StartPanel extends JPanel {
         } else {
             for (String path : next) {
                 Path file = Path.of(path);
-                String title = file.getParent() == null ? path : file.getParent().getFileName().toString();
+                Path parent = file.getParent();
+                if (parent != null && ".analyser".equals(String.valueOf(parent.getFileName()))) {
+                    parent = parent.getParent();
+                }
+                String title = parent == null || parent.getFileName() == null
+                        ? path : parent.getFileName().toString();
                 JButton button = new JButton(title + "  —  " + path);
                 button.setHorizontalAlignment(SwingConstants.LEFT);
                 button.setToolTipText(path);
@@ -401,6 +416,68 @@ public final class StartPanel extends JPanel {
         recolour.add(() -> l.setForeground(UIManager.getColor("Label.foreground")));
         p.add(l, BorderLayout.CENTER);
         return p;
+    }
+
+    /** Keep each activity together as the page changes between one and two columns. */
+    private JComponent workstream(String title, JComponent... content) {
+        JPanel section = new Fluid.Panel() {
+            @Override public Dimension getPreferredSize() {
+                Dimension size = super.getPreferredSize();
+                // A recent path or a row of cards can have a very wide natural size.
+                // The columns must divide the available width before their cards wrap;
+                // an unbounded natural width would otherwise force content offscreen.
+                return new Dimension(0, size.height);
+            }
+        };
+        section.setLayout(new BoxLayout(section, BoxLayout.Y_AXIS));
+        section.setOpaque(false);
+        section.setAlignmentX(LEFT_ALIGNMENT);
+        section.setMinimumSize(new Dimension(0, 0));
+        section.setBorder(BorderFactory.createEmptyBorder(0, 0, 16, 0));
+        section.getAccessibleContext().setAccessibleName(title + " workstream");
+        section.add(heading(title));
+        for (JComponent child : content) {
+            section.add(child);
+            section.add(Box.createVerticalStrut(8));
+        }
+        return section;
+    }
+
+    private JComponent subheading(String text) {
+        JTextArea label = wrapping(text);
+        Font base = UIManager.getFont("Label.font");
+        if (base == null) base = label.getFont();
+        label.setFont(base.deriveFont(Font.BOLD));
+        recolour.add(() -> label.setForeground(UiTheme.mutedForeground()));
+        return label;
+    }
+
+    /** Keep two independent columns so a short group does not leave a blank row beneath it. */
+    private void arrangeWorkstreams(boolean wide) {
+        if (workstreamsArranged && workstreamsWide == wide) return;
+        workstreamsArranged = true;
+        workstreamsWide = wide;
+        workstreams.removeAll();
+        leftWorkstreams.removeAll();
+        rightWorkstreams.removeAll();
+        if (wide) {
+            leftWorkstreams.setLayout(new BoxLayout(leftWorkstreams, BoxLayout.Y_AXIS));
+            rightWorkstreams.setLayout(new BoxLayout(rightWorkstreams, BoxLayout.Y_AXIS));
+            leftWorkstreams.setOpaque(false);
+            rightWorkstreams.setOpaque(false);
+            leftWorkstreams.add(workstreamSections[0]);
+            leftWorkstreams.add(workstreamSections[2]);
+            rightWorkstreams.add(workstreamSections[1]);
+            rightWorkstreams.add(workstreamSections[3]);
+            workstreams.setLayout(new GridLayout(1, 2, 20, 0));
+            workstreams.add(leftWorkstreams);
+            workstreams.add(rightWorkstreams);
+        } else {
+            workstreams.setLayout(new BoxLayout(workstreams, BoxLayout.Y_AXIS));
+            for (JComponent section : workstreamSections) workstreams.add(section);
+        }
+        workstreams.revalidate();
+        workstreams.repaint();
     }
 
     private JComponent body(String text) {

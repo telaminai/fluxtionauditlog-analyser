@@ -15,12 +15,14 @@ An empty analyser opens to a full-width workspace choice, rather than placing a 
 | Investigate an incident | Ask whether the available evidence is an audit log or a bundle, then use the corresponding open path. |
 | Author a new project | Open the existing new-project flow; no template download is implied. |
 | Author from template | Open the existing template catalogue and destination flow. |
-| Recent projects | Show the machine's recent-project list; selecting one uses an explicit project switch and opens the project workspace even if it has no log. It does not reopen a prior log implicitly. |
+| Recent projects | Show the machine's recent-project list by workspace name, with the profile path available to distinguish entries; selecting one uses an explicit project switch and opens the project workspace even if it has no log. It does not reopen a prior log implicitly. |
 | Open project | Choose an existing project workspace even when it is absent from the recent list. |
 | Open audit log / Open GraphML | Use the existing file chooser and open paths. A standalone graph can show the investigation workspace without a log. |
 | Open sample project | Install the bundled DEMO assets under the analyser's local demo directory, create a project profile there if absent, and open that project, log and graph. It requires no API key or network and never overwrites an existing demo profile. |
 
 The start card replaces the entire application work area. The time-range controls, toolbar, left navigation, output tabs, menus and status bar are hidden while it is shown; they return together in the project or evidence workspace. This keeps irrelevant controls from competing with the first decision. A project is itself a workspace: once selected, the start card gives way to the investigation layout. The page remains scrollable and its action cards reflow rather than clip at narrow widths.
+
+The choices are grouped by activity. **Start here** holds the guided tour, sample, evidence bundle, audit log and incident entrances. **My work** holds Open project, Open GraphML and recent project workspaces. **New work** holds project creation and templates. **Configuration** holds global source defaults, local assistant setup and the processor-regeneration key. At desktop widths, Start here sits above New work in the left column, while My work sits above Configuration on the right. Each column flows independently so a short group leaves no empty grid row. On a narrow window the four groups stack in the order Start here, My work, New work, Configuration. Grouping changes neither the action paths nor the contents of an existing workspace.
 
 Help → Start page always shows those same choices, including over a project with no log. If a project, graph, design or log workspace exists, **Return to workspace** is visible and restores it without changing evidence. Project declarations stay in the workspace Project panel. Verification progress and file-drop refusals appear on the start page itself because the application status bar is hidden there.
 
@@ -43,7 +45,7 @@ At a 220-pixel sidebar width, walk management remains reachable through More and
 1. With no project, log or graph, the start page occupies the whole content area with no time-range control, left tabs or application menus; opening evidence restores all workspace controls. Help can raise the start page and return without closing evidence.
 2. Every listed action reaches a distinct, truthful existing flow. A recent project becomes the active project workspace; a sample project has a real profile. The guided-tour choice saves and plays an ordinary spotlight walk, and every step lights the UI it describes.
 3. A malformed or unverifiable `.fexp` refuses before any project switch. A verified bundle opens only members under its extracted working copy, names its identity and limits, and does not imply sender authentication or guaranteed replay.
-4. On a narrow window, all cards and recent paths remain reachable by vertical scrolling; keyboard and accessibility names identify every action.
+4. At desktop width the four activity groups form two columns; on a narrow window they stack without overlap. All cards and recent paths remain reachable by vertical scrolling; keyboard and accessibility names identify every action.
 5. Producer findings remain readable at narrow width and in light and dark themes, with every message, reason, fix and declaration intact. Unavailable source actions stay disabled and explain why.
 6. The public-data sweep prints nothing beyond the rule files' exemption, Maven tests pass, and display-backed UI tests catch a wrong full-width layout or a missing action.
 7. File drops on the start page and active workspace route each supported type to the same entrance as its menu or card; a `.fexp` or Spring XML never falls through to the audit-log reader.

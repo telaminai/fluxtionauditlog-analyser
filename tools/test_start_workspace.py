@@ -15,6 +15,7 @@ ROOT = Path(__file__).resolve().parent.parent
 CASES = {
     "StartWorkspaceFrameTest": {
         "startPageReplacesTheWholeInvestigationArea",
+        "startChoicesGroupByActivityAndStackOnANarrowWindow",
         "recentProjectChoiceOpensItsWorkspaceWithoutOpeningALog",
         "sampleChoiceOpensARealDemoProject",
         "guidedTourChoiceSavesAndPlaysTheDemoSpotlightWalk",

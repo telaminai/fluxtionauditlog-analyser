@@ -66,6 +66,80 @@ class StartWorkspaceFrameTest {
         }
     }
 
+    @Test void startChoicesGroupByActivityAndStackOnANarrowWindow() throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless(), "requires a display");
+        String previousHome = System.getProperty("user.home");
+        System.setProperty("user.home", Files.createDirectories(temporary.resolve("workstreams-home")).toString());
+        AtomicReference<MainFrame> frame = new AtomicReference<>();
+        try {
+            onEdt(() -> {
+                MainFrame f = new MainFrame();
+                f.setSize(1200, 800);
+                f.setVisible(true);
+                frame.set(f);
+                return null;
+            });
+            new Robot().waitForIdle();
+            onEdt(() -> {
+                StartPanel start = (StartPanel) field(frame.get(), "startPanel");
+                JComponent[] groups = workstreams(start);
+                java.awt.Rectangle[] positions = groupPositions(start, groups);
+                assertTrue(positions[0].x < positions[1].x, "Start and My work share the top row");
+                assertEquals(positions[0].y, positions[1].y);
+                assertEquals(positions[0].x, positions[2].x);
+                assertEquals(positions[1].x, positions[3].x);
+                assertEquals(positions[0].y + positions[0].height, positions[2].y,
+                        "New work follows Start without an empty grid row");
+                assertEquals(positions[1].y + positions[1].height, positions[3].y,
+                        "Configuration follows My work without an empty grid row");
+                assertNotNull(buttonContaining(groups[0], "Take a guided tour"));
+                assertNotNull(buttonContaining(groups[0], "Load an experiment"));
+                assertNotNull(buttonContaining(groups[1], "Open project"));
+                assertNotNull(buttonContaining(groups[2], "Author a new project"));
+                assertNotNull(buttonContaining(groups[3], "Configure global sources"));
+                return null;
+            });
+            onEdt(() -> { frame.get().setSize(700, 650); return null; });
+            new Robot().waitForIdle();
+            onEdt(() -> {
+                StartPanel start = (StartPanel) field(frame.get(), "startPanel");
+                JComponent[] groups = workstreams(start);
+                java.awt.Rectangle[] positions = groupPositions(start, groups);
+                for (int i = 1; i < groups.length; i++) {
+                    assertEquals(positions[0].x, positions[i].x, "narrow groups form one column");
+                    assertTrue(positions[i].y >= positions[i - 1].y + positions[i - 1].height,
+                            "narrow groups stack without overlap");
+                }
+                assertTrue(groups[0].getWidth() > 0 && groups[3].getWidth() > 0);
+                return null;
+            });
+        } finally {
+            if (frame.get() != null) SwingUtilities.invokeAndWait(frame.get()::dispose);
+            System.setProperty("user.home", previousHome);
+        }
+    }
+
+    private static JComponent[] workstreams(StartPanel start) throws ReflectiveOperationException {
+        JComponent[] groups = (JComponent[]) field(start, "workstreamSections");
+        assertEquals(4, groups.length);
+        assertEquals("Start here workstream", groups[0].getAccessibleContext().getAccessibleName());
+        assertEquals("My work workstream", groups[1].getAccessibleContext().getAccessibleName());
+        assertEquals("New work workstream", groups[2].getAccessibleContext().getAccessibleName());
+        assertEquals("Configuration workstream", groups[3].getAccessibleContext().getAccessibleName());
+        return groups;
+    }
+
+    private static java.awt.Rectangle[] groupPositions(StartPanel start, JComponent[] groups)
+            throws ReflectiveOperationException {
+        JPanel grid = (JPanel) field(start, "workstreams");
+        java.awt.Rectangle[] positions = new java.awt.Rectangle[groups.length];
+        for (int i = 0; i < groups.length; i++) {
+            Point at = SwingUtilities.convertPoint(groups[i].getParent(), groups[i].getLocation(), grid);
+            positions[i] = new java.awt.Rectangle(at, groups[i].getSize());
+        }
+        return positions;
+    }
+
     @Test void droppingSpringDesignThenGraphAndLogOpensTheirRealViews() throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless(), "requires a display");
         String previousHome = System.getProperty("user.home");
@@ -126,6 +200,8 @@ class StartWorkspaceFrameTest {
                     start.setRecentProjects(config.recentProjects);
                     javax.swing.JButton recent = buttonContaining(start, profile.toString());
                     assertNotNull(recent, "the recent project is visible on the start page");
+                    assertTrue(recent.getText().startsWith("DEMO-project"),
+                            "the recent entry names the workspace rather than its hidden profile directory");
                     recent.doClick();
                     var project = (telamin.fluxtion.audit.analyser.analyser.config.ProjectSession) field(frame.get(), "project");
                     assertTrue(project.hasProject(), "clicking a recent project enters its workspace");

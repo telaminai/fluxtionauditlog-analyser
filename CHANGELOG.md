@@ -8,6 +8,7 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ### Changed
 
+- **The start page groups choices by activity.** Start here and New work form the left column, My work and Configuration the right; the four groups stack on a narrow window. Recent projects now name their workspace instead of its hidden profile directory.
 - **Start and narrow panes remain usable throughout an investigation.** Start keeps its opening choices and a return link when a workspace is active, offers an explicit existing-project action, and shows bundle progress and drop refusals in the page. Native drops on explanatory text work; extra dropped filenames are named. A late bundle verification cannot replace a newer project choice. Walk, series and producer-finding controls reflow in narrow panes.
 - **The Swing analyser gives charts and reports more room.** Open graphs use one selector instead of a wrapping
   tab strip; report, walk and chart actions use compact menus; saved walks offer a selectable step list. The
