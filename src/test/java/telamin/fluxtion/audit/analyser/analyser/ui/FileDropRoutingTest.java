@@ -3,9 +3,10 @@ package telamin.fluxtion.audit.analyser.analyser.ui;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** The drop-routing rule: .graphml goes to the Topology tab, everything else opens as a log. */
+/** Distinct dropped evidence types must reach their normal open paths. */
 class FileDropRoutingTest {
 
     @Test
@@ -15,7 +16,12 @@ class FileDropRoutingTest {
     }
 
     @Test
-    void everythingElseIsALog() {
+    void bundleAndSpringDesignDoNotFallThroughToTheLogReader() {
+        assertEquals(MainFrame.DropKind.BUNDLE, MainFrame.dropKind("incident.FEXP"));
+        assertEquals(MainFrame.DropKind.DESIGN, MainFrame.dropKind("spring-design.XML"));
+        assertEquals(MainFrame.DropKind.GRAPHML, MainFrame.dropKind("processor.graphml"));
+        assertEquals(MainFrame.DropKind.LOG, MainFrame.dropKind("audit.yaml"));
+        assertEquals(MainFrame.DropKind.LOG, MainFrame.dropKind("audit-with-no-extension"));
         assertFalse(MainFrame.isGraphml("audit.yaml"));
         assertFalse(MainFrame.isGraphml("audit.graphml.yaml"));   // suffix must be terminal
         assertFalse(MainFrame.isGraphml("graphml"));              // no dot — a file named "graphml"

@@ -13,6 +13,11 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   Edit series panel moves below the plot in a narrow pane, and reports have a distinct reading surface and
   human-readable titles in their list. Chart grids use round value and UTC time ticks, and the value range
   includes zero when doing so does not flatten a narrow-range series.
+- **The start page uses the full workspace.** It offers evidence-bundle loading, incident investigation,
+  project authoring, direct file opens, a bundled sample, and a clickable recent-project list. Opening
+  a recent project goes to its workspace, and each start choice has a theme-aware icon. Producer findings now separate severity, explanation, fix,
+  source declaration and location actions into readable cards. The template picker puts choices beside
+  their explanation, and file drops route evidence bundles, GraphML, audit logs and Spring XML designs.
 
 ### Added
 

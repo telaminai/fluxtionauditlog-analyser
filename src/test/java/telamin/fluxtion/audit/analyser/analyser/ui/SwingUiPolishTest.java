@@ -2,6 +2,7 @@ package telamin.fluxtion.audit.analyser.analyser.ui;
 
 import org.junit.jupiter.api.Test;
 import telamin.fluxtion.audit.analyser.analyser.filter.FilterState;
+import telamin.fluxtion.audit.analyser.analyser.design.ProducerResult;
 import telamin.fluxtion.audit.analyser.analyser.parse.HeapLogStore;
 import telamin.fluxtion.audit.analyser.analyser.parse.Samples;
 import telamin.fluxtion.audit.analyser.analyser.report.ReportResolver;
@@ -15,6 +16,7 @@ import javax.swing.JPanel;
 import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
 import javax.swing.JToggleButton;
+import javax.swing.JTextArea;
 import javax.swing.SwingUtilities;
 import java.awt.Component;
 import java.util.List;
@@ -95,6 +97,47 @@ class SwingUiPolishTest {
                 throw new AssertionError(e);
             }
         });
+    }
+
+    @Test void producerFindingSeparatesDiagnosisReasonAndFixWithoutLosingSourceText() throws Exception {
+        SwingUtilities.invokeAndWait(() -> {
+            var finding = new ProducerResult.Finding("DEMO_RULE", "WARNING", "A binding is missing",
+                    "The handler cannot run.", "Add the DEMO binding.",
+                    Map.of("kind", "UNKNOWN", "xmlDeclaration", "<bean id='DEMO'/>") , Map.of(), List.of());
+            var result = new ProducerResult("/tmp/DEMO/result.json", "validate", "", "",
+                    List.of(finding), Map.of(), Map.of());
+            var panel = new ProducerFindingsPanel();
+            panel.render(result, null, null, null, "", location -> { });
+            List<String> labels = labels(panel);
+            List<String> bodies = bodies(panel);
+            assertTrue(labels.contains("Why this matters"), labels.toString());
+            assertTrue(labels.contains("Suggested fix"), labels.toString());
+            assertTrue(labels.contains("XML declaration"), labels.toString());
+            assertTrue(labels.contains("DEMO_RULE"), labels.toString());
+            assertTrue(bodies.contains("A binding is missing"), bodies.toString());
+            assertTrue(bodies.contains("The handler cannot run."), bodies.toString());
+            assertTrue(bodies.contains("Add the DEMO binding."), bodies.toString());
+            assertTrue(bodies.contains("<bean id='DEMO'/>"), bodies.toString());
+            assertNotNull(button(panel, "Unavailable"), "the source action still reports an unmapped finding");
+        });
+    }
+
+    private static List<String> labels(Component root) {
+        List<String> out = new java.util.ArrayList<>();
+        collect(root, JLabel.class, label -> out.add(label.getText()));
+        return out;
+    }
+
+    private static List<String> bodies(Component root) {
+        List<String> out = new java.util.ArrayList<>();
+        collect(root, JTextArea.class, area -> out.add(area.getText()));
+        return out;
+    }
+
+    private static <T extends Component> void collect(Component root, Class<T> kind, java.util.function.Consumer<T> add) {
+        if (kind.isInstance(root)) add.accept(kind.cast(root));
+        if (root instanceof java.awt.Container container)
+            for (Component child : container.getComponents()) collect(child, kind, add);
     }
 
     private static Component find(Component root, Class<?> kind) {

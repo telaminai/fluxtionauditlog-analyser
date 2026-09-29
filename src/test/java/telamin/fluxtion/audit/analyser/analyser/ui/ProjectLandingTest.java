@@ -9,6 +9,40 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ProjectLandingTest {
+    @Test void fullStartPageRoutesDistinctChoicesAndRecentProjectToItsWorkspace() throws Exception {
+        SwingUtilities.invokeAndWait(() -> {
+            List<String> calls = new ArrayList<>();
+            var panel = new StartPanel(new StartPanel.Actions() {
+                public void openDemo(Path p, boolean graph) { calls.add("sample:" + graph); }
+                public void showTab(String n) { }
+                public void openOwnLog() { calls.add("log"); }
+                public void openSettings() { }
+                public void openMcpSetup(McpSetupDialog.Target t) { }
+                public void openFluxtionKey() { }
+                public boolean fluxtionKeyPresent() { return false; }
+                public void backToRecords() { }
+                public void newProject() { calls.add("new"); }
+                public void newProjectFromTemplate() { calls.add("template"); }
+                public void openExperiment() { calls.add("bundle"); }
+                public void investigateIncident() { calls.add("incident"); }
+                public void openGraphml() { calls.add("graphml"); }
+                public void openRecentProject(String path) { calls.add("recent:" + path); }
+            }, null);
+            String recent = "/tmp/DEMO/.analyser/project.fluxtion-settings";
+            panel.setRecentProjects(List.of(recent));
+            assertTrue(text(panel).contains("global source roots are defaults; an active project can override them"));
+            for (String name : List.of("Load an experiment", "Investigate an incident", "Author a new project",
+                    "Author from template", "Open audit log", "Open GraphML", "Open sample project")) {
+                assertNotNull(action(panel, name), "start page action: " + name);
+                action(panel, name).doClick();
+            }
+            assertNotNull(buttonContaining(panel, recent), "recent project appears as a workspace action");
+            buttonContaining(panel, recent).doClick();
+            assertEquals(List.of("bundle", "incident", "new", "template", "log", "graphml",
+                    "sample:true", "recent:" + recent), calls);
+        });
+    }
+
     @Test void projectLandingShowsSavedIntentAndUsesExplicitOpenActions() throws Exception {
         SwingUtilities.invokeAndWait(() -> {
             List<String> calls = new ArrayList<>();
@@ -52,6 +86,22 @@ class ProjectLandingTest {
         for (Component c : parent.getComponents()) {
             if (c instanceof JButton b && label.equals(b.getText())) return b;
             if (c instanceof Container child) { JButton b = button(child, label); if (b != null) return b; }
+        }
+        return null;
+    }
+
+    private static JButton action(Container parent, String name) {
+        for (Component c : parent.getComponents()) {
+            if (c instanceof JButton b && name.equals(b.getAccessibleContext().getAccessibleName())) return b;
+            if (c instanceof Container child) { JButton b = action(child, name); if (b != null) return b; }
+        }
+        return null;
+    }
+
+    private static JButton buttonContaining(Container parent, String text) {
+        for (Component c : parent.getComponents()) {
+            if (c instanceof JButton b && b.getText() != null && b.getText().contains(text)) return b;
+            if (c instanceof Container child) { JButton b = buttonContaining(child, text); if (b != null) return b; }
         }
         return null;
     }

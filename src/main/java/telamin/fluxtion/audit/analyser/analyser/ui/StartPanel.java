@@ -9,42 +9,27 @@ import java.util.List;
 import java.util.function.Consumer;
 
 /**
- * What the records pane shows when no log is open (M36, spec-start-page).
+ * The full workspace landing page when no investigation is open.
  *
- * <p><b>It is a STATE, not a screen</b> (D-S1). No splash, no modal, nothing to dismiss: opening a
- * log replaces it and closing one brings it back. A splash is a toll gate on every launch and gets
- * muscle-memory-dismissed by week two, taking its content with it; an empty state is seen exactly
- * when it is useful and is invisible the rest of the time. This is also why the first-run
- * "no configuration was found" modal is gone — see
- * {@link MainFrame#showFirstRunSettingsIfNeeded()}.
- *
- * <p><b>Every section ends in an action</b> (D-S2), and every action runs against the demo set that
- * ships in the jar — no configuration, no server, no API key. A start page whose buttons need setup
- * first is one that lies on first contact.
- *
- * <p><b>No feature list</b> (D-S4). Three problems and three lanes, which change far more slowly
- * than the features that answer them — and this is the first thing a new user reads, so its errors
- * are the ones they carry.
- *
- * <p><b>The lanes are recognition, not a questionnaire</b> (D-S3). They are phrased as the sentence
- * the user would say, never as a question the app asks: people recognise their situation faster than
- * they classify themselves. Nothing is remembered and nothing is personalised — picking one is
- * navigation, and a wrong pick costs a click.
+ * <p>It is an empty state, never a first-run modal. Opening a project, log or graph replaces it;
+ * Help can bring it back without closing work. Its choices are actual entrances to a workspace,
+ * with recent projects close at hand. Only the bundled sample claims to work without a local file,
+ * server or API key.
  *
  * <p><b>On the colour.</b> Every accent here is {@link UiTheme#accent()}, which is the blue the
  * topology already paints a hot edge with — the page is tinted, not branded. Colour is spent only
  * where it carries meaning: the primary action is the one filled shape on the page, each heading
- * gets a rule so the four sections are countable at a glance, and the lifecycle strip highlights the
- * one stage this app occupies. Nothing is coloured merely to be coloured, because on the first
+ * gets a rule so sections are countable at a glance. Nothing is coloured merely to be coloured, because on the first
  * screen a new user reads, decoration and signal are indistinguishable until they have learnt which
  * is which.
  */
 public final class StartPanel extends JPanel {
 
-    /** What the page can ask the app to do. Every one is an ordinary open, not a demo mode. */
+    /** What the page can ask the app to do. */
     public interface Actions {
         /** Open a bundled demo log, optionally with the graph, and add the demo source root. */
         void openDemo(Path log, boolean withGraph);
+        default void openSampleProject() { openDemo(DemoAssets.log(), true); }
 
         /** Bring a tab forward — the page hands over, it does not drive. */
         void showTab(String name);
@@ -74,6 +59,11 @@ public final class StartPanel extends JPanel {
         default void openProjectDiagnostics() { }
         default void openProjectTopology() { }
         default void newProject() { }
+        default void newProjectFromTemplate() { }
+        default void openExperiment() { }
+        default void investigateIncident() { }
+        default void openGraphml() { }
+        default void openRecentProject(String path) { }
         default void restoreSession(long generation) { }
         default void dismissSessionRestore(long generation) { }
 
@@ -82,6 +72,8 @@ public final class StartPanel extends JPanel {
     private final JPanel recoveryOffer = new JPanel(new BorderLayout(8, 8));
     private final JPanel contents = new JPanel(new CardLayout());
     private final Box projectLanding = Box.createVerticalBox();
+    private final Box recentProjects = Box.createVerticalBox();
+    private List<String> lastRecents;
     private JScrollPane projectScroll;
     private java.util.Map<String, Object> lastProjectContext;
     private final Actions actions;
@@ -111,45 +103,35 @@ public final class StartPanel extends JPanel {
         returnRow = returnToRecords();
         col.add(returnRow);
         col.add(hero());
-        col.add(Box.createVerticalStrut(16));
-        col.add(row(card("Author a new project", "Choose a catalogue template, read its requirements and download its project runbooks.",
-                false, actions::newProject)));
-
         col.add(Box.createVerticalStrut(20));
-        col.add(heading("Three questions a log alone will not answer"));
+        col.add(heading("Start work"));
         col.add(row(
-                card("Why is this number what it is?",
-                        "Follow one value back through the nodes that produced it.", false,
-                        () -> open(DemoAssets.seriesLog(), false, "Graph")),
-                card("Which nodes never ran?",
-                        "Coverage over a traced run, where an absence is proof, not silence.", false,
-                        () -> open(DemoAssets.tracedLog(), true, "Topology")),
-                card("What did this cycle do?",
-                        "Step one event through the graph, node by node.", false,
-                        () -> open(DemoAssets.log(), true, "Topology"))));
-
-        col.add(Box.createVerticalStrut(20));
-        col.add(heading("Where this sits"));
-        col.add(new Lifecycle());
-        col.add(Box.createVerticalStrut(6));
-        col.add(body("The log arrives from a build or a running server; what you find leaves as a "
-                + "report, or as a change you can justify."));
-
-        col.add(Box.createVerticalStrut(20));
-        col.add(heading("Start where you are"));
+                card("Load an experiment", "Open a verified .fexp evidence bundle in a disposable working copy.",
+                        true, actions::openExperiment),
+                card("Investigate an incident", "Choose an audit log or evidence bundle to examine.",
+                        false, actions::investigateIncident)));
+        col.add(Box.createVerticalStrut(10));
         col.add(row(
-                card("I am building a processor",
-                        "See what the graph you wrote actually does.", false,
-                        () -> open(DemoAssets.log(), true, "Topology")),
-                card("Something is wrong in production",
-                        "Open a log from a system you did not write.", false,
-                        actions::openOwnLog),
-                card("I want the numbers out of this",
-                        "Chart a value over time and export it.", false,
-                        () -> open(DemoAssets.seriesLog(), false, "Graph"))));
+                card("Author a new project", "Create a project profile for your own source and processors.",
+                        false, actions::newProject),
+                card("Author from template", "Start from a guided project template.",
+                        false, actions::newProjectFromTemplate)));
+        col.add(Box.createVerticalStrut(20));
+        col.add(heading("Open directly"));
+        col.add(row(
+                card("Open audit log", "Choose a local audit log file.", false, actions::openOwnLog),
+                card("Open GraphML", "View a processor topology file.", false, actions::openGraphml),
+                card("Open sample project", "Explore a local DEMO project with a log, graph and source.", false,
+                        actions::openSampleProject)));
 
         col.add(Box.createVerticalStrut(20));
-        col.add(heading("Regenerate a processor"));
+        col.add(heading("Recent projects"));
+        recentProjects.setAlignmentX(LEFT_ALIGNMENT);
+        col.add(recentProjects);
+        setRecentProjects(List.of());
+
+        col.add(Box.createVerticalStrut(20));
+        col.add(heading("Set up authoring"));
         fluxtionKeyCard = card("", "", false, actions::openFluxtionKey);
         refreshFluxtionKeyStatus();
         col.add(row(fluxtionKeyCard));
@@ -248,6 +230,32 @@ public final class StartPanel extends JPanel {
         into.add(button);
     }
 
+    /** Recent project paths are machine-local navigation, never copied into a bundle or demo. */
+    public void setRecentProjects(List<String> paths) {
+        List<String> next = paths == null ? List.of() : List.copyOf(paths);
+        if (next.equals(lastRecents)) return;
+        lastRecents = next;
+        recentProjects.removeAll();
+        if (next.isEmpty()) {
+            recentProjects.add(body("No recent projects yet. Create one or open a project from the Project menu."));
+        } else {
+            for (String path : next) {
+                Path file = Path.of(path);
+                String title = file.getParent() == null ? path : file.getParent().getFileName().toString();
+                JButton button = new JButton(title + "  —  " + path);
+                button.setHorizontalAlignment(SwingConstants.LEFT);
+                button.setToolTipText(path);
+                button.setAlignmentX(LEFT_ALIGNMENT);
+                button.setMaximumSize(new Dimension(Integer.MAX_VALUE, button.getPreferredSize().height));
+                button.addActionListener(e -> actions.openRecentProject(path));
+                recentProjects.add(button);
+                recentProjects.add(Box.createVerticalStrut(4));
+            }
+        }
+        recentProjects.revalidate();
+        recentProjects.repaint();
+    }
+
     /** Refresh after the management dialog closes; the stored value never enters this component. */
     public void refreshFluxtionKeyStatus() {
         boolean present = actions.fluxtionKeyPresent();
@@ -274,11 +282,7 @@ public final class StartPanel extends JPanel {
         SwingUtilities.invokeLater(() -> scroll.getViewport().setViewPosition(new Point(0, 0)));
     }
 
-    /**
-     * The one tinted band on the page, carrying the sentence that says what the app is and the single
-     * filled action. It is a band rather than a plain heading because the first thing on a page is the
-     * thing a reader will accept as the summary, so it should be visibly the summary.
-     */
+    /** The one tinted band gives a short orientation above the concrete workspace choices. */
     private JComponent hero() {
         JPanel band = new Fluid.Panel(new BorderLayout()) {
             @Override
@@ -302,32 +306,29 @@ public final class StartPanel extends JPanel {
         // WRAPS rather than ellipsising: a JLabel would render this as "…see what the system act…",
         // and the one sentence on the page that says what the app is for is the worst possible thing
         // to truncate
-        JTextArea title = wrapping("Read an audit log and see what the system actually did.");
+        JTextArea title = wrapping("What would you like to work on?");
         Font tf = UIManager.getFont("Label.font");
         title.setFont((tf != null ? tf : title.getFont()).deriveFont(Font.BOLD,
                 (tf != null ? tf : title.getFont()).getSize2D() + 5f));
         recolour.add(() -> title.setForeground(UIManager.getColor("Label.foreground")));
         inner.add(title);
         inner.add(Box.createVerticalStrut(6));
-        inner.add(body("Every event, the nodes it reached, the order they ran in, and what each one "
-                + "computed — reconstructed from the log, not inferred from it."));
-        inner.add(Box.createVerticalStrut(12));
-        inner.add(row(card("Open the demo log",
-                "A small recorded run, with its topology. Nothing to set up.", true,
-                () -> open(DemoAssets.log(), true, "Topology"))));
+        inner.add(body("Open evidence, return to a project, or start authoring. You can always come back here from Help."));
         band.add(inner, BorderLayout.CENTER);
         return band;      // Fluid: as wide as offered, as tall as its content currently needs
     }
 
     private JComponent footer() {
-        JPanel p = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        Box p = Box.createVerticalBox();
         p.setOpaque(false);
         p.setAlignmentX(LEFT_ALIGNMENT);
-        p.setMaximumSize(new Dimension(Integer.MAX_VALUE, 26));
-        JLabel lead = new JLabel("Nothing above needs configuring. ");
-        recolour.add(() -> lead.setForeground(UiTheme.mutedForeground()));
-        p.add(lead);
-        p.add(link("Set up source roots and an assistant", actions::openSettings));
+        p.add(body("Optional setup: global source roots are defaults; an active project can override them."));
+        p.add(Box.createVerticalStrut(4));
+        JPanel action = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        action.setOpaque(false);
+        action.setAlignmentX(LEFT_ALIGNMENT);
+        action.add(link("Configure global sources and assistant…", actions::openSettings));
+        p.add(action);
         return p;
     }
 
@@ -408,7 +409,7 @@ public final class StartPanel extends JPanel {
         if (tab != null) actions.showTab(tab);
     }
 
-    /** Section heading with a short accent rule, so the four sections are countable at a glance. */
+    /** Section heading with a short accent rule. */
     private JComponent heading(String text) {
         JPanel p = new Fluid.Panel(new BorderLayout(8, 0)) {
             @Override
@@ -598,6 +599,8 @@ public final class StartPanel extends JPanel {
             setFocusPainted(false);
             setOpaque(false);
             setToolTipText(why);
+            getAccessibleContext().setAccessibleName(title);
+            getAccessibleContext().setAccessibleDescription(why);
             setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
             addActionListener(e -> go.run());
         }
@@ -606,6 +609,8 @@ public final class StartPanel extends JPanel {
             this.title = title;
             this.why = why;
             setToolTipText(why);
+            getAccessibleContext().setAccessibleName(title);
+            getAccessibleContext().setAccessibleDescription(why);
             repaint();
         }
 
@@ -672,7 +677,9 @@ public final class StartPanel extends JPanel {
             g.setFont(titleFont());
             g.setColor(ink);
             FontMetrics fm = g.getFontMetrics();
-            g.drawString(ellipsis(fm, title, inner), PAD, PAD + fm.getAscent());
+            int titleY = PAD + fm.getAscent();
+            paintGlyph(g, title, PAD, titleY - 13);
+            g.drawString(ellipsis(fm, title, inner - 24), PAD + 24, titleY);
 
             int y = PAD + fm.getHeight() + 3;
             g.setFont(subFont());
@@ -685,6 +692,50 @@ public final class StartPanel extends JPanel {
                 y += fm2.getHeight();
             }
             g.dispose();
+        }
+
+        /** Small vector marks stay crisp at any scale and inherit the card's current theme ink. */
+        private static void paintGlyph(Graphics2D g, String title, int x, int y) {
+            Graphics2D icon = (Graphics2D) g.create();
+            icon.translate(x, y);
+            icon.setStroke(new BasicStroke(1.7f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            if (title.startsWith("Load an experiment")) {
+                icon.drawRoundRect(2, 1, 13, 15, 2, 2);
+                icon.drawLine(5, 5, 11, 5);
+                icon.drawLine(5, 9, 12, 9);
+                icon.drawLine(5, 12, 9, 12);
+            } else if (title.startsWith("Investigate")) {
+                icon.drawOval(1, 1, 10, 10);
+                icon.drawLine(10, 10, 16, 16);
+            } else if (title.startsWith("Author a new")) {
+                icon.drawRoundRect(1, 1, 14, 14, 2, 2);
+                icon.drawLine(8, 4, 8, 12);
+                icon.drawLine(4, 8, 12, 8);
+            } else if (title.startsWith("Author from template")) {
+                icon.drawRoundRect(1, 1, 14, 14, 2, 2);
+                icon.drawLine(8, 2, 8, 14);
+                icon.drawLine(2, 8, 14, 8);
+            } else if (title.startsWith("Open audit")) {
+                icon.drawRoundRect(2, 1, 13, 15, 2, 2);
+                for (int row : new int[]{5, 8, 11}) icon.drawLine(5, row, 12, row);
+            } else if (title.startsWith("Open GraphML")) {
+                icon.drawLine(4, 4, 13, 5);
+                icon.drawLine(4, 4, 7, 13);
+                icon.drawLine(13, 5, 7, 13);
+                icon.fillOval(1, 1, 5, 5);
+                icon.fillOval(11, 3, 5, 5);
+                icon.fillOval(5, 11, 5, 5);
+            } else if (title.startsWith("Open sample")) {
+                icon.drawOval(1, 1, 15, 15);
+                icon.drawLine(7, 5, 12, 8);
+                icon.drawLine(12, 8, 7, 11);
+                icon.drawLine(7, 11, 7, 5);
+            } else {
+                icon.drawOval(1, 2, 8, 8);
+                icon.drawLine(8, 9, 15, 16);
+                icon.drawLine(12, 12, 15, 9);
+            }
+            icon.dispose();
         }
 
         private static List<String> wrap(FontMetrics fm, String text, int width, int maxLines) {

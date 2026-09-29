@@ -42,8 +42,11 @@ class TemplateCatalogueFrameTest {
                 ((javax.swing.Timer)event.getSource()).stop();
                 try {
                     JList<?> list = find(dialog,JList.class);
-                    JTextArea description = find(dialog,JTextArea.class);
+                    JTextArea description = findDescription(dialog);
                     assertNotNull(list); assertNotNull(description);
+                    JSplitPane split = find(dialog, JSplitPane.class);
+                    assertNotNull(split, "template choices and their explanation sit side by side");
+                    assertEquals(JSplitPane.HORIZONTAL_SPLIT, split.getOrientation());
                     assertEquals(selection.entries().size(), list.getModel().getSize());
                     for (int i=0; i<selection.entries().size(); i++) {
                         list.setSelectedIndex(i);
@@ -74,6 +77,16 @@ class TemplateCatalogueFrameTest {
         for(Component child:parent.getComponents()) {
             if(type.isInstance(child)) return type.cast(child);
             if(child instanceof Container container) {T found=find(container,type);if(found!=null)return found;}
+        }
+        return null;
+    }
+    private static JTextArea findDescription(Container parent) {
+        for (Component child : parent.getComponents()) {
+            if (child instanceof JTextArea area && area.getText().contains("Build key:")) return area;
+            if (child instanceof Container container) {
+                JTextArea found = findDescription(container);
+                if (found != null) return found;
+            }
         }
         return null;
     }

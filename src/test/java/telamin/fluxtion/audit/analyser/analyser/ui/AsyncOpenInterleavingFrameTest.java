@@ -83,11 +83,23 @@ class AsyncOpenInterleavingFrameTest {
             AtomicReference<MainFrame> ref = new AtomicReference<>();
             SwingUtilities.invokeAndWait(() -> {
                 MainFrame f = new MainFrame();
+                // These frame journeys exercise the investigation UI before a log is open.
+                // The real app now starts on a full-width choice page; enter the workspace
+                // explicitly so geometry and menu assertions still test the intended surface.
+                showInvestigation(f);
                 for (DelayedReader r : readers) registry(f).register(r);
                 ref.set(f);
             });
             frame = ref.get();
             ex = (ActionExecutor) field(frame, "actionExecutor");
+        }
+        void enterInvestigation() throws Exception { SwingUtilities.invokeAndWait(() -> showInvestigation(frame)); }
+        private static void showInvestigation(MainFrame frame) {
+            try {
+                var show = MainFrame.class.getDeclaredMethod("showWorkspace", boolean.class);
+                show.setAccessible(true);
+                show.invoke(frame, false);
+            } catch (ReflectiveOperationException e) { throw new AssertionError(e); }
         }
         @Override public void close() throws Exception {
             dialogs.stop();

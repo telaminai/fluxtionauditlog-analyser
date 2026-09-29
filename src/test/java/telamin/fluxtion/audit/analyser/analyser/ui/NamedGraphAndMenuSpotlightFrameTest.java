@@ -304,6 +304,9 @@ class NamedGraphAndMenuSpotlightFrameTest {
             });
 
             // 4. a lit menu that closes for any other reason takes its spotlight with it
+            // Closing the final log now returns to the full-width start page, which hides menus.
+            // Re-enter the investigation surface for this menu-specific journey.
+            f.enterInvestigation();
             onEdt(() -> assertEquals(true, render(f.ex, "spotlight", Map.of("target", "menu:Audit log")).get("ok")));
             onEdt(() -> assertEquals(1, lit(f).size()));
             onEdt(() -> javax.swing.MenuSelectionManager.defaultManager().clearSelectedPath());   // what Escape or a click elsewhere does

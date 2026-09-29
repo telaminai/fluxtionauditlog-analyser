@@ -66,9 +66,11 @@ public final class MainFrame extends JFrame {
     private final TemplateArchive templateArchive = new TemplateArchive();
 
     private final LogTablePanel tablePanel = new LogTablePanel();
-    /** M36: the LEFT COLUMN holds the start page or the records+detail pair, never both. */
-    private final java.awt.CardLayout recordsLayout = new java.awt.CardLayout();
-    private final JPanel recordsCards = new JPanel(recordsLayout);
+    /** The start page uses the whole workspace; an open investigation uses the split view. */
+    private final java.awt.CardLayout workspaceLayout = new java.awt.CardLayout();
+    private final JPanel workspaceCards = new JPanel(workspaceLayout);
+    private JPanel workspaceChrome;
+    private JPanel workspaceStatusBar;
     private StartPanel startPanel;
     private final DetailPanel detailPanel = new DetailPanel();
     private final EventFilterPanel eventFilterPanel = new EventFilterPanel();
@@ -1096,14 +1098,24 @@ public final class MainFrame extends JFrame {
     }
 
     /**
-     * M36 — show the start page exactly when there is no log, and the table exactly when there is.
-     * One call site for the decision, so the two can never both be right.
+     * Show the start page across the workspace when there is no log, and the investigation when there is.
      */
     private void syncRecordsCard() {
         if (startPanel != null) {
             if (actionControl != null) startPanel.renderProject(actionControl.context().payload());
-            recordsLayout.show(recordsCards, store == null ? "start" : "table");
+            startPanel.setRecentProjects(config.recentProjects);
+            boolean designOpen = session != null && session.processor().designSession.path() != null;
+            showWorkspace(store == null && !topologyPanel.hasGraph() && !project.hasProject() && !designOpen);
         }
+    }
+
+    private void showWorkspace(boolean start) {
+        workspaceLayout.show(workspaceCards, start ? "start" : "investigation");
+        if (workspaceChrome != null) workspaceChrome.setVisible(!start);
+        if (workspaceStatusBar != null) workspaceStatusBar.setVisible(!start);
+        JMenuBar menu = getJMenuBar();
+        if (menu != null) menu.setVisible(!start);
+        revalidate();
     }
 
     /**
@@ -1118,8 +1130,9 @@ public final class MainFrame extends JFrame {
      */
     private void showStartPage() {
         if (startPanel == null) return;
-        startPanel.showReturnToRecords(store != null);
-        recordsLayout.show(recordsCards, "start");
+        boolean designOpen = session != null && session.processor().designSession.path() != null;
+        startPanel.showReturnToRecords(store != null || topologyPanel.hasGraph() || project.hasProject() || designOpen);
+        showWorkspace(true);
     }
 
     /**
@@ -1140,6 +1153,90 @@ public final class MainFrame extends JFrame {
         }
         if (withGraph) topologyPanel.load(DemoAssets.graphml());
         openFile(log, OpenRequest.HUMAN);
+    }
+
+    /** The sample is a real project profile, so the Project rail and workspace match its name. */
+    private void openSampleProject() {
+        Path root = DemoAssets.install();
+        Path profile = telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.pathFor(root);
+        if (!Files.isRegularFile(profile)) {
+            AppConfig sample = new AppConfig();
+            sample.sourceRoots.add(root.toString());
+            try {
+                telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.save(profile, sample,
+                        new telamin.fluxtion.audit.analyser.analyser.config.SettingsShare());
+            } catch (java.io.IOException ex) {
+                JOptionPane.showMessageDialog(this, "Could not create the sample project: " + ex.getMessage(),
+                        "Open sample project", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+        }
+        if (!requestProject(profile, telamin.fluxtion.audit.analyser.analyser.session.TransitionKind.EXPLICIT_SWITCH,
+                "sample-project")) return;
+        topologyPanel.load(DemoAssets.graphml());
+        openFile(DemoAssets.log(), OpenRequest.HUMAN);
+    }
+
+    private void chooseIncidentEvidence() {
+        String[] choices = {"Open audit log…", "Load evidence bundle…", "Cancel"};
+        int choice = JOptionPane.showOptionDialog(this,
+                "What evidence do you have for this incident?", "Investigate an incident",
+                JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE, null, choices, choices[0]);
+        if (choice == 0) chooseFile();
+        else if (choice == 1) chooseExperiment();
+    }
+
+    /** A UI entrance to the same verified, disposable working copy as `--unpack`. */
+    private void chooseExperiment() {
+        JFileChooser chooser = new JFileChooser();
+        chooser.setDialogTitle("Load an evidence bundle");
+        chooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("Evidence bundles (*.fexp)", "fexp"));
+        if (chooser.showOpenDialog(this) != JFileChooser.APPROVE_OPTION) return;
+        loadExperiment(chooser.getSelectedFile().toPath());
+    }
+
+    private void loadExperiment(Path bundle) {
+        Path parent = Path.of(System.getProperty("user.home"), ".fluxtion-analyser", "bundles");
+        status.setText("Verifying and opening evidence bundle…");
+        Background.run(() -> {
+            try { return telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.unpack(bundle, parent); }
+            catch (java.io.IOException ex) { throw new java.io.UncheckedIOException(ex); }
+        }, this::openUnpackedExperiment,
+                error -> {
+                    status.setText("Evidence bundle could not be opened");
+                    JOptionPane.showMessageDialog(this, "Could not open the evidence bundle: " + error.getMessage(),
+                            "Load experiment", JOptionPane.ERROR_MESSAGE);
+                });
+    }
+
+    private void openUnpackedExperiment(telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.Unpacked unpacked) {
+        var verification = unpacked.verification();
+        if (!verification.ok()) {
+            status.setText("Evidence bundle refused: " + verification.refusal());
+            JOptionPane.showMessageDialog(this, "REFUSED: " + verification.refusal(),
+                    "Load experiment", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        Path root = unpacked.workingCopy();
+        Path profile = root.resolve("profile/project.fluxtion-settings");
+        var logs = verification.members().stream().map(telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.Member::path)
+                .filter(name -> name.startsWith("log/")).toList();
+        var graphs = verification.members().stream().map(telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.Member::path)
+                .filter(name -> name.startsWith("graph/")).toList();
+        if (!java.nio.file.Files.isRegularFile(profile) || logs.size() != 1 || graphs.size() > 1) {
+            status.setText("Verified bundle has no single project and audit log to open");
+            JOptionPane.showMessageDialog(this, "The verified bundle has no single project and audit log to open.\n"
+                    + "Working copy: " + root, "Load experiment", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        if (!requestProject(profile, telamin.fluxtion.audit.analyser.analyser.session.TransitionKind.EXPLICIT_SWITCH,
+                "evidence-bundle")) return;
+        if (!graphs.isEmpty()) topologyPanel.load(root.resolve(graphs.getFirst()));
+        openFile(root.resolve(logs.getFirst()), OpenRequest.HUMAN);
+        String limits = String.join("\n", telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.limits(verification));
+        JOptionPane.showMessageDialog(this, "Verified bundle " + verification.identity() + "\n"
+                + "Working copy: " + root + "\nThe project is open; the audit log is loading.\n\n" + limits,
+                "Experiment verified", JOptionPane.INFORMATION_MESSAGE);
     }
 
     /** Source roots the demo added for this session only — never written to any config tier. */
@@ -1300,8 +1397,12 @@ public final class MainFrame extends JFrame {
                 try {
                     var before = state.document(); var fact = get();
                     if (generation != state.generation()) return;
-                    designs().refreshed(fact);
-                    refreshDesignView(before);
+                    // A log or project effect may have opened a modal event loop while a session cycle is still
+                    // running. Report this background read with post, which queues it after that cycle.
+                    session.post(fact);
+                    SwingUtilities.invokeLater(() -> {
+                        if (isDisplayable() && generation == state.generation()) refreshDesignView(before);
+                    });
                 } catch (Exception e) { status.setText("Design refresh failed: " + e.getMessage()); }
             }
         }.execute();
@@ -1888,6 +1989,7 @@ public final class MainFrame extends JFrame {
         SwingUtilities.updateComponentTreeUI(this);
         detailPanel.refresh();     // re-colour with the theme-appropriate palette
         reportsPanel.rerender();   // the reading surface and report callouts use explicit theme-derived colours
+        renderProducerFindings(false); // re-colour finding cards and severity labels on a theme switch
         sourcePanel.refresh();
         topologyPanel.refreshTheme();
         // these hold explicit colours derived from the OLD theme: updateComponentTreeUI keeps the value
@@ -1961,13 +2063,9 @@ public final class MainFrame extends JFrame {
         if (sideTabs != null) sideTabs.setSelectedComponent(sourcePanel);
     }
 
-    /**
-     * Accepts files dropped anywhere on the window: a {@code .graphml} loads into the Topology tab,
-     * anything else opens as a log. Dropping a log + graphml pair together routes each — the
-     * "here's the cycle and here's the graph it ran on" gesture.
-     */
+    /** Files dropped on either the start page or an open workspace use the normal open entrances. */
     private void installFileDrop() {
-        setTransferHandler(new TransferHandler() {
+        TransferHandler handler = new TransferHandler() {
             @Override public boolean canImport(TransferSupport s) {
                 return s.isDataFlavorSupported(DataFlavor.javaFileListFlavor);
             }
@@ -1978,31 +2076,76 @@ public final class MainFrame extends JFrame {
                     Transferable t = s.getTransferable();
                     @SuppressWarnings("unchecked")
                     List<File> files = (List<File>) t.getTransferData(DataFlavor.javaFileListFlavor);
-                    boolean any = false;
-                    boolean droppedTopology = false;
-                    for (File f : files) {
-                        if (isGraphml(f.getName())) {
-                            sessionInteractive = true;      // R4-F2: a drop is a person's act — declared at the entrance
-                            topologyPanel.load(f.toPath());
-                            droppedTopology = true;
-                        } else if (!any) {
-                            openFile(f.toPath());   // first non-graphml is the log; extras are ignored
-                            any = true;
-                        }
-                    }
-                    if (droppedTopology && sideTabs != null) sideTabs.setSelectedComponent(topologyPanel);
-                    return any || droppedTopology;
-                } catch (Exception ignore) {
-                    // ignore malformed drops
+                    return openDroppedFiles(files);
+                } catch (Exception error) {
+                    status.setText("Could not read dropped files: " + error.getMessage());
                 }
                 return false;
             }
-        });
+        };
+        setTransferHandler(handler);
+        workspaceCards.setTransferHandler(handler);
+        startPanel.setTransferHandler(handler);
+    }
+
+    enum DropKind { BUNDLE, GRAPHML, DESIGN, LOG }
+
+    static DropKind dropKind(String fileName) {
+        if (fileName == null) return DropKind.LOG;
+        String lower = fileName.toLowerCase(java.util.Locale.ROOT);
+        if (lower.endsWith(".fexp")) return DropKind.BUNDLE;
+        if (lower.endsWith(".graphml")) return DropKind.GRAPHML;
+        if (lower.endsWith(".xml")) return DropKind.DESIGN;
+        return DropKind.LOG; // preserve the file chooser's support for audit logs with unusual names
+    }
+
+    private boolean openDroppedFiles(List<File> files) {
+        if (files == null || files.isEmpty()) return false;
+        var selected = new java.util.EnumMap<DropKind, Path>(DropKind.class);
+        for (File file : files) selected.putIfAbsent(dropKind(file.getName()), file.toPath());
+        if (selected.containsKey(DropKind.BUNDLE)) {
+            if (files.size() != 1) {
+                status.setText("Drop an .fexp by itself; no files from this mixed drop were opened.");
+                return false;
+            }
+            loadExperiment(selected.get(DropKind.BUNDLE));
+            return true;
+        }
+        boolean opened = false;
+        Path design = selected.get(DropKind.DESIGN);
+        if (design != null) {
+            sessionInteractive = true;
+            clearSpotlightHere();
+            var result = actionControl.openDesign(design.toString());
+            if (result.ok()) {
+                opened = true;
+                showWorkspace(false);
+                sideTabs.setSelectedComponent(sourcePanel);
+            } else status.setText(result.error());
+        }
+        Path graph = selected.get(DropKind.GRAPHML);
+        if (graph != null) {
+            sessionInteractive = true;
+            topologyPanel.load(graph);
+            if (topologyPanel.hasGraph()) {
+                opened = true;
+                showWorkspace(false);
+                sideTabs.setSelectedComponent(topologyPanel);
+            }
+        }
+        Path log = selected.get(DropKind.LOG);
+        if (log != null) {
+            openFile(log, OpenRequest.HUMAN);
+            opened = true;
+        }
+        if (files.size() > selected.size())
+            status.setText("Opened the first file of each type; additional dropped files were ignored.");
+        return opened;
     }
 
     /** Routing rule for dropped files — {@code .graphml} goes to the Topology tab. */
     static boolean isGraphml(String fileName) {
-        return fileName != null && fileName.toLowerCase(java.util.Locale.ROOT).endsWith(".graphml");
+        return fileName != null && dropKind(fileName) == DropKind.GRAPHML;
     }
 
     private void buildMenu() {
@@ -3421,14 +3564,8 @@ public final class MainFrame extends JFrame {
         tableArea.add(tablePanel, BorderLayout.CENTER);
         tableArea.setMinimumSize(new Dimension(100, 80));
 
-        // the records table shouldn't dominate: give the detail panel and right-hand tabs real space
-        // M36 D-S1 / O-S2: the start page takes the LEFT COLUMN — records AND detail — while the
-        // right-hand tabs stay visible, because they are the product's structure and hiding them on
-        // first contact teaches nothing. Taking only the records pane was tried first and failed its
-        // own acceptance test: at a normal window width the body text clipped mid-word, the third
-        // action fell off the edge, and a whole section sat below a scrollbar. The detail pane has
-        // nothing to say with no log either ("select a record in the table above"), so the honest
-        // unit to replace is the pair.
+        // The investigation keeps records, detail and output tabs together. The start page is a
+        // separate workspace card, so its choices can use the full content width when no log is open.
         JSplitPane mainSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT, tableArea, detailPanel);
         mainSplit.setResizeWeight(0.45);
         mainSplit.setDividerLocation(330);
@@ -3484,6 +3621,7 @@ public final class MainFrame extends JFrame {
         }
         startPanel = new StartPanel(new StartPanel.Actions() {
             @Override public void openDemo(Path log, boolean withGraph) { openDemoLog(log, withGraph); }
+            @Override public void openSampleProject() { MainFrame.this.openSampleProject(); }
             @Override public void showTab(String name) { selectTab(name); }
             @Override public void openOwnLog() { chooseFile(); }
             @Override public void openSettings() {
@@ -3502,15 +3640,20 @@ public final class MainFrame extends JFrame {
                 sessionInteractive = true;
                 topologyPanel.chooseFile();
                 showTab("Topology");
+                if (topologyPanel.hasGraph()) showWorkspace(false);
             }
-            @Override public void newProject() { chooseTemplateProject(); }
+            @Override public void openGraphml() { openProjectTopology(); }
+            @Override public void newProject() { chooseAndCreateProject(); }
+            @Override public void newProjectFromTemplate() { chooseTemplateProject(); }
+            @Override public void openExperiment() { chooseExperiment(); }
+            @Override public void investigateIncident() { chooseIncidentEvidence(); }
+            @Override public void openRecentProject(String path) {
+                requestProject(Path.of(path), telamin.fluxtion.audit.analyser.analyser.session.TransitionKind.EXPLICIT_SWITCH, "start-recent");
+            }
             @Override public void restoreSession(long generation) { if (recovery != null) recovery.restore(generation); }
             @Override public void dismissSessionRestore(long generation) { if (recovery != null) recovery.dismiss(generation); }
         }, text -> status.setText(text));
-        recordsCards.add(startPanel, "start");
-        recordsCards.add(mainSplit, "table");
-
-        JSplitPane center = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, recordsCards, sideTabs);
+        JSplitPane center = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, mainSplit, sideTabs);
         center.setDividerSize(9);          // constant, rather than whatever the tab's content implies
         sideTabs.addChangeListener(e -> {
             sourceViewportChanged();
@@ -3529,6 +3672,7 @@ public final class MainFrame extends JFrame {
         JPanel north = new JPanel(new BorderLayout());
         north.add(buildToolBar(), BorderLayout.NORTH);
         north.add(buildFilterBar(), BorderLayout.CENTER);
+        workspaceChrome = north;
         add(north, BorderLayout.NORTH);
         eventFilterPanel.setPreferredSize(new Dimension(240, 200));
         // M37 (owner, 2026-08-27): the west column is DRAGGABLE, not a fixed 240px. The Project panel put
@@ -3543,9 +3687,12 @@ public final class MainFrame extends JFrame {
         westOuter.addPropertyChangeListener(JSplitPane.DIVIDER_LOCATION_PROPERTY, e -> {
             if (westHasPanel()) config.westWidth = westOuter.getDividerLocation();   // a collapsed rail is not a choice of width
         });
-        add(westOuter, BorderLayout.CENTER);
+        workspaceCards.add(startPanel, "start");
+        workspaceCards.add(westOuter, "investigation");
+        add(workspaceCards, BorderLayout.CENTER);
 
         JPanel statusBar = new JPanel(new BorderLayout());
+        workspaceStatusBar = statusBar;
         java.awt.Color statusLine = UIManager.getColor("Component.borderColor");
         statusBar.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createMatteBorder(1, 0, 0, 0,
@@ -6387,6 +6534,7 @@ public final class MainFrame extends JFrame {
         updateLifecycleMenu();
         fillRecent(recentProjectsMenu, config.recentProjects,
                 path -> requestProject(Path.of(path), telamin.fluxtion.audit.analyser.analyser.session.TransitionKind.EXPLICIT_SWITCH, "recent"));
+        if (startPanel != null) startPanel.setRecentProjects(config.recentProjects);
     }
 
     /** The window title carries the project, because "which settings am I using" is easy to lose. */
