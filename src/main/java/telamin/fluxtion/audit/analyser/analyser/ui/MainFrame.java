@@ -5956,6 +5956,7 @@ public final class MainFrame extends JFrame {
         if (project != null) project.requestSave();
         refreshProjectPanel();                                        // M37: roots and processors may have changed
         rebuildAnalysesMenu();                                        // M38.4: the profile may have gained one
+        if (session != null) renderAssistant(sessionSnapshot());      // an LLM key change must refresh Send and its route now
     }
 
     // ---- settings export / import (M15) ---------------------------------------------------------
