@@ -1447,7 +1447,7 @@ Sequence AFTER W4/W5/W11/W13: this is the optimisation of the optimisation, not 
 `fluxtion.sourceFingerprint`? If yes, W13 is a graph change, fails gate 11.5, and needs its own release.
 
 ---
-## M70 · Evidence bundle replay — the second delivery — implemented, release pending ([spec](spec-evidence-bundle-replay.md); spike `tools/spikes/replay-bundle/`)
+## M70 · Evidence bundle replay — the second delivery — released in 1.28.0 ([spec](spec-evidence-bundle-replay.md); spike `tools/spikes/replay-bundle/`)
 
 Record at the processor (the single-threaded consumption point), replay into the recipient's build with data-driven
 time, compare in the analyser. YAML is the DEMO event encoding. The recorder stamps the receipt instant;
@@ -1465,12 +1465,12 @@ graph-raised events stay in the audit log but are not recorded as external repla
 - Decided: our own replay writer and reader (R-D8), no Fluxtion core release; replay injects only the inputs recorded at consumption (R-D10). Open for the owner: licensing (deferred); processor vs agent.
 
 ---
-## M71 · Workspace Start and Swing polish — PR #71, release pending ([spec](spec-workspace-start.md))
+## M71 · Workspace Start and Swing polish — PR #71, released in 1.28.0 ([spec](spec-workspace-start.md))
 
 - [M71.1] ☑ Full-window Start page grouped by activity, with DEMO tour, project/profile, bundle, log, GraphML, template and settings entrances; the project workspace remains reachable through Help.
 - [M71.2] ☑ Native file drops and delayed bundle preparation use the existing session paths. The review correction `5f950694` cancels a prepared bundle for a newer explicit graph without cancelling reader-supplied or accepted-bundle graph facts; regression tests and named mutation controls catch the wrong result.
 - [M71.3] ☑ Graph selector, narrow series and walk controls, report and producer-finding reading surfaces, and template picker. The 28 native DEMO documentation captures were inspected and the affected guides updated (`2b516f8b`).
-- [M71.4] ☐ Final-head CI, main integration CI, release and publication receipts. The reviewer recheck is [recorded here](../handoff/review_pr71_workspace_start_2026_09_29_codex_recheck.md).
+- [M71.4] ☑ Final-head CI, main integration CI, release and publication receipts are [recorded here](../handoff/release_analyser_1_28_0_2026_09_29.md). The reviewer recheck is [recorded here](../handoff/review_pr71_workspace_start_2026_09_29_codex_recheck.md).
 - [M71.F1] ☐ Optional follow-up: improve the tour's instructional sequence and narrow report/list reading width; revisit the template dialog's choice hierarchy. These do not hold PR #71.
 
 ---
