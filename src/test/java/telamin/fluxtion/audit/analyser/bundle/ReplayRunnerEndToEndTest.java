@@ -548,6 +548,76 @@ class ReplayRunnerEndToEndTest {
         assertFalse(Files.exists(out), "nothing written");
     }
 
+    /** A GraphML document of about {@code bytes} bytes: nodes named by {@code id} of their index. */
+    static byte[] graphml(int bytes, java.util.function.IntFunction<String> id) {
+        StringBuilder b = new StringBuilder("<?xml version=\"1.0\"?>\n<graphml><graph edgedefault=\"directed\">\n");
+        for (int i = 0; b.length() < bytes; i++) b.append("<node id=\"").append(id.apply(i)).append("\"/>\n");
+        return b.append("</graph></graphml>\n").toString().getBytes(StandardCharsets.UTF_8);
+    }
+
+    @Test
+    @DisplayName("PR #70 re-review S3: the graph is bounded in bytes and elements, and read as a stream, in 64 MiB")
+    void aLargeGraphIsReadAsAStream(@TempDir Path tmp) throws Exception {
+        Path bundle = ReplayCompareTest.bundle(tmp);
+        Path build = build(tmp, "same", null);
+        String graph = EvidenceBundleTest.entries(bundle).keySet().stream().filter(n -> n.startsWith("graph/")).findFirst().orElseThrow();
+        // the re-review's graph (~32 MiB of one id, listed and hashed) ended in an OOM: now over the graph limit
+        var huge = EvidenceBundleTest.entries(bundle);
+        byte[] reviewers = graphml(32 << 20, i -> "n");
+        restamp(huge, graph, reviewers);
+        huge.put(graph, reviewers);
+        Run h = child(tmp, List.of(), "--bundle", EvidenceBundleTest.zip(tmp.resolve("huge.fexp"), huge).toString(),
+                "--processor", PROCESSOR, "--cp", build.toString(), "--out", tmp.resolve("h.yaml").toString());
+        assertFalse(h.err().contains("OutOfMemoryError") || h.err().contains("out of memory"), h.err());
+        assertEquals(1, h.code(), h.out() + h.err());
+        assertTrue(h.err().contains("REFUSED: " + graph + " is larger than the runner's graph limit of " + (8 << 20)), h.err());
+        // within the byte limit, one id repeated: the element count is bounded
+        var same = EvidenceBundleTest.entries(bundle);
+        byte[] repeated = graphml(7 << 20, i -> "n");
+        restamp(same, graph, repeated);
+        same.put(graph, repeated);
+        Run r = child(tmp, List.of(), "--bundle", EvidenceBundleTest.zip(tmp.resolve("same-id.fexp"), same).toString(),
+                "--processor", PROCESSOR, "--cp", build.toString(), "--out", tmp.resolve("s.yaml").toString());
+        assertFalse(r.err().contains("OutOfMemoryError"), r.err());
+        assertEquals(1, r.code(), r.out() + r.err());
+        assertTrue(r.err().contains("REFUSED: " + graph + " has more than 100000 nodes and edges"), r.err());
+        // the bundle's own graph with 7 MiB of comment in it: within the limits, it matches, and the replay runs
+        var padded = EvidenceBundleTest.entries(bundle);
+        String own = new String(padded.get(graph), StandardCharsets.UTF_8);
+        int at = own.indexOf("<graphml");
+        assertTrue(at >= 0, "graph anchor moved");
+        byte[] big = (own.substring(0, at) + "<!-- " + "x".repeat(7 << 20) + " -->\n" + own.substring(at))
+                .getBytes(StandardCharsets.UTF_8);
+        restamp(padded, graph, big);
+        padded.put(graph, big);
+        Run p = child(tmp, List.of(), "--bundle", EvidenceBundleTest.zip(tmp.resolve("padded.fexp"), padded).toString(),
+                "--processor", PROCESSOR, "--cp", build.toString(), "--out", tmp.resolve("p.yaml").toString());
+        assertEquals(0, p.code(), p.err());
+        assertTrue(p.out().contains("(8 audit records)"), p.out());
+        // untrusted XML: the bundle's own graph with a DOCTYPE is refused by name, as the DOM parser refused it
+        var typed = EvidenceBundleTest.entries(bundle);
+        byte[] doctype = (own.substring(0, at) + "<!DOCTYPE graphml [<!ENTITY demo \"DEMO\">]>\n" + own.substring(at))
+                .getBytes(StandardCharsets.UTF_8);
+        restamp(typed, graph, doctype);
+        typed.put(graph, doctype);
+        Run t = runner(tmp, "--bundle", EvidenceBundleTest.zip(tmp.resolve("doctype.fexp"), typed).toString(),
+                "--processor", PROCESSOR, "--cp", build.toString(), "--out", tmp.resolve("t.yaml").toString());
+        assertEquals(1, t.code(), t.out() + t.err());
+        assertTrue(t.err().contains("REFUSED: " + graph + " has a DOCTYPE, which the runner does not read"), t.err());
+        // distinct ids, as many as fit: the count is bounded, so it is refused by name before the heap is
+        var distinct = EvidenceBundleTest.entries(bundle);
+        byte[] many = graphml(7 << 20, i -> "n" + i);
+        restamp(distinct, graph, many);
+        distinct.put(graph, many);
+        Path out = tmp.resolve("d.yaml");
+        Run d = child(tmp, List.of(), "--bundle", EvidenceBundleTest.zip(tmp.resolve("distinct.fexp"), distinct).toString(),
+                "--processor", PROCESSOR, "--cp", build.toString(), "--out", out.toString());
+        assertFalse(d.err().contains("OutOfMemoryError"), d.err());
+        assertEquals(1, d.code(), d.out() + d.err());
+        assertTrue(d.err().contains("REFUSED: " + graph + " has more than 100000 nodes and edges"), d.err());
+        assertFalse(Files.exists(out), "nothing written");
+    }
+
     // ---- PR #70 review 3: the runner's set-up is left out by when it happens, never by what a record says --------
 
     @Test

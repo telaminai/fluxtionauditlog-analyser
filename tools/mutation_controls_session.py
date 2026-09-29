@@ -1434,6 +1434,16 @@ CONTROLS = [
     ('rf-the-producers-bytes-are-kept', 'src/test/resources/replay/demo-quote-recorded-audit.yaml',
      'eventLogRecord: \n    eventTime: 1767258000060\n', 'eventLogRecord:\n    eventTime: 1767258000060\n',
      'ReplayFixtureTest#theProducersBytesAreKept'),
+    # re-review S3: the graph is bounded in bytes and in elements, read as a stream, and a DOCTYPE is refused
+    ('rn-the-graph-has-a-byte-bound', RUNNER,
+     '            if (path.startsWith("graph/") && bytes > MAX_GRAPH_BYTES) {\n', '            if (false) {\n',
+     'ReplayRunnerEndToEndTest#aLargeGraphIsReadAsAStream'),
+    ('rn-the-graph-elements-are-bounded', RUNNER,
+     '                if (++elements > MAX_GRAPH_ELEMENTS) {\n', '                if (false) {\n',
+     'ReplayRunnerEndToEndTest#aLargeGraphIsReadAsAStream'),
+    ('rn-a-graph-doctype-is-refused', RUNNER,
+     '                if (e == javax.xml.stream.XMLStreamConstants.DTD) throw new Refused(name + " has a DOCTYPE, which the runner does not read");\n',
+     '', 'ReplayRunnerEndToEndTest#aLargeGraphIsReadAsAStream'),
     # finding 4: the member is read whole and counted before the processor runs; no reader takes a nameless field
     ('rn-the-count-is-the-manifests', RUNNER,
      '            if (taken.declaredRecords() != null && taken.declaredRecords() != inputs) {\n',

@@ -6,12 +6,7 @@
 import com.telamin.fluxtion.runtime.DataFlow;
 import com.telamin.fluxtion.runtime.audit.EventLogControlEvent;
 import com.telamin.fluxtion.runtime.time.ClockStrategy;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.NodeList;
 
-import javax.xml.XMLConstants;
-import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -89,6 +84,11 @@ public class ReplayBundle {
             return 1;
         } catch (Exception e) {
             err.println("REFUSED: " + e);
+            return 1;
+        } catch (OutOfMemoryError e) {
+            // a backstop, not a bound: every input the runner holds is bounded, and a heap too small for them is named
+            err.println("REFUSED: the runner ran out of memory (" + e.getMessage() + "); give it more with -Xmx, or "
+                    + "lower the replayBundle limits");
             return 1;
         }
     }
@@ -171,7 +171,7 @@ public class ReplayBundle {
             } else {
                 if (taken.graphName() == null) throw new Refused("the bundle has no graph/ member to check your build against");
                 String resource = a.processor().replace('.', '/') + ".graphml";
-                byte[] mine;
+                byte[] mine;                                  // your build's own graph
                 try (InputStream in = loader.getResourceAsStream(resource)) {
                     if (in == null) {
                         throw new Refused("your build carries no " + resource + ", so its graph cannot be compared with "
@@ -179,7 +179,11 @@ public class ReplayBundle {
                     }
                     mine = readBounded(in, resource, MAX_GRAPH_BYTES);
                 }
-                String difference = graphDifference(taken.graph(), mine);
+                Graph theirs;
+                try (InputStream g = Files.newInputStream(taken.graph())) {
+                    theirs = graph(g, taken.graphName());
+                }
+                String difference = graphDifference(theirs, graph(new ByteArrayInputStream(mine), resource));
                 if (difference != null) throw new Refused("your build's graph is not the bundle's: " + difference);
                 // PR #70 review: the same node ids and edges, which is graph compatibility, not the same code
                 graphLine = "graph: your build's node ids and edges match the bundle's (" + taken.graphName()
@@ -247,21 +251,25 @@ public class ReplayBundle {
 
     // ---- the bundle's members, each held to the manifest -----------------------------------------------------------
 
-    /** The largest member the runner reads; members are streamed, and only the graph is held. */
+    /** The largest member the runner reads; members are streamed, never held. */
     static final long MAX_MEMBER_BYTES = Long.getLong("replayBundle.maxMemberBytes", 512L << 20);
     /** The largest bundle the runner reads: every member's declared size, together. */
     static final long MAX_BUNDLE_BYTES = Long.getLong("replayBundle.maxBundleBytes", 4L << 30);
-    /** The graph is held and parsed, so it has its own, smaller bound. */
-    static final long MAX_GRAPH_BYTES = Long.getLong("replayBundle.maxGraphBytes", 32L << 20);
+    /**
+     * The graph is parsed, so it has its own, much smaller bound, and a bound on its elements ({@link
+     * #MAX_GRAPH_ELEMENTS}). A stream parse does not bound memory alone: the parser holds a comment or a text whole
+     * (PR #70 re-review S3; a 30 MiB comment exhausted 64 MiB). A Fluxtion processor's GraphML is kilobytes.
+     */
+    static final long MAX_GRAPH_BYTES = Long.getLong("replayBundle.maxGraphBytes", 8L << 20);
     /** The longest line the runner reads: a replay record is one line per field, and a log line is only scanned. */
     static final int MAX_LINE_CHARS = Integer.getInteger("replayBundle.maxLineChars", 1 << 20);
     static final int MANIFEST_MAX_BYTES = 4 << 20;
 
     /**
-     * What the runner takes from a bundle: the replay member, spooled to {@code work}; the graph, held; and what the
+     * What the runner takes from a bundle: the replay and graph members, spooled to {@code work}; and what the
      * log says about audit levels.
      */
-    record Members(Path replay, Integer declaredRecords, String graphName, byte[] graph, int levelChanges) { }
+    record Members(Path replay, Integer declaredRecords, String graphName, Path graph, int levelChanges) { }
 
     /** One member as the manifest lists it. */
     record Listed(String path, String sha256, long bytes) { }
@@ -345,7 +353,7 @@ public class ReplayBundle {
     /**
      * Reads the manifest (the first entry) and its schema, then every member, each held to the manifest's sha256 and
      * size as it streams past (review S3/S4; PR #70 review 2): a member the manifest does not list, or lists and the
-     * bundle lacks, is refused. Only the graph is held in memory; the replay is spooled to {@code work}, and the log
+     * bundle lacks, is refused. No member is held in memory: the replay and graph are spooled to {@code work}, and the log
      * is scanned, a bounded line at a time, for audit-level changes. {@code analyser --verify} states the bundle's
      * identity; this is what the runner needs to trust what it reads.
      */
@@ -353,7 +361,7 @@ public class ReplayBundle {
         Manifest manifest = null;
         Path replay = null;
         String graphName = null;
-        byte[] graph = null;
+        Path graph = null;
         int levelChanges = 0;
         java.util.Set<String> seen = new java.util.HashSet<>();
         try (ZipInputStream zip = new ZipInputStream(Files.newInputStream(bundle))) {
@@ -375,7 +383,8 @@ public class ReplayBundle {
                     replay = work.resolve("replay.yaml");
                     Files.copy(digest, replay);
                 } else if (name.startsWith("graph/")) {
-                    graph = digest.readAllBytes();
+                    graph = work.resolve("graph.graphml");            // spooled, and read as a stream
+                    Files.copy(digest, graph);
                     graphName = name;
                 } else if (name.startsWith("log/")) {
                     var r = new java.io.BufferedReader(new java.io.InputStreamReader(digest, StandardCharsets.UTF_8));
@@ -655,8 +664,7 @@ public class ReplayBundle {
     // ---- is this the same processor? (spec §5.2): nodes and edges, not bytes -----------------------------------
 
     /** How {@code mine} differs from {@code theirs}, in words, or null when they have the same nodes and edges. */
-    static String graphDifference(byte[] theirs, byte[] mine) throws Exception {
-        Graph t = graph(theirs), m = graph(mine);
+    static String graphDifference(Graph t, Graph m) {
         List<String> out = new ArrayList<>();
         TreeSet<String> added = new TreeSet<>(m.nodes()), removed = new TreeSet<>(t.nodes());
         added.removeAll(t.nodes());
@@ -673,22 +681,46 @@ public class ReplayBundle {
 
     record Graph(TreeSet<String> nodes, TreeSet<String> edges) { }
 
-    static Graph graph(byte[] graphml) throws Exception {
-        DocumentBuilderFactory f = DocumentBuilderFactory.newInstance();
-        // untrusted XML: no DOCTYPE, no external entities
-        f.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
-        f.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
-        f.setExpandEntityReferences(false);
-        Document d = f.newDocumentBuilder().parse(new ByteArrayInputStream(graphml));
+    /** The most {@code node} and {@code edge} elements, together, the runner reads from one graph. */
+    static final int MAX_GRAPH_ELEMENTS = Integer.getInteger("replayBundle.maxGraphElements", 100_000);
+
+    /**
+     * A GraphML document's node ids and edges, read as a stream (PR #70 re-review S3: a DOM of a listed, correctly
+     * hashed graph within the size limit exhausted a 512 MiB heap). Nothing but the ids and edges is held, and their
+     * number is bounded, so a graph is refused by name before it can exhaust memory. Untrusted XML: a DOCTYPE is
+     * refused and no external entity is resolved. The elements matched are those named {@code node} and {@code edge},
+     * with their unprefixed {@code id}, {@code source} and {@code target}, as before.
+     */
+    static Graph graph(InputStream in, String name) throws Exception {
+        javax.xml.stream.XMLInputFactory f = javax.xml.stream.XMLInputFactory.newFactory();
+        f.setProperty(javax.xml.stream.XMLInputFactory.SUPPORT_DTD, false);
+        f.setProperty(javax.xml.stream.XMLInputFactory.IS_SUPPORTING_EXTERNAL_ENTITIES, false);
         TreeSet<String> nodes = new TreeSet<>(), edges = new TreeSet<>();
-        NodeList ns = d.getElementsByTagName("node");
-        for (int i = 0; i < ns.getLength(); i++) nodes.add(((Element) ns.item(i)).getAttribute("id"));
-        NodeList es = d.getElementsByTagName("edge");
-        for (int i = 0; i < es.getLength(); i++) {
-            Element e = (Element) es.item(i);
-            edges.add(e.getAttribute("source") + "->" + e.getAttribute("target"));
+        javax.xml.stream.XMLStreamReader r = f.createXMLStreamReader(in);
+        try {
+            int elements = 0;
+            while (r.hasNext()) {
+                int e = r.next();
+                if (e == javax.xml.stream.XMLStreamConstants.DTD) throw new Refused(name + " has a DOCTYPE, which the runner does not read");
+                if (e != javax.xml.stream.XMLStreamConstants.START_ELEMENT) continue;
+                String tag = r.getPrefix() == null || r.getPrefix().isEmpty() ? r.getLocalName() : r.getPrefix() + ":" + r.getLocalName();
+                boolean node = tag.equals("node"), edge = tag.equals("edge");
+                if (!node && !edge) continue;
+                if (++elements > MAX_GRAPH_ELEMENTS) {
+                    throw new Refused(name + " has more than " + MAX_GRAPH_ELEMENTS + " nodes and edges, the runner's limit");
+                }
+                if (node) nodes.add(attribute(r, "id"));
+                else edges.add(attribute(r, "source") + "->" + attribute(r, "target"));
+            }
+        } finally {
+            r.close();
         }
         return new Graph(nodes, edges);
+    }
+
+    private static String attribute(javax.xml.stream.XMLStreamReader r, String name) {
+        String v = r.getAttributeValue(null, name);
+        return v == null ? "" : v;
     }
 
     // ---- the allow-list is YOUR build's handled event types ----------------------------------------------------

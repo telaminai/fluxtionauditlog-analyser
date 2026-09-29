@@ -37,8 +37,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   bundle's must be the same, and it refuses by name when they differ. That is graph compatibility, not the same code.
   It reads the manifest as JSON, in any valid spelling, and holds it to the bundle schema: one replay member, at most
   one graph, and every member listed. It holds every member to its digest and size, within a per-member limit and a
-  whole-bundle limit, before your build runs on them. Only the graph is held in memory, and the replay is read a line
-  at a time. It reads the whole replay member before your processor runs, and refuses a malformed record, or a count
+  whole-bundle limit, before your build runs on them. No member is held in memory whole: the replay is read a line at
+  a time, and the graph as a stream, within its own limits (8 MiB, 100,000 nodes and edges; no DOCTYPE). It reads the whole replay member before your processor runs, and refuses a malformed record, or a count
   other than the manifest's. It writes its output only when the replay completes. It warns when the bundled log
   changes its audit level mid-run. It loads only the event types your processor handles, and replays each record at
   its recorded instant on a data-driven clock. It writes the audit log for `--replay-compare`: every record the

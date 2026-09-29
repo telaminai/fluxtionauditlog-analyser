@@ -107,7 +107,9 @@ feeds the replay records in, and writes the audit log `--replay-compare` reads:
 - **The bundle is what its manifest says.** The manifest is read as JSON, in any valid spelling, and held to the
   bundle schema: one replay member, at most one graph, every member listed. Every member must match its digest and
   size, within a per-member limit (`-DreplayBundle.maxMemberBytes`, 512 MiB) and a whole-bundle limit
-  (`-DreplayBundle.maxBundleBytes`, 4 GiB). Only the graph is held in memory.
+  (`-DreplayBundle.maxBundleBytes`, 4 GiB). The graph has its own limits (`-DreplayBundle.maxGraphBytes`, 8 MiB;
+  `-DreplayBundle.maxGraphElements`, 100,000 nodes and edges) and is read as a stream; a DOCTYPE in it is refused.
+  No member is held in memory whole.
 - **The whole replay, before your build runs.** Every replay record is read and built first. A malformed record
   anywhere, or a count other than the manifest's, is refused before your processor sees an input. The audit log
   appears only when the replay completes.
