@@ -27,6 +27,19 @@ RUNNER = 'tools/replay/ReplayBundle.java'
 GRAPHML = 'src/main/resources/telamin/fluxtion/audit/analyser/analyser/session/generated/SessionProcessor.graphml'
 
 CONTROLS = [
+    # Bundle source anchoring (#75): capture strips every root, so the code is unreachable without one.
+    ('bundle-anchor-remembered', UI + 'MainFrame.java',
+     '                config.rememberBundleSourceRoot(open.source(), canonical);\n',
+     '',
+     'BundleProvenanceFrameTest#anchoringABundleToASourceTreeIsRemembered'),
+    ('bundle-anchor-restored', UI + 'MainFrame.java',
+     '                    config.sourceRoots.add(anchored);\n',
+     '',
+     'BundleProvenanceFrameTest#anchoringABundleToASourceTreeIsRemembered'),
+    ('bundle-anchor-published', UI + 'MainFrame.java',
+     '                    bundle.put("sourceAnchor", anchor.isEmpty() ? "none" : anchor);\n',
+     '                    bundle.put("sourceAnchor", "none");\n',
+     'BundleProvenanceFrameTest#anchoringABundleToASourceTreeIsRemembered'),
     # Bundle discovery (#73): a recipient could not find out what they had been sent.
     ('bundle-recent-recorded', UI + 'MainFrame.java',
      '                config.addRecentBundle(bundleRequested, plan.identity(), plan.notes());\n',

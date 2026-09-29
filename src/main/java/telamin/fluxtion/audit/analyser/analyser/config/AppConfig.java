@@ -167,18 +167,50 @@ public final class AppConfig {
      * @param identity {@code sha256:} of the manifest at the time it was opened
      * @param notes    the first line of {@code notes/NOTES.md}, or blank
      */
-    public record RecentBundle(String path, String identity, String notes) { }
+    public record RecentBundle(String path, String identity, String notes, String sourceRoot) {
+        /** A bundle nobody has anchored yet — the shape every pre-#75 caller uses. */
+        public RecentBundle(String path, String identity, String notes) {
+            this(path, identity, notes, "");
+        }
+
+        public RecentBundle {
+            sourceRoot = sourceRoot == null ? "" : sourceRoot;
+        }
+    }
 
     /** Evidence bundles opened on this machine, most-recent first (#73). */
     public final List<RecentBundle> recentBundles = new ArrayList<>();
 
-    /** Record an opened bundle, newest first and de-duplicated by path. */
+    /**
+     * Record an opened bundle, newest first and de-duplicated by path. An anchor the person already chose for
+     * this bundle SURVIVES a reopen — otherwise every reopen would ask again, which is the thing #75 is for.
+     */
     public void addRecentBundle(String path, String identity, String notes) {
         if (path == null || path.isBlank()) return;
+        String anchored = bundleSourceRoot(path);
         recentBundles.removeIf(b -> b.path().equals(path));
         recentBundles.add(0, new RecentBundle(path, identity == null ? "" : identity,
-                notes == null ? "" : notes));
+                notes == null ? "" : notes, anchored));
         while (recentBundles.size() > 25) recentBundles.remove(recentBundles.size() - 1);
+    }
+
+    /** The source tree this machine anchored to that bundle, or "" — #75. */
+    public String bundleSourceRoot(String path) {
+        if (path == null) return "";
+        return recentBundles.stream().filter(b -> b.path().equals(path))
+                .map(RecentBundle::sourceRoot).findFirst().orElse("");
+    }
+
+    /** Remember where the code for that bundle lives, so reopening it does not ask again. */
+    public void rememberBundleSourceRoot(String path, String root) {
+        if (path == null || root == null || root.isBlank()) return;
+        for (int i = 0; i < recentBundles.size(); i++) {
+            var b = recentBundles.get(i);
+            if (b.path().equals(path)) {
+                recentBundles.set(i, new RecentBundle(b.path(), b.identity(), b.notes(), root));
+                return;
+            }
+        }
     }
 
     /** Recent search terms (most-recent first), for the search box history/autocomplete. */

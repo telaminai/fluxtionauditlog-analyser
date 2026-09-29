@@ -128,6 +128,45 @@ class BundleProvenanceFrameTest {
         }
     }
 
+    @Test
+    @DisplayName("#75: a bundle arrives with no source; anchoring one is remembered and put back on reopen")
+    void anchoringABundleToASourceTreeIsRemembered(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        try (var f = shown(tmp)) {
+            Path dir = exchange(f, tmp);
+            Path code = java.nio.file.Files.createDirectories(tmp.resolve("checkout/src/main/java"));
+            openLog(f, EvidenceCaptureFrameTest.DEMO_LOG);
+            onEdt(() -> render(f.ex, "report", Map.of("bundle", Map.of("path", "anchored.fexp"))));
+            assertEquals("WRITTEN", awaitDecided(f).get("phase"));
+            Path fexp = dir.resolve("anchored.fexp");
+
+            Map<String, Object> before = openBundleAndWait(f, fexp);
+            assertEquals("none", before.get("sourceAnchor"), "aBundleArrivesWithNoSource");
+            assertNotNull(before.get("sourceAnchorNote"));
+
+            String canonical = code.toAbsolutePath().normalize().toString();
+            onEdt(() -> render(f.ex, "source_root", Map.of("add", List.of(canonical))));
+
+            var config = (telamin.fluxtion.audit.analyser.analyser.config.AppConfig) field(f.frame, "config");
+            assertEquals(canonical, config.bundleSourceRoot(fexp.toString()),
+                    "anchorIsRememberedAgainstTheBundle");
+
+            // forget the root the way a fresh machine would, then reopen the same bundle
+            onEdt(() -> config.sourceRoots.remove(canonical));
+            openBundleAndWait(f, fexp);
+            assertTrue(config.sourceRoots.contains(canonical), "anchorIsRestoredOnReopen");
+
+            @SuppressWarnings("unchecked")
+            var ctx = (Map<String, Object>) onEdtGet(() ->
+                    render(f.ex, "context", Map.of("sections", List.of("project"))).get("context"));
+            @SuppressWarnings("unchecked")
+            var proj = (Map<String, Object>) ctx.get("project");
+            @SuppressWarnings("unchecked")
+            var bundle = (Map<String, Object>) proj.get("bundle");
+            assertEquals(canonical, bundle.get("sourceAnchor"), "anchorIsPublished");
+        }
+    }
+
     private static Object onEdtGet(java.util.function.Supplier<Object> body) throws Exception {
         AtomicReference<Object> out = new AtomicReference<>();
         onEdt(() -> out.set(body.get()));

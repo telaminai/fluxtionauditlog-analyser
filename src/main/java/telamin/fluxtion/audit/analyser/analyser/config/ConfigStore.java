@@ -269,6 +269,7 @@ public final class ConfigStore {
             put(p, "recentBundle." + i + ".path", b.path());
             put(p, "recentBundle." + i + ".identity", b.identity());
             put(p, "recentBundle." + i + ".notes", b.notes());
+            put(p, "recentBundle." + i + ".sourceRoot", b.sourceRoot());
         }
     }
 
@@ -281,7 +282,8 @@ public final class ConfigStore {
             if (path.isBlank()) continue;
             into.add(new telamin.fluxtion.audit.analyser.analyser.config.AppConfig.RecentBundle(path,
                     p.getProperty("recentBundle." + i + ".identity", ""),
-                    p.getProperty("recentBundle." + i + ".notes", "")));
+                    p.getProperty("recentBundle." + i + ".notes", ""),
+                    p.getProperty("recentBundle." + i + ".sourceRoot", "")));
         }
     }
 

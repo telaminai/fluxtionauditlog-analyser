@@ -6317,6 +6317,12 @@ public final class MainFrame extends JFrame {
                 // #73: a recipient could not find out what they had been sent. Recorded here, where the
                 // adapter performs the effect, beside the way a project open records its own recent.
                 config.addRecentBundle(bundleRequested, plan.identity(), plan.notes());
+                // #75: put back the source tree this machine already chose for this bundle, if it is still there
+                String anchored = config.bundleSourceRoot(bundleRequested);
+                if (!anchored.isEmpty() && Files.isDirectory(Path.of(anchored))
+                        && !config.sourceRoots.contains(anchored)) {
+                    config.sourceRoots.add(anchored);
+                }
                 saveConfigQuietly();
                 if (plan.graphPath() != null) topologyPanel.load(Path.of(plan.graphPath()));
                 startPanel.showOperationFeedback("Verified " + plan.identity() + ". The audit log is loading.\n"
@@ -7362,6 +7368,14 @@ public final class MainFrame extends JFrame {
             if (!Files.isDirectory(dir)) return false;
             String canonical = dir.toAbsolutePath().normalize().toString();
             if (!config.sourceRoots.contains(canonical)) config.sourceRoots.add(canonical);
+            // #75: capture strips every source root, so a bundle arrives knowing WHICH classes it wants
+            // (the graphml keeps their fqns) but not WHERE. Anchoring while a bundle is open is that
+            // answer, so it is remembered against the bundle and restored the next time it is opened.
+            var open = sessionSnapshot().bundle();
+            if (open.fromBundle() && open.source() != null) {
+                config.rememberBundleSourceRoot(open.source(), canonical);
+                saveConfigQuietly();
+            }
             onConfigChanged();
             // Adding a root IS the statement "the code is here". Inference runs when a log is opened, so
             // a root added afterwards would otherwise leave the processor unresolved and every
@@ -7646,6 +7660,12 @@ public final class MainFrame extends JFrame {
                     bundle.put("workingCopy", received.workingCopy());
                     bundle.put("verified", true);
                     if (!received.notes().isEmpty()) bundle.put("notes", received.notes());
+                    // #75: no source root survives capture, so say plainly whether this machine has
+                    // supplied one. The graph names the classes; only a root says where they are.
+                    String anchor = config.bundleSourceRoot(received.source());
+                    bundle.put("sourceAnchor", anchor.isEmpty() ? "none" : anchor);
+                    if (anchor.isEmpty()) bundle.put("sourceAnchorNote",
+                            "the bundle carries no source; add a root to read the code behind these records");
                     if (!received.limits().isEmpty()) bundle.put("limits", received.limits());
                     proj.put("bundle", bundle);
                 }

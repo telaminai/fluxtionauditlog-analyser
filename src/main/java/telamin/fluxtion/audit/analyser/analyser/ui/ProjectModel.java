@@ -63,7 +63,8 @@ public record ProjectModel(List<Section> sections) {
             "restoration.state", "restoration.message", "restoration.available",
             "project.active", "project.name", "project.label", "project.profile", "project.settings", "project.root",
             "project.bundle.identity", "project.bundle.source", "project.bundle.workingCopy",
-            "project.bundle.verified", "project.bundle.limits",
+            "project.bundle.verified", "project.bundle.limits", "project.bundle.notes",
+            "project.bundle.sourceAnchor", "project.bundle.sourceAnchorNote",
             "skills.provenance", "skills.from",
             "fluxtionKey.canonicalFilePresent", "fluxtionKey.canonicalFile", "fluxtionKey.precedenceNote",
             "log.path", "log.openedFrom", "log.records", "log.openedBy", "provenance", "files",
@@ -126,6 +127,16 @@ public record ProjectModel(List<Section> sections) {
                         str(bundle.get("source")),
                         "verified on open; unsigned, so it is not authenticated to a sender",
                         Tone.NORMAL, Target.NONE));
+                // #75: the remedy for "I cannot see the code" is a root, so the row says so and leads there.
+                String anchor = str(bundle.get("sourceAnchor"));
+                if (anchor == null || "none".equals(anchor)) {
+                    rows.add(new Row("Bundle has no source tree",
+                            str(bundle.get("sourceAnchorNote")), null,
+                            "no source root survives capture", Tone.WARN, Target.SETTINGS_SOURCE));
+                } else {
+                    rows.add(new Row("Bundle source", abbreviate(anchor), anchor,
+                            "anchored on this machine", Tone.MUTED, Target.SETTINGS_SOURCE));
+                }
             }
         } else {
             rows.add(new Row("No project", "using your own settings (~/.fluxtion-analyser)", null, null,
