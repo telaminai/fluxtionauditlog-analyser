@@ -27,6 +27,20 @@ RUNNER = 'tools/replay/ReplayBundle.java'
 GRAPHML = 'src/main/resources/telamin/fluxtion/audit/analyser/analyser/session/generated/SessionProcessor.graphml'
 
 CONTROLS = [
+    # Bundle provenance, the failure paths a review found untested (2026-09-29).
+    # NOTE: the `pending = null` in onRequested has NO control on purpose. With the EffectFailed handler in
+    # place the two cover each other, so a control on either survives. The handler is the principled guard and
+    # is pinned below; the reset is kept as defence for a ProtocolViolation unwinding the batch, which emits no
+    # EffectFailed and which no test can currently drive. Registering a control that survives would be worse
+    # than saying this.
+    ('bundle-provenance-dead-transition-ends', NODE + 'OpenBundle.java',
+     '    public boolean onEffectFailed(SessionEvents.EffectFailed event) {\n        if (!gate.accepted()) {\n',
+     '    public boolean onEffectFailed(SessionEvents.EffectFailed event) {\n        if (true) {\n',
+     'BundleProvenanceTest#aFailureAfterTheBundleIsInForceEndsTheClaim'),
+    ('bundle-provenance-cleared-on-restore', NODE + 'OpenBundle.java',
+     '    public boolean onSettingsRestored(SessionEvents.SettingsRestored event) {\n        if (!gate.accepted()) {\n',
+     '    public boolean onSettingsRestored(SessionEvents.SettingsRestored event) {\n        if (true) {\n',
+     'BundleProvenanceTest#closingBackToOwnSettingsClearsTheBundle'),
     # Bundle source anchoring (#75): capture strips every root, so the code is unreachable without one.
     ('bundle-anchor-remembered', UI + 'MainFrame.java',
      '                config.rememberBundleSourceRoot(open.source(), canonical);\n',
@@ -1288,15 +1302,24 @@ CONTROLS = [
      '"/[\\\\w.-]+(?:/[\\\\w.-]+)+/?"',
      'BundleProfileTest#ordinaryProsePassesUntouched'),
     ('rf2-a-percentage-is-not-a-home', BUNDLE_PROFILE,
-     '"(?<![\\\\w/~])~(?:[A-Za-z_][\\\\w.-]*)?/[\\\\w.-]+(?:/[\\\\w.-]+)*/?"',
+     '"(?<![\\\\w/~])~(?:[\\\\w.-]*[A-Za-z_][\\\\w.-]*)?/[\\\\w.-]+(?:/[\\\\w.-]+)*/?"',
      '"(?<![\\\\w/~])~[\\\\w.-]*/?[\\\\w.-]+(?:/[\\\\w.-]+)*/?"',
      'BundleProfileTest#ordinaryProsePassesUntouched'),
-    # A ~user segment must start with a letter, or "~1/price" reads as user "1" and a chart explanation
-    # shipped inside a bundle loses its formula. Reverting the fix must turn the prose allow-list red.
+    # "~1/price" must NOT redact: it is a formula, and it shipped as the marker inside a real bundle.
     ('rf2-a-ratio-is-not-a-home', BUNDLE_PROFILE,
-     '"(?<![\\\\w/~])~(?:[A-Za-z_][\\\\w.-]*)?/[\\\\w.-]+(?:/[\\\\w.-]+)*/?"',
+     '"(?<![\\\\w/~])~(?:[\\\\w.-]*[A-Za-z_][\\\\w.-]*)?/[\\\\w.-]+(?:/[\\\\w.-]+)*/?"',
      '"(?<![\\\\w/~])~[\\\\w.-]*/[\\\\w.-]+(?:/[\\\\w.-]+)*/?"',
      'BundleProfileTest#ordinaryProsePassesUntouched'),
+    # ...and "~7dev/logs/x.yaml" MUST redact. Requiring the user segment to START with a letter satisfies
+    # the line above and silently reopens this one; the two controls together pin both directions.
+    ('rf2-a-numeric-user-with-a-subdir-is-a-home', BUNDLE_PROFILE,
+     '"(?<![\\\\w/~])~[0-9][\\\\w.-]*/[\\\\w.-]+(?:/[\\\\w.-]+)+/?"',
+     '"(?<!X)Xnever-matchesX"',
+     'BundleProfileTest#everyMachinePathShapeIsRedacted'),
+    ('rf2-a-numeric-user-with-a-file-is-a-home', BUNDLE_PROFILE,
+     '"(?<![\\\\w/~])~[0-9][\\\\w.-]*/[\\\\w-]+\\\\.[A-Za-z][\\\\w.-]*"',
+     '"(?<!X)Xnever-matchesX"',
+     'BundleProfileTest#everyMachinePathShapeIsRedacted'),
     ('rf2-a-drive-letter-alone-is-not-a-path', BUNDLE_PROFILE,
      '"(?<![\\\\w])[A-Za-z]:[\\\\\\\\/][\\\\w.$-]+(?:[\\\\\\\\/][\\\\w.$-]+)*[\\\\\\\\/]?"',
      '"(?<![\\\\w])[A-Za-z]:[\\\\\\\\/]?[\\\\w.$-]*(?:[\\\\\\\\/][\\\\w.$-]+)*[\\\\\\\\/]?"',

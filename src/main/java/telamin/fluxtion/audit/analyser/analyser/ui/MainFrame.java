@@ -7675,7 +7675,9 @@ public final class MainFrame extends JFrame {
             out.put("project", proj);
             // #73: what this machine has been sent. A recipient could not otherwise find out what bundles they
             // hold — there is no list verb, and an unpacked working copy appears only as a recent LOG path.
-            if (!config.recentBundles.isEmpty()) {
+            // need.test: up to 25 stat calls, so do not run them for a projection that did not ask. The same
+            // shape ContextSectionsTest#aProjectionWithoutFluxtionKeyReadsNoKeyFile exists to stop.
+            if (need.test("bundles") && !config.recentBundles.isEmpty()) {
                 List<Map<String, Object>> recent = new java.util.ArrayList<>();
                 for (var b : config.recentBundles) {
                     Map<String, Object> row = new java.util.LinkedHashMap<>();

@@ -149,7 +149,12 @@ public class BundleProfileTest {
     @Test
     @DisplayName("F2: every machine-path shape is redacted in prose — home, Windows, UNC, file URI, a sentence-leading path")
     void everyMachinePathShapeIsRedacted(@TempDir Path tmp) throws Exception {
-        for (String path : List.of("~/logs/demo/quote.yaml", "~demo/logs/quote.yaml", "C:\\Users\\demo\\logs\\q.yaml",
+        // ~7dev / ~123: a digit-leading username is legal and was silently un-redacted for one commit on
+        // 2026-09-29 by a fix aimed at "~1/price". Found by review, not by this suite, which had only
+        // letter-leading cases.
+        for (String path : List.of("~/logs/demo/quote.yaml", "~demo/logs/quote.yaml",
+                "~7dev/logs/quote.yaml", "~123/secret/quote.yaml", "~123/quote.yaml",
+                "C:\\Users\\demo\\logs\\q.yaml",
                 "D:/data/demo/q.yaml", "\\\\fileserver\\demo\\q.yaml", "file:///tmp/DEMO/q.yaml", "/etc/demo/q.yaml")) {
             List<String> redacted = new java.util.ArrayList<>();
             Path dir = Files.createDirectories(tmp.resolve(Integer.toHexString(path.hashCode())));

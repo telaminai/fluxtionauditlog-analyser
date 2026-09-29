@@ -40,7 +40,14 @@ import java.util.regex.Pattern;
  *       {@link #REDACTED} and named in {@link Export#redacted()}, so the author sees exactly what was removed. Refusing
  *       ordinary writing would get this check turned off.</li>
  * </ul>
- * A machine path here is absolute POSIX with at least two segments, home-relative ({@code ~/…}, {@code ~user/…}),
+ * <p><b>A digit-leading username is still a username.</b> The tilde form is three alternatives because a
+ * {@code ~user} segment that must start with a letter silently stopped redacting {@code ~7dev/logs/x.yaml} and
+ * {@code ~123/secret/a.yaml} — legal accounts wherever they are provisioned from employee numbers — while
+ * {@code ~1/price} had to keep passing. One residual is accepted and cannot be removed: {@code ~123/secret},
+ * a purely numeric user with a single extensionless segment, is indistinguishable from a ratio, so it is NOT
+ * redacted in prose. {@link #WHOLE_PATH} still refuses it as a whole value.
+ *
+ * <p>A machine path here is absolute POSIX with at least two segments, home-relative ({@code ~/…}, {@code ~user/…}),
  * a Windows drive path with a segment, a UNC path, or a {@code file:} URI. Relative paths ({@code logs/uat/x.yaml}),
  * URLs, ratios, times and {@code and/or} are not: they name no machine. A segment is cut at whitespace, so a path
  * with a space in a directory name is redacted up to the space.
@@ -66,7 +73,9 @@ public final class BundleProfile {
     static final Pattern EMBEDDED_PATH = Pattern.compile(String.join("|",
             "(?i:\\bfile:/+[\\w.~%@:/+-]*)",                                      // file:///etc/x
             "(?<![\\w.~:/\\\\-])/[\\w.-]+(?:/[\\w.-]+)+/?",                          // /Users/x/y, not a/b or https://h/p
-            "(?<![\\w/~])~(?:[A-Za-z_][\\w.-]*)?/[\\w.-]+(?:/[\\w.-]+)*/?",           // ~/x, ~user/x; not ~5%, ~1/price
+            "(?<![\\w/~])~(?:[\\w.-]*[A-Za-z_][\\w.-]*)?/[\\w.-]+(?:/[\\w.-]+)*/?",  // ~/x, ~alice/x, ~7dev/logs/x
+            "(?<![\\w/~])~[0-9][\\w.-]*/[\\w.-]+(?:/[\\w.-]+)+/?",                   // ~123/secret/a.yaml
+            "(?<![\\w/~])~[0-9][\\w.-]*/[\\w-]+\\.[A-Za-z][\\w.-]*",                  // ~123/notes.yaml
             "(?<![\\w])[A-Za-z]:[\\\\/][\\w.$-]+(?:[\\\\/][\\w.$-]+)*[\\\\/]?",          // C:\\Users\\x, not C: or C:\\ alone
             "(?<![\\w\\\\])\\\\\\\\[\\w.$-]+(?:\\\\[\\w.$-]+)+"));                          // \\\\server\\share
 

@@ -42,6 +42,8 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
 
     /** Set to have the very next load throw rather than return a failure result. */
     boolean loadThrows;
+    /** Set to have a restore throw, so a CLOSE leaves the project gone with no SettingsRestored. */
+    boolean restoreThrows;
     /** M44.3: when true, an OpenLogEffect answers Pending (the real adapter's shape); else it lands at once. */
     boolean pendingOpens;
     /** What a synchronous open reports as logged node ids, keyed by location. */
@@ -109,6 +111,10 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
                 yield new SessionEvents.ProfileApplied(e.opId(), e.profilePath(), e.name());
             }
             case SessionEffects.RestoreSettingsEffect e -> {
+                if (restoreThrows) {
+                    restoreThrows = false;
+                    throw new java.io.IOException("DEMO the restore threw");
+                }
                 settingsRestored = true;
                 appliedProfile = null;
                 yield new SessionEvents.SettingsRestored(e.opId());

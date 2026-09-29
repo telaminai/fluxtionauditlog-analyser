@@ -63,7 +63,6 @@ public record ProjectModel(List<Section> sections) {
             "restoration.state", "restoration.message", "restoration.available",
             "project.active", "project.name", "project.label", "project.profile", "project.settings", "project.root",
             "project.bundle.identity", "project.bundle.source", "project.bundle.workingCopy",
-            "project.bundle.verified", "project.bundle.limits", "project.bundle.notes",
             "project.bundle.sourceAnchor", "project.bundle.sourceAnchorNote",
             "skills.provenance", "skills.from",
             "fluxtionKey.canonicalFilePresent", "fluxtionKey.canonicalFile", "fluxtionKey.precedenceNote",

@@ -190,9 +190,9 @@ class BundleProvenanceFrameTest {
                 assertNotNull(entry, "theAccountIsPacked");
                 String packed = new String(zip.getInputStream(entry).readAllBytes(),
                         java.nio.charset.StandardCharsets.UTF_8);
-                assertTrue(packed.contains("## Hypothesis"), "headingsSurviveVerbatim: " + packed);
-                assertTrue(packed.contains("## Outcome"), "headingsSurviveVerbatim: " + packed);
-                assertTrue(packed.contains("three values across two records"), "bodySurvivesVerbatim");
+                // contains() would survive collapsing the newlines or reordering the sections, which is
+                // exactly what "verbatim" rules out. The fixture already ends in a newline.
+                assertEquals(account, packed, "theAccountIsPackedVerbatim");
             }
         }
     }

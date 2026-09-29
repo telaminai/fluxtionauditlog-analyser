@@ -23,8 +23,9 @@ import telamin.fluxtion.audit.analyser.analyser.session.TransitionKind;
  *
  * <p><b>Why the request is observed at all.</b> The plan names the unpacked profile, not the {@code .fexp} the
  * person chose — and the {@code .fexp} is what a recents list must remember and what a title should name. Only
- * {@link SessionEvents.OpenProjectRequested} carries it. The request also resets the pending plan, so a bundle
- * that verified and then failed to apply cannot label the next ordinary project as evidence.
+ * {@link SessionEvents.OpenProjectRequested} carries it. The request also resets the pending plan, and an
+ * {@link SessionEvents.EffectFailed} ends the transition, so a bundle that verified and then failed to apply
+ * cannot label the next ordinary project as evidence.
  */
 public class OpenBundle implements EventLogSource {
 
@@ -47,15 +48,52 @@ public class OpenBundle implements EventLogSource {
     }
 
     /**
-     * Records which {@code .fexp} this transition is for. It deliberately does <b>not</b> reset {@link #pending}:
-     * a mutation removing such a reset survived the gate (2026-09-29), because {@code operationGate} already
-     * refuses a superseded transition's {@code ProfileLoaded} before this node sees it, so a plan can only ever
-     * be set by the transition in force. {@code BundleOpenReplayTest#lateFirstBundleCannotStealASecondPendingBundle}
-     * is where that refusal is pinned. Defence that cannot be made to fail is not defence, it is noise.
+     * Records which {@code .fexp} this transition is for, and <b>resets any plan the last transition left
+     * behind</b>. {@code sessionBoundary} clears its identical accumulator in exactly the same place
+     * ({@code inFlightBundle = null} is its first statement) and for the same reason.
+     *
+     * <p><b>This reset was briefly removed, and that was a defect (2026-09-29).</b> A mutation control for it
+     * survived, and the conclusion drawn was "the gate already refuses a superseded transition, so the line is
+     * dead". The gate does refuse a superseded transition from SETTING a plan. It does nothing about an
+     * ACCEPTED plan SURVIVING a transition that then dies — an {@code ApplyProfileEffect} that throws becomes
+     * {@link SessionEvents.EffectFailed} and the batch continues, leaving a plan held with no fact to settle
+     * it. The next ordinary project then published {@code fromBundle() == true}, with a stranger's identity
+     * and notes attached to the person's own work. A surviving mutation means the line is dead OR the path is
+     * untested; here it was untested. {@code BundleProvenanceTest#aBundleWhoseApplyFailsCannotLabelTheNextProject}
+     * is the test that was missing.
      */
     @OnEventHandler
     public boolean onRequested(SessionEvents.OpenProjectRequested event) {
+        pending = null;
         requestedSource = event.kind() == TransitionKind.OPEN_BUNDLE ? event.profilePath() : null;
+        return false;
+    }
+
+    /** The effect whose failure means the project is GONE, not merely that something went wrong. */
+    private static final String RESTORE = "restoreSettings";
+
+    /**
+     * A transition that died. An effect failure does not stop the batch, so without this a half-finished bundle
+     * open leaves a plan held for whatever settles next.
+     *
+     * <p>Two different things, deliberately not merged. The <b>pending</b> plan is always dropped: the transition
+     * carrying it is over and nothing will settle it. What is already <b>in force</b> is dropped only when the
+     * failure was the restore, because that is the one failure meaning there is no project any more. Clearing it
+     * on any failure would be a false NEGATIVE — an unrelated effect failing while a bundle is genuinely open
+     * would stop the window saying so, which is the same class of lie in the other direction.
+     */
+    @OnEventHandler
+    public boolean onEffectFailed(SessionEvents.EffectFailed event) {
+        if (!gate.accepted()) {
+            return false;
+        }
+        pending = null;
+        requestedSource = null;
+        if (RESTORE.equals(event.effect()) && current.fromBundle()) {
+            current = BundleProvenance.NONE;
+            auditLog.info("fromBundle", false).info("because", "restoreSettings failed");
+            return true;
+        }
         return false;
     }
 
