@@ -106,6 +106,7 @@ public final class ConfigStore {
         c.assistantExports = parseBool(p.getProperty("assistant.exports"), c.assistantExports);
         c.assistantExportDir = p.getProperty("assistant.exportDir", c.assistantExportDir);
         c.maxActionRounds = parseInt(p.getProperty("assistant.maxRounds"), c.maxActionRounds);
+        c.maxActionsPerTurn = parseInt(p.getProperty("assistant.maxActionsPerTurn"), c.maxActionsPerTurn);
         c.maxActionsPerReply = parseInt(p.getProperty("assistant.maxActionsPerReply"), c.maxActionsPerReply);
         c.mcpSetupTarget = p.getProperty("mcp.target", c.mcpSetupTarget);
         c.mcpLauncherIdentity = p.getProperty("mcp.launcherIdentity", c.mcpLauncherIdentity);
@@ -116,6 +117,11 @@ public final class ConfigStore {
         readList(p, "searchHistory", c.searchHistory);
         c.lastRunVersion = p.getProperty("lastRunVersion", c.lastRunVersion);
         c.windowX = parseInt(p.getProperty("windowX"), c.windowX);
+        c.assistantPoppedOut = Boolean.parseBoolean(p.getProperty("assistant.window.poppedOut", Boolean.toString(c.assistantPoppedOut)));
+        c.assistantX = parseInt(p.getProperty("assistant.window.x"), c.assistantX);
+        c.assistantY = parseInt(p.getProperty("assistant.window.y"), c.assistantY);
+        c.assistantW = parseInt(p.getProperty("assistant.window.w"), c.assistantW);
+        c.assistantH = parseInt(p.getProperty("assistant.window.h"), c.assistantH);
         c.windowY = parseInt(p.getProperty("windowY"), c.windowY);
         c.windowW = parseInt(p.getProperty("windowW"), c.windowW);
         c.windowH = parseInt(p.getProperty("windowH"), c.windowH);
@@ -193,12 +199,18 @@ public final class ConfigStore {
         put(p, "assistant.exports", Boolean.toString(c.assistantExports));
         put(p, "assistant.exportDir", c.assistantExportDir);
         put(p, "assistant.maxRounds", Integer.toString(c.maxActionRounds));
+        put(p, "assistant.maxActionsPerTurn", Integer.toString(c.maxActionsPerTurn));
         put(p, "assistant.maxActionsPerReply", Integer.toString(c.maxActionsPerReply));
         put(p, "mcp.target", c.mcpSetupTarget);
         put(p, "mcp.launcherIdentity", c.mcpLauncherIdentity);
         put(p, "mcp.codexRegistrationInstalled", Boolean.toString(c.mcpCodexRegistrationInstalled));
         put(p, "mcp.claudeRegistrationInstalled", Boolean.toString(c.mcpClaudeRegistrationInstalled));
         put(p, "windowX", Integer.toString(c.windowX));
+        put(p, "assistant.window.poppedOut", Boolean.toString(c.assistantPoppedOut));
+        put(p, "assistant.window.x", Integer.toString(c.assistantX));
+        put(p, "assistant.window.y", Integer.toString(c.assistantY));
+        put(p, "assistant.window.w", Integer.toString(c.assistantW));
+        put(p, "assistant.window.h", Integer.toString(c.assistantH));
         put(p, "windowY", Integer.toString(c.windowY));
         put(p, "windowW", Integer.toString(c.windowW));
         put(p, "windowH", Integer.toString(c.windowH));
@@ -495,6 +507,8 @@ public final class ConfigStore {
                 var st = w.steps().get(j);
                 String k = base + ".s." + j;
                 put(p, k + ".caption", st.caption().isBlank() ? null : st.caption());
+                put(p, k + ".id", st.id());                 // OA-3: absent for a walk without dialogue
+                put(p, k + ".through", st.through());
                 var v = st.view();
                 put(p, k + ".view.tab", v.tab());
                 if (v.record() != null) p.setProperty(k + ".view.record", Integer.toString(v.record()));
@@ -521,6 +535,21 @@ public final class ConfigStore {
                     put(p, tk + ".basis", t.basis().kind());
                     put(p, tk + ".basis.digest", t.basis().digest().isBlank() ? null : t.basis().digest());
                     put(p, tk + ".basis.rep", t.basis().representation().isBlank() ? null : t.basis().representation());
+                }
+            }
+            // OA-3: the dialogue, typed. A version this build does not read is not written here: its keys were kept as
+            // extras when it was read, and are written back below exactly as they came
+            var conv = w.conversation();
+            if (conv != null && conv.supported()) {
+                p.setProperty(base + ".conv.v", Integer.toString(conv.version()));
+                put(p, base + ".conv.kind", conv.kind());
+                put(p, base + ".conv.author", conv.author().isBlank() ? null : conv.author());
+                p.setProperty(base + ".conv.t.count", Integer.toString(conv.turns().size()));
+                for (int t = 0; t < conv.turns().size(); t++) {
+                    var turn = conv.turns().get(t);
+                    put(p, base + ".conv.t." + t + ".id", turn.id());
+                    put(p, base + ".conv.t." + t + ".role", turn.role());
+                    put(p, base + ".conv.t." + t + ".text", turn.text());
                 }
             }
             for (var e : new java.util.TreeMap<>(w.extras()).entrySet()) {
@@ -591,7 +620,31 @@ public final class ConfigStore {
                     String caption = get.apply(tk + ".caption");
                     if (target != null) targets.add(new telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec.Target(target, caption, basis));
                 }
-                steps.add(new telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec.Step(get.apply(k + ".caption"), view, targets));
+                steps.add(new telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec.Step(get.apply(k + ".caption"), view, targets,
+                        get.apply(k + ".id"), get.apply(k + ".through")));
+            }
+            // OA-3: a version-1 conversation is read into its type; any other version is noted by number only, and its
+            // keys, never marked as read, are kept as extras so a newer analyser's journey survives this one's save
+            telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec.Conversation conversation = null;
+            String convVersion = p.getProperty(base + ".conv.v");
+            if (convVersion != null) {
+                int cv = parseInt(convVersion, -1);
+                if (cv == telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec.CONVERSATION_VERSION) {
+                    get.apply("conv.v");
+                    List<telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec.Turn> turns = new java.util.ArrayList<>();
+                    int tc = parseInt(get.apply("conv.t.count"), 0);
+                    // Keep one overflow sentinel so validation refuses it, without allocating an untrusted count.
+                    int boundedCount = Math.min(tc, telamin.fluxtion.audit.analyser.analyser.walk.WalkConversation.MAX_TURNS + 1);
+                    for (int t = 0; t < boundedCount; t++) {
+                        turns.add(new telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec.Turn(get.apply("conv.t." + t + ".id"),
+                                get.apply("conv.t." + t + ".role"), get.apply("conv.t." + t + ".text")));
+                    }
+                    conversation = new telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec.Conversation(cv,
+                            get.apply("conv.kind"), get.apply("conv.author"), turns);
+                } else {
+                    conversation = new telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec.Conversation(cv,
+                            p.getProperty(base + ".conv.kind"), p.getProperty(base + ".conv.author"), List.of());
+                }
             }
             String title = get.apply("title");
             String author = get.apply("author");
@@ -606,7 +659,7 @@ public final class ConfigStore {
                 if (!used.contains(rest)) extras.put(rest, p.getProperty(key));
             }
             out.add(new telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec(name, title, author, created, updated, fp,
-                    run, steps, extras));
+                    run, steps, extras, conversation));
         }
     }
 

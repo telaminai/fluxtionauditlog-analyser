@@ -308,6 +308,11 @@ public final class SessionDriver {
             case SessionEffects.SetFollowEffect ignored -> "setFollow";
             case SessionEffects.CaptureBundleEffect ignored -> "captureBundle";
             case SessionEffects.DeleteBundleEffect ignored -> "deleteBundle";
+            case SessionEffects.PrepareAssistantContextEffect ignored -> "prepareAssistantContext";
+            case SessionEffects.RequestAssistantCompletionEffect ignored -> "requestAssistantCompletion";
+            case SessionEffects.RunAssistantActionEffect ignored -> "runAssistantAction";
+            case SessionEffects.CancelAssistantTransportEffect ignored -> "cancelAssistantTransport";
+            case SessionEffects.ShowAssistantHostEffect ignored -> "showAssistantHost";
         };
     }
 

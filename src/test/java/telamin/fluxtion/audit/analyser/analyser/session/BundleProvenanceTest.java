@@ -57,6 +57,24 @@ class BundleProvenanceTest {
     }
 
     @Test
+    @DisplayName("the claim is about the PROJECT, so it survives opening an unrelated log — deliberately")
+    void theClaimIsAboutTheProjectNotTheLogOnScreen() {
+        // Not a defect, but the most reachable over-read in the feature: the window can say
+        // "evidence bundle X" while the records on screen are the person's own. Clearing it here would be a
+        // lie in the other direction — the bundle's charts, walks, reports and source anchor are all still
+        // the ones in force. Pinned so a later "fix" has to argue with this rather than discover it.
+        var driver = openedBundle(new FakeSessionAdapter().withProfile(plan().profilePath()));
+        assertTrue(driver.snapshot().bundle().fromBundle());
+
+        driver.submit(new SessionEvents.LogOpened(driver.nextOpId(), "/somewhere/unrelated.yaml",
+                null, java.util.Set.of(), 0, 0, null, null, false));
+
+        assertTrue(driver.snapshot().bundle().fromBundle(),
+                "theProjectIsStillTheBundles, whatever log is on screen");
+        assertEquals("sha256:DEMO-identity", driver.snapshot().bundle().identity());
+    }
+
+    @Test
     @DisplayName("an ordinary project is not evidence")
     void ordinaryProjectIsNotABundle() {
         var adapter = new FakeSessionAdapter().withProfile("/own/project.fluxtion-settings");
@@ -152,17 +170,22 @@ class BundleProvenanceTest {
     }
 
     @Test
-    @DisplayName("a close that fails before the project is cleared leaves the bundle in force, and says so")
-    void aFailedCloseLeavesTheBundleInForce() {
+    @DisplayName("a close whose RENDER fails still ends the evidence claim — the project is already gone")
+    void aCloseWhoseRenderFailsStillEndsTheClaim() {
+        // The mirror of the apply case, and the one the last fix missed: project.close() is the real half
+        // and has already run, so a throw in the rendering half must not leave the window saying
+        // [evidence bundle X] over a session with no project at all.
         var adapter = new FakeSessionAdapter().withProfile(plan().profilePath());
         var driver = openedBundle(adapter);
-        adapter.restoreThrows = true;
+        assertTrue(driver.snapshot().bundle().fromBundle(), "precondition: the bundle is in force");
+
+        adapter.restoreRenderThrows = true;
         driver.submit(new SessionEvents.OpenProjectRequested(driver.nextOpId(), null,
                 TransitionKind.CLOSE, "menu"));
 
-        assertFalse(adapter.settingsRestored, "the restore really failed");
-        assertTrue(driver.snapshot().bundle().fromBundle(),
-                "aFailedCloseLeavesTheBundleStillInForce");
+        assertTrue(adapter.restoreRenderFailed, "the render really failed");
+        assertTrue(adapter.settingsRestored, "and the project is genuinely gone");
+        assertFalse(driver.snapshot().bundle().fromBundle(), "aFailedRenderDoesNotKeepTheClaim");
     }
 
     @Test

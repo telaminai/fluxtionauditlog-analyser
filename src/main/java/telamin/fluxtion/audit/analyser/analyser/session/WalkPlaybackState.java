@@ -18,10 +18,18 @@ import java.util.Map;
  * @param lastShown walk name → the last step shown (0-based), for Play from step N — session memory, never saved
  * @param definition the frozen definition being shown, or null (review PR57 R6): what every surface describes
  * @param answer     the node's answer to the last play request that carried an id (review PR57 R7)
+ * @param accepted   OA-4: the last step of THIS showing whose view was accepted and prepared (shown or partly shown), or
+ *                   -1: a refused step's dialogue stays at this step's prefix, beside the refusal (§6.2)
  */
 public record WalkPlaybackState(String walk, int step, int count, String phase, String reason, long ticket,
                                 List<SessionEvents.WalkTargetState> targets, Map<String, Integer> lastShown,
-                                telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec definition, Answer answer) {
+                                telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec definition, Answer answer, int accepted) {
+
+    public WalkPlaybackState(String walk, int step, int count, String phase, String reason, long ticket,
+                             List<SessionEvents.WalkTargetState> targets, Map<String, Integer> lastShown,
+                             telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec definition, Answer answer) {
+        this(walk, step, count, phase, reason, ticket, targets, lastShown, definition, answer, -1);
+    }
 
     /** Whether play request {@code request} was accepted, and if not, why. */
     public record Answer(long request, boolean accepted, String reason) {

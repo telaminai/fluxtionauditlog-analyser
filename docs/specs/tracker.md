@@ -1474,6 +1474,21 @@ graph-raised events stay in the audit log but are not recorded as external repla
 - [M71.F1] ☐ Optional follow-up: improve the tour's instructional sequence and narrow report/list reading width; revisit the template dialog's choice hierarchy. These do not hold PR #71.
 
 ---
+
+## Onboard assistant and conversation journeys — proposed 2026-09-29
+
+Owner direction: a fully working onboard LLM assistant with an optional popout that remains useful while
+analyser views change, plus labelled simulated/recorded dialogue synchronized with spotlight walks and
+journey-specific `.fexp` downloads. **[Proposed spec r1](spec-onboard-assistant-journeys.md)**; no implementation
+or acceptance is claimed. Existing M69 and evidence-bundle follow-ups retain their status.
+
+- [OA-1] ◐ Session-owned live action loop, coherent context, cancellation and no-log tools; real provider acceptance remains distinct from fake-server tests. **Implemented** on `feat/onboard-assistant-journeys` (`assistantLoop` node, `AssistantAdapter`, `AssistantPanel`; fake-provider and real-frame tests; 12 original controls). PR #77 review R1's ownership and filtered-view corrections have [author-side regressions and targeted controls](../handoff/evidence/pr77-r1-2026-09-29/RESULTS.md); independent acceptance remains open. **Not accepted:** the authorised live-provider run (OA-A2 second half) is UNVERIFIED.
+- [OA-2] ◐ One docked/popout chat model, preserved draft/history, native focus and narrow/theme checks. **Implemented** (one reparented `AssistantPanel`, an unowned window, close docks, machine-tier bounds clamped to usable screens, docked pass-through on the overlay; 5 controls). **Not yet accepted:** the native Robot suite (`AssistantNativeFrameTest`) needs a desktop that delivers native input; IME composition is untested.
+- [OA-3] ◐ Typed dialogue and stable step bindings; selected-turn capture/editor, project/share/bin round trips and export privacy. **Implemented** (`WalkSpec.Conversation`, `WalkConversation`, `ConversationDraft`, `ConversationEditor`, the `walk` verb's `conversation`, typed `walk.N.conv.*` / `s.J.id|through` keys; 8 controls). **Open:** old-reader behaviour with a released jar is demonstrated in OA-5, not here.
+- [OA-4] ◐ Conversation and real walk effects synchronized under one ticket; Back/resume, truthful refusals and fresh live-chat handoff. **Implemented** (`walkPlayback` gains the accepted step, the pending-turn rule and the handoff/live-send endings; `demoProjection` renders from its frozen definition; 8 controls). **Open:** native cross-window playback checks run with the OA-2 native suite.
+- [OA-5] ◐ One DEMO investigation bundle and catalogue page; verified published bytes, native captures and independent recipient. **Implemented** (`tools/capture-journey.py`, the bundle and `docs/site/journeys/find-the-first-recorded-breach.md`, `JourneyCatalogueTest`, `tools/journey-old-reader.py` — 1.27.0 plays it without the dialogue; 3 controls). **Open:** the native screenshots (`capture-journey.py --images`: the display was asleep); publication on a public catalogue and an independent cross-machine recipient (OA-A14, OA-A18) — a branch link is not publication.
+- [OA-6] ◐ Provider, display, regression/mutation and release acceptance; no partial slice labelled the complete feature. **In review** on the implementation PR: headless suite, every frame suite, all OA controls and strict docs RAN ([RESULTS](../handoff/evidence/onboard-assistant-2026-09-29/RESULTS.md)). **Open:** an authorised live-provider run (OA-A2), native input (OA-A6/A11), the journey's native screenshots, publication and a cross-machine recipient (OA-A14/A18). The complete feature is NOT shipped until these close.
+
 ## M69 follow-ups — spotlight walks shipped in 1.26.0 (▸ [`completed/tracker.md`](completed/tracker.md) ▸ *M69*)
 
 - [M69.F1] ☑ **W-A11: a native capture of a walk** for the docs site. The full `python3 tools/capture-docs.py`

@@ -1,0 +1,14 @@
+old reader: fluxtion-auditlog-analyser-1.27.0.jar
+PASS the old reader verifies the journey bundle — identity: sha256:4662ddcecd4d632d393ae05d4a00595cdb8351d7dbee56b0a9c93d718ebb53cb
+PASS the old reader unpacks it
+PASS the old reader opens the bundled project
+PASS and its log and graph
+PASS the old reader lists the journey as an ordinary walk — [{"name": "DEMO first breach", "title": "Find the first recorded breach", "author": "assistant", "steps": 4, "from": "project"}]
+PASS step 1 plays in the old reader — SHOWN
+PASS step 2 plays in the old reader — SHOWN
+PASS step 3 plays in the old reader — SHOWN
+PASS step 4 plays in the old reader — SHOWN
+PASS every step's evidence is shown by the old reader (the walk plays; its dialogue is not shown) — ['SHOWN', 'SHOWN', 'SHOWN', 'SHOWN']
+PASS the old reader DID rewrite the profile (a rename there and back), so the next check means something
+PASS after the old reader's own saves, every dialogue and binding key it did not understand is still in the profile — 36 keys kept
+RESULT: all checks passed

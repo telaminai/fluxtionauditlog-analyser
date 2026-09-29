@@ -40,6 +40,27 @@ import java.util.regex.Pattern;
  *       {@link #REDACTED} and named in {@link Export#redacted()}, so the author sees exactly what was removed. Refusing
  *       ordinary writing would get this check turned off.</li>
  * </ul>
+ * <p><b>Latin letters by explicit range, NOT {@code UNICODE_CHARACTER_CLASS}.</b> The blanket flag failed in
+ * both directions at once. It widened {@code \w} inside the negative lookbehinds, so a path written against a
+ * non-ASCII letter stopped matching AT ALL — {@code ログは/Users/greg/logs/x.yaml} exported whole and reported
+ * nothing, worse than the half-redaction the flag was added to fix, and CJK prose has no inter-word spaces so
+ * adjacency is the normal case there. It also widened the SEGMENT classes, so the same path swallowed the rest
+ * of the sentence ({@code …q.yamlにあります}) and deleted the author's words. It also widened {@code \s}, so
+ * {@link #WHOLE_PATH}'s {@code \S} tail stopped refusing a path containing a non-breaking space.
+ * Adding {@code \u00C0-\u024F} — Latin-1 Supplement and Latin Extended-A/B — covers the accented usernames
+ * and directories this is actually about ({@code démo}, {@code josé}) while leaving CJK and Cyrillic as the
+ * prose they are, so a path touching them is redacted and stops where the prose resumes.
+ *
+ * <p><b>Historic note.</b> Turning the flag on wholesale
+ * widened {@code \w} inside every negative lookbehind too, so a path written immediately after a non-ASCII
+ * letter stopped matching AT ALL: {@code ログは/Users/greg/logs/x.yaml} exported whole and reported nothing,
+ * where even the ASCII pattern had redacted it. CJK prose has no inter-word spaces, so adjacency is the
+ * normal case there, and a silent total leak is worse than the half-leak the flag was added to fix. The
+ * lookbehinds are pinned to ASCII; only the segment classes are widened. For the same reason
+ * {@link #WHOLE_PATH} spells its tail as "not ASCII whitespace" instead of {@code \S}: the flag made
+ * {@code \s} include U+00A0, so a path holding a non-breaking space — routine when pasted from a browser —
+ * stopped being refused as a whole value.
+ *
  * <p><b>Both patterns are Unicode-aware, and must stay that way.</b> Java's {@code \w} is ASCII-only unless
  * told otherwise, so {@code /home/démo/logs/x.yaml} redacted as far as the accent and left
  * {@code ‹path removed›émo/logs/x.yaml} — a reported redaction that still carries the path. Worse,
@@ -74,19 +95,17 @@ public final class BundleProfile {
     public static final String REDACTED = "\u2039path removed\u203a";
 
     /** A value that is, as a whole, a machine path: refused, because it is structure. */
-    static final Pattern WHOLE_PATH = Pattern.compile("^(?:/|~[/\\\\]|~$|~[\\w.-]+/|[A-Za-z]:[/\\\\]|\\\\\\\\|(?i:file):)\\S*$",
-            Pattern.UNICODE_CHARACTER_CLASS);
+    static final Pattern WHOLE_PATH = Pattern.compile("^(?:/|~[/\\\\]|~$|~[\\w.\\-\\u00C0-\\u024F]+/|[A-Za-z]:[/\\\\]|\\\\\\\\|(?i:file):)[^ \\t\\n\\x0B\\f\\r]*$");
 
     /** A machine path INSIDE prose: redacted. Each alternative needs a real path shape, not just a slash or a colon. */
     static final Pattern EMBEDDED_PATH = Pattern.compile(String.join("|",
-            "(?i:\\bfile:/+[\\w.~%@:/+-]*)",                                      // file:///etc/x
-            "(?<![\\w.~:/\\\\-])/[\\w.-]+(?:/[\\w.-]+)+/?",                          // /Users/x/y, not a/b or https://h/p
-            "(?<![\\w/~])~(?:[\\w.-]*[A-Za-z_][\\w.-]*)?/[\\w.-]+(?:/[\\w.-]+)*/?",  // ~/x, ~alice/x, ~7dev/logs/x
-            "(?<![\\w/~])~[0-9][\\w.-]*/[\\w.-]+(?:/[\\w.-]+)+/?",                   // ~123/secret/a.yaml
-            "(?<![\\w/~])~[0-9][\\w.-]*/[\\w-]+\\.[A-Za-z][\\w.-]*",                  // ~123/notes.yaml
-            "(?<![\\w])[A-Za-z]:[\\\\/][\\w.$-]+(?:[\\\\/][\\w.$-]+)*[\\\\/]?",          // C:\\Users\\x, not C: or C:\\ alone
-            "(?<![\\w\\\\])\\\\\\\\[\\w.$-]+(?:\\\\[\\w.$-]+)+"),
-            Pattern.UNICODE_CHARACTER_CLASS);                          // \\\\server\\share
+            "(?i:(?<![A-Za-z0-9_\\u00C0-\\u024F])file:/+[\\w.\\-\\u00C0-\\u024F~%@:/+]*)",                                      // file:///etc/x
+            "(?<![A-Za-z0-9_.~:/\\\\\\-\\u00C0-\\u024F])/[\\w.\\-\\u00C0-\\u024F]+(?:/[\\w.\\-\\u00C0-\\u024F]+)+/?",                          // /Users/x/y, not a/b or https://h/p
+            "(?<![A-Za-z0-9_/~\\u00C0-\\u024F])~(?:[\\w.\\-\\u00C0-\\u024F]*[A-Za-z_\\u00C0-\\u024F][\\w.\\-\\u00C0-\\u024F]*)?/[\\w.\\-\\u00C0-\\u024F]+(?:/[\\w.\\-\\u00C0-\\u024F]+)*/?",  // ~/x, ~alice/x, ~7dev/logs/x
+            "(?<![A-Za-z0-9_/~\\u00C0-\\u024F])~[0-9][\\w.\\-\\u00C0-\\u024F]*/[\\w.\\-\\u00C0-\\u024F]+(?:/[\\w.\\-\\u00C0-\\u024F]+)+/?",                   // ~123/secret/a.yaml
+            "(?<![A-Za-z0-9_/~\\u00C0-\\u024F])~[0-9][\\w.\\-\\u00C0-\\u024F]*/[\\w-]+\\.[A-Za-z][\\w.\\-\\u00C0-\\u024F]*",                  // ~123/notes.yaml
+            "(?<![A-Za-z0-9_])[A-Za-z]:[\\\\/][\\w.$-]+(?:[\\\\/][\\w.$-]+)*[\\\\/]?",          // C:\\Users\\x, not C: or C:\\ alone
+            "(?<![A-Za-z0-9_\\\\])\\\\\\\\[\\w.$-]+(?:\\\\[\\w.$-]+)+"));                          // \\\\server\\share
 
     /**
      * Write the allow-listed profile of {@code settings} to {@code out}. {@code settings} is the open project's
@@ -129,6 +148,16 @@ public final class BundleProfile {
                 String graph = s.view() == null ? null : s.view().graph();
                 if (graph != null && gone.contains(graph)) {
                     dangling.add("walk '" + w.name() + "' step " + (i + 1) + " shows left-out chart '" + graph + "'");
+                }
+            }
+        }
+        // OA-3 (§7): a kept walk's dialogue was written against the whole log. Its step targets are re-based; the words
+        // cannot be, so a record number in them would now name another record. Said, not silently shipped.
+        if (rebase != null && rebase.first() > 0) {
+            for (WalkSpec w : c.walks) {
+                if (w.conversation() != null && !w.conversation().turns().isEmpty()) {
+                    dangling.add("walk '" + w.name() + "' carries a conversation written against the whole log: record "
+                            + "numbers in its words are not re-based (this excerpt's record 0 was record " + rebase.first() + ")");
                 }
             }
         }
@@ -225,14 +254,15 @@ public final class BundleProfile {
                 }
                 WalkSpec.View shifted = v == null || record == null ? v
                         : new WalkSpec.View(v.tab(), v.filter(), record - r.first(), v.graph(), v.focus());
-                steps.add(new WalkSpec.Step(s.caption(), shifted, targets));
+                steps.add(new WalkSpec.Step(s.caption(), shifted, targets, s.id(), s.through()));   // OA-3: bindings kept
             }
             if (outside != null) {
                 leftOut.add("walk '" + w.name() + "' (" + outside + ", outside the excerpt's " + window + ")");
                 continue;
             }
             walks.add(new WalkSpec(w.name(), w.title(), w.author(), w.createdAt(), w.updatedAt(),
-                    refingerprint(w.fingerprint(), r), w.runBasis().isEmpty() ? w.runBasis() : r.runBasis(), steps, w.extras()));
+                    refingerprint(w.fingerprint(), r), w.runBasis().isEmpty() ? w.runBasis() : r.runBasis(), steps, w.extras(),
+                    w.conversation()));
         }
         c.walks.clear();
         c.walks.addAll(walks);

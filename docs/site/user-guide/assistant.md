@@ -22,9 +22,39 @@ venue disconnected here", it can plot that series and flag those cycles, and you
 4. **Verify.** Click the plotted points, jump to the flagged records, trace a nodeLog line to the exact
    source method. Nothing is taken on faith; the evidence is right there to challenge.
 
+## The onboard assistant
+
+The **Analyser assistant** tab is a live chat with the provider you configure. Its header says what it is — **Live
+assistant**, the provider and model it sends to, and the workspace it is about — and the line under it says what it is
+doing: *Requesting*, *Running action n*, *Complete*, *Cancelled*, *Superseded*, *Limit reached* or *Failed*.
+
+- **Ask, follow up, cancel.** **Send** (or Enter; Shift+Enter is a new line) sends your question with the selected
+  records' context. The assistant can answer and run the same verbs an external client does — each result appears
+  under its request as the analyser's **actual** result, labelled *result*, *REFUSED* or *NOT RUN*, and goes back to
+  the model, so an answer can rest on what really happened rather than on the model saying it did. **Cancel** stops
+  the turn at once: a reply or result that arrives afterwards is not shown and runs nothing. Actions that had already
+  completed are not undone, and the note says how many. **New chat** starts again.
+- **Budgets.** A turn stops at the per-reply action cap, the round limit, or its own per-turn action budget (Settings ▸
+  Assistant), and says which.
+- **With no log open**, `context`, `topology` and the source verbs still work; verbs that read records refuse by name.
+- **When the workspace changes** — you open another project, log or graph — a turn in progress stops, and even a
+  completed conversation is kept for reading. Start a **New chat** to ask about what is open now: its history is not sent as if
+  it described the new workspace. The assistant's own `open` is expected, and continues.
+- **When the investigation filter changes during a turn**, the pending reply or action stops before it can use a
+  different view. After a turn completes, changing the filter keeps the conversation usable; the next **Send**
+  prepares context under the current filter. A filter change made by the assistant's own action can continue to
+  its next action.
+- **Pop out.** **Pop out** moves the assistant into its own window, so the conversation stays beside you while the
+  analyser changes views; **Dock** (or closing the window) puts it back. It is the same conversation, draft and request
+  in either place, and moving it never sends again. The tab says where it went. Scrolling or copying in the docked
+  assistant does not end a showing walk.
+
+Nothing is sent until you press Send: not when you open the tab, open a bundle, or play a journey.
+
 ## No API key? Copy-prompt mode
 
-No key, or working in a different agent (Claude Code, Claude Desktop)? Hit **Copy prompt**. The copied
+With no key the assistant sends nothing and says so, offering **Configure provider**, **Copy prompt** and **Connect a
+CLI assistant**. No key, or working in a different agent (Claude Code, Claude Desktop)? Hit **Copy prompt**. The copied
 prompt is a complete, self-contained brief: the selected records, the node-type map, the relevant
 source, **and** the log's file path, shape and per-record **byte offsets** — plus the analyser's
 **action protocol** (the localhost REST endpoint, token and verbs). So an external agent can not only
@@ -246,6 +276,28 @@ analyser itself, with no assistant connected.
   another run is refused, rather than silently moving those charts to this run.
 - **Walks travel with the project.** Settings export shares them with the reports, and a walk made of tabs,
   panels and graph nodes — no records — plays with no log open at all.
+
+### Walks with a conversation
+
+A walk can carry a **conversation** shown beside it as it plays — a *conversation journey*. Try the DEMO one:
+[Find the first recorded breach](../journeys/find-the-first-recorded-breach.md).
+
+- **Write or capture it.** Reports ▸ Spotlight walks ▸ **More ▸ Conversation…** (or *Include conversation…* on the
+  spotlight's right-click menu) opens the editor. Write turns yourself, or add finished turns from the current chat —
+  only their question and answer, never the hidden context — and choose, for each step, the turn it reveals up to.
+  **Preview what leaves this machine** shows the exact words that travel with the walk. Nothing is added until you add it.
+- **It says what it is.** Written turns are a *Simulated conversation*; captured, untouched turns a *Recorded
+  conversation*; captured turns you edited, an *Edited recorded conversation*. Authors are declared, never verified.
+- **Playing one.** The assistant shows the conversation up to the step, labelled, beside what the analyser actually
+  shows for that step: *Preparing evidence…*, then each target's real state. ◀ ▶ and *Play selected step* reveal
+  exactly that step's part; nothing is re-run. A step whose evidence cannot be shown says so, and the conversation stays
+  at the last step that was shown. Nothing is sent to a provider and nothing is written while it plays.
+- **Ask your own.** **Ask about this evidence** ends the journey and starts a fresh live chat — none of the journey's
+  words go with it — or **Connect your CLI assistant**. A journey waits for a live turn in progress to finish; a live
+  question ends a journey.
+- **Sharing.** The conversation travels with the walk: projects, Settings export, the bin and evidence bundles. A
+  machine path in a turn is removed when a bundle is written, and named. An analyser from before conversation journeys
+  plays the walk without its conversation, and keeps the conversation if it saves the project.
 
 ## Connect an MCP client
 

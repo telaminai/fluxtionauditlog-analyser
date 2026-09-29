@@ -1,0 +1,540 @@
+{
+ "engine": "fast",
+ "seconds": 108.9,
+ "requested": 38,
+ "caught": 38,
+ "runs": [
+  {
+   "name": "m69-s4-saved-by-the-assistant",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "WalkVerbTest#aSaveIsBoundAndAttributed",
+     "message": "org.opentest4j.AssertionFailedError: expected: <assistant> but was: <person>"
+    }
+   ]
+  },
+  {
+   "name": "m69-r6-replace-ends-the-showing",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "WalkPlaybackTest#aDefinitionChangeIsTheNodesDecision",
+     "message": "org.opentest4j.AssertionFailedError: a replacement with different steps ends the showing ==> expected: <false> but was: <true>"
+    }
+   ]
+  },
+  {
+   "name": "oa-ticket-guard",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "AssistantLoopTest#aLateReplyCannotAnswerTheNextTurn",
+     "message": "org.opentest4j.AssertionFailedError: the old turn's reply ran no action in the new turn ==> expected: <0> but was: <1>"
+    }
+   ]
+  },
+  {
+   "name": "oa-every-result-fed-back",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "AssistantLoopTest#everyResultIsFedBack",
+     "message": "org.opentest4j.AssertionFailedError: the query result AND the render success are both sent back — the actual results, by id ==> expected: <HistoryMessage[role=user, kind=RESULTS, entries=[20, 21]]> bu"
+    }
+   ]
+  },
+  {
+   "name": "oa-per-reply-cap",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "AssistantLoopTest#thePerReplyCapIsEnforced",
+     "message": "org.opentest4j.AssertionFailedError: only the cap's worth ran ==> expected: <2> but was: <3>"
+    }
+   ]
+  },
+  {
+   "name": "oa-round-limit",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "AssistantLoopTest#theRoundLimitEndsTheTurn",
+     "message": "org.opentest4j.AssertionFailedError: no second round ==> expected: <1> but was: <2>"
+    }
+   ]
+  },
+  {
+   "name": "oa-turn-budget",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "AssistantLoopTest#thePerTurnBudgetEndsTheTurn",
+     "message": "org.opentest4j.AssertionFailedError: exactly the turn's budget ran ==> expected: <4> but was: <5>"
+    }
+   ]
+  },
+  {
+   "name": "oa-workspace-supersedes",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "AssistantLoopTest#aWorkspaceChangeSupersedesTheTurn",
+     "message": "org.opentest4j.AssertionFailedError: expected: <SUPERSEDED> but was: <REQUESTING>"
+    }
+   ]
+  },
+  {
+   "name": "oa-own-open-continues",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "AssistantLoopTest#theTurnsOwnOpenContinues",
+     "message": "org.opentest4j.AssertionFailedError: its own open does not end the turn ==> expected: <RUNNING_ACTION> but was: <SUPERSEDED>"
+    }
+   ]
+  },
+  {
+   "name": "oa-no-key-refused",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "AssistantLoopTest#noKeyNeverSends",
+     "message": "org.opentest4j.AssertionFailedError: no context was assembled ==> expected: <0> but was: <1>"
+    }
+   ]
+  },
+  {
+   "name": "oa-cancel-stops-transport",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "AssistantLoopTest#aLateReplyAfterCancelDoesNothing",
+     "message": "org.opentest4j.AssertionFailedError: the transport is asked to stop the cancelled ticket ==> expected: <[1]> but was: <[]>"
+    }
+   ]
+  },
+  {
+   "name": "oa-edt-guard",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "AssistantGuardTest#anEndedTurnChangesNothing",
+     "message": "org.opentest4j.AssertionFailedError: the Swing mutation did not run ==> expected: <false> but was: <true>"
+    }
+   ]
+  },
+  {
+   "name": "oa-key-never-in-errors",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "AssistantAdapterTest#anErrorIsBoundedAndKeyless",
+     "message": "org.opentest4j.AssertionFailedError: the key never appears in an error: the provider request failed: IOException: Anthropic HTTP 401: {\"error\":\"denied for key sk-DEMO-not-a-real-key-000000\"} ==> expec"
+    }
+   ]
+  },
+  {
+   "name": "oa-no-store-gate",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "AssistantLiveFrameTest#aLiveTurnWithNoLog",
+     "message": "org.opentest4j.AssertionFailedError: expected: <[context, aggregate, spotlight]> but was: <[, , ]>"
+    }
+   ]
+  },
+  {
+   "name": "oa-one-panel-two-hosts",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "AssistantHostFrameTest#oneConversationAcrossHosts",
+     "message": "org.opentest4j.AssertionFailedError: Unexpected null value, expected: <javax.swing.JFrame> but was: <null>"
+    }
+   ]
+  },
+  {
+   "name": "oa-close-docks",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "AssistantHostFrameTest#closingTheWindowDocks",
+     "message": "org.opentest4j.AssertionFailedError: closing the window docked the assistant ==> expected: <telamin.fluxtion.audit.analyser.analyser.ui.MainFrame[frame0,360,240,1200x800,invalid,layout=java.awt.Border"
+    }
+   ]
+  },
+  {
+   "name": "oa-no-stranded-window",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "AssistantPlacementTest#aRemovedMonitorDoesNotStrandTheWindow",
+     "message": "org.opentest4j.AssertionFailedError: entirely on the remaining screen: java.awt.Rectangle[x=3000,y=200,width=520,height=720] ==> expected: <true> but was: <false>"
+    }
+   ]
+  },
+  {
+   "name": "oa-docked-pass-through",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "AssistantPlacementTest#theDockedAssistantsPressesAreItsOwn",
+     "message": "org.opentest4j.AssertionFailedError: inside the docked assistant: routed to it, not to the overlay ==> expected: <false> but was: <true>"
+    }
+   ]
+  },
+  {
+   "name": "oa-popout-follows-theme",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "AssistantHostFrameTest#reachableAtTheDefaultSizeAndThemed",
+     "message": "org.opentest4j.AssertionFailedError: the popped-out panel follows the theme ==> expected: <javax.swing.plaf.ColorUIResource[r=60,g=63,b=65]> but was: <com.apple.laf.AquaImageFactory$SystemColorProxy[r"
+    }
+   ]
+  },
+  {
+   "name": "oa3-binding-validated",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "ConversationWalkVerbTest#aBadBindingStoresNothing",
+     "message": "org.opentest4j.AssertionFailedError: expected: <false> but was: <true>"
+    }
+   ]
+  },
+  {
+   "name": "oa3-serializer-keeps-bindings",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "ConversationWalkStorageTest#theDialogueRoundTrips",
+     "message": "org.opentest4j.AssertionFailedError: expected: <[WalkSpec[name=j, title=The admin reset re-arms the alarm, author=assistant, createdAt=2026-09-27T18:02:11Z, updatedAt=2026-09-27T18:05:00Z, fingerprint"
+    }
+   ]
+  },
+  {
+   "name": "oa3-share-validates",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "ConversationWalkStorageTest#malformedSharedDialogueIsRefused",
+     "message": "org.opentest4j.AssertionFailedError: 0 report(s) · 2 spotlight walk(s) — the author's commentary, attributed as declared · 1 carrying dialogue (2 turns of labelled, unverified conversation) ==> expect"
+    }
+   ]
+  },
+  {
+   "name": "oa3-redaction-covers-dialogue",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "ConversationBundleProfileTest#aPathInATurnIsRedacted",
+     "message": "org.opentest4j.AssertionFailedError: the machine path never leaves ==> expected: <false> but was: <true>"
+    }
+   ]
+  },
+  {
+   "name": "oa3-turn-size-limit",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "WalkConversationTest#boundsAreEnforced",
+     "message": "org.opentest4j.AssertionFailedError: this conversation must be refused, and was accepted ==> expected: <false> but was: <true>"
+    }
+   ]
+  },
+  {
+   "name": "oa3-edit-changes-kind",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "ConversationDraftTest#theKindFollowsWhatHappened",
+     "message": "org.opentest4j.AssertionFailedError: editing captured words changes the kind ==> expected: <edited-recording> but was: <recorded>"
+    }
+   ]
+  },
+  {
+   "name": "oa3-excerpt-discloses-words",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "ConversationBundleProfileTest#anExcerptDisclosesUnrebasedWords",
+     "message": "org.opentest4j.AssertionFailedError: [] ==> expected: <true> but was: <false>"
+    }
+   ]
+  },
+  {
+   "name": "oa3-dialogue-edit-ends-walk",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "ConversationWalkPlaybackTest#aDialogueEditEndsTheShowing",
+     "message": "org.opentest4j.AssertionFailedError: a changed conversation is a changed walk ==> expected: <false> but was: <true>"
+    }
+   ]
+  },
+  {
+   "name": "oa4-refused-step-keeps-accepted-prefix",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "ConversationJourneyFrameTest#aJourneyPlays",
+     "message": "org.opentest4j.AssertionFailedError: a refused step's answer is never shown as if its evidence were ==> expected: <false> but was: <true>"
+    }
+   ]
+  },
+  {
+   "name": "oa4-accepted-step-tracked",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "ConversationWalkPlaybackTest#aRefusedStepKeepsTheAcceptedPrefix",
+     "message": "org.opentest4j.AssertionFailedError: the dialogue stays at step 1's prefix ==> expected: <0> but was: <1>"
+    }
+   ]
+  },
+  {
+   "name": "oa4-pending-turn-blocks-demo",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "ConversationWalkPlaybackTest#aPendingLiveTurnBlocksADialogueWalk",
+     "message": "org.opentest4j.AssertionFailedError: expected: <false> but was: <true>"
+    }
+   ]
+  },
+  {
+   "name": "oa4-handoff-ends-demo",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "ConversationWalkPlaybackTest#theHandoffStartsAFreshThread",
+     "message": "org.opentest4j.AssertionFailedError: expected: <false> but was: <true>"
+    }
+   ]
+  },
+  {
+   "name": "oa4-live-send-ends-demo",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "ConversationWalkPlaybackTest#aLiveQuestionEndsTheDemonstration",
+     "message": "org.opentest4j.AssertionFailedError: expected: <false> but was: <true>"
+    }
+   ]
+  },
+  {
+   "name": "oa4-demo-has-no-composer",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "ConversationJourneyFrameTest#aJourneyPlays",
+     "message": "org.opentest4j.AssertionFailedError: no composer in a demonstration ==> expected: <false> but was: <true>"
+    }
+   ]
+  },
+  {
+   "name": "oa4-playback-writes-nothing",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "ConversationJourneyFrameTest#aJourneyPlays",
+     "message": "org.opentest4j.AssertionFailedError: the record is lit; the closed chart is not ==> expected: <PARTLY_SHOWN> but was: <SHOWN>"
+    }
+   ]
+  },
+  {
+   "name": "oa4-handoff-carries-nothing",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "ConversationJourneyFrameTest#theHandoffIsAFreshThread",
+     "message": "org.opentest4j.AssertionFailedError: the fresh thread starts empty: nothing of the demo is carried ==> expected: <> but was: <Question (scripted):\nWhat does this DEMO log contain?\n\nAnswer (scripted — "
+    }
+   ]
+  },
+  {
+   "name": "oa5-page-states-the-bytes",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "JourneyCatalogueTest#thePageDescribesTheActualBytes",
+     "message": "org.opentest4j.AssertionFailedError: the sha256 stated is the file's: cbd8f28dbc50263d45678cc926f089e6ad5cffab1a990f37e8ec87b20fa21743 ==> expected: <true> but was: <false>"
+    }
+   ]
+  },
+  {
+   "name": "oa5-page-says-no-replay-runs",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "JourneyCatalogueTest#thePageDescribesTheActualBytes",
+     "message": "org.opentest4j.AssertionFailedError: expected: <true> but was: <false>"
+    }
+   ]
+  },
+  {
+   "name": "oa5-transcript-is-the-bundled-dialogue",
+   "verdict": "caught",
+   "baselineGreen": true,
+   "restoredByteIdentical": true,
+   "classesRestoredByteIdentical": true,
+   "mutantRed": [
+    {
+     "kind": "failure",
+     "test": "JourneyCatalogueTest#thePageTranscriptIsTheBundledDialogue",
+     "message": "org.opentest4j.AssertionFailedError: the page carries turn t4 as bundled, after the one before ==> expected: <true> but was: <false>"
+    }
+   ]
+  }
+ ]
+}

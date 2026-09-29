@@ -151,10 +151,19 @@ class BundleProvenanceFrameTest {
             assertEquals(canonical, config.bundleSourceRoot(fexp.toString()),
                     "anchorIsRememberedAgainstTheBundle");
 
-            // forget the root the way a fresh machine would, then reopen the same bundle
+            // forget the root the way a fresh machine would, then reopen the same bundle.
+            // The barrier has to be the THING ASSERTED: openBundleAndWait polls for a bundle in the payload,
+            // and one is already there from the first open, so it returns immediately and the assertion
+            // races the background unpack. A review called this green-by-timing; it then failed for real
+            // under load, in a full-suite run, having passed alone many times.
             onEdt(() -> config.sourceRoots.remove(canonical));
             openBundleAndWait(f, fexp);
-            assertTrue(config.sourceRoots.contains(canonical), "anchorIsRestoredOnReopen");
+            boolean restored = false;
+            for (int i = 0; i < 200 && !restored; i++) {
+                restored = config.sourceRoots.contains(canonical);
+                if (!restored) Thread.sleep(50);
+            }
+            assertTrue(restored, "anchorIsRestoredOnReopen (waited for the reopen to land)");
 
             @SuppressWarnings("unchecked")
             var ctx = (Map<String, Object>) onEdtGet(() ->
@@ -194,6 +203,54 @@ class BundleProvenanceFrameTest {
                 // exactly what "verbatim" rules out. The fixture already ends in a newline.
                 assertEquals(account, packed, "theAccountIsPackedVerbatim");
             }
+        }
+    }
+
+    @Test
+    @DisplayName("closing a bundle whose render then fails still drops the claim — the project is already gone")
+    void aCloseWhoseRenderFailsDropsTheClaimOnTheRealFrame(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        try (var f = shown(tmp)) {
+            Path dir = exchange(f, tmp);
+            openLog(f, EvidenceCaptureFrameTest.DEMO_LOG);
+            onEdt(() -> render(f.ex, "report", Map.of("bundle", Map.of("path", "closing.fexp"))));
+            assertEquals("WRITTEN", awaitDecided(f).get("phase"));
+            openBundleAndWait(f, dir.resolve("closing.fexp"));
+
+            AtomicReference<String> lit = new AtomicReference<>();
+            onEdt(() -> lit.set(f.frame.getTitle()));
+            assertTrue(lit.get().contains("evidence bundle"), "precondition: the window says so");
+
+            // ProjectSession.close() is the real half and runs first; only the render throws.
+            MainFrame.beforeProjectRender = () -> { throw new IllegalStateException("DEMO the render threw"); };
+            try {
+                onEdt(() -> render(f.ex, "open", Map.of("close", "project")));
+                for (int i = 0; i < 100 && lit.get().contains("evidence bundle"); i++) {
+                    onEdt(() -> lit.set(f.frame.getTitle()));
+                    if (!lit.get().contains("evidence bundle")) break;
+                    Thread.sleep(50);
+                }
+            } finally {
+                MainFrame.beforeProjectRender = () -> { };
+            }
+
+            assertFalse(lit.get().contains("evidence bundle"),
+                    "titleDropsTheClaimWhenTheProjectIsGone, was: " + lit.get());
+
+            // F5: a render failure is NOT a transition failure. Opening a project whose render throws must
+            // still report the project as opened, or its caller silently drops the discovery selection.
+            Path own = java.nio.file.Files.createDirectories(tmp.resolve("own/.analyser")).resolve("project.fluxtion-settings");
+            java.nio.file.Files.writeString(own, "logFile=\n");
+            MainFrame.beforeProjectRender = () -> { throw new IllegalStateException("DEMO the render threw"); };
+            AtomicReference<Map<String, Object>> echo = new AtomicReference<>();
+            try {
+                onEdt(() -> echo.set(f.ex.render("open",
+                        new java.util.LinkedHashMap<>(Map.of("project", own.toString()))).toMap()));
+            } finally {
+                MainFrame.beforeProjectRender = () -> { };
+            }
+            assertEquals(Boolean.TRUE, echo.get().get("ok"),
+                    "aRenderFailureIsNotATransitionFailure: " + echo.get());
         }
     }
 

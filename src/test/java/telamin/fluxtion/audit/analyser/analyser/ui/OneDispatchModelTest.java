@@ -107,6 +107,34 @@ class OneDispatchModelTest {
         }
     }
 
+    /**
+     * OA-1 / OA-A17 (spec-onboard-assistant-journeys.md §4.1, §5): the onboard assistant and the external bridge share ONE
+     * dispatcher construction, so their schema, scope and identity refusal cannot drift; and no surface in the UI package
+     * talks to a provider, parses an action or runs a turn — that is the assistantLoop node's decision and the adapter's
+     * effect. Witness: construct an ActionDispatcher in the assistant panel, or call LlmClient from it (LlmPanel did both).
+     */
+    @Test
+    @DisplayName("OA-A17: one dispatcher construction; no provider call, action parsing or turn loop in the UI package")
+    void theAssistantHasOneDispatchModel() throws Exception {
+        String frame = Files.readString(UI.resolve("MainFrame.java"));
+        String home = bodyOf(frame, "telamin.fluxtion.audit.analyser.analyser.llm.ActionDispatcher actionDispatcher(");
+        assertFalse(home.isEmpty(), "actionDispatcher() must exist, or this rule checks nothing");
+        Pattern construct = Pattern.compile("new\\s+(telamin\\.fluxtion\\.audit\\.analyser\\.analyser\\.llm\\.)?ActionDispatcher\\s*\\(");
+        Pattern provider = Pattern.compile("\\bLlmClient\\b|ActionParser\\s*\\.\\s*extract|PromptBuilder\\s*\\.\\s*systemPrompt");
+        List<String> offenders = new ArrayList<>();
+        try (var files = Files.list(UI)) {
+            for (Path f : files.filter(p -> p.toString().endsWith(".java")).sorted().toList()) {
+                String src = Files.readString(f);
+                boolean isFrame = f.getFileName().toString().equals("MainFrame.java");
+                int built = count(construct, src) - (isFrame ? count(construct, home) : 0);
+                if (built != 0) offenders.add(f.getFileName() + " constructs a dispatcher outside actionDispatcher()");
+                if (count(provider, src) != 0) offenders.add(f.getFileName() + " talks to a provider or parses actions itself");
+            }
+        }
+        assertEquals(1, count(construct, home), "actionDispatcher() constructs it once");
+        assertEquals(List.of(), offenders, "the assistant's decisions are assistantLoop's; its effects are AssistantAdapter's");
+    }
+
     // witness: declare `private ProducerDiagnostics producerDiagnostics;` (the retired frame copy) in MainFrame
     @Test
     @DisplayName("no UI class keeps its own copy of the log's evidence or of Follow")

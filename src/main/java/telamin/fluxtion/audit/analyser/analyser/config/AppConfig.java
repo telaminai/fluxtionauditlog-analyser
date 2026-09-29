@@ -88,6 +88,8 @@ public final class AppConfig {
     public boolean assistantActionsRest = false;   // localhost REST transport (opt-in; §5.2)
     public int maxActionRounds = 3;
     public int maxActionsPerReply = 20;
+    /** OA-1: an onboard turn's action budget across all its rounds — independent of the per-reply cap (spec §4.2). */
+    public int maxActionsPerTurn = 30;
 
     // M42: machine-local setup reminders only. They intentionally hold neither the endpoint/token nor an
     // absolute launch path: a client re-discovers this app's fresh loopback endpoint through the bridge.
@@ -228,6 +230,12 @@ public final class AppConfig {
 
     // window bounds (-1 = unset)
     public int windowX = -1, windowY = -1, windowW = 1200, windowH = 800;
+    /**
+     * OA-2: the assistant's own window — whether it was last popped out, and where. Machine tier (a screen layout is a
+     * property of this machine, never of a project or a bundle); restored only within today's usable screen bounds.
+     */
+    public boolean assistantPoppedOut = false;
+    public int assistantX = -1, assistantY = -1, assistantW = 520, assistantH = 720;
 
     public void addRecent(String path) {
         addRecent(recentFiles, path);

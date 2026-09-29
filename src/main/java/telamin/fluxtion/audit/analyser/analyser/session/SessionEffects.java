@@ -60,8 +60,12 @@ public sealed interface SessionEffects {
      * M44.3: start loading a log. The adapter answers {@link SessionEvents.Pending} at once and
      * {@link SessionEvents.LogOpened} / {@link SessionEvents.LogOpenFailed} when the load lands.
      */
-    record OpenLogEffect(long opId, String location, String format, String provenance, boolean fromSocket)
+    record OpenLogEffect(long opId, String location, String format, String provenance, boolean fromSocket,
+                         SessionEvents.AssistantActionOrigin assistantOrigin)
             implements SessionEffects {
+        public OpenLogEffect(long opId, String location, String format, String provenance, boolean fromSocket) {
+            this(opId, location, format, provenance, fromSocket, null);
+        }
     }
 
     /** Say something in the status line. Infallible by construction, but still answered. */
@@ -140,5 +144,55 @@ public sealed interface SessionEffects {
 
     /** Delete a bundle this capture wrote, with any working folder left beside it; answer {@link SessionEvents.BundleDeleted}. */
     record DeleteBundleEffect(long opId, long ticket, String path) implements SessionEffects {
+    }
+
+    // ---- the onboard assistant: decided by the assistantLoop node, performed by the frame (OA-1) -------------------
+
+    /**
+     * Compose the turn's first content (the action manifest when it has not been sent in this conversation, the selected
+     * records' context, then the question) into a hidden transcript entry. The selection is taken on the event thread
+     * when this is performed; the record and source assembly runs off it. Answered at once by
+     * {@link SessionEvents.AssistantEffectStarted}; later {@link SessionEvents.AssistantContextPrepared} or
+     * {@link SessionEvents.AssistantContextFailed}, carrying {@code ticket}.
+     */
+    record PrepareAssistantContextEffect(long opId, long ticket, long draft, boolean includeManifest,
+                                         boolean includeRecordContext, int maxActionsPerReply)
+            implements SessionEffects {
+    }
+
+    /**
+     * Send the provider this history: each message a role and the transcript entries it is made of ({@code RESULTS}
+     * groups become one "action results" message). The route names the provider; the adapter reads the key when it
+     * performs this, so no credential passes through the graph. Answered at once; later
+     * {@link SessionEvents.AssistantCompletionReceived} or {@link SessionEvents.AssistantCompletionFailed}.
+     */
+    record RequestAssistantCompletionEffect(long opId, long ticket, int round, java.util.List<HistoryMessage> history,
+                                            SessionEvents.AssistantRoute route) implements SessionEffects {
+        public RequestAssistantCompletionEffect {
+            history = java.util.List.copyOf(history);
+        }
+    }
+
+    /** One provider message: {@code role} user or assistant, {@code kind} TEXT or RESULTS, made of these entries. */
+    record HistoryMessage(String role, String kind, java.util.List<Long> entries) {
+        public HistoryMessage {
+            entries = java.util.List.copyOf(entries);
+        }
+    }
+
+    /**
+     * Run action entry {@code action}, one action, through the shared dispatcher, off the event thread, with every Swing
+     * mutation it makes guarded by {@code ticket} (the node's decision is re-checked inside each event-thread task).
+     * Answered at once; later {@link SessionEvents.AssistantActionFinished}.
+     */
+    record RunAssistantActionEffect(long opId, long ticket, long action) implements SessionEffects {
+    }
+
+    /** Stop the in-flight provider request or action of {@code ticket}, if any. An optimisation: staleness is decided. */
+    record CancelAssistantTransportEffect(long opId, long ticket) implements SessionEffects {
+    }
+
+    /** Put the assistant in its side tab ({@code docked}) or its own window. */
+    record ShowAssistantHostEffect(long opId, boolean docked) implements SessionEffects {
     }
 }

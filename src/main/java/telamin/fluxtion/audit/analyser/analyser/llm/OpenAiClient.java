@@ -48,7 +48,9 @@ public final class OpenAiClient implements LlmClient {
         }
         Object root = Json.parse(resp.body());
         Object content = Json.at(root, "choices", 0, "message", "content");
-        return content instanceof String s ? s : resp.body();
+        // OA-1 (§4.2): an unbounded raw body is not an answer; a reply with no text is a failure, stated briefly
+        if (!(content instanceof String s)) throw new IOException("the provider's reply had no text: " + snippet(resp.body()));
+        return s;
     }
 
     private static Map<String, Object> msg(String role, String content) {

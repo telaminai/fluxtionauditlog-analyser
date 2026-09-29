@@ -10,6 +10,7 @@ import telamin.fluxtion.audit.analyser.analyser.filter.FilterState;
 import telamin.fluxtion.audit.analyser.analyser.parse.LogStore;
 import telamin.fluxtion.audit.analyser.analyser.report.LogFingerprint;
 import telamin.fluxtion.audit.analyser.analyser.walk.WalkIdentity;
+import telamin.fluxtion.audit.analyser.analyser.walk.WalkConversation;
 import telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec;
 import telamin.fluxtion.audit.analyser.analyser.walk.WalkSteps;
 
@@ -136,7 +137,8 @@ final class WalkAuthoring {
             focus = new WalkSpec.FocusRef(asked.name(), spec == null ? "" : ConfigStore.focusDefinitionDigest(spec));
         }
         WalkSpec.View v = step.view();
-        return new WalkSpec.Step(step.caption(), new WalkSpec.View(v.tab(), v.filter(), v.record(), v.graph(), focus), bound);
+        return new WalkSpec.Step(step.caption(), new WalkSpec.View(v.tab(), v.filter(), v.record(), v.graph(), focus), bound,
+                step.id(), step.through());   // OA-3: binding evidence never moves a step's dialogue binding
     }
 
     private WalkSpec.Basis basis(WalkSpec.Target t, WalkSpec.View view, LogStore store) {
@@ -176,6 +178,16 @@ final class WalkAuthoring {
 
     /** Save {@code steps} as walk {@code name} — create, or replace by name. Returns null, or why it was refused. */
     String save(String name, String title, List<WalkSpec.Step> steps, String author, long capturedGeneration) {
+        return save(name, title, steps, author, capturedGeneration, null, false);
+    }
+
+    /**
+     * As {@link #save(String, String, List, String, long)}, with dialogue (OA-3). {@code conversation} null keeps the
+     * existing walk's dialogue unless {@code replaceConversation}; a walk with dialogue gives every step a stable id, and
+     * the binding is validated BEFORE anything is stored.
+     */
+    String save(String name, String title, List<WalkSpec.Step> steps, String author, long capturedGeneration,
+                WalkSpec.Conversation conversation, boolean replaceConversation) {
         String refused = nameProblem(name);
         if (refused != null) return refused;
         if (steps.isEmpty()) return "a walk needs at least one step";
@@ -195,11 +207,20 @@ final class WalkAuthoring {
         }
         String now = java.time.Instant.now().toString();
         WalkSpec existing = WalkBin.find(frame.config().walks, name.trim());
+        WalkSpec.Conversation dialogue = replaceConversation || existing == null ? conversation
+                : conversation != null ? conversation : existing.conversation();
+        String dialogueProblem = WalkConversation.problem(dialogue);
+        if (dialogue != null && !dialogue.supported()) dialogueProblem = null;   // kept as it came; never played here
+        if (dialogueProblem != null) return dialogueProblem;
+        if (dialogue != null) steps = WalkConversation.withIds(steps);
+        String binding = dialogue == null || dialogue.supported() ? WalkConversation.bindingProblem(dialogue, steps) : null;
+        if (binding != null) return binding;
         List<String> run = WalkIdentity.runBasis(frame.runBasisNow());
+        final List<WalkSpec.Step> saved = steps;
         WalkSpec walk = existing == null
-                ? new WalkSpec(name.trim(), title, author, now, now, frame.fingerprint(), run, steps, Map.of())
+                ? new WalkSpec(name.trim(), title, author, now, now, frame.fingerprint(), run, saved, Map.of(), dialogue)
                 : new WalkSpec(name.trim(), title == null || title.isBlank() ? existing.title() : title, existing.author(),
-                        existing.createdAt(), now, frame.fingerprint(), run, steps, existing.extras());
+                        existing.createdAt(), now, frame.fingerprint(), run, saved, existing.extras(), dialogue);
         frame.config().walks.removeIf(w -> w.name().equals(walk.name()));
         frame.config().walks.add(walk);
         frame.persist();
@@ -246,8 +267,37 @@ final class WalkAuthoring {
         String mixed = mixedRun(w, kept);
         if (mixed != null) return mixed;
         List<WalkSpec.Step> steps = new ArrayList<>(w.steps());
-        steps.set(index, c.step());
+        WalkSpec.Step was = w.steps().get(index);
+        steps.set(index, c.step().withBinding(was.id(), was.through()));   // OA-3: the replaced step keeps its place in the dialogue
         return save(name, w.title(), steps, w.author(), c.generation());
+    }
+
+    /**
+     * OA-3: attach, replace or remove a walk's dialogue and its step bindings ({@code through}, one per step, null for
+     * none) WITHOUT rebinding its evidence: the steps' views, targets, bases and run basis are untouched, so dialogue can be
+     * written for a walk saved on another run. Returns null, or why nothing was stored.
+     */
+    String setConversation(String name, WalkSpec.Conversation dialogue, List<String> through) {
+        WalkSpec w = WalkBin.find(frame.config().walks, name);
+        if (w == null) return "no walk called '" + name + "'";
+        if (through != null && through.size() != w.steps().size()) {
+            return "walk '" + name + "' has " + w.steps().size() + " steps; " + through.size() + " bindings were given";
+        }
+        String problem = WalkConversation.problem(dialogue);
+        if (problem != null) return problem;
+        List<WalkSpec.Step> steps = new ArrayList<>();
+        for (int i = 0; i < w.steps().size(); i++) {
+            WalkSpec.Step s = w.steps().get(i);
+            steps.add(s.withBinding(s.id(), dialogue == null ? null : through == null ? s.through() : through.get(i)));
+        }
+        if (dialogue != null) steps = WalkConversation.withIds(steps);
+        String binding = WalkConversation.bindingProblem(dialogue, steps);
+        if (binding != null) return binding;
+        WalkSpec updated = w.withConversation(dialogue, steps, java.time.Instant.now().toString());
+        frame.config().walks.replaceAll(x -> x.name().equals(w.name()) ? updated : x);
+        frame.persist();
+        frame.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.WalkDefinitionChanged(updated.name(), updated, null));
+        return null;
     }
 
     static String nameProblem(String name) {

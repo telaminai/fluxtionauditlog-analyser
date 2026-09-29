@@ -62,7 +62,9 @@ public final class AnthropicClient implements LlmClient {
                 if (t instanceof String s) text.append(s);
             }
         }
-        return text.length() > 0 ? text.toString() : resp.body();
+        // OA-1 (§4.2): an unbounded raw body is not an answer; a reply with no text is a failure, stated briefly
+        if (text.length() == 0) throw new IOException("the provider's reply had no text: " + snippet(resp.body()));
+        return text.toString();
     }
 
     private static String snippet(String s) {

@@ -9,6 +9,14 @@ package telamin.fluxtion.audit.analyser.analyser.session;
  * list had nothing to render and nothing to remember a bundle against. A non-modal dialog at open time was the
  * only place a recipient was ever told, and dismissing it lost the provenance for good.
  *
+ * <p><b>It is about the PROJECT, not the log on screen.</b> A bundle supplies a project; opening any other
+ * audit log afterwards leaves that project — and therefore this provenance — in force. So the window can say
+ * "evidence bundle X" while the records shown are the person's own, and that is correct but easy to over-read.
+ * It is deliberate: the alternative, clearing the claim when an unrelated log opens, would be a lie in the
+ * other direction, because the bundle's charts, walks, reports and source anchor are all still the ones in
+ * use. {@code BundleProvenanceTest#theClaimIsAboutTheProjectNotTheLogOnScreen} pins it, and any surface that
+ * puts this next to the records should say which it is describing.
+ *
  * @param identity    {@code sha256:} of the bundle's manifest, or null when this session is not from a bundle
  * @param source      the {@code .fexp} the person opened — NOT the unpacked profile inside it
  * @param workingCopy the disposable copy the bundle was unpacked into

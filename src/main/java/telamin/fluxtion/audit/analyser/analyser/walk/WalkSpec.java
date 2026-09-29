@@ -23,10 +23,17 @@ import java.util.Map;
  * @param runBasis    the loaded log files' SHA-256 digests at save, in load order; empty when unknown
  * @param steps       the steps, at least one
  * @param extras      keys under this walk that this version does not understand, carried over on rewrite
+ * @param conversation OA-3: the walk's dialogue, or null — a walk without dialogue is exactly what it was before
  */
 public record WalkSpec(String name, String title, String author, String createdAt, String updatedAt,
                        LogFingerprint fingerprint, List<String> runBasis, List<Step> steps,
-                       Map<String, String> extras) {
+                       Map<String, String> extras, Conversation conversation) {
+
+    /** A walk without dialogue — every walk before OA-3, and most walks after it. */
+    public WalkSpec(String name, String title, String author, String createdAt, String updatedAt,
+                    LogFingerprint fingerprint, List<String> runBasis, List<Step> steps, Map<String, String> extras) {
+        this(name, title, author, createdAt, updatedAt, fingerprint, runBasis, steps, extras, null);
+    }
 
     /** At most this many steps: a walk is an argument, not a transcript. */
     public static final int MAX_STEPS = 50;
@@ -52,7 +59,7 @@ public record WalkSpec(String name, String title, String author, String createdA
 
     /** The same walk under a new name; its steps and bases are kept. */
     public WalkSpec renamed(String to) {
-        return new WalkSpec(to, title, author, createdAt, updatedAt, fingerprint, runBasis, steps, extras);
+        return new WalkSpec(to, title, author, createdAt, updatedAt, fingerprint, runBasis, steps, extras, conversation);
     }
 
     /** How the strip names the author (§3.2): declared, and never "you". */
@@ -66,12 +73,83 @@ public record WalkSpec(String name, String title, String author, String createdA
 
     // ---- steps ------------------------------------------------------------------------------------------------
 
-    /** One stop: the view it restores, its targets, and an optional sentence for the step as a whole. */
-    public record Step(String caption, View view, List<Target> targets) {
+    /**
+     * One stop: the view it restores, its targets, and an optional sentence for the step as a whole.
+     *
+     * @param id      OA-3: a stable id, kept through rename, reorder and replace, so dialogue binds to THIS step and not
+     *                to a position; null when the walk has no dialogue
+     * @param through OA-3: the id of the last conversation turn visible at this step, or null (no dialogue revealed yet)
+     */
+    public record Step(String caption, View view, List<Target> targets, String id, String through) {
         public Step {
             caption = caption == null ? "" : caption.trim();
             view = view == null ? View.NONE : view;
             targets = List.copyOf(targets == null ? List.of() : targets);
+            id = id == null || id.isBlank() ? null : id.trim();
+            through = through == null || through.isBlank() ? null : through.trim();
+        }
+
+        public Step(String caption, View view, List<Target> targets) {
+            this(caption, view, targets, null, null);
+        }
+
+        /** The same step with its dialogue binding replaced. */
+        public Step withBinding(String id, String through) {
+            return new Step(caption, view, targets, id, through);
+        }
+    }
+
+    // ---- OA-3: dialogue (spec-onboard-assistant-journeys.md §6.1) -------------------------------------------------
+
+    /** Kinds of dialogue: written as a script, captured from a live chat, or captured and then edited. */
+    public static final String SCRIPTED = "scripted", RECORDED = "recorded", EDITED_RECORDING = "edited-recording";
+
+    /** The one conversation schema version this build reads and writes. */
+    public static final int CONVERSATION_VERSION = 1;
+
+    /**
+     * A walk's dialogue: an ordered list of turns, each attributed by role. It is TESTIMONY, as a caption is: shown beside
+     * what the analyser actually shows, never executed and never presented as a live model's output. {@code author} is
+     * declared, never authenticated.
+     *
+     * @param version   the schema version; a version this build does not know is kept for round trips but never played
+     * @param kind      {@link #SCRIPTED}, {@link #RECORDED} or {@link #EDITED_RECORDING}
+     * @param author    who says they wrote or recorded it, as declared; "" when unstated
+     * @param turns     the turns, in order; empty for an unsupported version
+     */
+    public record Conversation(int version, String kind, String author, List<Turn> turns) {
+        public Conversation {
+            kind = kind == null ? "" : kind.trim();
+            author = author == null ? "" : author.trim();
+            turns = List.copyOf(turns == null ? List.of() : turns);
+        }
+
+        public boolean supported() {
+            return version == CONVERSATION_VERSION;
+        }
+
+        /** The index of turn {@code id}, or -1. */
+        public int indexOf(String id) {
+            for (int i = 0; i < turns.size(); i++) if (turns.get(i).id().equals(id)) return i;
+            return -1;
+        }
+
+        /** How the header names this dialogue: never "live". */
+        public String label() {
+            return switch (kind) {
+                case RECORDED -> "Recorded conversation";
+                case EDITED_RECORDING -> "Edited recorded conversation";
+                default -> "Simulated conversation";
+            };
+        }
+    }
+
+    /** One turn: its stable id, {@code user} or {@code assistant}, and its plain text. */
+    public record Turn(String id, String role, String text) {
+        public Turn {
+            id = id == null ? "" : id.trim();
+            role = role == null ? "" : role.trim();
+            text = text == null ? "" : text;
         }
     }
 
@@ -159,6 +237,11 @@ public record WalkSpec(String name, String title, String author, String createdA
 
     /** A copy with the steps replaced, the update time set, and everything else kept. */
     public WalkSpec withSteps(List<Step> newSteps, String now) {
-        return new WalkSpec(name, title, author, createdAt, now, fingerprint, runBasis, newSteps, extras);
+        return new WalkSpec(name, title, author, createdAt, now, fingerprint, runBasis, newSteps, extras, conversation);
+    }
+
+    /** OA-3: the same walk and evidence with its dialogue and step bindings replaced; its bases are NOT rebound. */
+    public WalkSpec withConversation(Conversation dialogue, List<Step> rebound, String now) {
+        return new WalkSpec(name, title, author, createdAt, now, fingerprint, runBasis, rebound, extras, dialogue);
     }
 }

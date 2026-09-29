@@ -60,6 +60,8 @@ public final class ConfigPanel extends JDialog {
     /** #21 — the open PROJECT's preferred exchange directory, project-relative. */
     private final JTextField projectExchangeField = new JTextField(28);
     private final JSpinner maxRoundsSpinner = new JSpinner(new SpinnerNumberModel(3, 1, 20, 1));
+    /** OA-1: the onboard assistant's per-turn action budget, independent of the per-reply cap. */
+    private final JSpinner maxTurnActionsSpinner = new JSpinner(new SpinnerNumberModel(30, 1, 500, 1));
     private final JSpinner maxActionsSpinner = new JSpinner(new SpinnerNumberModel(20, 1, 200, 1));
 
     private ConfigPanel(JFrame owner, AppConfig config, Runnable onSaved) {
@@ -594,7 +596,13 @@ public final class ConfigPanel extends JDialog {
         c.gridy = 6; c.gridx = 0; c.weightx = 0; c.anchor = GridBagConstraints.LINE_END; p.add(new JLabel("Max action rounds:"), c);
         c.gridx = 1; c.weightx = 1; c.anchor = GridBagConstraints.LINE_START; p.add(leftWrap(maxRoundsSpinner), c);
         c.gridy = 7; c.gridx = 0; c.weightx = 0; c.anchor = GridBagConstraints.LINE_END; p.add(new JLabel("Max actions per reply:"), c);
-        c.gridx = 1; c.weightx = 1; c.anchor = GridBagConstraints.LINE_START; p.add(leftWrap(maxActionsSpinner), c);
+        JPanel caps = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 6, 0));
+        caps.add(maxActionsSpinner);
+        caps.add(new JLabel("per turn, across its rounds:"));
+        maxTurnActionsSpinner.setToolTipText("The onboard assistant's budget for one question: when it is spent the turn "
+                + "ends and says so, whatever the per-reply cap and round limit would still allow");
+        caps.add(maxTurnActionsSpinner);
+        c.gridx = 1; c.weightx = 1; c.anchor = GridBagConstraints.LINE_START; p.add(leftWrap(caps), c);
         c.weightx = 0;
 
         c.gridx = 0; c.gridy = 8; c.gridwidth = 2; c.weightx = 1; c.fill = GridBagConstraints.HORIZONTAL;
@@ -690,6 +698,7 @@ public final class ConfigPanel extends JDialog {
         projectExchangeField.setText(config.projectExchangeDir == null ? "" : config.projectExchangeDir);
         maxRoundsSpinner.setValue(config.maxActionRounds);
         maxActionsSpinner.setValue(config.maxActionsPerReply);
+        maxTurnActionsSpinner.setValue(config.maxActionsPerTurn);
     }
 
     private void saveToConfig() {
@@ -744,6 +753,7 @@ public final class ConfigPanel extends JDialog {
             }
         }
         config.maxActionRounds = (Integer) maxRoundsSpinner.getValue();
+        config.maxActionsPerTurn = (Integer) maxTurnActionsSpinner.getValue();
         config.maxActionsPerReply = (Integer) maxActionsSpinner.getValue();
         if (onSaved != null) onSaved.run();
     }

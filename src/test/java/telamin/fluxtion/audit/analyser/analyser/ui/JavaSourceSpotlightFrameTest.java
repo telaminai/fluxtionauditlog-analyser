@@ -378,4 +378,36 @@ class JavaSourceSpotlightFrameTest {
     @SuppressWarnings("unchecked") static Map<String,Object> javaEcho(ActionResult r) {
         return ((List<Map<String,Object>>)r.payload().get("lit")).stream().filter(e->e.get("target").toString().startsWith("source:java:")).findFirst().orElseThrow();
     }
+
+    @Test void anEndedAssistantCannotApplyACompletedSourceLookup(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        Path repo = Files.createDirectories(tmp.resolve("repo"));
+        jar(repo.resolve("demo-sources.jar"), Map.of("com/acme/Node.java", "package com.acme;\nclass Node {\n int value=1;\n}\n"));
+        try (var f = new Frame(tmp)) {
+            show(f, tmp.resolve("src"));
+            onEdt(() -> service(f).configure(List.of(), null, List.of(repo.toString()), true));
+            AtomicBoolean current = new AtomicBoolean(true);
+            CompletableFuture<ActionResult> pending;
+            synchronized (field(service(f), "maven")) {
+                pending = CompletableFuture.supplyAsync(() -> {
+                    ActionExecutor.bindGuard(current::get);
+                    try { return f.ex.render("spotlight", Map.of("target", TARGET)); }
+                    finally { ActionExecutor.bindGuard(null); }
+                });
+                long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+                boolean blocked = false;
+                while (System.nanoTime() < deadline && !blocked) {
+                    blocked = Thread.getAllStackTraces().entrySet().stream().anyMatch(e ->
+                            e.getKey().getState() == Thread.State.BLOCKED && java.util.Arrays.stream(e.getValue())
+                                    .anyMatch(st -> st.getMethodName().equals("jarList")));
+                    if (!blocked) Thread.sleep(10);
+                }
+                assertTrue(blocked, "real source lookup must be pending before ending the assistant ticket");
+                onEdt(() -> current.set(false)); // correctness must not depend on transport interruption winning
+            }
+            ActionResult result = pending.get(10, TimeUnit.SECONDS);
+            assertFalse(result.ok(), "an ended assistant must refuse at the final source-apply boundary");
+            onEdt(() -> assertFalse(overlay(f).isLit(), "late source completion must not light after the assistant ended"));
+        }
+    }
 }

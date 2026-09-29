@@ -129,6 +129,25 @@ public final class SpotlightOverlay extends JComponent {
                 KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT, 0), JComponent.WHEN_FOCUSED);
     }
 
+    /**
+     * OA-2 (spec-onboard-assistant-journeys.md §3): a region whose presses are the ASSISTANT's, not an outside click. Swing
+     * routes a glass-pane press by {@link #contains}, so answering false there lets the press reach the docked assistant
+     * through the ordinary route — no event is re-dispatched by hand — and a showing walk is not ended by scrolling or
+     * copying its conversation. The assistant's own window needs no such rule: its presses never reach this overlay.
+     */
+    private java.util.function.Supplier<Rectangle> passThrough = () -> null;
+
+    public void setPassThrough(java.util.function.Supplier<Rectangle> region) {
+        this.passThrough = region == null ? () -> null : region;
+    }
+
+    @Override
+    public boolean contains(int x, int y) {
+        Rectangle region = passThrough.get();
+        if (region != null && region.contains(x, y)) return false;
+        return super.contains(x, y);
+    }
+
     /** M69: where strip presses are reported. */
     public void setOnStrip(java.util.function.Consumer<StripControl> listener) {
         this.onStrip = listener == null ? c -> { } : listener;
