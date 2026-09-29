@@ -493,6 +493,21 @@ Not changed, disclosed: the analyser's own JSON reader is laxer than the runner'
 key, ignores content after the value, and truncates a fractional size); the runner refuses each of those, so no
 manifest is read two different ways and still replays. Sharing one strict reader is a follow-up.
 
+## 10d. The re-review (2026-09-29, [re-review](../handoff/review_pr70_rereview_2026_09_29_claude.md)): what it found, and what was done
+
+The re-review ran §10c as claims: merge after two corrections. Predictions were recorded first
+([predictions](../handoff/response_pr70_rereview_2026_09_29_predictions.md)); each item was reproduced before it was
+fixed.
+
+| item | disposition | its check |
+|---|---|---|
+| C1 a build generated with tracing on DIVERGED from its own bundle: its set-up control event reached the sink (a defect `7621157d` introduced) | fixed: nothing written before the first replay input reaches the sink; no text filter | `aTracingBuildAgreesWithItsOwnBundle`; `rn-set-up-is-left-out-by-when` |
+| C2 the four images were painted | adopted the re-review's native 3360×2100 captures with the page from the same run; every image read | read (rule 1) |
+| S1 three shapes still moved the header scope; the `path()` comment skip had no control | fixed: a line is excepted only as the record's own `eventLogRecord.thread` (unique, before `nodeLogs`) or `eventLogRecord.endTime` (unique, last) | `theExceptionIsAnchoredOnTheRecordsOwnKeys`; five new `rc-` controls, one retargeted |
+| S2 a logged string's raw newline could make a business value an excepted line | fixed by the same rule: an ambiguous record excepts nothing | `aRawNewlineInAValueIsNeverExcepted` |
+| S3 a listed ~32 MiB graph exhausted 512 MiB, unnamed | fixed: spooled, StAX, 8 MiB and 100,000 elements, DOCTYPE refused; an `OutOfMemoryError` is a named refusal | `aLargeGraphIsReadAsAStream`; `rn-the-graph-has-a-byte-bound`, `rn-the-graph-elements-are-bounded`, `rn-a-graph-doctype-is-refused` |
+| S4 nits | fixed: a replay states its count (runner and `--verify`), a directory entry holds nothing, the move is cleaned up, no broader whitespace exception; the message-only controls stated. **Deferred (M70.R6):** "The graph is the same" and "the run's N recorded inputs", because they change the page, which must be recaptured with its images | `aReplayStatesItsCount_andADirectoryHoldsNothing`, `theProducersBytesAreKept`; `rn-a-replay-states-its-count`, `eb-format2-states-its-records`, `rn-a-directory-holds-nothing`, `rf-no-broader-whitespace-exception` |
+
 ## 11. Revision history
 
 - **r1 (2026-09-28):** first draft, from the spike and the owner's decisions R-D1…R-D4. The same day it took two
