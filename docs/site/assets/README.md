@@ -144,3 +144,8 @@ and both spotlight-walk themes. The Start page is now the full window, with acti
 no irrelevant menus or time-range control. The graph and report guide text was updated to match
 the captured controls. The image audit found only DEMO data and neutral temporary paths; no
 participant project or hosted assistant was used.
+
+The release preflight also regenerated the seven-scenario sample-conversation transcript and its
+five native `conv-*.png` captures against the same DEMO jar. Each image and the transcript diff
+were inspected; the authored timestamps now match the refreshed DEMO fixture, and temporary
+exchange paths are neutralized in the published echoes.

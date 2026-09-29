@@ -33,6 +33,11 @@ public class RestartProbe {
 }
 '''
 
+
+def same_path(observed, expected):
+    """macOS may report /var from Java and /private/var from Python for one file."""
+    return observed is not None and Path(observed).resolve() == expected.resolve()
+
 class Process(api.Analyser):
     def __init__(self, jar, home, output, shim, args=()):
         super().__init__(str(jar), str(home), output.name)
@@ -136,10 +141,10 @@ def main():
         record('after-relaunch-offer', offered)
         a.ok('open', restore='last')
         restored = a.wait(lambda c: c.get('restoration', {}).get('state') == 'finished')
-        assert restored['log']['path'] == str(log.resolve()), restored
+        assert same_path(restored['log']['path'], log), restored
         assert restored['log']['openedBy'] == 'explicit session restore', restored
-        assert restored['design']['file'] == str(design.resolve()), restored
-        assert restored['design']['diagnosticsFile'] == str(diagnostics.resolve()), restored
+        assert same_path(restored['design']['file'], design), restored
+        assert same_path(restored['design']['diagnosticsFile'], diagnostics), restored
         assert restored['topology']['contextDepth'] == 1, restored
         assert restored['selection'] == before['selection'], restored
         assert restored['topology']['recordIndex'] == 5, restored
@@ -147,13 +152,13 @@ def main():
     alternate = Path(shutil.copy(log, project / 'explicit.yml'))
     with Process(args.jar, home, work / 'third.log', shim, [str(alternate)]) as a:
         pids.append(a.proc.pid)
-        offered = a.wait(lambda c: c.get('log', {}).get('path') == str(alternate.resolve())
+        offered = a.wait(lambda c: same_path(c.get('log', {}).get('path'), alternate)
                          and c.get('restoration', {}).get('state') == 'offered')
         assert 'file' not in offered.get('design', {}), offered
         a.ok('open', restore='dismiss')
         dismissed = a.context()
         assert dismissed['restoration']['state'] == 'dismissed', dismissed
-        assert dismissed['log']['path'] == str(alternate.resolve()), dismissed
+        assert same_path(dismissed['log']['path'], alternate), dismissed
         assert not a.act('open', restore='last').get('ok'), 'Dismissed offer was accepted'
         record('explicit-cli-and-dismiss', dismissed)
     assert len(set(pids)) == 3, pids
