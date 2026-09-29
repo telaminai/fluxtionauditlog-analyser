@@ -30,6 +30,7 @@ public final class StartPanel extends JPanel {
         /** Open a bundled demo log, optionally with the graph, and add the demo source root. */
         void openDemo(Path log, boolean withGraph);
         default void openSampleProject() { openDemo(DemoAssets.log(), true); }
+        default void openGuidedTour() { openSampleProject(); }
 
         /** Bring a tab forward — the page hands over, it does not drive. */
         void showTab(String name);
@@ -106,8 +107,10 @@ public final class StartPanel extends JPanel {
         col.add(Box.createVerticalStrut(20));
         col.add(heading("Start work"));
         col.add(row(
+                card("Take a guided tour", "Open the DEMO project and play a saved spotlight introduction.",
+                        true, actions::openGuidedTour),
                 card("Load an experiment", "Open a verified .fexp evidence bundle in a disposable working copy.",
-                        true, actions::openExperiment),
+                        false, actions::openExperiment),
                 card("Investigate an incident", "Choose an audit log or evidence bundle to examine.",
                         false, actions::investigateIncident)));
         col.add(Box.createVerticalStrut(10));
@@ -699,7 +702,12 @@ public final class StartPanel extends JPanel {
             Graphics2D icon = (Graphics2D) g.create();
             icon.translate(x, y);
             icon.setStroke(new BasicStroke(1.7f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-            if (title.startsWith("Load an experiment")) {
+            if (title.startsWith("Take a guided tour")) {
+                icon.drawOval(1, 1, 15, 15);
+                icon.drawLine(7, 5, 12, 8);
+                icon.drawLine(12, 8, 7, 11);
+                icon.drawLine(7, 11, 7, 5);
+            } else if (title.startsWith("Load an experiment")) {
                 icon.drawRoundRect(2, 1, 13, 15, 2, 2);
                 icon.drawLine(5, 5, 11, 5);
                 icon.drawLine(5, 9, 12, 9);

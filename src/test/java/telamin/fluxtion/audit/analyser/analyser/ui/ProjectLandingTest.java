@@ -27,18 +27,19 @@ class ProjectLandingTest {
                 public void investigateIncident() { calls.add("incident"); }
                 public void openGraphml() { calls.add("graphml"); }
                 public void openRecentProject(String path) { calls.add("recent:" + path); }
+                public void openGuidedTour() { calls.add("tour"); }
             }, null);
             String recent = "/tmp/DEMO/.analyser/project.fluxtion-settings";
             panel.setRecentProjects(List.of(recent));
             assertTrue(text(panel).contains("global source roots are defaults; an active project can override them"));
-            for (String name : List.of("Load an experiment", "Investigate an incident", "Author a new project",
+            for (String name : List.of("Take a guided tour", "Load an experiment", "Investigate an incident", "Author a new project",
                     "Author from template", "Open audit log", "Open GraphML", "Open sample project")) {
                 assertNotNull(action(panel, name), "start page action: " + name);
                 action(panel, name).doClick();
             }
             assertNotNull(buttonContaining(panel, recent), "recent project appears as a workspace action");
             buttonContaining(panel, recent).doClick();
-            assertEquals(List.of("bundle", "incident", "new", "template", "log", "graphml",
+            assertEquals(List.of("tour", "bundle", "incident", "new", "template", "log", "graphml",
                     "sample:true", "recent:" + recent), calls);
         });
     }

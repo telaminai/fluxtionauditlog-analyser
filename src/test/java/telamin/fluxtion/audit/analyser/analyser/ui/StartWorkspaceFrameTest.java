@@ -159,6 +159,58 @@ class StartWorkspaceFrameTest {
         }
     }
 
+    @Test void guidedTourChoiceSavesAndPlaysTheDemoSpotlightWalk() throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless(), "requires a display");
+        String previousHome = System.getProperty("user.home");
+        System.setProperty("user.home", Files.createDirectories(temporary.resolve("tour-home")).toString());
+        AtomicReference<MainFrame> frame = new AtomicReference<>();
+        try {
+            SwingUtilities.invokeAndWait(() -> {
+                try {
+                    frame.set(new MainFrame());
+                    var tour = buttonContaining((StartPanel) field(frame.get(), "startPanel"), "Take a guided tour");
+                    assertNotNull(tour);
+                    frame.get().setSize(1400, 900);
+                    frame.get().setVisible(true);
+                    tour.doClick();
+                } catch (ReflectiveOperationException e) { throw new AssertionError(e); }
+            });
+            for (int i = 0; i < 300 && !onEdt(() -> {
+                var running = (telamin.fluxtion.audit.analyser.analyser.session.SessionDriver) field(frame.get(), "session");
+                return running != null && running.snapshot().walkPlayback().showing()
+                        && "SHOWN".equals(running.snapshot().walkPlayback().phase());
+            }); i++) Thread.sleep(20);
+            var session = (telamin.fluxtion.audit.analyser.analyser.session.SessionDriver) field(frame.get(), "session");
+            assertTrue(onEdt(() -> session.snapshot().walkPlayback().showing()),
+                    "the start action plays the saved tour: " + onEdt(() ->
+                            ((javax.swing.JLabel) field(frame.get(), "status")).getText()));
+            assertEquals(DemoTour.NAME, onEdt(() -> session.snapshot().walkPlayback().walk()));
+            assertEquals(0, onEdt(() -> session.snapshot().walkPlayback().step()));
+            assertTrue(onEdt(() -> ((SpotlightOverlay) field(frame.get(), "spotlight")).lit().stream()
+                    .anyMatch(lit -> lit.target().equals("records"))),
+                    "the first step lights the records table, not only the walk strip");
+            for (int step = 1; step < DemoTour.steps().size(); step++) {
+                int next = step;
+                assertNull(onEdt(() -> frame.get().playWalk(DemoTour.NAME, next, "test")));
+                for (int i = 0; i < 200 && !onEdt(() -> session.snapshot().walkPlayback().step() == next
+                        && "SHOWN".equals(session.snapshot().walkPlayback().phase())); i++) Thread.sleep(20);
+                assertEquals(next, onEdt(() -> session.snapshot().walkPlayback().step()));
+                String target = DemoTour.steps().get(next).targets().getFirst().target();
+                assertTrue(onEdt(() -> ((SpotlightOverlay) field(frame.get(), "spotlight")).lit().stream()
+                        .anyMatch(lit -> lit.target().equals(target))),
+                        "tour step " + (next + 1) + " must light " + target);
+            }
+            var config = (telamin.fluxtion.audit.analyser.analyser.config.AppConfig) field(frame.get(), "config");
+            assertEquals(1, config.walks.stream().filter(w -> w.name().equals(DemoTour.NAME)).count());
+            assertEquals(4, config.walks.stream().filter(w -> w.name().equals(DemoTour.NAME))
+                    .findFirst().orElseThrow().steps().size());
+            assertTrue(onEdt(() -> ((JPanel) field(frame.get(), "workspaceChrome")).isVisible()));
+        } finally {
+            if (frame.get() != null) SwingUtilities.invokeAndWait(frame.get()::dispose);
+            System.setProperty("user.home", previousHome);
+        }
+    }
+
     @Test void droppingVerifiedExperimentOpensItsOwnProjectGraphAndLog() throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless(), "requires a display");
         String previousHome = System.getProperty("user.home");

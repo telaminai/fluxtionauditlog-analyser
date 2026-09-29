@@ -1155,8 +1155,13 @@ public final class MainFrame extends JFrame {
         openFile(log, OpenRequest.HUMAN);
     }
 
+    private boolean pendingSampleWalk;
+    private boolean pendingSampleTour;
+
     /** The sample is a real project profile, so the Project rail and workspace match its name. */
-    private void openSampleProject() {
+    private void openSampleProject() { openSampleProject(false); }
+
+    private void openSampleProject(boolean playTour) {
         Path root = DemoAssets.install();
         Path profile = telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.pathFor(root);
         if (!Files.isRegularFile(profile)) {
@@ -1173,8 +1178,29 @@ public final class MainFrame extends JFrame {
         }
         if (!requestProject(profile, telamin.fluxtion.audit.analyser.analyser.session.TransitionKind.EXPLICIT_SWITCH,
                 "sample-project")) return;
+        pendingSampleWalk = true;
+        pendingSampleTour = playTour;
         topologyPanel.load(DemoAssets.graphml());
         openFile(DemoAssets.log(), OpenRequest.HUMAN);
+    }
+
+    private void finishSampleWalk(boolean playTour) {
+        if (store == null || !DemoAssets.log().toString().equals(config.logFile)
+                || !telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.pathFor(DemoAssets.root())
+                        .equals(project.activeFile())) return;
+        if (telamin.fluxtion.audit.analyser.analyser.config.WalkBin.find(config.walks, DemoTour.NAME) == null) {
+            var steps = DemoTour.steps().stream().map(walkAuthoring::bind).toList();
+            String error = walkAuthoring.save(DemoTour.NAME, DemoTour.TITLE, steps,
+                    "bundled DEMO", walkAuthoring.generationNow());
+            if (error != null) {
+                status.setText("Could not save the DEMO tour: " + error);
+                return;
+            }
+        }
+        if (playTour) {
+            String error = playWalk(DemoTour.NAME, 0, "start-page");
+            if (error != null) status.setText("Could not play the DEMO tour: " + error);
+        }
     }
 
     private void chooseIncidentEvidence() {
@@ -3622,6 +3648,7 @@ public final class MainFrame extends JFrame {
         startPanel = new StartPanel(new StartPanel.Actions() {
             @Override public void openDemo(Path log, boolean withGraph) { openDemoLog(log, withGraph); }
             @Override public void openSampleProject() { MainFrame.this.openSampleProject(); }
+            @Override public void openGuidedTour() { MainFrame.this.openSampleProject(true); }
             @Override public void showTab(String name) { selectTab(name); }
             @Override public void openOwnLog() { chooseFile(); }
             @Override public void openSettings() {
@@ -4285,6 +4312,10 @@ public final class MainFrame extends JFrame {
 
     /** A load did not land: tell the processor, then whoever asked. */
     private void onLoadFailed(long opId, String location, OpenRequest request, Throwable err) {
+        if (DemoAssets.log().toString().equals(location)) {
+            pendingSampleWalk = false;
+            pendingSampleTour = false;
+        }
         sessionInteractive = !request.suppressDialogs();          // review B1: this operation's audience
         var driver = session();
         driver.submit(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogOpenFailed(opId, location, rootMessage(err)));
@@ -4701,6 +4732,12 @@ public final class MainFrame extends JFrame {
         if (followButton != null) followButton.setEnabled(followable);
         updateLifecycleMenu();
         completeRecoveryLog(opId, null);
+        if (pendingSampleWalk && DemoAssets.log().toString().equals(location)) {
+            boolean playTour = pendingSampleTour;
+            pendingSampleWalk = false;
+            pendingSampleTour = false;
+            SwingUtilities.invokeLater(() -> finishSampleWalk(playTour));
+        }
     }
 
     /**

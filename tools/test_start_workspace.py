@@ -17,6 +17,7 @@ CASES = {
         "startPageReplacesTheWholeInvestigationArea",
         "recentProjectChoiceOpensItsWorkspaceWithoutOpeningALog",
         "sampleChoiceOpensARealDemoProject",
+        "guidedTourChoiceSavesAndPlaysTheDemoSpotlightWalk",
         "droppingSpringDesignThenGraphAndLogOpensTheirRealViews",
         "droppingVerifiedExperimentOpensItsOwnProjectGraphAndLog",
     },
