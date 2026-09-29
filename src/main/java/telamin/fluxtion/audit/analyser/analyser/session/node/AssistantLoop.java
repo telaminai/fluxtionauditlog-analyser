@@ -449,6 +449,13 @@ public class AssistantLoop implements EventLogSource {
             captureBasis();
             return changed();
         }
+        // A completed turn has no pending reply/action to protect. Its next Send prepares fresh context
+        // under this filter, while a project/log/graph change still freezes an idle conversation.
+        if (!busy()) {
+            if (frozen) return false; // a prior workspace change stays frozen until New chat
+            captureBasis();
+            return changed();
+        }
         return onBasisMoved();
     }
 

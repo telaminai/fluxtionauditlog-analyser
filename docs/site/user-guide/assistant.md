@@ -37,9 +37,13 @@ doing: *Requesting*, *Running action n*, *Complete*, *Cancelled*, *Superseded*, 
 - **Budgets.** A turn stops at the per-reply action cap, the round limit, or its own per-turn action budget (Settings ▸
   Assistant), and says which.
 - **With no log open**, `context`, `topology` and the source verbs still work; verbs that read records refuse by name.
-- **When the workspace changes** — you open another project, log or graph — a turn in progress stops, and the
-  conversation is kept for reading. Start a **New chat** to ask about what is open now: its history is not sent as if
+- **When the workspace changes** — you open another project, log or graph — a turn in progress stops, and even a
+  completed conversation is kept for reading. Start a **New chat** to ask about what is open now: its history is not sent as if
   it described the new workspace. The assistant's own `open` is expected, and continues.
+- **When the investigation filter changes during a turn**, the pending reply or action stops before it can use a
+  different view. After a turn completes, changing the filter keeps the conversation usable; the next **Send**
+  prepares context under the current filter. A filter change made by the assistant's own action can continue to
+  its next action.
 - **Pop out.** **Pop out** moves the assistant into its own window, so the conversation stays beside you while the
   analyser changes views; **Dock** (or closing the window) puts it back. It is the same conversation, draft and request
   in either place, and moving it never sends again. The tab says where it went. Scrolling or copying in the docked

@@ -150,7 +150,9 @@ request supersedes the turn immediately; the late assistant result cannot resume
 own open continues only after the frame reports that the accepted log, source graph and reset view
 have all been applied. The session basis includes the investigation filter key (range, dimensions,
 text and grouping). An external filter change supersedes a pending reply or action; a filter change
-made by that action keeps its turn. Tab navigation remains a reveal, not a basis change.
+made by that action keeps its turn. An external filter change while idle refreshes the basis without
+freezing a completed conversation; the next Send prepares context for the current filter. Project,
+log and graph changes still freeze idle conversations. Tab navigation remains a reveal, not a basis change.
 
 The live assistant receives no extra file grants, export paths or server powers. Existing tool guards
 and user decisions apply equally onboard. Destructive actions, external writes and root changes are

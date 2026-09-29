@@ -319,6 +319,32 @@ class AssistantLoopTest {
     }
 
     @Test
+    void idleFilterChangeRefreshesTheBasisWithoutFreezingTheConversation() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = new SessionDriver(a);
+        var first = sendAndPrepare(d, a, 1, 2);
+        d.post(new SessionEvents.AssistantCompletionReceived(first.ticket(), 1, 3, List.of()));
+        assertEquals("COMPLETE", state(d).phase());
+        d.post(new SessionEvents.ViewFilterChanged("person's new filter"));
+        assertEquals("COMPLETE", state(d).phase(), "a completed turn stays completed");
+        assertFalse(state(d).frozen(), "an idle filter edit must not disable Send");
+        assertTrue(state(d).basis().contains("filtered view"), "the idle thread now names the current view");
+        sendAndPrepare(d, a, 4, 5);
+        assertTrue(state(d).answer().accepted(), "a follow-up takes fresh context under the new filter");
+        assertEquals("REQUESTING", state(d).phase());
+    }
+
+    @Test
+    void idleGraphChangeStillFreezesTheConversation() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = new SessionDriver(a);
+        var first = sendAndPrepare(d, a, 1, 2);
+        d.post(new SessionEvents.AssistantCompletionReceived(first.ticket(), 1, 3, List.of()));
+        d.post(SessionFixtures.graph("/graphs/new.graphml"));
+        assertTrue(state(d).frozen(), "a different graph still invalidates the idle conversation");
+    }
+
+    @Test
     @DisplayName("OA-A16: the per-reply cap stops extra actions, visibly")
     void thePerReplyCapIsEnforced() {
         FakeSessionAdapter a = new FakeSessionAdapter();
