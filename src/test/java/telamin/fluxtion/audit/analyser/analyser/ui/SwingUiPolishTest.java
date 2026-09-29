@@ -35,7 +35,8 @@ class SwingUiPolishTest {
             JPanel walks = new JPanel();
             panel.addWalks(walks);
             panel.refresh();
-            JTabbedPane categories = (JTabbedPane) panel.getComponent(0);
+            JTabbedPane categories = assertInstanceOf(JTabbedPane.class, panel.getComponent(0),
+                    "report actions must live inside the investigation reports tab");
             JButton export = button(panel, "Export PDF…");
             assertTrue(SwingUtilities.isDescendingFrom(export, categories.getComponentAt(0)));
             assertFalse(SwingUtilities.isDescendingFrom(export, categories.getComponentAt(1)),
