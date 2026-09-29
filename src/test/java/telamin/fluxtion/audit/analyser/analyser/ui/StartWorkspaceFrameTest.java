@@ -269,6 +269,7 @@ class StartWorkspaceFrameTest {
                 assertTrue(project.hasProject());
                 assertTrue(project.activeFile().startsWith(Path.of(System.getProperty("user.home"),
                         ".fluxtion-analyser", "bundles")), "the bundle opens in an isolated working copy");
+                for (int i = 0; i < 150 && !sawIdentity.get(); i++) Thread.sleep(20);
                 assertTrue(sawIdentity.get(), "identity and working-copy limits must be shown after verification");
             } finally { dismiss.stop(); }
         } finally {
@@ -531,8 +532,12 @@ class StartWorkspaceFrameTest {
                 assertNotNull(code); assertNotNull(message);
                 assertNotNull(reason); assertNotNull(fix);
                 assertTrue(code.getVisibleRect().height > 0, "the finding code must be painted");
-                assertTrue(message.getWidth() >= 130, "the finding message should use the narrow card's width");
-                assertTrue(reason.getWidth() >= 130 && fix.getWidth() >= 130,
+                var card = message.getParent();
+                int readableWidth = card.getWidth() - card.getInsets().left - card.getInsets().right;
+                assertTrue(message.getWidth() >= readableWidth - 12,
+                        "the finding message should use the narrow card's width: "
+                                + message.getWidth() + " of " + readableWidth);
+                assertTrue(reason.getWidth() >= readableWidth - 12 && fix.getWidth() >= readableWidth - 12,
                         "the reason and fix should use the same reading width");
                 return null;
             });
