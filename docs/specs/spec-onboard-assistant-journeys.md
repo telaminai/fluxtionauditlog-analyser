@@ -144,6 +144,14 @@ correlated to its ticket so it does not cancel itself; after that result, refres
 accepted state before the next round. Follow and file-identity changes use existing session facts;
 never substitute pathname equality for current evidence identity.
 
+R1 implementation: the shared dispatcher carries the assistant ticket and action identity on an
+open request, through its reader, and into its asynchronous completion. A different client's open
+request supersedes the turn immediately; the late assistant result cannot resume it. The assistant's
+own open continues only after the frame reports that the accepted log, source graph and reset view
+have all been applied. The session basis includes the investigation filter key (range, dimensions,
+text and grouping). An external filter change supersedes a pending reply or action; a filter change
+made by that action keeps its turn. Tab navigation remains a reveal, not a basis change.
+
 The live assistant receives no extra file grants, export paths or server powers. Existing tool guards
 and user decisions apply equally onboard. Destructive actions, external writes and root changes are
 not unlocked by simulated messages. Network transmission starts with the person's Send, not opening

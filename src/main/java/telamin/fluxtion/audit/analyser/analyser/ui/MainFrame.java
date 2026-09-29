@@ -1246,7 +1246,8 @@ public final class MainFrame extends JFrame {
         var driver = session();
         driver.submit(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.OpenProjectRequested(
                 driver.nextOpId(), bundle.toString(),
-                telamin.fluxtion.audit.analyser.analyser.session.TransitionKind.OPEN_BUNDLE, "evidence-bundle"));
+                telamin.fluxtion.audit.analyser.analyser.session.TransitionKind.OPEN_BUNDLE, "evidence-bundle",
+                ActionExecutor.assistantOrigin()));
         syncBusyWithGate();
     }
 
@@ -4637,7 +4638,7 @@ public final class MainFrame extends JFrame {
         long opId = driver.nextOpId();
         pendingRequests.put(opId, request);
         driver.submit(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.OpenLogRequested(
-                opId, location, format, request.provenance(), request.fromActionSocket()));
+                opId, location, format, request.provenance(), request.fromActionSocket(), request.assistantOrigin()));
     }
 
     /**
@@ -4650,10 +4651,11 @@ public final class MainFrame extends JFrame {
     private final java.util.Map<Long, OpenRequest> pendingRequests = new java.util.HashMap<>();
 
     /** Bounded by construction: at most the operations issued since the last effect, and cleared there. */
-    private OpenRequest takeRequest(long opId, boolean fromSocket, String provenance) {
+    private OpenRequest takeRequest(long opId, boolean fromSocket, String provenance,
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantActionOrigin origin) {
         OpenRequest asked = pendingRequests.remove(opId);
         pendingRequests.keySet().removeIf(id -> id < opId);   // older requests were refused or superseded
-        return asked != null ? asked : new OpenRequest(fromSocket, provenance);
+        return asked != null ? asked : new OpenRequest(fromSocket, provenance, OpenRequest.Launch.NONE, origin);
     }
 
     /** As {@link #requestOpenLog}, for a resolved rolled set (M30); the set rides beside the request. */
@@ -4666,7 +4668,7 @@ public final class MainFrame extends JFrame {
         var files = set.ordered();
         String location = files.get(files.size() - 1).file().getFileName() + " (+" + (files.size() - 1) + " rolled)";
         driver.submit(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.OpenLogRequested(
-                opId, location, "rolled-set", request.provenance(), request.fromActionSocket()));
+                opId, location, "rolled-set", request.provenance(), request.fromActionSocket(), request.assistantOrigin()));
     }
 
     /** Rolled sets awaiting their OpenLogEffect, by opId — the effect carries facts, the adapter its object. */
@@ -4885,7 +4887,8 @@ public final class MainFrame extends JFrame {
         // (or the LogClosed result, inside an effect) changes the snapshot, and the listener clears the note (M44.4c).
         // M44.4a: the close is a fact. Inside a CloseLogEffect it is queued behind the LogClosed result and
         // arrives as a recorded no-op; from Audit log ▸ Close log it is how the processor learns the log went.
-        if (session != null) session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogCleared(sessionLogGeneration));
+        if (session != null) session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogCleared(
+                sessionLogGeneration, ActionExecutor.assistantOrigin()));
         pendingProjectOffer = null;        // review F3: an offer made for a log that is no longer open
         pendingRolledSetOffer = null;      // M35.9: likewise
         if (reportsPanel != null) reportsPanel.refresh();   // re-render: anchors now say why they fail
@@ -4952,6 +4955,29 @@ public final class MainFrame extends JFrame {
      *                no step can find it spent and no concurrent load can cross it.
      */
     private void onLoaded(LogStore loaded, String location, OpenRequest request, long opId) {
+        // The reader finishes on another task. Restore the request's causal identity while reporting the log,
+        // its source-supplied graph and the reset view, then report completion only after the frame has applied all
+        // of them. The session node decides whether this still belongs to its turn.
+        var previous = ActionExecutor.assistantOrigin();
+        ActionExecutor.bindAssistantOrigin(request.assistantOrigin());
+        try {
+            applyLoaded(loaded, location, request, opId);
+            if (request.assistantOrigin() != null && store == loaded) {
+                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantOpenApplied(
+                        opId, request.assistantOrigin()));
+            }
+        } catch (RuntimeException failure) {
+            if (request.assistantOrigin() != null) {
+                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantOpenApplyFailed(
+                        opId, request.assistantOrigin()));
+            }
+            throw failure;
+        } finally {
+            ActionExecutor.bindAssistantOrigin(previous);
+        }
+    }
+
+    private void applyLoaded(LogStore loaded, String location, OpenRequest request, long opId) {
         // M44.3: the arrival is a RESULT of an operation the processor asked for. Report it first: the
         // gate refuses a result for a superseded request (D-A3) and this load is then discarded rather
         // than shown over the one that replaced it. LogArrival judges an open graph inside this submit
@@ -6045,7 +6071,8 @@ public final class MainFrame extends JFrame {
         // the O-i frame test). Compared against the session's own key, so the frame keeps no copy of it.
         String key = filterKeyNow();
         if (session != null && !java.util.Objects.equals(key, sessionSnapshot().filterKey())) {
-            session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ViewFilterChanged(key));
+            session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ViewFilterChanged(
+                    key, ActionExecutor.assistantOrigin()));
         }
         tablePanel.reFilter();
         if (store != null) {
@@ -6371,7 +6398,7 @@ public final class MainFrame extends JFrame {
         sessionProblem = null;
         var driver = session();
         driver.submit(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents
-                .OpenProjectRequested(driver.nextOpId(), file.toString(), kind, source));
+                .OpenProjectRequested(driver.nextOpId(), file.toString(), kind, source, ActionExecutor.assistantOrigin()));
         syncBusyWithGate();
         projectDesignChanged();
         if (sessionProblem == null && recovery != null) recovery.activate(project.activeFile(), project.activeNonce(), null);
@@ -6417,7 +6444,7 @@ public final class MainFrame extends JFrame {
         }
         String pending = driver.processor().operationGate.inFlightWhat();
         driver.submit(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CloseRequested(
-                driver.nextOpId(), target));
+                driver.nextOpId(), target, ActionExecutor.assistantOrigin()));
         syncBusyWithGate();          // the busy projection follows the gate, as for a project transition (B2)
         return driver.processor().operationGate.inFlightWhat() == null ? pending : null;
     }
@@ -6662,7 +6689,8 @@ public final class MainFrame extends JFrame {
                 // M44.3: the request's audience is this operation's (R3-B1); the load starts here and
                 // answers when it lands — Pending now, LogOpened/LogOpenFailed later, same opId.
                 sessionInteractive = !e.fromSocket();
-                yield startLoad(opId, e.location(), e.format(), takeRequest(opId, e.fromSocket(), e.provenance()));
+                yield startLoad(opId, e.location(), e.format(),
+                        takeRequest(opId, e.fromSocket(), e.provenance(), e.assistantOrigin()));
             }
             // evidence bundle capture — the evidenceCapture node decided; the frame performs and reports
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.SetFollowEffect e -> {
@@ -6753,7 +6781,8 @@ public final class MainFrame extends JFrame {
     }
 
     private Object graphFact() {
-        if (!topologyPanel.hasGraph()) return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphCleared();
+        if (!topologyPanel.hasGraph()) return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphCleared(
+                ActionExecutor.assistantOrigin());
         Path graphFile = topologyPanel.loadedGraphFile();
         java.util.List<String> types = new java.util.ArrayList<>();
         var full = topologyPanel.fullTopology();
@@ -6762,7 +6791,8 @@ public final class MainFrame extends JFrame {
         }
         return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphOpened(graphFile == null ? null : graphFile.toString(),
                 topologyPanel.graphSource().name(),
-                telamin.fluxtion.audit.analyser.analyser.topology.GraphPairing.declaredNodeIds(full), types);
+                telamin.fluxtion.audit.analyser.analyser.topology.GraphPairing.declaredNodeIds(full), types,
+                ActionExecutor.assistantOrigin());
     }
 
     /** The processor's generation of the log that is open here, stated on every fact about it (M44.4a). */
@@ -7206,7 +7236,8 @@ public final class MainFrame extends JFrame {
             if (path == null || path.isBlank()) {
                 return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("'log' is empty");
             }
-            OpenRequest request = OpenRequest.socket(provenance);   // M35.7: no modal on this path
+            OpenRequest request = OpenRequest.socket(provenance, ActionExecutor.assistantOrigin());
+            // M35.7: no modal on this path
             if (format != null && !format.isBlank()) {
                 java.nio.file.Path f = java.nio.file.Path.of(path);
                 if (readerRegistry.readerFor(f, format) == null) {
@@ -7822,7 +7853,8 @@ public final class MainFrame extends JFrame {
             try {
                 var set = telamin.fluxtion.audit.analyser.analyser.parse.RollSetResolver.resolve(files);
                 // M35.9: this path never set the socket flag, so its time-order modal fired on agents
-                requestOpenRolledSet(set, OpenRequest.socket(provenance));   // async; the echo reports what was decided NOW
+                requestOpenRolledSet(set, OpenRequest.socket(provenance, ActionExecutor.assistantOrigin()));
+                // async; the echo reports what was decided NOW
                 Map<String, Object> echo = new java.util.LinkedHashMap<>();
                 echo.put("files", set.ordered().stream()
                         .map(s -> s.file().getFileName().toString()).toList());

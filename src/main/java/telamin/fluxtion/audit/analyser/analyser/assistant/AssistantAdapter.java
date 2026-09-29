@@ -226,9 +226,11 @@ public final class AssistantAdapter {
                     result = ActionResult.error("not run: the turn ended before this action started");
                 } else {
                     ActionExecutor.bindGuard(current);
+                    ActionExecutor.bindAssistantOrigin(new SessionEvents.AssistantActionOrigin(ticket, action));
                     try {
                         result = dispatcher.dispatch(block);
                     } finally {
+                        ActionExecutor.bindAssistantOrigin(null);
                         ActionExecutor.bindGuard(null);
                     }
                 }

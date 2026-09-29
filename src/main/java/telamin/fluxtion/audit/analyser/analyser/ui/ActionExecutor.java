@@ -1749,10 +1749,22 @@ public final class ActionExecutor implements RenderExecutor {
     // what stops the effect. Unbound (the bridge, a menu, a test) it is never consulted.
 
     private static final ThreadLocal<java.util.function.BooleanSupplier> GUARD = new ThreadLocal<>();
+    private static final ThreadLocal<telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantActionOrigin>
+            ASSISTANT_ORIGIN = new ThreadLocal<>();
 
     /** Bind (or, with null, clear) the calling worker's guard. */
     public static void bindGuard(java.util.function.BooleanSupplier guard) {
         if (guard == null) GUARD.remove(); else GUARD.set(guard);
+    }
+
+    /** Transport metadata only: the session node, never this adapter, decides whether the origin owns a change. */
+    public static void bindAssistantOrigin(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantActionOrigin origin) {
+        if (origin == null) ASSISTANT_ORIGIN.remove(); else ASSISTANT_ORIGIN.set(origin);
+    }
+
+    public static telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantActionOrigin assistantOrigin() {
+        return ASSISTANT_ORIGIN.get();
     }
 
     /** Thrown inside an event-thread task whose assistant turn has ended; nothing in that task ran. */
@@ -1770,15 +1782,20 @@ public final class ActionExecutor implements RenderExecutor {
     <T> T onEdt(Callable<T> body) {
         if (SwingUtilities.isEventDispatchThread()) return call(body);
         final java.util.function.BooleanSupplier guard = GUARD.get();
+        final var origin = ASSISTANT_ORIGIN.get();
         @SuppressWarnings("unchecked") final T[] out = (T[]) new Object[1];
         final RuntimeException[] err = new RuntimeException[1];
         try {
             SwingUtilities.invokeAndWait(() -> {
+                var previous = ASSISTANT_ORIGIN.get();
                 try {
+                    bindAssistantOrigin(origin);
                     checkGuard(guard);
                     out[0] = body.call();
                 } catch (Exception e) {
                     err[0] = e instanceof RuntimeException re ? re : new RuntimeException(e);
+                } finally {
+                    bindAssistantOrigin(previous);
                 }
             });
         } catch (InterruptedException | InvocationTargetException e) {

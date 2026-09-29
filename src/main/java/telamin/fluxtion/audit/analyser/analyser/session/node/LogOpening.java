@@ -41,7 +41,7 @@ public class LogOpening implements EventLogSource {
                 .info("fromSocket", event.fromSocket())
                 .info("opId", event.opId());
         effects.request(new SessionEffects.OpenLogEffect(event.opId(), event.location(), event.format(),
-                event.provenance(), event.fromSocket()));
+                event.provenance(), event.fromSocket(), event.assistantOrigin()));
         return true;
     }
 

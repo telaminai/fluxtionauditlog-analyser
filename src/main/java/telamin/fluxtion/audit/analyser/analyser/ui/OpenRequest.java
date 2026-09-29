@@ -30,7 +30,8 @@ package telamin.fluxtion.audit.analyser.analyser.ui;
  *                         previous session's log used to report {@code openedBy: "you"} — so an agent
  *                         that had opened nothing was told it had opened a sibling run's log.
  */
-public record OpenRequest(boolean fromActionSocket, String provenance, Launch launch) {
+public record OpenRequest(boolean fromActionSocket, String provenance, Launch launch,
+                          telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantActionOrigin assistantOrigin) {
 
     /** How a startup open differs from one somebody asked for in this session. */
     public enum Launch {
@@ -53,7 +54,11 @@ public record OpenRequest(boolean fromActionSocket, String provenance, Launch la
     }
 
     public OpenRequest(boolean fromActionSocket, String provenance) {
-        this(fromActionSocket, provenance, Launch.NONE);
+        this(fromActionSocket, provenance, Launch.NONE, null);
+    }
+
+    public OpenRequest(boolean fromActionSocket, String provenance, Launch launch) {
+        this(fromActionSocket, provenance, launch, null);
     }
 
     /** The startup open: a path from the command line, or the remembered log of the last session. */
@@ -89,6 +94,12 @@ public record OpenRequest(boolean fromActionSocket, String provenance, Launch la
         return new OpenRequest(true, provenance);
     }
 
+    /** The same socket action with the onboard assistant's causal ticket/action, if it is the caller. */
+    public static OpenRequest socket(String provenance,
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantActionOrigin origin) {
+        return new OpenRequest(true, provenance, Launch.NONE, origin);
+    }
+
     /**
      * A reload of the SAME log (follow rotation). It keeps BOTH of the original request's answers:
      * what it declared, and <b>who asked</b>.
@@ -102,6 +113,6 @@ public record OpenRequest(boolean fromActionSocket, String provenance, Launch la
     public static OpenRequest reload(OpenRequest original, String provenance) {
         // the launch travels too: a rotation of a restored log is still a log nobody opened here
         return new OpenRequest(original != null && original.fromActionSocket(), provenance,
-                original == null ? Launch.NONE : original.launch());
+                original == null ? Launch.NONE : original.launch(), null);
     }
 }

@@ -184,6 +184,18 @@ class AssistantLoopTest {
     }
 
     @Test
+    void anExternalGraphFactSupersedesTheHeldReply() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = new SessionDriver(a);
+        var r = sendAndPrepare(d, a, 1, 2);
+        d.post(SessionFixtures.graph("/graphs/person.graphml"));
+        assertEquals("SUPERSEDED", state(d).phase());
+        assertTrue(state(d).frozen());
+        d.post(new SessionEvents.AssistantCompletionReceived(r.ticket(), 1, 3, List.of(10L)));
+        assertEquals(0, a.assistantActions.size(), "the late reply cannot run on the external graph");
+    }
+
+    @Test
     @DisplayName("OA-A5: the turn's OWN open action changes the workspace without superseding itself")
     void theTurnsOwnOpenContinues() {
         FakeSessionAdapter a = new FakeSessionAdapter();
@@ -191,12 +203,119 @@ class AssistantLoopTest {
         SessionDriver d = new SessionDriver(a);
         var r1 = sendAndPrepare(d, a, 1, 2);
         d.post(new SessionEvents.AssistantCompletionReceived(r1.ticket(), 1, 3, List.of(10L)));
-        SessionFixtures.openLog(d, a, "/logs/opened-by-the-action.yaml");
+        long op = d.nextOpId();
+        var owner = new SessionEvents.AssistantActionOrigin(r1.ticket(), 10);
+        a.pendingOpens = true;
+        d.submit(new SessionEvents.OpenLogRequested(op, "/logs/opened-by-the-action.yaml", null,
+                "DECLARED", true, owner));
+        a.pendingOpens = false;
+        d.post(new SessionEvents.LogOpened(op, "/logs/opened-by-the-action.yaml", "DECLARED",
+                java.util.Set.of(), 0, 0, null));
         assertEquals("RUNNING_ACTION", state(d).phase(), "its own open does not end the turn");
         d.post(new SessionEvents.AssistantActionFinished(r1.ticket(), 10, "open", true, 20));
-        assertEquals(2, a.assistantRequests.size(), "the turn goes on to its next round");
+        assertEquals(1, a.assistantRequests.size(), "the next round waits for the complete applied log");
+        d.post(new SessionEvents.AssistantOpenApplied(op, owner));
+        assertEquals(2, a.assistantRequests.size(), "the turn goes on only after the own open is applied");
         assertFalse(state(d).frozen());
         assertTrue(state(d).basis().contains("opened-by-the-action.yaml"), state(d).basis());
+    }
+
+    @Test
+    void competingOpenSupersedesEvenWhileTheAssistantOwnOpenIsHeld() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        a.assistantVerbs.put(10L, "open");
+        SessionDriver d = new SessionDriver(a);
+        var r = sendAndPrepare(d, a, 1, 2);
+        d.post(new SessionEvents.AssistantCompletionReceived(r.ticket(), 1, 3, List.of(10L, 11L)));
+        var owner = new SessionEvents.AssistantActionOrigin(r.ticket(), 10);
+        a.pendingOpens = true;
+        long ownOp = d.nextOpId();
+        d.submit(new SessionEvents.OpenLogRequested(ownOp, "/logs/assistant.yaml", null, "DECLARED", true, owner));
+        long personOp = d.nextOpId();
+        d.submit(new SessionEvents.OpenLogRequested(personOp, "/logs/person.yaml", null, "DECLARED", false));
+        a.pendingOpens = false;
+        assertEquals("SUPERSEDED", state(d).phase());
+        assertTrue(state(d).frozen());
+        d.post(new SessionEvents.LogOpened(personOp, "/logs/person.yaml", "DECLARED", java.util.Set.of(), 0, 0, null));
+        d.post(new SessionEvents.LogOpened(ownOp, "/logs/assistant.yaml", "DECLARED", java.util.Set.of(), 0, 0, null));
+        d.post(new SessionEvents.AssistantOpenApplied(ownOp, owner));
+        d.post(new SessionEvents.AssistantActionFinished(r.ticket(), 10, "open", true, 20));
+        assertEquals(1, a.assistantActions.size(), "late own completion cannot start the next action");
+        assertEquals(1, a.assistantRequests.size(), "late own completion cannot start the next round");
+        assertEquals("/logs/person.yaml", d.processor().openLog.logPath(), "the person's accepted open wins");
+        assertFalse(state(d).basis().contains("person.yaml"), "the frozen turn does not adopt another client's log");
+    }
+
+    @Test
+    void failedOwnOpenClosesItsAllowance() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        a.assistantVerbs.put(10L, "open");
+        SessionDriver d = new SessionDriver(a);
+        var r = sendAndPrepare(d, a, 1, 2);
+        d.post(new SessionEvents.AssistantCompletionReceived(r.ticket(), 1, 3, List.of(10L, 11L)));
+        var owner = new SessionEvents.AssistantActionOrigin(r.ticket(), 10);
+        a.pendingOpens = true;
+        long op = d.nextOpId();
+        d.submit(new SessionEvents.OpenLogRequested(op, "/logs/broken.yaml", null, "DECLARED", true, owner));
+        a.pendingOpens = false;
+        d.post(new SessionEvents.LogOpenFailed(op, "/logs/broken.yaml", "reader failed"));
+        assertEquals("FAILED", state(d).phase());
+        d.post(new SessionEvents.AssistantOpenApplied(op, owner));
+        d.post(new SessionEvents.AssistantActionFinished(r.ticket(), 10, "open", true, 20));
+        assertEquals(1, a.assistantActions.size(), "failed open cannot continue its turn");
+    }
+
+    @Test
+    void cancelledOwnOpenAndApplyFailureCannotResumeTheTurn() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        a.assistantVerbs.put(10L, "open");
+        SessionDriver d = new SessionDriver(a);
+        var r = sendAndPrepare(d, a, 1, 2);
+        d.post(new SessionEvents.AssistantCompletionReceived(r.ticket(), 1, 3, List.of(10L, 11L)));
+        var owner = new SessionEvents.AssistantActionOrigin(r.ticket(), 10);
+        a.pendingOpens = true;
+        long op = d.nextOpId();
+        d.submit(new SessionEvents.OpenLogRequested(op, "/logs/pending.yaml", null, "DECLARED", true, owner));
+        a.pendingOpens = false;
+        d.post(new SessionEvents.AssistantCancelRequested("person stopped it"));
+        assertEquals("CANCELLED", state(d).phase());
+        d.post(new SessionEvents.LogOpened(op, "/logs/pending.yaml", "DECLARED", java.util.Set.of(), 0, 0, null));
+        d.post(new SessionEvents.AssistantOpenApplied(op, owner));
+        d.post(new SessionEvents.AssistantActionFinished(r.ticket(), 10, "open", true, 20));
+        assertEquals("CANCELLED", state(d).phase(), "late application cannot revive the cancelled turn");
+        assertEquals(1, a.assistantActions.size(), "cancellation closes the open's continuation allowance");
+
+        d.post(new SessionEvents.AssistantNewChatRequested(""));
+        var next = sendAndPrepare(d, a, 4, 5);
+        d.post(new SessionEvents.AssistantCompletionReceived(next.ticket(), 1, 6, List.of(10L, 11L)));
+        long failedOp = d.nextOpId();
+        var nextOwner = new SessionEvents.AssistantActionOrigin(next.ticket(), 10);
+        a.pendingOpens = true;
+        d.submit(new SessionEvents.OpenLogRequested(failedOp, "/logs/apply-failed.yaml", null,
+                "DECLARED", true, nextOwner));
+        a.pendingOpens = false;
+        d.post(new SessionEvents.AssistantActionFinished(next.ticket(), 10, "open", true, 30));
+        d.post(new SessionEvents.AssistantOpenApplyFailed(failedOp, nextOwner));
+        assertEquals("FAILED", state(d).phase(), "an apply failure is terminal");
+        assertEquals(2, a.assistantActions.size(), "an apply failure cannot start the next action");
+    }
+
+    @Test
+    void externalFilterChangeSupersedesButAnOwnedFilterChangeContinues() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = new SessionDriver(a);
+        var r = sendAndPrepare(d, a, 1, 2);
+        d.post(new SessionEvents.AssistantCompletionReceived(r.ticket(), 1, 3, List.of(10L, 11L)));
+        d.post(new SessionEvents.ViewFilterChanged("owned-view",
+                new SessionEvents.AssistantActionOrigin(r.ticket(), 10)));
+        assertEquals("RUNNING_ACTION", state(d).phase());
+        d.post(new SessionEvents.AssistantActionFinished(r.ticket(), 10, "filter", true, 20));
+        assertEquals(2, a.assistantActions.size(), "own view change allows the next action");
+        d.post(new SessionEvents.ViewFilterChanged("person-view"));
+        assertEquals("SUPERSEDED", state(d).phase());
+        assertTrue(state(d).frozen());
+        d.post(new SessionEvents.AssistantActionFinished(r.ticket(), 11, "graph", true, 21));
+        assertEquals(1, a.assistantRequests.size(), "person's view change stops the next round");
     }
 
     @Test

@@ -1,7 +1,6 @@
 package telamin.fluxtion.audit.analyser.analyser.session.node;
 
 import com.telamin.fluxtion.runtime.annotations.OnEventHandler;
-import com.telamin.fluxtion.runtime.annotations.OnTrigger;
 import com.telamin.fluxtion.runtime.annotations.PushReference;
 import com.telamin.fluxtion.runtime.audit.EventLogSource;
 import com.telamin.fluxtion.runtime.audit.EventLogger;
@@ -14,7 +13,6 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 
 /**
  * The onboard assistant's lifecycle (spec-onboard-assistant-journeys.md §4–§5, OA-1): every decision the assistant
@@ -37,12 +35,10 @@ import java.util.Set;
  */
 public class AssistantLoop implements EventLogSource {
 
-    /** Verbs whose success may legitimately change the workspace this turn is about. */
-    static final Set<String> BASIS_CHANGING_VERBS = Set.of("open");
-
     private final OpenLog openLog;
     private final OpenGraph openGraph;
     private final ActiveProject activeProject;
+    private final OperationGate gate;
     @PushReference
     private final EffectQueue effects;
 
@@ -57,6 +53,14 @@ public class AssistantLoop implements EventLogSource {
     private int actionsThisReply;
     private long runningAction;
     private String runningVerb;
+    /** The one asynchronous log open this ticket/action actually requested, never a time window for all opens. */
+    private long ownedLogOp;
+    private boolean ownedLogApplied;
+    private long heldOpenResult;
+    private String heldOpenVerb;
+    private long ownedProjectOp;
+    /** The session's view fact, included in the basis without publishing filter/search text. */
+    private String viewKey;
     private List<AssistantState.Entry> entries = new ArrayList<>();
     private List<SessionEffects.HistoryMessage> history = new ArrayList<>();
     private ArrayDeque<Long> pending = new ArrayDeque<>();
@@ -74,10 +78,12 @@ public class AssistantLoop implements EventLogSource {
     private AssistantState published = AssistantState.IDLE;
     private boolean dirty = true;
 
-    public AssistantLoop(OpenLog openLog, OpenGraph openGraph, ActiveProject activeProject, EffectQueue effects) {
+    public AssistantLoop(OpenLog openLog, OpenGraph openGraph, ActiveProject activeProject, OperationGate gate,
+                         EffectQueue effects) {
         this.openLog = openLog;
         this.openGraph = openGraph;
         this.activeProject = activeProject;
+        this.gate = gate;
         this.effects = effects;
     }
 
@@ -104,6 +110,7 @@ public class AssistantLoop implements EventLogSource {
         reason = "";
         round = 0;
         actionsRun = 0;
+        clearOwnership();
         route = e.route();
         pending.clear();
         roundResults = new ArrayList<>();
@@ -171,7 +178,7 @@ public class AssistantLoop implements EventLogSource {
     @OnEventHandler(propagate = false)
     public boolean onEffectStarted(SessionEvents.AssistantEffectStarted e) {
         auditLog.info("assistantEffect", e.what()).info("ticket", e.ticket());
-        // the adapter names the verb of the action it is starting, so a workspace change it causes is attributed to it
+        // The verb is presentation metadata. Ownership is only the origin on the actual request/fact.
         if (e.ticket() == ticket && "RUNNING_ACTION".equals(phase) && e.what() != null && e.what().startsWith("action:")) {
             runningVerb = e.what().substring("action:".length());
         }
@@ -244,35 +251,213 @@ public class AssistantLoop implements EventLogSource {
             auditLog.info("staleFact", "AssistantActionFinished").info("action", e.action()).info("current", runningAction);
             return false;
         }
-        replaceEntry(e.action(), new AssistantState.Entry(e.action(), AssistantState.ACTION, turn,
-                e.ok() ? "OK" : "REFUSED", e.verb(), "", e.result()));
-        roundResults.add(e.result());
-        auditLog.info("assistantAction", e.verb()).info("ok", e.ok());
-        boolean ownChange = runningVerb != null && BASIS_CHANGING_VERBS.contains(runningVerb);
+        if (ownedLogOp != 0) {
+            if (!e.ok()) {
+                clearOwnership();
+                end("FAILED", "the assistant's open action failed after starting a log load; remaining work was stopped");
+                return changed();
+            }
+            // The action's immediate result says only "loading". Do not run its next action against the old log.
+            heldOpenResult = e.result();
+            heldOpenVerb = e.verb();
+            if (!ownedLogApplied) {
+                replaceEntry(e.action(), new AssistantState.Entry(e.action(), AssistantState.ACTION, turn,
+                        "WAITING", e.verb(), "waiting for this action's log to finish opening", e.result()));
+                return changed();
+            }
+            clearOwnership();
+        }
+        ownedProjectOp = 0;
+        finishAction(e.verb(), e.ok(), e.result());
+        return changed();
+    }
+
+    private void finishAction(String verb, boolean ok, long result) {
+        replaceEntry(runningAction, new AssistantState.Entry(runningAction, AssistantState.ACTION, turn,
+                ok ? "OK" : "REFUSED", verb, "", result));
+        roundResults.add(result);
+        auditLog.info("assistantAction", verb).info("ok", ok);
         runningAction = 0;
         runningVerb = null;
-        if (ownChange) captureBasis();              // the workspace this turn now works in is the one its action opened
         runNext();
-        return changed();
     }
 
     // ---- the workspace ----------------------------------------------------------------------------------------------
 
-    /**
-     * The project, log or graph moved. An action of this turn that opens things is expected to move it; anything else
-     * supersedes a turn in progress, and freezes an idle thread, because its history is about what was open before.
-     */
-    @OnTrigger
-    public boolean onWorkspaceChanged() {
-        String now = basisKeyNow();
-        if (Objects.equals(now, basisKey)) return false;
-        if ("RUNNING_ACTION".equals(phase) && runningVerb != null && BASIS_CHANGING_VERBS.contains(runningVerb)) {
+    /** The open operation itself names its owner. A concurrent person's request supersedes before its reader lands. */
+    @OnEventHandler
+    public boolean onOpenLogRequested(SessionEvents.OpenLogRequested e) {
+        if (owns(e.assistantOrigin())) {
+            ownedLogOp = e.opId();
+            ownedLogApplied = false;
+            heldOpenResult = 0;
+            return false;
+        }
+        return competingRequest("a different log was requested");
+    }
+
+    @OnEventHandler
+    public boolean onOpenProjectRequested(SessionEvents.OpenProjectRequested e) {
+        if (owns(e.assistantOrigin())) {
+            ownedProjectOp = e.opId();
+            return false;
+        }
+        return competingRequest("a different project was requested");
+    }
+
+    @OnEventHandler
+    public boolean onCloseRequested(SessionEvents.CloseRequested e) {
+        return owns(e.assistantOrigin()) ? false : competingRequest("the workspace was closed by another request");
+    }
+
+    private boolean competingRequest(String why) {
+        if (!busy()) return false;
+        end("SUPERSEDED", why + " during this turn; its remaining work was stopped" + completedActions());
+        frozen = true;
+        return changed();
+    }
+
+    /** The gate and openLog are upstream, so a matching accepted result has the new generation by this handler. */
+    @OnEventHandler
+    public boolean onLogOpened(SessionEvents.LogOpened e) {
+        if (!gate.accepted()) return false;
+        if (e.opId() == ownedLogOp && "RUNNING_ACTION".equals(phase)) {
             captureBasis();
-            auditLog.info("assistantBasis", "changed by its own " + runningVerb);
             return changed();
         }
+        return onBasisMoved();
+    }
+
+    /** The frame reports this only after the store, source graph and reset view are all installed. */
+    @OnEventHandler
+    public boolean onAssistantOpenApplied(SessionEvents.AssistantOpenApplied e) {
+        if (e.opId() != ownedLogOp || !owns(e.assistantOrigin())) return false;
+        ownedLogApplied = true;
+        captureBasis();
+        if (heldOpenResult != 0) {
+            long result = heldOpenResult;
+            String verb = heldOpenVerb;
+            clearOwnership();
+            finishAction(verb, true, result);
+        }
+        return changed();
+    }
+
+    @OnEventHandler
+    public boolean onAssistantOpenApplyFailed(SessionEvents.AssistantOpenApplyFailed e) {
+        return failOwnedOpen(e.opId(), "the assistant's log could not be applied");
+    }
+
+    @OnEventHandler
+    public boolean onLogOpenFailed(SessionEvents.LogOpenFailed e) {
+        return failOwnedOpen(e.opId(), "the assistant's log could not be opened");
+    }
+
+    @OnEventHandler
+    public boolean onEffectFailed(SessionEvents.EffectFailed e) {
+        if (e.opId() == ownedProjectOp && ownedProjectOp != 0) {
+            clearOwnership();
+            end("FAILED", "the assistant's project open failed; remaining work was stopped");
+            return changed();
+        }
+        return failOwnedOpen(e.opId(), "the assistant's log open failed; remaining work was stopped");
+    }
+
+    private boolean failOwnedOpen(long opId, String why) {
+        if (opId != ownedLogOp || ownedLogOp == 0 || !busy()) return false;
+        clearOwnership();
+        end("FAILED", why + completedActions());
+        return changed();
+    }
+
+    /** A project transition can close its old log and graph before applying the new profile. All carry its opId. */
+    @OnEventHandler
+    public boolean onLogClosed(SessionEvents.LogClosed e) {
+        return captureOwnedProjectStep(e.opId()) || onBasisMoved();
+    }
+
+    @OnEventHandler
+    public boolean onGraphClosed(SessionEvents.GraphClosed e) {
+        return captureOwnedProjectStep(e.opId()) || onBasisMoved();
+    }
+
+    @OnEventHandler
+    public boolean onProfileApplied(SessionEvents.ProfileApplied e) {
+        if (captureOwnedProjectStep(e.opId())) {
+            ownedProjectOp = 0;
+            return true;
+        }
+        return onBasisMoved();
+    }
+
+    @OnEventHandler
+    public boolean onSettingsRestored(SessionEvents.SettingsRestored e) {
+        if (captureOwnedProjectStep(e.opId())) {
+            ownedProjectOp = 0;
+            return true;
+        }
+        return onBasisMoved();
+    }
+
+    @OnEventHandler
+    public boolean onProfileLoaded(SessionEvents.ProfileLoaded e) {
+        if (e.opId() != ownedProjectOp || e.ok()) return false;
+        ownedProjectOp = 0;
+        return false;
+    }
+
+    private boolean captureOwnedProjectStep(long opId) {
+        if (opId != ownedProjectOp || ownedProjectOp == 0 || !gate.accepted() || !"RUNNING_ACTION".equals(phase))
+            return false;
+        captureBasis();
+        return changed();
+    }
+
+    /** Synchronous view and graph facts carry the identity of the action that changed them. */
+    @OnEventHandler
+    public boolean onGraphOpened(SessionEvents.GraphOpened e) {
+        if (owns(e.assistantOrigin())) {
+            captureBasis();
+            return changed();
+        }
+        return onBasisMoved();
+    }
+
+    @OnEventHandler
+    public boolean onGraphCleared(SessionEvents.GraphCleared e) {
+        if (owns(e.assistantOrigin())) {
+            captureBasis();
+            return changed();
+        }
+        return onBasisMoved();
+    }
+
+    @OnEventHandler
+    public boolean onLogCleared(SessionEvents.LogCleared e) {
+        if (owns(e.assistantOrigin())) {
+            captureBasis();
+            return changed();
+        }
+        return onBasisMoved();
+    }
+
+    @OnEventHandler
+    public boolean onViewFilterChanged(SessionEvents.ViewFilterChanged e) {
+        if (Objects.equals(viewKey, e.filterKey())) return false;
+        viewKey = e.filterKey();
+        if (owns(e.assistantOrigin())) {
+            captureBasis();
+            return changed();
+        }
+        return onBasisMoved();
+    }
+
+    /** Any basis change without a matching causal fact belongs to someone else and ends the old authority. */
+    private boolean onBasisMoved() {
+        String now = basisKeyNow();
+        if (Objects.equals(now, basisKey)) return false;
         if (busy()) {
-            end("SUPERSEDED", "the workspace changed during this turn (" + basisLabelNow() + "), so its remaining work was "
+            end("SUPERSEDED", "the workspace or investigation view changed during this turn (" + basisLabelNow() + "), so its remaining work was "
                     + "stopped; ask again" + completedActions());
             frozen = true;
             return changed();
@@ -356,6 +541,7 @@ public class AssistantLoop implements EventLogSource {
                     runningVerb, "the turn ended while it was running: its result is not accepted, and whatever it had already "
                     + "changed is not undone", 0));
         }
+        clearOwnership();
         ticket++;
         phase = terminal;
         runningAction = 0;
@@ -386,6 +572,7 @@ public class AssistantLoop implements EventLogSource {
         phase = "IDLE";
         round = 0;
         actionsRun = 0;
+        clearOwnership();
         runningAction = 0;
         runningVerb = null;
         entries = new ArrayList<>();
@@ -430,6 +617,19 @@ public class AssistantLoop implements EventLogSource {
         return "PREPARING".equals(phase) || "REQUESTING".equals(phase) || "RUNNING_ACTION".equals(phase);
     }
 
+    private boolean owns(SessionEvents.AssistantActionOrigin origin) {
+        return origin != null && "RUNNING_ACTION".equals(phase)
+                && origin.ticket() == ticket && origin.action() == runningAction;
+    }
+
+    private void clearOwnership() {
+        ownedLogOp = 0;
+        ownedLogApplied = false;
+        heldOpenResult = 0;
+        heldOpenVerb = null;
+        ownedProjectOp = 0;
+    }
+
     private void captureBasis() {
         basisKey = basisKeyNow();
         basisLabel = basisLabelNow();
@@ -437,14 +637,15 @@ public class AssistantLoop implements EventLogSource {
 
     private String basisKeyNow() {
         return (activeProject.isActive() ? activeProject.profilePath() : "-") + "|"
-                + (openLog.isOpen() ? openLog.generation() : -1) + "|" + (openGraph.isOpen() ? openGraph.revision() : -1);
+                + (openLog.isOpen() ? openLog.generation() : -1) + "|" + (openGraph.isOpen() ? openGraph.revision() : -1)
+                + "|" + (viewKey == null ? "no-filter" : "filter:" + viewKey.length() + ":" + viewKey);
     }
 
     private String basisLabelNow() {
         String project = activeProject.isActive() ? "project " + activeProject.name() : "no project";
         String log = openLog.isOpen() ? "log " + fileName(openLog.logPath()) + " (#" + openLog.generation() + ")" : "no log";
         String graph = openGraph.isOpen() ? "graph " + fileName(openGraph.graphPath()) : "no graph";
-        return project + " · " + log + " · " + graph;
+        return project + " · " + log + " · " + graph + (viewKey == null ? " · all records" : " · filtered view");
     }
 
     private static String fileName(String path) {

@@ -60,8 +60,12 @@ public sealed interface SessionEffects {
      * M44.3: start loading a log. The adapter answers {@link SessionEvents.Pending} at once and
      * {@link SessionEvents.LogOpened} / {@link SessionEvents.LogOpenFailed} when the load lands.
      */
-    record OpenLogEffect(long opId, String location, String format, String provenance, boolean fromSocket)
+    record OpenLogEffect(long opId, String location, String format, String provenance, boolean fromSocket,
+                         SessionEvents.AssistantActionOrigin assistantOrigin)
             implements SessionEffects {
+        public OpenLogEffect(long opId, String location, String format, String provenance, boolean fromSocket) {
+            this(opId, location, format, provenance, fromSocket, null);
+        }
     }
 
     /** Say something in the status line. Infallible by construction, but still answered. */

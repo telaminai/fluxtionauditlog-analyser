@@ -42,7 +42,11 @@ public final class SessionEvents {
      * @param kind        why (see {@link TransitionKind}); carried, never inferred from {@code source}
      * @param source      which surface asked, for the record only — it must not drive a decision
      */
-    public record OpenProjectRequested(long opId, String profilePath, TransitionKind kind, String source) {
+    public record OpenProjectRequested(long opId, String profilePath, TransitionKind kind, String source,
+                                       AssistantActionOrigin assistantOrigin) {
+        public OpenProjectRequested(long opId, String profilePath, TransitionKind kind, String source) {
+            this(opId, profilePath, kind, source, null);
+        }
     }
 
     /**
@@ -70,7 +74,11 @@ public final class SessionEvents {
      * @param fromSocket whether an agent asked; carried for the record and for the adapter's audience
      */
     public record OpenLogRequested(long opId, String location, String format, String provenance,
-                                   boolean fromSocket) {
+                                   boolean fromSocket, AssistantActionOrigin assistantOrigin) {
+        public OpenLogRequested(long opId, String location, String format, String provenance,
+                                boolean fromSocket) {
+            this(opId, location, format, provenance, fromSocket, null);
+        }
     }
 
     /**
@@ -90,7 +98,10 @@ public final class SessionEvents {
      *
      * @param target what the close covers
      */
-    public record CloseRequested(long opId, Target target) {
+    public record CloseRequested(long opId, Target target, AssistantActionOrigin assistantOrigin) {
+        public CloseRequested(long opId, Target target) {
+            this(opId, target, null);
+        }
 
         /** What a close covers. Leaving a project is NOT here: that is a project transition, which already supersedes. */
         public enum Target {
@@ -214,7 +225,11 @@ public final class SessionEvents {
      * @param nodeTypes       every node's simple type name, which is how audit installation is read
      */
     public record GraphOpened(String graphPath, String source, java.util.Set<String> declaredNodeIds,
-                              java.util.List<String> nodeTypes) {
+                              java.util.List<String> nodeTypes, AssistantActionOrigin assistantOrigin) {
+        public GraphOpened(String graphPath, String source, java.util.Set<String> declaredNodeIds,
+                           java.util.List<String> nodeTypes) {
+            this(graphPath, source, declaredNodeIds, nodeTypes, null);
+        }
         public GraphOpened {
             declaredNodeIds = declaredNodeIds == null ? java.util.Set.of() : java.util.Set.copyOf(declaredNodeIds);
             nodeTypes = nodeTypes == null ? java.util.List.of() : java.util.List.copyOf(nodeTypes);
@@ -226,11 +241,13 @@ public final class SessionEvents {
      * reader's graph retired with its log. Inside a transition the processor already learned it from {@link GraphClosed}, and this one then
      * arrives after the operation and changes nothing — which the record shows, rather than the frame guessing.
      */
-    public record GraphCleared() {
+    public record GraphCleared(AssistantActionOrigin assistantOrigin) {
+        public GraphCleared() { this(null); }
     }
 
     /** The log of {@code generation} closed outside a transition. The counterpart of {@link GraphCleared}. */
-    public record LogCleared(long generation) {
+    public record LogCleared(long generation, AssistantActionOrigin assistantOrigin) {
+        public LogCleared(long generation) { this(generation, null); }
     }
 
     /**
@@ -260,7 +277,8 @@ public final class SessionEvents {
      * M44.4c: the view filter changed. A comparison made under another filter is then stale, and the snapshot must know
      * which filter is in force to say so. {@code filterKey} is null for no filter.
      */
-    public record ViewFilterChanged(String filterKey) {
+    public record ViewFilterChanged(String filterKey, AssistantActionOrigin assistantOrigin) {
+        public ViewFilterChanged(String filterKey) { this(filterKey, null); }
     }
 
     /**
@@ -501,4 +519,13 @@ public final class SessionEvents {
      */
     public record AssistantActionFinished(long ticket, long action, String verb, boolean ok, long result) {
     }
+
+    /** The ticket and action that caused a workspace fact, or null for a person, another client or a later poll. */
+    public record AssistantActionOrigin(long ticket, long action) { }
+
+    /** The accepted log has finished applying to the frame, including its source graph and reset view. */
+    public record AssistantOpenApplied(long opId, AssistantActionOrigin assistantOrigin) { }
+
+    /** An accepted load failed during its final frame apply; no assistant continuation may use its partial view. */
+    public record AssistantOpenApplyFailed(long opId, AssistantActionOrigin assistantOrigin) { }
 }
