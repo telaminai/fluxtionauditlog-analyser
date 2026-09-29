@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+## [1.28.0] - 2026-09-29
+
 - Opening a topology while an evidence bundle is still being prepared now keeps the newer graph; the late bundle cannot switch projects or load its log.
 
 ### Changed
