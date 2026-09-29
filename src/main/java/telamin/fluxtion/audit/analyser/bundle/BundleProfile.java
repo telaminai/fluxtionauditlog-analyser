@@ -114,6 +114,16 @@ public final class BundleProfile {
                 }
             }
         }
+        // OA-3 (§7): a kept walk's dialogue was written against the whole log. Its step targets are re-based; the words
+        // cannot be, so a record number in them would now name another record. Said, not silently shipped.
+        if (rebase != null && rebase.first() > 0) {
+            for (WalkSpec w : c.walks) {
+                if (w.conversation() != null && !w.conversation().turns().isEmpty()) {
+                    dangling.add("walk '" + w.name() + "' carries a conversation written against the whole log: record "
+                            + "numbers in its words are not re-based (this excerpt's record 0 was record " + rebase.first() + ")");
+                }
+            }
+        }
         for (var r : c.reports) {
             for (var s : r.sections()) {
                 if (s.kind() == telamin.fluxtion.audit.analyser.analyser.report.ReportSpec.Kind.CHART && gone.contains(s.ref())) {
@@ -207,14 +217,15 @@ public final class BundleProfile {
                 }
                 WalkSpec.View shifted = v == null || record == null ? v
                         : new WalkSpec.View(v.tab(), v.filter(), record - r.first(), v.graph(), v.focus());
-                steps.add(new WalkSpec.Step(s.caption(), shifted, targets));
+                steps.add(new WalkSpec.Step(s.caption(), shifted, targets, s.id(), s.through()));   // OA-3: bindings kept
             }
             if (outside != null) {
                 leftOut.add("walk '" + w.name() + "' (" + outside + ", outside the excerpt's " + window + ")");
                 continue;
             }
             walks.add(new WalkSpec(w.name(), w.title(), w.author(), w.createdAt(), w.updatedAt(),
-                    refingerprint(w.fingerprint(), r), w.runBasis().isEmpty() ? w.runBasis() : r.runBasis(), steps, w.extras()));
+                    refingerprint(w.fingerprint(), r), w.runBasis().isEmpty() ? w.runBasis() : r.runBasis(), steps, w.extras(),
+                    w.conversation()));
         }
         c.walks.clear();
         c.walks.addAll(walks);

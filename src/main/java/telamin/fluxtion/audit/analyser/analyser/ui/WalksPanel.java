@@ -66,6 +66,9 @@ final class WalksPanel extends JPanel {
     final JMenuItem rename = new JMenuItem("Rename…");
     final JMenuItem delete = new JMenuItem("Delete…");
     final JMenuItem restore = new JMenuItem("Restore deleted…");
+    /** OA-3: write or capture the selected walk's dialogue (the frame opens the editor). */
+    final JMenuItem conversation = new JMenuItem("Conversation…");
+    java.util.function.Consumer<WalkSpec> onConversation = w -> { };
 
     WalksPanel(Supplier<List<WalkSpec>> walks, Function<Map<String, Object>, ActionResult> walk,
                Supplier<List<String>> restorable) {
@@ -97,7 +100,11 @@ final class WalksPanel extends JPanel {
             String name = restoreChooser.apply(gone);
             if (name != null && run(Map.of("restore", name))) select(name);
         });
+        conversation.setToolTipText("Write, or capture from the current chat, dialogue shown beside this walk's steps");
+        conversation.addActionListener(e -> withSelected(w -> onConversation.accept(w)));
         JPopupMenu actions = new JPopupMenu();
+        actions.add(conversation);
+        actions.addSeparator();
         actions.add(rename);
         actions.add(delete);
         actions.addSeparator();
@@ -254,6 +261,7 @@ final class WalksPanel extends JPanel {
         play.setEnabled(selected);
         playFrom.setEnabled(selected && steps.getSelectedIndex() >= 0);
         rename.setEnabled(selected);
+        conversation.setEnabled(selected);
         delete.setEnabled(selected);
         restore.setEnabled(!restorable.get().isEmpty());
     }

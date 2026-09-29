@@ -87,6 +87,23 @@ public record AssistantState(long conversation, long ticket, String phase, int r
         return "PREPARING".equals(phase) || "REQUESTING".equals(phase) || "RUNNING_ACTION".equals(phase);
     }
 
+    /**
+     * OA-3 (§7): the turns that may be captured into a walk — those that completed. A turn that was cancelled, failed or
+     * superseded, or the one in progress, never becomes recorded dialogue.
+     */
+    public java.util.Set<Long> completedTurns() {
+        java.util.Set<Long> ended = new java.util.TreeSet<>();
+        java.util.Set<Long> bad = new java.util.HashSet<>();
+        for (Entry e : entries) {
+            ended.add(e.turn());
+            if (NOTE.equals(e.kind()) && ("CANCELLED".equals(e.status()) || "FAILED".equals(e.status())
+                    || "SUPERSEDED".equals(e.status()))) bad.add(e.turn());
+        }
+        ended.removeAll(bad);
+        if (busy() && !entries.isEmpty()) ended.remove(entries.get(entries.size() - 1).turn());
+        return ended;
+    }
+
     /** The entries a person sees, in order. */
     public List<Entry> visibleEntries() {
         return entries.stream().filter(Entry::visible).toList();

@@ -49,7 +49,9 @@ final class WalkVerb {
 
     /** Each operation's naming field → every field it may carry. */
     static final Map<String, Set<String>> OPERATIONS = Map.of(
-            "steps", Set.of("steps", "name", "title"),
+            // OA-3: a conversation may be saved with the steps, or attached to a saved walk on its own
+            "steps", Set.of("steps", "name", "title", "conversation"),
+            "conversation", Set.of("conversation", "name", "through"),
             "delete", Set.of("delete", "name"),
             "rename", Set.of("rename", "name"),
             "restore", Set.of("restore"),
@@ -76,9 +78,11 @@ final class WalkVerb {
      * from either place ends its own showing the same way.
      */
     ActionResult run(Map<String, Object> params, String origin) {
-        List<String> named = OPERATIONS.keySet().stream().filter(params::containsKey).sorted().toList();
+        List<String> named = OPERATIONS.keySet().stream().filter(params::containsKey)
+                // OA-3: 'conversation' names its own operation only alone; beside 'steps' it is that save's dialogue
+                .filter(op -> !("conversation".equals(op) && params.containsKey("steps"))).sorted().toList();
         if (named.isEmpty()) {
-            return ActionResult.error("walk needs one operation: steps (save), delete, rename, restore, play or end"
+            return ActionResult.error("walk needs one operation: steps (save), conversation, delete, rename, restore, play or end"
                     + " — walks: " + names());
         }
         if (named.size() > 1) {
@@ -92,7 +96,9 @@ final class WalkVerb {
         }
         String name = params.get("name") == null ? null : String.valueOf(params.get("name"));
         return switch (op) {
-            case "steps" -> save(name, params.get("title") == null ? "" : String.valueOf(params.get("title")), params.get("steps"));
+            case "steps" -> save(name, params.get("title") == null ? "" : String.valueOf(params.get("title")), params.get("steps"),
+                    params.get("conversation"));
+            case "conversation" -> conversation(name, params.get("conversation"), params.get("through"));
             case "delete" -> Boolean.TRUE.equals(params.get("delete")) ? delete(name)
                     : ActionResult.error("walk 'delete' must be true");
             case "rename" -> rename(name, params.get("rename") == null ? null : String.valueOf(params.get("rename")));
@@ -103,10 +109,13 @@ final class WalkVerb {
         };
     }
 
-    private ActionResult save(String name, String title, Object rawSteps) {
+    private ActionResult save(String name, String title, Object rawSteps, Object rawConversation) {
         if (name == null || name.isBlank()) return ActionResult.error("saving a walk needs 'name'");
         WalkSteps.Parsed parsed = WalkSteps.parse(rawSteps);
         if (!parsed.ok()) return ActionResult.error(parsed.error() + " — nothing was saved");
+        telamin.fluxtion.audit.analyser.analyser.walk.WalkConversation.Parsed dialogue =
+                telamin.fluxtion.audit.analyser.analyser.walk.WalkConversation.parse(rawConversation);
+        if (!dialogue.ok()) return ActionResult.error(dialogue.error() + " — nothing was saved");
         if (!frame.logOpen()) {
             for (int i = 0; i < parsed.steps().size(); i++) {
                 for (WalkSpec.Target t : parsed.steps().get(i).targets()) {
@@ -123,14 +132,16 @@ final class WalkVerb {
         List<WalkSpec.Step> bound = new ArrayList<>();
         for (WalkSpec.Step s : parsed.steps()) bound.add(frame.authoring().bind(s));
         boolean replaced = WalkBin.find(frame.config().walks, name.trim()) != null;
-        String refused = frame.authoring().save(name, title, bound, WalkSpec.AUTHOR_ASSISTANT, generation);
-        if (refused != null) return ActionResult.error(refused);
+        String refused = frame.authoring().save(name, title, bound, WalkSpec.AUTHOR_ASSISTANT, generation,
+                dialogue.conversation(), rawConversation != null);
+        if (refused != null) return ActionResult.error(refused + " — nothing was saved");
         WalkSpec saved = WalkBin.find(frame.config().walks, name.trim());
         Map<String, Object> echo = new LinkedHashMap<>();
         echo.put("saved", saved.name());
         echo.put("replaced", replaced);
         echo.put("steps", saved.steps().size());
         echo.put("author", saved.author());
+        if (saved.conversation() != null) echo.put("conversation", conversationSummary(saved));
         List<String> unbound = new ArrayList<>();
         for (int i = 0; i < saved.steps().size(); i++) {
             for (WalkSpec.Target t : saved.steps().get(i).targets()) {
@@ -143,6 +154,53 @@ final class WalkVerb {
         if (!unbound.isEmpty()) echo.put("warnings", unbound);
         echo.put("next", "walk {name: \"" + saved.name() + "\", play: true} presents it to the person");
         return ActionResult.ok("walk", "walk", echo);
+    }
+
+    /**
+     * OA-3: attach, replace or remove ({@code conversation: null}) a saved walk's dialogue. {@code through} lists, per step,
+     * the id of the last turn visible there (null for none yet). Nothing about the evidence changes.
+     */
+    private ActionResult conversation(String name, Object rawConversation, Object rawThrough) {
+        if (name == null) return ActionResult.error("conversation needs 'name' (the walk it belongs to) — walks: " + names());
+        telamin.fluxtion.audit.analyser.analyser.walk.WalkConversation.Parsed dialogue =
+                telamin.fluxtion.audit.analyser.analyser.walk.WalkConversation.parse(rawConversation);
+        if (!dialogue.ok()) return ActionResult.error(dialogue.error() + " — nothing was changed");
+        List<String> through = null;
+        if (rawThrough != null) {
+            if (!(rawThrough instanceof List<?> list)) {
+                return ActionResult.error("'through' is a list with one entry per step: the id of the last turn visible "
+                        + "at that step, or null — nothing was changed");
+            }
+            through = new ArrayList<>();
+            for (Object o : list) through.add(o == null ? null : String.valueOf(o));
+        }
+        String refused = frame.authoring().setConversation(name, dialogue.conversation(), through);
+        if (refused != null) return ActionResult.error(refused + " — nothing was changed");
+        WalkSpec saved = WalkBin.find(frame.config().walks, name);
+        Map<String, Object> echo = new LinkedHashMap<>();
+        echo.put("walk", saved.name());
+        echo.put("conversation", saved.conversation() == null ? "removed" : conversationSummary(saved));
+        return ActionResult.ok("walk", "conversation", echo);
+    }
+
+    /** What context and the echoes say about a walk's dialogue: its kind, size and bindings — never its words. */
+    static Map<String, Object> conversationSummary(WalkSpec w) {
+        Map<String, Object> out = new LinkedHashMap<>();
+        var c = w.conversation();
+        if (!c.supported()) {
+            out.put("version", c.version());
+            out.put("playable", false);
+            out.put("reason", "conversation version " + c.version() + " is newer than this analyser reads: the walk plays "
+                    + "without it");
+            return out;
+        }
+        out.put("kind", c.kind());
+        out.put("label", c.label());
+        out.put("turns", c.turns().size());
+        List<Object> through = new ArrayList<>();
+        for (WalkSpec.Step s : w.steps()) through.add(s.through());
+        out.put("through", through);
+        return out;
     }
 
     private ActionResult delete(String name) {
@@ -240,6 +298,7 @@ final class WalkVerb {
             if (!w.title().isBlank()) one.put("title", w.title());
             one.put("author", w.author());
             one.put("steps", w.steps().size());
+            if (w.conversation() != null) one.put("conversation", conversationSummary(w));   // OA-3: never the words
             one.put("from", from);
             String warning = warning(w, logOpen, runNow);
             if (warning != null) one.put("warning", warning);

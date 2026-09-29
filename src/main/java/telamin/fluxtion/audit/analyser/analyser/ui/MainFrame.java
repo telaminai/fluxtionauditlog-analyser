@@ -2668,6 +2668,15 @@ public final class MainFrame extends JFrame {
             replace.addActionListener(a -> saveWalkFromSpotlight(state.walk(), state.step()));
             menu.add(replace);
         }
+        // OA-3 (§7): the save workflow offers dialogue — never preselected, and never the whole chat by default
+        javax.swing.JMenu include = new javax.swing.JMenu("Include conversation…");
+        for (var w : config.walks) {
+            javax.swing.JMenuItem item = new javax.swing.JMenuItem(w.displayTitle());
+            item.addActionListener(a -> openConversationEditor(w.name()));
+            include.add(item);
+        }
+        include.setEnabled(!config.walks.isEmpty());
+        menu.add(include);
         menu.addPopupMenuListener(new javax.swing.event.PopupMenuListener() {
             @Override public void popupMenuWillBecomeVisible(javax.swing.event.PopupMenuEvent ev) { }
             @Override public void popupMenuWillBecomeInvisible(javax.swing.event.PopupMenuEvent ev) {
@@ -2678,6 +2687,23 @@ public final class MainFrame extends JFrame {
         });
         lastWalkMenu = menu;
         menu.show(spotlight, e.getX(), e.getY());
+    }
+
+    /** OA-3: the dialogue editor last opened, for tests. */
+    ConversationEditor lastConversationEditor;
+
+    /**
+     * OA-3 (§7): open the dialogue editor for walk {@code name}. It offers the current chat's COMPLETED turns (their visible
+     * words only) and saves through WalkAuthoring, which validates before storing and reports the change to the session.
+     */
+    void openConversationEditor(String name) {
+        var walk = telamin.fluxtion.audit.analyser.analyser.config.WalkBin.find(config.walks, name);
+        if (walk == null) return;
+        var offered = ConversationEditor.candidates(sessionSnapshot().assistant(), assistantTranscript);
+        ConversationEditor editor = new ConversationEditor(this, walk, offered,
+                (dialogue, through) -> walkAuthoring.setConversation(name, dialogue, through));
+        lastConversationEditor = editor;
+        editor.setVisible(true);
     }
 
     /** For tests: the save menu last shown. */
@@ -3680,6 +3706,7 @@ public final class MainFrame extends JFrame {
         walksPanel = new WalksPanel(() -> java.util.List.copyOf(config.walks),
                 params -> walkVerb.run(params, WalkVerb.ORIGIN_REPORTS_TAB),
                 () -> telamin.fluxtion.audit.analyser.analyser.config.WalkBin.restorable(config));
+        walksPanel.onConversation = w -> openConversationEditor(w.name());   // OA-3
         reportsPanel.addWalks(walksPanel);
         walksPanel.refresh();
         sideTabs.addTab("Reports", reportsPanel);

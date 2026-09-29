@@ -21,7 +21,7 @@ public final class WalkSteps {
     }
 
     /** The fields a step may carry. */
-    static final Set<String> STEP_FIELDS = Set.of("caption", "view", "targets");
+    static final Set<String> STEP_FIELDS = Set.of("caption", "view", "targets", "id", "conversationThrough");
     /** The fields a step's view may carry (§3.3). Not a chart window, not an open, not anything that writes. */
     static final Set<String> VIEW_FIELDS = Set.of("tab", "filter", "record", "graph", "focus");
     /** A filter is always complete; these are its fields. */
@@ -60,7 +60,8 @@ public final class WalkSteps {
             String at = "step " + (i + 1) + ": ";
             if (!(list.get(i) instanceof Map<?, ?> m)) return refuse(at + "a step is an object {caption?, view?, targets}");
             String unknown = unknownField(m, STEP_FIELDS);
-            if (unknown != null) return refuse(at + "'" + unknown + "' is not a step field — a step has caption, view, targets");
+            if (unknown != null) return refuse(at + "'" + unknown + "' is not a step field — a step has caption, view, targets, and (with "
+                    + "a conversation) id and conversationThrough");
             WalkSpec.View view;
             try {
                 view = view(m.get("view"));
@@ -83,7 +84,8 @@ public final class WalkSteps {
                     }
                 }
             }
-            WalkSpec.Step step = new WalkSpec.Step(str(m.get("caption")), view, targets);
+            WalkSpec.Step step = new WalkSpec.Step(str(m.get("caption")), view, targets, str(m.get("id")),
+                    str(m.get("conversationThrough")));
             String problem = problem(step);
             if (problem != null) return refuse(at + problem);
             steps.add(step);

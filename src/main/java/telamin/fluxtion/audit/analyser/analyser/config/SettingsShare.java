@@ -403,7 +403,26 @@ public final class SettingsShare {
             present.add(Category.REPORTS);
             walks = new ArrayList<>();
             ConfigStore.readWalks(p, walks);
-            String walkSummary = walks.size() + " spotlight walk(s) — the author's commentary, attributed as declared";
+            // OA-3 (§6.1): dialogue is validated BEFORE anything is installed; a walk whose dialogue is malformed is
+            // refused by name and never partly installed, and what the rest carry is said, because it is prose too
+            List<String> refusedWalks = new ArrayList<>();
+            walks.removeIf(w -> {
+                var c = w.conversation();
+                if (c == null || !c.supported()) return false;
+                String problem = telamin.fluxtion.audit.analyser.analyser.walk.WalkConversation.problem(c);
+                if (problem == null) problem = telamin.fluxtion.audit.analyser.analyser.walk.WalkConversation.bindingProblem(c, w.steps());
+                if (problem == null) return false;
+                refusedWalks.add("'" + w.name() + "' (" + problem + ")");
+                return true;
+            });
+            long dialogue = walks.stream().filter(w -> w.conversation() != null && w.conversation().supported()).count();
+            long turns = walks.stream().filter(w -> w.conversation() != null).mapToLong(w -> w.conversation().turns().size()).sum();
+            long newer = walks.stream().filter(w -> w.conversation() != null && !w.conversation().supported()).count();
+            String walkSummary = walks.size() + " spotlight walk(s) — the author's commentary, attributed as declared"
+                    + (dialogue == 0 ? "" : " · " + dialogue + " carrying dialogue (" + turns + " turns of labelled, "
+                    + "unverified conversation)")
+                    + (newer == 0 ? "" : " · " + newer + " with a newer dialogue version, which plays here without it")
+                    + (refusedWalks.isEmpty() ? "" : " · " + refusedWalks.size() + " REFUSED: " + String.join("; ", refusedWalks));
             summary.merge(Category.REPORTS, walkSummary, (a, b) -> a + " · " + b);
         }
 

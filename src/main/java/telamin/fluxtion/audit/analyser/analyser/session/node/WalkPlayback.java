@@ -142,7 +142,10 @@ public class WalkPlayback implements EventLogSource {
             end("the walk was deleted");
             return true;
         }
-        if (e.now().steps().equals(definition.steps())) return false;   // saved unchanged: nothing shown differs
+        // saved unchanged: nothing shown differs. OA-3: the dialogue is part of what is shown, so a changed conversation is
+        // a changed walk too — a prefix from one revision is never shown beside another's steps
+        if (e.now().steps().equals(definition.steps())
+                && java.util.Objects.equals(e.now().conversation(), definition.conversation())) return false;
         end("the walk was changed while it was showing — play it again to see the new version");
         return true;
     }

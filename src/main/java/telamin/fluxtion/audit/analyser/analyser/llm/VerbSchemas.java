@@ -420,12 +420,21 @@ public final class VerbSchemas {
                         + "records or charts needs the log open; played against another run it is marked "
                         + "historical or not shown, never re-pointed. PLAY: {name, play: true, step?} (step counted "
                         + "from 1). END: {end: true}. CLEAN UP: {name, delete: true} (recoverable), {name, "
-                        + "rename}, {restore: true} lists the bin, {restore: \"name\"} restores. context.walks "
+                        + "rename}, {restore: true} lists the bin, {restore: \"name\"} restores. DIALOGUE (a "
+                        + "conversation journey): save 'conversation' {version: 1, kind: scripted|recorded|"
+                        + "edited-recording, author?, turns: [{id, role: user|assistant, text}]} with the steps, "
+                        + "giving steps 'id' and 'conversationThrough' (the last turn visible there), or attach one to "
+                        + "a saved walk: {name, conversation, through: [turn id or null per step]}; conversation: null "
+                        + "removes it. Dialogue is labelled and shown beside the real view, never run. context.walks "
                         + "lists the walks and the showing step's target states.",
                 props(
                         p("name", string(), "the walk's identity — saving again with the same name REPLACES it"),
                         p("title", string(), "the headline shown on the strip"),
                         p("steps", arr(walkStepObject()), "the ordered steps (save)"),
+                        p("conversation", conversationObject(), "OA-3: the walk's dialogue (with steps, or alone to "
+                                + "attach, replace, or with null remove it)"),
+                        p("through", arr(string()), "with conversation alone: per step, the id of the last turn "
+                                + "visible there, or null"),
                         p("delete", bool(), "true moves the walk named by 'name' to this machine's recently-deleted list"),
                         p("rename", string(), "the new name for the walk named by 'name'; refused if taken"),
                         p("restore", nameOrTrue(),
@@ -442,6 +451,24 @@ public final class VerbSchemas {
     private static Map<String, Object> nameOrTrue() {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("anyOf", List.of(string(), Map.of("type", "boolean", "enum", List.of(true))));
+        return m;
+    }
+
+    /** OA-3: a walk's dialogue — labelled testimony, never executed. */
+    private static Map<String, Object> conversationObject() {
+        Map<String, Object> turn = new LinkedHashMap<>();
+        turn.put("type", "object");
+        turn.put("properties", props(
+                p("id", string(), "a stable id (letters, digits, '.', '_', '-')"),
+                p("role", enumStr("user", "assistant"), "who says it"),
+                p("text", string(), "plain text, at most 16 KiB")));
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("type", "object");
+        m.put("properties", props(
+                p("version", integer(), "the conversation schema version: 1"),
+                p("kind", enumStr("scripted", "recorded", "edited-recording"), "how it was made; shown as its label"),
+                p("author", string(), "who declares they wrote or recorded it (declared, never authenticated)"),
+                p("turns", arr(turn), "the turns in order, at most 200")));
         return m;
     }
 
@@ -466,6 +493,8 @@ public final class VerbSchemas {
         m.put("type", "object");
         m.put("properties", props(
                 p("caption", string(), "the step's own line, shown on the strip"),
+                p("id", string(), "OA-3: a stable step id, required when the walk has a conversation"),
+                p("conversationThrough", string(), "OA-3: the id of the last conversation turn visible at this step"),
                 p("view", view, "what the step shows before it lights its targets"),
                 p("targets", arr(spotlightEntry()), "what the step lights, numbered as a spotlight numbers them")));
         return m;
