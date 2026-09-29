@@ -65,18 +65,20 @@ def main():
     check = v.Checks()
     try:
         with v.Analyser(jars[-1], home, "spotlight") as a:
-            print("with NOTHING open - a tutor's first 'look here' happens on a fresh start")
+            print("with NOTHING open - the full-window Start page hides workspace targets")
             for target in ("status", "toolbar:open", "tab:topology", "project"):
                 r = a.act("spotlight", target=target, caption="look here first")
-                check("%s lights with nothing open" % target, lit(r) and area(r) > 0, r)
+                reason = json.dumps(r)
+                check("%s refuses while Start hides it" % target,
+                      r.get("ok") is False and ("not on screen" in reason or "hidden" in reason), r)
             ctx = a.context()
-            check("context reports the live spotlight, on a fresh start (above the early return)",
-                  targets(ctx) == ["project"], ctx.get("spotlight"))
+            check("context does not report a hidden workspace spotlight on Start",
+                  "spotlight" not in ctx, ctx.get("spotlight"))
             r = a.act("spotlight", target="topology:node:priceListener")
             check("a node with no topology open is REFUSED with a reason to act on, never lit on nothing",
                   r.get("ok") is False and "open {graphml}" in json.dumps(r), r)
-            check("and the refused request left the standing spotlight alone",
-                  targets(a.context()) == ["project"], a.context().get("spotlight"))
+            check("and the refused request left no spotlight behind",
+                  "spotlight" not in a.context(), a.context().get("spotlight"))
 
             print("an unknown target names the vocabulary")
             r = a.act("spotlight", target="topolgy:node:x")

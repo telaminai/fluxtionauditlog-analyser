@@ -466,8 +466,67 @@ public final class ChartPanel extends JPanel {
             lo -= 1;
             hi += 1;
         }
+        // Include zero when it costs at most twice the data span. A series near a large baseline keeps
+        // its useful detail; zero remains visible for ordinary positive/negative counts and rates.
+        double span = hi - lo;
+        if (lo > 0 && hi <= 3 * span) lo = 0;
+        else if (hi < 0 && -lo <= 3 * span) hi = 0;
         double pad = (hi - lo) * 0.05;
         return new double[]{lo - pad, hi + pad};
+    }
+
+    /** Round value ticks inside the current view; tick positions never move the data or a marker. */
+    static java.util.List<Double> valueTicks(double lo, double hi) {
+        if (!Double.isFinite(lo) || !Double.isFinite(hi) || !Double.isFinite(hi - lo) || hi <= lo)
+            return java.util.List.of();
+        double raw = (hi - lo) / 4;
+        double decade = Math.pow(10, Math.floor(Math.log10(raw)));
+        double step = decade;
+        double best = Double.POSITIVE_INFINITY;
+        for (double unit : new double[]{1, 2, 2.5, 5, 10}) {
+            double candidate = unit * decade;
+            double distance = Math.abs(Math.log(candidate / raw));
+            if (distance < best) { best = distance; step = candidate; }
+        }
+        java.util.List<Double> ticks = new java.util.ArrayList<>();
+        double first = Math.ceil(lo / step) * step;
+        for (int i = 0; i < 100; i++) {
+            double value = first + i * step;
+            if (value > hi + step * 1e-9) break;
+            ticks.add(Math.abs(value) < step * 1e-9 ? 0.0 : value);
+        }
+        return ticks;
+    }
+
+    static long timeTickStep(double from, double to, int plotWidth) {
+        double wanted = (to - from) / Math.max(2, plotWidth / 95);
+        long[] steps = {1, 2, 5, 10, 20, 50, 100, 200, 500,
+                1_000, 2_000, 5_000, 10_000, 15_000, 30_000,
+                60_000, 120_000, 300_000, 600_000, 900_000, 1_800_000,
+                3_600_000, 7_200_000, 10_800_000, 21_600_000, 43_200_000,
+                86_400_000, 172_800_000, 604_800_000, 1_209_600_000, 2_592_000_000L};
+        for (long step : steps) if (step >= wanted) return step;
+        return Math.max(steps[steps.length - 1], (long) Math.ceil(wanted / 86_400_000) * 86_400_000);
+    }
+
+    static java.util.List<Long> timeTicks(double from, double to, int plotWidth) {
+        if (!Double.isFinite(from) || !Double.isFinite(to) || to <= from) return java.util.List.of();
+        long step = timeTickStep(from, to, plotWidth);
+        double first = Math.ceil(from / step) * step;
+        java.util.List<Long> ticks = new java.util.ArrayList<>();
+        for (int i = 0; i < 100; i++) {
+            double time = first + (double) i * step;
+            if (time >= to) break;
+            if (time > from) ticks.add((long) time);
+        }
+        return ticks;
+    }
+
+    private static String timeTickLabel(long at, double span) {
+        String full = TimeFormat.utc(at);
+        if (span < 1_000) return full.substring(11);
+        if (span < 86_400_000) return full.substring(11, 19);
+        return full.substring(5, 16);
     }
 
     /**
@@ -643,24 +702,26 @@ public final class ChartPanel extends JPanel {
             g.drawString("No series samples in this window; a connecting line may cross it.", plotX + 8, plotY + 18);
         }
 
-        // subtle gridlines with evenly-spaced Y value labels
-        int yDivs = 4;
-        for (int i = 0; i <= yDivs; i++) {
-            int gy = plotY + plotH - (int) Math.round((double) i / yDivs * plotH);
-            g.setColor(grid);
+        // Each value axis labels its own round values. The left ticks carry the shared grid; the right
+        // ticks have short marks at their true positions rather than mislabelling the left gridlines.
+        for (double value : valueTicks(vy0, vy1)) {
+            int gy = plotY + plotH - (int) Math.round((value - vy0) / (vy1 - vy0) * plotH);
+            g.setColor(value == 0 ? axis : grid);
             g.drawLine(plotX, gy, plotX + plotW, gy);
             g.setColor(text);
-            String lbl = formatY(vy0 + (double) i / yDivs * (vy1 - vy0));
+            String lbl = formatY(value);
             g.drawString(lbl, plotX - 6 - g.getFontMetrics().stringWidth(lbl), gy + 4);
-            if (axes.hasRightAxis()) {
-                // the second scale, read against the same gridlines — that shared grid is what lets the
-                // eye compare two series whose numbers have nothing in common
-                g.drawString(formatY(ry0 + (double) i / yDivs * (ry1 - ry0)), plotX + plotW + 6, gy + 4);
-            }
         }
-        int xDivs = 5;
-        for (int i = 1; i < xDivs; i++) {
-            int gx = plotX + (int) Math.round((double) i / xDivs * plotW);
+        if (axes.hasRightAxis()) for (double value : valueTicks(ry0, ry1)) {
+            int gy = plotY + plotH - (int) Math.round((value - ry0) / (ry1 - ry0) * plotH);
+            g.setColor(axis);
+            g.drawLine(plotX + plotW, gy, plotX + plotW + 4, gy);
+            g.setColor(text);
+            g.drawString(formatY(value), plotX + plotW + 6, gy + 4);
+        }
+        java.util.List<Long> timeTicks = timeTicks(vx0, vx1, plotW);
+        for (long time : timeTicks) {
+            int gx = plotX + (int) Math.round((time - vx0) / (vx1 - vx0) * plotW);
             g.setColor(grid);
             g.drawLine(gx, plotY, gx, plotY + plotH);
         }
@@ -678,6 +739,17 @@ public final class ChartPanel extends JPanel {
         g.drawString(TimeFormat.utc((long) vx0), plotX, labelBaseline);
         String hiLabel = TimeFormat.utc((long) vx1);
         g.drawString(hiLabel, plotX + plotW - g.getFontMetrics().stringWidth(hiLabel), labelBaseline);
+        int lastLabelRight = plotX + g.getFontMetrics().stringWidth(TimeFormat.utc((long) vx0)) + 8;
+        int rightLabelLeft = plotX + plotW - g.getFontMetrics().stringWidth(hiLabel) - 8;
+        for (long at : timeTicks) {
+            String label = timeTickLabel(at, vx1 - vx0);
+            int gx = plotX + (int) Math.round((at - vx0) / (vx1 - vx0) * plotW);
+            int labelX = gx - g.getFontMetrics().stringWidth(label) / 2;
+            if (labelX > lastLabelRight && labelX + g.getFontMetrics().stringWidth(label) < rightLabelLeft) {
+                g.drawString(label, labelX, labelBaseline + 14);
+                lastLabelRight = labelX + g.getFontMetrics().stringWidth(label) + 8;
+            }
+        }
 
         g.setClip(plotX, plotY, plotW, plotH);
         paintBands(g, dark);   // behind the series: bands are context, never occlusion

@@ -222,11 +222,13 @@ analyser itself, with no assistant connected.
   window is not saved, and the save says so.
 - **Or ask for one.** *"Save that explanation as a walk called 'why quoting stopped'."* The assistant sends
   `walk {name, steps}`; the walk says it was saved by the assistant.
-- **Play it.** The Reports tab's **Spotlight walks** list has **Play** and **Play from step…**, as well as
-  Rename, Delete and Restore deleted…; the Project panel counts them. While a walk shows, a strip on the
+- **Play it.** The Reports tab's **Spotlight walks** list has **Play** and **Play selected step**;
+  Rename, Delete and Restore deleted… are under **More**. The Project panel counts walks. While a walk shows, a strip on the
   spotlight carries **◀** and **▶** (or the ← → keys), the step number, and anything a step could not show.
-  A click anywhere else ends the walk, and *Play from step…* resumes where you left it; so does any change of
-  view you make yourself.
+  A click elsewhere or a change of view ends the walk. **Play selected step** starts at the selected stop.
+
+![A saved spotlight walk at step two, with the selected graph node and playback strip](../assets/spotlight-walk.png)
+
 - **A walk is bound to what it was saved against.** Each record, chart and graph node a step points at is
   checked against what is open now. Played against another run, a record that differs is shown as *not
   available* rather than lit somewhere else, and a callout on something that changed is marked *(historical)*;
@@ -717,7 +719,7 @@ A successful request echo is not an assertion that every saved input opened. Rec
 application logic. The human sees the same offer on the start page and the same status in the Project
 panel. [Identity and partial-restoration rules](projects.md#restore-an-earlier-session).
 
-The start page's **Author a new project** action and **Project ▸ New project from template…** share one catalogue
+The start page's **Create from template** action and **Project ▸ New project from template…** share one catalogue
 and download flow. All entries remain visible; recommendation tags do not establish key requirements or
 agent readiness. Check the declared entry files against the downloaded project. A walkthrough is an
 optional runbook exercise, not a separate analyser execution mode.

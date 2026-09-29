@@ -5,6 +5,7 @@ import com.telamin.fluxtion.runtime.audit.EventLogSource;
 import com.telamin.fluxtion.runtime.audit.EventLogger;
 import com.telamin.fluxtion.runtime.audit.NullEventLogger;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents;
+import telamin.fluxtion.audit.analyser.analyser.session.TransitionKind;
 
 /**
  * Mechanism, not policy: does the result that just arrived answer the request that is in flight?
@@ -51,6 +52,8 @@ public class OperationGate implements EventLogSource {
     private boolean accepted;
     /** M44.3 D-A4: what the operation in flight is for, or null — so a hung load is reportable. */
     private String inFlightWhat;
+    private enum BundleStage { NONE, PREPARING, OPENING }
+    private BundleStage bundleStage = BundleStage.NONE;
 
     @Override
     public void setLogger(EventLogger log) {
@@ -61,7 +64,9 @@ public class OperationGate implements EventLogSource {
     public boolean onOpenProjectRequested(SessionEvents.OpenProjectRequested event) {
         expectedOpId = event.opId();
         accepted = true;
-        inFlightWhat = null;                    // review B2: a project transition supersedes a pending open
+        bundleStage = event.kind() == TransitionKind.OPEN_BUNDLE ? BundleStage.PREPARING : BundleStage.NONE;
+        inFlightWhat = event.kind() == TransitionKind.OPEN_BUNDLE
+                ? "verifying " + event.profilePath() : null;
         auditLog.info("fact", "request").info("opId", event.opId()).info("kind", event.kind().name());
         return true;
     }
@@ -71,6 +76,7 @@ public class OperationGate implements EventLogSource {
         // D-A3: a newer request supersedes — the older one's result now arrives stale and is refused
         expectedOpId = event.opId();
         accepted = true;
+        bundleStage = BundleStage.NONE;
         inFlightWhat = "opening " + event.location();
         auditLog.info("fact", "request").info("opId", event.opId()).info("what", "openLog");
         return true;
@@ -96,6 +102,7 @@ public class OperationGate implements EventLogSource {
         if (superseded != null) {
             expectedOpId = event.opId();
             inFlightWhat = null;
+            bundleStage = BundleStage.NONE;
             auditLog.info("superseded", superseded);
         }
         return true;
@@ -111,17 +118,28 @@ public class OperationGate implements EventLogSource {
     public boolean onLogOpened(SessionEvents.LogOpened event) {
         boolean ok = check(event.opId(), "LogOpened");
         if (accepted) inFlightWhat = null;
+        if (accepted) bundleStage = BundleStage.NONE;
         return ok;
     }
     @OnEventHandler
     public boolean onLogOpenFailed(SessionEvents.LogOpenFailed event) {
         boolean ok = check(event.opId(), "LogOpenFailed");
         if (accepted) inFlightWhat = null;
+        if (accepted) bundleStage = BundleStage.NONE;
         return ok;
     }
     @OnEventHandler
     public boolean onProfileLoaded(SessionEvents.ProfileLoaded event) {
-        return check(event.opId(), "ProfileLoaded");
+        boolean current = check(event.opId(), "ProfileLoaded");
+        if (current && bundleStage != BundleStage.NONE) {
+            if (!event.ok()) inFlightWhat = null;
+            else if (event.bundlePlan() != null) {
+                bundleStage = BundleStage.OPENING;
+                inFlightWhat = "opening " + event.bundlePlan().logPath();
+            }
+            if (!event.ok()) bundleStage = BundleStage.NONE;
+        }
+        return current;
     }
 
     @OnEventHandler
@@ -151,7 +169,12 @@ public class OperationGate implements EventLogSource {
 
     @OnEventHandler
     public boolean onEffectFailed(SessionEvents.EffectFailed event) {
-        return check(event.opId(), "EffectFailed");
+        boolean current = check(event.opId(), "EffectFailed");
+        if (current && bundleStage != BundleStage.NONE) {
+            inFlightWhat = null;
+            bundleStage = BundleStage.NONE;
+        }
+        return current;
     }
 
     /**
@@ -161,6 +184,15 @@ public class OperationGate implements EventLogSource {
      */
     @OnEventHandler
     public boolean onGraphOpened(SessionEvents.GraphOpened event) {
+        // During preparation an explicitly opened graph is a newer choice. Once preparation
+        // has been accepted, the bundle's own graph effect must keep its pending log operation.
+        // Reader-supplied graphs are observations, not a new navigation request.
+        if (bundleStage == BundleStage.PREPARING && "OPENED".equals(event.source())) {
+            auditLog.info("superseded", inFlightWhat).info("by", "explicitGraph");
+            expectedOpId = -1; // no result from the cancelled preparation can be current
+            inFlightWhat = null;
+            bundleStage = BundleStage.NONE;
+        }
         return fact("GraphOpened");
     }
 

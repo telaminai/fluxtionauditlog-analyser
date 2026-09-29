@@ -146,7 +146,7 @@ class ReportRecoverableDeleteFrameTest {
     }
 
     @Test
-    void theVisibleButtonsDeleteRestoreAndExplainAnEmptyBin() throws Exception {
+    void theCompactReportActionsDeleteAndRestore() throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless());
         var previous = javax.swing.UIManager.getLookAndFeel();
         try {
@@ -166,29 +166,24 @@ class ReportRecoverableDeleteFrameTest {
                 });
                 awaitUi(reports::isShowing, "the Reports pane is shown");
                 onEdt(() -> {
-                    for (String label : List.of("Export PDF…", "Rename…", "Delete…", "Restore deleted…")) {
+                    for (String label : List.of("Export PDF…", "More ▾")) {
                         var b = button(reports, label);
                         assertTrue(b.isShowing() && b.getVisibleRect().width == b.getWidth()
                                         && b.getVisibleRect().height == b.getHeight() && b.getHeight() > 0 && b.getWidth() > 0,
                                 "every report action must be fully visible at the default size: " + label);
                     }
                 });
-                click(reports, "Delete…");
+                clickReportAction(reports, "deleteItem");
                 click(dialog("Delete report"), "OK");
                 awaitUi(() -> c.reports.isEmpty() && c.deletedReports.size() == 1, "delete reached the bin");
-                click(reports, "Restore deleted…");
+                clickReportAction(reports, "restoreItem");
                 var restore = dialog("Restore deleted report");
                 assertTrue(onEdtGet(() -> components(restore).stream().anyMatch(x -> x instanceof javax.swing.JComboBox<?> box
                         && "finding".equals(box.getSelectedItem()))), "the real dialog offers the deleted report");
                 click(restore, "OK");
                 awaitUi(() -> c.reports.size() == 1 && c.deletedReports.isEmpty(), "restore returned the report");
-                click(reports, "Restore deleted…");
-                var empty = dialog("Restore deleted report");
-                assertTrue(onEdtGet(() -> components(empty).stream().anyMatch(x -> x instanceof javax.swing.JLabel label
-                        && label.getText() != null && label.getText().contains("No deleted reports to restore"))),
-                        "the empty-bin message is in the actual dialog");
-                click(empty, "OK");
-                awaitUi(() -> !empty.isShowing(), "empty-bin dialog closed");
+                assertFalse(onEdtGet(() -> ((javax.swing.JMenuItem)field(reports, "restoreItem")).isEnabled()),
+                        "the empty bin cannot be clicked as if it held a deleted report");
             }
         } finally {
             onEdt(() -> { try { javax.swing.UIManager.setLookAndFeel(previous); } catch (Exception e) { throw new RuntimeException(e); } });
@@ -235,6 +230,11 @@ class ReportRecoverableDeleteFrameTest {
     private static void click(java.awt.Container parent, String text) throws Exception {
         var b = onEdtGet(() -> button(parent, text));
         javax.swing.SwingUtilities.invokeLater(b::doClick); // real button listener and real nested modal loop
+    }
+
+    private static void clickReportAction(ReportsPanel reports, String fieldName) throws Exception {
+        var item = onEdtGet(() -> (javax.swing.JMenuItem) field(reports, fieldName));
+        javax.swing.SwingUtilities.invokeLater(item::doClick);
     }
 
     private static javax.swing.JDialog dialog(String title) throws Exception {

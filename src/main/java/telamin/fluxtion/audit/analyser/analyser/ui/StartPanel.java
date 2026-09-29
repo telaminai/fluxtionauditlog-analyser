@@ -9,42 +9,28 @@ import java.util.List;
 import java.util.function.Consumer;
 
 /**
- * What the records pane shows when no log is open (M36, spec-start-page).
+ * The full workspace landing page when no investigation is open.
  *
- * <p><b>It is a STATE, not a screen</b> (D-S1). No splash, no modal, nothing to dismiss: opening a
- * log replaces it and closing one brings it back. A splash is a toll gate on every launch and gets
- * muscle-memory-dismissed by week two, taking its content with it; an empty state is seen exactly
- * when it is useful and is invisible the rest of the time. This is also why the first-run
- * "no configuration was found" modal is gone — see
- * {@link MainFrame#showFirstRunSettingsIfNeeded()}.
- *
- * <p><b>Every section ends in an action</b> (D-S2), and every action runs against the demo set that
- * ships in the jar — no configuration, no server, no API key. A start page whose buttons need setup
- * first is one that lies on first contact.
- *
- * <p><b>No feature list</b> (D-S4). Three problems and three lanes, which change far more slowly
- * than the features that answer them — and this is the first thing a new user reads, so its errors
- * are the ones they carry.
- *
- * <p><b>The lanes are recognition, not a questionnaire</b> (D-S3). They are phrased as the sentence
- * the user would say, never as a question the app asks: people recognise their situation faster than
- * they classify themselves. Nothing is remembered and nothing is personalised — picking one is
- * navigation, and a wrong pick costs a click.
+ * <p>It is an empty state, never a first-run modal. Opening a project, log or graph replaces it;
+ * Help can bring it back without closing work. Its choices are actual entrances to a workspace,
+ * with recent projects close at hand. Only the bundled sample claims to work without a local file,
+ * server or API key.
  *
  * <p><b>On the colour.</b> Every accent here is {@link UiTheme#accent()}, which is the blue the
  * topology already paints a hot edge with — the page is tinted, not branded. Colour is spent only
  * where it carries meaning: the primary action is the one filled shape on the page, each heading
- * gets a rule so the four sections are countable at a glance, and the lifecycle strip highlights the
- * one stage this app occupies. Nothing is coloured merely to be coloured, because on the first
+ * gets a rule so sections are countable at a glance. Nothing is coloured merely to be coloured, because on the first
  * screen a new user reads, decoration and signal are indistinguishable until they have learnt which
  * is which.
  */
 public final class StartPanel extends JPanel {
 
-    /** What the page can ask the app to do. Every one is an ordinary open, not a demo mode. */
+    /** What the page can ask the app to do. */
     public interface Actions {
         /** Open a bundled demo log, optionally with the graph, and add the demo source root. */
         void openDemo(Path log, boolean withGraph);
+        default void openSampleProject() { openDemo(DemoAssets.log(), true); }
+        default void openGuidedTour() { openSampleProject(); }
 
         /** Bring a tab forward — the page hands over, it does not drive. */
         void showTab(String name);
@@ -68,29 +54,40 @@ public final class StartPanel extends JPanel {
         /** A locally observed presence fact only — never key validity or a future build's winner. */
         boolean fluxtionKeyPresent();
 
-        /** Back to the records table, for a page raised over an open log (Help ▸ Start page). */
+        /** Return to the active workspace when Help ▸ Start page was raised over one. */
         void backToRecords();
         default void openProjectDesign() { }
         default void openProjectDiagnostics() { }
         default void openProjectTopology() { }
         default void newProject() { }
+        default void newProjectFromTemplate() { }
+        default void openExperiment() { }
+        default void investigateIncident() { }
+        default void openGraphml() { }
+        default void openRecentProject(String path) { }
+        default void openExistingProject() { }
         default void restoreSession(long generation) { }
         default void dismissSessionRestore(long generation) { }
 
     }
 
     private final JPanel recoveryOffer = new JPanel(new BorderLayout(8, 8));
-    private final JPanel contents = new JPanel(new CardLayout());
-    private final Box projectLanding = Box.createVerticalBox();
-    private JScrollPane projectScroll;
-    private java.util.Map<String, Object> lastProjectContext;
+    private final Box recentProjects = Box.createVerticalBox();
+    private final JTextArea operationFeedback = Fluid.text("");
+    private final JPanel workstreams = new Fluid.Panel();
+    private final JPanel leftWorkstreams = new Fluid.Panel();
+    private final JPanel rightWorkstreams = new Fluid.Panel();
+    private final JComponent[] workstreamSections = new JComponent[4];
+    private boolean workstreamsWide;
+    private boolean workstreamsArranged;
+    private List<String> lastRecents;
     private final Actions actions;
     private final Consumer<String> status;
 
     /** Components whose colour is theme-derived, re-resolved on a theme switch. */
     private final List<Runnable> recolour = new ArrayList<>();
 
-    /** The "back to the records" row — present always, visible only over an open log. */
+    /** The return row — visible whenever a project, graph, design or log workspace exists. */
     private final JComponent returnRow;
 
     /** The optional AI-client offer; dismissal is deliberately only for this rendered Start Page. */
@@ -111,54 +108,53 @@ public final class StartPanel extends JPanel {
         returnRow = returnToRecords();
         col.add(returnRow);
         col.add(hero());
-        col.add(Box.createVerticalStrut(16));
-        col.add(row(card("Author a new project", "Choose a catalogue template, read its requirements and download its project runbooks.",
-                false, actions::newProject)));
-
+        operationFeedback.setOpaque(true);
+        operationFeedback.setBackground(UiTheme.accentWash(0.12f));
+        recolour.add(() -> operationFeedback.setBackground(UiTheme.accentWash(0.12f)));
+        operationFeedback.setBorder(BorderFactory.createEmptyBorder(8, 10, 8, 10));
+        operationFeedback.setVisible(false);
+        col.add(operationFeedback);
         col.add(Box.createVerticalStrut(20));
-        col.add(heading("Three questions a log alone will not answer"));
-        col.add(row(
-                card("Why is this number what it is?",
-                        "Follow one value back through the nodes that produced it.", false,
-                        () -> open(DemoAssets.seriesLog(), false, "Graph")),
-                card("Which nodes never ran?",
-                        "Coverage over a traced run, where an absence is proof, not silence.", false,
-                        () -> open(DemoAssets.tracedLog(), true, "Topology")),
-                card("What did this cycle do?",
-                        "Step one event through the graph, node by node.", false,
-                        () -> open(DemoAssets.log(), true, "Topology"))));
+        workstreamSections[0] = workstream("Explore DEMO",
+                row(card("Take a guided tour", "Follow four spotlight stops in a local DEMO project.",
+                                true, actions::openGuidedTour),
+                        card("Open sample project", "Explore the same DEMO log, topology and source at your own pace.",
+                                false, actions::openSampleProject)));
 
-        col.add(Box.createVerticalStrut(20));
-        col.add(heading("Where this sits"));
-        col.add(new Lifecycle());
-        col.add(Box.createVerticalStrut(6));
-        col.add(body("The log arrives from a build or a running server; what you find leaves as a "
-                + "report, or as a change you can justify."));
+        recentProjects.setAlignmentX(LEFT_ALIGNMENT);
+        setRecentProjects(List.of());
+        workstreamSections[1] = workstream("Open your work",
+                row(card("Open project", "Use an existing project profile and its saved settings.", false,
+                                actions::openExistingProject),
+                        card("Open evidence bundle", "Verify an .fexp and open a disposable copy. No replay is run.",
+                                false, actions::openExperiment)),
+                row(card("Open audit log", "Choose a local audit log to investigate.", false, actions::openOwnLog),
+                        card("Open GraphML", "View a processor topology, with or without a log.", false,
+                                actions::openGraphml)),
+                subheading("Recent projects"), recentProjects);
 
-        col.add(Box.createVerticalStrut(20));
-        col.add(heading("Start where you are"));
-        col.add(row(
-                card("I am building a processor",
-                        "See what the graph you wrote actually does.", false,
-                        () -> open(DemoAssets.log(), true, "Topology")),
-                card("Something is wrong in production",
-                        "Open a log from a system you did not write.", false,
-                        actions::openOwnLog),
-                card("I want the numbers out of this",
-                        "Chart a value over time and export it.", false,
-                        () -> open(DemoAssets.seriesLog(), false, "Graph"))));
+        workstreamSections[2] = workstream("Create a project",
+                row(card("Create project profile", "Save settings for existing source and processors. No code is generated.",
+                                false, actions::newProject),
+                        card("Create from template", "Choose a starter template and where to install it.",
+                                false, actions::newProjectFromTemplate)));
 
-        col.add(Box.createVerticalStrut(20));
-        col.add(heading("Regenerate a processor"));
         fluxtionKeyCard = card("", "", false, actions::openFluxtionKey);
         refreshFluxtionKeyStatus();
-        col.add(row(fluxtionKeyCard));
-
         aiClientOffer = aiClientOffer();
-        col.add(aiClientOffer);
+        workstreamSections[3] = workstream("Assistant and settings", aiClientOffer, footer(),
+                subheading("Optional: processor regeneration"), row(fluxtionKeyCard));
+        workstreams.setOpaque(false);
+        workstreams.setAlignmentX(LEFT_ALIGNMENT);
+        arrangeWorkstreams(false);
+        workstreams.addComponentListener(new java.awt.event.ComponentAdapter() {
+            @Override public void componentResized(java.awt.event.ComponentEvent event) {
+                arrangeWorkstreams(workstreams.getWidth() >= 900);
+            }
+        });
+        col.add(workstreams);
 
         col.add(Box.createVerticalStrut(18));
-        col.add(footer());
         col.add(Box.createVerticalGlue());
 
         JScrollPane scroll = new JScrollPane(Fluid.column(col),
@@ -168,20 +164,14 @@ public final class StartPanel extends JPanel {
         scroll.getViewport().setOpaque(false);
         scroll.setOpaque(false);
         this.scroll = scroll;
-        contents.add(scroll, "demo");
-        projectLanding.setBorder(BorderFactory.createEmptyBorder(22, 26, 22, 26));
-        projectScroll = new JScrollPane(Fluid.column(projectLanding),
-                ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED, ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-        projectScroll.setBorder(BorderFactory.createEmptyBorder());
-        contents.add(projectScroll, "project");
-        add(contents, BorderLayout.CENTER);
+        add(scroll, BorderLayout.CENTER);
         recoveryOffer.setBorder(BorderFactory.createEmptyBorder(8, 18, 8, 18));
         recoveryOffer.setVisible(false);
         add(recoveryOffer, BorderLayout.NORTH);
         applyColours();
     }
 
-    /** The same declared facts as the Project panel, with explicit actions on the landing only. */
+    /** Show a recovery offer without replacing the shared start choices. */
     public void renderProject(java.util.Map<String, Object> context) {
         recoveryOffer.removeAll();
         if (context != null && context.get("restoration") instanceof java.util.Map<?,?> restore) {
@@ -198,54 +188,45 @@ public final class StartPanel extends JPanel {
             recoveryOffer.setVisible(!"idle".equals(restore.get("state")) && !"none".equals(restore.get("state")));
         } else recoveryOffer.setVisible(false);
         recoveryOffer.revalidate(); recoveryOffer.repaint();
-        boolean active = context != null && context.get("project") instanceof java.util.Map<?, ?> p
-                && Boolean.TRUE.equals(p.get("active"));
-        ((CardLayout) contents.getLayout()).show(contents, active ? "project" : "demo");
-        if (!active || java.util.Objects.equals(lastProjectContext, context)) return;
-        boolean resetScroll = lastProjectContext == null || !java.util.Objects.equals(lastProjectContext.get("project"), context.get("project"))
-                || (context.get("restoration") instanceof java.util.Map<?,?> r && "offered".equals(r.get("state"))
-                    && !java.util.Objects.equals(lastProjectContext.get("restoration"), r));
-        lastProjectContext = new java.util.LinkedHashMap<>(context);
-        projectLanding.removeAll();
-        var model = ProjectModel.from(context);
-        projectLanding.add(projectHeading("Your project"));
-        projectLanding.add(wrapping("Project declarations are available. Open evidence explicitly to inspect a run."));
-        for (var section : model.sections()) {
-            projectLanding.add(Box.createVerticalStrut(12));
-            projectLanding.add(projectHeading(section.title()));
-            for (var r : section.rows()) {
-                // Dynamic project contents must not accumulate listeners in the theme recolour list.
-                var text = wrapping(r.primary() + (r.secondary() == null ? "" : " — " + r.secondary()));
-                text.setFont(UIManager.getFont("Label.font"));
-                projectLanding.add(text);
-            }
-        }
-        JPanel actionsRow = new JPanel(new java.awt.GridLayout(0, 2, 8, 8));
-        addAction(actionsRow, "Open audit log…", actions::openOwnLog);
-        addAction(actionsRow, "Open topology…", actions::openProjectTopology);
-        addAction(actionsRow, "Open design…", actions::openProjectDesign);
-        addAction(actionsRow, "Open diagnostics…", actions::openProjectDiagnostics);
-        addAction(actionsRow, "New project…", actions::newProject);
-        if (context.containsKey("log")) addAction(actionsRow, "Back to records", actions::backToRecords);
-        projectLanding.add(Box.createVerticalStrut(16));
-        actionsRow.setAlignmentX(LEFT_ALIGNMENT);
-        projectLanding.add(actionsRow);
-        if (resetScroll) SwingUtilities.invokeLater(() -> projectScroll.getViewport().setViewPosition(new Point(0, 0)));
-        projectLanding.revalidate();
-        projectLanding.repaint();
-    }
-
-    private static JLabel projectHeading(String text) {
-        JLabel label = new JLabel(text);
-        label.setFont(label.getFont().deriveFont(Font.BOLD));
-        label.setAlignmentX(LEFT_ALIGNMENT);
-        return label;
+        // Project declarations remain in the investigation's Project panel. The start page
+        // always offers the same entrances, including Open project and Return to workspace.
     }
 
     private static void addAction(JPanel into, String label, Runnable action) {
         JButton button = new JButton(label);
         button.addActionListener(e -> action.run());
         into.add(button);
+    }
+
+    /** Recent project paths are machine-local navigation, never copied into a bundle or demo. */
+    public void setRecentProjects(List<String> paths) {
+        List<String> next = paths == null ? List.of() : List.copyOf(paths);
+        if (next.equals(lastRecents)) return;
+        lastRecents = next;
+        recentProjects.removeAll();
+        if (next.isEmpty()) {
+            recentProjects.add(body("No recent projects yet. Use Open project above to choose a workspace."));
+        } else {
+            for (String path : next) {
+                Path file = Path.of(path);
+                Path parent = file.getParent();
+                if (parent != null && ".analyser".equals(String.valueOf(parent.getFileName()))) {
+                    parent = parent.getParent();
+                }
+                String title = parent == null || parent.getFileName() == null
+                        ? path : parent.getFileName().toString();
+                JButton button = new JButton(title + " / " + file.getFileName() + "  —  " + path);
+                button.setHorizontalAlignment(SwingConstants.LEFT);
+                button.setToolTipText(path);
+                button.setAlignmentX(LEFT_ALIGNMENT);
+                button.setMaximumSize(new Dimension(Integer.MAX_VALUE, button.getPreferredSize().height));
+                button.addActionListener(e -> actions.openRecentProject(path));
+                recentProjects.add(button);
+                recentProjects.add(Box.createVerticalStrut(4));
+            }
+        }
+        recentProjects.revalidate();
+        recentProjects.repaint();
     }
 
     /** Refresh after the management dialog closes; the stored value never enters this component. */
@@ -274,11 +255,7 @@ public final class StartPanel extends JPanel {
         SwingUtilities.invokeLater(() -> scroll.getViewport().setViewPosition(new Point(0, 0)));
     }
 
-    /**
-     * The one tinted band on the page, carrying the sentence that says what the app is and the single
-     * filled action. It is a band rather than a plain heading because the first thing on a page is the
-     * thing a reader will accept as the summary, so it should be visibly the summary.
-     */
+    /** The one tinted band gives a short orientation above the concrete workspace choices. */
     private JComponent hero() {
         JPanel band = new Fluid.Panel(new BorderLayout()) {
             @Override
@@ -302,32 +279,31 @@ public final class StartPanel extends JPanel {
         // WRAPS rather than ellipsising: a JLabel would render this as "…see what the system act…",
         // and the one sentence on the page that says what the app is for is the worst possible thing
         // to truncate
-        JTextArea title = wrapping("Read an audit log and see what the system actually did.");
+        JTextArea title = wrapping("What would you like to work on?");
         Font tf = UIManager.getFont("Label.font");
         title.setFont((tf != null ? tf : title.getFont()).deriveFont(Font.BOLD,
                 (tf != null ? tf : title.getFont()).getSize2D() + 5f));
         recolour.add(() -> title.setForeground(UIManager.getColor("Label.foreground")));
         inner.add(title);
         inner.add(Box.createVerticalStrut(6));
-        inner.add(body("Every event, the nodes it reached, the order they ran in, and what each one "
-                + "computed — reconstructed from the log, not inferred from it."));
-        inner.add(Box.createVerticalStrut(12));
-        inner.add(row(card("Open the demo log",
-                "A small recorded run, with its topology. Nothing to set up.", true,
-                () -> open(DemoAssets.log(), true, "Topology"))));
+        inner.add(body("Open evidence, return to a project, or learn with DEMO. An assistant can drive the same views through the local bridge."));
+        inner.add(Box.createVerticalStrut(6));
+        inner.add(body("Drop an .fexp bundle, audit log, GraphML or Spring XML anywhere on this page. Return here from Help."));
         band.add(inner, BorderLayout.CENTER);
         return band;      // Fluid: as wide as offered, as tall as its content currently needs
     }
 
     private JComponent footer() {
-        JPanel p = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        Box p = Box.createVerticalBox();
         p.setOpaque(false);
         p.setAlignmentX(LEFT_ALIGNMENT);
-        p.setMaximumSize(new Dimension(Integer.MAX_VALUE, 26));
-        JLabel lead = new JLabel("Nothing above needs configuring. ");
-        recolour.add(() -> lead.setForeground(UiTheme.mutedForeground()));
-        p.add(lead);
-        p.add(link("Set up source roots and an assistant", actions::openSettings));
+        p.add(body("Source settings apply to the open project, or to global defaults when no project is open."));
+        p.add(Box.createVerticalStrut(4));
+        JPanel action = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        action.setOpaque(false);
+        action.setAlignmentX(LEFT_ALIGNMENT);
+        action.add(link("Source and assistant settings…", actions::openSettings));
+        p.add(action);
         return p;
     }
 
@@ -338,9 +314,7 @@ public final class StartPanel extends JPanel {
     private JComponent aiClientOffer() {
         Box offer = Box.createVerticalBox();
         offer.setAlignmentX(LEFT_ALIGNMENT);
-        offer.add(Box.createVerticalStrut(20));
-        offer.add(heading("Work with an AI client"));
-        offer.add(body("Let an approved client query and render into this running analyser window. The connection stays on this machine."));
+        offer.add(body("Connect your CLI assistant to query records, draw charts and spotlight evidence here. The analyser bridge is local."));
         offer.add(Box.createVerticalStrut(8));
         offer.add(row(
                 card("Connect Codex", "Set up the local bridge Codex will use.", false,
@@ -361,13 +335,19 @@ public final class StartPanel extends JPanel {
     /**
      * The way back, shown ONLY when there is something to go back to.
      *
-     * <p>Raised over an open log (Help ▸ Start page) the page would otherwise be a one-way door: the
-     * records are still loaded but the table is behind the card, and nothing on screen says how to
-     * return. Hidden when no log is open, because an exit that leads nowhere is worse than none —
-     * it implies the reader has lost something they never had.
+     * <p>Raised over a project, graph, design or log (Help ▸ Start page), the page would otherwise
+     * be a one-way door. Hidden only when there is no workspace to return to.
      */
-    public void showReturnToRecords(boolean logOpen) {
-        returnRow.setVisible(logOpen);
+    public void showReturnToRecords(boolean workspaceOpen) {
+        returnRow.setVisible(workspaceOpen);
+        revalidate();
+        repaint();
+    }
+
+    public void showOperationFeedback(String message) {
+        operationFeedback.setText(message == null ? "" : message);
+        operationFeedback.setVisible(message != null && !message.isBlank());
+        operationFeedback.revalidate();
         revalidate();
         repaint();
     }
@@ -377,8 +357,8 @@ public final class StartPanel extends JPanel {
         p.setOpaque(false);
         p.setAlignmentX(LEFT_ALIGNMENT);
         p.setMaximumSize(new Dimension(Integer.MAX_VALUE, 26));
-        p.add(link("\u2190 Back to the records", actions::backToRecords));
-        p.setVisible(false);        // no log open is the common case, and then there is no way back
+        p.add(link("\u2190 Return to workspace", actions::backToRecords));
+        p.setVisible(false);        // initial empty state has no workspace to return to
         return p;
     }
 
@@ -387,7 +367,7 @@ public final class StartPanel extends JPanel {
         JButton b = new JButton(text);
         b.setBorderPainted(false);
         b.setContentAreaFilled(false);
-        b.setFocusPainted(false);
+        b.setFocusPainted(true);
         b.setMargin(new Insets(0, 0, 0, 0));
         b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         b.addActionListener(e -> go.run());
@@ -408,7 +388,7 @@ public final class StartPanel extends JPanel {
         if (tab != null) actions.showTab(tab);
     }
 
-    /** Section heading with a short accent rule, so the four sections are countable at a glance. */
+    /** Section heading with a short accent rule. */
     private JComponent heading(String text) {
         JPanel p = new Fluid.Panel(new BorderLayout(8, 0)) {
             @Override
@@ -431,6 +411,68 @@ public final class StartPanel extends JPanel {
         recolour.add(() -> l.setForeground(UIManager.getColor("Label.foreground")));
         p.add(l, BorderLayout.CENTER);
         return p;
+    }
+
+    /** Keep each activity together as the page changes between one and two columns. */
+    private JComponent workstream(String title, JComponent... content) {
+        JPanel section = new Fluid.Panel() {
+            @Override public Dimension getPreferredSize() {
+                Dimension size = super.getPreferredSize();
+                // A recent path or a row of cards can have a very wide natural size.
+                // The columns must divide the available width before their cards wrap;
+                // an unbounded natural width would otherwise force content offscreen.
+                return new Dimension(0, size.height);
+            }
+        };
+        section.setLayout(new BoxLayout(section, BoxLayout.Y_AXIS));
+        section.setOpaque(false);
+        section.setAlignmentX(LEFT_ALIGNMENT);
+        section.setMinimumSize(new Dimension(0, 0));
+        section.setBorder(BorderFactory.createEmptyBorder(0, 0, 16, 0));
+        section.getAccessibleContext().setAccessibleName(title + " workstream");
+        section.add(heading(title));
+        for (JComponent child : content) {
+            section.add(child);
+            section.add(Box.createVerticalStrut(8));
+        }
+        return section;
+    }
+
+    private JComponent subheading(String text) {
+        JTextArea label = wrapping(text);
+        Font base = UIManager.getFont("Label.font");
+        if (base == null) base = label.getFont();
+        label.setFont(base.deriveFont(Font.BOLD));
+        recolour.add(() -> label.setForeground(UiTheme.mutedForeground()));
+        return label;
+    }
+
+    /** Keep two independent columns so a short group does not leave a blank row beneath it. */
+    private void arrangeWorkstreams(boolean wide) {
+        if (workstreamsArranged && workstreamsWide == wide) return;
+        workstreamsArranged = true;
+        workstreamsWide = wide;
+        workstreams.removeAll();
+        leftWorkstreams.removeAll();
+        rightWorkstreams.removeAll();
+        if (wide) {
+            leftWorkstreams.setLayout(new BoxLayout(leftWorkstreams, BoxLayout.Y_AXIS));
+            rightWorkstreams.setLayout(new BoxLayout(rightWorkstreams, BoxLayout.Y_AXIS));
+            leftWorkstreams.setOpaque(false);
+            rightWorkstreams.setOpaque(false);
+            leftWorkstreams.add(workstreamSections[0]);
+            leftWorkstreams.add(workstreamSections[2]);
+            rightWorkstreams.add(workstreamSections[1]);
+            rightWorkstreams.add(workstreamSections[3]);
+            workstreams.setLayout(new GridLayout(1, 2, 20, 0));
+            workstreams.add(leftWorkstreams);
+            workstreams.add(rightWorkstreams);
+        } else {
+            workstreams.setLayout(new BoxLayout(workstreams, BoxLayout.Y_AXIS));
+            for (JComponent section : workstreamSections) workstreams.add(section);
+        }
+        workstreams.revalidate();
+        workstreams.repaint();
     }
 
     private JComponent body(String text) {
@@ -598,6 +640,8 @@ public final class StartPanel extends JPanel {
             setFocusPainted(false);
             setOpaque(false);
             setToolTipText(why);
+            getAccessibleContext().setAccessibleName(title);
+            getAccessibleContext().setAccessibleDescription(why);
             setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
             addActionListener(e -> go.run());
         }
@@ -606,6 +650,8 @@ public final class StartPanel extends JPanel {
             this.title = title;
             this.why = why;
             setToolTipText(why);
+            getAccessibleContext().setAccessibleName(title);
+            getAccessibleContext().setAccessibleDescription(why);
             repaint();
         }
 
@@ -672,7 +718,9 @@ public final class StartPanel extends JPanel {
             g.setFont(titleFont());
             g.setColor(ink);
             FontMetrics fm = g.getFontMetrics();
-            g.drawString(ellipsis(fm, title, inner), PAD, PAD + fm.getAscent());
+            int titleY = PAD + fm.getAscent();
+            paintGlyph(g, title, PAD, titleY - 13);
+            g.drawString(ellipsis(fm, title, inner - 24), PAD + 24, titleY);
 
             int y = PAD + fm.getHeight() + 3;
             g.setFont(subFont());
@@ -685,6 +733,62 @@ public final class StartPanel extends JPanel {
                 y += fm2.getHeight();
             }
             g.dispose();
+        }
+
+        /** Small vector marks stay crisp at any scale and inherit the card's current theme ink. */
+        private static void paintGlyph(Graphics2D g, String title, int x, int y) {
+            Graphics2D icon = (Graphics2D) g.create();
+            icon.translate(x, y);
+            icon.setStroke(new BasicStroke(1.7f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            if (title.startsWith("Take a guided tour")) {
+                icon.drawOval(1, 1, 15, 15);
+                icon.drawLine(7, 5, 12, 8);
+                icon.drawLine(12, 8, 7, 11);
+                icon.drawLine(7, 11, 7, 5);
+            } else if (title.startsWith("Open evidence bundle")) {
+                icon.drawRoundRect(2, 1, 13, 15, 2, 2);
+                icon.drawLine(5, 5, 11, 5);
+                icon.drawLine(5, 9, 12, 9);
+                icon.drawLine(5, 12, 9, 12);
+            } else if (title.startsWith("Investigate")) {
+                icon.drawOval(1, 1, 10, 10);
+                icon.drawLine(10, 10, 16, 16);
+            } else if (title.startsWith("Create project profile")) {
+                icon.drawRoundRect(1, 1, 14, 14, 2, 2);
+                icon.drawLine(8, 4, 8, 12);
+                icon.drawLine(4, 8, 12, 8);
+            } else if (title.startsWith("Create from template")) {
+                icon.drawRoundRect(1, 1, 14, 14, 2, 2);
+                icon.drawLine(8, 2, 8, 14);
+                icon.drawLine(2, 8, 14, 8);
+            } else if (title.startsWith("Open audit")) {
+                icon.drawRoundRect(2, 1, 13, 15, 2, 2);
+                for (int row : new int[]{5, 8, 11}) icon.drawLine(5, row, 12, row);
+            } else if (title.startsWith("Open GraphML")) {
+                icon.drawLine(4, 4, 13, 5);
+                icon.drawLine(4, 4, 7, 13);
+                icon.drawLine(13, 5, 7, 13);
+                icon.fillOval(1, 1, 5, 5);
+                icon.fillOval(11, 3, 5, 5);
+                icon.fillOval(5, 11, 5, 5);
+            } else if (title.startsWith("Open sample")) {
+                icon.drawOval(1, 1, 15, 15);
+                icon.drawLine(7, 5, 12, 8);
+                icon.drawLine(12, 8, 7, 11);
+                icon.drawLine(7, 11, 7, 5);
+            } else if (title.startsWith("Connect") || title.startsWith("Generic MCP")) {
+                icon.drawRoundRect(0, 4, 6, 9, 2, 2);
+                icon.drawRoundRect(11, 4, 6, 9, 2, 2);
+                icon.drawLine(6, 8, 11, 8);
+            } else if (title.startsWith("Open project")) {
+                icon.drawPolyline(new int[]{1, 1, 6, 8, 16, 16, 1},
+                        new int[]{14, 3, 3, 5, 5, 14, 14}, 7);
+            } else {
+                icon.drawOval(1, 2, 8, 8);
+                icon.drawLine(8, 9, 15, 16);
+                icon.drawLine(12, 12, 15, 9);
+            }
+            icon.dispose();
         }
 
         private static List<String> wrap(FontMetrics fm, String text, int width, int maxLines) {

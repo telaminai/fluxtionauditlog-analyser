@@ -54,6 +54,7 @@ public class SessionBoundary implements EventLogSource {
     /** The kind of the request currently awaiting its {@code ProfileLoaded}. */
     private TransitionKind inFlightKind;
     private long inFlightOpId = -1;
+    private SessionEvents.BundlePlan inFlightBundle;
 
     public SessionBoundary(OperationGate gate, ActiveProject activeProject, OpenLog openLog,
                            OpenGraph openGraph, EffectQueue effects) {
@@ -75,6 +76,7 @@ public class SessionBoundary implements EventLogSource {
      */
     @OnEventHandler
     public boolean onOpenProjectRequested(SessionEvents.OpenProjectRequested event) {
+        inFlightBundle = null;
         if (event.kind().mayNoOp() && activeProject.isAt(event.profilePath())) {
             inFlightKind = null;
             inFlightOpId = -1;
@@ -101,8 +103,11 @@ public class SessionBoundary implements EventLogSource {
         inFlightOpId = event.opId();
         effects.request(event.kind() == TransitionKind.CREATE
                 ? new SessionEffects.CreateProfileEffect(event.opId(), event.profilePath())
+                : event.kind() == TransitionKind.OPEN_BUNDLE
+                ? new SessionEffects.PrepareBundleEffect(event.opId(), event.profilePath())
                 : new SessionEffects.LoadProfileEffect(event.opId(), event.profilePath()));
-        auditLog.info("decision", event.kind() == TransitionKind.CREATE ? "create" : "load")
+        auditLog.info("decision", event.kind() == TransitionKind.CREATE ? "create"
+                : event.kind() == TransitionKind.OPEN_BUNDLE ? "verifyBundle" : "load")
                 .info("kind", event.kind().name())
                 .info("source", event.source())
                 .info("opId", event.opId());
@@ -122,8 +127,16 @@ public class SessionBoundary implements EventLogSource {
         }
         TransitionKind kind = inFlightKind;
         long opId = inFlightOpId;
+        if (kind == TransitionKind.OPEN_BUNDLE && event.ok() && event.bundlePlan() != null) {
+            inFlightBundle = event.bundlePlan();
+            effects.request(new SessionEffects.LoadProfileEffect(opId, inFlightBundle.profilePath()));
+            auditLog.info("decision", "loadVerifiedBundleProfile").info("opId", opId);
+            return true;
+        }
         inFlightKind = null;
         inFlightOpId = -1;
+        SessionEvents.BundlePlan bundle = inFlightBundle;
+        inFlightBundle = null;
 
         if (kind == null) {
             auditLog.warn("decision", "ignored").warn("reason", "noRequestInFlight").warn("opId", opId);
@@ -145,6 +158,7 @@ public class SessionBoundary implements EventLogSource {
         // Apply BEFORE the status line: the note describes settings that are in force by the time it
         // is read. The old code had the same order for the same reason.
         effects.request(new SessionEffects.ApplyProfileEffect(opId, event.profilePath(), event.name()));
+        if (bundle != null) effects.request(new SessionEffects.OpenBundleEvidenceEffect(opId, bundle));
         effects.request(new SessionEffects.ShowStatusEffect(opId, note));
         return true;
     }

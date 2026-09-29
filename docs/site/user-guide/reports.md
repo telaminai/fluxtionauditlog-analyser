@@ -79,7 +79,7 @@ section clickable through to the thing it references — a finding selects its r
 that graph, a focus applies on the topology. A report is a navigation surface, not just an output.
 
 Beside the reports, the **Spotlight walks** list holds the walks saved in this project — step-by-step
-spotlights you replay with ◀ ▶ — with Play, Play from step…, Rename, Delete and Restore deleted…. They are stored
+spotlights you replay with ◀ ▶. Use **Play** or select a step and choose **Play selected step**; Rename, Delete and Restore deleted… are under **More**. They are stored
 and shared the way reports are; [Save it as a walk](assistant.md#save-it-as-a-walk) says how to make one.
 
 ## Building one
@@ -114,7 +114,7 @@ investigation leaves diagnostics behind — the two-section report built to chec
 picture renders should not still be in the profile you hand to a colleague, sitting in the list
 looking exactly like a real finding.
 
-**Delete…** and **Rename…** sit beside Export PDF… in the Reports tab and act on the selected
+**Delete…** and **Rename…** are under **More** beside Export PDF… in the Reports tab and act on the selected
 report. Delete confirms first, naming the report, the log it cites and how many sections go; the log,
 the charts it referenced and any PDF you already exported are untouched — a report is an assembly of
 references, and deleting the assembly is not deleting the evidence. Rename refuses a name that is

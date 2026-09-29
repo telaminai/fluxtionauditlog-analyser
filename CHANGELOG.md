@@ -6,6 +6,23 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+- Opening a topology while an evidence bundle is still being prepared now keeps the newer graph; the late bundle cannot switch projects or load its log.
+
+### Changed
+
+- **The start page groups choices by outcome.** Explore DEMO and Create a project form the left column, Open your work and Assistant and settings the right; the four groups stack on a narrow window. Evidence opening is distinct from project creation, file-drop guidance is visible, recent entries identify their profiles, and assistant connection precedes optional regeneration setup.
+- **Start and narrow panes remain usable throughout an investigation.** Start keeps its opening choices and a return link when a workspace is active, offers an explicit existing-project action, and shows bundle progress and drop refusals in the page. Native drops on explanatory text work; extra dropped filenames are named. A late bundle verification cannot replace a newer project choice. Walk, series and producer-finding controls reflow in narrow panes.
+- **The Swing analyser gives charts and reports more room.** Open graphs use one selector instead of a wrapping
+  tab strip; report, walk and chart actions use compact menus; saved walks offer a selectable step list. The
+  Edit series panel moves below the plot in a narrow pane, and reports have a distinct reading surface and
+  human-readable titles in their list. Chart grids use round value and UTC time ticks, and the value range
+  includes zero when doing so does not flatten a narrow-range series.
+- **The start page uses the full workspace.** It offers evidence-bundle loading, incident investigation,
+  project authoring, direct file opens, a bundled sample, a saved spotlight tour, and a clickable recent-project list. Opening
+  a recent project goes to its workspace, and each start choice has a theme-aware icon. Producer findings now separate severity, explanation, fix,
+  source declaration and location actions into readable cards. The template picker puts choices beside
+  their explanation, and file drops route evidence bundles, GraphML, audit logs and Spring XML designs.
+
 ### Added
 
 - **An evidence bundle can carry the run's replay records.** Name them with

@@ -27,6 +27,16 @@ RUNNER = 'tools/replay/ReplayBundle.java'
 GRAPHML = 'src/main/resources/telamin/fluxtion/audit/analyser/analyser/session/generated/SessionProcessor.graphml'
 
 CONTROLS = [
+    ('ws-newer-graph-cancels-bundle', NODE + 'OperationGate.java',
+     'if (bundleStage == BundleStage.PREPARING && "OPENED".equals(event.source())) {',
+     'if (false) {', 'BundleOpenReplayTest#newerExplicitGraphSupersedesBundlePreparation'),
+    ('ws-bundle-own-graph-retains-log', NODE + 'OperationGate.java',
+     'bundleStage = BundleStage.OPENING;', 'bundleStage = BundleStage.PREPARING;',
+     'BundleOpenReplayTest#acceptedBundlesOwnGraphDoesNotCancelItsLog'),
+    # PR71 review R1: the first of two pending bundle verifications must not consume the second's slot.
+    ('ws-stale-bundle-verification-refused', NODE + 'SessionBoundary.java',
+     '        if (!gate.accepted()) {\n', '        if (false) {\n',
+     'BundleOpenReplayTest#lateFirstBundleCannotStealASecondPendingBundle'),
     # Native gesture cancellation: every witness starts with a Robot drag through the OS router.
     ('mouse-loss-table-hook', UI + 'MainFrame.java',
      '                tablePanel.cancelMouseGesture();', '                // table cancellation removed',
@@ -528,9 +538,9 @@ CONTROLS = [
      '                    if (params.size() != 1) return ActionResult.error("report \'restore\' must be used alone");\n', '',
      'ReportRecoverableDeleteFrameTest#restoreRefusesMixedOperationsWithoutChangingAnything'),
     ('p33-visible-report-actions', UI + 'ReportsPanel.java',
-     '        JPanel bar = new JPanel(new java.awt.GridLayout(0, 1, 0, 4));',
-     '        JPanel bar = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 4, 2));',
-     'ReportRecoverableDeleteFrameTest#theVisibleButtonsDeleteRestoreAndExplainAnEmptyBin'),
+     '        reportsView.add(bar, BorderLayout.NORTH);',
+     '        add(bar, BorderLayout.NORTH);',
+     'SwingUiPolishTest#reportActionsAreScopedToReportsAndTheListNamesTheReportForPeople'),
     ('p33-restore-schema', J + 'llm/VerbSchemas.java',
      'new java.util.LinkedHashMap<>(Map.of("anyOf", List.of(string(), Map.of("type", "boolean", "enum", List.of(true)))))',
      'string()', 'VerbSchemasTest#reportRestorePublishesBothNamesAndTheBooleanListRequest'),
@@ -595,8 +605,8 @@ CONTROLS = [
     # close is the safe half of removal. Without it, delete was the only way to get a chart off the
     # screen over the socket, so "not recoverable" was not advice a caller could act on.
     ('p51r-50-close-keeps-definition', UI + 'GraphTabs.java',
-     'gp.unbind();\n        tabs.removeTabAt(indexOf(gp));\n        fireChanged();\n        return null;',
-     'deleteListener.accept(name.trim());\n        gp.unbind();\n        tabs.removeTabAt(indexOf(gp));\n        fireChanged();\n        return null;',
+     'gp.unbind();\n        tabs.removeTabAt(indexOf(gp));\n        syncSelectorSelection();\n        fireChanged();\n        return null;',
+     'deleteListener.accept(name.trim());\n        gp.unbind();\n        tabs.removeTabAt(indexOf(gp));\n        syncSelectorSelection();\n        fireChanged();\n        return null;',
      'GraphNotesReplaceAndChartsDeleteTest#closeKeepsWhatDeleteRemoves'),
 
     # A delete under a definition refusal must not write to the profile. The UI disables Delete

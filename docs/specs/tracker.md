@@ -1447,12 +1447,11 @@ Sequence AFTER W4/W5/W11/W13: this is the optimisation of the optimisation, not 
 `fluxtion.sourceFingerprint`? If yes, W13 is a graph change, fails gate 11.5, and needs its own release.
 
 ---
-## M70 · Evidence bundle replay — the second delivery — ☐ SPEC r1 DRAFTED 2026-09-28 ([spec](spec-evidence-bundle-replay.md); spike `tools/spikes/replay-bundle/`)
+## M70 · Evidence bundle replay — the second delivery — implemented, release pending ([spec](spec-evidence-bundle-replay.md); spike `tools/spikes/replay-bundle/`)
 
 Record at the processor (the single-threaded consumption point), replay into the recipient's build with data-driven
-time, compare in the analyser. YAML only for the demo. Spike: byte-identical replay when the recorder stamps the
-receipt instant; the shipped writer does not (UP-FLX-53); graph-raised events are matched at the redispatch queue in
-replay mode (owner design, UP-FLX-54).
+time, compare in the analyser. YAML is the DEMO event encoding. The recorder stamps the receipt instant;
+graph-raised events stay in the audit log but are not recorded as external replay inputs (R-D10).
 - [M70.R0] ☑ The auditor path proven on a DEMO processor generated with the recorder (builder 1.0.71): inputs-only replay byte-identical; record-everything duplicates the graph-raised event; the second clock read reproduced (spike README ▸ *R0*)
 - [M70.R0a] ☑ `examples/fixture-generator` follows the root pom (builder 1.0.71, runtime 1.0.16, no BOM); `FixtureGeneratorToolchainTest` holds it (red on the old pom, naming all three causes)
 - [M70.R0b] ☑ The committed DEMO fixtures regenerated with the analyser's toolchain: one clock read per cycle (`eventTime == logTime`), and the new GraphML vocabulary. The graph now DECLARES `spreadCalculator` cannot log (`fluxtion.auditCapable=false`), so coverage drops it with no source (M45.3). `CoverageScopeTest` was updated to that: a declared fact is enough; with no declaration and no source the node stays counted. `GeneratedSourceIsPublishableTest` now covers the fixture generator's generated files (red on a planted copyright line). The eight fixture-reading frame suites pass on a display (43, 0 failures; 4 known Mac skips)
@@ -1462,14 +1461,23 @@ replay mode (owner design, UP-FLX-54).
 - [M70.R2] ☑ The `replay` member: `report {bundle: {…, replay}}`. `ReplayPairing` (the frame observes: each replay record a log record's event at its `eventTime`, in order; nothing loaded; the paired bytes digested) and the `evidenceCapture` node decides (refused with a window, while the log grows, or unpaired; the service-call warning). The writer packs `replay/` and holds the copy to the digest; manifest format 2 only then, verify reads both and refuses a replay claimed without its member; `--verify` prints it with the replay limit. Tests: `ReplayPairingTest`, `ReplayBundleTest`, `EvidenceCaptureTest` (5 new), `MainBundleTest`, `EvidenceCaptureFrameTest` (through the verb)
 - [M70.R3] ☑ `--replay-compare <bundle.fexp> <replayed-audit.yaml>` (`ReplayCompare`): verifies and unpacks, then every record exact but `endTime` (by position); the first difference named by record, event and key path with both values; a count difference named at the first record one side lacks; refused with no replay records, an excerpt, or an unverifiable bundle. Exit 0 agrees, 1 diverges or refused, 2 usage. Measured on a REAL replayed log the fixture generator now commits: 8 of 8, `endTime` excepted on 8. Tests: `ReplayCompareTest` (8), `MainBundleTest`
 - [M70.R4] ☑ The runner, `tools/replay/ReplayBundle.java` (JBang or plain java): the graph checked by nodes and edges against the build's own GraphML, the allow-list the build's `handleEvent` types, each record at its instant on a data-driven clock. `ReplayRunnerEndToEndTest` compiles the committed DEMO sources as a recipient's build: the same build AGREES; a risk limit of 3 DIVERGES at record 6; a foreign graph is refused. Found: the comparison must except `thread` as well as `endTime` (R3's rule corrected), and the JBang header needs the Fluxtion repository. Smoke-run with real `jbang` and `analyser --replay-compare`: AGREES 8 of 8
-- [M70.R5] ☐ Docs site *Replay*; CHANGELOG
-- Decided: our own replay writer and reader (R-D8), no Fluxtion core release; the redispatch match is made in our runner. Open for the owner: licensing (deferred); processor vs agent.
+- [M70.R5] ☑ Docs site replay reference and comparison limits; CHANGELOG [Unreleased] (strict MkDocs on PR #71)
+- Decided: our own replay writer and reader (R-D8), no Fluxtion core release; replay injects only the inputs recorded at consumption (R-D10). Open for the owner: licensing (deferred); processor vs agent.
+
+---
+## M71 · Workspace Start and Swing polish — PR #71, release pending ([spec](spec-workspace-start.md))
+
+- [M71.1] ☑ Full-window Start page grouped by activity, with DEMO tour, project/profile, bundle, log, GraphML, template and settings entrances; the project workspace remains reachable through Help.
+- [M71.2] ☑ Native file drops and delayed bundle preparation use the existing session paths. The review correction `5f950694` cancels a prepared bundle for a newer explicit graph without cancelling reader-supplied or accepted-bundle graph facts; regression tests and named mutation controls catch the wrong result.
+- [M71.3] ☑ Graph selector, narrow series and walk controls, report and producer-finding reading surfaces, and template picker. The 28 native DEMO documentation captures were inspected and the affected guides updated (`2b516f8b`).
+- [M71.4] ☐ Final-head CI, main integration CI, release and publication receipts. The reviewer recheck is [recorded here](../handoff/review_pr71_workspace_start_2026_09_29_codex_recheck.md).
+- [M71.F1] ☐ Optional follow-up: improve the tour's instructional sequence and narrow report/list reading width; revisit the template dialog's choice hierarchy. These do not hold PR #71.
 
 ---
 ## M69 follow-ups — spotlight walks shipped in 1.26.0 (▸ [`completed/tracker.md`](completed/tracker.md) ▸ *M69*)
 
-- [M69.F1] ☐ **W-A11: a native capture of a walk** for the docs site. `python3 tools/capture-docs.py --walk` drives it;
-  it needs Screen Recording permission on the owner's machine.
+- [M69.F1] ☑ **W-A11: a native capture of a walk** for the docs site. The full `python3 tools/capture-docs.py`
+  run on PR #71 produced and visually checked both light and dark walk captures; the light capture is on the assistant guide.
 - [M69.F2] ☐ **The skills mention of walks** (`point-at-the-fault`), at the next hash-pinned skills publication.
 - [M69.F3] ☑ (EB.B0, `feat/evidence-bundle-v1`, unmerged) **Present the unassessed-log caveat once per walk**, not on every record or chart step. With Follow off it
   is always present, and the strip paints only three reason lines (fix review, F5).

@@ -16,6 +16,7 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
+import javax.swing.JSplitPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.ListSelectionModel;
@@ -121,31 +122,62 @@ final class TemplateProjectDialog {
         }
         list.setSelectedIndex(initial);
         JTextArea description = textArea(selection.entries().get(initial).disclosure(), 10, 52);
+        description.setBorder(BorderFactory.createEmptyBorder(8, 2, 8, 8));
+        description.setBackground(UiTheme.surface());
+        JLabel selectedName = new JLabel(selection.entries().get(initial).displayName());
+        selectedName.setFont(selectedName.getFont().deriveFont(java.awt.Font.BOLD, 17f));
         list.addListSelectionListener(e -> {
             TemplateCatalogue.Entry chosen = list.getSelectedValue();
-            if (chosen != null) description.setText(chosen.disclosure());
+            if (chosen != null) {
+                selectedName.setText(chosen.displayName());
+                description.setText(chosen.disclosure());
+                description.setCaretPosition(0);
+            }
         });
 
-        JPanel panel = new JPanel(new BorderLayout(0, 8));
-        panel.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
-        JPanel north = new JPanel(new java.awt.GridLayout(0, 1));
+        JPanel panel = new JPanel(new BorderLayout(0, 14));
+        panel.setBorder(BorderFactory.createEmptyBorder(12, 14, 12, 14));
+        JPanel north = new JPanel();
+        north.setLayout(new javax.swing.BoxLayout(north, javax.swing.BoxLayout.Y_AXIS));
+        JLabel title = new JLabel("Choose a project template");
+        title.setFont(title.getFont().deriveFont(java.awt.Font.BOLD, 18f));
+        title.setAlignmentX(Component.LEFT_ALIGNMENT);
+        north.add(title);
+        north.add(javax.swing.Box.createVerticalStrut(4));
+        JTextArea note = Fluid.text(selection.note());
+        note.setForeground(UiTheme.mutedForeground());
+        north.add(note);
         // D-AX10: an experiment that silently downloads from somewhere else is how a rig artefact gets
         // mistaken for product behaviour. If the origin is overridden, the dialog SAYS which one.
         if (TemplateClient.originOverridden()) {
-            JLabel banner = new JLabel("Templates are being read from " + TemplateClient.configuredOrigin()
+            JTextArea banner = Fluid.text("Templates are being read from " + TemplateClient.configuredOrigin()
                     + " (-D" + TemplateClient.ORIGIN_PROPERTY + "), not the Fluxtion playground.");
             banner.setForeground(UiTheme.warnForeground());
+            north.add(javax.swing.Box.createVerticalStrut(8));
             north.add(banner);
         }
-        if (!selection.note().isBlank()) north.add(new JLabel(selection.note()));
-        if (north.getComponentCount() > 0) panel.add(north, BorderLayout.NORTH);
+        panel.add(north, BorderLayout.NORTH);
         JScrollPane templates = new JScrollPane(list);
-        templates.setPreferredSize(new Dimension(620, 220));
-        panel.add(templates, BorderLayout.CENTER);
-        panel.add(new JScrollPane(description), BorderLayout.SOUTH);
+        templates.setBorder(BorderFactory.createLineBorder(UiTheme.surfaceEdge()));
+        list.setFixedCellHeight(34);
+        list.setBorder(BorderFactory.createEmptyBorder(4, 4, 4, 4));
+        JPanel detail = new JPanel(new BorderLayout(0, 8));
+        detail.setBorder(BorderFactory.createEmptyBorder(12, 16, 12, 12));
+        detail.setBackground(UiTheme.surface());
+        detail.add(selectedName, BorderLayout.NORTH);
+        JScrollPane explanation = new JScrollPane(description, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+                JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        UiTheme.applySurface(explanation, description);
+        detail.add(explanation, BorderLayout.CENTER);
+        JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, templates, detail);
+        split.setBorder(BorderFactory.createLineBorder(UiTheme.surfaceEdge()));
+        split.setResizeWeight(0.34);
+        split.setDividerLocation(280);
+        split.setPreferredSize(new Dimension(820, 360));
+        panel.add(split, BorderLayout.CENTER);
         Object[] options = {"Use this template", "Cancel"};
         int answer = JOptionPane.showOptionDialog(owner, panel, "New project from template",
-                JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE, null, options, options[0]);
+                JOptionPane.DEFAULT_OPTION, JOptionPane.PLAIN_MESSAGE, null, options, options[0]);
         return answer == 0 ? list.getSelectedValue() : null;
     }
 
@@ -186,25 +218,30 @@ final class TemplateProjectDialog {
         // M35 removed the modals from the load path, so this is a checkbox on a dialog that already
         // exists rather than a second one after the download. Unchecked, like every other offer (M35.4).
         // Absent entirely when nothing is agreed, because a dead control is worse than no control.
-        JCheckBox guide = new JCheckBox("Also create " + ReferenceSet.FILE_NAME
-                + " with links to the canonical Fluxtion authoring docs");
+        JCheckBox guide = new JCheckBox("Add authoring guide links (" + ReferenceSet.FILE_NAME + ")");
         guide.setSelected(false);
         guide.setToolTipText("Skipped if the template already ships one — it is never overwritten.");
         boolean offerGuide = !ReferenceSet.agreed().isEmpty();
         if (offerGuide) row(form, c, 5, "", guide, null);
 
-        JTextArea boundary = textArea("The analyser downloads and opens this project. It never runs code "
-                + "from the archive; the next dialog shows copyable terminal commands.", 3, 58);
-        boundary.setBackground(form.getBackground());
-        JPanel panel = new JPanel(new BorderLayout(0, 8));
-        panel.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
+        JTextArea boundary = Fluid.text("The analyser downloads and opens this project. It never runs code "
+                + "from the archive; the next dialog shows copyable terminal commands.");
+        boundary.setForeground(UiTheme.mutedForeground());
+        JPanel panel = new JPanel(new BorderLayout(0, 14));
+        panel.setBorder(BorderFactory.createEmptyBorder(14, 16, 14, 16));
+        JPanel heading = new JPanel(new BorderLayout(0, 3));
+        JLabel headingText = new JLabel("Set up your project");
+        headingText.setFont(headingText.getFont().deriveFont(java.awt.Font.BOLD, 18f));
+        heading.add(headingText, BorderLayout.NORTH);
+        heading.add(new JLabel("Template: " + template.displayName()), BorderLayout.SOUTH);
+        panel.add(heading, BorderLayout.NORTH);
         panel.add(form, BorderLayout.CENTER);
         panel.add(boundary, BorderLayout.SOUTH);
 
         while (true) {
             Object[] options = {"Download and open", "Cancel"};
             int answer = JOptionPane.showOptionDialog(owner, panel, "Configure " + template.name(),
-                    JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE, null, options, options[0]);
+                    JOptionPane.DEFAULT_OPTION, JOptionPane.PLAIN_MESSAGE, null, options, options[0]);
             if (answer != 0) return null;
             try {
                 Path target = Path.of(destination.getText().strip()).toAbsolutePath().normalize();

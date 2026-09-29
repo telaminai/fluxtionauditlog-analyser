@@ -1,6 +1,6 @@
 # Graphs
 
-Plot any node value over time. Open the **Graph** tab; each graph is its own sub-tab (add several).
+Plot any node value over time. Open the **Graph** tab and use its selector to move between open graphs; the selector stays compact when you add several.
 
 ## Re-sending a chart definition
 
@@ -12,15 +12,15 @@ chart, which is what makes the normal authoring loop — send, look, adjust, sen
 doubled every pin, and the plot collapsed the duplicates into a single badge that hid the fact.
 `clearNotes: true` is still there, and is now only needed to drop pins *without* supplying new ones.
 
-**Removing a chart** is `graph {name, delete: true}`, or **Graph ▸ Delete chart**. It takes the
+**Removing a chart** is `graph {name, delete: true}`, or **Graph tab → More → Delete chart**. It takes the
 definition — series, formulas, pinned notes and the explanation written on it — and unlike a deleted
-report it is **not** recoverable. To put a chart away without losing it, close its tab — or, over the
+report it is **not** recoverable. To put a chart away without losing it, use **More → Close graph** — or, over the
 socket, `graph {name, close: true}`; a closed chart keeps its definition and reopens from the Project
 panel or by name.
 
 ## Adding series
 
-- Click **Edit series** on the plot to open the series panel.
+- Click **Edit series** on the plot to open the series editor. In a narrow pane it moves below the plot so its controls remain reachable.
 - **Add key** — pick any `instanceId.key` numeric or boolean node value (booleans plot as ±1).
 - Or **right-click an attribute** in the record detail view to add it straight to the current, a
   named, or a new graph.
@@ -253,16 +253,16 @@ or markers. Report chart captions carry the scope so it survives PDF export.
 
 ## Chart identities and imports
 
-A name identifies one saved chart, whether its tab is open or closed. A named chart action reopens the
-saved definition before editing it. Creating a new tab with an existing name is refused. A profile or
+A name identifies one saved chart, whether it is open or closed. A named chart action reopens the
+saved definition before editing it. Creating a new chart with an existing name is refused. A profile or
 settings import containing duplicate chart names is refused before application; give those definitions
 distinct names in the file and retry. The analyser does not choose which copy to discard.
 
 Importing a same-name chart replaces its definition as the import summary states, including its style
 and open/closed state. Opening a saved chart from the Project panel persists its open view and preserves
-its notes and settings; opening an already-open chart selects its existing tab.
+its notes and settings; opening an already-open chart selects it in the graph selector.
 
-The current UI keeps at least one graph tab: Close leaves the last tab in place, while deleting the last
+The current UI keeps at least one graph view: Close leaves the last open graph in place, while deleting the last
 open chart creates an empty placeholder. Closed saved definitions remain in the Project panel; the
 placeholder's name is chosen so it cannot overwrite them.
 

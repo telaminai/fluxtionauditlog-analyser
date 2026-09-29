@@ -1,6 +1,12 @@
 # Opening a bundle you were sent
 
-Opening a bundle never changes the file you received or your own project. It opens from a disposable working copy.
+Opening a bundle does not edit the file you received or your own project files. It switches the active
+workspace to a disposable working copy and adds that copy to your recent files.
+
+In the Swing analyser, choose **Start page → Open evidence bundle** and select the `.fexp` file. The analyser
+verifies and unpacks it off the event thread, then opens its project, audit log and any GraphML. It shows
+the verified identity, working-copy path and the bundle's limits. Verification detects changed members;
+it does not authenticate the sender. A replay, when present, is not run by this action.
 
 ## One line, then three opens
 
@@ -11,7 +17,7 @@ analyser --unpack breach-0900.fexp
 It verifies every member before it writes anything. On a bundle that does not verify it prints `REFUSED:` and the
 member at fault, and extracts nothing. On success it prints:
 - the **identity**: compare it with the one the sender gave you, if they gave one;
-- the two **limits**: unsigned, and no replay;
+- the **limits**: unsigned, plus the replay and source-data limits that apply to this bundle;
 - `excerpt: the log is records … of …, not the whole log`, when it is an excerpt;
 - `working copy: <dir>`, by default under `~/.fluxtion-analyser/bundles/`. `--into <dir>` chooses another place.
 

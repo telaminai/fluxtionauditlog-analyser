@@ -7,27 +7,47 @@ import telamin.fluxtion.audit.analyser.analyser.parse.LogStore;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
+import javax.swing.JComboBox;
+import javax.swing.JLabel;
+import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
 import javax.swing.JTabbedPane;
+import javax.swing.ListCellRenderer;
+import javax.swing.plaf.basic.BasicTabbedPaneUI;
 import java.awt.BorderLayout;
+import java.awt.Dimension;
 import java.awt.FlowLayout;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Holds one or more named {@link GraphPanel}s in tabs so different comparisons can be viewed side by side
+ * Holds one or more named {@link GraphPanel}s behind an open-graph selector so different comparisons can be viewed
  * (spec §8.7). Each graph binds to the same shared store + filter, so all react to the global filter.
  *
- * <p>Graphs are <b>named</b> (the tab title): rename via the button or a double-click on the tab. Names
+ * <p>Graphs are <b>named</b>: rename from the More menu. Names
  * persist in the profile and make a graph addressable through the assistant {@code graph} action
  * (spec-assistant-actions §4.3).
  */
 public final class GraphTabs extends JPanel {
 
-    private final JTabbedPane tabs = new JTabbedPane();
+    // Keep JTabbedPane's established selection/lifecycle model while suppressing its wrapping tab strip.
+    // The combo is the sole visible selector; the hidden tabs still own each GraphPanel exactly once.
+    private final JTabbedPane tabs = new JTabbedPane() {
+        @Override public void updateUI() {
+            super.updateUI();
+            setUI(new BasicTabbedPaneUI() {
+                @Override protected int calculateTabAreaHeight(int placement, int runs, int height) { return 0; }
+                @Override protected void paintTabArea(java.awt.Graphics g, int placement, int selected) { }
+            });
+        }
+    };
+    private final JComboBox<GraphPanel> graphSelector = new JComboBox<>();
+    private final JMenuItem renameItem = new JMenuItem("Rename…");
+    private final JMenuItem closeItem = new JMenuItem("Close graph");
+    private final JMenuItem deleteItem = new JMenuItem("Delete chart");
+    private boolean syncingSelector;
     private LogStore store;
     private FilterState filter;
     private int counter;
@@ -40,7 +60,7 @@ public final class GraphTabs extends JPanel {
     private String definitionRefusal;
     private final javax.swing.JTextArea definitionNotice = new javax.swing.JTextArea();
     private final javax.swing.JScrollPane definitionNoticeScroll = new javax.swing.JScrollPane(definitionNotice);
-    private final List<JButton> editingButtons = new ArrayList<>();
+    private final List<javax.swing.AbstractButton> editingButtons = new ArrayList<>();
     /** Shown only while definitions are withheld: the way out that is not "close the app and edit a file". */
     private final JButton repairButton = new JButton("Repair names…");
     /**
@@ -154,27 +174,49 @@ public final class GraphTabs extends JPanel {
 
     public GraphTabs() {
         super(new BorderLayout());
-        JPanel bar = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 2));
+        JPanel bar = new JPanel(new BorderLayout(4, 0));
         JButton add = new JButton("New graph");
-        JButton rename = new JButton("Rename…");
-        JButton close = new JButton("Close graph");
-        JButton delete = new JButton("Delete chart");
-        editingButtons.add(delete);   // only Delete is withheld while definitions are ambiguous
+        editingButtons.add(deleteItem);   // only Delete is withheld while definitions are ambiguous
         repairButton.setVisible(false);
         repairButton.setToolTipText("Resolve the duplicate chart names holding these definitions back");
         repairButton.addActionListener(e -> repairHandler.run());
         add.addActionListener(e -> addGraph());
-        rename.addActionListener(e -> promptRename(tabs.getSelectedIndex()));
-        close.addActionListener(e -> closeCurrent());
-        delete.addActionListener(e -> deleteCurrent());
+        renameItem.addActionListener(e -> promptRename(tabs.getSelectedIndex()));
+        closeItem.addActionListener(e -> closeCurrent());
+        deleteItem.addActionListener(e -> deleteCurrent());
         // the two buttons say which is which, because one of them is unrecoverable
-        close.setToolTipText("Close the tab and keep the chart — reopen it from the Project panel");
-        delete.setToolTipText("Remove the chart's definition from the project, including its notes. Cannot be undone");
-        bar.add(add);
-        bar.add(rename);
-        bar.add(close);
-        bar.add(delete);
-        bar.add(repairButton);
+        closeItem.setToolTipText("Close the graph and keep the chart — reopen it from the Project panel");
+        deleteItem.setToolTipText("Remove the chart's definition from the project, including its notes. Cannot be undone");
+        JPopupMenu actions = new JPopupMenu();
+        actions.add(renameItem);
+        actions.add(closeItem);
+        actions.addSeparator();
+        actions.add(deleteItem);
+        JButton more = new JButton("More ▾");
+        more.setToolTipText("Rename, close or delete the selected graph");
+        more.setComponentPopupMenu(actions);
+        more.addActionListener(e -> actions.show(more, 0, more.getHeight()));
+        graphSelector.setToolTipText("Select an open graph; closed charts can be reopened from Project");
+        graphSelector.getAccessibleContext().setAccessibleName("Open graph");
+        graphSelector.setMaximumRowCount(16);
+        graphSelector.setPreferredSize(new Dimension(140, graphSelector.getPreferredSize().height));
+        graphSelector.setRenderer((ListCellRenderer<? super GraphPanel>) (list, value, index, selected, focus) -> {
+            JLabel label = (JLabel) new javax.swing.DefaultListCellRenderer()
+                    .getListCellRendererComponent(list, value, index, selected, focus);
+            label.setText(value == null ? "No open graph" : displayTitle(value));
+            return label;
+        });
+        graphSelector.addActionListener(e -> {
+            if (!syncingSelector && graphSelector.getSelectedItem() instanceof GraphPanel panel)
+                tabs.setSelectedComponent(panel);
+        });
+        tabs.addChangeListener(e -> syncSelectorSelection());
+        JPanel controls = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 2));
+        controls.add(add);
+        controls.add(more);
+        controls.add(repairButton);
+        bar.add(graphSelector, BorderLayout.CENTER);
+        bar.add(controls, BorderLayout.EAST);
         identityBanner.setVisible(false);
         identityBanner.setBorder(javax.swing.BorderFactory.createEmptyBorder(4, 8, 4, 8));
         JPanel north = new JPanel(new BorderLayout());
@@ -190,15 +232,26 @@ public final class GraphTabs extends JPanel {
         add(definitionNoticeScroll, BorderLayout.SOUTH);
         setBorder(UiTheme.section("Graphs"));
 
-        // double-click a tab to rename it
-        tabs.addMouseListener(new MouseAdapter() {
-            @Override public void mouseClicked(MouseEvent e) {
-                if (e.getClickCount() == 2) {
-                    int i = tabs.indexAtLocation(e.getX(), e.getY());
-                    if (i >= 0) promptRename(i);
-                }
+        syncSelectorSelection();
+    }
+
+    /** The selector mirrors the tab model; choosing a graph is view navigation, not a saved chart edit. */
+    private void syncSelectorSelection() {
+        syncingSelector = true;
+        try {
+            if (graphSelector.getItemCount() != tabs.getTabCount()) {
+                graphSelector.removeAllItems();
+                for (int i = 0; i < tabs.getTabCount(); i++)
+                    graphSelector.addItem((GraphPanel) tabs.getComponentAt(i));
             }
-        });
+            graphSelector.setSelectedItem(tabs.getSelectedComponent());
+            graphSelector.repaint();
+            renameItem.setEnabled(tabs.getSelectedIndex() >= 0);
+            closeItem.setEnabled(tabs.getTabCount() > 1);
+            deleteItem.setEnabled(definitionRefusal == null && tabs.getSelectedIndex() >= 0);
+        } finally {
+            syncingSelector = false;
+        }
     }
 
     /** Rebind to a freshly loaded log: drop existing graphs and start with one. */
@@ -290,6 +343,7 @@ public final class GraphTabs extends JPanel {
         panel.onNotesChanged(this::fireChanged);               // interactive note pins/edits too
         tabs.addTab(displayTitle(panel), panel);
         tabs.setSelectedComponent(panel);
+        syncSelectorSelection();
         fireChanged();
         return panel;
     }
@@ -320,6 +374,7 @@ public final class GraphTabs extends JPanel {
             tabs.setTitleAt(i, displayTitle(panel));
             tabs.setToolTipTextAt(i, panel.isPinned()
                     ? "Pinned to a fixed window — click 📌 to unpin and follow the filter" : null);
+            graphSelector.repaint();
         }
     }
 
@@ -584,6 +639,7 @@ public final class GraphTabs extends JPanel {
             if (tabs.getComponentAt(i) instanceof GraphPanel gp) gp.unbind();
         }
         tabs.removeAll();
+        syncSelectorSelection();
     }
 
     /**
@@ -597,6 +653,7 @@ public final class GraphTabs extends JPanel {
         if (i < 0) return;
         if (tabs.getComponentAt(i) instanceof GraphPanel gp) gp.unbind();
         tabs.removeTabAt(i);
+        syncSelectorSelection();
         fireChanged();
     }
 
@@ -635,6 +692,7 @@ public final class GraphTabs extends JPanel {
         }
         gp.unbind();
         tabs.removeTabAt(indexOf(gp));
+        syncSelectorSelection();
         fireChanged();
         return null;
     }
@@ -722,7 +780,7 @@ public final class GraphTabs extends JPanel {
      *
      * <p>Charts accumulate in a profile exactly the way reports did before #23. An investigation leaves
      * throwaways behind — a probe to check an expression resolves, a variant to compare two window pins
-     * — and they persist, reopen with the project, and sit in the tab strip indistinguishable from the
+     * — and they persist, reopen with the project, and sit in the open-graph selector indistinguishable from the
      * chart that carries the finding. Until this there was a Delete button and no verb, so an assistant
      * could create a chart and never clear it up.
      *
@@ -755,6 +813,7 @@ public final class GraphTabs extends JPanel {
         String name = gp.graphName();
         gp.unbind();
         tabs.removeTabAt(i);
+        syncSelectorSelection();
         // f6e8d7e0: drop the definition FIRST. This used to run after the fallback below, and addGraph ends in
         // fireChanged() — a save — so the list was persisted while the deleted chart was still in it and a
         // fresh placeholder had just taken a name a CLOSED chart still held. The name-keyed merge then
@@ -763,7 +822,7 @@ public final class GraphTabs extends JPanel {
         // while the code did the opposite.
         deleteListener.accept(name);
         if (tabs.getTabCount() == 0) {
-            // safe now: the name is free and the definition is gone. PR #51 review: the tab strip keeps one tab, so
+            // safe now: the name is free and the definition is gone. PR #51 review: the selector keeps one graph, so
             // deleting the LAST chart opens a blank one — and that blank tab used to be saved and reported as a chart
             // that "remains". Over the socket, an assistant clearing its probe charts deleted "probe" and was told
             // "remaining: [Graph 2]", deleted that and got "[Graph 3]", and each one landed in the profile: the

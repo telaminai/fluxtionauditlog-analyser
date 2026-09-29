@@ -18,6 +18,9 @@ public enum TransitionKind {
     /** Menu, recent list, or socket {@code open {project}} — the profile is the session boundary (M35.5). */
     EXPLICIT_SWITCH(true, true),
 
+    /** A verified evidence bundle supplies a new project, graph and log as one request. */
+    OPEN_BUNDLE(true, false),
+
     /**
      * The M35 offer path: a log was opened, a project was found for it, and the user accepted. Closing
      * here would destroy the log that caused the offer, so this transition ends nothing.

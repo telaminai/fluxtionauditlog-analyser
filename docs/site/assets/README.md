@@ -33,6 +33,8 @@ thread, logger or account names** — use neutral placeholders (e.g. `DEMO`, `ma
 | `graph-series-dark.png` | Graphs — a value plotted over time (dark: plots read better on it) |
 | `graph-step-dark.png` | Graphs — stairs style |
 | `graph-series-light.png` | spare — the same plot on the light theme, if a page needs to match |
+| `spotlight-walk.png` | Working with AI — a saved walk playing in the light theme |
+| `spotlight-walk-dark.png` | spare — the same walk in the dark theme |
 | `mcp-generic-setup.png` | Working with AI ▸ Connecting an LLM — Generic MCP record, copy/save boundary |
 | `mcp-claude-code-confirm.png` | Working with AI ▸ Connecting an LLM — explicit Claude Code registration confirmation |
 | `sample-audit-log.yaml` | Downloadable sample (Home, Getting started, Install, Log format) |
@@ -132,3 +134,18 @@ using the rebuilt branch jar, repository demo, and the harness's isolated home. 
 3360×2100. Every image was opened and its visible strings inspected; each menu popup is visible,
 the recents follow their open action, and the start page shows the renamed close status and
 Open log guidance. The other images were not recaptured during this response.
+
+## Capture audit — PR #71, 2026-09-29
+
+The full 28-image main/demo capture suite was regenerated natively from the PR #71 jar with the
+repository DEMO fixtures and the harness's isolated home. Every image was opened and inspected,
+including the Start page, the project/source/audit/AI menus, graph selector and report controls,
+and both spotlight-walk themes. The Start page is now the full window, with activity groups and
+no irrelevant menus or time-range control. The graph and report guide text was updated to match
+the captured controls. The image audit found only DEMO data and neutral temporary paths; no
+participant project or hosted assistant was used.
+
+The release preflight also regenerated the seven-scenario sample-conversation transcript and its
+five native `conv-*.png` captures against the same DEMO jar. Each image and the transcript diff
+were inspected; the authored timestamps now match the refreshed DEMO fixture, and temporary
+exchange paths are neutralized in the published echoes.
