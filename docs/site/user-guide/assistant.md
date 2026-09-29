@@ -69,6 +69,12 @@ Open **Settings ▸ Assistant / LLM**:
 - **API key** — stored locally in cleartext (single-user tool), and sent to the configured provider
   endpoint to authenticate requests. It is never included in a shared settings file.
 
+For OpenAI, leave **Base URL** blank to use its standard API endpoint and enter an OpenAI API model ID
+in **Model**. `OpenAI HTTP 404` can mean the model ID or a custom endpoint is wrong. `OpenAI HTTP 429`
+means a rate, credit or usage limit was reached; check your API account's
+[billing and limits guidance](https://help.openai.com/en/articles/5955604-troubleshooting-api-rate-limits-and-429-errors).
+The analyser does not show the provider's raw error body because it may contain private data.
+
 ## Actions the assistant can take
 
 From a reply the assistant runs bounded **actions** (within the round / per-reply caps in Settings) and

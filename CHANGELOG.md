@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+- Saving an assistant provider key now clears the stale "not configured" banner and enables Send immediately, without starting a new chat or reopening the analyser.
+
 ## [1.29.0] - 2026-09-29
 
 - Assistant turns now attribute an open to the action that requested it through the reader's completion. A person's competing open stops the old turn, while the assistant's own open waits until its log and view are applied before running the next action. Changing the investigation filter during a turn stops its pending reply before it can chart the new view; changing it after a turn completes keeps the conversation usable, and the next Send reads the current filter.
