@@ -52,6 +52,26 @@ class ConfigStoreTest {
     }
 
     @Test
+    void recentBundlesRoundTripSoARecipientStillHasTheListNextTime(@TempDir Path dir) {
+        Path cfg = dir.resolve("config");
+        ConfigStore store = new ConfigStore(cfg);
+
+        AppConfig c = new AppConfig();
+        c.addRecentBundle("/demo/one.fexp", "sha256:aaa", "DEMO the first thing sent");
+        c.addRecentBundle("/demo/two.fexp", "sha256:bbb", "");
+        c.addRecentBundle("/demo/one.fexp", "sha256:aaa", "DEMO the first thing sent");   // reopened
+        store.save(c);
+
+        AppConfig d = store.load();
+        assertEquals(2, d.recentBundles.size(), "reopening moves an entry, it does not duplicate it");
+        assertEquals("/demo/one.fexp", d.recentBundles.get(0).path(), "recentsSurviveARestart");
+        assertEquals("sha256:aaa", d.recentBundles.get(0).identity());
+        assertEquals("DEMO the first thing sent", d.recentBundles.get(0).notes(), "notesSurviveARestart");
+        assertEquals("/demo/two.fexp", d.recentBundles.get(1).path());
+        assertEquals("", d.recentBundles.get(1).notes());
+    }
+
+    @Test
     void savedGraphsRoundTripWithNames(@TempDir Path dir) {
         Path cfg = dir.resolve("config");
         ConfigStore store = new ConfigStore(cfg);

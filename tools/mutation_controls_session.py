@@ -27,6 +27,23 @@ RUNNER = 'tools/replay/ReplayBundle.java'
 GRAPHML = 'src/main/resources/telamin/fluxtion/audit/analyser/analyser/session/generated/SessionProcessor.graphml'
 
 CONTROLS = [
+    # Bundle discovery (#73): a recipient could not find out what they had been sent.
+    ('bundle-recent-recorded', UI + 'MainFrame.java',
+     '                config.addRecentBundle(bundleRequested, plan.identity(), plan.notes());\n',
+     '',
+     'BundleProvenanceFrameTest#anOpenedBundleIsDiscoverableAfterwards'),
+    ('bundle-recent-published', UI + 'MainFrame.java',
+     '            if (!config.recentBundles.isEmpty()) {\n',
+     '            if (false) {\n',
+     'BundleProvenanceFrameTest#anOpenedBundleIsDiscoverableAfterwards'),
+    ('bundle-notes-read-from-the-copy', UI + 'MainFrame.java',
+     '                return trimmed.length() <= 200 ? trimmed : trimmed.substring(0, 200) + "\u2026";\n',
+     '                return "";\n',
+     'BundleProvenanceFrameTest#anOpenedBundleIsDiscoverableAfterwards'),
+    ('bundle-recents-persisted', 'src/main/java/telamin/fluxtion/audit/analyser/analyser/config/ConfigStore.java',
+     '        writeRecentBundles(p, c.recentBundles);',
+     '        // recents not written',
+     'ConfigStoreTest#recentBundlesRoundTripSoARecipientStillHasTheListNextTime'),
     # Bundle provenance rendered (#76): each removes one reason a recipient can tell evidence from own work.
     ('bundle-title-states-it', UI + 'MainFrame.java',
      'setTitle(bundle.fromBundle() ? base + "  [evidence bundle " + bundle.shortIdentity() + "]" : base);',

@@ -83,7 +83,8 @@ public class OpenBundle implements EventLogSource {
         }
         current = pending == null
                 ? BundleProvenance.NONE
-                : new BundleProvenance(pending.identity(), requestedSource, pending.workingCopy(), pending.limits());
+                : new BundleProvenance(pending.identity(), requestedSource, pending.workingCopy(),
+                        pending.limits(), pending.notes());
         pending = null;
         requestedSource = null;
         auditLog.info("fromBundle", current.fromBundle()).info("bundleIdentity", current.identity());

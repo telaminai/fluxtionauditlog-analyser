@@ -93,6 +93,48 @@ class BundleProvenanceFrameTest {
     }
 
     @Test
+    @DisplayName("#73: an opened bundle joins a recents list that says what it is, and reopens from it")
+    void anOpenedBundleIsDiscoverableAfterwards(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        try (var f = shown(tmp)) {
+            Path dir = exchange(f, tmp);
+            openLog(f, EvidenceCaptureFrameTest.DEMO_LOG);
+            onEdt(() -> render(f.ex, "report", Map.of("bundle",
+                    Map.of("path", "discoverable.fexp", "notes", "DEMO what the sender said this is"))));
+            Map<String, Object> written = awaitDecided(f);
+            assertEquals("WRITTEN", written.get("phase"), "fixture written: " + written);
+            Path fexp = dir.resolve("discoverable.fexp");
+            openBundleAndWait(f, fexp);
+
+            var config = (telamin.fluxtion.audit.analyser.analyser.config.AppConfig) field(f.frame, "config");
+            assertEquals(1, config.recentBundles.size(), "bundleIsRemembered: " + config.recentBundles);
+            var remembered = config.recentBundles.getFirst();
+            assertEquals(fexp.toString(), remembered.path());
+            assertEquals(written.get("identity"), remembered.identity(), "recentRemembersWhatItVerifiedAs");
+            assertEquals("DEMO what the sender said this is", remembered.notes(),
+                    "recentSaysWhatTheSenderClaimed");
+
+            @SuppressWarnings("unchecked")
+            var ctx = (Map<String, Object>) onEdtGet(() ->
+                    render(f.ex, "context", Map.of("sections", List.of("project"))).get("context"));
+            @SuppressWarnings("unchecked")
+            var bundles = (Map<String, Object>) ctx.get("bundles");
+            assertNotNull(bundles, "recentsArePublishedForDiscovery");
+            @SuppressWarnings("unchecked")
+            var recent = (List<Map<String, Object>>) bundles.get("recent");
+            assertEquals(fexp.toString(), recent.getFirst().get("path"));
+            assertEquals(Boolean.TRUE, recent.getFirst().get("present"));
+            assertEquals("DEMO what the sender said this is", recent.getFirst().get("notes"));
+        }
+    }
+
+    private static Object onEdtGet(java.util.function.Supplier<Object> body) throws Exception {
+        AtomicReference<Object> out = new AtomicReference<>();
+        onEdt(() -> out.set(body.get()));
+        return out.get();
+    }
+
+    @Test
     @DisplayName("an ordinary project does not claim to be evidence")
     void anOrdinaryLogSaysNothingAboutBundles(@TempDir Path tmp) throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless());

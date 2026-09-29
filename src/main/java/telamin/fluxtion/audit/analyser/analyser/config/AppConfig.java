@@ -156,6 +156,31 @@ public final class AppConfig {
     /** M38.6 D-C9: the workspace anchor — '..', '../..' — at or above the project root; blank = none. Project-scoped, rides SOURCE_ROOTS. */
     public String workspaceRoot = "";
 
+    /**
+     * A bundle this machine has opened: where the file is, what it verified as, and the first line of its
+     * NOTES.md. MACHINE tier, like the other recent lists — never written to a project profile or an export.
+     *
+     * <p>The notes line is stored rather than re-read, so the list can say what each bundle CLAIMS without
+     * opening five zips to draw a panel. It is what the sender wrote; it is not evidence of anything.
+     *
+     * @param path     the {@code .fexp} as it was opened; it may since have moved or been deleted
+     * @param identity {@code sha256:} of the manifest at the time it was opened
+     * @param notes    the first line of {@code notes/NOTES.md}, or blank
+     */
+    public record RecentBundle(String path, String identity, String notes) { }
+
+    /** Evidence bundles opened on this machine, most-recent first (#73). */
+    public final List<RecentBundle> recentBundles = new ArrayList<>();
+
+    /** Record an opened bundle, newest first and de-duplicated by path. */
+    public void addRecentBundle(String path, String identity, String notes) {
+        if (path == null || path.isBlank()) return;
+        recentBundles.removeIf(b -> b.path().equals(path));
+        recentBundles.add(0, new RecentBundle(path, identity == null ? "" : identity,
+                notes == null ? "" : notes));
+        while (recentBundles.size() > 25) recentBundles.remove(recentBundles.size() - 1);
+    }
+
     /** Recent search terms (most-recent first), for the search box history/autocomplete. */
     public final List<String> searchHistory = new ArrayList<>();
 

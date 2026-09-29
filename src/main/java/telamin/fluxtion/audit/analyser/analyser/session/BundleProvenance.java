@@ -13,14 +13,16 @@ package telamin.fluxtion.audit.analyser.analyser.session;
  * @param source      the {@code .fexp} the person opened — NOT the unpacked profile inside it
  * @param workingCopy the disposable copy the bundle was unpacked into
  * @param limits      what verification does not claim (unsigned, replay caveats), as the bundle stated them
+ * @param notes       what the SENDER wrote in NOTES.md. Their words, not a fact about the evidence.
  */
-public record BundleProvenance(String identity, String source, String workingCopy, String limits) {
+public record BundleProvenance(String identity, String source, String workingCopy, String limits, String notes) {
 
     /** An ordinary project: nothing was received from anyone. */
-    public static final BundleProvenance NONE = new BundleProvenance(null, null, null, "");
+    public static final BundleProvenance NONE = new BundleProvenance(null, null, null, "", "");
 
     public BundleProvenance {
         limits = limits == null ? "" : limits;
+        notes = notes == null ? "" : notes;
     }
 
     /**

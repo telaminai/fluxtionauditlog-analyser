@@ -65,6 +65,9 @@ public final class StartPanel extends JPanel {
         default void investigateIncident() { }
         default void openGraphml() { }
         default void openRecentProject(String path) { }
+
+        /** #73: reopen a bundle this machine has already verified once. */
+        default void openRecentBundle(String path) { }
         default void openExistingProject() { }
         default void restoreSession(long generation) { }
         default void dismissSessionRestore(long generation) { }
@@ -81,6 +84,8 @@ public final class StartPanel extends JPanel {
     private boolean workstreamsWide;
     private boolean workstreamsArranged;
     private List<String> lastRecents;
+    private final Box recentBundles = Box.createVerticalBox();
+    private List<telamin.fluxtion.audit.analyser.analyser.config.AppConfig.RecentBundle> lastBundleRecents;
     private final Actions actions;
     private final Consumer<String> status;
 
@@ -123,6 +128,8 @@ public final class StartPanel extends JPanel {
 
         recentProjects.setAlignmentX(LEFT_ALIGNMENT);
         setRecentProjects(List.of());
+        recentBundles.setAlignmentX(LEFT_ALIGNMENT);
+        setRecentBundles(List.of());
         workstreamSections[1] = workstream("Open your work",
                 row(card("Open project", "Use an existing project profile and its saved settings.", false,
                                 actions::openExistingProject),
@@ -131,7 +138,8 @@ public final class StartPanel extends JPanel {
                 row(card("Open audit log", "Choose a local audit log to investigate.", false, actions::openOwnLog),
                         card("Open GraphML", "View a processor topology, with or without a log.", false,
                                 actions::openGraphml)),
-                subheading("Recent projects"), recentProjects);
+                subheading("Recent projects"), recentProjects,
+                subheading("Recent evidence bundles"), recentBundles);
 
         workstreamSections[2] = workstream("Create a project",
                 row(card("Create project profile", "Save settings for existing source and processors. No code is generated.",
@@ -227,6 +235,43 @@ public final class StartPanel extends JPanel {
         }
         recentProjects.revalidate();
         recentProjects.repaint();
+    }
+
+    /**
+     * #73: the bundles this machine has opened. A recipient had no way to find out what they had been sent —
+     * no list verb, no menu entry, and an unpacked working copy showed up only as a recent LOG path with a
+     * {@code bundle-<hex>} folder in it. The note is the SENDER's sentence, shown so the list says what each
+     * one claims to be before it is opened; it is their words, not a verified fact.
+     */
+    public void setRecentBundles(List<telamin.fluxtion.audit.analyser.analyser.config.AppConfig.RecentBundle> bundles) {
+        var next = bundles == null ? List.<telamin.fluxtion.audit.analyser.analyser.config.AppConfig.RecentBundle>of()
+                : List.copyOf(bundles);
+        if (next.equals(lastBundleRecents)) return;
+        lastBundleRecents = next;
+        recentBundles.removeAll();
+        if (next.isEmpty()) {
+            recentBundles.add(body("No evidence bundles opened yet. Use Open evidence bundle above, "
+                    + "or drop a .fexp anywhere on this page."));
+        } else {
+            for (var b : next) {
+                Path file = Path.of(b.path());
+                boolean present = java.nio.file.Files.isRegularFile(file);
+                String label = String.valueOf(file.getFileName())
+                        + (b.notes().isEmpty() ? "" : "  —  " + b.notes())
+                        + (present ? "" : "   (file not found)");
+                JButton button = new JButton(label);
+                button.setHorizontalAlignment(SwingConstants.LEFT);
+                button.setToolTipText(b.path() + (b.identity().isEmpty() ? "" : "\n" + b.identity()));
+                button.setAlignmentX(LEFT_ALIGNMENT);
+                button.setMaximumSize(new Dimension(Integer.MAX_VALUE, button.getPreferredSize().height));
+                button.setEnabled(present);
+                button.addActionListener(e -> actions.openRecentBundle(b.path()));
+                recentBundles.add(button);
+                recentBundles.add(Box.createVerticalStrut(4));
+            }
+        }
+        recentBundles.revalidate();
+        recentBundles.repaint();
     }
 
     /** Refresh after the management dialog closes; the stored value never enters this component. */

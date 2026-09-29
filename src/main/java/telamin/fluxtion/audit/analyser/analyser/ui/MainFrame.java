@@ -1104,6 +1104,7 @@ public final class MainFrame extends JFrame {
         if (startPanel != null) {
             if (actionControl != null) startPanel.renderProject(actionControl.context().payload());
             startPanel.setRecentProjects(config.recentProjects);
+            startPanel.setRecentBundles(config.recentBundles);
             boolean designOpen = session != null && session.processor().designSession.path() != null;
             showWorkspace(store == null && !topologyPanel.hasGraph() && !project.hasProject() && !designOpen);
         }
@@ -1227,7 +1228,11 @@ public final class MainFrame extends JFrame {
         loadExperiment(chooser.getSelectedFile().toPath());
     }
 
+    /** The .fexp the in-flight bundle open was asked for; the plan names the unpacked profile, not this. */
+    private String bundleRequested;
+
     private void loadExperiment(Path bundle) {
+        bundleRequested = bundle.toString();
         status.setText("Verifying and opening evidence bundle…");
         startPanel.showOperationFeedback("Verifying " + bundle.getFileName() + "…");
         if (recovery != null) recovery.capture();
@@ -1269,9 +1274,29 @@ public final class MainFrame extends JFrame {
         String limits = String.join("\n", telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.limits(verification));
         var plan = new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundlePlan(
                 profile.toString(), graphs.isEmpty() ? null : root.resolve(graphs.getFirst()).toString(),
-                root.resolve(logs.getFirst()).toString(), verification.identity(), root.toString(), limits);
+                root.resolve(logs.getFirst()).toString(), verification.identity(), root.toString(), limits,
+                firstNoteLine(root.resolve(telamin.fluxtion.audit.analyser.bundle.BundleWriter.NOTES)));
         return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileLoaded(
                 opId, profile.toString(), true, null, 0, null, plan);
+    }
+
+    /**
+     * #73: the first line of a bundle's NOTES.md — what the sender says this is. Bounded and single-line,
+     * because it goes in a list row and a title-ish position, and because it is text from someone else.
+     * Unreadable or absent notes are simply blank: a bundle without a note is still a bundle.
+     */
+    private static String firstNoteLine(Path notes) {
+        try {
+            if (!java.nio.file.Files.isRegularFile(notes)) return "";
+            for (String line : java.nio.file.Files.readAllLines(notes, java.nio.charset.StandardCharsets.UTF_8)) {
+                String trimmed = line.strip();
+                if (trimmed.isEmpty() || trimmed.startsWith("#")) continue;
+                return trimmed.length() <= 200 ? trimmed : trimmed.substring(0, 200) + "…";
+            }
+        } catch (java.io.IOException | RuntimeException ignored) {
+            // the notes are a courtesy; a bundle whose note cannot be read still opens
+        }
+        return "";
     }
 
     /** Source roots the demo added for this session only — never written to any config tier. */
@@ -3714,6 +3739,7 @@ public final class MainFrame extends JFrame {
             @Override public void newProjectFromTemplate() { chooseTemplateProject(); }
             @Override public void openExperiment() { chooseExperiment(); }
             @Override public void investigateIncident() { chooseIncidentEvidence(); }
+            @Override public void openRecentBundle(String path) { loadExperiment(Path.of(path)); }
             @Override public void openRecentProject(String path) {
                 requestProject(Path.of(path), telamin.fluxtion.audit.analyser.analyser.session.TransitionKind.EXPLICIT_SWITCH, "start-recent");
             }
@@ -6288,6 +6314,10 @@ public final class MainFrame extends JFrame {
             }
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.OpenBundleEvidenceEffect e -> {
                 var plan = e.plan();
+                // #73: a recipient could not find out what they had been sent. Recorded here, where the
+                // adapter performs the effect, beside the way a project open records its own recent.
+                config.addRecentBundle(bundleRequested, plan.identity(), plan.notes());
+                saveConfigQuietly();
                 if (plan.graphPath() != null) topologyPanel.load(Path.of(plan.graphPath()));
                 startPanel.showOperationFeedback("Verified " + plan.identity() + ". The audit log is loading.\n"
                         + "Working copy: " + plan.workingCopy() + "\n" + plan.limits());
@@ -6673,7 +6703,10 @@ public final class MainFrame extends JFrame {
         updateLifecycleMenu();
         fillRecent(recentProjectsMenu, config.recentProjects,
                 path -> requestProject(Path.of(path), telamin.fluxtion.audit.analyser.analyser.session.TransitionKind.EXPLICIT_SWITCH, "recent"));
-        if (startPanel != null) startPanel.setRecentProjects(config.recentProjects);
+        if (startPanel != null) {
+            startPanel.setRecentProjects(config.recentProjects);
+            startPanel.setRecentBundles(config.recentBundles);
+        }
     }
 
     /** The window title carries the project, because "which settings am I using" is easy to lose. */
@@ -7612,6 +7645,7 @@ public final class MainFrame extends JFrame {
                     bundle.put("source", received.source());
                     bundle.put("workingCopy", received.workingCopy());
                     bundle.put("verified", true);
+                    if (!received.notes().isEmpty()) bundle.put("notes", received.notes());
                     if (!received.limits().isEmpty()) bundle.put("limits", received.limits());
                     proj.put("bundle", bundle);
                 }
@@ -7619,6 +7653,26 @@ public final class MainFrame extends JFrame {
                 proj.put("note", "your own settings — no project is open");
             }
             out.put("project", proj);
+            // #73: what this machine has been sent. A recipient could not otherwise find out what bundles they
+            // hold — there is no list verb, and an unpacked working copy appears only as a recent LOG path.
+            if (!config.recentBundles.isEmpty()) {
+                List<Map<String, Object>> recent = new java.util.ArrayList<>();
+                for (var b : config.recentBundles) {
+                    Map<String, Object> row = new java.util.LinkedHashMap<>();
+                    row.put("path", b.path());
+                    row.put("present", java.nio.file.Files.isRegularFile(Path.of(b.path())));
+                    if (!b.identity().isEmpty()) row.put("identity", b.identity());
+                    if (!b.notes().isEmpty()) row.put("notes", b.notes());
+                    recent.add(row);
+                }
+                Map<String, Object> bundles = new java.util.LinkedHashMap<>();
+                bundles.put("recent", recent);
+                bundles.put("workingCopies", Path.of(System.getProperty("user.home"),
+                        ".fluxtion-analyser", "bundles").toString());
+                bundles.put("note", "opened on this machine; identity and notes are as they were AT open, "
+                        + "and the notes are the sender's words, not a fact about the evidence");
+                out.put("bundles", bundles);
+            }
             if (project.hasProject() && need.test("skills")) {
                 telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile
                         .skillsProvenance(project.activeFile()).ifPresent(value -> {

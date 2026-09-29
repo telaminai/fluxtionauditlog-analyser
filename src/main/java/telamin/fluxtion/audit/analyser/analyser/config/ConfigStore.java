@@ -91,6 +91,7 @@ public final class ConfigStore {
         readFocuses(p, c.namedFocuses);
         readReports(p, c.reports);
         readDeletedReports(p, c.deletedReports);   // PR #33: machine-local, never in a profile or an export
+        readRecentBundles(p, c.recentBundles);     // #73: machine-local, like the other recent lists
         readWalks(p, c.walks);                     // M69: beside reports, same tier
         readDeletedWalks(p, c.deletedWalks);       // M69: machine-local, like the report bin
         readRunbooks(p, c.runbooks);
@@ -177,6 +178,7 @@ public final class ConfigStore {
         writeFocuses(p, globalTier == null ? c.namedFocuses : globalTier.namedFocuses());
         writeReports(p, globalTier == null ? c.reports : globalTier.reports());
         writeDeletedReports(p, c.deletedReports);   // always the machine's: the bin is not project state
+        writeRecentBundles(p, c.recentBundles);     // #73: always the machine's, never a project's or an export's
         writeWalks(p, globalTier == null ? c.walks : globalTier.walks());   // M69: the reports' tier choice
         writeDeletedWalks(p, c.deletedWalks);       // M69: always the machine's
         writeRunbooks(p, globalTier == null ? c.runbooks : globalTier.runbooks());
@@ -256,6 +258,31 @@ public final class ConfigStore {
     static void writeReports(Properties p,
                              List<telamin.fluxtion.audit.analyser.analyser.report.ReportSpec> reports) {
         writeReports(p, "report", reports);
+    }
+
+    /** #73: bundles this machine has opened, under {@code recentBundle.count} / {@code recentBundle.<i>.…}. */
+    static void writeRecentBundles(Properties p,
+                                   List<telamin.fluxtion.audit.analyser.analyser.config.AppConfig.RecentBundle> bundles) {
+        p.setProperty("recentBundle.count", Integer.toString(bundles.size()));
+        for (int i = 0; i < bundles.size(); i++) {
+            var b = bundles.get(i);
+            put(p, "recentBundle." + i + ".path", b.path());
+            put(p, "recentBundle." + i + ".identity", b.identity());
+            put(p, "recentBundle." + i + ".notes", b.notes());
+        }
+    }
+
+    static void readRecentBundles(Properties p,
+                                  List<telamin.fluxtion.audit.analyser.analyser.config.AppConfig.RecentBundle> into) {
+        into.clear();
+        int n = parseInt(p.getProperty("recentBundle.count"), 0);
+        for (int i = 0; i < n; i++) {
+            String path = p.getProperty("recentBundle." + i + ".path", "");
+            if (path.isBlank()) continue;
+            into.add(new telamin.fluxtion.audit.analyser.analyser.config.AppConfig.RecentBundle(path,
+                    p.getProperty("recentBundle." + i + ".identity", ""),
+                    p.getProperty("recentBundle." + i + ".notes", "")));
+        }
     }
 
     /** Reports under {@code <prefix>.count} / {@code <prefix>.<i>.…} — "report", or "deletedReport" for the bin. */
