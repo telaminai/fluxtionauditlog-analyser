@@ -76,6 +76,10 @@ public final class AssistantPanel extends JPanel {
     private final JPanel composer = new JPanel(new BorderLayout(4, 4));
     private final JPanel noProvider = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
     private final JPanel demoBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
+    /** OA-4 (§6.2): Show / Hide conversation is presentation only; the strip still names the journey and its mode. */
+    private final JCheckBox showConversation = new JCheckBox("Show conversation");
+    private AssistantState lastState = AssistantState.IDLE;
+    private Demo lastDemo;
 
     /** What was last rendered, so an unchanged snapshot repaints nothing and never moves the scroll. */
     private AssistantState rendered;
@@ -126,7 +130,14 @@ public final class AssistantPanel extends JPanel {
         noProvider.add(configure);
         noProvider.add(connectCli);
         demoBar.add(askAboutEvidence);
-        demoBar.add(new JLabel("This conversation is not live: nothing here is sent anywhere."));
+        JButton demoCli = new JButton("Connect your CLI assistant");
+        demoCli.addActionListener(e -> { if (intents != null) intents.connectCliAssistant(); });
+        demoBar.add(demoCli);
+        showConversation.setSelected(true);
+        showConversation.getAccessibleContext().setAccessibleName("Show the demonstration's conversation");
+        showConversation.addActionListener(e -> { rendered = null; render(lastState, lastDemo); });
+        demoBar.add(showConversation);
+        demoBar.add(new JLabel("Not live: nothing here is sent anywhere."));
         JPanel south = new JPanel(new BorderLayout(4, 4));
         south.add(noProvider, BorderLayout.NORTH);
         south.add(composer, BorderLayout.CENTER);
@@ -245,6 +256,8 @@ public final class AssistantPanel extends JPanel {
      * header and its already-rendered lines (OA-4). Unchanged input changes nothing on screen.
      */
     public void render(AssistantState state, Demo demo) {
+        lastState = state;
+        lastDemo = demo;
         boolean configured = Boolean.TRUE.equals(providerConfiguredSupplier.get());
         List<String> demoLines = demo == null ? null : demo.lines();
         if (state.equals(rendered) && java.util.Objects.equals(demoLines, renderedDemo) && configured == providerConfigured
@@ -275,7 +288,9 @@ public final class AssistantPanel extends JPanel {
         StyledDocument doc = view.getStyledDocument();
         try {
             doc.remove(0, doc.getLength());
-            if (inDemo) {
+            if (inDemo && !showConversation.isSelected()) {
+                doc.insertString(doc.getLength(), "(conversation hidden — the walk's strip still steps it)\n", plain());
+            } else if (inDemo) {
                 for (String line : demoLines) doc.insertString(doc.getLength(), line + "\n", plain());
             } else {
                 for (AssistantState.Entry e : state.visibleEntries()) renderEntry(doc, e, state);

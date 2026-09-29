@@ -35,6 +35,8 @@ import java.util.Map;
 public class WalkPlayback implements EventLogSource {
 
     private final OpenLog openLog;
+    /** OA-4: whether a live turn is pending — a dialogue walk does not start over one (§6.2). */
+    private final AssistantLoop assistantLoop;
     @PushReference
     private final EffectQueue effects;
 
@@ -55,9 +57,12 @@ public class WalkPlayback implements EventLogSource {
     private WalkPlaybackState.Answer answer = WalkPlaybackState.Answer.NONE;
     /** M69.F3: whether this showing has already stated the unassessed-log caveat. */
     private boolean caveatStated;
+    /** OA-4: the last step of this showing that was accepted and prepared, or -1. */
+    private int accepted = -1;
 
-    public WalkPlayback(OpenLog openLog, EffectQueue effects) {
+    public WalkPlayback(OpenLog openLog, AssistantLoop assistantLoop, EffectQueue effects) {
         this.openLog = openLog;
+        this.assistantLoop = assistantLoop;
         this.effects = effects;
     }
 
@@ -72,6 +77,14 @@ public class WalkPlayback implements EventLogSource {
         int steps = e.walk().steps().size();
         if (steps <= 0) {
             reason = "walk '" + name + "' has no steps";
+            answer(e, false);
+            auditLog.info("walkRefused", reason);
+            return true;
+        }
+        // OA-4 (§6.2): entering a demonstration suspends live input, and never hides a request in flight — a pending live
+        // turn must finish or be cancelled first
+        if (hasDialogue(e.walk()) && assistantLoop.state().busy()) {
+            reason = "a live assistant turn is in progress: let it finish, or Cancel it, then play '" + name + "'";
             answer(e, false);
             auditLog.info("walkRefused", reason);
             return true;
@@ -96,6 +109,7 @@ public class WalkPlayback implements EventLogSource {
         generation = logOpenAtStart ? openLog.generation() : -1;
         identityAtStart = openLog.identity();
         if (!continuing) caveatStated = false;   // M69.F3: a new showing states the caveat again, once
+        if (!continuing) accepted = -1;          // OA-4: a new showing has shown nothing yet
         auditLog.info("walkPlay", walk).info("step", step + 1).info("origin", String.valueOf(e.origin()));
         prepare();
         return true;
@@ -174,6 +188,7 @@ public class WalkPlayback implements EventLogSource {
         targets = e.targets();
         List<SessionEvents.WalkTargetState> available = targets.stream().filter(SessionEvents.WalkTargetState::available).toList();
         phase = available.size() == targets.size() ? "SHOWN" : available.isEmpty() ? "NOT_SHOWN" : "PARTLY_SHOWN";
+        if (!"NOT_SHOWN".equals(phase)) accepted = step;   // OA-4: the dialogue may reveal up to what was actually shown
         reason = withIdentityCaveat(e.note());
         lastShown.put(walk, step);
         auditLog.info("walkShown", phase).info("lit", available.size()).info("of", targets.size());
@@ -194,6 +209,26 @@ public class WalkPlayback implements EventLogSource {
             return true;
         }
         return false;
+    }
+
+    /** OA-4 (§6.2): "Ask about this evidence" ends the demonstration; assistantLoop opens the fresh live thread. */
+    @OnEventHandler
+    public boolean onAssistantHandoffRequested(SessionEvents.AssistantHandoffRequested e) {
+        if (walk == null) return false;
+        end("Ask about this evidence: the demonstration ended, and a fresh live conversation began");
+        return true;
+    }
+
+    /** OA-4 (§3): a live request ends a DIALOGUE walk through the session; an ordinary walk keeps showing beside chat. */
+    @OnEventHandler
+    public boolean onAssistantSendRequested(SessionEvents.AssistantSendRequested e) {
+        if (walk == null || !hasDialogue(definition)) return false;
+        end("a live question was asked, so the demonstration ended");
+        return true;
+    }
+
+    private static boolean hasDialogue(telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec w) {
+        return w != null && w.conversation() != null && w.conversation().supported() && !w.conversation().turns().isEmpty();
     }
 
     @OnEventHandler(propagate = false)
@@ -293,6 +328,7 @@ public class WalkPlayback implements EventLogSource {
         walk = null;
         definition = null;
         count = 0;
+        accepted = -1;
         phase = "IDLE";
         reason = "ended: " + why;
         targets = List.of();
@@ -310,6 +346,6 @@ public class WalkPlayback implements EventLogSource {
 
     /** The published state — immutable, for the snapshot. */
     public WalkPlaybackState state() {
-        return new WalkPlaybackState(walk, step, count, phase, reason, ticket, targets, lastShown, definition, answer);
+        return new WalkPlaybackState(walk, step, count, phase, reason, ticket, targets, lastShown, definition, answer, accepted);
     }
 }

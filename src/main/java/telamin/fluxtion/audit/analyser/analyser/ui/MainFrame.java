@@ -2625,7 +2625,9 @@ public final class MainFrame extends JFrame {
             return;
         }
         var walk = state.definition();
-        String title = (walk == null ? state.walk() : walk.displayTitle()) + (walk == null ? "" : " · " + walk.authorLabel());
+        String title = (walk == null ? state.walk() : walk.displayTitle()) + (walk == null ? "" : " · " + walk.authorLabel())
+                + (walk == null || walk.conversation() == null ? "" : " · " + (walk.conversation().supported()
+                ? walk.conversation().label() : "dialogue unavailable"));   // OA-4: the strip names the journey's mode
         String phase = switch (state.phase()) {
             case "PREPARING" -> "preparing…";
             case "SHOWN" -> "shown";
@@ -3930,6 +3932,8 @@ public final class MainFrame extends JFrame {
             @Override public void showAnalyser() { toFront(); requestFocus(); }
             @Override public void askAboutEvidence() {
                 session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantHandoffRequested("assistant panel"));
+                revealAssistant();                      // the fresh thread, ready for the person's own question
+                assistantPanel.primeDraft("");
             }
         });
     }
@@ -4115,7 +4119,56 @@ public final class MainFrame extends JFrame {
         assistantPanel.setRoute(!hasKey ? "no provider configured"
                 : "via " + config.llmProvider + (config.llmModel == null || config.llmModel.isBlank() ? "" : " · " + config.llmModel)
                         + " — your question and its context are sent there");
-        assistantPanel.render(state, null);
+        assistantPanel.render(state, demoProjection(next.walkPlayback()));
+    }
+
+    /**
+     * OA-4 (§6): while a walk with dialogue shows, the assistant host shows its conversation — a PROJECTION of walkPlayback's
+     * frozen definition and step, deciding nothing. Two things side by side: the saved narrative, attributed and labelled,
+     * up to the last step that was actually shown; and what this analyser actually showed for the requested step.
+     * Nothing here runs: no text is interpreted, no provider is called, nothing is written.
+     */
+    static AssistantPanel.Demo demoProjection(telamin.fluxtion.audit.analyser.analyser.session.WalkPlaybackState w) {
+        if (!w.showing() || w.definition() == null || w.definition().conversation() == null) return null;
+        var walk = w.definition();
+        var c = walk.conversation();
+        String title = walk.displayTitle() + " · step " + (w.step() + 1) + " of " + w.count()
+                + (c.author().isBlank() ? "" : " · " + c.author() + " (declared)");
+        java.util.List<String> lines = new java.util.ArrayList<>();
+        if (!c.supported()) {
+            lines.add("This walk's dialogue is version " + c.version() + ", newer than this analyser reads. The evidence "
+                    + "plays; the dialogue cannot be shown here. Upgrade the analyser to see it.");
+            return new AssistantPanel.Demo("Dialogue unavailable (newer version)", title, "Evidence only", lines);
+        }
+        boolean refused = "NOT_SHOWN".equals(w.phase());
+        boolean preparing = "PREPARING".equals(w.phase());
+        // the narrative reveals up to what was actually shown: a refused or preparing step never shows its own answer
+        int upTo = refused || preparing ? w.accepted() : w.step();
+        String speaker = switch (c.kind()) {
+            case telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec.RECORDED -> "recorded";
+            case telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec.EDITED_RECORDING -> "recorded, edited";
+            default -> "scripted";
+        };
+        for (var t : telamin.fluxtion.audit.analyser.analyser.walk.WalkConversation.prefix(walk, upTo)) {
+            lines.add(("user".equals(t.role()) ? "Question (" + speaker + ")" : "Answer (" + speaker + " — not a live model)")
+                    + ":\n" + t.text() + "\n");
+        }
+        lines.add("── What the analyser shows for step " + (w.step() + 1) + " ──");
+        if (preparing) {
+            lines.add("Preparing evidence…");
+        } else if (refused) {
+            lines.add("NOT SHOWN: " + (w.reason().isBlank() ? "the step's view was refused" : w.reason())
+                    + ". The conversation stays at the last step that was shown; this step's words are not shown as if "
+                    + "its evidence were.");
+        } else {
+            lines.add(("SHOWN".equals(w.phase()) ? "Shown" : "Partly shown") + (w.reason().isBlank() ? "" : " — " + w.reason()));
+            for (var t : w.targets()) {
+                lines.add("  " + t.n() + ". " + t.target() + " — " + (t.available() ? t.state().toLowerCase(java.util.Locale.ROOT)
+                        : "not available: " + t.reason()));
+            }
+        }
+        String status = preparing ? "Preparing evidence…" : refused ? "Not shown" : "SHOWN".equals(w.phase()) ? "Shown" : "Partly shown";
+        return new AssistantPanel.Demo(c.label(), title, status, lines);
     }
 
     private void explainSelection() {
