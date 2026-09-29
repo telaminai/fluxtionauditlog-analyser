@@ -27,6 +27,12 @@ RUNNER = 'tools/replay/ReplayBundle.java'
 GRAPHML = 'src/main/resources/telamin/fluxtion/audit/analyser/analyser/session/generated/SessionProcessor.graphml'
 
 CONTROLS = [
+    ('ws-newer-graph-cancels-bundle', NODE + 'OperationGate.java',
+     'if (bundleStage == BundleStage.PREPARING && "OPENED".equals(event.source())) {',
+     'if (false) {', 'BundleOpenReplayTest#newerExplicitGraphSupersedesBundlePreparation'),
+    ('ws-bundle-own-graph-retains-log', NODE + 'OperationGate.java',
+     'bundleStage = BundleStage.OPENING;', 'bundleStage = BundleStage.PREPARING;',
+     'BundleOpenReplayTest#acceptedBundlesOwnGraphDoesNotCancelItsLog'),
     # PR71 review R1: the first of two pending bundle verifications must not consume the second's slot.
     ('ws-stale-bundle-verification-refused', NODE + 'SessionBoundary.java',
      '        if (!gate.accepted()) {\n', '        if (false) {\n',

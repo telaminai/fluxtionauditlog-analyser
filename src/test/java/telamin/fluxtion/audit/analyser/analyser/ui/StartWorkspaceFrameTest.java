@@ -93,10 +93,10 @@ class StartWorkspaceFrameTest {
                 assertEquals(positions[1].y + positions[1].height, positions[3].y,
                         "Configuration follows My work without an empty grid row");
                 assertNotNull(buttonContaining(groups[0], "Take a guided tour"));
-                assertNotNull(buttonContaining(groups[0], "Load an experiment"));
+                assertNotNull(buttonContaining(groups[1], "Open evidence bundle"));
                 assertNotNull(buttonContaining(groups[1], "Open project"));
-                assertNotNull(buttonContaining(groups[2], "Author a new project"));
-                assertNotNull(buttonContaining(groups[3], "Configure global sources"));
+                assertNotNull(buttonContaining(groups[2], "Create project profile"));
+                assertNotNull(buttonContaining(groups[3], "Source and assistant settings"));
                 return null;
             });
             onEdt(() -> { frame.get().setSize(700, 650); return null; });
@@ -122,10 +122,10 @@ class StartWorkspaceFrameTest {
     private static JComponent[] workstreams(StartPanel start) throws ReflectiveOperationException {
         JComponent[] groups = (JComponent[]) field(start, "workstreamSections");
         assertEquals(4, groups.length);
-        assertEquals("Start here workstream", groups[0].getAccessibleContext().getAccessibleName());
-        assertEquals("My work workstream", groups[1].getAccessibleContext().getAccessibleName());
-        assertEquals("New work workstream", groups[2].getAccessibleContext().getAccessibleName());
-        assertEquals("Configuration workstream", groups[3].getAccessibleContext().getAccessibleName());
+        assertEquals("Explore DEMO workstream", groups[0].getAccessibleContext().getAccessibleName());
+        assertEquals("Open your work workstream", groups[1].getAccessibleContext().getAccessibleName());
+        assertEquals("Create a project workstream", groups[2].getAccessibleContext().getAccessibleName());
+        assertEquals("Assistant and settings workstream", groups[3].getAccessibleContext().getAccessibleName());
         return groups;
     }
 
@@ -211,7 +211,7 @@ class StartWorkspaceFrameTest {
                     invoke(frame.get(), "showStartPage", new Class<?>[]{});
                     assertTrue(((JPanel) field(frame.get(), "workspaceChrome")).isVisible() == false);
                     assertNotNull(buttonContaining(start, "Open project"));
-                    assertNotNull(buttonContaining(start, "Load an experiment"));
+                    assertNotNull(buttonContaining(start, "Open evidence bundle"));
                     javax.swing.JButton back = buttonContaining(start, "Return to workspace");
                     assertNotNull(back);
                     assertTrue(back.isVisible());
@@ -355,6 +355,14 @@ class StartWorkspaceFrameTest {
     }
 
     @Test void delayedBundleCompletionCannotReplaceANewerProject() throws Exception {
+        assertDelayedBundleCannotReplaceNewerChoice(false);
+    }
+
+    @Test void delayedBundleCompletionCannotReplaceANewerGraph() throws Exception {
+        assertDelayedBundleCannotReplaceNewerChoice(true);
+    }
+
+    private void assertDelayedBundleCannotReplaceNewerChoice(boolean chooseGraph) throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless(), "requires a display");
         String previousHome = System.getProperty("user.home");
         System.setProperty("user.home", Files.createDirectories(temporary.resolve("race-home")).toString());
@@ -394,10 +402,16 @@ class StartWorkspaceFrameTest {
                     }
                     Thread.sleep(10);
                 }
-                invoke(frame.get(), "requestProject", new Class<?>[]{Path.class,
-                        telamin.fluxtion.audit.analyser.analyser.session.TransitionKind.class, String.class},
-                        newer, telamin.fluxtion.audit.analyser.analyser.session.TransitionKind.EXPLICIT_SWITCH,
-                        "newer-choice");
+                if (chooseGraph) {
+                    var topology = (TopologyPanel) field(frame.get(), "topologyPanel");
+                    topology.load(Path.of("src/test/resources/topology/demo-quote-processor.graphml"));
+                    assertTrue(topology.hasGraph(), "control: the newer graph opened before the old result arrived");
+                } else {
+                    invoke(frame.get(), "requestProject", new Class<?>[]{Path.class,
+                            telamin.fluxtion.audit.analyser.analyser.session.TransitionKind.class, String.class},
+                            newer, telamin.fluxtion.audit.analyser.analyser.session.TransitionKind.EXPLICIT_SWITCH,
+                            "newer-choice");
+                }
                 return null;
             });
             for (int i = 0; i < 120 && onEdt(() -> ((telamin.fluxtion.audit.analyser.analyser.session.SessionDriver)
@@ -406,12 +420,13 @@ class StartWorkspaceFrameTest {
                     field(frame.get(), "session")).processor().operationGate.accepted()),
                     "the old verification result must have reached the session and been refused");
             var project = (telamin.fluxtion.audit.analyser.analyser.config.ProjectSession) field(frame.get(), "project");
-            assertEquals(newer, onEdt(project::activeFile));
+            assertEquals(chooseGraph ? null : newer, onEdt(project::activeFile), "the old bundle must not switch projects");
             assertNull(onEdt(() -> field(frame.get(), "store")), "the stale bundle log must not open");
-            assertFalse(onEdt(() -> ((TopologyPanel) field(frame.get(), "topologyPanel")).hasGraph()));
+            assertEquals(chooseGraph, onEdt(() -> ((TopologyPanel) field(frame.get(), "topologyPanel")).hasGraph()),
+                    "a newer explicit graph must survive the old bundle completion");
             assertFalse(onEdt(() -> java.util.Arrays.stream(java.awt.Window.getWindows())
                     .anyMatch(w -> w instanceof javax.swing.JDialog dialog && dialog.isShowing()
-                            && dialog.getTitle().contains("experiment"))), "no obsolete bundle dialog may appear");
+                            && dialog.getTitle().toLowerCase(java.util.Locale.ROOT).contains("experiment"))), "no obsolete bundle dialog may appear");
         } finally {
             if (frame.get() != null) SwingUtilities.invokeAndWait(frame.get()::dispose);
             System.setProperty("user.home", previousHome);

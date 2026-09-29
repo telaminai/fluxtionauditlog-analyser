@@ -32,15 +32,17 @@ class ProjectLandingTest {
             }, null);
             String recent = "/tmp/DEMO/.analyser/project.fluxtion-settings";
             panel.setRecentProjects(List.of(recent));
-            assertTrue(text(panel).contains("global source roots are defaults; an active project can override them"));
-            for (String name : List.of("Take a guided tour", "Load an experiment", "Investigate an incident", "Author a new project",
-                    "Author from template", "Open project", "Open audit log", "Open GraphML", "Open sample project")) {
+            assertTrue(text(panel).contains("Source settings apply to the open project, or to global defaults when no project is open"),
+                    "Start must not promise global-only edits when it opens the active project Settings");
+            assertTrue(text(panel).contains("Drop an .fexp bundle"), "the file-drop entrance must be discoverable in visible page copy");
+            for (String name : List.of("Take a guided tour", "Open evidence bundle", "Create project profile",
+                    "Create from template", "Open project", "Open audit log", "Open GraphML", "Open sample project")) {
                 assertNotNull(action(panel, name), "start page action: " + name);
                 action(panel, name).doClick();
             }
             assertNotNull(buttonContaining(panel, recent), "recent project appears as a workspace action");
             buttonContaining(panel, recent).doClick();
-            assertEquals(List.of("tour", "bundle", "incident", "new", "template", "open-project", "log", "graphml",
+            assertEquals(List.of("tour", "bundle", "new", "template", "open-project", "log", "graphml",
                     "sample:true", "recent:" + recent), calls);
         });
     }
@@ -64,7 +66,7 @@ class ProjectLandingTest {
             ctx.put("savedGraphs", List.of(Map.of("name", "PnL", "open", false, "input", "waiting for input")));
             ctx.put("processorDeclarations", List.of(Map.of("name", "Live graph", "kind", "runtime", "status", "runtime processor; no fixed generated type declared")));
             panel.renderProject(ctx);
-            assertTrue(visibleIn(panel, action(panel, "Load an experiment")));
+            assertTrue(visibleIn(panel, action(panel, "Open evidence bundle")));
             assertTrue(visibleIn(panel, action(panel, "Open project")));
             panel.showReturnToRecords(true);
             assertTrue(visibleIn(panel, buttonContaining(panel, "Return to workspace")));
@@ -73,7 +75,7 @@ class ProjectLandingTest {
             assertEquals(List.of("back"), calls);
             ctx.put("log", Map.of("path", "/demo/run.yml"));
             panel.renderProject(ctx);
-            assertTrue(visibleIn(panel, action(panel, "Load an experiment")));
+            assertTrue(visibleIn(panel, action(panel, "Open evidence bundle")));
         });
     }
     private static String text(Container parent) {

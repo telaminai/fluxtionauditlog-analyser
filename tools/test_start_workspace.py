@@ -22,6 +22,7 @@ CASES = {
         "droppingSpringDesignThenGraphAndLogOpensTheirRealViews",
         "droppingVerifiedExperimentOpensItsOwnProjectGraphAndLog",
         "delayedBundleCompletionCannotReplaceANewerProject",
+        "delayedBundleCompletionCannotReplaceANewerGraph",
         "nativeFileDropOnHeroTextOpensAuditLog",
         "mixedDropRefusalIsVisibleOnTheStartPage",
         "narrowWalkSeriesAndFindingControlsRemainReachable",

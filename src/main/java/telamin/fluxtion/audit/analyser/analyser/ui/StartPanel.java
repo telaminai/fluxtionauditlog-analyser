@@ -115,40 +115,35 @@ public final class StartPanel extends JPanel {
         operationFeedback.setVisible(false);
         col.add(operationFeedback);
         col.add(Box.createVerticalStrut(20));
-        workstreamSections[0] = workstream("Start here",
-                row(
-                card("Take a guided tour", "Open the DEMO project and play a saved spotlight introduction.",
-                        true, actions::openGuidedTour),
-                card("Open sample project", "Explore a local DEMO project with a log, graph and source.", false,
-                        actions::openSampleProject)),
-                row(
-                card("Load an experiment", "Open a verified .fexp evidence bundle in a disposable working copy.",
-                        false, actions::openExperiment),
-                card("Open audit log", "Choose a local audit log file.", false, actions::openOwnLog)),
-                row(
-                card("Investigate an incident", "Choose an audit log or evidence bundle to examine.",
-                        false, actions::investigateIncident)));
+        workstreamSections[0] = workstream("Explore DEMO",
+                row(card("Take a guided tour", "Follow four spotlight stops in a local DEMO project.",
+                                true, actions::openGuidedTour),
+                        card("Open sample project", "Explore the same DEMO log, topology and source at your own pace.",
+                                false, actions::openSampleProject)));
 
         recentProjects.setAlignmentX(LEFT_ALIGNMENT);
         setRecentProjects(List.of());
-        workstreamSections[1] = workstream("My work",
-                row(card("Open project", "Choose an existing project workspace on this machine.", false,
+        workstreamSections[1] = workstream("Open your work",
+                row(card("Open project", "Use an existing project profile and its saved settings.", false,
                                 actions::openExistingProject),
-                        card("Open GraphML", "View a processor topology file.", false, actions::openGraphml)),
+                        card("Open evidence bundle", "Verify an .fexp and open a disposable copy. No replay is run.",
+                                false, actions::openExperiment)),
+                row(card("Open audit log", "Choose a local audit log to investigate.", false, actions::openOwnLog),
+                        card("Open GraphML", "View a processor topology, with or without a log.", false,
+                                actions::openGraphml)),
                 subheading("Recent projects"), recentProjects);
 
-        workstreamSections[2] = workstream("New work",
-                row(
-                card("Author a new project", "Create a project profile for your own source and processors.",
-                        false, actions::newProject),
-                card("Author from template", "Start from a guided project template.",
-                        false, actions::newProjectFromTemplate)));
+        workstreamSections[2] = workstream("Create a project",
+                row(card("Create project profile", "Save settings for existing source and processors. No code is generated.",
+                                false, actions::newProject),
+                        card("Create from template", "Choose a starter template and where to install it.",
+                                false, actions::newProjectFromTemplate)));
 
         fluxtionKeyCard = card("", "", false, actions::openFluxtionKey);
         refreshFluxtionKeyStatus();
         aiClientOffer = aiClientOffer();
-        workstreamSections[3] = workstream("Configuration", footer(), aiClientOffer,
-                subheading("Processor regeneration"), row(fluxtionKeyCard));
+        workstreamSections[3] = workstream("Assistant and settings", aiClientOffer, footer(),
+                subheading("Optional: processor regeneration"), row(fluxtionKeyCard));
         workstreams.setOpaque(false);
         workstreams.setAlignmentX(LEFT_ALIGNMENT);
         arrangeWorkstreams(false);
@@ -220,7 +215,7 @@ public final class StartPanel extends JPanel {
                 }
                 String title = parent == null || parent.getFileName() == null
                         ? path : parent.getFileName().toString();
-                JButton button = new JButton(title + "  —  " + path);
+                JButton button = new JButton(title + " / " + file.getFileName() + "  —  " + path);
                 button.setHorizontalAlignment(SwingConstants.LEFT);
                 button.setToolTipText(path);
                 button.setAlignmentX(LEFT_ALIGNMENT);
@@ -291,7 +286,9 @@ public final class StartPanel extends JPanel {
         recolour.add(() -> title.setForeground(UIManager.getColor("Label.foreground")));
         inner.add(title);
         inner.add(Box.createVerticalStrut(6));
-        inner.add(body("Open evidence, return to a project, or start authoring. You can always come back here from Help."));
+        inner.add(body("Open evidence, return to a project, or learn with DEMO. An assistant can drive the same views through the local bridge."));
+        inner.add(Box.createVerticalStrut(6));
+        inner.add(body("Drop an .fexp bundle, audit log, GraphML or Spring XML anywhere on this page. Return here from Help."));
         band.add(inner, BorderLayout.CENTER);
         return band;      // Fluid: as wide as offered, as tall as its content currently needs
     }
@@ -300,12 +297,12 @@ public final class StartPanel extends JPanel {
         Box p = Box.createVerticalBox();
         p.setOpaque(false);
         p.setAlignmentX(LEFT_ALIGNMENT);
-        p.add(body("Optional setup: global source roots are defaults; an active project can override them."));
+        p.add(body("Source settings apply to the open project, or to global defaults when no project is open."));
         p.add(Box.createVerticalStrut(4));
         JPanel action = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         action.setOpaque(false);
         action.setAlignmentX(LEFT_ALIGNMENT);
-        action.add(link("Configure global sources and assistant…", actions::openSettings));
+        action.add(link("Source and assistant settings…", actions::openSettings));
         p.add(action);
         return p;
     }
@@ -317,9 +314,7 @@ public final class StartPanel extends JPanel {
     private JComponent aiClientOffer() {
         Box offer = Box.createVerticalBox();
         offer.setAlignmentX(LEFT_ALIGNMENT);
-        offer.add(Box.createVerticalStrut(20));
-        offer.add(heading("Work with an AI client"));
-        offer.add(body("Let an approved client query and render into this running analyser window. The connection stays on this machine."));
+        offer.add(body("Connect your CLI assistant to query records, draw charts and spotlight evidence here. The analyser bridge is local."));
         offer.add(Box.createVerticalStrut(8));
         offer.add(row(
                 card("Connect Codex", "Set up the local bridge Codex will use.", false,
@@ -372,7 +367,7 @@ public final class StartPanel extends JPanel {
         JButton b = new JButton(text);
         b.setBorderPainted(false);
         b.setContentAreaFilled(false);
-        b.setFocusPainted(false);
+        b.setFocusPainted(true);
         b.setMargin(new Insets(0, 0, 0, 0));
         b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         b.addActionListener(e -> go.run());
@@ -750,7 +745,7 @@ public final class StartPanel extends JPanel {
                 icon.drawLine(7, 5, 12, 8);
                 icon.drawLine(12, 8, 7, 11);
                 icon.drawLine(7, 11, 7, 5);
-            } else if (title.startsWith("Load an experiment")) {
+            } else if (title.startsWith("Open evidence bundle")) {
                 icon.drawRoundRect(2, 1, 13, 15, 2, 2);
                 icon.drawLine(5, 5, 11, 5);
                 icon.drawLine(5, 9, 12, 9);
@@ -758,11 +753,11 @@ public final class StartPanel extends JPanel {
             } else if (title.startsWith("Investigate")) {
                 icon.drawOval(1, 1, 10, 10);
                 icon.drawLine(10, 10, 16, 16);
-            } else if (title.startsWith("Author a new")) {
+            } else if (title.startsWith("Create project profile")) {
                 icon.drawRoundRect(1, 1, 14, 14, 2, 2);
                 icon.drawLine(8, 4, 8, 12);
                 icon.drawLine(4, 8, 12, 8);
-            } else if (title.startsWith("Author from template")) {
+            } else if (title.startsWith("Create from template")) {
                 icon.drawRoundRect(1, 1, 14, 14, 2, 2);
                 icon.drawLine(8, 2, 8, 14);
                 icon.drawLine(2, 8, 14, 8);
@@ -781,6 +776,13 @@ public final class StartPanel extends JPanel {
                 icon.drawLine(7, 5, 12, 8);
                 icon.drawLine(12, 8, 7, 11);
                 icon.drawLine(7, 11, 7, 5);
+            } else if (title.startsWith("Connect") || title.startsWith("Generic MCP")) {
+                icon.drawRoundRect(0, 4, 6, 9, 2, 2);
+                icon.drawRoundRect(11, 4, 6, 9, 2, 2);
+                icon.drawLine(6, 8, 11, 8);
+            } else if (title.startsWith("Open project")) {
+                icon.drawPolyline(new int[]{1, 1, 6, 8, 16, 16, 1},
+                        new int[]{14, 3, 3, 5, 5, 14, 14}, 7);
             } else {
                 icon.drawOval(1, 2, 8, 8);
                 icon.drawLine(8, 9, 15, 16);

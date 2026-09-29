@@ -88,4 +88,48 @@ class BundleOpenReplayTest {
         assertEquals(0, adapter.countOf(SessionEffects.OpenBundleEvidenceEffect.class));
         assertEquals("DEMO refusal", adapter.lastWarning);
     }
+
+    private static SessionEvents.GraphOpened graph(String source) {
+        return new SessionEvents.GraphOpened("/chosen/DEMO.graphml", source, java.util.Set.of("DEMO"), java.util.List.of("DEMO"));
+    }
+
+    @Test void newerExplicitGraphSupersedesBundlePreparation() {
+        var adapter = new FakeSessionAdapter().withProfile(plan().profilePath());
+        var driver = new SessionDriver(adapter);
+        long id = driver.nextOpId();
+        driver.submit(new SessionEvents.OpenProjectRequested(id, "/slow.fexp", TransitionKind.OPEN_BUNDLE, "start"));
+        driver.submit(graph("OPENED"));
+        assertFalse(driver.snapshot().pending(), "a newer explicit graph retires the pending bundle immediately");
+        driver.submit(new SessionEvents.ProfileLoaded(id, plan().profilePath(), true, null, 0, null, plan()));
+        assertFalse(driver.processor().operationGate.accepted(), "the older bundle must be refused after the graph choice");
+        assertNull(adapter.appliedProfile, "the bundle must not replace the project after newer graph navigation");
+        assertEquals("/chosen/DEMO.graphml", driver.snapshot().graphPath(), "the newer graph remains in the snapshot");
+        assertEquals(0, adapter.countOf(SessionEffects.OpenBundleEvidenceEffect.class), "the old bundle must not load its evidence");
+        driver.submit(new SessionEvents.ProfileLoaded(id, "/slow.fexp", false, null, 0, "DEMO obsolete failure"));
+        assertNull(adapter.lastWarning, "an obsolete bundle failure must not disturb the newer graph either");
+    }
+
+    @Test void acceptedBundlesOwnGraphDoesNotCancelItsLog() {
+        var adapter = new FakeSessionAdapter().withProfile(plan().profilePath());
+        var driver = new SessionDriver(adapter);
+        long id = driver.nextOpId();
+        driver.submit(new SessionEvents.OpenProjectRequested(id, "/ready.fexp", TransitionKind.OPEN_BUNDLE, "start"));
+        driver.submit(new SessionEvents.ProfileLoaded(id, plan().profilePath(), true, null, 0, null, plan()));
+        driver.submit(graph("OPENED"));
+        assertEquals(id, driver.processor().operationGate.expectedOpId(), "the accepted bundle's own graph must retain its log operation");
+        assertTrue(driver.snapshot().pending(), "the accepted bundle's log is still loading");
+        assertEquals(plan().profilePath(), adapter.appliedProfile);
+        assertEquals(1, adapter.countOf(SessionEffects.OpenBundleEvidenceEffect.class));
+    }
+
+    @Test void readerSuppliedGraphDoesNotCancelBundlePreparation() {
+        var adapter = new FakeSessionAdapter().withProfile(plan().profilePath());
+        var driver = new SessionDriver(adapter);
+        long id = driver.nextOpId();
+        driver.submit(new SessionEvents.OpenProjectRequested(id, "/ready.fexp", TransitionKind.OPEN_BUNDLE, "start"));
+        driver.submit(graph("READER_DECLARED"));
+        assertEquals(id, driver.processor().operationGate.expectedOpId(), "a reader fact is not a newer explicit graph choice");
+        driver.submit(new SessionEvents.ProfileLoaded(id, plan().profilePath(), true, null, 0, null, plan()));
+        assertEquals(plan().profilePath(), adapter.appliedProfile);
+    }
 }

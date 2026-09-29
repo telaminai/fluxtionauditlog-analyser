@@ -3,7 +3,7 @@
 Opening a bundle does not edit the file you received or your own project files. It switches the active
 workspace to a disposable working copy and adds that copy to your recent files.
 
-In the Swing analyser, choose **Start page → Load an experiment** and select the `.fexp` file. The analyser
+In the Swing analyser, choose **Start page → Open evidence bundle** and select the `.fexp` file. The analyser
 verifies and unpacks it off the event thread, then opens its project, audit log and any GraphML. It shows
 the verified identity, working-copy path and the bundle's limits. Verification detects changed members;
 it does not authenticate the sender. A replay, when present, is not run by this action.

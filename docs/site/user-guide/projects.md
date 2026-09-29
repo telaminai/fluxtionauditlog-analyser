@@ -37,7 +37,7 @@ With **no project open**, the analyser behaves exactly as it always has. Project
 ## Start from a playground template
 
 Choose **Project ▸ New project from template…** to start inside the analyser instead of visiting the
-playground first, or choose **Author a new project** on the start page. The analyser lists the whole
+playground first, or choose **Create from template** on the start page. The analyser lists the whole
 versioned catalogue. Entries tagged for onboarding are marked **Recommended starting points**, without
 hiding the others. A recommendation is advice, not a promise of a walkthrough or keyless generation.
 
