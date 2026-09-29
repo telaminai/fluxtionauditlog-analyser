@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+## [1.29.0] - 2026-09-29
+
 - Assistant turns now attribute an open to the action that requested it through the reader's completion. A person's competing open stops the old turn, while the assistant's own open waits until its log and view are applied before running the next action. Changing the investigation filter during a turn stops its pending reply before it can chart the new view; changing it after a turn completes keeps the conversation usable, and the next Send reads the current filter.
 - Assistant retries keep their tool instructions after a cancelled first request; late Java-source preparations cannot light after the turn ends. Provider failure bodies and unknown action names stay out of session diagnostics.
 - Journey dialogue limits include the author and serialized text; oversized profile counts and overflowing schema versions are refused without unbounded turn allocation.
