@@ -69,7 +69,12 @@ public class OpenBundle implements EventLogSource {
         return false;
     }
 
-    /** The effect whose failure means the project is GONE, not merely that something went wrong. */
+    /**
+     * The effect whose failure means the project is GONE, not merely that something went wrong. The string is
+     * {@code SessionDriver.name(RestoreSettingsEffect)} and is duplicated here rather than imported, because a
+     * node must not reach into the driver. The coupling IS tested: the close test drives a real failing restore,
+     * so the name the driver actually produces flows through, and a rename there turns that test red.
+     */
     private static final String RESTORE = "restoreSettings";
 
     /**

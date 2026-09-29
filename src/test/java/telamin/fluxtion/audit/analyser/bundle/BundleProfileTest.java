@@ -182,6 +182,12 @@ public class BundleProfileTest {
                 // chart explanation a recipient reads lost the very formula it was explaining.
                 "absolute spread is ~1/price\u00b2 smaller, but as a fraction of price it should match",
                 "roughly ~2/3 of the cycles requoted",
+                // ACCEPTED RESIDUAL, pinned so the trade-off is visible rather than folklore: a purely
+                // numeric user with one extensionless segment is indistinguishable from a ratio, and the
+                // ratio case ("~1/price") has a real bundle behind it. So "~123/secret" is NOT redacted in
+                // prose and CAN leak a home path. WHOLE_PATH still refuses it as a whole value. Anyone
+                // narrowing this must break "~1/price" to do it — decide deliberately, not by accident.
+                "the run under ~123/secret finished",
                 "at 09:00: the spread widened; ratio 3:1 bid to ask",
                 "note: this is a bare colon in a sentence",
                 "the file: demo-quote-audit.yaml, read whole",
