@@ -173,6 +173,10 @@ public class BundleProfileTest {
     void ordinaryProsePassesUntouched(@TempDir Path tmp) throws Exception {
         for (String prose : List.of(
                 "~5% of records carried a spread above 0.004",
+                // found in a SHIPPED bundle 2026-09-29: "~1/price" was redacted to the marker, so the
+                // chart explanation a recipient reads lost the very formula it was explaining.
+                "absolute spread is ~1/price\u00b2 smaller, but as a fraction of price it should match",
+                "roughly ~2/3 of the cycles requoted",
                 "at 09:00: the spread widened; ratio 3:1 bid to ask",
                 "note: this is a bare colon in a sentence",
                 "the file: demo-quote-audit.yaml, read whole",

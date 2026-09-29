@@ -66,7 +66,7 @@ public final class BundleProfile {
     static final Pattern EMBEDDED_PATH = Pattern.compile(String.join("|",
             "(?i:\\bfile:/+[\\w.~%@:/+-]*)",                                      // file:///etc/x
             "(?<![\\w.~:/\\\\-])/[\\w.-]+(?:/[\\w.-]+)+/?",                          // /Users/x/y, not a/b or https://h/p
-            "(?<![\\w/~])~[\\w.-]*/[\\w.-]+(?:/[\\w.-]+)*/?",                        // ~/x, ~user/x, not ~5%
+            "(?<![\\w/~])~(?:[A-Za-z_][\\w.-]*)?/[\\w.-]+(?:/[\\w.-]+)*/?",           // ~/x, ~user/x; not ~5%, ~1/price
             "(?<![\\w])[A-Za-z]:[\\\\/][\\w.$-]+(?:[\\\\/][\\w.$-]+)*[\\\\/]?",          // C:\\Users\\x, not C: or C:\\ alone
             "(?<![\\w\\\\])\\\\\\\\[\\w.$-]+(?:\\\\[\\w.$-]+)+"));                          // \\\\server\\share
 
