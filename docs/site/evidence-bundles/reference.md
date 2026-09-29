@@ -129,6 +129,10 @@ where a cycle ran, never what it computed. `endTime` is the live clock reading a
 the clock at the recorded instant. `thread` names the thread the cycle ran on, and your replay runs on its own. Nothing
 else is excepted: an input's `eventTime`, the times of an event the graph raised itself, and every node's values must
 all agree. The exceptions are by position, so a record whose `endTime` line is missing on one side still differs.
+Only the record's **own** two lines are excepted: the one line whose key path is `eventLogRecord.thread`, before
+`nodeLogs`, and the one whose path is `eventLogRecord.endTime`, the record's last line. A node's value named `thread`
+is compared. So is a line a logged string puts at the record's own indent (Fluxtion writes a string's newline as it
+is): where the record's own line is not unambiguous, nothing is excepted, and the record differs rather than agrees.
 
 - **Agrees:** `replay: AGREES, 8 of 8 records (endTime and thread excepted, differing on 8: when and where a cycle
   ran, which a replay cannot know)`.

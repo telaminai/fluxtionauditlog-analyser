@@ -37,7 +37,8 @@ public final class ReplayCompare {
      * Where and when a cycle ran, never what it computed: the only lines a replay may differ in, and only as the
      * record's own fields (at its field indent), never a node's nested value of the same name (review N2).
      */
-    static final Pattern EXCEPTED = Pattern.compile("^\\s*(endTime|thread):.*$");
+    /** A key line. Which of them a replay may change is {@link #own}'s decision: only the record's own endTime and thread. */
+    static final Pattern KEY_LINE = Pattern.compile("^\\s*[\\w$]+:.*$");
 
     /**
      * The verdict. {@code refusal} non-null: nothing was compared, and it says why. Otherwise {@code agrees}, with the
@@ -113,19 +114,41 @@ public final class ReplayCompare {
     }
 
     /**
-     * The indent of a record's own fields, found from its structure: the first CONTENT line under the record's
-     * top-level key. Only there are endTime and thread excepted. A comment is not content and sets nothing (PR #70
-     * review 1: an indented comment first under the header set the scope to a node's depth, and a node value called
-     * {@code thread} was excepted, so a changed business value read AGREES).
+     * Whether line {@code i} is the record's OWN {@code endTime} or {@code thread}, the only lines a replay may change
+     * (PR #70 re-review S1, S2). Found from key paths, anchored on the {@code eventLogRecord:} line, never from an
+     * indent: the line's path must be {@code eventLogRecord.<key>}, and it must be the only line with that path in
+     * its record. The record's own {@code thread} comes before {@code nodeLogs}; its own {@code endTime} is the
+     * record's last content line. So neither a preamble, a first line of any shape, nor a logged string whose raw
+     * newline puts {@code thread:} or {@code endTime:} at the record's field indent can make a business value one of
+     * them: such a record excepts nothing it cannot place, and differs rather than agrees.
      */
-    private static int fieldIndent(List<String> lines) {
-        boolean underTop = false;
-        for (String l : lines) {
-            if (l.isBlank() || comment(l)) continue;        // a comment is not a field: it sets no scope
-            if (indent(l) == 0) underTop = true;
-            else if (underTop) return indent(l);
+    static boolean own(List<String> lines, int i) {
+        String line = lines.get(i);
+        if (!KEY_LINE.matcher(line).matches()) return false;
+        String k = key(line), want = "eventLogRecord." + k;
+        if (!path(lines, i).equals(want)) return false;
+        int start = i, end = i;
+        while (start > 0 && !top(lines.get(start))) start--;
+        while (end + 1 < lines.size() && !top(lines.get(end + 1))) end++;
+        int lastContent = -1;
+        boolean nodeLogsBefore = false;
+        for (int j = start + 1; j <= end; j++) {
+            String l = lines.get(j);
+            if (l.isBlank() || comment(l)) continue;
+            lastContent = j;
+            if (j != i && KEY_LINE.matcher(l).matches() && key(l).equals(k) && path(lines, j).equals(want)) return false;
+            if (j < i && path(lines, j).equals("eventLogRecord.nodeLogs")) nodeLogsBefore = true;
         }
-        return -1;
+        return switch (k) {
+            case "thread" -> !nodeLogsBefore;                 // the record's own thread comes before its nodeLogs
+            case "endTime" -> lastContent == i;               // its own endTime is its last line
+            default -> false;                                 // every other line is compared, eventTime among them
+        };
+    }
+
+    /** A top-level line: content at column 0, the start of a record's block (or of another top-level key). */
+    private static boolean top(String line) {
+        return !line.isBlank() && !comment(line) && indent(line) == 0;
     }
 
     private static boolean comment(String line) {
@@ -148,13 +171,11 @@ public final class ReplayCompare {
      */
     static String firstDifference(List<String> a, List<String> b) {
         int n = Math.max(a.size(), b.size());
-        int fields = fieldIndent(a);
         for (int i = 0; i < n; i++) {
             String x = i < a.size() ? a.get(i) : null, y = i < b.size() ? b.get(i) : null;
             if (x != null && x.equals(y)) continue;
             // a record's OWN endTime/thread only: a node's nested value that happens to be called thread is compared
-            if (x != null && y != null && EXCEPTED.matcher(x).matches() && EXCEPTED.matcher(y).matches()
-                    && indent(x) == fields && indent(y) == fields && key(x).equals(key(y))) {
+            if (x != null && y != null && key(x).equals(key(y)) && own(a, i) && own(b, i)) {
                 continue;
             }
             if (x != null && y != null && key(x).equals(key(y)) && indent(x) == indent(y)) {
@@ -175,7 +196,7 @@ public final class ReplayCompare {
         keys.add(key(lines.get(i)));
         for (int j = i - 1; j >= 0 && depth > 0; j--) {
             String l = lines.get(j);
-            if (l.isBlank() || comment(l)) continue;
+            if (l.isBlank() || comment(l)) continue;           // a comment is no key of the path
             int d = indent(l);
             if (d < depth) {
                 keys.add(0, key(l));
