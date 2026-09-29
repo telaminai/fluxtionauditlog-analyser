@@ -29,13 +29,19 @@ The conversation is **scripted**, and every surface says so. Its facts were aske
 
 ### Step 1 — The whole DEMO log: every record, no filter
 
+![Step 1: the analyser](../assets/journeys/journey-step-1.png)
+
 > **Question (scripted):** What does this DEMO log contain?
 >
 > **Answer (scripted — not a live model):** 726 records from the DEMO quote processor: MarketDataEvent 400, OrderUpdateEvent 166, RiskBreachEvent 160. That is the whole log — no filter is applied, so every count here is over all of it.
 
 *What the analyser showed:* **shown** — records: current
 
+![Step 1: the assistant, popped out beside it](../assets/journeys/journey-assistant-step-1.png)
+
 ### Step 2 — The first record where the application logged a breach
+
+![Step 2: the analyser](../assets/journeys/journey-step-2.png)
 
 > **Question (scripted):** Where did the application first log a breach?
 >
@@ -43,7 +49,11 @@ The conversation is **scripted**, and every surface says so. Its facts were aske
 
 *What the analyser showed:* **shown** — records:row:16: current; graph:DEMO first breach: current
 
+![Step 2: the assistant, popped out beside it](../assets/journeys/journey-assistant-step-2.png)
+
 ### Step 3 — What supports it: the record's own detail and the pairing verdict
+
+![Step 3: the analyser](../assets/journeys/journey-step-3.png)
 
 > **Question (scripted):** What supports that answer?
 >
@@ -51,7 +61,11 @@ The conversation is **scripted**, and every surface says so. Its facts were aske
 
 *What the analyser showed:* **shown** — detail: current; topology:verdict: current
 
+![Step 3: the assistant, popped out beside it](../assets/journeys/journey-assistant-step-3.png)
+
 ### Step 4 — The conclusion, and where to go next
+
+![Step 4: the analyser](../assets/journeys/journey-step-4.png)
 
 > **Question (scripted):** So what is the conclusion?
 >
@@ -59,10 +73,12 @@ The conversation is **scripted**, and every surface says so. Its facts were aske
 
 *What the analyser showed:* **shown** — records: current
 
+![Step 4: the assistant, popped out beside it](../assets/journeys/journey-assistant-step-4.png)
+
 ## Your own questions
 
 The live assistant needs a provider of your own (Settings ▸ Assistant), or none at all if you connect a CLI assistant instead — see [Connecting an LLM](../connect-an-llm.md). With no provider configured it sends nothing, and says so:
 
-*(The screenshots of this page are captured natively with `--images`; they are not in this build.)*
+*(This screenshot is captured natively with `--docked`; it is not in this build.)*
 
 *Regenerate with `mvn package && python3 tools/capture-journey.py`. The dialogue's numbers come from the run; the images are native window captures under an isolated home with only the DEMO data.*

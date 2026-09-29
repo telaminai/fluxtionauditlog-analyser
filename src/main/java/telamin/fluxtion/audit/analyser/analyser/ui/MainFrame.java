@@ -8172,6 +8172,24 @@ public final class MainFrame extends JFrame {
                     if (!capture.lines().isEmpty()) c.put("lines", capture.lines());
                     out.put("capture", c);
                 }
+                // OA-1/OA-2 (spec §10): the onboard assistant's STATUS, rendered from assistantLoop's decision. Ids,
+                // phase, host and basis only — never the transcript, a question, an answer or a credential
+                if (session != null) {
+                    var a = sessionSnapshot().assistant();
+                    var w = sessionSnapshot().walkPlayback();
+                    Map<String, Object> as = new java.util.LinkedHashMap<>();
+                    boolean demo = w.showing() && w.definition() != null && w.definition().conversation() != null;
+                    as.put("mode", demo ? w.definition().conversation().label() : "Live assistant");
+                    as.put("host", a.docked() ? "docked" : "window");
+                    as.put("conversation", a.conversation());
+                    as.put("turn", a.entries().isEmpty() ? 0 : a.entries().get(a.entries().size() - 1).turn());
+                    as.put("phase", a.phase());
+                    if (a.busy() && a.runningVerb() != null) as.put("running", a.runningVerb());
+                    if (!a.basis().isBlank()) as.put("basis", a.basis());
+                    if (a.frozen()) as.put("frozen", true);
+                    if (!a.reason().isBlank()) as.put("reason", a.reason());
+                    out.put("assistant", as);
+                }
             }
             if (store != null) {
                 if (pendingRolledSetOffer != null) {

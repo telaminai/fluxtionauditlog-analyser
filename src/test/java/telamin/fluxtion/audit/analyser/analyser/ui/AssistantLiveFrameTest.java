@@ -101,6 +101,15 @@ class AssistantLiveFrameTest {
             AtomicReference<String> draft = new AtomicReference<>();
             onEdt(() -> draft.set(panel(f.frame).draftText()));
             assertEquals("", draft.get(), "the accepted question left the composer");
+            // spec §10: context.assistant is the status, with no log open — and never the conversation's words
+            AtomicReference<java.util.Map<String, Object>> ctx = new AtomicReference<>();
+            onEdt(() -> ctx.set(AsyncOpenInterleavingFrameTest.render(f.ex, "context", java.util.Map.of())));
+            Object assistantCtx = ((java.util.Map<?, ?>) ctx.get().get("context")).get("assistant");
+            assertNotNull(assistantCtx, "context.assistant is published with no log open");
+            String text = String.valueOf(assistantCtx);
+            assertTrue(text.contains("phase=COMPLETE") && text.contains("mode=Live assistant"), text);
+            assertFalse(text.contains("What is open?") || text.contains("Nothing is loaded") || text.contains(FakeProvider.KEY),
+                    "no question, answer or key in context: " + text);
         }
     }
 

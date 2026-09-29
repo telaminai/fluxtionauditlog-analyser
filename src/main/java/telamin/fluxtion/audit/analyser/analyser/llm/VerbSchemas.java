@@ -209,7 +209,9 @@ public final class VerbSchemas {
                         + "configuration. Returns POINTERS (record indexes and byte offsets), not record "
                         + "text; fetch what you need with 'read'. The returned 'filter' is in the exact "
                         + "shape 'aggregate' accepts, so you can scope a query to the user's own filter by "
-                        + "passing it straight back. Pass 'sections' to get only part of it.",
+                        + "passing it straight back. Pass 'sections' to get only part of it. 'assistant' (in "
+                        + "the project section) is the onboard assistant's status — its mode, host, conversation "
+                        + "and turn ids, phase and workspace — never its conversation.",
                 props(
                         p("sections", arr(enumStr(ContextSections.NAMES.toArray(String[]::new))),
                                 "optional: only these sections; omit for the full context (the default, "

@@ -406,6 +406,7 @@ Questions for the independent spec reviewer (not missing owner direction):
 | Revision | Date | Change |
 |---|---|---|
 | r1 | 2026-09-29 | Proposed from the owner's live-assistant + optional popout + conversation-walk + website-bundle request; checked against main `ba8b601b`. Adds explicit live/demo separation, single session ownership, capture/share limits and acceptance. |
+| r1 implemented | 2026-09-29 | Implemented on `feat/onboard-assistant-journeys` (OA-1–OA-5) with six deviations, each listed with its reason in [RESULTS](../handoff/evidence/onboard-assistant-2026-09-29/RESULTS.md): basis = project/log/graph; an independent per-turn budget; an unowned popout; the docked-host exception on the overlay; recorded tool details not captured; no streaming. Status stays PROPOSED until review. |
 
 ### Checks performed while preparing r1
 
