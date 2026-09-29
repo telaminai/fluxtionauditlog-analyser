@@ -27,6 +27,20 @@ RUNNER = 'tools/replay/ReplayBundle.java'
 GRAPHML = 'src/main/resources/telamin/fluxtion/audit/analyser/analyser/session/generated/SessionProcessor.graphml'
 
 CONTROLS = [
+    # Bundle provenance (#76): the facts existed and were dropped when the transition settled. Each control
+    # removes one reason the session keeps them, and must turn its NAMED assertion red.
+    ('bundle-provenance-settles', NODE + 'OpenBundle.java',
+     '        current = pending == null\n',
+     '        current = pending != null\n',
+     'BundleProvenanceTest#provenanceOutlivesTheTransition'),
+    ('bundle-provenance-holds-plan', NODE + 'OpenBundle.java',
+     '        if (event.bundlePlan() != null) {\n            pending = event.bundlePlan();\n        }\n',
+     '        pending = event.bundlePlan();\n',
+     'BundleProvenanceTest#provenanceOutlivesTheTransition'),
+    ('bundle-provenance-source-is-the-fexp', NODE + 'OpenBundle.java',
+     "        requestedSource = event.kind() == TransitionKind.OPEN_BUNDLE ? event.profilePath() : null;\n",
+     '        requestedSource = null;\n',
+     'BundleProvenanceTest#provenanceOutlivesTheTransition'),
     ('ws-newer-graph-cancels-bundle', NODE + 'OperationGate.java',
      'if (bundleStage == BundleStage.PREPARING && "OPENED".equals(event.source())) {',
      'if (false) {', 'BundleOpenReplayTest#newerExplicitGraphSupersedesBundlePreparation'),
@@ -1227,8 +1241,14 @@ CONTROLS = [
      '"/[\\\\w.-]+(?:/[\\\\w.-]+)+/?"',
      'BundleProfileTest#ordinaryProsePassesUntouched'),
     ('rf2-a-percentage-is-not-a-home', BUNDLE_PROFILE,
-     '"(?<![\\\\w/~])~[\\\\w.-]*/[\\\\w.-]+(?:/[\\\\w.-]+)*/?"',
+     '"(?<![\\\\w/~])~(?:[A-Za-z_][\\\\w.-]*)?/[\\\\w.-]+(?:/[\\\\w.-]+)*/?"',
      '"(?<![\\\\w/~])~[\\\\w.-]*/?[\\\\w.-]+(?:/[\\\\w.-]+)*/?"',
+     'BundleProfileTest#ordinaryProsePassesUntouched'),
+    # A ~user segment must start with a letter, or "~1/price" reads as user "1" and a chart explanation
+    # shipped inside a bundle loses its formula. Reverting the fix must turn the prose allow-list red.
+    ('rf2-a-ratio-is-not-a-home', BUNDLE_PROFILE,
+     '"(?<![\\\\w/~])~(?:[A-Za-z_][\\\\w.-]*)?/[\\\\w.-]+(?:/[\\\\w.-]+)*/?"',
+     '"(?<![\\\\w/~])~[\\\\w.-]*/[\\\\w.-]+(?:/[\\\\w.-]+)*/?"',
      'BundleProfileTest#ordinaryProsePassesUntouched'),
     ('rf2-a-drive-letter-alone-is-not-a-path', BUNDLE_PROFILE,
      '"(?<![\\\\w])[A-Za-z]:[\\\\\\\\/][\\\\w.$-]+(?:[\\\\\\\\/][\\\\w.$-]+)*[\\\\\\\\/]?"',

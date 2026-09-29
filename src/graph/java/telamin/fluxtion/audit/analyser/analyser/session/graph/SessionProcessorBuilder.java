@@ -78,6 +78,10 @@ public class SessionProcessorBuilder implements FluxtionGraphBuilder {
         EffectQueue effects = new EffectQueue();
         OperationGate gate = new OperationGate();
         ActiveProject activeProject = new ActiveProject(gate);
+        // Where the session came from: a verified bundle, or the person's own project. The facts existed
+        // already and were discarded when the transition settled; this holds them for the session's life.
+        telamin.fluxtion.audit.analyser.analyser.session.node.OpenBundle openBundle =
+                new telamin.fluxtion.audit.analyser.analyser.session.node.OpenBundle(gate);
         OpenLog openLog = new OpenLog(gate);
         OpenGraph openGraph = new OpenGraph(gate);
         SessionBoundary boundary = new SessionBoundary(gate, activeProject, openLog, openGraph, effects);
@@ -99,6 +103,7 @@ public class SessionProcessorBuilder implements FluxtionGraphBuilder {
         // what a reader of the audit log sees, so they are the vocabulary of the rule, not of Java.
         cfg.addNode(gate, "operationGate");
         cfg.addNode(activeProject, "activeProject");
+        cfg.addNode(openBundle, "openBundle");
         cfg.addNode(openLog, "openLog");
         cfg.addNode(openGraph, "openGraph");
         cfg.addNode(boundary, "sessionBoundary");

@@ -93,6 +93,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.node.IgnoredParameters;
 import telamin.fluxtion.audit.analyser.analyser.session.node.LogArrival;
 import telamin.fluxtion.audit.analyser.analyser.session.node.LogEvidence;
 import telamin.fluxtion.audit.analyser.analyser.session.node.LogOpening;
+import telamin.fluxtion.audit.analyser.analyser.session.node.OpenBundle;
 import telamin.fluxtion.audit.analyser.analyser.session.node.OpenGraph;
 import telamin.fluxtion.audit.analyser.analyser.session.node.OpenLog;
 import telamin.fluxtion.audit.analyser.analyser.session.node.OperationGate;
@@ -198,6 +199,8 @@ public class SessionProcessor
       new telamin.fluxtion.audit.analyser.analyser.session.node.DesignSession(operationGate);;
   public final transient EffectOutcomes effectOutcomes =
       new telamin.fluxtion.audit.analyser.analyser.session.node.EffectOutcomes(operationGate);;
+  public final transient OpenBundle openBundle =
+      new telamin.fluxtion.audit.analyser.analyser.session.node.OpenBundle(operationGate);;
   public final transient OpenGraph openGraph =
       new telamin.fluxtion.audit.analyser.analyser.session.node.OpenGraph(operationGate);;
   public final transient AuditInstallation auditInstallation =
@@ -471,7 +474,7 @@ public class SessionProcessor
           new DescriptorSupport.Meta(
               null,
               "1.0.71",
-              "8d239e5ec96f03776dfaa4d81d10f850d3a7588648459a9eb82039e140a5983c",
+              "bb5f03857bed47eb00d9be9bc5f73fb0fafa3380b307c403be492b0f76f82952",
               null));
 
   @Override
@@ -1430,6 +1433,8 @@ public class SessionProcessor
     //Default, no filter methods
     auditInvocation(operationGate, "operationGate", "onOpenProjectRequested", typedEvent);
     isDirty_operationGate = operationGate.onOpenProjectRequested(typedEvent);
+    auditInvocation(openBundle, "openBundle", "onRequested", typedEvent);
+    openBundle.onRequested(typedEvent);
     if (guardCheck_auditInstallation()) {
       auditInvocation(auditInstallation, "auditInstallation", "recomputeOnStateChange", typedEvent);
       isDirty_auditInstallation = auditInstallation.recomputeOnStateChange();
@@ -1505,6 +1510,8 @@ public class SessionProcessor
     designSession.project(typedEvent);
     auditInvocation(effectOutcomes, "effectOutcomes", "onProfileApplied", typedEvent);
     effectOutcomes.onProfileApplied(typedEvent);
+    auditInvocation(openBundle, "openBundle", "onProfileApplied", typedEvent);
+    openBundle.onProfileApplied(typedEvent);
     if (guardCheck_auditInstallation()) {
       auditInvocation(auditInstallation, "auditInstallation", "recomputeOnStateChange", typedEvent);
       isDirty_auditInstallation = auditInstallation.recomputeOnStateChange();
@@ -1524,6 +1531,8 @@ public class SessionProcessor
     isDirty_operationGate = operationGate.onProfileLoaded(typedEvent);
     auditInvocation(effectOutcomes, "effectOutcomes", "onProfileLoaded", typedEvent);
     effectOutcomes.onProfileLoaded(typedEvent);
+    auditInvocation(openBundle, "openBundle", "onProfileLoaded", typedEvent);
+    openBundle.onProfileLoaded(typedEvent);
     if (guardCheck_auditInstallation()) {
       auditInvocation(auditInstallation, "auditInstallation", "recomputeOnStateChange", typedEvent);
       isDirty_auditInstallation = auditInstallation.recomputeOnStateChange();
@@ -1572,6 +1581,8 @@ public class SessionProcessor
     designSession.restored(typedEvent);
     auditInvocation(effectOutcomes, "effectOutcomes", "onSettingsRestored", typedEvent);
     effectOutcomes.onSettingsRestored(typedEvent);
+    auditInvocation(openBundle, "openBundle", "onSettingsRestored", typedEvent);
+    openBundle.onSettingsRestored(typedEvent);
     if (guardCheck_auditInstallation()) {
       auditInvocation(auditInstallation, "auditInstallation", "recomputeOnStateChange", typedEvent);
       isDirty_auditInstallation = auditInstallation.recomputeOnStateChange();
@@ -1945,6 +1956,8 @@ public class SessionProcessor
       auditEvent(typedEvent);
       auditInvocation(operationGate, "operationGate", "onOpenProjectRequested", typedEvent);
       isDirty_operationGate = operationGate.onOpenProjectRequested(typedEvent);
+      auditInvocation(openBundle, "openBundle", "onRequested", typedEvent);
+      openBundle.onRequested(typedEvent);
       auditInvocation(sessionBoundary, "sessionBoundary", "onOpenProjectRequested", typedEvent);
       sessionBoundary.onOpenProjectRequested(typedEvent);
     } else if (event instanceof OpenRequestReceived) {
@@ -1975,6 +1988,8 @@ public class SessionProcessor
       designSession.project(typedEvent);
       auditInvocation(effectOutcomes, "effectOutcomes", "onProfileApplied", typedEvent);
       effectOutcomes.onProfileApplied(typedEvent);
+      auditInvocation(openBundle, "openBundle", "onProfileApplied", typedEvent);
+      openBundle.onProfileApplied(typedEvent);
     } else if (event instanceof ProfileLoaded) {
       ProfileLoaded typedEvent = (ProfileLoaded) event;
       auditEvent(typedEvent);
@@ -1982,6 +1997,8 @@ public class SessionProcessor
       isDirty_operationGate = operationGate.onProfileLoaded(typedEvent);
       auditInvocation(effectOutcomes, "effectOutcomes", "onProfileLoaded", typedEvent);
       effectOutcomes.onProfileLoaded(typedEvent);
+      auditInvocation(openBundle, "openBundle", "onProfileLoaded", typedEvent);
+      openBundle.onProfileLoaded(typedEvent);
       auditInvocation(sessionBoundary, "sessionBoundary", "onProfileLoaded", typedEvent);
       sessionBoundary.onProfileLoaded(typedEvent);
     } else if (event instanceof ScanScheduled) {
@@ -2000,6 +2017,8 @@ public class SessionProcessor
       designSession.restored(typedEvent);
       auditInvocation(effectOutcomes, "effectOutcomes", "onSettingsRestored", typedEvent);
       effectOutcomes.onSettingsRestored(typedEvent);
+      auditInvocation(openBundle, "openBundle", "onSettingsRestored", typedEvent);
+      openBundle.onSettingsRestored(typedEvent);
     } else if (event instanceof StatusShown) {
       StatusShown typedEvent = (StatusShown) event;
       auditEvent(typedEvent);
@@ -2131,6 +2150,7 @@ public class SessionProcessor
     auditor.nodeRegistered(logArrival, "logArrival");
     auditor.nodeRegistered(logEvidence, "logEvidence");
     auditor.nodeRegistered(logOpening, "logOpening");
+    auditor.nodeRegistered(openBundle, "openBundle");
     auditor.nodeRegistered(openGraph, "openGraph");
     auditor.nodeRegistered(openLog, "openLog");
     auditor.nodeRegistered(operationGate, "operationGate");
@@ -2254,6 +2274,10 @@ public class SessionProcessor
     return isDirty_operationGate;
   }
 
+  private boolean guardCheck_openBundle() {
+    return isDirty_operationGate;
+  }
+
   private boolean guardCheck_openGraph() {
     return isDirty_operationGate;
   }
@@ -2326,6 +2350,8 @@ public class SessionProcessor
         return (T) logEvidence;
       case "logOpening":
         return (T) logOpening;
+      case "openBundle":
+        return (T) openBundle;
       case "openGraph":
         return (T) openGraph;
       case "openLog":
@@ -2403,6 +2429,9 @@ public class SessionProcessor
     }
     if (node == logOpening) {
       return "logOpening";
+    }
+    if (node == openBundle) {
+      return "openBundle";
     }
     if (node == openGraph) {
       return "openGraph";

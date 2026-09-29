@@ -34,7 +34,8 @@ public record SessionSnapshot(boolean logOpen, String logPath, long logGeneratio
                               telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport timeOrder,
                               String provenance, String provenanceSource, boolean following,
                               String contentSignature, String followReadFailure, boolean evidencePending,
-                              WalkPlaybackState walkPlayback, CaptureState capture) {
+                              WalkPlaybackState walkPlayback, CaptureState capture,
+                              BundleProvenance bundle) {
 
     /**
      * Independent review R4: immutable in fact, not only by the reference that publishes it. A volatile field cannot make
@@ -45,12 +46,14 @@ public record SessionSnapshot(boolean logOpen, String logPath, long logGeneratio
         if (qualifications != null) qualifications = qualifications.frozenCopy();
         if (walkPlayback == null) walkPlayback = WalkPlaybackState.IDLE;
         if (capture == null) capture = CaptureState.IDLE;
+        if (bundle == null) bundle = BundleProvenance.NONE;
     }
 
     /** Before the first operation: nothing is open and nothing may be claimed. */
     public static final SessionSnapshot EMPTY =
             new SessionSnapshot(false, null, 0, 0, 0, false, null, null, 0, null, null, false, null, null, null, null,
-                    null, null, null, null, false, null, null, false, WalkPlaybackState.IDLE, CaptureState.IDLE);
+                    null, null, null, null, false, null, null, false, WalkPlaybackState.IDLE, CaptureState.IDLE,
+                    BundleProvenance.NONE);
 
     static SessionSnapshot of(SessionProcessor p) {
         return new SessionSnapshot(p.openLog.isOpen(), p.openLog.logPath(), p.openLog.generation(),
@@ -66,7 +69,8 @@ public record SessionSnapshot(boolean logOpen, String logPath, long logGeneratio
                 p.logEvidence.signature(), p.logEvidence.readFailure(),
                 p.logEvidence.scanPending(),
                 p.walkPlayback.state(),             // M69: the showing walk, as walkPlayback decided it
-                p.evidenceCapture.state());         // evidence bundle capture, as evidenceCapture decided it
+                p.evidenceCapture.state(),          // evidence bundle capture, as evidenceCapture decided it
+                p.openBundle.provenance());         // where this session came from, as openBundle decided it
     }
 
     /** The verdict a surface may state as CURRENT: none while a log open is pending. */
