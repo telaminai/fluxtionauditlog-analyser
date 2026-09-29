@@ -15,8 +15,10 @@ import static org.junit.jupiter.api.Assertions.*;
 class BundleProvenanceTest {
 
     private static SessionEvents.BundlePlan plan() {
+        // the 8th component is the .fexp the person chose; the 1st is the profile inside the working copy
         return new SessionEvents.BundlePlan("/bundle/project.fluxtion-settings", "/bundle/graph.graphml",
-                "/bundle/log.yaml", "sha256:DEMO-identity", "/bundle", "DEMO limits");
+                "/bundle/log.yaml", "sha256:DEMO-identity", "/bundle", "DEMO limits", "",
+                "/demo/evidence.fexp");
     }
 
     private static SessionDriver openedBundle(FakeSessionAdapter adapter) {

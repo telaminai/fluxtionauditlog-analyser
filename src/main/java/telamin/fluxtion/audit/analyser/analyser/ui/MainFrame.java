@@ -1228,11 +1228,7 @@ public final class MainFrame extends JFrame {
         loadExperiment(chooser.getSelectedFile().toPath());
     }
 
-    /** The .fexp the in-flight bundle open was asked for; the plan names the unpacked profile, not this. */
-    private String bundleRequested;
-
     private void loadExperiment(Path bundle) {
-        bundleRequested = bundle.toString();
         status.setText("Verifying and opening evidence bundle…");
         startPanel.showOperationFeedback("Verifying " + bundle.getFileName() + "…");
         if (recovery != null) recovery.capture();
@@ -1275,7 +1271,8 @@ public final class MainFrame extends JFrame {
         var plan = new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundlePlan(
                 profile.toString(), graphs.isEmpty() ? null : root.resolve(graphs.getFirst()).toString(),
                 root.resolve(logs.getFirst()).toString(), verification.identity(), root.toString(), limits,
-                firstNoteLine(root.resolve(telamin.fluxtion.audit.analyser.bundle.BundleWriter.NOTES)));
+                firstNoteLine(root.resolve(telamin.fluxtion.audit.analyser.bundle.BundleWriter.NOTES)),
+                bundlePath);
         return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileLoaded(
                 opId, profile.toString(), true, null, 0, null, plan);
     }
@@ -6316,9 +6313,9 @@ public final class MainFrame extends JFrame {
                 var plan = e.plan();
                 // #73: a recipient could not find out what they had been sent. Recorded here, where the
                 // adapter performs the effect, beside the way a project open records its own recent.
-                config.addRecentBundle(bundleRequested, plan.identity(), plan.notes());
+                config.addRecentBundle(plan.source(), plan.identity(), plan.notes());
                 // #75: put back the source tree this machine already chose for this bundle, if it is still there
-                String anchored = config.bundleSourceRoot(bundleRequested);
+                String anchored = config.bundleSourceRoot(plan.source());
                 if (!anchored.isEmpty() && Files.isDirectory(Path.of(anchored))
                         && !config.sourceRoots.contains(anchored)) {
                     config.sourceRoots.add(anchored);

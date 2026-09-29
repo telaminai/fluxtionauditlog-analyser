@@ -160,12 +160,23 @@ public final class SessionEvents {
     }
 
     /** Facts extracted from a verified bundle, before any active project is changed. */
+    /**
+     * @param profilePath the profile INSIDE the unpacked working copy
+     * @param source      the {@code .fexp} the person actually chose. Carried here, not kept beside the
+     *                    session by whoever asked: the surface used to hold its own copy, which is the
+     *                    "value recomputed at a second call site" rule 9 forbids.
+     */
     public record BundlePlan(String profilePath, String graphPath, String logPath,
-                             String identity, String workingCopy, String limits, String notes) {
+                             String identity, String workingCopy, String limits, String notes, String source) {
         /** A plan with nothing the sender wrote — the shape every pre-#73 caller uses. */
         public BundlePlan(String profilePath, String graphPath, String logPath,
                           String identity, String workingCopy, String limits) {
-            this(profilePath, graphPath, logPath, identity, workingCopy, limits, "");
+            this(profilePath, graphPath, logPath, identity, workingCopy, limits, "", null);
+        }
+
+        public BundlePlan(String profilePath, String graphPath, String logPath,
+                          String identity, String workingCopy, String limits, String notes) {
+            this(profilePath, graphPath, logPath, identity, workingCopy, limits, notes, null);
         }
 
         public BundlePlan {

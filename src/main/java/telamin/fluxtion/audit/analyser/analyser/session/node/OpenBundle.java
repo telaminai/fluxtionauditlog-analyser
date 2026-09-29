@@ -21,19 +21,15 @@ import telamin.fluxtion.audit.analyser.analyser.session.TransitionKind;
  * publish "not a bundle" for every bundle. So a plan is remembered when one arrives and is not unset by a
  * later plan-less load.
  *
- * <p><b>Why the request is observed at all.</b> The plan names the unpacked profile, not the {@code .fexp} the
- * person chose — and the {@code .fexp} is what a recents list must remember and what a title should name. Only
- * {@link SessionEvents.OpenProjectRequested} carries it. The request also resets the pending plan, and an
- * {@link SessionEvents.EffectFailed} ends the transition, so a bundle that verified and then failed to apply
- * cannot label the next ordinary project as evidence.
+ * <p><b>Why the request is observed at all.</b> To reset the pending plan. Together with
+ * {@link SessionEvents.EffectFailed} ending a dead transition, that is what stops a bundle which verified and
+ * then failed to apply from labelling the next ordinary project as evidence.
  */
 public class OpenBundle implements EventLogSource {
 
     private final OperationGate gate;
 
     private EventLogger auditLog = NullEventLogger.INSTANCE;
-    /** The {@code .fexp} the transition in flight was asked to open, when it is a bundle transition. */
-    private String requestedSource;
     /** The verified plan, held from the verification until the profile is genuinely in force. */
     private SessionEvents.BundlePlan pending;
     private BundleProvenance current = BundleProvenance.NONE;
@@ -48,9 +44,9 @@ public class OpenBundle implements EventLogSource {
     }
 
     /**
-     * Records which {@code .fexp} this transition is for, and <b>resets any plan the last transition left
-     * behind</b>. {@code sessionBoundary} clears its identical accumulator in exactly the same place
-     * ({@code inFlightBundle = null} is its first statement) and for the same reason.
+     * <b>Resets any plan the last transition left behind.</b> {@code sessionBoundary} clears its identical
+     * accumulator in exactly the same place ({@code inFlightBundle = null} is its first statement) and for the
+     * same reason. It no longer needs to record which {@code .fexp} is being opened: the plan carries it.
      *
      * <p><b>This reset was briefly removed, and that was a defect (2026-09-29).</b> A mutation control for it
      * survived, and the conclusion drawn was "the gate already refuses a superseded transition, so the line is
@@ -65,7 +61,6 @@ public class OpenBundle implements EventLogSource {
     @OnEventHandler
     public boolean onRequested(SessionEvents.OpenProjectRequested event) {
         pending = null;
-        requestedSource = event.kind() == TransitionKind.OPEN_BUNDLE ? event.profilePath() : null;
         return false;
     }
 
@@ -93,7 +88,6 @@ public class OpenBundle implements EventLogSource {
             return false;
         }
         pending = null;
-        requestedSource = null;
         if (RESTORE.equals(event.effect()) && current.fromBundle()) {
             current = BundleProvenance.NONE;
             auditLog.info("fromBundle", false).info("because", "restoreSettings failed");
@@ -109,7 +103,6 @@ public class OpenBundle implements EventLogSource {
         }
         if (!event.ok()) {
             pending = null;
-            requestedSource = null;
             return false;
         }
         // Only a load that CARRIES a plan sets one; the bundle's own profile load carries none (see above).
@@ -126,10 +119,9 @@ public class OpenBundle implements EventLogSource {
         }
         current = pending == null
                 ? BundleProvenance.NONE
-                : new BundleProvenance(pending.identity(), requestedSource, pending.workingCopy(),
+                : new BundleProvenance(pending.identity(), pending.source(), pending.workingCopy(),
                         pending.limits(), pending.notes());
         pending = null;
-        requestedSource = null;
         auditLog.info("fromBundle", current.fromBundle()).info("bundleIdentity", current.identity());
         return true;
     }
@@ -141,7 +133,6 @@ public class OpenBundle implements EventLogSource {
         }
         current = BundleProvenance.NONE;
         pending = null;
-        requestedSource = null;
         auditLog.info("fromBundle", false);
         return true;
     }
