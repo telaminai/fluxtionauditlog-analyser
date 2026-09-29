@@ -1,0 +1,43 @@
+{
+ "run": 36492046613,
+ "attempt": 1,
+ "artifactId": 11001891805,
+ "shard": 3,
+ "position": 66,
+ "runsInShard": 67,
+ "previous": [
+  "m69-s4-list-refreshes-on-save",
+  "m69-s4-project-panel-count",
+  "m69-s4-tab-uses-the-verb-path"
+ ],
+ "verdict": "not-restored",
+ "restoredByteIdentical": true,
+ "classesRestoredByteIdentical": true,
+ "mutated": [
+  {
+   "kind": "failure",
+   "method": "aModalEndsTheNativeTableDragAndTheNextDragStillWorks",
+   "message": "org.opentest4j.AssertionFailedError: column adjustment ends with the cancelled gesture ==> expected: <false> but was: <true>"
+  }
+ ],
+ "restored": [
+  {
+   "kind": "skipped",
+   "method": "aModalEndsTheNativeTableDragAndTheNextDragStillWorks",
+   "message": "org.opentest4j.TestAbortedException: Assumption failed: native mouse press must reach the table, not be dropped by the desktop"
+  }
+ ],
+ "restoredSuites": [
+  {
+   "name": "TableDragCancellationFrameTest",
+   "tests": 1,
+   "failures": 0,
+   "errors": 0,
+   "skipped": 1,
+   "testNames": [
+    "aModalEndsTheNativeTableDragAndTheNextDragStillWorks"
+   ],
+   "assertions": []
+  }
+ ]
+}
