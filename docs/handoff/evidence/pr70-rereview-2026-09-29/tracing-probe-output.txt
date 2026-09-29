@@ -1,0 +1,6 @@
+plain: runner exit=0 (8 audit records)
+replay: AGREES, 8 of 8 records (endTime and thread excepted, differing on 8: when and where a cycle ran, which a replay cannot know)
+plain: EventLogControlEvent records in the output: 0
+trace: runner exit=0 (9 audit records)
+replay: DIVERGES at record 0 (MarketDataEvent): eventLogRecord.eventTime: '1767258000060' ≠ '-1'
+trace: EventLogControlEvent records in the output: 1

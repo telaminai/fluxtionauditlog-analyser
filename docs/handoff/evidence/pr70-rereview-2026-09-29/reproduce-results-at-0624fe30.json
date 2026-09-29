@@ -1,0 +1,86 @@
+[
+ {
+  "name": "compile",
+  "exit": 0,
+  "stdout": "",
+  "stderr": ""
+ },
+ {
+  "name": "normal-runner",
+  "exit": 0,
+  "stdout": "updating event log config:EventLogConfig{level=INFO, logRecordProcessor=null, sourceId=null, groupId=null}\ngraph: your build's node ids and edges match the bundle's (graph/DEMO.graphml); this does not show it is the same code\nmembers: every member matches the manifest (for the bundle's identity: analyser --verify)\nreplayed: 7 recorded inputs into com.acme.demo.generated.DemoQuoteRecordedProcessor, on a data-driven clock\nwrote: <scratch>/normal.yaml (8 audit records)\nnext: analyser --replay-compare <scratch>/normal.fexp <scratch>/normal.yaml\n",
+  "stderr": ""
+ },
+ {
+  "name": "normal-compare",
+  "exit": 0,
+  "stdout": "identity: sha256:1cbf33a70ede62b7e73b427e219207ef01538d5487ce2d4306bfc7c5f7ca7260\nverified: 3 members, each matching the manifest's sha256 and size\nreplay: AGREES, 8 of 8 records (endTime and thread excepted, differing on 8: when and where a cycle ran, which a replay cannot know)\nlimit: unsigned: verification detects a changed member; it does not authenticate the sender\nlimit: replay: the recorded inputs reproduce this log only on a build whose graph matches, and only as far as the processor reads nothing the records do not carry\n",
+  "stderr": ""
+ },
+ {
+  "name": "pretty-verify",
+  "exit": 0,
+  "stdout": "identity: sha256:da6c7f014221c1e29ae4b37d4a4e02f7d178db73d3777b30052adc02e98b23a1\nverified: 3 members, each matching the manifest's sha256 and size\nreplay: replay/DEMO.yaml, the run's 7 recorded inputs\nlimit: unsigned: verification detects a changed member; it does not authenticate the sender\nlimit: replay: the recorded inputs reproduce this log only on a build whose graph matches, and only as far as the processor reads nothing the records do not carry\n",
+  "stderr": ""
+ },
+ {
+  "name": "pretty-runner",
+  "exit": 0,
+  "stdout": "updating event log config:EventLogConfig{level=INFO, logRecordProcessor=null, sourceId=null, groupId=null}\ngraph: your build's node ids and edges match the bundle's (graph/DEMO.graphml); this does not show it is the same code\nmembers: every member matches the manifest (for the bundle's identity: analyser --verify)\nreplayed: 7 recorded inputs into com.acme.demo.generated.DemoQuoteRecordedProcessor, on a data-driven clock\nwrote: <scratch>/pretty.yaml (8 audit records)\nnext: analyser --replay-compare <scratch>/pretty.fexp <scratch>/pretty.yaml\n",
+  "stderr": ""
+ },
+ {
+  "name": "nested-comment-compare",
+  "exit": 1,
+  "stdout": "identity: sha256:7446d9bb98c9cc896bb568ff6f1bf5ab177fa395ce33832ca32cbf2db43aa60b\nverified: 3 members, each matching the manifest's sha256 and size\nreplay: DIVERGES at record 0 (MarketDataEvent): eventLogRecord.nodeLogs.priceListener.thread: 'DEMO-old' ≠ 'DEMO-new'\nreplay: the 0 record(s) before it agree\nreplay: a divergence is a difference in behaviour OR in something the processor read outside the recorded inputs and the injected clock (a wall-clock read, hash order, a random value)\nlimit: unsigned: verification detects a changed member; it does not authenticate the sender\nlimit: replay: the recorded inputs reproduce this log only on a build whose graph matches, and only as far as the processor reads nothing the records do not carry\n",
+  "stderr": ""
+ },
+ {
+  "name": "payload-runner",
+  "exit": 0,
+  "stdout": "updating event log config:EventLogConfig{level=INFO, logRecordProcessor=null, sourceId=null, groupId=null}\ngraph: your build's node ids and edges match the bundle's (graph/DEMO.graphml); this does not show it is the same code\nmembers: every member matches the manifest (for the bundle's identity: analyser --verify)\nreplayed: 7 recorded inputs into com.acme.demo.generated.DemoQuoteRecordedProcessor, on a data-driven clock\nwrote: <scratch>/payload.yaml (8 audit records)\nnext: analyser --replay-compare <scratch>/payload-control-name.fexp <scratch>/payload.yaml\n",
+  "stderr": ""
+ },
+ {
+  "name": "payload-direct-capture",
+  "exit": 0,
+  "stdout": "updating event log config:EventLogConfig{level=INFO, logRecordProcessor=null, sourceId=null, groupId=null}\nexternal inputs=8; captured=8; audit=9\ncaptured RiskBreachEvent=1\nall 8 receipt instants match audit; graph-raised event excluded\n",
+  "stderr": ""
+ },
+ {
+  "name": "missing-separator",
+  "exit": 1,
+  "stdout": "",
+  "stderr": "REFUSED: line 5 is not part of a replay record: !!com.telamin.fluxtion.runtime.event.ReplayRecord\n"
+ },
+ {
+  "name": "duplicate-fields-and-pairing",
+  "exit": 1,
+  "stdout": "",
+  "stderr": "Exception in thread \"main\" ReplayBundle$Refused: line 5 is not part of a replay record: event: !!Probe$DEMO {n: 2}\n\tat ReplayBundle.records(ReplayBundle.java:731)\n\tat ReplayBundle.forEachRecord(ReplayBundle.java:788)\n\tat ReplayBundle.read(ReplayBundle.java:806)\n\tat Probe.main(Probe.java:6)\n"
+ },
+ {
+  "name": "aggregate-memory",
+  "exit": 1,
+  "stdout": "",
+  "stderr": "REFUSED: the bundle lists 13 replay/ members, not one\n"
+ },
+ {
+  "name": "live-recorder",
+  "exit": 0,
+  "stdout": "updating event log config:EventLogConfig{level=INFO, logRecordProcessor=null, sourceId=null, groupId=null}\nexternal inputs=8; captured=8; audit=9\ncaptured RiskBreachEvent=1\nall 8 receipt instants match audit; graph-raised event excluded\n",
+  "stderr": ""
+ },
+ {
+  "name": "compile-identity-mutant",
+  "exit": 0,
+  "stdout": "",
+  "stderr": ""
+ },
+ {
+  "name": "live-recorder-identity-mutant",
+  "exit": 1,
+  "stdout": "updating event log config:EventLogConfig{level=INFO, logRecordProcessor=null, sourceId=null, groupId=null}\nexternal inputs=8; captured=9; audit=9\ncaptured RiskBreachEvent=2\n",
+  "stderr": "Exception in thread \"main\" java.lang.AssertionError: only external inputs, including external breach, recorded\n\tat LiveCapture.main(LiveCapture.java:19)\n"
+ }
+]
