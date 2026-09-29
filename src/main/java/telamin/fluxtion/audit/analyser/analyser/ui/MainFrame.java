@@ -1162,7 +1162,13 @@ public final class MainFrame extends JFrame {
     private void openSampleProject() { openSampleProject(false); }
 
     private void openSampleProject(boolean playTour) {
-        Path root = DemoAssets.install();
+        Path root;
+        try { root = DemoAssets.install(); }
+        catch (java.io.UncheckedIOException ex) {
+            JOptionPane.showMessageDialog(this, "Could not open the sample files: " + ex.getMessage(),
+                    "Open sample project", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
         Path profile = telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.pathFor(root);
         if (!Files.isRegularFile(profile)) {
             AppConfig sample = new AppConfig();
@@ -4312,10 +4318,6 @@ public final class MainFrame extends JFrame {
 
     /** A load did not land: tell the processor, then whoever asked. */
     private void onLoadFailed(long opId, String location, OpenRequest request, Throwable err) {
-        if (DemoAssets.log().toString().equals(location)) {
-            pendingSampleWalk = false;
-            pendingSampleTour = false;
-        }
         sessionInteractive = !request.suppressDialogs();          // review B1: this operation's audience
         var driver = session();
         driver.submit(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogOpenFailed(opId, location, rootMessage(err)));
@@ -4326,6 +4328,10 @@ public final class MainFrame extends JFrame {
             // review B3: the refusal applies to a failure too. The record keeps the stale result; the
             // person is not shown a superseded operation's failure as if it were the current one.
             return;
+        }
+        if (DemoAssets.log().toString().equals(location)) {
+            pendingSampleWalk = false;
+            pendingSampleTour = false;
         }
         completeRecoveryLog(opId, "log load failed: " + rootMessage(err));
         status.setText("Failed to load " + location + ": " + rootMessage(err));
