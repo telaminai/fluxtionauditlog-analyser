@@ -66,8 +66,8 @@ a graph to show you the fault — exactly as the in-app assistant does.
 Open **Settings ▸ Assistant / LLM**:
 
 - **Provider / model** — Anthropic (Claude) or OpenAI, and a model id.
-- **API key** — stored locally (cleartext, single-user tool). **Never leaves your machine** and is
-  never included in a shared settings file.
+- **API key** — stored locally in cleartext (single-user tool), and sent to the configured provider
+  endpoint to authenticate requests. It is never included in a shared settings file.
 
 ## Actions the assistant can take
 

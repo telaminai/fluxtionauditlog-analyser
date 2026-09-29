@@ -119,8 +119,8 @@ Configure in-app explanations:
 
 - **Provider** — `anthropic` (Claude) or `openai`.
 - **Model** — the model id.
-- **API key** — stored locally in cleartext (a single-user desktop tool). It **never leaves your
-  machine** and is **never** included in an exported settings file.
+- **API key** — stored locally in cleartext (a single-user desktop tool) and sent to the configured
+  provider endpoint to authenticate requests. It is **never** included in an exported settings file.
 - **Base URL (optional)** — point at a proxy or compatible endpoint.
 
 !!! tip "No key is fine"
