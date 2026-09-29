@@ -272,6 +272,7 @@ public final class AssistantPanel extends JPanel {
 
         boolean inDemo = demo != null;
         mode.setText(inDemo ? demo.mode() : "Live assistant");
+        route.setVisible(!inDemo);                    // a demonstration has no provider: nothing is sent from it
         mode.getAccessibleContext().setAccessibleDescription(mode.getText());
         composer.setVisible(!inDemo);
         demoBar.setVisible(inDemo);

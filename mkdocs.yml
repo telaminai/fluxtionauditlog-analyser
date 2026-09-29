@@ -122,6 +122,8 @@ nav:
       - Opening a bundle you were sent: evidence-bundles/opening.md
       - Commands and file format: evidence-bundles/reference.md
       - Try it with the demo: evidence-bundles/demo.md
+  - Conversation journeys:
+      - "Find the first recorded breach": journeys/find-the-first-recorded-breach.md
   - The audit log:
       - Log format: log-format.md
       - Format specification: format-spec.md

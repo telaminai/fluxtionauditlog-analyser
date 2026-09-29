@@ -1,0 +1,188 @@
+{
+ "total": 726,
+ "counts": {
+  "MarketDataEvent": 400,
+  "OrderUpdateEvent": 166,
+  "RiskBreachEvent": 160
+ },
+ "breaches": 160,
+ "first": 16,
+ "last": 722,
+ "turns": [
+  {
+   "id": "t1",
+   "role": "user",
+   "text": "What does this DEMO log contain?"
+  },
+  {
+   "id": "t2",
+   "role": "assistant",
+   "text": "726 records from the DEMO quote processor: MarketDataEvent 400, OrderUpdateEvent 166, RiskBreachEvent 160. That is the whole log \u2014 no filter is applied, so every count here is over all of it."
+  },
+  {
+   "id": "t3",
+   "role": "user",
+   "text": "Where did the application first log a breach?"
+  },
+  {
+   "id": "t4",
+   "role": "assistant",
+   "text": "At record 16: the first RiskBreachEvent the application itself logged, of 160 (the last is record 722). The chart marks each one with an x on the spread. That is the logged breach \u2014 not the first time a value crossed a limit, which is a different question."
+  },
+  {
+   "id": "t5",
+   "role": "user",
+   "text": "What supports that answer?"
+  },
+  {
+   "id": "t6",
+   "role": "assistant",
+   "text": "Record 16's own detail: its breachHandler entry is what makes it a breach. The topology's verdict says whether the graph declares the nodes this log writes, so the record's nodes can be read against the processor's design."
+  },
+  {
+   "id": "t7",
+   "role": "user",
+   "text": "So what is the conclusion?"
+  },
+  {
+   "id": "t8",
+   "role": "assistant",
+   "text": "The application first logged a breach at record 16. Everything above is what this bundled log shows; it is not a live answer. Ask your own question about this evidence with the assistant, or connect your CLI assistant."
+  }
+ ],
+ "steps": [
+  {
+   "caption": "The whole DEMO log: every record, no filter",
+   "view": {
+    "tab": "summary"
+   },
+   "targets": [
+    {
+     "target": "records",
+     "caption": "every record of the log"
+    }
+   ],
+   "conversationThrough": "t2"
+  },
+  {
+   "caption": "The first record where the application logged a breach",
+   "view": {
+    "graph": "DEMO first breach",
+    "record": 16
+   },
+   "targets": [
+    {
+     "target": "records:row:16",
+     "caption": "record 16: the first logged breach"
+    },
+    {
+     "target": "graph:DEMO first breach",
+     "caption": "each x is a logged RiskBreachEvent"
+    }
+   ],
+   "conversationThrough": "t4"
+  },
+  {
+   "caption": "What supports it: the record's own detail and the pairing verdict",
+   "view": {
+    "tab": "topology",
+    "record": 16
+   },
+   "targets": [
+    {
+     "target": "detail",
+     "caption": "the breach record's detail"
+    },
+    {
+     "target": "topology:verdict",
+     "caption": "does the graph declare this log's nodes?"
+    }
+   ],
+   "conversationThrough": "t6"
+  },
+  {
+   "caption": "The conclusion, and where to go next",
+   "view": {
+    "tab": "summary"
+   },
+   "targets": [
+    {
+     "target": "records",
+     "caption": "the evidence this journey rests on"
+    }
+   ],
+   "conversationThrough": "t8"
+  }
+ ],
+ "shown": [
+  {
+   "walk": "DEMO first breach",
+   "step": 1,
+   "of": 4,
+   "phase": "SHOWN",
+   "targets": [
+    {
+     "n": 1,
+     "target": "records",
+     "state": "CURRENT",
+     "available": true
+    }
+   ]
+  },
+  {
+   "walk": "DEMO first breach",
+   "step": 2,
+   "of": 4,
+   "phase": "SHOWN",
+   "reason": "the file behind this log has not been re-checked since it was read, so 'current' here means unchanged since this step was saved, not unchanged on disk",
+   "targets": [
+    {
+     "n": 1,
+     "target": "records:row:16",
+     "state": "CURRENT",
+     "available": true
+    },
+    {
+     "n": 2,
+     "target": "graph:DEMO first breach",
+     "state": "CURRENT",
+     "available": true
+    }
+   ]
+  },
+  {
+   "walk": "DEMO first breach",
+   "step": 3,
+   "of": 4,
+   "phase": "SHOWN",
+   "targets": [
+    {
+     "n": 1,
+     "target": "detail",
+     "state": "CURRENT",
+     "available": true
+    },
+    {
+     "n": 2,
+     "target": "topology:verdict",
+     "state": "CURRENT",
+     "available": true
+    }
+   ]
+  },
+  {
+   "walk": "DEMO first breach",
+   "step": 4,
+   "of": 4,
+   "phase": "SHOWN",
+   "targets": [
+    {
+     "n": 1,
+     "target": "records",
+     "state": "CURRENT",
+     "available": true
+    }
+   ]
+  }
+ ]
+}

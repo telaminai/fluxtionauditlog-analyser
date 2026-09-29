@@ -1652,4 +1652,17 @@ CONTROLS = [
      '                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantHandoffRequested("assistant panel"));\n                revealAssistant();                      // the fresh thread, ready for the person\'s own question\n                assistantPanel.primeDraft("");',
      '                String demo = assistantPanel.conversationView().getText();\n                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantHandoffRequested("assistant panel"));\n                revealAssistant();\n                assistantPanel.primeDraft(demo);',
      'ConversationJourneyFrameTest#theHandoffIsAFreshThread'),
+    # ---- OA-5 (spec §8): the DEMO journey's page describes the actual bytes, and its dialogue is true of the log -------
+    ('oa5-page-states-the-bytes', 'docs/site/journeys/find-the-first-recorded-breach.md',
+     'sha256 `cbd8f28dbc50263d45678cc926f089e6ad5cffab1a990f37e8ec87b20fa21743`',
+     'sha256 `0000000000000000000000000000000000000000000000000000000000000000`',
+     'JourneyCatalogueTest#thePageDescribesTheActualBytes'),
+    ('oa5-page-says-no-replay-runs', 'docs/site/journeys/find-the-first-recorded-breach.md',
+     'carries no replay inputs, and opening or playing it never runs anything',
+     'carries its inputs',
+     'JourneyCatalogueTest#thePageDescribesTheActualBytes'),
+    ('oa5-transcript-is-the-bundled-dialogue', 'docs/site/journeys/find-the-first-recorded-breach.md',
+     'At record 16: the first RiskBreachEvent the application itself logged',
+     'At record 15: the first RiskBreachEvent the application itself logged',
+     'JourneyCatalogueTest#thePageTranscriptIsTheBundledDialogue'),
 ]
