@@ -40,6 +40,13 @@ import java.util.regex.Pattern;
  *       {@link #REDACTED} and named in {@link Export#redacted()}, so the author sees exactly what was removed. Refusing
  *       ordinary writing would get this check turned off.</li>
  * </ul>
+ * <p><b>Both patterns are Unicode-aware, and must stay that way.</b> Java's {@code \w} is ASCII-only unless
+ * told otherwise, so {@code /home/démo/logs/x.yaml} redacted as far as the accent and left
+ * {@code ‹path removed›émo/logs/x.yaml} — a reported redaction that still carries the path. Worse,
+ * {@link #WHOLE_PATH} did not recognise {@code ~josé/logs/x.yaml} as a path at all, so a path-VALUED key with
+ * an accented username was exported instead of refusing the bundle. A half-redaction is worse than none: it
+ * tells the author the path was removed.
+ *
  * <p><b>A digit-leading username is still a username.</b> The tilde form is three alternatives because a
  * {@code ~user} segment that must start with a letter silently stopped redacting {@code ~7dev/logs/x.yaml} and
  * {@code ~123/secret/a.yaml} — legal accounts wherever they are provisioned from employee numbers — while
@@ -67,7 +74,8 @@ public final class BundleProfile {
     public static final String REDACTED = "\u2039path removed\u203a";
 
     /** A value that is, as a whole, a machine path: refused, because it is structure. */
-    static final Pattern WHOLE_PATH = Pattern.compile("^(?:/|~[/\\\\]|~$|~[\\w.-]+/|[A-Za-z]:[/\\\\]|\\\\\\\\|(?i:file):)\\S*$");
+    static final Pattern WHOLE_PATH = Pattern.compile("^(?:/|~[/\\\\]|~$|~[\\w.-]+/|[A-Za-z]:[/\\\\]|\\\\\\\\|(?i:file):)\\S*$",
+            Pattern.UNICODE_CHARACTER_CLASS);
 
     /** A machine path INSIDE prose: redacted. Each alternative needs a real path shape, not just a slash or a colon. */
     static final Pattern EMBEDDED_PATH = Pattern.compile(String.join("|",
@@ -77,7 +85,8 @@ public final class BundleProfile {
             "(?<![\\w/~])~[0-9][\\w.-]*/[\\w.-]+(?:/[\\w.-]+)+/?",                   // ~123/secret/a.yaml
             "(?<![\\w/~])~[0-9][\\w.-]*/[\\w-]+\\.[A-Za-z][\\w.-]*",                  // ~123/notes.yaml
             "(?<![\\w])[A-Za-z]:[\\\\/][\\w.$-]+(?:[\\\\/][\\w.$-]+)*[\\\\/]?",          // C:\\Users\\x, not C: or C:\\ alone
-            "(?<![\\w\\\\])\\\\\\\\[\\w.$-]+(?:\\\\[\\w.$-]+)+"));                          // \\\\server\\share
+            "(?<![\\w\\\\])\\\\\\\\[\\w.$-]+(?:\\\\[\\w.$-]+)+"),
+            Pattern.UNICODE_CHARACTER_CLASS);                          // \\\\server\\share
 
     /**
      * Write the allow-listed profile of {@code settings} to {@code out}. {@code settings} is the open project's

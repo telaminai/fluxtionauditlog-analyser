@@ -44,6 +44,17 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
     boolean loadThrows;
     /** Set to have a restore throw, so a CLOSE leaves the project gone with no SettingsRestored. */
     boolean restoreThrows;
+    /**
+     * Set to model an apply whose RENDER fails. The real adapter swaps the settings in ProjectSession before
+     * the effect runs, so the profile IS in force and ProfileApplied is still reported; only the window did
+     * not finish updating. Reporting a failure here instead is what let the session believe the old project
+     * was still active (review 2026-09-29).
+     */
+    boolean applyRenderThrows;
+    /** Whether that render failure happened, so a test can assert the adapter still told the truth. */
+    boolean applyRenderFailed;
+    /** Set to abort the batch mid-apply with a protocol violation — no ProfileApplied, no EffectFailed. */
+    boolean applyViolates;
     /** M44.3: when true, an OpenLogEffect answers Pending (the real adapter's shape); else it lands at once. */
     boolean pendingOpens;
     /** What a synchronous open reports as logged node ids, keyed by location. */
@@ -108,6 +119,14 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
             }
             case SessionEffects.ApplyProfileEffect e -> {
                 appliedProfile = e.profilePath();
+                if (applyViolates) {
+                    applyViolates = false;
+                    throw new SessionDriver.ProtocolViolation("DEMO the batch was aborted mid-apply");
+                }
+                if (applyRenderThrows) {
+                    applyRenderThrows = false;
+                    applyRenderFailed = true;      // the settings are in force regardless; say so
+                }
                 yield new SessionEvents.ProfileApplied(e.opId(), e.profilePath(), e.name());
             }
             case SessionEffects.RestoreSettingsEffect e -> {

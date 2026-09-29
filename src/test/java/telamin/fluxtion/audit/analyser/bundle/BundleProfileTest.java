@@ -154,6 +154,9 @@ public class BundleProfileTest {
         // letter-leading cases.
         for (String path : List.of("~/logs/demo/quote.yaml", "~demo/logs/quote.yaml",
                 "~7dev/logs/quote.yaml", "~123/secret/quote.yaml", "~123/quote.yaml",
+                // Java's \w is ASCII-only unless the pattern says otherwise; these half-redacted, which
+                // is worse than not redacting because the author is told the path was removed.
+                "/home/d\u00e9mo/logs/quote.yaml", "~jos\u00e9/logs/quote.yaml",
                 "C:\\Users\\demo\\logs\\q.yaml",
                 "D:/data/demo/q.yaml", "\\\\fileserver\\demo\\q.yaml", "file:///tmp/DEMO/q.yaml", "/etc/demo/q.yaml")) {
             List<String> redacted = new java.util.ArrayList<>();

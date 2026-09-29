@@ -474,7 +474,7 @@ public class SessionProcessor
           new DescriptorSupport.Meta(
               null,
               "1.0.71",
-              "dbea49ab021b0583a9d8305b3752f9b6346c31de19cf90718d235d3a8d69018b",
+              "bd0b1b94b967bb85fa13459f68fa5de57209391285e10a8ad54e6f099859477b",
               null));
 
   @Override
@@ -1151,8 +1151,6 @@ public class SessionProcessor
     isDirty_operationGate = operationGate.onEffectFailed(typedEvent);
     auditInvocation(effectOutcomes, "effectOutcomes", "onEffectFailed", typedEvent);
     effectOutcomes.onEffectFailed(typedEvent);
-    auditInvocation(openBundle, "openBundle", "onEffectFailed", typedEvent);
-    openBundle.onEffectFailed(typedEvent);
     if (guardCheck_auditInstallation()) {
       auditInvocation(auditInstallation, "auditInstallation", "recomputeOnStateChange", typedEvent);
       isDirty_auditInstallation = auditInstallation.recomputeOnStateChange();
@@ -1435,8 +1433,6 @@ public class SessionProcessor
     //Default, no filter methods
     auditInvocation(operationGate, "operationGate", "onOpenProjectRequested", typedEvent);
     isDirty_operationGate = operationGate.onOpenProjectRequested(typedEvent);
-    auditInvocation(openBundle, "openBundle", "onRequested", typedEvent);
-    openBundle.onRequested(typedEvent);
     if (guardCheck_auditInstallation()) {
       auditInvocation(auditInstallation, "auditInstallation", "recomputeOnStateChange", typedEvent);
       isDirty_auditInstallation = auditInstallation.recomputeOnStateChange();
@@ -1851,8 +1847,6 @@ public class SessionProcessor
       isDirty_operationGate = operationGate.onEffectFailed(typedEvent);
       auditInvocation(effectOutcomes, "effectOutcomes", "onEffectFailed", typedEvent);
       effectOutcomes.onEffectFailed(typedEvent);
-      auditInvocation(openBundle, "openBundle", "onEffectFailed", typedEvent);
-      openBundle.onEffectFailed(typedEvent);
     } else if (event instanceof FollowSet) {
       FollowSet typedEvent = (FollowSet) event;
       auditEvent(typedEvent);
@@ -1960,8 +1954,6 @@ public class SessionProcessor
       auditEvent(typedEvent);
       auditInvocation(operationGate, "operationGate", "onOpenProjectRequested", typedEvent);
       isDirty_operationGate = operationGate.onOpenProjectRequested(typedEvent);
-      auditInvocation(openBundle, "openBundle", "onRequested", typedEvent);
-      openBundle.onRequested(typedEvent);
       auditInvocation(sessionBoundary, "sessionBoundary", "onOpenProjectRequested", typedEvent);
       sessionBoundary.onOpenProjectRequested(typedEvent);
     } else if (event instanceof OpenRequestReceived) {

@@ -87,47 +87,82 @@ class BundleProvenanceTest {
     }
 
     @Test
-    @DisplayName("a bundle whose apply FAILS cannot label the next ordinary project as evidence")
-    void aBundleWhoseApplyFailsCannotLabelTheNextProject() {
-        // The bundle verifies and its plan is accepted, then applying the SENDER's profile throws. An effect
-        // failure does not stop the batch, so the plan was left held with nothing to settle it, and the next
-        // ordinary project inherited a stranger's identity, working copy and notes.
-        var adapter = new FakeSessionAdapter().withProfile("/own/project.fluxtion-settings");
+    @DisplayName("an ordinary project opened after a bundle is not labelled with that bundle, even if its apply throws")
+    void anOrdinaryProjectIsNeverLabelledWithThePreviousBundle() {
+        // ProjectSession has ALREADY swapped the settings by the time the apply effect runs, so a throw
+        // there left the session believing the OLD project was in force, and the window said
+        // "evidence bundle A" over the person's own work.
+        var adapter = new FakeSessionAdapter().withProfile(plan().profilePath())
+                .withProfile("/own/project.fluxtion-settings");
+        var driver = openedBundle(adapter);
+        assertTrue(driver.snapshot().bundle().fromBundle(), "precondition: bundle A is in force");
+
+        adapter.applyRenderThrows = true;
+        long own = driver.nextOpId();
+        driver.submit(new SessionEvents.OpenProjectRequested(own, "/own/project.fluxtion-settings",
+                TransitionKind.EXPLICIT_SWITCH, "recent"));
+        driver.submit(new SessionEvents.ProfileLoaded(own, "/own/project.fluxtion-settings", true, null, 0, null));
+
+        assertTrue(adapter.applyRenderFailed, "the render really failed");
+        assertFalse(driver.snapshot().bundle().fromBundle(),
+                "myOwnProjectIsNotLabelledWithAStrangersBundle");
+    }
+
+    @Test
+    @DisplayName("a bundle aborted mid-apply cannot label the ordinary project opened after it")
+    void anAbortedBundleNeverLabelsTheNextProject() {
+        // The reviewer's ProtocolViolation probe. The batch is abandoned with a verified plan held and no
+        // ProfileApplied and no EffectFailed — the one shape where nothing tidies up after the transition.
+        // What stops the next project being labelled is that its profile is not the bundle's.
+        var adapter = new FakeSessionAdapter().withProfile(plan().profilePath())
+                .withProfile("/own/project.fluxtion-settings");
         var driver = new SessionDriver(adapter);
-        long bundleId = driver.nextOpId();
-        driver.submit(new SessionEvents.OpenProjectRequested(bundleId, "/demo/evidence.fexp",
+        long id = driver.nextOpId();
+        driver.submit(new SessionEvents.OpenProjectRequested(id, "/demo/evidence.fexp",
                 TransitionKind.OPEN_BUNDLE, "start"));
-        driver.submit(new SessionEvents.ProfileLoaded(bundleId, plan().profilePath(), true, null, 0, null, plan()));
-        driver.submit(new SessionEvents.EffectFailed(bundleId, "applyProfile", "DEMO the sender's profile threw"));
-        assertFalse(driver.snapshot().bundle().fromBundle(), "aDeadTransitionClaimsNothing");
+        adapter.applyViolates = true;
+        assertThrows(SessionDriver.ProtocolViolation.class, () -> driver.submit(
+                new SessionEvents.ProfileLoaded(id, plan().profilePath(), true, null, 0, null, plan())));
+        assertFalse(driver.snapshot().bundle().fromBundle(), "the aborted bundle claims nothing");
 
         long own = driver.nextOpId();
         driver.submit(new SessionEvents.OpenProjectRequested(own, "/own/project.fluxtion-settings",
                 TransitionKind.EXPLICIT_SWITCH, "recent"));
         driver.submit(new SessionEvents.ProfileLoaded(own, "/own/project.fluxtion-settings", true, null, 0, null));
 
-        assertFalse(driver.snapshot().bundle().fromBundle(),
-                "myOwnProjectIsNotLabelledWithAStrangersBundle");
-        assertNull(driver.snapshot().bundle().identity());
-        assertEquals("", driver.snapshot().bundle().notes(), "norDoesItInheritTheSendersWords");
+        assertFalse(driver.snapshot().bundle().fromBundle(), "aPlanDoesNotLabelAnUnrelatedProfile");
     }
 
     @Test
-    @DisplayName("an effect failing AFTER a bundle is in force stops the session claiming to be evidence")
-    void aFailureAfterTheBundleIsInForceEndsTheClaim() {
-        // Isolates the EffectFailed handler: the bundle really is in force, and no later request follows,
-        // so nothing else can clear it. The live case is a CLOSE whose restore throws — the project is
-        // genuinely gone while the title still says [evidence bundle ...].
+    @DisplayName("a bundle whose own effects fail along the way is still evidence once its profile applies")
+    void aBundleIsStillEvidenceWhenAnUnrelatedEffectFailed() {
+        // Dropping the pending plan on ANY failed effect killed a bundle whose closeLog failed but which
+        // then applied perfectly well — the same lie in the quieter direction.
+        var adapter = new FakeSessionAdapter().withProfile(plan().profilePath());
+        var driver = new SessionDriver(adapter);
+        long id = driver.nextOpId();
+        driver.submit(new SessionEvents.OpenProjectRequested(id, "/demo/evidence.fexp",
+                TransitionKind.OPEN_BUNDLE, "start"));
+        driver.submit(new SessionEvents.EffectFailed(id, "closeLog", "DEMO the log would not close"));
+        driver.submit(new SessionEvents.ProfileLoaded(id, plan().profilePath(), true, null, 0, null, plan()));
+
+        assertTrue(driver.snapshot().bundle().fromBundle(),
+                "anUnrelatedFailureDoesNotUnmakeTheEvidence");
+        assertEquals("sha256:DEMO-identity", driver.snapshot().bundle().identity());
+    }
+
+    @Test
+    @DisplayName("a close that fails before the project is cleared leaves the bundle in force, and says so")
+    void aFailedCloseLeavesTheBundleInForce() {
         var adapter = new FakeSessionAdapter().withProfile(plan().profilePath());
         var driver = openedBundle(adapter);
-        assertTrue(driver.snapshot().bundle().fromBundle(), "precondition: the bundle is in force");
-
         adapter.restoreThrows = true;
         driver.submit(new SessionEvents.OpenProjectRequested(driver.nextOpId(), null,
                 TransitionKind.CLOSE, "menu"));
 
         assertFalse(adapter.settingsRestored, "the restore really failed");
-        assertFalse(driver.snapshot().bundle().fromBundle(), "aFailedCloseClaimsNothing");
+        assertTrue(driver.snapshot().bundle().fromBundle(),
+                "aFailedCloseLeavesTheBundleStillInForce");
     }
 
     @Test

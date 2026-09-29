@@ -6304,8 +6304,20 @@ public final class MainFrame extends JFrame {
             }
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ApplyProfileEffect e -> {
                 handoff.clear();       // M48.7: a project transition is a session boundary; what was placed was the last one's
-                applyProjectSettings();
-                reportWalkChanges();      // review PR57 R6: a project's walks are that project's
+                // By the time this effect runs, ProjectSession has ALREADY swapped the settings —
+                // applyProjectSettings is "the rendering half". So the profile IS in force, and reporting a
+                // failure here told the session the OLD project was still active when it was not: every later
+                // fact was then about the wrong project (found by review, 2026-09-29). The render is reported
+                // as the separate thing it is.
+                String renderFailure = null;
+                try {
+                    applyProjectSettings();
+                    reportWalkChanges();      // review PR57 R6: a project's walks are that project's
+                } catch (RuntimeException ex) {
+                    renderFailure = ex.toString();
+                    sessionProblem = renderFailure;
+                    status.setText("The project is in force, but the window did not finish updating: " + ex);
+                }
                 yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileApplied(
                         opId, e.profilePath(), e.name());
             }

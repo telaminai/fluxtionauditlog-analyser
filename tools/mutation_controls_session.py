@@ -28,15 +28,12 @@ GRAPHML = 'src/main/resources/telamin/fluxtion/audit/analyser/analyser/session/g
 
 CONTROLS = [
     # Bundle provenance, the failure paths a review found untested (2026-09-29).
-    # NOTE: the `pending = null` in onRequested has NO control on purpose. With the EffectFailed handler in
-    # place the two cover each other, so a control on either survives. The handler is the principled guard and
-    # is pinned below; the reset is kept as defence for a ProtocolViolation unwinding the batch, which emits no
-    # EffectFailed and which no test can currently drive. Registering a control that survives would be worse
-    # than saying this.
-    ('bundle-provenance-dead-transition-ends', NODE + 'OpenBundle.java',
-     '    public boolean onEffectFailed(SessionEvents.EffectFailed event) {\n        if (!gate.accepted()) {\n',
-     '    public boolean onEffectFailed(SessionEvents.EffectFailed event) {\n        if (true) {\n',
-     'BundleProvenanceTest#aFailureAfterTheBundleIsInForceEndsTheClaim'),
+    # The decision is the APPLIED PROFILE's identity. Guessing from effect names was wrong in both
+    # directions (reviews, 2026-09-29), so the guess is gone and this pins what replaced it.
+    ('bundle-provenance-matches-the-applied-profile', NODE + 'OpenBundle.java',
+     '        current = pending != null && pending.profilePath().equals(event.profilePath())\n',
+     '        current = pending != null\n',
+     'BundleProvenanceTest#anAbortedBundleNeverLabelsTheNextProject'),
     ('bundle-provenance-cleared-on-restore', NODE + 'OpenBundle.java',
      '    public boolean onSettingsRestored(SessionEvents.SettingsRestored event) {\n        if (!gate.accepted()) {\n',
      '    public boolean onSettingsRestored(SessionEvents.SettingsRestored event) {\n        if (true) {\n',
@@ -91,8 +88,8 @@ CONTROLS = [
     # Bundle provenance (#76): the facts existed and were dropped when the transition settled. Each control
     # removes one reason the session keeps them, and must turn its NAMED assertion red.
     ('bundle-provenance-settles', NODE + 'OpenBundle.java',
-     '        current = pending == null\n',
-     '        current = pending != null\n',
+     '        current = pending != null && pending.profilePath().equals(event.profilePath())\n',
+     '        current = false && pending != null && pending.profilePath().equals(event.profilePath())\n',
      'BundleProvenanceTest#provenanceOutlivesTheTransition'),
     ('bundle-provenance-holds-plan', NODE + 'OpenBundle.java',
      '        if (event.bundlePlan() != null) {\n            pending = event.bundlePlan();\n        }\n',
