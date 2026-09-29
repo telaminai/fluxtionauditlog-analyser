@@ -8,7 +8,7 @@ A **conversation journey**: a spotlight walk over the DEMO quote-series log, wit
 | **What it teaches** | Finding where an application *logged* a breach — its own RiskBreachEvent — and what supports that answer, rather than the first time a value crossed a limit |
 | **Steps** | 4 |
 | **Duration** | about 3 minutes (an estimate: four stops, read at your own pace) |
-| **Needs** | an analyser newer than 1.27.0 — the first release with conversation journeys. 1.27.0 opens the bundle and plays the walk without its dialogue |
+| **Needs** | an analyser newer than 1.28.0 — the first release with conversation journeys. Older ones (1.27.0 and 1.28.0 checked) open the bundle and play the walk without its dialogue |
 | **Download** | [`find-the-first-recorded-breach.fexp`](../assets/journeys/find-the-first-recorded-breach.fexp) — 20,242 bytes, sha256 `cbd8f28dbc50263d45678cc926f089e6ad5cffab1a990f37e8ec87b20fa21743` |
 | **Identity** | `sha256:4662ddcecd4d632d393ae05d4a00595cdb8351d7dbee56b0a9c93d718ebb53cb` — compare it with what `analyser --verify` prints |
 | **Bundled evidence** | `graph/demo-quote-processor.graphml`, `log/demo-quote-series.yaml`, `notes/NOTES.md`, `profile/project.fluxtion-settings` |

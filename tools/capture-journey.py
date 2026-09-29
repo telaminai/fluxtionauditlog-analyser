@@ -331,7 +331,7 @@ def write_page(f, turns, s, shown, verify, size, sha, members, images=True, dock
         f"| **What it teaches** | Finding where an application *logged* a breach — its own RiskBreachEvent — and what supports that answer, rather than the first time a value crossed a limit |",
         f"| **Steps** | {len(s)} |",
         "| **Duration** | about 3 minutes (an estimate: four stops, read at your own pace) |",
-        "| **Needs** | an analyser newer than 1.27.0 — the first release with conversation journeys. 1.27.0 opens the bundle and plays the walk without its dialogue |",
+        "| **Needs** | an analyser newer than 1.28.0 — the first release with conversation journeys. Older ones (1.27.0 and 1.28.0 checked) open the bundle and play the walk without its dialogue |",
         f"| **Download** | [`{BUNDLE}`](../assets/journeys/{BUNDLE}) — {size:,} bytes, sha256 `{sha}` |",
         f"| **Identity** | `{identity}` — compare it with what `analyser --verify` prints |",
         f"| **Bundled evidence** | {', '.join('`' + m + '`' for m in members)} |",

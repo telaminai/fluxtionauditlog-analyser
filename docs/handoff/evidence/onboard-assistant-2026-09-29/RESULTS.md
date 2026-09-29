@@ -1,7 +1,8 @@
 # Onboard assistant and conversation journeys — results
 
-Against the predictions committed first (`82d406ef`, [PREDICTIONS.md](PREDICTIONS.md)). Branch
-`feat/onboard-assistant-journeys` from main `bce667f5`, with the proposal `8522d275` cherry-picked unchanged (`654ac781`).
+Against the predictions committed first ([PREDICTIONS.md](PREDICTIONS.md)). Branch `feat/onboard-assistant-journeys`,
+built from main `bce667f5` and rebased (unpublished) onto `d6468eb0` after 1.28.0 was released; the proposal `8522d275` is
+its first commit, unchanged. Commit ids below are the rebased ones.
 RAN = executed here; READ = source inspection; UNVERIFIED = not run, and not replaced by anything else.
 
 Environment: macOS arm64, Corretto JDK 21.0.11, Retina display. Native (Robot) input was refused for the first run of the
@@ -12,13 +13,13 @@ black full-screen capture), which stopped one screenshot. Both are stated where 
 
 | Slice | Commit | What |
 |---|---|---|
-| — | `654ac781` | the proposal, unchanged |
-| — | `82d406ef` | premises checked, decisions D1–D9, predictions P1–P10 |
-| OA-1 | `aadd7dfb` | `assistantLoop` node, `AssistantAdapter`, `AssistantPanel`, `AssistantTranscript`, guard in `ActionExecutor`; `LlmPanel` removed |
-| OA-2 | `0f69d4fb` | one panel, two hosts (unowned window, close docks, placement, docked pass-through) |
-| OA-3 | `de8151d8` | typed dialogue on walks, bindings, editor, storage, sharing, export privacy |
-| OA-4 | `5bc64ef1` | journeys play in lock-step with `walkPlayback`; handoff |
-| OA-5 | `53b248c4` | the DEMO journey, its bundle and page; old-reader check |
+| — | `4b82d3a3` | the proposal, unchanged |
+| — | `ca23c81b` | premises checked, decisions D1–D9, predictions P1–P10 |
+| OA-1 | `d450f5ad` | `assistantLoop` node, `AssistantAdapter`, `AssistantPanel`, `AssistantTranscript`, guard in `ActionExecutor`; `LlmPanel` removed |
+| OA-2 | `61c228a8` | one panel, two hosts (unowned window, close docks, placement, docked pass-through) |
+| OA-3 | `d8f1eca1` | typed dialogue on walks, bindings, editor, storage, sharing, export privacy |
+| OA-4 | `490c6f55` | journeys play in lock-step with `walkPlayback`; handoff |
+| OA-5 | `51ac8290` | the DEMO journey, its bundle and page; old-reader check |
 | OA-6 | (this commit) | `context.assistant`, results, docs |
 
 ## Predictions
@@ -32,7 +33,7 @@ black full-screen capture), which stopped one screenshot. Both are stated where 
 | P5 | native clicks/typing in the window keep a walk; outside press ends it | **Met on this desktop.** `AssistantNativeFrameTest` 2/0/0/0 with native Robot input in the final frame run (first attempt: 2/2 SKIPPED, no native input — kept on record). IME composition is not tested. |
 | P6 | dialogue round-trips everywhere; a walk without it is byte-identical | **Met.** `ConversationWalkStorageTest` 9/0/0/0 (store, project, global tier, profile, share, refusal, bin, rename); no new keys for a plain walk. |
 | P7 | play/Back/resume make zero requests and write nothing | **Met.** `ConversationJourneyFrameTest#aJourneyPlays`: 0 provider requests; the isolated home's bytes unchanged. |
-| P8 | 1.27.0 opens a journey and plays it without dialogue | **Met, and more.** `tools/journey-old-reader.py` with the release jar (checksum matched): 4/4 steps SHOWN; after 1.27.0 rewrote the profile, all 36 dialogue keys survived ([output](old-reader-1.27.0.txt)). |
+| P8 | 1.27.0 opens a journey and plays it without dialogue | **Met, and more.** `tools/journey-old-reader.py` with the release jars (checksums matched), 1.27.0 and — released from main while this was built — 1.28.0: 4/4 steps SHOWN; after each rewrote the profile, all 36 dialogue keys survived ([1.27.0](old-reader-1.27.0.txt), [1.28.0](old-reader-1.28.0.txt)). |
 | P9 | full headless suite green | **Met** at every slice; final counts below. |
 | P10 | no paid live-provider run | **Met — and so UNVERIFIED:** OA-A2's live half, OA-A14 and OA-A18 remain open. |
 
@@ -104,7 +105,7 @@ Counts are total / failures / errors / skips.
 | fast-engine controls: every OA control, plus the two re-anchored M69 controls | **38 requested, 38 caught** in one run, each at a named assertion, byte-identical restore ([controls-final.json](controls-final.json)) |
 | preflight | 38 frame suites; 507 anchors |
 | `mkdocs build --strict` | clean |
-| old reader (released 1.27.0) | all checks passed ([old-reader-1.27.0.txt](old-reader-1.27.0.txt)) |
+| old readers (released 1.27.0 and 1.28.0) | all checks passed ([1.27.0](old-reader-1.27.0.txt), [1.28.0](old-reader-1.28.0.txt)) |
 | public-data sweep, tracked files and additions | empty |
 
 Not run: an authorised live-provider trial; IME input; a cross-machine recipient; publication. CI is the second platform.
