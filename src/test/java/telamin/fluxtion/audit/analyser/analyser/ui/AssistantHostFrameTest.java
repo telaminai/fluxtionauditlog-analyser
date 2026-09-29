@@ -124,6 +124,24 @@ class AssistantHostFrameTest {
     }
 
     @Test
+    @DisplayName("OA-2: disposing the analyser disposes its assistant window — an unowned window is not disposed with it by Swing")
+    void theWindowGoesWithTheAnalyser(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless(), "a real display is required");
+        Window popped;
+        try (FakeProvider provider = new FakeProvider();
+             var f = new AsyncOpenInterleavingFrameTest.Frame(tmp)) {
+            configure(f.frame, provider);
+            onEdt(() -> { f.frame.setSize(1200, 800); f.frame.setVisible(true); });
+            onEdt(() -> panel(f.frame).hostButton().doClick());
+            popped = hostOf(f.frame);
+            assertTrue(popped.isShowing());
+        }                                                          // the fixture disposes the analyser
+        AtomicReference<Boolean> gone = new AtomicReference<>();
+        onEdt(() -> gone.set(!popped.isDisplayable()));
+        assertTrue(gone.get(), "found on CI: the assistant window outlived its analyser");
+    }
+
+    @Test
     @DisplayName("OA-2: at 1200×800, docked and popped out, Send and Cancel are on screen and a theme switch reaches the window")
     void reachableAtTheDefaultSizeAndThemed(@TempDir Path tmp) throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless(), "a real display is required");

@@ -1590,6 +1590,10 @@ CONTROLS = [
     ('oa-popout-follows-theme', UI + 'MainFrame.java',
      '        if (assistantWindow != null) SwingUtilities.updateComponentTreeUI(assistantWindow);   // OA-2: the popout too\n', '',
      'AssistantHostFrameTest#reachableAtTheDefaultSizeAndThemed'),
+    ('oa-window-disposed-with-analyser', UI + 'MainFrame.java',
+     '                if (assistantWindow != null) assistantWindow.dispose();\n            }\n            @Override public void windowOpened(',
+     '            }\n            @Override public void windowOpened(',
+     'AssistantHostFrameTest#theWindowGoesWithTheAnalyser'),
     # ---- OA-3 (spec §6.1, §7): typed dialogue on walks, its storage, sharing and privacy -----------------------------
     ('oa3-binding-validated', UI + 'WalkAuthoring.java',
      'String binding = dialogue == null || dialogue.supported() ? WalkConversation.bindingProblem(dialogue, steps) : null;\n        if (binding != null) return binding;',

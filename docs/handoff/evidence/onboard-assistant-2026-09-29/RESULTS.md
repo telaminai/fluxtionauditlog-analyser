@@ -56,6 +56,12 @@ black full-screen capture), which stopped one screenshot. Both are stated where 
   captured at the docs window size, where all four stops are SHOWN.
 - A spotlight on the status line was refused in a frame test ("not on screen") until the window was shown — the product
   being right; the test was fixed.
+- **CI (Xvfb) found a real defect:** the assistant's window is unowned, so disposing the analyser (other than through the
+  app's exit sequence) left it showing. It is now disposed with the analyser; `AssistantHostFrameTest#theWindowGoesWithTheAnalyser`
+  and `oa-window-disposed-with-analyser` guard it. The same CI runs skipped one native test twice: a stderr diagnostic
+  showed the table's centre was UNDER the assistant window on CI's smaller screen, so the press honestly never reached the
+  analyser. The test now clicks an uncovered part of the table. (Also in those runs, not from this branch: an EDT
+  `NullPointerException` in `onLoaded` from a late load on a disposed frame, seen in 2 of main's last 3 CI runs.)
 
 ## Deviations from the proposed spec (r1)
 

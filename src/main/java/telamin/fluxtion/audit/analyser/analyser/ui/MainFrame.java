@@ -3906,6 +3906,11 @@ public final class MainFrame extends JFrame {
         assistantPanel.setProviderConfigured(() -> config != null && config.apiKey != null && !config.apiKey.isBlank());
         // OA-2: the host preference is machine-tier; a popped-out assistant comes back popped out, once the window shows
         addWindowListener(new java.awt.event.WindowAdapter() {
+            // the assistant's window is UNOWNED (so it does not float above the analyser), which also means nothing
+            // disposes it with the analyser: found on CI, where a disposed analyser left its assistant window showing
+            @Override public void windowClosed(java.awt.event.WindowEvent e) {
+                if (assistantWindow != null) assistantWindow.dispose();
+            }
             @Override public void windowOpened(java.awt.event.WindowEvent e) {
                 if (config.assistantPoppedOut && session != null) {
                     session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantHostRequested(

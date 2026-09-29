@@ -52,6 +52,35 @@ class AssistantNativeFrameTest {
         Thread.sleep(250);
     }
 
+    /**
+     * Click a point of {@code c} that no OTHER showing window covers (CI's screen is small enough for the assistant's
+     * window to overlap the analyser's table — found by the stderr diagnostic: a centre press landed on that window).
+     */
+    static void clickUncovered(Robot robot, JComponent c) throws Exception {
+        AtomicReference<Point> at = new AtomicReference<>();
+        onEdt(() -> {
+            java.awt.Window own = SwingUtilities.getWindowAncestor(c);
+            for (int y = 10; y < c.getHeight() && at.get() == null; y += 20) {
+                for (int x = 10; x < c.getWidth() && at.get() == null; x += 20) {
+                    Point p = new Point(x, y);
+                    SwingUtilities.convertPointToScreen(p, c);
+                    boolean covered = false;
+                    for (java.awt.Window w : java.awt.Window.getWindows()) {
+                        if (w != own && w.isShowing() && w.getBounds().contains(p)) covered = true;
+                    }
+                    if (!covered) at.set(p);
+                }
+            }
+        });
+        assumeTrue(diagnose(at.get() != null, "an uncovered point of " + c.getClass().getSimpleName()),
+                "part of the target must be uncovered on this screen — a SKIP, not a pass");
+        robot.mouseMove(at.get().x, at.get().y);
+        robot.mousePress(InputEvent.BUTTON1_DOWN_MASK);
+        robot.mouseRelease(InputEvent.BUTTON1_DOWN_MASK);
+        robot.waitForIdle();
+        Thread.sleep(250);
+    }
+
     static void type(Robot robot, int... keys) {
         for (int k : keys) {
             robot.keyPress(k);
@@ -155,7 +184,7 @@ class AssistantNativeFrameTest {
             assertTrue(walk(f).showing(), "selecting in the assistant's conversation keeps the walk");
             JComponent table = (JComponent) field(field(f.frame, "tablePanel"), "table");
             try (PressesReaching reached = new PressesReaching(f.frame.getRootPane())) {
-                click(robot, table);                                                   // an outside press in the analyser
+                clickUncovered(robot, table);                                          // an outside press in the analyser
                 assumeTrue(diagnose(reached.count.get() > 0, "a native press reached the analyser (" + reached.count.get() + ")"),
                         "the native press must reach the analyser window — a SKIP, not a pass");
             }
