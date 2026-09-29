@@ -62,6 +62,8 @@ public record ProjectModel(List<Section> sections) {
     public static final Set<String> KEYS_READ = Set.of(
             "restoration.state", "restoration.message", "restoration.available",
             "project.active", "project.name", "project.label", "project.profile", "project.settings", "project.root",
+            "project.bundle.identity", "project.bundle.source", "project.bundle.workingCopy",
+            "project.bundle.verified", "project.bundle.limits",
             "skills.provenance", "skills.from",
             "fluxtionKey.canonicalFilePresent", "fluxtionKey.canonicalFile", "fluxtionKey.precedenceNote",
             "log.path", "log.openedFrom", "log.records", "log.openedBy", "provenance", "files",
@@ -114,6 +116,17 @@ public record ProjectModel(List<Section> sections) {
                     : abbreviate(str(proj.get("root"))) + " · " + fileNameOf(settings);
             rows.add(new Row(label, detail, settings,
                     "project settings in force", Tone.NORMAL, Target.PROJECT));
+            // #76: a bundle supplies the profile above, so without this row the panel says "project" for
+            // received evidence exactly as it does for the person's own work.
+            Map<String, Object> bundle = map(proj.get("bundle"));
+            if (!bundle.isEmpty()) {
+                rows.add(new Row("Evidence bundle " + str(bundle.get("identity")),
+                        abbreviate(str(bundle.get("source"))) + " · working copy "
+                                + abbreviate(str(bundle.get("workingCopy"))),
+                        str(bundle.get("source")),
+                        "verified on open; unsigned, so it is not authenticated to a sender",
+                        Tone.NORMAL, Target.NONE));
+            }
         } else {
             rows.add(new Row("No project", "using your own settings (~/.fluxtion-analyser)", null, null,
                     Tone.MUTED, Target.NONE));

@@ -27,6 +27,23 @@ RUNNER = 'tools/replay/ReplayBundle.java'
 GRAPHML = 'src/main/resources/telamin/fluxtion/audit/analyser/analyser/session/generated/SessionProcessor.graphml'
 
 CONTROLS = [
+    # Bundle provenance rendered (#76): each removes one reason a recipient can tell evidence from own work.
+    ('bundle-title-states-it', UI + 'MainFrame.java',
+     'setTitle(bundle.fromBundle() ? base + "  [evidence bundle " + bundle.shortIdentity() + "]" : base);',
+     'setTitle(base);',
+     'BundleProvenanceFrameTest#anOpenedBundleSaysSoForTheSessionsLife'),
+    ('bundle-rendered-on-snapshot', UI + 'MainFrame.java',
+     '        if (next.bundle().equals(bundleRendered)) return;\n',
+     '        if (true) return;\n',
+     'BundleProvenanceFrameTest#anOpenedBundleSaysSoForTheSessionsLife'),
+    ('bundle-published-to-context', UI + 'MainFrame.java',
+     '                if (received.fromBundle()) {\n',
+     '                if (false) {\n',
+     'BundleProvenanceFrameTest#anOpenedBundleSaysSoForTheSessionsLife'),
+    ('bundle-row-in-project-panel', UI + 'ProjectModel.java',
+     '            if (!bundle.isEmpty()) {\n',
+     '            if (false) {\n',
+     'BundleProvenanceFrameTest#anOpenedBundleSaysSoForTheSessionsLife'),
     # Bundle provenance (#76): the facts existed and were dropped when the transition settled. Each control
     # removes one reason the session keeps them, and must turn its NAMED assertion red.
     ('bundle-provenance-settles', NODE + 'OpenBundle.java',

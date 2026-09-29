@@ -5139,6 +5139,23 @@ public final class MainFrame extends JFrame {
         renderWalkStrip(next.walkPlayback());    // M69: the walk's strip, as walkPlayback decided it
         if (walksPanel != null) walksPanel.render(next.walkPlayback());
         renderLogEvidence(next);                 // M44.5: the log's line, tooltip, Reports tab and time-order report
+        renderBundleProvenance(next);            // #76: whether this session is received evidence, and which bundle
+    }
+
+    /**
+     * The provenance last rendered — the edge, so the title and the Project panel are touched only when it
+     * changes. The title cannot be set from {@code applyProjectSettings}: that runs while the profile is being
+     * applied, and {@code openBundle} does not settle until the {@code ProfileApplied} fact comes back, so the
+     * title set there would be a frame too early and would never be corrected.
+     */
+    private telamin.fluxtion.audit.analyser.analyser.session.BundleProvenance bundleRendered =
+            telamin.fluxtion.audit.analyser.analyser.session.BundleProvenance.NONE;
+
+    private void renderBundleProvenance(telamin.fluxtion.audit.analyser.analyser.session.SessionSnapshot next) {
+        if (next.bundle().equals(bundleRendered)) return;
+        bundleRendered = next.bundle();
+        setTitleForProject();
+        refreshProjectPanel();
     }
 
     /** M44.5: Follow is the session's state (OpenLog). Read off the EDT too, which the volatile snapshot allows. */
@@ -6661,11 +6678,15 @@ public final class MainFrame extends JFrame {
 
     /** The window title carries the project, because "which settings am I using" is easy to lose. */
     private void setTitleForProject() {
-        setTitle(project.hasProject()
+        String base = project.hasProject()
                 // activeLabel, not activeName: several profiles can share a project root and edits
                 // auto-save into whichever is active, so the title must say WHICH (#22).
                 ? "Fluxtion Audit Log Analyser — " + project.activeLabel()
-                : "Fluxtion Audit Log Analyser");
+                : "Fluxtion Audit Log Analyser";
+        // #76: a bundle SUPPLIES a project profile, so the label alone reads exactly like the person's own
+        // work. Say which bundle, for the session's life, from the session's published fact.
+        var bundle = sessionSnapshot().bundle();
+        setTitle(bundle.fromBundle() ? base + "  [evidence bundle " + bundle.shortIdentity() + "]" : base);
     }
 
     /** Write pending project edits and surface a failure once. Called by the debounce timer. */
@@ -7582,6 +7603,18 @@ public final class MainFrame extends JFrame {
                 // one window, or indefinitely when a write fails. A tool that copies the FILE waits for this to clear
                 // instead of guessing a delay. Read from the one owner of that fact, never recomputed here.
                 proj.put("unsavedEdits", project.isDirty());
+                // #76: a bundle supplies a project, so "which settings" cannot tell a recipient whether this is
+                // their own work or something they were sent. Rendered from openBundle's published fact.
+                var received = sessionSnapshot().bundle();
+                if (received.fromBundle()) {
+                    Map<String, Object> bundle = new java.util.LinkedHashMap<>();
+                    bundle.put("identity", received.identity());
+                    bundle.put("source", received.source());
+                    bundle.put("workingCopy", received.workingCopy());
+                    bundle.put("verified", true);
+                    if (!received.limits().isEmpty()) bundle.put("limits", received.limits());
+                    proj.put("bundle", bundle);
+                }
             } else {
                 proj.put("note", "your own settings — no project is open");
             }

@@ -30,4 +30,11 @@ public record BundleProvenance(String identity, String source, String workingCop
     public boolean fromBundle() {
         return identity != null;
     }
+
+    /** Enough of the identity to recognise it in a title or a row, without the algorithm prefix. */
+    public String shortIdentity() {
+        if (identity == null) return null;
+        String bare = identity.startsWith("sha256:") ? identity.substring("sha256:".length()) : identity;
+        return bare.length() <= 12 ? bare : bare.substring(0, 12);
+    }
 }
