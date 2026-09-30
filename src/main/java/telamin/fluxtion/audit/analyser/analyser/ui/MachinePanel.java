@@ -2,6 +2,7 @@ package telamin.fluxtion.audit.analyser.analyser.ui;
 
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
+import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -34,6 +35,13 @@ import java.util.Map;
 final class MachinePanel extends JPanel {
 
     private final JPanel body = new JPanel();
+
+    /** Asked to clear the working copies not in use; the frame performs it and re-renders. */
+    private Runnable clearCopies = () -> { };
+
+    void onClearWorkingCopies(Runnable action) {
+        this.clearCopies = action == null ? () -> { } : action;
+    }
 
     MachinePanel() {
         super(new BorderLayout());
@@ -68,6 +76,17 @@ final class MachinePanel extends JPanel {
         row("Working copies unpacked", workingCopies == null ? "—" : String.valueOf(workingCopies));
         if (bundles != null && bundles.get("workingCopies") != null) {
             row("Unpacked into", String.valueOf(bundles.get("workingCopies")));
+        }
+        // #85: the count was a number a person could see and not act on. A working copy is a
+        // throwaway -- but only the app knows which one is open, so the app is what must offer it.
+        if (workingCopies != null && workingCopies > 0) {
+            JButton clear = new JButton("Clear unused copies");
+            clear.setToolTipText("Remove the unpacked working copies, except the one open now. "
+                    + "The bundles themselves are untouched.");
+            clear.setAlignmentX(LEFT_ALIGNMENT);
+            clear.addActionListener(e -> clearCopies.run());
+            body.add(javax.swing.Box.createVerticalStrut(6));
+            body.add(clear);
         }
 
         body.revalidate();

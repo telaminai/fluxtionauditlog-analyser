@@ -429,7 +429,17 @@ public final class EvidenceBundle {
         if (!first.verification().ok()) return new Unpacked(first.verification(), null);
         Files.createDirectories(parent);
         String stem = first.verification().identity().substring("sha256:".length(), "sha256:".length() + 12);
-        Path dir = Files.createTempDirectory(parent, "bundle-" + stem + "-").toAbsolutePath().normalize();
+        // REUSE the copy this identity already has (#85). Every open used to mint a fresh directory
+        // with a random suffix, so opening one bundle ten times left ten copies -- thirty-two had
+        // accumulated on the first machine that used this in anger, and nothing ever removed them.
+        // The identity IS the name: same bytes, same copy. A copy whose marker is missing or whose
+        // identity does not match is not this bundle's, so it is replaced rather than trusted.
+        Path settled = parent.resolve("bundle-" + stem).toAbsolutePath().normalize();
+        if (Files.isDirectory(settled) && first.verification().identity().equals(identityOf(settled))) {
+            return new Unpacked(first.verification(), settled);
+        }
+        deleteTree(settled);
+        Path dir = Files.createDirectory(settled).toAbsolutePath().normalize();
         Pass second;
         try {
             second = check(bundle, dir);
@@ -443,10 +453,82 @@ public final class EvidenceBundle {
             return new Unpacked(new Verification(first.verification().identity(), List.of(),
                     "the bundle changed while it was being unpacked (" + why + "); nothing was kept"), null);
         }
+        // the copy says whose it is, so the next open can recognise it instead of unpacking again
+        Files.writeString(dir.resolve(IDENTITY_MARKER), first.verification().identity());
         return new Unpacked(first.verification(), dir);
     }
 
     public record Unpacked(Verification verification, Path workingCopy) { }
+
+    /**
+     * The marker a working copy carries so it can be recognised as one bundle's (#85).
+     *
+     * <p>A copy does not contain the manifest — the manifest describes the bundle, and what is
+     * extracted is what the bundle CARRIES. So the identity is written beside the extraction. Its
+     * name starts with a dot to say it is not part of the evidence.
+     */
+    private static final String IDENTITY_MARKER = ".identity";
+
+    /** The identity a working copy claims, or null when it claims none or cannot be read. */
+    private static String identityOf(Path workingCopy) {
+        Path marker = workingCopy.resolve(IDENTITY_MARKER);
+        if (!Files.isRegularFile(marker)) return null;
+        try {
+            return Files.readString(marker).strip();
+        } catch (IOException | RuntimeException unreadable) {
+            return null;        // an unreadable copy is not this bundle's copy
+        }
+    }
+
+    /**
+     * Working copies this machine holds, newest first — what {@link #reap} would consider and what a
+     * person is shown before any of it is removed.
+     */
+    public static List<Path> workingCopies() {
+        Path root = workingCopiesRoot();
+        if (!Files.isDirectory(root)) return List.of();
+        try (var list = Files.list(root)) {
+            return list.filter(Files::isDirectory)
+                    .filter(d -> d.getFileName().toString().startsWith("bundle-"))
+                    .sorted(java.util.Comparator.comparing(EvidenceBundle::modifiedAt).reversed())
+                    .toList();
+        } catch (IOException | java.io.UncheckedIOException unreadable) {
+            return List.of();
+        }
+    }
+
+    private static java.nio.file.attribute.FileTime modifiedAt(Path dir) {
+        try {
+            return Files.getLastModifiedTime(dir);
+        } catch (IOException unreadable) {
+            return java.nio.file.attribute.FileTime.fromMillis(0);
+        }
+    }
+
+    /**
+     * Remove the working copies in {@code copies}, skipping any that is {@code keep}.
+     *
+     * <p>Never reaps on its own account: a copy is a throwaway, but it is a throwaway the person may
+     * be looking at, and deleting the open one underneath them would be the worst kind of tidying.
+     * The caller names what is open; this removes the rest of what it was given.
+     *
+     * @return how many were removed
+     */
+    public static int reap(List<Path> copies, Path keep) {
+        int removed = 0;
+        Path spared = keep == null ? null : keep.toAbsolutePath().normalize();
+        for (Path copy : copies) {
+            Path at = copy.toAbsolutePath().normalize();
+            if (at.equals(spared) || !isWorkingCopy(at)) continue;
+            try {
+                deleteTree(at);
+                removed++;
+            } catch (IOException | java.io.UncheckedIOException inUse) {
+                // a copy that will not go is left; the count says what actually happened
+            }
+        }
+        return removed;
+    }
 
     private static void deleteTree(Path dir) throws IOException {
         if (!Files.exists(dir)) return;

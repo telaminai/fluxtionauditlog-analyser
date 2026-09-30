@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+- Borrowing from an evidence bundle no longer freezes the window (#83). It verifies the zip twice and unzips it, and that was happening on the event thread with no progress and no way to cancel — a large bundle made the app look hung. The reading happens off the event thread now; only the change to your settings needs it.
+- Opening the same bundle twice reuses its working copy instead of unpacking another (#85). A fresh copy per open accumulated without limit — thirty-two on the first machine to use this in earnest — and nothing ever removed them. **Private settings** can now clear the copies that are not in use; the one open is always kept, and the bundles themselves are never touched.
 ## [1.30.1] - 2026-09-30
 
 ### Fixed
