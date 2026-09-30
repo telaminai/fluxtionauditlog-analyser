@@ -132,6 +132,15 @@ CONTROLS = [
      '                label = candidate;\n                if (!clash) break;\n',
      '                label = candidate;\n                break;\n',
      'StartPanelNamesTest#sameFileNameIsWidened'),
+    # A bundle open unpacks a FRESH working copy every time, so recording each as a recent project
+    # cost a real project its slot: seven of ten were throwaways and the projects a person keeps had
+    # been pushed off the end (reported in use, 2026-09-30).
+    ('recent-projects-are-not-working-copies', J + 'config/ProjectProfile.java',
+     '        if (telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.isWorkingCopy(java.nio.file.Path.of(path))) {\n'
+     '            return;\n'
+     '        }\n',
+     '',
+     'RecentProjectsKeepRealProjectsTest#aWorkingCopyIsNeverRecorded'),
     # Bundle discovery (#73): a recipient could not find out what they had been sent.
     ('bundle-recent-recorded', UI + 'MainFrame.java',
      '                config.addRecentBundle(plan.source(), plan.identity(), plan.notes());\n',

@@ -448,6 +448,29 @@ class BundleProvenanceFrameTest {
     }
 
     @Test
+    @DisplayName("#76: the title names the BUNDLE, not the temp folder it was unpacked into")
+    void theTitleNamesTheBundle(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        try (var f = shown(tmp)) {
+            Path dir = exchange(f, tmp);
+            openLog(f, EvidenceCaptureFrameTest.DEMO_LOG);
+            onEdt(() -> render(f.ex, "report", Map.of("bundle", Map.of("path", "named-run.fexp"))));
+            assertEquals("WRITTEN", awaitDecided(f).get("phase"));
+            Path fexp = dir.resolve("named-run.fexp");
+
+            openBundleAndWait(f, fexp);
+
+            String title = onEdtGet(f.frame::getTitle).toString();
+            assertTrue(title.contains("named-run.fexp"),
+                    "theBundleIsNamedByItsOwnFile — the working copy is a temp directory called "
+                            + "bundle-<hex>-<random>, which nobody can follow: " + title);
+            assertTrue(title.contains("evidence bundle"), "andItSaysWhatItIs: " + title);
+            assertFalse(title.contains("bundle-6f"),
+                    "notTheUnpackedFoldersName: " + title);
+        }
+    }
+
+    @Test
     @DisplayName("#75: deleting a bundle's source root sticks — it does not come back on reopen")
     void deletingTheAnchorSticks(@TempDir Path tmp) throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless());

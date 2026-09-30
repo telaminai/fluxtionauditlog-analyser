@@ -6789,8 +6789,13 @@ public final class MainFrame extends JFrame {
         JFileChooser fc = new JFileChooser();
         fc.setDialogTitle("Open project");
         fc.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
+        // A profile lives in <project>/.analyser/, and the chooser hides dotted directories by
+        // default -- so the file dialog could not reach the very file it was asking for, and a project
+        // could only be opened by picking its ROOT and hoping (reported in use, 2026-09-30).
+        fc.setFileHidingEnabled(false);
         fc.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter(
                 "Project settings (*.fluxtion-settings)", "fluxtion-settings"));
+        fc.setCurrentDirectory(settingsStartDir() == null ? null : settingsStartDir().toFile());
         if (fc.showOpenDialog(this) != JFileChooser.APPROVE_OPTION) return;
         File chosen = fc.getSelectedFile();
         Path file = chosen.isDirectory()
@@ -7704,6 +7709,7 @@ public final class MainFrame extends JFrame {
 
     /** The window title carries the project, because "which settings am I using" is easy to lose. */
     private void setTitleForProject() {
+        var bundle = sessionSnapshot().bundle();
         String base = project.hasProject()
                 // activeLabel, not activeName: several profiles can share a project root and edits
                 // auto-save into whichever is active, so the title must say WHICH (#22).
@@ -7711,8 +7717,17 @@ public final class MainFrame extends JFrame {
                 : "Fluxtion Audit Log Analyser";
         // #76: a bundle SUPPLIES a project profile, so the label alone reads exactly like the person's own
         // work. Say which bundle, for the session's life, from the session's published fact.
-        var bundle = sessionSnapshot().bundle();
-        setTitle(bundle.fromBundle() ? base + "  [evidence bundle " + bundle.shortIdentity() + "]" : base);
+        if (!bundle.fromBundle()) {
+            setTitle(base);
+            return;
+        }
+        // ...and say it by the bundle's OWN name. The project label here is the working copy's folder
+        // -- "bundle-6f1f46d5f9aa-16834159882839104220" -- which is a temp directory's name and is not
+        // something a person can follow or reason about (owner, 2026-09-30). The file they were sent is.
+        String named = bundle.source() == null ? project.activeLabel()
+                : String.valueOf(java.nio.file.Path.of(bundle.source()).getFileName());
+        setTitle("Fluxtion Audit Log Analyser — " + named
+                + "  [evidence bundle " + bundle.shortIdentity() + "]");
     }
 
     /** Write pending project edits and surface a failure once. Called by the debounce timer. */

@@ -8,6 +8,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ### Fixed
 
+- The recent-projects list no longer fills with bundle working copies. Opening a bundle unpacks a fresh copy each time, and each one was recorded as a project — ten opens pushed every real project off a list of ten. Copies already recorded are forgotten on the next start; the bundles themselves are remembered in their own list.
+- **Open project…** can reach a profile again: the chooser hides dotted directories by default, and a profile lives in `<project>/.analyser/`, so the dialog could not show the file it was asking for. It also opens in the current project's directory.
+- The window titles a bundle by its own file name — `recorded-run.fexp` — rather than by the temp folder it was unpacked into (`bundle-<hex>-<random>`), which nobody can follow. The identity is still beside it.
 - Deleting a bundle's source root now sticks. The deletion was never recorded — an empty set of roots was refused as "not an answer" — so closing and reopening the bundle brought the root back.
 - The event-type checklist can no longer starve the records table: it takes at most a third of the Facts column and scrolls beyond that.
 - Clearing a project's default focus now sticks. `defaultFocus` was not an owned key family, so the previous value was copied back over the blank one: the setting could be changed but never cleared.

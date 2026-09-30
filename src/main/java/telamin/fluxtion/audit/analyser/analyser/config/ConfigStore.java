@@ -83,6 +83,10 @@ public final class ConfigStore {
         // which profile is active would be circular, and a recent list is machine history.
         c.activeProjectPath = p.getProperty("activeProjectPath", c.activeProjectPath);
         readList(p, "recentProject", c.recentProjects);
+        // ...and forget the working copies an earlier build recorded: they are throwaway unpacks, most
+        // no longer exist, and they were crowding out the projects a person actually keeps.
+        c.recentProjects.removeIf(path -> telamin.fluxtion.audit.analyser.bundle.EvidenceBundle
+                .isWorkingCopy(java.nio.file.Path.of(path)));
         if (p.getProperty("hiddenColumn.count") != null) {   // configured before → honour it (even if empty)
             readList(p, "hiddenColumn", c.hiddenColumns);
             c.hiddenColumnsSet = true;

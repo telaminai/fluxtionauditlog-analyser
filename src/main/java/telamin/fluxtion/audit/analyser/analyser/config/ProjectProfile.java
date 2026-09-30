@@ -512,6 +512,15 @@ public final class ProjectProfile {
         if (path == null || path.isBlank()) {
             return;
         }
+        // A bundle's working copy is a project only in the mechanical sense: opening a bundle unpacks
+        // a fresh one every time, so each open minted a NEW recent project and ten opens pushed every
+        // real project off a list capped at ten. The bundle itself is remembered, in its own list
+        // (AppConfig#recentBundles), which is the thing you would actually want to reopen. Reported in
+        // use, 2026-09-30: "the recent project list is filling up with many bundle projects... we are
+        // losing the projects we want."
+        if (telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.isWorkingCopy(java.nio.file.Path.of(path))) {
+            return;
+        }
         Set<String> seen = new LinkedHashSet<>();
         seen.add(path);
         seen.addAll(recents);
