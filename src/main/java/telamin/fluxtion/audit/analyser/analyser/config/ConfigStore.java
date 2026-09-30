@@ -109,6 +109,7 @@ public final class ConfigStore {
         c.assistantActionsRest = parseBool(p.getProperty("assistant.rest"), c.assistantActionsRest);
         c.assistantExports = parseBool(p.getProperty("assistant.exports"), c.assistantExports);
         c.assistantExportDir = p.getProperty("assistant.exportDir", c.assistantExportDir);
+        c.eventTypesDivider = parseInt(p.getProperty("eventTypesDivider"), c.eventTypesDivider);
         readLastFocuses(p, c.lastFocusByProject);
         c.maxActionRounds = parseInt(p.getProperty("assistant.maxRounds"), c.maxActionRounds);
         c.maxActionsPerTurn = parseInt(p.getProperty("assistant.maxActionsPerTurn"), c.maxActionsPerTurn);
@@ -203,6 +204,7 @@ public final class ConfigStore {
         put(p, "assistant.rest", Boolean.toString(c.assistantActionsRest));
         put(p, "assistant.exports", Boolean.toString(c.assistantExports));
         put(p, "assistant.exportDir", c.assistantExportDir);
+        put(p, "eventTypesDivider", Integer.toString(c.eventTypesDivider));
         writeLastFocuses(p, c.lastFocusByProject);
         put(p, "assistant.maxRounds", Integer.toString(c.maxActionRounds));
         put(p, "assistant.maxActionsPerTurn", Integer.toString(c.maxActionsPerTurn));

@@ -736,10 +736,14 @@ public final class MainFrame extends JFrame {
         }
     }
 
-    /** The capped band the event-type checklist lives in, above the records it filters. */
-    private JComponent eventTypesHolder;
-    /** How much of the Facts column the checklist may take before it scrolls instead. */
+    /** The Facts column, and the split that shares it between the checklist and the records. */
+    private JPanel tableArea;
+    private JSplitPane eventTypesSplit;
+    /** The checklist's default height when nothing has been dragged; it can be given more. */
     private static final int EVENT_TYPES_MAX_HEIGHT = 190;
+    /** Floors: neither side of the Facts column may be squeezed into uselessness. */
+    private static final int EVENT_TYPES_MIN_HEIGHT = 60;
+    private static final int RECORDS_MIN_HEIGHT = 150;
 
     /** The west column, so the Records row's Event types toggle can relayout it. */
     private JPanel westColumn;
@@ -753,18 +757,39 @@ public final class MainFrame extends JFrame {
      */
     private void showEventTypes(boolean showing) {
         eventFilterPanel.setVisible(showing);
-        if (eventTypesHolder != null) eventTypesHolder.setVisible(showing);
         config.eventFilterCollapsed = !showing;
         saveConfigQuietly();
-        // it lives in the Facts column now, between its own button and the table: show or hide in
-        // place, and let the table take the space back
-        eventFilterPanel.revalidate();
-        eventFilterPanel.repaint();
-        java.awt.Container parent = eventFilterPanel.getParent();
-        if (parent != null) {
-            parent.revalidate();
-            parent.repaint();
+        layoutEventTypes();
+    }
+
+    /**
+     * The Facts column's centre: the checklist over the records when it is showing, the records alone
+     * when it is not. Hiding it must give the table the whole column back, not leave a gap.
+     */
+    private void layoutEventTypes() {
+        if (tableArea == null || eventTypesSplit == null) return;
+        java.awt.Component centre = ((BorderLayout) tableArea.getLayout())
+                .getLayoutComponent(BorderLayout.CENTER);
+        if (centre != null) tableArea.remove(centre);
+        if (eventFilterPanel.isVisible()) {
+            eventTypesSplit.setTopComponent(eventFilterPanel);
+            eventTypesSplit.setBottomComponent(tablePanel);
+            tableArea.add(eventTypesSplit, BorderLayout.CENTER);
+            int column = tableArea.getHeight();
+            int wanted = config.eventTypesDivider > 0
+                    ? config.eventTypesDivider
+                    : Math.max(EVENT_TYPES_MIN_HEIGHT,
+                            Math.min(eventFilterPanel.getPreferredSize().height, EVENT_TYPES_MAX_HEIGHT));
+            // never past the records' floor, however tall the checklist would like to be
+            if (column > 0) wanted = Math.min(wanted, Math.max(0, column - RECORDS_MIN_HEIGHT));
+            eventTypesSplit.setDividerLocation(Math.max(0, wanted));
+        } else {
+            eventTypesSplit.setTopComponent(null);
+            eventTypesSplit.setBottomComponent(null);
+            tableArea.add(tablePanel, BorderLayout.CENTER);
         }
+        tableArea.revalidate();
+        tableArea.repaint();
     }
 
     private void layoutWest(JPanel west) {
@@ -3875,35 +3900,29 @@ public final class MainFrame extends JFrame {
         // then the table. The checklist FILTERS these records, so it belongs in the Facts column with
         // them -- it sat in Context, a column away from the thing it acts on, which the column names
         // made plain the moment they went up (owner, 2026-09-30).
-        JPanel tableArea = new JPanel(new BorderLayout());
+        tableArea = new JPanel(new BorderLayout());
         tableArea.setBorder(UiTheme.section("Records"));
-        JPanel aboveTable = new JPanel(new BorderLayout());
-        aboveTable.add(searchRow, BorderLayout.NORTH);
+        tableArea.add(searchRow, BorderLayout.NORTH);
         eventFilterPanel.setVisible(!config.eventFilterCollapsed);
-        // CAPPED. BorderLayout.NORTH grants a component its full preferred height, and the checklist
-        // grows with the log's event types -- on a log with many, it took the whole Facts column and
-        // left the records table a sliver. In the west column a split pane had bounded it; here
-        // nothing did. Found by CI: a native mouse press aimed at the table stopped reaching it.
-        JPanel eventTypesArea = new JPanel(new BorderLayout()) {
-            @Override
-            public Dimension getPreferredSize() {
-                Dimension want = eventFilterPanel.getPreferredSize();
-                // a FRACTION of the column, not a fixed band: a fixed one still starved the table in a
-                // short window, and the records are what this column is for
-                java.awt.Container column = getParent() == null ? null : getParent().getParent();
-                int available = column == null ? 0 : column.getHeight();
-                int cap = available > 0
-                        ? Math.max(70, Math.min(EVENT_TYPES_MAX_HEIGHT, available / 3))
-                        : EVENT_TYPES_MAX_HEIGHT;
-                return new Dimension(want.width, Math.min(want.height, cap));
+        // RESIZABLE, not a fixed band. BorderLayout.NORTH grants a component its full preferred
+        // height, and the checklist grows with the log's event types: on a log with many it took the
+        // whole Facts column and starved the records table (CI caught a native press missing it). A
+        // fixed fraction fixed that and produced the opposite complaint -- "too small when we have a
+        // lot of event types" (owner, 2026-09-30). No constant serves both, so the person decides: a
+        // split with a sensible default and a floor for each side, and the divider is remembered.
+        eventTypesSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT, eventFilterPanel, tablePanel);
+        eventTypesSplit.setBorder(BorderFactory.createEmptyBorder());
+        eventTypesSplit.setContinuousLayout(true);
+        eventTypesSplit.setResizeWeight(0);        // growing the window grows the TABLE
+        eventTypesSplit.setOneTouchExpandable(true);
+        eventFilterPanel.setMinimumSize(new Dimension(0, EVENT_TYPES_MIN_HEIGHT));
+        tablePanel.setMinimumSize(new Dimension(100, RECORDS_MIN_HEIGHT));
+        eventTypesSplit.addPropertyChangeListener(JSplitPane.DIVIDER_LOCATION_PROPERTY, e -> {
+            if (eventFilterPanel.isVisible() && eventTypesSplit.getDividerLocation() > 0) {
+                config.eventTypesDivider = eventTypesSplit.getDividerLocation();
             }
-        };
-        eventTypesArea.add(eventFilterPanel, BorderLayout.CENTER);
-        eventTypesArea.setVisible(eventFilterPanel.isVisible());
-        eventTypesHolder = eventTypesArea;
-        aboveTable.add(eventTypesArea, BorderLayout.CENTER);
-        tableArea.add(aboveTable, BorderLayout.NORTH);
-        tableArea.add(tablePanel, BorderLayout.CENTER);
+        });
+        layoutEventTypes();
         tableArea.setMinimumSize(new Dimension(100, 80));
 
         // The investigation keeps records, detail and output tabs together. The start page is a
@@ -7832,12 +7851,26 @@ public final class MainFrame extends JFrame {
         Path root = project.hasProject() ? project.activeFile().getParent() : null;
         if (root != null && ".analyser".equals(String.valueOf(root.getFileName()))) root = root.getParent();
         java.util.function.Predicate<String> exists = path -> Files.isReadable(Path.of(path));
-        var mine = telamin.fluxtion.audit.analyser.analyser.config.ProjectReopen.forProject(
-                root, config.recentFiles, config.recentGraphml, exists);
-        return mine.isEmpty()
-                ? telamin.fluxtion.audit.analyser.analyser.config.ProjectReopen.recent(
-                        config.recentFiles, config.recentGraphml, exists)
-                : mine;
+        // the project's OWN places: its directory, and every source root it declares
+        List<Path> scopes = new java.util.ArrayList<>();
+        if (root != null) scopes.add(root);
+        for (String source : effectiveSourceRoots()) {
+            try {
+                scopes.add(Path.of(source));
+            } catch (RuntimeException invalid) {
+                // a root that is not a path cannot narrow anything; the list is a person's to edit
+            }
+        }
+        var mine = telamin.fluxtion.audit.analyser.analyser.config.ProjectReopen.forScopes(
+                scopes, config.recentFiles, config.recentGraphml, exists);
+        var machine = telamin.fluxtion.audit.analyser.analyser.config.ProjectReopen.recent(
+                config.recentFiles, config.recentGraphml, exists);
+        // ...and each list falls back ON ITS OWN. Falling back only when BOTH were empty meant a
+        // project with logs but no topology of its own offered logs and no topology at all, which is
+        // exactly the case reported: the topology never loaded because it was never offered.
+        return new telamin.fluxtion.audit.analyser.analyser.config.ProjectReopen(
+                mine.logs().isEmpty() ? machine.logs() : mine.logs(),
+                mine.topologies().isEmpty() ? machine.topologies() : mine.topologies());
     }
 
     /**

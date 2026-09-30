@@ -138,6 +138,9 @@ public final class AppConfig {
      */
     public String defaultFocus = "";
 
+    /** Where the Facts column's divider sits between the event-type checklist and the records. */
+    public int eventTypesDivider;
+
     /** Whether the "This machine" panel under Context is collapsed. Machine tier, like the panel. */
     public boolean machinePanelCollapsed = false;
 

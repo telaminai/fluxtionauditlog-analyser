@@ -64,14 +64,33 @@ public record ProjectReopen(List<String> logs, List<String> topologies) {
      */
     public static ProjectReopen forProject(Path projectRoot, List<String> recentLogs,
                                            List<String> recentGraphml, Predicate<String> exists) {
-        return new ProjectReopen(within(projectRoot, recentLogs, exists),
-                within(projectRoot, recentGraphml, exists));
+        return forScopes(projectRoot == null ? List.of() : List.of(projectRoot),
+                recentLogs, recentGraphml, exists);
     }
 
-    private static List<String> within(Path projectRoot, List<String> paths, Predicate<String> exists) {
-        if (projectRoot == null) return List.of();
-        Path root = projectRoot.toAbsolutePath().normalize();
-        return keep(paths, exists, file -> file.startsWith(root));
+    /**
+     * As above, for a project that reaches beyond its own directory.
+     *
+     * <p>"Inside this project" cannot mean "under the project directory" alone. A project declares
+     * where its code lives, and here those are eleven sibling checkouts -- so its TOPOLOGIES sat in a
+     * sibling repository while its logs sat under the project, and an offer narrowed to the directory
+     * listed the logs and silently found no topology at all (reported in use, 2026-09-30). The scope
+     * is the project's directory AND the source roots it declares: the places the project itself says
+     * belong to it.
+     */
+    public static ProjectReopen forScopes(List<Path> scopes, List<String> recentLogs,
+                                           List<String> recentGraphml, Predicate<String> exists) {
+        return new ProjectReopen(within(scopes, recentLogs, exists),
+                within(scopes, recentGraphml, exists));
+    }
+
+    private static List<String> within(List<Path> scopes, List<String> paths, Predicate<String> exists) {
+        if (scopes == null || scopes.isEmpty()) return List.of();
+        List<Path> roots = new ArrayList<>();
+        for (Path scope : scopes) {
+            if (scope != null) roots.add(scope.toAbsolutePath().normalize());
+        }
+        return keep(paths, exists, file -> roots.stream().anyMatch(file::startsWith));
     }
 
     private static List<String> usable(List<String> paths, Predicate<String> exists) {

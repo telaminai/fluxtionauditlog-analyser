@@ -47,7 +47,7 @@ public final class KnownKeys {
                 "recentProject", "recentBundle", "searchHistory", "theme", "mcp", "topologyOrientation",
                 // the focus each project was last left on, machine tier: owned here so entries above a
                 // shrinking count are dropped rather than preserved and later resurrected
-                "lastFocus", "topologyPanX", "topologyPanY",
+                "lastFocus", "eventTypesDivider", "topologyPanX", "topologyPanY",
                 "topologySpacing", "topologySyncSource", "topologyTextSize", "topologyZoom", "westDivider", "westWidth",
                 "windowH", "windowW", "windowX", "windowY"));
         // "deletedReport" (PR #33) and "deletedWalk" (M69): the machine-local bins — CONFIG only, never profile families,

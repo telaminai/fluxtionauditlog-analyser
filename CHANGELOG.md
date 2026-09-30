@@ -8,6 +8,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ### Fixed
 
+- The event-type checklist and the records table now share the Facts column on a divider you can drag, remembered between sessions. A fixed band could not serve both a log with three event types and one with forty.
+- Reopening a project offers its topology as well as its log. "Inside this project" meant "under the project directory", so a project whose code lives in sibling checkouts — its own declared source roots — had its topologies excluded and only ever offered logs. Each list now also falls back on its own.
 - The recent-projects list no longer fills with bundle working copies. Opening a bundle unpacks a fresh copy each time, and each one was recorded as a project — ten opens pushed every real project off a list of ten. Copies already recorded are forgotten on the next start; the bundles themselves are remembered in their own list.
 - **Open project…** can reach a profile again: the chooser hides dotted directories by default, and a profile lives in `<project>/.analyser/`, so the dialog could not show the file it was asking for. It also opens in the current project's directory.
 - The window titles a bundle by its own file name — `recorded-run.fexp` — rather than by the temp folder it was unpacked into (`bundle-<hex>-<random>`), which nobody can follow. The identity is still beside it.
