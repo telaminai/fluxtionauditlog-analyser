@@ -81,13 +81,26 @@ class WalkStepsTest {
     }
 
     @Test
-    @DisplayName("source, toolbar and menu targets are refused in a walk step, saying why")
+    @DisplayName("a design document, a toolbar and a menu are refused in a walk step, saying why")
     void unsupportedTargetFamiliesAreRefused() {
-        for (String t : List.of("menu:Audit log", "toolbar:flag", "source:design", "source:java:com.acme.A")) {
+        for (String t : List.of("menu:Audit log", "toolbar:flag", "source:design", "source:design:bean:x")) {
             var p = parse(Map.of("targets", List.of(t)));
             assertFalse(p.ok(), t);
             assertTrue(p.error().contains("cannot be a walk step"), p.error());
         }
+    }
+
+    @Test
+    @DisplayName("#72: Java source IS a walk target — its identity is a name, not a layout")
+    void javaSourceIsAllowed() {
+        for (String t : List.of("source:java:com.acme.A", "source:java:com.acme.A:line:42")) {
+            var p = parse(Map.of("targets", List.of(t)));
+            assertTrue(p.ok(), t + " → " + p.error());
+        }
+        // ...and the refusal no longer claims source has no basis
+        var design = parse(Map.of("targets", List.of("source:design")));
+        assertFalse(design.error().contains("source, toolbar and menu"),
+                "theRefusalNoLongerLumpsJavaInWithTheLayouts: " + design.error());
     }
 
     @Test

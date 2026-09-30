@@ -2749,7 +2749,12 @@ public final class MainFrame extends JFrame {
         @Override public SpotlightTarget.Resolution resolve(String target) {
             return SpotlightTarget.resolve(target, spotlightSurface);
         }
-        @Override public WalkPresenter.LitResult light(java.util.List<WalkPresenter.Numbered> numbered) {
+        @Override public boolean canPrepareSource(String target) {
+            var parsed = SpotlightTarget.parse(target);
+            if (!parsed.ok() || parsed.target().sourceFqn() == null) return false;
+            return sourceService.sourceForFqn(parsed.target().sourceFqn()).isPresent();
+        }
+        @Override public WalkPresenter.LitResult light(java.util.List<WalkPresenter.Numbered> numbered, long ticket) {
             java.util.List<Map<String, Object>> targets = new java.util.ArrayList<>();
             Map<String, Integer> numbers = new java.util.LinkedHashMap<>();
             for (WalkPresenter.Numbered nr : numbered) {
@@ -2760,9 +2765,32 @@ public final class MainFrame extends JFrame {
                 if (r.caption() != null && !r.caption().isBlank()) one.put("caption", r.caption());
                 targets.add(one);
             }
+            Map<String, Object> params = Map.of("targets", targets);
+            // #72: a Java target is READ off the event thread, so it cannot be lit inside this call. The
+            // frame answers later, with the ticket, and the step stays PREPARING until it does -- the
+            // same shape as any other step whose evidence takes a moment to be certain of.
+            if (SpotlightTarget.hasJava(params)) {
+                // walkOwnSpotlight spans the WHOLE preparation, not just the apply. Reading the source
+                // puts the previous light out, and a light going out during a walk is read as the person
+                // dismissing it -- so the walk ended itself, and the step settled with nothing lit.
+                walkOwnSpotlight = true;
+                prepareJavaSpotlightHere(params, () -> { }, true).thenAccept(prepared ->
+                        SwingUtilities.invokeLater(() -> {
+                            try {
+                                if (prepared.ok()) spotlight.renumber(numbers);
+                                session().submit(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents
+                                        .WalkTargetsLit(session().nextOpId(), ticket,
+                                        prepared.ok() ? spotlight.lit().size() : 0,
+                                        prepared.ok() ? "" : prepared.error()));
+                            } finally {
+                                walkOwnSpotlight = false;
+                            }
+                        }));
+                return new WalkPresenter.LitResult(0, "", true);
+            }
             walkOwnSpotlight = true;
             try {
-                var result = applySpotlight(Map.of("targets", targets));
+                var result = applySpotlight(params);
                 if (result.ok()) spotlight.renumber(numbers);   // review PR57 R3: the session's numbers, not positions
                 return result.ok() ? new WalkPresenter.LitResult(spotlight.lit().size(), "")
                         : new WalkPresenter.LitResult(0, result.error());
@@ -3079,6 +3107,19 @@ public final class MainFrame extends JFrame {
     /** EDT capture / background immutable preparation / EDT apply. Never wait on the event thread. */
     private java.util.concurrent.CompletableFuture<telamin.fluxtion.audit.analyser.analyser.llm.ActionResult> prepareJavaSpotlightHere(
             Map<String, Object> params, Runnable revealRows) {
+        return prepareJavaSpotlightHere(params, revealRows, false);
+    }
+
+    /**
+     * @param ownedByWalk true when a WALK step asked. The supersede checks below exist because a person
+     *     who moves the view while source is being read would be shown coordinates for a view that has
+     *     gone. A walk's step moves the view ITSELF, immediately before asking — so those same checks
+     *     reported "superseded" for every mixed step and nothing was lit (#72, found live 2026-09-30).
+     *     The checks that still matter are kept: a newer request, a changed source lookup, a different
+     *     log, a disposed window.
+     */
+    private java.util.concurrent.CompletableFuture<telamin.fluxtion.audit.analyser.analyser.llm.ActionResult> prepareJavaSpotlightHere(
+            Map<String, Object> params, Runnable revealRows, boolean ownedByWalk) {
         var result = new java.util.concurrent.CompletableFuture<telamin.fluxtion.audit.analyser.analyser.llm.ActionResult>();
         if (!SwingUtilities.isEventDispatchThread()) throw new IllegalStateException("Capture belongs on EDT");
         var asked = SpotlightTarget.requests(params);
@@ -3113,10 +3154,12 @@ public final class MainFrame extends JFrame {
                 () -> JavaSpotlightPlan.read(lookup, asked.requests(), retained), plan -> {
                     if (result.isDone()) return;
                     if (System.nanoTime() - deadlineNanos >= 0) { expire.run(); return; }
-                    if (ticket != javaSpotlightTicket || !sourceService.isCurrent(lookup) || capturedStore != store || !isDisplayable()
-                            || capturedTab != sideTabs.getSelectedComponent()
+                    boolean viewMoved = !ownedByWalk
+                            && (capturedTab != sideTabs.getSelectedComponent()
                             || !capturedSourceView.equals(sourcePanel.spotlightViewState())
-                            || !capturedTopologyView.equals(topologyPanel.sourceViewer().spotlightViewState())) {
+                            || !capturedTopologyView.equals(topologyPanel.sourceViewer().spotlightViewState()));
+                    if (ticket != javaSpotlightTicket || !sourceService.isCurrent(lookup) || capturedStore != store
+                            || !isDisplayable() || viewMoved) {
                         result.complete(telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("Java source spotlight superseded; retry against the current view")); return;
                     }
                     String refusal = SpotlightTarget.precheck(asked, spotlight.lit().stream().map(SpotlightOverlay.Lit::target).toList(), store == null ? -1 : store.index().size());

@@ -141,6 +141,16 @@ CONTROLS = [
      '        }\n',
      '',
      'RecentProjectsKeepRealProjectsTest#aWorkingCopyIsNeverRecorded'),
+    # #72: a walk may point at Java source. It was refused with the design, toolbar and menu targets
+    # on the grounds that source has "no basis a walk can check" -- but a class's identity is a NAME
+    # resolved against the roots in force, which is a stronger basis than a record index bound to one
+    # log. Availability asks whether the source RESOLVES, not whether it is already on screen: a Java
+    # target is invisible until it has been prepared, so the visibility question judged every one
+    # unavailable and none was ever lit (found authoring a pricing walkthrough, 2026-09-30).
+    ('walk-can-point-at-java', J + 'ui/WalkPresenter.java',
+     '            if (available && isSource(t.target())) {\n',
+     '            if (available && false) {\n',
+     'WalkReviewFrameTest#aWalkStepCanPointAtJavaSource'),
     # Bundle discovery (#73): a recipient could not find out what they had been sent.
     ('bundle-recent-recorded', UI + 'MainFrame.java',
      '                config.addRecentBundle(plan.source(), plan.identity(), plan.notes());\n',

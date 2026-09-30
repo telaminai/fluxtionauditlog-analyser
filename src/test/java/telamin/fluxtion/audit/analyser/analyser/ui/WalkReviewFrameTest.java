@@ -34,6 +34,42 @@ class WalkReviewFrameTest {
     }
 
     @Test
+    @DisplayName("#72: a walk step can point at Java source, and waits while it is read")
+    void aWalkStepCanPointAtJavaSource(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        Path root = tmp.resolve("src");
+        Path file = root.resolve("com/acme/Priced.java");
+        java.nio.file.Files.createDirectories(file.getParent());
+        java.nio.file.Files.writeString(file, "package com.acme;\npublic class Priced {\n"
+                + "    double spread() { return 0.004; }\n" + "    // context\n".repeat(40) + "}\n");
+
+        try (var f = opened(tmp)) {
+            SpotlightOverlay overlay = (SpotlightOverlay) field(f.frame, "spotlight");
+            onEdt(() -> {
+                ((telamin.fluxtion.audit.analyser.analyser.source.SourceService) field(f.frame, "sourceService"))
+                        .configure(List.of(root.toString()), null);
+                ((telamin.fluxtion.audit.analyser.analyser.config.AppConfig) field(f.frame, "config"))
+                        .sourceRoots.add(root.toString());
+            });
+
+            var step = Map.of("view", Map.of("tab", "source"), "targets", List.of(
+                    target("source:java:com.acme.Priced:line:3", "the line that makes the spread")));
+            call(f, "walk", Map.of("name", "DEMO_java", "steps", List.of(step)));
+            call(f, "walk", Map.of("name", "DEMO_java", "play", true));
+
+            // the source is read OFF the event thread, so the step is not settled synchronously --
+            // it waits, and then says what it lit
+            await("the java step settles", () -> walk(f).showing() && !"PREPARING".equals(walk(f).phase()));
+            onEdt(() -> {
+                assertEquals("SHOWN", walk(f).phase(),
+                        "aJavaTargetIsSHOWN — the walk refused source outright before #72: " + walk(f).reason());
+                assertEquals(1, overlay.lit().size(), "and it is actually lit: " + overlay.lit());
+                assertEquals("source:java:com.acme.Priced:line:3", overlay.lit().get(0).target());
+            });
+        }
+    }
+
+    @Test
     @DisplayName("R3: an unavailable target 1 and an available target 2 — the overlay draws 2, not 1")
     void theOverlayKeepsTheSessionsNumbers(@TempDir Path tmp) throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless());
