@@ -448,8 +448,8 @@ class BundleProvenanceFrameTest {
     }
 
     @Test
-    @DisplayName("#75: clearing your own source roots does not erase a bundle's anchor")
-    void clearingYourRootsDoesNotEraseTheAnchor(@TempDir Path tmp) throws Exception {
+    @DisplayName("#75: deleting a bundle's source root sticks — it does not come back on reopen")
+    void deletingTheAnchorSticks(@TempDir Path tmp) throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless());
         try (var f = shown(tmp)) {
             Path dir = exchange(f, tmp);
@@ -457,9 +457,9 @@ class BundleProvenanceFrameTest {
             String canonical = code.toAbsolutePath().normalize().toString();
 
             openLog(f, EvidenceCaptureFrameTest.DEMO_LOG);
-            onEdt(() -> render(f.ex, "report", Map.of("bundle", Map.of("path", "cleared.fexp"))));
+            onEdt(() -> render(f.ex, "report", Map.of("bundle", Map.of("path", "sticky.fexp"))));
             assertEquals("WRITTEN", awaitDecided(f).get("phase"));
-            Path fexp = dir.resolve("cleared.fexp");
+            Path fexp = dir.resolve("sticky.fexp");
             openBundleAndWait(f, fexp);
 
             onEdt(() -> render(f.ex, "source_root", Map.of("add", List.of(canonical))));
@@ -467,22 +467,28 @@ class BundleProvenanceFrameTest {
             assertEquals(List.of(canonical), config.bundleSourceRoots(fexp.toString()),
                     "precondition: the bundle is anchored");
 
-            // Tidying your settings is not "this bundle's code is nowhere". An empty observation is the
-            // one thing that must never be recorded as the answer -- it would erase a good anchor, and
-            // you would reopen the bundle to no source and no way to know why.
+            // THE PERSON DELETES IT. Not a transient emptiness during a transition -- an explicit act,
+            // through the same funnel the Project panel's Remove and the Settings dialog use.
             onEdt(() -> {
-                config.sourceRoots.clear();
                 try {
-                    var m = MainFrame.class.getDeclaredMethod("onConfigChanged");
+                    var m = MainFrame.class.getDeclaredMethod("removeSourceRoot", String.class);
                     m.setAccessible(true);
-                    m.invoke(f.frame);
+                    m.invoke(f.frame, canonical);
                 } catch (ReflectiveOperationException e) {
                     throw new IllegalStateException(e);
                 }
             });
+            assertFalse(config.sourceRoots.contains(canonical), "precondition: the root is gone");
 
-            assertEquals(List.of(canonical), config.bundleSourceRoots(fexp.toString()),
-                    "theAnchorSurvivesClearingYourRoots");
+            onEdt(() -> render(f.ex, "open", Map.of("close", "project")));
+            Thread.sleep(300);
+            openBundleAndWait(f, fexp);
+            Thread.sleep(400);
+
+            assertEquals(List.of(), config.bundleSourceRoots(fexp.toString()),
+                    "theAnchorIsForgottenWhenYouDeleteIt");
+            assertFalse(config.sourceRoots.contains(canonical),
+                    "andItDoesNotComeBackOnReopen — deleting it must mean something");
         }
     }
 

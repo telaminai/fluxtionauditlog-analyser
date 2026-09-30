@@ -101,13 +101,15 @@ CONTROLS = [
      '',
      'BundleProvenanceFrameTest#anchoringABundleToASourceTreeIsRemembered'),
     # and it must not record the transient emptiness a reopen passes through, which wiped the anchor
-    # An empty set is not an answer. The transient emptiness this first guarded can no longer reach the
-    # node (a transition's render does not report), so the witness is now the case that CAN: a person
-    # clearing their source roots while a bundle is open must not silently erase its anchor.
-    ('bundle-anchor-survives-a-reopen', NODE + 'BundleAnchor.java',
-     ' || event.roots().isEmpty()',
-     '',
-     'BundleProvenanceFrameTest#clearingYourRootsDoesNotEraseTheAnchor'),
+    # An empty set IS an answer, and refusing it made deleting a bundle's source root meaningless:
+    # delete, close, reopen, and the root came back because the deletion was never recorded (found in
+    # use, 2026-09-30). The transient emptiness the refusal was meant to stop cannot reach the node --
+    # a transition's rendering half does not report at all -- so what remains to hold is that an empty
+    # answer is WRITTEN. Anchored on the config write, which is where refusing it would have to happen.
+    ('bundle-anchor-forgotten-when-deleted', CONFIG,
+     '        if (path == null || roots == null) return false;\n',
+     '        if (path == null || roots == null || roots.isEmpty()) return false;\n',
+     'BundleProvenanceFrameTest#deletingTheAnchorSticks'),
     # The node asks for the anchor back on EVERY apply. An earlier version kept a "already asked for this
     # bundle" key, which suppressed the restore on reopening the same bundle in one session -- the case the
     # feature exists for. Deleting the request is the same failure, so this is the control for it.

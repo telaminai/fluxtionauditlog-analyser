@@ -8,6 +8,7 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ### Fixed
 
+- Deleting a bundle's source root now sticks. The deletion was never recorded — an empty set of roots was refused as "not an answer" — so closing and reopening the bundle brought the root back.
 - The event-type checklist can no longer starve the records table: it takes at most a third of the Facts column and scrolls beyond that.
 - Clearing a project's default focus now sticks. `defaultFocus` was not an owned key family, so the previous value was copied back over the blank one: the setting could be changed but never cleared.
 - Starting the analyser no longer rewrites a restored project's committed profile. Applying its settings entered the save half of the funnel, so a launch alone produced a diff nobody asked for.

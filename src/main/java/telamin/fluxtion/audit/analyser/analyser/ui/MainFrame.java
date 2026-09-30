@@ -443,9 +443,14 @@ public final class MainFrame extends JFrame {
         installFileDrop();
         addWindowListener(new WindowAdapter() {
             @Override public void windowClosing(WindowEvent e) { onExit(); }
-            @Override public void windowActivated(WindowEvent e) {
-                refreshProjectPanel();
-                if (offerWhenShown) {           // once, and only once the frame is really here
+            @Override public void windowActivated(WindowEvent e) { refreshProjectPanel(); }
+            // windowOPENED, not activated: it fires once, when the window is first made visible, and
+            // does not depend on the desktop giving it focus -- which a window under a test display
+            // may never get. Either way it is after construction, which is the point: offerToReopen
+            // can start a log load, and a load completing against a half-built frame is how an
+            // uncaught NPE reached the EDT in CI.
+            @Override public void windowOpened(WindowEvent e) {
+                if (offerWhenShown) {
                     offerWhenShown = false;
                     SwingUtilities.invokeLater(MainFrame.this::offerToReopen);
                 }

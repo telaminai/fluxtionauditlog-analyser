@@ -63,13 +63,19 @@ public class BundleAnchor implements EventLogSource {
 
     /**
      * The person changed the source roots while a bundle was in force, so those roots ARE the answer to
-     * where its code lives. An empty set is not an answer and is never remembered: it would erase a
-     * perfectly good anchor the moment a profile load cleared the project-scoped roots.
+     * where its code lives — <b>including when the answer is "nowhere"</b>.
+     *
+     * <p>An empty set used to be refused here, to stop a profile load wiping a good anchor. That
+     * protection is real but it belongs to the TRANSITION, not to emptiness: the frame does not report
+     * at all during a transition's rendering half, so a transient empty never reaches this node. What
+     * the refusal actually did was make a deliberate deletion meaningless — delete a bundle's source
+     * root, close, reopen, and it came back, because the deletion was never recorded (found in use,
+     * 2026-09-30). An observation that gets here is a person's edit, and their edits are the answer.
      */
     @OnEventHandler
     public boolean onSourceRootsObserved(SessionEvents.SourceRootsObserved event) {
         var bundle = openBundle.provenance();
-        if (!bundle.fromBundle() || bundle.source() == null || event.roots().isEmpty()) {
+        if (!bundle.fromBundle() || bundle.source() == null) {
             return false;
         }
         effects.request(new SessionEffects.RememberBundleAnchorEffect(0L, bundle.source(), event.roots()));
