@@ -423,19 +423,33 @@ public final class MainFrame extends JFrame {
         // BundleProvenanceFrameTest#aRestoredProjectHasItsSourceInForce (found in use, 2026-09-30).
         // `true`: a restore is not a person editing settings, and must not be reported as their choice.
         if (project.hasProject()) {
-            applyProjectSettings(true);
-            // ...and ASK, the same as any other way a project comes into force. The offer hangs off
-            // ProfileApplied, which startup never raises, so a restored project came up silent -- with
-            // exactly the emptiness the offer exists for, since nothing reopens the last log or
-            // topology either (their config entries are chooser defaults now). invokeLater, never
-            // inline: a modal during construction would block the window it belongs to.
-            SwingUtilities.invokeLater(this::offerToReopen);
+            // `startingUp`: the apply must not enter the SAVE half of the funnel. Launching the app is
+            // not an edit, and without this the first launch after this ships puts an unrequested diff
+            // into everyone's committed profile -- a profileNonce, the maven defaults and eight
+            // *.count=0 lines (review, 2026-09-30).
+            startingUp = true;
+            try {
+                applyProjectSettings(true);
+            } finally {
+                startingUp = false;
+            }
+            // ...and ASK, the same as any other way a project comes into force -- the offer hangs off
+            // ProfileApplied, which startup never raises. NOT from here though: offerToReopen can start
+            // a log load, and a load completing against a half-built frame is how an uncaught NPE
+            // reached the EDT in CI (summaryPanel null inside applyLoaded). It waits for the window.
+            offerWhenShown = true;
         }
         installGlobalKeys();
         installFileDrop();
         addWindowListener(new WindowAdapter() {
             @Override public void windowClosing(WindowEvent e) { onExit(); }
-            @Override public void windowActivated(WindowEvent e) { refreshProjectPanel(); }
+            @Override public void windowActivated(WindowEvent e) {
+                refreshProjectPanel();
+                if (offerWhenShown) {           // once, and only once the frame is really here
+                    offerWhenShown = false;
+                    SwingUtilities.invokeLater(MainFrame.this::offerToReopen);
+                }
+            }
         });
     }
 
@@ -699,6 +713,22 @@ public final class MainFrame extends JFrame {
             }
         }
         machinePanel.render(context, key == null ? null : config.lastFocusByProject.get(key), copies);
+    }
+
+    /** Remove a scratch tree, best effort: a leftover temp directory is untidy, never a failure. */
+    private static void deleteTree(Path root) {
+        if (root == null) return;
+        try (var walk = Files.walk(root)) {
+            walk.sorted(java.util.Comparator.reverseOrder()).forEach(p -> {
+                try {
+                    Files.deleteIfExists(p);
+                } catch (java.io.IOException ignored) {
+                    // the next boot's temp sweep can have it
+                }
+            });
+        } catch (java.io.IOException | java.io.UncheckedIOException ignored) {
+            // ditto
+        }
     }
 
     /** The west column, so the Records row's Event types toggle can relayout it. */
@@ -6316,7 +6346,13 @@ public final class MainFrame extends JFrame {
     private void bundlesInProject(Map<String, Object> bundles) {
         Path dir = projectBundleDir();
         if (dir == null) return;
+        var exchange = telamin.fluxtion.audit.analyser.analyser.config.ExchangeDir.of(config);
         bundles.put("inProjectDir", dir.toString());
+        // whose directory this is. It falls back to the MACHINE's export directory when no project
+        // declares one, the exchange opt-in is off, or a project value was refused -- and calling that
+        // "this project's" was simply the wrong tier in the wording (review, 2026-09-30).
+        bundles.put("inProjectDirTier", exchange.fromProject() ? "project" : "machine");
+        if (exchange.refusal() != null) bundles.put("inProjectDirRefusal", exchange.refusal());
         List<Map<String, Object>> found = new java.util.ArrayList<>();
         for (Path f : bundlesUnder(dir)) {
             Map<String, Object> one = new java.util.LinkedHashMap<>();
@@ -6330,7 +6366,8 @@ public final class MainFrame extends JFrame {
             found.add(one);
         }
         bundles.put("inProject", found);
-        bundles.put("inProjectNote", "every .fexp in this project's exchange directory and one level below, "
+        bundles.put("inProjectNote", "every .fexp in the exchange directory in force ('inProjectDirTier' "
+                + "says whether the project declared it or it is this machine's own) and one level below, "
                 + "whether or not this machine has opened one; open one with open {bundle}. Identity and "
                 + "notes are not read here — that is a zip open each — so they appear only in 'recent'");
     }
@@ -6423,7 +6460,7 @@ public final class MainFrame extends JFrame {
         // M20.2 auto-persist. Deliberately here and nowhere else: this funnel is what `source_root` and
         // `open {processor}` already go through, so scripted edits persist without a second code path.
         // Hanging this off dialog-close would silently lose every verb-driven change.
-        if (project != null) project.requestSave();
+        if (project != null && !startingUp) project.requestSave();
         refreshProjectPanel();                                        // M37: roots and processors may have changed
         rebuildAnalysesMenu();                                        // M38.4: the profile may have gained one
     }
@@ -7127,9 +7164,20 @@ public final class MainFrame extends JFrame {
                 // and threw ProtocolViolation on the EDT, so the offer died and nothing opened. The same
                 // hazard maybeOfferProject documents. The effect's job is to answer; the asking comes
                 // after the cycle (found in use, 2026-09-30).
-                SwingUtilities.invokeLater(this::offerToReopen);
+                // The DECISION is taken here, inside the cycle: who is at the keyboard belongs to the
+                // operation that asked, and reading it later from a mutable field got it wrong both ways
+                // -- a socket verb arriving before the queue drained silently ate a person's offer, and a
+                // menu click after a socket-driven open raised a modal for an operation nobody started
+                // (review, 2026-09-30). Only the ASKING is deferred, because a modal must not run inside
+                // the driver's single-in-flight cycle.
+                var candidates = reopenCandidates();
+                String label = project.activeLabel();
+                boolean asking = sessionInteractive && !showingSomething() && !candidates.isEmpty();
+                if (asking) SwingUtilities.invokeLater(() -> offerToReopen(candidates, label));
+                // ...and the record says which happened. It used to say "offered" unconditionally, so the
+                // audit claimed an offer that the adapter had just vetoed.
                 yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StatusShown(
-                        e.opId(), "offerProjectReopen");
+                        e.opId(), asking ? "offerProjectReopen" : "offerProjectReopenSkipped");
             }
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.RememberBundleAnchorEffect e -> {
                 // PERFORM only. bundleAnchor decided that these roots are this bundle's answer; the frame
@@ -7167,8 +7215,10 @@ public final class MainFrame extends JFrame {
                 // adapter performs the effect, beside the way a project open records its own recent.
                 config.addRecentBundle(plan.source(), plan.identity(), plan.notes());
                 // #75: put back the source tree this machine already chose for this bundle, if it is still there
-                // the bundle names the processor its log came from; adopt it when the recipient has none,
-                // so the Source tab is not empty for want of a class name the sender already knew
+                // The bundle names the processor its log came from -- the sender's CLAIM, unpaired against
+                // the log (see context.project.bundle.processorClaimed, which says so). Adopted only when
+                // the recipient has none, so the Source tab is not empty for want of a class name the
+                // sender already knew, and never over a choice the recipient has made.
                 if (plan.processor() != null && !plan.processor().isBlank()
                         && (config.selectedEventProcessor == null || config.selectedEventProcessor.isBlank())) {
                     config.selectedEventProcessor = plan.processor();
@@ -7688,8 +7738,40 @@ public final class MainFrame extends JFrame {
         // A modal question is only fair when somebody is there to answer it. An assistant opening a
         // project over the socket must not stop on a dialog nobody asked for and nobody can see.
         if (!sessionInteractive) return;
+        // ...and only when nothing is mid-demonstration. A walk or a lit spotlight IS the thing the
+        // person is looking at; a modal over it takes the click that dismisses it and the walkthrough
+        // dies with the light (found in use, 2026-09-30). The offer is an offer: skipping it costs
+        // nothing, and Project ▸ Open recent log and topology… asks again whenever they want.
+        if (showingSomething()) return;
+        if (!offersAllowed()) return;
         offerToReopen(reopenCandidates(), project.activeLabel());
     }
+
+    /**
+     * Whether an UNASKED offer may raise a modal at all.
+     *
+     * <p>Off by default, and turned on by the application, so no test can be surprised by a real
+     * dialog: the seam is {@code static}, it defaults to the real {@link ProjectReopenDialog}, and a
+     * frame suite whose isolated home happens to hold a restored project with a readable recent log
+     * would have raised one and hung under a headless CI display. One static field stood between the
+     * suite set and a hang (review, 2026-09-30). A test that WANTS the offer installs a chooser, which
+     * is itself permission.
+     */
+    private boolean offersAllowed() {
+        return offersEnabled || reopenChooser != null;
+    }
+
+    /** The application says it is a real session; nothing else does. */
+    public static void enableReopenOffers() {
+        offersEnabled = true;
+    }
+
+    private static volatile boolean offersEnabled;
+
+    /** True while the constructor is applying a RESTORED project: apply it, do not re-save it. */
+    private boolean startingUp;
+    /** A restored project is offered its log and topology once the window exists, never before. */
+    private boolean offerWhenShown;
 
     /**
      * What to offer: this project's own logs and topologies, or — when it has none — the machine's.
@@ -7711,7 +7793,15 @@ public final class MainFrame extends JFrame {
                 : mine;
     }
 
-    /** Sources ▸ Open recent log and topology… — the same offer, asked for rather than volunteered. */
+    /**
+     * Whether a walkthrough or a spotlight is on screen right now — something the person is being
+     * SHOWN, which an unasked modal would interrupt and destroy.
+     */
+    private boolean showingSomething() {
+        return sessionSnapshot().walkPlayback().showing() || !spotlight.lit().isEmpty();
+    }
+
+    /** Project ▸ Open recent log and topology… — the same offer, asked for rather than volunteered. */
     private void openRecentPair() {
         sessionInteractive = true;      // a menu item is a person, at the entrance, per the convention
         var candidates = reopenCandidates();
@@ -7727,7 +7817,7 @@ public final class MainFrame extends JFrame {
 
     private void offerToReopen(telamin.fluxtion.audit.analyser.analyser.config.ProjectReopen candidates,
                                String label) {
-        if (candidates.isEmpty()) return;      // nothing to offer: say nothing
+        if (candidates.isEmpty() || !offersAllowed()) return;      // nothing to offer, or not ours to ask
 
         var chooser = reopenChooser;
         var chosen = chooser != null
@@ -7887,9 +7977,15 @@ public final class MainFrame extends JFrame {
             }
             final telamin.fluxtion.audit.analyser.analyser.config.SettingsShare.ImportPlan plan;
             final String identity;
+            // Borrowing reads ONE file out of the bundle -- its profile -- so the copy it needs is a
+            // scratch one, removed when we are done. It used to unpack into the working-copies
+            // directory, which meant a PREVIEW left a full working copy behind while its own echo said
+            // "nothing was changed", and the Private settings panel then counted bundles the person had
+            // never opened (review, 2026-09-30).
+            Path scratch = null;
             try {
-                Path parent = telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.workingCopiesRoot();
-                var unpacked = telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.unpack(file, parent);
+                scratch = Files.createTempDirectory("fexp-borrow-");
+                var unpacked = telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.unpack(file, scratch);
                 if (!unpacked.verification().ok()) {
                     return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
                             "evidence bundle refused: " + unpacked.verification().refusal());
@@ -7905,6 +8001,8 @@ public final class MainFrame extends JFrame {
             } catch (java.io.IOException | RuntimeException ex) {
                 return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
                         "could not read the bundle: " + ex);
+            } finally {
+                deleteTree(scratch);
             }
             Map<String, Object> echo = new java.util.LinkedHashMap<>();
             echo.put("bundle", file.toString());
@@ -7914,7 +8012,8 @@ public final class MainFrame extends JFrame {
             echo.put("offers", offered);
             if (categories == null) {
                 echo.put("applied", false);
-                echo.put("note", "PREVIEW — nothing was changed. Name 'categories' to apply. REPORTS carries "
+                echo.put("note", "PREVIEW — your settings were not changed, and the scratch copy this "
+                        + "read was removed. Name 'categories' to apply. REPORTS carries "
                         + "prose the sender wrote about their data, so it is applied only when named");
                 return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("import", "preview", echo);
             }
@@ -8726,6 +8825,16 @@ public final class MainFrame extends JFrame {
                     bundle.put("source", received.source());
                     bundle.put("workingCopy", received.workingCopy());
                     bundle.put("verified", true);
+                    // The processor is the SENDER'S CLAIM, not a verified fact: nothing pairs it against
+                    // the log, it is whatever they happened to have selected when they captured. This app
+                    // qualifies every other unverified claim it carries (recordsRelationship, DECLARED vs
+                    // INFERRED, "unsigned, so not authenticated to a sender") and this one was adopted in
+                    // silence (review, 2026-09-30). Say whose claim it is, and that it is unverified.
+                    if (received.processor() != null && !received.processor().isBlank()) {
+                        bundle.put("processorClaimed", received.processor());
+                        bundle.put("processorClaimedRelationship",
+                                "the sender's selection at capture; not paired against this log");
+                    }
                     if (!received.notes().isEmpty()) bundle.put("notes", received.notes());
                     // #75: no source root survives capture, so say plainly whether this machine has
                     // supplied one. The graph names the classes; only a root says where they are.

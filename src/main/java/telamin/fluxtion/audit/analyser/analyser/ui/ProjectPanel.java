@@ -207,9 +207,18 @@ public final class ProjectPanel extends JPanel {
         // or four buttons per row crowded out the one that mattered, and every row the panel gained made
         // it worse (owner, 2026-09-30). The row's own action stays a button; the rest are one click away.
         if (r.path() != null) actions.add(overflow(r));
-        if (r.target() == ProjectModel.Target.PROCESSOR && r.item() != null) {
-            actions.add(small("Open", "Show " + r.item() + " in the Source tab — the active processor is unchanged",
-                    () -> navigator.openProcessorSource(r.item())));
+        boolean processorRow = r.item() != null
+                && (r.target() == ProjectModel.Target.PROCESSOR || r.target() == ProjectModel.Target.ADD_SOURCE);
+        if (processorRow) {
+            // A processor with no source keeps every action except the one with nowhere to go: it is
+            // still yours to make active, drop, or name. Only the primary button changes.
+            if (r.target() == ProjectModel.Target.PROCESSOR) {
+                actions.add(small("Open", "Show " + r.item() + " in the Source tab — the active processor is unchanged",
+                        () -> navigator.openProcessorSource(r.item())));
+            } else {
+                actions.add(small("Add source", "Settings ▸ Source roots — add the root that holds this class",
+                        () -> navigator.openSettings("Source roots")));
+            }
             actions.add(processorOverflow(r));
             head.add(actions, BorderLayout.EAST);
             head.setMaximumSize(new Dimension(Integer.MAX_VALUE, head.getPreferredSize().height));
@@ -277,8 +286,12 @@ public final class ProjectPanel extends JPanel {
         more.setToolTipText("Set active, remove, add source, settings");
         javax.swing.JPopupMenu menu = new javax.swing.JPopupMenu();
 
+        boolean haveSource = r.target() == ProjectModel.Target.PROCESSOR;
         javax.swing.JMenuItem active = new javax.swing.JMenuItem("Set active");
-        active.setToolTipText("Make " + r.item() + " the project's event processor");
+        active.setToolTipText(haveSource
+                ? "Make " + r.item() + " the project's event processor"
+                : "Needs source: add the root that holds this class first");
+        active.setEnabled(haveSource);   // selectProcessor refuses without source; say so before the click
         active.addActionListener(e -> navigator.setActiveProcessor(r.item()));
         menu.add(active);
 
@@ -288,10 +301,12 @@ public final class ProjectPanel extends JPanel {
         menu.add(remove);
 
         menu.addSeparator();
-        javax.swing.JMenuItem addSource = new javax.swing.JMenuItem("Add source");
-        addSource.setToolTipText("Settings ▸ Source roots — add the root that holds this class");
-        addSource.addActionListener(e -> navigator.openSettings("Source roots"));
-        menu.add(addSource);
+        if (haveSource) {          // already the primary button on a row whose source is missing
+            javax.swing.JMenuItem addSource = new javax.swing.JMenuItem("Add source");
+            addSource.setToolTipText("Settings ▸ Source roots — add the root that holds this class");
+            addSource.addActionListener(e -> navigator.openSettings("Source roots"));
+            menu.add(addSource);
+        }
 
         javax.swing.JMenuItem settings = new javax.swing.JMenuItem("Settings…");
         settings.setToolTipText("Settings ▸ Event processor");

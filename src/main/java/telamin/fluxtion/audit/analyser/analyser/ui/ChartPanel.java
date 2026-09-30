@@ -1048,10 +1048,31 @@ public final class ChartPanel extends JPanel {
     private List<String> annotationLines() {
         List<String> lines = new ArrayList<>();
         if (!notes.explanation().isBlank()) lines.addAll(java.util.Arrays.asList(notes.explanation().split("\n")));
+        // What is plotted rides on the explanation's own row rather than claiming a row of its own:
+        // together they are one sentence about the picture, and an exported PNG should carry both
+        // without spending two bands of the plot on them (owner, 2026-09-30).
+        String plotted = seriesDescription();
+        if (!plotted.isEmpty()) {
+            if (lines.isEmpty()) {
+                lines.add(plotted);
+            } else {
+                lines.set(lines.size() - 1, lines.get(lines.size() - 1) + "   ·   " + plotted);
+            }
+        }
         int n = 0;
         for (var note : notes.between((long) vx0, (long) vx1))
             lines.add(++n + ". " + note.text() + (note.series() == null ? "" : "  [" + note.series() + "]"));
         return lines;
+    }
+
+    /** "Series: bid, ask, 1÷bid" — what the plot draws, named, or "" when nothing is plotted. */
+    private String seriesDescription() {
+        List<String> labels = new ArrayList<>();
+        for (Series one : series) {
+            String label = one.label();
+            if (label != null && !label.isBlank() && !labels.contains(label)) labels.add(label);
+        }
+        return labels.isEmpty() ? "" : "Series: " + String.join(", ", labels);
     }
 
     private void paintExplanation(Graphics2D g, boolean dark) {

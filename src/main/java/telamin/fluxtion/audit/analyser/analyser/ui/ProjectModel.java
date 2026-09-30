@@ -364,6 +364,9 @@ public record ProjectModel(List<Section> sections) {
                     // absent-file case, where adding a root cannot help. One remedy button that is
                     // occasionally unhelpful beats a row whose control changes shape depending on why
                     // something is missing. The WORDING carries the distinction instead.
+                    // the FQN rides on BOTH shapes: a processor whose source is missing is still a
+                    // processor you may want to drop, make active, or copy the name of. Only the
+                    // PRIMARY button differs -- there is nowhere to "open" (owner, 2026-09-30).
                     found ? Target.PROCESSOR : Target.ADD_SOURCE, fqn));
         }
         if (rows.isEmpty()) {

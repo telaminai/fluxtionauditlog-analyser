@@ -8,7 +8,8 @@ final class MenuInventory {
     static final String SEPARATOR = "<separator>";
     static final List<String> RESOURCE_MENUS = List.of("Project", "Sources", "Audit log");
     static final Map<String, List<String>> MENUS = Map.of(
-            "Project", List.of("Open project…", "Open recent project", "New project from template…", "New project…",
+            "Project", List.of("Open project…", "Open recent project", "Open recent log and topology…",
+                    "New project from template…", "New project…",
                     "Save project as…", "Close project", SEPARATOR, "Close log and topology", SEPARATOR,
                     "Run analysis", SEPARATOR, "Settings…", "Export settings…", "Import settings…", SEPARATOR, "Exit"),
             "Sources", List.of("Source roots…", "Event processor…", "Maven repos…", SEPARATOR, "Open GraphML…",
@@ -36,6 +37,12 @@ final class MenuInventory {
             "Close project", "Run analysis", "Follow (tail)", "Export records (CSV)…", "Export records (YAML)…",
             "Settings…", "Export settings…", "Import settings…", "Exit");
     static final List<String> SHORTCUTS = List.of("Source roots…", "Event processor…", "Maven repos…");
+
+    /**
+     * Actions added AFTER the File-menu split, listed separately so the legacy inventory above stays
+     * a faithful record of what was relocated rather than quietly absorbing new work.
+     */
+    static final List<String> ADDED_SINCE = List.of("Open recent log and topology…");
     static List<String> labels(String menu) {
         return MENUS.get(menu).stream().filter(s -> !SEPARATOR.equals(s)).toList();
     }

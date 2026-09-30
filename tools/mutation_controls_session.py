@@ -32,12 +32,24 @@ CONTROLS = [
     # an omission. It had one while the decision lived in the frame: delete the guard beside the render
     # and the DEMO bundle picked up 19 unrelated repositories. Moving the decision into bundleAnchor
     # (rule 9) left the fault prevented at three independent points, so no single-line mutation can
-    # witness it. Probed in the running scenario on 2026-09-30 rather than argued:
-    #   * the frame does not report at all during a transition's rendering half;
-    #   * with that guard removed it does report, and the node reads fromBundle=false, because
-    #     SettingsRestored has already cleared the provenance before the render runs;
-    #   * with the node's guard removed too, the write is keyed by bundle path and a null source
-    #     matches no recent entry.
+    # witness it. Probed in the running scenario on 2026-09-30 rather than argued, and CORRECTED the
+    # same day after an independent review checked the mechanism -- the conclusion held, two of the
+    # three stated reasons did not:
+    #   * the frame does not report at all during a transition's rendering half. This is the layer
+    #     that actually protects the live code path.
+    #   * with that guard removed it does report, and the node reads fromBundle=false -- but NOT,
+    #     as first written here, "because SettingsRestored has already cleared the provenance before
+    #     the render runs". It has not: RestoreSettingsEffect closes the project, renders, and only
+    #     THEN yields SettingsRestored, so the render runs first. The real mechanism is
+    #     SessionDriver.post -- a fact raised while the driver is dispatching is queued and drained
+    #     after the operation settles, by which time SettingsRestored HAS been dispatched and
+    #     OpenBundle.current is NONE. Same outcome, different machinery, and weaker than it read:
+    #     submit() drains that queue AFTER its try/finally, so an operation that throws leaves the
+    #     fact to be delivered inside the next one's provenance.
+    #   * the write is keyed by bundle path and a null source matches no recent entry. This only
+    #     bites once the node's own guard is gone (provenance NONE => source null), so it is a
+    #     defence against the THIRD mutation, not an independent third defence against the original
+    #     fault. As first written it read like belt-and-braces on the live path; it is not.
     # Each alone suffices, so each mutation SURVIVES for a good reason. BundleProvenanceFrameTest
     # #closingDoesNotPoisonTheAnchor stays as the behavioural regression; registering a control that
     # cannot go red would claim protection the gate is not actually holding.

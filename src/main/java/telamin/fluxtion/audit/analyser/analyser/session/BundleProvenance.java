@@ -23,10 +23,12 @@ package telamin.fluxtion.audit.analyser.analyser.session;
  * @param limits      what verification does not claim (unsigned, replay caveats), as the bundle stated them
  * @param notes       what the SENDER wrote in NOTES.md. Their words, not a fact about the evidence.
  */
-public record BundleProvenance(String identity, String source, String workingCopy, String limits, String notes) {
+public record BundleProvenance(String identity, String source, String workingCopy, String limits, String notes,
+                               /** The sender's CLAIM about which processor the log came from; unverified. */
+                               String processor) {
 
     /** An ordinary project: nothing was received from anyone. */
-    public static final BundleProvenance NONE = new BundleProvenance(null, null, null, "", "");
+    public static final BundleProvenance NONE = new BundleProvenance(null, null, null, "", "", null);
 
     public BundleProvenance {
         limits = limits == null ? "" : limits;

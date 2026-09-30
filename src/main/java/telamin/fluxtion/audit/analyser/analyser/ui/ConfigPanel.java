@@ -180,7 +180,10 @@ public final class ConfigPanel extends JDialog {
     }
 
     private void buildUi() {
-        tabs = new JTabbedPane();
+        // Tabs on the LEFT: eight pages of settings across the top wrap or scroll and read as a
+        // ribbon; down the side they are a list that can grow (owner, 2026-09-30). Titles keep their
+        // natural left alignment rather than being centred in a vertical strip.
+        tabs = new JTabbedPane(javax.swing.JTabbedPane.LEFT);
         tabs.addTab("Source roots", buildRootsTab());
         tabs.addTab("Maven repos", buildMavenTab());
         tabs.addTab("Event processor", buildEpTab());

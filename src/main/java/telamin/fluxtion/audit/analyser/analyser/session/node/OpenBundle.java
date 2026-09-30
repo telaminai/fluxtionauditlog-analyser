@@ -73,7 +73,7 @@ public class OpenBundle implements EventLogSource {
         // and ProfileApplied names it.
         current = pending != null && pending.profilePath().equals(event.profilePath())
                 ? new BundleProvenance(pending.identity(), pending.source(), pending.workingCopy(),
-                        pending.limits(), pending.notes())
+                        pending.limits(), pending.notes(), pending.processor())
                 : BundleProvenance.NONE;
         pending = null;
         auditLog.info("fromBundle", current.fromBundle()).info("bundleIdentity", current.identity());

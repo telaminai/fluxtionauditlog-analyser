@@ -43,8 +43,10 @@ class MenuLayoutFrameTest {
                 var expected = new ArrayList<>(MenuInventory.BASE_FILE.stream()
                         .map(t -> t.equals("Reset (close log + graph)") ? "Close log and topology" : t).toList());
                 expected.addAll(MenuInventory.SHORTCUTS);
+                expected.addAll(MenuInventory.ADDED_SINCE);
                 assertEquals(26, MenuInventory.BASE_FILE.size(), "base File inventory");
-                assertEquals(29, relocated.size(), "all legacy actions plus the three shortcuts");
+                assertEquals(30, relocated.size(),
+                        "all legacy actions, the three shortcuts, and the actions added since the split");
                 assertEquals(new HashSet<>(expected), new HashSet<>(relocated), "legacy action inventory is preserved");
                 for (String label : expected) assertEquals(1, Collections.frequency(relocated, label), label + " appears exactly once");
                 assertEquals("Records", bar.getMenu(3).getText());

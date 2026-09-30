@@ -268,6 +268,38 @@ class BundleProvenanceFrameTest {
     }
 
     @Test
+    @DisplayName("the offer stays out of the way while a spotlight is showing something")
+    void theOfferYieldsToAWalkthrough(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        try (var f = shown(tmp)) {
+            Path mine = java.nio.file.Files.createDirectories(tmp.resolve("mine"));
+            Path src = java.nio.file.Files.createDirectories(mine.resolve("src/main/java"));
+            Path log = java.nio.file.Files.copy(EvidenceCaptureFrameTest.DEMO_LOG, mine.resolve("run.yaml"));
+            Path profile = mine.resolve(".analyser").resolve("project.fluxtion-settings");
+            java.nio.file.Files.createDirectories(profile.getParent());
+            java.nio.file.Files.writeString(profile, "sourceRoot.0=" + src + "\nsourceRoot.count=1\n");
+            var config = (telamin.fluxtion.audit.analyser.analyser.config.AppConfig) field(f.frame, "config");
+            config.addRecent(log.toString());
+
+            var offers = new java.util.concurrent.atomic.AtomicInteger();
+            setChooser((label, candidates) -> {
+                offers.incrementAndGet();
+                return null;
+            });
+
+            // something is being SHOWN: a lit spotlight is the walkthrough's whole point, and the
+            // modal took the click that dismissed it, killing the walk with the light.
+            openLog(f, EvidenceCaptureFrameTest.DEMO_LOG);
+            onEdt(() -> render(f.ex, "spotlight", Map.of("target", "project")));
+
+            openAsAPerson(f.frame, profile);
+            Thread.sleep(400);
+
+            assertEquals(0, offers.get(), "aLitSpotlightIsNotInterrupted");
+        }
+    }
+
+    @Test
     @DisplayName("O3: opening a project offers its logs and topologies, and a bundle is never asked")
     void openingAProjectOffersWhatBelongsToIt(@TempDir Path tmp) throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless());

@@ -86,6 +86,8 @@ public class Main {
             SplashScreen splash = new SplashScreen();
             splash.showSplash();
 
+            // A real session may raise the reopen offer; a test never can unless it installs a chooser.
+            MainFrame.enableReopenOffers();
             MainFrame frame = new MainFrame();
             frame.setVisible(true);
             // A command-line path is explicit. Remembered global paths carry no project association.

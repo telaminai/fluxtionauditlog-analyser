@@ -66,4 +66,31 @@ class ProjectRowActionsTest {
 
         assertEquals(List.of("/tmp/scratch/demo-src"), spy.removed, "theRowRemovesItsOwnRoot");
     }
+
+    @Test
+    @DisplayName("a processor whose source is missing keeps every action but Open")
+    void missingSourceKeepsItsActions() {
+        var row = new telamin.fluxtion.audit.analyser.analyser.ui.ProjectModel.Row(
+                "DemoQuoteProcessor", "source NOT found", null, "project",
+                telamin.fluxtion.audit.analyser.analyser.ui.ProjectModel.Tone.WARN,
+                telamin.fluxtion.audit.analyser.analyser.ui.ProjectModel.Target.ADD_SOURCE,
+                "com.acme.demo.generated.DemoQuoteProcessor");
+
+        // it is still a processor: it names itself, so the row can act on it
+        assertEquals("com.acme.demo.generated.DemoQuoteProcessor", row.item(),
+                "aProcessorWithNoSourceIsStillNamed — without this the row could only offer Add source");
+    }
+
+    @Test
+    @DisplayName("a processor row with source names itself too")
+    void foundProcessorNamesItself() {
+        var row = new telamin.fluxtion.audit.analyser.analyser.ui.ProjectModel.Row(
+                "DemoQuoteStrategy", "source found", null, "project",
+                telamin.fluxtion.audit.analyser.analyser.ui.ProjectModel.Tone.NORMAL,
+                telamin.fluxtion.audit.analyser.analyser.ui.ProjectModel.Target.PROCESSOR,
+                "com.acme.demo.Strategy");
+
+        assertEquals("com.acme.demo.Strategy", row.item(),
+                "everyRowOpensTheProcessorItNames — Open reached 'the Source tab' before this");
+    }
 }
