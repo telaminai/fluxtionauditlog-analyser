@@ -17,6 +17,7 @@ UI = J + 'ui/'
 PARSE = J + 'parse/'
 BUNDLE = 'src/main/java/telamin/fluxtion/audit/analyser/bundle/EvidenceBundle.java'
 MAIN = 'src/main/java/telamin/fluxtion/audit/analyser/Main.java'
+CONFIG = J + 'config/AppConfig.java'
 BUNDLE_PROFILE = 'src/main/java/telamin/fluxtion/audit/analyser/bundle/BundleProfile.java'
 WRITER = 'src/main/java/telamin/fluxtion/audit/analyser/bundle/BundleWriter.java'
 EXCERPT = 'src/main/java/telamin/fluxtion/audit/analyser/bundle/BundleExcerpt.java'
@@ -27,6 +28,19 @@ RUNNER = 'tools/replay/ReplayBundle.java'
 GRAPHML = 'src/main/resources/telamin/fluxtion/audit/analyser/analyser/session/generated/SessionProcessor.graphml'
 
 CONTROLS = [
+    # NO CONTROL, deliberately, for "a close does not poison the anchor" -- and that is the finding, not
+    # an omission. It had one while the decision lived in the frame: delete the guard beside the render
+    # and the DEMO bundle picked up 19 unrelated repositories. Moving the decision into bundleAnchor
+    # (rule 9) left the fault prevented at three independent points, so no single-line mutation can
+    # witness it. Probed in the running scenario on 2026-09-30 rather than argued:
+    #   * the frame does not report at all during a transition's rendering half;
+    #   * with that guard removed it does report, and the node reads fromBundle=false, because
+    #     SettingsRestored has already cleared the provenance before the render runs;
+    #   * with the node's guard removed too, the write is keyed by bundle path and a null source
+    #     matches no recent entry.
+    # Each alone suffices, so each mutation SURVIVES for a good reason. BundleProvenanceFrameTest
+    # #closingDoesNotPoisonTheAnchor stays as the behavioural regression; registering a control that
+    # cannot go red would claim protection the gate is not actually holding.
     # The bundle names the processor its log came from. The graph names the NODES and never the processor,
     # so without this a recipient opens with none and cannot guess one (found in use, 2026-09-30).
     ('bundle-carries-its-processor', BUNDLE,
@@ -58,18 +72,38 @@ CONTROLS = [
      '    public boolean onSettingsRestored(SessionEvents.SettingsRestored event) {\n        if (!gate.accepted()) {\n',
      '    public boolean onSettingsRestored(SessionEvents.SettingsRestored event) {\n        if (true) {\n',
      'BundleProvenanceTest#closingBackToOwnSettingsClearsTheBundle'),
+    # A restart must not come up inside a bundle's working copy: the profile alone is an empty shell.
+    ('bundle-working-copy-not-restored', J + 'config/ProjectSession.java',
+     '            if (telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.isWorkingCopy(was)) {\n'
+     '                config.activeProjectPath = "";\n'
+     '            } else {\n'
+     '                this.activeFile = was;\n'
+     '            }\n',
+     '            this.activeFile = was;\n',
+     'ProjectSessionTest#aBundleWorkingCopyIsNotRestoredAsTheProject'),
     # Bundle source anchoring (#75): capture strips every root, so the code is unreachable without one.
     # Anchored in the CONFIG FUNNEL, not beside one edit: the Settings dialog rebuilds sourceRoots
     # directly and never calls addSourceRoot, so a hook there caught the verb and missed the person.
-    ('bundle-anchor-remembered', UI + 'MainFrame.java',
-     '        rememberAnchorForOpenBundle();\n',
+    ('bundle-anchor-remembered', NODE + 'BundleAnchor.java',
+     '        effects.request(new SessionEffects.RememberBundleAnchorEffect(0L, bundle.source(), event.roots()));\n',
      '',
      'BundleProvenanceFrameTest#anchoringABundleToASourceTreeIsRemembered'),
     # and it must not record the transient emptiness a reopen passes through, which wiped the anchor
-    ('bundle-anchor-survives-a-reopen', UI + 'MainFrame.java',
-     '        if (config.sourceRoots.isEmpty()) return;\n',
+    # An empty set is not an answer. The transient emptiness this first guarded can no longer reach the
+    # node (a transition's render does not report), so the witness is now the case that CAN: a person
+    # clearing their source roots while a bundle is open must not silently erase its anchor.
+    ('bundle-anchor-survives-a-reopen', NODE + 'BundleAnchor.java',
+     ' || event.roots().isEmpty()',
+     '',
+     'BundleProvenanceFrameTest#clearingYourRootsDoesNotEraseTheAnchor'),
+    # The node asks for the anchor back on EVERY apply. An earlier version kept a "already asked for this
+    # bundle" key, which suppressed the restore on reopening the same bundle in one session -- the case the
+    # feature exists for. Deleting the request is the same failure, so this is the control for it.
+    ('bundle-anchor-restore-requested', NODE + 'BundleAnchor.java',
+     '        effects.request(new SessionEffects.RestoreBundleAnchorEffect(event.opId(), bundle.source()));\n',
      '',
      'BundleProvenanceFrameTest#anchoringABundleToASourceTreeIsRemembered'),
+
     ('bundle-anchor-restored', UI + 'MainFrame.java',
      '                        config.sourceRoots.add(anchored);\n',
      '',
@@ -78,13 +112,19 @@ CONTROLS = [
      '                    bundle.put("sourceAnchor", anchors.isEmpty() ? "none" : String.join(", ", anchors));\n',
      '                    bundle.put("sourceAnchor", "none");\n',
      'BundleProvenanceFrameTest#anchoringABundleToASourceTreeIsRemembered'),
+    # ...and the list has to be readable: two copies of one bundle, or two runs sharing a file name,
+    # rendered as identical rows with only a tooltip between them.
+    ('bundle-recents-tellable-apart', UI + 'StartPanel.java',
+     '                label = candidate;\n                if (!clash) break;\n',
+     '                label = candidate;\n                break;\n',
+     'StartPanelNamesTest#sameFileNameIsWidened'),
     # Bundle discovery (#73): a recipient could not find out what they had been sent.
     ('bundle-recent-recorded', UI + 'MainFrame.java',
      '                config.addRecentBundle(plan.source(), plan.identity(), plan.notes());\n',
      '',
      'BundleProvenanceFrameTest#anOpenedBundleIsDiscoverableAfterwards'),
     ('bundle-recent-published', UI + 'MainFrame.java',
-     '            if (need.test("bundles") && !config.recentBundles.isEmpty()) {\n',
+     '            if (need.test("bundles") && (!config.recentBundles.isEmpty() || exchangeHasBundles())) {\n',
      '            if (false) {\n',
      'BundleProvenanceFrameTest#anOpenedBundleIsDiscoverableAfterwards'),
     ('bundle-notes-read-from-the-copy', UI + 'MainFrame.java',
@@ -1035,8 +1075,8 @@ CONTROLS = [
      '    }\n\n    /** M69 S4: the Reports tab',
      'WalkVerbFrameTest#theVerbAndTheTabAreOnePath'),
     ('m69-s4-walk-is-destructive-to-mcp', J + 'mcp/McpTools.java',
-     '"screenshot", "report", "walk")',
-     '"screenshot", "report")',
+     '"screenshot", "report", "walk", "import")',
+     '"screenshot", "report", "import")',
      'McpToolsTest#exposesExactlyTheVerbSchemasVerbSet'),
 
     # --- M69 review response (PR57 R1–R9): each fix at its call site

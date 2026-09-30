@@ -170,6 +170,20 @@ public final class SessionEvents {
         }
     }
 
+    /**
+     * The source roots now in force, as the adapter observes them after a person changed them.
+     *
+     * <p>Deliberately NOT reported while a transition is rendering. A close puts the person's own settings
+     * back before the render runs, so reporting then would state somebody else's roots as this session's —
+     * which is exactly how a bundle came to be anchored to 19 unrelated repositories (2026-09-30). The
+     * adapter reports what it sees when a person changes it; the node decides what that means.
+     */
+    public record SourceRootsObserved(java.util.List<String> roots) {
+        public SourceRootsObserved {
+            roots = java.util.List.copyOf(roots == null ? java.util.List.of() : roots);
+        }
+    }
+
     /** Facts extracted from a verified bundle, before any active project is changed. */
     /**
      * @param profilePath the profile INSIDE the unpacked working copy

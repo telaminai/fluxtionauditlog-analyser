@@ -404,6 +404,26 @@ public final class EvidenceBundle {
      *
      * @return the verification, and the working copy's path when it succeeded (null otherwise)
      */
+    /**
+     * Where opening a bundle puts its working copy. One spelling, because four of them had drifted
+     * apart and nothing could ask "is this a working copy?" of a path.
+     */
+    public static Path workingCopiesRoot() {
+        return Path.of(System.getProperty("user.home"), ".fluxtion-analyser", "bundles");
+    }
+
+    /**
+     * Whether a path lies inside a bundle's working copy — a throwaway unpack, not somewhere a person
+     * keeps work. A profile in here must not be resurrected as the project on the next launch: the
+     * profile alone is an empty shell, with no graph, no log and no source, because those arrive only
+     * through opening the bundle. Found in use, 2026-09-30, by restarting into exactly that shell.
+     */
+    public static boolean isWorkingCopy(Path path) {
+        if (path == null) return false;
+        Path root = workingCopiesRoot().toAbsolutePath().normalize();
+        return path.toAbsolutePath().normalize().startsWith(root);
+    }
+
     public static Unpacked unpack(Path bundle, Path parent) throws IOException {
         Pass first = check(bundle, null);
         if (!first.verification().ok()) return new Unpacked(first.verification(), null);

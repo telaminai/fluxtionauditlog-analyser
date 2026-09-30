@@ -26,6 +26,41 @@ class ProjectSessionTest {
         return c;
     }
 
+    // ---- what is NOT restored -------------------------------------------------------------------
+
+    /**
+     * #75: a restart must not come up inside a bundle's working copy. The copy's profile is the active
+     * project while the bundle is open and is persisted like any other, so the next launch adopted it
+     * and showed an experiment with no graph, no log and no source -- all three arrive by OPENING the
+     * bundle, never by loading a profile. Found in use, 2026-09-30, by restarting the app.
+     */
+    @Test
+    void aBundleWorkingCopyIsNotRestoredAsTheProject() {
+        AppConfig c = configWith("/work/src");
+        Path copy = telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.workingCopiesRoot()
+                .resolve("bundle-6f1f46d5f9aa-1683415988").resolve("profile")
+                .resolve("project.fluxtion-settings");
+        c.activeProjectPath = copy.toString();
+
+        ProjectSession s = session(c);
+
+        assertFalse(s.hasProject(), "aWorkingCopyIsNotAdopted");
+        assertEquals("", c.activeProjectPath, "andThePointerIsCleared, so nothing resolves against it");
+    }
+
+    /** The same restore for a profile a person actually keeps is untouched. */
+    @Test
+    void anOrdinaryProjectIsStillRestored(@TempDir Path dir) {
+        AppConfig c = configWith("/work/src");
+        Path mine = ProjectProfile.pathFor(dir);
+        c.activeProjectPath = mine.toString();
+
+        ProjectSession s = session(c);
+
+        assertTrue(s.hasProject(), "anOrdinaryProfileIsAdopted");
+        assertEquals(mine, s.activeFile());
+    }
+
     // ---- auto-persist ---------------------------------------------------------------------------
 
     /**

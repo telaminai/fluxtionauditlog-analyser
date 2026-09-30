@@ -270,6 +270,18 @@ public final class VerbSchemas {
                                 + "item is, RELATIVE TO windowBounds, top to bottom.")),
                 req("path")));
 
+        s.put("import", schema("BORROW from an evidence bundle into the project you already have, instead of "
+                        + "becoming it — open {bundle} REPLACES the session, this does not. Called with only "
+                        + "'bundle' it PREVIEWS: it changes nothing and returns what each category would bring. "
+                        + "Name 'categories' to apply exactly those. A bundle's source roots and Maven repos are "
+                        + "stripped at capture, so they are never on offer. REPORTS carries prose the sender wrote "
+                        + "about their data and is never applied unless you name it.",
+                props(
+                        p("bundle", string(), "path to the .fexp to borrow from"),
+                        p("categories", arr(string()), "GRAPHS | REPORTS | VIEW — apply exactly these. "
+                                + "Omit to preview and change nothing")),
+                List.of("bundle")));
+
         s.put("open", schema("Open an audit log and/or a processor .graphml — or CLOSE what is open. "
                         + "Reaches the FILESYSTEM: it points the app at any readable path. Also puts the two "
                         + "things of the SHARED CANVAS in force — the session's posture and the authoring mode "
@@ -331,6 +343,12 @@ public final class VerbSchemas {
                                 + "log/graphml/processor. 'handoff' takes posture AND record off the shared "
                                 + "canvas (posture returns to derived) and goes alone, like the write it undoes; "
                                 + "'all' does not touch the canvas — it is about the log and the graph"),
+                        p("bundle", string(), "path to an evidence bundle (.fexp). VERIFIES it, then opens "
+                                + "its project, graph and log together — a bundle SUPPLIES a project, so this "
+                                + "replaces what is open, exactly as Open evidence bundle does. The echo names "
+                                + "its identity, the sender's note, what verification does not claim, and "
+                                + "whether a source root remembered for it was restored. To borrow from a "
+                                + "bundle WITHOUT replacing your project, use 'import' instead"),
                         p("project", string(), "path to a project's .analyser/project.fluxtion-settings, "
                                 + "or the project directory (M35.8). APPLIES the project — it does not "
                                 + "ask: source roots, Maven repos, event processors, named graphs, "

@@ -77,6 +77,16 @@ public interface AppControl {
     }
 
     /** Open a processor {@code .graphml}. */
+    /** Preview, or apply, a bundle's shareable state into the OPEN project. Null categories = preview. */
+    default ActionResult importFromBundle(String path, java.util.List<String> categories) {
+        return ActionResult.error("importing from an evidence bundle is not enabled here");
+    }
+
+    /** Verify and open an evidence bundle: its project, graph and log. Replaces what is open. */
+    default ActionResult openBundle(String path) {
+        return ActionResult.error("opening an evidence bundle is not enabled here");
+    }
+
     ActionResult openGraphml(String path);
 
     /**

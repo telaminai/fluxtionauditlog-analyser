@@ -11,12 +11,21 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 - The start page no longer leaves "Verified …, the audit log is loading" behind once the bundle is open; the Project panel carries its identity, working copy and limits for the whole session.
 - A chart explanation or note mentioning something like `~1/price` is no longer mistaken for a home-directory path and replaced with "path removed" inside an evidence bundle. Digit-leading usernames such as `~7dev/logs/x.yaml` are still redacted.
 - Opening an evidence bundle whose project fails to apply no longer leaves the next ordinary project labelled as that bundle's evidence.
+- Restarting the analyser no longer comes up inside a bundle's working copy. The copy is the project while the bundle is open and was remembered like any other, so the next launch showed an experiment with no graph, no log and no source: all three arrive by opening the bundle, never by loading a profile. It now starts with no project, and the bundle is one click away in *Recent evidence bundles*.
+- Reopening a bundle you had already anchored in the same session puts its source tree back. It was remembered but only ever restored once.
+- Clearing your own source roots while a bundle is open no longer erases that bundle's anchor.
+- Two evidence bundles sharing a file name are now tellable apart on the start page: each row carries just enough of its folder to differ. The same bundle copied into two projects used to give two identical rows, separated only by a tooltip.
+- Opening an evidence bundle no longer arms crash recovery for the working copy.
+- The start page no longer keeps a "session captured" banner at the top after the capture is done.
+- **Add source root** now opens in the current project or experiment's directory rather than your home directory.
 
 ### Added
 
 - An evidence bundle now names the event processor its log came from, so a recipient opens it with that processor selected instead of none. It is a class name, not a path: the graph names the nodes and never the processor, so there was nothing to guess from.
 - The window title and the Project panel now say when the session came from an evidence bundle, and which one, for as long as it is open — not only in the dialog at the moment it opens.
 - Evidence bundles you have opened are remembered: a "Recent evidence bundles" list on the start page, showing what the sender said each one is, and the same list in `context.bundles`.
+- The assistant can drive evidence bundles: `open {bundle}` opens one, and `import` takes named parts of a bundle into the project you are already in, so a bundle can be investigated without reaching for the desktop UI.
+- *Recent evidence bundles* and recent projects each carry a **…** menu: remove from the list, reveal in the file manager, or rename.
 - An evidence bundle can be pointed at your own copy of the source it describes. A bundle carries no source paths, so the code behind its records was unreachable; the tree you choose is remembered against that bundle and restored next time you open it.
 
 ## [1.29.0] - 2026-09-29

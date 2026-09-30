@@ -85,6 +85,13 @@ log, and no file writes**. Two groups of verbs go further, honestly labelled:
   move one to the recently-deleted list (restorable). It writes no file of its own and reads no log data
   beyond the records a walk points at; it is marked destructive to MCP clients because replacing a walk by
   name overwrites a person's work.
+- **`import` borrows an evidence bundle's saved state into the project you already have** — its charts
+  and named focuses, its investigation reports and spotlight walks, and your column choices. Called with
+  only a bundle path it previews and changes nothing; it applies only the categories you name, which is
+  the verb's equivalent of ticking the consent boxes in Project ▸ Import settings. A bundle's source
+  roots and Maven repos are removed at capture, so it can never point your analyser somewhere new.
+  Reports carry prose the sender wrote about their data, so they are applied only when named explicitly.
+  It is marked destructive to MCP clients because it merges someone else's work into your project.
 - **Log-source plugins are jars you install yourself, and installing a jar is arbitrary code
   execution.** Nothing is bundled or downloaded — without plugins this application is byte-identical
   to a plain build — and a plugin can only ever be a log *reader*: it cannot add verbs to the action

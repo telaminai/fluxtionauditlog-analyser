@@ -157,6 +157,22 @@ public final class ActionExecutor implements RenderExecutor {
         // these three do not read the records table, and two of them exist precisely to get a log open —
         // requiring one first would make them useless
         switch (action) {
+            // #80: borrow from a bundle into the OPEN project. Needs no log — it is about the project.
+            case "import" -> {
+                if (!(params.get("bundle") instanceof String path) || path.isBlank()) {
+                    return ActionResult.error("import 'bundle' is the path to a .fexp");
+                }
+                java.util.List<String> cats = null;
+                if (params.get("categories") != null) {
+                    if (!(params.get("categories") instanceof java.util.List<?> raw)) {
+                        return ActionResult.error("import 'categories' is a list of names");
+                    }
+                    cats = raw.stream().map(String::valueOf).toList();
+                }
+                java.util.List<String> chosen = cats;
+                return app == null ? ActionResult.error("'import' is not enabled here")
+                        : onEdt(() -> app.importFromBundle(path, chosen));
+            }
             case "open" -> {
                 if (params.containsKey("follow")) {
                     if (params.size() != 1 || !(params.get("follow") instanceof Boolean))
@@ -1197,6 +1213,26 @@ public final class ActionExecutor implements RenderExecutor {
                 return ActionResult.error("use open {restore: last|dismiss} alone to accept or decline the current session offer");
             return "dismiss".equals(params.get("restore")) ? onEdt(app::dismissSessionRestore) : onEdt(app::restoreSession);
         }
+        if (params.get("bundle") != null) {
+            if (params.get("project") != null) {
+                return ActionResult.error("open 'bundle' and 'project' are two different projects: use one");
+            }
+            String path = str(params.get("bundle"));
+            if (path == null || path.isBlank()) return ActionResult.error("open 'bundle' is a path to a .fexp");
+            // A bundle supplies its OWN project, graph and log, so like a project switch this returns:
+            // anything else named in the same call would be swept away by the transition. Ignored
+            // params are named rather than dropped in silence.
+            ActionResult opened = onEdt(() -> app.openBundle(path));
+            if (!opened.ok()) return opened;
+            var decision = onEdt(() -> openDecision(params));
+            if (decision != null && decision.anythingIgnored()) {
+                Map<String, Object> echo = new LinkedHashMap<>(asMap(opened.toMap().get("opened")));
+                echo.put("ignored", decision.ignored());
+                echo.put("ignoredWhy", decision.why());
+                return ActionResult.ok("open", "bundle", echo);
+            }
+            return opened;
+        }
         if (params.get("project") != null) {
             // M35.8: the largest act on this verb goes first. A project switch is a session boundary
             // (M35.5) — the log and graph close with it — so "open a project and a log" in one call
@@ -1269,7 +1305,7 @@ public final class ActionExecutor implements RenderExecutor {
         String format = str(params.get("format"));
         if (log == null && rolledSet == null && graphml == null && processor == null && design == null && diagnostics == null) {
             return ActionResult.error(
-                    "'open' needs 'design', 'diagnostics', 'log', 'graphml', 'processor', 'project', 'analysis', 'posture', 'record', "
+                    "'open' needs 'design', 'diagnostics', 'log', 'graphml', 'processor', 'project', 'bundle', 'analysis', 'posture', 'record', "
                             + "'close' or 'discover'");
         }
         Map<String, Object> echo = new java.util.LinkedHashMap<>();

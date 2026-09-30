@@ -85,6 +85,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileApp
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileLoaded;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ScanScheduled;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.SettingsRestored;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.SourceRootsObserved;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StatusShown;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.TimeOrderObserved;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ViewFilterChanged;
@@ -99,6 +100,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.WalkViewAp
 import telamin.fluxtion.audit.analyser.analyser.session.node.ActiveProject;
 import telamin.fluxtion.audit.analyser.analyser.session.node.AssistantLoop;
 import telamin.fluxtion.audit.analyser.analyser.session.node.AuditInstallation;
+import telamin.fluxtion.audit.analyser.analyser.session.node.BundleAnchor;
 import telamin.fluxtion.audit.analyser.analyser.session.node.CoverageClaim;
 import telamin.fluxtion.audit.analyser.analyser.session.node.DesignSession;
 import telamin.fluxtion.audit.analyser.analyser.session.node.EffectOutcomes;
@@ -185,6 +187,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Requ
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileLoaded
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ScanScheduled
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.SettingsRestored
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.SourceRootsObserved
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StatusShown
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.TimeOrderObserved
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ViewFilterChanged
@@ -255,6 +258,9 @@ public class SessionProcessor
   public final transient AssistantLoop assistantLoop =
       new telamin.fluxtion.audit.analyser.analyser.session.node.AssistantLoop(
           openLog, openGraph, activeProject, operationGate, effectQueue);;
+  public final transient BundleAnchor bundleAnchor =
+      new telamin.fluxtion.audit.analyser.analyser.session.node.BundleAnchor(
+          openBundle, effectQueue);;
   public final transient EvidenceCapture evidenceCapture =
       new telamin.fluxtion.audit.analyser.analyser.session.node.EvidenceCapture(
           openLog, operationGate, effectQueue);;
@@ -284,13 +290,14 @@ public class SessionProcessor
   //Measured saving on a 3-event-type graph: 0.098ns of a 5.61ns event on a JIT; nothing on native+PGO.
   private boolean callbacksPending = false;
   private final transient IdentityHashMap<Object, BooleanSupplier> dirtyFlagSupplierMap =
-      new IdentityHashMap<>(7);
+      new IdentityHashMap<>(8);
   private final transient IdentityHashMap<Object, Consumer<Boolean>> dirtyFlagUpdateMap =
-      new IdentityHashMap<>(7);
+      new IdentityHashMap<>(8);
 
   private boolean isDirty_activeProject = false;
   private boolean isDirty_assistantLoop = false;
   private boolean isDirty_auditInstallation = false;
+  private boolean isDirty_openBundle = false;
   private boolean isDirty_openGraph = false;
   private boolean isDirty_openLog = false;
   private boolean isDirty_operationGate = false;
@@ -515,6 +522,10 @@ public class SessionProcessor
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.SettingsRestored",
                 false),
             new ProcessorDescriptor.Input(
+                "SourceRootsObserved",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.SourceRootsObserved",
+                false),
+            new ProcessorDescriptor.Input(
                 "StatusShown",
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StatusShown",
                 false),
@@ -564,7 +575,7 @@ public class SessionProcessor
           new DescriptorSupport.Meta(
               null,
               "1.0.71",
-              "4a7431872d56c24193f360f1bc83fe5f3d905c394c8befe7fc42b63f7580a443",
+              "1b160751c75f84317a18bd91394a548179801342e2dae8f899597dfd2630f268",
               null));
 
   @Override
@@ -863,6 +874,9 @@ public class SessionProcessor
     } else if (event instanceof SettingsRestored) {
       SettingsRestored typedEvent = (SettingsRestored) event;
       handleEvent(typedEvent);
+    } else if (event instanceof SourceRootsObserved) {
+      SourceRootsObserved typedEvent = (SourceRootsObserved) event;
+      handleEvent(typedEvent);
     } else if (event instanceof StatusShown) {
       StatusShown typedEvent = (StatusShown) event;
       handleEvent(typedEvent);
@@ -1158,6 +1172,11 @@ public class SessionProcessor
 
   @OnEventHandler(failBuildIfMissingBooleanReturn = false)
   public void onEvent(SettingsRestored event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(SourceRootsObserved event) {
     processEvent(event);
   }
 
@@ -1901,7 +1920,7 @@ public class SessionProcessor
     auditInvocation(effectOutcomes, "effectOutcomes", "onProfileApplied", typedEvent);
     effectOutcomes.onProfileApplied(typedEvent);
     auditInvocation(openBundle, "openBundle", "onProfileApplied", typedEvent);
-    openBundle.onProfileApplied(typedEvent);
+    isDirty_openBundle = openBundle.onProfileApplied(typedEvent);
     if (guardCheck_auditInstallation()) {
       auditInvocation(auditInstallation, "auditInstallation", "recomputeOnStateChange", typedEvent);
       isDirty_auditInstallation = auditInstallation.recomputeOnStateChange();
@@ -1912,7 +1931,24 @@ public class SessionProcessor
       auditInvocation(logEvidence, "logEvidence", "onOpenLogChanged", typedEvent);
       logEvidence.onOpenLogChanged();
     }
-    commonDispatchTail_1(typedEvent);
+    if (guardCheck_pairing()) {
+      auditInvocation(pairing, "pairing", "recomputeOnStateChange", typedEvent);
+      isDirty_pairing = pairing.recomputeOnStateChange();
+    }
+    if (guardCheck_coverageClaim()) {
+      auditInvocation(coverageClaim, "coverageClaim", "recomputeOnStateChange", typedEvent);
+      coverageClaim.recomputeOnStateChange();
+    }
+    if (guardCheck_pairingQualifier()) {
+      auditInvocation(pairingQualifier, "pairingQualifier", "onPairChanged", typedEvent);
+      pairingQualifier.onPairChanged();
+    }
+    if (guardCheck_walkPlayback()) {
+      auditInvocation(walkPlayback, "walkPlayback", "onLogChanged", typedEvent);
+      walkPlayback.onLogChanged();
+    }
+    auditInvocation(bundleAnchor, "bundleAnchor", "onProfileApplied", typedEvent);
+    bundleAnchor.onProfileApplied(typedEvent);
     afterEvent();
   }
 
@@ -1924,7 +1960,7 @@ public class SessionProcessor
     auditInvocation(effectOutcomes, "effectOutcomes", "onProfileLoaded", typedEvent);
     effectOutcomes.onProfileLoaded(typedEvent);
     auditInvocation(openBundle, "openBundle", "onProfileLoaded", typedEvent);
-    openBundle.onProfileLoaded(typedEvent);
+    isDirty_openBundle = openBundle.onProfileLoaded(typedEvent);
     if (guardCheck_auditInstallation()) {
       auditInvocation(auditInstallation, "auditInstallation", "recomputeOnStateChange", typedEvent);
       isDirty_auditInstallation = auditInstallation.recomputeOnStateChange();
@@ -1976,7 +2012,7 @@ public class SessionProcessor
     auditInvocation(effectOutcomes, "effectOutcomes", "onSettingsRestored", typedEvent);
     effectOutcomes.onSettingsRestored(typedEvent);
     auditInvocation(openBundle, "openBundle", "onSettingsRestored", typedEvent);
-    openBundle.onSettingsRestored(typedEvent);
+    isDirty_openBundle = openBundle.onSettingsRestored(typedEvent);
     if (guardCheck_auditInstallation()) {
       auditInvocation(auditInstallation, "auditInstallation", "recomputeOnStateChange", typedEvent);
       isDirty_auditInstallation = auditInstallation.recomputeOnStateChange();
@@ -1988,6 +2024,14 @@ public class SessionProcessor
       logEvidence.onOpenLogChanged();
     }
     commonDispatchTail_1(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(SourceRootsObserved typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(bundleAnchor, "bundleAnchor", "onSourceRootsObserved", typedEvent);
+    bundleAnchor.onSourceRootsObserved(typedEvent);
     afterEvent();
   }
 
@@ -2485,9 +2529,11 @@ public class SessionProcessor
       auditInvocation(effectOutcomes, "effectOutcomes", "onProfileApplied", typedEvent);
       effectOutcomes.onProfileApplied(typedEvent);
       auditInvocation(openBundle, "openBundle", "onProfileApplied", typedEvent);
-      openBundle.onProfileApplied(typedEvent);
+      isDirty_openBundle = openBundle.onProfileApplied(typedEvent);
       auditInvocation(assistantLoop, "assistantLoop", "onProfileApplied", typedEvent);
       isDirty_assistantLoop = assistantLoop.onProfileApplied(typedEvent);
+      auditInvocation(bundleAnchor, "bundleAnchor", "onProfileApplied", typedEvent);
+      bundleAnchor.onProfileApplied(typedEvent);
     } else if (event instanceof ProfileLoaded) {
       ProfileLoaded typedEvent = (ProfileLoaded) event;
       auditEvent(typedEvent);
@@ -2496,7 +2542,7 @@ public class SessionProcessor
       auditInvocation(effectOutcomes, "effectOutcomes", "onProfileLoaded", typedEvent);
       effectOutcomes.onProfileLoaded(typedEvent);
       auditInvocation(openBundle, "openBundle", "onProfileLoaded", typedEvent);
-      openBundle.onProfileLoaded(typedEvent);
+      isDirty_openBundle = openBundle.onProfileLoaded(typedEvent);
       auditInvocation(assistantLoop, "assistantLoop", "onProfileLoaded", typedEvent);
       isDirty_assistantLoop = assistantLoop.onProfileLoaded(typedEvent);
       auditInvocation(sessionBoundary, "sessionBoundary", "onProfileLoaded", typedEvent);
@@ -2518,9 +2564,14 @@ public class SessionProcessor
       auditInvocation(effectOutcomes, "effectOutcomes", "onSettingsRestored", typedEvent);
       effectOutcomes.onSettingsRestored(typedEvent);
       auditInvocation(openBundle, "openBundle", "onSettingsRestored", typedEvent);
-      openBundle.onSettingsRestored(typedEvent);
+      isDirty_openBundle = openBundle.onSettingsRestored(typedEvent);
       auditInvocation(assistantLoop, "assistantLoop", "onSettingsRestored", typedEvent);
       isDirty_assistantLoop = assistantLoop.onSettingsRestored(typedEvent);
+    } else if (event instanceof SourceRootsObserved) {
+      SourceRootsObserved typedEvent = (SourceRootsObserved) event;
+      auditEvent(typedEvent);
+      auditInvocation(bundleAnchor, "bundleAnchor", "onSourceRootsObserved", typedEvent);
+      bundleAnchor.onSourceRootsObserved(typedEvent);
     } else if (event instanceof StatusShown) {
       StatusShown typedEvent = (StatusShown) event;
       auditEvent(typedEvent);
@@ -2646,6 +2697,7 @@ public class SessionProcessor
     auditor.nodeRegistered(activeProject, "activeProject");
     auditor.nodeRegistered(assistantLoop, "assistantLoop");
     auditor.nodeRegistered(auditInstallation, "auditInstallation");
+    auditor.nodeRegistered(bundleAnchor, "bundleAnchor");
     auditor.nodeRegistered(coverageClaim, "coverageClaim");
     auditor.nodeRegistered(designSession, "designSession");
     auditor.nodeRegistered(effectOutcomes, "effectOutcomes");
@@ -2732,6 +2784,7 @@ public class SessionProcessor
     isDirty_activeProject = false;
     isDirty_assistantLoop = false;
     isDirty_auditInstallation = false;
+    isDirty_openBundle = false;
     isDirty_openGraph = false;
     isDirty_openLog = false;
     isDirty_operationGate = false;
@@ -2769,6 +2822,7 @@ public class SessionProcessor
       dirtyFlagSupplierMap.put(activeProject, () -> isDirty_activeProject);
       dirtyFlagSupplierMap.put(assistantLoop, () -> isDirty_assistantLoop);
       dirtyFlagSupplierMap.put(auditInstallation, () -> isDirty_auditInstallation);
+      dirtyFlagSupplierMap.put(openBundle, () -> isDirty_openBundle);
       dirtyFlagSupplierMap.put(openGraph, () -> isDirty_openGraph);
       dirtyFlagSupplierMap.put(openLog, () -> isDirty_openLog);
       dirtyFlagSupplierMap.put(operationGate, () -> isDirty_operationGate);
@@ -2783,6 +2837,7 @@ public class SessionProcessor
       dirtyFlagUpdateMap.put(activeProject, (b) -> isDirty_activeProject = b);
       dirtyFlagUpdateMap.put(assistantLoop, (b) -> isDirty_assistantLoop = b);
       dirtyFlagUpdateMap.put(auditInstallation, (b) -> isDirty_auditInstallation = b);
+      dirtyFlagUpdateMap.put(openBundle, (b) -> isDirty_openBundle = b);
       dirtyFlagUpdateMap.put(openGraph, (b) -> isDirty_openGraph = b);
       dirtyFlagUpdateMap.put(openLog, (b) -> isDirty_openLog = b);
       dirtyFlagUpdateMap.put(operationGate, (b) -> isDirty_operationGate = b);
@@ -2801,6 +2856,10 @@ public class SessionProcessor
 
   private boolean guardCheck_auditInstallation() {
     return isDirty_openGraph;
+  }
+
+  private boolean guardCheck_bundleAnchor() {
+    return isDirty_openBundle;
   }
 
   private boolean guardCheck_coverageClaim() {
@@ -2891,6 +2950,8 @@ public class SessionProcessor
         return (T) assistantLoop;
       case "auditInstallation":
         return (T) auditInstallation;
+      case "bundleAnchor":
+        return (T) bundleAnchor;
       case "coverageClaim":
         return (T) coverageClaim;
       case "designSession":
@@ -2964,6 +3025,9 @@ public class SessionProcessor
     }
     if (node == auditInstallation) {
       return "auditInstallation";
+    }
+    if (node == bundleAnchor) {
+      return "bundleAnchor";
     }
     if (node == coverageClaim) {
       return "coverageClaim";

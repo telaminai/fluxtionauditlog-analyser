@@ -43,6 +43,11 @@ public final class SettingsShare {
     public static final int SHARE_VERSION = 1;
 
     /** A selectable group of settings. Each maps to a fixed set of whitelisted config keys. */
+    /** Categories by NAME, for a verb that names them rather than ticking a box. */
+    public static final java.util.Map<String, Category> CATEGORIES_BY_NAME =
+            java.util.Arrays.stream(Category.values())
+                    .collect(java.util.stream.Collectors.toUnmodifiableMap(Enum::name, c -> c));
+
     public enum Category {
         SOURCE_ROOTS("Source roots", true),
         MAVEN_REPOS("Maven repos", true),

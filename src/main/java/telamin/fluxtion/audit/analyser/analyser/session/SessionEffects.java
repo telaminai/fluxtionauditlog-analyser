@@ -27,6 +27,13 @@ public sealed interface SessionEffects {
     /** Open the verified graph and log after the bundled project has been applied. */
     record OpenBundleEvidenceEffect(long opId, SessionEvents.BundlePlan plan) implements SessionEffects { }
 
+    /** Remember, for this bundle, the source trees the person chose while it was open (#75). */
+    record RememberBundleAnchorEffect(long opId, String bundleSource,
+                                      java.util.List<String> roots) implements SessionEffects { }
+
+    /** Put back the source trees remembered for this bundle, so reopening it does not ask again (#75). */
+    record RestoreBundleAnchorEffect(long opId, String bundleSource) implements SessionEffects { }
+
     /**
      * Start a new, empty project at this path and make it the loaded one.
      *

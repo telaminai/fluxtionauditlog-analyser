@@ -68,6 +68,15 @@ public final class StartPanel extends JPanel {
 
         /** #73: reopen a bundle this machine has already verified once. */
         default void openRecentBundle(String path) { }
+
+        /** Forget a recent entry. {@code bundle} distinguishes the two lists; the file is not touched. */
+        default void forgetRecent(String path, boolean bundle) { }
+
+        /** Reveal the file in the desktop's file manager. */
+        default void revealRecent(String path) { }
+
+        /** Rename the file on disk, keeping the recent entry pointing at it. */
+        default void renameRecent(String path, boolean bundle) { }
         default void openExistingProject() { }
         default void restoreSession(long generation) { }
         default void dismissSessionRestore(long generation) { }
@@ -206,6 +215,38 @@ public final class StartPanel extends JPanel {
         into.add(button);
     }
 
+    /**
+     * A recent row: the entry itself, and a {@code …} button carrying the housekeeping. The actions are
+     * the panel's to OFFER and the frame's to PERFORM — this class stays reveal-only and never touches a file.
+     */
+    private JComponent recentRow(JButton entry, String path, boolean bundle) {
+        JPanel row = new JPanel(new BorderLayout(4, 0));
+        row.setOpaque(false);
+        row.setAlignmentX(LEFT_ALIGNMENT);
+        JButton more = new JButton("…");
+        more.setToolTipText("Remove from recents, reveal, rename");
+        more.setMargin(new java.awt.Insets(0, 6, 0, 6));
+        JPopupMenu menu = new JPopupMenu();
+        JMenuItem forget = new JMenuItem("Remove from recents");
+        forget.addActionListener(e -> actions.forgetRecent(path, bundle));
+        JMenuItem reveal = new JMenuItem("Open in " + (isMac() ? "Finder" : "file manager"));
+        reveal.addActionListener(e -> actions.revealRecent(path));
+        JMenuItem rename = new JMenuItem("Rename…");
+        rename.addActionListener(e -> actions.renameRecent(path, bundle));
+        menu.add(forget);
+        menu.add(reveal);
+        menu.add(rename);
+        more.addActionListener(e -> menu.show(more, 0, more.getHeight()));
+        row.add(entry, BorderLayout.CENTER);
+        row.add(more, BorderLayout.EAST);
+        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, entry.getPreferredSize().height));
+        return row;
+    }
+
+    private static boolean isMac() {
+        return System.getProperty("os.name", "").toLowerCase(java.util.Locale.ROOT).contains("mac");
+    }
+
     /** Recent project paths are machine-local navigation, never copied into a bundle or demo. */
     public void setRecentProjects(List<String> paths) {
         List<String> next = paths == null ? List.of() : List.copyOf(paths);
@@ -229,7 +270,7 @@ public final class StartPanel extends JPanel {
                 button.setAlignmentX(LEFT_ALIGNMENT);
                 button.setMaximumSize(new Dimension(Integer.MAX_VALUE, button.getPreferredSize().height));
                 button.addActionListener(e -> actions.openRecentProject(path));
-                recentProjects.add(button);
+                recentProjects.add(recentRow(button, path, false));
                 recentProjects.add(Box.createVerticalStrut(4));
             }
         }
@@ -253,10 +294,13 @@ public final class StartPanel extends JPanel {
             recentBundles.add(body("No evidence bundles opened yet. Use Open evidence bundle above, "
                     + "or drop a .fexp anywhere on this page."));
         } else {
-            for (var b : next) {
+            List<String> names = distinctNames(next.stream().map(
+                    telamin.fluxtion.audit.analyser.analyser.config.AppConfig.RecentBundle::path).toList());
+            for (int i = 0; i < next.size(); i++) {
+                var b = next.get(i);
                 Path file = Path.of(b.path());
                 boolean present = java.nio.file.Files.isRegularFile(file);
-                String label = String.valueOf(file.getFileName())
+                String label = names.get(i)
                         + (b.notes().isEmpty() ? "" : "  —  " + b.notes())
                         + (present ? "" : "   (file not found)");
                 JButton button = new JButton(label);
@@ -266,12 +310,43 @@ public final class StartPanel extends JPanel {
                 button.setMaximumSize(new Dimension(Integer.MAX_VALUE, button.getPreferredSize().height));
                 button.setEnabled(present);
                 button.addActionListener(e -> actions.openRecentBundle(b.path()));
-                recentBundles.add(button);
+                recentBundles.add(recentRow(button, b.path(), true));
                 recentBundles.add(Box.createVerticalStrut(4));
             }
         }
         recentBundles.revalidate();
         recentBundles.repaint();
+    }
+
+    /**
+     * Names that tell the list apart. A bundle is shown by its file name, which is not unique: the same
+     * evidence copied into two projects, or two runs both called {@code recorded-run.fexp}, produced rows
+     * that were identical down to the sender's note, with only the tooltip to separate them (found in use,
+     * 2026-09-30). Each name is widened with its parent directories until no other entry in the list reads
+     * the same, so the rows differ by as little as they can and no more.
+     */
+    static List<String> distinctNames(List<String> paths) {
+        List<String> out = new java.util.ArrayList<>(paths.size());
+        for (int i = 0; i < paths.size(); i++) {
+            Path path = Path.of(paths.get(i));
+            int n = path.getNameCount();
+            String label = path.toString();
+            for (int take = 1; take <= n; take++) {
+                String candidate = path.subpath(n - take, n).toString();
+                boolean clash = false;
+                for (int j = 0; j < paths.size() && !clash; j++) {
+                    if (j == i) continue;
+                    Path other = Path.of(paths.get(j));
+                    int on = other.getNameCount();
+                    clash = candidate.equals(on >= take
+                            ? other.subpath(on - take, on).toString() : other.toString());
+                }
+                label = candidate;
+                if (!clash) break;
+            }
+            out.add(label);
+        }
+        return out;
     }
 
     /** Refresh after the management dialog closes; the stored value never enters this component. */

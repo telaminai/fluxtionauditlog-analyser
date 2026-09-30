@@ -139,6 +139,45 @@ class BundleProvenanceFrameTest {
     }
 
     @Test
+    @DisplayName("#75: clearing your own source roots does not erase a bundle's anchor")
+    void clearingYourRootsDoesNotEraseTheAnchor(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        try (var f = shown(tmp)) {
+            Path dir = exchange(f, tmp);
+            Path code = java.nio.file.Files.createDirectories(tmp.resolve("checkout/src/main/java"));
+            String canonical = code.toAbsolutePath().normalize().toString();
+
+            openLog(f, EvidenceCaptureFrameTest.DEMO_LOG);
+            onEdt(() -> render(f.ex, "report", Map.of("bundle", Map.of("path", "cleared.fexp"))));
+            assertEquals("WRITTEN", awaitDecided(f).get("phase"));
+            Path fexp = dir.resolve("cleared.fexp");
+            openBundleAndWait(f, fexp);
+
+            onEdt(() -> render(f.ex, "source_root", Map.of("add", List.of(canonical))));
+            var config = (telamin.fluxtion.audit.analyser.analyser.config.AppConfig) field(f.frame, "config");
+            assertEquals(List.of(canonical), config.bundleSourceRoots(fexp.toString()),
+                    "precondition: the bundle is anchored");
+
+            // Tidying your settings is not "this bundle's code is nowhere". An empty observation is the
+            // one thing that must never be recorded as the answer -- it would erase a good anchor, and
+            // you would reopen the bundle to no source and no way to know why.
+            onEdt(() -> {
+                config.sourceRoots.clear();
+                try {
+                    var m = MainFrame.class.getDeclaredMethod("onConfigChanged");
+                    m.setAccessible(true);
+                    m.invoke(f.frame);
+                } catch (ReflectiveOperationException e) {
+                    throw new IllegalStateException(e);
+                }
+            });
+
+            assertEquals(List.of(canonical), config.bundleSourceRoots(fexp.toString()),
+                    "theAnchorSurvivesClearingYourRoots");
+        }
+    }
+
+    @Test
     @DisplayName("#75: a bundle arrives with no source; anchoring one is remembered and put back on reopen")
     void anchoringABundleToASourceTreeIsRemembered(@TempDir Path tmp) throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless());
@@ -313,6 +352,48 @@ class BundleProvenanceFrameTest {
             onEdt(() -> config.selectedEventProcessor = "com.example.MyOwn");
             assertEquals("com.example.MyOwn", config.selectedEventProcessor,
                     "theRecipientCanStillChooseWithinTheSession");
+        }
+    }
+
+    @Test
+    @DisplayName("closing a bundle does not overwrite its anchor with the roots of the project you return to")
+    void closingDoesNotPoisonTheAnchor(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        try (var f = shown(tmp)) {
+            Path dir = exchange(f, tmp);
+            Path code = java.nio.file.Files.createDirectories(tmp.resolve("checkout/src/main/java"));
+            String canonical = code.toAbsolutePath().normalize().toString();
+            Path other = java.nio.file.Files.createDirectories(tmp.resolve("someone-elses/src/main/java"));
+            String otherRoot = other.toAbsolutePath().normalize().toString();
+
+            var config = (telamin.fluxtion.audit.analyser.analyser.config.AppConfig) field(f.frame, "config");
+            // YOUR OWN settings hold your other project's roots. Without these the close restores an EMPTY
+            // set and the empty-guard alone would hide the defect — which is why an earlier version of this
+            // test passed with the fix removed.
+            onEdt(() -> render(f.ex, "source_root", Map.of("add", List.of(otherRoot))));
+            assertTrue(config.sourceRoots.contains(otherRoot), "precondition: your own settings have a root");
+
+            openLog(f, EvidenceCaptureFrameTest.DEMO_LOG);
+            onEdt(() -> render(f.ex, "report", Map.of("bundle", Map.of("path", "poison.fexp"))));
+            assertEquals("WRITTEN", awaitDecided(f).get("phase"));
+            Path fexp = dir.resolve("poison.fexp");
+            openBundleAndWait(f, fexp);
+
+            onEdt(() -> render(f.ex, "source_root", Map.of("add", List.of(canonical))));
+            assertEquals(List.of(canonical), config.bundleSourceRoots(fexp.toString()),
+                    "precondition: the bundle is anchored to its own source");
+
+            // Closing restores the person's OWN settings first — their other project's roots — and the
+            // render that follows runs while openBundle still reports the bundle as in force. That wrote
+            // the wrong roots over the anchor, and a reopen then could not find the bundle's source.
+            onEdt(() -> render(f.ex, "open", Map.of("close", "project")));
+            for (int i = 0; i < 100; i++) {
+                if (!config.bundleSourceRoots(fexp.toString()).contains(otherRoot)) break;
+                Thread.sleep(50);
+            }
+
+            assertEquals(List.of(canonical), config.bundleSourceRoots(fexp.toString()),
+                    "theAnchorSurvivesTheClose, un-poisoned by the project returned to");
         }
     }
 

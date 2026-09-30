@@ -422,7 +422,7 @@ public final class MainFrame extends JFrame {
             @Override public void selectTab(String title) { MainFrame.this.selectTab(title); }
             @Override public void openSettings(String page) {
                 ConfigPanel.show(MainFrame.this, config, MainFrame.this::onConfigChanged,
-                        MainFrame.this::readerSummaries, page);
+                        MainFrame.this::readerSummaries, page, settingsStartDir());
             }
             // the tab selection lives in ProjectRevealer now; this Surface only does the frame's part
             @Override public void selectReport(String name) {
@@ -1241,7 +1241,11 @@ public final class MainFrame extends JFrame {
     private void loadExperiment(Path bundle) {
         status.setText("Verifying and opening evidence bundle…");
         startPanel.showOperationFeedback("Verifying " + bundle.getFileName() + "…");
-        if (recovery != null) recovery.capture();
+        // Recovery is deliberately NOT armed for a bundle. It exists to offer back a session a crash took,
+        // and a bundle is disposable verified evidence unpacked to a fresh directory every time — there is
+        // no session of it worth resuming, and offering one put "Restore the session captured …" across the
+        // top of the start page after an ordinary open (reported in use, 2026-09-30). A real project's
+        // recovery is untouched.
         sessionInteractive = true;
         sessionProblem = null;
         var driver = session();
@@ -1255,7 +1259,7 @@ public final class MainFrame extends JFrame {
     /** Pure preparation: every outcome, including refusal, is reported to the session graph with its request id. */
     private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileLoaded prepareBundle(
             long opId, String bundlePath) throws java.io.IOException {
-        Path parent = Path.of(System.getProperty("user.home"), ".fluxtion-analyser", "bundles");
+        Path parent = telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.workingCopiesRoot();
         var unpacked = telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.unpack(Path.of(bundlePath), parent);
         var verification = unpacked.verification();
         if (!verification.ok()) {
@@ -2343,7 +2347,7 @@ public final class MainFrame extends JFrame {
         audit.add(exportYaml);
         projectMenu.addSeparator();
         JMenuItem settings = new JMenuItem("Settings…");
-        settings.addActionListener(e -> ConfigPanel.show(this, config, this::onConfigChanged, this::readerSummaries));
+        settings.addActionListener(e -> ConfigPanel.show(this, config, this::onConfigChanged, this::readerSummaries, null, settingsStartDir()));
         projectMenu.add(settings);
         JMenuItem exportSettings = new JMenuItem("Export settings…");
         exportSettings.setToolTipText("Share your analysis setup — roots, event processors, graphs (never your API key)");
@@ -3780,6 +3784,80 @@ public final class MainFrame extends JFrame {
             @Override public void openExperiment() { chooseExperiment(); }
             @Override public void investigateIncident() { chooseIncidentEvidence(); }
             @Override public void openRecentBundle(String path) { loadExperiment(Path.of(path)); }
+
+            @Override public void forgetRecent(String path, boolean bundle) {
+                // The LIST is machine-local navigation; the file is not touched.
+                if (bundle) config.recentBundles.removeIf(b -> b.path().equals(path));
+                else config.recentProjects.remove(path);
+                saveConfigQuietly();
+                rebuildRecentMenu();
+                refreshStartRecents();
+            }
+
+            @Override public void revealRecent(String path) {
+                Path file = Path.of(path);
+                try {
+                    // Desktop.browseFileDirectory is the portable reveal, but it is unimplemented on
+                    // several platforms and throws; fall back to opening the containing folder.
+                    if (java.awt.Desktop.isDesktopSupported()
+                            && java.awt.Desktop.getDesktop().isSupported(
+                                    java.awt.Desktop.Action.BROWSE_FILE_DIR)) {
+                        java.awt.Desktop.getDesktop().browseFileDirectory(file.toFile());
+                    } else if (file.getParent() != null) {
+                        java.awt.Desktop.getDesktop().open(file.getParent().toFile());
+                    }
+                } catch (RuntimeException | java.io.IOException ex) {
+                    status.setText("Could not reveal " + file.getFileName() + ": " + ex.getMessage());
+                }
+            }
+
+            @Override public void renameRecent(String path, boolean bundle) {
+                Path file = Path.of(path);
+                if (!Files.isRegularFile(file)) {
+                    status.setText("Cannot rename: " + path + " is no longer there.");
+                    return;
+                }
+                String chosen = JOptionPane.showInputDialog(MainFrame.this, "New name for this file:",
+                        file.getFileName().toString());
+                if (chosen == null || chosen.isBlank()
+                        || chosen.equals(file.getFileName().toString())) {
+                    return;
+                }
+                if (chosen.contains("/") || chosen.contains("\\")) {
+                    status.setText("A name, not a path: " + chosen);
+                    return;
+                }
+                Path target = file.resolveSibling(chosen);
+                if (Files.exists(target)) {
+                    status.setText("Already there: " + chosen);
+                    return;
+                }
+                try {
+                    Files.move(file, target);
+                } catch (java.io.IOException ex) {
+                    status.setText("Could not rename: " + ex.getMessage());
+                    return;
+                }
+                // the recent entry follows the file, keeping everything keyed on it — for a bundle that
+                // is its remembered source anchor, which is keyed on the .fexp path
+                if (bundle) {
+                    for (int i = 0; i < config.recentBundles.size(); i++) {
+                        var b = config.recentBundles.get(i);
+                        if (b.path().equals(path)) {
+                            config.recentBundles.set(i, new telamin.fluxtion.audit.analyser.analyser.config
+                                    .AppConfig.RecentBundle(target.toString(), b.identity(), b.notes(),
+                                    b.sourceRoots()));
+                        }
+                    }
+                } else {
+                    int at = config.recentProjects.indexOf(path);
+                    if (at >= 0) config.recentProjects.set(at, target.toString());
+                }
+                saveConfigQuietly();
+                rebuildRecentMenu();
+                refreshStartRecents();
+                status.setText("Renamed to " + chosen);
+            }
             @Override public void openRecentProject(String path) {
                 requestProject(Path.of(path), telamin.fluxtion.audit.analyser.analyser.session.TransitionKind.EXPLICIT_SWITCH, "start-recent");
             }
@@ -5989,33 +6067,119 @@ public final class MainFrame extends JFrame {
     }
 
     /**
-     * #75: a bundle arrives knowing WHICH classes it wants (the graphml keeps their fqns) but not WHERE,
-     * because capture strips every source root. The roots in force while a bundle is open ARE that answer,
-     * so they are remembered against it and restored next time it is opened.
-     *
-     * <p>This lives in {@code onConfigChanged} and not beside a particular edit, for the reason that funnel
-     * already documents. It was originally hung off {@code addSourceRoot}, which the {@code source_root}
-     * verb calls and the Settings dialog does NOT — {@code ConfigPanel.saveToConfig} rebuilds the list
-     * directly. So the feature worked from a script and silently did nothing when a person used the very
-     * dialog the Project panel sends them to (found in use, 2026-09-30). Every test went through the verb.
+     * Offer to anchor a freshly opened bundle to a source tree. Non-modal and on a later event: this runs
+     * while the session is performing an effect, and a modal dialog here would hold the event thread for as
+     * long as the person took to read it.
      */
-    private void rememberAnchorForOpenBundle() {
-        var open = sessionSnapshot().bundle();
-        if (!open.fromBundle() || open.source() == null) return;
-        // NEVER remember an empty set. This funnel also fires mid-transition, when a profile load has just
-        // cleared the project-scoped roots and the new ones are not in yet — and the bundle still in force
-        // is the one being reopened. Recording that transient emptiness wiped the very anchor the reopen
-        // was about to restore. It also means removing every root does not forget the anchor; setting a
-        // different one replaces it, which is the operation people actually perform.
-        if (config.sourceRoots.isEmpty()) return;
-        if (!config.rememberBundleSourceRoots(open.source(), List.copyOf(config.sourceRoots))) {
-            // a miss used to be silent, which is how this looked like it worked while recording nothing
-            status.setText("Could not remember the source root for this bundle: it is not in the recent list.");
+    private void offerToAnchorSource(String bundleSource) {
+        SwingUtilities.invokeLater(() -> {
+            int answer = JOptionPane.showConfirmDialog(this,
+                    "This evidence bundle carries no source code — a bundle never does, because capture\n"
+                            + "removes every source path. Its graph names the classes, so pointing the analyser\n"
+                            + "at your own copy makes the code behind these records readable.\n\n"
+                            + "The tree you choose is remembered for this bundle and restored next time.\n\n"
+                            + "Set a source root now?",
+                    "No source root for this bundle", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
+            if (answer == JOptionPane.YES_OPTION) {
+                ConfigPanel.show(this, config, this::onConfigChanged, this::readerSummaries, "Source roots",
+                        settingsStartDir());
+            } else {
+                status.setText("No source root set for this bundle — Project panel ▸ Bundle has no source tree.");
+            }
+        });
+    }
+
+    /**
+     * Where a Settings folder chooser should open. For an evidence bundle that is the folder holding the
+     * {@code .fexp} — NOT the project root, which for a bundle is a disposable working copy under
+     * {@code ~/.fluxtion-analyser/bundles} and is the last place anyone wants to browse from.
+     */
+    private Path settingsStartDir() {
+        var bundle = sessionSnapshot().bundle();
+        if (bundle.fromBundle() && bundle.source() != null) {
+            Path holding = Path.of(bundle.source()).getParent();
+            if (holding != null && Files.isDirectory(holding)) return holding;
+        }
+        if (project.hasProject() && project.activeFile() != null) {
+            Path analyser = project.activeFile().getParent();
+            Path root = analyser == null ? null : analyser.getParent();
+            if (root != null && Files.isDirectory(root)) return root;
+        }
+        return null;
+    }
+
+    /** The exchange directory a project declares, or null. */
+    private Path projectBundleDir() {
+        var exchange = telamin.fluxtion.audit.analyser.analyser.config.ExchangeDir.of(config);
+        if (exchange.dir() == null || exchange.dir().isBlank()) return null;
+        Path dir = Path.of(exchange.dir());
+        return Files.isDirectory(dir) ? dir : null;
+    }
+
+    private boolean exchangeHasBundles() {
+        Path dir = projectBundleDir();
+        if (dir == null) return false;
+        try (var s = Files.walk(dir, 2)) {
+            return s.anyMatch(f -> f.getFileName().toString().endsWith(".fexp"));
+        } catch (java.io.IOException e) {
+            return false;
         }
     }
 
+    /**
+     * #80: what evidence THIS PROJECT holds, as opposed to what this laptop happens to have opened. The
+     * exchange directory is project tier by design and is where {@code report {bundle}} writes; nothing
+     * read it back. Only name and size: reading each manifest is a zip open per file on every context call.
+     */
+    private void bundlesInProject(Map<String, Object> bundles) {
+        Path dir = projectBundleDir();
+        if (dir == null) return;
+        bundles.put("inProjectDir", dir.toString());
+        List<Map<String, Object>> found = new java.util.ArrayList<>();
+        try (var s = Files.walk(dir, 2)) {
+            s.filter(f -> f.getFileName().toString().endsWith(".fexp"))
+                    .filter(Files::isRegularFile)
+                    .sorted()
+                    .forEach(f -> {
+                        Map<String, Object> one = new java.util.LinkedHashMap<>();
+                        one.put("path", f.toString());
+                        one.put("name", dir.relativize(f).toString());
+                        try {
+                            one.put("bytes", Files.size(f));
+                        } catch (java.io.IOException ignored) {
+                            // listed without a size rather than dropped: it is still there to open
+                        }
+                        found.add(one);
+                    });
+        } catch (java.io.IOException e) {
+            return;
+        }
+        bundles.put("inProject", found);
+        bundles.put("inProjectNote", "every .fexp in this project's exchange directory and one level below, "
+                + "whether or not this machine has opened one; open one with open {bundle}. Identity and "
+                + "notes are not read here — that is a zip open each — so they appear only in 'recent'");
+    }
+
+    /** Re-render the start page's two recent lists from config — the one place that does it. */
+    private void refreshStartRecents() {
+        if (startPanel == null) return;
+        startPanel.setRecentProjects(config.recentProjects);
+        startPanel.setRecentBundles(config.recentBundles);
+    }
+
     private void onConfigChanged() {
-        rememberAnchorForOpenBundle();
+        onConfigChanged(false);
+    }
+
+    /** @param fromTransition true when this is a transition's rendering half, not a person's edit. */
+    private void onConfigChanged(boolean fromTransition) {
+        // REPORT, do not decide. bundleAnchor decides whether these roots are a bundle's answer; the
+        // frame's part is to say what it sees, and to stay silent during a transition's rendering half
+        // because the settings in hand then are the ones being swapped away, not a person's choice.
+        if (!fromTransition && session != null) {
+            session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents
+                    .SourceRootsObserved(List.copyOf(config.sourceRoots)));
+        }
         sourceService.configure(effectiveSourceRoots(), config.selectedEventProcessor,
                 config.mavenRepos, config.searchMavenRepos);
         Background.run(() -> { sourceService.warmMavenIndex(); return null; }, r -> { }, err -> { });
@@ -6687,8 +6851,7 @@ public final class MainFrame extends JFrame {
                     if (result.bundlePlan() != null && driver.processor().operationGate.accepted()
                             && project.activeFile() != null
                             && project.activeFile().toString().equals(result.bundlePlan().profilePath())) {
-                        projectDesignChanged();
-                        if (recovery != null) recovery.activate(project.activeFile(), project.activeNonce(), null);
+                        projectDesignChanged();       // and no recovery.activate: see loadExperiment
                     }
                 }, error -> {
                     driver.post(
@@ -6727,6 +6890,36 @@ public final class MainFrame extends JFrame {
                 yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileApplied(
                         opId, e.profilePath(), e.name());
             }
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.RememberBundleAnchorEffect e -> {
+                // PERFORM only. bundleAnchor decided that these roots are this bundle's answer; the frame
+                // writes it and reports whether there was a bundle to write against.
+                boolean remembered = config.rememberBundleSourceRoots(e.bundleSource(), e.roots());
+                if (remembered) {
+                    saveConfigQuietly();
+                } else {
+                    status.setText("Could not remember the source root for this bundle: it is not in the recent list.");
+                }
+                yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StatusShown(
+                        e.opId(), "rememberBundleAnchor");
+            }
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.RestoreBundleAnchorEffect e -> {
+                // Which of the remembered roots still EXIST is a question about the filesystem, so it is
+                // answered here rather than in the node.
+                boolean any = false;
+                for (String anchored : config.bundleSourceRoots(e.bundleSource())) {
+                    if (Files.isDirectory(Path.of(anchored)) && !config.sourceRoots.contains(anchored)) {
+                        config.sourceRoots.add(anchored);
+                        any = true;
+                    }
+                }
+                if (any) {
+                    onConfigChanged(true);   // a transition's render: do not re-report these as a choice
+                } else if (config.sourceRoots.isEmpty()) {
+                    offerToAnchorSource(e.bundleSource());
+                }
+                yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StatusShown(
+                        e.opId(), "restoreBundleAnchor");
+            }
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.OpenBundleEvidenceEffect e -> {
                 var plan = e.plan();
                 // #73: a recipient could not find out what they had been sent. Recorded here, where the
@@ -6742,11 +6935,7 @@ public final class MainFrame extends JFrame {
                         config.eventProcessorFqns.add(plan.processor());
                     }
                 }
-                for (String anchored : config.bundleSourceRoots(plan.source())) {
-                    if (Files.isDirectory(Path.of(anchored)) && !config.sourceRoots.contains(anchored)) {
-                        config.sourceRoots.add(anchored);
-                    }
-                }
+                // the anchor is bundleAnchor's: it requests RestoreBundleAnchorEffect when the bundle settles
                 saveConfigQuietly();
                 if (plan.graphPath() != null) topologyPanel.load(Path.of(plan.graphPath()));
                 startPanel.showOperationFeedback("Verified " + plan.identity() + ". The audit log is loading.\n"
@@ -6926,7 +7115,7 @@ public final class MainFrame extends JFrame {
 
     private void renderAfterTheRealWorkIsDone(String what) {
         try {
-            applyProjectSettings();
+            applyProjectSettings(true);
             reportWalkChanges();      // review PR57 R6: a project's walks are that project's
         } catch (telamin.fluxtion.audit.analyser.analyser.session.SessionDriver.ProtocolViolation violation) {
             throw violation;
@@ -6941,9 +7130,14 @@ public final class MainFrame extends JFrame {
 
     /** The rendering half: make the UI reflect settings that have already been swapped. */
     private void applyProjectSettings() {
+        applyProjectSettings(false);
+    }
+
+    /** @param fromTransition true when a project transition is rendering, not a person editing settings. */
+    private void applyProjectSettings(boolean fromTransition) {
         beforeProjectRender.run();
         restoreGraphDefinitions(List.copyOf(config.savedGraphs));
-        onConfigChanged();          // source service, processors, menus, and the global save
+        onConfigChanged(fromTransition);   // source service, processors, menus, and the global save
         tablePanel.setVisibleColumns(new java.util.HashSet<>(config.hiddenColumns));
         updateProjectMenuState();
         setTitleForProject();
@@ -7363,6 +7557,101 @@ public final class MainFrame extends JFrame {
                 return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("No unaccepted session offer is available; inspect context.restoration");
             recovery.restore(session().processor().sessionRecovery.generation());
             return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("open", "restoration", session().processor().sessionRecovery.echo());
+        }
+
+        @Override
+        public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult importFromBundle(
+                String path, java.util.List<String> categories) {
+            if (!project.hasProject()) {
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
+                        "import borrows INTO a project; none is open. Use open {project} first, or "
+                                + "open {bundle} to work in the bundle itself");
+            }
+            Path file = Path.of(path.trim());
+            if (!Files.isRegularFile(file)) {
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("no evidence bundle at " + file);
+            }
+            final telamin.fluxtion.audit.analyser.analyser.config.SettingsShare.ImportPlan plan;
+            final String identity;
+            try {
+                Path parent = telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.workingCopiesRoot();
+                var unpacked = telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.unpack(file, parent);
+                if (!unpacked.verification().ok()) {
+                    return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
+                            "evidence bundle refused: " + unpacked.verification().refusal());
+                }
+                identity = unpacked.verification().identity();
+                Path profile = unpacked.workingCopy().resolve("profile/project.fluxtion-settings");
+                if (!Files.isRegularFile(profile)) {
+                    return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
+                            "the bundle carries no project profile to borrow from");
+                }
+                plan = new telamin.fluxtion.audit.analyser.analyser.config.SettingsShare()
+                        .preview(Files.readString(profile), config, profile.getParent());
+            } catch (java.io.IOException | RuntimeException ex) {
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
+                        "could not read the bundle: " + ex);
+            }
+            Map<String, Object> echo = new java.util.LinkedHashMap<>();
+            echo.put("bundle", file.toString());
+            echo.put("identity", identity);
+            Map<String, Object> offered = new java.util.LinkedHashMap<>();
+            plan.summary().forEach((cat, text) -> offered.put(cat.name(), text));
+            echo.put("offers", offered);
+            if (categories == null) {
+                echo.put("applied", false);
+                echo.put("note", "PREVIEW — nothing was changed. Name 'categories' to apply. REPORTS carries "
+                        + "prose the sender wrote about their data, so it is applied only when named");
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("import", "preview", echo);
+            }
+            var selected = new java.util.LinkedHashSet<
+                    telamin.fluxtion.audit.analyser.analyser.config.SettingsShare.Category>();
+            List<String> unknown = new java.util.ArrayList<>();
+            for (String name : categories) {
+                var match = telamin.fluxtion.audit.analyser.analyser.config.SettingsShare.CATEGORIES_BY_NAME
+                        .get(name == null ? "" : name.trim().toUpperCase(java.util.Locale.ROOT));
+                if (match == null) unknown.add(String.valueOf(name));
+                else selected.add(match);
+            }
+            if (!unknown.isEmpty()) {
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
+                        "not a category this bundle can carry: " + unknown + " — a bundle holds "
+                                + telamin.fluxtion.audit.analyser.bundle.BundleProfile.CATEGORIES);
+            }
+            selected.retainAll(plan.present());
+            if (selected.isEmpty()) {
+                echo.put("applied", false);
+                echo.put("note", "none of the named categories is in this bundle");
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("import", "preview", echo);
+            }
+            new telamin.fluxtion.audit.analyser.analyser.config.SettingsShare().apply(plan, selected, config);
+            onConfigChanged();
+            refreshProjectPanel();
+            echo.put("applied", true);
+            echo.put("categories", selected.stream().map(Enum::name).toList());
+            echo.put("into", project.activeFile().toString());
+            return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("import", "applied", echo);
+        }
+
+        @Override
+        public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult openBundle(String path) {
+            if (path == null || path.isBlank()) {
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("'bundle' is empty");
+            }
+            Path file = Path.of(path.trim());
+            if (!Files.isRegularFile(file)) {
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
+                        "no evidence bundle at " + file);
+            }
+            loadExperiment(file);
+            Map<String, Object> echo = new java.util.LinkedHashMap<>();
+            echo.put("bundle", file.toString());
+            // Verification and the open run off the event thread, exactly as a log open does, so the
+            // verb returns before either lands. Nothing judged in THIS call was judged against the
+            // bundle; context {project} carries identity, notes, limits and the source anchor once it has.
+            echo.put("verifying", true);
+            echo.put("next", "read context {sections:[\"project\"]} for project.bundle once it lands");
+            return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("open", "bundle", echo);
         }
 
         @Override
@@ -8141,7 +8430,7 @@ public final class MainFrame extends JFrame {
             // hold — there is no list verb, and an unpacked working copy appears only as a recent LOG path.
             // need.test: up to 25 stat calls, so do not run them for a projection that did not ask. The same
             // shape ContextSectionsTest#aProjectionWithoutFluxtionKeyReadsNoKeyFile exists to stop.
-            if (need.test("bundles") && !config.recentBundles.isEmpty()) {
+            if (need.test("bundles") && (!config.recentBundles.isEmpty() || exchangeHasBundles())) {
                 List<Map<String, Object>> recent = new java.util.ArrayList<>();
                 for (var b : config.recentBundles) {
                     Map<String, Object> row = new java.util.LinkedHashMap<>();
@@ -8153,8 +8442,9 @@ public final class MainFrame extends JFrame {
                 }
                 Map<String, Object> bundles = new java.util.LinkedHashMap<>();
                 bundles.put("recent", recent);
-                bundles.put("workingCopies", Path.of(System.getProperty("user.home"),
-                        ".fluxtion-analyser", "bundles").toString());
+                bundlesInProject(bundles);
+                bundles.put("workingCopies",
+                        telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.workingCopiesRoot().toString());
                 bundles.put("note", "opened on this machine; identity and notes are as they were AT open, "
                         + "and the notes are the sender's words, not a fact about the evidence");
                 out.put("bundles", bundles);
