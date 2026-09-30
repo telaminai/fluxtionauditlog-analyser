@@ -27,6 +27,16 @@ RUNNER = 'tools/replay/ReplayBundle.java'
 GRAPHML = 'src/main/resources/telamin/fluxtion/audit/analyser/analyser/session/generated/SessionProcessor.graphml'
 
 CONTROLS = [
+    # The bundle names the processor its log came from. The graph names the NODES and never the processor,
+    # so without this a recipient opens with none and cannot guess one (found in use, 2026-09-30).
+    ('bundle-carries-its-processor', BUNDLE,
+     '        if (processor != null && !processor.isBlank()) m.put("processor", processor);\n',
+     '',
+     'BundleProvenanceFrameTest#aBundleCarriesItsEventProcessor'),
+    ('bundle-processor-adopted-on-open', UI + 'MainFrame.java',
+     '                    config.selectedEventProcessor = plan.processor();\n',
+     '',
+     'BundleProvenanceFrameTest#aBundleCarriesItsEventProcessor'),
     # A transition's REAL half happens in ProjectSession before either effect arm runs. Reporting a render
     # failure as the transition's failure left the session naming a project that was gone (review 2026-09-29).
     ('transition-render-failure-is-not-a-transition-failure', UI + 'MainFrame.java',
@@ -49,16 +59,23 @@ CONTROLS = [
      '    public boolean onSettingsRestored(SessionEvents.SettingsRestored event) {\n        if (true) {\n',
      'BundleProvenanceTest#closingBackToOwnSettingsClearsTheBundle'),
     # Bundle source anchoring (#75): capture strips every root, so the code is unreachable without one.
+    # Anchored in the CONFIG FUNNEL, not beside one edit: the Settings dialog rebuilds sourceRoots
+    # directly and never calls addSourceRoot, so a hook there caught the verb and missed the person.
     ('bundle-anchor-remembered', UI + 'MainFrame.java',
-     '                config.rememberBundleSourceRoot(open.source(), canonical);\n',
+     '        rememberAnchorForOpenBundle();\n',
+     '',
+     'BundleProvenanceFrameTest#anchoringABundleToASourceTreeIsRemembered'),
+    # and it must not record the transient emptiness a reopen passes through, which wiped the anchor
+    ('bundle-anchor-survives-a-reopen', UI + 'MainFrame.java',
+     '        if (config.sourceRoots.isEmpty()) return;\n',
      '',
      'BundleProvenanceFrameTest#anchoringABundleToASourceTreeIsRemembered'),
     ('bundle-anchor-restored', UI + 'MainFrame.java',
-     '                    config.sourceRoots.add(anchored);\n',
+     '                        config.sourceRoots.add(anchored);\n',
      '',
      'BundleProvenanceFrameTest#anchoringABundleToASourceTreeIsRemembered'),
     ('bundle-anchor-published', UI + 'MainFrame.java',
-     '                    bundle.put("sourceAnchor", anchor.isEmpty() ? "none" : anchor);\n',
+     '                    bundle.put("sourceAnchor", anchors.isEmpty() ? "none" : String.join(", ", anchors));\n',
      '                    bundle.put("sourceAnchor", "none");\n',
      'BundleProvenanceFrameTest#anchoringABundleToASourceTreeIsRemembered'),
     # Bundle discovery (#73): a recipient could not find out what they had been sent.
@@ -106,8 +123,8 @@ CONTROLS = [
      '        pending = event.bundlePlan();\n',
      'BundleProvenanceTest#provenanceOutlivesTheTransition'),
     ('bundle-provenance-source-is-the-fexp', UI + 'MainFrame.java',
-     '                bundlePath);\n',
-     '                null);\n',
+     '                bundlePath, verification.processor());\n',
+     '                null, verification.processor());\n',
      'BundleProvenanceFrameTest#anOpenedBundleSaysSoForTheSessionsLife'),
     # Independent PR77 review: boundary regressions, each red on the reviewed head.
     ('oa-review-provider-words', J + 'assistant/AssistantAdapter.java',

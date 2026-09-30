@@ -70,7 +70,12 @@ public final class EvidenceBundle {
 
     /** A verification: the identity, and either every member verified or the first refusal naming the member. */
     public record Verification(String identity, List<Member> members, String refusal, Map<String, Object> excerpt,
-                               Map<String, Object> replay) {
+                               Map<String, Object> replay, String processor) {
+        public Verification(String identity, List<Member> members, String refusal, Map<String, Object> excerpt,
+                            Map<String, Object> replay) {
+            this(identity, members, refusal, excerpt, replay, null);
+        }
+
         public Verification(String identity, List<Member> members, String refusal) {
             this(identity, members, refusal, null, null);
         }
@@ -116,6 +121,13 @@ public final class EvidenceBundle {
      */
     public static String pack(Path folder, Path out, Instant createdAt, String analyserVersion,
                               Map<String, Object> excerpt, Map<String, Object> replay) throws IOException {
+        return pack(folder, out, createdAt, analyserVersion, excerpt, replay, null);
+    }
+
+    /** As above, naming the event processor the log came from (a class name; null or blank for none). */
+    public static String pack(Path folder, Path out, Instant createdAt, String analyserVersion,
+                              Map<String, Object> excerpt, Map<String, Object> replay, String processor)
+            throws IOException {
         if (!Files.isDirectory(folder)) throw new IOException("not a folder: " + folder);
         if (Files.exists(out)) throw new IOException("will not overwrite " + out);
         TreeMap<String, Path> files = new TreeMap<>();
@@ -142,7 +154,7 @@ public final class EvidenceBundle {
         long replays = members.stream().filter(x -> x.path().startsWith(REPLAY_DIR)).count();
         if (replay != null && replays != 1) throw new IOException("a replay bundle holds one " + REPLAY_DIR + " member, not " + replays);
         if (replay == null && replays != 0) throw new IOException("a " + REPLAY_DIR + " member with no replay stated");
-        byte[] manifest = manifestBytes(members, createdAt, analyserVersion, excerpt, replay);
+        byte[] manifest = manifestBytes(members, createdAt, analyserVersion, excerpt, replay, processor);
         try (OutputStream os = Files.newOutputStream(out, java.nio.file.StandardOpenOption.CREATE_NEW);
              ZipOutputStream zip = new ZipOutputStream(os)) {
             put(zip, MANIFEST, manifest);
@@ -173,6 +185,17 @@ public final class EvidenceBundle {
 
     static byte[] manifestBytes(List<Member> members, Instant createdAt, String analyserVersion, Map<String, Object> excerpt,
                                 Map<String, Object> replay) {
+        return manifestBytes(members, createdAt, analyserVersion, excerpt, replay, null);
+    }
+
+    /**
+     * As above, naming the event processor the log came from. A fully-qualified CLASS NAME, not a path: it
+     * identifies nothing about the sender's machine, and without it a recipient opens the bundle with no
+     * processor selected and no way to guess one — the graph names the nodes but never the processor that
+     * dispatches them (found in use, 2026-09-30). Absent or blank leaves the manifest's bytes as they were.
+     */
+    static byte[] manifestBytes(List<Member> members, Instant createdAt, String analyserVersion, Map<String, Object> excerpt,
+                                Map<String, Object> replay, String processor) {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("format", replay == null ? FORMAT : FORMAT_REPLAY);
         m.put("createdAt", createdAt.toString());
@@ -181,6 +204,7 @@ public final class EvidenceBundle {
                 .ifPresent(x -> m.put("log", Map.of("member", x.path())));
         members.stream().filter(x -> x.path().startsWith("graph/")).findFirst()
                 .ifPresent(x -> m.put("graph", Map.of("member", x.path())));
+        if (processor != null && !processor.isBlank()) m.put("processor", processor);
         if (excerpt != null) m.put("excerpt", excerpt);
         if (replay != null) {
             Map<String, Object> r = new LinkedHashMap<>();
@@ -235,6 +259,7 @@ public final class EvidenceBundle {
         String identity = null;
         Map<String, Object> excerpt = null;
         Map<String, Object> replay = null;
+        String processor = null;
         Map<String, Member> listed = null;
         Set<String> seen = new LinkedHashSet<>();
         try (InputStream in = Files.newInputStream(bundle); ZipInputStream zip = new ZipInputStream(in)) {
@@ -259,6 +284,7 @@ public final class EvidenceBundle {
                         members = members(manifest);
                         excerpt = excerptOf(manifest);
                         replay = replayOf(manifest, members);
+                        processor = processorOf(manifest);
                     } catch (RuntimeException ex) {
                         return refused(identity, MANIFEST + " cannot be read: " + ex.getMessage());
                     }
@@ -303,7 +329,7 @@ public final class EvidenceBundle {
         for (String path : listed.keySet()) {
             if (!seen.contains(path)) return refused(identity, "missing member: " + path);
         }
-        return new Pass(new Verification(identity, List.copyOf(listed.values()), null, excerpt, replay), listed);
+        return new Pass(new Verification(identity, List.copyOf(listed.values()), null, excerpt, replay, processor), listed);
     }
 
     private static Pass refused(String identity, String why) {
@@ -337,6 +363,13 @@ public final class EvidenceBundle {
         if (x == null) return null;
         if (!(x instanceof Map<?, ?> m)) throw new IllegalArgumentException("excerpt is not an object");
         return Map.copyOf((Map<String, Object>) m);
+    }
+
+    /** The event processor a manifest names, or null. A class name, so nothing to validate against members. */
+    @SuppressWarnings("unchecked")
+    static String processorOf(byte[] manifest) {
+        Map<String, Object> m = (Map<String, Object>) Json.parse(new String(manifest, StandardCharsets.UTF_8));
+        return m.get("processor") instanceof String s && !s.isBlank() ? s : null;
     }
 
     /**

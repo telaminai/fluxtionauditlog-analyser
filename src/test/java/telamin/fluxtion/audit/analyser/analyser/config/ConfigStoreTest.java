@@ -60,7 +60,8 @@ class ConfigStoreTest {
         c.addRecentBundle("/demo/one.fexp", "sha256:aaa", "DEMO the first thing sent");
         c.addRecentBundle("/demo/two.fexp", "sha256:bbb", "");
         c.addRecentBundle("/demo/one.fexp", "sha256:aaa", "DEMO the first thing sent");   // reopened
-        c.rememberBundleSourceRoot("/demo/one.fexp", "/code/checkout/src/main/java");
+        assertTrue(c.rememberBundleSourceRoots("/demo/one.fexp", List.of("/code/checkout/src/main/java")),
+                "a miss must be reportable, not silent");
         store.save(c);
 
         AppConfig d = store.load();
@@ -71,9 +72,9 @@ class ConfigStoreTest {
         assertEquals("/demo/two.fexp", d.recentBundles.get(1).path());
         assertEquals("", d.recentBundles.get(1).notes());
         // #75: the anchor is the whole point of remembering a bundle — a fresh machine reads it from disk
-        assertEquals("/code/checkout/src/main/java", d.recentBundles.get(0).sourceRoot(),
+        assertEquals(List.of("/code/checkout/src/main/java"), d.recentBundles.get(0).sourceRoots(),
                 "anchorSurvivesARestart");
-        assertEquals("", d.recentBundles.get(1).sourceRoot());
+        assertEquals(List.of(), d.recentBundles.get(1).sourceRoots());
     }
 
     @Test

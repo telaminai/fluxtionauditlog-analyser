@@ -54,7 +54,16 @@ public final class BundleWriter {
     public record Job(Path out, Path log, Path graph, String settingsName, byte[] settingsBytes, String notes,
                       BundleExcerpt.Taken excerpt, Instant createdAt, String version, int thresholdMb,
                       String expectedLogSha256, boolean readSoFar, Path replay, int replayRecords, int serviceCalls,
-                      String replaySha256) {
+                      String replaySha256, String processor) {
+        /** A capture that does not name its event processor — the shape every pre-2026-09-30 caller uses. */
+        public Job(Path out, Path log, Path graph, String settingsName, byte[] settingsBytes, String notes,
+                   BundleExcerpt.Taken excerpt, Instant createdAt, String version, int thresholdMb,
+                   String expectedLogSha256, boolean readSoFar, Path replay, int replayRecords, int serviceCalls,
+                   String replaySha256) {
+            this(out, log, graph, settingsName, settingsBytes, notes, excerpt, createdAt, version, thresholdMb,
+                    expectedLogSha256, readSoFar, replay, replayRecords, serviceCalls, replaySha256, null);
+        }
+
         /** A capture with no replay. */
         public Job(Path out, Path log, Path graph, String settingsName, byte[] settingsBytes, String notes,
                    BundleExcerpt.Taken excerpt, Instant createdAt, String version, int thresholdMb,
@@ -177,7 +186,8 @@ public final class BundleWriter {
                 replay.put("records", job.replayRecords());
                 replay.put("serviceCalls", job.serviceCalls());
             }
-            String identity = EvidenceBundle.pack(payload, job.out(), job.createdAt(), job.version(), cut, replay);
+            String identity = EvidenceBundle.pack(payload, job.out(), job.createdAt(), job.version(), cut, replay,
+                    job.processor());
             return new Written(identity, List.copyOf(lines));
         } catch (IOException | RuntimeException e) {
             Files.deleteIfExists(job.out());

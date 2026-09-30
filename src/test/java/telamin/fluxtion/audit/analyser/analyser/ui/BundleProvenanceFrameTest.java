@@ -79,6 +79,16 @@ class BundleProvenanceFrameTest {
                     "sourceIsTheFexpThatWasOpened, not the unpacked profile inside it");
             assertEquals(Boolean.TRUE, bundle.get("verified"));
 
+            // the start page's progress blurb is not left behind: the Project panel carries these facts
+            // permanently now, so the "Verified …, the audit log is loading" text is a stale duplicate
+            AtomicReference<String> blurb = new AtomicReference<>("");
+            onEdt(() -> {
+                var sp = (StartPanel) field(f.frame, "startPanel");
+                var fb = (javax.swing.JComponent) field(sp, "operationFeedback");
+                blurb.set(fb.isVisible() ? "VISIBLE" : "");
+            });
+            assertEquals("", blurb.get(), "theStartPageProgressBlurbIsCleared");
+
             AtomicReference<String> title = new AtomicReference<>();
             onEdt(() -> title.set(f.frame.getTitle()));
             String bare = identity.startsWith("sha256:") ? identity.substring(7) : identity;
@@ -145,11 +155,26 @@ class BundleProvenanceFrameTest {
             assertNotNull(before.get("sourceAnchorNote"));
 
             String canonical = code.toAbsolutePath().normalize().toString();
-            onEdt(() -> render(f.ex, "source_root", Map.of("add", List.of(canonical))));
+            // THE PATH A PERSON TAKES. ConfigPanel.saveToConfig rebuilds config.sourceRoots directly and
+            // never calls addSourceRoot, so hanging the anchor off that method caught the verb and missed
+            // the Settings dialog the Project panel's own row sends you to. Found in use, 2026-09-30:
+            // every test went through the verb. This one goes through the dialog's effect on the config.
+            onEdt(() -> {
+                var cfg = (telamin.fluxtion.audit.analyser.analyser.config.AppConfig) field(f.frame, "config");
+                cfg.sourceRoots.clear();
+                cfg.sourceRoots.add(canonical);
+                try {
+                    var m = MainFrame.class.getDeclaredMethod("onConfigChanged");
+                    m.setAccessible(true);
+                    m.invoke(f.frame);
+                } catch (ReflectiveOperationException e) {
+                    throw new IllegalStateException(e);
+                }
+            });
 
             var config = (telamin.fluxtion.audit.analyser.analyser.config.AppConfig) field(f.frame, "config");
-            assertEquals(canonical, config.bundleSourceRoot(fexp.toString()),
-                    "anchorIsRememberedAgainstTheBundle");
+            assertEquals(List.of(canonical), config.bundleSourceRoots(fexp.toString()),
+                    "anchorIsRememberedAgainstTheBundle, however the root was added");
 
             // forget the root the way a fresh machine would, then reopen the same bundle.
             // The barrier has to be the THING ASSERTED: openBundleAndWait polls for a bundle in the payload,
@@ -251,6 +276,43 @@ class BundleProvenanceFrameTest {
             }
             assertEquals(Boolean.TRUE, echo.get().get("ok"),
                     "aRenderFailureIsNotATransitionFailure: " + echo.get());
+        }
+    }
+
+    @Test
+    @DisplayName("a bundle names the event processor its log came from, and a recipient with none adopts it")
+    void aBundleCarriesItsEventProcessor(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        String fqn = "com.acme.demo.generated.DemoQuoteRecordedProcessor";
+        try (var f = shown(tmp)) {
+            Path dir = exchange(f, tmp);
+            openLog(f, EvidenceCaptureFrameTest.DEMO_LOG);
+            var config = (telamin.fluxtion.audit.analyser.analyser.config.AppConfig) field(f.frame, "config");
+            onEdt(() -> config.selectedEventProcessor = fqn);
+            onEdt(() -> render(f.ex, "report", Map.of("bundle", Map.of("path", "withproc.fexp"))));
+            assertEquals("WRITTEN", awaitDecided(f).get("phase"));
+
+            // it is in the manifest, as a class name -- the graph never names the processor, only its nodes
+            try (var zip = new java.util.zip.ZipFile(dir.resolve("withproc.fexp").toFile())) {
+                String manifest = new String(zip.getInputStream(zip.getEntry("manifest.json")).readAllBytes(),
+                        java.nio.charset.StandardCharsets.UTF_8);
+                assertTrue(manifest.contains("\"processor\":\"" + fqn + "\""),
+                        "theManifestNamesTheProcessor: " + manifest);
+            }
+
+            // a recipient who has none adopts it; without this the Source tab opens empty
+            onEdt(() -> { config.selectedEventProcessor = ""; config.eventProcessorFqns.clear(); });
+            openBundleAndWait(f, dir.resolve("withproc.fexp"));
+            assertEquals(fqn, config.selectedEventProcessor, "aRecipientWithNoneAdoptsIt");
+            assertTrue(config.eventProcessorFqns.contains(fqn));
+
+            // and the recipient can still choose differently: the selection is project-scoped, so it holds
+            // for the session and is replaced by the NEXT project switch, exactly as any project setting is.
+            // (A previous project's choice does not survive opening a bundle, because applying the bundle's
+            // profile clears project-scoped settings first — that is a project switch, not an override.)
+            onEdt(() -> config.selectedEventProcessor = "com.example.MyOwn");
+            assertEquals("com.example.MyOwn", config.selectedEventProcessor,
+                    "theRecipientCanStillChooseWithinTheSession");
         }
     }
 

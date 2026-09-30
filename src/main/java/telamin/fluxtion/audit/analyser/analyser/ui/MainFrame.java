@@ -1283,7 +1283,7 @@ public final class MainFrame extends JFrame {
                 profile.toString(), graphs.isEmpty() ? null : root.resolve(graphs.getFirst()).toString(),
                 root.resolve(logs.getFirst()).toString(), verification.identity(), root.toString(), limits,
                 firstNoteLine(root.resolve(telamin.fluxtion.audit.analyser.bundle.BundleWriter.NOTES)),
-                bundlePath);
+                bundlePath, verification.processor());
         return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileLoaded(
                 opId, profile.toString(), true, null, 0, null, plan);
     }
@@ -5546,7 +5546,19 @@ public final class MainFrame extends JFrame {
     private telamin.fluxtion.audit.analyser.analyser.session.BundleProvenance bundleRendered =
             telamin.fluxtion.audit.analyser.analyser.session.BundleProvenance.NONE;
 
+    /** Whether the start page's bundle progress blurb has been cleared for the bundle in force. */
+    private boolean bundleFeedbackCleared;
+
     private void renderBundleProvenance(telamin.fluxtion.audit.analyser.analyser.session.SessionSnapshot next) {
+        // "Verified <id>. The audit log is loading." is PROGRESS. Once the log is open the Project panel
+        // carries identity, working copy and limits for the whole session, so the blurb is a stale
+        // duplicate left sitting under "What would you like to work on" (reported in use, 2026-09-30).
+        if (!next.bundle().fromBundle()) {
+            bundleFeedbackCleared = false;
+        } else if (next.logOpen() && !bundleFeedbackCleared) {
+            bundleFeedbackCleared = true;
+            if (startPanel != null) startPanel.showOperationFeedback(null);
+        }
         if (next.bundle().equals(bundleRendered)) return;
         bundleRendered = next.bundle();
         setTitleForProject();
@@ -5976,7 +5988,34 @@ public final class MainFrame extends JFrame {
         refreshProjectPanel();
     }
 
+    /**
+     * #75: a bundle arrives knowing WHICH classes it wants (the graphml keeps their fqns) but not WHERE,
+     * because capture strips every source root. The roots in force while a bundle is open ARE that answer,
+     * so they are remembered against it and restored next time it is opened.
+     *
+     * <p>This lives in {@code onConfigChanged} and not beside a particular edit, for the reason that funnel
+     * already documents. It was originally hung off {@code addSourceRoot}, which the {@code source_root}
+     * verb calls and the Settings dialog does NOT — {@code ConfigPanel.saveToConfig} rebuilds the list
+     * directly. So the feature worked from a script and silently did nothing when a person used the very
+     * dialog the Project panel sends them to (found in use, 2026-09-30). Every test went through the verb.
+     */
+    private void rememberAnchorForOpenBundle() {
+        var open = sessionSnapshot().bundle();
+        if (!open.fromBundle() || open.source() == null) return;
+        // NEVER remember an empty set. This funnel also fires mid-transition, when a profile load has just
+        // cleared the project-scoped roots and the new ones are not in yet — and the bundle still in force
+        // is the one being reopened. Recording that transient emptiness wiped the very anchor the reopen
+        // was about to restore. It also means removing every root does not forget the anchor; setting a
+        // different one replaces it, which is the operation people actually perform.
+        if (config.sourceRoots.isEmpty()) return;
+        if (!config.rememberBundleSourceRoots(open.source(), List.copyOf(config.sourceRoots))) {
+            // a miss used to be silent, which is how this looked like it worked while recording nothing
+            status.setText("Could not remember the source root for this bundle: it is not in the recent list.");
+        }
+    }
+
     private void onConfigChanged() {
+        rememberAnchorForOpenBundle();
         sourceService.configure(effectiveSourceRoots(), config.selectedEventProcessor,
                 config.mavenRepos, config.searchMavenRepos);
         Background.run(() -> { sourceService.warmMavenIndex(); return null; }, r -> { }, err -> { });
@@ -6599,7 +6638,9 @@ public final class MainFrame extends JFrame {
                 settingsName, settingsBytes, e.notes(), taken, java.time.Instant.now(),
                 telamin.fluxtion.audit.analyser.analyser.core.ReleaseNotes.version(), config.memoryThresholdMb, expected,
                 e.readSoFar(), e.replay() == null ? null : Path.of(e.replay()), e.replayRecords(), e.serviceCalls(),
-                e.replaySha256());
+                e.replaySha256(),
+                // a CLASS NAME, not a path: it leaks nothing and without it a recipient has no processor
+                config.selectedEventProcessor);
         telamin.fluxtion.audit.analyser.analyser.core.Background.run(() -> {
                     try {
                         return telamin.fluxtion.audit.analyser.bundle.BundleWriter.write(job);
@@ -6692,10 +6733,19 @@ public final class MainFrame extends JFrame {
                 // adapter performs the effect, beside the way a project open records its own recent.
                 config.addRecentBundle(plan.source(), plan.identity(), plan.notes());
                 // #75: put back the source tree this machine already chose for this bundle, if it is still there
-                String anchored = config.bundleSourceRoot(plan.source());
-                if (!anchored.isEmpty() && Files.isDirectory(Path.of(anchored))
-                        && !config.sourceRoots.contains(anchored)) {
-                    config.sourceRoots.add(anchored);
+                // the bundle names the processor its log came from; adopt it when the recipient has none,
+                // so the Source tab is not empty for want of a class name the sender already knew
+                if (plan.processor() != null && !plan.processor().isBlank()
+                        && (config.selectedEventProcessor == null || config.selectedEventProcessor.isBlank())) {
+                    config.selectedEventProcessor = plan.processor();
+                    if (!config.eventProcessorFqns.contains(plan.processor())) {
+                        config.eventProcessorFqns.add(plan.processor());
+                    }
+                }
+                for (String anchored : config.bundleSourceRoots(plan.source())) {
+                    if (Files.isDirectory(Path.of(anchored)) && !config.sourceRoots.contains(anchored)) {
+                        config.sourceRoots.add(anchored);
+                    }
                 }
                 saveConfigQuietly();
                 if (plan.graphPath() != null) topologyPanel.load(Path.of(plan.graphPath()));
@@ -7789,14 +7839,6 @@ public final class MainFrame extends JFrame {
             if (!Files.isDirectory(dir)) return false;
             String canonical = dir.toAbsolutePath().normalize().toString();
             if (!config.sourceRoots.contains(canonical)) config.sourceRoots.add(canonical);
-            // #75: capture strips every source root, so a bundle arrives knowing WHICH classes it wants
-            // (the graphml keeps their fqns) but not WHERE. Anchoring while a bundle is open is that
-            // answer, so it is remembered against the bundle and restored the next time it is opened.
-            var open = sessionSnapshot().bundle();
-            if (open.fromBundle() && open.source() != null) {
-                config.rememberBundleSourceRoot(open.source(), canonical);
-                saveConfigQuietly();
-            }
             onConfigChanged();
             // Adding a root IS the statement "the code is here". Inference runs when a log is opened, so
             // a root added afterwards would otherwise leave the processor unresolved and every
@@ -8084,9 +8126,9 @@ public final class MainFrame extends JFrame {
                     if (!received.notes().isEmpty()) bundle.put("notes", received.notes());
                     // #75: no source root survives capture, so say plainly whether this machine has
                     // supplied one. The graph names the classes; only a root says where they are.
-                    String anchor = config.bundleSourceRoot(received.source());
-                    bundle.put("sourceAnchor", anchor.isEmpty() ? "none" : anchor);
-                    if (anchor.isEmpty()) bundle.put("sourceAnchorNote",
+                    var anchors = config.bundleSourceRoots(received.source());
+                    bundle.put("sourceAnchor", anchors.isEmpty() ? "none" : String.join(", ", anchors));
+                    if (anchors.isEmpty()) bundle.put("sourceAnchorNote",
                             "the bundle carries no source; add a root to read the code behind these records");
                     if (!received.limits().isEmpty()) bundle.put("limits", received.limits());
                     proj.put("bundle", bundle);

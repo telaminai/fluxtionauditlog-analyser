@@ -169,14 +169,14 @@ public final class AppConfig {
      * @param identity {@code sha256:} of the manifest at the time it was opened
      * @param notes    the first line of {@code notes/NOTES.md}, or blank
      */
-    public record RecentBundle(String path, String identity, String notes, String sourceRoot) {
+    public record RecentBundle(String path, String identity, String notes, List<String> sourceRoots) {
         /** A bundle nobody has anchored yet — the shape every pre-#75 caller uses. */
         public RecentBundle(String path, String identity, String notes) {
-            this(path, identity, notes, "");
+            this(path, identity, notes, List.of());
         }
 
         public RecentBundle {
-            sourceRoot = sourceRoot == null ? "" : sourceRoot;
+            sourceRoots = sourceRoots == null ? List.of() : List.copyOf(sourceRoots);
         }
     }
 
@@ -189,30 +189,36 @@ public final class AppConfig {
      */
     public void addRecentBundle(String path, String identity, String notes) {
         if (path == null || path.isBlank()) return;
-        String anchored = bundleSourceRoot(path);
+        List<String> anchored = bundleSourceRoots(path);
         recentBundles.removeIf(b -> b.path().equals(path));
         recentBundles.add(0, new RecentBundle(path, identity == null ? "" : identity,
                 notes == null ? "" : notes, anchored));
         while (recentBundles.size() > 25) recentBundles.remove(recentBundles.size() - 1);
     }
 
-    /** The source tree this machine anchored to that bundle, or "" — #75. */
-    public String bundleSourceRoot(String path) {
-        if (path == null) return "";
+    /** The source trees this machine anchored to that bundle, or empty — #75. */
+    public List<String> bundleSourceRoots(String path) {
+        if (path == null) return List.of();
         return recentBundles.stream().filter(b -> b.path().equals(path))
-                .map(RecentBundle::sourceRoot).findFirst().orElse("");
+                .map(RecentBundle::sourceRoots).findFirst().orElse(List.of());
     }
 
-    /** Remember where the code for that bundle lives, so reopening it does not ask again. */
-    public void rememberBundleSourceRoot(String path, String root) {
-        if (path == null || root == null || root.isBlank()) return;
+    /**
+     * Remember where the code for that bundle lives, so reopening it does not ask again.
+     *
+     * @return false when there is no such bundle to remember against. The caller must not ignore that:
+     *         a silent miss is how this feature looked like it worked while recording nothing.
+     */
+    public boolean rememberBundleSourceRoots(String path, List<String> roots) {
+        if (path == null || roots == null) return false;
         for (int i = 0; i < recentBundles.size(); i++) {
             var b = recentBundles.get(i);
             if (b.path().equals(path)) {
-                recentBundles.set(i, new RecentBundle(b.path(), b.identity(), b.notes(), root));
-                return;
+                recentBundles.set(i, new RecentBundle(b.path(), b.identity(), b.notes(), roots));
+                return true;
             }
         }
+        return false;
     }
 
     /** Recent search terms (most-recent first), for the search box history/autocomplete. */

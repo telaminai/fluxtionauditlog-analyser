@@ -178,16 +178,23 @@ public final class SessionEvents {
      *                    "value recomputed at a second call site" rule 9 forbids.
      */
     public record BundlePlan(String profilePath, String graphPath, String logPath,
-                             String identity, String workingCopy, String limits, String notes, String source) {
+                             String identity, String workingCopy, String limits, String notes, String source,
+                             String processor) {
         /** A plan with nothing the sender wrote — the shape every pre-#73 caller uses. */
         public BundlePlan(String profilePath, String graphPath, String logPath,
                           String identity, String workingCopy, String limits) {
-            this(profilePath, graphPath, logPath, identity, workingCopy, limits, "", null);
+            this(profilePath, graphPath, logPath, identity, workingCopy, limits, "", null, null);
         }
 
         public BundlePlan(String profilePath, String graphPath, String logPath,
                           String identity, String workingCopy, String limits, String notes) {
-            this(profilePath, graphPath, logPath, identity, workingCopy, limits, notes, null);
+            this(profilePath, graphPath, logPath, identity, workingCopy, limits, notes, null, null);
+        }
+
+        /** Without the processor — the shape callers before 2026-09-30 use. */
+        public BundlePlan(String profilePath, String graphPath, String logPath, String identity,
+                          String workingCopy, String limits, String notes, String source) {
+            this(profilePath, graphPath, logPath, identity, workingCopy, limits, notes, source, null);
         }
 
         public BundlePlan {

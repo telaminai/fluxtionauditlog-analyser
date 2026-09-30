@@ -281,8 +281,14 @@ public final class ConfigStore {
             put(p, "recentBundle." + i + ".path", b.path());
             put(p, "recentBundle." + i + ".identity", b.identity());
             put(p, "recentBundle." + i + ".notes", b.notes());
-            put(p, "recentBundle." + i + ".sourceRoot", b.sourceRoot());
+            writeList(p, "recentBundle." + i + ".sourceRoot", b.sourceRoots());
         }
+    }
+
+    private static List<String> readListOf(Properties p, String prefix) {
+        List<String> out = new java.util.ArrayList<>();
+        readList(p, prefix, out);
+        return out;
     }
 
     static void readRecentBundles(Properties p,
@@ -295,7 +301,7 @@ public final class ConfigStore {
             into.add(new telamin.fluxtion.audit.analyser.analyser.config.AppConfig.RecentBundle(path,
                     p.getProperty("recentBundle." + i + ".identity", ""),
                     p.getProperty("recentBundle." + i + ".notes", ""),
-                    p.getProperty("recentBundle." + i + ".sourceRoot", "")));
+                    readListOf(p, "recentBundle." + i + ".sourceRoot")));
         }
     }
 

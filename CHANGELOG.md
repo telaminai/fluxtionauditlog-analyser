@@ -8,11 +8,13 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ### Fixed
 
+- The start page no longer leaves "Verified …, the audit log is loading" behind once the bundle is open; the Project panel carries its identity, working copy and limits for the whole session.
 - A chart explanation or note mentioning something like `~1/price` is no longer mistaken for a home-directory path and replaced with "path removed" inside an evidence bundle. Digit-leading usernames such as `~7dev/logs/x.yaml` are still redacted.
 - Opening an evidence bundle whose project fails to apply no longer leaves the next ordinary project labelled as that bundle's evidence.
 
 ### Added
 
+- An evidence bundle now names the event processor its log came from, so a recipient opens it with that processor selected instead of none. It is a class name, not a path: the graph names the nodes and never the processor, so there was nothing to guess from.
 - The window title and the Project panel now say when the session came from an evidence bundle, and which one, for as long as it is open — not only in the dialog at the moment it opens.
 - Evidence bundles you have opened are remembered: a "Recent evidence bundles" list on the start page, showing what the sender said each one is, and the same list in `context.bundles`.
 - An evidence bundle can be pointed at your own copy of the source it describes. A bundle carries no source paths, so the code behind its records was unreachable; the tree you choose is remembered against that bundle and restored next time you open it.
