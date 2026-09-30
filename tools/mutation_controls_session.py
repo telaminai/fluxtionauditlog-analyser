@@ -170,8 +170,9 @@ CONTROLS = [
      'ConfigStoreTest#recentBundlesRoundTripSoARecipientStillHasTheListNextTime'),
     # Bundle provenance rendered (#76): each removes one reason a recipient can tell evidence from own work.
     ('bundle-title-states-it', UI + 'MainFrame.java',
-     'setTitle(bundle.fromBundle() ? base + "  [evidence bundle " + bundle.shortIdentity() + "]" : base);',
-     'setTitle(base);',
+     '        setTitle("Fluxtion Audit Log Analyser — " + named\n'
+     '                + "  [evidence bundle " + bundle.shortIdentity() + "]");\n',
+     '        setTitle(base);\n',
      'BundleProvenanceFrameTest#anOpenedBundleSaysSoForTheSessionsLife'),
     ('bundle-rendered-on-snapshot', UI + 'MainFrame.java',
      '        if (next.bundle().equals(bundleRendered)) return;\n',
