@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+## [1.30.1] - 2026-09-30
+
 ### Fixed
 
 - A walk step can point at Java source (#72). It was refused with the design, toolbar and menu targets on the grounds that source has no basis a walk can check — but a class's identity is a NAME resolved against the source roots in force, which is a firmer basis than a record index bound to one log. The most natural thing to point at in "how is this price calculated" is the line that calculates it.
