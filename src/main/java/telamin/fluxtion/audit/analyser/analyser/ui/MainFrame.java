@@ -6116,14 +6116,40 @@ public final class MainFrame extends JFrame {
         return Files.isDirectory(dir) ? dir : null;
     }
 
+    /**
+     * Every {@code .fexp} in the exchange directory and one level below — and <b>never inside a capture's
+     * working folder</b>. A capture writes into a {@code .capture-…} folder beside the bundles, creates and
+     * deletes {@code .settings} inside it as it goes, and removes the whole folder when it finishes; nothing
+     * in there is evidence anyone can open. Walking it was also a race the event thread could not survive:
+     * {@code Files.walk} throws {@link java.io.UncheckedIOException} — not {@code IOException}, so the catch
+     * below never saw it — the moment an entry it has already listed is gone, and a {@code context} call
+     * issued while a capture was in flight died on the event thread (CI 2026-09-30, mutation shard 0, and
+     * about one run in three locally). Not entering the folder removes both the cost and the race; the
+     * tolerant catch is the belt for anything else that vanishes under a live directory.
+     */
+    private static List<Path> bundlesUnder(Path dir) {
+        List<Path> found = new java.util.ArrayList<>();
+        try (var top = Files.list(dir)) {
+            for (Path p : top.sorted().toList()) {
+                if (p.getFileName().toString().startsWith(".capture-")) continue;
+                if (p.getFileName().toString().endsWith(".fexp") && Files.isRegularFile(p)) {
+                    found.add(p);
+                } else if (Files.isDirectory(p)) {
+                    try (var inner = Files.list(p)) {
+                        inner.filter(f -> f.getFileName().toString().endsWith(".fexp"))
+                                .filter(Files::isRegularFile).sorted().forEach(found::add);
+                    }
+                }
+            }
+        } catch (java.io.IOException | java.io.UncheckedIOException e) {
+            return found;                 // what was found so far, never an exception on the event thread
+        }
+        return found;
+    }
+
     private boolean exchangeHasBundles() {
         Path dir = projectBundleDir();
-        if (dir == null) return false;
-        try (var s = Files.walk(dir, 2)) {
-            return s.anyMatch(f -> f.getFileName().toString().endsWith(".fexp"));
-        } catch (java.io.IOException e) {
-            return false;
-        }
+        return dir != null && !bundlesUnder(dir).isEmpty();
     }
 
     /**
@@ -6136,23 +6162,16 @@ public final class MainFrame extends JFrame {
         if (dir == null) return;
         bundles.put("inProjectDir", dir.toString());
         List<Map<String, Object>> found = new java.util.ArrayList<>();
-        try (var s = Files.walk(dir, 2)) {
-            s.filter(f -> f.getFileName().toString().endsWith(".fexp"))
-                    .filter(Files::isRegularFile)
-                    .sorted()
-                    .forEach(f -> {
-                        Map<String, Object> one = new java.util.LinkedHashMap<>();
-                        one.put("path", f.toString());
-                        one.put("name", dir.relativize(f).toString());
-                        try {
-                            one.put("bytes", Files.size(f));
-                        } catch (java.io.IOException ignored) {
-                            // listed without a size rather than dropped: it is still there to open
-                        }
-                        found.add(one);
-                    });
-        } catch (java.io.IOException e) {
-            return;
+        for (Path f : bundlesUnder(dir)) {
+            Map<String, Object> one = new java.util.LinkedHashMap<>();
+            one.put("path", f.toString());
+            one.put("name", dir.relativize(f).toString());
+            try {
+                one.put("bytes", Files.size(f));
+            } catch (java.io.IOException ignored) {
+                // listed without a size rather than dropped: it is still there to open
+            }
+            found.add(one);
         }
         bundles.put("inProject", found);
         bundles.put("inProjectNote", "every .fexp in this project's exchange directory and one level below, "

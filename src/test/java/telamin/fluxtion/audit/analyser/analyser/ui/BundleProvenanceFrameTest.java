@@ -416,4 +416,42 @@ class BundleProvenanceFrameTest {
             assertFalse(title.get().contains("evidence bundle"), "titleClaimsNothing: " + title.get());
         }
     }
+
+    /**
+     * #80, found by CI (mutation shard 0, 2026-09-30): the listing of what this project holds walked the
+     * exchange directory two levels deep, which took it INSIDE a capture's {@code .capture-…} working
+     * folder. Nothing in there is evidence anybody can open, and the folder is created, written and deleted
+     * under the walk, so {@code Files.walk} raised an {@code UncheckedIOException} — which is not an
+     * {@code IOException}, so the catch never saw it — and killed the {@code context} call on the event
+     * thread whenever a capture happened to be in flight. This pins the rule that removes the race: a
+     * working folder is not entered at all.
+     */
+    @Test
+    @DisplayName("#80: a capture's working folder is not this project's evidence")
+    @SuppressWarnings("unchecked")
+    void aWorkingFolderIsNeverListedAsEvidence(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        try (var f = shown(tmp)) {
+            Path dir = exchange(f, tmp);
+            openLog(f, EvidenceCaptureFrameTest.DEMO_LOG);
+            onEdt(() -> render(f.ex, "report", Map.of("bundle", Map.of("path", "real.fexp"))));
+            assertEquals("WRITTEN", awaitDecided(f).get("phase"));
+
+            // a capture in flight, as BundleWriter leaves the exchange directory while it works: an owner
+            // marker, the payload folder, and something that reads as evidence but is half a file
+            Path working = java.nio.file.Files.createDirectories(dir.resolve(".capture-1234567890"));
+            java.nio.file.Files.writeString(working.resolve(".owner"), "DEMO-host");
+            java.nio.file.Files.createDirectories(working.resolve("bundle/log"));
+            java.nio.file.Files.write(working.resolve("half-written.fexp"), new byte[]{1, 2, 3});
+
+            var ctx = (Map<String, Object>) onEdtGet(() ->
+                    render(f.ex, "context", Map.of("sections", List.of("project"))).get("context"));
+            var bundles = (Map<String, Object>) ctx.get("bundles");
+            assertNotNull(bundles, "the project's evidence is published: " + ctx.keySet());
+            var inProject = (List<Map<String, Object>>) bundles.get("inProject");
+            assertEquals(List.of(dir.resolve("real.fexp").toString()),
+                    inProject.stream().map(b -> b.get("path")).toList(),
+                    "aWorkingFolderIsNeverListedAsEvidence: " + inProject);
+        }
+    }
 }
