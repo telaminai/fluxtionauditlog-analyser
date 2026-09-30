@@ -188,7 +188,12 @@ public class EvidenceBundleTest {
         var one = EvidenceBundle.unpack(bundle, parent);
         var two = EvidenceBundle.unpack(bundle, parent);
         assertTrue(one.verification().ok(), one.verification().refusal());
-        assertNotEquals(one.workingCopy(), two.workingCopy(), "each unpack is a fresh, disposable working copy");
+        // #85 REVERSED THIS, deliberately. "Each unpack is a fresh, disposable copy" was true and
+        // tidy-sounding, and in use it meant opening one bundle ten times left ten directories that
+        // nothing ever removed -- thirty-two had accumulated on the first machine to use this in
+        // anger. Same bytes, same copy: the identity is the name, and a copy that does not claim
+        // that identity is replaced rather than trusted.
+        assertEquals(one.workingCopy(), two.workingCopy(), "the same bundle reuses its working copy");
         assertArrayEquals(Files.readAllBytes(tmp.resolve("demo-bundle/log/demo-quote-audit.yaml")),
                 Files.readAllBytes(one.workingCopy().resolve("log/demo-quote-audit.yaml")), "the copy is byte-equal");
         assertArrayEquals(before, Files.readAllBytes(bundle), "EP-A5: the received bundle is only ever read");
@@ -250,5 +255,71 @@ public class EvidenceBundleTest {
         java.util.Arrays.fill(huge, (byte) ' ');
         e.put(EvidenceBundle.MANIFEST, huge);
         refused(EvidenceBundle.verify(zip(tmp.resolve("huge.fexp"), e)), "manifest.json is larger than 4 MiB");
+    }
+
+    // ---- #85: working copies are reused, not multiplied ------------------------------------------
+
+    /** A real bundle on disk, packed from the pinned DEMO folder. */
+    static Path writtenBundle(Path tmp) throws IOException {
+        Path out = tmp.resolve("demo.fexp");
+        EvidenceBundle.pack(demoFolder(tmp), out, AT, VERSION);
+        return out;
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("#85: opening the same bundle twice reuses its working copy")
+    void theSameBundleReusesItsCopy(@TempDir Path tmp) throws Exception {
+        Path bundle = writtenBundle(tmp);
+        Path parent = Files.createDirectories(tmp.resolve("copies"));
+
+        var first = EvidenceBundle.unpack(bundle, parent);
+        // a mark of our own INSIDE the copy: it survives a reuse and dies in a re-extraction, which
+        // is what "reused" actually means. The path alone proves nothing now that it is deterministic.
+        Path mark = Files.writeString(first.workingCopy().resolve("DEMO-was-here"), "x");
+
+        var second = EvidenceBundle.unpack(bundle, parent);
+
+        assertTrue(first.verification().ok() && second.verification().ok());
+        assertEquals(first.workingCopy(), second.workingCopy(), "theIdentityISTheName");
+        assertTrue(Files.exists(mark),
+                "theCopyWasREUSED, not unpacked again — a fresh copy per open left thirty-two of them "
+                        + "on the first machine to use this in anger");
+        try (var list = Files.list(parent)) {
+            assertEquals(1, list.filter(Files::isDirectory).count(), "andOnlyOneOnDisk");
+        }
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("#85: a copy whose identity does not match is replaced, not trusted")
+    void aForeignCopyIsReplaced(@TempDir Path tmp) throws Exception {
+        Path bundle = writtenBundle(tmp);
+        Path parent = Files.createDirectories(tmp.resolve("copies"));
+        Path copy = EvidenceBundle.unpack(bundle, parent).workingCopy();
+        Files.writeString(copy.resolve(".identity"), "sha256:0000000000000000");   // not this bundle's
+
+        var again = EvidenceBundle.unpack(bundle, parent);
+
+        assertTrue(again.verification().ok());
+        assertEquals(copy, again.workingCopy(), "sameName");
+        assertNotEquals("sha256:0000000000000000", Files.readString(copy.resolve(".identity")).strip(),
+                "aCopyThatIsNotThisBundlesIsREPLACED, never reused on the strength of its name");
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("#85: reaping removes the others and never the one in use")
+    void reapSparesTheOpenCopy(@TempDir Path tmp) throws Exception {
+        Path root = EvidenceBundle.workingCopiesRoot();
+        org.junit.jupiter.api.Assumptions.assumeTrue(Files.isDirectory(root) || root.toFile().mkdirs());
+        Path a = Files.createTempDirectory(root, "bundle-DEMOaaaaaaaa");
+        Path b = Files.createTempDirectory(root, "bundle-DEMObbbbbbbb");
+        try {
+            int removed = EvidenceBundle.reap(java.util.List.of(a, b), a);
+
+            assertEquals(1, removed);
+            assertTrue(Files.isDirectory(a), "theOpenCopyIsSpared — deleting it underneath a person is the worst tidying");
+            assertFalse(Files.exists(b), "andTheRestAreGone");
+        } finally {
+            EvidenceBundle.reap(java.util.List.of(a, b), null);
+        }
     }
 }
