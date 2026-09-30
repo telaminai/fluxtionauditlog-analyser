@@ -21,6 +21,7 @@ MAIN = 'src/main/java/telamin/fluxtion/audit/analyser/Main.java'
 CONFIG = J + 'config/AppConfig.java'
 BUNDLE_PROFILE = 'src/main/java/telamin/fluxtion/audit/analyser/bundle/BundleProfile.java'
 WRITER = 'src/main/java/telamin/fluxtion/audit/analyser/bundle/BundleWriter.java'
+WALKREEL = J + 'walk/WalkReel.java'
 EXCERPT = 'src/main/java/telamin/fluxtion/audit/analyser/bundle/BundleExcerpt.java'
 CAPTURE = NODE + 'EvidenceCapture.java'
 PAIRING = 'src/main/java/telamin/fluxtion/audit/analyser/bundle/ReplayPairing.java'
@@ -1260,8 +1261,8 @@ CONTROLS = [
      '            case HISTORICAL -> null; // "saved against a different run',
      'WalkVerbTest#context'),
     ('m69-s4-read-identity-per-operation', J + 'llm/ActionDispatcher.java',
-     # re-anchored for review PR57 R1: saving AND playing read records
-     '        return READS_RECORDS.contains(action)\n                || "walk".equals(action) && (params.containsKey("steps") || params.containsKey("play"));',
+     # re-anchored for review PR57 R1: saving AND playing read records; and again for #82, where a reel plays
+     '        return READS_RECORDS.contains(action)\n                || "walk".equals(action)\n                   && (params.containsKey("steps") || params.containsKey("play") || params.containsKey("reel"));',
      '        return READS_RECORDS.contains(action);',
      'WalkVerbTest#readIdentityPolicyPerOperation'),
     ('m69-s4-tab-uses-the-verb-path', UI + 'MainFrame.java',
@@ -1387,8 +1388,8 @@ CONTROLS = [
      '        if (!available.isEmpty()) effects.request(new SessionEffects.LightWalkTargetsEffect(0L, ticket, available));',
      'WalkReviewFrameTest#aDegradedIdentityConstrainsTheTargets'),
     ('m69-r1-play-reads-records', J + 'llm/ActionDispatcher.java',
-     '                || "walk".equals(action) && (params.containsKey("steps") || params.containsKey("play"));',
-     '                || "walk".equals(action) && params.containsKey("steps");',
+     '                   && (params.containsKey("steps") || params.containsKey("play") || params.containsKey("reel"));',
+     '                   && params.containsKey("steps");',
      'WalkVerbTest#readIdentityPolicyPerOperation'),
     ('m69-r1-capture-refused-while-degraded', UI + 'WalkAuthoring.java',
      '        if (!WalkIdentity.recordsTrusted(frame.sessionIdentity()) && steps.stream().flatMap(s -> s.targets().stream())',
@@ -2298,4 +2299,57 @@ CONTROLS = [
      '           / f"fluxtion-runtime-{RUNTIME_VERSION}.jar")',
      '           / "fluxtion-runtime-1.0.16.jar")',
      'FixtureGeneratorToolchainTest#theCaptureToolTakesTheRuntimeFromThePom'),
+    # ---- #82: a walk recorded as a sendable reel --------------------------------------------------------------
+    # THE rule: no reel without its bundle named on the finish page, and no silence when there is no bundle.
+    ('reel-finish-page-names-the-bundle', WALKREEL,
+     '            out.append("<p class=\\"invite\\">").append(esc(OPEN_IT_YOURSELF)).append("</p>\\n");\n', '',
+     'WalkReelPageTest#theFinishPageNamesTheBundle'),
+    ('reel-identity-is-on-the-page', WALKREEL,
+     '            out.append("<dt>Identity</dt><dd><code class=\\"identity\\">").append(esc(e.identity()))',
+     '            out.append("<dt>Identity</dt><dd><code class=\\"identity\\">").append(esc(""))',
+     'WalkReelPageTest#theFinishPageNamesTheBundle'),
+    ('reel-without-a-bundle-says-so', WALKREEL,
+     '            out.append("<h2>No evidence bundle</h2>\\n<p class=\\"warn nobundle\\">").append(esc(NO_BUNDLE))\n                    .append("</p>\\n");\n',
+     '',
+     'WalkReelPageTest#aReelWithoutABundleSaysSo'),
+    # a working copy without a verified identity is NOT a bundle; keyed on the identity, as BundleProvenance is
+    ('reel-from-bundle-needs-an-identity', WALKREEL,
+     '            return evidence != null && !evidence.identity().isEmpty();',
+     '            return evidence != null;',
+     'WalkReelPageTest#anEvidenceWithoutAnIdentityIsNotABundle'),
+    ('reel-limits-are-carried', WALKREEL,
+     '                for (String l : e.limits()) out.append("<li>").append(esc(l)).append("</li>\\n");\n', '',
+     'WalkReelPageTest#theFinishPageNamesTheBundle'),
+    ('reel-page-escapes-what-it-is-given', WALKREEL,
+     "                case '<' -> b.append(\"&lt;\");", "                case '<' -> b.append(\"<\");",
+     'WalkReelPageTest#theTextIsEscaped'),
+    # the two halves of "settled". Leaving PREPARING is necessary and NOT sufficient: the node calls a step shown
+    # before the frame lights it, and a Java-source step lights later still (#72).
+    ('reel-waits-for-the-step-to-settle', UI + 'WalkReelRecorder.java',
+     'boolean settled = s.step() == wanted && !"PREPARING".equals(s.phase()) && !frame.lightingPending();',
+     'boolean settled = s.step() == wanted && !frame.lightingPending();',
+     'WalkReelRecorderTest#aStepIsNotPhotographedWhilePreparing'),
+    ('reel-waits-for-the-lighting-too', UI + 'WalkReelRecorder.java',
+     '&& !"PREPARING".equals(s.phase()) && !frame.lightingPending();',
+     '&& !"PREPARING".equals(s.phase());',
+     'WalkReelRecorderTest#aStepIsNotPhotographedWhileItsLightingIsInFlight'),
+    ('reel-abandons-a-walk-that-ended', UI + 'WalkReelRecorder.java',
+     '        if (!s.showing() || !walk.name().equals(s.walk())) {',
+     '        if (false) {',
+     'WalkReelRecorderTest#aWalkThatEndsAbandonsTheReel'),
+    # NO CONTROL, deliberately, for "a frame is stamped from the snapshot, not from this class's counter", and the
+    # reason is a finding rather than an omission. Replacing `int index = s.step()` with `int index = wanted` SURVIVED
+    # (probed 2026-09-30). It is an equivalent mutant: capture() is only ever reached through the settle guard
+    # `s.step() == wanted`, so at that point the two are the same value by construction. What actually protects the
+    # caption is that guard -- covered by reel-waits-for-the-step-to-settle -- not the expression the control mutated.
+    # Registering it would claim protection the gate is not holding.
+    # a reel is a walk operation like any other: one per call, judged before anything is played or written
+    ('reel-is-one-operation-per-call', UI + 'WalkVerb.java',
+     '            "reel", Set.of("reel", "name"),\n',
+     '',
+     'WalkReelFrameTest#aReelBesideAnotherOperationIsRefused'),
 ]
+
+WALKREEL_NOTE = (
+    'The reel page is pure (records in, one string out), so its controls are string-level and read oddly; that is '
+    'the point -- every one of them is a sentence a recipient either sees or does not.')

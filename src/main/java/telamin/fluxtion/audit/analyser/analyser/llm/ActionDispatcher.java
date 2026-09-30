@@ -124,8 +124,10 @@ public final class ActionDispatcher {
     static boolean readsRecords(String action, Map<String, Object> params) {
         // review PR57 R1: playing READS record text too (the presenter digests each record target), so it honours the
         // policy like a save; listing, the bin, rename, delete and end read none and stay available
+        // #82: a reel PLAYS the walk to photograph it, so it reads record text exactly as a play does
         return READS_RECORDS.contains(action)
-                || "walk".equals(action) && (params.containsKey("steps") || params.containsKey("play"));
+                || "walk".equals(action)
+                   && (params.containsKey("steps") || params.containsKey("play") || params.containsKey("reel"));
     }
 
     private static ActionResult withIdentityNote(ActionResult result,

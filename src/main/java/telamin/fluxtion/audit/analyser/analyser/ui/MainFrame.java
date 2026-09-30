@@ -3081,6 +3081,193 @@ public final class MainFrame extends JFrame {
         }
     });
 
+    // ---- #82: a walk recorded as a sendable reel -----------------------------------------------------------------
+
+    /**
+     * Issue #82 — plays a walk and photographs each settled step. It asks for its steps through {@link #playWalk},
+     * the entrance the Reports tab and the verb share, and reads where the walk actually is from the snapshot: the
+     * session decides the walk, this only records it.
+     */
+    private final WalkReelRecorder walkReelRecorder = new WalkReelRecorder(new WalkReelRecorder.Frame() {
+        @Override public telamin.fluxtion.audit.analyser.analyser.session.WalkPlaybackState playback() {
+            return session == null ? telamin.fluxtion.audit.analyser.analyser.session.WalkPlaybackState.IDLE
+                    : sessionSnapshot().walkPlayback();
+        }
+        @Override public boolean lightingPending() {
+            // walkOwnSpotlight spans the WHOLE of the walk's lighting, including the off-thread source read a
+            // Java step needs (#72). A frame taken while it is up would show a step whose spotlights are not there.
+            return walkOwnSpotlight;
+        }
+        @Override public String play(String walk, int step) {
+            return playWalk(walk, step, "reel");
+        }
+        @Override public void end(String reason) {
+            if (session != null) {
+                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.WalkEndRequested(reason));
+            }
+        }
+        @Override public java.awt.image.BufferedImage compose() {
+            return composeImage(getContentPane());
+        }
+    });
+
+    /**
+     * Record {@code walkName} as a reel at {@code out}. On the event thread; {@code onDone} is called there when the
+     * file has been written or the recording was given up on. Returns null, or why it could not be started.
+     */
+    String recordReel(String walkName, java.nio.file.Path out,
+                      java.util.function.Consumer<telamin.fluxtion.audit.analyser.analyser.llm.ActionResult> onDone) {
+        var walk = telamin.fluxtion.audit.analyser.analyser.config.WalkBin.find(config.walks, walkName);
+        if (walk == null) {
+            return "no walk called '" + walkName + "' — walks: " + config.walks.stream().map(w -> w.name()).toList();
+        }
+        if (walkReelRecorder.recording()) return "a reel is already being recorded";
+        String recordedAt = java.time.Instant.now().toString();
+        walkReelRecorder.start(walk, recording -> {
+            if (!recording.ok()) {
+                onDone.accept(telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
+                        "the reel was not recorded: " + recording.error()));
+                return;
+            }
+            var reel = reelOf(walk, recording.frames(), recordedAt);
+            try {
+                if (out.getParent() != null) Files.createDirectories(out.getParent());
+                Files.write(out, telamin.fluxtion.audit.analyser.analyser.walk.WalkReel.bytes(reel));
+            } catch (java.io.IOException e) {
+                onDone.accept(telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
+                        "could not write " + out + ": " + e.getMessage()));
+                return;
+            }
+            Map<String, Object> wrote = new java.util.LinkedHashMap<>();
+            wrote.put("path", out.toAbsolutePath().toString());
+            wrote.put("steps", reel.frames().size());
+            wrote.put("bundle", reel.fromBundle() ? reel.evidence().identity() : null);
+            // the rule this feature exists for, said back to the caller rather than left to be discovered on the page
+            wrote.put("evidence", reel.fromBundle()
+                    ? "the finish page names the bundle, its identity and its limits"
+                    : "NOT captured from an evidence bundle — the finish page says so, and there is nothing to verify "
+                      + "these frames against");
+            onDone.accept(telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("walk", "reel", wrote));
+        });
+        return null;
+    }
+
+    /** What the page states about this session: what was being shown, and what evidence stands behind it. */
+    private telamin.fluxtion.audit.analyser.analyser.walk.WalkReel.Reel reelOf(
+            telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec walk,
+            java.util.List<telamin.fluxtion.audit.analyser.analyser.walk.WalkReel.Frame> frames, String recordedAt) {
+        var info = store == null ? null : currentLogFileInfo();
+        String span = store == null || store.minLogTime() == null ? ""
+                : TimeFormat.utc(store.minLogTime()) + " → " + TimeFormat.utc(store.maxLogTime()) + " UTC";
+        var provenance = session == null
+                ? telamin.fluxtion.audit.analyser.analyser.session.BundleProvenance.NONE : sessionSnapshot().bundle();
+        String processor = config.selectedEventProcessor == null ? "" : config.selectedEventProcessor;
+        if (!processor.isEmpty() && provenance.fromBundle() && processor.equals(provenance.processor())) {
+            // the same qualification context.project.bundle makes: a bundle's processor is the SENDER's selection
+            processor += " — the sender's claim at capture, not paired against this log";
+        }
+        // the log's FILE NAME, never its path: a reel travels, and a path is both unusable elsewhere and a
+        // disclosure nobody asked for (the same choice 1.30.0 made for the window title)
+        var log = new telamin.fluxtion.audit.analyser.analyser.walk.WalkReel.Log(
+                loadedLogName(), info == null ? 0 : info.recordCount(), span, processor);
+        telamin.fluxtion.audit.analyser.analyser.walk.WalkReel.Evidence evidence = null;
+        if (provenance.fromBundle()) {
+            evidence = new telamin.fluxtion.audit.analyser.analyser.walk.WalkReel.Evidence(
+                    provenance.identity(), bundleFileName(provenance.source()),
+                    provenance.limits() == null || provenance.limits().isBlank()
+                            ? java.util.List.of() : java.util.List.of(provenance.limits().split("\n")),
+                    provenance.notes());
+        }
+        // a purpose is the walk's own title; when it has none, the page says so rather than repeating the name
+        String purpose = walk.title().isBlank() || walk.title().equals(walk.name()) ? "" : walk.title();
+        var dialogue = walk.conversation();
+        return new telamin.fluxtion.audit.analyser.analyser.walk.WalkReel.Reel(
+                walk.name(), purpose, walk.authorLabel(), walk.updatedAt(), recordedAt,
+                dialogue == null || !dialogue.supported() ? "" : dialogue.label(), log, evidence, frames);
+    }
+
+    /**
+     * #82: the Reports tab's <i>Record reel…</i> — ask where to write it, then record. It does NOT wait: the walk
+     * has to play on this thread, so the answer arrives as a status line (and a dialog when it refused).
+     */
+    private void recordReelWithChooser(String name) {
+        if (walkReelRecorder.recording()) {
+            JOptionPane.showMessageDialog(this, "A reel is already being recorded.", "Record reel",
+                    JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        JFileChooser fc = new JFileChooser();
+        fc.setDialogTitle("Record reel");
+        fc.setSelectedFile(new File(name.replaceAll("[^A-Za-z0-9._-]", "-") + "-reel.html"));
+        if (fc.showSaveDialog(this) != JFileChooser.APPROVE_OPTION) return;
+        java.nio.file.Path out = fc.getSelectedFile().toPath();
+        status.setText("Recording the reel for \"" + name + "\" — playing it step by step…");
+        String refused = recordReel(name, out, result -> {
+            if (result.ok()) {
+                status.setText("Wrote " + out.getFileName());
+            } else {
+                status.setText("The reel was not recorded");
+                JOptionPane.showMessageDialog(this, result.error(), "Record reel", JOptionPane.WARNING_MESSAGE);
+            }
+        });
+        if (refused != null) {
+            status.setText("The reel was not recorded");
+            JOptionPane.showMessageDialog(this, refused, "Record reel", JOptionPane.WARNING_MESSAGE);
+        }
+    }
+
+    /**
+     * #82: the {@code walk {name, reel}} operation, from the action socket. It blocks the CALLING thread — never
+     * the event thread, which has to stay free to apply each step and wait for it to settle.
+     */
+    private telamin.fluxtion.audit.analyser.analyser.llm.ActionResult walkReelVerb(
+            java.util.Map<String, Object> params, String resolvedPath) {
+        if (SwingUtilities.isEventDispatchThread()) {
+            return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
+                    "a reel cannot be recorded from the event thread: recording plays the walk and waits for each "
+                    + "step to settle, which needs that thread");
+        }
+        var chosen = WalkVerb.choose(params, () -> config.walks.stream().map(w -> w.name()).toList());
+        if (!chosen.ok()) return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(chosen.error());
+        if (!"reel".equals(chosen.op())) {
+            return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
+                    "walk '" + chosen.op() + "' does not record a reel");
+        }
+        Object name = params.get("name");
+        if (name == null || String.valueOf(name).isBlank()) {
+            return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("recording a reel needs 'name'");
+        }
+        java.nio.file.Path out = java.nio.file.Path.of(resolvedPath);
+        var answer = new java.util.concurrent.CompletableFuture<
+                telamin.fluxtion.audit.analyser.analyser.llm.ActionResult>();
+        SwingUtilities.invokeLater(() -> {
+            String refused = recordReel(String.valueOf(name), out, answer::complete);
+            if (refused != null) answer.complete(telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(refused));
+        });
+        try {
+            // generous, and bounded: the recorder gives each step its own bound and reports which one stalled, so
+            // this only ever fires if the event thread itself stopped answering
+            int steps = Math.max(1, telamin.fluxtion.audit.analyser.analyser.config.WalkBin.find(config.walks,
+                    String.valueOf(name)) instanceof telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec w
+                    ? w.steps().size() : 1);
+            return answer.get((long) steps * WalkReelRecorder.STEP_BOUND_MS + 10_000,
+                    java.util.concurrent.TimeUnit.MILLISECONDS);
+        } catch (java.util.concurrent.TimeoutException e) {
+            SwingUtilities.invokeLater(() -> walkReelRecorder.cancel("the caller stopped waiting"));
+            return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("recording the reel timed out");
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("recording the reel was interrupted");
+        } catch (java.util.concurrent.ExecutionException e) {
+            return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
+                    "recording the reel failed: " + e.getCause());
+        }
+    }
+
+    private static String bundleFileName(String source) {
+        return source == null || source.isBlank() ? "" : java.nio.file.Path.of(source).getFileName().toString();
+    }
+
     private void sourceViewportChanged() {
         if (applyingJavaSpotlight) return;
         if (sourceRemeasureQueued) return;
@@ -3608,6 +3795,37 @@ public final class MainFrame extends JFrame {
         }
     }
 
+    /**
+     * Paint {@code target} into an image, with the open menus and the live spotlight composited onto it — what the
+     * {@code screenshot} verb writes, and what a reel's frames are (#82). Extracted so the two cannot diverge: a
+     * reel whose frames were missing the spotlight would be a walkthrough that points at nothing.
+     */
+    java.awt.image.BufferedImage composeImage(java.awt.Component target) {
+        if (target == null || target.getWidth() <= 0 || target.getHeight() <= 0) return null;
+        java.awt.image.BufferedImage img = new java.awt.image.BufferedImage(
+                target.getWidth(), target.getHeight(), java.awt.image.BufferedImage.TYPE_INT_RGB);
+        java.awt.Graphics2D g = img.createGraphics();
+        try {
+            target.paint(g);
+            // M64.11: a lightweight popup (an open menu) lives in the layered pane's POPUP layer, not in the
+            // content pane — paint it into the shot at its place, so a lit menu item is where it is on screen
+            for (java.awt.Component popup : getLayeredPane().getComponentsInLayer(javax.swing.JLayeredPane.POPUP_LAYER)) {
+                if (!popup.isShowing() || !holdsAMenu(popup)) continue;   // a tooltip is a popup too; it is not the point
+                java.awt.Point at = SwingUtilities.convertPoint(popup.getParent(), popup.getLocation(), target);
+                java.awt.Graphics2D pg = (java.awt.Graphics2D) g.create(at.x, at.y, popup.getWidth(), popup.getHeight());
+                popup.paint(pg);
+                pg.dispose();
+            }
+            // M64: the glass pane is NOT part of the content pane (or of a panel), so a live spotlight
+            // has to be composited here — otherwise the shot a tutor takes to check what it lit would
+            // show no spotlight at all. spec-spotlight assumed the opposite; it is corrected there.
+            spotlight.paintOnto(g, target);
+        } finally {
+            g.dispose();
+        }
+        return img;
+    }
+
     /** Is this POPUP-layer component a menu, or the panel a lightweight popup wraps one in? */
     private static boolean holdsAMenu(java.awt.Component c) {
         if (c instanceof javax.swing.JPopupMenu) return true;
@@ -4015,6 +4233,7 @@ public final class MainFrame extends JFrame {
                 params -> walkVerb.run(params, WalkVerb.ORIGIN_REPORTS_TAB),
                 () -> telamin.fluxtion.audit.analyser.analyser.config.WalkBin.restorable(config));
         walksPanel.onConversation = w -> openConversationEditor(w.name());   // OA-3
+        walksPanel.onReel = w -> recordReelWithChooser(w.name());            // #82
         reportsPanel.addWalks(walksPanel);
         walksPanel.refresh();
         sideTabs.addTab("Reports", reportsPanel);
@@ -8764,24 +8983,7 @@ public final class MainFrame extends JFrame {
                         "nothing to capture — the window has no size yet");
             }
             try {
-                java.awt.image.BufferedImage img = new java.awt.image.BufferedImage(
-                        target.getWidth(), target.getHeight(), java.awt.image.BufferedImage.TYPE_INT_RGB);
-                java.awt.Graphics2D g = img.createGraphics();
-                target.paint(g);
-                // M64.11: a lightweight popup (an open menu) lives in the layered pane's POPUP layer, not in the
-                // content pane — paint it into the shot at its place, so a lit menu item is where it is on screen
-                for (java.awt.Component popup : getLayeredPane().getComponentsInLayer(javax.swing.JLayeredPane.POPUP_LAYER)) {
-                    if (!popup.isShowing() || !holdsAMenu(popup)) continue;   // a tooltip is a popup too; it is not the point
-                    java.awt.Point at = SwingUtilities.convertPoint(popup.getParent(), popup.getLocation(), target);
-                    java.awt.Graphics2D pg = (java.awt.Graphics2D) g.create(at.x, at.y, popup.getWidth(), popup.getHeight());
-                    popup.paint(pg);
-                    pg.dispose();
-                }
-                // M64: the glass pane is NOT part of the content pane (or of a panel), so a live spotlight
-                // has to be composited here — otherwise the shot a tutor takes to check what it lit would
-                // show no spotlight at all. spec-spotlight assumed the opposite; it is corrected there.
-                spotlight.paintOnto(g, target);
-                g.dispose();
+                java.awt.image.BufferedImage img = composeImage(target);
                 Path out = Path.of(path);
                 if (out.getParent() != null) Files.createDirectories(out.getParent());
                 javax.imageio.ImageIO.write(img, "png", out.toFile());
@@ -8825,6 +9027,12 @@ public final class MainFrame extends JFrame {
         @Override
         public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult walk(java.util.Map<String, Object> params) {
             return walkVerb.run(params);
+        }
+
+        @Override
+        public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult walkReel(
+                java.util.Map<String, Object> params, String resolvedPath) {
+            return MainFrame.this.walkReelVerb(params, resolvedPath);
         }
 
         @Override

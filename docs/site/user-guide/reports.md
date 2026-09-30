@@ -79,8 +79,11 @@ section clickable through to the thing it references — a finding selects its r
 that graph, a focus applies on the topology. A report is a navigation surface, not just an output.
 
 Beside the reports, the **Spotlight walks** list holds the walks saved in this project — step-by-step
-spotlights you replay with ◀ ▶. Use **Play** or select a step and choose **Play selected step**; Rename, Delete and Restore deleted… are under **More**. They are stored
-and shared the way reports are; [Save it as a walk](assistant.md#save-it-as-a-walk) says how to make one.
+spotlights you replay with ◀ ▶. Use **Play** or select a step and choose **Play selected step**; Conversation…, **Record reel…**, Rename, Delete and
+Restore deleted… are under **More**. They are stored
+and shared the way reports are; [Save it as a walk](assistant.md#save-it-as-a-walk) says how to make one, and
+[Send it as a reel](assistant.md#send-it-as-a-reel) turns one into a page you can send to somebody without the
+analyser — ending on the evidence bundle behind it, or on a plain statement that there is none.
 
 ## Building one
 

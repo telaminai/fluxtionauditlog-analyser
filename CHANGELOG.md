@@ -6,6 +6,11 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Added
+
+- A saved spotlight walk can be recorded as a **reel**: one self-contained HTML page — a title page naming the walk, the log, its record count, its time span and the event processor; a frame per step with its own words and callouts; and a finish page (#82). *Reports ▸ Spotlight walks ▸ More ▸ Record reel…*, or `walk {name, reel: "<file>.html"}`. The frames are the analyser's own window with its spotlights composited in, photographed only once the session says the step has settled.
+- **No reel without its bundle named on the finish page.** A reel recorded from a session that came from a verified evidence bundle ends with that bundle's `sha256:` identity, its file name as a link, the limits the bundle already states, and "open this bundle in the Fluxtion Audit Log Analyser to replay these steps yourself against the real log". A reel recorded from an ordinary session says plainly that there is no bundle to open and no identity to check — a reel is a claim, and an unanswered question reads as one. A step the analyser could not fully show carries its state and reason onto the page rather than being hidden.
+
 ### Fixed
 
 - The log-findings display suite now accounts for its deliberately injected SummaryPanel failure and fails on unexpected EDT exceptions. Its failed-load recovery assertion and mutation controls remain in place.

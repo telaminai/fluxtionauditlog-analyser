@@ -198,6 +198,14 @@ public final class ActionExecutor implements RenderExecutor {
                 return onEdt(() -> doSpotlight(params));
             }
             case "walk" -> {
+                // #82: recording a reel plays the walk step by step and waits for each to settle, so it runs on the
+                // CALLING thread and leaves the event thread free — the same shape as a Java spotlight's preparation
+                if (params != null && params.containsKey("reel")) {
+                    if (app == null) return ActionResult.error("'walk' is not enabled here");
+                    var out = guardedPath(params.get("reel"));   // B1: opt-in + confined, like every verb write
+                    if (!out.ok()) return ActionResult.error(out.error());
+                    return app.walkReel(params, out.path().toString());
+                }
                 // M69: a walk of tabs, panels and graph nodes needs no log; one bound to records says so itself
                 return onEdt(() -> app == null ? ActionResult.error("'walk' is not enabled here") : app.walk(params));
             }
