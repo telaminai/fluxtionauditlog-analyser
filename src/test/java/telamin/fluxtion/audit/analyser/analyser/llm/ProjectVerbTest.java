@@ -42,8 +42,9 @@ class ProjectVerbTest {
     @Test
     void projectIsNotItsOwnVerb_theSurfaceDoesNotGrow() {
         assertFalse(VerbSchemas.all().containsKey("project"));
-        assertEquals(17, VerbSchemas.all().size(), "M35.8 extends 'open' like close and discover did "
-                + "(17: M69 walk saves and plays spotlight walks; 16: M66 source is a file glance; M64 spotlight points; M48.7's canvas write went "
+        assertEquals(18, VerbSchemas.all().size(), "M35.8 extends 'open' like close and discover did "
+                + "(18: import borrows categories out of an evidence bundle, where open {bundle} replaces the session; "
+                + "17: M69 walk saves and plays spotlight walks; 16: M66 source is a file glance; M64 spotlight points; M48.7's canvas write went "
                 + "onto 'open' the same way this did — see CloseVerbTest)");
     }
 

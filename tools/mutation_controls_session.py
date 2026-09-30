@@ -127,6 +127,16 @@ CONTROLS = [
      '            if (need.test("bundles") && (!config.recentBundles.isEmpty() || exchangeHasBundles())) {\n',
      '            if (false) {\n',
      'BundleProvenanceFrameTest#anOpenedBundleIsDiscoverableAfterwards'),
+    # #80, found by CI on 2026-09-30 (mutation shard 0): the project's evidence listing walked two levels
+    # of the exchange directory, so it went inside a capture's .capture-... working folder -- listing what
+    # is not evidence, and racing the writer that creates and deletes that folder under it. Files.walk
+    # raises UncheckedIOException, which is not an IOException, so it escaped the catch and killed the
+    # context call on the event thread. Not entering the folder is what removes the race, so that is what
+    # this holds.
+    ('bundle-working-folder-not-evidence', UI + 'MainFrame.java',
+     '                if (p.getFileName().toString().startsWith(".capture-")) continue;\n',
+     '',
+     'BundleProvenanceFrameTest#aWorkingFolderIsNeverListedAsEvidence'),
     ('bundle-notes-read-from-the-copy', UI + 'MainFrame.java',
      '                return trimmed.length() <= 200 ? trimmed : trimmed.substring(0, 200) + "\u2026";\n',
      '                return "";\n',
