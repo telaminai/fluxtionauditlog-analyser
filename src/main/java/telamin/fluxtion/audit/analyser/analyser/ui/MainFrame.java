@@ -731,6 +731,11 @@ public final class MainFrame extends JFrame {
         }
     }
 
+    /** The capped band the event-type checklist lives in, above the records it filters. */
+    private JComponent eventTypesHolder;
+    /** How much of the Facts column the checklist may take before it scrolls instead. */
+    private static final int EVENT_TYPES_MAX_HEIGHT = 190;
+
     /** The west column, so the Records row's Event types toggle can relayout it. */
     private JPanel westColumn;
 
@@ -743,6 +748,7 @@ public final class MainFrame extends JFrame {
      */
     private void showEventTypes(boolean showing) {
         eventFilterPanel.setVisible(showing);
+        if (eventTypesHolder != null) eventTypesHolder.setVisible(showing);
         config.eventFilterCollapsed = !showing;
         saveConfigQuietly();
         // it lives in the Facts column now, between its own button and the table: show or hide in
@@ -3869,7 +3875,28 @@ public final class MainFrame extends JFrame {
         JPanel aboveTable = new JPanel(new BorderLayout());
         aboveTable.add(searchRow, BorderLayout.NORTH);
         eventFilterPanel.setVisible(!config.eventFilterCollapsed);
-        aboveTable.add(eventFilterPanel, BorderLayout.CENTER);
+        // CAPPED. BorderLayout.NORTH grants a component its full preferred height, and the checklist
+        // grows with the log's event types -- on a log with many, it took the whole Facts column and
+        // left the records table a sliver. In the west column a split pane had bounded it; here
+        // nothing did. Found by CI: a native mouse press aimed at the table stopped reaching it.
+        JPanel eventTypesArea = new JPanel(new BorderLayout()) {
+            @Override
+            public Dimension getPreferredSize() {
+                Dimension want = eventFilterPanel.getPreferredSize();
+                // a FRACTION of the column, not a fixed band: a fixed one still starved the table in a
+                // short window, and the records are what this column is for
+                java.awt.Container column = getParent() == null ? null : getParent().getParent();
+                int available = column == null ? 0 : column.getHeight();
+                int cap = available > 0
+                        ? Math.max(70, Math.min(EVENT_TYPES_MAX_HEIGHT, available / 3))
+                        : EVENT_TYPES_MAX_HEIGHT;
+                return new Dimension(want.width, Math.min(want.height, cap));
+            }
+        };
+        eventTypesArea.add(eventFilterPanel, BorderLayout.CENTER);
+        eventTypesArea.setVisible(eventFilterPanel.isVisible());
+        eventTypesHolder = eventTypesArea;
+        aboveTable.add(eventTypesArea, BorderLayout.CENTER);
         tableArea.add(aboveTable, BorderLayout.NORTH);
         tableArea.add(tablePanel, BorderLayout.CENTER);
         tableArea.setMinimumSize(new Dimension(100, 80));
