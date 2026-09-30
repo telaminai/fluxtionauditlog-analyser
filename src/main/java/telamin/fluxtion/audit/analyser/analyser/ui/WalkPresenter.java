@@ -64,14 +64,33 @@ final class WalkPresenter {
          * Light a set through the ordinary spotlight path, as the walk's own act; the lit count, or -1 and why. Each
          * request carries the number the session assigned it (review PR57 R3), which the overlay must draw.
          */
-        LitResult light(List<Numbered> requests);
+        LitResult light(List<Numbered> requests, long ticket);
+
+        /**
+         * Can this Java target's source be READ? #72: a Java target is not on screen until it has been
+         * prepared, so asking "is it visible?" — the question every other family answers — judged it
+         * unavailable and it was never lit. The honest question for source is whether the class resolves
+         * under the roots in force; preparation is what makes it visible.
+         */
+        default boolean canPrepareSource(String target) {
+            return false;
+        }
 
         void clearWalkSpotlight();
 
         void post(Object fact);
     }
 
-    record LitResult(int lit, String reason) { }
+    /**
+     * @param pending true when the frame has not lit anything YET and will post {@code WalkTargetsLit}
+     *     itself once it has — Java source is read off the event thread (#72), so a step carrying one
+     *     stays in PREPARING rather than being settled early as "nothing was shown"
+     */
+    record LitResult(int lit, String reason, boolean pending) {
+        LitResult(int lit, String reason) {
+            this(lit, reason, false);
+        }
+    }
 
     /** A spotlight request with the number the session gave its target — not its position in the lit subset. */
     record Numbered(SpotlightTarget.Request request, int n) { }
@@ -127,7 +146,11 @@ final class WalkPresenter {
         for (SessionEvents.WalkTargetState t : e.targets()) {
             requests.add(new Numbered(new SpotlightTarget.Request(t.target(), t.caption()), t.n()));
         }
-        LitResult r = frame.light(requests);
+        LitResult r = frame.light(requests, e.ticket());
+        if (r.pending()) {
+            // the frame answers when the source has been read; the step stays PREPARING until it does
+            return new SessionEvents.Pending(e.opId(), "preparing source for this step");
+        }
         return new SessionEvents.WalkTargetsLit(e.opId(), e.ticket(), Math.max(0, r.lit()), r.reason());
     }
 
@@ -229,6 +252,13 @@ final class WalkPresenter {
     }
 
     /** Every target's state, in step order and numbered from 1, each with its identity verdict and on-screen check. */
+    /** A Java source target: visible only once prepared, so availability asks a different question. */
+    private static boolean isSource(String target) {
+        SpotlightTarget.Parsed parsed = SpotlightTarget.parse(target);
+        if (!parsed.ok()) return false;
+        return parsed.target().javaSource();
+    }
+
     List<SessionEvents.WalkTargetState> states(WalkSpec walk, WalkSpec.Step step, boolean trusted) {
         WalkResolver.Facts facts = facts(trusted);
         List<SessionEvents.WalkTargetState> out = new ArrayList<>();
@@ -244,7 +274,12 @@ final class WalkPresenter {
                 reason = "record " + step.view().record() + " is not shown — this step's filter hides it, so "
                         + whatItWouldDescribe(t) + " does not describe it";
             }
-            if (available) {
+            if (available && isSource(t.target())) {
+                if (!frame.canPrepareSource(t.target())) {
+                    available = false;
+                    reason = "no source for this class under the configured roots";
+                }
+            } else if (available) {
                 SpotlightTarget.Resolution r = frame.resolve(t.target());
                 if (!r.lit()) { available = false; reason = r.reason(); }
             }

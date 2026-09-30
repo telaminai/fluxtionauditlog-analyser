@@ -30,11 +30,23 @@ public final class WalkSteps {
     static final Set<String> GROUP_MODES = Set.of("DIMENSION", "RAW_EVENT");
 
     /**
-     * The spotlight families a walk step may point at in v1 — those whose basis §3.5 can state. Source (design and
-     * Java), toolbar and menu targets are refused: their identity would be a revision of a document or a UI layout,
-     * which a walk has no basis for yet.
+     * The spotlight families a walk step may point at — those whose basis §3.5 can state.
+     *
+     * <p><b>Java source is allowed (#72).</b> It was refused with the design, toolbar and menu targets on the
+     * grounds that its identity is "a revision of a document or a UI layout". That is true of a design document
+     * and of a menu; it is not true of a Java class, whose identity is a fully-qualified NAME resolved against
+     * the source roots in force — and the app already states when that resolution is stale or absent, which is
+     * more than it can say for a record index bound to one log. The argument refused the strongest target in
+     * the set. Found by authoring a walk over a pricing pipeline, where the most natural thing to point at in
+     * "how is this price calculated" is the line that calculates it (2026-09-30).
+     *
+     * <p>A Java target is prepared ASYNCHRONOUSLY, so a step carrying one stays in {@code PREPARING} until the
+     * source is read and then reports what it lit — the same shape as a step whose evidence is not shown.
+     *
+     * <p>Design, toolbar and menu remain refused, and for the original reason.
      */
     static final Set<SpotlightTarget.Family> ALLOWED = Set.of(
+            SpotlightTarget.Family.JAVA, SpotlightTarget.Family.JAVA_LINE,
             SpotlightTarget.Family.TAB, SpotlightTarget.Family.RECORDS, SpotlightTarget.Family.RECORDS_ROW,
             SpotlightTarget.Family.DETAIL, SpotlightTarget.Family.DETAIL_NODE, SpotlightTarget.Family.TOPOLOGY,
             SpotlightTarget.Family.TOPOLOGY_NODE, SpotlightTarget.Family.TOPOLOGY_VERDICT, SpotlightTarget.Family.GRAPH,
@@ -130,9 +142,9 @@ public final class WalkSteps {
             if (!parsed.ok()) return "target '" + t.target() + "': " + parsed.error();
             SpotlightTarget.Family family = parsed.target().family();
             if (!ALLOWED.contains(family)) {
-                return "target '" + t.target() + "' (" + family.form() + ") cannot be a walk step in this version — "
-                        + "a walk points at records, detail, topology, charts, tabs, the project panel and the status "
-                        + "line; source, toolbar and menu targets have no basis a walk can check";
+                return "target '" + t.target() + "' (" + family.form() + ") cannot be a walk step — a walk points "
+                        + "at records, detail, topology, charts, tabs, Java source, the project panel and the "
+                        + "status line; a design document, a toolbar and a menu have no basis a walk can check";
             }
             if ((family == SpotlightTarget.Family.DETAIL_NODE || family == SpotlightTarget.Family.DETAIL)
                     && v.record() == null) {
