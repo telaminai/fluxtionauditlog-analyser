@@ -38,6 +38,31 @@ public final class ProjectPanel extends JPanel {
         /** Open Settings on the named page ("Source roots", "Event processor", "Assistant"). */
         void openSettings(String page);
 
+        /** As {@link #openSettings(String)}, arriving with {@code highlight} selected on that page. */
+        default void openSettings(String page, String highlight) {
+            openSettings(page);
+        }
+
+        /** Show this processor's source WITHOUT making it the active one. */
+        default void openProcessorSource(String fqn) {
+        }
+
+        /** Make this the project's selected event processor. */
+        default void setActiveProcessor(String fqn) {
+        }
+
+        /** Drop this processor from the project's declared list. */
+        default void removeProcessor(String fqn) {
+        }
+
+        /**
+         * Remove one source root from the project. The Project panel is where a person SEES a root they
+         * did not expect -- a leftover from a demo, a path from another machine -- and until now the only
+         * way to act on it was to open Settings and find it again by eye (asked for in use, 2026-09-30).
+         */
+        default void removeSourceRoot(String path) {
+        }
+
         /** Reveal one saved report by NAME (not its title) in the Reports tab. */
         void showReport(String name);
 
@@ -129,6 +154,33 @@ public final class ProjectPanel extends JPanel {
                 () -> scroll.getVerticalScrollBar().setValue(scrolledTo)));
     }
 
+    /** Copy / Show file / Remove for one row, behind a single "…" button. */
+    private JButton overflow(ProjectModel.Row r) {
+        JButton more = new JButton("\u2026");
+        more.setMargin(new java.awt.Insets(0, 6, 0, 6));
+        more.setToolTipText("Copy the path, show the file, remove");
+        javax.swing.JPopupMenu menu = new javax.swing.JPopupMenu();
+        javax.swing.JMenuItem copy = new javax.swing.JMenuItem("Copy path");
+        copy.setToolTipText(r.path());
+        copy.addActionListener(e -> copy(r.path()));
+        menu.add(copy);
+        if (!r.path().contains("://")) {          // a remote origin has nothing to show locally
+            javax.swing.JMenuItem reveal = new javax.swing.JMenuItem("Show file");
+            reveal.setToolTipText("Show in " + fileManagerName());
+            reveal.addActionListener(e -> reveal(r.path()));
+            menu.add(reveal);
+        }
+        if (r.target() == ProjectModel.Target.SETTINGS_SOURCE) {
+            javax.swing.JMenuItem remove = new javax.swing.JMenuItem("Remove source root");
+            remove.setToolTipText("Remove " + r.path() + " from this project's source roots");
+            remove.addActionListener(e -> navigator.removeSourceRoot(r.path()));
+            menu.addSeparator();
+            menu.add(remove);
+        }
+        more.addActionListener(e -> menu.show(more, 0, more.getHeight()));
+        return more;
+    }
+
     private JComponent row(ProjectModel.Row r) {
         // two lines: [name/path ..................... buttons] over a full-width sentence. The sentence used to
         // sit beside the buttons and wrapped into a five-line sliver (review F2, second look).
@@ -151,12 +203,19 @@ public final class ProjectPanel extends JPanel {
 
         JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 2, 0));
         actions.setOpaque(false);
-        if (r.path() != null) {
-            actions.add(small("Copy", "Copy the full path: " + r.path(), () -> copy(r.path())));
-            if (!r.path().contains("://")) {                 // a remote origin has nothing to show locally
-                // owner, 2026-08-27: the buttons say what they do — "Show file" opens the file manager, "Open" opens the thing
-                actions.add(small("Show file", "Show in " + fileManagerName(), () -> reveal(r.path())));
-            }
+        // Copy, Show file and Remove live behind "…", the same idiom the start page's recents use. Three
+        // or four buttons per row crowded out the one that mattered, and every row the panel gained made
+        // it worse (owner, 2026-09-30). The row's own action stays a button; the rest are one click away.
+        if (r.path() != null) actions.add(overflow(r));
+        if (r.target() == ProjectModel.Target.PROCESSOR && r.item() != null) {
+            actions.add(small("Open", "Show " + r.item() + " in the Source tab — the active processor is unchanged",
+                    () -> navigator.openProcessorSource(r.item())));
+            actions.add(processorOverflow(r));
+            head.add(actions, BorderLayout.EAST);
+            head.setMaximumSize(new Dimension(Integer.MAX_VALUE, head.getPreferredSize().height));
+            row.add(head);
+            addSecondary(row, r);
+            return row;
         }
         switch (r.target()) {
             case TOPOLOGY -> actions.add(small("Open", "Open in the Topology tab", () -> navigator.showTab("Topology")));
@@ -168,7 +227,9 @@ public final class ProjectPanel extends JPanel {
                     : small("Open", "Show this report in the Reports tab", () -> navigator.showReport(r.item())));
             case CHART -> actions.add(small("Open", "Show this chart in the Graph tab", () -> navigator.showGraph(r.item())));
             case VIEW_FILE -> actions.add(small("Open", "Read the file here, as written — nothing is run", () -> viewFile(r.path(), r.primary())));
-            case SETTINGS_SOURCE -> actions.add(small("Settings…", "Settings ▸ Source roots", () -> navigator.openSettings("Source roots")));
+            case SETTINGS_SOURCE -> actions.add(small("Settings…",
+                    r.path() == null ? "Settings ▸ Source roots" : "Settings ▸ Source roots, at " + r.path(),
+                    () -> navigator.openSettings("Source roots", r.path())));
             case SETTINGS_PROCESSORS -> actions.add(small("Settings…", "Settings ▸ Event processor", () -> navigator.openSettings("Event processor")));
             case ADD_SOURCE -> actions.add(small("Add source", "Settings ▸ Source roots — add the root that holds this class", () -> navigator.openSettings("Source roots")));
             case SETTINGS_ASSISTANT -> actions.add(small("Settings…", "Settings ▸ Assistant", () -> navigator.openSettings("Assistant")));
@@ -178,6 +239,12 @@ public final class ProjectPanel extends JPanel {
         head.setMaximumSize(new Dimension(Integer.MAX_VALUE, head.getPreferredSize().height));
         row.add(head);
 
+        addSecondary(row, r);
+        return row;
+    }
+
+    /** The row's wrapping second line, shared by every row shape. */
+    private void addSecondary(JPanel row, ProjectModel.Row r) {
         // Review F2: the second line is a SENTENCE — the pairing verdict, "source NOT found", the tier — whose
         // tail carries the meaning, so it WRAPS across the full row. Elision (D-L8) stays for the first line.
         String sub = r.secondary();
@@ -201,7 +268,43 @@ public final class ProjectPanel extends JPanel {
             row.add(secondary);
         }
         row.setMaximumSize(new Dimension(Integer.MAX_VALUE, Short.MAX_VALUE));
-        return row;
+    }
+
+    /** Set active / Remove / Add source / Settings for one processor, behind "…". */
+    private JButton processorOverflow(ProjectModel.Row r) {
+        JButton more = new JButton("\u2026");
+        more.setMargin(new java.awt.Insets(0, 6, 0, 6));
+        more.setToolTipText("Set active, remove, add source, settings");
+        javax.swing.JPopupMenu menu = new javax.swing.JPopupMenu();
+
+        javax.swing.JMenuItem active = new javax.swing.JMenuItem("Set active");
+        active.setToolTipText("Make " + r.item() + " the project's event processor");
+        active.addActionListener(e -> navigator.setActiveProcessor(r.item()));
+        menu.add(active);
+
+        javax.swing.JMenuItem remove = new javax.swing.JMenuItem("Remove");
+        remove.setToolTipText("Drop " + r.item() + " from this project's declared processors");
+        remove.addActionListener(e -> navigator.removeProcessor(r.item()));
+        menu.add(remove);
+
+        menu.addSeparator();
+        javax.swing.JMenuItem addSource = new javax.swing.JMenuItem("Add source");
+        addSource.setToolTipText("Settings ▸ Source roots — add the root that holds this class");
+        addSource.addActionListener(e -> navigator.openSettings("Source roots"));
+        menu.add(addSource);
+
+        javax.swing.JMenuItem settings = new javax.swing.JMenuItem("Settings…");
+        settings.setToolTipText("Settings ▸ Event processor");
+        settings.addActionListener(e -> navigator.openSettings("Event processor"));
+        menu.add(settings);
+
+        javax.swing.JMenuItem copy = new javax.swing.JMenuItem("Copy class name");
+        copy.addActionListener(e -> copy(r.item()));
+        menu.addSeparator();
+        menu.add(copy);
+
+        more.addActionListener(e -> menu.show(more, 0, more.getHeight()));
+        return more;
     }
 
     /**

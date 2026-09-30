@@ -40,6 +40,8 @@ public record ProjectModel(List<Section> sections) {
 
     /** Where a row's "go to" leads — navigation only (D-L3). */
     public enum Target { NONE, TOPOLOGY, SOURCE, SETTINGS_SOURCE, SETTINGS_PROCESSORS, SETTINGS_ASSISTANT, PROJECT, REPORTS,
+        /** One named event processor, whose row can open it, make it active, or drop it. */
+        PROCESSOR,
         /**
          * A processor whose source was not found: the remedy is a root, so the button says so and opens
          * Settings ▸ Source roots (owner, 2026-08-27).
@@ -350,6 +352,9 @@ public record ProjectModel(List<Section> sections) {
             int dot = fqn == null ? -1 : fqn.lastIndexOf('.');
             String simple = dot < 0 ? fqn : fqn.substring(dot + 1);
             if (dot > 0) detail += " · " + fqn.substring(0, dot);
+            // the FQN rides as the row's ITEM. Without it every row's Open reached the same place --
+            // "the Source tab" -- which showed whichever processor was selected, so a list of six had
+            // one button repeated six times (found in use, 2026-09-30).
             rows.add(new Row(simple, detail, null, str(p.get("from")),
                     // owner, 2026-08-27: no source → no "Go" (there is nowhere to go); "Add source" instead, which
                     // opens the Source roots page — the remedy is a root, not a processor setting
@@ -359,7 +364,7 @@ public record ProjectModel(List<Section> sections) {
                     // absent-file case, where adding a root cannot help. One remedy button that is
                     // occasionally unhelpful beats a row whose control changes shape depending on why
                     // something is missing. The WORDING carries the distinction instead.
-                    found ? Target.SOURCE : Target.ADD_SOURCE));
+                    found ? Target.PROCESSOR : Target.ADD_SOURCE, fqn));
         }
         if (rows.isEmpty()) {
             rows.add(new Row("No event processors", "Settings ▸ Event processor, or open a log and one is inferred",

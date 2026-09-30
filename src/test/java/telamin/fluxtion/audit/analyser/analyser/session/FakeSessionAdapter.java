@@ -31,6 +31,7 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
     final List<SessionEffects.DeleteBundleEffect> deletes = new java.util.ArrayList<>();
     final List<SessionEffects.RememberBundleAnchorEffect> anchorRemembers = new java.util.ArrayList<>();
     final List<SessionEffects.RestoreBundleAnchorEffect> anchorRestores = new java.util.ArrayList<>();
+    final List<SessionEffects.OfferProjectReopenEffect> reopenOffers = new java.util.ArrayList<>();
     final List<SessionEffects.EndWalkEffect> walkEnds = new ArrayList<>();
     /** OA-1: what assistantLoop asked the adapter to do, in order. */
     final List<SessionEffects.PrepareAssistantContextEffect> assistantContexts = new ArrayList<>();
@@ -190,6 +191,10 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
                 }
                 java.util.Set<String> ids = openable.getOrDefault(e.location(), java.util.Set.of());
                 yield new SessionEvents.LogOpened(e.opId(), e.location(), e.provenance(), ids, ids.size(), ids.size(), null);
+            }
+            case SessionEffects.OfferProjectReopenEffect e -> {
+                reopenOffers.add(e);
+                yield new SessionEvents.StatusShown(e.opId(), "offerProjectReopen");
             }
             case SessionEffects.RememberBundleAnchorEffect e -> {
                 anchorRemembers.add(e);

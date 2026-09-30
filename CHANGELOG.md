@@ -8,6 +8,10 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ### Fixed
 
+- A project restored when the analyser starts now has its settings **in force**, not merely loaded. Its source roots reached the config but nothing applied them, so every event processor read "source not found" and the Source tab was empty while the Project panel listed all the roots.
+- Opening an audit log that lives inside the project you already have open no longer offers to "load the project" and move you onto a different profile of it. The offer compared the profile file, so a named profile (`project.<name>.fluxtion-settings`) looked like a different project from its own canonical one.
+- **Open** on an event-processor row now opens *that* processor's source. It reached "the Source tab", which shows whichever processor is selected — so a list of six had one button repeated six times. The active processor is unchanged; making one active is its own action.
+- Listing a project's evidence no longer fails while a capture is in flight: the walk went into the capture's own working folder as it was created and deleted, and the resulting error escaped a `context` call.
 - The start page no longer leaves "Verified …, the audit log is loading" behind once the bundle is open; the Project panel carries its identity, working copy and limits for the whole session.
 - A chart explanation or note mentioning something like `~1/price` is no longer mistaken for a home-directory path and replaced with "path removed" inside an evidence bundle. Digit-leading usernames such as `~7dev/logs/x.yaml` are still redacted.
 - Opening an evidence bundle whose project fails to apply no longer leaves the next ordinary project labelled as that bundle's evidence.
@@ -21,6 +25,12 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ### Added
 
+- **The three columns are named**: *Context* (what the system is), *Facts* (what the run did), *Canvas* (what you make of it), each saying so on hover. Opening a project offers the audit logs and topologies it knows about — either, both or neither — instead of leaving you with a project and nothing on screen; a profile still carries settings and never what was open. `Project ▸ Open recent log and topology…` asks for the same offer at any time.
+- **Private settings**, under Context: what this machine remembers about the open project — the focus you were last on, the bundles opened here, the working copies unpacked. Never written to a profile, never shared.
+- A project can name a **default focus** — its own "start here", carried in the profile and travelling to a colleague — while the focus *you* were last on is remembered per project on this machine only. Yours wins when both exist; a fresh checkout gets the project's. Set it from the focus picker.
+- Event-processor rows carry their own actions: open, set active, remove, add source, settings.
+- The event-type checklist moved into the Facts column, with its own button beside Search, above the records it filters.
+- A source root can be removed from the Project panel row that shows it, and **Settings…** on that row arrives with the root selected rather than merely on the right page.
 - An evidence bundle now names the event processor its log came from, so a recipient opens it with that processor selected instead of none. It is a class name, not a path: the graph names the nodes and never the processor, so there was nothing to guess from.
 - The window title and the Project panel now say when the session came from an evidence bundle, and which one, for as long as it is open — not only in the dialog at the moment it opens.
 - Evidence bundles you have opened are remembered: a "Recent evidence bundles" list on the start page, showing what the sender said each one is, and the same list in `context.bundles`.

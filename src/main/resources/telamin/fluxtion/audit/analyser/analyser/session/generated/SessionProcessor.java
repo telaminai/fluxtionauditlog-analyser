@@ -116,6 +116,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.node.OpenLog;
 import telamin.fluxtion.audit.analyser.analyser.session.node.OperationGate;
 import telamin.fluxtion.audit.analyser.analyser.session.node.Pairing;
 import telamin.fluxtion.audit.analyser.analyser.session.node.PairingQualifier;
+import telamin.fluxtion.audit.analyser.analyser.session.node.ProjectReopenOffer;
 import telamin.fluxtion.audit.analyser.analyser.session.node.SessionBoundary;
 import telamin.fluxtion.audit.analyser.analyser.session.node.SessionRecovery;
 import telamin.fluxtion.audit.analyser.analyser.session.node.WalkPlayback;
@@ -272,6 +273,9 @@ public class SessionProcessor
   public final transient LogOpening logOpening =
       new telamin.fluxtion.audit.analyser.analyser.session.node.LogOpening(
           operationGate, effectQueue);;
+  public final transient ProjectReopenOffer projectReopenOffer =
+      new telamin.fluxtion.audit.analyser.analyser.session.node.ProjectReopenOffer(
+          openBundle, effectQueue);;
   public final transient ServiceRegistryNode serviceRegistry = new ServiceRegistryNode();
   public final transient SessionBoundary sessionBoundary =
       new telamin.fluxtion.audit.analyser.analyser.session.node.SessionBoundary(
@@ -575,7 +579,7 @@ public class SessionProcessor
           new DescriptorSupport.Meta(
               null,
               "1.0.71",
-              "1b160751c75f84317a18bd91394a548179801342e2dae8f899597dfd2630f268",
+              "3581f3b9da55882a8c03c879d34c7bdff97154e74528f431ddbedb8729c96c9c",
               null));
 
   @Override
@@ -1949,6 +1953,8 @@ public class SessionProcessor
     }
     auditInvocation(bundleAnchor, "bundleAnchor", "onProfileApplied", typedEvent);
     bundleAnchor.onProfileApplied(typedEvent);
+    auditInvocation(projectReopenOffer, "projectReopenOffer", "onProfileApplied", typedEvent);
+    projectReopenOffer.onProfileApplied(typedEvent);
     afterEvent();
   }
 
@@ -2534,6 +2540,8 @@ public class SessionProcessor
       isDirty_assistantLoop = assistantLoop.onProfileApplied(typedEvent);
       auditInvocation(bundleAnchor, "bundleAnchor", "onProfileApplied", typedEvent);
       bundleAnchor.onProfileApplied(typedEvent);
+      auditInvocation(projectReopenOffer, "projectReopenOffer", "onProfileApplied", typedEvent);
+      projectReopenOffer.onProfileApplied(typedEvent);
     } else if (event instanceof ProfileLoaded) {
       ProfileLoaded typedEvent = (ProfileLoaded) event;
       auditEvent(typedEvent);
@@ -2713,6 +2721,7 @@ public class SessionProcessor
     auditor.nodeRegistered(operationGate, "operationGate");
     auditor.nodeRegistered(pairingQualifier, "pairingQualifier");
     auditor.nodeRegistered(pairing, "pairing");
+    auditor.nodeRegistered(projectReopenOffer, "projectReopenOffer");
     auditor.nodeRegistered(sessionBoundary, "sessionBoundary");
     auditor.nodeRegistered(sessionRecovery, "sessionRecovery");
     auditor.nodeRegistered(walkPlayback, "walkPlayback");
@@ -2910,6 +2919,10 @@ public class SessionProcessor
     return isDirty_openGraph | isDirty_openLog;
   }
 
+  private boolean guardCheck_projectReopenOffer() {
+    return isDirty_openBundle;
+  }
+
   private boolean guardCheck_sessionBoundary() {
     return isDirty_activeProject | isDirty_openGraph | isDirty_openLog | isDirty_operationGate;
   }
@@ -2982,6 +2995,8 @@ public class SessionProcessor
         return (T) pairingQualifier;
       case "pairing":
         return (T) pairing;
+      case "projectReopenOffer":
+        return (T) projectReopenOffer;
       case "sessionBoundary":
         return (T) sessionBoundary;
       case "sessionRecovery":
@@ -3073,6 +3088,9 @@ public class SessionProcessor
     }
     if (node == pairing) {
       return "pairing";
+    }
+    if (node == projectReopenOffer) {
+      return "projectReopenOffer";
     }
     if (node == sessionBoundary) {
       return "sessionBoundary";

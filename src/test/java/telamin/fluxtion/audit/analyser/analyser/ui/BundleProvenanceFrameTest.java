@@ -139,6 +139,283 @@ class BundleProvenanceFrameTest {
     }
 
     @Test
+    @DisplayName("a project RESTORED at startup has its source roots in force, not just in the config")
+    void aRestoredProjectHasItsSourceInForce(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        Path mine = java.nio.file.Files.createDirectories(tmp.resolve("mine"));
+        Path src = java.nio.file.Files.createDirectories(mine.resolve("src/main/java"));
+        Path profile = mine.resolve(".analyser").resolve("project.fluxtion-settings");
+        java.nio.file.Files.createDirectories(profile.getParent());
+        java.nio.file.Files.writeString(profile, "sourceRoot.0=" + src + "\nsourceRoot.count=1\n");
+
+        // The state a restart finds: this project was in force when the app last closed.
+        Path cfg = tmp.resolve("home").resolve(".fluxtion-analyser").resolve("config");
+        java.nio.file.Files.createDirectories(cfg.getParent());
+        java.nio.file.Files.writeString(cfg, "activeProjectPath=" + profile.toString().replace(":", "\\:") + "\n");
+
+        try (var f = shown(tmp)) {
+            Thread.sleep(500);
+            var config = (telamin.fluxtion.audit.analyser.analyser.config.AppConfig) field(f.frame, "config");
+            assertEquals(List.of(src.toString()), List.copyOf(config.sourceRoots),
+                    "precondition: the restored project's roots are in the config");
+
+            assertEquals(List.of(src.toString()), sourceRootsOf(f.frame),
+                    "theSourceServiceHasThemToo — a project restored at startup put its roots in the "
+                            + "config and never configured source, so every processor read 'source not found'");
+        }
+    }
+
+    @Test
+    @DisplayName("a project restored at startup is asked what to open, like any other way one arrives")
+    void aRestoredProjectIsAlsoOffered(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        Path mine = java.nio.file.Files.createDirectories(tmp.resolve("mine"));
+        Path src = java.nio.file.Files.createDirectories(mine.resolve("src/main/java"));
+        Path log = java.nio.file.Files.copy(EvidenceCaptureFrameTest.DEMO_LOG, mine.resolve("run.yaml"));
+        Path graph = java.nio.file.Files.writeString(mine.resolve("t.graphml"), "<graphml/>");
+        Path profile = mine.resolve(".analyser").resolve("project.fluxtion-settings");
+        java.nio.file.Files.createDirectories(profile.getParent());
+        java.nio.file.Files.writeString(profile, "sourceRoot.0=" + src + "\nsourceRoot.count=1\n");
+
+        // The state a restart finds: this project in force, and these opened inside it.
+        String esc = profile.toString().replace(":", "\\:");
+        Path cfg = tmp.resolve("home").resolve(".fluxtion-analyser").resolve("config");
+        java.nio.file.Files.createDirectories(cfg.getParent());
+        java.nio.file.Files.writeString(cfg, "activeProjectPath=" + esc + "\n"
+                + "recentFile.0=" + log.toString().replace(":", "\\:") + "\nrecentFile.count=1\n"
+                + "recentGraphml.0=" + graph.toString().replace(":", "\\:") + "\nrecentGraphml.count=1\n");
+
+        var asked = new java.util.concurrent.atomic.AtomicReference<
+                telamin.fluxtion.audit.analyser.analyser.config.ProjectReopen>();
+        setChooser((label, candidates) -> {        // BEFORE the frame: the offer can fire as it starts
+            asked.set(candidates);
+            return null;
+        });
+        try (var f = shown(tmp)) {
+            // the offer is deferred to after the window is up, so it cannot block construction
+            for (int i = 0; i < 100 && asked.get() == null; i++) Thread.sleep(50);
+
+            assertNotNull(asked.get(), "aRestoredProjectIsAsked — it comes up as empty as any other");
+            assertEquals(List.of(log.toString()), asked.get().logs(), "itsOwnLog");
+            assertEquals(List.of(graph.toString()), asked.get().topologies(), "andItsOwnTopology");
+        }
+    }
+
+    @Test
+    @DisplayName("a project opened AFTER an experiment still gets its own source roots")
+    void aProjectAfterAnExperimentKeepsItsSource(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        try (var f = shown(tmp)) {
+            Path dir = exchange(f, tmp);
+            Path mine = java.nio.file.Files.createDirectories(tmp.resolve("mine"));
+            Path src = java.nio.file.Files.createDirectories(mine.resolve("src/main/java"));
+            Path profile = mine.resolve(".analyser").resolve("project.fluxtion-settings");
+            java.nio.file.Files.createDirectories(profile.getParent());
+            java.nio.file.Files.writeString(profile, "sourceRoot.0=" + src + "\nsourceRoot.count=1\n");
+
+            openLog(f, EvidenceCaptureFrameTest.DEMO_LOG);
+            onEdt(() -> render(f.ex, "report", Map.of("bundle", Map.of("path", "after.fexp"))));
+            assertEquals("WRITTEN", awaitDecided(f).get("phase"));
+            openBundleAndWait(f, dir.resolve("after.fexp"));
+
+            // ...and now open your own project, the way the person did.
+            openAsAPerson(f.frame, profile);
+            Thread.sleep(600);
+
+            var config = (telamin.fluxtion.audit.analyser.analyser.config.AppConfig) field(f.frame, "config");
+            assertEquals(List.of(src.toString()), List.copyOf(config.sourceRoots),
+                    "theProjectsOwnRootsAreInForce");
+
+            @SuppressWarnings("unchecked")
+            var ctx = (Map<String, Object>) onEdtGet(() ->
+                    render(f.ex, "context", Map.of("sections", List.of("source"))).get("context"));
+            @SuppressWarnings("unchecked")
+            var source = (Map<String, Object>) ctx.get("source");
+            @SuppressWarnings("unchecked")
+            var roots = (List<String>) source.get("roots");
+
+            assertEquals(List.of(src.toString()), roots,
+                    "andTheSourceServiceHasThem — empty here is why every processor showed red");
+        }
+    }
+
+    @Test
+    @DisplayName("opening a project configures the source service with that project's roots")
+    void openingAProjectConfiguresSource(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        try (var f = shown(tmp)) {
+            Path mine = java.nio.file.Files.createDirectories(tmp.resolve("mine"));
+            Path src = java.nio.file.Files.createDirectories(mine.resolve("src/main/java"));
+            Path profile = mine.resolve(".analyser").resolve("project.fluxtion-settings");
+            java.nio.file.Files.createDirectories(profile.getParent());
+            java.nio.file.Files.writeString(profile,
+                    "sourceRoot.0=" + src + "\nsourceRoot.count=1\n");
+
+            openAsAPerson(f.frame, profile);
+            Thread.sleep(400);
+
+            @SuppressWarnings("unchecked")
+            var ctx = (Map<String, Object>) onEdtGet(() ->
+                    render(f.ex, "context", Map.of("sections", List.of("source"))).get("context"));
+            @SuppressWarnings("unchecked")
+            var source = (Map<String, Object>) ctx.get("source");
+            @SuppressWarnings("unchecked")
+            var roots = (List<String>) source.get("roots");
+
+            assertEquals(List.of(src.toString()), roots,
+                    "theSourceServiceKnowsTheProjectsRoots — without these every processor reads 'source not found'");
+        }
+    }
+
+    @Test
+    @DisplayName("O3: opening a project offers its logs and topologies, and a bundle is never asked")
+    void openingAProjectOffersWhatBelongsToIt(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        try (var f = shown(tmp)) {
+            Path dir = exchange(f, tmp);
+            Path mine = java.nio.file.Files.createDirectories(tmp.resolve("mine"));
+            Path log = java.nio.file.Files.copy(EvidenceCaptureFrameTest.DEMO_LOG, mine.resolve("run.yaml"));
+            Path graph = java.nio.file.Files.writeString(mine.resolve("t.graphml"), "<graphml/>");
+            Path src = java.nio.file.Files.createDirectories(mine.resolve("src/main/java"));
+            Path profile = mine.resolve(".analyser").resolve("project.fluxtion-settings");
+            java.nio.file.Files.createDirectories(profile.getParent());
+            java.nio.file.Files.writeString(profile, "sourceRoot.0=" + src + "\nsourceRoot.count=1\n");
+
+            var config = (telamin.fluxtion.audit.analyser.analyser.config.AppConfig) field(f.frame, "config");
+            config.addRecent(log.toString());
+            config.addRecentGraphml(graph.toString());
+
+            // The seam: a person answers a dialog, a test answers this. What it is ASKED is the assertion.
+            var asked = new java.util.concurrent.atomic.AtomicReference<
+                    telamin.fluxtion.audit.analyser.analyser.config.ProjectReopen>();
+            var offers = new java.util.concurrent.atomic.AtomicInteger();
+            var settledWhenAsked = new java.util.concurrent.atomic.AtomicBoolean();
+            setChooser((label, candidates) -> {
+                offers.incrementAndGet();
+                asked.set(candidates);
+                // THE INVARIANT. This is a MODAL question: everything after it waits for a human. If it
+                // is asked mid-transition, the rest of the transition is stuck behind it -- which is how
+                // a project came up with every processor red and no source (found in use, 2026-09-30).
+                settledWhenAsked.set(!sourceRootsOf(f.frame).isEmpty());
+                return null;        // "Not now" -- the offer is what is under test, not the opening
+            });
+
+            // The PERSON's entrance. Every project entrance declares its audience through
+            // requestProject's `interactive` argument, and the offer is a modal question: the socket
+            // verb declares false and is asserted below to stay silent.
+            openAsAPerson(f.frame, profile);
+            for (int i = 0; i < 100 && offers.get() == 0; i++) Thread.sleep(50);
+
+            assertEquals(1, offers.get(), "openingAProjectOffersOnce");
+            assertTrue(settledWhenAsked.get(),
+                    "theTransitionIsFinishedBeforeTheQuestion — a modal asked mid-transition strands the "
+                            + "source service unconfigured and every processor reads red");
+            assertEquals(List.of(log.toString()), asked.get().logs(), "itsOwnLogIsOffered");
+            assertEquals(List.of(graph.toString()), asked.get().topologies(), "andItsOwnTopology");
+
+            // An assistant opening a project over the socket must not stop on a dialog nobody can see.
+            offers.set(0);
+            onEdt(() -> render(f.ex, "open", Map.of("close", "project")));
+            onEdt(() -> render(f.ex, "open", Map.of("project", profile.toString())));
+            Thread.sleep(300);
+            assertEquals(0, offers.get(), "theSocketIsNeverAskedToAnswerAModal");
+
+            // A bundle brings its own evidence; being offered a choice at that moment is nonsense.
+            openLog(f, EvidenceCaptureFrameTest.DEMO_LOG);
+            onEdt(() -> render(f.ex, "report", Map.of("bundle", Map.of("path", "offer.fexp"))));
+            assertEquals("WRITTEN", awaitDecided(f).get("phase"));
+            offers.set(0);
+            openBundleAndWait(f, dir.resolve("offer.fexp"));
+            Thread.sleep(300);
+
+            assertEquals(0, offers.get(), "aBundleIsNeverAskedWhatToReopen");
+        }
+    }
+
+    /** The roots the SOURCE SERVICE actually has — not the config's copy, which is set earlier. */
+    private static List<String> sourceRootsOf(MainFrame frame) {
+        try {
+            var field = MainFrame.class.getDeclaredField("sourceService");
+            field.setAccessible(true);
+            var service = (telamin.fluxtion.audit.analyser.analyser.source.SourceService) field.get(frame);
+            return service.resolver().roots().stream().map(Object::toString).toList();
+        } catch (ReflectiveOperationException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    /** What a person's Open project does: declare the audience and request the transition. */
+    private static void openAsAPerson(MainFrame frame, Path profile) throws Exception {
+        var method = MainFrame.class.getDeclaredMethod("requestProject", Path.class,
+                telamin.fluxtion.audit.analyser.analyser.session.TransitionKind.class, String.class, boolean.class);
+        method.setAccessible(true);
+        onEdt(() -> {
+            try {
+                method.invoke(frame, profile,
+                        telamin.fluxtion.audit.analyser.analyser.session.TransitionKind.EXPLICIT_SWITCH,
+                        "test-person", true);
+            } catch (ReflectiveOperationException e) {
+                throw new IllegalStateException(e);
+            }
+        });
+    }
+
+    @SuppressWarnings("unchecked")
+    private static void setChooser(java.util.function.BiFunction<String,
+            telamin.fluxtion.audit.analyser.analyser.config.ProjectReopen, Object> chooser) throws Exception {
+        var field = MainFrame.class.getDeclaredField("reopenChooser");
+        field.setAccessible(true);
+        field.set(null, chooser);
+    }
+
+    @org.junit.jupiter.api.AfterEach
+    void noStrayChooser() throws Exception {
+        setChooser(null);       // static seam: never leak one test's answer into the next
+    }
+
+    @Test
+    @DisplayName("a bundle's anchored source does not leak into the project you open next")
+    void anchoredSourceDoesNotLeakIntoTheNextProject(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        try (var f = shown(tmp)) {
+            Path dir = exchange(f, tmp);
+            Path mine = java.nio.file.Files.createDirectories(tmp.resolve("mine/src/main/java"));
+            String myRoot = mine.toAbsolutePath().normalize().toString();
+            Path bundleCode = java.nio.file.Files.createDirectories(tmp.resolve("demo-src"));
+            String anchored = bundleCode.toAbsolutePath().normalize().toString();
+
+            Path profile = tmp.resolve("mine").resolve(".analyser").resolve("project.fluxtion-settings");
+            java.nio.file.Files.createDirectories(profile.getParent());
+            java.nio.file.Files.writeString(profile, "sourceRoot.0=" + myRoot + "\nsourceRoot.count=1\n");
+            onEdt(() -> render(f.ex, "open", Map.of("project", profile.toString())));
+            onEdt(() -> render(f.ex, "source_root", Map.of("add", List.of(myRoot))));
+            var config = (telamin.fluxtion.audit.analyser.analyser.config.AppConfig) field(f.frame, "config");
+            assertTrue(config.sourceRoots.contains(myRoot), "precondition: the project has its own root");
+
+            openLog(f, EvidenceCaptureFrameTest.DEMO_LOG);
+            onEdt(() -> render(f.ex, "report", Map.of("bundle", Map.of("path", "leak.fexp"))));
+            assertEquals("WRITTEN", awaitDecided(f).get("phase"));
+            Path fexp = dir.resolve("leak.fexp");
+
+            openBundleAndWait(f, fexp);
+            onEdt(() -> render(f.ex, "source_root", Map.of("add", List.of(anchored))));
+            assertEquals(List.of(anchored), config.bundleSourceRoots(fexp.toString()),
+                    "precondition: the bundle is anchored to its own source");
+
+            // Back to your own project. The bundle's source is a fact about the BUNDLE; it has no
+            // business in a profile you commit.
+            onEdt(() -> render(f.ex, "open", Map.of("project", profile.toString())));
+            for (int i = 0; i < 100 && config.sourceRoots.contains(anchored); i++) Thread.sleep(50);
+
+            assertFalse(config.sourceRoots.contains(anchored),
+                    "theBundlesSourceIsNotInTheProjectsRoots");
+            assertTrue(java.nio.file.Files.readString(profile).lines()
+                            .noneMatch(line -> line.contains(anchored)),
+                    "andItIsNotWrittenToTheProfileOnDisk");
+        }
+    }
+
+    @Test
     @DisplayName("#75: clearing your own source roots does not erase a bundle's anchor")
     void clearingYourRootsDoesNotEraseTheAnchor(@TempDir Path tmp) throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless());

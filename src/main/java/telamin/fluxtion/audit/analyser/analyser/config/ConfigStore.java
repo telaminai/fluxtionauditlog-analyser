@@ -105,6 +105,7 @@ public final class ConfigStore {
         c.assistantActionsRest = parseBool(p.getProperty("assistant.rest"), c.assistantActionsRest);
         c.assistantExports = parseBool(p.getProperty("assistant.exports"), c.assistantExports);
         c.assistantExportDir = p.getProperty("assistant.exportDir", c.assistantExportDir);
+        readLastFocuses(p, c.lastFocusByProject);
         c.maxActionRounds = parseInt(p.getProperty("assistant.maxRounds"), c.maxActionRounds);
         c.maxActionsPerTurn = parseInt(p.getProperty("assistant.maxActionsPerTurn"), c.maxActionsPerTurn);
         c.maxActionsPerReply = parseInt(p.getProperty("assistant.maxActionsPerReply"), c.maxActionsPerReply);
@@ -198,6 +199,7 @@ public final class ConfigStore {
         put(p, "assistant.rest", Boolean.toString(c.assistantActionsRest));
         put(p, "assistant.exports", Boolean.toString(c.assistantExports));
         put(p, "assistant.exportDir", c.assistantExportDir);
+        writeLastFocuses(p, c.lastFocusByProject);
         put(p, "assistant.maxRounds", Integer.toString(c.maxActionRounds));
         put(p, "assistant.maxActionsPerTurn", Integer.toString(c.maxActionsPerTurn));
         put(p, "assistant.maxActionsPerReply", Integer.toString(c.maxActionsPerReply));
@@ -237,6 +239,33 @@ public final class ConfigStore {
 
     // package-visible so SettingsShare (settings export/import, M15) reuses the exact same
     // list/graph serialization rather than duplicating the key layout
+    /**
+     * The focus each project was last left on. MACHINE tier and never in a profile: it is a record of
+     * your session, and a colleague opening the repository should get the project's own advice
+     * ({@code defaultFocus}) rather than your last view.
+     */
+    static void writeLastFocuses(java.util.Properties p, java.util.Map<String, String> byProject) {
+        int i = 0;
+        for (var e : byProject.entrySet()) {
+            if (e.getKey() == null || e.getValue() == null || e.getValue().isBlank()) continue;
+            put(p, "lastFocus." + i + ".project", e.getKey());
+            put(p, "lastFocus." + i + ".name", e.getValue());
+            i++;
+        }
+        p.setProperty("lastFocus.count", Integer.toString(i));
+    }
+
+    static void readLastFocuses(java.util.Properties p, java.util.Map<String, String> into) {
+        into.clear();
+        int count = parseInt(p.getProperty("lastFocus.count"), 0);
+        for (int i = 0; i < count; i++) {
+            String project = p.getProperty("lastFocus." + i + ".project");
+            String name = p.getProperty("lastFocus." + i + ".name");
+            if (project == null || project.isBlank() || name == null || name.isBlank()) continue;
+            into.put(project, name);
+        }
+    }
+
     /** M27.3 — named focuses ride the same wire shape as graphs: focus.N.name/rationale/node.M. */
     static void writeFocuses(java.util.Properties p, java.util.List<FocusSpec> focuses) {
         p.setProperty("focus.count", Integer.toString(focuses.size()));

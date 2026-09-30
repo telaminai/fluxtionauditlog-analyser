@@ -47,14 +47,26 @@ public final class ProjectAutoDetect {
         if (found == null) {
             return null;
         }
-        if (activeFile != null && found.toAbsolutePath().normalize()
-                .equals(activeFile.toAbsolutePath().normalize())) {
-            return null;   // already the active project
+        // Compare the PROJECT, not the profile file. findNear returns a project's canonical profile,
+        // so with a NAMED profile of that same project in force (project.reciprocal.fluxtion-settings)
+        // the files differ and this offered to "load the project" you already had open -- and saying
+        // yes moved you off your named profile onto the canonical one, replacing source roots, graphs
+        // and hidden columns with another profile's. Found in use, 2026-09-30, by opening a log that
+        // lives inside the open project.
+        if (activeFile != null && sameProject(found, activeFile)) {
+            return null;   // already the active project, under whichever of its profiles
         }
         if (declined.contains(key(localLog))) {
             return null;
         }
         return found;
+    }
+
+    private static boolean sameProject(Path profile, Path activeFile) {
+        Path a = ProjectProfile.baseDirFor(profile);
+        Path b = ProjectProfile.baseDirFor(activeFile);
+        return a != null && b != null
+                && a.toAbsolutePath().normalize().equals(b.toAbsolutePath().normalize());
     }
 
     /** Remember a "no" so the same log does not ask again this session. */

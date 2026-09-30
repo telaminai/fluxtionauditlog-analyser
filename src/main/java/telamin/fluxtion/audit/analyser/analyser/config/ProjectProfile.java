@@ -250,7 +250,8 @@ public final class ProjectProfile {
                            List<AnalysisSpec> analyses,
                            List<ReportDestination> reportDestinations,
                            String workspaceRoot,
-                           String projectExchangeDir) {
+                           String projectExchangeDir,
+                           String defaultFocus) {
 
         public Snapshot {
             sourceRoots = List.copyOf(sourceRoots);
@@ -270,6 +271,7 @@ public final class ProjectProfile {
             reportDestinations = List.copyOf(reportDestinations == null ? List.of() : reportDestinations);
             workspaceRoot = workspaceRoot == null ? "" : workspaceRoot;
             projectExchangeDir = projectExchangeDir == null ? "" : projectExchangeDir;
+            defaultFocus = defaultFocus == null ? "" : defaultFocus;
         }
     }
 
@@ -277,7 +279,7 @@ public final class ProjectProfile {
         return new Snapshot(c.sourceRoots, c.mavenRepos, c.searchMavenRepos, c.eventProcessorFqns,
                 c.selectedEventProcessor, c.processorDeclarations, c.savedGraphs, c.namedFocuses, c.reports, c.walks, c.hiddenColumns,
                 c.hiddenColumnsSet, c.runbooks, c.vocabularyPath, c.environments, c.defaultEnvironment, c.analyses,
-                c.reportDestinations, c.workspaceRoot, c.projectExchangeDir);
+                c.reportDestinations, c.workspaceRoot, c.projectExchangeDir, c.defaultFocus);
     }
 
     /** Put a snapshot back over the project-scoped categories, leaving global untouched. */
@@ -303,6 +305,7 @@ public final class ProjectProfile {
         into.reportDestinations.addAll(s.reportDestinations());
         into.workspaceRoot = s.workspaceRoot();
         into.projectExchangeDir = s.projectExchangeDir();
+        into.defaultFocus = s.defaultFocus();
     }
 
     /**
@@ -327,6 +330,7 @@ public final class ProjectProfile {
         c.workspaceRoot = "";
         c.projectExchangeDir = "";        // #21: a project says WHERE exchange goes; leaving it set
                                           // would carry project A's directory into project B
+        c.defaultFocus = "";              // and project A's "start here" is not project B's
         c.hiddenColumns.clear();
         // the scalars belong to the same categories, so a replace that left them behind would carry
         // project A's selected event processor into project B — a class that may not exist there

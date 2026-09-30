@@ -107,6 +107,10 @@ public class SessionProcessorBuilder implements FluxtionGraphBuilder {
         // #75: where a bundle's code lives on this machine. It decides; the frame performs and reports.
         cfg.addNode(new telamin.fluxtion.audit.analyser.analyser.session.node.BundleAnchor(openBundle, effects),
                 "bundleAnchor");
+        // O3: a project carries settings, never what was on screen. When one comes into force with
+        // nothing to look at, offer its logs and topologies -- never for a bundle, which brings its own.
+        cfg.addNode(new telamin.fluxtion.audit.analyser.analyser.session.node.ProjectReopenOffer(openBundle, effects),
+                "projectReopenOffer");
         cfg.addNode(openLog, "openLog");
         cfg.addNode(openGraph, "openGraph");
         cfg.addNode(boundary, "sessionBoundary");

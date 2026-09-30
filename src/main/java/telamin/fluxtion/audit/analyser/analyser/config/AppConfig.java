@@ -11,7 +11,11 @@ import java.util.List;
 public final class AppConfig {
 
     public String logFile;
-    /** The topology showing when the app last closed, reopened on the next start beside the log. */
+    /**
+     * The topology showing when the app last closed. NOT reopened on the next start -- this and
+     * {@link #logFile} are chooser defaults and recent-list fodder. A restored project is offered
+     * its logs and topologies instead (O3), which keeps the choice with the person.
+     */
     public String graphmlFile;
     public final List<String> sourceRoots = new ArrayList<>();
     public String llmProvider = "anthropic";     // anthropic | openai
@@ -126,6 +130,27 @@ public final class AppConfig {
 
     /** Named topology focuses (M27.3) — project-tier, persisted with the saved graphs. */
     public final List<FocusSpec> namedFocuses = new ArrayList<>();
+
+    /**
+     * The focus this PROJECT says to start at — "look here first", named among {@link #namedFocuses}.
+     * Project tier, rides the GRAPHS category, and travels to a colleague: it is the repository's
+     * opinion about where its own topology is best entered, not a record of anybody's session.
+     */
+    public String defaultFocus = "";
+
+    /** Whether the "This machine" panel under Context is collapsed. Machine tier, like the panel. */
+    public boolean machinePanelCollapsed = false;
+
+    /**
+     * The focus each project was last left on, keyed by its profile path. MACHINE tier, like every
+     * other "what was I looking at" — a colleague's checkout must not inherit your view, which is the
+     * same boundary that keeps the open log and topology out of a profile (O3).
+     *
+     * <p>Kept apart from {@link #defaultFocus} deliberately: one is the project's advice, the other is
+     * your history, and they answer different questions. Yours wins when both exist, because it is
+     * the more recent intent; the project's is what a fresh machine gets.
+     */
+    public final java.util.Map<String, String> lastFocusByProject = new java.util.LinkedHashMap<>();
 
     /**
      * Investigation reports (M33.4) — project-tier, their OWN share category (D-I4): a shared report

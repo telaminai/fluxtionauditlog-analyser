@@ -131,10 +131,39 @@ public final class ConfigPanel extends JDialog {
     public static void show(JFrame owner, AppConfig config, Runnable onSaved,
                             java.util.function.Supplier<java.util.List<String>> readerSummaries, String page,
                             java.nio.file.Path startDir) {
+        show(owner, config, onSaved, readerSummaries, page, startDir, null);
+    }
+
+    /**
+     * As above, landing with {@code highlight} selected and scrolled to.
+     *
+     * <p>A Settings… button that names a row should arrive AT that row. Landing on the right page and
+     * leaving a person to find their own path among a dozen was the same gap as landing on the wrong
+     * page: the button knows which one it means, so it says so (asked for in use, 2026-09-30).
+     */
+    public static void show(JFrame owner, AppConfig config, Runnable onSaved,
+                            java.util.function.Supplier<java.util.List<String>> readerSummaries, String page,
+                            java.nio.file.Path startDir, String highlight) {
         ConfigPanel panel = new ConfigPanel(owner, config, onSaved, readerSummaries);
         panel.startDir = startDir;
         panel.selectPage(page);
+        panel.highlightRoot(highlight);
         panel.setVisible(true);
+    }
+
+    /**
+     * Select and scroll to one source root. Silent when it is not there — a row can name a root that a
+     * person removed since the panel was drawn, and a dialog that complained about it would be noise.
+     */
+    void highlightRoot(String path) {
+        if (path == null || path.isBlank()) return;
+        for (int i = 0; i < rootsModel.size(); i++) {
+            if (path.equals(rootsModel.get(i))) {
+                rootsList.setSelectedIndex(i);
+                rootsList.ensureIndexIsVisible(i);
+                return;
+            }
+        }
     }
 
     private JTabbedPane tabs;
