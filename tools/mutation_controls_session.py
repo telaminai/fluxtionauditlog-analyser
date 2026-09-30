@@ -288,6 +288,28 @@ CONTROLS = [
      '            if (available && !isSource(t.target())) {\n',
      '            if (available) {\n',
      'WalkReviewFrameTest#aWalkStepCanPointAtJavaSource'),
+    # #83: borrowing verifies the zip twice and unzips it. Through onEdt that ran on the event
+    # thread and froze the window on a large bundle, with no progress and no cancel, while every
+    # other bundle path already read off it.
+    ('import-reads-off-the-event-thread', UI + 'ActionExecutor.java',
+     '                return app == null ? ActionResult.error("\'import\' is not enabled here")\n'
+     '                        : app.importFromBundle(path, chosen);\n',
+     '                return app == null ? ActionResult.error("\'import\' is not enabled here")\n'
+     '                        : onEdt(() -> app.importFromBundle(path, chosen));\n',
+     'BundleImportOffTheEdtFrameTest#theReadIsNotOnTheEventThread'),
+    # #85: the same bundle reuses its working copy. A fresh one per open left thirty-two on the
+    # first machine to use this in anger, and nothing ever removed them.
+    ('bundle-working-copy-is-reused', BUNDLE,
+     '        if (Files.isDirectory(settled) && first.verification().identity().equals(identityOf(settled))) {\n'
+     '            return new Unpacked(first.verification(), settled);\n'
+     '        }\n',
+     '',
+     'EvidenceBundleTest#theSameBundleReusesItsCopy'),
+    # ...and reaping never removes the copy a person is looking at.
+    ('reap-spares-the-open-copy', BUNDLE,
+     '            if (at.equals(spared) || !isWorkingCopy(at)) continue;\n',
+     '            if (!isWorkingCopy(at)) continue;\n',
+     'EvidenceBundleTest#reapSparesTheOpenCopy'),
     # Bundle discovery (#73): a recipient could not find out what they had been sent.
     ('bundle-recent-recorded', UI + 'MainFrame.java',
      '                config.addRecentBundle(plan.source(), plan.identity(), plan.notes());\n',

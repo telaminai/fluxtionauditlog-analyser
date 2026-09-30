@@ -517,6 +517,7 @@ public final class MainFrame extends JFrame {
             layoutWest(west);
         });
         machinePanel = new MachinePanel();
+        machinePanel.onClearWorkingCopies(this::clearUnusedWorkingCopies);
         machinePanel.setVisible(!config.machinePanelCollapsed);
         rail.addToggle("Private settings", !config.machinePanelCollapsed, showing -> {
             machinePanel.setVisible(showing);
@@ -704,6 +705,34 @@ public final class MainFrame extends JFrame {
      * Rebuilt on every toggle rather than hiding a split-pane child — JSplitPane keeps giving an invisible
      * child its share, and the divider is persisted only when both are showing (it is meaningless otherwise).
      */
+    /**
+     * Remove the unpacked working copies except the one in force (#85).
+     *
+     * <p>Never on the app's own account: a copy is a throwaway, but it is one the person may be
+     * looking at. The open one is named and spared; the bundles themselves are never touched.
+     */
+    private void clearUnusedWorkingCopies() {
+        var copies = telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.workingCopies();
+        Path open = sessionSnapshot().bundle().workingCopy() == null
+                ? null : Path.of(sessionSnapshot().bundle().workingCopy());
+        int spared = open == null ? 0 : 1;
+        if (copies.size() - spared <= 0) {
+            sayToStatus("No unused working copies to clear.");
+            return;
+        }
+        int answer = JOptionPane.showConfirmDialog(this,
+                "Remove " + (copies.size() - spared) + " unpacked working cop"
+                        + (copies.size() - spared == 1 ? "y" : "ies") + "?\n\n"
+                        + "They are disposable unpacks of evidence bundles. The bundles themselves are not "
+                        + "touched, and a bundle you open again is unpacked afresh."
+                        + (open == null ? "" : "\nThe copy open now is kept."),
+                "Clear unused working copies", JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
+        if (answer != JOptionPane.OK_OPTION) return;
+        int removed = telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.reap(copies, open);
+        sayToStatus("Removed " + removed + " working cop" + (removed == 1 ? "y" : "ies"));
+        refreshProjectPanel();
+    }
+
     /** The machine tier, drawn under the project it qualifies. Never a source of truth — a view. */
     private void renderMachinePanel(Map<String, Object> context) {
         if (machinePanel == null) return;
@@ -7535,6 +7564,14 @@ public final class MainFrame extends JFrame {
      */
     static volatile Runnable beforeProjectRender = () -> { };
 
+    /**
+     * A test's hold on the READING half of a borrow, run just before the bundle is verified and
+     * unpacked. A no-op in the product. It exists because "this does not run on the event thread"
+     * (#83) is otherwise assertable only by timing, and a timing assertion for a thread rule is a
+     * flake waiting to happen.
+     */
+    static volatile Runnable beforeBundleRead = () -> { };
+
     private void renderAfterTheRealWorkIsDone(String what) {
         try {
             applyProjectSettings(true);
@@ -8116,6 +8153,15 @@ public final class MainFrame extends JFrame {
         }
 
         @Override
+        /**
+         * #83: the READ happens on the calling thread, and only the change hops to the event thread.
+         *
+         * <p>This used to run whole through {@code onEdt}: two SHA-256 passes over every entry and an
+         * unzip, on the event thread, with no progress and no way to cancel — a large bundle froze the
+         * window and the app looked hung. Every other bundle path already does its reading off the EDT.
+         * Nothing here touches Swing until {@link #applyBorrowedSettings}, which is the only part that
+         * has to.
+         */
         public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult importFromBundle(
                 String path, java.util.List<String> categories) {
             if (!project.hasProject()) {
@@ -8127,6 +8173,7 @@ public final class MainFrame extends JFrame {
             if (!Files.isRegularFile(file)) {
                 return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("no evidence bundle at " + file);
             }
+            beforeBundleRead.run();     // a test's hold on the reading half; a no-op in the product
             final telamin.fluxtion.audit.analyser.analyser.config.SettingsShare.ImportPlan plan;
             final String identity;
             // Borrowing reads ONE file out of the bundle -- its profile -- so the copy it needs is a
@@ -8189,16 +8236,42 @@ public final class MainFrame extends JFrame {
                 echo.put("note", "none of the named categories is in this bundle");
                 return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("import", "preview", echo);
             }
-            new telamin.fluxtion.audit.analyser.analyser.config.SettingsShare().apply(plan, selected, config);
-            if (selected.contains(telamin.fluxtion.audit.analyser.analyser.config.SettingsShare.Category.GRAPHS)) {
-                restoreGraphDefinitions(List.copyOf(config.savedGraphs));
-            }
-            onConfigChanged();
-            refreshProjectPanel();
+            applyBorrowedSettings(plan, selected);
             echo.put("applied", true);
             echo.put("categories", selected.stream().map(Enum::name).toList());
             echo.put("into", project.activeFile().toString());
             return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("import", "applied", echo);
+        }
+
+        /**
+         * The only part of a borrow that must be on the event thread: it changes the config and
+         * re-renders. #83 — everything before it (verify, unzip, preview) is reading, and reading a
+         * large bundle on the EDT froze the window.
+         */
+        private void applyBorrowedSettings(
+                telamin.fluxtion.audit.analyser.analyser.config.SettingsShare.ImportPlan plan,
+                java.util.Set<telamin.fluxtion.audit.analyser.analyser.config.SettingsShare.Category> selected) {
+            Runnable change = () -> {
+                new telamin.fluxtion.audit.analyser.analyser.config.SettingsShare().apply(plan, selected, config);
+                if (selected.contains(telamin.fluxtion.audit.analyser.analyser.config.SettingsShare.Category.GRAPHS)) {
+                    restoreGraphDefinitions(List.copyOf(config.savedGraphs));
+                }
+                onConfigChanged();
+                refreshProjectPanel();
+            };
+            if (SwingUtilities.isEventDispatchThread()) {
+                change.run();
+                return;
+            }
+            try {
+                SwingUtilities.invokeAndWait(change);
+            } catch (InterruptedException interrupted) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException("interrupted while applying the borrowed settings", interrupted);
+            } catch (java.lang.reflect.InvocationTargetException failed) {
+                throw failed.getCause() instanceof RuntimeException re ? re
+                        : new IllegalStateException(failed.getCause());
+            }
         }
 
         @Override

@@ -12,6 +12,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 - Native mouse regressions confirm delivery before testing a gesture and retry only an undelivered setup press. Unavailable input is an error, so it cannot be scored as a caught cancellation mutant. Cancellation assertions and controls remain unchanged.
 - The bundle processor regression waits for the bundled log's source inference before checking a recipient's later choice, and exercises the real processor-selection action instead of assigning its config field directly.
 - Faster development checks: focused draft mutation feedback, cancellation of superseded PR runs, and eight full-gate workers with named witness baselines; complete mutation evidence is still required for merge.
+- Borrowing from an evidence bundle no longer freezes the window (#83). It verifies the zip twice and unzips it, and that was happening on the event thread with no progress and no way to cancel — a large bundle made the app look hung. The reading happens off the event thread now; only the change to your settings needs it.
+- Opening the same bundle twice reuses its working copy instead of unpacking another (#85). A fresh copy per open accumulated without limit — thirty-two on the first machine to use this in earnest — and nothing ever removed them. **Private settings** can now clear the copies that are not in use; the one open is always kept, and the bundles themselves are never touched.
 
 ## [1.31.0] - 2026-10-05
 
