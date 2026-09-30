@@ -35,7 +35,8 @@ class VerbSchemasTest {
     void coversEveryDispatchedVerb() {
         // must stay in step with ActionDispatcher / ActionServer's verb list
         assertEquals(Set.of("aggregate", "read", "filter", "graph", "goto", "flag", "report",
-                "topology", "open", "source", "source_root", "screenshot", "coverage", "context", "series", "spotlight", "walk"),
+                "topology", "open", "source", "source_root", "screenshot", "coverage", "context", "series", "spotlight", "walk",
+                "import"),
                 schemas.keySet());
     }
 
