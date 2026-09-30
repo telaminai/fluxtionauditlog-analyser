@@ -6,6 +6,7 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+- A machine path in a bundle's prose is redacted whole, in any alphabet (#79). A username written in Cyrillic, Han, Vietnamese or an accented Latin form — including the decomposed form macOS stores — was half-redacted: the marker went in and the username stayed, while the export reported the path as removed. A path-valued key with such a username was exported rather than refusing the bundle. Ordinary prose that merely contains a slash (`café/menu/items`, `~1/price`, `and/or`) is still untouched, and a path written against Japanese prose still stops where the prose resumes.
 ## [1.30.1] - 2026-09-30
 
 ### Fixed

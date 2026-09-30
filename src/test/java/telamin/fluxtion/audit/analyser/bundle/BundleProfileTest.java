@@ -257,4 +257,63 @@ public class BundleProfileTest {
         assertTrue(c.reports.get(0).sections().stream().anyMatch(s -> ("we saw it in " + BundleProfile.REDACTED).equals(s.text())),
                 "the recipient reads the redaction in the report itself");
     }
+
+    // ---- #79: every alphabet, and the prose that must survive --------------------------------------
+
+    /**
+     * The half-redaction is the thing to fear: a reported redaction that still carries the path tells
+     * the author it was removed when it was not. Each of these leaked a username before #79 — the
+     * last one as NFD (`e` + U+0301), which is how macOS routinely stores a filename, so it is not
+     * exotic input.
+     */
+    @org.junit.jupiter.params.ParameterizedTest(name = "{1} is redacted whole")
+    @org.junit.jupiter.params.provider.CsvSource(delimiter = '|', value = {
+            "/home/d\u00e9mo/logs/x.yaml            | d\u00e9mo",
+            "/home/nguy\u1ec5n/logs/x.yaml          | nguy\u1ec5n",
+            "/home/\u0434\u043c\u0438\u0442\u0440\u0438\u0439/logs/x.yaml | \u0434\u043c\u0438\u0442\u0440\u0438\u0439",
+            "/Users/\u738b/logs/x.yaml              | \u738b",
+            "/home/de\u0301mo/logs/x.yaml           | de\u0301mo",
+    })
+    void aUsernameInAnyAlphabetIsRedactedWhole(String path, String user) {
+        String out = BundleProfile.EMBEDDED_PATH.matcher("seen in " + path + " today")
+                .replaceAll("\u2039path removed\u203a");
+
+        assertFalse(out.contains(user), "theUsernameSurvivedAReportedRedaction: " + out);
+        assertEquals("seen in \u2039path removed\u203a today", out, "andTheProseAroundItIsIntact");
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest(name = "{0} is refused as a whole value")
+    @org.junit.jupiter.params.provider.ValueSource(strings = {
+            "~\u0434\u043c\u0438\u0442\u0440\u0438\u0439/x.yaml", "~de\u0301mo/x.yaml", "~nguy\u1ec5n/x", "~jose/x", "~\u738b/x",
+            "C:\\Users\\jos\u00e9\\logs\\x.yaml",
+    })
+    void aPathValuedKeyIsRefusedInAnyAlphabet(String value) {
+        assertTrue(BundleProfile.WHOLE_PATH.matcher(value).matches(),
+                "aPathVALUEDKeyWouldHaveBEENEXPORTED: " + value);
+    }
+
+    /**
+     * The other half of the bargain, and the reason the lookbehind is NOT plain ASCII: narrowing it
+     * that far (tried while fixing #79) made ordinary accented prose read as a path and destroyed it.
+     */
+    @org.junit.jupiter.params.ParameterizedTest(name = "{0} is left alone")
+    @org.junit.jupiter.params.provider.ValueSource(strings = {
+            "caf\u00e9/menu/items", "\u00c9t\u00e9/Hiver/Printemps", "\u00d7/sec/min", "~5%", "~1/price\u00b2",
+            "~2/3", "and/or", "https://host/path/x", "logs/uat/x.yaml",
+    })
+    void proseThatMerelyContainsASlashIsNotAPath(String text) {
+        assertEquals(text, BundleProfile.EMBEDDED_PATH.matcher(text).replaceAll("\u2039path removed\u203a"),
+                "ordinaryProseWasRedacted");
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("#79: a path written against CJK prose redacts AND stops where the prose resumes")
+    void cjkAdjacencyRedactsAndStops() {
+        String out = BundleProfile.EMBEDDED_PATH
+                .matcher("\u30ed\u30b0\u306f/Users/x/q.yaml \u306b\u3042\u308a\u307e\u3059")
+                .replaceAll("\u2039path removed\u203a");
+
+        assertEquals("\u30ed\u30b0\u306f\u2039path removed\u203a \u306b\u3042\u308a\u307e\u3059", out,
+                "widening the LOOKBEHIND made this stop matching at all and export whole, reporting nothing");
+    }
 }

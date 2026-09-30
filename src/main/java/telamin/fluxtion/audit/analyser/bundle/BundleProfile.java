@@ -95,17 +95,61 @@ public final class BundleProfile {
     public static final String REDACTED = "\u2039path removed\u203a";
 
     /** A value that is, as a whole, a machine path: refused, because it is structure. */
-    static final Pattern WHOLE_PATH = Pattern.compile("^(?:/|~[/\\\\]|~$|~[\\w.\\-\\u00C0-\\u024F]+/|[A-Za-z]:[/\\\\]|\\\\\\\\|(?i:file):)[^ \\t\\n\\x0B\\f\\r]*$");
+    /**
+     * One segment's characters: any LETTER or combining MARK, any digit, and the punctuation a path
+     * segment carries. Written once because it belongs in every alternative of both patterns, and the
+     * previous fix reached only some of them — the drive and UNC forms kept an ASCII class, so a
+     * Windows path with an accented user exported whole (#79).
+     *
+     * <p>{@code \p{M}} is not decoration: macOS stores {@code démo} as {@code e} + U+0301, so without
+     * marks the segment ends AT the accent, which is precisely the half-redaction this guards against.
+     * Matching marks directly means no normalising — the prose a person wrote is exported unchanged.
+     */
+    private static final String SEG = "[\\p{L}\\p{M}\\p{N}_.\\-]";
+
+    /**
+     * The LAST segment's characters: as {@link #SEG}, minus the scripts that are written without
+     * spaces between words.
+     *
+     * <p>Interior segments and the final one need different rules, and the reason is not tidiness.
+     * {@code /Users/王/logs/x.yaml} needs Han INSIDE it, or the username leaks — that is the bug.
+     * {@code ログは/Users/demo/logs/q.yamlにあります} needs Han to stop it, or the path swallows the
+     * rest of the sentence — the prose is destroyed and the reader is told a path was removed.
+     * Both are Han beside path characters; only the position tells them apart. A script with no
+     * inter-word spaces can follow a path immediately, so it may not END one.
+     */
+    private static final String SEG_END =
+            "[\\p{L}\\p{M}\\p{N}_.\\-&&[^\\p{IsHan}\\p{IsHiragana}\\p{IsKatakana}\\p{IsHangul}\\p{IsThai}]]";
+
+    /**
+     * The lookbehind's idea of "the character before this is part of a word, so this slash does not
+     * start a path". ASCII plus LATIN letters, and deliberately no further.
+     *
+     * <p>Both bounds were paid for. Widening it to all of Unicode made a path written against CJK
+     * prose stop matching AT ALL — {@code ログは/Users/x/q.yaml} exported whole and reported nothing,
+     * because CJK has no inter-word spaces, and a silent total leak is worse than a partial one.
+     * Narrowing it to plain ASCII (tried while fixing #79) made {@code café/menu/items} and
+     * {@code Été/Hiver} read as paths and get redacted — ordinary prose, destroyed.
+     *
+     * <p>So: narrow HERE, wide in {@link #SEG}. Where a path STARTS is a question about the prose
+     * around it; what a path CONTAINS is a question about filenames, and filenames are in every
+     * alphabet.
+     */
+    private static final String WORDISH = "A-Za-z0-9_\\u00C0-\\u024F";
+
+    static final Pattern WHOLE_PATH = Pattern.compile(
+            "^(?:/|~[/\\\\]|~$|~" + SEG + "+/|[A-Za-z]:[/\\\\]|\\\\\\\\|(?i:file):)[^ \\t\\n\\x0B\\f\\r]*$");
 
     /** A machine path INSIDE prose: redacted. Each alternative needs a real path shape, not just a slash or a colon. */
     static final Pattern EMBEDDED_PATH = Pattern.compile(String.join("|",
-            "(?i:(?<![A-Za-z0-9_\\u00C0-\\u024F])file:/+[\\w.\\-\\u00C0-\\u024F~%@:/+]*)",                                      // file:///etc/x
-            "(?<![A-Za-z0-9_.~:/\\\\\\-\\u00C0-\\u024F])/[\\w.\\-\\u00C0-\\u024F]+(?:/[\\w.\\-\\u00C0-\\u024F]+)+/?",                          // /Users/x/y, not a/b or https://h/p
-            "(?<![A-Za-z0-9_/~\\u00C0-\\u024F])~(?:[\\w.\\-\\u00C0-\\u024F]*[A-Za-z_\\u00C0-\\u024F][\\w.\\-\\u00C0-\\u024F]*)?/[\\w.\\-\\u00C0-\\u024F]+(?:/[\\w.\\-\\u00C0-\\u024F]+)*/?",  // ~/x, ~alice/x, ~7dev/logs/x
-            "(?<![A-Za-z0-9_/~\\u00C0-\\u024F])~[0-9][\\w.\\-\\u00C0-\\u024F]*/[\\w.\\-\\u00C0-\\u024F]+(?:/[\\w.\\-\\u00C0-\\u024F]+)+/?",                   // ~123/secret/a.yaml
-            "(?<![A-Za-z0-9_/~\\u00C0-\\u024F])~[0-9][\\w.\\-\\u00C0-\\u024F]*/[\\w-]+\\.[A-Za-z][\\w.\\-\\u00C0-\\u024F]*",                  // ~123/notes.yaml
-            "(?<![A-Za-z0-9_])[A-Za-z]:[\\\\/][\\w.$-]+(?:[\\\\/][\\w.$-]+)*[\\\\/]?",          // C:\\Users\\x, not C: or C:\\ alone
-            "(?<![A-Za-z0-9_\\\\])\\\\\\\\[\\w.$-]+(?:\\\\[\\w.$-]+)+"));                          // \\\\server\\share
+            "(?i:(?<![" + WORDISH + "])file:/+[\\p{L}\\p{M}\\p{N}_.\\-~%@:/+]*)",                       // file:///etc/x
+            "(?<![" + WORDISH + ".~:/\\\\\\-])/" + SEG + "+(?:/" + SEG + "+)*/" + SEG_END + "*/?",           // /Users/x/y, not a/b or https://h/p
+            "(?<![" + WORDISH + "/~])~(?:" + SEG + "*[\\p{L}_]" + SEG + "*)?/" + SEG + "*(?:/" + SEG + "+)*"
+                    + "(?:/)?" + SEG_END + "*",                                                        // ~/x, ~alice/x, ~7dev/logs/x
+            "(?<![" + WORDISH + "/~])~[0-9]" + SEG + "*/" + SEG + "+(?:/" + SEG + "+)+/?",                       // ~123/secret/a.yaml
+            "(?<![" + WORDISH + "/~])~[0-9]" + SEG + "*/[\\p{L}\\p{M}\\p{N}_\\-]+\\.[\\p{L}]" + SEG + "*",  // ~123/notes.yaml
+            "(?<![" + WORDISH + "])[A-Za-z]:[\\\\/][\\p{L}\\p{M}\\p{N}_.$\\-]+(?:[\\\\/][\\p{L}\\p{M}\\p{N}_.$\\-]+)*[\\\\/]?",  // C:\\Users\\x
+            "(?<![" + WORDISH + "\\\\])\\\\\\\\[\\p{L}\\p{M}\\p{N}_.$\\-]+(?:\\\\[\\p{L}\\p{M}\\p{N}_.$\\-]+)+"));   // \\\\server\\share                          // \\\\server\\share
 
     /**
      * Write the allow-listed profile of {@code settings} to {@code out}. {@code settings} is the open project's
