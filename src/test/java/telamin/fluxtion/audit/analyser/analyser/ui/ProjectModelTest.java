@@ -113,7 +113,10 @@ class ProjectModelTest {
         assertEquals("selected · source found · com.acme.demo.generated", procs.get(0).secondary());
         assertEquals("declared, but no source under the configured root(s) — is it generated? · com.acme.demo.generated", procs.get(1).secondary());
         assertEquals(ProjectModel.Tone.WARN, procs.get(1).tone(), "a processor whose source cannot be found is a warning, not a muted fact");
-        assertEquals(ProjectModel.Target.SOURCE, procs.get(0).target(), "source found: Go to the Source tab");
+        // 2026-09-30: a processor row targets the PROCESSOR it names, not "the Source tab" -- which
+        // showed whichever processor was selected, so six rows had one button six times over.
+        assertEquals(ProjectModel.Target.PROCESSOR, procs.get(0).target(), "source found: open THIS processor");
+        assertNotNull(procs.get(0).item(), "and the row names it, or Open has nothing to open");
         assertEquals(ProjectModel.Target.ADD_SOURCE, procs.get(1).target(), "owner 2026-08-27: no source → no Go; 'Add source' opens Settings ▸ Source roots");
         assertEquals("project", procs.get(0).provenance());
 

@@ -11,7 +11,11 @@ import java.util.List;
 public final class AppConfig {
 
     public String logFile;
-    /** The topology showing when the app last closed, reopened on the next start beside the log. */
+    /**
+     * The topology showing when the app last closed. NOT reopened on the next start -- this and
+     * {@link #logFile} are chooser defaults and recent-list fodder. A restored project is offered
+     * its logs and topologies instead (O3), which keeps the choice with the person.
+     */
     public String graphmlFile;
     public final List<String> sourceRoots = new ArrayList<>();
     public String llmProvider = "anthropic";     // anthropic | openai
@@ -128,6 +132,30 @@ public final class AppConfig {
     public final List<FocusSpec> namedFocuses = new ArrayList<>();
 
     /**
+     * The focus this PROJECT says to start at — "look here first", named among {@link #namedFocuses}.
+     * Project tier, rides the GRAPHS category, and travels to a colleague: it is the repository's
+     * opinion about where its own topology is best entered, not a record of anybody's session.
+     */
+    public String defaultFocus = "";
+
+    /** Where the Facts column's divider sits between the event-type checklist and the records. */
+    public int eventTypesDivider;
+
+    /** Whether the "This machine" panel under Context is collapsed. Machine tier, like the panel. */
+    public boolean machinePanelCollapsed = false;
+
+    /**
+     * The focus each project was last left on, keyed by its profile path. MACHINE tier, like every
+     * other "what was I looking at" — a colleague's checkout must not inherit your view, which is the
+     * same boundary that keeps the open log and topology out of a profile (O3).
+     *
+     * <p>Kept apart from {@link #defaultFocus} deliberately: one is the project's advice, the other is
+     * your history, and they answer different questions. Yours wins when both exist, because it is
+     * the more recent intent; the project's is what a fresh machine gets.
+     */
+    public final java.util.Map<String, String> lastFocusByProject = new java.util.LinkedHashMap<>();
+
+    /**
      * Investigation reports (M33.4) — project-tier, their OWN share category (D-I4): a shared report
      * carries prose an agent wrote about your data, a different cargo from key names and formulas.
      */
@@ -157,6 +185,69 @@ public final class AppConfig {
     public final List<ReportDestination> reportDestinations = new ArrayList<>();
     /** M38.6 D-C9: the workspace anchor — '..', '../..' — at or above the project root; blank = none. Project-scoped, rides SOURCE_ROOTS. */
     public String workspaceRoot = "";
+
+    /**
+     * A bundle this machine has opened: where the file is, what it verified as, and the first line of its
+     * NOTES.md. MACHINE tier, like the other recent lists — never written to a project profile or an export.
+     *
+     * <p>The notes line is stored rather than re-read, so the list can say what each bundle CLAIMS without
+     * opening five zips to draw a panel. It is what the sender wrote; it is not evidence of anything.
+     *
+     * @param path     the {@code .fexp} as it was opened; it may since have moved or been deleted
+     * @param identity {@code sha256:} of the manifest at the time it was opened
+     * @param notes    the first line of {@code notes/NOTES.md}, or blank
+     */
+    public record RecentBundle(String path, String identity, String notes, List<String> sourceRoots) {
+        /** A bundle nobody has anchored yet — the shape every pre-#75 caller uses. */
+        public RecentBundle(String path, String identity, String notes) {
+            this(path, identity, notes, List.of());
+        }
+
+        public RecentBundle {
+            sourceRoots = sourceRoots == null ? List.of() : List.copyOf(sourceRoots);
+        }
+    }
+
+    /** Evidence bundles opened on this machine, most-recent first (#73). */
+    public final List<RecentBundle> recentBundles = new ArrayList<>();
+
+    /**
+     * Record an opened bundle, newest first and de-duplicated by path. An anchor the person already chose for
+     * this bundle SURVIVES a reopen — otherwise every reopen would ask again, which is the thing #75 is for.
+     */
+    public void addRecentBundle(String path, String identity, String notes) {
+        if (path == null || path.isBlank()) return;
+        List<String> anchored = bundleSourceRoots(path);
+        recentBundles.removeIf(b -> b.path().equals(path));
+        recentBundles.add(0, new RecentBundle(path, identity == null ? "" : identity,
+                notes == null ? "" : notes, anchored));
+        while (recentBundles.size() > 25) recentBundles.remove(recentBundles.size() - 1);
+    }
+
+    /** The source trees this machine anchored to that bundle, or empty — #75. */
+    public List<String> bundleSourceRoots(String path) {
+        if (path == null) return List.of();
+        return recentBundles.stream().filter(b -> b.path().equals(path))
+                .map(RecentBundle::sourceRoots).findFirst().orElse(List.of());
+    }
+
+    /**
+     * Remember where the code for that bundle lives, so reopening it does not ask again.
+     *
+     * @return false when there is no such bundle to remember against. The caller must not ignore that:
+     *         a silent miss is how this feature looked like it worked while recording nothing.
+     */
+    public boolean rememberBundleSourceRoots(String path, List<String> roots) {
+        if (path == null || roots == null) return false;
+        for (int i = 0; i < recentBundles.size(); i++) {
+            var b = recentBundles.get(i);
+            if (b.path().equals(path)) {
+                recentBundles.set(i, new RecentBundle(b.path(), b.identity(), b.notes(), roots));
+                return true;
+            }
+        }
+        return false;
+    }
 
     /** Recent search terms (most-recent first), for the search box history/autocomplete. */
     public final List<String> searchHistory = new ArrayList<>();

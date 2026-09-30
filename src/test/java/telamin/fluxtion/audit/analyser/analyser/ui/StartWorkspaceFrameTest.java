@@ -30,9 +30,19 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assumptions.assumeFalse;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 class StartWorkspaceFrameTest {
     @TempDir Path temporary;
+
+    /** Poll a native precondition briefly — the same helper shape TableDragCancellationFrameTest uses. */
+    private static boolean until(java.util.function.BooleanSupplier condition) throws Exception {
+        for (int i = 0; i < 100; i++) {
+            if (condition.getAsBoolean()) return true;
+            Thread.sleep(20);
+        }
+        return condition.getAsBoolean();
+    }
 
     @Test void startPageReplacesTheWholeInvestigationArea() throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless(), "requires a display");
@@ -485,6 +495,12 @@ class StartWorkspaceFrameTest {
             });
             robot.mouseMove(from.x, from.y);
             robot.mousePress(InputEvent.BUTTON1_DOWN_MASK);
+            // Same precondition TableDragCancellationFrameTest states: a desktop that does not deliver
+            // native mouse events to the JVM (no Accessibility grant, or no window manager focus) makes
+            // this untestable rather than failing. Without it this suite FAILS where its sibling SKIPS,
+            // and the failure reads as a regression in code it never touched.
+            assumeTrue(until(() -> sourceFrame.get() != null && sourceFrame.get().isFocused()),
+                    "native mouse press must reach the drag source, not be dropped by the desktop");
             for (int i = 1; i <= 40; i++) robot.mouseMove(
                     from.x + (to.x - from.x) * i / 40, from.y + (to.y - from.y) * i / 40);
             robot.mouseRelease(InputEvent.BUTTON1_DOWN_MASK);

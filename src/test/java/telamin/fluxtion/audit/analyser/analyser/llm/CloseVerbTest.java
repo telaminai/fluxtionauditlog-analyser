@@ -52,7 +52,12 @@ class CloseVerbTest {
         //                            the owner chose a verb of its own (spec-spotlight-walks.md O-1).
         assertFalse(VerbSchemas.all().get("spotlight").toString().contains("\"play\""),
                 "a walk is not a spotlight parameter: a spotlight stays transient");
-        assertEquals(17, VerbSchemas.all().size(),
+        //   18  `import` (evidence bundles)  BORROWING named parts of a sender's session into the one you
+        //                            already have. `open {bundle}` puts a bundle in force the way open always
+        //                            has — it REPLACES the session. Taking only the graphs, or only the reports,
+        //                            and keeping your own log and project is a different act, and no verb merges
+        //                            one session into another. It previews when called without `categories`.
+        assertEquals(18, VerbSchemas.all().size(),
                 "a new verb is a compatibility decision — if this number moved, say which concept no existing verb named");
     }
 

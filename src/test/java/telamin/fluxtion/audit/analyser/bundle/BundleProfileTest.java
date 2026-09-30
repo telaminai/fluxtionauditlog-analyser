@@ -149,7 +149,15 @@ public class BundleProfileTest {
     @Test
     @DisplayName("F2: every machine-path shape is redacted in prose — home, Windows, UNC, file URI, a sentence-leading path")
     void everyMachinePathShapeIsRedacted(@TempDir Path tmp) throws Exception {
-        for (String path : List.of("~/logs/demo/quote.yaml", "~demo/logs/quote.yaml", "C:\\Users\\demo\\logs\\q.yaml",
+        // ~7dev / ~123: a digit-leading username is legal and was silently un-redacted for one commit on
+        // 2026-09-29 by a fix aimed at "~1/price". Found by review, not by this suite, which had only
+        // letter-leading cases.
+        for (String path : List.of("~/logs/demo/quote.yaml", "~demo/logs/quote.yaml",
+                "~7dev/logs/quote.yaml", "~123/secret/quote.yaml", "~123/quote.yaml",
+                // Java's \w is ASCII-only unless the pattern says otherwise; these half-redacted, which
+                // is worse than not redacting because the author is told the path was removed.
+                "/home/d\u00e9mo/logs/quote.yaml", "~jos\u00e9/logs/quote.yaml",
+                "C:\\Users\\demo\\logs\\q.yaml",
                 "D:/data/demo/q.yaml", "\\\\fileserver\\demo\\q.yaml", "file:///tmp/DEMO/q.yaml", "/etc/demo/q.yaml")) {
             List<String> redacted = new java.util.ArrayList<>();
             Path dir = Files.createDirectories(tmp.resolve(Integer.toHexString(path.hashCode())));
@@ -169,10 +177,56 @@ public class BundleProfileTest {
     }
 
     @Test
+    @DisplayName("a path written against a non-ASCII letter is still redacted, and only the path is")
+    void aPathAdjacentToNonAsciiProseIsRedacted(@TempDir Path tmp) throws Exception {
+        // Making \w Unicode-aware widened the negative lookbehinds too, so a path touching a CJK or
+        // Cyrillic character stopped matching AT ALL: it exported whole and Export.redacted() named
+        // nothing, which is worse than the half-redaction the flag was added to fix. CJK prose has no
+        // inter-word spaces, so this is the ordinary way to write it.
+        record Case(String prose, String expected) { }
+        for (Case c : List.of(
+                // redacted AND stops where the prose resumes: the blanket Unicode flag ate the tail too
+                new Case("\u30ed\u30b0\u306f/Users/demo/logs/q.yaml\u306b\u3042\u308a\u307e\u3059",
+                        "\u30ed\u30b0\u306f" + BundleProfile.REDACTED + "\u306b\u3042\u308a\u307e\u3059"),
+                new Case("\u65e5\u5fd7/Users/demo/logs/q.yaml", "\u65e5\u5fd7" + BundleProfile.REDACTED),
+                new Case("\u0444\u0430\u0439\u043b/Users/demo/logs/q.yaml",
+                        "\u0444\u0430\u0439\u043b" + BundleProfile.REDACTED),
+                new Case("\u30ed\u30b0\u306f~demo/logs/q.yaml", "\u30ed\u30b0\u306f" + BundleProfile.REDACTED),
+                new Case("\u30ed\u30b0\u306ffile:///Users/demo/q.yaml",
+                        "\u30ed\u30b0\u306f" + BundleProfile.REDACTED))) {
+            List<String> redacted = new java.util.ArrayList<>();
+            Path dir = Files.createDirectories(tmp.resolve(Integer.toHexString(c.prose().hashCode())));
+            assertEquals(c.expected(), exportedNarrative(dir, c.prose(), redacted), "redacted: " + c.prose());
+            assertEquals(1, redacted.size(), "and NAMED, so the author is told: " + c.prose());
+        }
+
+        // The deliberate cost of that: a LATIN accented letter counts as a word character, so a path written
+        // against one is treated exactly as "abc/Users/x" is — not a path. That is what keeps ordinary
+        // accented prose like "cafe/the/lait" (with accents) out of the redactor, which matters far more,
+        // because Latin scripts put spaces around their paths and CJK does not.
+        List<String> untouched = new java.util.ArrayList<>();
+        Path dir = Files.createDirectories(tmp.resolve("latin-adjacent"));
+        assertEquals("\u00e9/Users/demo/q.yaml",
+                exportedNarrative(dir, "\u00e9/Users/demo/q.yaml", untouched),
+                "a path against a LATIN letter is not redacted -- the accepted cost");
+        assertEquals(List.of(), untouched);
+    }
+
+    @Test
     @DisplayName("F2 mirror: ordinary writing passes untouched — %, colons, ratios, and/or, URLs, relative paths, C: alone")
     void ordinaryProsePassesUntouched(@TempDir Path tmp) throws Exception {
         for (String prose : List.of(
                 "~5% of records carried a spread above 0.004",
+                // found in a SHIPPED bundle 2026-09-29: "~1/price" was redacted to the marker, so the
+                // chart explanation a recipient reads lost the very formula it was explaining.
+                "absolute spread is ~1/price\u00b2 smaller, but as a fraction of price it should match",
+                "roughly ~2/3 of the cycles requoted",
+                // ACCEPTED RESIDUAL, pinned so the trade-off is visible rather than folklore: a purely
+                // numeric user with one extensionless segment is indistinguishable from a ratio, and the
+                // ratio case ("~1/price") has a real bundle behind it. So "~123/secret" is NOT redacted in
+                // prose and CAN leak a home path. WHOLE_PATH still refuses it as a whole value. Anyone
+                // narrowing this must break "~1/price" to do it — decide deliberately, not by accident.
+                "the run under ~123/secret finished",
                 "at 09:00: the spread widened; ratio 3:1 bid to ask",
                 "note: this is a bare colon in a sentence",
                 "the file: demo-quote-audit.yaml, read whole",

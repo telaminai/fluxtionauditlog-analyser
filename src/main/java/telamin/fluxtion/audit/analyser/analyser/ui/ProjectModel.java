@@ -40,6 +40,8 @@ public record ProjectModel(List<Section> sections) {
 
     /** Where a row's "go to" leads — navigation only (D-L3). */
     public enum Target { NONE, TOPOLOGY, SOURCE, SETTINGS_SOURCE, SETTINGS_PROCESSORS, SETTINGS_ASSISTANT, PROJECT, REPORTS,
+        /** One named event processor, whose row can open it, make it active, or drop it. */
+        PROCESSOR,
         /**
          * A processor whose source was not found: the remedy is a root, so the button says so and opens
          * Settings ▸ Source roots (owner, 2026-08-27).
@@ -62,6 +64,8 @@ public record ProjectModel(List<Section> sections) {
     public static final Set<String> KEYS_READ = Set.of(
             "restoration.state", "restoration.message", "restoration.available",
             "project.active", "project.name", "project.label", "project.profile", "project.settings", "project.root",
+            "project.bundle.identity", "project.bundle.source", "project.bundle.workingCopy",
+            "project.bundle.sourceAnchor", "project.bundle.sourceAnchorNote",
             "skills.provenance", "skills.from",
             "fluxtionKey.canonicalFilePresent", "fluxtionKey.canonicalFile", "fluxtionKey.precedenceNote",
             "log.path", "log.openedFrom", "log.records", "log.openedBy", "provenance", "files",
@@ -114,6 +118,27 @@ public record ProjectModel(List<Section> sections) {
                     : abbreviate(str(proj.get("root"))) + " · " + fileNameOf(settings);
             rows.add(new Row(label, detail, settings,
                     "project settings in force", Tone.NORMAL, Target.PROJECT));
+            // #76: a bundle supplies the profile above, so without this row the panel says "project" for
+            // received evidence exactly as it does for the person's own work.
+            Map<String, Object> bundle = map(proj.get("bundle"));
+            if (!bundle.isEmpty()) {
+                rows.add(new Row("Evidence bundle " + str(bundle.get("identity")),
+                        abbreviate(str(bundle.get("source"))) + " · working copy "
+                                + abbreviate(str(bundle.get("workingCopy"))),
+                        str(bundle.get("source")),
+                        "verified on open; unsigned, so it is not authenticated to a sender",
+                        Tone.NORMAL, Target.NONE));
+                // #75: the remedy for "I cannot see the code" is a root, so the row says so and leads there.
+                String anchor = str(bundle.get("sourceAnchor"));
+                if (anchor == null || "none".equals(anchor)) {
+                    rows.add(new Row("Bundle has no source tree",
+                            str(bundle.get("sourceAnchorNote")), null,
+                            "no source root survives capture", Tone.WARN, Target.SETTINGS_SOURCE));
+                } else {
+                    rows.add(new Row("Bundle source", abbreviate(anchor), anchor,
+                            "anchored on this machine", Tone.MUTED, Target.SETTINGS_SOURCE));
+                }
+            }
         } else {
             rows.add(new Row("No project", "using your own settings (~/.fluxtion-analyser)", null, null,
                     Tone.MUTED, Target.NONE));
@@ -327,6 +352,9 @@ public record ProjectModel(List<Section> sections) {
             int dot = fqn == null ? -1 : fqn.lastIndexOf('.');
             String simple = dot < 0 ? fqn : fqn.substring(dot + 1);
             if (dot > 0) detail += " · " + fqn.substring(0, dot);
+            // the FQN rides as the row's ITEM. Without it every row's Open reached the same place --
+            // "the Source tab" -- which showed whichever processor was selected, so a list of six had
+            // one button repeated six times (found in use, 2026-09-30).
             rows.add(new Row(simple, detail, null, str(p.get("from")),
                     // owner, 2026-08-27: no source → no "Go" (there is nowhere to go); "Add source" instead, which
                     // opens the Source roots page — the remedy is a root, not a processor setting
@@ -336,7 +364,10 @@ public record ProjectModel(List<Section> sections) {
                     // absent-file case, where adding a root cannot help. One remedy button that is
                     // occasionally unhelpful beats a row whose control changes shape depending on why
                     // something is missing. The WORDING carries the distinction instead.
-                    found ? Target.SOURCE : Target.ADD_SOURCE));
+                    // the FQN rides on BOTH shapes: a processor whose source is missing is still a
+                    // processor you may want to drop, make active, or copy the name of. Only the
+                    // PRIMARY button differs -- there is nowhere to "open" (owner, 2026-09-30).
+                    found ? Target.PROCESSOR : Target.ADD_SOURCE, fqn));
         }
         if (rows.isEmpty()) {
             rows.add(new Row("No event processors", "Settings ▸ Event processor, or open a log and one is inferred",

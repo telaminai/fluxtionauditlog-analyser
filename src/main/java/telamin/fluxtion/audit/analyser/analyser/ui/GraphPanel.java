@@ -213,6 +213,28 @@ public final class GraphPanel extends JPanel {
 
     // ---- Plot key (reserved strip, scrollable) ---------------------------------------
 
+    /**
+     * Render the chart for EXPORT: the series key travels with the picture, the control does not.
+     *
+     * <p>{@code ChartPanel.toImage} paints its children, which is how the key gets into the export --
+     * and it took the "Edit series" toggle with it, so a shared PNG carried a button nobody could
+     * press (found in use, 2026-09-30). The button is hidden for the paint and put back afterwards,
+     * in a finally, because an export that failed halfway must not leave the control missing.
+     */
+    private java.awt.image.BufferedImage chartImage(int w, int h) {
+        boolean was = editSeriesButton.isVisible();
+        editSeriesButton.setVisible(false);
+        legendOverlay.revalidate();
+        try {
+            positionLegendOverlay();
+            return h > 0 ? chart.toImage(w, h) : chart.toImage();
+        } finally {
+            editSeriesButton.setVisible(was);
+            legendOverlay.revalidate();
+            positionLegendOverlay();
+        }
+    }
+
     /** Build the top-right overlay: the "Edit series" toggle stacked above the (right-aligned) series key. */
     private void buildLegendOverlay() {
         legendOverlay.setLayout(new BoxLayout(legendOverlay, BoxLayout.Y_AXIS));
@@ -227,9 +249,12 @@ public final class GraphPanel extends JPanel {
         legendLabels.setLayout(new BoxLayout(legendLabels, BoxLayout.Y_AXIS));
         legendLabels.setOpaque(false);
         legendLabels.setAlignmentX(Component.RIGHT_ALIGNMENT);
+        legendOverlay.add(legendHandle());
         legendOverlay.add(editSeriesButton);
         legendOverlay.add(Box.createVerticalStrut(6));
         legendOverlay.add(legendLabels);
+        legendOverlay.add(Box.createVerticalStrut(2));
+        legendOverlay.add(legendGrip());
 
         // parent the overlay ON the chart so a chart repaint (pan/zoom drag) repaints it too
         chart.setLayout(null);
@@ -242,14 +267,102 @@ public final class GraphPanel extends JPanel {
         });
     }
 
-    /** Reserve a right strip and clamp the scrollable key to the chart bounds. */
+    /**
+     * Where the person has put the key, or null while it sits in its default corner.
+     *
+     * <p>The two placements mean different things, which is why one field decides between them: in
+     * the default corner the key <b>reserves</b> a strip so it cannot cover data, and that reservation
+     * costs the plot width. Once it has been moved it <b>floats</b>, the plot takes the full width
+     * back, and where it sits is the person's business — they can see what it covers and move it
+     * (owner, 2026-09-30).
+     */
+    private java.awt.Rectangle legendPlacement;
+
+    /** The strip you grab to move the key. A handle, so clicking a legend row still does nothing odd. */
+    private JComponent legendHandle() {
+        JLabel handle = new JLabel("\u2237  drag to move");
+        handle.setFont(handle.getFont().deriveFont(java.awt.Font.PLAIN, 10f));
+        handle.setForeground(UiTheme.mutedForeground());
+        handle.setToolTipText("Drag to move the key; double-click to put it back in the corner");
+        handle.setAlignmentX(Component.RIGHT_ALIGNMENT);
+        handle.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.MOVE_CURSOR));
+        var drag = new java.awt.event.MouseAdapter() {
+            private java.awt.Point grabbed;
+            @Override public void mousePressed(java.awt.event.MouseEvent e) {
+                grabbed = e.getPoint();
+            }
+            @Override public void mouseDragged(java.awt.event.MouseEvent e) {
+                if (grabbed == null) return;
+                java.awt.Rectangle at = legendScroll.getBounds();
+                place(at.x + e.getX() - grabbed.x, at.y + e.getY() - grabbed.y, at.width, at.height);
+            }
+            @Override public void mouseClicked(java.awt.event.MouseEvent e) {
+                if (e.getClickCount() == 2) {       // back to the corner, and reserving again
+                    legendPlacement = null;
+                    positionLegendOverlay();
+                }
+            }
+        };
+        handle.addMouseListener(drag);
+        handle.addMouseMotionListener(drag);
+        return handle;
+    }
+
+    /** The corner you grab to resize it. */
+    private JComponent legendGrip() {
+        JLabel grip = new JLabel("\u25e2");
+        grip.setFont(grip.getFont().deriveFont(java.awt.Font.PLAIN, 10f));
+        grip.setForeground(UiTheme.mutedForeground());
+        grip.setToolTipText("Drag to resize the key");
+        grip.setAlignmentX(Component.RIGHT_ALIGNMENT);
+        grip.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.SE_RESIZE_CURSOR));
+        var resize = new java.awt.event.MouseAdapter() {
+            private java.awt.Point grabbed;
+            @Override public void mousePressed(java.awt.event.MouseEvent e) {
+                grabbed = e.getLocationOnScreen();
+            }
+            @Override public void mouseDragged(java.awt.event.MouseEvent e) {
+                if (grabbed == null) return;
+                java.awt.Point now = e.getLocationOnScreen();
+                java.awt.Rectangle at = legendScroll.getBounds();
+                place(at.x, at.y, at.width + now.x - grabbed.x, at.height + now.y - grabbed.y);
+                grabbed = now;
+            }
+        };
+        grip.addMouseListener(resize);
+        grip.addMouseMotionListener(resize);
+        return grip;
+    }
+
+    /** Put the key at these bounds, clamped so it can never be dragged off the chart and lost. */
+    private void place(int x, int y, int w, int h) {
+        int width = Math.max(90, Math.min(w, chart.getWidth()));
+        int height = Math.max(40, Math.min(h, chart.getHeight()));
+        legendPlacement = new java.awt.Rectangle(
+                Math.max(0, Math.min(x, chart.getWidth() - width)),
+                Math.max(0, Math.min(y, chart.getHeight() - height)),
+                width, height);
+        positionLegendOverlay();
+    }
+
+    /** Reserve a right strip in the default corner; float wherever the person has since put it. */
     private void positionLegendOverlay() {
         if (chart.getWidth() == 0) return;
-        java.awt.Dimension pref = legendOverlay.getPreferredSize();
-        int width = Math.min(pref.width + 4, Math.max(100, chart.getWidth() / 3));
-        int hgt = Math.min(pref.height + 4, Math.max(0, chart.getHeight() - 24));
-        chart.setLegendWidth(width + 14);
-        legendScroll.setBounds(chart.getWidth() - width - 8, 10, width, hgt);
+        if (legendPlacement != null) {
+            // floating: the plot keeps its full width, and the key sits where it was put
+            chart.setLegendWidth(0);
+            java.awt.Rectangle at = legendPlacement;
+            int width = Math.min(at.width, chart.getWidth());
+            int height = Math.min(at.height, chart.getHeight());
+            legendScroll.setBounds(Math.max(0, Math.min(at.x, chart.getWidth() - width)),
+                    Math.max(0, Math.min(at.y, chart.getHeight() - height)), width, height);
+        } else {
+            java.awt.Dimension pref = legendOverlay.getPreferredSize();
+            int width = Math.min(pref.width + 4, Math.max(100, chart.getWidth() / 3));
+            int hgt = Math.min(pref.height + 4, Math.max(0, chart.getHeight() - 24));
+            chart.setLegendWidth(width + 14);
+            legendScroll.setBounds(chart.getWidth() - width - 8, 10, width, hgt);
+        }
         legendScroll.doLayout();
         legendScroll.revalidate();
     }
@@ -511,9 +624,14 @@ public final class GraphPanel extends JPanel {
         if (show) {
             seriesEditorTabs.setSelectedIndex(seriesListModel.isEmpty() ? 1 : 0);
             centerHolder.remove(chart);
-            seriesSplit.setOrientation(getWidth() < 800 ? JSplitPane.VERTICAL_SPLIT : JSplitPane.HORIZONTAL_SPLIT);
-            seriesSplit.setLeftComponent(chart);
-            seriesSplit.setRightComponent(seriesPanel);
+            // ALWAYS below, never beside. A time series reads horizontally -- the X axis is the thing
+            // being interrogated -- so width taken by a side panel compresses the dimension carrying
+            // the information, while height costs value resolution, which matters less for spotting
+            // ordering, gaps and steps. The editor is full width and the plot keeps its own
+            // (owner, 2026-09-30).
+            seriesSplit.setOrientation(JSplitPane.VERTICAL_SPLIT);
+            seriesSplit.setTopComponent(chart);
+            seriesSplit.setBottomComponent(seriesPanel);
             centerHolder.add(seriesSplit, BorderLayout.CENTER);
             centerHolder.revalidate();
             centerHolder.repaint();
@@ -521,28 +639,36 @@ public final class GraphPanel extends JPanel {
             SwingUtilities.invokeLater(this::layoutSeriesEditor);
         } else {
             centerHolder.remove(seriesSplit);
-            seriesSplit.setRightComponent(null);   // release the panel so it can be re-added later
+            seriesSplit.setBottomComponent(null);   // release the panel so it can be re-added later
             centerHolder.add(chart, BorderLayout.CENTER);
             centerHolder.revalidate();
             centerHolder.repaint();
         }
     }
 
-    /** A narrow Graph tab uses the pane's full width for both plot and editor. */
+    /** The plot keeps the full width; the editor takes height under it, and never all of it. */
     private void layoutSeriesEditor() {
         if (!editSeriesButton.isSelected() || seriesSplit.getParent() == null) return;
-        boolean narrow = getWidth() < 800;
-        int orientation = narrow ? JSplitPane.VERTICAL_SPLIT : JSplitPane.HORIZONTAL_SPLIT;
-        boolean changed = seriesSplit.getOrientation() != orientation;
-        if (changed) seriesSplit.setOrientation(orientation);
-        seriesSplit.setResizeWeight(narrow ? 0.5 : 1.0);
-        if (changed || seriesSplit.getDividerLocation() <= 0) {
-            int extent = narrow ? centerHolder.getHeight() : centerHolder.getWidth();
-            seriesSplit.setDividerLocation(narrow
-                    ? Math.max(150, (int) (extent * 0.5))
-                    : Math.max(250, extent - 280));
+        seriesSplit.setResizeWeight(1.0);        // growing the tab grows the PLOT, not the editor
+        int height = centerHolder.getHeight();
+        if (height <= 0) return;
+        // The editor gets what it ASKS for -- its own preferred height, not a guess -- because the
+        // controls are stacked and a fixed band scrolled the formula's "missing:" row out of the
+        // viewport at 330 pixels wide, where the fields wrap and the panel grows taller
+        // (StartWorkspaceFrameTest#narrowWalkSeriesAndFindingControlsRemainReachable, 2026-09-30).
+        // The plot is still never squeezed below a readable band: a flat chart is the failure this
+        // layout exists to avoid.
+        int wants = Math.max(EDITOR_HEIGHT, seriesEditorTabs.getPreferredSize().height + 12);
+        int editor = Math.min(wants, Math.max(0, height - MIN_CHART_HEIGHT));
+        int divider = Math.max(0, height - editor);
+        if (seriesSplit.getDividerLocation() <= 0 || seriesSplit.getDividerLocation() > divider) {
+            seriesSplit.setDividerLocation(divider);
         }
     }
+
+    /** The plot's floor, and the editor's natural height under it. */
+    private static final int MIN_CHART_HEIGHT = 180;
+    private static final int EDITOR_HEIGHT = 230;
 
     private void pickKeys() {
         List<GraphKey> all = new ArrayList<>();
@@ -1028,7 +1154,7 @@ public final class GraphPanel extends JPanel {
      * carried its style controls and legend buttons into the PDF at whatever width the tab last had.
      */
     public java.awt.image.BufferedImage renderForReport(int w, int h) {
-        return chart.toImage(w, h);
+        return chartImage(w, h);
     }
     void setExtractionRunner(ExtractionRunner runner) { this.extractionRunner = java.util.Objects.requireNonNull(runner); }
     /** Fire the debounce now rather than after {@code EXTRACT_DEBOUNCE_MS}; skips key discovery. Tests only. */
@@ -1739,7 +1865,7 @@ public final class GraphPanel extends JPanel {
         try {
             String fmt = file.getName().toLowerCase().endsWith(".jpg") || file.getName().toLowerCase().endsWith(".jpeg")
                     ? "jpg" : "png";
-            javax.imageio.ImageIO.write(chart.toImage(), fmt, file);
+            javax.imageio.ImageIO.write(chartImage(0, 0), fmt, file);
             JOptionPane.showMessageDialog(this, "Saved " + file);
         } catch (IOException ex) {
             JOptionPane.showMessageDialog(this, "Export failed: " + ex.getMessage(), "Export", JOptionPane.ERROR_MESSAGE);

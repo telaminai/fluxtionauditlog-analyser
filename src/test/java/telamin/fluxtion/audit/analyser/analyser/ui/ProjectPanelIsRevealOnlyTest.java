@@ -45,13 +45,38 @@ class ProjectPanelIsRevealOnlyTest {
             assertFalse(bytes.contains("ActionExecutor") || bytes.contains("AppControl"),
                     c.getSimpleName() + " must not reach the action surface — it renders, it does not act");
         }
-        assertEquals(Set.of("showTab", "openSettings", "showReport", "showGraph"),
-                Set.of(java.util.Arrays.stream(ProjectPanel.Navigator.class.getDeclaredMethods())
-                        .map(java.lang.reflect.Method::getName).toArray(String[]::new)),
-                "the Navigator moves the eye, not the state; adding a method here is a spec change (D-L3). "
+        // D-L3, RELAXED by the owner on 2026-09-30, and the reason is worth keeping.
+        //
+        // The rule was "the Navigator moves the eye, not the state", which kept the panel honest while it
+        // was purely a rendering of `context`. In use it made the panel a place that could only ever say
+        // "go to Settings and find this again by eye": you SEE the unexpected source root here, and the
+        // row that shows it was the one place you could not act on it. The owner's call: "it is good what
+        // we have, relax the rule — it is what any user would want when they are experienced."
+        //
+        // What is still pinned, and what the assertion below actually holds:
+        //   * the panel and the model never name MainFrame, ActionExecutor or AppControl (above) — the
+        //     panel still cannot ACT, it can only ask the Navigator, which is the frame's own adapter;
+        //   * the model stays pure Swing-free (below);
+        //   * the Navigator's surface is still a CLOSED, named list. Adding to it remains a spec change,
+        //     and this test is still the place that makes you say so out loud.
+        // What changed is only that a named action MAY edit or discard project state, where the row that
+        // carries it is where a person can see what they are acting on.
+        //
+        // Named by NAME, not by Set.of over the method array: openSettings now has two overloads, and
+        // Set.of threw "duplicate element: openSettings" -- the guard died before it could report
+        // anything at all, which is worse than a guard that fails loudly (review, 2026-09-30).
+        Set<String> navigator = new TreeSet<>(java.util.Arrays.stream(
+                        ProjectPanel.Navigator.class.getDeclaredMethods())
+                .map(java.lang.reflect.Method::getName).toList());
+        assertEquals(new TreeSet<>(Set.of("showTab", "openSettings", "showReport", "showGraph",
+                        "removeSourceRoot", "openProcessorSource", "setActiveProcessor", "removeProcessor")),
+                navigator,
+                "the Navigator's surface is a closed list; adding a method here is a spec change (D-L3). "
                         + "showReport/showGraph were added deliberately (owner, 2026-09-24, 35eeb320): revealing a "
-                        + "SPECIFIC item is still moving the eye. A method that creates, edits or discards "
-                        + "state is not, and does not belong here.");
+                        + "SPECIFIC item is still moving the eye. The four state-changing actions were added "
+                        + "deliberately too (owner, 2026-09-30): a row that shows you a source root you did not "
+                        + "expect is exactly where removing it belongs. The panel still cannot act by itself — "
+                        + "it asks the frame, which is what the bytecode assertions above hold.");
         assertFalse(bytecodeOf(ProjectModel.class).contains("javax/swing"), "the model is pure");
     }
 

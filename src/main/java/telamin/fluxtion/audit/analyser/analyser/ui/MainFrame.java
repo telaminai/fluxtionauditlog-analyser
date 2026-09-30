@@ -108,6 +108,28 @@ public final class MainFrame extends JFrame {
     private final JScrollBar windowScroll = new JScrollBar(JScrollBar.HORIZONTAL, 0, 1000, 0, 1000);
     private boolean syncingWindow;      // guards the combo/scrollbar ↔ slider feedback loop
     private final HistoryComboBox searchField = new HistoryComboBox();
+    /**
+     * A column's name, drawn above it.
+     *
+     * <p>The layout grew into three columns and the owner named what they had become: CONTEXT (what
+     * the system is), FACTS (what it did), CANVAS (what you make of it). Left to right that order is
+     * causal — context explains the facts, and the facts are what the canvas may claim from. Saying
+     * so on screen makes the boundary teachable instead of folklore, and gives each column an obvious
+     * home for the state that belongs to it (owner, 2026-09-30).
+     */
+    private static JComponent columnHeading(String name, String what) {
+        JLabel label = new JLabel(name.toUpperCase(java.util.Locale.ROOT));
+        label.setFont(label.getFont().deriveFont(java.awt.Font.BOLD, label.getFont().getSize() - 1f));
+        label.setForeground(UiTheme.mutedForeground());
+        label.setToolTipText(what);
+        label.setBorder(BorderFactory.createEmptyBorder(2, 6, 2, 6));
+        return label;
+    }
+
+    /** The machine tier, under Context — see {@link MachinePanel}. */
+    private MachinePanel machinePanel;
+    /** Event types, on the Records row beside Search — see {@link #showEventTypes}. */
+    private final javax.swing.JToggleButton eventTypesToggle = new javax.swing.JToggleButton("Event types");
     private final JLabel showingLabel = new JLabel();
     private final JProgressBar progress = new JProgressBar();
     private final JLabel status = new JLabel("Open a log — Audit log ▸ Open log… (or the toolbar), drag a file in, or Audit log ▸ Open log from S3….");
@@ -236,6 +258,11 @@ public final class MainFrame extends JFrame {
         project.setPreSave(this::syncOpenGraphsIntoConfig);
         // M27.3: named focuses live in the config's project tier; save/recall/delete persist like graphs
         topologyPanel.bindNamedFocuses(() -> config.namedFocuses, this::onGraphsEdited);
+        topologyPanel.onFocusApplied(this::rememberFocus);
+        topologyPanel.bindDefaultFocus(() -> config.defaultFocus, name -> {
+            config.defaultFocus = name == null ? "" : name;      // project tier: rides the profile
+            project.requestSave();
+        });
         actionExecutor = new ActionExecutor(
                 () -> store, () -> filter, graphTabs, tablePanel, this::flagRowsFromAction);
         actionControl = new AppControlAdapter();
@@ -388,11 +415,46 @@ public final class MainFrame extends JFrame {
         if (projectLoadNote != null) {
             status.setText(projectLoadNote.message());
         }
+        // A project restored at startup has to be APPLIED, not merely loaded. activateOnStartup swaps
+        // its settings into the config before the UI exists, and nothing afterwards ran the config
+        // funnel -- so the source service kept the roots it was born with (none), and a restored
+        // project came up with every processor reading "source not found" and an empty Source tab
+        // while the Project panel listed all twelve roots. Reproduced in the running app and pinned by
+        // BundleProvenanceFrameTest#aRestoredProjectHasItsSourceInForce (found in use, 2026-09-30).
+        // `true`: a restore is not a person editing settings, and must not be reported as their choice.
+        if (project.hasProject()) {
+            // `startingUp`: the apply must not enter the SAVE half of the funnel. Launching the app is
+            // not an edit, and without this the first launch after this ships puts an unrequested diff
+            // into everyone's committed profile -- a profileNonce, the maven defaults and eight
+            // *.count=0 lines (review, 2026-09-30).
+            startingUp = true;
+            try {
+                applyProjectSettings(true);
+            } finally {
+                startingUp = false;
+            }
+            // ...and ASK, the same as any other way a project comes into force -- the offer hangs off
+            // ProfileApplied, which startup never raises. NOT from here though: offerToReopen can start
+            // a log load, and a load completing against a half-built frame is how an uncaught NPE
+            // reached the EDT in CI (summaryPanel null inside applyLoaded). It waits for the window.
+            offerWhenShown = true;
+        }
         installGlobalKeys();
         installFileDrop();
         addWindowListener(new WindowAdapter() {
             @Override public void windowClosing(WindowEvent e) { onExit(); }
             @Override public void windowActivated(WindowEvent e) { refreshProjectPanel(); }
+            // windowOPENED, not activated: it fires once, when the window is first made visible, and
+            // does not depend on the desktop giving it focus -- which a window under a test display
+            // may never get. Either way it is after construction, which is the point: offerToReopen
+            // can start a log load, and a load completing against a half-built frame is how an
+            // uncaught NPE reached the EDT in CI.
+            @Override public void windowOpened(WindowEvent e) {
+                if (offerWhenShown) {
+                    offerWhenShown = false;
+                    SwingUtilities.invokeLater(MainFrame.this::offerToReopen);
+                }
+            }
         });
     }
 
@@ -405,14 +467,9 @@ public final class MainFrame extends JFrame {
         NavRail rail = new NavRail();
         this.navRail = rail;
         JPanel west = new JPanel(new BorderLayout());
+        this.westColumn = west;
 
         eventFilterPanel.setVisible(!config.eventFilterCollapsed);
-        rail.addToggle("Event types", !config.eventFilterCollapsed, showing -> {
-            eventFilterPanel.setVisible(showing);
-            config.eventFilterCollapsed = !showing;
-            saveConfigQuietly();
-            layoutWest(west);
-        });
         // M37: what is in force — the Project panel, stacked under Event types (owner decision 2). It is a
         // rendering of `context` (D-L1); refreshProjectPanel() is the only writer.
         // Chart lifecycle: the adapter is ProjectRevealer, named and testable. As an anonymous class here, gutting
@@ -421,8 +478,25 @@ public final class MainFrame extends JFrame {
             // MainFrame.this, not selectTab(title) — inside this Surface that name is THIS method
             @Override public void selectTab(String title) { MainFrame.this.selectTab(title); }
             @Override public void openSettings(String page) {
+                openSettings(page, null);
+            }
+            @Override public void openSettings(String page, String highlight) {
                 ConfigPanel.show(MainFrame.this, config, MainFrame.this::onConfigChanged,
-                        MainFrame.this::readerSummaries, page);
+                        MainFrame.this::readerSummaries, page, settingsStartDir(), highlight);
+            }
+            @Override public void removeSourceRoot(String path) {
+                MainFrame.this.removeSourceRoot(path);
+            }
+            @Override public void openProcessorSource(String fqn) {
+                MainFrame.this.openProcessorSource(fqn);
+            }
+            @Override public void setActiveProcessor(String fqn) {
+                var r = actionControl.selectProcessor(fqn);
+                sayToStatus(r.ok() ? "Active event processor is now " + fqn : r.error());
+                refreshProjectPanel();
+            }
+            @Override public void removeProcessor(String fqn) {
+                MainFrame.this.removeProcessor(fqn);
             }
             // the tab selection lives in ProjectRevealer now; this Surface only does the frame's part
             @Override public void selectReport(String name) {
@@ -442,11 +516,13 @@ public final class MainFrame extends JFrame {
             saveConfigQuietly();
             layoutWest(west);
         });
-        // the same column checkboxes as the menu, one click from the table instead of up in the menu bar
-        rail.addAction("Columns", () -> {
-            JPopupMenu popup = new JPopupMenu();
-            for (java.awt.Component item : buildColumnsMenu().getMenuComponents()) popup.add(item);
-            popup.show(rail, rail.getWidth(), 0);
+        machinePanel = new MachinePanel();
+        machinePanel.setVisible(!config.machinePanelCollapsed);
+        rail.addToggle("Private settings", !config.machinePanelCollapsed, showing -> {
+            machinePanel.setVisible(showing);
+            config.machinePanelCollapsed = !showing;
+            saveConfigQuietly();
+            layoutWest(west);
         });
         rail.addGap();
 
@@ -628,33 +704,137 @@ public final class MainFrame extends JFrame {
      * Rebuilt on every toggle rather than hiding a split-pane child — JSplitPane keeps giving an invisible
      * child its share, and the divider is persisted only when both are showing (it is meaningless otherwise).
      */
+    /** The machine tier, drawn under the project it qualifies. Never a source of truth — a view. */
+    private void renderMachinePanel(Map<String, Object> context) {
+        if (machinePanel == null) return;
+        String key = focusProjectKey();
+        Integer copies = null;
+        java.nio.file.Path copiesRoot = telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.workingCopiesRoot();
+        if (Files.isDirectory(copiesRoot)) {
+            try (var s = Files.list(copiesRoot)) {
+                copies = (int) s.filter(Files::isDirectory).count();
+            } catch (java.io.IOException | java.io.UncheckedIOException ignored) {
+                // a directory being unpacked underneath us is not worth failing a courtesy view over
+            }
+        }
+        machinePanel.render(context, key == null ? null : config.lastFocusByProject.get(key), copies);
+    }
+
+    /** Remove a scratch tree, best effort: a leftover temp directory is untidy, never a failure. */
+    private static void deleteTree(Path root) {
+        if (root == null) return;
+        try (var walk = Files.walk(root)) {
+            walk.sorted(java.util.Comparator.reverseOrder()).forEach(p -> {
+                try {
+                    Files.deleteIfExists(p);
+                } catch (java.io.IOException ignored) {
+                    // the next boot's temp sweep can have it
+                }
+            });
+        } catch (java.io.IOException | java.io.UncheckedIOException ignored) {
+            // ditto
+        }
+    }
+
+    /** The Facts column, and the split that shares it between the checklist and the records. */
+    private JPanel tableArea;
+    private JSplitPane eventTypesSplit;
+    /** The checklist's default height when nothing has been dragged; it can be given more. */
+    private static final int EVENT_TYPES_MAX_HEIGHT = 190;
+    /** Floors: neither side of the Facts column may be squeezed into uselessness. */
+    private static final int EVENT_TYPES_MIN_HEIGHT = 60;
+    private static final int RECORDS_MIN_HEIGHT = 150;
+
+    /** The west column, so the Records row's Event types toggle can relayout it. */
+    private JPanel westColumn;
+
+    /**
+     * Show or hide the Event types checklist.
+     *
+     * <p>The control for it sits on the Records row, beside Search, rather than on the west rail: both
+     * it and Columns act on the RECORDS you are looking at, and reading a filter's controls a column
+     * away from the thing filtered is what made them easy to miss (owner, 2026-09-30).
+     */
+    private void showEventTypes(boolean showing) {
+        eventFilterPanel.setVisible(showing);
+        config.eventFilterCollapsed = !showing;
+        saveConfigQuietly();
+        layoutEventTypes();
+    }
+
+    /**
+     * The Facts column's centre: the checklist over the records when it is showing, the records alone
+     * when it is not. Hiding it must give the table the whole column back, not leave a gap.
+     */
+    private void layoutEventTypes() {
+        if (tableArea == null || eventTypesSplit == null) return;
+        java.awt.Component centre = ((BorderLayout) tableArea.getLayout())
+                .getLayoutComponent(BorderLayout.CENTER);
+        if (centre != null) tableArea.remove(centre);
+        if (eventFilterPanel.isVisible()) {
+            eventTypesSplit.setTopComponent(eventFilterPanel);
+            eventTypesSplit.setBottomComponent(tablePanel);
+            tableArea.add(eventTypesSplit, BorderLayout.CENTER);
+            int column = tableArea.getHeight();
+            int wanted = config.eventTypesDivider > 0
+                    ? config.eventTypesDivider
+                    : Math.max(EVENT_TYPES_MIN_HEIGHT,
+                            Math.min(eventFilterPanel.getPreferredSize().height, EVENT_TYPES_MAX_HEIGHT));
+            // never past the records' floor, however tall the checklist would like to be
+            if (column > 0) wanted = Math.min(wanted, Math.max(0, column - RECORDS_MIN_HEIGHT));
+            eventTypesSplit.setDividerLocation(Math.max(0, wanted));
+        } else {
+            eventTypesSplit.setTopComponent(null);
+            eventTypesSplit.setBottomComponent(null);
+            tableArea.add(tablePanel, BorderLayout.CENTER);
+        }
+        tableArea.revalidate();
+        tableArea.repaint();
+    }
+
     private void layoutWest(JPanel west) {
         java.awt.Component centre = ((BorderLayout) west.getLayout()).getLayoutComponent(BorderLayout.CENTER);
         if (centre != null) west.remove(centre);
+        java.awt.Component heading = ((BorderLayout) west.getLayout()).getLayoutComponent(BorderLayout.NORTH);
+        if (heading != null) west.remove(heading);   // no name over a column collapsed to its rail
         if (westSplit != null && westSplit.getTopComponent() != null && westSplit.getBottomComponent() != null) {
             config.westDivider = westSplit.getDividerLocation();
             westSplit.setTopComponent(null);
             westSplit.setBottomComponent(null);
         }
-        boolean events = eventFilterPanel.isVisible(), loaded = projectPanel.isVisible();
-        if (events && loaded) {
-            westSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT, eventFilterPanel, projectPanel);
-            westSplit.setResizeWeight(0.55);
-            westSplit.setBorder(BorderFactory.createEmptyBorder());
-            westSplit.setContinuousLayout(true);
-            if (config.westDivider > 0) westSplit.setDividerLocation(config.westDivider);
-            west.add(westSplit, BorderLayout.CENTER);
-        } else if (events) {
-            west.add(eventFilterPanel, BorderLayout.CENTER);
-        } else if (loaded) {
-            west.add(projectPanel, BorderLayout.CENTER);
+        // the project, and beneath it what THIS MACHINE remembers about it — one Context column, two
+        // scopes: the project's own state, then the local memory that qualifies it and never travels.
+        // The event-type checklist used to share this column; it now sits with the records it filters.
+        java.awt.Component context = contextStack();
+        boolean loaded = context != null;
+        if (loaded) {
+            west.add(context, BorderLayout.CENTER);
+        }
+        if (loaded) {
+            west.add(columnHeading("Context",
+                    "What the system is: the project, and beneath it your own private settings for it."),
+                    BorderLayout.NORTH);
         }
         // both toggles off: the column shrinks to the rail; a toggle back on reopens it at the chosen width
         if (westOuter != null) {
-            westOuter.setDividerLocation(westDividerFor(events || loaded, config.westWidth, navRail.getPreferredSize().width));
+            westOuter.setDividerLocation(westDividerFor(loaded, config.westWidth, navRail.getPreferredSize().width));
         }
         west.revalidate();
         west.repaint();
+    }
+
+    /** Project over "this machine", or whichever of the two is showing; null when neither is. */
+    private java.awt.Component contextStack() {
+        boolean project = projectPanel != null && projectPanel.isVisible();
+        boolean machine = machinePanel != null && machinePanel.isVisible();
+        if (project && machine) {
+            JSplitPane stack = new JSplitPane(JSplitPane.VERTICAL_SPLIT, projectPanel, machinePanel);
+            stack.setResizeWeight(0.72);        // the machine's memory qualifies; it does not dominate
+            stack.setBorder(BorderFactory.createEmptyBorder());
+            stack.setContinuousLayout(true);
+            return stack;
+        }
+        return project ? projectPanel : machine ? machinePanel : null;
     }
 
     /**
@@ -666,10 +846,12 @@ public final class MainFrame extends JFrame {
         try {
             var context = actionControl.context().payload();
             projectPanel.render(ProjectModel.from(context));
+            renderMachinePanel(context);
             if (startPanel != null) startPanel.renderProject(context);
         } catch (RuntimeException e) {
             // the panel is a courtesy view of state that already exists; it must never take the app down
             projectPanel.render(ProjectModel.from(null));
+            renderMachinePanel(null);
         }
     }
 
@@ -1114,6 +1296,7 @@ public final class MainFrame extends JFrame {
         if (startPanel != null) {
             if (actionControl != null) startPanel.renderProject(actionControl.context().payload());
             startPanel.setRecentProjects(config.recentProjects);
+            startPanel.setRecentBundles(config.recentBundles);
             boolean designOpen = session != null && session.processor().designSession.path() != null;
             showWorkspace(store == null && !topologyPanel.hasGraph() && !project.hasProject() && !designOpen);
         }
@@ -1240,7 +1423,11 @@ public final class MainFrame extends JFrame {
     private void loadExperiment(Path bundle) {
         status.setText("Verifying and opening evidence bundle…");
         startPanel.showOperationFeedback("Verifying " + bundle.getFileName() + "…");
-        if (recovery != null) recovery.capture();
+        // Recovery is deliberately NOT armed for a bundle. It exists to offer back a session a crash took,
+        // and a bundle is disposable verified evidence unpacked to a fresh directory every time — there is
+        // no session of it worth resuming, and offering one put "Restore the session captured …" across the
+        // top of the start page after an ordinary open (reported in use, 2026-09-30). A real project's
+        // recovery is untouched.
         sessionInteractive = true;
         sessionProblem = null;
         var driver = session();
@@ -1254,7 +1441,7 @@ public final class MainFrame extends JFrame {
     /** Pure preparation: every outcome, including refusal, is reported to the session graph with its request id. */
     private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileLoaded prepareBundle(
             long opId, String bundlePath) throws java.io.IOException {
-        Path parent = Path.of(System.getProperty("user.home"), ".fluxtion-analyser", "bundles");
+        Path parent = telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.workingCopiesRoot();
         var unpacked = telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.unpack(Path.of(bundlePath), parent);
         var verification = unpacked.verification();
         if (!verification.ok()) {
@@ -1280,9 +1467,30 @@ public final class MainFrame extends JFrame {
         String limits = String.join("\n", telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.limits(verification));
         var plan = new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundlePlan(
                 profile.toString(), graphs.isEmpty() ? null : root.resolve(graphs.getFirst()).toString(),
-                root.resolve(logs.getFirst()).toString(), verification.identity(), root.toString(), limits);
+                root.resolve(logs.getFirst()).toString(), verification.identity(), root.toString(), limits,
+                firstNoteLine(root.resolve(telamin.fluxtion.audit.analyser.bundle.BundleWriter.NOTES)),
+                bundlePath, verification.processor());
         return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileLoaded(
                 opId, profile.toString(), true, null, 0, null, plan);
+    }
+
+    /**
+     * #73: the first line of a bundle's NOTES.md — what the sender says this is. Bounded and single-line,
+     * because it goes in a list row and a title-ish position, and because it is text from someone else.
+     * Unreadable or absent notes are simply blank: a bundle without a note is still a bundle.
+     */
+    private static String firstNoteLine(Path notes) {
+        try {
+            if (!java.nio.file.Files.isRegularFile(notes)) return "";
+            for (String line : java.nio.file.Files.readAllLines(notes, java.nio.charset.StandardCharsets.UTF_8)) {
+                String trimmed = line.strip();
+                if (trimmed.isEmpty() || trimmed.startsWith("#")) continue;
+                return trimmed.length() <= 200 ? trimmed : trimmed.substring(0, 200) + "…";
+            }
+        } catch (java.io.IOException | RuntimeException ignored) {
+            // the notes are a courtesy; a bundle whose note cannot be read still opens
+        }
+        return "";
     }
 
     /** Source roots the demo added for this session only — never written to any config tier. */
@@ -2293,6 +2501,14 @@ public final class MainFrame extends JFrame {
         // Project actions change the profile in force; source and log actions have separate homes.
         projectMenu.add(openProjectItem());
         projectMenu.add(recentProjectsMenu);
+        // A log and a topology together are a PROJECT-level act -- the pair you work on, opened as one
+        // -- so it sits with the project's own open and close rather than beside either single file
+        // (owner, 2026-09-30, after it first landed on Audit log and then on Sources).
+        JMenuItem recentPair = new JMenuItem("Open recent log and topology…");
+        recentPair.setToolTipText("Choose from the audit logs and topologies opened inside this "
+                + "project — either, both or neither");
+        recentPair.addActionListener(e -> openRecentPair());
+        projectMenu.add(recentPair);
         projectMenu.add(newProjectFromTemplateItem());
         projectMenu.add(newProjectItem());
         saveProjectAsItem.addActionListener(e -> saveProjectAs());
@@ -2321,7 +2537,7 @@ public final class MainFrame extends JFrame {
         audit.add(exportYaml);
         projectMenu.addSeparator();
         JMenuItem settings = new JMenuItem("Settings…");
-        settings.addActionListener(e -> ConfigPanel.show(this, config, this::onConfigChanged, this::readerSummaries));
+        settings.addActionListener(e -> ConfigPanel.show(this, config, this::onConfigChanged, this::readerSummaries, null, settingsStartDir()));
         projectMenu.add(settings);
         JMenuItem exportSettings = new JMenuItem("Export settings…");
         exportSettings.setToolTipText("Share your analysis setup — roots, event processors, graphs (never your API key)");
@@ -3662,16 +3878,58 @@ public final class MainFrame extends JFrame {
         JButton clearHistory = new JButton("Clear history");
         clearHistory.setToolTipText("Clear the saved search history (does not change the current search)");
         clearHistory.addActionListener(e -> clearSearchHistory());
-        searchRow.add(clearHistory, BorderLayout.EAST);
-        // "Records" header on top, then the Search row, then the table
-        JPanel tableArea = new JPanel(new BorderLayout());
+        // Event types and Columns live HERE, next to Search: all three narrow what the Records table
+        // shows, and the two that sat on the west rail were a column away from the thing they filtered.
+        eventTypesToggle.setSelected(!config.eventFilterCollapsed);
+        eventTypesToggle.setToolTipText("Show or hide the event-type checklist that filters these records");
+        eventTypesToggle.addActionListener(e -> showEventTypes(eventTypesToggle.isSelected()));
+        JButton columnsButton = new JButton("Columns");
+        columnsButton.setToolTipText("Choose which columns the Records table shows");
+        columnsButton.addActionListener(e -> {
+            JPopupMenu popup = new JPopupMenu();
+            for (java.awt.Component item : buildColumnsMenu().getMenuComponents()) popup.add(item);
+            popup.show(columnsButton, 0, columnsButton.getHeight());
+        });
+        JPanel recordControls = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT, 6, 0));
+        recordControls.setOpaque(false);
+        recordControls.add(eventTypesToggle);
+        recordControls.add(columnsButton);
+        recordControls.add(clearHistory);
+        searchRow.add(recordControls, BorderLayout.EAST);
+        // "Records" header on top, then the Search row, then the event-type checklist it toggles,
+        // then the table. The checklist FILTERS these records, so it belongs in the Facts column with
+        // them -- it sat in Context, a column away from the thing it acts on, which the column names
+        // made plain the moment they went up (owner, 2026-09-30).
+        tableArea = new JPanel(new BorderLayout());
         tableArea.setBorder(UiTheme.section("Records"));
         tableArea.add(searchRow, BorderLayout.NORTH);
-        tableArea.add(tablePanel, BorderLayout.CENTER);
+        eventFilterPanel.setVisible(!config.eventFilterCollapsed);
+        // RESIZABLE, not a fixed band. BorderLayout.NORTH grants a component its full preferred
+        // height, and the checklist grows with the log's event types: on a log with many it took the
+        // whole Facts column and starved the records table (CI caught a native press missing it). A
+        // fixed fraction fixed that and produced the opposite complaint -- "too small when we have a
+        // lot of event types" (owner, 2026-09-30). No constant serves both, so the person decides: a
+        // split with a sensible default and a floor for each side, and the divider is remembered.
+        eventTypesSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT, eventFilterPanel, tablePanel);
+        eventTypesSplit.setBorder(BorderFactory.createEmptyBorder());
+        eventTypesSplit.setContinuousLayout(true);
+        eventTypesSplit.setResizeWeight(0);        // growing the window grows the TABLE
+        eventTypesSplit.setOneTouchExpandable(true);
+        eventFilterPanel.setMinimumSize(new Dimension(0, EVENT_TYPES_MIN_HEIGHT));
+        tablePanel.setMinimumSize(new Dimension(100, RECORDS_MIN_HEIGHT));
+        eventTypesSplit.addPropertyChangeListener(JSplitPane.DIVIDER_LOCATION_PROPERTY, e -> {
+            if (eventFilterPanel.isVisible() && eventTypesSplit.getDividerLocation() > 0) {
+                config.eventTypesDivider = eventTypesSplit.getDividerLocation();
+            }
+        });
+        layoutEventTypes();
         tableArea.setMinimumSize(new Dimension(100, 80));
 
         // The investigation keeps records, detail and output tabs together. The start page is a
         // separate workspace card, so its choices can use the full content width when no log is open.
+        JPanel factsColumn = new JPanel(new BorderLayout());
+        factsColumn.add(columnHeading("Facts",
+                "What the run did: the audit log, as recorded. Nothing here is editable."), BorderLayout.NORTH);
         JSplitPane mainSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT, tableArea, detailPanel);
         mainSplit.setResizeWeight(0.45);
         mainSplit.setDividerLocation(330);
@@ -3757,13 +4015,93 @@ public final class MainFrame extends JFrame {
             @Override public void newProjectFromTemplate() { chooseTemplateProject(); }
             @Override public void openExperiment() { chooseExperiment(); }
             @Override public void investigateIncident() { chooseIncidentEvidence(); }
+            @Override public void openRecentBundle(String path) { loadExperiment(Path.of(path)); }
+
+            @Override public void forgetRecent(String path, boolean bundle) {
+                // The LIST is machine-local navigation; the file is not touched.
+                if (bundle) config.recentBundles.removeIf(b -> b.path().equals(path));
+                else config.recentProjects.remove(path);
+                saveConfigQuietly();
+                rebuildRecentMenu();
+                refreshStartRecents();
+            }
+
+            @Override public void revealRecent(String path) {
+                Path file = Path.of(path);
+                try {
+                    // Desktop.browseFileDirectory is the portable reveal, but it is unimplemented on
+                    // several platforms and throws; fall back to opening the containing folder.
+                    if (java.awt.Desktop.isDesktopSupported()
+                            && java.awt.Desktop.getDesktop().isSupported(
+                                    java.awt.Desktop.Action.BROWSE_FILE_DIR)) {
+                        java.awt.Desktop.getDesktop().browseFileDirectory(file.toFile());
+                    } else if (file.getParent() != null) {
+                        java.awt.Desktop.getDesktop().open(file.getParent().toFile());
+                    }
+                } catch (RuntimeException | java.io.IOException ex) {
+                    status.setText("Could not reveal " + file.getFileName() + ": " + ex.getMessage());
+                }
+            }
+
+            @Override public void renameRecent(String path, boolean bundle) {
+                Path file = Path.of(path);
+                if (!Files.isRegularFile(file)) {
+                    status.setText("Cannot rename: " + path + " is no longer there.");
+                    return;
+                }
+                String chosen = JOptionPane.showInputDialog(MainFrame.this, "New name for this file:",
+                        file.getFileName().toString());
+                if (chosen == null || chosen.isBlank()
+                        || chosen.equals(file.getFileName().toString())) {
+                    return;
+                }
+                if (chosen.contains("/") || chosen.contains("\\")) {
+                    status.setText("A name, not a path: " + chosen);
+                    return;
+                }
+                Path target = file.resolveSibling(chosen);
+                if (Files.exists(target)) {
+                    status.setText("Already there: " + chosen);
+                    return;
+                }
+                try {
+                    Files.move(file, target);
+                } catch (java.io.IOException ex) {
+                    status.setText("Could not rename: " + ex.getMessage());
+                    return;
+                }
+                // the recent entry follows the file, keeping everything keyed on it — for a bundle that
+                // is its remembered source anchor, which is keyed on the .fexp path
+                if (bundle) {
+                    for (int i = 0; i < config.recentBundles.size(); i++) {
+                        var b = config.recentBundles.get(i);
+                        if (b.path().equals(path)) {
+                            config.recentBundles.set(i, new telamin.fluxtion.audit.analyser.analyser.config
+                                    .AppConfig.RecentBundle(target.toString(), b.identity(), b.notes(),
+                                    b.sourceRoots()));
+                        }
+                    }
+                } else {
+                    int at = config.recentProjects.indexOf(path);
+                    if (at >= 0) config.recentProjects.set(at, target.toString());
+                }
+                saveConfigQuietly();
+                rebuildRecentMenu();
+                refreshStartRecents();
+                status.setText("Renamed to " + chosen);
+            }
             @Override public void openRecentProject(String path) {
                 requestProject(Path.of(path), telamin.fluxtion.audit.analyser.analyser.session.TransitionKind.EXPLICIT_SWITCH, "start-recent");
             }
             @Override public void restoreSession(long generation) { if (recovery != null) recovery.restore(generation); }
             @Override public void dismissSessionRestore(long generation) { if (recovery != null) recovery.dismiss(generation); }
         }, text -> status.setText(text));
-        JSplitPane center = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, mainSplit, sideTabs);
+        factsColumn.add(mainSplit, BorderLayout.CENTER);
+        JPanel canvasColumn = new JPanel(new BorderLayout());
+        canvasColumn.add(columnHeading("Canvas",
+                "What you make of it: charts, source, topology, reports — your working views."), BorderLayout.NORTH);
+        canvasColumn.add(sideTabs, BorderLayout.CENTER);
+        JSplitPane center = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, factsColumn, canvasColumn);
         center.setDividerSize(9);          // constant, rather than whatever the tab's content implies
         sideTabs.addChangeListener(e -> {
             sourceViewportChanged();
@@ -5511,6 +5849,35 @@ public final class MainFrame extends JFrame {
         if (walksPanel != null) walksPanel.render(next.walkPlayback());
         renderLogEvidence(next);                 // M44.5: the log's line, tooltip, Reports tab and time-order report
         renderAssistant(next);                   // OA-1: the assistant, as assistantLoop decided it
+        renderBundleProvenance(next);            // #76: whether this session is received evidence, and which bundle
+    }
+
+    /**
+     * The provenance last rendered — the edge, so the title and the Project panel are touched only when it
+     * changes. The title cannot be set from {@code applyProjectSettings}: that runs while the profile is being
+     * applied, and {@code openBundle} does not settle until the {@code ProfileApplied} fact comes back, so the
+     * title set there would be a frame too early and would never be corrected.
+     */
+    private telamin.fluxtion.audit.analyser.analyser.session.BundleProvenance bundleRendered =
+            telamin.fluxtion.audit.analyser.analyser.session.BundleProvenance.NONE;
+
+    /** Whether the start page's bundle progress blurb has been cleared for the bundle in force. */
+    private boolean bundleFeedbackCleared;
+
+    private void renderBundleProvenance(telamin.fluxtion.audit.analyser.analyser.session.SessionSnapshot next) {
+        // "Verified <id>. The audit log is loading." is PROGRESS. Once the log is open the Project panel
+        // carries identity, working copy and limits for the whole session, so the blurb is a stale
+        // duplicate left sitting under "What would you like to work on" (reported in use, 2026-09-30).
+        if (!next.bundle().fromBundle()) {
+            bundleFeedbackCleared = false;
+        } else if (next.logOpen() && !bundleFeedbackCleared) {
+            bundleFeedbackCleared = true;
+            if (startPanel != null) startPanel.showOperationFeedback(null);
+        }
+        if (next.bundle().equals(bundleRendered)) return;
+        bundleRendered = next.bundle();
+        setTitleForProject();
+        refreshProjectPanel();
     }
 
     /** M44.5: Follow is the session's state (OpenLog). Read off the EDT too, which the volatile snapshot allows. */
@@ -5936,7 +6303,198 @@ public final class MainFrame extends JFrame {
         refreshProjectPanel();
     }
 
+    /**
+     * Offer to anchor a freshly opened bundle to a source tree. Non-modal and on a later event: this runs
+     * while the session is performing an effect, and a modal dialog here would hold the event thread for as
+     * long as the person took to read it.
+     */
+    private void offerToAnchorSource(String bundleSource) {
+        SwingUtilities.invokeLater(() -> {
+            int answer = JOptionPane.showConfirmDialog(this,
+                    "This evidence bundle carries no source code — a bundle never does, because capture\n"
+                            + "removes every source path. Its graph names the classes, so pointing the analyser\n"
+                            + "at your own copy makes the code behind these records readable.\n\n"
+                            + "The tree you choose is remembered for this bundle and restored next time.\n\n"
+                            + "Set a source root now?",
+                    "No source root for this bundle", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
+            if (answer == JOptionPane.YES_OPTION) {
+                ConfigPanel.show(this, config, this::onConfigChanged, this::readerSummaries, "Source roots",
+                        settingsStartDir());
+            } else {
+                status.setText("No source root set for this bundle — Project panel ▸ Bundle has no source tree.");
+            }
+        });
+    }
+
+    /**
+     * Where a Settings folder chooser should open. For an evidence bundle that is the folder holding the
+     * {@code .fexp} — NOT the project root, which for a bundle is a disposable working copy under
+     * {@code ~/.fluxtion-analyser/bundles} and is the last place anyone wants to browse from.
+     */
+    private Path settingsStartDir() {
+        var bundle = sessionSnapshot().bundle();
+        if (bundle.fromBundle() && bundle.source() != null) {
+            Path holding = Path.of(bundle.source()).getParent();
+            if (holding != null && Files.isDirectory(holding)) return holding;
+        }
+        if (project.hasProject() && project.activeFile() != null) {
+            Path analyser = project.activeFile().getParent();
+            Path root = analyser == null ? null : analyser.getParent();
+            if (root != null && Files.isDirectory(root)) return root;
+        }
+        return null;
+    }
+
+    /** The exchange directory a project declares, or null. */
+    private Path projectBundleDir() {
+        var exchange = telamin.fluxtion.audit.analyser.analyser.config.ExchangeDir.of(config);
+        if (exchange.dir() == null || exchange.dir().isBlank()) return null;
+        Path dir = Path.of(exchange.dir());
+        return Files.isDirectory(dir) ? dir : null;
+    }
+
+    /**
+     * Every {@code .fexp} in the exchange directory and one level below — and <b>never inside a capture's
+     * working folder</b>. A capture writes into a {@code .capture-…} folder beside the bundles, creates and
+     * deletes {@code .settings} inside it as it goes, and removes the whole folder when it finishes; nothing
+     * in there is evidence anyone can open. Walking it was also a race the event thread could not survive:
+     * {@code Files.walk} throws {@link java.io.UncheckedIOException} — not {@code IOException}, so the catch
+     * below never saw it — the moment an entry it has already listed is gone, and a {@code context} call
+     * issued while a capture was in flight died on the event thread (CI 2026-09-30, mutation shard 0, and
+     * about one run in three locally). Not entering the folder removes both the cost and the race; the
+     * tolerant catch is the belt for anything else that vanishes under a live directory.
+     */
+    private static List<Path> bundlesUnder(Path dir) {
+        List<Path> found = new java.util.ArrayList<>();
+        try (var top = Files.list(dir)) {
+            for (Path p : top.sorted().toList()) {
+                if (p.getFileName().toString().startsWith(".capture-")) continue;
+                if (p.getFileName().toString().endsWith(".fexp") && Files.isRegularFile(p)) {
+                    found.add(p);
+                } else if (Files.isDirectory(p)) {
+                    try (var inner = Files.list(p)) {
+                        inner.filter(f -> f.getFileName().toString().endsWith(".fexp"))
+                                .filter(Files::isRegularFile).sorted().forEach(found::add);
+                    }
+                }
+            }
+        } catch (java.io.IOException | java.io.UncheckedIOException e) {
+            return found;                 // what was found so far, never an exception on the event thread
+        }
+        return found;
+    }
+
+    private boolean exchangeHasBundles() {
+        Path dir = projectBundleDir();
+        return dir != null && !bundlesUnder(dir).isEmpty();
+    }
+
+    /**
+     * #80: what evidence THIS PROJECT holds, as opposed to what this laptop happens to have opened. The
+     * exchange directory is project tier by design and is where {@code report {bundle}} writes; nothing
+     * read it back. Only name and size: reading each manifest is a zip open per file on every context call.
+     */
+    private void bundlesInProject(Map<String, Object> bundles) {
+        Path dir = projectBundleDir();
+        if (dir == null) return;
+        var exchange = telamin.fluxtion.audit.analyser.analyser.config.ExchangeDir.of(config);
+        bundles.put("inProjectDir", dir.toString());
+        // whose directory this is. It falls back to the MACHINE's export directory when no project
+        // declares one, the exchange opt-in is off, or a project value was refused -- and calling that
+        // "this project's" was simply the wrong tier in the wording (review, 2026-09-30).
+        bundles.put("inProjectDirTier", exchange.fromProject() ? "project" : "machine");
+        if (exchange.refusal() != null) bundles.put("inProjectDirRefusal", exchange.refusal());
+        List<Map<String, Object>> found = new java.util.ArrayList<>();
+        for (Path f : bundlesUnder(dir)) {
+            Map<String, Object> one = new java.util.LinkedHashMap<>();
+            one.put("path", f.toString());
+            one.put("name", dir.relativize(f).toString());
+            try {
+                one.put("bytes", Files.size(f));
+            } catch (java.io.IOException ignored) {
+                // listed without a size rather than dropped: it is still there to open
+            }
+            found.add(one);
+        }
+        bundles.put("inProject", found);
+        bundles.put("inProjectNote", "every .fexp in the exchange directory in force ('inProjectDirTier' "
+                + "says whether the project declared it or it is this machine's own) and one level below, "
+                + "whether or not this machine has opened one; open one with open {bundle}. Identity and "
+                + "notes are not read here — that is a zip open each — so they appear only in 'recent'");
+    }
+
+    /** Re-render the start page's two recent lists from config — the one place that does it. */
+    private void refreshStartRecents() {
+        if (startPanel == null) return;
+        startPanel.setRecentProjects(config.recentProjects);
+        startPanel.setRecentBundles(config.recentBundles);
+    }
+
+    /**
+     * Remove one source root, from the Project panel's own row. The panel is where a root you did not
+     * expect is actually SEEN; before this the only remedy was Settings, where you had to find it again
+     * by eye among a dozen (asked for in use, 2026-09-30).
+     *
+     * @return whether it was there to remove
+     */
+    boolean removeSourceRoot(String path) {
+        if (path == null || !config.sourceRoots.remove(path)) return false;
+        onConfigChanged();          // the funnel: persists, re-reads source, and reports the new roots
+        sayToStatus("Removed source root " + path);
+        return true;
+    }
+
+    /**
+     * Show one processor's source, leaving the ACTIVE processor alone.
+     *
+     * <p>The Project panel's Open used to reach "the Source tab", which shows whichever processor is
+     * selected — so six rows had one button six times over (found in use, 2026-09-30). It goes through
+     * the java spotlight, which is the app's existing way of putting a named class on screen.
+     */
+    private void openProcessorSource(String fqn) {
+        if (fqn == null || fqn.isBlank()) return;
+        if (sourceService.sourceForFqn(fqn).isEmpty()) {
+            sayToStatus("No source for " + fqn + " under the configured roots — add one in Settings ▸ Source roots");
+            return;
+        }
+        prepareJavaSpotlightHere(Map.of("target", "source:java:" + fqn), () -> { })
+                .thenAccept(result -> SwingUtilities.invokeLater(() -> {
+                    if (!result.ok()) sayToStatus(result.error());
+                }));
+    }
+
+    /**
+     * Drop a processor from the project's declared list. The ACTIVE one is never silently dropped:
+     * removing it would leave the project pointing at a class it no longer declares.
+     */
+    private void removeProcessor(String fqn) {
+        if (fqn == null || fqn.isBlank()) return;
+        if (fqn.equals(config.selectedEventProcessor)) {
+            sayToStatus("Set another processor active before removing " + fqn + " — it is the active one");
+            return;
+        }
+        if (!config.eventProcessorFqns.remove(fqn)) {
+            sayToStatus(fqn + " is not one of this project's declared processors");
+            return;
+        }
+        onConfigChanged();          // the funnel: persists and re-reads
+        refreshProjectPanel();
+        sayToStatus("Removed event processor " + fqn);
+    }
+
     private void onConfigChanged() {
+        onConfigChanged(false);
+    }
+
+    /** @param fromTransition true when this is a transition's rendering half, not a person's edit. */
+    private void onConfigChanged(boolean fromTransition) {
+        // REPORT, do not decide. bundleAnchor decides whether these roots are a bundle's answer; the
+        // frame's part is to say what it sees, and to stay silent during a transition's rendering half
+        // because the settings in hand then are the ones being swapped away, not a person's choice.
+        if (!fromTransition && session != null) {
+            session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents
+                    .SourceRootsObserved(List.copyOf(config.sourceRoots)));
+        }
         sourceService.configure(effectiveSourceRoots(), config.selectedEventProcessor,
                 config.mavenRepos, config.searchMavenRepos);
         Background.run(() -> { sourceService.warmMavenIndex(); return null; }, r -> { }, err -> { });
@@ -5953,7 +6511,7 @@ public final class MainFrame extends JFrame {
         // M20.2 auto-persist. Deliberately here and nowhere else: this funnel is what `source_root` and
         // `open {processor}` already go through, so scripted edits persist without a second code path.
         // Hanging this off dialog-close would silently lose every verb-driven change.
-        if (project != null) project.requestSave();
+        if (project != null && !startingUp) project.requestSave();
         refreshProjectPanel();                                        // M37: roots and processors may have changed
         rebuildAnalysesMenu();                                        // M38.4: the profile may have gained one
     }
@@ -6250,8 +6808,13 @@ public final class MainFrame extends JFrame {
         JFileChooser fc = new JFileChooser();
         fc.setDialogTitle("Open project");
         fc.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
+        // A profile lives in <project>/.analyser/, and the chooser hides dotted directories by
+        // default -- so the file dialog could not reach the very file it was asking for, and a project
+        // could only be opened by picking its ROOT and hoping (reported in use, 2026-09-30).
+        fc.setFileHidingEnabled(false);
         fc.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter(
                 "Project settings (*.fluxtion-settings)", "fluxtion-settings"));
+        fc.setCurrentDirectory(settingsStartDir() == null ? null : settingsStartDir().toFile());
         if (fc.showOpenDialog(this) != JFileChooser.APPROVE_OPTION) return;
         File chosen = fc.getSelectedFile();
         Path file = chosen.isDirectory()
@@ -6559,7 +7122,9 @@ public final class MainFrame extends JFrame {
                 settingsName, settingsBytes, e.notes(), taken, java.time.Instant.now(),
                 telamin.fluxtion.audit.analyser.analyser.core.ReleaseNotes.version(), config.memoryThresholdMb, expected,
                 e.readSoFar(), e.replay() == null ? null : Path.of(e.replay()), e.replayRecords(), e.serviceCalls(),
-                e.replaySha256());
+                e.replaySha256(),
+                // a CLASS NAME, not a path: it leaks nothing and without it a recipient has no processor
+                config.selectedEventProcessor);
         telamin.fluxtion.audit.analyser.analyser.core.Background.run(() -> {
                     try {
                         return telamin.fluxtion.audit.analyser.bundle.BundleWriter.write(job);
@@ -6606,8 +7171,7 @@ public final class MainFrame extends JFrame {
                     if (result.bundlePlan() != null && driver.processor().operationGate.accepted()
                             && project.activeFile() != null
                             && project.activeFile().toString().equals(result.bundlePlan().profilePath())) {
-                        projectDesignChanged();
-                        if (recovery != null) recovery.activate(project.activeFile(), project.activeNonce(), null);
+                        projectDesignChanged();       // and no recovery.activate: see loadExperiment
                     }
                 }, error -> {
                     driver.post(
@@ -6637,13 +7201,89 @@ public final class MainFrame extends JFrame {
             }
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ApplyProfileEffect e -> {
                 handoff.clear();       // M48.7: a project transition is a session boundary; what was placed was the last one's
-                applyProjectSettings();
-                reportWalkChanges();      // review PR57 R6: a project's walks are that project's
+                // By the time this effect runs, ProjectSession has ALREADY swapped the settings —
+                // applyProjectSettings is "the rendering half". So the profile IS in force, and reporting a
+                // failure here told the session the OLD project was still active when it was not: every later
+                // fact was then about the wrong project (found by review, 2026-09-29). The render is reported
+                // as the separate thing it is.
+                renderAfterTheRealWorkIsDone("applyProfile");
                 yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileApplied(
                         opId, e.profilePath(), e.name());
             }
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.OfferProjectReopenEffect e -> {
+                // PERFORM only: which files exist is the filesystem's answer and which to open is the
+                // person's. projectReopenOffer decided that an offer is warranted at all.
+                //
+                // invokeLater, NEVER inline. This arm runs inside the driver's cycle, and the offer both
+                // shows a modal and -- if the person picks something -- starts an OpenLogRequested. Done
+                // here that is "submit while a cycle was still running": the driver is single-in-flight
+                // and threw ProtocolViolation on the EDT, so the offer died and nothing opened. The same
+                // hazard maybeOfferProject documents. The effect's job is to answer; the asking comes
+                // after the cycle (found in use, 2026-09-30).
+                // The DECISION is taken here, inside the cycle: who is at the keyboard belongs to the
+                // operation that asked, and reading it later from a mutable field got it wrong both ways
+                // -- a socket verb arriving before the queue drained silently ate a person's offer, and a
+                // menu click after a socket-driven open raised a modal for an operation nobody started
+                // (review, 2026-09-30). Only the ASKING is deferred, because a modal must not run inside
+                // the driver's single-in-flight cycle.
+                var candidates = reopenCandidates();
+                String label = project.activeLabel();
+                boolean asking = sessionInteractive && !showingSomething() && !candidates.isEmpty();
+                if (asking) SwingUtilities.invokeLater(() -> offerToReopen(candidates, label));
+                // ...and the record says which happened. It used to say "offered" unconditionally, so the
+                // audit claimed an offer that the adapter had just vetoed.
+                yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StatusShown(
+                        e.opId(), asking ? "offerProjectReopen" : "offerProjectReopenSkipped");
+            }
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.RememberBundleAnchorEffect e -> {
+                // PERFORM only. bundleAnchor decided that these roots are this bundle's answer; the frame
+                // writes it and reports whether there was a bundle to write against.
+                boolean remembered = config.rememberBundleSourceRoots(e.bundleSource(), e.roots());
+                if (remembered) {
+                    saveConfigQuietly();
+                } else {
+                    status.setText("Could not remember the source root for this bundle: it is not in the recent list.");
+                }
+                yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StatusShown(
+                        e.opId(), "rememberBundleAnchor");
+            }
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.RestoreBundleAnchorEffect e -> {
+                // Which of the remembered roots still EXIST is a question about the filesystem, so it is
+                // answered here rather than in the node.
+                boolean any = false;
+                for (String anchored : config.bundleSourceRoots(e.bundleSource())) {
+                    if (Files.isDirectory(Path.of(anchored)) && !config.sourceRoots.contains(anchored)) {
+                        config.sourceRoots.add(anchored);
+                        any = true;
+                    }
+                }
+                if (any) {
+                    onConfigChanged(true);   // a transition's render: do not re-report these as a choice
+                } else if (config.sourceRoots.isEmpty()) {
+                    offerToAnchorSource(e.bundleSource());
+                }
+                yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StatusShown(
+                        e.opId(), "restoreBundleAnchor");
+            }
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.OpenBundleEvidenceEffect e -> {
                 var plan = e.plan();
+                // #73: a recipient could not find out what they had been sent. Recorded here, where the
+                // adapter performs the effect, beside the way a project open records its own recent.
+                config.addRecentBundle(plan.source(), plan.identity(), plan.notes());
+                // #75: put back the source tree this machine already chose for this bundle, if it is still there
+                // The bundle names the processor its log came from -- the sender's CLAIM, unpaired against
+                // the log (see context.project.bundle.processorClaimed, which says so). Adopted only when
+                // the recipient has none, so the Source tab is not empty for want of a class name the
+                // sender already knew, and never over a choice the recipient has made.
+                if (plan.processor() != null && !plan.processor().isBlank()
+                        && (config.selectedEventProcessor == null || config.selectedEventProcessor.isBlank())) {
+                    config.selectedEventProcessor = plan.processor();
+                    if (!config.eventProcessorFqns.contains(plan.processor())) {
+                        config.eventProcessorFqns.add(plan.processor());
+                    }
+                }
+                // the anchor is bundleAnchor's: it requests RestoreBundleAnchorEffect when the bundle settles
+                saveConfigQuietly();
                 if (plan.graphPath() != null) topologyPanel.load(Path.of(plan.graphPath()));
                 startPanel.showOperationFeedback("Verified " + plan.identity() + ". The audit log is loading.\n"
                         + "Working copy: " + plan.workingCopy() + "\n" + plan.limits());
@@ -6661,10 +7301,13 @@ public final class MainFrame extends JFrame {
                 yield pending;
             }
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.RestoreSettingsEffect e -> {
-                project.close();
+                project.close();       // THE REAL HALF: after this there is no project, whatever follows
                 handoff.clear();       // M48.7: leaving a project ends the session the handoff belonged to
-                applyProjectSettings();
-                reportWalkChanges();
+                // The mirror of ApplyProfileEffect, and it needs the same treatment for the same reason:
+                // the project is already gone, so reporting a failure here left the session naming a project
+                // that no longer exists — and, once openBundle stopped guessing from effect names, left a
+                // closed bundle still claiming the window (review, 2026-09-29).
+                renderAfterTheRealWorkIsDone("restoreSettings");
                 yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.SettingsRestored(opId);
             }
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.CloseLogEffect e -> {
@@ -6798,10 +7441,50 @@ public final class MainFrame extends JFrame {
     /** The processor's generation of the log that is open here, stated on every fact about it (M44.4a). */
     private long sessionLogGeneration = -1;
 
+    /**
+     * The rendering half of a transition whose REAL half has already happened — {@code ProjectSession} has
+     * swapped or closed the settings before either effect arm runs. A throw here does not undo that, so the
+     * fact reported to the session is the truth ("applied", "restored") and the render failure is reported
+     * as the separate thing it is.
+     *
+     * <p>It deliberately does NOT set {@code sessionProblem}: that is what {@code requestProject} returns, and
+     * a render failure would then read as "the project did not open", which silently dropped a new project's
+     * discovery selection and skipped the recovery journal for a project that was in force (review,
+     * 2026-09-29). And it re-throws {@link SessionDriver.ProtocolViolation}, which the driver documents as a
+     * fault that must reach the caller rather than be converted into an ordinary result.
+     */
+    /**
+     * A test's hold on the rendering half, run at its start. A no-op in the product, the same shape as
+     * {@code BundleWriter.beforeCopy}. It exists because a render failure is the one thing a frame test
+     * cannot otherwise provoke, and it is the failure that let two reviews find a false evidence claim.
+     */
+    static volatile Runnable beforeProjectRender = () -> { };
+
+    private void renderAfterTheRealWorkIsDone(String what) {
+        try {
+            applyProjectSettings(true);
+            reportWalkChanges();      // review PR57 R6: a project's walks are that project's
+        } catch (telamin.fluxtion.audit.analyser.analyser.session.SessionDriver.ProtocolViolation violation) {
+            throw violation;
+        } catch (RuntimeException ex) {
+            lastRenderFailure = what + ": " + ex;
+            status.setText("The change is in force, but the window did not finish updating: " + ex);
+        }
+    }
+
+    /** The last render failure, for the status line and for a test; never a transition verdict. */
+    private String lastRenderFailure;
+
     /** The rendering half: make the UI reflect settings that have already been swapped. */
     private void applyProjectSettings() {
+        applyProjectSettings(false);
+    }
+
+    /** @param fromTransition true when a project transition is rendering, not a person editing settings. */
+    private void applyProjectSettings(boolean fromTransition) {
+        beforeProjectRender.run();
         restoreGraphDefinitions(List.copyOf(config.savedGraphs));
-        onConfigChanged();          // source service, processors, menus, and the global save
+        onConfigChanged(fromTransition);   // source service, processors, menus, and the global save
         tablePanel.setVisibleColumns(new java.util.HashSet<>(config.hiddenColumns));
         updateProjectMenuState();
         setTitleForProject();
@@ -7037,16 +7720,33 @@ public final class MainFrame extends JFrame {
         updateLifecycleMenu();
         fillRecent(recentProjectsMenu, config.recentProjects,
                 path -> requestProject(Path.of(path), telamin.fluxtion.audit.analyser.analyser.session.TransitionKind.EXPLICIT_SWITCH, "recent"));
-        if (startPanel != null) startPanel.setRecentProjects(config.recentProjects);
+        if (startPanel != null) {
+            startPanel.setRecentProjects(config.recentProjects);
+            startPanel.setRecentBundles(config.recentBundles);
+        }
     }
 
     /** The window title carries the project, because "which settings am I using" is easy to lose. */
     private void setTitleForProject() {
-        setTitle(project.hasProject()
+        var bundle = sessionSnapshot().bundle();
+        String base = project.hasProject()
                 // activeLabel, not activeName: several profiles can share a project root and edits
                 // auto-save into whichever is active, so the title must say WHICH (#22).
                 ? "Fluxtion Audit Log Analyser — " + project.activeLabel()
-                : "Fluxtion Audit Log Analyser");
+                : "Fluxtion Audit Log Analyser";
+        // #76: a bundle SUPPLIES a project profile, so the label alone reads exactly like the person's own
+        // work. Say which bundle, for the session's life, from the session's published fact.
+        if (!bundle.fromBundle()) {
+            setTitle(base);
+            return;
+        }
+        // ...and say it by the bundle's OWN name. The project label here is the working copy's folder
+        // -- "bundle-6f1f46d5f9aa-16834159882839104220" -- which is a temp directory's name and is not
+        // something a person can follow or reason about (owner, 2026-09-30). The file they were sent is.
+        String named = bundle.source() == null ? project.activeLabel()
+                : String.valueOf(java.nio.file.Path.of(bundle.source()).getFileName());
+        setTitle("Fluxtion Audit Log Analyser — " + named
+                + "  [evidence bundle " + bundle.shortIdentity() + "]");
     }
 
     /** Write pending project edits and surface a failure once. Called by the debounce timer. */
@@ -7084,6 +7784,133 @@ public final class MainFrame extends JFrame {
     }
 
     /** Load a topology and remember it, from wherever it was chosen — menu, recent list or a drop. */
+    /**
+     * The chooser the offer puts up, or null for the real dialog. A seam rather than a direct call: a
+     * frame test drives a project open through the same code a person does, and a modal there would
+     * hang it. STATIC, and the same shape as {@code beforeProjectRender}, because the offer can fire
+     * during construction (a project restored at startup) -- a per-instance field cannot be set in
+     * time, and the first run of this test put a real dialog on the screen. Tests set it; nothing else.
+     */
+    static volatile java.util.function.BiFunction<String,
+            telamin.fluxtion.audit.analyser.analyser.config.ProjectReopen,
+            ProjectReopenDialog.Choice> reopenChooser;
+
+    /**
+     * O3: offer this project's logs and topologies. A profile holds settings and never session state,
+     * so opening a project left the log and the topology closed with nothing on screen to say which
+     * ones belonged to it (found in use, 2026-09-30). Nothing is opened unasked.
+     */
+    private void offerToReopen() {
+        // A modal question is only fair when somebody is there to answer it. An assistant opening a
+        // project over the socket must not stop on a dialog nobody asked for and nobody can see.
+        if (!sessionInteractive) return;
+        // ...and only when nothing is mid-demonstration. A walk or a lit spotlight IS the thing the
+        // person is looking at; a modal over it takes the click that dismisses it and the walkthrough
+        // dies with the light (found in use, 2026-09-30). The offer is an offer: skipping it costs
+        // nothing, and Project ▸ Open recent log and topology… asks again whenever they want.
+        if (showingSomething()) return;
+        if (!offersAllowed()) return;
+        offerToReopen(reopenCandidates(), project.activeLabel());
+    }
+
+    /**
+     * Whether an UNASKED offer may raise a modal at all.
+     *
+     * <p>Off by default, and turned on by the application, so no test can be surprised by a real
+     * dialog: the seam is {@code static}, it defaults to the real {@link ProjectReopenDialog}, and a
+     * frame suite whose isolated home happens to hold a restored project with a readable recent log
+     * would have raised one and hung under a headless CI display. One static field stood between the
+     * suite set and a hang (review, 2026-09-30). A test that WANTS the offer installs a chooser, which
+     * is itself permission.
+     */
+    private boolean offersAllowed() {
+        return offersEnabled || reopenChooser != null;
+    }
+
+    /** The application says it is a real session; nothing else does. */
+    public static void enableReopenOffers() {
+        offersEnabled = true;
+    }
+
+    private static volatile boolean offersEnabled;
+
+    /** True while the constructor is applying a RESTORED project: apply it, do not re-save it. */
+    private boolean startingUp;
+    /** A restored project is offered its log and topology once the window exists, never before. */
+    private boolean offerWhenShown;
+
+    /**
+     * What to offer: this project's own logs and topologies, or — when it has none — the machine's.
+     *
+     * <p>Narrowing to the project alone read well and was useless on the first real machine it met:
+     * every recent entry there was inside a bundle working copy, so the offer found nothing and said
+     * nothing (found in use, 2026-09-30). Working copies are now excluded outright, and a project
+     * with nothing of its own is a reason to widen rather than to go quiet.
+     */
+    private telamin.fluxtion.audit.analyser.analyser.config.ProjectReopen reopenCandidates() {
+        Path root = project.hasProject() ? project.activeFile().getParent() : null;
+        if (root != null && ".analyser".equals(String.valueOf(root.getFileName()))) root = root.getParent();
+        java.util.function.Predicate<String> exists = path -> Files.isReadable(Path.of(path));
+        // the project's OWN places: its directory, and every source root it declares
+        List<Path> scopes = new java.util.ArrayList<>();
+        if (root != null) scopes.add(root);
+        for (String source : effectiveSourceRoots()) {
+            try {
+                scopes.add(Path.of(source));
+            } catch (RuntimeException invalid) {
+                // a root that is not a path cannot narrow anything; the list is a person's to edit
+            }
+        }
+        var mine = telamin.fluxtion.audit.analyser.analyser.config.ProjectReopen.forScopes(
+                scopes, config.recentFiles, config.recentGraphml, exists);
+        var machine = telamin.fluxtion.audit.analyser.analyser.config.ProjectReopen.recent(
+                config.recentFiles, config.recentGraphml, exists);
+        // ...and each list falls back ON ITS OWN. Falling back only when BOTH were empty meant a
+        // project with logs but no topology of its own offered logs and no topology at all, which is
+        // exactly the case reported: the topology never loaded because it was never offered.
+        return new telamin.fluxtion.audit.analyser.analyser.config.ProjectReopen(
+                mine.logs().isEmpty() ? machine.logs() : mine.logs(),
+                mine.topologies().isEmpty() ? machine.topologies() : mine.topologies());
+    }
+
+    /**
+     * Whether a walkthrough or a spotlight is on screen right now — something the person is being
+     * SHOWN, which an unasked modal would interrupt and destroy.
+     */
+    private boolean showingSomething() {
+        return sessionSnapshot().walkPlayback().showing() || !spotlight.lit().isEmpty();
+    }
+
+    /** Project ▸ Open recent log and topology… — the same offer, asked for rather than volunteered. */
+    private void openRecentPair() {
+        sessionInteractive = true;      // a menu item is a person, at the entrance, per the convention
+        var candidates = reopenCandidates();
+        if (candidates.isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                    "Nothing to reopen yet — no audit log or topology has been opened on this machine "
+                            + "outside an evidence bundle's working copy.",
+                    "Open recent log and topology", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+        offerToReopen(candidates, project.hasProject() ? project.activeLabel() : "this machine");
+    }
+
+    private void offerToReopen(telamin.fluxtion.audit.analyser.analyser.config.ProjectReopen candidates,
+                               String label) {
+        if (candidates.isEmpty() || !offersAllowed()) return;      // nothing to offer, or not ours to ask
+
+        var chooser = reopenChooser;
+        var chosen = chooser != null
+                ? chooser.apply(label, candidates)
+                : ProjectReopenDialog.choose(this, label, candidates);
+        if (chosen == null) return;
+        if (chosen.topology() != null) openGraphml(chosen.topology());
+        if (chosen.log() != null) {
+            sessionInteractive = true;
+            requestOpenLog(chosen.log(), null, OpenRequest.HUMAN);
+        }
+    }
+
     private void openGraphml(String path) {
         sessionInteractive = true;      // R3-B1/R4-F2: the Recent-GraphML entrance — a person can answer a dialog
         java.nio.file.Path file = java.nio.file.Path.of(path);
@@ -7214,6 +8041,110 @@ public final class MainFrame extends JFrame {
                 return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("No unaccepted session offer is available; inspect context.restoration");
             recovery.restore(session().processor().sessionRecovery.generation());
             return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("open", "restoration", session().processor().sessionRecovery.echo());
+        }
+
+        @Override
+        public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult importFromBundle(
+                String path, java.util.List<String> categories) {
+            if (!project.hasProject()) {
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
+                        "import borrows INTO a project; none is open. Use open {project} first, or "
+                                + "open {bundle} to work in the bundle itself");
+            }
+            Path file = Path.of(path.trim());
+            if (!Files.isRegularFile(file)) {
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("no evidence bundle at " + file);
+            }
+            final telamin.fluxtion.audit.analyser.analyser.config.SettingsShare.ImportPlan plan;
+            final String identity;
+            // Borrowing reads ONE file out of the bundle -- its profile -- so the copy it needs is a
+            // scratch one, removed when we are done. It used to unpack into the working-copies
+            // directory, which meant a PREVIEW left a full working copy behind while its own echo said
+            // "nothing was changed", and the Private settings panel then counted bundles the person had
+            // never opened (review, 2026-09-30).
+            Path scratch = null;
+            try {
+                scratch = Files.createTempDirectory("fexp-borrow-");
+                var unpacked = telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.unpack(file, scratch);
+                if (!unpacked.verification().ok()) {
+                    return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
+                            "evidence bundle refused: " + unpacked.verification().refusal());
+                }
+                identity = unpacked.verification().identity();
+                Path profile = unpacked.workingCopy().resolve("profile/project.fluxtion-settings");
+                if (!Files.isRegularFile(profile)) {
+                    return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
+                            "the bundle carries no project profile to borrow from");
+                }
+                plan = new telamin.fluxtion.audit.analyser.analyser.config.SettingsShare()
+                        .preview(Files.readString(profile), config, profile.getParent());
+            } catch (java.io.IOException | RuntimeException ex) {
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
+                        "could not read the bundle: " + ex);
+            } finally {
+                deleteTree(scratch);
+            }
+            Map<String, Object> echo = new java.util.LinkedHashMap<>();
+            echo.put("bundle", file.toString());
+            echo.put("identity", identity);
+            Map<String, Object> offered = new java.util.LinkedHashMap<>();
+            plan.summary().forEach((cat, text) -> offered.put(cat.name(), text));
+            echo.put("offers", offered);
+            if (categories == null) {
+                echo.put("applied", false);
+                echo.put("note", "PREVIEW — your settings were not changed, and the scratch copy this "
+                        + "read was removed. Name 'categories' to apply. REPORTS carries "
+                        + "prose the sender wrote about their data, so it is applied only when named");
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("import", "preview", echo);
+            }
+            var selected = new java.util.LinkedHashSet<
+                    telamin.fluxtion.audit.analyser.analyser.config.SettingsShare.Category>();
+            List<String> unknown = new java.util.ArrayList<>();
+            for (String name : categories) {
+                var match = telamin.fluxtion.audit.analyser.analyser.config.SettingsShare.CATEGORIES_BY_NAME
+                        .get(name == null ? "" : name.trim().toUpperCase(java.util.Locale.ROOT));
+                if (match == null) unknown.add(String.valueOf(name));
+                else selected.add(match);
+            }
+            if (!unknown.isEmpty()) {
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
+                        "not a category this bundle can carry: " + unknown + " — a bundle holds "
+                                + telamin.fluxtion.audit.analyser.bundle.BundleProfile.CATEGORIES);
+            }
+            selected.retainAll(plan.present());
+            if (selected.isEmpty()) {
+                echo.put("applied", false);
+                echo.put("note", "none of the named categories is in this bundle");
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("import", "preview", echo);
+            }
+            new telamin.fluxtion.audit.analyser.analyser.config.SettingsShare().apply(plan, selected, config);
+            onConfigChanged();
+            refreshProjectPanel();
+            echo.put("applied", true);
+            echo.put("categories", selected.stream().map(Enum::name).toList());
+            echo.put("into", project.activeFile().toString());
+            return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("import", "applied", echo);
+        }
+
+        @Override
+        public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult openBundle(String path) {
+            if (path == null || path.isBlank()) {
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("'bundle' is empty");
+            }
+            Path file = Path.of(path.trim());
+            if (!Files.isRegularFile(file)) {
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
+                        "no evidence bundle at " + file);
+            }
+            loadExperiment(file);
+            Map<String, Object> echo = new java.util.LinkedHashMap<>();
+            echo.put("bundle", file.toString());
+            // Verification and the open run off the event thread, exactly as a log open does, so the
+            // verb returns before either lands. Nothing judged in THIS call was judged against the
+            // bundle; context {project} carries identity, notes, limits and the source anchor once it has.
+            echo.put("verifying", true);
+            echo.put("next", "read context {sections:[\"project\"]} for project.bundle once it lands");
+            return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("open", "bundle", echo);
         }
 
         @Override
@@ -7965,10 +8896,62 @@ public final class MainFrame extends JFrame {
                 // one window, or indefinitely when a write fails. A tool that copies the FILE waits for this to clear
                 // instead of guessing a delay. Read from the one owner of that fact, never recomputed here.
                 proj.put("unsavedEdits", project.isDirty());
+                // #76: a bundle supplies a project, so "which settings" cannot tell a recipient whether this is
+                // their own work or something they were sent. Rendered from openBundle's published fact.
+                var received = sessionSnapshot().bundle();
+                if (received.fromBundle()) {
+                    Map<String, Object> bundle = new java.util.LinkedHashMap<>();
+                    bundle.put("identity", received.identity());
+                    bundle.put("source", received.source());
+                    bundle.put("workingCopy", received.workingCopy());
+                    bundle.put("verified", true);
+                    // The processor is the SENDER'S CLAIM, not a verified fact: nothing pairs it against
+                    // the log, it is whatever they happened to have selected when they captured. This app
+                    // qualifies every other unverified claim it carries (recordsRelationship, DECLARED vs
+                    // INFERRED, "unsigned, so not authenticated to a sender") and this one was adopted in
+                    // silence (review, 2026-09-30). Say whose claim it is, and that it is unverified.
+                    if (received.processor() != null && !received.processor().isBlank()) {
+                        bundle.put("processorClaimed", received.processor());
+                        bundle.put("processorClaimedRelationship",
+                                "the sender's selection at capture; not paired against this log");
+                    }
+                    if (!received.notes().isEmpty()) bundle.put("notes", received.notes());
+                    // #75: no source root survives capture, so say plainly whether this machine has
+                    // supplied one. The graph names the classes; only a root says where they are.
+                    var anchors = config.bundleSourceRoots(received.source());
+                    bundle.put("sourceAnchor", anchors.isEmpty() ? "none" : String.join(", ", anchors));
+                    if (anchors.isEmpty()) bundle.put("sourceAnchorNote",
+                            "the bundle carries no source; add a root to read the code behind these records");
+                    if (!received.limits().isEmpty()) bundle.put("limits", received.limits());
+                    proj.put("bundle", bundle);
+                }
             } else {
                 proj.put("note", "your own settings — no project is open");
             }
             out.put("project", proj);
+            // #73: what this machine has been sent. A recipient could not otherwise find out what bundles they
+            // hold — there is no list verb, and an unpacked working copy appears only as a recent LOG path.
+            // need.test: up to 25 stat calls, so do not run them for a projection that did not ask. The same
+            // shape ContextSectionsTest#aProjectionWithoutFluxtionKeyReadsNoKeyFile exists to stop.
+            if (need.test("bundles") && (!config.recentBundles.isEmpty() || exchangeHasBundles())) {
+                List<Map<String, Object>> recent = new java.util.ArrayList<>();
+                for (var b : config.recentBundles) {
+                    Map<String, Object> row = new java.util.LinkedHashMap<>();
+                    row.put("path", b.path());
+                    row.put("present", java.nio.file.Files.isRegularFile(Path.of(b.path())));
+                    if (!b.identity().isEmpty()) row.put("identity", b.identity());
+                    if (!b.notes().isEmpty()) row.put("notes", b.notes());
+                    recent.add(row);
+                }
+                Map<String, Object> bundles = new java.util.LinkedHashMap<>();
+                bundles.put("recent", recent);
+                bundlesInProject(bundles);
+                bundles.put("workingCopies",
+                        telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.workingCopiesRoot().toString());
+                bundles.put("note", "opened on this machine; identity and notes are as they were AT open, "
+                        + "and the notes are the sender's words, not a fact about the evidence");
+                out.put("bundles", bundles);
+            }
             if (project.hasProject() && need.test("skills")) {
                 telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile
                         .skillsProvenance(project.activeFile()).ifPresent(value -> {
@@ -8400,6 +9383,42 @@ public final class MainFrame extends JFrame {
         config.graphmlFile = file.toAbsolutePath().toString();
         config.addRecentGraphml(config.graphmlFile);
         rebuildRecentMenu();
+        saveConfigQuietly();
+        applyFocusOnOpen();
+    }
+
+    /** The project whose focus history this is — its profile path, or null with no project open. */
+    private String focusProjectKey() {
+        return project.hasProject() ? project.activeFile().toAbsolutePath().normalize().toString() : null;
+    }
+
+    /**
+     * Open the topology where this project says to, or where you left off.
+     *
+     * <p>Two sources, kept apart on purpose (see {@link telamin.fluxtion.audit.analyser.analyser.config.FocusOnOpen}):
+     * the profile's {@code defaultFocus} is the PROJECT's advice and travels to a colleague; the
+     * remembered one is YOUR history and stays on this machine. Silent when neither names a focus
+     * this topology has — a profile outlives a rename, and that is not worth a dialog.
+     */
+    private void applyFocusOnOpen() {
+        String key = focusProjectKey();
+        var available = config.namedFocuses.stream()
+                .map(telamin.fluxtion.audit.analyser.analyser.config.FocusSpec::name).toList();
+        var choice = telamin.fluxtion.audit.analyser.analyser.config.FocusOnOpen.choose(
+                key == null ? null : config.lastFocusByProject.get(key), config.defaultFocus, available);
+        if (!choice.any()) return;
+        String refusal = topologyPanel.recallFocus(choice.name());
+        if (refusal == null) {
+            sayToStatus("Focus '" + choice.name() + "' (" + choice.source() + ")");
+        }
+    }
+
+    /** Remember, per project, the focus just applied — machine tier, never written to a profile. */
+    private void rememberFocus(String name) {
+        String key = focusProjectKey();
+        if (key == null || name == null || name.isBlank()) return;
+        if (name.equals(config.lastFocusByProject.get(key))) return;
+        config.lastFocusByProject.put(key, name);
         saveConfigQuietly();
     }
 

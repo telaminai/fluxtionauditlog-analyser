@@ -40,7 +40,42 @@ import java.util.regex.Pattern;
  *       {@link #REDACTED} and named in {@link Export#redacted()}, so the author sees exactly what was removed. Refusing
  *       ordinary writing would get this check turned off.</li>
  * </ul>
- * A machine path here is absolute POSIX with at least two segments, home-relative ({@code ~/…}, {@code ~user/…}),
+ * <p><b>Latin letters by explicit range, NOT {@code UNICODE_CHARACTER_CLASS}.</b> The blanket flag failed in
+ * both directions at once. It widened {@code \w} inside the negative lookbehinds, so a path written against a
+ * non-ASCII letter stopped matching AT ALL — {@code ログは/Users/greg/logs/x.yaml} exported whole and reported
+ * nothing, worse than the half-redaction the flag was added to fix, and CJK prose has no inter-word spaces so
+ * adjacency is the normal case there. It also widened the SEGMENT classes, so the same path swallowed the rest
+ * of the sentence ({@code …q.yamlにあります}) and deleted the author's words. It also widened {@code \s}, so
+ * {@link #WHOLE_PATH}'s {@code \S} tail stopped refusing a path containing a non-breaking space.
+ * Adding {@code \u00C0-\u024F} — Latin-1 Supplement and Latin Extended-A/B — covers the accented usernames
+ * and directories this is actually about ({@code démo}, {@code josé}) while leaving CJK and Cyrillic as the
+ * prose they are, so a path touching them is redacted and stops where the prose resumes.
+ *
+ * <p><b>Historic note.</b> Turning the flag on wholesale
+ * widened {@code \w} inside every negative lookbehind too, so a path written immediately after a non-ASCII
+ * letter stopped matching AT ALL: {@code ログは/Users/greg/logs/x.yaml} exported whole and reported nothing,
+ * where even the ASCII pattern had redacted it. CJK prose has no inter-word spaces, so adjacency is the
+ * normal case there, and a silent total leak is worse than the half-leak the flag was added to fix. The
+ * lookbehinds are pinned to ASCII; only the segment classes are widened. For the same reason
+ * {@link #WHOLE_PATH} spells its tail as "not ASCII whitespace" instead of {@code \S}: the flag made
+ * {@code \s} include U+00A0, so a path holding a non-breaking space — routine when pasted from a browser —
+ * stopped being refused as a whole value.
+ *
+ * <p><b>Both patterns are Unicode-aware, and must stay that way.</b> Java's {@code \w} is ASCII-only unless
+ * told otherwise, so {@code /home/démo/logs/x.yaml} redacted as far as the accent and left
+ * {@code ‹path removed›émo/logs/x.yaml} — a reported redaction that still carries the path. Worse,
+ * {@link #WHOLE_PATH} did not recognise {@code ~josé/logs/x.yaml} as a path at all, so a path-VALUED key with
+ * an accented username was exported instead of refusing the bundle. A half-redaction is worse than none: it
+ * tells the author the path was removed.
+ *
+ * <p><b>A digit-leading username is still a username.</b> The tilde form is three alternatives because a
+ * {@code ~user} segment that must start with a letter silently stopped redacting {@code ~7dev/logs/x.yaml} and
+ * {@code ~123/secret/a.yaml} — legal accounts wherever they are provisioned from employee numbers — while
+ * {@code ~1/price} had to keep passing. One residual is accepted and cannot be removed: {@code ~123/secret},
+ * a purely numeric user with a single extensionless segment, is indistinguishable from a ratio, so it is NOT
+ * redacted in prose. {@link #WHOLE_PATH} still refuses it as a whole value.
+ *
+ * <p>A machine path here is absolute POSIX with at least two segments, home-relative ({@code ~/…}, {@code ~user/…}),
  * a Windows drive path with a segment, a UNC path, or a {@code file:} URI. Relative paths ({@code logs/uat/x.yaml}),
  * URLs, ratios, times and {@code and/or} are not: they name no machine. A segment is cut at whitespace, so a path
  * with a space in a directory name is redacted up to the space.
@@ -60,15 +95,17 @@ public final class BundleProfile {
     public static final String REDACTED = "\u2039path removed\u203a";
 
     /** A value that is, as a whole, a machine path: refused, because it is structure. */
-    static final Pattern WHOLE_PATH = Pattern.compile("^(?:/|~[/\\\\]|~$|~[\\w.-]+/|[A-Za-z]:[/\\\\]|\\\\\\\\|(?i:file):)\\S*$");
+    static final Pattern WHOLE_PATH = Pattern.compile("^(?:/|~[/\\\\]|~$|~[\\w.\\-\\u00C0-\\u024F]+/|[A-Za-z]:[/\\\\]|\\\\\\\\|(?i:file):)[^ \\t\\n\\x0B\\f\\r]*$");
 
     /** A machine path INSIDE prose: redacted. Each alternative needs a real path shape, not just a slash or a colon. */
     static final Pattern EMBEDDED_PATH = Pattern.compile(String.join("|",
-            "(?i:\\bfile:/+[\\w.~%@:/+-]*)",                                      // file:///etc/x
-            "(?<![\\w.~:/\\\\-])/[\\w.-]+(?:/[\\w.-]+)+/?",                          // /Users/x/y, not a/b or https://h/p
-            "(?<![\\w/~])~[\\w.-]*/[\\w.-]+(?:/[\\w.-]+)*/?",                        // ~/x, ~user/x, not ~5%
-            "(?<![\\w])[A-Za-z]:[\\\\/][\\w.$-]+(?:[\\\\/][\\w.$-]+)*[\\\\/]?",          // C:\\Users\\x, not C: or C:\\ alone
-            "(?<![\\w\\\\])\\\\\\\\[\\w.$-]+(?:\\\\[\\w.$-]+)+"));                          // \\\\server\\share
+            "(?i:(?<![A-Za-z0-9_\\u00C0-\\u024F])file:/+[\\w.\\-\\u00C0-\\u024F~%@:/+]*)",                                      // file:///etc/x
+            "(?<![A-Za-z0-9_.~:/\\\\\\-\\u00C0-\\u024F])/[\\w.\\-\\u00C0-\\u024F]+(?:/[\\w.\\-\\u00C0-\\u024F]+)+/?",                          // /Users/x/y, not a/b or https://h/p
+            "(?<![A-Za-z0-9_/~\\u00C0-\\u024F])~(?:[\\w.\\-\\u00C0-\\u024F]*[A-Za-z_\\u00C0-\\u024F][\\w.\\-\\u00C0-\\u024F]*)?/[\\w.\\-\\u00C0-\\u024F]+(?:/[\\w.\\-\\u00C0-\\u024F]+)*/?",  // ~/x, ~alice/x, ~7dev/logs/x
+            "(?<![A-Za-z0-9_/~\\u00C0-\\u024F])~[0-9][\\w.\\-\\u00C0-\\u024F]*/[\\w.\\-\\u00C0-\\u024F]+(?:/[\\w.\\-\\u00C0-\\u024F]+)+/?",                   // ~123/secret/a.yaml
+            "(?<![A-Za-z0-9_/~\\u00C0-\\u024F])~[0-9][\\w.\\-\\u00C0-\\u024F]*/[\\w-]+\\.[A-Za-z][\\w.\\-\\u00C0-\\u024F]*",                  // ~123/notes.yaml
+            "(?<![A-Za-z0-9_])[A-Za-z]:[\\\\/][\\w.$-]+(?:[\\\\/][\\w.$-]+)*[\\\\/]?",          // C:\\Users\\x, not C: or C:\\ alone
+            "(?<![A-Za-z0-9_\\\\])\\\\\\\\[\\w.$-]+(?:\\\\[\\w.$-]+)+"));                          // \\\\server\\share
 
     /**
      * Write the allow-listed profile of {@code settings} to {@code out}. {@code settings} is the open project's

@@ -32,6 +32,12 @@ import java.util.stream.Stream;
 public final class ConfigPanel extends JDialog {
 
     private final AppConfig config;
+    /**
+     * Where a folder chooser opens. A chooser that starts in the home directory makes the person walk to
+     * their project every time; the caller knows the useful place and this is where it says so. Null falls
+     * back to the active project's root, then to the platform default.
+     */
+    private java.nio.file.Path startDir;
     private final Runnable onSaved;
 
     private final DefaultListModel<String> rootsModel = new DefaultListModel<>();
@@ -81,6 +87,27 @@ public final class ConfigPanel extends JDialog {
         setLocationRelativeTo(owner);
     }
 
+    /**
+     * Start a chooser somewhere worth starting: what the caller asked for, else the active project's
+     * directory, else leave the platform default alone. Never throws — a bad path just means the default.
+     */
+    private void openWhereItIsUseful(JFileChooser fc) {
+        java.nio.file.Path where = startDir;
+        if (where == null && config.activeProjectPath != null && !config.activeProjectPath.isBlank()) {
+            java.nio.file.Path settings = java.nio.file.Path.of(config.activeProjectPath);
+            // <root>/.analyser/project*.fluxtion-settings — two up is the project itself
+            java.nio.file.Path analyser = settings.getParent();
+            where = analyser == null ? null : analyser.getParent();
+        }
+        try {
+            if (where != null && java.nio.file.Files.isDirectory(where)) {
+                fc.setCurrentDirectory(where.toFile());
+            }
+        } catch (RuntimeException ignored) {
+            // the default is a perfectly good answer
+        }
+    }
+
     public static void show(JFrame owner, AppConfig config, Runnable onSaved) {
         new ConfigPanel(owner, config, onSaved).setVisible(true);
     }
@@ -97,9 +124,46 @@ public final class ConfigPanel extends JDialog {
      */
     public static void show(JFrame owner, AppConfig config, Runnable onSaved,
                             java.util.function.Supplier<java.util.List<String>> readerSummaries, String page) {
+        show(owner, config, onSaved, readerSummaries, page, null);
+    }
+
+    /** As above, opening folder choosers at {@code startDir} — where the caller knows the work is. */
+    public static void show(JFrame owner, AppConfig config, Runnable onSaved,
+                            java.util.function.Supplier<java.util.List<String>> readerSummaries, String page,
+                            java.nio.file.Path startDir) {
+        show(owner, config, onSaved, readerSummaries, page, startDir, null);
+    }
+
+    /**
+     * As above, landing with {@code highlight} selected and scrolled to.
+     *
+     * <p>A Settings… button that names a row should arrive AT that row. Landing on the right page and
+     * leaving a person to find their own path among a dozen was the same gap as landing on the wrong
+     * page: the button knows which one it means, so it says so (asked for in use, 2026-09-30).
+     */
+    public static void show(JFrame owner, AppConfig config, Runnable onSaved,
+                            java.util.function.Supplier<java.util.List<String>> readerSummaries, String page,
+                            java.nio.file.Path startDir, String highlight) {
         ConfigPanel panel = new ConfigPanel(owner, config, onSaved, readerSummaries);
+        panel.startDir = startDir;
         panel.selectPage(page);
+        panel.highlightRoot(highlight);
         panel.setVisible(true);
+    }
+
+    /**
+     * Select and scroll to one source root. Silent when it is not there — a row can name a root that a
+     * person removed since the panel was drawn, and a dialog that complained about it would be noise.
+     */
+    void highlightRoot(String path) {
+        if (path == null || path.isBlank()) return;
+        for (int i = 0; i < rootsModel.size(); i++) {
+            if (path.equals(rootsModel.get(i))) {
+                rootsList.setSelectedIndex(i);
+                rootsList.ensureIndexIsVisible(i);
+                return;
+            }
+        }
     }
 
     private JTabbedPane tabs;
@@ -116,7 +180,10 @@ public final class ConfigPanel extends JDialog {
     }
 
     private void buildUi() {
-        tabs = new JTabbedPane();
+        // Tabs on the LEFT: eight pages of settings across the top wrap or scroll and read as a
+        // ribbon; down the side they are a list that can grow (owner, 2026-09-30). Titles keep their
+        // natural left alignment rather than being centred in a vertical strip.
+        tabs = new JTabbedPane(javax.swing.JTabbedPane.LEFT);
         tabs.addTab("Source roots", buildRootsTab());
         tabs.addTab("Maven repos", buildMavenTab());
         tabs.addTab("Event processor", buildEpTab());
@@ -240,6 +307,7 @@ public final class ConfigPanel extends JDialog {
         JButton remove = new JButton("Remove");
         add.addActionListener(e -> {
             JFileChooser fc = new JFileChooser();
+            openWhereItIsUseful(fc);
             fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
             fc.setMultiSelectionEnabled(true);
             fc.setDialogTitle("Add a project or Java source folder");

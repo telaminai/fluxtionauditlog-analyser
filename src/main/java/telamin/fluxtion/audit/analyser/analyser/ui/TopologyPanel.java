@@ -96,6 +96,11 @@ public final class TopologyPanel extends JPanel {
     private java.util.function.Supplier<java.util.List<telamin.fluxtion.audit.analyser.analyser.config.FocusSpec>>
             namedFocuses = java.util.List::of;
     private Runnable focusesChanged = () -> { };
+    /** Told the name whenever a NAMED focus is applied, so the frame can remember it per project. */
+    private java.util.function.Consumer<String> focusApplied = name -> { };
+    /** Reads and writes the PROJECT's "start here" focus — profile-tier, unlike {@link #focusApplied}. */
+    private java.util.function.Supplier<String> defaultFocus = () -> "";
+    private java.util.function.Consumer<String> setDefaultFocus = name -> { };
     private final javax.swing.JButton focusPicker = new javax.swing.JButton("Focuses ▾");
     /** What the last recall resolved — mismatch honesty for the status line and the verb echo. */
     private String lastRecallNote = "";
@@ -354,6 +359,18 @@ public final class TopologyPanel extends JPanel {
         this.focusesChanged = onChanged == null ? () -> { } : onChanged;
     }
 
+    /** @see #focusApplied */
+    public void onFocusApplied(java.util.function.Consumer<String> listener) {
+        this.focusApplied = listener == null ? name -> { } : listener;
+    }
+
+    /** @see #defaultFocus */
+    public void bindDefaultFocus(java.util.function.Supplier<String> get,
+                                 java.util.function.Consumer<String> set) {
+        this.defaultFocus = get == null ? () -> "" : get;
+        this.setDefaultFocus = set == null ? name -> { } : set;
+    }
+
     /**
      * Save the current context as a named focus (replace-by-name). Returns an error message, or null.
      * The full graph is refused: a focus that admits everything filters nothing and is never what was
@@ -452,6 +469,7 @@ public final class TopologyPanel extends JPanel {
         }
         focusStack.popToFull();
         focusStack.push(resolved, spec.name());
+        focusApplied.accept(spec.name());      // machine tier remembers where you were, per project
         selection.clear();
         scope = TopologyFocus.Scope.NODE;
         canvas.select(null);
@@ -515,6 +533,31 @@ public final class TopologyPanel extends JPanel {
                 });
                 menu.add(item);
             }
+            // #21-adjacent: the project's own "start here". A NAME in the profile, so it travels to a
+            // colleague; where YOU left off is remembered separately and never leaves this machine.
+            javax.swing.JMenu asDefault = new javax.swing.JMenu("Set as project default");
+            String current = defaultFocus.get();
+            for (var f : list) {
+                javax.swing.JMenuItem item = new javax.swing.JMenuItem(
+                        f.name().equals(current) ? f.name() + "  \u2713" : f.name());
+                item.setToolTipText("Written to this project's profile: where a colleague opening this "
+                        + "topology starts");
+                item.addActionListener(e -> {
+                    setDefaultFocus.accept(f.name());
+                    setStatus("project default focus is now '" + f.name() + "'");
+                });
+                asDefault.add(item);
+            }
+            if (current != null && !current.isBlank()) {
+                javax.swing.JMenuItem none = new javax.swing.JMenuItem("No default");
+                none.addActionListener(e -> {
+                    setDefaultFocus.accept("");
+                    setStatus("this project no longer names a default focus");
+                });
+                asDefault.addSeparator();
+                asDefault.add(none);
+            }
+            menu.add(asDefault);
             javax.swing.JMenu delete = new javax.swing.JMenu("Delete");
             for (var f : list) {
                 javax.swing.JMenuItem item = new javax.swing.JMenuItem(f.name());

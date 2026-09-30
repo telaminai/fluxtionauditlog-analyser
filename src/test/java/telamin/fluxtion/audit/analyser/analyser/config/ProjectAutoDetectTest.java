@@ -107,4 +107,39 @@ class ProjectAutoDetectTest {
         assertEquals(inner, detect.offerFor(log, null),
                 "a log inside a nested project belongs to that project, not its parent");
     }
+
+    @org.junit.jupiter.api.Test
+    @org.junit.jupiter.api.DisplayName("a NAMED profile of the open project is still that project — no offer")
+    void aNamedProfileOfTheSameProjectIsNotOffered(@org.junit.jupiter.api.io.TempDir Path tmp) throws Exception {
+        Path root = java.nio.file.Files.createDirectories(tmp.resolve("maker"));
+        Path canonical = ProjectProfile.pathFor(root);
+        java.nio.file.Files.createDirectories(canonical.getParent());
+        java.nio.file.Files.writeString(canonical, "sourceRoot.count=0\n");
+        Path named = canonical.getParent().resolve("project.reciprocal.fluxtion-settings");
+        java.nio.file.Files.writeString(named, "sourceRoot.count=0\n");
+        Path log = java.nio.file.Files.writeString(
+                java.nio.file.Files.createDirectories(root.resolve("logs")).resolve("run.yaml"), "x");
+
+        // the named profile is in force; the log lives inside the very same project
+        assertNull(new ProjectAutoDetect().offerFor(log, named),
+                "theProjectIsAlreadyOpen — offering it switches you off your own named profile");
+    }
+
+    @org.junit.jupiter.api.Test
+    @org.junit.jupiter.api.DisplayName("a log in a DIFFERENT project is still offered")
+    void anotherProjectIsStillOffered(@org.junit.jupiter.api.io.TempDir Path tmp) throws Exception {
+        Path mine = java.nio.file.Files.createDirectories(tmp.resolve("mine"));
+        Path other = java.nio.file.Files.createDirectories(tmp.resolve("other"));
+        Path minesProfile = ProjectProfile.pathFor(mine);
+        java.nio.file.Files.createDirectories(minesProfile.getParent());
+        java.nio.file.Files.writeString(minesProfile, "sourceRoot.count=0\n");
+        Path othersProfile = ProjectProfile.pathFor(other);
+        java.nio.file.Files.createDirectories(othersProfile.getParent());
+        java.nio.file.Files.writeString(othersProfile, "sourceRoot.count=0\n");
+        Path log = java.nio.file.Files.writeString(
+                java.nio.file.Files.createDirectories(other.resolve("logs")).resolve("run.yaml"), "x");
+
+        assertEquals(othersProfile, new ProjectAutoDetect().offerFor(log, minesProfile),
+                "adifferentProjectIsStillWorthOffering");
+    }
 }

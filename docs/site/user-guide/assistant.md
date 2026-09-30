@@ -313,7 +313,7 @@ machine, not a command you need to reconstruct.
 The client discovers one tool per verb — `analyser_aggregate`, `analyser_read`, `analyser_series`,
 `analyser_filter`, `analyser_graph`, `analyser_goto`, `analyser_flag`, `analyser_coverage`,
 `analyser_topology`, `analyser_report`, `analyser_context`, `analyser_screenshot`, `analyser_open`,
-`analyser_source_root`, `analyser_source`, `analyser_spotlight` and `analyser_walk` — with full parameter schemas, so
+`analyser_source_root`, `analyser_source`, `analyser_spotlight`, `analyser_walk` and `analyser_import` — with full parameter schemas, so
 there's nothing to paste into a prompt.
 
 `spotlight` lets an AI client **point** ([Ask it to show you](#ask-it-to-show-you) has the pictures and

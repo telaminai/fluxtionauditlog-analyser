@@ -17,6 +17,7 @@ UI = J + 'ui/'
 PARSE = J + 'parse/'
 BUNDLE = 'src/main/java/telamin/fluxtion/audit/analyser/bundle/EvidenceBundle.java'
 MAIN = 'src/main/java/telamin/fluxtion/audit/analyser/Main.java'
+CONFIG = J + 'config/AppConfig.java'
 BUNDLE_PROFILE = 'src/main/java/telamin/fluxtion/audit/analyser/bundle/BundleProfile.java'
 WRITER = 'src/main/java/telamin/fluxtion/audit/analyser/bundle/BundleWriter.java'
 EXCERPT = 'src/main/java/telamin/fluxtion/audit/analyser/bundle/BundleExcerpt.java'
@@ -27,6 +28,178 @@ RUNNER = 'tools/replay/ReplayBundle.java'
 GRAPHML = 'src/main/resources/telamin/fluxtion/audit/analyser/analyser/session/generated/SessionProcessor.graphml'
 
 CONTROLS = [
+    # NO CONTROL, deliberately, for "a close does not poison the anchor" -- and that is the finding, not
+    # an omission. It had one while the decision lived in the frame: delete the guard beside the render
+    # and the DEMO bundle picked up 19 unrelated repositories. Moving the decision into bundleAnchor
+    # (rule 9) left the fault prevented at three independent points, so no single-line mutation can
+    # witness it. Probed in the running scenario on 2026-09-30 rather than argued, and CORRECTED the
+    # same day after an independent review checked the mechanism -- the conclusion held, two of the
+    # three stated reasons did not:
+    #   * the frame does not report at all during a transition's rendering half. This is the layer
+    #     that actually protects the live code path.
+    #   * with that guard removed it does report, and the node reads fromBundle=false -- but NOT,
+    #     as first written here, "because SettingsRestored has already cleared the provenance before
+    #     the render runs". It has not: RestoreSettingsEffect closes the project, renders, and only
+    #     THEN yields SettingsRestored, so the render runs first. The real mechanism is
+    #     SessionDriver.post -- a fact raised while the driver is dispatching is queued and drained
+    #     after the operation settles, by which time SettingsRestored HAS been dispatched and
+    #     OpenBundle.current is NONE. Same outcome, different machinery, and weaker than it read:
+    #     submit() drains that queue AFTER its try/finally, so an operation that throws leaves the
+    #     fact to be delivered inside the next one's provenance.
+    #   * the write is keyed by bundle path and a null source matches no recent entry. This only
+    #     bites once the node's own guard is gone (provenance NONE => source null), so it is a
+    #     defence against the THIRD mutation, not an independent third defence against the original
+    #     fault. As first written it read like belt-and-braces on the live path; it is not.
+    # Each alone suffices, so each mutation SURVIVES for a good reason. BundleProvenanceFrameTest
+    # #closingDoesNotPoisonTheAnchor stays as the behavioural regression; registering a control that
+    # cannot go red would claim protection the gate is not actually holding.
+    # The bundle names the processor its log came from. The graph names the NODES and never the processor,
+    # so without this a recipient opens with none and cannot guess one (found in use, 2026-09-30).
+    ('bundle-carries-its-processor', BUNDLE,
+     '        if (processor != null && !processor.isBlank()) m.put("processor", processor);\n',
+     '',
+     'BundleProvenanceFrameTest#aBundleCarriesItsEventProcessor'),
+    ('bundle-processor-adopted-on-open', UI + 'MainFrame.java',
+     '                    config.selectedEventProcessor = plan.processor();\n',
+     '',
+     'BundleProvenanceFrameTest#aBundleCarriesItsEventProcessor'),
+    # A transition's REAL half happens in ProjectSession before either effect arm runs. Reporting a render
+    # failure as the transition's failure left the session naming a project that was gone (review 2026-09-29).
+    ('transition-render-failure-is-not-a-transition-failure', UI + 'MainFrame.java',
+     '            lastRenderFailure = what + ": " + ex;\n',
+     '            sessionProblem = what + ": " + ex;\n',
+     'BundleProvenanceFrameTest#aCloseWhoseRenderFailsDropsTheClaimOnTheRealFrame'),
+    ('close-render-failure-still-ends-the-claim', UI + 'MainFrame.java',
+     '                renderAfterTheRealWorkIsDone("restoreSettings");\n',
+     '                applyProjectSettings();\n                reportWalkChanges();\n',
+     'BundleProvenanceFrameTest#aCloseWhoseRenderFailsDropsTheClaimOnTheRealFrame'),
+    # Bundle provenance, the failure paths a review found untested (2026-09-29).
+    # The decision is the APPLIED PROFILE's identity. Guessing from effect names was wrong in both
+    # directions (reviews, 2026-09-29), so the guess is gone and this pins what replaced it.
+    ('bundle-provenance-matches-the-applied-profile', NODE + 'OpenBundle.java',
+     '        current = pending != null && pending.profilePath().equals(event.profilePath())\n',
+     '        current = pending != null\n',
+     'BundleProvenanceTest#anAbortedBundleNeverLabelsTheNextProject'),
+    ('bundle-provenance-cleared-on-restore', NODE + 'OpenBundle.java',
+     '    public boolean onSettingsRestored(SessionEvents.SettingsRestored event) {\n        if (!gate.accepted()) {\n',
+     '    public boolean onSettingsRestored(SessionEvents.SettingsRestored event) {\n        if (true) {\n',
+     'BundleProvenanceTest#closingBackToOwnSettingsClearsTheBundle'),
+    # A restart must not come up inside a bundle's working copy: the profile alone is an empty shell.
+    ('bundle-working-copy-not-restored', J + 'config/ProjectSession.java',
+     '            if (telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.isWorkingCopy(was)) {\n'
+     '                config.activeProjectPath = "";\n'
+     '            } else {\n'
+     '                this.activeFile = was;\n'
+     '            }\n',
+     '            this.activeFile = was;\n',
+     'ProjectSessionTest#aBundleWorkingCopyIsNotRestoredAsTheProject'),
+    # Bundle source anchoring (#75): capture strips every root, so the code is unreachable without one.
+    # Anchored in the CONFIG FUNNEL, not beside one edit: the Settings dialog rebuilds sourceRoots
+    # directly and never calls addSourceRoot, so a hook there caught the verb and missed the person.
+    ('bundle-anchor-remembered', NODE + 'BundleAnchor.java',
+     '        effects.request(new SessionEffects.RememberBundleAnchorEffect(0L, bundle.source(), event.roots()));\n',
+     '',
+     'BundleProvenanceFrameTest#anchoringABundleToASourceTreeIsRemembered'),
+    # and it must not record the transient emptiness a reopen passes through, which wiped the anchor
+    # An empty set IS an answer, and refusing it made deleting a bundle's source root meaningless:
+    # delete, close, reopen, and the root came back because the deletion was never recorded (found in
+    # use, 2026-09-30). The transient emptiness the refusal was meant to stop cannot reach the node --
+    # a transition's rendering half does not report at all -- so what remains to hold is that an empty
+    # answer is WRITTEN. Anchored on the config write, which is where refusing it would have to happen.
+    ('bundle-anchor-forgotten-when-deleted', CONFIG,
+     '        if (path == null || roots == null) return false;\n',
+     '        if (path == null || roots == null || roots.isEmpty()) return false;\n',
+     'BundleProvenanceFrameTest#deletingTheAnchorSticks'),
+    # The node asks for the anchor back on EVERY apply. An earlier version kept a "already asked for this
+    # bundle" key, which suppressed the restore on reopening the same bundle in one session -- the case the
+    # feature exists for. Deleting the request is the same failure, so this is the control for it.
+    ('bundle-anchor-restore-requested', NODE + 'BundleAnchor.java',
+     '        effects.request(new SessionEffects.RestoreBundleAnchorEffect(event.opId(), bundle.source()));\n',
+     '',
+     'BundleProvenanceFrameTest#anchoringABundleToASourceTreeIsRemembered'),
+
+    ('bundle-anchor-restored', UI + 'MainFrame.java',
+     '                        config.sourceRoots.add(anchored);\n',
+     '',
+     'BundleProvenanceFrameTest#anchoringABundleToASourceTreeIsRemembered'),
+    ('bundle-anchor-published', UI + 'MainFrame.java',
+     '                    bundle.put("sourceAnchor", anchors.isEmpty() ? "none" : String.join(", ", anchors));\n',
+     '                    bundle.put("sourceAnchor", "none");\n',
+     'BundleProvenanceFrameTest#anchoringABundleToASourceTreeIsRemembered'),
+    # ...and the list has to be readable: two copies of one bundle, or two runs sharing a file name,
+    # rendered as identical rows with only a tooltip between them.
+    ('bundle-recents-tellable-apart', UI + 'StartPanel.java',
+     '                label = candidate;\n                if (!clash) break;\n',
+     '                label = candidate;\n                break;\n',
+     'StartPanelNamesTest#sameFileNameIsWidened'),
+    # A bundle open unpacks a FRESH working copy every time, so recording each as a recent project
+    # cost a real project its slot: seven of ten were throwaways and the projects a person keeps had
+    # been pushed off the end (reported in use, 2026-09-30).
+    ('recent-projects-are-not-working-copies', J + 'config/ProjectProfile.java',
+     '        if (telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.isWorkingCopy(java.nio.file.Path.of(path))) {\n'
+     '            return;\n'
+     '        }\n',
+     '',
+     'RecentProjectsKeepRealProjectsTest#aWorkingCopyIsNeverRecorded'),
+    # Bundle discovery (#73): a recipient could not find out what they had been sent.
+    ('bundle-recent-recorded', UI + 'MainFrame.java',
+     '                config.addRecentBundle(plan.source(), plan.identity(), plan.notes());\n',
+     '',
+     'BundleProvenanceFrameTest#anOpenedBundleIsDiscoverableAfterwards'),
+    ('bundle-recent-published', UI + 'MainFrame.java',
+     '            if (need.test("bundles") && (!config.recentBundles.isEmpty() || exchangeHasBundles())) {\n',
+     '            if (false) {\n',
+     'BundleProvenanceFrameTest#anOpenedBundleIsDiscoverableAfterwards'),
+    # #80, found by CI on 2026-09-30 (mutation shard 0): the project's evidence listing walked two levels
+    # of the exchange directory, so it went inside a capture's .capture-... working folder -- listing what
+    # is not evidence, and racing the writer that creates and deletes that folder under it. Files.walk
+    # raises UncheckedIOException, which is not an IOException, so it escaped the catch and killed the
+    # context call on the event thread. Not entering the folder is what removes the race, so that is what
+    # this holds.
+    ('bundle-working-folder-not-evidence', UI + 'MainFrame.java',
+     '                if (p.getFileName().toString().startsWith(".capture-")) continue;\n',
+     '',
+     'BundleProvenanceFrameTest#aWorkingFolderIsNeverListedAsEvidence'),
+    ('bundle-notes-read-from-the-copy', UI + 'MainFrame.java',
+     '                return trimmed.length() <= 200 ? trimmed : trimmed.substring(0, 200) + "\u2026";\n',
+     '                return "";\n',
+     'BundleProvenanceFrameTest#anOpenedBundleIsDiscoverableAfterwards'),
+    ('bundle-recents-persisted', 'src/main/java/telamin/fluxtion/audit/analyser/analyser/config/ConfigStore.java',
+     '        writeRecentBundles(p, c.recentBundles);',
+     '        // recents not written',
+     'ConfigStoreTest#recentBundlesRoundTripSoARecipientStillHasTheListNextTime'),
+    # Bundle provenance rendered (#76): each removes one reason a recipient can tell evidence from own work.
+    ('bundle-title-states-it', UI + 'MainFrame.java',
+     '        setTitle("Fluxtion Audit Log Analyser — " + named\n'
+     '                + "  [evidence bundle " + bundle.shortIdentity() + "]");\n',
+     '        setTitle(base);\n',
+     'BundleProvenanceFrameTest#anOpenedBundleSaysSoForTheSessionsLife'),
+    ('bundle-rendered-on-snapshot', UI + 'MainFrame.java',
+     '        if (next.bundle().equals(bundleRendered)) return;\n',
+     '        if (true) return;\n',
+     'BundleProvenanceFrameTest#anOpenedBundleSaysSoForTheSessionsLife'),
+    ('bundle-published-to-context', UI + 'MainFrame.java',
+     '                if (received.fromBundle()) {\n',
+     '                if (false) {\n',
+     'BundleProvenanceFrameTest#anOpenedBundleSaysSoForTheSessionsLife'),
+    ('bundle-row-in-project-panel', UI + 'ProjectModel.java',
+     '            if (!bundle.isEmpty()) {\n',
+     '            if (false) {\n',
+     'BundleProvenanceFrameTest#anOpenedBundleSaysSoForTheSessionsLife'),
+    # Bundle provenance (#76): the facts existed and were dropped when the transition settled. Each control
+    # removes one reason the session keeps them, and must turn its NAMED assertion red.
+    ('bundle-provenance-settles', NODE + 'OpenBundle.java',
+     '        current = pending != null && pending.profilePath().equals(event.profilePath())\n',
+     '        current = false && pending != null && pending.profilePath().equals(event.profilePath())\n',
+     'BundleProvenanceTest#provenanceOutlivesTheTransition'),
+    ('bundle-provenance-holds-plan', NODE + 'OpenBundle.java',
+     '        if (event.bundlePlan() != null) {\n            pending = event.bundlePlan();\n        }\n',
+     '        pending = event.bundlePlan();\n',
+     'BundleProvenanceTest#provenanceOutlivesTheTransition'),
+    ('bundle-provenance-source-is-the-fexp', UI + 'MainFrame.java',
+     '                bundlePath, verification.processor());\n',
+     '                null, verification.processor());\n',
+     'BundleProvenanceFrameTest#anOpenedBundleSaysSoForTheSessionsLife'),
     # Independent PR77 review: boundary regressions, each red on the reviewed head.
     ('oa-review-provider-words', J + 'assistant/AssistantAdapter.java',
      'new SessionEvents.AssistantCompletionFailed(ticket, round, safeFailure(ex))',
@@ -936,8 +1109,8 @@ CONTROLS = [
      '    }\n\n    /** M69 S4: the Reports tab',
      'WalkVerbFrameTest#theVerbAndTheTabAreOnePath'),
     ('m69-s4-walk-is-destructive-to-mcp', J + 'mcp/McpTools.java',
-     '"screenshot", "report", "walk")',
-     '"screenshot", "report")',
+     '"screenshot", "report", "walk", "import")',
+     '"screenshot", "report", "import")',
      'McpToolsTest#exposesExactlyTheVerbSchemasVerbSet'),
 
     # --- M69 review response (PR57 R1–R9): each fix at its call site
@@ -1248,16 +1421,31 @@ CONTROLS = [
      "                while (end > m.start() + 1 && v.charAt(end - 1) == '.') end--;", '',
      'BundleProfileTest#everyMachinePathShapeIsRedacted'),
     ('rf2-a-url-is-not-a-path', BUNDLE_PROFILE,
-     '"(?<![\\\\w.~:/\\\\\\\\-])/[\\\\w.-]+(?:/[\\\\w.-]+)+/?"',
-     '"/[\\\\w.-]+(?:/[\\\\w.-]+)+/?"',
+     '"(?<![A-Za-z0-9_.~:/\\\\\\\\\\\\-\\\\u00C0-\\\\u024F])/[\\\\w.\\\\-\\\\u00C0-\\\\u024F]+(?:/[\\\\w.\\\\-\\\\u00C0-\\\\u024F]+)+/?"',
+     '"/[\\\\w.\\\\-\\\\u00C0-\\\\u024F]+(?:/[\\\\w.\\\\-\\\\u00C0-\\\\u024F]+)+/?"',
      'BundleProfileTest#ordinaryProsePassesUntouched'),
     ('rf2-a-percentage-is-not-a-home', BUNDLE_PROFILE,
-     '"(?<![\\\\w/~])~[\\\\w.-]*/[\\\\w.-]+(?:/[\\\\w.-]+)*/?"',
-     '"(?<![\\\\w/~])~[\\\\w.-]*/?[\\\\w.-]+(?:/[\\\\w.-]+)*/?"',
+     '"(?<![A-Za-z0-9_/~\\\\u00C0-\\\\u024F])~(?:[\\\\w.\\\\-\\\\u00C0-\\\\u024F]*[A-Za-z_\\\\u00C0-\\\\u024F][\\\\w.\\\\-\\\\u00C0-\\\\u024F]*)?/[\\\\w.\\\\-\\\\u00C0-\\\\u024F]+(?:/[\\\\w.\\\\-\\\\u00C0-\\\\u024F]+)*/?"',
+     '"(?<![A-Za-z0-9_/~])~[\\\\w.-]*/?[\\\\w.-]+(?:/[\\\\w.-]+)*/?"',
      'BundleProfileTest#ordinaryProsePassesUntouched'),
+    # "~1/price" must NOT redact: it is a formula, and it shipped as the marker inside a real bundle.
+    ('rf2-a-ratio-is-not-a-home', BUNDLE_PROFILE,
+     '"(?<![A-Za-z0-9_/~\\\\u00C0-\\\\u024F])~(?:[\\\\w.\\\\-\\\\u00C0-\\\\u024F]*[A-Za-z_\\\\u00C0-\\\\u024F][\\\\w.\\\\-\\\\u00C0-\\\\u024F]*)?/[\\\\w.\\\\-\\\\u00C0-\\\\u024F]+(?:/[\\\\w.\\\\-\\\\u00C0-\\\\u024F]+)*/?"',
+     '"(?<![A-Za-z0-9_/~])~[\\\\w.-]*/[\\\\w.-]+(?:/[\\\\w.-]+)*/?"',
+     'BundleProfileTest#ordinaryProsePassesUntouched'),
+    # ...and "~7dev/logs/x.yaml" MUST redact. Requiring the user segment to START with a letter satisfies
+    # the line above and silently reopens this one; the two controls together pin both directions.
+    ('rf2-a-numeric-user-with-a-subdir-is-a-home', BUNDLE_PROFILE,
+     '"(?<![A-Za-z0-9_/~\\\\u00C0-\\\\u024F])~[0-9][\\\\w.\\\\-\\\\u00C0-\\\\u024F]*/[\\\\w.\\\\-\\\\u00C0-\\\\u024F]+(?:/[\\\\w.\\\\-\\\\u00C0-\\\\u024F]+)+/?"',
+     '"(?<!X)Xnever-matchesX"',
+     'BundleProfileTest#everyMachinePathShapeIsRedacted'),
+    ('rf2-a-numeric-user-with-a-file-is-a-home', BUNDLE_PROFILE,
+     '"(?<![A-Za-z0-9_/~\\\\u00C0-\\\\u024F])~[0-9][\\\\w.\\\\-\\\\u00C0-\\\\u024F]*/[\\\\w-]+\\\\.[A-Za-z][\\\\w.\\\\-\\\\u00C0-\\\\u024F]*"',
+     '"(?<!X)Xnever-matchesX"',
+     'BundleProfileTest#everyMachinePathShapeIsRedacted'),
     ('rf2-a-drive-letter-alone-is-not-a-path', BUNDLE_PROFILE,
-     '"(?<![\\\\w])[A-Za-z]:[\\\\\\\\/][\\\\w.$-]+(?:[\\\\\\\\/][\\\\w.$-]+)*[\\\\\\\\/]?"',
-     '"(?<![\\\\w])[A-Za-z]:[\\\\\\\\/]?[\\\\w.$-]*(?:[\\\\\\\\/][\\\\w.$-]+)*[\\\\\\\\/]?"',
+     '"(?<![A-Za-z0-9_])[A-Za-z]:[\\\\\\\\/][\\\\w.$-]+(?:[\\\\\\\\/][\\\\w.$-]+)*[\\\\\\\\/]?"',
+     '"(?<![A-Za-z0-9_])[A-Za-z]:[\\\\\\\\/]?[\\\\w.$-]*(?:[\\\\\\\\/][\\\\w.$-]+)*[\\\\\\\\/]?"',
      'BundleProfileTest#ordinaryProsePassesUntouched'),
     # Convergence (2026-09-28): capture moved into the analyser. The evidenceCapture node decides; the frame performs.
     # Declared, not registered: BundleWriter's delete-on-failure (pack deletes its own output on failure and nothing

@@ -292,6 +292,9 @@ public final class SessionDriver {
             case SessionEffects.LoadProfileEffect ignored -> "loadProfile";
             case SessionEffects.PrepareBundleEffect ignored -> "prepareBundle";
             case SessionEffects.OpenBundleEvidenceEffect ignored -> "openBundleEvidence";
+            case SessionEffects.RememberBundleAnchorEffect ignored -> "rememberBundleAnchor";
+            case SessionEffects.RestoreBundleAnchorEffect ignored -> "restoreBundleAnchor";
+            case SessionEffects.OfferProjectReopenEffect ignored -> "offerProjectReopen";
             case SessionEffects.CreateProfileEffect ignored -> "createProfile";
             case SessionEffects.ApplyProfileEffect ignored -> "applyProfile";
             case SessionEffects.RestoreSettingsEffect ignored -> "restoreSettings";

@@ -72,7 +72,17 @@ public final class ProjectSession {
         this.share = share;
         this.scheduler = scheduler == null ? () -> { } : scheduler;
         if (config.activeProjectPath != null && !config.activeProjectPath.isBlank()) {
-            this.activeFile = Path.of(config.activeProjectPath);
+            Path was = Path.of(config.activeProjectPath);
+            // A bundle's working copy is never resurrected. It is the active project WHILE the bundle is
+            // open, and it is persisted like any other, so a restart used to come up inside the copy with
+            // the profile in force and nothing else: no graph, no log, no source, because all three arrive
+            // through opening the bundle and not through loading a profile. Start clean instead; the
+            // bundle is one click away in recents. Found in use, 2026-09-30.
+            if (telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.isWorkingCopy(was)) {
+                config.activeProjectPath = "";
+            } else {
+                this.activeFile = was;
+            }
         }
     }
 

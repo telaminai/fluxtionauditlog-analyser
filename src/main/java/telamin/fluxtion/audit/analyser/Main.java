@@ -86,6 +86,8 @@ public class Main {
             SplashScreen splash = new SplashScreen();
             splash.showSplash();
 
+            // A real session may raise the reopen offer; a test never can unless it installs a chooser.
+            MainFrame.enableReopenOffers();
             MainFrame frame = new MainFrame();
             frame.setVisible(true);
             // A command-line path is explicit. Remembered global paths carry no project association.
@@ -133,7 +135,7 @@ public class Main {
                     return replayVerdict(c, out, err);
                 }
                 default -> {
-                    Path into = Path.of(System.getProperty("user.home"), ".fluxtion-analyser", "bundles");
+                    Path into = telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.workingCopiesRoot();
                     if (args.length == 4 && "--into".equals(args[2])) into = Path.of(args[3]);
                     else if (args.length != 2) { err.println("usage: --unpack <bundle.fexp> [--into <dir>]"); return 2; }
                     var u = telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.unpack(Path.of(args[1]), into);

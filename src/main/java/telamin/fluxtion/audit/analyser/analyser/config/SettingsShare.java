@@ -43,6 +43,11 @@ public final class SettingsShare {
     public static final int SHARE_VERSION = 1;
 
     /** A selectable group of settings. Each maps to a fixed set of whitelisted config keys. */
+    /** Categories by NAME, for a verb that names them rather than ticking a box. */
+    public static final java.util.Map<String, Category> CATEGORIES_BY_NAME =
+            java.util.Arrays.stream(Category.values())
+                    .collect(java.util.stream.Collectors.toUnmodifiableMap(Enum::name, c -> c));
+
     public enum Category {
         SOURCE_ROOTS("Source roots", true),
         MAVEN_REPOS("Maven repos", true),
@@ -191,6 +196,11 @@ public final class SettingsShare {
             // named focuses (M27.3) ride the GRAPHS category — same kind of named analysis artifact,
             // and folding keeps ProjectProfile.PROJECT_SCOPED at its five pinned categories
             ConfigStore.writeFocuses(p, c.namedFocuses);
+            // ...and the project's OWN advice about which of them to start at. A name, not a view:
+            // what is remembered about your session stays machine tier (see AppConfig#lastFocusByProject).
+            if (c.defaultFocus != null && !c.defaultFocus.isBlank()) {
+                ConfigStore.put(p, "defaultFocus", c.defaultFocus);
+            }
         }
         if (categories.contains(Category.REPORTS)) {
             ConfigStore.writeReports(p, c.reports);
@@ -338,6 +348,7 @@ public final class SettingsShare {
 
         List<GraphSpec> graphs = null;
         List<FocusSpec> focuses = null;
+        String defaultFocus = null;
         if (p.getProperty("graph.count") != null || p.getProperty("focus.count") != null) {
             present.add(Category.GRAPHS);
             graphs = new ArrayList<>();
@@ -380,6 +391,7 @@ public final class SettingsShare {
             }
             focuses = new ArrayList<>();
             ConfigStore.readFocuses(p, focuses);
+            defaultFocus = p.getProperty("defaultFocus");
             String s = graphSummary(graphs, current.savedGraphs);
             summary.put(Category.GRAPHS, focuses.isEmpty() ? s : s + " · " + focuses.size() + " named focus(es)");
         }
@@ -524,7 +536,7 @@ public final class SettingsShare {
         }
 
         return new ImportPlan(version, present, sourceRoots, mavenRepos, mavenRepoSearch,
-                eventProcessorFqns, selectedEventProcessor, processorDeclarations, graphs, focuses, reports, walks, hiddenColumns, runbooks, vocabulary, environments, defaultEnvironment, analyses, destinations, workspaceRoot, exchangeDir,
+                eventProcessorFqns, selectedEventProcessor, processorDeclarations, graphs, focuses, defaultFocus, reports, walks, hiddenColumns, runbooks, vocabulary, environments, defaultEnvironment, analyses, destinations, workspaceRoot, exchangeDir,
                 assistantInProcess, assistantRest, maxRounds, maxActionsPerReply,
                 llmProvider, llmModel, llmBaseUrl, Map.copyOf(summary));
     }
@@ -569,6 +581,9 @@ public final class SettingsShare {
                 target.namedFocuses.removeIf(existing -> existing.name().equals(f.name()));
                 target.namedFocuses.add(f);   // replace-by-name, like graphs
             }
+        }
+        if (selected.contains(Category.GRAPHS) && plan.defaultFocus() != null) {
+            target.defaultFocus = plan.defaultFocus();
         }
         if (selected.contains(Category.REPORTS) && plan.reports() != null) {
             for (var r : plan.reports()) {
@@ -653,6 +668,8 @@ public final class SettingsShare {
             List<ProcessorDeclaration> processorDeclarations,
             List<GraphSpec> graphs,
             List<FocusSpec> focuses,
+            /** The project's "start here" focus name, or null when it named none. */
+            String defaultFocus,
             List<telamin.fluxtion.audit.analyser.analyser.report.ReportSpec> reports,
             /** M69: walks in the share file, or null when it carried none (a report-only file leaves walks alone). */
             List<telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec> walks,

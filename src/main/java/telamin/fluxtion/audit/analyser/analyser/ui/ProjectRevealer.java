@@ -27,6 +27,27 @@ final class ProjectRevealer implements ProjectPanel.Navigator {
 
         void openSettings(String page);
 
+        /** As above, arriving with this source root selected; null means "just the page". */
+        default void openSettings(String page, String highlight) {
+            openSettings(page);
+        }
+
+        /** Remove one source root from the project in force. */
+        default void removeSourceRoot(String path) {
+        }
+
+        /** Show one processor's source without changing which is active. */
+        default void openProcessorSource(String fqn) {
+        }
+
+        /** Make one processor the project's active choice. */
+        default void setActiveProcessor(String fqn) {
+        }
+
+        /** Drop one processor from the project's declared list. */
+        default void removeProcessor(String fqn) {
+        }
+
         /** Select one report by NAME in the Reports tab (the row shows a title; they differ). */
         void selectReport(String name);
 
@@ -65,6 +86,31 @@ final class ProjectRevealer implements ProjectPanel.Navigator {
     @Override
     public void openSettings(String page) {
         surface.openSettings(page);
+    }
+
+    @Override
+    public void openSettings(String page, String highlight) {
+        surface.openSettings(page, highlight);
+    }
+
+    @Override
+    public void removeSourceRoot(String path) {
+        surface.removeSourceRoot(path);
+    }
+
+    @Override
+    public void openProcessorSource(String fqn) {
+        surface.openProcessorSource(fqn);
+    }
+
+    @Override
+    public void setActiveProcessor(String fqn) {
+        surface.setActiveProcessor(fqn);
+    }
+
+    @Override
+    public void removeProcessor(String fqn) {
+        surface.removeProcessor(fqn);
     }
 
     @Override

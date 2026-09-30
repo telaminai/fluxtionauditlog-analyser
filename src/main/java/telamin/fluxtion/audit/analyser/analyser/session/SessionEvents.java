@@ -170,9 +170,51 @@ public final class SessionEvents {
         }
     }
 
+    /**
+     * The source roots now in force, as the adapter observes them after a person changed them.
+     *
+     * <p>Deliberately NOT reported while a transition is rendering. A close puts the person's own settings
+     * back before the render runs, so reporting then would state somebody else's roots as this session's —
+     * which is exactly how a bundle came to be anchored to 19 unrelated repositories (2026-09-30). The
+     * adapter reports what it sees when a person changes it; the node decides what that means.
+     */
+    public record SourceRootsObserved(java.util.List<String> roots) {
+        public SourceRootsObserved {
+            roots = java.util.List.copyOf(roots == null ? java.util.List.of() : roots);
+        }
+    }
+
     /** Facts extracted from a verified bundle, before any active project is changed. */
+    /**
+     * @param profilePath the profile INSIDE the unpacked working copy
+     * @param source      the {@code .fexp} the person actually chose. Carried here, not kept beside the
+     *                    session by whoever asked: the surface used to hold its own copy, which is the
+     *                    "value recomputed at a second call site" rule 9 forbids.
+     */
     public record BundlePlan(String profilePath, String graphPath, String logPath,
-                             String identity, String workingCopy, String limits) { }
+                             String identity, String workingCopy, String limits, String notes, String source,
+                             String processor) {
+        /** A plan with nothing the sender wrote — the shape every pre-#73 caller uses. */
+        public BundlePlan(String profilePath, String graphPath, String logPath,
+                          String identity, String workingCopy, String limits) {
+            this(profilePath, graphPath, logPath, identity, workingCopy, limits, "", null, null);
+        }
+
+        public BundlePlan(String profilePath, String graphPath, String logPath,
+                          String identity, String workingCopy, String limits, String notes) {
+            this(profilePath, graphPath, logPath, identity, workingCopy, limits, notes, null, null);
+        }
+
+        /** Without the processor — the shape callers before 2026-09-30 use. */
+        public BundlePlan(String profilePath, String graphPath, String logPath, String identity,
+                          String workingCopy, String limits, String notes, String source) {
+            this(profilePath, graphPath, logPath, identity, workingCopy, limits, notes, source, null);
+        }
+
+        public BundlePlan {
+            notes = notes == null ? "" : notes;
+        }
+    }
 
     /** The profile's settings are now genuinely in force. This is the authoritative fact. */
     public record ProfileApplied(long opId, String profilePath, String name) implements Result {

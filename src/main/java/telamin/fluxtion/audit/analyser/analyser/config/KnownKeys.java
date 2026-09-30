@@ -32,6 +32,9 @@ public final class KnownKeys {
             "share", "sourceRoot", "mavenRepo", "mavenRepoSearch", "eventProcessorFqn", "selectedEventProcessor", "processorDeclaration",
             "graph", "focus", "report", "walk", "hiddenColumn", "assistant", "llmProvider", "llmModel", "llmBaseUrl",
             "runbook", "vocabulary", "environment", "analysis", "destination", "workspaceRoot",
+            // the project's own "start here" focus. OWNED, or preserve() would copy the old value back
+            // over a blank one and "No default" could never be cleared -- changed, yes; cleared, never.
+            "defaultFocus",
             "profileNonce");  // §E: owned — only the profile writer sets it; a share export never carries it
 
     /** What {@code ConfigStore.save} can write — the own-settings file: the profile families plus the machine tier. */
@@ -41,7 +44,10 @@ public final class KnownKeys {
         Set<String> all = new java.util.HashSet<>(PROFILE_FAMILIES);
         all.addAll(Set.of("activeProjectPath", "apiKey", "deletedReport", "deletedWalk", "awsProfile", "awsRegion", "eventFilterCollapsed", "graphmlFile",
                 "lastRunVersion", "logFile", "memoryThresholdMb", "projectPanelCollapsed", "recentFile", "recentGraphml",
-                "recentProject", "searchHistory", "theme", "mcp", "topologyOrientation", "topologyPanX", "topologyPanY",
+                "recentProject", "recentBundle", "searchHistory", "theme", "mcp", "topologyOrientation",
+                // the focus each project was last left on, machine tier: owned here so entries above a
+                // shrinking count are dropped rather than preserved and later resurrected
+                "lastFocus", "eventTypesDivider", "topologyPanX", "topologyPanY",
                 "topologySpacing", "topologySyncSource", "topologyTextSize", "topologyZoom", "westDivider", "westWidth",
                 "windowH", "windowW", "windowX", "windowY"));
         // "deletedReport" (PR #33) and "deletedWalk" (M69): the machine-local bins — CONFIG only, never profile families,
