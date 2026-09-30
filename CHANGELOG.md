@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+## [1.30.0] - 2026-09-30
+
 ### Fixed
 
 - The event-type checklist and the records table now share the Facts column on a divider you can drag, remembered between sessions. A fixed band could not serve both a log with three event types and one with forty.
