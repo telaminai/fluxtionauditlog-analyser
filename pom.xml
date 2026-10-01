@@ -64,6 +64,16 @@
             <version>${junit.version}</version>
             <scope>test</scope>
         </dependency>
+        <!-- TEST ONLY: Apache Ant, the version maven-antrun-plugin 3.1.0 runs, so GeneratedHeaderStripTest executes the
+             fixture generator's own replaceregexp strip — the actual task, with the pom's own patterns and filesets —
+             rather than a re-implementation of it (independent review of PR #104, R1). Its one transitive dependency is
+             ant-launcher, which Project needs. -->
+        <dependency>
+            <groupId>org.apache.ant</groupId>
+            <artifactId>ant</artifactId>
+            <version>1.10.12</version>
+            <scope>test</scope>
+        </dependency>
         <!-- TEST ONLY: the RELEASED Mongoose audit exporter, so the analyser's separator language is tested
              against the bytes that exporter actually writes (independent review F1). Widening the reader's
              idea of a separator once silently reopened mongoose-plugins#39 — the fix and the escape live in

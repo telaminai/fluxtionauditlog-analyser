@@ -112,9 +112,14 @@
                                              includes="*.java" erroronmissingdir="false"/>
                                 </replaceregexp>
                                 <!-- and the confidentiality notice (fluxtion#24, tracker M19.22): the DEMO fixtures never carried it
-                                     in this repository; it was removed by hand before -->
-                                <replaceregexp flags="s" byline="false"
-                                               match="\A/\*\n \* This source code is protected under international copyright law\..*? \*/\n" replace="">
+                                     in this repository; it was removed by hand before. The LEADING comment only, and only when it
+                                     is the notice: every body character is "not a star, or a star not followed by a slash", so the
+                                     match cannot cross the first comment terminator, wherever that is indented; the lookahead
+                                     requiring the notice is bounded the same way. Anything else is left untouched for
+                                     GeneratedSourceIsPublishableTest to refuse. GeneratedHeaderStripTest runs this task (PR #104
+                                     review, R1: the earlier expression read on past a column-0 terminator into the package). -->
+                                <replaceregexp flags="" byline="false"
+                                               match="\A/\*(?=(?:[^*]|\*(?!/))*This source code is protected under international copyright law)(?:[^*]|\*(?!/))*\*/[ \t]*(?:\r?\n)?" replace="">
                                     <fileset dir="${project.basedir}/src/main/java/com/acme/demo/generated"
                                              includes="*.java" erroronmissingdir="false"/>
                                     <fileset dir="${project.basedir}/src/main/resources/com/acme/demo/generated"
