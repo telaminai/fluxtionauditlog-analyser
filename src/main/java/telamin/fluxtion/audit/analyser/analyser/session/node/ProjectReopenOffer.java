@@ -31,6 +31,12 @@ public class ProjectReopenOffer implements EventLogSource {
     private final EffectQueue effects;
 
     private EventLogger auditLog = NullEventLogger.INSTANCE;
+    private long operation = -1;
+    private SessionEvents.ProjectAudience audience;
+    private String appliedProfile;
+    private boolean awaitingPresentation;
+    private boolean gateOwned;
+    private boolean anotherOperationSeen;
 
     public ProjectReopenOffer(OpenBundle openBundle, EffectQueue effects) {
         this.openBundle = openBundle;
@@ -43,13 +49,81 @@ public class ProjectReopenOffer implements EventLogSource {
     }
 
     @OnEventHandler
+    public boolean onOpenProjectRequested(SessionEvents.OpenProjectRequested event) {
+        anotherOperationSeen = true;
+        operation = event.opId();
+        audience = event.audience();
+        appliedProfile = null;
+        awaitingPresentation = false;
+        gateOwned = true;
+        return false;
+    }
+
+    @OnEventHandler
+    public boolean onProjectReopenRequested(SessionEvents.ProjectReopenRequested event) {
+        if (anotherOperationSeen) return skipped("startup offer was superseded");
+        anotherOperationSeen = true;
+        operation = event.opId();
+        audience = event.audience();
+        appliedProfile = event.profilePath();
+        awaitingPresentation = false;
+        gateOwned = false;
+        return prepareOffer();
+    }
+
+    @OnEventHandler
+    public boolean onOpenLogRequested(SessionEvents.OpenLogRequested event) { anotherOperationSeen = true; operation = -1; return false; }
+
+    @OnEventHandler
+    public boolean onGraphOpened(SessionEvents.GraphOpened event) { anotherOperationSeen = true; operation = -1; return false; }
+
+    @OnEventHandler
+    public boolean onWalkPlayRequested(SessionEvents.WalkPlayRequested event) { anotherOperationSeen = true; operation = -1; return false; }
+
+    @OnEventHandler
     public boolean onProfileApplied(SessionEvents.ProfileApplied event) {
-        if (openBundle.provenance().fromBundle()) {
-            auditLog.info("offer", "skipped").info("reason", "fromBundle");
-            return false;
+        if (event.opId() != operation || !openBundle.acceptsOperation(operation)) return false;
+        appliedProfile = event.profilePath();
+        return prepareOffer();
+    }
+
+    private boolean prepareOffer() {
+        if (openBundle.provenance().fromBundle() || audience == null
+                || audience.origin() != SessionEvents.OperationOrigin.PERSON || !audience.offersAllowed()) {
+            return skipped("bundle or operation does not permit an offer");
         }
-        effects.request(new SessionEffects.OfferProjectReopenEffect(event.opId(), event.profilePath()));
-        auditLog.info("offer", "projectReopen").info("profile", event.profilePath());
+        effects.request(new SessionEffects.OfferProjectReopenEffect(operation, appliedProfile));
+        auditLog.info("offer", "preparing").info("profile", appliedProfile);
+        return true;
+    }
+
+    @OnEventHandler
+    public boolean onProjectReopenReady(SessionEvents.ProjectReopenReady event) {
+        if (event.opId() != operation || !operationCurrent()
+                || !java.util.Objects.equals(appliedProfile, event.profilePath())
+                || event.occupied() || event.candidates().isEmpty()) return skipped("superseded, occupied or empty");
+        awaitingPresentation = true;
+        effects.request(new SessionEffects.ShowProjectReopenEffect(operation, appliedProfile, event.label(), event.candidates()));
+        return true;
+    }
+
+    /** A deferred modal cannot inherit a later operation's permission. */
+    public boolean mayPresent(long opId, String profile) {
+        return awaitingPresentation && opId == operation && operationCurrent()
+                && java.util.Objects.equals(appliedProfile, profile);
+    }
+
+    private boolean operationCurrent() { return operation >= 0 && (!gateOwned || openBundle.acceptsOperation(operation)); }
+
+    @OnEventHandler
+    public boolean onProjectReopenPresented(SessionEvents.ProjectReopenPresented event) {
+        if (event.opId() == operation) awaitingPresentation = false;
+        auditLog.info("offer", event.shown() ? "offerProjectReopen" : "offerProjectReopenSkipped");
+        return true;
+    }
+
+    private boolean skipped(String reason) {
+        auditLog.info("offer", "offerProjectReopenSkipped").info("reason", reason);
         return true;
     }
 }

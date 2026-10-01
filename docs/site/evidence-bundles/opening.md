@@ -8,6 +8,16 @@ verifies and unpacks it off the event thread, then opens its project, audit log 
 the verified identity, working-copy path and the bundle's limits. Verification detects changed members;
 it does not authenticate the sender. A replay, when present, is not run by this action.
 
+The bundle label belongs to the operation that verified and applied the profile, including a comparison of the
+profile content actually loaded. A failed application cannot lend that label to a later ordinary project open,
+even at the same pathname. Opening a profile manually after `--unpack` is an ordinary project open, not a claim
+that the current workspace was applied by the bundle operation.
+
+When borrowing **GRAPHS**, incoming notes and series replace the live chart definitions before the profile is
+saved. Source roots remembered for a bundle remain remembered when their directories are temporarily offline:
+an unrelated reports import does not remove them. Removing a visible source root deliberately still removes
+that remembered anchor.
+
 ## One line, then three opens
 
 ```
@@ -41,6 +51,8 @@ without extracting it, run `analyser --verify <bundle>.fexp`.
   opens with Follow off, so no re-check has run.
 - **Give a chart step room.** At the default window size a chart target can report *"no room … — widen the
   window"*. Enlarge the window and show the step again.
-- **No source navigation.** The bundle carries none of the sender's source roots.
+- **Source needs your roots.** The bundle carries none of the sender's source roots. Add a local source anchor to
+  navigate Java. A saved Java caption uses name/line lookup: the source revision has **not** been compared with
+  the version the caption described. The overlay and `context.walks` disclose this independently of source/run pairing.
 - **Your recents change.** The recent-files lists gain the working copy's log, graph and project. Nothing else
   about your settings changes.

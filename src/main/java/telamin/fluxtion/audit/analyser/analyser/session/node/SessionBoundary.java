@@ -129,7 +129,7 @@ public class SessionBoundary implements EventLogSource {
         long opId = inFlightOpId;
         if (kind == TransitionKind.OPEN_BUNDLE && event.ok() && event.bundlePlan() != null) {
             inFlightBundle = event.bundlePlan();
-            effects.request(new SessionEffects.LoadProfileEffect(opId, inFlightBundle.profilePath()));
+            effects.request(new SessionEffects.LoadProfileEffect(opId, inFlightBundle.profilePath(), inFlightBundle.profileDigest()));
             auditLog.info("decision", "loadVerifiedBundleProfile").info("opId", opId);
             return true;
         }

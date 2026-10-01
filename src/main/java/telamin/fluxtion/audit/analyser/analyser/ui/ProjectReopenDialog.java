@@ -66,21 +66,21 @@ final class ProjectReopenDialog {
 
         JPanel north = new JPanel();
         north.setLayout(new BoxLayout(north, BoxLayout.Y_AXIS));
-        JLabel title = new JLabel("Open a log or topology from " + projectLabel);
+        JLabel title = new JLabel("Open a log or topology — " + projectLabel);
         title.setFont(title.getFont().deriveFont(Font.BOLD, 18f));
         title.setAlignmentX(Component.LEFT_ALIGNMENT);
         north.add(title);
         north.add(Box.createVerticalStrut(4));
         JTextArea note = Fluid.text("A project profile holds settings, not what was on screen, so nothing is "
-                + "reopened for you. These are the logs and topologies this machine has opened inside this "
-                + "project. Choose either, both or neither.");
+                + "reopened for you. Each list states where its candidates came from. Machine recent files "
+                + "are not claimed to belong to this project. Choose either, both or neither.");
         note.setForeground(UiTheme.mutedForeground());
         note.setAlignmentX(Component.LEFT_ALIGNMENT);
         north.add(note);
 
         JPanel lists = new JPanel(new java.awt.GridLayout(1, 2, 10, 0));
-        lists.add(titled("Audit logs", logs));
-        lists.add(titled("Topologies", graphs));
+        lists.add(titled("Audit logs — " + origin(candidates.logOrigin()), logs));
+        lists.add(titled("Topologies — " + origin(candidates.topologyOrigin()), graphs));
 
         JPanel detailPane = new JPanel(new BorderLayout(0, 8));
         detailPane.setBorder(BorderFactory.createEmptyBorder(12, 16, 12, 12));
@@ -110,6 +110,10 @@ final class ProjectReopenDialog {
         if (answer != 0) return null;
         Choice chosen = new Choice(chosenValue(logs), chosenValue(graphs));
         return chosen.nothing() ? null : chosen;
+    }
+
+    private static String origin(ProjectReopen.Origin origin) {
+        return origin == ProjectReopen.Origin.PROJECT ? "project locations" : "machine recent files";
     }
 
     private static String chosenValue(JList<String> list) {

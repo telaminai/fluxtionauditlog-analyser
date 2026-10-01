@@ -18,7 +18,8 @@ public sealed interface SessionEffects {
     long opId();
 
     /** Read the profile file at this path and report {@link SessionEvents.ProfileLoaded}. */
-    record LoadProfileEffect(long opId, String profilePath) implements SessionEffects {
+    record LoadProfileEffect(long opId, String profilePath, String expectedDigest) implements SessionEffects {
+        public LoadProfileEffect(long opId, String profilePath) { this(opId, profilePath, null); }
     }
 
     /** Verify and unpack a bundle off the event thread; report the result with the same operation id. */
@@ -40,6 +41,11 @@ public sealed interface SessionEffects {
      * never be asked this.
      */
     record OfferProjectReopenEffect(long opId, String profilePath) implements SessionEffects { }
+
+    /** The node accepted these observed candidates. Present outside the driver cycle and report. */
+    record ShowProjectReopenEffect(long opId, String profilePath, String label,
+                                   telamin.fluxtion.audit.analyser.analyser.config.ProjectReopen candidates)
+            implements SessionEffects { }
 
     /** Put back the source trees remembered for this bundle, so reopening it does not ask again (#75). */
     record RestoreBundleAnchorEffect(long opId, String bundleSource) implements SessionEffects { }

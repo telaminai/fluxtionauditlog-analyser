@@ -21,11 +21,9 @@ import telamin.fluxtion.audit.analyser.analyser.session.TransitionKind;
  * publish "not a bundle" for every bundle. So a plan is remembered when one arrives and is not unset by a
  * later plan-less load.
  *
- * <p><b>One rule, not a pile of guards.</b> A held plan labels the session only when the profile that
- * ACTUALLY applied is that plan's profile. Earlier versions reset the plan on a new request and dropped it on a
- * failed effect; with the match in place both are redundant, and a mutation control proved it by surviving.
- * A transition that verified a bundle and then died leaves a plan behind, and it is harmless: the next
- * profile to apply is somebody else's, so the match fails and nothing is claimed.
+ * <p>A pathname is not ownership. Only the accepted operation that verified a plan can apply it,
+ * and its internal profile load must report the same verified content. A failed operation cannot
+ * lend its provenance to a replacement file, even at exactly the same path (#93).
  */
 public class OpenBundle implements EventLogSource {
 
@@ -34,6 +32,8 @@ public class OpenBundle implements EventLogSource {
     private EventLogger auditLog = NullEventLogger.INSTANCE;
     /** The verified plan, held from the verification until the profile is genuinely in force. */
     private SessionEvents.BundlePlan pending;
+    private long pendingOperation = -1;
+    private boolean verifiedContentLoaded;
     private BundleProvenance current = BundleProvenance.NONE;
 
     public OpenBundle(OperationGate gate) {
@@ -43,6 +43,14 @@ public class OpenBundle implements EventLogSource {
     @Override
     public void setLogger(EventLogger log) {
         this.auditLog = log;
+    }
+
+    @OnEventHandler
+    public boolean onOpenProjectRequested(SessionEvents.OpenProjectRequested event) {
+        pending = null;
+        pendingOperation = event.kind() == TransitionKind.OPEN_BUNDLE ? event.opId() : -1;
+        verifiedContentLoaded = false;
+        return false;
     }
 
     @OnEventHandler
@@ -56,7 +64,10 @@ public class OpenBundle implements EventLogSource {
         }
         // Only a load that CARRIES a plan sets one; the bundle's own profile load carries none (see above).
         if (event.bundlePlan() != null) {
-            pending = event.bundlePlan();
+            if (event.opId() == pendingOperation) pending = event.bundlePlan();
+        } else if (pending != null && event.opId() == pendingOperation) {
+            verifiedContentLoaded = pending.profileDigest() != null
+                    && pending.profileDigest().equals(event.contentDigest());
         }
         return false;
     }
@@ -66,12 +77,10 @@ public class OpenBundle implements EventLogSource {
         if (!gate.accepted()) {
             return false;
         }
-        // Decide from the profile that was ACTUALLY applied, never from which effects failed. Two reviews
-        // found both directions of that guess wrong: "any failure ends the pending plan" killed a bundle
-        // whose closeLog failed but which then applied fine, and "a restore failure means the project is
-        // gone" erased a bundle that was still in force. A profile either IS the bundle's or it is not,
-        // and ProfileApplied names it.
-        current = pending != null && pending.profilePath().equals(event.profilePath())
+        // An unrelated failed effect does not revoke a genuinely applied bundle. A new application
+        // does: both the causal operation and the exact loaded content must establish its provenance.
+        current = pending != null && event.opId() == pendingOperation && verifiedContentLoaded
+                && pending.profilePath().equals(event.profilePath())
                 ? new BundleProvenance(pending.identity(), pending.source(), pending.workingCopy(),
                         pending.limits(), pending.notes(), pending.processor())
                 : BundleProvenance.NONE;
@@ -95,4 +104,6 @@ public class OpenBundle implements EventLogSource {
     public BundleProvenance provenance() {
         return current;
     }
+
+    public boolean acceptsOperation(long opId) { return gate.expectedOpId() == opId; }
 }

@@ -138,6 +138,12 @@ claims that a previous screen depicts the requested step.
 
 ### 3.5 Identity: every state names its basis (P1; reviews R4, R5, R6)
 
+**Java-source disclosure decision (#102, 2026-10-01):** retain name/line lookup, not revision binding. A Java target's
+`CURRENT` state says its address is current under that contract, not that the saved caption was compared with the
+current source. Its visible caption MUST append “saved source revision not compared”, and its target reason MUST
+state that the source revision was not compared with the saved caption. A changed-line witness (`return 0.004`
+saved, `return 999` replayed) pins both surfaces. Source/run pairing is independent and is not this disclosure.
+
 | target | its basis at save | current when | historical when | unresolved when |
 |---|---|---|---|---|
 | `records:row:N`, `detail:node:…` | a **record digest**: SHA-256 over the UTF-8 bytes of the exact `LogStore.rawText(N)` string, untrimmed and unframed; the store's kind recorded as the representation basis | the digest matches | the digest differs: the target is shown **not available**, never re-pointed | the index is out of range, the digest is absent, or the representation basis differs |
@@ -217,13 +223,18 @@ decides them.
   - `WalkNavigated(delta)`: from ◀ ▶ or ← →;
   - `WalkEndRequested(reason)`: Esc, ✕, an outside press, or an external view change;
   - `WalkViewApplied(ticket, ok, reason)`;
-  - `WalkStepPrepared(ticket, generation, targetStates)`.
+  - `WalkStepPrepared(ticket, generation, targetStates)`;
+  - `WalkTargetsLit(ticket, lit, reason)` — the display outcome, not an availability prediction;
+  - `WalkViewChanged(ownerTicket)` — native tab changes carry either the walk effect's ticket or an external origin.
 - **Its parents:** `openLog` (generation, open state and identity) and the operation gate.
 - **Decisions, all in the node:**
   - **Which step next.** Out-of-range navigation is refused.
   - **When to request the view.** `ApplyWalkViewEffect(ticket, generation, step)`.
   - **When to light.** `LightWalkTargetsEffect(ticket, targets, states)`. Only for the current ticket and the current
     generation; a stale fact is refused and logged, like `LogEvidence`'s generation check.
+  - **When to claim shown.** Stay `PREPARING` and retain the previous accepted dialogue step until matching
+    `WalkTargetsLit`. A source read never runs on the EDT; a failure or deadline never silently strands this phase.
+    External navigation during preparation ends the walk; its own effect-scoped view changes do not.
   - **When to end.** Any `WalkEndRequested`, a new generation, or no log open ends the walk, requesting
     `EndWalkEffect`. The last step shown is remembered for *Play from step N*.
   - **When to re-resolve.** A changed published log identity requests `ResolveWalkTargetsEffect(ticket)` with the new
