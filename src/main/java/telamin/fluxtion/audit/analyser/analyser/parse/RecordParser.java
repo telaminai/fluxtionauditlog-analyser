@@ -62,10 +62,24 @@ public final class RecordParser {
         boolean hasNaN = false;
         boolean hasBreach = false;
 
-        for (String raw : text.split("\n", -1)) {
+        // UPS-1: a record whose structure breaks (a value written unquoted with a line break in it) is read only up to
+        // the break, and none of its node logs are read — the text cannot say which lines after it are the producer's.
+        RecordBreak broken = RecordBreak.find(text);
+        String[] lines = text.split("\n", -1);
+        int readLines = broken == null ? lines.length : broken.keepBefore();
+        char openQuote = 0;
+        boolean quotesCount = RecordBreak.quotesClose(lines);   // an unclosed "quote" is text, not a quote
+        for (int lineIndex = 0; lineIndex < readLines; lineIndex++) {
+            String raw = lines[lineIndex];
             int linePosition = rawPosition;
             rawPosition += raw.length() + 1;
             String line = stripCr(raw);
+            // UPS-1: a line that begins inside a quoted scalar is that value's continuation. Inside the node-log block it
+            // stays part of the block, as before; anywhere else it is never read as a field — quotes tracked as FramingScan
+            // and RecordBreak track them, so all three agree about what is inside a value.
+            boolean continuation = quotesCount && openQuote != 0;
+            openQuote = FramingScan.quoteStateAfter(line, 0, line.length(), openQuote);
+            if (continuation && !inNodeLogs) continue;
             // AuditText.strip, not String.strip(): strip() keeps U+FEFF, so a record behind a
             // byte-order mark never matched the '#' below, lost its header, and with it its thread,
             // level and logger — which moved auditLevelFinest from DEBUG to INFO and made coverage
@@ -119,6 +133,13 @@ public final class RecordParser {
             }
         }
 
+        if (broken != null) {
+            nodeLogs.setLength(0);
+            nodeLinePositions.clear();
+            nodeLogsCount = 0;
+            hasNaN = false;
+            hasBreach = false;
+        }
         EventDimension dim = EventDimension.derive(event, eventToString);
         String resolvedThread = thread != null ? thread : header.thread();
         final String block = nodeLogs.toString();
@@ -147,6 +168,7 @@ public final class RecordParser {
                 .hasNaN(hasNaN)
                 .hasBreach(hasBreach)
                 .rawText(text)
+                .brokenAtLine(broken == null ? 0 : broken.line())
                 .nodeLogDataSupplier(() -> {
                     NodeLogData data = NodeLogTokenizer.parseBlockData(block, quotedScalarsFinal);
                     java.util.List<NodeLogData.KeySpan> spans = new java.util.ArrayList<>();

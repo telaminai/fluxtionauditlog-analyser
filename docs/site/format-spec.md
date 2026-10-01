@@ -254,6 +254,19 @@ raw text; counts are preserved and nothing is dropped silently. A record with no
 legitimate record: it is kept and readable, it is **off the timeline** (it does not move the log's
 start or end), and it **orders nothing** (§2.1). *(Fixtures C01, C02, C03, C04, C05, C09.)*
 
+**A value MUST NOT break its record.** A value that can hold a line break — above all `eventToString`, which carries
+an event's own text, and so whatever an operator typed into an admin command's arguments — MUST be quoted or escaped,
+because a raw line break ends the line and whatever follows reads as if the producer had written it. The analyser
+therefore treats three shapes, impossible in a record written whole, as a **broken record**: a line less indented than
+the record's fields; a second `eventLogRecord:` line; a top-level field written twice. (A bare `---` line the framer
+did not split on is framing's subject, not a value's: the record key after it is the break, and the run-together
+records are reported as such.) A broken record is kept and
+counted, its fields are read only up to the break (up to a repeated field's *first* occurrence, since the forged copy
+can come first), **none of its node logs are read**, and the analyser names it — record and line — so text inside a
+value can never appear as a node, a node log or an event type. A line that begins inside a quoted scalar is that
+value's continuation and never a break, provided the record's quotes close; a quote that never closes is text.
+*(Fixture C31.)*
+
 ### 2.1 Time order is a claim the analyser checks
 
 `logTime` SHOULD be non-decreasing in container order. When it is not, the analyser **reports** it —
@@ -450,6 +463,7 @@ order, for every fixture.
 | C27 whitespace only | blank lines are no records: `unknown`, the finding |
 | C28 zero bytes | also the empty export: `unknown`, the finding |
 | C29 no record key | completeness is not integrity: a headerless run-together line under a marker declaring 3 reads `complete, 3 of 3`, and record 2 is still named |
+| C31 broken value | a line break in an unquoted value forges nothing: two admin command records whose arguments carry `nodeLogs:` / `eventLogRecord:` and `event:` lines keep their dispatched event, read no node logs and are named; the whole records around them read as before |
 | C30 per-node level | a control record setting a node to `WARN` annotates that node on both paths; it stays uncovered |
 | C15 graph provenance | a `SourceGraph` cannot exist without DECLARED/INFERRED; INFERRED forbids coverage; an opened graph outranks a supplied one; dangling edges dropped |
 

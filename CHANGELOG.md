@@ -6,6 +6,15 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Fixed
+
+- A record broken by a line break inside one of its values no longer becomes evidence. An unquoted value — measured with an admin command's operator-typed arguments in `eventToString`, on mongoose 1.0.32 with fluxtion 1.1.0 — could end its line early, and the text after it was read as the record's own fields: the analyser reported a node that does not exist, blamed the graph for not declaring it, and showed an event type that was never dispatched. A record whose structure breaks (a line less indented than its fields, a second record key, a field written twice) is now read only up to the break, none of its node logs are read, and a new producer finding names it by record and line. A value that is properly quoted across lines is never read as fields either.
+- Opening a graph with, or after, a log no longer wipes the log's warnings from the status bar. The pairing sentence replaced the whole line, so a broken record, run-together records or a time-order problem stayed in `context` and the tooltip while the bar read clean.
+
+### Checked
+
+- Mongoose 1.0.32 admin commands on a processor generated for fluxtion 1.1.0 audit as their own `AdminCommandEvent` record: the analyser frames, tables, covers and steps through them correctly, and an event a command raises follows as its own record.
+
 ## [1.30.1] - 2026-09-30
 
 ### Fixed

@@ -5684,11 +5684,17 @@ public final class MainFrame extends JFrame {
         // opened it. It is kept because it arrived with this log and is the source's own claim.
         boolean opened = topologyPanel.graphSource()
                 == telamin.fluxtion.audit.analyser.analyser.topology.GraphSource.OPENED;
+        // UPS-1: this line used to REPLACE the log's line, so opening a graph with or after a log dropped every producer
+        // and time-order warning from the bar (a broken record, run-together records, a missing record key) — the
+        // findings stayed in `context` and the tooltip while the bar read clean. The session's warnings are kept here.
+        var evidence = session().snapshot();
         status.setText(store.size() + " records · graph " + name + (pairing.applies()
                 ? " · " + pairing.reason()
                 : "  ·  ⚠ " + pairing.reason() + (opened
                         ? " — kept, you opened it deliberately"
-                        : " — kept, the source supplied it with this log")));
+                        : " — kept, the source supplied it with this log"))
+                + (evidence.timeOrder() == null ? "" : orderWarning(evidence.timeOrder()))
+                + producerWarning(evidence.producerFindings()));
         return pairing;
     }
 
@@ -6148,6 +6154,9 @@ public final class MainFrame extends JFrame {
                 // M68.3: a framing finding is a SUSPICION, and the label on the bar says so like the message does
                 .map(f -> "  ·  ⚠ " + (f.kind() == telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics.Kind.UNSEPARATED
                                 ? "suspected missing record separators"
+                                // UPS-1: says what happened, in words, rather than the enum's name
+                                : f.kind() == telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics.Kind.BROKEN_VALUE
+                                ? "a value broke its record"
                                 : f.kind().name().toLowerCase(java.util.Locale.ROOT).replace('_', ' '))
                         + " — ask 'context', or hover")
                 .orElse("");

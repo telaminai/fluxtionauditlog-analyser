@@ -86,6 +86,12 @@ public final class LogicalLogView {
                     sb.append("  ").append(line.strip()).append('\n');
                 }
             }
+            if (record.brokenAtLine() > 0) {
+                // UPS-1: not "no node logged" — the node logs are there and were deliberately not read
+                sb.append("  (node logs not read: this record's structure breaks at its line ").append(record.brokenAtLine())
+                        .append(" — a value was written unquoted with a line break in it. The full record is on the Text tab.)\n");
+                continue;
+            }
             if (record.nodeLogs().isEmpty()) {
                 sb.append("  (no node logged in this cycle)\n");
                 continue;
