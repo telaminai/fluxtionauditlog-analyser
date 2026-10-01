@@ -14,6 +14,7 @@ J = 'src/main/java/telamin/fluxtion/audit/analyser/analyser/'
 SESSION = J + 'session/'
 NODE = SESSION + 'node/'
 UI = J + 'ui/'
+UI_TEST = 'src/test/java/telamin/fluxtion/audit/analyser/analyser/ui/'
 PARSE = J + 'parse/'
 BUNDLE = 'src/main/java/telamin/fluxtion/audit/analyser/bundle/EvidenceBundle.java'
 MAIN = 'src/main/java/telamin/fluxtion/audit/analyser/Main.java'
@@ -668,6 +669,19 @@ CONTROLS = [
      'LogEvidenceTest#aDroppedScanDoesNotSwallowTheNextGenerationsScan'),
     ('m44-5-f1-frame-next-log-is-scanned', NODE + 'LogEvidence.java',
      '        scanPending = false;\n        boundGeneration = generation;', '        boundGeneration = generation;',
+     'LogFindingsOnEverySurfaceFrameTest#aLoadThatThrowsPartWayDoesNotStopTheNextLogsEvidence'),
+    # The F1 frame witness deliberately removes SummaryPanel. Account for that fault, while failing on every
+    # other EDT exception: an exception printed on stderr alone must not count as a successful display check.
+    ('edt-unexpected-failure-fails-the-test', UI_TEST + 'EdtExceptionWatch.java',
+     '        assertTrue(unaccounted.isEmpty(), () -> "uncaughtEdtFailure: " + unaccounted);',
+     '        assertTrue(true, () -> "uncaughtEdtFailure: " + unaccounted);',
+     'EdtExceptionWatchTest#unexpectedFailureMakesTheWatchFailAndRestoresTheHandler'),
+    ('summary-injected-failure-must-be-observed', UI_TEST + 'LogFindingsOnEverySurfaceFrameTest.java',
+     'panel.set(f.frame, null);', 'panel.set(f.frame, original);',
+     'LogFindingsOnEverySurfaceFrameTest#aLoadThatThrowsPartWayDoesNotStopTheNextLogsEvidence'),
+    ('summary-injected-failure-is-accounted', UI_TEST + 'LogFindingsOnEverySurfaceFrameTest.java',
+     'var injected = edtFailures.expect(NullPointerException.class, MainFrame.class.getName(), "applyLoaded");',
+     'var injected = new NullPointerException("summaryPanel");',
      'LogFindingsOnEverySurfaceFrameTest#aLoadThatThrowsPartWayDoesNotStopTheNextLogsEvidence'),
     ('m44-5-f2-set-carries-its-cross-file-order', UI + 'MainFrame.java',
      'files, config.memoryThresholdMb, set.report());', 'files, config.memoryThresholdMb, null);',

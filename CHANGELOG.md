@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+- The log-findings display suite now accounts for its deliberately injected SummaryPanel failure and fails on unexpected EDT exceptions. Its failed-load recovery assertion and mutation controls remain in place.
+
 - Bundle profile redaction recognises Unicode path segments, including decomposed accents (refs #79). Quote a complete path with double, single, backtick or curly quotes, or Japanese corner brackets, to redact it whole. Quoting preserves the existing ratio, URL and path-shape exemptions. Quoted spans containing sentence punctuation, another quote type, a second path start or a parenthesised message fall back to ordinary path handling, preserving the surrounding prose. A straight or curly single closing quote needs a separator before a following letter; double quotes and corner brackets can sit beside prose. An unquoted final segment containing Han, Hiragana, Katakana, Hangul or Thai still refuses export with a request to quote the path. The existing limits for other scripts and ambiguous path spellings remain documented.
 
 ## [1.30.1] - 2026-09-30

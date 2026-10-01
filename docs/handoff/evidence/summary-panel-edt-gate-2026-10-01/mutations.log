@@ -1,0 +1,6 @@
+m44-5-f1-new-generation-resets-outstanding : green / named assertion red / restored green, bytes identical
+m44-5-f1-frame-next-log-is-scanned : green / named assertion red / restored green, bytes identical
+edt-unexpected-failure-fails-the-test : green / named assertion red / restored green, bytes identical
+summary-injected-failure-must-be-observed : green / named assertion red / restored green, bytes identical
+summary-injected-failure-is-accounted : green / named assertion red / restored green, bytes identical
+mutations: 5 controls caught with the fast engine in 30.9 s
