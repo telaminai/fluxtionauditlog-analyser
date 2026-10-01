@@ -210,7 +210,7 @@ public record RecordBreak(int line, int keepBefore, String reason) {
                 if (first != null) breaks.add(i, "the field '" + key + "' a second time");
                 if (key.equals("nodeLogs")) inNode = true;
                 else if (BLOCK_SCALAR.matcher(value).matches()) blockScalar = true;
-                if (key.equals("event") && first == null) firstEvent = value;
+                if (key.equals("event")) firstEvent = value;   // a second event is a repeat, so already a break
             } else if (value.isEmpty()) {
                 nestedIgnored = true;
             }
