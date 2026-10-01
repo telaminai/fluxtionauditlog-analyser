@@ -1,10 +1,12 @@
 # Spec — consuming the GraphML vocabulary, and why it is a second path forever
 
-**Status:** PROPOSED 2026-08-31. **COMPLETE 2026-09-27:** .1/.2/.3/.5 shipped 2026-08-31; M45.4 delivered as M68.1 (PR #25, 1.21.0). A candidate to move to `completed/`. **Tracker:** [tracker.md](tracker.md) ▸ M45.
+**Archived 2026-10-01:** shipped, and moved to `docs/specs/completed/`. Nothing is open.
+
+**Status:** PROPOSED 2026-08-31. **COMPLETE 2026-09-27:** .1/.2/.3/.5 shipped 2026-08-31; M45.4 delivered as M68.1 (PR #25, 1.21.0). A candidate to move to `completed/`. **Tracker:** [tracker.md](../tracker.md) ▸ M45.
 **Upstream:** `fluxtion-builder` `feature/compiler_diagnostics` — the vocabulary, `GraphMlOptions`,
 and the model-projection exporter.
-**Related:** [`upstream-asks.md`](../proposals/upstream-asks.md) §2c (the asks this answers),
-[`baseline-2026-08-31`](../experience/runs/baseline-2026-08-31/RESULTS.md) (the pinned measurement).
+**Related:** [`upstream-asks.md`](../../proposals/upstream-asks.md) §2c (the asks this answers),
+[`baseline-2026-08-31`](../../experience/runs/baseline-2026-08-31/RESULTS.md) (the pinned measurement).
 
 ## What lands, and what the analyser does about it
 
@@ -138,7 +140,7 @@ where they mean dispatch.
 
 ## D-V4 — what becomes answerable, which is the point
 
-The measurement pinned in [`baseline-2026-08-31`](../experience/runs/baseline-2026-08-31/RESULTS.md)
+The measurement pinned in [`baseline-2026-08-31`](../../experience/runs/baseline-2026-08-31/RESULTS.md)
 found three of three agents could not determine sibling dispatch order from the artefacts, and two of
 three could not say whether a silent node ran. Those are the surfaces to build, in that order:
 
@@ -200,7 +202,7 @@ at `dbcbe17` — 17 keys emitted, 9 planned — three of them move:
 * **The "audit trio" is a duo.** `auditCapable`/`auditCapableVia` are emitted; `eventAudit` is planned —
   and that is precisely the key separating *capable, audit off* from *capable and stayed silent*, which
   is M45.3's stated product claim. Recoverable, but **from the log header, not the GraphML**
-  ([UP-FLX-11](../proposals/upstream-asks.md)). M45.3 is re-scoped accordingly rather than deferred.
+  ([UP-FLX-11](../../proposals/upstream-asks.md)). M45.3 is re-scoped accordingly rather than deferred.
 * **The gate closes later than this spec assumed, and it is ONE ordered condition, not two.** Upstream
   flips the default when relationships are captured at the decision point *and* one consumer
   **understands** `PARALLEL`. M45.2 explicitly changes no behaviour, so reading is not understanding —
@@ -210,7 +212,7 @@ at `dbcbe17` — 17 keys emitted, 9 planned — three of them move:
 exporter and the generator through the real `fluxtion-maven-plugin:scan`: `PARALLEL` emitted 17 keys,
 and the diagnostics sidecar was written on the failing path. The deferred authoring rows of the pinned
 comparison are **run and both predictions held** —
-[`ceiling-2026-08-31`](../experience/runs/ceiling-2026-08-31/RESULTS.md). **Caveat that must not be
+[`ceiling-2026-08-31`](../../experience/runs/ceiling-2026-08-31/RESULTS.md). **Caveat that must not be
 lost:** this slice needs an entitled Fluxtion key, so it cannot run in CI or for a contributor. The
 reachability question it answered was worth asking, and the answer has to be *recorded* rather than
 *reproducible*.

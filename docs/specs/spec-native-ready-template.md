@@ -2,7 +2,7 @@
 
 _Status: **DRAFT v1**, 2026-09-07 · Owner: greg.higgins · Milestone **M51**_
 
-_Companion to [tracker.md](tracker.md), [spec-template-from-analyser.md](spec-template-from-analyser.md)
+_Companion to [tracker.md](tracker.md), [spec-template-from-analyser.md](completed/spec-template-from-analyser.md)
 (M19.5 — the analyser fetches a template by catalogue id),
 [spec-onboarding-example.md](spec-onboarding-example.md) (the bundle contract) and
 [`fluxtion-performance-configuration.md`](../proposals/fluxtion-performance-configuration.md) (M50/W9 —

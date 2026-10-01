@@ -1,9 +1,11 @@
 # Evidence bundle replay — the second delivery (record at the processor, replay into the recipient's build, compare)
 
+**Status (2026-10-01):** implemented and released in 1.28.0 (M70). The whole-feature review is open as PR #70, and the owner's processor-vs-agent question now has a new fact: mongoose 1.0.31 records processor inputs at dispatch (tracker ▸ M70).
+
 **Status: r1 (2026-09-28), DRAFT, not reviewed.** Grounded in the replay spike,
 [`tools/spikes/replay-bundle/README.md`](../../tools/spikes/replay-bundle/README.md) (commits `6965aee5`, `5b78ec4d`,
 `04f14401` and the one that lands this spec). It builds on the first delivery,
-[`spec-evidence-bundle-packaging.md`](spec-evidence-bundle-packaging.md), shipped in 1.27.0, which deferred replay
+[`spec-evidence-bundle-packaging.md`](completed/spec-evidence-bundle-packaging.md), shipped in 1.27.0, which deferred replay
 (its D-0) and says so on every surface: *"no replay: this bundle shows an investigation; it does not reproduce or fix
 it"*.
 

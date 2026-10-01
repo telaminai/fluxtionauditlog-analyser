@@ -1,25 +1,27 @@
 # Spec — follow refreshes open graphs
 
+**Archived 2026-10-01:** shipped, and moved to `docs/specs/completed/`. M65.5 (the D-F5 measurement) stays in the live tracker ▸ M65.
+
 **Status:** SHIPPED in analyser 1.14.0 (2026-09-17) — M65.0–.4 as specified below, after five review passes (three of the
 spec, two of the implementation; the implementation review, its response and the pass-5 check are in `docs/handoff/completed/`).
 Open: M65.5, the D-F5 extraction measurement. History: PROPOSED 2026-09-17 · **REVISED twice the same day after review.** Pass 1
-([review](../handoff/completed/review_spec_m65_2026-09-17.md), CONDITIONAL): diagnosis and fix accepted; C1/C2 and six findings
+([review](../../handoff/completed/review_spec_m65_2026-09-17.md), CONDITIONAL): diagnosis and fix accepted; C1/C2 and six findings
 folded in, plus C3 the author raised from the reviewer's *"did not check"* list. Pass 2
-([review](../handoff/completed/review_spec_m65_pass2_2026-09-17.md), CONDITIONAL): every new claim verified; C4 (the slider echo
+([review](../../handoff/completed/review_spec_m65_pass2_2026-09-17.md), CONDITIONAL): every new claim verified; C4 (the slider echo
 already resets an unpinned view on every growing tick, so D-F7's hold was defeated before extraction ran) and C5 (one
 tail rule, not two) plus four follow-ups, all folded in below. Pass 3
-([review](../handoff/completed/review_spec_m65_pass3_2026-09-17.md), **READY WITH FOLLOW-UPS — no further spec review**):
+([review](../../handoff/completed/review_spec_m65_pass3_2026-09-17.md), **READY WITH FOLLOW-UPS — no further spec review**):
 four wording follow-ups folded in below (F1 the capture order and the view's surface, F2 the empty-before case, F3
 programmatic ranges under D-F8, F4 where the seam lives). **IMPLEMENTED 2026-09-17** on
 `feat/m65-follow-refreshes-graphs`, reviewed twice more against the code — impl pass 4
-([review](../handoff/completed/review_m65_implementation_2026-09-17.md), NOT READY: B1 the extend rule contracted a zoomed-out
-view; F1 the filter's live-index reads; F3 a synchronous runner throw — all landed, [response](../handoff/completed/review_response_m65_impl_2026-09-17.md))
-and impl pass 5 ([review](../handoff/completed/review_m65_implementation_pass5_2026-09-17.md), **READY**, one nit applied) —
+([review](../../handoff/completed/review_m65_implementation_2026-09-17.md), NOT READY: B1 the extend rule contracted a zoomed-out
+view; F1 the filter's live-index reads; F3 a synchronous runner throw — all landed, [response](../../handoff/completed/review_response_m65_impl_2026-09-17.md))
+and impl pass 5 ([review](../../handoff/completed/review_m65_implementation_pass5_2026-09-17.md), **READY**, one nit applied) —
 and **merged to `main`**. Open follow-ups: tracker M65.5 (the D-F5 measurement), M65.6 (an unattributed *no log
 loaded* observation).
 Owner question: *"what is the
 lowest overhead way of forcing the graph redraw? should we add something to the plot verb to redraw for new log
-entries?"* **Tracker:** [tracker.md](tracker.md) ▸ M65.
+entries?"* **Tracker:** [tracker.md](../tracker.md) ▸ M65.
 **Related:** M6 graphing (the extraction cache and the time-slider-never-re-parses rule this spec must keep),
 H8.7 follow/tail (`parse/FollowAppendTest`), M35 log + graph lifecycle (a graph is evidence; a stale one is
 false evidence), [spec-guided-start.md](spec-guided-start.md) D-G2 (*the screen PROVES* — it cannot if a chart lags

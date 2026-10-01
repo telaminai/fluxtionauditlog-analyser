@@ -1,9 +1,11 @@
 # Spec — guided start: an install prompt, and an LLM that tutors by driving the UI
 
-**Status:** SHIPPED in analyser 1.13.0 (2026-09-16) — the *Guided start* docs page and the canonical `guided-start` skill (CHANGELOG ▸ 1.13.0). Written 2026-08-30 as PROPOSED (owner idea). **Tracker:** [tracker.md](tracker.md).
-**Related:** [spec-onboarding-example.md](spec-onboarding-example.md) (the M19 pathway this joins),
-[spec-authoring-experience.md](spec-authoring-experience.md) (D-AX1c — the agreed reference set this
-becomes the first entry in), [spec-trust-structure.md](spec-trust-structure.md) (D-T3, which constrains
+**Archived 2026-10-01:** shipped, and moved to `docs/specs/completed/`. Nothing is open here; the tour's later work is tracked under M19.
+
+**Status:** SHIPPED in analyser 1.13.0 (2026-09-16) — the *Guided start* docs page and the canonical `guided-start` skill (CHANGELOG ▸ 1.13.0). Written 2026-08-30 as PROPOSED (owner idea). **Tracker:** [tracker.md](../tracker.md).
+**Related:** [spec-onboarding-example.md](../spec-onboarding-example.md) (the M19 pathway this joins),
+[spec-authoring-experience.md](../spec-authoring-experience.md) (D-AX1c — the agreed reference set this
+becomes the first entry in), [spec-trust-structure.md](../spec-trust-structure.md) (D-T3, which constrains
 what a tutor may say).
 
 ## The idea, in the owner's terms
@@ -95,7 +97,7 @@ The standing decisions already cover the shape:
 
 ## D-G5 — this is the loop's ideal held-out task
 
-[spec-authoring-experience.md](spec-authoring-experience.md) needs a held-out task and has never run one.
+[spec-authoring-experience.md](../spec-authoring-experience.md) needs a held-out task and has never run one.
 *"Install from nothing and show me three capabilities"* is the best candidate available: it is the real
 user journey end to end, it exercises the analyser (which no round has), and its outcome is **objective** —
 did the UI finish in the state the tutorial claims? `context` and `screenshot` make that machine-checkable

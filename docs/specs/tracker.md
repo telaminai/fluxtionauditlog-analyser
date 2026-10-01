@@ -8,6 +8,8 @@ Legend for each item: **[id] status — title** · _acceptance_.
 
 ## Spring authoring edit loop — session intake 2026-09-25
 
+_Ticked items moved verbatim to [the completed tracker](completed/tracker.md) ▸ *Tidy 2026-10-01*._
+
 **Intake 2026-09-25; slices shipped in analyser 1.21.0 and the template deployment of 2026-09-26, as marked
 below.** A guided website-template session
 reported twenty-four friction points, chiefly on editing an existing graph. Read the
@@ -22,22 +24,6 @@ or a G14 pass. The running project remains untouched.
   **Shipped in 1.21.0 (2026-09-26):** [PR #30](https://github.com/telaminai/fluxtionauditlog-analyser/pull/30) — both
   panes, service model and off-EDT reads, five gate controls. Vendor-archive rediscovery (§C's last paragraph)
   stays open here.
-- ☑ **Recovery profile identity** — spec §E, feedback 5: first reproduce capture under P at X,
-  delete/recreate a profile at X, then activate it. Current real-path keys cannot distinguish
-  replacement profiles. Bind identity, disclose capturedAt/capturing identity, withhold or
-  qualify mismatch; retain pending-I/O and cross-project controls. Participant history remains
-  unverified; this is proposed regression work, not a reproduced or closed finding.
-  **Shipped in 1.21.0 (2026-09-26):** [PR #28](https://github.com/telaminai/fluxtionauditlog-analyser/pull/28) — snapshots record the
-  capturing profile's creation nonce (`profileNonce`, taken when the capture is built); a recreated profile at
-  the same path is withheld, a missing identity is withheld as `capturedBy: unknown` (unit + real-frame
-  fixture, gate cases `recovery-profile-identity`, `recovery-identity-unknown`, `recovery-withheld-input-origin`,
-  `recovery-identity-at-capture`, `profile-nonce-kept-by-saves`). Participant history remains unverified.
-- ☑ **Template installer authoring executables** — spec §G, feedback 8: add setup/validate/generate
-  to TemplateArchive's fixed executable list, retaining arbitrary-mode refusal. Removing
-  generate.sh must fail a real install assertion. Direct-browser ZIP modes are a separate
-  producer check; D6 approves documenting Windows absence, with implementation deferred.
-  **Shipped in 1.21.0 (2026-09-26):** [PR #27](https://github.com/telaminai/fluxtionauditlog-analyser/pull/27) — install
-  test runs the three scripts without chmod; gate case `installer-authoring-executables`.
 - ◧ **Design-first project and admin-console offer** — [edit-loop §I1–I2](spec-spring-authoring-edit-loop.md#i-design-first-market-data-tour-and-existing-vendor-jars):
   add the emitted Spring design directory to template roots. Validate all template profile
   source roots inside the installed project in TemplateArchive; preserve explicitly granted
@@ -51,12 +37,6 @@ or a G14 pass. The running project remains untouched.
   retain M68.5's canonical root diagnostics work. D3 approves offering explicit role-scoped
   grants at project opening, showing what becomes readable; opening alone authorises neither
   the project root nor target directory.
-- ☑ **Context section projection** — spec §H, feedback 17: opt-in projection, compatible full
-  default, same-state equality, and basis/qualification carried with every selected verdict.
-  **Shipped in 1.21.0 (2026-09-26):** [PR #29](https://github.com/telaminai/fluxtionauditlog-analyser/pull/29) — `context
-  {sections}` with eleven published names, qualifiers carried under `scope.carried` (including a rolled
-  set's `files` with `view` and `producer` with `topology`), the key file read only when `fluxtionKey` is
-  selected, refusal before any read, recorded fixture bytes, and five mutation controls in the fast gate.
 - ☐ **Upstream handoff** — new asks and existing ownership are routed through
   [upstream asks](../proposals/upstream-asks.md#spring-authoring-edit-loop--2026-09-25-intake).
   First: UP-FLX-21's compile pipeline and the mapper's fabricated values. Then explicit rename,
@@ -71,14 +51,6 @@ or a G14 pass. The running project remains untouched.
   artefacts (GraphML identical; processor identical below its license header). Published-download acceptance
   remains open.
 
-- ☑ **Design-first first look, found by the 1.21 fresh-look virgin run (2026-09-26)** — at the default
-  1200×800 window the Design view's wrapped status note took the whole height and a fixed 210 px bean list the
-  width, so no design bean or line could be lit; neighbouring spotlights drew edges through each other's line;
-  a design refused by path pointed at `source_root` and models authorised the whole project directory.
-  **Shipped in 1.22.1:** [PR #35](https://github.com/telaminai/fluxtionauditlog-analyser/pull/35) — capped status
-  note and fitted bean list, one-cause design refusals, a shared separator for stacked spotlights, and refusals
-  that name `open {project}` (never the project already open). Six gate controls, including a Linux precheck
-  of the status witness.
 
 The existing **MA-2/MA-5/OD-5**, **Staged feedback — next chart capabilities** and
 **Staged feedback — authoring route and hosted audit boundary** entries retain their statuses.
@@ -434,6 +406,8 @@ observed tool events, and the fifth draft's slices A–D become a short blocker 
 
 ## Product discovery — the notebook for event-driven applications (2026-09-22)
 
+_Ticked items moved verbatim to [the completed tracker](completed/tracker.md) ▸ *Tidy 2026-10-01*._
+
 From a single session review (22 Sept): one session built a library-free WebSocket market-data feed, deployed it across
 three repositories, drove it over the admin REST and proved a subscribe/unsubscribe toggle from a pinned plot. The framing
 that came out of it is the clearest category anchor this product has found — **cells, kernel, canvas**. The builder DAG and
@@ -478,15 +452,6 @@ all others, an instrument that lies is worse than a slow loop.
 
 **Two analyser defects found in the same session, filed here because that is where they were seen.**
 
-- [WS-1] ☑ _(shipped as M68.5 in 1.21.0 — completed tracker ▸ M68)_ **Follow shows stale content after the log file is replaced.** A restart rewrites the audit log as a new inode
-  and live-tail silently held the old content until the operator noticed through `context`. Same class as DX-02: the
-  instrument reporting confidently and wrongly, rather than failing. The detection already exists — `context` computes the
-  file identity and flags changed-on-disk inputs — so only the action is missing: reopen, or raise a banner that says the
-  file underneath was replaced. Prioritise with DX-02/DX-03.
-- [WS-2] ☑ _(shipped as M68.5 in 1.21.0)_ **A non-canonical profile resolves the project root as the settings directory.** The root came out as the
-  `.analyser/` directory rather than the repository, so every runbook and skill pointer resolved `exists: false`. That
-  breaks the mechanism the whole authoring story depends on. Resolve the root from the settings file's parent's parent, or
-  record it explicitly in the settings.
 
 _Status of the source: self-authored by the session that did the work, confirming rather than falsifying, and n=1 — its own
 neutrality section says exactly that. A strong internal data point, not outside evidence; the falsification attempts it
@@ -738,16 +703,12 @@ after review:** the first version reversed the two fixture fingerprints (source 
   still open.)_
 ## Spring authoring observed acceptance — 2026-09-19
 
+_Ticked items moved verbatim to [the completed tracker](completed/tracker.md) ▸ *Tidy 2026-10-01*._
+
 - ➜ **Seventeen ☑ items archived 2026-09-21** to [`completed/tracker.md`](completed/tracker.md) ▸ *Tidy 2026-09-21*: the
   journey implementation review and re-review, the stopped R3 battery, four reviewed implementation slices, the staged-feedback
   intake and its four review rounds, topology feedback 37, the report-export/four-use-case/vendor/session-audit reviews, the
-  close/reopen diagnosis and the rehearsal launcher. The trial record stays, because DX-02–DX-05 hang off it.
-- ☑ _(the journey shipped in 1.16.0, 2026-09-20)_ **Starter journey implementation started — 2026-09-20** — owner authorized commits, pushes and
-  isolated branches through the full reviewed workflow. Preserve existing checkouts/staging. Planned
-  branch in each owning repo: `feat/project-starter-journey`; analyser from current main, playground and
-  compiler from their reviewed Spring-authoring heads with upstream integration checked explicitly.
-  Track acceptance and exact heads in [implementation handoff](../handoff/handoff_project_starter_implementation_2026_09_20.md).
-  Public release gates remain distinct from local development verification.
+  close/reopen diagnosis and the rehearsal launcher. The trial record stays, because DX-02–DX-05 hang off it. _(2026-10-01: DX-02–DX-05 have all shipped, so the trial record moved with them ▸ completed tracker ▸ *Tidy 2026-10-01*.)_
 - ☐ **Participant follow-up — imitation and held-out isolation** — template examples teach by copying;
   check the generated harness matches its declared host/feed shape and record the file imitated. Treat
   the exposed EOD exercise as regression only; fresh acceptance uses a clean download and an access manifest
@@ -904,15 +865,6 @@ after review:** the first version reversed the two fixture fingerprints (source 
   all 14 scaffold-handler ZIPs load without rejected declarations; every runbook/source pointer resolves.
   A changed name reproduces the prior rejection. Runtime runbook validation, browser witness,
   independent review and deployment remain open; do not mark this released.
-- ☑ _(shipped in 1.16.0: the start page's authoring action)_ **Author-new-project entry** — the journey branch adds a StartPanel authoring entry using the same
-  catalogue/download controller as the File menu, with whole-catalogue explanations. No duplicate
-  generator/configurator. A richer separate page and a plain-JSON headless request remain proposals;
-  the existing documented headless template/token route is the implementation contract.
-- ☑ _(shipped in 1.16.0: project landing and explicit session recovery)_ **Project-aware landing and explicit resume** — implemented on the journey branch through `7eceff5`:
-  saved declarations, explicit Restore/Dismiss, actual completion and content checks. Five real-frame
-  cases and inspected UI/context captures cover the adapter; 37 display tests and clean package with
-  1,707 tests pass. _(Since: the real OS-process restart was verified across three JVMs on 2026-09-21 — completed
-  tracker ▸ Release execution; complete downloaded-project acceptance is SG-2's hosted half.)_ [Journey spec](spec-project-starter-journey.md); [evidence](../handoff/evidence/project-session-recovery-2026-09-20/README.md).
 - ☐ **Journey starts before a project exists (owner clarification, 2026-09-20)** — provide one catalogue
   reached from the website, a local LLM or the analyser's existing template picker. The LLM can download
   a project without the analyser; it follows project runbooks to set up/build/run, then connects the
@@ -926,15 +878,6 @@ after review:** the first version reversed the two fixture fingerprints (source 
   return a 22-entry ZIP with README, but no dedicated RUNBOOK/authoring-docs/bootstrap files. Download
   availability does not establish delivery of the branch's authoring workflow or publication readiness.
   No app execution moves into the analyser; no template/API implementation is claimed by this intake.
-- ☑ _(shipped in 1.16.0: the whole starter catalogue)_ **Show the full template catalogue (owner accepted, 2026-09-20)** —
-  [template-picker spec D-1](spec-template-from-analyser.md#c--decisions) now replaces the onboarding-only
-  rule: list every catalogue entry and mark onboarding-tagged entries as **Recommended starting points**.
-  No tags means all entries without recommendations, not a Mongoose-only fallback. Implemented on the
-  journey branch: full list, declared build/regeneration requirements and absent/empty/populated bootstrap
-  disclosure. Mixed/no-tag parser tests and a real Swing picker over all 14 producer-branch entries pass.
-  All 14 scaffold-handler downloads now pass the real profile importer (including untagged entries).
-  Interactive acquisition/discovery acceptance, independent review and producer-first deployment remain open.
-  A guided walkthrough is a runbook procedure, not a separate runtime or a guarantee from the tag.
 - ☐ **Topology callout placement (extension of feedback 14)** — participant reports six captions covering non-target
   nodes. Inspected the existing six-target screenshot; geometry currently scores lit cut-outs/other captions,
   not all visible nodes. Feed occupied node bounds to placement and specify crowded-viewport fallback;
@@ -950,7 +893,7 @@ after review:** the first version reversed the two fixture fingerprints (source 
   audit-scaffolding case/new-owned-node policy now shipped under BETA-B2 in starter 1.0.74, with
   `CallbackAuditTest` and browser callback controls. Absence of values is not absence of execution.
 - ➜ **Delivered by M69** (owner, 2026-09-27): saved spotlight walks, stored like reports, stepped with ◀ ▶ on the
-  overlay, saved by a right-click on a live spotlight — [`spec-spotlight-walks.md`](spec-spotlight-walks.md) §0 records
+  overlay, saved by a right-click on a live spotlight — [`spec-spotlight-walks.md`](completed/spec-spotlight-walks.md) §0 records
   what it keeps from this item and what the owner's direction changes.
 - ☐ **Feature request 40 (intake alias P1) — saved focus captions** — assess explicit ordered commentary associated with a focus,
   preserving transient spotlight defaults. Attribute text; bind structural claims to model/code identity where
@@ -993,10 +936,6 @@ after review:** the first version reversed the two fixture fingerprints (source 
   overlapping F5/G13/F10), stable runtime control text (16), and documented nodeTypes scope (10).
   Cross-run note mapping must never silently equate unrelated record indices. Changeset targets (5)
   remain deferred pending a previous-text/revision contract. Full dispositions and acceptance are in the review.
-- ☑ _(shipped as M68.2 in 1.21.0)_ **Report integrity — first correctness slice** — 24: every requested section must render or carry
-  an in-place reason and export warning. Cover resolved-but-unassembled topology, not only missing
-  references. A full topology export must render the named saved focus without changing the user's
-  current view. The series-section limitation (26b) also needs an honest export warning.
 - ☐ **Reports as evidence, not automatically defects** — before optional chart polish: neutral finding
   language and an explicit persisted category at the flag write site (25); typed same-record text
   predicates (26a); real series-section assembly using existing computations (26b); bounded derived
@@ -1075,22 +1014,6 @@ after review:** the first version reversed the two fixture fingerprints (source 
   including the extended-XML download; pin the regression to that template. These are review intake,
   not fixes or independently reverified closures. Publication, witnessed preview and G14 remain open.
 
-- ☑ **Fresh-session trial performed and independently assessed.** Predictions were frozen first; no inherited
-  conversation or observer coaching. The session produced two real matching runs and a chart/report with existing
-  analyser features. **Not a clean authoring pass:** it repaired a utility-generated `privatefinal` declaration.
-  That upstream fix and playground G9 are now accepted by both pass-4 reviewers (`dbcfacc4`, `7a051224`):
-  both upstream branches are READY WITH FOLLOW-UPS. The G review also confirms DX-02–05 and their proposed order.
-  [Results, prediction scores, evidence and exact reproductions](../handoff/report_spring_authoring_acceptance_2026_09_19.md).
-- ☑ _(shipped as M68.1 in 1.21.0)_ **DX-02 — compare graph membership against the complete graph.** A declared framework sink was reported
-  absent because authored coverage IDs were used as membership. Reproduced independently. Keep the correct
-  coverage denominator; use all graph IDs for pairing/mismatch; retain real mismatch warnings across UI, actions
-  and reports. First correctness priority arising from this trial, separate from M66/M67.
-- ☑ _(shipped as M68.4 in 1.21.0)_ **DX-03 — rolled-log + graph open must honour or refuse the full request.** Current early return silently
-  drops graph/processor; observer reproduced it. Acceptance includes load completion and honest pairing/echo.
-- ☑ _(shipped as M68.4 in 1.21.0)_ **DX-04 — first topology record selection.** With loaded records and an unbound cursor, the manifest's
-  `recordIndex` parameter does nothing. Observer reproduced; selecting via goto works. Bind or refuse clearly.
-- ☑ _(shipped as M68.6 in 1.21.0)_ **DX-05 — graph names and spotlight addressability.** Colon-named charts are created but cannot be lit by
-  name. Observer reproduced. Resolve compatibility for saved names explicitly before changing the grammar.
 
 This trial predates the M66 merge and does not test M66 or M67. It supports prioritizing existing-surface correctness
 before adding new rendering primitives for this workflow. Browser preview and artifact publication remain
@@ -1449,28 +1372,19 @@ Sequence AFTER W4/W5/W11/W13: this is the optimisation of the optimisation, not 
 ---
 ## M70 · Evidence bundle replay — the second delivery — released in 1.28.0 ([spec](spec-evidence-bundle-replay.md); spike `tools/spikes/replay-bundle/`)
 
+_Ticked items moved verbatim to [the completed tracker](completed/tracker.md) ▸ *Tidy 2026-10-01*._
+
 Record at the processor (the single-threaded consumption point), replay into the recipient's build with data-driven
 time, compare in the analyser. YAML is the DEMO event encoding. The recorder stamps the receipt instant;
 graph-raised events stay in the audit log but are not recorded as external replay inputs (R-D10).
-- [M70.R0] ☑ The auditor path proven on a DEMO processor generated with the recorder (builder 1.0.71): inputs-only replay byte-identical; record-everything duplicates the graph-raised event; the second clock read reproduced (spike README ▸ *R0*)
-- [M70.R0a] ☑ `examples/fixture-generator` follows the root pom (builder 1.0.71, runtime 1.0.16, no BOM); `FixtureGeneratorToolchainTest` holds it (red on the old pom, naming all three causes)
-- [M70.R0b] ☑ The committed DEMO fixtures regenerated with the analyser's toolchain: one clock read per cycle (`eventTime == logTime`), and the new GraphML vocabulary. The graph now DECLARES `spreadCalculator` cannot log (`fluxtion.auditCapable=false`), so coverage drops it with no source (M45.3). `CoverageScopeTest` was updated to that: a declared fact is enough; with no declaration and no source the node stays counted. `GeneratedSourceIsPublishableTest` now covers the fixture generator's generated files (red on a planted copyright line). The eight fixture-reading frame suites pass on a display (43, 0 failures; 4 known Mac skips)
-- [M70.R1s] ☑ Spike: our own writer (`ReplayCapture`) and matching reader on generated processors (`tools/spikes/replay-bundle/r1/`): same build, only `endTime` differs; a changed build diverges, named at the breach; the serialiser is the processor's statically handled types (R-D9): an unencodable type fails the build, and the reader refuses any type the recipient's build does not handle
-- [M70.R2s] ☑ Spike: record by identity at the consumption point (`writer.expect(e)` before `onEvent`), replay by plain injection (R-D10): an external event of the same type the graph raises is recorded, the graph's own is not; same build only `endTime` differs; the comparison names the changed build. No matcher, no declaration
-- [M70.R1] ☑ The replay writer in the DEMO (`com.acme.demo.replay`: `ReplayCapture`, `ReplayReader`, `EventTypes`) and `DemoQuoteRecordedProcessor`. `GenerateFixtures` writes `src/test/resources/replay/` (the audit log, the replay records and the graph from one run with no service calls) and refuses to write them unless the replay reproduces the log apart from `endTime` (witness: an unrecorded input makes it refuse). `ReplayFixtureTest` holds the fixture: inputs only, each stamped with its receipt instant, one build, with witnesses
-- [M70.R2] ☑ The `replay` member: `report {bundle: {…, replay}}`. `ReplayPairing` (the frame observes: each replay record a log record's event at its `eventTime`, in order; nothing loaded; the paired bytes digested) and the `evidenceCapture` node decides (refused with a window, while the log grows, or unpaired; the service-call warning). The writer packs `replay/` and holds the copy to the digest; manifest format 2 only then, verify reads both and refuses a replay claimed without its member; `--verify` prints it with the replay limit. Tests: `ReplayPairingTest`, `ReplayBundleTest`, `EvidenceCaptureTest` (5 new), `MainBundleTest`, `EvidenceCaptureFrameTest` (through the verb)
-- [M70.R3] ☑ `--replay-compare <bundle.fexp> <replayed-audit.yaml>` (`ReplayCompare`): verifies and unpacks, then every record exact but `endTime` (by position); the first difference named by record, event and key path with both values; a count difference named at the first record one side lacks; refused with no replay records, an excerpt, or an unverifiable bundle. Exit 0 agrees, 1 diverges or refused, 2 usage. Measured on a REAL replayed log the fixture generator now commits: 8 of 8, `endTime` excepted on 8. Tests: `ReplayCompareTest` (8), `MainBundleTest`
-- [M70.R4] ☑ The runner, `tools/replay/ReplayBundle.java` (JBang or plain java): the graph checked by nodes and edges against the build's own GraphML, the allow-list the build's `handleEvent` types, each record at its instant on a data-driven clock. `ReplayRunnerEndToEndTest` compiles the committed DEMO sources as a recipient's build: the same build AGREES; a risk limit of 3 DIVERGES at record 6; a foreign graph is refused. Found: the comparison must except `thread` as well as `endTime` (R3's rule corrected), and the JBang header needs the Fluxtion repository. Smoke-run with real `jbang` and `analyser --replay-compare`: AGREES 8 of 8
-- [M70.R5] ☑ Docs site replay reference and comparison limits; CHANGELOG [Unreleased] (strict MkDocs on PR #71)
 - Decided: our own replay writer and reader (R-D8), no Fluxtion core release; replay injects only the inputs recorded at consumption (R-D10). Open for the owner: licensing (deferred); processor vs agent.
+- **Open (2026-10-01):** the whole-feature review, [PR #70](https://github.com/telaminai/fluxtionauditlog-analyser/pull/70) — most of M70 reached `main` unreviewed. **New fact for the processor-vs-agent question:** mongoose 1.0.31 (mongoose#47) records each processor's inputs at dispatch, with clock reads, timers and admin commands, and replays them. Whether a bundle's `replay/` member and `--replay-compare` should also accept that recording, instead of or beside R-D8's own writer, is an owner decision.
 
 ---
-## M71 · Workspace Start and Swing polish — PR #71, released in 1.28.0 ([spec](spec-workspace-start.md))
+## M71 · Workspace Start and Swing polish — PR #71, released in 1.28.0 ([spec](completed/spec-workspace-start.md))
 
-- [M71.1] ☑ Full-window Start page grouped by activity, with DEMO tour, project/profile, bundle, log, GraphML, template and settings entrances; the project workspace remains reachable through Help.
-- [M71.2] ☑ Native file drops and delayed bundle preparation use the existing session paths. The review correction `5f950694` cancels a prepared bundle for a newer explicit graph without cancelling reader-supplied or accepted-bundle graph facts; regression tests and named mutation controls catch the wrong result.
-- [M71.3] ☑ Graph selector, narrow series and walk controls, report and producer-finding reading surfaces, and template picker. The 28 native DEMO documentation captures were inspected and the affected guides updated (`2b516f8b`).
-- [M71.4] ☑ Final-head CI, main integration CI, release and publication receipts are [recorded here](../handoff/release_analyser_1_28_0_2026_09_29.md). The reviewer recheck is [recorded here](../handoff/review_pr71_workspace_start_2026_09_29_codex_recheck.md).
+_Ticked items moved verbatim to [the completed tracker](completed/tracker.md) ▸ *Tidy 2026-10-01*._
+
 - [M71.F1] ☐ Optional follow-up: improve the tour's instructional sequence and narrow report/list reading width; revisit the template dialog's choice hierarchy. These do not hold PR #71.
 
 ---
@@ -1492,11 +1406,9 @@ the open acceptance checks below remain open. Existing M69 and evidence-bundle f
 
 ## M69 follow-ups — spotlight walks shipped in 1.26.0 (▸ [`completed/tracker.md`](completed/tracker.md) ▸ *M69*)
 
-- [M69.F1] ☑ **W-A11: a native capture of a walk** for the docs site. The full `python3 tools/capture-docs.py`
-  run on PR #71 produced and visually checked both light and dark walk captures; the light capture is on the assistant guide.
+_Ticked items moved verbatim to [the completed tracker](completed/tracker.md) ▸ *Tidy 2026-10-01*._
+
 - [M69.F2] ☐ **The skills mention of walks** (`point-at-the-fault`), at the next hash-pinned skills publication.
-- [M69.F3] ☑ (EB.B0, `feat/evidence-bundle-v1`, unmerged) **Present the unassessed-log caveat once per walk**, not on every record or chart step. With Follow off it
-  is always present, and the strip paints only three reason lines (fix review, F5).
 - [M69.F4] ☐ **Strip reasons beyond three lines**, which a six-target step can exceed (implementation review, optional).
 - [M69.F5] ☐ **The two project-transition report sites carry no control.** A walk ends on a project switch through
   the spotlight dismissal first, so deleting them breaks no test. They are kept because they move the bulk diff's
@@ -1511,7 +1423,7 @@ it was the sixteenth for a day, until M48.7's `handoff` was folded into `open` (
 family, fresh start, a filtered-out row revealed, each view-changing verb). **Not done:** the held-out re-run of the
 guided-start prompt by a context-free client — it needs a person and a fresh client._
 
-Spec: **[spec-spotlight.md](spec-spotlight.md)**. Owner question 2026-09-16: a callout that points at the item the
+Spec: **[spec-spotlight.md](completed/spec-spotlight.md)**. Owner question 2026-09-16: a callout that points at the item the
 guided-start runbook wants to highlight. Decisions: glass-pane overlay first, a separate window only when a beat
 needs to point outside the frame (D-SP1); a fixed, small target vocabulary grown per beat (D-SP2); pure target
 resolution, dumb overlay that clears on any view-changing verb (D-SP3); transient by construction, in `context`
@@ -1525,7 +1437,7 @@ for the display test and skill edit.
 
 ## M65 · Follow refreshes open graphs — ◧ SHIPPED in 1.14.0 (archived); .5 open (.6 checked, archived)
 
-Spec: **[spec-follow-refreshes-graphs.md](spec-follow-refreshes-graphs.md)**; review
+Spec: **[spec-follow-refreshes-graphs.md](completed/spec-follow-refreshes-graphs.md)**; review
 [review_spec_m65_2026-09-17.md](../handoff/completed/review_spec_m65_2026-09-17.md) (CONDITIONAL — diagnosis and fix accepted,
 C1/C2 required; folded in, plus C3 from its "did not check" list); pass 2
 [review_spec_m65_pass2_2026-09-17.md](../handoff/completed/review_spec_m65_pass2_2026-09-17.md) (CONDITIONAL — every new code
@@ -1927,7 +1839,7 @@ analyser (reverse funnel)._
   `recordIndexes[]`, so the sketch would have made an agent guess wrong in front of the audience. Also:
   no verb lists graphable keys, the demo set cannot be installed by the agent (a second human pause), and
   a returning analyser restores its previous session. **DONE 2026-09-17:** the held-out run — a context-free client (`tools/heldout-client.py`) given the skill text
-  lit every beat before it spoke ([record](../handoff/completed/heldout_m64_2026-09-17.md)); a person watching is still the last word. — [`spec-guided-start.md`](spec-guided-start.md). Zero to a running analyser showing
+  lit every beat before it spoke ([record](../handoff/completed/heldout_m64_2026-09-17.md)); a person watching is still the last word. — [`spec-guided-start.md`](completed/spec-guided-start.md). Zero to a running analyser showing
   capabilities, driven by a prompt an LLM executes. **Verified: the tutor needs NO new verbs** — `open`,
   `filter`, `topology`, `goto`, `graph` and `flag` already drive the UI, and `context` + `screenshot` tell
   the agent what the user can actually see. The load-bearing rule is D-G2, from D-T3: **the tutor points,
@@ -2437,7 +2349,7 @@ source.
 
 **Reconciled 2026-09-19 (owner: "some of it already works, I have used it").** This section was written on 2026-09-01
 as a proposal and never reconciled with what M19.5 had already shipped on 2026-08-30 — *File ▸ New project from template…*
-(`MainFrame`, `TemplateProjectDialog`, `TemplateClient`; spec [`spec-template-from-analyser.md`](spec-template-from-analyser.md);
+(`MainFrame`, `TemplateProjectDialog`, `TemplateClient`; spec [`spec-template-from-analyser.md`](completed/spec-template-from-analyser.md);
 review `docs/handoff/completed/review_m19_5_template_picker.txt`; user guide ▸ *Projects ▸ Start from a playground template*;
 spotlit as `menu:File:New project from template…` since 1.14.1). It lists the playground catalogue's onboarding subset
 with each entry's description, takes artifact/group/base-package, downloads the scaffold under the archive-boundary rules,

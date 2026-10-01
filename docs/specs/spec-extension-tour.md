@@ -3,8 +3,8 @@
 **Status:** PROPOSED 2026-09-19 (owner-directed); **D-X7–D-X10 decided by the owner the same day** (below) — the tour
 publishes with the declaration lit. M66 is now merged on main and shipped in 1.16.0 _(corrected 2026-09-27)_; the tour remains queued behind
 the Spring-authoring release. **Milestone:** M67. **Tracker:** [tracker.md](tracker.md) ▸ M67.
-**Builds on:** [`spec-guided-start.md`](spec-guided-start.md) (the tour form: point, then speak; the held-out
-harness), [`spec-spotlight.md`](spec-spotlight.md) (M64, the vocabulary), [`spec-template-from-analyser.md`](spec-template-from-analyser.md)
+**Builds on:** [`spec-guided-start.md`](completed/spec-guided-start.md) (the tour form: point, then speak; the held-out
+harness), [`spec-spotlight.md`](completed/spec-spotlight.md) (M64, the vocabulary), [`spec-template-from-analyser.md`](completed/spec-template-from-analyser.md)
 (a live, versioned catalogue read by the analyser — the pattern this spec copies for jars),
 [M66 design render](completed/spec-design-render.md) (the beat that lights the declaration), [`spec-component-catalogue.md`](spec-component-catalogue.md) (M48.13 — a
 jar's self-description, an **optimisation, not a requirement** of this tour), the public Spring-authoring documents

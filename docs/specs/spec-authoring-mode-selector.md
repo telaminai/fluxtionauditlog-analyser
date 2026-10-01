@@ -286,7 +286,7 @@ select mode → author the gap → deploy to the template locally → run → au
 
 **This is already partly specified and must not be re-specified here:**
 
-- [`spec-template-from-analyser.md`](spec-template-from-analyser.md) — *File ▸ New project from
+- [`spec-template-from-analyser.md`](completed/spec-template-from-analyser.md) — *File ▸ New project from
   template…*, **IMPLEMENTED**; the analyser already acquires and opens a template project.
 - [`spec-agent-brokered-dev-loop.md`](spec-agent-brokered-dev-loop.md) — §C2 the template catalogue,
   §C3 the loop end to end, §E the analyser-side slice this creates.
