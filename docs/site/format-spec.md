@@ -279,11 +279,12 @@ These shapes are impossible in a record written whole, so each makes it a **brok
 (A bare `---` line the framer did not split on is framing's subject, not a value's: the record key after it is the
 break, and the run-together records are reported as such.)
 
-**What a broken record keeps.** It is kept and counted. Its fields are read only up to the earliest line any of its
-breaks withholds. For a field written twice, that is the second copy when the first comes before every field that can
-carry an event's or a node's own text (`eventToString`, `nodeLogs`, an unknown field), and the *first* copy otherwise,
-since there the forged copy can come first. **None of its node logs are read**, and the analyser names it, record and
-line, so text inside a value can never appear as a node, a node log or an event type.
+**What a broken record keeps.** It is kept and counted. A value's text can begin forged lines only after the first
+field that can carry an event's or a node's own text (`eventToString`, `nodeLogs`, an unknown field). So the record is
+read up to and including that field's own line and no further, and never past the earliest line any of its breaks
+withholds. For a field written twice before that, the record stops at the second copy. **None of its node logs are
+read**, and the analyser names it, record and line, so text inside a value can never appear as a node, a node log or an
+event type.
 
 **Withheld is not absent.** A broken record's node logs were recorded, and the analyser declined to read them. Coverage,
 the graph pairing, the records table and the CSV export say so — *withheld*, *not read* — and never that a node never

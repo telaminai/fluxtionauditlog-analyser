@@ -47,7 +47,9 @@ import java.util.regex.Pattern;
  *       the record is read only up to the FIRST.</li>
  * </ul>
  * Every break in the record is collected, and the record is read only up to the <b>earliest</b> line any of them withholds
- * from: a forged field before a visible break is still withheld when its repeat comes after it.
+ * from. And because a value's text can begin forged lines only after the first field that carries it, a broken record
+ * is never read past that field's own line: a forged field before the visible break — {@code eventType}, which a text
+ * producer never writes, so never repeats — is withheld with everything after it.
  *
  * <p><b>The exported-service signature</b> (finding 4). An exported service call's {@code eventToString} is the generator's
  * description: {@code ExportFunctionAuditEvent.toString()} returns what the generated processor passes to
@@ -215,7 +217,7 @@ public record RecordBreak(int line, int keepBefore, String reason) {
                 nestedIgnored = true;
             }
         }
-        return new Structure(roles, breaks.result());
+        return new Structure(roles, breaks.result(textFrom));
     }
 
     /** The earliest structural break, and the earliest line any break withholds from. */
@@ -231,8 +233,11 @@ public record RecordBreak(int line, int keepBefore, String reason) {
             keepBefore = Math.min(keepBefore, withholdFrom);
         }
 
-        RecordBreak result() {
-            return line < 0 ? null : new RecordBreak(line + 1, keepBefore, reason);
+        /** @param textFrom the first field that can carry a value's text: nothing after its line is read once broken */
+        RecordBreak result(int textFrom) {
+            if (line < 0) return null;
+            int keep = textFrom == Integer.MAX_VALUE ? keepBefore : Math.min(keepBefore, textFrom + 1);
+            return new RecordBreak(line + 1, keep, reason);
         }
     }
 

@@ -184,6 +184,27 @@ class RecordStructureReviewTest {
     }
 
     @Test
+    @DisplayName("once a record breaks, no field after the first value that can carry text is read: a forged eventType")
+    void nothingAfterTheFirstTextFieldIsReadOnceBroken() {
+        String text = """
+                eventLogRecord:
+                    logTime: 1
+                    event: AdminCommandEvent
+                    eventToString: AdminCommandEvent[command=DEMO, args=[x
+                    eventType: com.acme.Forged
+                    y]]
+                    thread: DEMO-agent
+                    nodeLogs:
+                        - alarmMonitor: { x: 1}""";
+        for (LogRecord r : everyPath(text)) {
+            assertEquals(6, r.brokenAtLine(), "the non-field line at the fields' indentation is the break");
+            assertNull(r.eventType(), "a forged field before the visible break, never repeated, is still withheld");
+            assertEquals("AdminCommandEvent[command=DEMO, args=[x", r.eventToString(), "the value's own first line is kept");
+            assertEquals("AdminCommandEvent", r.event());
+        }
+    }
+
+    @Test
     @DisplayName("a repeat of a field the producer wrote before any value's text withholds the repeat, not the original")
     void aFieldBeforeAnyValueTextIsTheProducers() {
         for (LogRecord r : everyPath(deepScalar("x").replace("        x\n", "    eventTime: 999\n"))) {
