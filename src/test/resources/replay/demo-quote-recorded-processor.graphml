@@ -24,7 +24,7 @@
     <graph edgedefault="directed">
         <data key="fluxtion.metaVersion">1.0</data>
         <data key="fluxtion.sourceFingerprint">f2d876b8cc4bdd6dc3216055111ed7d9f4fc4af1c6e6b3231d3fc20830b06ae3</data>
-        <data key="fluxtion.toolchainVersion">1.0.71</data>
+        <data key="fluxtion.toolchainVersion">1.0.76</data>
         <data key="fluxtion.nodeCount">21</data>
         <data key="fluxtion.authoredNodeCount">7</data>
         <node id="ClockStrategyEvent">

@@ -6,6 +6,12 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Changed
+
+- The analyser now runs on fluxtion runtime 1.1.0, the released stack (compiler 1.0.76, mongoose 1.0.32). Its own session processor and the DEMO and replay fixtures were regenerated with builder 1.0.76. Every audit log and replay record they produce is unchanged, byte for byte.
+
+### Fixed
+
 - Bundle profile redaction recognises Unicode path segments, including decomposed accents (refs #79). Quote a complete path with double, single, backtick or curly quotes, or Japanese corner brackets, to redact it whole. Quoting preserves the existing ratio, URL and path-shape exemptions. Quoted spans containing sentence punctuation, another quote type, a second path start or a parenthesised message fall back to ordinary path handling, preserving the surrounding prose. A straight or curly single closing quote needs a separator before a following letter; double quotes and corner brackets can sit beside prose. An unquoted final segment containing Han, Hiragana, Katakana, Hangul or Thai still refuses export with a request to quote the path. The existing limits for other scripts and ambiguous path spellings remain documented.
 
 ## [1.30.1] - 2026-09-30
