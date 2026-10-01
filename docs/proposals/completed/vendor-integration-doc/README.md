@@ -10,7 +10,7 @@ team building systems that have to be trusted.
 
 Everything below is taken from the experiment's own record: seventeen predictions sealed before any vendor
 code existed, scored afterwards, with the evidence preserved
-[in the repository](../../handoff/evidence/vendor-integration-2026-09-19/PREDICTIONS.md). Not everything is
+[in the repository](../../../handoff/evidence/vendor-integration-2026-09-19/PREDICTIONS.md). Not everything is
 built yet. **The integration itself works.**
 
 ---
@@ -82,7 +82,7 @@ the time described this, and it was predicted as a coin flip (P17). It worked.
 - Of 17 predictions sealed before any vendor code existed, **15 were confirmed**, one was half right, and
   the coin flip worked.
 - The vendor's VaR matched an independent calculation
-  ([`check_var.py`](../../handoff/evidence/vendor-integration-2026-09-19/check_var.py)) on **11 of 11 rows,
+  ([`check_var.py`](../../../handoff/evidence/vendor-integration-2026-09-19/check_var.py)) on **11 of 11 rows,
   to 1e-6**.
 - The desk's existing behaviour, **784 logged values and 33 sink messages**, was unchanged after every
   vendor step, including two version upgrades (P13).
@@ -160,7 +160,7 @@ should refuse to write a skeleton for any class found on the resolved classpath.
 runtime. Two vendors choosing the same `NamedNode` name (names are global, so this would collide). Bridging
 host state such as positions into the vendor. Source navigation into vendor classes (P15). And the analyser
 draws `Quote → QuoteFeed` but not the `MarketPrice → acmeQuoteFeed` route that actually runs: tracked as
-TA-9 in [the tool-agreement spec](../../specs/spec-tool-agreement.md).
+TA-9 in [the tool-agreement spec](../../../specs/spec-tool-agreement.md).
 
 **In one line:** integrating a component you did not write is proven, cheap, and removes the orchestration
 risk. Certifying it needs provenance, and that is the part still to build.
@@ -169,7 +169,7 @@ risk. Certifying it needs provenance, and that is the part still to build.
 
 ## Reproduce it
 
-Everything needed is in [`docs/handoff/evidence/vendor-integration-2026-09-19/`](../../handoff/evidence/vendor-integration-2026-09-19/):
+Everything needed is in [`docs/handoff/evidence/vendor-integration-2026-09-19/`](../../../handoff/evidence/vendor-integration-2026-09-19/):
 
 | Path | What |
 |---|---|

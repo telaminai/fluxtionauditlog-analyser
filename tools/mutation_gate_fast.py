@@ -1,6 +1,6 @@
 """The fast mutation engine and branch-subset selection for tools/verify_project_chart_review.py.
 
-Proposal: docs/proposals/faster-mutation-gate.md (PR #16). The Maven engine pays a whole Maven lifecycle
+Proposal: docs/proposals/completed/faster-mutation-gate.md (PR #16). The Maven engine pays a whole Maven lifecycle
 twice per control, and each one recompiles all of src/main/java because one file changed. This engine
 keeps what makes the gate trustworthy and drops that cost:
 

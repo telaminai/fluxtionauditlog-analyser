@@ -967,7 +967,7 @@ Unresolved optional items and owner decisions remain in the live tracker below i
 ## Fast mutation gate — ☑ MERGED with the 1.20.0 main tree — 2026-09-24
 
 PR #18 merged as `7254c29d`, proposal PR #16 as `2a15f0ba`.
-[Proposal and implementation status](../../proposals/faster-mutation-gate.md).
+[Proposal and implementation status](../../proposals/completed/faster-mutation-gate.md).
 The engine uses a fresh JVM per control, restores byte snapshots, forces a clean rebuild on API or
 constant changes, and records partial results on failure. CI runs the full fast gate; Maven remains
 the local default for the initial comparison cycle. Main CI at the release candidate passed the
@@ -979,7 +979,7 @@ conservative; branch subsets are heuristic, not a release gate. Branch-protectio
 
 ## Java source spotlight — ☑ SHIPPED in 1.19.0 — 2026-09-23
 
-[Proposal](../../proposals/source-spotlight.md), [round-four response](../../handoff/completed/response_source_spotlight_r4_2026_09_21.md).
+[Proposal](../../proposals/completed/source-spotlight.md), [round-four response](../../handoff/completed/response_source_spotlight_r4_2026_09_21.md).
 Rebased first onto `809303f7`, then released main `9b88e6ac` on a replacement branch without force-pushing. Main's archived/closed statuses and later work are preserved. Source baseline `401da35b`. Explicit FQN/line targets beside topology; node inference deferred.
 SourceService first-match lookup and repeat-spotlight reread are explicit; the source-glance verb
 remains unchanged. Java clips with partial disclosure; design keeps released containment refusal.

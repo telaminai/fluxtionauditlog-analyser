@@ -5,7 +5,7 @@ The original implementation remains at `5bf2e442` on `feat/java-source-spotlight
 branch rebases it without force-pushing published history. Only this feature's section is added to the tracker.
 The primary checkout and its IDE edits were not used for implementation. No merge or release is requested.
 
-Contract: [source spotlight proposal](../../proposals/source-spotlight.md). Predictions were committed
+Contract: [source spotlight proposal](../../proposals/completed/source-spotlight.md). Predictions were committed
 before source changes (`aa10f326`, rebased as `b199f1cc`, then `54658193`). The accepted review and S-1/S-2 clarifications
 are preserved in the proposal packet. N-1's deadline was specified in the tracker before that code was added.
 

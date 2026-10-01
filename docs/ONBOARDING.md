@@ -169,9 +169,10 @@ If you are relying on a gate, check first that it can see the thing you are rely
 
 - `docs/specs/README.md` — the index of live specs, grouped by theme, with each one's status and owning tracker section.
 - `docs/specs/spec.md` — the product spec (start here for the "what/why").
-- `docs/specs/tracker.md` — **live** work items only, with the current delivery order (next up:
-  **M13** MCP bridge and the **M18.0** admin-surface spike — independent tracks); finished milestones
-  are archived under `docs/specs/completed/`.
+- `docs/specs/tracker.md` — **live** work items only, one line each, with the current delivery order;
+  `docs/specs/decisions.md` holds the resolved decisions; finished milestones are archived under
+  `docs/specs/completed/`, and the tracker's pre-2026-10-01 detail is in
+  `docs/specs/completed/tracker-detail-2026-10-01.md`.
 - `docs/specs/spec-closed-loop.md` — the active design: agent fix handoff (M12.4) + Mongoose server
   link (M18). Its two load-bearing decisions are recorded in the tracker's Decisions: server verbs are
   **never** assistant actions, and agent fixes arrive as **evidence-linked PRs**, never direct edits.
@@ -263,7 +264,7 @@ after the fact, and the ledger makes the debt explicit rather than silent.
 
 When you finish work: mark items ☑ in `docs/specs/tracker.md`; when a whole milestone/round is done,
 **move it to `docs/specs/completed/tracker.md`** and keep the live tracker to in-progress + future
-only. New designs get a `spec-<name>.md`; superseded ones move to `completed/`.
+only, one or two lines per item — longer detail goes in the spec, an issue or an evidence folder. New designs get a `spec-<name>.md`; superseded ones move to `completed/`.
 
 ## Gotchas
 
