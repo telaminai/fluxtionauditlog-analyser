@@ -1,7 +1,7 @@
 # Proposal — document vendor integration on the analyser site
 
 **Status:** proposed 2026-09-21 · **Evidence:** [the vendor integration record](README.md) ·
-**Touches:** [`docs/site/composing-a-system.md`](../../site/composing-a-system.md) (published 2026-09-10) and
+**Touches:** [`docs/site/composing-a-system.md`](../../../site/composing-a-system.md) (published 2026-09-10) and
 one new page
 
 ## Why
@@ -32,7 +32,7 @@ toolchain protects is the fastest way to lose the reader it was written to win.
 | "Every selected bean becomes a graph node, named by its bean id" (line 18); "a supplier's node appears in your log under the name *you* gave it" (lines 93–95) | True when the integrator declares every supplier class as a bean, which is the page's example. **False** when the supplier ships a pre-wired sub-graph behind one root bean: the bean id `acmeRisk` was lost and the internals were named `riskEngine_13`, `varCalculator_14`… Stable names came from the **supplier** implementing `NamedNode`, not from the integrator (P8) | half true | describe both composition patterns and what each does to names |
 | "mistakes in it are build failures rather than silence" (lines 58–60) | **False for the worst mistake available.** Listing a supplier class in the Spring design's `nodeBeans` made the starter write an empty class that shadows the supplier's. `validate ok · regenerate ok · preflight ok · build ok`, zero diagnostics, and the component deleted (P4, feedback #29) | false in the case that matters most | qualify the sentence, and add the warning in the box below |
 | "What they do not need is … any knowledge of the graph they will be part of" (lines 111–112) | True of the graph. But the generated processor rebuilds every node with `new` from another package, so a supplier must make **every internal node public with a public constructor** matching its `final` fields. The encapsulated build was rejected (P6) | true, incomplete | add the supplier's obligations |
-| "Stepping through a recorded cycle is then an account of what ran, in order" (lines 89–90) | True for declared routes. When a host event implements a supplier's interface, the event runs down a route the topology does not draw (`MarketPrice → acmeQuoteFeed`) | true, with a gap | add a caveat until TA-9 in [the tool-agreement spec](../../specs/spec-tool-agreement.md) ships, then remove it |
+| "Stepping through a recorded cycle is then an account of what ran, in order" (lines 89–90) | True for declared routes. When a host event implements a supplier's interface, the event runs down a route the topology does not draw (`MarketPrice → acmeQuoteFeed`) | true, with a gap | add a caveat until TA-9 in [the tool-agreement spec](../../../specs/spec-tool-agreement.md) ships, then remove it |
 | C++ equivalence at 1,981,480 decision points (lines 99–106) | Not tested by this work. The C++ target shipped as a preview | out of scope | owner to confirm the wording still reflects the preview status before the page grows around it |
 
 ## Proposed changes to `composing-a-system.md`

@@ -406,7 +406,7 @@ lighting the plot, rather than claiming the marker is absent. The companion mark
 
 ## Java source spotlight — implementation contract (shipped in 1.19.0)
 
-The [reviewed source spotlight proposal](../../proposals/source-spotlight.md) defines this extension and
+The [reviewed source spotlight proposal](../../proposals/completed/source-spotlight.md) defines this extension and
 its acceptance/mutation checks. `source:java:<fqn>` means the visible Java text viewport;
 `source:java:<fqn>:line:<n>` means one logical editor line including wrapped rows and the final empty
 line after a trailing newline. No node alias is added.
