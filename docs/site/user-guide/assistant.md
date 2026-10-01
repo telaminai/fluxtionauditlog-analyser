@@ -241,6 +241,17 @@ Four things worth knowing before you rely on it:
 
 ### Save it as a walk
 
+Java targets resolve the saved class name and line against the roots currently in force. **CURRENT does not
+certify the source revision against the saved caption.** The callout says “saved source revision not compared”,
+and the target reason in `context.walks` states the same limitation. A caption about `return 0.004` can therefore
+appear beside `return 999`, but not without that disclosure. “Source/run: unverified” answers a different question:
+whether source is paired with the log.
+
+While Java is being read, the strip remains **Preparing**, and the accepted dialogue prefix does not advance.
+Only the matching lighting result settles it. Reads are bounded and off the UI thread; a failure or expiry
+settles as not shown. Switching tabs, including with the native keyboard action, ends incompatible pending walk
+work. The walk's own view changes retain their operation ticket and do not cancel themselves.
+
 An explanation worth giving twice is worth keeping. A **spotlight walk** is a named sequence of spotlight steps,
 saved in the project like a report, that you — or a colleague who opens the same project — step through on the
 analyser itself, with no assistant connected.

@@ -343,7 +343,10 @@ public final class ProjectProfile {
      * What happened when a profile was loaded — never an exception, so startup cannot fail on it.
      * {@code nonce} is the loaded profile's creation nonce ({@link #NONCE_KEY}), or null when it has none.
      */
-    public record LoadResult(boolean loaded, String message, String nonce) {
+    public record LoadResult(boolean loaded, String message, String nonce, String contentDigest) {
+        public LoadResult(boolean loaded, String message, String nonce) {
+            this(loaded, message, nonce, null);
+        }
         public LoadResult(boolean loaded, String message) {
             this(loaded, message, null);
         }
@@ -356,6 +359,11 @@ public final class ProjectProfile {
      * reason: a moved repository must degrade to "global only, and here is why", not to a dead app.
      */
     public static LoadResult load(Path file, AppConfig target, SettingsShare share) {
+        return load(file, target, share, null);
+    }
+
+    /** Compare the exact UTF-8 content being parsed, before applying any settings. */
+    public static LoadResult load(Path file, AppConfig target, SettingsShare share, String expectedDigest) {
         if (file == null) {
             return new LoadResult(false, "no project file");
         }
@@ -369,6 +377,10 @@ public final class ProjectProfile {
             return new LoadResult(false, "could not read " + file + ": " + e.getMessage());
         }
         try {
+            String digest = contentDigest(text);
+            if (expectedDigest != null && !expectedDigest.equals(digest)) {
+                return new LoadResult(false, "verified bundle profile changed before application: " + file);
+            }
             // relative roots resolve against the PROJECT ROOT for the canonical profile (M19.2 as the
             // bundle contract meant it; M35.10 made it so) — which is what lets a committed profile use
             // repo-relative paths and still work on a teammate's machine
@@ -405,9 +417,19 @@ public final class ProjectProfile {
             if (declared.getProperty("skills.source") != null) {
                 warn += "  ·  ⚠ skills.source REFUSED — build/release input, never a project setting";
             }
-            return new LoadResult(true, "project loaded: " + file + warn, validNonce(declared.getProperty(NONCE_KEY)));
+            return new LoadResult(true, "project loaded: " + file + warn,
+                    validNonce(declared.getProperty(NONCE_KEY)), digest);
         } catch (RuntimeException | IOException e) {
             return new LoadResult(false, "could not load " + file + ": " + e.getMessage());
+        }
+    }
+
+    private static String contentDigest(String text) {
+        try {
+            return java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256")
+                    .digest(text.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+        } catch (java.security.NoSuchAlgorithmException impossible) {
+            throw new AssertionError(impossible);
         }
     }
 

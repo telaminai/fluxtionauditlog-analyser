@@ -8,7 +8,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class BundleOpenReplayTest {
     private static SessionEvents.BundlePlan plan() {
         return new SessionEvents.BundlePlan("/bundle/project.fluxtion-settings", "/bundle/graph.graphml",
-                "/bundle/log.yaml", "DEMO-identity", "/bundle", "DEMO limits");
+                "/bundle/log.yaml", "DEMO-identity", "/bundle", "DEMO limits", "", null, null, "DEMO-first-digest");
     }
 
     @Test void lateBundleCannotReplaceTheNewerProjectOrOpenItsEvidence() {
@@ -54,7 +54,7 @@ class BundleOpenReplayTest {
     @Test void lateFirstBundleCannotStealASecondPendingBundle() {
         var first = plan();
         var second = new SessionEvents.BundlePlan("/second/project.fluxtion-settings",
-                "/second/graph.graphml", "/second/log.yaml", "DEMO-second", "/second", "DEMO limits");
+                "/second/graph.graphml", "/second/log.yaml", "DEMO-second", "/second", "DEMO limits", "", null, null, "DEMO-second-digest");
         var adapter = new FakeSessionAdapter().withProfile(first.profilePath()).withProfile(second.profilePath());
         var driver = new SessionDriver(adapter);
         long firstId = driver.nextOpId();

@@ -18,7 +18,7 @@ class BundleProvenanceTest {
         // the 8th component is the .fexp the person chose; the 1st is the profile inside the working copy
         return new SessionEvents.BundlePlan("/bundle/project.fluxtion-settings", "/bundle/graph.graphml",
                 "/bundle/log.yaml", "sha256:DEMO-identity", "/bundle", "DEMO limits", "",
-                "/demo/evidence.fexp");
+                "/demo/evidence.fexp", null, "DEMO-profile-digest");
     }
 
     private static SessionDriver openedBundle(FakeSessionAdapter adapter) {

@@ -109,15 +109,21 @@ public final class WalkResolver {
                         : s == WalkIdentity.State.HISTORICAL ? "the topology differs from when this walk was saved"
                         : "the topology's identity is unknown");
             }
-            default -> new Verdict(WalkIdentity.State.CURRENT, true, "");
+            default -> new Verdict(WalkIdentity.State.CURRENT, true, target.javaSource()
+                    ? "name/line lookup only: source revision was not compared with the saved caption" : "");
         };
     }
 
     /** A lit target's caption, marked when it is not current — never presented as current when it is not. */
     public static String caption(String caption, WalkIdentity.State state) {
+        return caption(caption, state, false);
+    }
+
+    public static String caption(String caption, WalkIdentity.State state, boolean javaSource) {
         String c = caption == null ? "" : caption;
-        if (state == WalkIdentity.State.CURRENT) return c;
-        String mark = state == WalkIdentity.State.HISTORICAL ? " (historical)" : " (unresolved)";
+        if (state == WalkIdentity.State.CURRENT && !javaSource) return c;
+        String mark = javaSource ? " (saved source revision not compared)"
+                : state == WalkIdentity.State.HISTORICAL ? " (historical)" : " (unresolved)";
         int room = SpotlightTarget.MAX_CAPTION - mark.length();
         if (c.length() > room) c = c.substring(0, Math.max(0, room - 1)) + "…";
         return c + mark;

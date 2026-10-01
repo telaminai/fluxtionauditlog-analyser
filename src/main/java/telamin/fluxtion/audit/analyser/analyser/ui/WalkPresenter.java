@@ -66,16 +66,6 @@ final class WalkPresenter {
          */
         LitResult light(List<Numbered> requests, long ticket);
 
-        /**
-         * Can this Java target's source be READ? #72: a Java target is not on screen until it has been
-         * prepared, so asking "is it visible?" — the question every other family answers — judged it
-         * unavailable and it was never lit. The honest question for source is whether the class resolves
-         * under the roots in force; preparation is what makes it visible.
-         */
-        default boolean canPrepareSource(String target) {
-            return false;
-        }
-
         void clearWalkSpotlight();
 
         void post(Object fact);
@@ -274,16 +264,13 @@ final class WalkPresenter {
                 reason = "record " + step.view().record() + " is not shown — this step's filter hides it, so "
                         + whatItWouldDescribe(t) + " does not describe it";
             }
-            if (available && isSource(t.target())) {
-                if (!frame.canPrepareSource(t.target())) {
-                    available = false;
-                    reason = "no source for this class under the configured roots";
-                }
-            } else if (available) {
+            // Java lookup/read belongs to the bounded background lighting effect, never an EDT
+            // availability probe. This only admits preparation; WalkTargetsLit establishes display.
+            if (available && !isSource(t.target())) {
                 SpotlightTarget.Resolution r = frame.resolve(t.target());
                 if (!r.lit()) { available = false; reason = r.reason(); }
             }
-            out.add(new SessionEvents.WalkTargetState(n++, t.target(), WalkResolver.caption(t.caption(), v.state()),
+            out.add(new SessionEvents.WalkTargetState(n++, t.target(), WalkResolver.caption(t.caption(), v.state(), isSource(t.target())),
                     v.state().name(), available, reason));
         }
         return out;

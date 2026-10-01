@@ -1469,7 +1469,9 @@ public final class MainFrame extends JFrame {
                 profile.toString(), graphs.isEmpty() ? null : root.resolve(graphs.getFirst()).toString(),
                 root.resolve(logs.getFirst()).toString(), verification.identity(), root.toString(), limits,
                 firstNoteLine(root.resolve(telamin.fluxtion.audit.analyser.bundle.BundleWriter.NOTES)),
-                bundlePath, verification.processor());
+                bundlePath, verification.processor(), verification.members().stream()
+                        .filter(member -> member.path().equals("profile/project.fluxtion-settings"))
+                        .findFirst().orElseThrow().sha256());
         return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileLoaded(
                 opId, profile.toString(), true, null, 0, null, plan);
     }
@@ -2729,6 +2731,8 @@ public final class MainFrame extends JFrame {
 
     /** M69: true while the walk lights or clears its OWN spotlight, so that is not reported as the walk ending. */
     private boolean walkOwnSpotlight;
+    /** Dynamic effect origin, restored synchronously; never left ambient while a reader runs. */
+    private long walkViewChangeTicket = -1;
 
     /** M69: performs what walkPlayback asks; decides nothing (spec-spotlight-walks.md §3.8). */
     private final WalkPresenter walkPresenter = new WalkPresenter(new WalkPresenter.Frame() {
@@ -2749,11 +2753,6 @@ public final class MainFrame extends JFrame {
         @Override public SpotlightTarget.Resolution resolve(String target) {
             return SpotlightTarget.resolve(target, spotlightSurface);
         }
-        @Override public boolean canPrepareSource(String target) {
-            var parsed = SpotlightTarget.parse(target);
-            if (!parsed.ok() || parsed.target().sourceFqn() == null) return false;
-            return sourceService.sourceForFqn(parsed.target().sourceFqn()).isPresent();
-        }
         @Override public WalkPresenter.LitResult light(java.util.List<WalkPresenter.Numbered> numbered, long ticket) {
             java.util.List<Map<String, Object>> targets = new java.util.ArrayList<>();
             Map<String, Integer> numbers = new java.util.LinkedHashMap<>();
@@ -2770,21 +2769,14 @@ public final class MainFrame extends JFrame {
             // frame answers later, with the ticket, and the step stays PREPARING until it does -- the
             // same shape as any other step whose evidence takes a moment to be certain of.
             if (SpotlightTarget.hasJava(params)) {
-                // walkOwnSpotlight spans the WHOLE preparation, not just the apply. Reading the source
-                // puts the previous light out, and a light going out during a walk is read as the person
-                // dismissing it -- so the walk ended itself, and the step settled with nothing lit.
-                walkOwnSpotlight = true;
-                prepareJavaSpotlightHere(params, () -> { }, true).thenAccept(prepared ->
+                prepareJavaSpotlightHere(params, () -> { }, ticket).thenAccept(prepared ->
                         SwingUtilities.invokeLater(() -> {
-                            try {
-                                if (prepared.ok()) spotlight.renumber(numbers);
-                                session().submit(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents
-                                        .WalkTargetsLit(session().nextOpId(), ticket,
-                                        prepared.ok() ? spotlight.lit().size() : 0,
-                                        prepared.ok() ? "" : prepared.error()));
-                            } finally {
-                                walkOwnSpotlight = false;
-                            }
+                            boolean current = session().processor().walkPlayback.permitsSourceApplication(ticket);
+                            if (current && prepared.ok()) spotlight.renumber(numbers);
+                            session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents
+                                    .WalkTargetsLit(session().nextOpId(), ticket,
+                                    current && prepared.ok() ? spotlight.lit().size() : 0,
+                                    prepared.ok() ? "" : prepared.error()));
                         }));
                 return new WalkPresenter.LitResult(0, "", true);
             }
@@ -3095,6 +3087,15 @@ public final class MainFrame extends JFrame {
         sourceRemeasureQueued = true;
         SwingUtilities.invokeLater(() -> { sourceRemeasureQueued = false; relightSpotlight(); });
     }
+
+    /** Capture the effect origin now; marshal only the fact, never a later ambient origin. */
+    private void reportWalkViewChanged() {
+        if (session == null) return;
+        var fact = new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.WalkViewChanged(walkViewChangeTicket);
+        Runnable report = () -> session.post(fact);
+        if (SwingUtilities.isEventDispatchThread()) report.run();
+        else SwingUtilities.invokeLater(report);
+    }
     private static Integer javaLine(SpotlightTarget t) {
         return t.family() == SpotlightTarget.Family.JAVA_LINE ? t.number() : null;
     }
@@ -3107,19 +3108,15 @@ public final class MainFrame extends JFrame {
     /** EDT capture / background immutable preparation / EDT apply. Never wait on the event thread. */
     private java.util.concurrent.CompletableFuture<telamin.fluxtion.audit.analyser.analyser.llm.ActionResult> prepareJavaSpotlightHere(
             Map<String, Object> params, Runnable revealRows) {
-        return prepareJavaSpotlightHere(params, revealRows, false);
+        return prepareJavaSpotlightHere(params, revealRows, -1);
     }
 
     /**
-     * @param ownedByWalk true when a WALK step asked. The supersede checks below exist because a person
-     *     who moves the view while source is being read would be shown coordinates for a view that has
-     *     gone. A walk's step moves the view ITSELF, immediately before asking — so those same checks
-     *     reported "superseded" for every mixed step and nothing was lit (#72, found live 2026-09-30).
-     *     The checks that still matter are kept: a newer request, a changed source lookup, a different
-     *     log, a disposed window.
+     * @param walkTicket the owning walk effect, or -1 for an ordinary spotlight. The session decides
+     *     whether that ticket survived external navigation; the adapter only installs accepted work.
      */
     private java.util.concurrent.CompletableFuture<telamin.fluxtion.audit.analyser.analyser.llm.ActionResult> prepareJavaSpotlightHere(
-            Map<String, Object> params, Runnable revealRows, boolean ownedByWalk) {
+            Map<String, Object> params, Runnable revealRows, long walkTicket) {
         var result = new java.util.concurrent.CompletableFuture<telamin.fluxtion.audit.analyser.analyser.llm.ActionResult>();
         if (!SwingUtilities.isEventDispatchThread()) throw new IllegalStateException("Capture belongs on EDT");
         var asked = SpotlightTarget.requests(params);
@@ -3154,17 +3151,22 @@ public final class MainFrame extends JFrame {
                 () -> JavaSpotlightPlan.read(lookup, asked.requests(), retained), plan -> {
                     if (result.isDone()) return;
                     if (System.nanoTime() - deadlineNanos >= 0) { expire.run(); return; }
-                    boolean viewMoved = !ownedByWalk
+                    boolean viewMoved = walkTicket < 0
                             && (capturedTab != sideTabs.getSelectedComponent()
                             || !capturedSourceView.equals(sourcePanel.spotlightViewState())
                             || !capturedTopologyView.equals(topologyPanel.sourceViewer().spotlightViewState()));
                     if (ticket != javaSpotlightTicket || !sourceService.isCurrent(lookup) || capturedStore != store
-                            || !isDisplayable() || viewMoved) {
+                            || !isDisplayable() || viewMoved
+                            || walkTicket >= 0 && !session().processor().walkPlayback.permitsSourceApplication(walkTicket)) {
                         result.complete(telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("Java source spotlight superseded; retry against the current view")); return;
                     }
                     String refusal = SpotlightTarget.precheck(asked, spotlight.lit().stream().map(SpotlightOverlay.Lit::target).toList(), store == null ? -1 : store.index().size());
                     if (refusal != null) { result.complete(telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(refusal)); return; }
                     applyingJavaSpotlight = true;
+                    long displacedViewTicket = walkViewChangeTicket;
+                    boolean displacedSpotlightOrigin = walkOwnSpotlight;
+                    walkViewChangeTicket = walkTicket;
+                    walkOwnSpotlight = walkTicket >= 0;
                     try {
                         // All source/line refusals have happened BEFORE goto can relax a record filter.
                         revealRows.run();
@@ -3183,6 +3185,8 @@ public final class MainFrame extends JFrame {
                         result.complete(telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("Java source spotlight refused: " + ex.getMessage()));
                     } finally {
                         applyingJavaSpotlight = false; relightSpotlight();
+                        walkViewChangeTicket = displacedViewTicket;
+                        walkOwnSpotlight = displacedSpotlightOrigin;
                     }
                 }, ex -> result.complete(telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("Java source spotlight refused: " + ex.getMessage())));
         result.whenComplete((value, failure) -> {
@@ -4147,6 +4151,7 @@ public final class MainFrame extends JFrame {
         JSplitPane center = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, factsColumn, canvasColumn);
         center.setDividerSize(9);          // constant, rather than whatever the tab's content implies
         sideTabs.addChangeListener(e -> {
+            reportWalkViewChanged();
             sourceViewportChanged();
             // read now, restore after the tab change has re-laid out
             int location = center.getDividerLocation();
@@ -7018,7 +7023,11 @@ public final class MainFrame extends JFrame {
         sessionProblem = null;
         var driver = session();
         driver.submit(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents
-                .OpenProjectRequested(driver.nextOpId(), file.toString(), kind, source, ActionExecutor.assistantOrigin()));
+                .OpenProjectRequested(driver.nextOpId(), file.toString(), kind, source, ActionExecutor.assistantOrigin(),
+                        new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectAudience(
+                                interactive ? telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.OperationOrigin.PERSON
+                                        : telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.OperationOrigin.MACHINE,
+                                offersAllowed())));
         syncBusyWithGate();
         projectDesignChanged();
         if (sessionProblem == null && recovery != null) recovery.activate(project.activeFile(), project.activeNonce(), null);
@@ -7245,10 +7254,10 @@ public final class MainFrame extends JFrame {
                 // "loaded" here means both. Splitting them is a later slice; what is already true and
                 // was not before is that the log and graph close only on a load that SUCCEEDED, and
                 // that the close is proven by LogClosed rather than assumed from the request.
-                var r = project.open(Path.of(e.profilePath()));
+                var r = project.open(Path.of(e.profilePath()), e.expectedDigest());
                 yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileLoaded(
                         opId, e.profilePath(), r.loaded(),
-                        r.loaded() ? project.activeName() : null, 0, r.message());
+                        r.loaded() ? project.activeName() : null, 0, r.message(), null, r.contentDigest());
             }
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.CreateProfileEffect e -> {
                 var r = project.create(Path.of(e.profilePath()));
@@ -7268,29 +7277,27 @@ public final class MainFrame extends JFrame {
                         opId, e.profilePath(), e.name());
             }
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.OfferProjectReopenEffect e -> {
-                // PERFORM only: which files exist is the filesystem's answer and which to open is the
-                // person's. projectReopenOffer decided that an offer is warranted at all.
-                //
-                // invokeLater, NEVER inline. This arm runs inside the driver's cycle, and the offer both
-                // shows a modal and -- if the person picks something -- starts an OpenLogRequested. Done
-                // here that is "submit while a cycle was still running": the driver is single-in-flight
-                // and threw ProtocolViolation on the EDT, so the offer died and nothing opened. The same
-                // hazard maybeOfferProject documents. The effect's job is to answer; the asking comes
-                // after the cycle (found in use, 2026-09-30).
-                // The DECISION is taken here, inside the cycle: who is at the keyboard belongs to the
-                // operation that asked, and reading it later from a mutable field got it wrong both ways
-                // -- a socket verb arriving before the queue drained silently ate a person's offer, and a
-                // menu click after a socket-driven open raised a modal for an operation nobody started
-                // (review, 2026-09-30). Only the ASKING is deferred, because a modal must not run inside
-                // the driver's single-in-flight cycle.
-                var candidates = reopenCandidates();
-                String label = project.activeLabel();
-                boolean asking = sessionInteractive && !showingSomething() && !candidates.isEmpty();
-                if (asking) SwingUtilities.invokeLater(() -> offerToReopen(candidates, label));
-                // ...and the record says which happened. It used to say "offered" unconditionally, so the
-                // audit claimed an offer that the adapter had just vetoed.
-                yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StatusShown(
-                        e.opId(), asking ? "offerProjectReopen" : "offerProjectReopenSkipped");
+                var observed = new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectReopenReady(
+                        e.opId(), e.profilePath(), project.activeLabel(), reopenCandidates(), showingSomething());
+                SwingUtilities.invokeLater(() -> session.post(observed));
+                yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Pending(opId, "preparing reopen offer");
+            }
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ShowProjectReopenEffect e -> {
+                // Modal UI must run outside the driver's cycle. The node owns the deferred permission;
+                // a later request cannot lend its audience to this one (#99).
+                var chooser = reopenChooser;
+                SwingUtilities.invokeLater(() -> {
+                    boolean permitted = session.processor().projectReopenOffer.mayPresent(e.opId(), e.profilePath());
+                    if (!permitted) {
+                        session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectReopenPresented(opId, false));
+                        return;
+                    }
+                    var chosen = chooser != null ? chooser.apply(e.label(), e.candidates())
+                            : ProjectReopenDialog.choose(this, e.label(), e.candidates());
+                    session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectReopenPresented(opId, true));
+                    applyReopenChoice(chosen);
+                });
+                yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Pending(opId, "reopen offer scheduled");
             }
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.RememberBundleAnchorEffect e -> {
                 // PERFORM only. bundleAnchor decided that these roots are this bundle's answer; the frame
@@ -7308,7 +7315,8 @@ public final class MainFrame extends JFrame {
                 // Which of the remembered roots still EXIST is a question about the filesystem, so it is
                 // answered here rather than in the node.
                 boolean any = false;
-                for (String anchored : config.bundleSourceRoots(e.bundleSource())) {
+                var remembered = List.copyOf(config.bundleSourceRoots(e.bundleSource()));
+                for (String anchored : remembered) {
                     if (Files.isDirectory(Path.of(anchored)) && !config.sourceRoots.contains(anchored)) {
                         config.sourceRoots.add(anchored);
                         any = true;
@@ -7319,8 +7327,8 @@ public final class MainFrame extends JFrame {
                 } else if (config.sourceRoots.isEmpty()) {
                     offerToAnchorSource(e.bundleSource());
                 }
-                yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StatusShown(
-                        e.opId(), "restoreBundleAnchor");
+                yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleRootsRestored(
+                        e.opId(), e.bundleSource(), remembered, List.copyOf(config.sourceRoots));
             }
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.OpenBundleEvidenceEffect e -> {
                 var plan = e.plan();
@@ -7404,9 +7412,17 @@ public final class MainFrame extends JFrame {
             }
             // M69: walk playback — the node decided; the presenter performs and answers
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ApplyWalkViewEffect e -> {
-                yield walkPresenter.applyView(e);      // it clears the previous step's light only once the view is valid
+                long displaced = walkViewChangeTicket;
+                walkViewChangeTicket = e.ticket();
+                try { yield walkPresenter.applyView(e); }
+                finally { walkViewChangeTicket = displaced; }
             }
-            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.LightWalkTargetsEffect e -> walkPresenter.light(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.LightWalkTargetsEffect e -> {
+                long displaced = walkViewChangeTicket;
+                walkViewChangeTicket = e.ticket();
+                try { yield walkPresenter.light(e); }
+                finally { walkViewChangeTicket = displaced; }
+            }
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ResolveWalkTargetsEffect e -> walkPresenter.resolveAgain(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.EndWalkEffect e -> walkPresenter.end(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ScanLogEvidenceEffect e -> {
@@ -7860,16 +7876,11 @@ public final class MainFrame extends JFrame {
      * ones belonged to it (found in use, 2026-09-30). Nothing is opened unasked.
      */
     private void offerToReopen() {
-        // A modal question is only fair when somebody is there to answer it. An assistant opening a
-        // project over the socket must not stop on a dialog nobody asked for and nobody can see.
-        if (!sessionInteractive) return;
-        // ...and only when nothing is mid-demonstration. A walk or a lit spotlight IS the thing the
-        // person is looking at; a modal over it takes the click that dismisses it and the walkthrough
-        // dies with the light (found in use, 2026-09-30). The offer is an offer: skipping it costs
-        // nothing, and Project ▸ Open recent log and topology… asks again whenever they want.
-        if (showingSomething()) return;
-        if (!offersAllowed()) return;
-        offerToReopen(reopenCandidates(), project.activeLabel());
+        var driver = session();
+        driver.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectReopenRequested(
+                driver.nextOpId(), project.activeFile() == null ? null : project.activeFile().toString(),
+                new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectAudience(
+                        telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.OperationOrigin.PERSON, offersAllowed())));
     }
 
     /**
@@ -7927,9 +7938,7 @@ public final class MainFrame extends JFrame {
         // ...and each list falls back ON ITS OWN. Falling back only when BOTH were empty meant a
         // project with logs but no topology of its own offered logs and no topology at all, which is
         // exactly the case reported: the topology never loaded because it was never offered.
-        return new telamin.fluxtion.audit.analyser.analyser.config.ProjectReopen(
-                mine.logs().isEmpty() ? machine.logs() : mine.logs(),
-                mine.topologies().isEmpty() ? machine.topologies() : mine.topologies());
+        return mine.withFallback(machine);
     }
 
     /**
@@ -7962,6 +7971,10 @@ public final class MainFrame extends JFrame {
         var chosen = chooser != null
                 ? chooser.apply(label, candidates)
                 : ProjectReopenDialog.choose(this, label, candidates);
+        applyReopenChoice(chosen);
+    }
+
+    private void applyReopenChoice(ProjectReopenDialog.Choice chosen) {
         if (chosen == null) return;
         if (chosen.topology() != null) openGraphml(chosen.topology());
         if (chosen.log() != null) {
@@ -8177,6 +8190,9 @@ public final class MainFrame extends JFrame {
                 return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("import", "preview", echo);
             }
             new telamin.fluxtion.audit.analyser.analyser.config.SettingsShare().apply(plan, selected, config);
+            if (selected.contains(telamin.fluxtion.audit.analyser.analyser.config.SettingsShare.Category.GRAPHS)) {
+                restoreGraphDefinitions(List.copyOf(config.savedGraphs));
+            }
             onConfigChanged();
             refreshProjectPanel();
             echo.put("applied", true);
