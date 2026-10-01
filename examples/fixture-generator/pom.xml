@@ -16,8 +16,8 @@
              FixtureGeneratorToolchainTest holds it there. The builder is on its own version line. An older
              builder against the current hosted generator emits a processor whose auditEvent is EMPTY: it
              compiles, and it writes no audit log at all (found 2026-09-28, spike README ▸ R0). -->
-        <fluxtion.version>1.0.16</fluxtion.version>
-        <fluxtion.builder.version>1.0.71</fluxtion.builder.version>
+        <fluxtion.version>1.1.0</fluxtion.version>
+        <fluxtion.builder.version>1.0.76</fluxtion.builder.version>
         <fluxtion.maven-plugin.version>1.3.0</fluxtion.maven-plugin.version>
     </properties>
 
@@ -88,6 +88,48 @@
                 </executions>
             </plugin>
 
+            <!-- Strip the generator's attribution line, exactly as the analyser's root `regen` profile does, and its
+                 confidentiality notice, which the DEMO fixtures have never carried here. THIS REPO IS
+                 PUBLIC (rule 1): every file the generator writes carries a copyright line with a personal address on an
+                 employer domain. It was stripped by hand here, and GeneratedSourceIsPublishableTest caught it on the UPS-2
+                 regeneration (2026-10-01). Bound after the scan goal in the same phase: declaration order is execution
+                 order. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>3.1.0</version>
+                <executions>
+                    <execution>
+                        <id>strip-generated-attribution</id>
+                        <phase>process-classes</phase>
+                        <goals><goal>run</goal></goals>
+                        <configuration>
+                            <target>
+                                <replaceregexp flags="g" byline="false" match=" \* Copyright: ©[^\n]*\n" replace="">
+                                    <fileset dir="${project.basedir}/src/main/java/com/acme/demo/generated"
+                                             includes="*.java" erroronmissingdir="false"/>
+                                    <fileset dir="${project.basedir}/src/main/resources/com/acme/demo/generated"
+                                             includes="*.java" erroronmissingdir="false"/>
+                                </replaceregexp>
+                                <!-- and the confidentiality notice (fluxtion#24, tracker M19.22): the DEMO fixtures never carried it
+                                     in this repository; it was removed by hand before. The LEADING comment only, and only when it
+                                     is the notice: every body character is "not a star, or a star not followed by a slash", so the
+                                     match cannot cross the first comment terminator, wherever that is indented; the lookahead
+                                     requiring the notice is bounded the same way. Anything else is left untouched for
+                                     GeneratedSourceIsPublishableTest to refuse. GeneratedHeaderStripTest runs this task (PR #104
+                                     review, R1: the earlier expression read on past a column-0 terminator into the package). -->
+                                <replaceregexp flags="" byline="false"
+                                               match="\A/\*(?=(?:[^*]|\*(?!/))*This source code is protected under international copyright law)(?:[^*]|\*(?!/))*\*/[ \t]*(?:\r?\n)?" replace="">
+                                    <fileset dir="${project.basedir}/src/main/java/com/acme/demo/generated"
+                                             includes="*.java" erroronmissingdir="false"/>
+                                    <fileset dir="${project.basedir}/src/main/resources/com/acme/demo/generated"
+                                             includes="*.java" erroronmissingdir="false"/>
+                                </replaceregexp>
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
             <!-- Compile the processor source the fluxtion plugin just generated. -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

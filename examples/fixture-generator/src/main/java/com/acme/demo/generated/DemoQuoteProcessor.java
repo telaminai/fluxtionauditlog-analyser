@@ -47,9 +47,9 @@ import java.util.function.Consumer;
  *
  * <pre>
  * generation time           : Not available
- * api version               : 1.0.16
- * analyser version          : 1.0.71
- * target generator version  : 1.0.75
+ * api version               : 1.1.0
+ * analyser version          : 1.0.76
+ * target generator version  : 1.0.76
  * </pre>
  *
  * Event classes supported:
@@ -140,7 +140,7 @@ public class DemoQuoteProcessor
           },
           new DescriptorSupport.Meta(
               null,
-              "1.0.71",
+              "1.0.76",
               "de849dc6785ee1f13da506afebd8db510ae090af3f6bbcb8ef1d2bdfad4e2c8e",
               null));
 
@@ -500,6 +500,51 @@ public class DemoQuoteProcessor
     afterEvent();
     callbackDispatcher.dispatchQueuedCallbacks();
     processing = false;
+  }
+
+  /**
+   * DataFlow.runInEventCycle: run a host's action as an event cycle, with auditEvent as its audit
+   * context. A buffered calculation runs first (it closes its own record), then the cycle opens
+   * with the caller's event and the action runs; a finally closes the cycle and dispatches what the
+   * action queued, and an inner finally clears processing, so a throw cannot wedge the processor.
+   * auditEvent is dispatched to no node and marks nothing dirty. An auditEvent that is an Event
+   * supplies its own event time, as on the event path; any other object takes the process time. Not
+   * re-entrant. To disable the path in a generated processor, make this throw.
+   *
+   * <p>No @Override, deliberately: generated source must also compile against a runtime that
+   * predates DataFlow.runInEventCycle (1.0.16), where this is an ordinary public method a host
+   * finds on the class. From the runtime that declares it, it overrides the interface default by
+   * signature. GeneratedSourceOnOldRuntimeTest compiles freshly generated source against the oldest
+   * supported runtime so this cannot silently regress.
+   */
+  public void runInEventCycle(Object auditEvent, Runnable action) {
+    if (processing) {
+      throw new IllegalStateException(
+          "runInEventCycle is not re-entrant: it was called inside an event cycle");
+    }
+    if (buffering) {
+      triggerCalculation();
+    }
+    processing = true;
+    try {
+      // an Event supplies its own event time, as on the event path: the static type selects the auditors'
+      // overload, eventReceived(Event) or eventReceived(Object)
+      if (auditEvent instanceof com.telamin.fluxtion.runtime.event.Event) {
+        auditEvent((com.telamin.fluxtion.runtime.event.Event) auditEvent);
+      } else {
+        auditEvent(auditEvent);
+      }
+      action.run();
+    } finally {
+      // closed even when the action throws, as a host's own audit bracket closes its record; processing is
+      // cleared innermost, so a throw from the close cannot wedge the processor either
+      try {
+        afterEvent();
+        callbackDispatcher.dispatchQueuedCallbacks();
+      } finally {
+        processing = false;
+      }
+    }
   }
 
   private void afterEvent() {
