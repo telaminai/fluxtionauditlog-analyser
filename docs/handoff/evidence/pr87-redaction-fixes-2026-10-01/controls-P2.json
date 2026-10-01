@@ -1,0 +1,1095 @@
+{
+  "note": "Gate evidence with commands/classpaths/logs omitted to exclude machine paths; assertion rows and restore results retained.",
+  "requested": [
+    "rf2-quoted-path-keeps-exemptions",
+    "rf2-quoted-span-ends-at-the-path",
+    "rf2-native-quote-delimiters",
+    "rf2-refusal-names-working-delimiter",
+    "rf2-a-path-in-prose-is-redacted",
+    "rf2-a-redaction-is-named",
+    "rf2-the-redacted-text-is-what-is-written",
+    "rf2-a-full-stop-is-not-the-path",
+    "rf2-any-alphabet-is-redacted-whole",
+    "rf2-a-path-stops-where-the-prose-resumes",
+    "rf2-a-url-is-not-a-path",
+    "rf2-a-percentage-is-not-a-home",
+    "rf2-a-ratio-is-not-a-home",
+    "rf2-a-numeric-user-with-a-subdir-is-a-home",
+    "rf2-a-numeric-user-with-a-file-is-a-home",
+    "rf2-a-drive-letter-alone-is-not-a-path",
+    "rf2-quoted-path-boundary",
+    "rf2-unquoted-ending-is-examined-whole",
+    "oa3-redaction-covers-dialogue"
+  ],
+  "runs": [
+    {
+      "name": "rf2-a-path-in-prose-is-redacted",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/bundle/BundleProfile.java",
+      "sha256": "0643383777fe6464c97a44bf0847f4da05f7ab42dcc48cec88787e2e12ed860c",
+      "baselineGreen": true,
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "verdict": "caught",
+      "mutated": {
+        "exit": 1,
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "anEmbeddedPathIsRedactedAndNamed",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: the path does not leave: we saw it in /Users/demo-person/private/logs/secret-venue.yaml and moved on ==> expected: <false> but was: <true>"
+          }
+        ]
+      },
+      "restored": {
+        "exit": 0,
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "anEmbeddedPathIsRedactedAndNamed",
+            "kind": "passed",
+            "message": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "rf2-a-redaction-is-named",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/bundle/BundleProfile.java",
+      "sha256": "0643383777fe6464c97a44bf0847f4da05f7ab42dcc48cec88787e2e12ed860c",
+      "baselineGreen": true,
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "verdict": "caught",
+      "mutated": {
+        "exit": 1,
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "anEmbeddedPathIsRedactedAndNamed",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: the path does not leave: we saw it in /Users/demo-person/private/logs/secret-venue.yaml and moved on ==> expected: <false> but was: <true>"
+          }
+        ]
+      },
+      "restored": {
+        "exit": 0,
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "anEmbeddedPathIsRedactedAndNamed",
+            "kind": "passed",
+            "message": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "rf2-the-redacted-text-is-what-is-written",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/bundle/BundleProfile.java",
+      "sha256": "0643383777fe6464c97a44bf0847f4da05f7ab42dcc48cec88787e2e12ed860c",
+      "baselineGreen": true,
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "verdict": "caught",
+      "mutated": {
+        "exit": 1,
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "anEmbeddedPathIsRedactedAndNamed",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: the path does not leave: we saw it in /Users/demo-person/private/logs/secret-venue.yaml and moved on ==> expected: <false> but was: <true>"
+          }
+        ]
+      },
+      "restored": {
+        "exit": 0,
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "anEmbeddedPathIsRedactedAndNamed",
+            "kind": "passed",
+            "message": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "rf2-a-full-stop-is-not-the-path",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/bundle/BundleProfile.java",
+      "sha256": "0643383777fe6464c97a44bf0847f4da05f7ab42dcc48cec88787e2e12ed860c",
+      "baselineGreen": true,
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "verdict": "caught",
+      "mutated": {
+        "exit": 1,
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "everyMachinePathShapeIsRedacted",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: a sentence's full stop stays ==> expected: <it was in ‹path removed›.> but was: <it was in ‹path removed›>"
+          }
+        ]
+      },
+      "restored": {
+        "exit": 0,
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "everyMachinePathShapeIsRedacted",
+            "kind": "passed",
+            "message": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "rf2-any-alphabet-is-redacted-whole",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/bundle/BundleProfile.java",
+      "sha256": "0643383777fe6464c97a44bf0847f4da05f7ab42dcc48cec88787e2e12ed860c",
+      "baselineGreen": true,
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "verdict": "caught",
+      "mutated": {
+        "exit": 1,
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "aUsernameInAnyAlphabetIsRedactedWhole",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: andTheProseAroundItIsIntact ==> expected: <seen in ‹path removed› today> but was: <seen in ‹path removed›émo/logs/x.yaml today>"
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "aUsernameInAnyAlphabetIsRedactedWhole",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: andTheProseAroundItIsIntact ==> expected: <seen in ‹path removed› today> but was: <seen in ‹path removed›ễn/logs/x.yaml today>"
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "aUsernameInAnyAlphabetIsRedactedWhole",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: theUsernameSurvivedAReportedRedaction: seen in ‹path removed›дмитрий‹path removed› today ==> expected: <false> but was: <true>"
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "aUsernameInAnyAlphabetIsRedactedWhole",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: theUsernameSurvivedAReportedRedaction: seen in ‹path removed›王‹path removed› today ==> expected: <false> but was: <true>"
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "aUsernameInAnyAlphabetIsRedactedWhole",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: andTheProseAroundItIsIntact ==> expected: <seen in ‹path removed› today> but was: <seen in ‹path removed›́mo/logs/x.yaml today>"
+          }
+        ]
+      },
+      "restored": {
+        "exit": 0,
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "aUsernameInAnyAlphabetIsRedactedWhole",
+            "kind": "passed",
+            "message": null
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "aUsernameInAnyAlphabetIsRedactedWhole",
+            "kind": "passed",
+            "message": null
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "aUsernameInAnyAlphabetIsRedactedWhole",
+            "kind": "passed",
+            "message": null
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "aUsernameInAnyAlphabetIsRedactedWhole",
+            "kind": "passed",
+            "message": null
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "aUsernameInAnyAlphabetIsRedactedWhole",
+            "kind": "passed",
+            "message": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "rf2-a-path-stops-where-the-prose-resumes",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/bundle/BundleProfile.java",
+      "sha256": "0643383777fe6464c97a44bf0847f4da05f7ab42dcc48cec88787e2e12ed860c",
+      "baselineGreen": true,
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "verdict": "caught",
+      "mutated": {
+        "exit": 1,
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "ambiguousUnquotedEndingsRefuseWithoutWriting",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: ambiguousEndRefused: do not export a partial path or swallow prose: /Users/DEMO王 ==> Expected java.io.IOException to be thrown, but nothing was thrown."
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "ambiguousUnquotedEndingsRefuseWithoutWriting",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: ambiguousEndRefused: do not export a partial path or swallow prose: /home/DEMO/机密.yaml ==> Expected java.io.IOException to be thrown, but nothing was thrown."
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "ambiguousUnquotedEndingsRefuseWithoutWriting",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: ambiguousEndRefused: do not export a partial path or swallow prose: /DEMO/q.yamlにあります ==> Expected java.io.IOException to be thrown, but nothing was thrown."
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "ambiguousUnquotedEndingsRefuseWithoutWriting",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: ambiguousEndRefused: do not export a partial path or swallow prose: ~/DEMO/q.yamlにあります ==> Expected java.io.IOException to be thrown, but nothing was thrown."
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "ambiguousUnquotedEndingsRefuseWithoutWriting",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: ambiguousEndRefused: do not export a partial path or swallow prose: ~DEMO/q.yamlにあります ==> Expected java.io.IOException to be thrown, but nothing was thrown."
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "ambiguousUnquotedEndingsRefuseWithoutWriting",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: ambiguousEndRefused: do not export a partial path or swallow prose: ~123/DEMO/q.yamlにあります ==> Expected java.io.IOException to be thrown, but nothing was thrown."
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "ambiguousUnquotedEndingsRefuseWithoutWriting",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: ambiguousEndRefused: do not export a partial path or swallow prose: ~123/q.yamlにあります ==> Expected java.io.IOException to be thrown, but nothing was thrown."
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "ambiguousUnquotedEndingsRefuseWithoutWriting",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: ambiguousEndRefused: do not export a partial path or swallow prose: file:///DEMO/q.yamlにあります ==> Expected java.io.IOException to be thrown, but nothing was thrown."
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "ambiguousUnquotedEndingsRefuseWithoutWriting",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: ambiguousEndRefused: do not export a partial path or swallow prose: C:\\DEMO\\q.yamlにあります ==> Expected java.io.IOException to be thrown, but nothing was thrown."
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "ambiguousUnquotedEndingsRefuseWithoutWriting",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: ambiguousEndRefused: do not export a partial path or swallow prose: \\\\DEMO\\share\\q.yamlにあります ==> Expected java.io.IOException to be thrown, but nothing was thrown."
+          }
+        ]
+      },
+      "restored": {
+        "exit": 0,
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "ambiguousUnquotedEndingsRefuseWithoutWriting",
+            "kind": "passed",
+            "message": null
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "ambiguousUnquotedEndingsRefuseWithoutWriting",
+            "kind": "passed",
+            "message": null
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "ambiguousUnquotedEndingsRefuseWithoutWriting",
+            "kind": "passed",
+            "message": null
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "ambiguousUnquotedEndingsRefuseWithoutWriting",
+            "kind": "passed",
+            "message": null
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "ambiguousUnquotedEndingsRefuseWithoutWriting",
+            "kind": "passed",
+            "message": null
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "ambiguousUnquotedEndingsRefuseWithoutWriting",
+            "kind": "passed",
+            "message": null
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "ambiguousUnquotedEndingsRefuseWithoutWriting",
+            "kind": "passed",
+            "message": null
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "ambiguousUnquotedEndingsRefuseWithoutWriting",
+            "kind": "passed",
+            "message": null
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "ambiguousUnquotedEndingsRefuseWithoutWriting",
+            "kind": "passed",
+            "message": null
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "ambiguousUnquotedEndingsRefuseWithoutWriting",
+            "kind": "passed",
+            "message": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "rf2-a-url-is-not-a-path",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/bundle/BundleProfile.java",
+      "sha256": "0643383777fe6464c97a44bf0847f4da05f7ab42dcc48cec88787e2e12ed860c",
+      "baselineGreen": true,
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "verdict": "caught",
+      "mutated": {
+        "exit": 1,
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "ordinaryProsePassesUntouched",
+            "kind": "failure",
+            "message": "org.opentest4j.MultipleFailuresError: ordinaryProseKeepsItsExemptions (4 failures)\n\torg.opentest4j.AssertionFailedError: ordinary writing is left alone ==> expected: <a protocol-relative \"//cdn.example/lib.js\" link> but was: <a protocol-relative \"/‹path removed›\" link>\n\torg.opentest4j.AssertionFailedError: ordinary writing is left alone ==> expected: <see https://fluxtion-playground.dev/fluxtion-golden-path.md for the model> but was: <see https:/‹path removed› for the model>\n\torg.opentest4j.AssertionFailedError: ordinary writing is left alone ==> expected: <the uat logs live under logs/uat/quote-service-uat.yaml in the project> but was: <the uat logs live under logs‹path removed› in the project>\n\torg.opentest4j.AssertionFailedError: ordinary writing is left alone ==> expected: <dated 28/09/2026, window 09:00:00.090 to 09:00:00.360> but was: <dated 28‹path removed›, window 09:00:00.090 to 09:00:00.360>"
+          }
+        ]
+      },
+      "restored": {
+        "exit": 0,
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "ordinaryProsePassesUntouched",
+            "kind": "passed",
+            "message": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "rf2-a-percentage-is-not-a-home",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/bundle/BundleProfile.java",
+      "sha256": "0643383777fe6464c97a44bf0847f4da05f7ab42dcc48cec88787e2e12ed860c",
+      "baselineGreen": true,
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "verdict": "caught",
+      "mutated": {
+        "exit": 1,
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "ordinaryProsePassesUntouched",
+            "kind": "failure",
+            "message": "org.opentest4j.MultipleFailuresError: ordinaryProseKeepsItsExemptions (5 failures)\n\torg.opentest4j.AssertionFailedError: ordinary writing is left alone ==> expected: <the formula \"~1/price²\" holds; and '~2/3' of cycles> but was: <the formula \"‹path removed›\" holds; and '‹path removed›' of cycles>\n\torg.opentest4j.AssertionFailedError: ordinary writing is left alone ==> expected: <~5% of records carried a spread above 0.004> but was: <‹path removed›% of records carried a spread above 0.004>\n\torg.opentest4j.AssertionFailedError: ordinary writing is left alone ==> expected: <absolute spread is ~1/price² smaller, but as a fraction of price it should match> but was: <absolute spread is ‹path removed› smaller, but as a fraction of price it should match>\n\torg.opentest4j.AssertionFailedError: ordinary writing is left alone ==> expected: <roughly ~2/3 of the cycles requoted> but was: <roughly ‹path removed› of the cycles requoted>\n\torg.opentest4j.AssertionFailedError: ordinary writing is left alone ==> expected: <the run under ~123/secret finished> but was: <the run under ‹path removed› finished>"
+          }
+        ]
+      },
+      "restored": {
+        "exit": 0,
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "ordinaryProsePassesUntouched",
+            "kind": "passed",
+            "message": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "rf2-a-ratio-is-not-a-home",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/bundle/BundleProfile.java",
+      "sha256": "0643383777fe6464c97a44bf0847f4da05f7ab42dcc48cec88787e2e12ed860c",
+      "baselineGreen": true,
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "verdict": "caught",
+      "mutated": {
+        "exit": 1,
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "ordinaryProsePassesUntouched",
+            "kind": "failure",
+            "message": "org.opentest4j.MultipleFailuresError: ordinaryProseKeepsItsExemptions (4 failures)\n\torg.opentest4j.AssertionFailedError: ordinary writing is left alone ==> expected: <the formula \"~1/price²\" holds; and '~2/3' of cycles> but was: <the formula \"‹path removed›\" holds; and '‹path removed›' of cycles>\n\torg.opentest4j.AssertionFailedError: ordinary writing is left alone ==> expected: <absolute spread is ~1/price² smaller, but as a fraction of price it should match> but was: <absolute spread is ‹path removed› smaller, but as a fraction of price it should match>\n\torg.opentest4j.AssertionFailedError: ordinary writing is left alone ==> expected: <roughly ~2/3 of the cycles requoted> but was: <roughly ‹path removed› of the cycles requoted>\n\torg.opentest4j.AssertionFailedError: ordinary writing is left alone ==> expected: <the run under ~123/secret finished> but was: <the run under ‹path removed› finished>"
+          }
+        ]
+      },
+      "restored": {
+        "exit": 0,
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "ordinaryProsePassesUntouched",
+            "kind": "passed",
+            "message": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "rf2-a-numeric-user-with-a-subdir-is-a-home",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/bundle/BundleProfile.java",
+      "sha256": "0643383777fe6464c97a44bf0847f4da05f7ab42dcc48cec88787e2e12ed860c",
+      "baselineGreen": true,
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "verdict": "caught",
+      "mutated": {
+        "exit": 1,
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "everyMachinePathShapeIsRedacted",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: redacted: ~123/secret/quote.yaml ==> expected: <see ‹path removed›, then the chart> but was: <see ~123/secret/quote.yaml, then the chart>"
+          }
+        ]
+      },
+      "restored": {
+        "exit": 0,
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "everyMachinePathShapeIsRedacted",
+            "kind": "passed",
+            "message": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "rf2-a-numeric-user-with-a-file-is-a-home",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/bundle/BundleProfile.java",
+      "sha256": "0643383777fe6464c97a44bf0847f4da05f7ab42dcc48cec88787e2e12ed860c",
+      "baselineGreen": true,
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "verdict": "caught",
+      "mutated": {
+        "exit": 1,
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "everyMachinePathShapeIsRedacted",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: redacted: ~123/quote.yaml ==> expected: <see ‹path removed›, then the chart> but was: <see ~123/quote.yaml, then the chart>"
+          }
+        ]
+      },
+      "restored": {
+        "exit": 0,
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "everyMachinePathShapeIsRedacted",
+            "kind": "passed",
+            "message": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "rf2-a-drive-letter-alone-is-not-a-path",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/bundle/BundleProfile.java",
+      "sha256": "0643383777fe6464c97a44bf0847f4da05f7ab42dcc48cec88787e2e12ed860c",
+      "baselineGreen": true,
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "verdict": "caught",
+      "mutated": {
+        "exit": 1,
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "ordinaryProsePassesUntouched",
+            "kind": "failure",
+            "message": "org.opentest4j.MultipleFailuresError: ordinaryProseKeepsItsExemptions (1 failure)\n\torg.opentest4j.AssertionFailedError: ordinary writing is left alone ==> expected: <the drive letter C: on its own, or the string \"C:\\\" quoted in an explanation> but was: <the drive letter ‹path removed› on its own, or the string \"‹path removed›\" quoted in an explanation>"
+          }
+        ]
+      },
+      "restored": {
+        "exit": 0,
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "ordinaryProsePassesUntouched",
+            "kind": "passed",
+            "message": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "rf2-quoted-path-boundary",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/bundle/BundleProfile.java",
+      "sha256": "0643383777fe6464c97a44bf0847f4da05f7ab42dcc48cec88787e2e12ed860c",
+      "baselineGreen": true,
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "verdict": "caught",
+      "mutated": {
+        "exit": 1,
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "quotedUnicodePathsAreRemovedWhole",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: prose never refuses the export: ログは\"/Users/DEMO王\"にあります ==> Unexpected exception thrown: java.io.IOException: ambiguous unquoted machine path in report.0.s.0.text; quote the complete path separately from the surrounding prose (for example, with double quotes) and retry"
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "quotedUnicodePathsAreRemovedWhole",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: prose never refuses the export: ログは\"/home/DEMO/机密.yaml\"にあります ==> Unexpected exception thrown: java.io.IOException: ambiguous unquoted machine path in report.0.s.0.text; quote the complete path separately from the surrounding prose (for example, with double quotes) and retry"
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "quotedUnicodePathsAreRemovedWhole",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: prose never refuses the export: ログは\"~/DEMO/機密\"にあります ==> Unexpected exception thrown: java.io.IOException: ambiguous unquoted machine path in report.0.s.0.text; quote the complete path separately from the surrounding prose (for example, with double quotes) and retry"
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "quotedUnicodePathsAreRemovedWhole",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: prose never refuses the export: ログは\"~DEMO/機密\"にあります ==> Unexpected exception thrown: java.io.IOException: ambiguous unquoted machine path in report.0.s.0.text; quote the complete path separately from the surrounding prose (for example, with double quotes) and retry"
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "quotedUnicodePathsAreRemovedWhole",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: prose never refuses the export: ログは\"file:///DEMO/機密\"にあります ==> Unexpected exception thrown: java.io.IOException: ambiguous unquoted machine path in report.0.s.0.text; quote the complete path separately from the surrounding prose (for example, with double quotes) and retry"
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "quotedUnicodePathsAreRemovedWhole",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: prose never refuses the export: ログは\"C:\\DEMO\\機密\"にあります ==> Unexpected exception thrown: java.io.IOException: ambiguous unquoted machine path in report.0.s.0.text; quote the complete path separately from the surrounding prose (for example, with double quotes) and retry"
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "quotedUnicodePathsAreRemovedWhole",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: prose never refuses the export: ログは\"\\\\DEMO\\share\\機密\"にあります ==> Unexpected exception thrown: java.io.IOException: ambiguous unquoted machine path in report.0.s.0.text; quote the complete path separately from the surrounding prose (for example, with double quotes) and retry"
+          }
+        ]
+      },
+      "restored": {
+        "exit": 0,
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "quotedUnicodePathsAreRemovedWhole",
+            "kind": "passed",
+            "message": null
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "quotedUnicodePathsAreRemovedWhole",
+            "kind": "passed",
+            "message": null
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "quotedUnicodePathsAreRemovedWhole",
+            "kind": "passed",
+            "message": null
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "quotedUnicodePathsAreRemovedWhole",
+            "kind": "passed",
+            "message": null
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "quotedUnicodePathsAreRemovedWhole",
+            "kind": "passed",
+            "message": null
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "quotedUnicodePathsAreRemovedWhole",
+            "kind": "passed",
+            "message": null
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "quotedUnicodePathsAreRemovedWhole",
+            "kind": "passed",
+            "message": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "rf2-unquoted-ending-is-examined-whole",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/bundle/BundleProfile.java",
+      "sha256": "0643383777fe6464c97a44bf0847f4da05f7ab42dcc48cec88787e2e12ed860c",
+      "baselineGreen": true,
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "verdict": "caught",
+      "mutated": {
+        "exit": 1,
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "ambiguousUnquotedEndingsRefuseWithoutWriting",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: ambiguousEndRefused: do not export a partial path or swallow prose: /Users/DEMO王 ==> Expected java.io.IOException to be thrown, but nothing was thrown."
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "ambiguousUnquotedEndingsRefuseWithoutWriting",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: ambiguousEndRefused: do not export a partial path or swallow prose: /home/DEMO/机密.yaml ==> Expected java.io.IOException to be thrown, but nothing was thrown."
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "ambiguousUnquotedEndingsRefuseWithoutWriting",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: ambiguousEndRefused: do not export a partial path or swallow prose: /DEMO/q.yamlにあります ==> Expected java.io.IOException to be thrown, but nothing was thrown."
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "ambiguousUnquotedEndingsRefuseWithoutWriting",
+            "kind": "passed",
+            "message": null
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "ambiguousUnquotedEndingsRefuseWithoutWriting",
+            "kind": "passed",
+            "message": null
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "ambiguousUnquotedEndingsRefuseWithoutWriting",
+            "kind": "passed",
+            "message": null
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "ambiguousUnquotedEndingsRefuseWithoutWriting",
+            "kind": "passed",
+            "message": null
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "ambiguousUnquotedEndingsRefuseWithoutWriting",
+            "kind": "passed",
+            "message": null
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "ambiguousUnquotedEndingsRefuseWithoutWriting",
+            "kind": "passed",
+            "message": null
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "ambiguousUnquotedEndingsRefuseWithoutWriting",
+            "kind": "passed",
+            "message": null
+          }
+        ]
+      },
+      "restored": {
+        "exit": 0,
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "ambiguousUnquotedEndingsRefuseWithoutWriting",
+            "kind": "passed",
+            "message": null
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "ambiguousUnquotedEndingsRefuseWithoutWriting",
+            "kind": "passed",
+            "message": null
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "ambiguousUnquotedEndingsRefuseWithoutWriting",
+            "kind": "passed",
+            "message": null
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "ambiguousUnquotedEndingsRefuseWithoutWriting",
+            "kind": "passed",
+            "message": null
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "ambiguousUnquotedEndingsRefuseWithoutWriting",
+            "kind": "passed",
+            "message": null
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "ambiguousUnquotedEndingsRefuseWithoutWriting",
+            "kind": "passed",
+            "message": null
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "ambiguousUnquotedEndingsRefuseWithoutWriting",
+            "kind": "passed",
+            "message": null
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "ambiguousUnquotedEndingsRefuseWithoutWriting",
+            "kind": "passed",
+            "message": null
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "ambiguousUnquotedEndingsRefuseWithoutWriting",
+            "kind": "passed",
+            "message": null
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "ambiguousUnquotedEndingsRefuseWithoutWriting",
+            "kind": "passed",
+            "message": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "rf2-quoted-path-keeps-exemptions",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/bundle/BundleProfile.java",
+      "sha256": "0643383777fe6464c97a44bf0847f4da05f7ab42dcc48cec88787e2e12ed860c",
+      "baselineGreen": true,
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "verdict": "caught",
+      "mutated": {
+        "exit": 1,
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "ordinaryProsePassesUntouched",
+            "kind": "failure",
+            "message": "org.opentest4j.MultipleFailuresError: ordinaryProseKeepsItsExemptions (3 failures)\n\torg.opentest4j.AssertionFailedError: ordinary writing is left alone ==> expected: <the formula \"~1/price²\" holds; and '~2/3' of cycles> but was: <the formula \"‹path removed›\" holds; and '‹path removed›' of cycles>\n\torg.opentest4j.AssertionFailedError: ordinary writing is left alone ==> expected: <run \"/status\" to check> but was: <run \"‹path removed›\" to check>\n\torg.opentest4j.AssertionFailedError: ordinary writing is left alone ==> expected: <a protocol-relative \"//cdn.example/lib.js\" link> but was: <a protocol-relative \"‹path removed›\" link>"
+          }
+        ]
+      },
+      "restored": {
+        "exit": 0,
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "ordinaryProsePassesUntouched",
+            "kind": "passed",
+            "message": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "rf2-quoted-span-ends-at-the-path",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/bundle/BundleProfile.java",
+      "sha256": "0643383777fe6464c97a44bf0847f4da05f7ab42dcc48cec88787e2e12ed860c",
+      "baselineGreen": true,
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "verdict": "caught",
+      "mutated": {
+        "exit": 1,
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "aQuotedSpanEndsAtThePath",
+            "kind": "passed",
+            "message": null
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "aQuotedSpanEndsAtThePath",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: quotedSpanEndsAtPath: surrounding prose must survive an unreliable quoted boundary ==> expected: <it's under '‹path removed› isn't it' fine> but was: <it's under '‹path removed›'t it' fine>"
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "aQuotedSpanEndsAtThePath",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: quotedSpanEndsAtPath: surrounding prose must survive an unreliable quoted boundary ==> expected: <it’s under ‘‹path removed› isn’t it’ fine> but was: <it’s under ‘‹path removed›’t it’ fine>"
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "aQuotedSpanEndsAtThePath",
+            "kind": "passed",
+            "message": null
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "aQuotedSpanEndsAtThePath",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: quotedSpanEndsAtPath: surrounding prose must survive an unreliable quoted boundary ==> expected: <see \"‹path removed› ‹path removed›\" today> but was: <see \"‹path removed›\" today>"
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "aQuotedSpanEndsAtThePath",
+            "kind": "passed",
+            "message": null
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "aQuotedSpanEndsAtThePath",
+            "kind": "passed",
+            "message": null
+          }
+        ]
+      },
+      "restored": {
+        "exit": 0,
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "aQuotedSpanEndsAtThePath",
+            "kind": "passed",
+            "message": null
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "aQuotedSpanEndsAtThePath",
+            "kind": "passed",
+            "message": null
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "aQuotedSpanEndsAtThePath",
+            "kind": "passed",
+            "message": null
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "aQuotedSpanEndsAtThePath",
+            "kind": "passed",
+            "message": null
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "aQuotedSpanEndsAtThePath",
+            "kind": "passed",
+            "message": null
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "aQuotedSpanEndsAtThePath",
+            "kind": "passed",
+            "message": null
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "aQuotedSpanEndsAtThePath",
+            "kind": "passed",
+            "message": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "rf2-native-quote-delimiters",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/bundle/BundleProfile.java",
+      "sha256": "0643383777fe6464c97a44bf0847f4da05f7ab42dcc48cec88787e2e12ed860c",
+      "baselineGreen": true,
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "verdict": "caught",
+      "mutated": {
+        "exit": 1,
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "quotedUnicodePathsAreRemovedWhole",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: prose never refuses the export: ログは「/Users/DEMO王」にあります ==> Unexpected exception thrown: java.io.IOException: ambiguous unquoted machine path in report.0.s.0.text; quote the complete path separately from the surrounding prose (for example, with double quotes) and retry"
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "quotedUnicodePathsAreRemovedWhole",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: prose never refuses the export: ログは「/home/DEMO/机密.yaml」にあります ==> Unexpected exception thrown: java.io.IOException: ambiguous unquoted machine path in report.0.s.0.text; quote the complete path separately from the surrounding prose (for example, with double quotes) and retry"
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "quotedUnicodePathsAreRemovedWhole",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: prose never refuses the export: ログは「~/DEMO/機密」にあります ==> Unexpected exception thrown: java.io.IOException: ambiguous unquoted machine path in report.0.s.0.text; quote the complete path separately from the surrounding prose (for example, with double quotes) and retry"
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "quotedUnicodePathsAreRemovedWhole",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: prose never refuses the export: ログは「~DEMO/機密」にあります ==> Unexpected exception thrown: java.io.IOException: ambiguous unquoted machine path in report.0.s.0.text; quote the complete path separately from the surrounding prose (for example, with double quotes) and retry"
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "quotedUnicodePathsAreRemovedWhole",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: prose never refuses the export: ログは「file:///DEMO/機密」にあります ==> Unexpected exception thrown: java.io.IOException: ambiguous unquoted machine path in report.0.s.0.text; quote the complete path separately from the surrounding prose (for example, with double quotes) and retry"
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "quotedUnicodePathsAreRemovedWhole",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: prose never refuses the export: ログは「C:\\DEMO\\機密」にあります ==> Unexpected exception thrown: java.io.IOException: ambiguous unquoted machine path in report.0.s.0.text; quote the complete path separately from the surrounding prose (for example, with double quotes) and retry"
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "quotedUnicodePathsAreRemovedWhole",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: prose never refuses the export: ログは「\\\\DEMO\\share\\機密」にあります ==> Unexpected exception thrown: java.io.IOException: ambiguous unquoted machine path in report.0.s.0.text; quote the complete path separately from the surrounding prose (for example, with double quotes) and retry"
+          }
+        ]
+      },
+      "restored": {
+        "exit": 0,
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "quotedUnicodePathsAreRemovedWhole",
+            "kind": "passed",
+            "message": null
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "quotedUnicodePathsAreRemovedWhole",
+            "kind": "passed",
+            "message": null
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "quotedUnicodePathsAreRemovedWhole",
+            "kind": "passed",
+            "message": null
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "quotedUnicodePathsAreRemovedWhole",
+            "kind": "passed",
+            "message": null
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "quotedUnicodePathsAreRemovedWhole",
+            "kind": "passed",
+            "message": null
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "quotedUnicodePathsAreRemovedWhole",
+            "kind": "passed",
+            "message": null
+          },
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "quotedUnicodePathsAreRemovedWhole",
+            "kind": "passed",
+            "message": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "rf2-refusal-names-working-delimiter",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/bundle/BundleProfile.java",
+      "sha256": "0643383777fe6464c97a44bf0847f4da05f7ab42dcc48cec88787e2e12ed860c",
+      "baselineGreen": true,
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "verdict": "caught",
+      "mutated": {
+        "exit": 1,
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "theRefusalRecommendsAWorkingDelimiter",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: refusal names a supported delimiter: double quotes ==> expected: <true> but was: <false>"
+          }
+        ]
+      },
+      "restored": {
+        "exit": 0,
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.BundleProfileTest",
+            "method": "theRefusalRecommendsAWorkingDelimiter",
+            "kind": "passed",
+            "message": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "oa3-redaction-covers-dialogue",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/bundle/BundleProfile.java",
+      "sha256": "0643383777fe6464c97a44bf0847f4da05f7ab42dcc48cec88787e2e12ed860c",
+      "baselineGreen": true,
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "verdict": "caught",
+      "mutated": {
+        "exit": 1,
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.ConversationBundleProfileTest",
+            "method": "aPathInATurnIsRedacted",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: the machine path never leaves ==> expected: <false> but was: <true>"
+          }
+        ]
+      },
+      "restored": {
+        "exit": 0,
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.bundle.ConversationBundleProfileTest",
+            "method": "aPathInATurnIsRedacted",
+            "kind": "passed",
+            "message": null
+          }
+        ]
+      }
+    }
+  ]
+}

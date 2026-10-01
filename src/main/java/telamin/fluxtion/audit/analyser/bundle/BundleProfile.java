@@ -40,33 +40,26 @@ import java.util.regex.Pattern;
  *       {@link #REDACTED} and named in {@link Export#redacted()}, so the author sees exactly what was removed. Refusing
  *       ordinary writing would get this check turned off.</li>
  * </ul>
- * <p><b>Latin letters by explicit range, NOT {@code UNICODE_CHARACTER_CLASS}.</b> The blanket flag failed in
- * both directions at once. It widened {@code \w} inside the negative lookbehinds, so a path written against a
- * non-ASCII letter stopped matching AT ALL — {@code ログは/Users/greg/logs/x.yaml} exported whole and reported
- * nothing, worse than the half-redaction the flag was added to fix, and CJK prose has no inter-word spaces so
- * adjacency is the normal case there. It also widened the SEGMENT classes, so the same path swallowed the rest
- * of the sentence ({@code …q.yamlにあります}) and deleted the author's words. It also widened {@code \s}, so
- * {@link #WHOLE_PATH}'s {@code \S} tail stopped refusing a path containing a non-breaking space.
- * Adding {@code \u00C0-\u024F} — Latin-1 Supplement and Latin Extended-A/B — covers the accented usernames
- * and directories this is actually about ({@code démo}, {@code josé}) while leaving CJK and Cyrillic as the
- * prose they are, so a path touching them is redacted and stops where the prose resumes.
+ * <p>Path segments accept Unicode letters, combining marks and digits without normalising the author's text.
+ * Start-of-path lookbehinds remain narrower so URLs and ordinary slash-separated Latin prose are not paths.
+ * Explicit double, single, backtick, curly double/single quotes or Japanese corner/double-corner brackets
+ * can delimit a complete path, including spaces and a Unicode final segment. The quoted content must match
+ * the same supported shape rules as unquoted text: quoting does not turn a ratio, one-segment POSIX string,
+ * or protocol-relative URL into a path. The delimiters remain in the exported prose.
  *
- * <p><b>Historic note.</b> Turning the flag on wholesale
- * widened {@code \w} inside every negative lookbehind too, so a path written immediately after a non-ASCII
- * letter stopped matching AT ALL: {@code ログは/Users/greg/logs/x.yaml} exported whole and reported nothing,
- * where even the ASCII pattern had redacted it. CJK prose has no inter-word spaces, so adjacency is the
- * normal case there, and a silent total leak is worse than the half-leak the flag was added to fix. The
- * lookbehinds are pinned to ASCII; only the segment classes are widened. For the same reason
- * {@link #WHOLE_PATH} spells its tail as "not ASCII whitespace" instead of {@code \S}: the flag made
- * {@code \s} include U+00A0, so a path holding a non-breaking space — routine when pasted from a browser —
- * stopped being refused as a whole value.
+ * <p>A quoted boundary is trusted only for one path: no sentence punctuation ({@code 。、！？}),
+ * parenthesised message, another quote type, or second path start after whitespace. A straight or curly
+ * closing single quote followed by a letter is treated as a possible apostrophe, not a boundary; put a
+ * separator after it, or use double quotes/corner brackets beside prose. An untrusted span falls back to
+ * unquoted handling, including its ambiguity refusal. Plain paths containing spaces remain supported,
+ * but arbitrary prose versus a space-containing filename cannot be distinguished lexically.
  *
- * <p><b>Both patterns are Unicode-aware, and must stay that way.</b> Java's {@code \w} is ASCII-only unless
- * told otherwise, so {@code /home/démo/logs/x.yaml} redacted as far as the accent and left
- * {@code ‹path removed›émo/logs/x.yaml} — a reported redaction that still carries the path. Worse,
- * {@link #WHOLE_PATH} did not recognise {@code ~josé/logs/x.yaml} as a path at all, so a path-VALUED key with
- * an accented username was exported instead of refusing the bundle. A half-redaction is worse than none: it
- * tells the author the path was removed.
+ * <p><b>Ambiguous unquoted endings refuse export (owner decision, PR #87, 2026-10-01).</b>
+ * Han, Hiragana, Katakana, Hangul and Thai in the final segment can be a filename or adjoining prose.
+ * Neither deleting that text nor leaving a possible path suffix is safe. The export names the key and asks
+ * the author to quote the complete path separately from the prose. All path forms use this same check.
+ * This is a lexical guard, not a general recogniser of every possible filesystem name. Lao, Khmer and
+ * Myanmar suffixes are not in the ambiguity set and can still be consumed as part of an unquoted path.
  *
  * <p><b>A digit-leading username is still a username.</b> The tilde form is three alternatives because a
  * {@code ~user} segment that must start with a letter silently stopped redacting {@code ~7dev/logs/x.yaml} and
@@ -78,7 +71,7 @@ import java.util.regex.Pattern;
  * <p>A machine path here is absolute POSIX with at least two segments, home-relative ({@code ~/…}, {@code ~user/…}),
  * a Windows drive path with a segment, a UNC path, or a {@code file:} URI. Relative paths ({@code logs/uat/x.yaml}),
  * URLs, ratios, times and {@code and/or} are not: they name no machine. A segment is cut at whitespace, so a path
- * with a space in a directory name is redacted up to the space.
+ * with a space in a directory name must be quoted to redact the entire path.
  */
 public final class BundleProfile {
 
@@ -95,23 +88,89 @@ public final class BundleProfile {
     public static final String REDACTED = "\u2039path removed\u203a";
 
     /** A value that is, as a whole, a machine path: refused, because it is structure. */
-    static final Pattern WHOLE_PATH = Pattern.compile("^(?:/|~[/\\\\]|~$|~[\\w.\\-\\u00C0-\\u024F]+/|[A-Za-z]:[/\\\\]|\\\\\\\\|(?i:file):)[^ \\t\\n\\x0B\\f\\r]*$");
+    /**
+     * One segment's characters: any LETTER or combining MARK, any digit, and the punctuation a path
+     * segment carries. Written once because it belongs in every alternative of both patterns, and the
+     * previous fix reached only some of them — the drive and UNC forms kept an ASCII class, so a
+     * Windows path with an accented user exported whole (#79).
+     *
+     * <p>{@code \p{M}} is not decoration: macOS stores {@code démo} as {@code e} + U+0301, so without
+     * marks the segment ends AT the accent, which is precisely the half-redaction this guards against.
+     * Matching marks directly means no normalising — the prose a person wrote is exported unchanged.
+     */
+    private static final String SEG = "[\\p{L}\\p{M}\\p{N}_.\\-]";
+
+    /** These scripts can be filenames or adjacent prose; an unquoted final segment is ambiguous. */
+    private static final Pattern AMBIGUOUS_END = Pattern.compile(
+            "[\\p{IsHan}\\p{IsHiragana}\\p{IsKatakana}\\p{IsHangul}\\p{IsThai}]");
+
+    /**
+     * The lookbehind's idea of "the character before this is part of a word, so this slash does not
+     * start a path". ASCII plus LATIN letters, and deliberately no further.
+     *
+     * <p>Both bounds were paid for. Widening it to all of Unicode made a path written against CJK
+     * prose stop matching AT ALL — {@code ログは/Users/x/q.yaml} exported whole and reported nothing,
+     * because CJK has no inter-word spaces, and a silent total leak is worse than a partial one.
+     * Narrowing it to plain ASCII (tried while fixing #79) made {@code café/menu/items} and
+     * {@code Été/Hiver} read as paths and get redacted — ordinary prose, destroyed.
+     *
+     * <p>So: narrow HERE, wide in {@link #SEG}. Where a path STARTS is a question about the prose
+     * around it; what a path CONTAINS is a question about filenames, and filenames are in every
+     * alphabet.
+     */
+    private static final String WORDISH = "A-Za-z0-9_\\u00C0-\\u024F";
+
+    static final Pattern WHOLE_PATH = Pattern.compile(
+            "^(?:/|~[/\\\\]|~$|~" + SEG + "+/|[A-Za-z]:[/\\\\]|\\\\\\\\|(?i:file):)[^ \\t\\n\\x0B\\f\\r]*$");
+
+    /** Shared shape grammar: quoting changes the boundary, not the exemptions. */
+    private static final String PATH_SHAPES = String.join("|",
+            "(?i:(?<![" + WORDISH + "])file:/+[\\p{L}\\p{M}\\p{N}_.\\-~%@:/+]*)",                       // file:///etc/x
+            "(?<![" + WORDISH + ".~:/\\\\\\-])/" + SEG + "+(?:/" + SEG + "+)*/" + SEG + "*/?",           // /Users/x/y, not a/b or https://h/p
+            "(?<![" + WORDISH + "/~])~(?:" + SEG + "*[\\p{L}_]" + SEG + "*)?/" + SEG + "*(?:/" + SEG + "+)*"
+                    + "(?:/)?" + SEG + "*",                                                        // ~/x, ~alice/x, ~7dev/logs/x
+            "(?<![" + WORDISH + "/~])~[0-9]" + SEG + "*/" + SEG + "+(?:/" + SEG + "+)+/?",                       // ~123/secret/a.yaml
+            "(?<![" + WORDISH + "/~])~[0-9]" + SEG + "*/[\\p{L}\\p{M}\\p{N}_\\-]+\\.[\\p{L}]" + SEG + "*",  // ~123/notes.yaml
+            "(?<![" + WORDISH + "])[A-Za-z]:[\\\\/][\\p{L}\\p{M}\\p{N}_.$\\-]+(?:[\\\\/][\\p{L}\\p{M}\\p{N}_.$\\-]+)*[\\\\/]?",  // C:\\Users\\x
+            "(?<![" + WORDISH + "\\\\])\\\\\\\\[\\p{L}\\p{M}\\p{N}_.$\\-]+(?:\\\\[\\p{L}\\p{M}\\p{N}_.$\\-]+)+");   // \\\\server\\share
+
+    /** A full quoted candidate must still have a supported shape. Spaces are allowed within its segments. */
+    private static String quotedShape(String close) {
+        return "(?=(?:" + PATH_SHAPES.replace("\\p{N}", "\\p{N} ") + ")" + Pattern.quote(close) + ")";
+    }
+
+    /** Conservative delimiters: otherwise the ordinary unquoted alternatives below get the same input. */
+    private static String quotedBound(String open, String close) {
+        String otherQuotes = "\"'`“”‘’「」『』".replace(open, "").replace(close, "");
+        String body = "[^" + close + otherQuotes + "。、！？()\\r\\n]+";
+        String secondStart = "[ \\t](?:/|~|[A-Za-z]:[/\\\\]|\\\\\\\\|(?i:file):/)";
+        String apostrophe = ("'".equals(close) || "’".equals(close)) ? "(?!\\p{L})" : "";
+        return "(?![^" + close + "\\r\\n]*" + secondStart + ")"
+                + "(?=" + body + Pattern.quote(close) + apostrophe + ")";
+    }
+
+    /** Explicit delimiters are trusted only around one path, not around a sentence that starts with one. */
+    private static String quotedPath(String open, String close) {
+        return "(?<=" + Pattern.quote(open) + ")"
+                + quotedShape(close)
+                + quotedBound(open, close)
+                + "(?:/|~(?:" + SEG + "+)?/|[A-Za-z]:[/\\\\]|\\\\\\\\|(?i:file):/)[^"
+                + close + "\\r\\n]+(?=" + Pattern.quote(close) + ")";
+    }
 
     /** A machine path INSIDE prose: redacted. Each alternative needs a real path shape, not just a slash or a colon. */
     static final Pattern EMBEDDED_PATH = Pattern.compile(String.join("|",
-            "(?i:(?<![A-Za-z0-9_\\u00C0-\\u024F])file:/+[\\w.\\-\\u00C0-\\u024F~%@:/+]*)",                                      // file:///etc/x
-            "(?<![A-Za-z0-9_.~:/\\\\\\-\\u00C0-\\u024F])/[\\w.\\-\\u00C0-\\u024F]+(?:/[\\w.\\-\\u00C0-\\u024F]+)+/?",                          // /Users/x/y, not a/b or https://h/p
-            "(?<![A-Za-z0-9_/~\\u00C0-\\u024F])~(?:[\\w.\\-\\u00C0-\\u024F]*[A-Za-z_\\u00C0-\\u024F][\\w.\\-\\u00C0-\\u024F]*)?/[\\w.\\-\\u00C0-\\u024F]+(?:/[\\w.\\-\\u00C0-\\u024F]+)*/?",  // ~/x, ~alice/x, ~7dev/logs/x
-            "(?<![A-Za-z0-9_/~\\u00C0-\\u024F])~[0-9][\\w.\\-\\u00C0-\\u024F]*/[\\w.\\-\\u00C0-\\u024F]+(?:/[\\w.\\-\\u00C0-\\u024F]+)+/?",                   // ~123/secret/a.yaml
-            "(?<![A-Za-z0-9_/~\\u00C0-\\u024F])~[0-9][\\w.\\-\\u00C0-\\u024F]*/[\\w-]+\\.[A-Za-z][\\w.\\-\\u00C0-\\u024F]*",                  // ~123/notes.yaml
-            "(?<![A-Za-z0-9_])[A-Za-z]:[\\\\/][\\w.$-]+(?:[\\\\/][\\w.$-]+)*[\\\\/]?",          // C:\\Users\\x, not C: or C:\\ alone
-            "(?<![A-Za-z0-9_\\\\])\\\\\\\\[\\w.$-]+(?:\\\\[\\w.$-]+)+"));                          // \\\\server\\share
+            "(?<quoted>" + String.join("|", quotedPath("\"", "\""), quotedPath("'", "'"),
+                    quotedPath("`", "`"), quotedPath("“", "”"), quotedPath("「", "」"),
+                    quotedPath("『", "』"), quotedPath("‘", "’")) + ")",
+            PATH_SHAPES));
 
     /**
      * Write the allow-listed profile of {@code settings} to {@code out}. {@code settings} is the open project's
      * profile (a {@code *.fluxtion-settings} file) or, when no project is open, the analyser's own settings file.
      *
-     * @throws IOException when {@code settings} cannot be read, {@code out} exists, or a kept value is path-shaped
+     * @throws IOException when {@code settings} cannot be read, {@code out} exists, a kept value is path-shaped,
+     * or an unquoted embedded path has an ambiguous ending
      */
     public static Export export(Path settings, Path out) throws IOException {
         return export(settings, out, null);
@@ -186,7 +245,15 @@ public final class BundleProfile {
             int at = 0;
             while (m.find()) {
                 int end = m.end();
-                while (end > m.start() + 1 && v.charAt(end - 1) == '.') end--;     // a sentence's full stop is not the path's
+                if (m.group("quoted") == null) {
+                    String path = m.group();
+                    int lastSeparator = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'));
+                    if (AMBIGUOUS_END.matcher(path.substring(lastSeparator + 1)).find()) {
+                        throw new IOException("ambiguous unquoted machine path in " + key
+                                + "; quote the complete path separately from the surrounding prose (for example, with double quotes) and retry");
+                    }
+                    while (end > m.start() + 1 && v.charAt(end - 1) == '.') end--;
+                }
                 redacted.add(key + ": " + v.substring(m.start(), end));
                 b.append(v, at, m.start()).append(REDACTED);
                 at = end;

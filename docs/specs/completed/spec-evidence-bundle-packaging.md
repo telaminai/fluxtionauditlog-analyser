@@ -190,7 +190,34 @@ the passes.
 
   A machine path is absolute POSIX with at least two segments, home-relative (`~/…`, `~user/…`), a Windows drive
   path with a segment, a UNC path, or a `file:` URI. Relative paths, URLs, ratios, times, `and/or`, `~5%` and a bare
-  `C:` are not. A segment is cut at whitespace, so a directory name with a space is redacted up to the space.
+  `C:` are not. For unquoted text, a segment is cut at whitespace; quote paths containing spaces.
+
+  **PR #87 corrections, owner decisions 2026-10-01:** double quotes, single quotes, backticks,
+  curly double/single quotes, Japanese corner brackets (`「」`) and double corner brackets (`『』`) can
+  delimit a complete path. The content must still match the same supported path shapes: quoting a ratio,
+  `/status`, or a protocol-relative `//cdn.example/lib.js` does not make it a path. The Unicode final
+  segment is redacted whole, keeping the delimiters and adjoining prose.
+
+  A quoted span is trusted only as one path: no sentence punctuation (`。、！？`), parenthesised message,
+  quote character of another delimiter type, or second path start after whitespace. Straight and curly
+  closing single quotes followed by a letter are not trusted, because they may be apostrophes. Put a
+  separator after a single quote, or use double quotes or corner brackets immediately beside prose.
+  An untrusted quoted span falls back to ordinary unquoted handling, not deletion to the next quote.
+  Plain space-containing paths remain supported when quoted; this is a conservative lexical boundary,
+  not proof that arbitrary space-separated words are a filename rather than prose.
+
+  An unquoted final segment containing Han, Hiragana, Katakana, Hangul or Thai remains ambiguous: the
+  text alone cannot establish whether it is part of the filename or the sentence. Refuse before writing
+  the profile, name the key, and ask the author to quote the complete path separately from its prose,
+  naming double quotes as a supported spelling. This policy applies to every supported path form.
+
+  Existing residuals remain: an unquoted numeric home with one extensionless segment (`~123/secret`)
+  is treated as a ratio; a POSIX path immediately after a colon (`log:/Users/DEMO/x.yaml`) remains outside
+  recognition to preserve URI handling; unquoted space-containing paths are cut at whitespace.
+  **F4 disclosure:** Lao, Khmer and Myanmar are not in the ambiguous-ending script set, so their prose
+  immediately following an unquoted path can still be swallowed as part of that path. These residuals
+  are not fixed here. Issue #79's colon policy remains a separate owner decision; this PR references
+  that issue rather than closing it.
 - **Whole log only, and it has a cost.** Taking the whole log keeps every record digest valid and needs no index
   remapping, which is why it is right for v1. But real logs here run to **64 MB and 142 MB**, so a real incident's
   `.fexp` may be **a 140 MB file**. That is fine for a demo on one machine, and for the demo's DEMO log (well under a
