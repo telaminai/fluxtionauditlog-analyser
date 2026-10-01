@@ -61,7 +61,10 @@ mongoose-plugins **1.0.45** (separator escaping, #39). The 2026-09-27 order is i
 
 - [UPS-1] ☐ **Admin commands now audit as their own record** (fluxtion 1.1.0, compiler 1.0.76, mongoose 1.0.32). Capture
   a real log with an admin command and check framing, coverage, topology and the table; then close mongoose#45.
-- [UPS-2] ☐ **Fixtures on the released stack** — the DEMO and replay fixtures still use runtime 1.0.16 / builder 1.0.71.
+- [UPS-2] ◧ **Fixtures on the released stack** — PR #104: runtime 1.1.0 / builder 1.0.76; test fixtures and session processor
+  regenerated; review R1 fixed. [Evidence](../handoff/evidence/ups2-released-stack-2026-10-01/RESULTS.md). Owner: the start-page DEMO set.
+- [UPS-2a] ☐ Review of PR #104, follow-ups: N2 (the source/GraphML test checks seven names, not generation identity) and
+  `tools/gen-fqn.py`'s glob-chosen runtime jar; one header policy for generated source (M19.22).
 - [UPS-3] ☐ **Mongoose replay at dispatch** (mongoose#47, 1.0.31) — input to the M70 owner decision; see ▸ M70.
 - [UPS-4] ☐ **Failure-mode follow-ups** fluxtion#35 / compiler#98 (a throwing node no longer wedges the processor) are
   open drafts upstream; when they ship, check how a failed cycle appears in the log.

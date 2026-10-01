@@ -6,6 +6,12 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Changed
+
+- The analyser now runs on fluxtion runtime 1.1.0, the released stack (compiler 1.0.76, mongoose 1.0.32). Its own session processor and the DEMO and replay test fixtures were regenerated with builder 1.0.76; the existing test fixtures' audit logs and replay records are unchanged, byte for byte. The DEMO set the start page installs is unchanged.
+
+### Fixed
+
 - Bundle provenance is bound to the accepted operation and the verified profile content, not a reused pathname (#93). Borrowed charts reach the live view before saving (#94), and unrelated edits preserve temporarily unavailable bundle source anchors while deliberate deletion still works (#95).
 - Java walk steps stay **Preparing** until their targets are actually lit; source reads run off the UI thread, fail or expire explicitly, and native keyboard navigation supersedes pending work (#96–#98). Java captions and target reasons now disclose that the saved source revision was not compared; **CURRENT** remains name/line lookup, not source-content verification (#102).
 - Project reopen offers use operation-scoped origin and permission in the session processor, record disabled offers as skipped, and label project and machine-fallback candidates independently (#99, #101). The Project-panel architecture gate now covers nested helpers and inherited Navigator actions (#100).

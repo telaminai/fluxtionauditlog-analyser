@@ -136,8 +136,8 @@ import telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Requ
  *
  * <pre>
  * generation time           : Not available
- * api version               : 1.0.16
- * analyser version          : 1.0.71
+ * api version               : 1.1.0
+ * analyser version          : 1.0.76
  * target generator version  : 1.0.76
  * </pre>
  *
@@ -608,7 +608,7 @@ public class SessionProcessor
           new ProcessorDescriptor.Service[] {},
           new DescriptorSupport.Meta(
               null,
-              "1.0.71",
+              "1.0.76",
               "4208ae851b2f375e79140998142bdcc670052abbe14b751d1d9a98b998736f87",
               null));
 
