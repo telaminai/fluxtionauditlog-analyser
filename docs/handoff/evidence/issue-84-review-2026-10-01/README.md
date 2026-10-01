@@ -22,7 +22,7 @@ The final walk source has twelve tests: the recorded ten-test run plus the two l
 
 ## Contents and preservation
 
-- `findings.json`: R1–R10 descriptions, suggested checks; issue URLs are added after filing.
+- `findings.json`: R1–R10 descriptions, suggested checks; all findings filed as #93–#102, with issue URLs.
 - `counts.json`: raw Surefire totals and per-test outcomes, with source mapping/orphan audit; native walk counts were recorded before the final headless run replaced those reports, then confirmed by an additional 27/0/0/0 native run whose report rows are retained.
 - `logs/`: stdout/stderr including intentional assertion failures and unsuccessful attempts. Empty logs mean a successful quiet Maven selector; consult counts.json.
 - `controls-bundle.json`, `control-walk.json`: requested names, assertion messages, source/class byte restoration, restored run results. Registered requested names all caught; two planted D-L3 bypasses actually remained green.

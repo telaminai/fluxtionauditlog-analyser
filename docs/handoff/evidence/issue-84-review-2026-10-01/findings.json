@@ -11,7 +11,9 @@
     "assertion": "replacementProfileMustNotCarryTheAbortedBundlesIdentity",
     "observed": "Expected fromBundle=false; actual true. The applied processor was DEMO.recipient.OtherProcessor, while the window still claimed the aborted evidence bundle.",
     "repro": "Open an ordinary DEMO project and capture a bundle. Make its dirty-project pre-save throw, then open the bundle: verification holds a plan but application fails. Replace that plan’s profile file with an independent profile, remove the pre-save failure, and open the replacement through open {project}. Path equality resurrects the old plan and identity.",
-    "fix": "Bind provenance to the verified operation/content, not just its profile pathname. Retire an aborted plan without discarding legitimate internal plan-less loads or a bundle still in force. Promote this real-frame witness and add a control for the correlation/retirement."
+    "fix": "Bind provenance to the verified operation/content, not just its profile pathname. Retire an aborted plan without discarding legitimate internal plan-less loads or a bundle still in force. Promote this real-frame witness and add a control for the correlation/retirement.",
+    "issueNumber": 93,
+    "issueUrl": "https://github.com/telaminai/fluxtionauditlog-analyser/issues/93"
   },
   {
     "id": "R2",
@@ -25,7 +27,9 @@
     "assertion": "incomingGraphSurvivesTheSaveFunnel",
     "observed": "Expected saved note DEMO sender; configuration, visible chart and committed profile all retained DEMO recipient. Reply: applied=true, categories=[GRAPHS].",
     "repro": "Create DEMO-chart with note DEMO sender and capture it. Change the open chart’s note to DEMO recipient. Import the bundle with categories=[GRAPHS]. The config apply is overwritten by the save funnel’s merge from the old live chart.",
-    "fix": "Restore imported chart definitions before the ordinary persistence funnel (the existing applyImportedConfig path provides the relevant order). Assert both visible and persisted notes/series; mutate that application ordering."
+    "fix": "Restore imported chart definitions before the ordinary persistence funnel (the existing applyImportedConfig path provides the relevant order). Assert both visible and persisted notes/series; mutate that application ordering.",
+    "issueNumber": 94,
+    "issueUrl": "https://github.com/telaminai/fluxtionauditlog-analyser/issues/94"
   },
   {
     "id": "R3",
@@ -39,7 +43,9 @@
     "assertion": "unrelatedReportsImportMustNotDeleteThePersonsAnchor",
     "observed": "Remembered anchor [DEMO-code] became []; restoring the directory and reopening the bundle still gave sourceRoots=[].",
     "repro": "Anchor a bundle to DEMO-code, close it, temporarily move that directory, and reopen the bundle. Its unavailable root is omitted from live roots but is still remembered. Import only REPORTS. MainFrame.java:6496 posts every config edit as SourceRootsObserved([]), so the node treats an unrelated edit as an intentional deletion.",
-    "fix": "Report a source-root edit with intent/origin, distinct from restoration or unrelated configuration changes. Keep intentional empty edits supported. Add this offline-directory regression plus a targeted control; retain the existing deletion control."
+    "fix": "Report a source-root edit with intent/origin, distinct from restoration or unrelated configuration changes. Keep intentional empty edits supported. Add this offline-directory regression plus a targeted control; retain the existing deletion control.",
+    "issueNumber": 95,
+    "issueUrl": "https://github.com/telaminai/fluxtionauditlog-analyser/issues/95"
   },
   {
     "id": "R4",
@@ -53,7 +59,9 @@
     "assertion": "aJavaWalkMustNotClaimSHOWNBeforeItHasReadOrLitTheSource",
     "observed": "With the real asynchronous archive read held: phase=SHOWN, accepted step advanced, walkOwn=true, lit=[]. Expected PREPARING. The native strip also said shown.",
     "repro": "Prime availability for a DEMO class in a source archive, then hold its fresh discovery/read boundary. Play a Java-line walk. WalkStepPrepared treats resolvable targets as displayed, before LightWalkTargetsEffect completes.",
-    "fix": "Keep the node PREPARING and the accepted dialogue step unchanged until ticket-matched WalkTargetsLit reports the real outcome. Add a held-reader assertion on snapshot, strip, accepted step and empty overlay; mutate the phase/acceptance gate."
+    "fix": "Keep the node PREPARING and the accepted dialogue step unchanged until ticket-matched WalkTargetsLit reports the real outcome. Add a held-reader assertion on snapshot, strip, accepted step and empty overlay; mutate the phase/acceptance gate.",
+    "issueNumber": 96,
+    "issueUrl": "https://github.com/telaminai/fluxtionauditlog-analyser/issues/96"
   },
   {
     "id": "R5",
@@ -67,7 +75,9 @@
     "assertion": "lateWalkReadMustNotReplaceThePersonsNewView",
     "observed": "The native navigatePrevious action selected Summary while the read was held. Completion switched back to Source and lit the old step. Expected Summary to remain selected.",
     "repro": "Hold a primed Java walk’s fresh archive read. Use the tabbed pane’s installed native keyboard Previous-tab action to select Summary. Release the read. ownedByWalk suppresses the view guard and line 3173 selects Source again. Mouse navigation has other guards; this finding is specifically the keyboard path.",
-    "fix": "Bind preparation to the intended view and supersede external navigation, while preserving the walk’s own applyView. Carry navigation origin/identity into session facts. Commit the native keyboard regression and a control for the external-navigation guard."
+    "fix": "Bind preparation to the intended view and supersede external navigation, while preserving the walk’s own applyView. Carry navigation origin/identity into session facts. Commit the native keyboard regression and a control for the external-navigation guard.",
+    "issueNumber": 97,
+    "issueUrl": "https://github.com/telaminai/fluxtionauditlog-analyser/issues/97"
   },
   {
     "id": "R6",
@@ -81,7 +91,9 @@
     "assertion": "javaWalkAvailabilityMustNotBlockTheEDT",
     "observed": "Cold archive lookup blocked the EDT; a queued sentinel did not run. Back during the original held read also blocked. A resolvable invalid-UTF8 file threw UncheckedIOException and left phase=PREPARING, walkOwn=false, lit=[].",
     "repro": "(1) Hold the real Maven archive discovery monitor, play a cold Java-source walk, and queue an EDT sentinel. (2) Prime availability, hold the fresh read, Next to a status step, then Back before releasing it. (3) Place bytes E9 0A in the resolved DEMO .java file and play. canPrepareSource calls sourceForFqn synchronously, before the async preparation/deadline.",
-    "fix": "Do bounded source lookup/read off the EDT and report availability/failure as facts. Exceptions must settle NOT_SHOWN. Add all three witnesses and a control that restores synchronous lookup. Extra named assertions: BackDuringAReadMustNotBlockTheEDTOnTheOriginalLookup; sourceAvailabilityFailureMustSettleHonestlyInsteadOfLeavingPREPARING."
+    "fix": "Do bounded source lookup/read off the EDT and report availability/failure as facts. Exceptions must settle NOT_SHOWN. Add all three witnesses and a control that restores synchronous lookup. Extra named assertions: BackDuringAReadMustNotBlockTheEDTOnTheOriginalLookup; sourceAvailabilityFailureMustSettleHonestlyInsteadOfLeavingPREPARING.",
+    "issueNumber": 98,
+    "issueUrl": "https://github.com/telaminai/fluxtionauditlog-analyser/issues/98"
   },
   {
     "id": "R7",
@@ -95,7 +107,9 @@
     "assertion": "disabledOfferMustBeRecordedAsSkipped",
     "observed": "offersEnabled=false, chooser=null, dialogs=0; session audit nevertheless recorded StatusShown(kind=offerProjectReopen) and success:true, with no offerProjectReopenSkipped.",
     "repro": "Without enabling reopen offers or installing a chooser, use the ordinary person project-request path on a DEMO project with a recent log. The effect arm decides asking from sessionInteractive/showingSomething; the deferred helper later silently refuses because offersAllowed is false. ProjectReopenOffer only decides the bundle exclusion, not the audience.",
-    "fix": "Make audience/eligibility a session-node decision from explicit request and permission facts. The adapter should return candidate facts and ask only when requested. Record the actual offered/skipped outcome. Keep the successful probe that chooses a log outside the driver cycle."
+    "fix": "Make audience/eligibility a session-node decision from explicit request and permission facts. The adapter should return candidate facts and ask only when requested. Record the actual offered/skipped outcome. Keep the successful probe that chooses a log outside the driver cycle.",
+    "issueNumber": 99,
+    "issueUrl": "https://github.com/telaminai/fluxtionauditlog-analyser/issues/99"
   },
   {
     "id": "R8",
@@ -110,7 +124,9 @@
     "assertion": "two planted forbidden surfaces remain green",
     "observed": "review-panel-inner-frame and review-navigator-inherited-action both ran 1/0/0/0. Direct MainFrame field and new declared action both failed at the named assertions. These survivors are genuine green runs, not crashes.",
     "repro": "Run the published serial FastEngine probes. Add a nested FrameBridge.make() that constructs MainFrame, with an outer helper calling it: the guard reads only the outer class bytes. Separately make Navigator extend HiddenActions with default runAnything(Runnable): getDeclaredMethods at line 69 excludes the inherited public action.",
-    "fix": "Check nested/anonymous classes and reachable helper dependencies for forbidden frame/action-surface references; inspect the inherited public Navigator surface as well as declarations. Register both bypass mutations and demand assertion failures plus byte-identical restoration."
+    "fix": "Check nested/anonymous classes and reachable helper dependencies for forbidden frame/action-surface references; inspect the inherited public Navigator surface as well as declarations. Register both bypass mutations and demand assertion failures plus byte-identical restoration.",
+    "issueNumber": 100,
+    "issueUrl": "https://github.com/telaminai/fluxtionauditlog-analyser/issues/100"
   },
   {
     "id": "R9",
@@ -124,7 +140,9 @@
     "assertion": "anUnrelatedRecentLogMustNotBeCalledInsideThisProject",
     "observed": "The actual modal said “Open a log or topology from DEMO-project” and “opened inside this project”, with DEMO-other-project/DEMO-other.yaml preselected.",
     "repro": "Only open a log in DEMO-other-project, then open an empty DEMO-project with no declared root containing that log. MainFrame.java:7871 deliberately falls back to machine recents; the dialog loses that origin and describes every candidate as belonging to the project.",
-    "fix": "Carry machine/project origin per candidate list and describe it accurately. Retain the intentional machine fallback and explicit choice. Assert the actual modal’s membership wording for logs-only and topology-only fallback."
+    "fix": "Carry machine/project origin per candidate list and describe it accurately. Retain the intentional machine fallback and explicit choice. Assert the actual modal’s membership wording for logs-only and topology-only fallback.",
+    "issueNumber": 101,
+    "issueUrl": "https://github.com/telaminai/fluxtionauditlog-analyser/issues/101"
   },
   {
     "id": "R10",
@@ -138,6 +156,8 @@
     "assertion": "savedJavaLineMustNotClaimCurrentAfterItsTextChanges",
     "observed": "After line 3 changed from return 0.004 to return 999, target.state was CURRENT and the saved caption “DEMO the spread is 0.004” was shown unchanged. No source basis was saved.",
     "repro": "Save a Java-line walk against a DEMO class, edit the same FQN/line, then play. JAVA/JAVA_LINE use basisKind=none and WalkResolver.java:112 defaults to CURRENT. The class-name contract is deliberate; this is design pushback on applying it to a line and its old explanation, not a newly discovered violation of that deliberate identity definition.",
-    "fix": "Choose either a revision/line basis with historical/unresolved qualification, or explicitly label playback as a current name/line lookup whose source revision was not compared. The existing “Source/run: unverified” warning concerns pairing to the log and does not explain comparison to the saved caption. Pin the chosen disclosure with this changed-line probe."
+    "fix": "Choose either a revision/line basis with historical/unresolved qualification, or explicitly label playback as a current name/line lookup whose source revision was not compared. The existing “Source/run: unverified” warning concerns pairing to the log and does not explain comparison to the saved caption. Pin the chosen disclosure with this changed-line probe.",
+    "issueNumber": 102,
+    "issueUrl": "https://github.com/telaminai/fluxtionauditlog-analyser/issues/102"
   }
 ]

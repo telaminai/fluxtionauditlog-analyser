@@ -13,6 +13,21 @@ Read CLAUDE.md, docs/ONBOARDING.md, all of #84 and its comments, #79 and PR #87�
 - **Item 2 reported:** the third review and all its findings are below.
 - **Item 3 DONE as recorded by GitHub:** while this review ran, [PR #87](https://github.com/telaminai/fluxtionauditlog-analyser/pull/87) merged as `258da371d957044625da4b88f5a433922f987b00` at 08:17:16 UTC and the owner closed [#79](https://github.com/telaminai/fluxtionauditlog-analyser/issues/79) immediately afterwards. The independent review had requested changes at `11df0d26`; the [implementer’s final report](https://github.com/telaminai/fluxtionauditlog-analyser/pull/87#issuecomment-5927553142) states the corrections and explicit owner CI waivers, and retains the separate colon-policy question. This is merge/issue-status evidence, not an independent approval of `788b2317` or a claim that its full gate was green. No PR #87 code, tests or reviewer worktree were inspected.
 
+## Filed issues
+
+| Finding | Issue | Disposition |
+|---|---|---|
+| R1 | [#93](https://github.com/telaminai/fluxtionauditlog-analyser/issues/93) — Failed bundle plan can label an independently replaced profile as the sender’s evidence | P1 REQUIRED; open |
+| R2 | [#94](https://github.com/telaminai/fluxtionauditlog-analyser/issues/94) — Borrowing GRAPHS reports success but discards the incoming chart definition | P2 REQUIRED; open |
+| R3 | [#95](https://github.com/telaminai/fluxtionauditlog-analyser/issues/95) — An unrelated REPORTS import erases a bundle anchor while its source directory is offline | P2 REQUIRED; open |
+| R4 | [#96](https://github.com/telaminai/fluxtionauditlog-analyser/issues/96) — Java walks claim SHOWN and accept the step before source preparation has completed | P2 REQUIRED; open |
+| R5 | [#97](https://github.com/telaminai/fluxtionauditlog-analyser/issues/97) — A late Java walk read overrides a person’s native keyboard tab selection | P2 REQUIRED; open |
+| R6 | [#98](https://github.com/telaminai/fluxtionauditlog-analyser/issues/98) — Java walk availability reads on the EDT, can freeze Back, and leaves malformed source PREPARING | P2 REQUIRED; open |
+| R7 | [#99](https://github.com/telaminai/fluxtionauditlog-analyser/issues/99) — Reopen audience is still decided in MainFrame and disabled offers are recorded as offered | P2 REQUIRED; open |
+| R8 | [#100](https://github.com/telaminai/fluxtionauditlog-analyser/issues/100) — D-L3 guard misses nested MainFrame access and inherited unnamed Navigator actions | P2 REQUIRED; open |
+| R9 | [#101](https://github.com/telaminai/fluxtionauditlog-analyser/issues/101) — Machine-wide reopen fallback falsely labels another project’s log as inside this project | P2 REQUIRED; open |
+| R10 | [#102](https://github.com/telaminai/fluxtionauditlog-analyser/issues/102) — Java-line walk captions need an explicit source-revision contract | P2 SHOULD — design decision; open |
+
 ## Acceptance coverage
 
 | Requested area | Result and own evidence |
