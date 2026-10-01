@@ -39,12 +39,11 @@ import java.util.regex.Pattern;
  *   <li>a non-blank line at the fields' indentation that is <b>not a field</b>;</li>
  *   <li>a <b>second {@code eventLogRecord:} line</b> (a separator inside the record is a framing fault the framer has
  *       already acted on, MA-7);</li>
- *   <li>a <b>repeated field</b>. A value's text can begin a forged copy only after the first field that carries an
- *       event's or a node's own text — {@code eventToString}, {@code nodeLogs}, or a field the format does not know. A
- *       first copy before that line is the producer's (fluxtion-runtime writes {@code eventTime}, {@code logTime},
- *       {@code groupingId} and {@code event} from its own state, never from an event's text), so the record is read up
- *       to the SECOND copy. After it, which copy is the producer's cannot be told — the forged one can come first — so
- *       the record is read only up to the FIRST.</li>
+ *   <li>a <b>repeated field</b>: the record is read up to its second copy. A forged FIRST copy can only follow the
+ *       first field that carries an event's or a node's own text — {@code eventToString}, {@code nodeLogs}, or a field
+ *       the format does not know — and a broken record is never read past that field's line (below). Before it, the
+ *       first copy is the producer's: fluxtion-runtime writes {@code eventTime}, {@code logTime}, {@code groupingId} and
+ *       {@code event} from its own state, never from an event's text.</li>
  * </ul>
  * Every break in the record is collected, and the record is read only up to the <b>earliest</b> line any of them withholds
  * from. And because a value's text can begin forged lines only after the first field that carries it, a broken record
@@ -209,7 +208,9 @@ public record RecordBreak(int line, int keepBefore, String reason) {
             if (carriesText && textFrom == Integer.MAX_VALUE) textFrom = i;
             if (FIELD_KEYS.contains(key)) {
                 Integer first = firstAt.putIfAbsent(key, i);
-                if (first != null) breaks.add(i, first <= textFrom ? i : first, "the field '" + key + "' a second time");
+                // the second copy is withheld; a forged FIRST copy can only follow the first text-carrying field, and
+                // a broken record is never read past that field's line (Breaks.result)
+                if (first != null) breaks.add(i, i, "the field '" + key + "' a second time");
                 if (key.equals("nodeLogs")) inNode = true;
                 else if (BLOCK_SCALAR.matcher(value).matches()) blockScalar = true;
                 if (key.equals("event") && first == null) firstEvent = value;

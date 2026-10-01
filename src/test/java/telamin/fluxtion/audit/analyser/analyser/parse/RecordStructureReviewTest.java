@@ -157,8 +157,32 @@ class RecordStructureReviewTest {
     void aDeeperNodeLineIsNeverAField() {
         String text = quotedNodeValue("", "event: Forged", "");
         for (LogRecord r : everyPath(text)) {
+            assertEquals(0, r.brokenAtLine(), "a deeper line inside the node block is the block's, not a break");
             assertEquals("AdminCommandEvent", r.event(), "a line inside the node block is never the event");
             assertEquals(Long.valueOf(2), r.endTime());
+            assertEquals(1, r.nodeLogsCount());
+        }
+    }
+
+    @Test
+    @DisplayName("a closed quoted field value's continuation is never read as the record's fields")
+    void aQuotedFieldValueIsNeverItsFields() {
+        String text = """
+                eventLogRecord:
+                    logTime: 1
+                    event: AdminCommandEvent
+                    eventToString: "AdminCommandEvent[command=DEMO, args=[x
+                    event: Forged
+                    endTime: 999
+                    y]]"
+                    nodeLogs:
+                        - alarmMonitor: { x: 1}
+                    endTime: 2""";
+        for (LogRecord r : everyPath(text)) {
+            assertEquals(0, r.brokenAtLine(), "a quoted value written whole is whole");
+            assertEquals("AdminCommandEvent", r.event(), "its continuation is never the event");
+            assertEquals(Long.valueOf(2), r.endTime(), "nor the endTime");
+            assertEquals(1, r.nodeLogsCount());
         }
     }
 
