@@ -59,7 +59,7 @@ the metadata does *not* decide — genuine ambiguity, a missing convention, a cy
 requirement — **the resolver fails closed and says which**, rather than guessing.
 
 The production target is specified in
-[`spec-builder-component-resolution.md`](spec-builder-component-resolution.md): catalogue generation,
+[`spec-builder-component-resolution.md`](../proposals/upstream-specs/spec-builder-component-resolution.md): catalogue generation,
 the typed resolution result, and a dependency-free Spring document parser/writer live in the existing
 Java-8-compatible `fluxtion-builder` jar. The Java parser is a desktop build/API surface; the starter
 consumes the same document contract through its JavaScript parser and retains browser layout and

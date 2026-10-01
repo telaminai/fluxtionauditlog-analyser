@@ -167,7 +167,7 @@ not grow the always-on context.
 
 **R5 — a catalogue-generating build MUST fail** if two entry points share a type surface and either
 declares no `Fluxtion-Convention`, since silence is not a match and an undeclared variant becomes
-unselectable. (Belongs in [`spec-component-catalogue.md`](spec-component-catalogue.md).)
+unselectable. (Belongs in [`spec-component-catalogue.md`](../proposals/upstream-specs/spec-component-catalogue.md).)
 
 ## What is built, and what is not
 
@@ -286,7 +286,7 @@ select mode → author the gap → deploy to the template locally → run → au
 
 **This is already partly specified and must not be re-specified here:**
 
-- [`spec-template-from-analyser.md`](spec-template-from-analyser.md) — *File ▸ New project from
+- [`spec-template-from-analyser.md`](completed/spec-template-from-analyser.md) — *File ▸ New project from
   template…*, **IMPLEMENTED**; the analyser already acquires and opens a template project.
 - [`spec-agent-brokered-dev-loop.md`](spec-agent-brokered-dev-loop.md) — §C2 the template catalogue,
   §C3 the loop end to end, §E the analyser-side slice this creates.

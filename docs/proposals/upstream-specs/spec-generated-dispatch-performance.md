@@ -1,7 +1,9 @@
 # Spec — generated dispatch performance: every lever, and the one that matters
 
+**Moved 2026-10-01** from `docs/specs/` to `docs/proposals/upstream-specs/`: owned by fluxtion-compiler and the fluxtion runtime; this repository keeps the evidence. Tracker: M50.
+
 **Status:** PARTLY SHIPPED — read this block before the body, which is unchanged from 2026-09-06 and speaks in
-the future tense about work that has since landed. **Evidence:** [`round-58`](../experience/runs/round-58/NOTES.md)
+the future tense about work that has since landed. **Evidence:** [`round-58`](../../experience/runs/round-58/NOTES.md)
 — ~700 measured runs across 9 runtimes, every arm output-verified before timing.
 **Owner:** Fluxtion compiler (upstream). This repo holds the evidence, not the implementation.
 

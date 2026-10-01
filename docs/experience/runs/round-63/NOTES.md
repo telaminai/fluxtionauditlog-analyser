@@ -1667,7 +1667,7 @@ and discarded.
 **The fix is to assign ids at generation time and pass the id.** That is a change to the audit API and
 the generated code, not to any encoder, and it is worth the full **26–28 ns/event on both toolchains** —
 more than every compiler flag in this round put together. It also removes the dictionary problem from
-[`spec-binary-audit-encoding.md`](../../../specs/spec-binary-audit-encoding.md) §6.3: the id table
+[`spec-binary-audit-encoding.md`](../../../proposals/upstream-specs/spec-binary-audit-encoding.md) §6.3: the id table
 becomes a build artifact emitted next to the processor rather than something discovered at runtime and
 published on the wire.
 

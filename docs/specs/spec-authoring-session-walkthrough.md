@@ -177,7 +177,7 @@ already been committed and specced:
    from any tool.
 
 Defect 3 is the one worth carrying forward: it is a second independent argument for
-[`spec-component-catalogue.md`](spec-component-catalogue.md)'s core claim that **manifests must be
+[`spec-component-catalogue.md`](../proposals/upstream-specs/spec-component-catalogue.md)'s core claim that **manifests must be
 generated, not hand-written**, and it should become one of that spec's build-failing validations —
 *every entry point sharing a type surface must declare a convention, and the generator must verify the
 attribute survives into the jar, not merely into the source file.*

@@ -8,7 +8,7 @@ STATUS: IMPLEMENTATION COMPLETE, OPEN FOR INDEPENDENT REVIEW. Nothing merged, no
 This is the item the spec says to ship FIRST: smallest, no dependencies, removes an adoption tax today.
 
 ORIENT FIRST
-  · docs/specs/spec-generated-dispatch-performance.md §18 (ANALYSER repo) — W12 diagnosed precisely.
+  · docs/proposals/upstream-specs/spec-generated-dispatch-performance.md §18 (ANALYSER repo) — W12 diagnosed precisely.
     §18.2 is the part that matters: ONE asymmetry causes all three reflection sites. Auditors are
     registered onto the SEP as fields but never into nodeNameLookup, so every by-name lookup has to
     fall back to a reflective field probe. The fix is to close the asymmetry at generation time.

@@ -59,3 +59,20 @@ focused run was **65 / 7 / 0 / 0**: its seven failures were the old straight-sin
 adjacency expectation, incompatible with the conservative bound. That surfaced the owner clarification,
 not a reason to weaken the bound. The final pre-fix and restored counts above include the extra cases
 for the clarified rule. No mutation survived; no compilation error was counted as a witness.
+
+## Current-main integration for CI
+
+After pushing `e1ca9dfe`, GitHub reported PR #87 as conflicting and started only the push-triggered
+static check, not the pull-request CI workflow. Main had advanced to `473cd674` with the documentation
+reorganisation (including the packaging spec's move to `docs/specs/completed/`). Bringing that main
+into the PR branch applied cleanly, with no textual conflict. Main itself was not changed.
+
+The redaction production file, its tests and the mutation-control definitions are byte-for-byte the
+same as `e1ca9dfe`; the corrected policy remains in the moved spec. The integration changes no runtime
+behaviour: main's Java/tool edits in this interval are documentation pointers, and its spec-link test
+also checks the moved upstream-spec directory.
+
+RAN again on the combined tree: `mvn -o -q clean test` **3084 / 0 / 0 / 218**, **406 reports, no
+orphans**; strict MkDocs; harness tests **5 / 0 / 0 / 0**; preflight **40 suites / 559 anchors**;
+whitespace and public-data sweeps clean. Targeted mutations were not repeated on identical code.
+CI must be read at the resulting merge commit on the PR branch, not at the earlier correction SHA.

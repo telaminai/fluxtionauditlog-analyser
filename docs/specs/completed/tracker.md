@@ -1,4 +1,4 @@
-## Evidence bundles · first delivery — ☑ SHIPPED in 1.27.0 (PR #63, merged `77d268be`, 2026-09-28) — [spec](../spec-evidence-bundle-packaging.md)
+## Evidence bundles · first delivery — ☑ SHIPPED in 1.27.0 (PR #63, merged `77d268be`, 2026-09-28) — [spec](spec-evidence-bundle-packaging.md)
 
 Capture is one operation on the running analyser (`report {bundle}`), decided by the `evidenceCapture` node; the
 recipient runs `--verify`/`--unpack`; optional excerpts; no skills. Four reviews, all in `docs/handoff/` (spec
@@ -6,7 +6,7 @@ recipient runs `--verify`/`--unpack`; optional excerpts; no skills. Four reviews
 #64–#69, pointed at from the live tracker.
 
     deferred, D-0 amended, L-33). Spec **r5, implemented** (r4: review F1/F2 fixed; r5: the convergence):
-    [`spec-evidence-bundle-packaging.md`](../spec-evidence-bundle-packaging.md), merged as PR #63 (`77d268be`). Placement **C**, with no verb, menu or dialog. The CLI owns the format (`--pack`,
+    [`spec-evidence-bundle-packaging.md`](spec-evidence-bundle-packaging.md), merged as PR #63 (`77d268be`). Placement **C**, with no verb, menu or dialog. The CLI owns the format (`--pack`,
     `--verify`, `--unpack`, and in r3 `--bundle-profile`); `context` gains `log.generation` and, in r3,
     `project.unsavedEdits`. Flags and excerpts are out of the first delivery. Results:
     `docs/handoff/evidence/evidence-bundle-v1-2026-09-28/RESULTS.md`. Slices:
@@ -62,7 +62,7 @@ recipient runs `--verify`/`--unpack`; optional excerpts; no skills. Four reviews
 
 ## M69 · Spotlight walks — saved, stepped explanations on the overlay — ☑ SHIPPED in 1.26.0 (merged `5cdd12ec`, 2026-09-28)
 
-Spec: [`spec-spotlight-walks.md`](../spec-spotlight-walks.md) (r4, consolidated). **Owner, 2026-09-27:**
+Spec: [`spec-spotlight-walks.md`](spec-spotlight-walks.md) (r4, consolidated). **Owner, 2026-09-27:**
 - forward/back arrows on the overlay, not a separate player;
 - walks stored like reports, and useful outside an evidence bundle;
 - a right-click on a live spotlight opens a save menu;
@@ -132,6 +132,129 @@ first commit carried none.
 - [#50] ☑ `graph {delete}` and `graph {close}`. The last chart's placeholder is not saved. A close under a definition refusal is refused.
 - ☑ Spotlight callouts slide along their side instead of overlapping.
 - ☑ CI: the source panes' test accessors read on the EDT (a mutation-shard baseline lost a race to a null pane text).
+
+## Tidy 2026-10-01 — ticked items moved from the live tracker
+
+Moved verbatim (links re-based for this directory) after 1.30.1. Only top-level ☑ items whose text holds no ☐, ◧, ◐ or ◑ were moved; anything with an open mark stayed live. Each live section that lost items carries a pointer here.
+
+### Spring authoring edit loop — session intake 2026-09-25
+
+- ☑ **Recovery profile identity** — spec §E, feedback 5: first reproduce capture under P at X,
+  delete/recreate a profile at X, then activate it. Current real-path keys cannot distinguish
+  replacement profiles. Bind identity, disclose capturedAt/capturing identity, withhold or
+  qualify mismatch; retain pending-I/O and cross-project controls. Participant history remains
+  unverified; this is proposed regression work, not a reproduced or closed finding.
+  **Shipped in 1.21.0 (2026-09-26):** [PR #28](https://github.com/telaminai/fluxtionauditlog-analyser/pull/28) — snapshots record the
+  capturing profile's creation nonce (`profileNonce`, taken when the capture is built); a recreated profile at
+  the same path is withheld, a missing identity is withheld as `capturedBy: unknown` (unit + real-frame
+  fixture, gate cases `recovery-profile-identity`, `recovery-identity-unknown`, `recovery-withheld-input-origin`,
+  `recovery-identity-at-capture`, `profile-nonce-kept-by-saves`). Participant history remains unverified.
+- ☑ **Template installer authoring executables** — spec §G, feedback 8: add setup/validate/generate
+  to TemplateArchive's fixed executable list, retaining arbitrary-mode refusal. Removing
+  generate.sh must fail a real install assertion. Direct-browser ZIP modes are a separate
+  producer check; D6 approves documenting Windows absence, with implementation deferred.
+  **Shipped in 1.21.0 (2026-09-26):** [PR #27](https://github.com/telaminai/fluxtionauditlog-analyser/pull/27) — install
+  test runs the three scripts without chmod; gate case `installer-authoring-executables`.
+- ☑ **Context section projection** — spec §H, feedback 17: opt-in projection, compatible full
+  default, same-state equality, and basis/qualification carried with every selected verdict.
+  **Shipped in 1.21.0 (2026-09-26):** [PR #29](https://github.com/telaminai/fluxtionauditlog-analyser/pull/29) — `context
+  {sections}` with eleven published names, qualifiers carried under `scope.carried` (including a rolled
+  set's `files` with `view` and `producer` with `topology`), the key file read only when `fluxtionKey` is
+  selected, refusal before any read, recorded fixture bytes, and five mutation controls in the fast gate.
+- ☑ **Design-first first look, found by the 1.21 fresh-look virgin run (2026-09-26)** — at the default
+  1200×800 window the Design view's wrapped status note took the whole height and a fixed 210 px bean list the
+  width, so no design bean or line could be lit; neighbouring spotlights drew edges through each other's line;
+  a design refused by path pointed at `source_root` and models authorised the whole project directory.
+  **Shipped in 1.22.1:** [PR #35](https://github.com/telaminai/fluxtionauditlog-analyser/pull/35) — capped status
+  note and fitted bean list, one-cause design refusals, a shared separator for stacked spotlights, and refusals
+  that name `open {project}` (never the project already open). Six gate controls, including a Linux precheck
+  of the status witness.
+
+### Product discovery — the notebook for event-driven applications (2026-09-22)
+
+- [WS-1] ☑ _(shipped as M68.5 in 1.21.0 — completed tracker ▸ M68)_ **Follow shows stale content after the log file is replaced.** A restart rewrites the audit log as a new inode
+  and live-tail silently held the old content until the operator noticed through `context`. Same class as DX-02: the
+  instrument reporting confidently and wrongly, rather than failing. The detection already exists — `context` computes the
+  file identity and flags changed-on-disk inputs — so only the action is missing: reopen, or raise a banner that says the
+  file underneath was replaced. Prioritise with DX-02/DX-03.
+- [WS-2] ☑ _(shipped as M68.5 in 1.21.0)_ **A non-canonical profile resolves the project root as the settings directory.** The root came out as the
+  `.analyser/` directory rather than the repository, so every runbook and skill pointer resolved `exists: false`. That
+  breaks the mechanism the whole authoring story depends on. Resolve the root from the settings file's parent's parent, or
+  record it explicitly in the settings.
+
+### Spring authoring observed acceptance — 2026-09-19
+
+- ☑ _(the journey shipped in 1.16.0, 2026-09-20)_ **Starter journey implementation started — 2026-09-20** — owner authorized commits, pushes and
+  isolated branches through the full reviewed workflow. Preserve existing checkouts/staging. Planned
+  branch in each owning repo: `feat/project-starter-journey`; analyser from current main, playground and
+  compiler from their reviewed Spring-authoring heads with upstream integration checked explicitly.
+  Track acceptance and exact heads in [implementation handoff](../../handoff/handoff_project_starter_implementation_2026_09_20.md).
+  Public release gates remain distinct from local development verification.
+- ☑ _(shipped in 1.16.0: the start page's authoring action)_ **Author-new-project entry** — the journey branch adds a StartPanel authoring entry using the same
+  catalogue/download controller as the File menu, with whole-catalogue explanations. No duplicate
+  generator/configurator. A richer separate page and a plain-JSON headless request remain proposals;
+  the existing documented headless template/token route is the implementation contract.
+- ☑ _(shipped in 1.16.0: project landing and explicit session recovery)_ **Project-aware landing and explicit resume** — implemented on the journey branch through `7eceff5`:
+  saved declarations, explicit Restore/Dismiss, actual completion and content checks. Five real-frame
+  cases and inspected UI/context captures cover the adapter; 37 display tests and clean package with
+  1,707 tests pass. _(Since: the real OS-process restart was verified across three JVMs on 2026-09-21 — completed
+  tracker ▸ Release execution; complete downloaded-project acceptance is SG-2's hosted half.)_ [Journey spec](../spec-project-starter-journey.md); [evidence](../../handoff/evidence/project-session-recovery-2026-09-20/README.md).
+- ☑ _(shipped in 1.16.0: the whole starter catalogue)_ **Show the full template catalogue (owner accepted, 2026-09-20)** —
+  [template-picker spec D-1](spec-template-from-analyser.md#c--decisions) now replaces the onboarding-only
+  rule: list every catalogue entry and mark onboarding-tagged entries as **Recommended starting points**.
+  No tags means all entries without recommendations, not a Mongoose-only fallback. Implemented on the
+  journey branch: full list, declared build/regeneration requirements and absent/empty/populated bootstrap
+  disclosure. Mixed/no-tag parser tests and a real Swing picker over all 14 producer-branch entries pass.
+  All 14 scaffold-handler downloads now pass the real profile importer (including untagged entries).
+  Interactive acquisition/discovery acceptance, independent review and producer-first deployment remain open.
+  A guided walkthrough is a runbook procedure, not a separate runtime or a guarantee from the tag.
+- ☑ _(shipped as M68.2 in 1.21.0)_ **Report integrity — first correctness slice** — 24: every requested section must render or carry
+  an in-place reason and export warning. Cover resolved-but-unassembled topology, not only missing
+  references. A full topology export must render the named saved focus without changing the user's
+  current view. The series-section limitation (26b) also needs an honest export warning.
+- ☑ **Fresh-session trial performed and independently assessed.** Predictions were frozen first; no inherited
+  conversation or observer coaching. The session produced two real matching runs and a chart/report with existing
+  analyser features. **Not a clean authoring pass:** it repaired a utility-generated `privatefinal` declaration.
+  That upstream fix and playground G9 are now accepted by both pass-4 reviewers (`dbcfacc4`, `7a051224`):
+  both upstream branches are READY WITH FOLLOW-UPS. The G review also confirms DX-02–05 and their proposed order.
+  [Results, prediction scores, evidence and exact reproductions](../../handoff/report_spring_authoring_acceptance_2026_09_19.md).
+- ☑ _(shipped as M68.1 in 1.21.0)_ **DX-02 — compare graph membership against the complete graph.** A declared framework sink was reported
+  absent because authored coverage IDs were used as membership. Reproduced independently. Keep the correct
+  coverage denominator; use all graph IDs for pairing/mismatch; retain real mismatch warnings across UI, actions
+  and reports. First correctness priority arising from this trial, separate from M66/M67.
+- ☑ _(shipped as M68.4 in 1.21.0)_ **DX-03 — rolled-log + graph open must honour or refuse the full request.** Current early return silently
+  drops graph/processor; observer reproduced it. Acceptance includes load completion and honest pairing/echo.
+- ☑ _(shipped as M68.4 in 1.21.0)_ **DX-04 — first topology record selection.** With loaded records and an unbound cursor, the manifest's
+  `recordIndex` parameter does nothing. Observer reproduced; selecting via goto works. Bind or refuse clearly.
+- ☑ _(shipped as M68.6 in 1.21.0)_ **DX-05 — graph names and spotlight addressability.** Colon-named charts are created but cannot be lit by
+  name. Observer reproduced. Resolve compatibility for saved names explicitly before changing the grammar.
+
+### M70 · Evidence bundle replay — the second delivery — released in 1.28.0 ([spec](../spec-evidence-bundle-replay.md); spike `tools/spikes/replay-bundle/`)
+
+- [M70.R0] ☑ The auditor path proven on a DEMO processor generated with the recorder (builder 1.0.71): inputs-only replay byte-identical; record-everything duplicates the graph-raised event; the second clock read reproduced (spike README ▸ *R0*)
+- [M70.R0a] ☑ `examples/fixture-generator` follows the root pom (builder 1.0.71, runtime 1.0.16, no BOM); `FixtureGeneratorToolchainTest` holds it (red on the old pom, naming all three causes)
+- [M70.R0b] ☑ The committed DEMO fixtures regenerated with the analyser's toolchain: one clock read per cycle (`eventTime == logTime`), and the new GraphML vocabulary. The graph now DECLARES `spreadCalculator` cannot log (`fluxtion.auditCapable=false`), so coverage drops it with no source (M45.3). `CoverageScopeTest` was updated to that: a declared fact is enough; with no declaration and no source the node stays counted. `GeneratedSourceIsPublishableTest` now covers the fixture generator's generated files (red on a planted copyright line). The eight fixture-reading frame suites pass on a display (43, 0 failures; 4 known Mac skips)
+- [M70.R1s] ☑ Spike: our own writer (`ReplayCapture`) and matching reader on generated processors (`tools/spikes/replay-bundle/r1/`): same build, only `endTime` differs; a changed build diverges, named at the breach; the serialiser is the processor's statically handled types (R-D9): an unencodable type fails the build, and the reader refuses any type the recipient's build does not handle
+- [M70.R2s] ☑ Spike: record by identity at the consumption point (`writer.expect(e)` before `onEvent`), replay by plain injection (R-D10): an external event of the same type the graph raises is recorded, the graph's own is not; same build only `endTime` differs; the comparison names the changed build. No matcher, no declaration
+- [M70.R1] ☑ The replay writer in the DEMO (`com.acme.demo.replay`: `ReplayCapture`, `ReplayReader`, `EventTypes`) and `DemoQuoteRecordedProcessor`. `GenerateFixtures` writes `src/test/resources/replay/` (the audit log, the replay records and the graph from one run with no service calls) and refuses to write them unless the replay reproduces the log apart from `endTime` (witness: an unrecorded input makes it refuse). `ReplayFixtureTest` holds the fixture: inputs only, each stamped with its receipt instant, one build, with witnesses
+- [M70.R2] ☑ The `replay` member: `report {bundle: {…, replay}}`. `ReplayPairing` (the frame observes: each replay record a log record's event at its `eventTime`, in order; nothing loaded; the paired bytes digested) and the `evidenceCapture` node decides (refused with a window, while the log grows, or unpaired; the service-call warning). The writer packs `replay/` and holds the copy to the digest; manifest format 2 only then, verify reads both and refuses a replay claimed without its member; `--verify` prints it with the replay limit. Tests: `ReplayPairingTest`, `ReplayBundleTest`, `EvidenceCaptureTest` (5 new), `MainBundleTest`, `EvidenceCaptureFrameTest` (through the verb)
+- [M70.R3] ☑ `--replay-compare <bundle.fexp> <replayed-audit.yaml>` (`ReplayCompare`): verifies and unpacks, then every record exact but `endTime` (by position); the first difference named by record, event and key path with both values; a count difference named at the first record one side lacks; refused with no replay records, an excerpt, or an unverifiable bundle. Exit 0 agrees, 1 diverges or refused, 2 usage. Measured on a REAL replayed log the fixture generator now commits: 8 of 8, `endTime` excepted on 8. Tests: `ReplayCompareTest` (8), `MainBundleTest`
+- [M70.R4] ☑ The runner, `tools/replay/ReplayBundle.java` (JBang or plain java): the graph checked by nodes and edges against the build's own GraphML, the allow-list the build's `handleEvent` types, each record at its instant on a data-driven clock. `ReplayRunnerEndToEndTest` compiles the committed DEMO sources as a recipient's build: the same build AGREES; a risk limit of 3 DIVERGES at record 6; a foreign graph is refused. Found: the comparison must except `thread` as well as `endTime` (R3's rule corrected), and the JBang header needs the Fluxtion repository. Smoke-run with real `jbang` and `analyser --replay-compare`: AGREES 8 of 8
+- [M70.R5] ☑ Docs site replay reference and comparison limits; CHANGELOG [Unreleased] (strict MkDocs on PR #71)
+
+### M71 · Workspace Start and Swing polish — PR #71, released in 1.28.0 ([spec](spec-workspace-start.md))
+
+- [M71.1] ☑ Full-window Start page grouped by activity, with DEMO tour, project/profile, bundle, log, GraphML, template and settings entrances; the project workspace remains reachable through Help.
+- [M71.2] ☑ Native file drops and delayed bundle preparation use the existing session paths. The review correction `5f950694` cancels a prepared bundle for a newer explicit graph without cancelling reader-supplied or accepted-bundle graph facts; regression tests and named mutation controls catch the wrong result.
+- [M71.3] ☑ Graph selector, narrow series and walk controls, report and producer-finding reading surfaces, and template picker. The 28 native DEMO documentation captures were inspected and the affected guides updated (`2b516f8b`).
+- [M71.4] ☑ Final-head CI, main integration CI, release and publication receipts are [recorded here](../../handoff/release_analyser_1_28_0_2026_09_29.md). The reviewer recheck is [recorded here](../../handoff/review_pr71_workspace_start_2026_09_29_codex_recheck.md).
+
+### M69 follow-ups — spotlight walks shipped in 1.26.0 (▸ *M69* in this file)
+
+- [M69.F1] ☑ **W-A11: a native capture of a walk** for the docs site. The full `python3 tools/capture-docs.py`
+  run on PR #71 produced and visually checked both light and dark walk captures; the light capture is on the assistant guide.
+- [M69.F3] ☑ (EB.B0, `feat/evidence-bundle-v1`, unmerged) **Present the unassessed-log caveat once per walk**, not on every record or chart step. With Follow off it
+  is always present, and the strip paints only three reason lines (fix review, F5).
 
 ## Tidy 2026-09-27 — shipped and superseded entries moved from the live tracker
 
@@ -844,7 +967,7 @@ Unresolved optional items and owner decisions remain in the live tracker below i
 ## Fast mutation gate — ☑ MERGED with the 1.20.0 main tree — 2026-09-24
 
 PR #18 merged as `7254c29d`, proposal PR #16 as `2a15f0ba`.
-[Proposal and implementation status](../../proposals/faster-mutation-gate.md).
+[Proposal and implementation status](../../proposals/completed/faster-mutation-gate.md).
 The engine uses a fresh JVM per control, restores byte snapshots, forces a clean rebuild on API or
 constant changes, and records partial results on failure. CI runs the full fast gate; Maven remains
 the local default for the initial comparison cycle. Main CI at the release candidate passed the
@@ -856,7 +979,7 @@ conservative; branch subsets are heuristic, not a release gate. Branch-protectio
 
 ## Java source spotlight — ☑ SHIPPED in 1.19.0 — 2026-09-23
 
-[Proposal](../../proposals/source-spotlight.md), [round-four response](../../handoff/completed/response_source_spotlight_r4_2026_09_21.md).
+[Proposal](../../proposals/completed/source-spotlight.md), [round-four response](../../handoff/completed/response_source_spotlight_r4_2026_09_21.md).
 Rebased first onto `809303f7`, then released main `9b88e6ac` on a replacement branch without force-pushing. Main's archived/closed statuses and later work are preserved. Source baseline `401da35b`. Explicit FQN/line targets beside topology; node inference deferred.
 SourceService first-match lookup and repeat-spotlight reread are explicit; the source-glance verb
 remains unchanged. Java clips with partial disclosure; design keeps released containment refusal.
@@ -3673,7 +3796,7 @@ agents does — and that learning is the raw material for the template bootstrap
 
 ## M45 · Consuming the GraphML vocabulary — ◧ .1/.2/.3/.5 SHIPPED 2026-08-31
 
-_Design: **[spec-graphml-vocabulary-consumption.md](../spec-graphml-vocabulary-consumption.md)**. The
+_Design: **[spec-graphml-vocabulary-consumption.md](spec-graphml-vocabulary-consumption.md)**. The
 upstream half of §2c lands in `fluxtion-builder`; this is our half. **We are the consumer the default
 flip is gated on**, so this milestone is a dependency in both directions._
 

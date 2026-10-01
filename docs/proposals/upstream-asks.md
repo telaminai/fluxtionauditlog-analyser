@@ -68,6 +68,11 @@ either is filed.
 
 ---
 
+
+## Upstream-owned specs — moved 2026-10-01
+
+Eight design specs for the compiler, runtime, builder, Maven plugin, public AI instructions and starter template now live in [upstream-specs/](upstream-specs/README.md), not `docs/specs/`. The analyser measured these problems but does not implement them: generated dispatch performance and manifest optimisation metadata (M50), binary audit encoding and its reader (M52), builder component resolution and the component catalogue (M48), minimal authoring instructions, and the native-ready template (M51). The asks below that cite them are unchanged.
+
 ## MON-U · Mongoose audit — 2026-09-21, updated 2026-09-23
 
 Two items. **UP-MON-01 is implemented and reviewed**, on an unmerged branch, not yet released.
@@ -1743,7 +1748,7 @@ the cost is undocumented.
 ## UP-FLX-49 — the entry wrapper dominates AOT dispatch cost (four changes)
 
 **Evidence:** [`round-58`](../experience/runs/round-58/NOTES.md), spec:
-[`spec-generated-dispatch-performance.md`](../specs/spec-generated-dispatch-performance.md).
+[`spec-generated-dispatch-performance.md`](upstream-specs/spec-generated-dispatch-performance.md).
 ~500 measured runs across 9 runtimes, every arm output-verified before timing.
 
 **The generated dispatch is not the cost.** Disassembled, `handleEvent` is **276 instructions with no
@@ -1777,7 +1782,7 @@ annotating methods and bought only 3.8%; it would also make the runtime jar depe
 internals.
 
 **Implementation plan added 2026-09-06.** UP-FLX-49 now has a full branch plan in
-[`spec-generated-dispatch-performance.md`](../specs/spec-generated-dispatch-performance.md) Part II:
+[`spec-generated-dispatch-performance.md`](upstream-specs/spec-generated-dispatch-performance.md) Part II:
 ten work items scoped by module (W1–W10), ordered as a performance spine (W1→W2→W4) and a determinism
 spine (W5→W6→W7), with compatibility classified — **no item is breaking, the release is additive**.
 
@@ -1901,7 +1906,7 @@ if you disagree — but the trade-off should not go unstated, and hoisting audit
 
 ## UP-PG-04 ☐ The starter schema has no way to say "native", so the native template is not one
 
-**Target** `fluxtion-web` (playground) · **Spec** [`spec-native-ready-template.md`](../specs/spec-native-ready-template.md) §D1–D2 · **Milestone** M51.2
+**Target** `fluxtion-web` (playground) · **Spec** [`spec-native-ready-template.md`](upstream-specs/spec-native-ready-template.md) §D1–D2 · **Milestone** M51.2
 
 **Evidence — read live, 2026-09-07.** `starter-templates/fluxtion-aot.starter.json` is the catalogue
 entry named *"Fluxtion AOT (native-ready)"*. Its entire native content is `"compileMode": "aot"`, and it
@@ -1937,7 +1942,7 @@ the build log. Evidence: [`round-58`](../experience/runs/round-58/NOTES.md) …
 
 ## UP-PG-05 ☐ The catalogue cannot say which templates are native-ready, and one name overclaims
 
-**Target** `fluxtion-web` (playground) · **Spec** [`spec-native-ready-template.md`](../specs/spec-native-ready-template.md) §D3 · **Milestone** M51.1
+**Target** `fluxtion-web` (playground) · **Spec** [`spec-native-ready-template.md`](upstream-specs/spec-native-ready-template.md) §D3 · **Milestone** M51.1
 
 **Evidence.** `index.json` (`catalogue: 1`, 14 entries) carries `name`, `description`, `file`, `type`,
 `mode`. Nothing distinguishes *will build a native image* from *is configured to be fast as one*, and

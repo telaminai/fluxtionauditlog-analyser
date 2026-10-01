@@ -1,11 +1,13 @@
 # The native-ready starter template — what the playground must ship for 1.6 ns (Design Spec)
 
+**Moved 2026-10-01** from `docs/specs/` to `docs/proposals/upstream-specs/`: owned by the starter template; this repository keeps the evidence. Tracker: M51.
+
 _Status: **DRAFT v1**, 2026-09-07 · Owner: greg.higgins · Milestone **M51**_
 
-_Companion to [tracker.md](tracker.md), [spec-template-from-analyser.md](spec-template-from-analyser.md)
+_Companion to [tracker.md](../../specs/tracker.md), [spec-template-from-analyser.md](../../specs/completed/spec-template-from-analyser.md)
 (M19.5 — the analyser fetches a template by catalogue id),
-[spec-onboarding-example.md](spec-onboarding-example.md) (the bundle contract) and
-[`fluxtion-performance-configuration.md`](../proposals/fluxtion-performance-configuration.md) (M50/W9 —
+[spec-onboarding-example.md](../../specs/spec-onboarding-example.md) (the bundle contract) and
+[`fluxtion-performance-configuration.md`](../fluxtion-performance-configuration.md) (M50/W9 —
 every figure quoted here comes from there, and from `../experience/runs/round-58…60/NOTES.md`)._
 
 _Raised by the owner, 2026-09-07: **"We have templates the web playground hosts that the analyser
@@ -183,7 +185,7 @@ missing build reads exactly like one that passed, which is the defect this whole
 ## H · Cross-repo asks
 
 Both belong to the **playground** repo and are drafted here in the shape
-[`upstream-asks.md`](../proposals/upstream-asks.md) expects:
+[`upstream-asks.md`](../upstream-asks.md) expects:
 
 - **UP-PG-04 · `native` block in the starter schema** (§D1/D2) — generator emits the pom profiles, the
   collect script, the shaped builder and `Main`, and the `src/pgo/` home.

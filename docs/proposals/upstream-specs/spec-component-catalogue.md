@@ -1,5 +1,7 @@
 # SPEC (PROPOSED) — a catalogue a Fluxtion component jar carries about itself
 
+**Moved 2026-10-01** from `docs/specs/` to `docs/proposals/upstream-specs/`: owned by fluxtion-builder and the Maven plugin; this repository keeps the evidence. Tracker: M48.
+
 **Status** proposed · **Target** the existing `fluxtion-builder` jar, exposed by a new goal in
 `fluxtion-maven-plugin`
 **Evidence** `docs/experience/runs/round-48/` — fifteen measured cells, one model, one problem

@@ -477,7 +477,7 @@ exploration rounds without noticing the difference.
 
 ### The rig manifest — every round records it, or the round proves nothing
 
-**Superseded in part by the guided-start prompt** ([spec-guided-start.md](spec-guided-start.md) D-G8,
+**Superseded in part by the guided-start prompt** ([spec-guided-start.md](completed/spec-guided-start.md) D-G8,
 owner 2026-08-30): once a versioned prompt establishes the baseline, most of the fields below collapse into
 one — *"guided-start prompt vN"* — and a new prompt version becomes an explicit comparability boundary in
 the same way a runtime change is. Round 04 is the argument for it: a hand-built harness perturbed

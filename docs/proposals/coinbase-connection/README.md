@@ -4,7 +4,7 @@ _Status: **PROPOSAL, 2026-09-20. Not implemented, not reviewed, not owner-approv
 pen because the work belongs to other repositories: the connector and its guide to the trading plugin set.
 This repo's only interest is the audit log that comes out the far end. Companion:
 [starter journey](../../specs/spec-project-starter-journey.md),
-[template picker](../../specs/spec-template-from-analyser.md), [upstream asks](../upstream-asks.md)._
+[template picker](../../specs/completed/spec-template-from-analyser.md), [upstream asks](../upstream-asks.md)._
 
 _**Two rules are not argued here.** Gap honesty and no-fabricated-values began as local decisions in earlier
 drafts and should not have been: they bind every connector. They are now

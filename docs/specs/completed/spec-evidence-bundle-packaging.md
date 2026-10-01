@@ -1,5 +1,7 @@
 # Evidence bundle packaging — first delivery (package, verify, open, walk; no replay)
 
+**Archived 2026-10-01:** shipped, and moved to `docs/specs/completed/`. Follow-ups are GitHub issues #64–#69, pointed at from the live tracker.
+
 **Status: r5 (2026-09-28), SHIPPED in 1.27.0 (PR #63, merged `77d268be`).** r3 records what building and driving it
 changed; r4, the review's two REQUIRED fixes; **r5, the convergence (§13): capture moved into the analyser, an
 optional time-window excerpt, the skills deleted.** Where §3–§5 describe skills doing the capture, §13 supersedes
@@ -7,7 +9,7 @@ them. The executable reference is `tools/evidence-bundle-demo.py`; the
 results are in `docs/handoff/evidence/evidence-bundle-v1-2026-09-28/RESULTS.md`.
 
 The review is
-[`review_spec_evidence_bundle_packaging_2026_09_28_claude.md`](../handoff/review_spec_evidence_bundle_packaging_2026_09_28_claude.md)
+[`review_spec_evidence_bundle_packaging_2026_09_28_claude.md`](../../handoff/review_spec_evidence_bundle_packaging_2026_09_28_claude.md)
 (`f784dac9`, `220f78ed`). r2 **accepts its placement verdict (C), with one extension that argues back** (§3.3),
 records the audience decision (§3.4), and corrects two of its facts (§12).
 

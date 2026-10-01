@@ -4,7 +4,7 @@
 
 Status: **owner requirements recorded 2026-09-20; implementation pending**. This is a cross-repo
 contract for playground generation and analyser discovery. The proposed authoring page and a simpler
-headless configuration API remain design proposals. Companion: [template picker](spec-template-from-analyser.md),
+headless configuration API remain design proposals. Companion: [template picker](completed/spec-template-from-analyser.md),
 [onboarding](spec-onboarding-example.md) and [tracker](tracker.md).
 
 **Review revision, 2026-09-20:** the [independent review](../handoff/review_project_starter_journey_2026_09_20.md)

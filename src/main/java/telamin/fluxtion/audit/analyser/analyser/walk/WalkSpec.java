@@ -8,7 +8,7 @@ import java.util.Map;
 
 /**
  * M69 — a saved spotlight walk: a named, ordered list of steps, each restoring a view from a fixed allow-list and
- * lighting up to six targets with their captions ({@code docs/specs/spec-spotlight-walks.md} §1, §3).
+ * lighting up to six targets with their captions ({@code docs/specs/completed/spec-spotlight-walks.md} §1, §3).
  *
  * <p><b>A walk is testimony.</b> It holds pointers and the author's words, never evidence: each target records the
  * {@link Basis} it was written against, so playback can say whether it is still current, known to be historical,

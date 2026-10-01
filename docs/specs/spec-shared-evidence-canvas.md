@@ -7,7 +7,7 @@ This is a framing document: it does not make an unimplemented capability true. I
 thesis, assigns authority, and defines the tests future work must pass to remain part of that thesis.
 
 **Builds on:** [`spec-authoring-modes.md`](spec-authoring-modes.md),
-[`spec-builder-component-resolution.md`](spec-builder-component-resolution.md),
+[`spec-builder-component-resolution.md`](../proposals/upstream-specs/spec-builder-component-resolution.md),
 [`spec-trust-structure.md`](spec-trust-structure.md),
 [`completed/spec-portable-context.md`](completed/spec-portable-context.md), and
 [`spec-agent-brokered-dev-loop.md`](spec-agent-brokered-dev-loop.md).

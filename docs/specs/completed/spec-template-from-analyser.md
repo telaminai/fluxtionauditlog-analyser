@@ -1,10 +1,12 @@
 # Template From The Analyser — `File ▸ New project from template…` (Design Spec)
 
-_Status: **REVIEWED AND ACCEPTED 2026-08-30** (M19.5, archived in [completed/tracker.md](completed/tracker.md)); the
+**Archived 2026-10-01:** shipped, and moved to `docs/specs/completed/`. Nothing is open here; M19.5 is archived.
+
+_Status: **REVIEWED AND ACCEPTED 2026-08-30** (M19.5, archived in [completed/tracker.md](tracker.md)); the
 *File ▸ New project from template…* entry point is pictured and spotlit in the 1.14.1 docs. Owner: greg.higgins. Analyser
 implementation: `9d38cc4`; playground: `994e82a` live. Companion to
-[tracker.md](tracker.md) (**M19.5**), [spec-onboarding-example.md](spec-onboarding-example.md) (whose
-step 1 this changes) and [spec-agent-brokered-dev-loop.md](spec-agent-brokered-dev-loop.md) §C2 (which
+[tracker.md](../tracker.md) (**M19.5**), [spec-onboarding-example.md](../spec-onboarding-example.md) (whose
+step 1 this changes) and [spec-agent-brokered-dev-loop.md](../spec-agent-brokered-dev-loop.md) §C2 (which
 read the live catalogue and settled what it already encodes)._
 
 _Raised by the owner, 2026-08-30, in these words: **"I thought we would be able to choose a template
@@ -99,7 +101,7 @@ it; an archive without one reaches a discovery offer whose checkboxes start unse
 equivalent onboarding experiences. Release the full-catalogue expansion after playground default-on
 support supplies the promised profiles/bootstrap. Keep the discovery path explicitly described and
 tested for legacy/profile-less downloads. Explicit opt-out must not be silently reversed by discovery.
-See [the cross-repo delivery order](spec-project-starter-journey.md#delivery-order-and-catalogue-coverage).
+See [the cross-repo delivery order](../spec-project-starter-journey.md#delivery-order-and-catalogue-coverage).
 
 ## C — decisions
 
