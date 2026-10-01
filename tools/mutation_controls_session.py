@@ -70,6 +70,10 @@ PROVENANCE_APPLICATION = """    @OnEventHandler
                 : BundleProvenance.NONE;"""
 
 CONTROLS = [
+    ("issue84-java-apply-view-is-walk-owned", UI + 'MainFrame.java',
+     '                    walkViewChangeTicket = walkTicket;',
+     '                    walkViewChangeTicket = -1;',
+     "Issue84JavaWalkFrameTest#aJavaTargetOnANonSourceStepKeepsItsWalk"),
     ("issue84-view-fact-on-edt", UI + 'MainFrame.java',
      '        else SwingUtilities.invokeLater(report);', '        else report.run();',
      "Issue84BundleFrameTest#aBackgroundChartActionReportsItsViewChangeOnTheEdt"),

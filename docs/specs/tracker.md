@@ -27,7 +27,7 @@ mongoose-plugins **1.0.45** (separator escaping, #39). The 2026-09-27 order is i
 [detail snapshot](completed/tracker-detail-2026-10-01.md) ▸ *Suggested delivery order*.
 
 1. **Assurance debt on shipped work.**
-   - **#84 / #93–#102 ◧**: corrections and the explicit source-revision disclosure decision await independent review;
+   - **#84 / #93–#102 ◧**: PR #103 review is CONDITIONAL; its test-only F1 mixed-view Java-walk witness and named mutation are added, awaiting exact-head gates and review acceptance;
      [response, evidence and reviewer prompt](../handoff/handoff_issue84_third_review_response_2026_10_01.md). Closing #84 was not approval.
    - **PR #70**: the whole-feature review of M70 replay, most of which reached `main` unreviewed.
    - **PR #87** (#79, redaction of non-Latin paths, trust-class) and **PR #88** (#83, #85): green, awaiting review.

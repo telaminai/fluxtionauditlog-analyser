@@ -1,6 +1,7 @@
 # Issue #84 third-review response — #93–#102
 
-Status: implementation and local verification complete; independent review required. This is an **implementer's response, not independent approval**.
+Status: independent review at `94ddd2ca` was CONDITIONAL, with test-only F1 required. The response to F1 is below;
+exact-head CI belongs to the PR record. This is an **implementer's response, not independent approval**.
 Closing #84 completed the review; it did not approve these defects or their fixes. No issue is represented as
 independently closed by this document.
 
@@ -43,7 +44,7 @@ claim that the former name-only contract promised revision binding.
 | #94 | `importFromBundle` restores incoming live chart definitions before the persistence funnel. `Issue84BundleFrameTest.importingGraphsKeepsIncomingNotes`. | Incoming notes **and series** must be on screen, in config and in the flushed/re-read profile, not merely acknowledged in an `applied=true` reply. |
 | #95 | `BundleRootsRestored` distinguishes remembered roots from currently visible roots. The node applies visible-root edit deltas, preserving offline roots through unrelated observations. `Issue84BundleFrameTest.anUnrelatedEditDoesNotDeleteAnUnavailableAnchor`; existing `BundleProvenanceFrameTest.deletingTheAnchorSticks`. | Offline directory → REPORTS-only import → directory returns → reopen must restore the anchor. Explicit visible-root deletion must still remain deleted. |
 | #96 | Only matching `WalkTargetsLit` settles phase and advances the accepted dialogue prefix. `Issue84JavaWalkFrameTest.unreadSourceMustStayPreparing`. | With the real archive reader held: published phase and visible strip are Preparing, accepted step is -1, overlay is empty. After completion: shown, accepted step 0, actual Java target lit. |
-| #97 | Native tab changes report `WalkViewChanged` with effect-scoped origin; the node supersedes external navigation. Before applying background source, the adapter asks the node whether its ticket remains current. `Issue84JavaWalkFrameTest.aViewChangeDuringReadMustNotUndoThePersonsChoice`. | The real `navigatePrevious` action selects Summary while a read is held; the received late completion must not select Source. Walk-owned tab changes retain their ticket. |
+| #97 | Native tab changes report `WalkViewChanged` with effect-scoped origin; the node supersedes external navigation. Before applying background source, the adapter also asks the node whether its ticket remains current; that query is defensive, not independently mutation-witnessed (F2 below). `Issue84JavaWalkFrameTest.aViewChangeDuringReadMustNotUndoThePersonsChoice`. | The real `navigatePrevious` action selects Summary while a read is held; the received late completion must not select Source. Walk-owned tab changes retain their ticket, now independently pinned by the F1 witness below. |
 | #98 | The synchronous availability read is removed. Java lookup/read runs through bounded background preparation and reports success, refusal or expiry. Three maintained methods: `availabilityMustNotReadOnTheEventThread`, `backDuringTheOriginalReadMustNotBlockTheEventThread`, `anUnreadableResolvedClassReportsFailureInsteadOfPreparingForever`. | Cold archive and Next→Back leave an EDT sentinel responsive while the real reader remains held; malformed UTF-8 settles NOT_SHOWN with the read failure, not an uncaught EDT exception or indefinite Preparing. Refusal, deadline, roots/project changes and stale-step controls remain. |
 | #99 | Explicit operation origin and offer permission travel in session facts. `ProjectReopenOffer` decides; effects gather candidates, defer the modal outside dispatch, and report its outcome. `ProjectReopenOwnershipTest` and real-frame disabled, person and superseded-offer tests. | Disabled offers record `offerProjectReopenSkipped`; legitimate person offers run outside the driver cycle; a later operation cannot inherit or revive the earlier offer, including a reused profile path. |
 | #100 | D-L3 scans reachable concrete helper/nested dependencies and the inherited public Navigator surface, without following implementations behind the authorized interface route. `ProjectPanelIsRevealOnlyTest`. | The exact compiled nested-helper and inherited-action review mutants now fail named assertions. The direct-frame and extra-declared-action controls remain. |
@@ -146,3 +147,66 @@ test skips, source/report mapping, and exact-head CI rather than trusting this r
 - #102 deliberately does not compare source revisions or retain historical source. Whether the explicit disclosure
   is sufficient is a reviewer judgement, not an assertion that revision binding was implemented.
 - No independent approval has been performed by the implementer; nothing was merged, released or deployed.
+
+## PR #103 conditional-review response — test-only F1
+
+Starting head: `94ddd2cad938c375bae6e65332535e3e519c5efe`. Review:
+[comment 5930302545](https://github.com/telaminai/fluxtionauditlog-analyser/pull/103#issuecomment-5930302545).
+No production behaviour, generated processor, GraphML or release configuration changed. No regeneration or
+credential access. The existing registered frame suite gains one test, so no CI suite-list change is needed.
+
+`Issue84JavaWalkFrameTest#aJavaTargetOnANonSourceStepKeepsItsWalk` starts a step on Summary with a Java-line target
+in a resolvable DEMO source archive. While the real archive read is held, it asserts PREPARING, Summary selected
+and no lit target. After release it asserts SHOWN, the walk still showing, accepted step 0, Source selected,
+and the requested Java line lit. The screenshot was inspected locally; it is not published because the source
+viewer includes a host-specific temporary path.
+
+The fast-engine control `issue84-java-apply-view-is-walk-owned` replaces
+`walkViewChangeTicket = walkTicket;` with `walkViewChangeTicket = -1;` in `prepareJavaSpotlightHere`.
+It compiles and fails at the named assertion, not a timeout:
+
+```text
+javaApplyMustRemainOwnedByThePreparingWalk ==> expected: <SHOWN> but was: <IDLE>
+```
+
+The test deliberately awaits a terminal result rather than awaiting SHOWN, so the mutant's wrong result
+reaches that assertion. Source and both class trees restore byte-identically, and the restored test is green.
+
+REQUESTED and CAUGHT names are the identical seven-name set, all with named assertion failures and restored-green runs:
+
+- `issue84-java-apply-view-is-walk-owned`
+- `issue84-walk-waits-for-light`
+- `issue84-native-navigation-supersedes`
+- `issue84-source-read-off-edt`
+- `issue84-back-read-off-edt`
+- `issue84-source-error-is-a-fact`
+- `issue84-saved-source-disclosure`
+
+Local JDK 21 verification (counts are total / failures / errors / skips):
+
+| Check | Result |
+|---|---|
+| New test alone, real display | 1 / 0 / 0 / 0 |
+| Sequential display suites: Issue84JavaWalk, WalkReview, JavaSourceSpotlight, WalkPlayback, WalkVerb, ConversationJourney, WalkArrowKeys | 44 / 0 / 0 / 0, seven reports |
+| `mvn -o -q clean test` | 3,122 / 0 / 0 / 246; 412 source-mapped reports, no orphans |
+| Fast-engine controls above | 7 requested = 7 caught, byte-identical restoration and restored-green tests; 54.8 seconds |
+| Preflight; `tools/test_project_chart_review.py` | 42 frame suites, 581 anchors; five tests passed |
+| Strict MkDocs; `git diff --check`; public-data sweep | Passed; sweep printed nothing |
+
+Both display JVM flags were set and display/control runs held the shared display lock, serially. The 246 headless
+skips are not passes; CI must execute the registered display suites with zero skips. Exact-head CI is recorded
+in the PR response, separately from these local counts and the earlier implementation counts above.
+This test-only change does not add a user-visible CHANGELOG claim.
+
+Non-blocking dispositions from the same review:
+
+- **F2:** the adapter's `permitsSourceApplication` query is defensive. Ending the walk already clears the
+  spotlight and advances `javaSpotlightTicket`; the existing stale-completion witness does not independently
+  prove this extra check. The #97 row is corrected accordingly; no behaviour changed.
+- **F3:** additional D-L3 functional-interface surface restrictions remain a follow-up; the new test makes no
+  stronger D-L3 claim.
+- **F5–F7:** machine-origin preselection, saved-line revision binding/caption truncation, and explicit offline-root
+  availability in context remain non-blocking follow-ups, not changes bundled into this test-only response.
+
+The independent conditional verdict is not self-promoted to approval. Exact-head build, zero-skip ui-frame,
+mutation self-test, all four shards and the collector must complete before the PR response claims green.

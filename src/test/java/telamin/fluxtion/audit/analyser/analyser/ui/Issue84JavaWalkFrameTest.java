@@ -90,6 +90,36 @@ public class Issue84JavaWalkFrameTest {
             assertTrue(overlay(f).lit().stream().anyMatch(l -> l.target().equals(TARGET)));
         }
     }
+    @Test void aJavaTargetOnANonSourceStepKeepsItsWalk() throws Exception {
+        Path tmp = tmp("owned-source-switch");
+        try (var f = opened(tmp)) {
+            Object archive = archives(f, tmp, false);
+            save(f, List.of(Map.of("view", Map.of("tab", "summary"), "targets",
+                    List.of(Map.of("target", TARGET, "caption", "DEMO source from Summary")))));
+            synchronized (archive) {
+                play(f);
+                assertTrue(blocked(false), "the real DEMO source read is held");
+                onEdt(() -> {
+                    assertEquals("PREPARING", walk(f).phase());
+                    assertSame(field(f.frame, "summaryPanel"), tabs(f).getSelectedComponent(),
+                            "the walk starts this Java-target step on Summary");
+                    assertFalse(overlay(f).isLit(), "the unread target is not lit");
+                });
+            }
+            // Await a terminal result, not SHOWN: the ownership mutant must fail the named
+            // wrong-result assertion below rather than time out waiting for the desired state.
+            waitFinished(f);
+            onEdt(() -> {
+                assertEquals("SHOWN", walk(f).phase(), "javaApplyMustRemainOwnedByThePreparingWalk");
+                assertTrue(walk(f).showing(), "the walk survives its own switch to Source");
+                assertEquals(0, walk(f).accepted(), "the Java target accepts this step");
+                assertSame(field(f.frame, "sourcePanel"), tabs(f).getSelectedComponent());
+                assertTrue(overlay(f).lit().stream().anyMatch(l -> l.target().equals(TARGET)),
+                        "the requested Java line is lit");
+            });
+            capture(f, "walk-owned-source-switch");
+        }
+    }
     @Test void anUnavailableLineReportsNotShown()throws Exception{
         Path tmp=tmp("bad-line");source(tmp);try(var f=opened(tmp)){
             roots(f,tmp.resolve("src"));save(f,List.of(step("source:java:"+FQN+":line:99999")));play(f);
