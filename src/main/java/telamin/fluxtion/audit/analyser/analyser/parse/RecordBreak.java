@@ -128,7 +128,6 @@ public record RecordBreak(int line, int keepBefore, String reason) {
         boolean blockScalar = false;    // under a field whose value is a block scalar indicator
         String firstEvent = null;
         String previousKey = null, previousValue = null;   // the last field line, for the exported-service shape
-        boolean signatureTaken = false;
         int textFrom = Integer.MAX_VALUE;   // the first field that can carry an event's or a node's own text
         for (int i = 0; i < lines.length; i++) {
             String raw = stripCr(lines[i]);
@@ -167,11 +166,10 @@ public record RecordBreak(int line, int keepBefore, String reason) {
                     continue;
                 }
                 if (indent < fieldIndent) {
-                    if (!signatureTaken && indent == 0 && EXPORT_EVENT.equals(firstEvent)
+                    if (indent == 0 && EXPORT_EVENT.equals(firstEvent)
                             && "eventToString".equals(previousKey) && "@Override".equals(previousValue)
                             && keyOf(t) == null && EXPORT_SIGNATURE.matcher(t).matches()) {
-                        signatureTaken = true;          // the generator's own line break, finding 4
-                        previousKey = null;
+                        previousKey = null;             // the generator's own line break, finding 4: one line only
                         continue;
                     }
                     breaks.add(i, "a line less indented than the record's fields");
