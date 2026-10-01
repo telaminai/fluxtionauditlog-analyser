@@ -6,8 +6,6 @@ import telamin.fluxtion.audit.analyser.analyser.model.EventKind;
 import telamin.fluxtion.audit.analyser.analyser.model.LogRecord;
 import telamin.fluxtion.audit.analyser.analyser.model.NodeLogData;
 
-import java.util.Set;
-
 /**
  * Parses one record slice into a {@link LogRecord}: header comment + {@code eventLogRecord} scalar
  * fields eagerly; the {@code nodeLogs} block is captured as text and parsed lazily (spec §4.1).
@@ -15,10 +13,6 @@ import java.util.Set;
  * carries its raw text.
  */
 public final class RecordParser {
-
-    private static final Set<String> SCALAR_KEYS = Set.of(
-            "eventTime", "logTime", "endTime", "groupingId", "event", "eventType", "eventToString", "thread",
-            "nodeLogs");
 
     private RecordParser() {
     }
@@ -56,80 +50,65 @@ public final class RecordParser {
         // tokenizer's spans address rawText, not its normalised intermediate block.
         java.util.List<int[]> nodeLinePositions = new java.util.ArrayList<>();
         int rawPosition = 0;
-        boolean inNodeLogs = false;
         boolean sawFields = false;
         int nodeLogsCount = 0;
         boolean hasNaN = false;
         boolean hasBreach = false;
 
-        // UPS-1: a record whose structure breaks (a value written unquoted with a line break in it) is read only up to
+        // UPS-1: ONE rule says what each line is, and the parser reads by it (review of 9474c687, findings 1 and 2): a field
+        // only at the fields' indentation, outside a quoted scalar and outside the node-log block; a node log only inside
+        // that block. A record whose structure breaks (a value written unquoted with a line break in it) is read only up to
         // the break, and none of its node logs are read — the text cannot say which lines after it are the producer's.
-        RecordBreak broken = RecordBreak.find(text);
+        RecordBreak.Structure structure = RecordBreak.analyse(text);
+        RecordBreak broken = structure.broken();
+        RecordBreak.Role[] roles = structure.roles();
         String[] lines = text.split("\n", -1);
         int readLines = broken == null ? lines.length : broken.keepBefore();
-        char openQuote = 0;
-        boolean quotesCount = RecordBreak.quotesClose(lines);   // an unclosed "quote" is text, not a quote
         for (int lineIndex = 0; lineIndex < readLines; lineIndex++) {
             String raw = lines[lineIndex];
             int linePosition = rawPosition;
             rawPosition += raw.length() + 1;
             String line = stripCr(raw);
-            // UPS-1: a line that begins inside a quoted scalar is that value's continuation. Inside the node-log block it
-            // stays part of the block, as before; anywhere else it is never read as a field — quotes tracked as FramingScan
-            // and RecordBreak track them, so all three agree about what is inside a value.
-            boolean continuation = quotesCount && openQuote != 0;
-            openQuote = FramingScan.quoteStateAfter(line, 0, line.length(), openQuote);
-            if (continuation && !inNodeLogs) continue;
             // AuditText.strip, not String.strip(): strip() keeps U+FEFF, so a record behind a
             // byte-order mark never matched the '#' below, lost its header, and with it its thread,
             // level and logger — which moved auditLevelFinest from DEBUG to INFO and made coverage
             // say debug calls might be missing. A BOM changed a verdict.
             String t = AuditText.strip(line);
-            if (t.isEmpty()) {
-                if (inNodeLogs) nodeLogs.append('\n');
-                continue;
-            }
-            if (t.charAt(0) == '#') {
-                if (header == RecordHeader.EMPTY) header = HeaderParser.parse(t);
-                continue;
-            }
-            if (inNodeLogs) {
-                // a non-item line that is a known top-level scalar (e.g. endTime) ends the block —
-                // independent of indentation (node-log items always start with "- ")
-                boolean isItem = t.startsWith("- ") || t.equals("-");
-                if (!isItem && isTopScalarLine(t)) {
-                    inNodeLogs = false;   // fall through to scalar handling
-                } else {
+            switch (roles[lineIndex]) {
+                case HEADER -> {
+                    if (header == RecordHeader.EMPTY) header = HeaderParser.parse(t);
+                }
+                case RECORD_KEY -> sawFields = true;
+                case NODE_BLANK -> nodeLogs.append('\n');
+                case NODE_ITEM, NODE_LINE -> {
                     nodeLinePositions.add(new int[]{nodeLogs.length(), linePosition});
                     nodeLogs.append(line).append('\n');
-                    if (isItem) nodeLogsCount++;
+                    if (roles[lineIndex] == RecordBreak.Role.NODE_ITEM) nodeLogsCount++;
                     if (!hasNaN && t.contains("NaN")) hasNaN = true;
                     if (!hasBreach && t.contains("Breach: true")) hasBreach = true;
-                    continue;
                 }
-            }
-            if (t.equals("eventLogRecord:")) {
-                sawFields = true;
-                continue;
-            }
-            String[] kv = splitScalar(t);
-            if (kv == null) continue;
-            String key = kv[0], val = kv[1];
-            switch (key) {
-                case "nodeLogs":     inNodeLogs = true; sawFields = true; break;
-                case "eventTime":    eventTime = parseTime(val, true);  sawFields = true; break;
-                case "logTime":      logTime = parseTime(val, false);   sawFields = true; break;
-                case "endTime":      endTime = parseTime(val, false);   sawFields = true; break;
-                case "groupingId":   groupingId = nullLiteral(val);     sawFields = true; break;
-                case "event":        event = emptyToNull(val);          sawFields = true; break;
-                // The fully-qualified identity, when the source carries it. The text record never
-                // did - it has always written the simple name - so this is null for text logs and
-                // set for binary ones, whose wire records Class.getName(). Kept separate from
-                // `event` so nothing that matches the simple name literally changes behaviour.
-                case "eventType":    eventType = emptyToNull(val);      sawFields = true; break;
-                case "eventToString":eventToString = emptyToNull(val);  sawFields = true; break;
-                case "thread":       thread = emptyToNull(val);         sawFields = true; break;
-                default: /* unknown top-level scalar: ignore, keep in rawText */
+                case FIELD -> {
+                    String[] kv = splitScalar(t);
+                    if (kv == null) break;
+                    String key = kv[0], val = kv[1];
+                    switch (key) {
+                        case "nodeLogs":     sawFields = true; break;
+                        case "eventTime":    eventTime = parseTime(val, true);  sawFields = true; break;
+                        case "logTime":      logTime = parseTime(val, false);   sawFields = true; break;
+                        case "endTime":      endTime = parseTime(val, false);   sawFields = true; break;
+                        case "groupingId":   groupingId = nullLiteral(val);     sawFields = true; break;
+                        case "event":        event = emptyToNull(val);          sawFields = true; break;
+                        // The fully-qualified identity, when the source carries it. The text record never
+                        // did - it has always written the simple name - so this is null for text logs and
+                        // set for binary ones, whose wire records Class.getName(). Kept separate from
+                        // `event` so nothing that matches the simple name literally changes behaviour.
+                        case "eventType":    eventType = emptyToNull(val);      sawFields = true; break;
+                        case "eventToString":eventToString = emptyToNull(val);  sawFields = true; break;
+                        case "thread":       thread = emptyToNull(val);         sawFields = true; break;
+                        default: /* unknown top-level scalar: ignore, keep in rawText */
+                    }
+                }
+                case OUTSIDE -> { }
             }
         }
 
@@ -184,11 +163,6 @@ public final class RecordParser {
                     return new NodeLogData(data.nodes(), spans);
                 })
                 .build();
-    }
-
-    private static boolean isTopScalarLine(String trimmed) {
-        String[] kv = splitScalar(trimmed);
-        return kv != null && SCALAR_KEYS.contains(kv[0]);
     }
 
     /** Splits a trimmed scalar line into [key, value] on the first {@code :}; null if not a scalar. */
