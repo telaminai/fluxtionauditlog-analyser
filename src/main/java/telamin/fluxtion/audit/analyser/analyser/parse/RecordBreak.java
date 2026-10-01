@@ -39,15 +39,14 @@ import java.util.regex.Pattern;
  *   <li>a non-blank line at the fields' indentation that is <b>not a field</b>;</li>
  *   <li>a <b>second {@code eventLogRecord:} line</b> (a separator inside the record is a framing fault the framer has
  *       already acted on, MA-7);</li>
- *   <li>a <b>repeated field</b>: the record is read up to its second copy. A forged FIRST copy can only follow the
- *       first field that carries an event's or a node's own text — {@code eventToString}, {@code nodeLogs}, or a field
- *       the format does not know — and a broken record is never read past that field's line (below). Before it, the
- *       first copy is the producer's: fluxtion-runtime writes {@code eventTime}, {@code logTime}, {@code groupingId} and
- *       {@code event} from its own state, never from an event's text.</li>
+ *   <li>a <b>repeated field</b>: neither copy is trusted. The record is read only before its FIRST occurrence,
+ *       even when the repeat follows an earlier structural break. Grouping IDs and thread names are also printed
+ *       unquoted, so the first copy can be payload text before {@code eventToString}, or when it is disabled.</li>
  * </ul>
- * The record is read only up to its first break. And because a value's text can begin forged lines only after the first
- * field that carries it, a broken record is never read past that field's own line: a forged field before the visible break — {@code eventType}, which a text
- * producer never writes, so never repeats — is withheld with everything after it.
+ * The record is read only up to its first break and before the first copy of every repeated field. The existing
+ * additional cap at {@code eventToString}, {@code nodeLogs}, or an unknown field also withholds later, never-repeated
+ * payload fields (such as {@code eventType}). That cap alone is not sufficient: other producer-written strings may
+ * also carry text, and structurally indistinguishable unquoted input still needs producer-side quoting.
  *
  * <p><b>The exported-service signature</b> (finding 4). An exported service call's {@code eventToString} is the generator's
  * description: {@code ExportFunctionAuditEvent.toString()} returns what the generated processor passes to
@@ -55,8 +54,8 @@ import java.util.regex.Pattern;
  * ({@code ExportFunctionDataDto}). Its one line break comes from the generator, never from runtime data, so exactly that
  * shape is whole: the record's first {@code event} is {@code ExportFunctionAuditEvent}, {@code eventToString} is exactly
  * {@code @Override}, and the next line is one column-0 {@code public …(…)} signature. The value reads as {@code @Override},
- * as it did before UPS-1. A value's text cannot select this rule: the producer writes {@code event} before
- * {@code eventToString}.
+ * as it did before UPS-1. This allowance never overrides a structural break: a forged {@code event} followed by
+ * the producer's own {@code event} still withholds both copies and all node logs.
  *
  * <p>Lines before the first field (comments, a leading separator a reader plugin renders, a headerless run-together line)
  * are never a break: they are the subject of other findings.
@@ -128,7 +127,7 @@ public record RecordBreak(int line, int keepBefore, String reason) {
         boolean blockScalar = false;    // under a field whose value is a block scalar indicator
         String firstEvent = null;
         String previousKey = null, previousValue = null;   // the last field line, for the exported-service shape
-        int textFrom = Integer.MAX_VALUE;   // the first field that can carry an event's or a node's own text
+        int textFrom = Integer.MAX_VALUE;   // the additional payload cap; groupingId/thread are not certified safe
         for (int i = 0; i < lines.length; i++) {
             String raw = stripCr(lines[i]);
             boolean insideQuote = quotesCount && open != 0;
@@ -205,9 +204,12 @@ public record RecordBreak(int line, int keepBefore, String reason) {
             if (carriesText && textFrom == Integer.MAX_VALUE) textFrom = i;
             if (FIELD_KEYS.contains(key)) {
                 Integer first = firstAt.putIfAbsent(key, i);
-                // the second copy is withheld; a forged FIRST copy can only follow the first text-carrying field, and
-                // a broken record is never read past that field's line (Breaks.result)
-                if (first != null) breaks.add(i, "the field '" + key + "' a second time");
+                if (first != null) {
+                    breaks.add(i, "the field '" + key + "' a second time");
+                    // A groupingId or thread can forge the FIRST copy too. Keep the first break's diagnostic,
+                    // but tighten the read bound even if this repeat appears after that break.
+                    breaks.withholdFrom(first);
+                }
                 if (key.equals("nodeLogs")) inNode = true;
                 else if (BLOCK_SCALAR.matcher(value).matches()) blockScalar = true;
                 if (key.equals("event")) firstEvent = value;   // a second event is a repeat, so already a break
@@ -222,6 +224,7 @@ public record RecordBreak(int line, int keepBefore, String reason) {
     private static final class Breaks {
         private int line = -1;
         private String reason;
+        private int keepBefore = Integer.MAX_VALUE;
 
         void add(int index, String why) {
             if (line < 0) {
@@ -230,11 +233,15 @@ public record RecordBreak(int line, int keepBefore, String reason) {
             }
         }
 
-        /** @param textFrom the first field that can carry a value's text: nothing after its line is read once broken */
+        void withholdFrom(int index) {
+            keepBefore = Math.min(keepBefore, index);
+        }
+
+        /** @param textFrom the additional payload cap: nothing after its line is read once broken */
         RecordBreak result(int textFrom) {
             if (line < 0) return null;
             int keep = textFrom == Integer.MAX_VALUE ? line : Math.min(line, textFrom + 1);
-            return new RecordBreak(line + 1, keep, reason);
+            return new RecordBreak(line + 1, Math.min(keep, keepBefore), reason);
         }
     }
 

@@ -909,8 +909,8 @@ class FormatConformanceTest {
 
     /**
      * UPS-1 — a value written unquoted with a line break in it (an operator-typed admin command argument, mongoose 1.0.32
-     * with fluxtion 1.1.0, through mongoose-plugins' export) is not evidence: on both paths the broken records keep the
-     * dispatched event type, read no node logs — so no node is forged — and are named, while the whole records around
+     * with fluxtion 1.1.0, through mongoose-plugins' export) is not evidence: on both paths the broken records withhold
+     * repeated fields, read no node logs — so no node is forged — and are named, while the whole records around
      * them read exactly as before.
      */
     @Test
@@ -936,7 +936,8 @@ class FormatConformanceTest {
         }
         assertEquals("AdminCommandEvent", s.record(1).event());
         assertEquals(0, s.record(1).nodeLogsCount(), "a broken record's node logs are not read");
-        assertEquals("AdminCommandEvent", s.record(2).event());
+        assertNull(s.record(2).event(), "both copies of the repeated event are withheld, including the genuine first one");
+        assertNull(typed.record(2).event(), "the typed reader also withholds both copies");
         assertEquals(0, s.record(2).nodeLogsCount());
         assertEquals(1, s.record(3).nodeLogsCount(), "brackets and a quote in an argument break nothing");
         assertEquals(2, s.record(0).nodeLogsCount(), "the whole records read as before");

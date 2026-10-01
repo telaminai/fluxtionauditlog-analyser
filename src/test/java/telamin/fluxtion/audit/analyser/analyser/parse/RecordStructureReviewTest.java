@@ -229,12 +229,12 @@ class RecordStructureReviewTest {
     }
 
     @Test
-    @DisplayName("a repeat of a field the producer wrote before any value's text withholds the repeat, not the original")
-    void aFieldBeforeAnyValueTextIsTheProducers() {
+    @DisplayName("a repeated field withholds both copies, even when the fixture's first copy is genuine")
+    void aRepeatedFieldWithholdsEvenAGenuineFirstCopy() {
         for (LogRecord r : everyPath(deepScalar("x").replace("        x\n", "    eventTime: 999\n"))) {
             assertTrue(r.brokenAtLine() > 0);
-            assertEquals(Long.valueOf(1), r.eventTime(), "the producer's eventTime, written before eventToString");
-            assertEquals("AdminCommandEvent", r.event());
+            assertNull(r.eventTime(), "a repeated time is withheld rather than assuming the first copy is genuine");
+            assertNull(r.event(), "reading stops before the first repeated field, so later fields are withheld too");
         }
     }
 

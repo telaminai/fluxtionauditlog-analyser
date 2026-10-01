@@ -100,14 +100,14 @@ class RecordBreakTest {
     }
 
     @Test
-    @DisplayName("FORGED EVENT: the escaped separator is the break; the event type stays the dispatched one")
+    @DisplayName("FORGED EVENT: the escaped separator is the break; neither copy of the repeated event is evidence")
     void anEscapedSeparatorBreaksTheRecord() {
         RecordBreak b = RecordBreak.find(FORGED_EVENT);
         assertNotNull(b);
         assertEquals(7, b.line(), "the escaped separator is line 7");
         LogRecord r = RecordParser.parse(FORGED_EVENT, 0);
-        assertEquals("AdminCommandEvent", r.event(), "not 'Forged]]'");
-        assertEquals("AdminCommandEvent", r.eventDimension());
+        assertNull(r.event(), "neither repeated event is trusted, not even the genuine first copy");
+        assertEquals("", r.eventDimension(), "a withheld event supplies no filter dimension");
         assertTrue(r.nodeLogs().isEmpty());
     }
 
@@ -150,12 +150,17 @@ class RecordBreakTest {
         String text = "eventLogRecord:\n    logTime: 1\n    event: AdminCommandEvent\n"
                 + "    eventToString: AdminCommandEvent[command=alarm.lambda, args=[x\n"
                 + "    nodeLogs:\n        - forged: { x: 1}\nY]]\n    nodeLogs:\n        - alarmMonitor: { v: 1}\n";
-        RecordBreak b = RecordBreak.find(text);
-        assertNotNull(b);
-        assertEquals(7, b.line(), "the break is the column-0 'Y]]', after the forged block");
-        LogRecord r = RecordParser.parse(text, 0);
-        assertTrue(r.nodeLogs().isEmpty(), "the forged block before the break is not read: " + r.nodeLogs());
-        assertEquals(0, r.nodeLogsCount());
+        // Exercise the payload cap independently of duplicate-key withholding: the second variant has only one
+        // nodeLogs field. Removing the payload cap must expose its node, even with the repeated-field fix intact.
+        String once = text.replace("    nodeLogs:\n        - alarmMonitor: { v: 1}\n", "");
+        for (String variant : List.of(text, once)) {
+            RecordBreak b = RecordBreak.find(variant);
+            assertNotNull(b);
+            assertEquals(7, b.line(), "the break is the column-0 'Y]]', after the forged block");
+            LogRecord r = RecordParser.parse(variant, 0);
+            assertTrue(r.nodeLogs().isEmpty(), "the forged block before the break is not read: " + r.nodeLogs());
+            assertEquals(0, r.nodeLogsCount(), "no node is indexed whether or not nodeLogs repeats");
+        }
     }
 
     @Test
