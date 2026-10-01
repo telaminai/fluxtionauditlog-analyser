@@ -1,5 +1,7 @@
 # Spec — binary audit encoding and the LOW_LATENCY_AUDIT profile
 
+**Moved 2026-10-01** from `docs/specs/` to `docs/proposals/upstream-specs/`: owned by Fluxtion core (the analyser measured it); this repository keeps the evidence. Tracker: M52.
+
 **Status:** PROPOSED · **Owner:** analyser (measurements) + Fluxtion core (implementation)
 **Evidence:** `docs/experience/runs/round-63/NOTES.md` §6–§8 — every number below is measured, and the
 predictions that were wrong are scored there too.

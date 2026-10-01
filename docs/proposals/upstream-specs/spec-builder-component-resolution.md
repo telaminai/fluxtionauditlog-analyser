@@ -1,10 +1,12 @@
 # Spec — builder-owned component resolution and Spring document
 
+**Moved 2026-10-01** from `docs/specs/` to `docs/proposals/upstream-specs/`: owned by fluxtion-builder and the Maven plugin; this repository keeps the evidence. Tracker: M48.
+
 **Status:** PROPOSED for upstream review
 **Target:** the existing `fluxtion-builder` jar and the Fluxtion Maven plugin
 **Evidence:** rounds 48, 55 and 57; the reviewed prototype in `tools/bean-resolver.py`
 **Input contract:** [`spec-component-catalogue.md`](spec-component-catalogue.md)
-**Architecture:** [`spec-authoring-modes.md`](spec-authoring-modes.md), stages 2–5
+**Architecture:** [`spec-authoring-modes.md`](../../specs/spec-authoring-modes.md), stages 2–5
 
 ## Decision
 

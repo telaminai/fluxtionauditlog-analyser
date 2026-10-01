@@ -53,7 +53,7 @@ dependency**; the browser starter keeps its JavaScript parser, while a CheerpJ s
 added classes do not break builder loading or normal playground compilation. The starter remains a
 downstream interactive consumer and shares conformance fixtures rather than becoming the production
 resolver. See
-[`spec-builder-component-resolution.md`](spec-builder-component-resolution.md).
+[`spec-builder-component-resolution.md`](../proposals/upstream-specs/spec-builder-component-resolution.md).
 
 ### Stage 6 — corrected TWICE, and the second correction was also wrong
 

@@ -16,7 +16,7 @@ READ THIS BEFORE CLONING ANYTHING
   This branch against local main is 3 commits, 5 files, 552 insertions.
 
 ORIENT FIRST
-  · docs/specs/spec-generated-dispatch-performance.md §12 — "W10, the harness, and why it is not
+  · docs/proposals/upstream-specs/spec-generated-dispatch-performance.md §12 — "W10, the harness, and why it is not
     optional". §1 for the floor table, and the note under it: every figure must name its
     compilation shape.
   · docs/experience/runs/round-58/NOTES.md — 19 addenda, ~700 runs. The four wrong headlines are

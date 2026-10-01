@@ -5,7 +5,7 @@ Worktree ON THIS MACHINE: ~/IdeaProjects/telamin/worktrees/mavenplugin-w14
 
 STATUS: SPEC COMPLETE, NO IMPLEMENTATION. The worktree is empty of changes on purpose — it exists so
 the implementation has somewhere to land and so the base was verified before anyone starts.
-The spec itself lives in the ANALYSER repo: docs/specs/spec-manifest-optimisation-metadata.md.
+The spec itself lives in the ANALYSER repo: docs/proposals/upstream-specs/spec-manifest-optimisation-metadata.md.
 
 THE REPOSITORY QUESTION — resolved, and the wrong answer is instructive
   ~/IdeaProjects/dataflow-mavenplugin IS the source of the published plugin. A first reading said
