@@ -1,0 +1,2 @@
+walk-can-point-at-java : green / named assertion red / restored green, bytes identical
+mutations: 1 controls caught with the fast engine in 52.0 s

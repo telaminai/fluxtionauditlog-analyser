@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "<REVIEW_V1301>/docs/handoff/evidence/issue-84-review-2026-10-01/run_controls.py", line 9, in <module>
+    from mutation_gate_fast import FastEngine, caught, tree_snapshot, tree_drift
+ImportError: cannot import name 'caught' from 'mutation_gate_fast' (<REVIEW_V1300>/tools/mutation_gate_fast.py)

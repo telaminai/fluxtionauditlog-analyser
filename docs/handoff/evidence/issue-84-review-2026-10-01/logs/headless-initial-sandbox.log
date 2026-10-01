@@ -1,0 +1,788 @@
+updating event log config:EventLogConfig{level=INFO, logRecordProcessor=null, sourceId=null, groupId=null}
+updating event log config:EventLogConfig{level=INFO, logRecordProcessor=null, sourceId=null, groupId=null}
+updating event log config:EventLogConfig{level=INFO, logRecordProcessor=null, sourceId=null, groupId=null}
+[ERROR] Tests run: 7, Failures: 0, Errors: 7, Skipped: 0, Time elapsed: 0.018 s <<< FAILURE! -- in telamin.fluxtion.audit.analyser.analyser.assistant.AssistantAdapterTest
+[ERROR] telamin.fluxtion.audit.analyser.analyser.assistant.AssistantAdapterTest.aHeldReplyReleasedAfterCancelDoesNothing -- Time elapsed: 0.014 s <<< ERROR!
+java.net.SocketException: Operation not permitted
+	at java.base/sun.nio.ch.Net.bind0(Native Method)
+	at java.base/sun.nio.ch.Net.bind(Net.java:565)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.netBind(ServerSocketChannelImpl.java:344)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.bind(ServerSocketChannelImpl.java:301)
+	at java.base/sun.nio.ch.ServerSocketAdaptor.bind(ServerSocketAdaptor.java:89)
+	at jdk.httpserver/sun.net.httpserver.ServerImpl.<init>(ServerImpl.java:144)
+	at jdk.httpserver/sun.net.httpserver.HttpServerImpl.<init>(HttpServerImpl.java:50)
+	at jdk.httpserver/sun.net.httpserver.DefaultHttpServerProvider.createHttpServer(DefaultHttpServerProvider.java:35)
+	at jdk.httpserver/com.sun.net.httpserver.HttpServer.create(HttpServer.java:152)
+	at telamin.fluxtion.audit.analyser.analyser.assistant.FakeProvider.<init>(FakeProvider.java:33)
+	at telamin.fluxtion.audit.analyser.analyser.assistant.AssistantAdapterTest.start(AssistantAdapterTest.java:144)
+	at telamin.fluxtion.audit.analyser.analyser.assistant.AssistantAdapterTest.aHeldReplyReleasedAfterCancelDoesNothing(AssistantAdapterTest.java:200)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+
+[ERROR] telamin.fluxtion.audit.analyser.analyser.assistant.AssistantAdapterTest.anErrorIsBoundedAndKeyless -- Time elapsed: 0.001 s <<< ERROR!
+java.net.SocketException: Operation not permitted
+	at java.base/sun.nio.ch.Net.bind0(Native Method)
+	at java.base/sun.nio.ch.Net.bind(Net.java:565)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.netBind(ServerSocketChannelImpl.java:344)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.bind(ServerSocketChannelImpl.java:301)
+	at java.base/sun.nio.ch.ServerSocketAdaptor.bind(ServerSocketAdaptor.java:89)
+	at jdk.httpserver/sun.net.httpserver.ServerImpl.<init>(ServerImpl.java:144)
+	at jdk.httpserver/sun.net.httpserver.HttpServerImpl.<init>(HttpServerImpl.java:50)
+	at jdk.httpserver/sun.net.httpserver.DefaultHttpServerProvider.createHttpServer(DefaultHttpServerProvider.java:35)
+	at jdk.httpserver/com.sun.net.httpserver.HttpServer.create(HttpServer.java:152)
+	at telamin.fluxtion.audit.analyser.analyser.assistant.FakeProvider.<init>(FakeProvider.java:33)
+	at telamin.fluxtion.audit.analyser.analyser.assistant.AssistantAdapterTest.start(AssistantAdapterTest.java:144)
+	at telamin.fluxtion.audit.analyser.analyser.assistant.AssistantAdapterTest.anErrorIsBoundedAndKeyless(AssistantAdapterTest.java:229)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+
+[ERROR] telamin.fluxtion.audit.analyser.analyser.assistant.AssistantAdapterTest.anUnknownActionNameStaysOutOfSessionFacts -- Time elapsed: 0 s <<< ERROR!
+java.net.SocketException: Operation not permitted
+	at java.base/sun.nio.ch.Net.bind0(Native Method)
+	at java.base/sun.nio.ch.Net.bind(Net.java:565)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.netBind(ServerSocketChannelImpl.java:344)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.bind(ServerSocketChannelImpl.java:301)
+	at java.base/sun.nio.ch.ServerSocketAdaptor.bind(ServerSocketAdaptor.java:89)
+	at jdk.httpserver/sun.net.httpserver.ServerImpl.<init>(ServerImpl.java:144)
+	at jdk.httpserver/sun.net.httpserver.HttpServerImpl.<init>(HttpServerImpl.java:50)
+	at jdk.httpserver/sun.net.httpserver.DefaultHttpServerProvider.createHttpServer(DefaultHttpServerProvider.java:35)
+	at jdk.httpserver/com.sun.net.httpserver.HttpServer.create(HttpServer.java:152)
+	at telamin.fluxtion.audit.analyser.analyser.assistant.FakeProvider.<init>(FakeProvider.java:33)
+	at telamin.fluxtion.audit.analyser.analyser.assistant.AssistantAdapterTest.start(AssistantAdapterTest.java:144)
+	at telamin.fluxtion.audit.analyser.analyser.assistant.AssistantAdapterTest.anUnknownActionNameStaysOutOfSessionFacts(AssistantAdapterTest.java:277)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+
+[ERROR] telamin.fluxtion.audit.analyser.analyser.assistant.AssistantAdapterTest.unknownAndMalformedActionsAreRefused -- Time elapsed: 0.001 s <<< ERROR!
+java.net.SocketException: Operation not permitted
+	at java.base/sun.nio.ch.Net.bind0(Native Method)
+	at java.base/sun.nio.ch.Net.bind(Net.java:565)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.netBind(ServerSocketChannelImpl.java:344)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.bind(ServerSocketChannelImpl.java:301)
+	at java.base/sun.nio.ch.ServerSocketAdaptor.bind(ServerSocketAdaptor.java:89)
+	at jdk.httpserver/sun.net.httpserver.ServerImpl.<init>(ServerImpl.java:144)
+	at jdk.httpserver/sun.net.httpserver.HttpServerImpl.<init>(HttpServerImpl.java:50)
+	at jdk.httpserver/sun.net.httpserver.DefaultHttpServerProvider.createHttpServer(DefaultHttpServerProvider.java:35)
+	at jdk.httpserver/com.sun.net.httpserver.HttpServer.create(HttpServer.java:152)
+	at telamin.fluxtion.audit.analyser.analyser.assistant.FakeProvider.<init>(FakeProvider.java:33)
+	at telamin.fluxtion.audit.analyser.analyser.assistant.AssistantAdapterTest.start(AssistantAdapterTest.java:144)
+	at telamin.fluxtion.audit.analyser.analyser.assistant.AssistantAdapterTest.unknownAndMalformedActionsAreRefused(AssistantAdapterTest.java:246)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+
+[ERROR] telamin.fluxtion.audit.analyser.analyser.assistant.AssistantAdapterTest.providerFailureWordsNeverBecomeSessionFacts -- Time elapsed: 0 s <<< ERROR!
+java.net.SocketException: Operation not permitted
+	at java.base/sun.nio.ch.Net.bind0(Native Method)
+	at java.base/sun.nio.ch.Net.bind(Net.java:565)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.netBind(ServerSocketChannelImpl.java:344)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.bind(ServerSocketChannelImpl.java:301)
+	at java.base/sun.nio.ch.ServerSocketAdaptor.bind(ServerSocketAdaptor.java:89)
+	at jdk.httpserver/sun.net.httpserver.ServerImpl.<init>(ServerImpl.java:144)
+	at jdk.httpserver/sun.net.httpserver.HttpServerImpl.<init>(HttpServerImpl.java:50)
+	at jdk.httpserver/sun.net.httpserver.DefaultHttpServerProvider.createHttpServer(DefaultHttpServerProvider.java:35)
+	at jdk.httpserver/com.sun.net.httpserver.HttpServer.create(HttpServer.java:152)
+	at telamin.fluxtion.audit.analyser.analyser.assistant.FakeProvider.<init>(FakeProvider.java:33)
+	at telamin.fluxtion.audit.analyser.analyser.assistant.AssistantAdapterTest.start(AssistantAdapterTest.java:144)
+	at telamin.fluxtion.audit.analyser.analyser.assistant.AssistantAdapterTest.providerFailureWordsNeverBecomeSessionFacts(AssistantAdapterTest.java:259)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+
+[ERROR] telamin.fluxtion.audit.analyser.analyser.assistant.AssistantAdapterTest.actualResultsAreFedBack -- Time elapsed: 0 s <<< ERROR!
+java.net.SocketException: Operation not permitted
+	at java.base/sun.nio.ch.Net.bind0(Native Method)
+	at java.base/sun.nio.ch.Net.bind(Net.java:565)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.netBind(ServerSocketChannelImpl.java:344)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.bind(ServerSocketChannelImpl.java:301)
+	at java.base/sun.nio.ch.ServerSocketAdaptor.bind(ServerSocketAdaptor.java:89)
+	at jdk.httpserver/sun.net.httpserver.ServerImpl.<init>(ServerImpl.java:144)
+	at jdk.httpserver/sun.net.httpserver.HttpServerImpl.<init>(HttpServerImpl.java:50)
+	at jdk.httpserver/sun.net.httpserver.DefaultHttpServerProvider.createHttpServer(DefaultHttpServerProvider.java:35)
+	at jdk.httpserver/com.sun.net.httpserver.HttpServer.create(HttpServer.java:152)
+	at telamin.fluxtion.audit.analyser.analyser.assistant.FakeProvider.<init>(FakeProvider.java:33)
+	at telamin.fluxtion.audit.analyser.analyser.assistant.AssistantAdapterTest.start(AssistantAdapterTest.java:144)
+	at telamin.fluxtion.audit.analyser.analyser.assistant.AssistantAdapterTest.actualResultsAreFedBack(AssistantAdapterTest.java:163)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+
+[ERROR] telamin.fluxtion.audit.analyser.analyser.assistant.AssistantAdapterTest.noLogKeepsTheManifestAndRefusesRecordVerbs -- Time elapsed: 0.001 s <<< ERROR!
+java.net.SocketException: Operation not permitted
+	at java.base/sun.nio.ch.Net.bind0(Native Method)
+	at java.base/sun.nio.ch.Net.bind(Net.java:565)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.netBind(ServerSocketChannelImpl.java:344)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.bind(ServerSocketChannelImpl.java:301)
+	at java.base/sun.nio.ch.ServerSocketAdaptor.bind(ServerSocketAdaptor.java:89)
+	at jdk.httpserver/sun.net.httpserver.ServerImpl.<init>(ServerImpl.java:144)
+	at jdk.httpserver/sun.net.httpserver.HttpServerImpl.<init>(HttpServerImpl.java:50)
+	at jdk.httpserver/sun.net.httpserver.DefaultHttpServerProvider.createHttpServer(DefaultHttpServerProvider.java:35)
+	at jdk.httpserver/com.sun.net.httpserver.HttpServer.create(HttpServer.java:152)
+	at telamin.fluxtion.audit.analyser.analyser.assistant.FakeProvider.<init>(FakeProvider.java:33)
+	at telamin.fluxtion.audit.analyser.analyser.assistant.AssistantAdapterTest.start(AssistantAdapterTest.java:144)
+	at telamin.fluxtion.audit.analyser.analyser.assistant.AssistantAdapterTest.noLogKeepsTheManifestAndRefusesRecordVerbs(AssistantAdapterTest.java:184)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+
+[mouseTrace] not installed: java.nio.file.NoSuchFileException: /this/path/does/not/exist/trace.log
+[analyser] shutdown step failed, continuing: java.lang.IllegalStateException: boom
+[analyser] shutdown step failed, continuing: java.lang.RuntimeException: middle blew up
+[analyser] shutdown step failed, continuing: java.lang.NoClassDefFoundError: some/Class
+updating event log config:EventLogConfig{level=INFO, logRecordProcessor=null, sourceId=null, groupId=null}
+updating event log config:EventLogConfig{level=WARN, logRecordProcessor=null, sourceId=riskMonitor, groupId=null}
+updating event log config:EventLogConfig{level=INFO, logRecordProcessor=null, sourceId=null, groupId=null}
+updating event log config:EventLogConfig{level=WARN, logRecordProcessor=null, sourceId=null, groupId=null}
+updating event log config:EventLogConfig{level=INFO, logRecordProcessor=null, sourceId=null, groupId=alpha}
+updating event log config:EventLogConfig{level=INFO, logRecordProcessor=null, sourceId=null, groupId=null}
+updating event log config:EventLogConfig{level=WARN, logRecordProcessor=null, sourceId=null, groupId=null}
+updating event log config:EventLogConfig{level=INFO, logRecordProcessor=null, sourceId=null, groupId=null}
+updating event log config:EventLogConfig{level=WARN, logRecordProcessor=null, sourceId=riskMonitor, DEMO, groupId=null}
+updating event log config:EventLogConfig{level=INFO, logRecordProcessor=null, sourceId=null, groupId=null}
+updating event log config:EventLogConfig{level=WARN, logRecordProcessor=null, sourceId=riskMonitor}DEMO, groupId=null}
+updating event log config:EventLogConfig{level=INFO, logRecordProcessor=null, sourceId=null, groupId=null}
+updating event log config:EventLogConfig{level=WARN, logRecordProcessor=null, sourceId= riskMonitor , groupId=null}
+updating event log config:EventLogConfig{level=INFO, logRecordProcessor=null, sourceId=null, groupId=null}
+updating event log config:EventLogConfig{level=WARN, logRecordProcessor=null, sourceId=, groupId=null}
+[ERROR] Tests run: 15, Failures: 0, Errors: 15, Skipped: 0, Time elapsed: 0.150 s <<< FAILURE! -- in telamin.fluxtion.audit.analyser.analyser.net.ActionServerTest
+[ERROR] telamin.fluxtion.audit.analyser.analyser.net.ActionServerTest.acceptsAValidTokenedAggregate -- Time elapsed: 0.011 s <<< ERROR!
+java.net.SocketException: Operation not permitted
+	at java.base/sun.nio.ch.Net.bind0(Native Method)
+	at java.base/sun.nio.ch.Net.bind(Net.java:565)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.netBind(ServerSocketChannelImpl.java:344)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.bind(ServerSocketChannelImpl.java:301)
+	at java.base/sun.nio.ch.ServerSocketAdaptor.bind(ServerSocketAdaptor.java:89)
+	at jdk.httpserver/sun.net.httpserver.ServerImpl.<init>(ServerImpl.java:144)
+	at jdk.httpserver/sun.net.httpserver.HttpServerImpl.<init>(HttpServerImpl.java:50)
+	at jdk.httpserver/sun.net.httpserver.DefaultHttpServerProvider.createHttpServer(DefaultHttpServerProvider.java:35)
+	at jdk.httpserver/com.sun.net.httpserver.HttpServer.create(HttpServer.java:152)
+	at telamin.fluxtion.audit.analyser.analyser.net.ActionServer.<init>(ActionServer.java:65)
+	at telamin.fluxtion.audit.analyser.analyser.net.ActionServer.<init>(ActionServer.java:48)
+	at telamin.fluxtion.audit.analyser.analyser.net.ActionServerTest.start(ActionServerTest.java:32)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	Suppressed: java.lang.NullPointerException: Cannot invoke "telamin.fluxtion.audit.analyser.analyser.net.ActionServer.stop()" because "this.server" is null
+		at telamin.fluxtion.audit.analyser.analyser.net.ActionServerTest.stop(ActionServerTest.java:38)
+		... 3 more
+
+[ERROR] telamin.fluxtion.audit.analyser.analyser.net.ActionServerTest.manifestAdvertisesVerbsAndCaps -- Time elapsed: 0.001 s <<< ERROR!
+java.net.SocketException: Operation not permitted
+	at java.base/sun.nio.ch.Net.bind0(Native Method)
+	at java.base/sun.nio.ch.Net.bind(Net.java:565)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.netBind(ServerSocketChannelImpl.java:344)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.bind(ServerSocketChannelImpl.java:301)
+	at java.base/sun.nio.ch.ServerSocketAdaptor.bind(ServerSocketAdaptor.java:89)
+	at jdk.httpserver/sun.net.httpserver.ServerImpl.<init>(ServerImpl.java:144)
+	at jdk.httpserver/sun.net.httpserver.HttpServerImpl.<init>(HttpServerImpl.java:50)
+	at jdk.httpserver/sun.net.httpserver.DefaultHttpServerProvider.createHttpServer(DefaultHttpServerProvider.java:35)
+	at jdk.httpserver/com.sun.net.httpserver.HttpServer.create(HttpServer.java:152)
+	at telamin.fluxtion.audit.analyser.analyser.net.ActionServer.<init>(ActionServer.java:65)
+	at telamin.fluxtion.audit.analyser.analyser.net.ActionServer.<init>(ActionServer.java:48)
+	at telamin.fluxtion.audit.analyser.analyser.net.ActionServerTest.start(ActionServerTest.java:32)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	Suppressed: java.lang.NullPointerException: Cannot invoke "telamin.fluxtion.audit.analyser.analyser.net.ActionServer.stop()" because "this.server" is null
+		at telamin.fluxtion.audit.analyser.analyser.net.ActionServerTest.stop(ActionServerTest.java:38)
+		... 3 more
+
+[ERROR] telamin.fluxtion.audit.analyser.analyser.net.ActionServerTest.theRealRoutesStillWIN_soTheCatchAllCannotShadowThem -- Time elapsed: 0.001 s <<< ERROR!
+java.net.SocketException: Operation not permitted
+	at java.base/sun.nio.ch.Net.bind0(Native Method)
+	at java.base/sun.nio.ch.Net.bind(Net.java:565)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.netBind(ServerSocketChannelImpl.java:344)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.bind(ServerSocketChannelImpl.java:301)
+	at java.base/sun.nio.ch.ServerSocketAdaptor.bind(ServerSocketAdaptor.java:89)
+	at jdk.httpserver/sun.net.httpserver.ServerImpl.<init>(ServerImpl.java:144)
+	at jdk.httpserver/sun.net.httpserver.HttpServerImpl.<init>(HttpServerImpl.java:50)
+	at jdk.httpserver/sun.net.httpserver.DefaultHttpServerProvider.createHttpServer(DefaultHttpServerProvider.java:35)
+	at jdk.httpserver/com.sun.net.httpserver.HttpServer.create(HttpServer.java:152)
+	at telamin.fluxtion.audit.analyser.analyser.net.ActionServer.<init>(ActionServer.java:65)
+	at telamin.fluxtion.audit.analyser.analyser.net.ActionServer.<init>(ActionServer.java:48)
+	at telamin.fluxtion.audit.analyser.analyser.net.ActionServerTest.start(ActionServerTest.java:32)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	Suppressed: java.lang.NullPointerException: Cannot invoke "telamin.fluxtion.audit.analyser.analyser.net.ActionServer.stop()" because "this.server" is null
+		at telamin.fluxtion.audit.analyser.analyser.net.ActionServerTest.stop(ActionServerTest.java:38)
+		... 3 more
+
+[ERROR] telamin.fluxtion.audit.analyser.analyser.net.ActionServerTest.rateLimitEventuallyReturns429 -- Time elapsed: 0 s <<< ERROR!
+java.net.SocketException: Operation not permitted
+	at java.base/sun.nio.ch.Net.bind0(Native Method)
+	at java.base/sun.nio.ch.Net.bind(Net.java:565)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.netBind(ServerSocketChannelImpl.java:344)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.bind(ServerSocketChannelImpl.java:301)
+	at java.base/sun.nio.ch.ServerSocketAdaptor.bind(ServerSocketAdaptor.java:89)
+	at jdk.httpserver/sun.net.httpserver.ServerImpl.<init>(ServerImpl.java:144)
+	at jdk.httpserver/sun.net.httpserver.HttpServerImpl.<init>(HttpServerImpl.java:50)
+	at jdk.httpserver/sun.net.httpserver.DefaultHttpServerProvider.createHttpServer(DefaultHttpServerProvider.java:35)
+	at jdk.httpserver/com.sun.net.httpserver.HttpServer.create(HttpServer.java:152)
+	at telamin.fluxtion.audit.analyser.analyser.net.ActionServer.<init>(ActionServer.java:65)
+	at telamin.fluxtion.audit.analyser.analyser.net.ActionServer.<init>(ActionServer.java:48)
+	at telamin.fluxtion.audit.analyser.analyser.net.ActionServerTest.start(ActionServerTest.java:32)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	Suppressed: java.lang.NullPointerException: Cannot invoke "telamin.fluxtion.audit.analyser.analyser.net.ActionServer.stop()" because "this.server" is null
+		at telamin.fluxtion.audit.analyser.analyser.net.ActionServerTest.stop(ActionServerTest.java:38)
+		... 3 more
+
+[ERROR] telamin.fluxtion.audit.analyser.analyser.net.ActionServerTest.rejectsAnyOriginHeader -- Time elapsed: 0 s <<< ERROR!
+java.net.SocketException: Operation not permitted
+	at java.base/sun.nio.ch.Net.bind0(Native Method)
+	at java.base/sun.nio.ch.Net.bind(Net.java:565)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.netBind(ServerSocketChannelImpl.java:344)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.bind(ServerSocketChannelImpl.java:301)
+	at java.base/sun.nio.ch.ServerSocketAdaptor.bind(ServerSocketAdaptor.java:89)
+	at jdk.httpserver/sun.net.httpserver.ServerImpl.<init>(ServerImpl.java:144)
+	at jdk.httpserver/sun.net.httpserver.HttpServerImpl.<init>(HttpServerImpl.java:50)
+	at jdk.httpserver/sun.net.httpserver.DefaultHttpServerProvider.createHttpServer(DefaultHttpServerProvider.java:35)
+	at jdk.httpserver/com.sun.net.httpserver.HttpServer.create(HttpServer.java:152)
+	at telamin.fluxtion.audit.analyser.analyser.net.ActionServer.<init>(ActionServer.java:65)
+	at telamin.fluxtion.audit.analyser.analyser.net.ActionServer.<init>(ActionServer.java:48)
+	at telamin.fluxtion.audit.analyser.analyser.net.ActionServerTest.start(ActionServerTest.java:32)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	Suppressed: java.lang.NullPointerException: Cannot invoke "telamin.fluxtion.audit.analyser.analyser.net.ActionServer.stop()" because "this.server" is null
+		at telamin.fluxtion.audit.analyser.analyser.net.ActionServerTest.stop(ActionServerTest.java:38)
+		... 3 more
+
+[ERROR] telamin.fluxtion.audit.analyser.analyser.net.ActionServerTest.anUnknownPathNAMESTheRoutesInsteadOfADeadEnd -- Time elapsed: 0.001 s <<< ERROR!
+java.net.SocketException: Operation not permitted
+	at java.base/sun.nio.ch.Net.bind0(Native Method)
+	at java.base/sun.nio.ch.Net.bind(Net.java:565)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.netBind(ServerSocketChannelImpl.java:344)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.bind(ServerSocketChannelImpl.java:301)
+	at java.base/sun.nio.ch.ServerSocketAdaptor.bind(ServerSocketAdaptor.java:89)
+	at jdk.httpserver/sun.net.httpserver.ServerImpl.<init>(ServerImpl.java:144)
+	at jdk.httpserver/sun.net.httpserver.HttpServerImpl.<init>(HttpServerImpl.java:50)
+	at jdk.httpserver/sun.net.httpserver.DefaultHttpServerProvider.createHttpServer(DefaultHttpServerProvider.java:35)
+	at jdk.httpserver/com.sun.net.httpserver.HttpServer.create(HttpServer.java:152)
+	at telamin.fluxtion.audit.analyser.analyser.net.ActionServer.<init>(ActionServer.java:65)
+	at telamin.fluxtion.audit.analyser.analyser.net.ActionServer.<init>(ActionServer.java:48)
+	at telamin.fluxtion.audit.analyser.analyser.net.ActionServerTest.start(ActionServerTest.java:32)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	Suppressed: java.lang.NullPointerException: Cannot invoke "telamin.fluxtion.audit.analyser.analyser.net.ActionServer.stop()" because "this.server" is null
+		at telamin.fluxtion.audit.analyser.analyser.net.ActionServerTest.stop(ActionServerTest.java:38)
+		... 3 more
+
+[ERROR] telamin.fluxtion.audit.analyser.analyser.net.ActionServerTest.discoveryIsSERVEDwithoutAToken_becauseAWrongDoorIsNotASecret -- Time elapsed: 0 s <<< ERROR!
+java.net.SocketException: Operation not permitted
+	at java.base/sun.nio.ch.Net.bind0(Native Method)
+	at java.base/sun.nio.ch.Net.bind(Net.java:565)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.netBind(ServerSocketChannelImpl.java:344)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.bind(ServerSocketChannelImpl.java:301)
+	at java.base/sun.nio.ch.ServerSocketAdaptor.bind(ServerSocketAdaptor.java:89)
+	at jdk.httpserver/sun.net.httpserver.ServerImpl.<init>(ServerImpl.java:144)
+	at jdk.httpserver/sun.net.httpserver.HttpServerImpl.<init>(HttpServerImpl.java:50)
+	at jdk.httpserver/sun.net.httpserver.DefaultHttpServerProvider.createHttpServer(DefaultHttpServerProvider.java:35)
+	at jdk.httpserver/com.sun.net.httpserver.HttpServer.create(HttpServer.java:152)
+	at telamin.fluxtion.audit.analyser.analyser.net.ActionServer.<init>(ActionServer.java:65)
+	at telamin.fluxtion.audit.analyser.analyser.net.ActionServer.<init>(ActionServer.java:48)
+	at telamin.fluxtion.audit.analyser.analyser.net.ActionServerTest.start(ActionServerTest.java:32)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	Suppressed: java.lang.NullPointerException: Cannot invoke "telamin.fluxtion.audit.analyser.analyser.net.ActionServer.stop()" because "this.server" is null
+		at telamin.fluxtion.audit.analyser.analyser.net.ActionServerTest.stop(ActionServerTest.java:38)
+		... 3 more
+
+[ERROR] telamin.fluxtion.audit.analyser.analyser.net.ActionServerTest.republishRewritesTheEndpointFileForTheRunningServer(Path) -- Time elapsed: 0 s <<< ERROR!
+java.net.SocketException: Operation not permitted
+	at java.base/sun.nio.ch.Net.bind0(Native Method)
+	at java.base/sun.nio.ch.Net.bind(Net.java:565)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.netBind(ServerSocketChannelImpl.java:344)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.bind(ServerSocketChannelImpl.java:301)
+	at java.base/sun.nio.ch.ServerSocketAdaptor.bind(ServerSocketAdaptor.java:89)
+	at jdk.httpserver/sun.net.httpserver.ServerImpl.<init>(ServerImpl.java:144)
+	at jdk.httpserver/sun.net.httpserver.HttpServerImpl.<init>(HttpServerImpl.java:50)
+	at jdk.httpserver/sun.net.httpserver.DefaultHttpServerProvider.createHttpServer(DefaultHttpServerProvider.java:35)
+	at jdk.httpserver/com.sun.net.httpserver.HttpServer.create(HttpServer.java:152)
+	at telamin.fluxtion.audit.analyser.analyser.net.ActionServer.<init>(ActionServer.java:65)
+	at telamin.fluxtion.audit.analyser.analyser.net.ActionServer.<init>(ActionServer.java:48)
+	at telamin.fluxtion.audit.analyser.analyser.net.ActionServerTest.start(ActionServerTest.java:32)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	Suppressed: java.lang.NullPointerException: Cannot invoke "telamin.fluxtion.audit.analyser.analyser.net.ActionServer.stop()" because "this.server" is null
+		at telamin.fluxtion.audit.analyser.analyser.net.ActionServerTest.stop(ActionServerTest.java:38)
+		... 3 more
+
+[ERROR] telamin.fluxtion.audit.analyser.analyser.net.ActionServerTest.discoveryStatesTheREALtokenContract -- Time elapsed: 0 s <<< ERROR!
+java.net.SocketException: Operation not permitted
+	at java.base/sun.nio.ch.Net.bind0(Native Method)
+	at java.base/sun.nio.ch.Net.bind(Net.java:565)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.netBind(ServerSocketChannelImpl.java:344)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.bind(ServerSocketChannelImpl.java:301)
+	at java.base/sun.nio.ch.ServerSocketAdaptor.bind(ServerSocketAdaptor.java:89)
+	at jdk.httpserver/sun.net.httpserver.ServerImpl.<init>(ServerImpl.java:144)
+	at jdk.httpserver/sun.net.httpserver.HttpServerImpl.<init>(HttpServerImpl.java:50)
+	at jdk.httpserver/sun.net.httpserver.DefaultHttpServerProvider.createHttpServer(DefaultHttpServerProvider.java:35)
+	at jdk.httpserver/com.sun.net.httpserver.HttpServer.create(HttpServer.java:152)
+	at telamin.fluxtion.audit.analyser.analyser.net.ActionServer.<init>(ActionServer.java:65)
+	at telamin.fluxtion.audit.analyser.analyser.net.ActionServer.<init>(ActionServer.java:48)
+	at telamin.fluxtion.audit.analyser.analyser.net.ActionServerTest.start(ActionServerTest.java:32)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	Suppressed: java.lang.NullPointerException: Cannot invoke "telamin.fluxtion.audit.analyser.analyser.net.ActionServer.stop()" because "this.server" is null
+		at telamin.fluxtion.audit.analyser.analyser.net.ActionServerTest.stop(ActionServerTest.java:38)
+		... 3 more
+
+[ERROR] telamin.fluxtion.audit.analyser.analyser.net.ActionServerTest.wrongMethodsOnTheEXACTpathsAre405 -- Time elapsed: 0.001 s <<< ERROR!
+java.net.SocketException: Operation not permitted
+	at java.base/sun.nio.ch.Net.bind0(Native Method)
+	at java.base/sun.nio.ch.Net.bind(Net.java:565)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.netBind(ServerSocketChannelImpl.java:344)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.bind(ServerSocketChannelImpl.java:301)
+	at java.base/sun.nio.ch.ServerSocketAdaptor.bind(ServerSocketAdaptor.java:89)
+	at jdk.httpserver/sun.net.httpserver.ServerImpl.<init>(ServerImpl.java:144)
+	at jdk.httpserver/sun.net.httpserver.HttpServerImpl.<init>(HttpServerImpl.java:50)
+	at jdk.httpserver/sun.net.httpserver.DefaultHttpServerProvider.createHttpServer(DefaultHttpServerProvider.java:35)
+	at jdk.httpserver/com.sun.net.httpserver.HttpServer.create(HttpServer.java:152)
+	at telamin.fluxtion.audit.analyser.analyser.net.ActionServer.<init>(ActionServer.java:65)
+	at telamin.fluxtion.audit.analyser.analyser.net.ActionServer.<init>(ActionServer.java:48)
+	at telamin.fluxtion.audit.analyser.analyser.net.ActionServerTest.start(ActionServerTest.java:32)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	Suppressed: java.lang.NullPointerException: Cannot invoke "telamin.fluxtion.audit.analyser.analyser.net.ActionServer.stop()" because "this.server" is null
+		at telamin.fluxtion.audit.analyser.analyser.net.ActionServerTest.stop(ActionServerTest.java:38)
+		... 3 more
+
+[ERROR] telamin.fluxtion.audit.analyser.analyser.net.ActionServerTest.aCHILDofActionDoesNotExecuteTheAction -- Time elapsed: 0.001 s <<< ERROR!
+java.net.SocketException: Operation not permitted
+	at java.base/sun.nio.ch.Net.bind0(Native Method)
+	at java.base/sun.nio.ch.Net.bind(Net.java:565)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.netBind(ServerSocketChannelImpl.java:344)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.bind(ServerSocketChannelImpl.java:301)
+	at java.base/sun.nio.ch.ServerSocketAdaptor.bind(ServerSocketAdaptor.java:89)
+	at jdk.httpserver/sun.net.httpserver.ServerImpl.<init>(ServerImpl.java:144)
+	at jdk.httpserver/sun.net.httpserver.HttpServerImpl.<init>(HttpServerImpl.java:50)
+	at jdk.httpserver/sun.net.httpserver.DefaultHttpServerProvider.createHttpServer(DefaultHttpServerProvider.java:35)
+	at jdk.httpserver/com.sun.net.httpserver.HttpServer.create(HttpServer.java:152)
+	at telamin.fluxtion.audit.analyser.analyser.net.ActionServer.<init>(ActionServer.java:65)
+	at telamin.fluxtion.audit.analyser.analyser.net.ActionServer.<init>(ActionServer.java:48)
+	at telamin.fluxtion.audit.analyser.analyser.net.ActionServerTest.start(ActionServerTest.java:32)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	Suppressed: java.lang.NullPointerException: Cannot invoke "telamin.fluxtion.audit.analyser.analyser.net.ActionServer.stop()" because "this.server" is null
+		at telamin.fluxtion.audit.analyser.analyser.net.ActionServerTest.stop(ActionServerTest.java:38)
+		... 3 more
+
+[ERROR] telamin.fluxtion.audit.analyser.analyser.net.ActionServerTest.aCHILDofManifestDoesNotServeTheManifest -- Time elapsed: 0.001 s <<< ERROR!
+java.net.SocketException: Operation not permitted
+	at java.base/sun.nio.ch.Net.bind0(Native Method)
+	at java.base/sun.nio.ch.Net.bind(Net.java:565)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.netBind(ServerSocketChannelImpl.java:344)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.bind(ServerSocketChannelImpl.java:301)
+	at java.base/sun.nio.ch.ServerSocketAdaptor.bind(ServerSocketAdaptor.java:89)
+	at jdk.httpserver/sun.net.httpserver.ServerImpl.<init>(ServerImpl.java:144)
+	at jdk.httpserver/sun.net.httpserver.HttpServerImpl.<init>(HttpServerImpl.java:50)
+	at jdk.httpserver/sun.net.httpserver.DefaultHttpServerProvider.createHttpServer(DefaultHttpServerProvider.java:35)
+	at jdk.httpserver/com.sun.net.httpserver.HttpServer.create(HttpServer.java:152)
+	at telamin.fluxtion.audit.analyser.analyser.net.ActionServer.<init>(ActionServer.java:65)
+	at telamin.fluxtion.audit.analyser.analyser.net.ActionServer.<init>(ActionServer.java:48)
+	at telamin.fluxtion.audit.analyser.analyser.net.ActionServerTest.start(ActionServerTest.java:32)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	Suppressed: java.lang.NullPointerException: Cannot invoke "telamin.fluxtion.audit.analyser.analyser.net.ActionServer.stop()" because "this.server" is null
+		at telamin.fluxtion.audit.analyser.analyser.net.ActionServerTest.stop(ActionServerTest.java:38)
+		... 3 more
+
+[ERROR] telamin.fluxtion.audit.analyser.analyser.net.ActionServerTest.bindsToLoopback -- Time elapsed: 0 s <<< ERROR!
+java.net.SocketException: Operation not permitted
+	at java.base/sun.nio.ch.Net.bind0(Native Method)
+	at java.base/sun.nio.ch.Net.bind(Net.java:565)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.netBind(ServerSocketChannelImpl.java:344)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.bind(ServerSocketChannelImpl.java:301)
+	at java.base/sun.nio.ch.ServerSocketAdaptor.bind(ServerSocketAdaptor.java:89)
+	at jdk.httpserver/sun.net.httpserver.ServerImpl.<init>(ServerImpl.java:144)
+	at jdk.httpserver/sun.net.httpserver.HttpServerImpl.<init>(HttpServerImpl.java:50)
+	at jdk.httpserver/sun.net.httpserver.DefaultHttpServerProvider.createHttpServer(DefaultHttpServerProvider.java:35)
+	at jdk.httpserver/com.sun.net.httpserver.HttpServer.create(HttpServer.java:152)
+	at telamin.fluxtion.audit.analyser.analyser.net.ActionServer.<init>(ActionServer.java:65)
+	at telamin.fluxtion.audit.analyser.analyser.net.ActionServer.<init>(ActionServer.java:48)
+	at telamin.fluxtion.audit.analyser.analyser.net.ActionServerTest.start(ActionServerTest.java:32)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	Suppressed: java.lang.NullPointerException: Cannot invoke "telamin.fluxtion.audit.analyser.analyser.net.ActionServer.stop()" because "this.server" is null
+		at telamin.fluxtion.audit.analyser.analyser.net.ActionServerTest.stop(ActionServerTest.java:38)
+		... 3 more
+
+[ERROR] telamin.fluxtion.audit.analyser.analyser.net.ActionServerTest.ORIGINisRefusedBeforeAnythingElse_onEveryRoute -- Time elapsed: 0.001 s <<< ERROR!
+java.net.SocketException: Operation not permitted
+	at java.base/sun.nio.ch.Net.bind0(Native Method)
+	at java.base/sun.nio.ch.Net.bind(Net.java:565)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.netBind(ServerSocketChannelImpl.java:344)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.bind(ServerSocketChannelImpl.java:301)
+	at java.base/sun.nio.ch.ServerSocketAdaptor.bind(ServerSocketAdaptor.java:89)
+	at jdk.httpserver/sun.net.httpserver.ServerImpl.<init>(ServerImpl.java:144)
+	at jdk.httpserver/sun.net.httpserver.HttpServerImpl.<init>(HttpServerImpl.java:50)
+	at jdk.httpserver/sun.net.httpserver.DefaultHttpServerProvider.createHttpServer(DefaultHttpServerProvider.java:35)
+	at jdk.httpserver/com.sun.net.httpserver.HttpServer.create(HttpServer.java:152)
+	at telamin.fluxtion.audit.analyser.analyser.net.ActionServer.<init>(ActionServer.java:65)
+	at telamin.fluxtion.audit.analyser.analyser.net.ActionServer.<init>(ActionServer.java:48)
+	at telamin.fluxtion.audit.analyser.analyser.net.ActionServerTest.start(ActionServerTest.java:32)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	Suppressed: java.lang.NullPointerException: Cannot invoke "telamin.fluxtion.audit.analyser.analyser.net.ActionServer.stop()" because "this.server" is null
+		at telamin.fluxtion.audit.analyser.analyser.net.ActionServerTest.stop(ActionServerTest.java:38)
+		... 3 more
+
+[ERROR] telamin.fluxtion.audit.analyser.analyser.net.ActionServerTest.rejectsMissingOrWrongToken -- Time elapsed: 0 s <<< ERROR!
+java.net.SocketException: Operation not permitted
+	at java.base/sun.nio.ch.Net.bind0(Native Method)
+	at java.base/sun.nio.ch.Net.bind(Net.java:565)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.netBind(ServerSocketChannelImpl.java:344)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.bind(ServerSocketChannelImpl.java:301)
+	at java.base/sun.nio.ch.ServerSocketAdaptor.bind(ServerSocketAdaptor.java:89)
+	at jdk.httpserver/sun.net.httpserver.ServerImpl.<init>(ServerImpl.java:144)
+	at jdk.httpserver/sun.net.httpserver.HttpServerImpl.<init>(HttpServerImpl.java:50)
+	at jdk.httpserver/sun.net.httpserver.DefaultHttpServerProvider.createHttpServer(DefaultHttpServerProvider.java:35)
+	at jdk.httpserver/com.sun.net.httpserver.HttpServer.create(HttpServer.java:152)
+	at telamin.fluxtion.audit.analyser.analyser.net.ActionServer.<init>(ActionServer.java:65)
+	at telamin.fluxtion.audit.analyser.analyser.net.ActionServer.<init>(ActionServer.java:48)
+	at telamin.fluxtion.audit.analyser.analyser.net.ActionServerTest.start(ActionServerTest.java:32)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	Suppressed: java.lang.NullPointerException: Cannot invoke "telamin.fluxtion.audit.analyser.analyser.net.ActionServer.stop()" because "this.server" is null
+		at telamin.fluxtion.audit.analyser.analyser.net.ActionServerTest.stop(ActionServerTest.java:38)
+		... 3 more
+
+[ERROR] Tests run: 10, Failures: 0, Errors: 2, Skipped: 0, Time elapsed: 0.015 s <<< FAILURE! -- in telamin.fluxtion.audit.analyser.analyser.net.RestEndpointFileTest
+[ERROR] telamin.fluxtion.audit.analyser.analyser.net.RestEndpointFileTest.serverWithoutAnEndpointFilePublishesNothing -- Time elapsed: 0.001 s <<< ERROR!
+java.net.SocketException: Operation not permitted
+	at java.base/sun.nio.ch.Net.bind0(Native Method)
+	at java.base/sun.nio.ch.Net.bind(Net.java:565)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.netBind(ServerSocketChannelImpl.java:344)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.bind(ServerSocketChannelImpl.java:301)
+	at java.base/sun.nio.ch.ServerSocketAdaptor.bind(ServerSocketAdaptor.java:89)
+	at jdk.httpserver/sun.net.httpserver.ServerImpl.<init>(ServerImpl.java:144)
+	at jdk.httpserver/sun.net.httpserver.HttpServerImpl.<init>(HttpServerImpl.java:50)
+	at jdk.httpserver/sun.net.httpserver.DefaultHttpServerProvider.createHttpServer(DefaultHttpServerProvider.java:35)
+	at jdk.httpserver/com.sun.net.httpserver.HttpServer.create(HttpServer.java:152)
+	at telamin.fluxtion.audit.analyser.analyser.net.ActionServer.<init>(ActionServer.java:65)
+	at telamin.fluxtion.audit.analyser.analyser.net.ActionServer.<init>(ActionServer.java:48)
+	at telamin.fluxtion.audit.analyser.analyser.net.RestEndpointFileTest.serverWithoutAnEndpointFilePublishesNothing(RestEndpointFileTest.java:148)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+
+[ERROR] telamin.fluxtion.audit.analyser.analyser.net.RestEndpointFileTest.serverPublishesOnStartAndRemovesOnStop -- Time elapsed: 0.001 s <<< ERROR!
+java.net.SocketException: Operation not permitted
+	at java.base/sun.nio.ch.Net.bind0(Native Method)
+	at java.base/sun.nio.ch.Net.bind(Net.java:565)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.netBind(ServerSocketChannelImpl.java:344)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.bind(ServerSocketChannelImpl.java:301)
+	at java.base/sun.nio.ch.ServerSocketAdaptor.bind(ServerSocketAdaptor.java:89)
+	at jdk.httpserver/sun.net.httpserver.ServerImpl.<init>(ServerImpl.java:144)
+	at jdk.httpserver/sun.net.httpserver.HttpServerImpl.<init>(HttpServerImpl.java:50)
+	at jdk.httpserver/sun.net.httpserver.DefaultHttpServerProvider.createHttpServer(DefaultHttpServerProvider.java:35)
+	at jdk.httpserver/com.sun.net.httpserver.HttpServer.create(HttpServer.java:152)
+	at telamin.fluxtion.audit.analyser.analyser.net.ActionServer.<init>(ActionServer.java:65)
+	at telamin.fluxtion.audit.analyser.analyser.net.RestEndpointFileTest.serverPublishesOnStartAndRemovesOnStop(RestEndpointFileTest.java:129)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+
+[ERROR] Tests run: 10, Failures: 0, Errors: 10, Skipped: 0, Time elapsed: 0.071 s <<< FAILURE! -- in telamin.fluxtion.audit.analyser.analyser.mcp.McpToolCallTest
+[ERROR] telamin.fluxtion.audit.analyser.analyser.mcp.McpToolCallTest.stoppingTheAppTurnsCallsIntoACleanTransportError -- Time elapsed: 0.004 s <<< ERROR!
+java.net.SocketException: Operation not permitted
+	at java.base/sun.nio.ch.Net.bind0(Native Method)
+	at java.base/sun.nio.ch.Net.bind(Net.java:565)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.netBind(ServerSocketChannelImpl.java:344)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.bind(ServerSocketChannelImpl.java:301)
+	at java.base/sun.nio.ch.ServerSocketAdaptor.bind(ServerSocketAdaptor.java:89)
+	at jdk.httpserver/sun.net.httpserver.ServerImpl.<init>(ServerImpl.java:144)
+	at jdk.httpserver/sun.net.httpserver.HttpServerImpl.<init>(HttpServerImpl.java:50)
+	at jdk.httpserver/sun.net.httpserver.DefaultHttpServerProvider.createHttpServer(DefaultHttpServerProvider.java:35)
+	at jdk.httpserver/com.sun.net.httpserver.HttpServer.create(HttpServer.java:152)
+	at telamin.fluxtion.audit.analyser.analyser.net.ActionServer.<init>(ActionServer.java:65)
+	at telamin.fluxtion.audit.analyser.analyser.mcp.McpToolCallTest.start(McpToolCallTest.java:46)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	Suppressed: java.lang.NullPointerException: Cannot invoke "telamin.fluxtion.audit.analyser.analyser.net.ActionServer.stop()" because "this.server" is null
+		at telamin.fluxtion.audit.analyser.analyser.mcp.McpToolCallTest.stop(McpToolCallTest.java:53)
+		... 3 more
+
+[ERROR] telamin.fluxtion.audit.analyser.analyser.mcp.McpToolCallTest.aDispatcherRejectionIsAToolErrorNotATransportError -- Time elapsed: 0.002 s <<< ERROR!
+java.net.SocketException: Operation not permitted
+	at java.base/sun.nio.ch.Net.bind0(Native Method)
+	at java.base/sun.nio.ch.Net.bind(Net.java:565)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.netBind(ServerSocketChannelImpl.java:344)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.bind(ServerSocketChannelImpl.java:301)
+	at java.base/sun.nio.ch.ServerSocketAdaptor.bind(ServerSocketAdaptor.java:89)
+	at jdk.httpserver/sun.net.httpserver.ServerImpl.<init>(ServerImpl.java:144)
+	at jdk.httpserver/sun.net.httpserver.HttpServerImpl.<init>(HttpServerImpl.java:50)
+	at jdk.httpserver/sun.net.httpserver.DefaultHttpServerProvider.createHttpServer(DefaultHttpServerProvider.java:35)
+	at jdk.httpserver/com.sun.net.httpserver.HttpServer.create(HttpServer.java:152)
+	at telamin.fluxtion.audit.analyser.analyser.net.ActionServer.<init>(ActionServer.java:65)
+	at telamin.fluxtion.audit.analyser.analyser.mcp.McpToolCallTest.start(McpToolCallTest.java:46)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	Suppressed: java.lang.NullPointerException: Cannot invoke "telamin.fluxtion.audit.analyser.analyser.net.ActionServer.stop()" because "this.server" is null
+		at telamin.fluxtion.audit.analyser.analyser.mcp.McpToolCallTest.stop(McpToolCallTest.java:53)
+		... 3 more
+
+[ERROR] telamin.fluxtion.audit.analyser.analyser.mcp.McpToolCallTest.modernCallsCarryResultTypeAndServerInfo -- Time elapsed: 0.003 s <<< ERROR!
+java.net.SocketException: Operation not permitted
+	at java.base/sun.nio.ch.Net.bind0(Native Method)
+	at java.base/sun.nio.ch.Net.bind(Net.java:565)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.netBind(ServerSocketChannelImpl.java:344)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.bind(ServerSocketChannelImpl.java:301)
+	at java.base/sun.nio.ch.ServerSocketAdaptor.bind(ServerSocketAdaptor.java:89)
+	at jdk.httpserver/sun.net.httpserver.ServerImpl.<init>(ServerImpl.java:144)
+	at jdk.httpserver/sun.net.httpserver.HttpServerImpl.<init>(HttpServerImpl.java:50)
+	at jdk.httpserver/sun.net.httpserver.DefaultHttpServerProvider.createHttpServer(DefaultHttpServerProvider.java:35)
+	at jdk.httpserver/com.sun.net.httpserver.HttpServer.create(HttpServer.java:152)
+	at telamin.fluxtion.audit.analyser.analyser.net.ActionServer.<init>(ActionServer.java:65)
+	at telamin.fluxtion.audit.analyser.analyser.mcp.McpToolCallTest.start(McpToolCallTest.java:46)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	Suppressed: java.lang.NullPointerException: Cannot invoke "telamin.fluxtion.audit.analyser.analyser.net.ActionServer.stop()" because "this.server" is null
+		at telamin.fluxtion.audit.analyser.analyser.mcp.McpToolCallTest.stop(McpToolCallTest.java:53)
+		... 3 more
+
+[ERROR] telamin.fluxtion.audit.analyser.analyser.mcp.McpToolCallTest.theTokenIsSentAndTheCallFailsCleanlyWithoutIt -- Time elapsed: 0.001 s <<< ERROR!
+java.net.SocketException: Operation not permitted
+	at java.base/sun.nio.ch.Net.bind0(Native Method)
+	at java.base/sun.nio.ch.Net.bind(Net.java:565)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.netBind(ServerSocketChannelImpl.java:344)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.bind(ServerSocketChannelImpl.java:301)
+	at java.base/sun.nio.ch.ServerSocketAdaptor.bind(ServerSocketAdaptor.java:89)
+	at jdk.httpserver/sun.net.httpserver.ServerImpl.<init>(ServerImpl.java:144)
+	at jdk.httpserver/sun.net.httpserver.HttpServerImpl.<init>(HttpServerImpl.java:50)
+	at jdk.httpserver/sun.net.httpserver.DefaultHttpServerProvider.createHttpServer(DefaultHttpServerProvider.java:35)
+	at jdk.httpserver/com.sun.net.httpserver.HttpServer.create(HttpServer.java:152)
+	at telamin.fluxtion.audit.analyser.analyser.net.ActionServer.<init>(ActionServer.java:65)
+	at telamin.fluxtion.audit.analyser.analyser.mcp.McpToolCallTest.start(McpToolCallTest.java:46)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	Suppressed: java.lang.NullPointerException: Cannot invoke "telamin.fluxtion.audit.analyser.analyser.net.ActionServer.stop()" because "this.server" is null
+		at telamin.fluxtion.audit.analyser.analyser.mcp.McpToolCallTest.stop(McpToolCallTest.java:53)
+		... 3 more
+
+[ERROR] telamin.fluxtion.audit.analyser.analyser.mcp.McpToolCallTest.readRoundTripsAndCarriesRecordText -- Time elapsed: 0.001 s <<< ERROR!
+java.net.SocketException: Operation not permitted
+	at java.base/sun.nio.ch.Net.bind0(Native Method)
+	at java.base/sun.nio.ch.Net.bind(Net.java:565)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.netBind(ServerSocketChannelImpl.java:344)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.bind(ServerSocketChannelImpl.java:301)
+	at java.base/sun.nio.ch.ServerSocketAdaptor.bind(ServerSocketAdaptor.java:89)
+	at jdk.httpserver/sun.net.httpserver.ServerImpl.<init>(ServerImpl.java:144)
+	at jdk.httpserver/sun.net.httpserver.HttpServerImpl.<init>(HttpServerImpl.java:50)
+	at jdk.httpserver/sun.net.httpserver.DefaultHttpServerProvider.createHttpServer(DefaultHttpServerProvider.java:35)
+	at jdk.httpserver/com.sun.net.httpserver.HttpServer.create(HttpServer.java:152)
+	at telamin.fluxtion.audit.analyser.analyser.net.ActionServer.<init>(ActionServer.java:65)
+	at telamin.fluxtion.audit.analyser.analyser.mcp.McpToolCallTest.start(McpToolCallTest.java:46)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	Suppressed: java.lang.NullPointerException: Cannot invoke "telamin.fluxtion.audit.analyser.analyser.net.ActionServer.stop()" because "this.server" is null
+		at telamin.fluxtion.audit.analyser.analyser.mcp.McpToolCallTest.stop(McpToolCallTest.java:53)
+		... 3 more
+
+[ERROR] telamin.fluxtion.audit.analyser.analyser.mcp.McpToolCallTest.integerArgumentsSurviveTheHop -- Time elapsed: 0.001 s <<< ERROR!
+java.net.SocketException: Operation not permitted
+	at java.base/sun.nio.ch.Net.bind0(Native Method)
+	at java.base/sun.nio.ch.Net.bind(Net.java:565)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.netBind(ServerSocketChannelImpl.java:344)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.bind(ServerSocketChannelImpl.java:301)
+	at java.base/sun.nio.ch.ServerSocketAdaptor.bind(ServerSocketAdaptor.java:89)
+	at jdk.httpserver/sun.net.httpserver.ServerImpl.<init>(ServerImpl.java:144)
+	at jdk.httpserver/sun.net.httpserver.HttpServerImpl.<init>(HttpServerImpl.java:50)
+	at jdk.httpserver/sun.net.httpserver.DefaultHttpServerProvider.createHttpServer(DefaultHttpServerProvider.java:35)
+	at jdk.httpserver/com.sun.net.httpserver.HttpServer.create(HttpServer.java:152)
+	at telamin.fluxtion.audit.analyser.analyser.net.ActionServer.<init>(ActionServer.java:65)
+	at telamin.fluxtion.audit.analyser.analyser.mcp.McpToolCallTest.start(McpToolCallTest.java:46)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	Suppressed: java.lang.NullPointerException: Cannot invoke "telamin.fluxtion.audit.analyser.analyser.net.ActionServer.stop()" because "this.server" is null
+		at telamin.fluxtion.audit.analyser.analyser.mcp.McpToolCallTest.stop(McpToolCallTest.java:53)
+		... 3 more
+
+[ERROR] telamin.fluxtion.audit.analyser.analyser.mcp.McpToolCallTest.aggregateRoundTripsThroughRestToTheDispatcher -- Time elapsed: 0.002 s <<< ERROR!
+java.net.SocketException: Operation not permitted
+	at java.base/sun.nio.ch.Net.bind0(Native Method)
+	at java.base/sun.nio.ch.Net.bind(Net.java:565)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.netBind(ServerSocketChannelImpl.java:344)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.bind(ServerSocketChannelImpl.java:301)
+	at java.base/sun.nio.ch.ServerSocketAdaptor.bind(ServerSocketAdaptor.java:89)
+	at jdk.httpserver/sun.net.httpserver.ServerImpl.<init>(ServerImpl.java:144)
+	at jdk.httpserver/sun.net.httpserver.HttpServerImpl.<init>(HttpServerImpl.java:50)
+	at jdk.httpserver/sun.net.httpserver.DefaultHttpServerProvider.createHttpServer(DefaultHttpServerProvider.java:35)
+	at jdk.httpserver/com.sun.net.httpserver.HttpServer.create(HttpServer.java:152)
+	at telamin.fluxtion.audit.analyser.analyser.net.ActionServer.<init>(ActionServer.java:65)
+	at telamin.fluxtion.audit.analyser.analyser.mcp.McpToolCallTest.start(McpToolCallTest.java:46)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	Suppressed: java.lang.NullPointerException: Cannot invoke "telamin.fluxtion.audit.analyser.analyser.net.ActionServer.stop()" because "this.server" is null
+		at telamin.fluxtion.audit.analyser.analyser.mcp.McpToolCallTest.stop(McpToolCallTest.java:53)
+		... 3 more
+
+[ERROR] telamin.fluxtion.audit.analyser.analyser.mcp.McpToolCallTest.aRestartedAppIsPickedUpWithoutRestartingTheBridge -- Time elapsed: 0.002 s <<< ERROR!
+java.net.SocketException: Operation not permitted
+	at java.base/sun.nio.ch.Net.bind0(Native Method)
+	at java.base/sun.nio.ch.Net.bind(Net.java:565)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.netBind(ServerSocketChannelImpl.java:344)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.bind(ServerSocketChannelImpl.java:301)
+	at java.base/sun.nio.ch.ServerSocketAdaptor.bind(ServerSocketAdaptor.java:89)
+	at jdk.httpserver/sun.net.httpserver.ServerImpl.<init>(ServerImpl.java:144)
+	at jdk.httpserver/sun.net.httpserver.HttpServerImpl.<init>(HttpServerImpl.java:50)
+	at jdk.httpserver/sun.net.httpserver.DefaultHttpServerProvider.createHttpServer(DefaultHttpServerProvider.java:35)
+	at jdk.httpserver/com.sun.net.httpserver.HttpServer.create(HttpServer.java:152)
+	at telamin.fluxtion.audit.analyser.analyser.net.ActionServer.<init>(ActionServer.java:65)
+	at telamin.fluxtion.audit.analyser.analyser.mcp.McpToolCallTest.start(McpToolCallTest.java:46)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	Suppressed: java.lang.NullPointerException: Cannot invoke "telamin.fluxtion.audit.analyser.analyser.net.ActionServer.stop()" because "this.server" is null
+		at telamin.fluxtion.audit.analyser.analyser.mcp.McpToolCallTest.stop(McpToolCallTest.java:53)
+		... 3 more
+
+[ERROR] telamin.fluxtion.audit.analyser.analyser.mcp.McpToolCallTest.badParamsComeBackAsActionableText -- Time elapsed: 0.038 s <<< ERROR!
+java.net.SocketException: Operation not permitted
+	at java.base/sun.nio.ch.Net.bind0(Native Method)
+	at java.base/sun.nio.ch.Net.bind(Net.java:565)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.netBind(ServerSocketChannelImpl.java:344)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.bind(ServerSocketChannelImpl.java:301)
+	at java.base/sun.nio.ch.ServerSocketAdaptor.bind(ServerSocketAdaptor.java:89)
+	at jdk.httpserver/sun.net.httpserver.ServerImpl.<init>(ServerImpl.java:144)
+	at jdk.httpserver/sun.net.httpserver.HttpServerImpl.<init>(HttpServerImpl.java:50)
+	at jdk.httpserver/sun.net.httpserver.DefaultHttpServerProvider.createHttpServer(DefaultHttpServerProvider.java:35)
+	at jdk.httpserver/com.sun.net.httpserver.HttpServer.create(HttpServer.java:152)
+	at telamin.fluxtion.audit.analyser.analyser.net.ActionServer.<init>(ActionServer.java:65)
+	at telamin.fluxtion.audit.analyser.analyser.mcp.McpToolCallTest.start(McpToolCallTest.java:46)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	Suppressed: java.lang.NullPointerException: Cannot invoke "telamin.fluxtion.audit.analyser.analyser.net.ActionServer.stop()" because "this.server" is null
+		at telamin.fluxtion.audit.analyser.analyser.mcp.McpToolCallTest.stop(McpToolCallTest.java:53)
+		... 3 more
+
+[ERROR] telamin.fluxtion.audit.analyser.analyser.mcp.McpToolCallTest.rateLimitingIsAToolErrorSoTheModelCanBackOff -- Time elapsed: 0.004 s <<< ERROR!
+java.net.SocketException: Operation not permitted
+	at java.base/sun.nio.ch.Net.bind0(Native Method)
+	at java.base/sun.nio.ch.Net.bind(Net.java:565)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.netBind(ServerSocketChannelImpl.java:344)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.bind(ServerSocketChannelImpl.java:301)
+	at java.base/sun.nio.ch.ServerSocketAdaptor.bind(ServerSocketAdaptor.java:89)
+	at jdk.httpserver/sun.net.httpserver.ServerImpl.<init>(ServerImpl.java:144)
+	at jdk.httpserver/sun.net.httpserver.HttpServerImpl.<init>(HttpServerImpl.java:50)
+	at jdk.httpserver/sun.net.httpserver.DefaultHttpServerProvider.createHttpServer(DefaultHttpServerProvider.java:35)
+	at jdk.httpserver/com.sun.net.httpserver.HttpServer.create(HttpServer.java:152)
+	at telamin.fluxtion.audit.analyser.analyser.net.ActionServer.<init>(ActionServer.java:65)
+	at telamin.fluxtion.audit.analyser.analyser.mcp.McpToolCallTest.start(McpToolCallTest.java:46)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	Suppressed: java.lang.NullPointerException: Cannot invoke "telamin.fluxtion.audit.analyser.analyser.net.ActionServer.stop()" because "this.server" is null
+		at telamin.fluxtion.audit.analyser.analyser.mcp.McpToolCallTest.stop(McpToolCallTest.java:53)
+		... 3 more
+
+[ERROR] Tests run: 11, Failures: 0, Errors: 2, Skipped: 0, Time elapsed: 1.032 s <<< FAILURE! -- in telamin.fluxtion.audit.analyser.analyser.mcp.McpConnectionProbeTest
+[ERROR] telamin.fluxtion.audit.analyser.analyser.mcp.McpConnectionProbeTest.contextToolFailureIsNotMistakenForATransportFailure -- Time elapsed: 0.001 s <<< ERROR!
+java.net.SocketException: Operation not permitted
+	at java.base/sun.nio.ch.Net.bind0(Native Method)
+	at java.base/sun.nio.ch.Net.bind(Net.java:565)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.netBind(ServerSocketChannelImpl.java:344)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.bind(ServerSocketChannelImpl.java:301)
+	at java.base/sun.nio.ch.ServerSocketAdaptor.bind(ServerSocketAdaptor.java:89)
+	at jdk.httpserver/sun.net.httpserver.ServerImpl.<init>(ServerImpl.java:144)
+	at jdk.httpserver/sun.net.httpserver.HttpServerImpl.<init>(HttpServerImpl.java:50)
+	at jdk.httpserver/sun.net.httpserver.DefaultHttpServerProvider.createHttpServer(DefaultHttpServerProvider.java:35)
+	at jdk.httpserver/com.sun.net.httpserver.HttpServer.create(HttpServer.java:152)
+	at telamin.fluxtion.audit.analyser.analyser.net.ActionServer.<init>(ActionServer.java:65)
+	at telamin.fluxtion.audit.analyser.analyser.mcp.McpConnectionProbeTest.startServer(McpConnectionProbeTest.java:138)
+	at telamin.fluxtion.audit.analyser.analyser.mcp.McpConnectionProbeTest.contextToolFailureIsNotMistakenForATransportFailure(McpConnectionProbeTest.java:126)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+
+[ERROR] telamin.fluxtion.audit.analyser.analyser.mcp.McpConnectionProbeTest.actualBridgeChildReachesTheTokenedRestServerWithReadOnlyContext -- Time elapsed: 0.001 s <<< ERROR!
+java.net.SocketException: Operation not permitted
+	at java.base/sun.nio.ch.Net.bind0(Native Method)
+	at java.base/sun.nio.ch.Net.bind(Net.java:565)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.netBind(ServerSocketChannelImpl.java:344)
+	at java.base/sun.nio.ch.ServerSocketChannelImpl.bind(ServerSocketChannelImpl.java:301)
+	at java.base/sun.nio.ch.ServerSocketAdaptor.bind(ServerSocketAdaptor.java:89)
+	at jdk.httpserver/sun.net.httpserver.ServerImpl.<init>(ServerImpl.java:144)
+	at jdk.httpserver/sun.net.httpserver.HttpServerImpl.<init>(HttpServerImpl.java:50)
+	at jdk.httpserver/sun.net.httpserver.DefaultHttpServerProvider.createHttpServer(DefaultHttpServerProvider.java:35)
+	at jdk.httpserver/com.sun.net.httpserver.HttpServer.create(HttpServer.java:152)
+	at telamin.fluxtion.audit.analyser.analyser.net.ActionServer.<init>(ActionServer.java:65)
+	at telamin.fluxtion.audit.analyser.analyser.mcp.McpConnectionProbeTest.startServer(McpConnectionProbeTest.java:138)
+	at telamin.fluxtion.audit.analyser.analyser.mcp.McpConnectionProbeTest.actualBridgeChildReachesTheTokenedRestServerWithReadOnlyContext(McpConnectionProbeTest.java:37)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+
+[ERROR] Errors:
+[ERROR]   AssistantAdapterTest.aHeldReplyReleasedAfterCancelDoesNothing:200->start:144 » Socket Operation not permitted
+[ERROR]   AssistantAdapterTest.actualResultsAreFedBack:163->start:144 » Socket Operation not permitted
+[ERROR]   AssistantAdapterTest.anErrorIsBoundedAndKeyless:229->start:144 » Socket Operation not permitted
+[ERROR]   AssistantAdapterTest.anUnknownActionNameStaysOutOfSessionFacts:277->start:144 » Socket Operation not permitted
+[ERROR]   AssistantAdapterTest.noLogKeepsTheManifestAndRefusesRecordVerbs:184->start:144 » Socket Operation not permitted
+[ERROR]   AssistantAdapterTest.providerFailureWordsNeverBecomeSessionFacts:259->start:144 » Socket Operation not permitted
+[ERROR]   AssistantAdapterTest.unknownAndMalformedActionsAreRefused:246->start:144 » Socket Operation not permitted
+[ERROR]   McpConnectionProbeTest.actualBridgeChildReachesTheTokenedRestServerWithReadOnlyContext:37->startServer:138 » Socket Operation not permitted
+[ERROR]   McpConnectionProbeTest.contextToolFailureIsNotMistakenForATransportFailure:126->startServer:138 » Socket Operation not permitted
+[ERROR]   McpToolCallTest.start:46 » Socket Operation not permitted
+[ERROR]   McpToolCallTest.start:46 » Socket Operation not permitted
+[ERROR]   McpToolCallTest.start:46 » Socket Operation not permitted
+[ERROR]   McpToolCallTest.start:46 » Socket Operation not permitted
+[ERROR]   McpToolCallTest.start:46 » Socket Operation not permitted
+[ERROR]   McpToolCallTest.start:46 » Socket Operation not permitted
+[ERROR]   McpToolCallTest.start:46 » Socket Operation not permitted
+[ERROR]   McpToolCallTest.start:46 » Socket Operation not permitted
+[ERROR]   McpToolCallTest.start:46 » Socket Operation not permitted
+[ERROR]   McpToolCallTest.start:46 » Socket Operation not permitted
+[ERROR]   ActionServerTest.start:32 » Socket Operation not permitted
+[ERROR]   ActionServerTest.start:32 » Socket Operation not permitted
+[ERROR]   ActionServerTest.start:32 » Socket Operation not permitted
+[ERROR]   ActionServerTest.start:32 » Socket Operation not permitted
+[ERROR]   ActionServerTest.start:32 » Socket Operation not permitted
+[ERROR]   ActionServerTest.start:32 » Socket Operation not permitted
+[ERROR]   ActionServerTest.start:32 » Socket Operation not permitted
+[ERROR]   ActionServerTest.start:32 » Socket Operation not permitted
+[ERROR]   ActionServerTest.start:32 » Socket Operation not permitted
+[ERROR]   ActionServerTest.start:32 » Socket Operation not permitted
+[ERROR]   ActionServerTest.start:32 » Socket Operation not permitted
+[ERROR]   ActionServerTest.start:32 » Socket Operation not permitted
+[ERROR]   ActionServerTest.start:32 » Socket Operation not permitted
+[ERROR]   ActionServerTest.start:32 » Socket Operation not permitted
+[ERROR]   ActionServerTest.start:32 » Socket Operation not permitted
+[ERROR]   RestEndpointFileTest.serverPublishesOnStartAndRemovesOnStop:129 » Socket Operation not permitted
+[ERROR]   RestEndpointFileTest.serverWithoutAnEndpointFilePublishesNothing:148 » Socket Operation not permitted
+[ERROR] Tests run: 3026, Failures: 0, Errors: 36, Skipped: 218
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-surefire-plugin:3.2.5:test (default-test) on project fluxtion-auditlog-analyser:
+[ERROR]
+[ERROR] Please refer to <REVIEW_V1301>/target/surefire-reports for the individual test results.
+[ERROR] Please refer to dump files (if any exist) [date].dump, [date]-jvmRun[N].dump and [date].dumpstream.
+[ERROR] -> [Help 1]
+[ERROR]
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR]
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException

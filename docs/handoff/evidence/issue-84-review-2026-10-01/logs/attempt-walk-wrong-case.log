@@ -1,0 +1,88 @@
+read still held: phase=SHOWN showing=true step=0 reason= walkOwn=true lit=[]
+read returned: phase=SHOWN showing=true step=0 reason= walkOwn=false lit=[source:java:com.acme.DemoNode:line:3]
+person selected Summary: phase=SHOWN showing=true step=0 reason= walkOwn=true lit=[]
+late source after Summary: phase=SHOWN showing=true step=0 reason= walkOwn=false lit=[source:java:com.acme.DemoNode:line:3]
+unavailable line: phase=NOT_SHOWN showing=true step=0 reason=Java source spotlight refused: Line 99999 is outside /DEMO/tmp/DEMO-issue84-bad-line-11476415474229140983/src/com/acme/DemoNode.java walkOwn=false lit=[]
+availability: EDT sentinel ran while archive lookup held=false
+late result after root change: phase=NOT_SHOWN showing=true step=0 reason=Java source spotlight superseded; retry against the current view walkOwn=false lit=[]
+source tab removed during read: phase=NOT_SHOWN showing=true step=0 reason=Java source anchor is no longer visible in its bound document walkOwn=false lit=[]
+deadline while held: phase=NOT_SHOWN showing=true step=0 reason=Java source lookup still running; retry (preparation deadline expired) walkOwn=false lit=[]
+late result after project switch: phase=IDLE showing=false step=0 reason=ended: the log was closed walkOwn=false lit=[]
+changed Java source: phase=SHOWN showing=true step=0 reason= walkOwn=false lit=[source:java:com.acme.DemoNode:line:3]
+changed source target verdict=WalkTargetState[n=1, target=source:java:com.acme.DemoNode:line:3, caption=DEMO the spread is 0.004, state=CURRENT, available=true, reason=] caption=DEMO the spread is 0.004
+Next while first read held: phase=SHOWN showing=true step=1 reason= walkOwn=false lit=[status]
+old read returned after Next: phase=SHOWN showing=true step=1 reason= walkOwn=false lit=[status]
+
+{
+  "mode": "RAN",
+  "tag": "1b7d71975563f9e8dee9906989b35a862458d3d2",
+  "command": "lockf -k /tmp/fluxtion-analyser-display.lock python3 EVIDENCE/run_probes.py walk",
+  "counts": {
+    "total": 10,
+    "failures": 3,
+    "errors": 0,
+    "skips": 0
+  },
+  "results": [
+    {
+      "class": "telamin.fluxtion.audit.analyser.analyser.ui.JavaWalkProbeTest",
+      "method": "unreadSourceMustStayPreparing",
+      "kind": "failure",
+      "message": "org.opentest4j.AssertionFailedError: aJavaWalkMustNotClaimSHOWNBeforeItHasReadOrLitTheSource ==> expected: <PREPARING> but was: <SHOWN>"
+    },
+    {
+      "class": "telamin.fluxtion.audit.analyser.analyser.ui.JavaWalkProbeTest",
+      "method": "aViewChangeDuringReadMustNotUndoThePersonsChoice",
+      "kind": "failure",
+      "message": "org.opentest4j.AssertionFailedError: lateWalkReadMustNotReplaceThePersonsNewView ==> expected: <telamin.fluxtion.audit.analyser.analyser.ui.SummaryPanel[,11,33,289x517,hidden,layout=java.awt.BorderLayout,alignmentX=0.0,alignmentY=0.0,border=javax.swing.border.EmptyBorder@670002,flags=9,maximumSize=,minimumSize=java.awt.Dimension[width=200,height=120],preferredSize=]> but was: <telamin.fluxtion.audit.analyser.analyser.ui.SourcePanel[,11,33,289x517,layout=java.awt.BorderLayout,alignmentX=0.0,alignmentY=0.0,border=javax.swing.border.EmptyBorder@1f0f1111,flags=329,maximumSize=,minimumSize=java.awt.Dimension[width=200,height=120],preferredSize=]>"
+    },
+    {
+      "class": "telamin.fluxtion.audit.analyser.analyser.ui.JavaWalkProbeTest",
+      "method": "anUnavailableLineReportsNotShown",
+      "kind": "passed",
+      "message": null
+    },
+    {
+      "class": "telamin.fluxtion.audit.analyser.analyser.ui.JavaWalkProbeTest",
+      "method": "availabilityMustNotReadOnTheEventThread",
+      "kind": "failure",
+      "message": "org.opentest4j.AssertionFailedError: javaWalkAvailabilityMustNotBlockTheEDT ==> expected: <true> but was: <false>"
+    },
+    {
+      "class": "telamin.fluxtion.audit.analyser.analyser.ui.JavaWalkProbeTest",
+      "method": "changedRootsRefuseTheLateRead",
+      "kind": "passed",
+      "message": null
+    },
+    {
+      "class": "telamin.fluxtion.audit.analyser.analyser.ui.JavaWalkProbeTest",
+      "method": "aClosedSourceTabCannotBeClaimedShown",
+      "kind": "passed",
+      "message": null
+    },
+    {
+      "class": "telamin.fluxtion.audit.analyser.analyser.ui.JavaWalkProbeTest",
+      "method": "aNeverReturningPreparationExpiresAndReleasesOwnership",
+      "kind": "passed",
+      "message": null
+    },
+    {
+      "class": "telamin.fluxtion.audit.analyser.analyser.ui.JavaWalkProbeTest",
+      "method": "projectSwitchCannotResurrectALateStep",
+      "kind": "passed",
+      "message": null
+    },
+    {
+      "class": "telamin.fluxtion.audit.analyser.analyser.ui.JavaWalkProbeTest",
+      "method": "aMovedJavaLineMustNotBeMarkedCurrentAgainstTheSavedWalk",
+      "kind": "passed",
+      "message": null
+    },
+    {
+      "class": "telamin.fluxtion.audit.analyser.analyser.ui.JavaWalkProbeTest",
+      "method": "backAndNextDoNotLightTheSupersededRead",
+      "kind": "passed",
+      "message": null
+    }
+  ]
+}

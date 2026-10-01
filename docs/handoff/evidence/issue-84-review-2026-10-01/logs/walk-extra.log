@@ -1,0 +1,29 @@
+resolved file cannot be decoded: phase=PREPARING showing=true step=0 reason= walkOwn=false lit=[]
+availability exception=java.io.UncheckedIOException: java.nio.charset.MalformedInputException: Input length = 2
+Back during read: EDT sentinel ran=false
+
+{
+  "mode": "RAN",
+  "tag": "1b7d71975563f9e8dee9906989b35a862458d3d2",
+  "command": "lockf -k /tmp/fluxtion-analyser-display.lock python3 EVIDENCE/run_probes.py walk --method anUnreadableResolvedClassReportsFailureInsteadOfPreparingForever --method backDuringTheOriginalReadMustNotBlockTheEventThread",
+  "counts": {
+    "total": 2,
+    "failures": 2,
+    "errors": 0,
+    "skips": 0
+  },
+  "results": [
+    {
+      "class": "telamin.fluxtion.audit.analyser.analyser.ui.JavaWalkProbeTest",
+      "method": "anUnreadableResolvedClassReportsFailureInsteadOfPreparingForever",
+      "kind": "failure",
+      "message": "org.opentest4j.AssertionFailedError: sourceAvailabilityFailureMustSettleHonestlyInsteadOfLeavingPREPARING ==> expected: <NOT_SHOWN> but was: <PREPARING>"
+    },
+    {
+      "class": "telamin.fluxtion.audit.analyser.analyser.ui.JavaWalkProbeTest",
+      "method": "backDuringTheOriginalReadMustNotBlockTheEventThread",
+      "kind": "failure",
+      "message": "org.opentest4j.AssertionFailedError: BackDuringAReadMustNotBlockTheEDTOnTheOriginalLookup ==> expected: <true> but was: <false>"
+    }
+  ]
+}

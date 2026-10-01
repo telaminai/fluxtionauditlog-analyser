@@ -1,0 +1,22 @@
+person selected Summary: phase=SHOWN showing=true step=0 reason= walkOwn=true lit=[]
+late source after Summary: phase=SHOWN showing=true step=0 reason= walkOwn=false lit=[source:java:com.acme.DemoNode:line:3]
+
+{
+  "mode": "RAN",
+  "tag": "1b7d71975563f9e8dee9906989b35a862458d3d2",
+  "command": "lockf -k /tmp/fluxtion-analyser-display.lock python3 EVIDENCE/run_probes.py walk --method aViewChangeDuringReadMustNotUndoThePersonsChoice",
+  "counts": {
+    "total": 1,
+    "failures": 1,
+    "errors": 0,
+    "skips": 0
+  },
+  "results": [
+    {
+      "class": "telamin.fluxtion.audit.analyser.analyser.ui.JavaWalkProbeTest",
+      "method": "aViewChangeDuringReadMustNotUndoThePersonsChoice",
+      "kind": "failure",
+      "message": "org.opentest4j.AssertionFailedError: lateWalkReadMustNotReplaceThePersonsNewView ==> expected: <telamin.fluxtion.audit.analyser.analyser.ui.SummaryPanel[,11,33,289x517,hidden,layout=java.awt.BorderLayout,alignmentX=0.0,alignmentY=0.0,border=javax.swing.border.EmptyBorder@1e730495,flags=9,maximumSize=,minimumSize=java.awt.Dimension[width=200,height=120],preferredSize=]> but was: <telamin.fluxtion.audit.analyser.analyser.ui.SourcePanel[,11,33,289x517,layout=java.awt.BorderLayout,alignmentX=0.0,alignmentY=0.0,border=javax.swing.border.EmptyBorder@7d3a22a9,flags=329,maximumSize=,minimumSize=java.awt.Dimension[width=200,height=120],preferredSize=]>"
+    }
+  ]
+}

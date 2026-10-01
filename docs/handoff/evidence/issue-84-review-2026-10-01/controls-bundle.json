@@ -1,0 +1,770 @@
+{
+  "mode": "RAN",
+  "requested": [
+    "review-panel-direct-frame",
+    "review-navigator-list-closed",
+    "review-panel-inner-frame",
+    "review-navigator-inherited-action",
+    "bundle-provenance-matches-the-applied-profile",
+    "bundle-anchor-forgotten-when-deleted",
+    "bundle-anchor-restored"
+  ],
+  "baseline": {
+    "command": [
+      "java",
+      "-Djava.awt.headless=false",
+      "-Dbasedir=<REVIEW_V1300>",
+      "-cp",
+      "<REVIEW_V1300>/target/gate/launcher:target/test-classes:target/classes:<USER_HOME>/.m2/repository/com/formdev/flatlaf/3.5.1/flatlaf-3.5.1.jar:<USER_HOME>/.m2/repository/com/telamin/fluxtion/fluxtion-runtime/1.0.16/fluxtion-runtime-1.0.16.jar:<USER_HOME>/.m2/repository/org/agrona/agrona/2.3.0/agrona-2.3.0.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter/5.10.2/junit-jupiter-5.10.2.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.10.2/junit-jupiter-api-5.10.2.jar:<USER_HOME>/.m2/repository/org/opentest4j/opentest4j/1.3.0/opentest4j-1.3.0.jar:<USER_HOME>/.m2/repository/org/junit/platform/junit-platform-commons/1.10.2/junit-platform-commons-1.10.2.jar:<USER_HOME>/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.10.2/junit-jupiter-params-5.10.2.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.10.2/junit-jupiter-engine-5.10.2.jar:<USER_HOME>/.m2/repository/org/junit/platform/junit-platform-engine/1.10.2/junit-platform-engine-1.10.2.jar:<USER_HOME>/.m2/repository/com/telamin/svc-admin-web/1.0.45/svc-admin-web-1.0.45.jar:target/gate/lib/junit-platform-launcher-1.10.2.jar",
+      "GateLauncher",
+      "<REVIEW_V1300>/target/gate/last-run.jsonl",
+      "telamin.fluxtion.audit.analyser.analyser.ui.ProjectPanelIsRevealOnlyTest#thePanelNeverNamesMainFrame_itsOnlyExitIsTheTwoMethodNavigator",
+      "telamin.fluxtion.audit.analyser.analyser.session.BundleProvenanceTest#anAbortedBundleNeverLabelsTheNextProject",
+      "telamin.fluxtion.audit.analyser.analyser.ui.BundleProvenanceFrameTest#deletingTheAnchorSticks",
+      "telamin.fluxtion.audit.analyser.analyser.ui.BundleProvenanceFrameTest#anchoringABundleToASourceTreeIsRemembered"
+    ],
+    "exit": 0,
+    "suites": [
+      {
+        "name": "ProjectPanelIsRevealOnlyTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "thePanelNeverNamesMainFrame_itsOnlyExitIsTheTwoMethodNavigator"
+        ],
+        "assertions": []
+      },
+      {
+        "name": "BundleProvenanceTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "anAbortedBundleNeverLabelsTheNextProject"
+        ],
+        "assertions": []
+      },
+      {
+        "name": "BundleProvenanceFrameTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "deletingTheAnchorSticks",
+          "anchoringABundleToASourceTreeIsRemembered"
+        ],
+        "assertions": []
+      }
+    ],
+    "output": "",
+    "rows": [
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.ProjectPanelIsRevealOnlyTest",
+        "method": "thePanelNeverNamesMainFrame_itsOnlyExitIsTheTwoMethodNavigator",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.session.BundleProvenanceTest",
+        "method": "anAbortedBundleNeverLabelsTheNextProject",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.BundleProvenanceFrameTest",
+        "method": "deletingTheAnchorSticks",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.BundleProvenanceFrameTest",
+        "method": "anchoringABundleToASourceTreeIsRemembered",
+        "kind": "passed",
+        "message": null
+      }
+    ]
+  },
+  "controls": [
+    {
+      "name": "review-panel-direct-frame",
+      "test": "ProjectPanelIsRevealOnlyTest#thePanelNeverNamesMainFrame_itsOnlyExitIsTheTwoMethodNavigator",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/ProjectPanel.java",
+      "old": "public final class ProjectPanel extends JPanel {",
+      "new": "public final class ProjectPanel extends JPanel {\n    private MainFrame forbiddenFrame;",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "restoreRewrote": [
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/ProjectPanel.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/ProjectPanel$1.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/ProjectPanel$TracksWidth.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/ProjectPanel$Navigator.class"
+      ],
+      "engine": "fast",
+      "siteKind": "java",
+      "fullCompileFallback": false,
+      "mutated": {
+        "command": [
+          "java",
+          "-Djava.awt.headless=false",
+          "-Dbasedir=<REVIEW_V1300>",
+          "-cp",
+          "<REVIEW_V1300>/target/gate/launcher:target/test-classes:target/classes:<USER_HOME>/.m2/repository/com/formdev/flatlaf/3.5.1/flatlaf-3.5.1.jar:<USER_HOME>/.m2/repository/com/telamin/fluxtion/fluxtion-runtime/1.0.16/fluxtion-runtime-1.0.16.jar:<USER_HOME>/.m2/repository/org/agrona/agrona/2.3.0/agrona-2.3.0.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter/5.10.2/junit-jupiter-5.10.2.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.10.2/junit-jupiter-api-5.10.2.jar:<USER_HOME>/.m2/repository/org/opentest4j/opentest4j/1.3.0/opentest4j-1.3.0.jar:<USER_HOME>/.m2/repository/org/junit/platform/junit-platform-commons/1.10.2/junit-platform-commons-1.10.2.jar:<USER_HOME>/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.10.2/junit-jupiter-params-5.10.2.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.10.2/junit-jupiter-engine-5.10.2.jar:<USER_HOME>/.m2/repository/org/junit/platform/junit-platform-engine/1.10.2/junit-platform-engine-1.10.2.jar:<USER_HOME>/.m2/repository/com/telamin/svc-admin-web/1.0.45/svc-admin-web-1.0.45.jar:target/gate/lib/junit-platform-launcher-1.10.2.jar",
+          "GateLauncher",
+          "<REVIEW_V1300>/target/gate/last-run.jsonl",
+          "telamin.fluxtion.audit.analyser.analyser.ui.ProjectPanelIsRevealOnlyTest#thePanelNeverNamesMainFrame_itsOnlyExitIsTheTwoMethodNavigator"
+        ],
+        "exit": 1,
+        "suites": [
+          {
+            "name": "ProjectPanelIsRevealOnlyTest",
+            "tests": 1,
+            "failures": 1,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "thePanelNeverNamesMainFrame_itsOnlyExitIsTheTwoMethodNavigator"
+            ],
+            "assertions": [
+              {
+                "test": "thePanelNeverNamesMainFrame_itsOnlyExitIsTheTwoMethodNavigator",
+                "kind": "failure",
+                "message": "org.opentest4j.AssertionFailedError: ProjectPanel must not reference MainFrame ==> expected: <false> but was: <true>"
+              }
+            ]
+          }
+        ],
+        "output": "",
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.ui.ProjectPanelIsRevealOnlyTest",
+            "method": "thePanelNeverNamesMainFrame_itsOnlyExitIsTheTwoMethodNavigator",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: ProjectPanel must not reference MainFrame ==> expected: <false> but was: <true>"
+          }
+        ]
+      },
+      "restored": {
+        "command": [
+          "java",
+          "-Djava.awt.headless=false",
+          "-Dbasedir=<REVIEW_V1300>",
+          "-cp",
+          "<REVIEW_V1300>/target/gate/launcher:target/test-classes:target/classes:<USER_HOME>/.m2/repository/com/formdev/flatlaf/3.5.1/flatlaf-3.5.1.jar:<USER_HOME>/.m2/repository/com/telamin/fluxtion/fluxtion-runtime/1.0.16/fluxtion-runtime-1.0.16.jar:<USER_HOME>/.m2/repository/org/agrona/agrona/2.3.0/agrona-2.3.0.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter/5.10.2/junit-jupiter-5.10.2.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.10.2/junit-jupiter-api-5.10.2.jar:<USER_HOME>/.m2/repository/org/opentest4j/opentest4j/1.3.0/opentest4j-1.3.0.jar:<USER_HOME>/.m2/repository/org/junit/platform/junit-platform-commons/1.10.2/junit-platform-commons-1.10.2.jar:<USER_HOME>/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.10.2/junit-jupiter-params-5.10.2.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.10.2/junit-jupiter-engine-5.10.2.jar:<USER_HOME>/.m2/repository/org/junit/platform/junit-platform-engine/1.10.2/junit-platform-engine-1.10.2.jar:<USER_HOME>/.m2/repository/com/telamin/svc-admin-web/1.0.45/svc-admin-web-1.0.45.jar:target/gate/lib/junit-platform-launcher-1.10.2.jar",
+          "GateLauncher",
+          "<REVIEW_V1300>/target/gate/last-run.jsonl",
+          "telamin.fluxtion.audit.analyser.analyser.ui.ProjectPanelIsRevealOnlyTest#thePanelNeverNamesMainFrame_itsOnlyExitIsTheTwoMethodNavigator"
+        ],
+        "exit": 0,
+        "suites": [
+          {
+            "name": "ProjectPanelIsRevealOnlyTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "thePanelNeverNamesMainFrame_itsOnlyExitIsTheTwoMethodNavigator"
+            ],
+            "assertions": []
+          }
+        ],
+        "output": "",
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.ui.ProjectPanelIsRevealOnlyTest",
+            "method": "thePanelNeverNamesMainFrame_itsOnlyExitIsTheTwoMethodNavigator",
+            "kind": "passed",
+            "message": null
+          }
+        ]
+      },
+      "caught": true
+    },
+    {
+      "name": "review-navigator-list-closed",
+      "test": "ProjectPanelIsRevealOnlyTest#thePanelNeverNamesMainFrame_itsOnlyExitIsTheTwoMethodNavigator",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/ProjectPanel.java",
+      "old": "    public interface Navigator {",
+      "new": "    public interface Navigator {\n        default void discardEverything() { }",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "restoreRewrote": [
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/ProjectPanel.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/ProjectPanel$1.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/ProjectPanel$TracksWidth.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/ProjectPanel$Navigator.class"
+      ],
+      "engine": "fast",
+      "siteKind": "java",
+      "fullCompileFallback": true,
+      "mutated": {
+        "command": [
+          "java",
+          "-Djava.awt.headless=false",
+          "-Dbasedir=<REVIEW_V1300>",
+          "-cp",
+          "<REVIEW_V1300>/target/gate/launcher:target/test-classes:target/classes:<USER_HOME>/.m2/repository/com/formdev/flatlaf/3.5.1/flatlaf-3.5.1.jar:<USER_HOME>/.m2/repository/com/telamin/fluxtion/fluxtion-runtime/1.0.16/fluxtion-runtime-1.0.16.jar:<USER_HOME>/.m2/repository/org/agrona/agrona/2.3.0/agrona-2.3.0.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter/5.10.2/junit-jupiter-5.10.2.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.10.2/junit-jupiter-api-5.10.2.jar:<USER_HOME>/.m2/repository/org/opentest4j/opentest4j/1.3.0/opentest4j-1.3.0.jar:<USER_HOME>/.m2/repository/org/junit/platform/junit-platform-commons/1.10.2/junit-platform-commons-1.10.2.jar:<USER_HOME>/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.10.2/junit-jupiter-params-5.10.2.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.10.2/junit-jupiter-engine-5.10.2.jar:<USER_HOME>/.m2/repository/org/junit/platform/junit-platform-engine/1.10.2/junit-platform-engine-1.10.2.jar:<USER_HOME>/.m2/repository/com/telamin/svc-admin-web/1.0.45/svc-admin-web-1.0.45.jar:target/gate/lib/junit-platform-launcher-1.10.2.jar",
+          "GateLauncher",
+          "<REVIEW_V1300>/target/gate/last-run.jsonl",
+          "telamin.fluxtion.audit.analyser.analyser.ui.ProjectPanelIsRevealOnlyTest#thePanelNeverNamesMainFrame_itsOnlyExitIsTheTwoMethodNavigator"
+        ],
+        "exit": 1,
+        "suites": [
+          {
+            "name": "ProjectPanelIsRevealOnlyTest",
+            "tests": 1,
+            "failures": 1,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "thePanelNeverNamesMainFrame_itsOnlyExitIsTheTwoMethodNavigator"
+            ],
+            "assertions": [
+              {
+                "test": "thePanelNeverNamesMainFrame_itsOnlyExitIsTheTwoMethodNavigator",
+                "kind": "failure",
+                "message": "org.opentest4j.AssertionFailedError: the Navigator's surface is a closed list; adding a method here is a spec change (D-L3). showReport/showGraph were added deliberately (owner, 2026-09-24, 35eeb320): revealing a SPECIFIC item is still moving the eye. The four state-changing actions were added deliberately too (owner, 2026-09-30): a row that shows you a source root you did not expect is exactly where removing it belongs. The panel still cannot act by itself \u2014 it asks the frame, which is what the bytecode assertions above hold. ==> expected: <[openProcessorSource, openSettings, removeProcessor, removeSourceRoot, setActiveProcessor, showGraph, showReport, showTab]> but was: <[discardEverything, openProcessorSource, openSettings, removeProcessor, removeSourceRoot, setActiveProcessor, showGraph, showReport, showTab]>"
+              }
+            ]
+          }
+        ],
+        "output": "",
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.ui.ProjectPanelIsRevealOnlyTest",
+            "method": "thePanelNeverNamesMainFrame_itsOnlyExitIsTheTwoMethodNavigator",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: the Navigator's surface is a closed list; adding a method here is a spec change (D-L3). showReport/showGraph were added deliberately (owner, 2026-09-24, 35eeb320): revealing a SPECIFIC item is still moving the eye. The four state-changing actions were added deliberately too (owner, 2026-09-30): a row that shows you a source root you did not expect is exactly where removing it belongs. The panel still cannot act by itself \u2014 it asks the frame, which is what the bytecode assertions above hold. ==> expected: <[openProcessorSource, openSettings, removeProcessor, removeSourceRoot, setActiveProcessor, showGraph, showReport, showTab]> but was: <[discardEverything, openProcessorSource, openSettings, removeProcessor, removeSourceRoot, setActiveProcessor, showGraph, showReport, showTab]>"
+          }
+        ]
+      },
+      "restored": {
+        "command": [
+          "java",
+          "-Djava.awt.headless=false",
+          "-Dbasedir=<REVIEW_V1300>",
+          "-cp",
+          "<REVIEW_V1300>/target/gate/launcher:target/test-classes:target/classes:<USER_HOME>/.m2/repository/com/formdev/flatlaf/3.5.1/flatlaf-3.5.1.jar:<USER_HOME>/.m2/repository/com/telamin/fluxtion/fluxtion-runtime/1.0.16/fluxtion-runtime-1.0.16.jar:<USER_HOME>/.m2/repository/org/agrona/agrona/2.3.0/agrona-2.3.0.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter/5.10.2/junit-jupiter-5.10.2.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.10.2/junit-jupiter-api-5.10.2.jar:<USER_HOME>/.m2/repository/org/opentest4j/opentest4j/1.3.0/opentest4j-1.3.0.jar:<USER_HOME>/.m2/repository/org/junit/platform/junit-platform-commons/1.10.2/junit-platform-commons-1.10.2.jar:<USER_HOME>/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.10.2/junit-jupiter-params-5.10.2.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.10.2/junit-jupiter-engine-5.10.2.jar:<USER_HOME>/.m2/repository/org/junit/platform/junit-platform-engine/1.10.2/junit-platform-engine-1.10.2.jar:<USER_HOME>/.m2/repository/com/telamin/svc-admin-web/1.0.45/svc-admin-web-1.0.45.jar:target/gate/lib/junit-platform-launcher-1.10.2.jar",
+          "GateLauncher",
+          "<REVIEW_V1300>/target/gate/last-run.jsonl",
+          "telamin.fluxtion.audit.analyser.analyser.ui.ProjectPanelIsRevealOnlyTest#thePanelNeverNamesMainFrame_itsOnlyExitIsTheTwoMethodNavigator"
+        ],
+        "exit": 0,
+        "suites": [
+          {
+            "name": "ProjectPanelIsRevealOnlyTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "thePanelNeverNamesMainFrame_itsOnlyExitIsTheTwoMethodNavigator"
+            ],
+            "assertions": []
+          }
+        ],
+        "output": "",
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.ui.ProjectPanelIsRevealOnlyTest",
+            "method": "thePanelNeverNamesMainFrame_itsOnlyExitIsTheTwoMethodNavigator",
+            "kind": "passed",
+            "message": null
+          }
+        ]
+      },
+      "caught": true
+    },
+    {
+      "name": "review-panel-inner-frame",
+      "test": "ProjectPanelIsRevealOnlyTest#thePanelNeverNamesMainFrame_itsOnlyExitIsTheTwoMethodNavigator",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/ProjectPanel.java",
+      "old": "public final class ProjectPanel extends JPanel {",
+      "new": "public final class ProjectPanel extends JPanel {\n    private Object forbiddenBridge() { return FrameBridge.make(); }\n    private static class FrameBridge { static Object make() { return new MainFrame(); } }",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "restoreRewrote": [
+        "deleted target/classes/telamin/fluxtion/audit/analyser/analyser/ui/ProjectPanel$FrameBridge.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/ProjectPanel.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/ProjectPanel$1.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/ProjectPanel$TracksWidth.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/ProjectPanel$Navigator.class"
+      ],
+      "engine": "fast",
+      "siteKind": "java",
+      "fullCompileFallback": true,
+      "mutated": {
+        "command": [
+          "java",
+          "-Djava.awt.headless=false",
+          "-Dbasedir=<REVIEW_V1300>",
+          "-cp",
+          "<REVIEW_V1300>/target/gate/launcher:target/test-classes:target/classes:<USER_HOME>/.m2/repository/com/formdev/flatlaf/3.5.1/flatlaf-3.5.1.jar:<USER_HOME>/.m2/repository/com/telamin/fluxtion/fluxtion-runtime/1.0.16/fluxtion-runtime-1.0.16.jar:<USER_HOME>/.m2/repository/org/agrona/agrona/2.3.0/agrona-2.3.0.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter/5.10.2/junit-jupiter-5.10.2.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.10.2/junit-jupiter-api-5.10.2.jar:<USER_HOME>/.m2/repository/org/opentest4j/opentest4j/1.3.0/opentest4j-1.3.0.jar:<USER_HOME>/.m2/repository/org/junit/platform/junit-platform-commons/1.10.2/junit-platform-commons-1.10.2.jar:<USER_HOME>/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.10.2/junit-jupiter-params-5.10.2.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.10.2/junit-jupiter-engine-5.10.2.jar:<USER_HOME>/.m2/repository/org/junit/platform/junit-platform-engine/1.10.2/junit-platform-engine-1.10.2.jar:<USER_HOME>/.m2/repository/com/telamin/svc-admin-web/1.0.45/svc-admin-web-1.0.45.jar:target/gate/lib/junit-platform-launcher-1.10.2.jar",
+          "GateLauncher",
+          "<REVIEW_V1300>/target/gate/last-run.jsonl",
+          "telamin.fluxtion.audit.analyser.analyser.ui.ProjectPanelIsRevealOnlyTest#thePanelNeverNamesMainFrame_itsOnlyExitIsTheTwoMethodNavigator"
+        ],
+        "exit": 0,
+        "suites": [
+          {
+            "name": "ProjectPanelIsRevealOnlyTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "thePanelNeverNamesMainFrame_itsOnlyExitIsTheTwoMethodNavigator"
+            ],
+            "assertions": []
+          }
+        ],
+        "output": "",
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.ui.ProjectPanelIsRevealOnlyTest",
+            "method": "thePanelNeverNamesMainFrame_itsOnlyExitIsTheTwoMethodNavigator",
+            "kind": "passed",
+            "message": null
+          }
+        ]
+      },
+      "restored": {
+        "command": [
+          "java",
+          "-Djava.awt.headless=false",
+          "-Dbasedir=<REVIEW_V1300>",
+          "-cp",
+          "<REVIEW_V1300>/target/gate/launcher:target/test-classes:target/classes:<USER_HOME>/.m2/repository/com/formdev/flatlaf/3.5.1/flatlaf-3.5.1.jar:<USER_HOME>/.m2/repository/com/telamin/fluxtion/fluxtion-runtime/1.0.16/fluxtion-runtime-1.0.16.jar:<USER_HOME>/.m2/repository/org/agrona/agrona/2.3.0/agrona-2.3.0.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter/5.10.2/junit-jupiter-5.10.2.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.10.2/junit-jupiter-api-5.10.2.jar:<USER_HOME>/.m2/repository/org/opentest4j/opentest4j/1.3.0/opentest4j-1.3.0.jar:<USER_HOME>/.m2/repository/org/junit/platform/junit-platform-commons/1.10.2/junit-platform-commons-1.10.2.jar:<USER_HOME>/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.10.2/junit-jupiter-params-5.10.2.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.10.2/junit-jupiter-engine-5.10.2.jar:<USER_HOME>/.m2/repository/org/junit/platform/junit-platform-engine/1.10.2/junit-platform-engine-1.10.2.jar:<USER_HOME>/.m2/repository/com/telamin/svc-admin-web/1.0.45/svc-admin-web-1.0.45.jar:target/gate/lib/junit-platform-launcher-1.10.2.jar",
+          "GateLauncher",
+          "<REVIEW_V1300>/target/gate/last-run.jsonl",
+          "telamin.fluxtion.audit.analyser.analyser.ui.ProjectPanelIsRevealOnlyTest#thePanelNeverNamesMainFrame_itsOnlyExitIsTheTwoMethodNavigator"
+        ],
+        "exit": 0,
+        "suites": [
+          {
+            "name": "ProjectPanelIsRevealOnlyTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "thePanelNeverNamesMainFrame_itsOnlyExitIsTheTwoMethodNavigator"
+            ],
+            "assertions": []
+          }
+        ],
+        "output": "",
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.ui.ProjectPanelIsRevealOnlyTest",
+            "method": "thePanelNeverNamesMainFrame_itsOnlyExitIsTheTwoMethodNavigator",
+            "kind": "passed",
+            "message": null
+          }
+        ]
+      },
+      "caught": false
+    },
+    {
+      "name": "review-navigator-inherited-action",
+      "test": "ProjectPanelIsRevealOnlyTest#thePanelNeverNamesMainFrame_itsOnlyExitIsTheTwoMethodNavigator",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/ProjectPanel.java",
+      "old": "    public interface Navigator {",
+      "new": "    private interface HiddenActions { default void runAnything(Runnable effect) { effect.run(); } }\n    public interface Navigator extends HiddenActions {",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "restoreRewrote": [
+        "deleted target/classes/telamin/fluxtion/audit/analyser/analyser/ui/ProjectPanel$HiddenActions.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/ProjectPanel.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/ProjectPanel$1.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/ProjectPanel$TracksWidth.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/ProjectPanel$Navigator.class"
+      ],
+      "engine": "fast",
+      "siteKind": "java",
+      "fullCompileFallback": true,
+      "mutated": {
+        "command": [
+          "java",
+          "-Djava.awt.headless=false",
+          "-Dbasedir=<REVIEW_V1300>",
+          "-cp",
+          "<REVIEW_V1300>/target/gate/launcher:target/test-classes:target/classes:<USER_HOME>/.m2/repository/com/formdev/flatlaf/3.5.1/flatlaf-3.5.1.jar:<USER_HOME>/.m2/repository/com/telamin/fluxtion/fluxtion-runtime/1.0.16/fluxtion-runtime-1.0.16.jar:<USER_HOME>/.m2/repository/org/agrona/agrona/2.3.0/agrona-2.3.0.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter/5.10.2/junit-jupiter-5.10.2.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.10.2/junit-jupiter-api-5.10.2.jar:<USER_HOME>/.m2/repository/org/opentest4j/opentest4j/1.3.0/opentest4j-1.3.0.jar:<USER_HOME>/.m2/repository/org/junit/platform/junit-platform-commons/1.10.2/junit-platform-commons-1.10.2.jar:<USER_HOME>/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.10.2/junit-jupiter-params-5.10.2.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.10.2/junit-jupiter-engine-5.10.2.jar:<USER_HOME>/.m2/repository/org/junit/platform/junit-platform-engine/1.10.2/junit-platform-engine-1.10.2.jar:<USER_HOME>/.m2/repository/com/telamin/svc-admin-web/1.0.45/svc-admin-web-1.0.45.jar:target/gate/lib/junit-platform-launcher-1.10.2.jar",
+          "GateLauncher",
+          "<REVIEW_V1300>/target/gate/last-run.jsonl",
+          "telamin.fluxtion.audit.analyser.analyser.ui.ProjectPanelIsRevealOnlyTest#thePanelNeverNamesMainFrame_itsOnlyExitIsTheTwoMethodNavigator"
+        ],
+        "exit": 0,
+        "suites": [
+          {
+            "name": "ProjectPanelIsRevealOnlyTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "thePanelNeverNamesMainFrame_itsOnlyExitIsTheTwoMethodNavigator"
+            ],
+            "assertions": []
+          }
+        ],
+        "output": "",
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.ui.ProjectPanelIsRevealOnlyTest",
+            "method": "thePanelNeverNamesMainFrame_itsOnlyExitIsTheTwoMethodNavigator",
+            "kind": "passed",
+            "message": null
+          }
+        ]
+      },
+      "restored": {
+        "command": [
+          "java",
+          "-Djava.awt.headless=false",
+          "-Dbasedir=<REVIEW_V1300>",
+          "-cp",
+          "<REVIEW_V1300>/target/gate/launcher:target/test-classes:target/classes:<USER_HOME>/.m2/repository/com/formdev/flatlaf/3.5.1/flatlaf-3.5.1.jar:<USER_HOME>/.m2/repository/com/telamin/fluxtion/fluxtion-runtime/1.0.16/fluxtion-runtime-1.0.16.jar:<USER_HOME>/.m2/repository/org/agrona/agrona/2.3.0/agrona-2.3.0.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter/5.10.2/junit-jupiter-5.10.2.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.10.2/junit-jupiter-api-5.10.2.jar:<USER_HOME>/.m2/repository/org/opentest4j/opentest4j/1.3.0/opentest4j-1.3.0.jar:<USER_HOME>/.m2/repository/org/junit/platform/junit-platform-commons/1.10.2/junit-platform-commons-1.10.2.jar:<USER_HOME>/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.10.2/junit-jupiter-params-5.10.2.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.10.2/junit-jupiter-engine-5.10.2.jar:<USER_HOME>/.m2/repository/org/junit/platform/junit-platform-engine/1.10.2/junit-platform-engine-1.10.2.jar:<USER_HOME>/.m2/repository/com/telamin/svc-admin-web/1.0.45/svc-admin-web-1.0.45.jar:target/gate/lib/junit-platform-launcher-1.10.2.jar",
+          "GateLauncher",
+          "<REVIEW_V1300>/target/gate/last-run.jsonl",
+          "telamin.fluxtion.audit.analyser.analyser.ui.ProjectPanelIsRevealOnlyTest#thePanelNeverNamesMainFrame_itsOnlyExitIsTheTwoMethodNavigator"
+        ],
+        "exit": 0,
+        "suites": [
+          {
+            "name": "ProjectPanelIsRevealOnlyTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "thePanelNeverNamesMainFrame_itsOnlyExitIsTheTwoMethodNavigator"
+            ],
+            "assertions": []
+          }
+        ],
+        "output": "",
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.ui.ProjectPanelIsRevealOnlyTest",
+            "method": "thePanelNeverNamesMainFrame_itsOnlyExitIsTheTwoMethodNavigator",
+            "kind": "passed",
+            "message": null
+          }
+        ]
+      },
+      "caught": false
+    },
+    {
+      "name": "bundle-provenance-matches-the-applied-profile",
+      "test": "BundleProvenanceTest#anAbortedBundleNeverLabelsTheNextProject",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/OpenBundle.java",
+      "old": "        current = pending != null && pending.profilePath().equals(event.profilePath())\n",
+      "new": "        current = pending != null\n",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "restoreRewrote": [
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/session/node/OpenBundle.class"
+      ],
+      "engine": "fast",
+      "siteKind": "java",
+      "fullCompileFallback": false,
+      "mutated": {
+        "command": [
+          "java",
+          "-Djava.awt.headless=false",
+          "-Dbasedir=<REVIEW_V1300>",
+          "-cp",
+          "<REVIEW_V1300>/target/gate/launcher:target/test-classes:target/classes:<USER_HOME>/.m2/repository/com/formdev/flatlaf/3.5.1/flatlaf-3.5.1.jar:<USER_HOME>/.m2/repository/com/telamin/fluxtion/fluxtion-runtime/1.0.16/fluxtion-runtime-1.0.16.jar:<USER_HOME>/.m2/repository/org/agrona/agrona/2.3.0/agrona-2.3.0.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter/5.10.2/junit-jupiter-5.10.2.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.10.2/junit-jupiter-api-5.10.2.jar:<USER_HOME>/.m2/repository/org/opentest4j/opentest4j/1.3.0/opentest4j-1.3.0.jar:<USER_HOME>/.m2/repository/org/junit/platform/junit-platform-commons/1.10.2/junit-platform-commons-1.10.2.jar:<USER_HOME>/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.10.2/junit-jupiter-params-5.10.2.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.10.2/junit-jupiter-engine-5.10.2.jar:<USER_HOME>/.m2/repository/org/junit/platform/junit-platform-engine/1.10.2/junit-platform-engine-1.10.2.jar:<USER_HOME>/.m2/repository/com/telamin/svc-admin-web/1.0.45/svc-admin-web-1.0.45.jar:target/gate/lib/junit-platform-launcher-1.10.2.jar",
+          "GateLauncher",
+          "<REVIEW_V1300>/target/gate/last-run.jsonl",
+          "telamin.fluxtion.audit.analyser.analyser.session.BundleProvenanceTest#anAbortedBundleNeverLabelsTheNextProject"
+        ],
+        "exit": 1,
+        "suites": [
+          {
+            "name": "BundleProvenanceTest",
+            "tests": 1,
+            "failures": 1,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "anAbortedBundleNeverLabelsTheNextProject"
+            ],
+            "assertions": [
+              {
+                "test": "anAbortedBundleNeverLabelsTheNextProject",
+                "kind": "failure",
+                "message": "org.opentest4j.AssertionFailedError: aPlanDoesNotLabelAnUnrelatedProfile ==> expected: <false> but was: <true>"
+              }
+            ]
+          }
+        ],
+        "output": "",
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.session.BundleProvenanceTest",
+            "method": "anAbortedBundleNeverLabelsTheNextProject",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: aPlanDoesNotLabelAnUnrelatedProfile ==> expected: <false> but was: <true>"
+          }
+        ]
+      },
+      "restored": {
+        "command": [
+          "java",
+          "-Djava.awt.headless=false",
+          "-Dbasedir=<REVIEW_V1300>",
+          "-cp",
+          "<REVIEW_V1300>/target/gate/launcher:target/test-classes:target/classes:<USER_HOME>/.m2/repository/com/formdev/flatlaf/3.5.1/flatlaf-3.5.1.jar:<USER_HOME>/.m2/repository/com/telamin/fluxtion/fluxtion-runtime/1.0.16/fluxtion-runtime-1.0.16.jar:<USER_HOME>/.m2/repository/org/agrona/agrona/2.3.0/agrona-2.3.0.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter/5.10.2/junit-jupiter-5.10.2.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.10.2/junit-jupiter-api-5.10.2.jar:<USER_HOME>/.m2/repository/org/opentest4j/opentest4j/1.3.0/opentest4j-1.3.0.jar:<USER_HOME>/.m2/repository/org/junit/platform/junit-platform-commons/1.10.2/junit-platform-commons-1.10.2.jar:<USER_HOME>/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.10.2/junit-jupiter-params-5.10.2.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.10.2/junit-jupiter-engine-5.10.2.jar:<USER_HOME>/.m2/repository/org/junit/platform/junit-platform-engine/1.10.2/junit-platform-engine-1.10.2.jar:<USER_HOME>/.m2/repository/com/telamin/svc-admin-web/1.0.45/svc-admin-web-1.0.45.jar:target/gate/lib/junit-platform-launcher-1.10.2.jar",
+          "GateLauncher",
+          "<REVIEW_V1300>/target/gate/last-run.jsonl",
+          "telamin.fluxtion.audit.analyser.analyser.session.BundleProvenanceTest#anAbortedBundleNeverLabelsTheNextProject"
+        ],
+        "exit": 0,
+        "suites": [
+          {
+            "name": "BundleProvenanceTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "anAbortedBundleNeverLabelsTheNextProject"
+            ],
+            "assertions": []
+          }
+        ],
+        "output": "",
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.session.BundleProvenanceTest",
+            "method": "anAbortedBundleNeverLabelsTheNextProject",
+            "kind": "passed",
+            "message": null
+          }
+        ]
+      },
+      "caught": true
+    },
+    {
+      "name": "bundle-anchor-forgotten-when-deleted",
+      "test": "BundleProvenanceFrameTest#deletingTheAnchorSticks",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/config/AppConfig.java",
+      "old": "        if (path == null || roots == null) return false;\n",
+      "new": "        if (path == null || roots == null || roots.isEmpty()) return false;\n",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "restoreRewrote": [
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/config/AppConfig.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/config/AppConfig$RecentBundle.class"
+      ],
+      "engine": "fast",
+      "siteKind": "java",
+      "fullCompileFallback": false,
+      "mutated": {
+        "command": [
+          "java",
+          "-Djava.awt.headless=false",
+          "-Dbasedir=<REVIEW_V1300>",
+          "-cp",
+          "<REVIEW_V1300>/target/gate/launcher:target/test-classes:target/classes:<USER_HOME>/.m2/repository/com/formdev/flatlaf/3.5.1/flatlaf-3.5.1.jar:<USER_HOME>/.m2/repository/com/telamin/fluxtion/fluxtion-runtime/1.0.16/fluxtion-runtime-1.0.16.jar:<USER_HOME>/.m2/repository/org/agrona/agrona/2.3.0/agrona-2.3.0.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter/5.10.2/junit-jupiter-5.10.2.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.10.2/junit-jupiter-api-5.10.2.jar:<USER_HOME>/.m2/repository/org/opentest4j/opentest4j/1.3.0/opentest4j-1.3.0.jar:<USER_HOME>/.m2/repository/org/junit/platform/junit-platform-commons/1.10.2/junit-platform-commons-1.10.2.jar:<USER_HOME>/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.10.2/junit-jupiter-params-5.10.2.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.10.2/junit-jupiter-engine-5.10.2.jar:<USER_HOME>/.m2/repository/org/junit/platform/junit-platform-engine/1.10.2/junit-platform-engine-1.10.2.jar:<USER_HOME>/.m2/repository/com/telamin/svc-admin-web/1.0.45/svc-admin-web-1.0.45.jar:target/gate/lib/junit-platform-launcher-1.10.2.jar",
+          "GateLauncher",
+          "<REVIEW_V1300>/target/gate/last-run.jsonl",
+          "telamin.fluxtion.audit.analyser.analyser.ui.BundleProvenanceFrameTest#deletingTheAnchorSticks"
+        ],
+        "exit": 1,
+        "suites": [
+          {
+            "name": "BundleProvenanceFrameTest",
+            "tests": 1,
+            "failures": 1,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "deletingTheAnchorSticks"
+            ],
+            "assertions": [
+              {
+                "test": "deletingTheAnchorSticks",
+                "kind": "failure",
+                "message": "org.opentest4j.AssertionFailedError: theAnchorIsForgottenWhenYouDeleteIt ==> expected: <[]> but was: <[/DEMO/tmp/junit8422960240983798639/checkout/src/main/java]>"
+              }
+            ]
+          }
+        ],
+        "output": "",
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.ui.BundleProvenanceFrameTest",
+            "method": "deletingTheAnchorSticks",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: theAnchorIsForgottenWhenYouDeleteIt ==> expected: <[]> but was: <[/DEMO/tmp/junit8422960240983798639/checkout/src/main/java]>"
+          }
+        ]
+      },
+      "restored": {
+        "command": [
+          "java",
+          "-Djava.awt.headless=false",
+          "-Dbasedir=<REVIEW_V1300>",
+          "-cp",
+          "<REVIEW_V1300>/target/gate/launcher:target/test-classes:target/classes:<USER_HOME>/.m2/repository/com/formdev/flatlaf/3.5.1/flatlaf-3.5.1.jar:<USER_HOME>/.m2/repository/com/telamin/fluxtion/fluxtion-runtime/1.0.16/fluxtion-runtime-1.0.16.jar:<USER_HOME>/.m2/repository/org/agrona/agrona/2.3.0/agrona-2.3.0.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter/5.10.2/junit-jupiter-5.10.2.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.10.2/junit-jupiter-api-5.10.2.jar:<USER_HOME>/.m2/repository/org/opentest4j/opentest4j/1.3.0/opentest4j-1.3.0.jar:<USER_HOME>/.m2/repository/org/junit/platform/junit-platform-commons/1.10.2/junit-platform-commons-1.10.2.jar:<USER_HOME>/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.10.2/junit-jupiter-params-5.10.2.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.10.2/junit-jupiter-engine-5.10.2.jar:<USER_HOME>/.m2/repository/org/junit/platform/junit-platform-engine/1.10.2/junit-platform-engine-1.10.2.jar:<USER_HOME>/.m2/repository/com/telamin/svc-admin-web/1.0.45/svc-admin-web-1.0.45.jar:target/gate/lib/junit-platform-launcher-1.10.2.jar",
+          "GateLauncher",
+          "<REVIEW_V1300>/target/gate/last-run.jsonl",
+          "telamin.fluxtion.audit.analyser.analyser.ui.BundleProvenanceFrameTest#deletingTheAnchorSticks"
+        ],
+        "exit": 0,
+        "suites": [
+          {
+            "name": "BundleProvenanceFrameTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "deletingTheAnchorSticks"
+            ],
+            "assertions": []
+          }
+        ],
+        "output": "",
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.ui.BundleProvenanceFrameTest",
+            "method": "deletingTheAnchorSticks",
+            "kind": "passed",
+            "message": null
+          }
+        ]
+      },
+      "caught": true
+    },
+    {
+      "name": "bundle-anchor-restored",
+      "test": "BundleProvenanceFrameTest#anchoringABundleToASourceTreeIsRemembered",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java",
+      "old": "                        config.sourceRoots.add(anchored);\n",
+      "new": "",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "restoreRewrote": [
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame$PendingRecovery.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame$8.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame$23.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame$21.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame$DesignReadContext.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame$LoggedSample.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame$25.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame$18.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame$27.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame$20.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame$DropKind.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame$22.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame$9.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame$26.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame$9$1.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame$SourceTarget.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame$JavaBinding.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame$19.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame$24.class"
+      ],
+      "engine": "fast",
+      "siteKind": "java",
+      "fullCompileFallback": false,
+      "mutated": {
+        "command": [
+          "java",
+          "-Djava.awt.headless=false",
+          "-Dbasedir=<REVIEW_V1300>",
+          "-cp",
+          "<REVIEW_V1300>/target/gate/launcher:target/test-classes:target/classes:<USER_HOME>/.m2/repository/com/formdev/flatlaf/3.5.1/flatlaf-3.5.1.jar:<USER_HOME>/.m2/repository/com/telamin/fluxtion/fluxtion-runtime/1.0.16/fluxtion-runtime-1.0.16.jar:<USER_HOME>/.m2/repository/org/agrona/agrona/2.3.0/agrona-2.3.0.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter/5.10.2/junit-jupiter-5.10.2.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.10.2/junit-jupiter-api-5.10.2.jar:<USER_HOME>/.m2/repository/org/opentest4j/opentest4j/1.3.0/opentest4j-1.3.0.jar:<USER_HOME>/.m2/repository/org/junit/platform/junit-platform-commons/1.10.2/junit-platform-commons-1.10.2.jar:<USER_HOME>/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.10.2/junit-jupiter-params-5.10.2.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.10.2/junit-jupiter-engine-5.10.2.jar:<USER_HOME>/.m2/repository/org/junit/platform/junit-platform-engine/1.10.2/junit-platform-engine-1.10.2.jar:<USER_HOME>/.m2/repository/com/telamin/svc-admin-web/1.0.45/svc-admin-web-1.0.45.jar:target/gate/lib/junit-platform-launcher-1.10.2.jar",
+          "GateLauncher",
+          "<REVIEW_V1300>/target/gate/last-run.jsonl",
+          "telamin.fluxtion.audit.analyser.analyser.ui.BundleProvenanceFrameTest#anchoringABundleToASourceTreeIsRemembered"
+        ],
+        "exit": 1,
+        "suites": [
+          {
+            "name": "BundleProvenanceFrameTest",
+            "tests": 1,
+            "failures": 1,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "anchoringABundleToASourceTreeIsRemembered"
+            ],
+            "assertions": [
+              {
+                "test": "anchoringABundleToASourceTreeIsRemembered",
+                "kind": "failure",
+                "message": "org.opentest4j.AssertionFailedError: anchorIsRestoredOnReopen (waited for the reopen to land) ==> expected: <true> but was: <false>"
+              }
+            ]
+          }
+        ],
+        "output": "",
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.ui.BundleProvenanceFrameTest",
+            "method": "anchoringABundleToASourceTreeIsRemembered",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: anchorIsRestoredOnReopen (waited for the reopen to land) ==> expected: <true> but was: <false>"
+          }
+        ]
+      },
+      "restored": {
+        "command": [
+          "java",
+          "-Djava.awt.headless=false",
+          "-Dbasedir=<REVIEW_V1300>",
+          "-cp",
+          "<REVIEW_V1300>/target/gate/launcher:target/test-classes:target/classes:<USER_HOME>/.m2/repository/com/formdev/flatlaf/3.5.1/flatlaf-3.5.1.jar:<USER_HOME>/.m2/repository/com/telamin/fluxtion/fluxtion-runtime/1.0.16/fluxtion-runtime-1.0.16.jar:<USER_HOME>/.m2/repository/org/agrona/agrona/2.3.0/agrona-2.3.0.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter/5.10.2/junit-jupiter-5.10.2.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.10.2/junit-jupiter-api-5.10.2.jar:<USER_HOME>/.m2/repository/org/opentest4j/opentest4j/1.3.0/opentest4j-1.3.0.jar:<USER_HOME>/.m2/repository/org/junit/platform/junit-platform-commons/1.10.2/junit-platform-commons-1.10.2.jar:<USER_HOME>/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.10.2/junit-jupiter-params-5.10.2.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.10.2/junit-jupiter-engine-5.10.2.jar:<USER_HOME>/.m2/repository/org/junit/platform/junit-platform-engine/1.10.2/junit-platform-engine-1.10.2.jar:<USER_HOME>/.m2/repository/com/telamin/svc-admin-web/1.0.45/svc-admin-web-1.0.45.jar:target/gate/lib/junit-platform-launcher-1.10.2.jar",
+          "GateLauncher",
+          "<REVIEW_V1300>/target/gate/last-run.jsonl",
+          "telamin.fluxtion.audit.analyser.analyser.ui.BundleProvenanceFrameTest#anchoringABundleToASourceTreeIsRemembered"
+        ],
+        "exit": 0,
+        "suites": [
+          {
+            "name": "BundleProvenanceFrameTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "anchoringABundleToASourceTreeIsRemembered"
+            ],
+            "assertions": []
+          }
+        ],
+        "output": "",
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.ui.BundleProvenanceFrameTest",
+            "method": "anchoringABundleToASourceTreeIsRemembered",
+            "kind": "passed",
+            "message": null
+          }
+        ]
+      },
+      "caught": true
+    }
+  ],
+  "caught": [
+    "review-panel-direct-frame",
+    "review-navigator-list-closed",
+    "bundle-provenance-matches-the-applied-profile",
+    "bundle-anchor-forgotten-when-deleted",
+    "bundle-anchor-restored"
+  ],
+  "survived": [
+    "review-panel-inner-frame",
+    "review-navigator-inherited-action"
+  ]
+}

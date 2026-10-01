@@ -1,0 +1,120 @@
+Note: <REVIEW_V1301>/docs/handoff/evidence/issue-84-review-2026-10-01/BundleReleaseProbeTest.java uses unchecked or unsafe operations.
+Note: Recompile with -Xlint:unchecked for details.
+startup with no edits: profileChanged=false
+preview reply={ok=true, action=import, preview={bundle=/DEMO/tmp/DEMO-borrow-2037548413966443505/exchange/DEMO-borrow.fexp, identity=sha256:2d6e01bc6d58aff03add9aab239c8e3b5e7bed4cbd6339e17168d32c64414c88, offers={VIEW=sets 4 hidden column(s), GRAPHS=replaces 'Graph 1', REPORTS=0 report(s)}, applied=false, note=PREVIEW — your settings were not changed, and the scratch copy this read was removed. Name 'categories' to apply. REPORTS carries prose the sender wrote about their data, so it is applied only when named}} workingCopiesBefore=0 after=0
+fallback modal text=Open a log or topology from DEMO-project
+A project profile holds settings, not what was on screen, so nothing is reopened for you. These are the logs and topologies this machine has opened inside this project. Choose either, both or neither.
+Audit logs
+Topologies
+What will open
+Log
+    /DEMO/tmp/DEMO-fallback-11032032133711160249/DEMO-other-project/DEMO-other.yaml
+
+Topology
+    Nothing will be opened.
+
+tiers: project default travels, machine history stays local, both can be cleared
+recents: two same-name bundles remain distinct after reopen and restart; no copy is a project or reopen candidate
+clearing own roots after closing the bundle leaves its anchor intact
+offline anchor before unrelated REPORTS import=[/DEMO/tmp/DEMO-offline-anchor-14455887699326262995/DEMO-code]
+REPORTS-only import reply={ok=true, action=import, applied={bundle=/DEMO/tmp/DEMO-offline-anchor-14455887699326262995/exchange/offline.fexp, identity=sha256:1c2fa21d348275136e80a65a20c0235acceafdb9a48bea6e468c76ac69323a29, offers={VIEW=sets 4 hidden column(s), GRAPHS=replaces 'Graph 1', REPORTS=0 report(s)}, applied=true, categories=[REPORTS], into=/DEMO/tmp/DEMO-offline-anchor-14455887699326262995/home/.fluxtion-analyser/bundles/bundle-1c2fa21d3482-6968754217094172512/profile/project.fluxtion-settings}}
+offline anchor after unrelated REPORTS import=[]
+source after directory returns and bundle reopens=[]
+failed bundle real path: ownProjectRemains=true
+ordinary profile real path: fromBundle=true titleClaimsBundle=true
+replacement profile processor=DEMO.recipient.OtherProcessor
+bundle processor claim=com.acme.DEMOProcessor relationship=the sender's selection at capture; not paired against this log
+capture for import phase=WRITTEN
+import reply={ok=true, action=import, applied={bundle=/DEMO/tmp/DEMO-import-10189320909055416539/exchange/import.fexp, identity=sha256:96eb2bd05f8d9ca10312743a39e950eef861fde029148e5c954d7afc7620fb59, offers={VIEW=sets 4 hidden column(s), GRAPHS=replaces 'Graph 1', 'DEMO-chart', REPORTS=0 report(s)}, applied=true, categories=[GRAPHS], into=/DEMO/tmp/DEMO-import-10189320909055416539/project/.analyser/project.fluxtion-settings}}
+import requested='DEMO sender' config='DEMO recipient' chart='DEMO recipient'
+import on disk='DEMO recipient'
+disabled offers: chooser=null dialogs=0
+ offer record:     eventToString: StatusShown[opId=1, kind=offerProjectReopen]
+ offer record:         - effectOutcomes: { thread: AWT-EventQueue-0, method: onStatusShown, EffectOutcome: offerProjectReopen, effect: offerProjectReopen, success: true, opId: 1, stale: false}
+reopen selection: asked=true midCycle=false logOpened=true
+
+{
+  "mode": "RAN",
+  "tag": "b1fe4fd7ec6fd451329c7182a8f9adc46fc5fed6",
+  "command": "lockf -k /tmp/fluxtion-analyser-display.lock python3 EVIDENCE/run_probes.py bundle",
+  "counts": {
+    "total": 12,
+    "failures": 5,
+    "errors": 0,
+    "skips": 0
+  },
+  "results": [
+    {
+      "class": "telamin.fluxtion.audit.analyser.analyser.ui.BundleReleaseProbeTest",
+      "method": "startupDoesNotRewriteACommittedProfile",
+      "kind": "passed",
+      "message": null
+    },
+    {
+      "class": "telamin.fluxtion.audit.analyser.analyser.ui.BundleReleaseProbeTest",
+      "method": "previewLeavesNoWorkingCopy",
+      "kind": "passed",
+      "message": null
+    },
+    {
+      "class": "telamin.fluxtion.audit.analyser.analyser.ui.BundleReleaseProbeTest",
+      "method": "fallbackOfferMustNotDescribeAnUnrelatedLogAsInsideTheProject",
+      "kind": "failure",
+      "message": "org.opentest4j.AssertionFailedError: anUnrelatedRecentLogMustNotBeCalledInsideThisProject ==> expected: <false> but was: <true>"
+    },
+    {
+      "class": "telamin.fluxtion.audit.analyser.analyser.ui.BundleReleaseProbeTest",
+      "method": "machineValuesDoNotRideProjectShareOrBundle",
+      "kind": "passed",
+      "message": null
+    },
+    {
+      "class": "telamin.fluxtion.audit.analyser.analyser.ui.BundleReleaseProbeTest",
+      "method": "recentsSurviveRestartWithoutWorkingCopiesOrFilenameCollisions",
+      "kind": "passed",
+      "message": null
+    },
+    {
+      "class": "telamin.fluxtion.audit.analyser.analyser.ui.BundleReleaseProbeTest",
+      "method": "clearingOwnRootsOutsideABundleKeepsItsAnchor",
+      "kind": "passed",
+      "message": null
+    },
+    {
+      "class": "telamin.fluxtion.audit.analyser.analyser.ui.BundleReleaseProbeTest",
+      "method": "anUnrelatedEditDoesNotDeleteAnUnavailableAnchor",
+      "kind": "failure",
+      "message": "org.opentest4j.AssertionFailedError: unrelatedReportsImportMustNotDeleteThePersonsAnchor ==> expected: <[/DEMO/tmp/DEMO-offline-anchor-14455887699326262995/DEMO-code]> but was: <[]>"
+    },
+    {
+      "class": "telamin.fluxtion.audit.analyser.analyser.ui.BundleReleaseProbeTest",
+      "method": "aReplacementProfileIsNotTheSendersEvidence",
+      "kind": "failure",
+      "message": "org.opentest4j.AssertionFailedError: replacementProfileMustNotCarryTheAbortedBundlesIdentity ==> expected: <false> but was: <true>"
+    },
+    {
+      "class": "telamin.fluxtion.audit.analyser.analyser.ui.BundleReleaseProbeTest",
+      "method": "processorInContextIsExplicitlyTheSendersClaim",
+      "kind": "passed",
+      "message": null
+    },
+    {
+      "class": "telamin.fluxtion.audit.analyser.analyser.ui.BundleReleaseProbeTest",
+      "method": "importingGraphsKeepsIncomingNotes",
+      "kind": "failure",
+      "message": "org.opentest4j.AssertionFailedError: incomingGraphSurvivesTheSaveFunnel ==> expected: <DEMO sender> but was: <DEMO recipient>"
+    },
+    {
+      "class": "telamin.fluxtion.audit.analyser.analyser.ui.BundleReleaseProbeTest",
+      "method": "aDisabledOfferIsRecordedAsSkipped",
+      "kind": "failure",
+      "message": "org.opentest4j.AssertionFailedError: disabledOfferMustBeRecordedAsSkipped ==> expected: <true> but was: <false>"
+    },
+    {
+      "class": "telamin.fluxtion.audit.analyser.analyser.ui.BundleReleaseProbeTest",
+      "method": "aPersonsReopenOfferRunsAfterTheCycle",
+      "kind": "passed",
+      "message": null
+    }
+  ]
+}

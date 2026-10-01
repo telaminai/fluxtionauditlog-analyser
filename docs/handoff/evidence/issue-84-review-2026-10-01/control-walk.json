@@ -1,0 +1,215 @@
+{
+  "mode": "mutations",
+  "runs": [
+    {
+      "name": "walk-can-point-at-java",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/WalkPresenter.java",
+      "sha256": "3d018d5cb5e5344072ddba43e596828a1ee8c207f7b967701acd4dc1bbc91a26",
+      "baselineGreen": true,
+      "engine": "fast",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "restoreRewrote": [
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/WalkPresenter$Frame.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/WalkPresenter$Numbered.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/WalkPresenter$1.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/WalkPresenter$LitResult.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/WalkPresenter.class"
+      ],
+      "siteKind": "java",
+      "fullCompileFallback": false,
+      "mutated": {
+        "command": [
+          "java",
+          "-Djava.awt.headless=false",
+          "-Dbasedir=<REVIEW_V1301>",
+          "-cp",
+          "<REVIEW_V1301>/target/gate/launcher:target/test-classes:target/classes:<USER_HOME>/.m2/repository/com/formdev/flatlaf/3.5.1/flatlaf-3.5.1.jar:<USER_HOME>/.m2/repository/com/telamin/fluxtion/fluxtion-runtime/1.0.16/fluxtion-runtime-1.0.16.jar:<USER_HOME>/.m2/repository/org/agrona/agrona/2.3.0/agrona-2.3.0.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter/5.10.2/junit-jupiter-5.10.2.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.10.2/junit-jupiter-api-5.10.2.jar:<USER_HOME>/.m2/repository/org/opentest4j/opentest4j/1.3.0/opentest4j-1.3.0.jar:<USER_HOME>/.m2/repository/org/junit/platform/junit-platform-commons/1.10.2/junit-platform-commons-1.10.2.jar:<USER_HOME>/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.10.2/junit-jupiter-params-5.10.2.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.10.2/junit-jupiter-engine-5.10.2.jar:<USER_HOME>/.m2/repository/org/junit/platform/junit-platform-engine/1.10.2/junit-platform-engine-1.10.2.jar:<USER_HOME>/.m2/repository/com/telamin/svc-admin-web/1.0.45/svc-admin-web-1.0.45.jar:target/gate/lib/junit-platform-launcher-1.10.2.jar",
+          "GateLauncher",
+          "<REVIEW_V1301>/target/gate/last-run.jsonl",
+          "telamin.fluxtion.audit.analyser.analyser.ui.WalkReviewFrameTest#aWalkStepCanPointAtJavaSource"
+        ],
+        "exit": 1,
+        "suites": [
+          {
+            "name": "WalkReviewFrameTest",
+            "tests": 1,
+            "failures": 1,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "aWalkStepCanPointAtJavaSource"
+            ],
+            "assertions": [
+              {
+                "test": "aWalkStepCanPointAtJavaSource",
+                "kind": "failure",
+                "message": "org.opentest4j.AssertionFailedError: aJavaTargetIsSHOWN \u2014 the walk refused source outright before #72:  ==> expected: <SHOWN> but was: <NOT_SHOWN>"
+              }
+            ]
+          }
+        ],
+        "output": "",
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.ui.WalkReviewFrameTest",
+            "method": "aWalkStepCanPointAtJavaSource",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: aJavaTargetIsSHOWN \u2014 the walk refused source outright before #72:  ==> expected: <SHOWN> but was: <NOT_SHOWN>"
+          }
+        ]
+      },
+      "restored": {
+        "command": [
+          "java",
+          "-Djava.awt.headless=false",
+          "-Dbasedir=<REVIEW_V1301>",
+          "-cp",
+          "<REVIEW_V1301>/target/gate/launcher:target/test-classes:target/classes:<USER_HOME>/.m2/repository/com/formdev/flatlaf/3.5.1/flatlaf-3.5.1.jar:<USER_HOME>/.m2/repository/com/telamin/fluxtion/fluxtion-runtime/1.0.16/fluxtion-runtime-1.0.16.jar:<USER_HOME>/.m2/repository/org/agrona/agrona/2.3.0/agrona-2.3.0.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter/5.10.2/junit-jupiter-5.10.2.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.10.2/junit-jupiter-api-5.10.2.jar:<USER_HOME>/.m2/repository/org/opentest4j/opentest4j/1.3.0/opentest4j-1.3.0.jar:<USER_HOME>/.m2/repository/org/junit/platform/junit-platform-commons/1.10.2/junit-platform-commons-1.10.2.jar:<USER_HOME>/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.10.2/junit-jupiter-params-5.10.2.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.10.2/junit-jupiter-engine-5.10.2.jar:<USER_HOME>/.m2/repository/org/junit/platform/junit-platform-engine/1.10.2/junit-platform-engine-1.10.2.jar:<USER_HOME>/.m2/repository/com/telamin/svc-admin-web/1.0.45/svc-admin-web-1.0.45.jar:target/gate/lib/junit-platform-launcher-1.10.2.jar",
+          "GateLauncher",
+          "<REVIEW_V1301>/target/gate/last-run.jsonl",
+          "telamin.fluxtion.audit.analyser.analyser.ui.WalkReviewFrameTest#aWalkStepCanPointAtJavaSource"
+        ],
+        "exit": 0,
+        "suites": [
+          {
+            "name": "WalkReviewFrameTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "aWalkStepCanPointAtJavaSource"
+            ],
+            "assertions": []
+          }
+        ],
+        "output": "",
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.ui.WalkReviewFrameTest",
+            "method": "aWalkStepCanPointAtJavaSource",
+            "kind": "passed",
+            "message": null
+          }
+        ]
+      },
+      "seconds": 11.3,
+      "verdict": "caught"
+    }
+  ],
+  "engine": "fast",
+  "baseline": {
+    "command": [
+      "java",
+      "-Djava.awt.headless=false",
+      "-Dbasedir=<REVIEW_V1301>",
+      "-cp",
+      "<REVIEW_V1301>/target/gate/launcher:target/test-classes:target/classes:<USER_HOME>/.m2/repository/com/formdev/flatlaf/3.5.1/flatlaf-3.5.1.jar:<USER_HOME>/.m2/repository/com/telamin/fluxtion/fluxtion-runtime/1.0.16/fluxtion-runtime-1.0.16.jar:<USER_HOME>/.m2/repository/org/agrona/agrona/2.3.0/agrona-2.3.0.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter/5.10.2/junit-jupiter-5.10.2.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.10.2/junit-jupiter-api-5.10.2.jar:<USER_HOME>/.m2/repository/org/opentest4j/opentest4j/1.3.0/opentest4j-1.3.0.jar:<USER_HOME>/.m2/repository/org/junit/platform/junit-platform-commons/1.10.2/junit-platform-commons-1.10.2.jar:<USER_HOME>/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.10.2/junit-jupiter-params-5.10.2.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.10.2/junit-jupiter-engine-5.10.2.jar:<USER_HOME>/.m2/repository/org/junit/platform/junit-platform-engine/1.10.2/junit-platform-engine-1.10.2.jar:<USER_HOME>/.m2/repository/com/telamin/svc-admin-web/1.0.45/svc-admin-web-1.0.45.jar:target/gate/lib/junit-platform-launcher-1.10.2.jar",
+      "GateLauncher",
+      "<REVIEW_V1301>/target/gate/last-run.jsonl",
+      "telamin.fluxtion.audit.analyser.analyser.ui.WalkReviewFrameTest"
+    ],
+    "exit": 0,
+    "suites": [
+      {
+        "name": "WalkReviewFrameTest",
+        "tests": 12,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "playbackPersistsNothing",
+          "aDegradedIdentityConstrainsTheTargets",
+          "replacingTheShowingWalkIsTheSessionsDecision",
+          "anImportOfTheSameWalkLeavesItShowing",
+          "aRefusedViewLeavesThePreviousStep",
+          "aWalkStepCanPointAtJavaSource",
+          "aRefusedPlayIsReportedAsRefused",
+          "animportOfTheShowingWalkIsReported",
+          "theOverlayKeepsTheSessionsNumbers",
+          "aVerbSaveBetweenTwoImportsIsStillReported",
+          "aHiddenRecordIsNotClaimedAsShown",
+          "renameKeepsItAndDeleteEndsIt"
+        ],
+        "assertions": []
+      }
+    ],
+    "output": "",
+    "rows": [
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.WalkReviewFrameTest",
+        "method": "playbackPersistsNothing",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.WalkReviewFrameTest",
+        "method": "aDegradedIdentityConstrainsTheTargets",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.WalkReviewFrameTest",
+        "method": "replacingTheShowingWalkIsTheSessionsDecision",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.WalkReviewFrameTest",
+        "method": "anImportOfTheSameWalkLeavesItShowing",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.WalkReviewFrameTest",
+        "method": "aRefusedViewLeavesThePreviousStep",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.WalkReviewFrameTest",
+        "method": "aWalkStepCanPointAtJavaSource",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.WalkReviewFrameTest",
+        "method": "aRefusedPlayIsReportedAsRefused",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.WalkReviewFrameTest",
+        "method": "animportOfTheShowingWalkIsReported",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.WalkReviewFrameTest",
+        "method": "theOverlayKeepsTheSessionsNumbers",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.WalkReviewFrameTest",
+        "method": "aVerbSaveBetweenTwoImportsIsStillReported",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.WalkReviewFrameTest",
+        "method": "aHiddenRecordIsNotClaimedAsShown",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.WalkReviewFrameTest",
+        "method": "renameKeepsItAndDeleteEndsIt",
+        "kind": "passed",
+        "message": null
+      }
+    ]
+  },
+  "seconds": 52.0
+}

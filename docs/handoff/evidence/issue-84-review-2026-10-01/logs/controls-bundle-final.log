@@ -1,0 +1,29 @@
+review-panel-direct-frame: CAUGHT; restored GREEN
+review-navigator-list-closed: CAUGHT; restored GREEN
+review-panel-inner-frame: SURVIVED; restored GREEN
+review-navigator-inherited-action: SURVIVED; restored GREEN
+bundle-provenance-matches-the-applied-profile: CAUGHT; restored GREEN
+bundle-anchor-forgotten-when-deleted: CAUGHT; restored GREEN
+bundle-anchor-restored: CAUGHT; restored GREEN
+{
+  "requested": [
+    "review-panel-direct-frame",
+    "review-navigator-list-closed",
+    "review-panel-inner-frame",
+    "review-navigator-inherited-action",
+    "bundle-provenance-matches-the-applied-profile",
+    "bundle-anchor-forgotten-when-deleted",
+    "bundle-anchor-restored"
+  ],
+  "caught": [
+    "review-panel-direct-frame",
+    "review-navigator-list-closed",
+    "bundle-provenance-matches-the-applied-profile",
+    "bundle-anchor-forgotten-when-deleted",
+    "bundle-anchor-restored"
+  ],
+  "survived": [
+    "review-panel-inner-frame",
+    "review-navigator-inherited-action"
+  ]
+}

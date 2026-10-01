@@ -1,0 +1,53 @@
+<REVIEW_V1301>/docs/handoff/evidence/issue-84-review-2026-10-01/JavaWalkProbeTest.java:27: error: reference to Frame is ambiguous
+    static SourceService service(Frame f){return (SourceService)field(f.frame,"sourceService");}
+                                 ^
+  both class telamin.fluxtion.audit.analyser.analyser.ui.AsyncOpenInterleavingFrameTest.Frame in AsyncOpenInterleavingFrameTest and class java.awt.Frame in java.awt match
+<REVIEW_V1301>/docs/handoff/evidence/issue-84-review-2026-10-01/JavaWalkProbeTest.java:28: error: reference to Frame is ambiguous
+    static SpotlightOverlay overlay(Frame f){return (SpotlightOverlay)field(f.frame,"spotlight");}
+                                    ^
+  both class telamin.fluxtion.audit.analyser.analyser.ui.AsyncOpenInterleavingFrameTest.Frame in AsyncOpenInterleavingFrameTest and class java.awt.Frame in java.awt match
+<REVIEW_V1301>/docs/handoff/evidence/issue-84-review-2026-10-01/JavaWalkProbeTest.java:29: error: reference to Frame is ambiguous
+    static JTabbedPane tabs(Frame f){return (JTabbedPane)field(f.frame,"sideTabs");}
+                            ^
+  both class telamin.fluxtion.audit.analyser.analyser.ui.AsyncOpenInterleavingFrameTest.Frame in AsyncOpenInterleavingFrameTest and class java.awt.Frame in java.awt match
+<REVIEW_V1301>/docs/handoff/evidence/issue-84-review-2026-10-01/JavaWalkProbeTest.java:31: error: reference to Frame is ambiguous
+    static void call(Frame f,String verb,Map<String,Object> p)throws Exception{onEdt(()->{var reply=render(f.ex,verb,p);assertEquals(true,reply.get("ok"),reply.toString());});}
+                     ^
+  both class telamin.fluxtion.audit.analyser.analyser.ui.AsyncOpenInterleavingFrameTest.Frame in AsyncOpenInterleavingFrameTest and class java.awt.Frame in java.awt match
+<REVIEW_V1301>/docs/handoff/evidence/issue-84-review-2026-10-01/JavaWalkProbeTest.java:33: error: reference to Frame is ambiguous
+    static void save(Frame f,List<Map<String,Object>> steps)throws Exception{call(f,"walk",Map.of("name","DEMO source walk","steps",steps));}
+                     ^
+  both class telamin.fluxtion.audit.analyser.analyser.ui.AsyncOpenInterleavingFrameTest.Frame in AsyncOpenInterleavingFrameTest and class java.awt.Frame in java.awt match
+<REVIEW_V1301>/docs/handoff/evidence/issue-84-review-2026-10-01/JavaWalkProbeTest.java:34: error: reference to Frame is ambiguous
+    static void play(Frame f)throws Exception{call(f,"walk",Map.of("name","DEMO source walk","play",true));}
+                     ^
+  both class telamin.fluxtion.audit.analyser.analyser.ui.AsyncOpenInterleavingFrameTest.Frame in AsyncOpenInterleavingFrameTest and class java.awt.Frame in java.awt match
+<REVIEW_V1301>/docs/handoff/evidence/issue-84-review-2026-10-01/JavaWalkProbeTest.java:35: error: reference to Frame is ambiguous
+    static void snapshot(Frame f,String label)throws Exception{onEdt(()->System.out.println(label+": phase="+walk(f).phase()+" showing="+walk(f).showing()+" step="+walk(f).step()+" reason="+walk(f).reason()+" walkOwn="+field(f.frame,"walkOwnSpotlight")+" lit="+overlay(f).lit().stream().map(SpotlightOverlay.Lit::target).toList()));}
+                         ^
+  both class telamin.fluxtion.audit.analyser.analyser.ui.AsyncOpenInterleavingFrameTest.Frame in AsyncOpenInterleavingFrameTest and class java.awt.Frame in java.awt match
+<REVIEW_V1301>/docs/handoff/evidence/issue-84-review-2026-10-01/JavaWalkProbeTest.java:36: error: reference to Frame is ambiguous
+    static void capture(Frame f,String name)throws Exception{
+                        ^
+  both class telamin.fluxtion.audit.analyser.analyser.ui.AsyncOpenInterleavingFrameTest.Frame in AsyncOpenInterleavingFrameTest and class java.awt.Frame in java.awt match
+<REVIEW_V1301>/docs/handoff/evidence/issue-84-review-2026-10-01/JavaWalkProbeTest.java:40: error: reference to Frame is ambiguous
+    static void roots(Frame f,Path root)throws Exception{onEdt(()->{AppConfig c=(AppConfig)field(f.frame,"config");c.sourceRoots.clear();c.sourceRoots.add(root.toString());service(f).configure(c.sourceRoots,null);});}
+                      ^
+  both class telamin.fluxtion.audit.analyser.analyser.ui.AsyncOpenInterleavingFrameTest.Frame in AsyncOpenInterleavingFrameTest and class java.awt.Frame in java.awt match
+<REVIEW_V1301>/docs/handoff/evidence/issue-84-review-2026-10-01/JavaWalkProbeTest.java:41: error: reference to Frame is ambiguous
+    static Object archives(Frame f,Path tmp,boolean prime)throws Exception{
+                           ^
+  both class telamin.fluxtion.audit.analyser.analyser.ui.AsyncOpenInterleavingFrameTest.Frame in AsyncOpenInterleavingFrameTest and class java.awt.Frame in java.awt match
+<REVIEW_V1301>/docs/handoff/evidence/issue-84-review-2026-10-01/JavaWalkProbeTest.java:59: error: reference to Frame is ambiguous
+    static void waitFinished(Frame f)throws Exception{await("source terminal result",()->!((Boolean)field(f.frame,"walkOwnSpotlight")));onEdt(()->{});onEdt(()->{});}
+                             ^
+  both class telamin.fluxtion.audit.analyser.analyser.ui.AsyncOpenInterleavingFrameTest.Frame in AsyncOpenInterleavingFrameTest and class java.awt.Frame in java.awt match
+11 errors
+Traceback (most recent call last):
+  File "<REVIEW_V1301>/docs/handoff/evidence/issue-84-review-2026-10-01/run_probes.py", line 27, in <module>
+    subprocess.run(["javac","--release","21","-cp",cp,"-d",str(classes),*sources],check=True)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<PYTHON_RUNTIME>", line 578, in run
+    raise CalledProcessError(retcode, process.args,
+                             output=stdout, stderr=stderr)
+subprocess.CalledProcessError: Command '['javac', '--release', '21', '-cp', '<REVIEW_V1301>/target/issue84-probes/classes:<REVIEW_V1301>/target/test-classes:<REVIEW_V1301>/target/fluxtion-auditlog-analyser-0.0.0-SNAPSHOT.jar:<USER_HOME>/.m2/repository/com/formdev/flatlaf/3.5.1/flatlaf-3.5.1.jar:<USER_HOME>/.m2/repository/com/telamin/fluxtion/fluxtion-runtime/1.0.16/fluxtion-runtime-1.0.16.jar:<USER_HOME>/.m2/repository/org/agrona/agrona/2.3.0/agrona-2.3.0.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter/5.10.2/junit-jupiter-5.10.2.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.10.2/junit-jupiter-api-5.10.2.jar:<USER_HOME>/.m2/repository/org/opentest4j/opentest4j/1.3.0/opentest4j-1.3.0.jar:<USER_HOME>/.m2/repository/org/junit/platform/junit-platform-commons/1.10.2/junit-platform-commons-1.10.2.jar:<USER_HOME>/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.10.2/junit-jupiter-params-5.10.2.jar:<USER_HOME>/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.10.2/junit-jupiter-engine-5.10.2.jar:<USER_HOME>/.m2/repository/org/junit/platform/junit-platform-engine/1.10.2/junit-platform-engine-1.10.2.jar:<USER_HOME>/.m2/repository/com/telamin/svc-admin-web/1.0.45/svc-admin-web-1.0.45.jar:<USER_HOME>/.m2/repository/org/junit/platform/junit-platform-launcher/1.10.2/junit-platform-launcher-1.10.2.jar', '-d', '<REVIEW_V1301>/target/issue84-probes/classes', '<REVIEW_V1301>/docs/handoff/evidence/issue-84-review-2026-10-01/JavaWalkProbeTest.java', 'tools/gate/GateLauncher.java']' returned non-zero exit status 1.
