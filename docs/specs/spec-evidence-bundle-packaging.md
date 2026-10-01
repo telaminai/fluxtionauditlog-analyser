@@ -188,7 +188,18 @@ the passes.
 
   A machine path is absolute POSIX with at least two segments, home-relative (`~/…`, `~user/…`), a Windows drive
   path with a segment, a UNC path, or a `file:` URI. Relative paths, URLs, ratios, times, `and/or`, `~5%` and a bare
-  `C:` are not. A segment is cut at whitespace, so a directory name with a space is redacted up to the space.
+  `C:` are not. For unquoted text, a segment is cut at whitespace; quote paths containing spaces.
+
+  **PR #87 correction, owner decision 2026-10-01:** the complete path can be delimited with double quotes,
+  single quotes, backticks or curly double quotes. Its Unicode final segment is then redacted whole, keeping
+  the delimiters and adjoining prose. An unquoted final segment containing Han, Hiragana, Katakana, Hangul
+  or Thai is ambiguous: the text alone cannot establish whether it is part of the filename or the sentence.
+  Refuse before writing the profile, name the key, and ask the author to quote the complete path separately
+  from its prose. This replaces the earlier script-based truncation heuristic for every supported path form.
+  The guard is lexical, not proof that arbitrary prose contains no filesystem name. Existing exemptions remain:
+  an unquoted numeric home with one extensionless segment (`~123/secret`) is treated as a ratio; a POSIX path
+  immediately after a colon (`log:/Users/DEMO/x.yaml`) remains outside recognition to preserve URI handling.
+  Those residuals are not fixed by #87; explicitly quoting the path removes the ambiguity.
 - **Whole log only, and it has a cost.** Taking the whole log keeps every record digest valid and needs no index
   remapping, which is why it is right for v1. But real logs here run to **64 MB and 142 MB**, so a real incident's
   `.fexp` may be **a 140 MB file**. That is fine for a demo on one machine, and for the demo's DEMO log (well under a

@@ -1437,15 +1437,15 @@ CONTROLS = [
      '    private static final String SEG = "[\\\\p{L}\\\\p{M}\\\\p{N}_.\\\\-]";\n',
      '    private static final String SEG = "[\\\\w.\\\\-]";\n',
      'BundleProfileTest#aUsernameInAnyAlphabetIsRedactedWhole'),
-    # ...and the final segment stays NARROW, or a path swallows the sentence that follows it in a
-    # script written without spaces: the prose is destroyed and a redaction is reported for it.
+    # Owner decision in the #87 fix: an unquoted final segment in a no-space script is ambiguous.
+    # Refuse with a quoting instruction rather than guessing where the prose begins.
     ('rf2-a-path-stops-where-the-prose-resumes', BUNDLE_PROFILE,
-     '"[\\\\p{L}\\\\p{M}\\\\p{N}_.\\\\-&&[^\\\\p{IsHan}\\\\p{IsHiragana}\\\\p{IsKatakana}\\\\p{IsHangul}\\\\p{IsThai}]]"',
-     'SEG',
-     'BundleProfileTest#aPathAdjacentToNonAsciiProseIsRedacted'),
+     'if (AMBIGUOUS_END.matcher(path.substring(lastSeparator + 1)).find()) {',
+     'if (false) {',
+     'BundleProfileTest#ambiguousUnquotedEndingsRefuseWithoutWriting'),
     ('rf2-a-url-is-not-a-path', BUNDLE_PROFILE,
-     '"(?<![" + WORDISH + ".~:/\\\\\\\\\\\\-])/" + SEG + "+(?:/" + SEG + "+)*/" + SEG_END + "*/?"',
-     '"/" + SEG + "+(?:/" + SEG + "+)*/" + SEG_END + "*/?"',
+     '"(?<![" + WORDISH + ".~:/\\\\\\\\\\\\-])/" + SEG + "+(?:/" + SEG + "+)*/" + SEG + "*/?"',
+     '"/" + SEG + "+(?:/" + SEG + "+)*/" + SEG + "*/?"',
      'BundleProfileTest#ordinaryProsePassesUntouched'),
     ('rf2-a-percentage-is-not-a-home', BUNDLE_PROFILE,
      '"(?<![" + WORDISH + "/~])~(?:" + SEG + "*[\\\\p{L}_]" + SEG + "*)?/" + SEG + "*(?:/" + SEG + "+)*"',
@@ -1470,6 +1470,14 @@ CONTROLS = [
      '"(?<![" + WORDISH + "])[A-Za-z]:[\\\\\\\\/][\\\\p{L}\\\\p{M}\\\\p{N}_.$\\\\-]+',
      '"(?<![" + WORDISH + "])[A-Za-z]:[\\\\\\\\/]?[\\\\p{L}\\\\p{M}\\\\p{N}_.$\\\\-]*',
      'BundleProfileTest#ordinaryProsePassesUntouched'),
+    ('rf2-quoted-path-boundary', BUNDLE_PROFILE,
+     '            "(?<quoted>" + String.join("|", quotedPath("\\"", "\\""), quotedPath("\'", "\'"),\n                    quotedPath("`", "`"), quotedPath("“", "”")) + ")",',
+     '            "(?<quoted>(?!))",',
+     'BundleProfileTest#quotedUnicodePathsAreRemovedWhole'),
+    ('rf2-unquoted-ending-is-examined-whole', BUNDLE_PROFILE,
+     '            "(?<![" + WORDISH + ".~:/\\\\\\\\\\\\-])/" + SEG + "+(?:/" + SEG + "+)*/" + SEG + "*/?",           // /Users/x/y, not a/b or https://h/p',
+     '            "(?<![" + WORDISH + ".~:/\\\\\\\\\\\\-])/" + SEG + "+(?:/" + SEG + "+)*/" + "[A-Za-z0-9_.\\\\-]*/?",           // /Users/x/y, not a/b or https://h/p',
+     'BundleProfileTest#ambiguousUnquotedEndingsRefuseWithoutWriting'),
     # Convergence (2026-09-28): capture moved into the analyser. The evidenceCapture node decides; the frame performs.
     # Declared, not registered: BundleWriter's delete-on-failure (pack deletes its own output on failure and nothing
     # fails after pack, so no case reaches it); the between-pass mismatch in unpack; startCapture's internal

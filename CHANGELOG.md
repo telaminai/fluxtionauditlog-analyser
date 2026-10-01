@@ -6,7 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
-- A machine path in a bundle's prose is redacted whole, in any alphabet (#79). A username written in Cyrillic, Han, Vietnamese or an accented Latin form — including the decomposed form macOS stores — was half-redacted: the marker went in and the username stayed, while the export reported the path as removed. A path-valued key with such a username was exported rather than refusing the bundle. Ordinary prose that merely contains a slash (`café/menu/items`, `~1/price`, `and/or`) is still untouched, and a path written against Japanese prose still stops where the prose resumes.
+- Bundle profile redaction recognises Unicode path segments, including decomposed accents (#79). Quote a complete path with double quotes, single quotes, backticks or curly double quotes to redact it whole while preserving the surrounding prose. An unquoted final segment containing Han, Hiragana, Katakana, Hangul or Thai now refuses export and asks you to quote the path: it could be either a filename or adjoining prose. This applies to POSIX, home, file-URI, drive and UNC paths. Path-valued keys still refuse export; URLs, ratios and ordinary slash-separated prose retain their existing exemptions.
+
 ## [1.30.1] - 2026-09-30
 
 ### Fixed

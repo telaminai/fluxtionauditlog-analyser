@@ -185,9 +185,9 @@ public class BundleProfileTest {
         // inter-word spaces, so this is the ordinary way to write it.
         record Case(String prose, String expected) { }
         for (Case c : List.of(
-                // redacted AND stops where the prose resumes: the blanket Unicode flag ate the tail too
-                new Case("\u30ed\u30b0\u306f/Users/demo/logs/q.yaml\u306b\u3042\u308a\u307e\u3059",
-                        "\u30ed\u30b0\u306f" + BundleProfile.REDACTED + "\u306b\u3042\u308a\u307e\u3059"),
+                // Owner decision (#87): delimit the path when its ending touches ambiguous prose.
+                new Case("\u30ed\u30b0\u306f\"/Users/demo/logs/q.yaml\"\u306b\u3042\u308a\u307e\u3059",
+                        "\u30ed\u30b0\u306f\"" + BundleProfile.REDACTED + "\"\u306b\u3042\u308a\u307e\u3059"),
                 new Case("\u65e5\u5fd7/Users/demo/logs/q.yaml", "\u65e5\u5fd7" + BundleProfile.REDACTED),
                 new Case("\u0444\u0430\u0439\u043b/Users/demo/logs/q.yaml",
                         "\u0444\u0430\u0439\u043b" + BundleProfile.REDACTED),
@@ -315,5 +315,43 @@ public class BundleProfileTest {
 
         assertEquals("\u30ed\u30b0\u306f\u2039path removed\u203a \u306b\u3042\u308a\u307e\u3059", out,
                 "widening the LOOKBEHIND made this stop matching at all and export whole, reporting nothing");
+    }
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {
+            "/Users/DEMO王", "/home/DEMO/机密.yaml", "/DEMO/q.yamlにあります",
+            "~/DEMO/q.yamlにあります", "~DEMO/q.yamlにあります", "~123/DEMO/q.yamlにあります",
+            "~123/q.yamlにあります", "file:///DEMO/q.yamlにあります",
+            "C:\\DEMO\\q.yamlにあります", "\\\\DEMO\\share\\q.yamlにあります"
+    })
+    @DisplayName("#87 R1/R2: ambiguous unquoted endings refuse before creating an export")
+    void ambiguousUnquotedEndingsRefuseWithoutWriting(String path, @TempDir Path tmp) throws Exception {
+        Path input = withNarrative(tmp, "ログは" + path);
+        Path out = tmp.resolve("out.fluxtion-settings");
+        IOException refusal = assertThrows(IOException.class, () -> BundleProfile.export(input, out),
+                "ambiguousEndRefused: do not export a partial path or swallow prose: " + path);
+        assertTrue(refusal.getMessage().contains("report.0.s.0.text"), "refusal names the affected key");
+        assertTrue(refusal.getMessage().contains("quote the complete path"), "refusal explains how to resolve ambiguity");
+        assertFalse(Files.exists(out), "an ambiguous ending creates no partial export");
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {
+            "/Users/DEMO王", "/home/DEMO/机密.yaml", "~/DEMO/機密", "~DEMO/機密", "file:///DEMO/機密",
+            "C:\\DEMO\\機密", "\\\\DEMO\\share\\機密"
+    })
+    @DisplayName("#87 R1: explicitly quoted Unicode paths are removed whole through the exporter")
+    void quotedUnicodePathsAreRemovedWhole(String path, @TempDir Path tmp) throws Exception {
+        int fixture = 0;
+        for (String quotes : List.of("\"\"", "''", "``", "“”")) {
+            var removed = new java.util.ArrayList<String>();
+            Path dir = Files.createDirectories(tmp.resolve("quoted-" + fixture++));
+            String prefix = "ログは" + quotes.charAt(0);
+            String suffix = quotes.charAt(1) + "にあります";
+            assertEquals(prefix + BundleProfile.REDACTED + suffix,
+                    exportedNarrative(dir, prefix + path + suffix, removed),
+                    "quotedPathRemovedWhole: the delimiter identifies the entire Unicode path: " + path);
+            assertEquals(List.of("report.0.s.0.text: " + path), removed,
+                    "the reported removal is exactly the path, without quotes or prose");
+        }
     }
 }
