@@ -109,9 +109,10 @@ and `heating` are the keys it logged — so in the analyser you filter on `therm
     which matters because this is the one mistake that leaves nothing behind to diagnose.
 
 !!! success "And if a log is wrong, it tells you that too"
-    Opening a log runs three checks on the file and reports what it finds in the status bar and in
-    `context`: records run together with no `---` between them, no `nodeLogs` anywhere, or a log
-    containing nothing but the framework's own control event. Each names the cause and the fix. They
+    Opening a log runs checks on the file and reports what it finds in the status bar and in
+    `context`: records run together with no `---` between them, no `nodeLogs` anywhere, a log
+    containing nothing but the framework's own control event, or a value whose line break broke its
+    record — quote any value that can hold one, such as text an operator typed. Each names the cause and the fix. They
     are *reported*, never repaired — a mis-written log is a finding about the emitter.
 
 !!! danger "Write the `---` separator, or the analyser silently reads fewer records"

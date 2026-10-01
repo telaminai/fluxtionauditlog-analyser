@@ -43,12 +43,19 @@ public final class LogRecord {
     private final int nodeLogsCount;       // number of node-log items (cheap, no value parsing)
     private final boolean hasNaN;          // node-logs contain a NaN value (anomaly cue)
     private final boolean hasBreach;       // node-logs contain a "...Breach: true" (anomaly cue)
+    /**
+     * UPS-1: the 1-based line, within {@link #rawText()}, where this record's own structure breaks — a value written
+     * unquoted with a line break in it — or 0 for a whole record. A broken record's node logs are NOT READ, which is
+     * not the same as "no node logged": surfaces say which.
+     */
+    private final int brokenAtLine;
 
     private final String rawText;
     private final Supplier<NodeLogData> nodeLogDataSupplier;
     private volatile NodeLogData nodeLogData;   // entries and positions memoised together
 
     private LogRecord(Builder b) {
+        this.brokenAtLine = b.brokenAtLine;
         this.fileOffset = b.fileOffset;
         this.byteLength = b.byteLength;
         this.eventTime = b.eventTime;
@@ -129,11 +136,14 @@ public final class LogRecord {
     public boolean hasNaN()       { return hasNaN; }
     public boolean hasBreach()    { return hasBreach; }
     public String rawText()       { return rawText; }
+    /** 0 for a whole record; otherwise the line where its structure breaks and its node logs were not read (UPS-1). */
+    public int brokenAtLine()     { return brokenAtLine; }
 
     public static Builder builder() { return new Builder(); }
 
     /** Mutable builder used by the parser (and tests). */
     public static final class Builder {
+        private int brokenAtLine;
         private long fileOffset;
         private int byteLength;
         private Long eventTime, logTime, endTime;
@@ -169,6 +179,7 @@ public final class LogRecord {
         public Builder hasNaN(boolean v) { this.hasNaN = v; return this; }
         public Builder hasBreach(boolean v) { this.hasBreach = v; return this; }
         public Builder rawText(String v) { this.rawText = v; return this; }
+        public Builder brokenAtLine(int v) { this.brokenAtLine = v; return this; }
         public Builder nodeLogsSupplier(Supplier<List<NodeLog>> v) { this.nodeLogsSupplier = v; return this; }
         public Builder nodeLogDataSupplier(Supplier<NodeLogData> v) { this.nodeLogDataSupplier = v; return this; }
 

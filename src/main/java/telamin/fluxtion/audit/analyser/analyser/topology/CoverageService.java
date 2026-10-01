@@ -58,6 +58,7 @@ public final class CoverageService {
         Set<String> logged = new LinkedHashSet<>();
         List<String> levels = new ArrayList<>();
         int scanned = 0;
+        int withheld = 0;   // UPS-1: records in scope whose node logs were not read (review of 9474c687, finding 3)
         // Round 3, N1: the bound is fixed before the scan and reported, so a qualification built from this echo
         // knows exactly which log revision it describes even if Follow appends while the scan runs. Integration with
         // MA-8: the rows in view, and the level changes annotating them, are read within that same bound.
@@ -67,8 +68,10 @@ public final class CoverageService {
             if (filtered && currentFilter != null && !currentFilter.test(store.index(), row)) continue;
             inView[scanned] = row;
             scanned++;
-            levels.add(store.record(row).level());
-            for (var nodeLog : store.record(row).nodeLogs()) logged.add(nodeLog.instanceId());
+            var record = store.record(row);
+            levels.add(record.level());
+            if (record.brokenAtLine() > 0) withheld++;
+            for (var nodeLog : record.nodeLogs()) logged.add(nodeLog.instanceId());
         }
         NodeCoverage coverage = NodeCoverage.of(scope.loggable(), logged, Set.of());
         AuditLevel auditLevel = AuditLevel.of(levels);
@@ -128,11 +131,24 @@ public final class CoverageService {
             }
         }
 
+        // UPS-1 (review of 9474c687, finding 3): a broken record's node logs were WITHHELD, not absent. A node that wrote
+        // only in such records is still counted uncovered (annotate, never excuse), but no sentence may say it never
+        // wrote: output was recorded, and the analyser declined to read it.
+        String uncoveredReason = uncoveredReason(withheld);
+        if (withheld > 0) {
+            echo.put("nodeLogsWithheld", withheld);
+            echo.put("withheldNote", withheldNote(withheld));
+        }
         List<Map<String, Object>> never = new ArrayList<>();
-        for (String id : coverage.uncovered()) never.add(node(id, input.topology(), "uncovered",
-                "never wrote audit output in this scope"));
+        for (String id : coverage.uncovered()) never.add(node(id, input.topology(), "uncovered", uncoveredReason));
         echo.put("neverLogged", never);
-        echo.put("note", "a node appears here if it never wrote audit output. That is 'never logged', "
+        echo.put("note", withheld > 0
+                ? "a node appears here if none of its audit output was READ in this scope. " + withheld + " record(s) "
+                        + "here break their own structure and their node logs were withheld, so this is not "
+                        + "'never logged': whether these nodes wrote anything in those records is not known, and no "
+                        + "build setting makes absence conclusive until the producer quotes its values. The covered "
+                        + "count is a lower bound."
+                : "a node appears here if it never wrote audit output. That is 'never logged', "
                 + "not proven 'never ran' — a node with no auditLog call, or one whose dirty contract "
                 + "stops it early, is silent by design. Build with addEventAudit(LogLevel.TRACE) to make "
                 + "absence conclusive.");
@@ -149,8 +165,13 @@ public final class CoverageService {
         member.put("loggedIds", logged.size());
         member.put("declaredOfLogged", membership.matched().size());
         member.put("scope", filtered ? "current filter" : "whole log");
+        if (withheld > 0) member.put("nodeLogsWithheld", withheld);
         if (logged.isEmpty()) {
-            member.put("note", "no node output in scope, so no membership comparison was possible — this is "
+            member.put("note", withheld > 0
+                    ? "no node output was read in scope — " + withheld + " record(s) had their node logs withheld "
+                            + "because their structure breaks — so no membership comparison was possible. This is not "
+                            + "evidence that the graph describes the log, nor that the log wrote no node output"
+                    : "no node output in scope, so no membership comparison was possible — this is "
                     + "not evidence that the graph describes the log");
         }
         echo.put("membership", member);
@@ -180,7 +201,7 @@ public final class CoverageService {
             echo.put("frameworkNodesNotScored", fw);
         }
 
-        List<Map<String, Object>> ledger = ledger(input.topology(), input.authored(), scope, logged);
+        List<Map<String, Object>> ledger = ledger(input.topology(), input.authored(), scope, logged, uncoveredReason);
         // MA-8's report path: the ledger a report prints carries the same annotations the verb returns. The row
         // stays `uncovered` — annotate, never excuse (MA-8.2) — and gains the sentence; the notes say what it is not.
         for (Map<String, Object> row : ledger) {
@@ -196,15 +217,31 @@ public final class CoverageService {
         if (scope.note() != null) notes.add(scope.note());
         if (!coverage.uncovered().isEmpty() && auditLevel.note() != null) notes.add(auditLevel.note());
         if (echo.get("warning") != null) notes.add(echo.get("warning").toString());
+        if (withheld > 0) notes.add(withheldNote(withheld));
         String scalars = "declared " + coverage.declaredCount() + " · covered " + coverage.covered().size()
                 + " · uncovered " + coverage.uncovered().size() + " · ratio "
                 + (ratioAvailable ? echo.get("ratio") : "none (nothing eligible to score)")
-                + " · " + scanned + " records · scope: " + echo.get("scope");
+                + " · " + scanned + " records" + (withheld > 0 ? " (" + withheld + " with node logs withheld)" : "")
+                + " · scope: " + echo.get("scope");
         return new Result(echo, ledger, scalars, notes);
     }
 
+    /** The reason an uncovered node carries: "never wrote" only when every record in scope was read whole. */
+    static String uncoveredReason(int withheld) {
+        return withheld == 0 ? "never wrote audit output in this scope"
+                : "no audit output of it was read in this scope; " + withheld + " record(s) had their node logs "
+                + "withheld, so whether it wrote any is not known";
+    }
+
+    private static String withheldNote(int withheld) {
+        return withheld + " record(s) in scope break their own structure (a value written unquoted with a line break in "
+                + "it), so their node logs were withheld, not read. Coverage counts only what was read: covered is a "
+                + "lower bound, and an uncovered node may have written output in those records.";
+    }
+
     private static List<Map<String, Object>> ledger(ProcessorTopology topology, Set<String> authored,
-                                                     CoverageScope.Scope scope, Set<String> logged) {
+                                                     CoverageScope.Scope scope, Set<String> logged,
+                                                     String uncoveredReason) {
         List<Map<String, Object>> rows = new ArrayList<>();
         Set<String> included = new LinkedHashSet<>();
         included.addAll(scope.loggable());
@@ -212,22 +249,23 @@ public final class CoverageService {
         Set<String> seen = new LinkedHashSet<>();
         for (ProcessorTopology.Node node : topology.nodes()) {
             if (included.contains(node.id()) && seen.add(node.id())) {
-                rows.add(ledgerRow(node.id(), topology, scope, logged));
+                rows.add(ledgerRow(node.id(), topology, scope, logged, uncoveredReason));
             }
         }
         for (String id : new java.util.TreeSet<>(included)) {
-            if (seen.add(id)) rows.add(ledgerRow(id, topology, scope, logged));
+            if (seen.add(id)) rows.add(ledgerRow(id, topology, scope, logged, uncoveredReason));
         }
         return rows;
     }
 
     private static Map<String, Object> ledgerRow(String id, ProcessorTopology topology,
-                                                   CoverageScope.Scope scope, Set<String> logged) {
+                                                   CoverageScope.Scope scope, Set<String> logged,
+                                                   String uncoveredReason) {
         if (scope.excluded().containsKey(id)) {
             return node(id, topology, "excluded", scope.excluded().get(id));
         }
         return node(id, topology, logged.contains(id) ? "covered" : "uncovered",
-                logged.contains(id) ? "wrote audit output" : "never wrote audit output in this scope");
+                logged.contains(id) ? "wrote audit output" : uncoveredReason);
     }
 
     private static Map<String, Object> node(String id, ProcessorTopology topology, String status, String reason) {

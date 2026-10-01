@@ -94,7 +94,15 @@ public record ProducerDiagnostics(List<Finding> findings) {
          * M68.3 (D-E9): an item longer than the framing check reads, in which nothing suspicious was found in the part
          * it did read. The rest was NOT assessed — which is a limit to state, never a clean bill (acceptance 10).
          */
-        FRAMING_NOT_ASSESSED
+        FRAMING_NOT_ASSESSED,
+        /**
+         * UPS-1: a record's own structure breaks — a line less indented than its fields, a second record key, or a field
+         * repeated ({@link RecordBreak}). A value was written unquoted with a line break in it; measured with an
+         * operator-typed admin command argument in {@code eventToString} (mongoose 1.0.32, fluxtion 1.1.0). The record is
+         * read only up to the break and its node logs are not read, so this is what explains a node or event type that
+         * would otherwise have been forged.
+         */
+        BROKEN_VALUE
     }
 
     /** Findings that state a limit rather than report a fault: they reach the tooltip and context, never a glyph. */
@@ -220,6 +228,9 @@ public record ProducerDiagnostics(List<Finding> findings) {
         if (framingExplained) {
             out.removeIf(f -> f.kind() == Kind.FRAMING_NOT_ASSESSED);   // one root cause; the limit is moot beside it
         }
+        // UPS-1: before the "nothing logged" checks, because a broken record's node logs are deliberately not read.
+        // A second record key is what UNSEPARATED already names, so it is not named twice (one bug, one name).
+        brokenValues(idx, rawText, framingExplained).ifPresent(out::add);
         // Only worth saying when the log is not ALREADY explained by one of the others: a file that ran
         // together also has no node logs on rows 1..n-1, and saying both would be two names for one bug.
         boolean explained = out.stream().skip(damage).anyMatch(f -> !isNote(f.kind()));
@@ -381,9 +392,13 @@ public record ProducerDiagnostics(List<Finding> findings) {
         for (int row = 0; row < idx.size(); row++) {
             String text = rawText.apply(row);
             if (text == null || text.isEmpty()) continue;
+            // UPS-1: a record key that follows a broken value is that value's payload, not a further record — the break
+            // before it is what BROKEN_VALUE names. One cause, one name.
+            RecordBreak broken = RecordBreak.find(text);
+            if (broken != null && !broken.secondRecordKey()) continue;
             FramingScan scan = FramingScan.of(text, SCAN_LIMIT);
             if (scan.suspected()) {
-                out.add(new Finding(Kind.UNSEPARATED, suspectedMessage("record " + (row + 1), scan)));
+                out.add(new Finding(Kind.UNSEPARATED, suspectedMessage("record " + (row + 1), scan, true)));
                 return;
             }
             if (scan.truncated() && notAssessed == null) {
@@ -400,7 +415,7 @@ public record ProducerDiagnostics(List<Finding> findings) {
         FramingScan scan = FramingScan.of(pendingFrame, SCAN_LIMIT);
         if (scan.suspected()) {
             return java.util.Optional.of(new Finding(Kind.UNSEPARATED, suspectedMessage(
-                    "the record still being written (not yet ended by '---', and not counted)", scan)));
+                    "the record still being written (not yet ended by '---', and not counted)", scan, false)));
         }
         // Independent review R7: the indexed path said "NOT assessed" for a record too long to scan; the pending path
         // said nothing, so a long live frame read as checked. It is said here too — as pending, never as a record.
@@ -413,7 +428,7 @@ public record ProducerDiagnostics(List<Finding> findings) {
         return java.util.Optional.empty();
     }
 
-    private static String suspectedMessage(String where, FramingScan scan) {
+    private static String suspectedMessage(String where, FramingScan scan, boolean indexed) {
         int runTogether = scan.candidates().size() + 1;
         String lines = scan.candidates().size() <= 8 ? scan.candidates().toString()
                 : scan.candidates().subList(0, 8) + " and " + (scan.candidates().size() - 8) + " more";
@@ -425,7 +440,38 @@ public record ProducerDiagnostics(List<Finding> findings) {
                 + "is wrong and every record after the first is hidden. A text audit log is a sequence of documents "
                 + "separated by lines of '---' (Format specification §1). record.toString() does NOT write it — the "
                 + "sink must: append(\"---\\n\") before each record. If instead a value was written unquoted with a "
-                + "line break in it, quote it.";
+                + "line break in it, quote it." + (indexed ? " Either way the record is read only up to that line, and "
+                + "none of its node logs are read." : "");
+    }
+
+    /** How many broken records the finding names before it summarises the rest. */
+    private static final int BROKEN_NAMED = 5;
+
+    /**
+     * UPS-1: the records whose structure breaks, by record and line ({@link RecordBreak}). One finding for the log; the
+     * first few records are named, and the count says how many there are.
+     */
+    private static java.util.Optional<Finding> brokenValues(LogIndex idx, IntFunction<String> rawText,
+                                                            boolean recordKeysNamed) {
+        if (rawText == null) return java.util.Optional.empty();
+        List<String> named = new ArrayList<>();
+        int count = 0;
+        for (int row = 0; row < idx.size(); row++) {
+            RecordBreak b = RecordBreak.find(rawText.apply(row));
+            if (b == null || (recordKeysNamed && b.secondRecordKey())) continue;
+            count++;
+            if (named.size() < BROKEN_NAMED) {
+                named.add("record " + (row + 1) + " at its line " + b.line() + " (" + b.reason() + ")");
+            }
+        }
+        if (count == 0) return java.util.Optional.empty();
+        String which = String.join("; ", named) + (count > named.size() ? "; and " + (count - named.size()) + " more" : "");
+        return java.util.Optional.of(new Finding(Kind.BROKEN_VALUE, (count == 1 ? "1 record breaks its" : count
+                + " records break their") + " own structure: " + which + ". A value was written unquoted with a line "
+                + "break in it — for example operator-typed text in eventToString, such as an admin command's arguments — "
+                + "so the lines after the break cannot be told apart from the record's own fields. Each such record is "
+                + "read only up to its break, and none of its node logs are read; its full text is in the record detail. "
+                + "Fix it at the producer: quote or escape line breaks in values (Format specification §2)."));
     }
 
     /** Records exist and not one of them carries a node log. */

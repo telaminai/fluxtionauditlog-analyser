@@ -5252,6 +5252,7 @@ public final class MainFrame extends JFrame {
         loadedLogIdentity = List.of();
         loggedNodeSample = java.util.Set.of();   // the sample described THAT log too
         loggedSampleScanned = 0;
+        loggedSampleWithheld = 0;
         observedLevel = null;
         declinedSourceGraph = null;    // review N1: that offer came with the log that just closed
         flaggedRows.clear();
@@ -5396,7 +5397,7 @@ public final class MainFrame extends JFrame {
         boolean followable = !S3Source.isS3(location) && loaded.supportsFollow();
         driver.submit(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogOpened(opId, location, provenance,
                 arrival.ids(), arrival.scanned(), arrival.total(), level == null ? null : level.toString(),
-                provenanceSource, followable));
+                provenanceSource, followable, arrival.withheld()));
         if (driver.processor().operationGate.accepted()) sessionLogGeneration = driver.snapshot().logGeneration();
         if (!driver.processor().operationGate.accepted()) {
             supersedeRecoveryLog(opId);
@@ -5648,20 +5649,24 @@ public final class MainFrame extends JFrame {
      * session's observation each used to run their own first-{@value #PAIRING_SAMPLE}-records loop, so nothing
      * stopped them drifting apart; they now all call this, and a sampled parity test holds them to one verdict.
      */
-    private record LoggedSample(java.util.Set<String> ids, int scanned, int total, java.util.List<String> levels) { }
+    /** UPS-1: {@code withheld} sampled records had their node logs withheld; the ids are what was read (finding 3). */
+    private record LoggedSample(java.util.Set<String> ids, int scanned, int total, java.util.List<String> levels,
+                                int withheld) { }
 
     private static LoggedSample sampleLoggedIds(LogStore log) {
         java.util.Set<String> logged = new java.util.LinkedHashSet<>();
         java.util.List<String> levels = new java.util.ArrayList<>();
-        if (log == null) return new LoggedSample(logged, 0, 0, levels);
+        if (log == null) return new LoggedSample(logged, 0, 0, levels, 0);
         int total = log.size();
         int scan = Math.min(total, PAIRING_SAMPLE);
+        int withheld = 0;
         for (int row = 0; row < scan; row++) {
             var record = log.record(row);
             levels.add(record.level());
+            if (record.brokenAtLine() > 0) withheld++;
             for (var nodeLog : record.nodeLogs()) logged.add(nodeLog.instanceId());
         }
-        return new LoggedSample(logged, scan, total, levels);
+        return new LoggedSample(logged, scan, total, levels, withheld);
     }
 
     /**
@@ -5689,11 +5694,17 @@ public final class MainFrame extends JFrame {
         // opened it. It is kept because it arrived with this log and is the source's own claim.
         boolean opened = topologyPanel.graphSource()
                 == telamin.fluxtion.audit.analyser.analyser.topology.GraphSource.OPENED;
+        // UPS-1: this line used to REPLACE the log's line, so opening a graph with or after a log dropped every producer
+        // and time-order warning from the bar (a broken record, run-together records, a missing record key) — the
+        // findings stayed in `context` and the tooltip while the bar read clean. The session's warnings are kept here.
+        var evidence = session().snapshot();
         status.setText(store.size() + " records · graph " + name + (pairing.applies()
                 ? " · " + pairing.reason()
                 : "  ·  ⚠ " + pairing.reason() + (opened
                         ? " — kept, you opened it deliberately"
-                        : " — kept, the source supplied it with this log")));
+                        : " — kept, the source supplied it with this log"))
+                + (evidence.timeOrder() == null ? "" : orderWarning(evidence.timeOrder()))
+                + producerWarning(evidence.producerFindings()));
         return pairing;
     }
 
@@ -5877,7 +5888,7 @@ public final class MainFrame extends JFrame {
         if (session == null || store == null) return;
         refreshLoggedNodeSample();
         session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogAppended(sessionLogGeneration, loggedNodeSample,
-                loggedSampleScanned, store.size(), observedAuditLevel()));
+                loggedSampleScanned, store.size(), observedAuditLevel(), loggedSampleWithheld));
     }
 
     /**
@@ -6153,6 +6164,9 @@ public final class MainFrame extends JFrame {
                 // M68.3: a framing finding is a SUSPICION, and the label on the bar says so like the message does
                 .map(f -> "  ·  ⚠ " + (f.kind() == telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics.Kind.UNSEPARATED
                                 ? "suspected missing record separators"
+                                // UPS-1: says what happened, in words, rather than the enum's name
+                                : f.kind() == telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics.Kind.BROKEN_VALUE
+                                ? "a value broke its record"
                                 : f.kind().name().toLowerCase(java.util.Locale.ROOT).replace('_', ' '))
                         + " — ask 'context', or hover")
                 .orElse("");
@@ -7450,6 +7464,7 @@ public final class MainFrame extends JFrame {
      */
     private java.util.Set<String> loggedNodeSample = java.util.Set.of();
     private int loggedSampleScanned;
+    private int loggedSampleWithheld;
 
     /**
      * The most verbose level any record in the sample was written at — a LOWER BOUND on the capture
@@ -7466,6 +7481,7 @@ public final class MainFrame extends JFrame {
         LoggedSample sample = sampleLoggedIds(store);          // round 3, O-c: the same sample as the frame's
         loggedNodeSample = sample.ids();
         loggedSampleScanned = sample.scanned();
+        loggedSampleWithheld = sample.withheld();
         observedLevel = telamin.fluxtion.audit.analyser.analyser.topology.AuditLevel.of(sample.levels()).mostVerbose();
     }
 

@@ -79,7 +79,7 @@ public record FramingScan(List<Integer> candidates, int inspectedChars, int insp
      * close on a lone {@code '} ({@code ''} is an escaped quote). Outside a quote, a quote opens only at a value
      * position — so ordinary prose with an apostrophe never opens one.
      */
-    private static char quoteStateAfter(String s, int start, int end, char open) {
+    static char quoteStateAfter(String s, int start, int end, char open) {   // shared with RecordBreak (UPS-1)
         int k = start;
         boolean valuePosition = open == 0;          // the start of a line is a value position (indentation skipped)
         while (k < end) {

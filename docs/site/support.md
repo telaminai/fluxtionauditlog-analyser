@@ -32,7 +32,7 @@ you can answer questions about a night you were asleep for.
 
 ## "Nothing is in the log"
 
-Before assuming the system was quiet, check that the log is *whole*. Opening one runs three checks and
+Before assuming the system was quiet, check that the log is *whole*. Opening one runs these checks and
 reports what it finds in the status bar — hover it for the full sentence, which names the fix:
 
 - **records run together** — the file is missing its `---` separators, so however many records it
@@ -41,8 +41,12 @@ reports what it finds in the status bar — hover it for the full sentence, whic
 - **no `nodeLogs` in any record** — the processor was built without audit logging installed, so there
   is nothing to read, filter or plot. The run happened; the narration did not.
 - **only `EventLogControlEvent`** — the log contains the audit configuration and none of the run.
+- **a value broke its record** — a value was written unquoted with a line break in it (for example an admin
+  command's arguments in `eventToString`), so the lines after the break could be mistaken for the record's own
+  fields. The record is read only up to the break and none of its node logs are read; the message names the
+  record and the line.
 
-All three are faults in how the log was *produced*, not in what the system did. Send the message
+All of these are faults in how the log was *produced*, not in what the system did. Send the message
 back to whoever owns the export — it names the cause and the fix — rather than debugging a shortage of
 evidence. See [Producing an audit log](producing-a-log.md).
 

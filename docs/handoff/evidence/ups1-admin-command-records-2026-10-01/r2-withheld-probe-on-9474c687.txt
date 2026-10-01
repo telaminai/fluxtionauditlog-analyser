@@ -1,0 +1,6 @@
+PROBE coverage.neverLogged=[{instanceId=alarmPublisher, class=com.telamin.mongoose.replay.generated.AlarmNodes$AlarmPublisher, status=uncovered, reason=never wrote audit output in this scope}]
+PROBE coverage.note=a node appears here if it never wrote audit output. That is 'never logged', not proven 'never ran' — a node with no auditLog call, or one whose dirty contract stops it early, is silent by design. Build with addEventAudit(LogLevel.TRACE) to make absence conclusive.
+PROBE membership={basis=every declared node vertex in the graph (14), established=true, loggedIds=1, declaredOfLogged=1, scope=whole log}
+PROBE pairing=no node output was recorded in the records checked, so no membership comparison was possible — the graph is kept, not confirmed
+PROBE csv.row1=2026-10-01 07:49:47.397,2026-10-01 07:49:47.397,2026-10-01 07:49:47.398,AdminCommandEvent,,"AdminCommandEvent[command=alarm.lambda, args=[DEMO",processor-agent,1
+PROBE table.nodeLogs=1

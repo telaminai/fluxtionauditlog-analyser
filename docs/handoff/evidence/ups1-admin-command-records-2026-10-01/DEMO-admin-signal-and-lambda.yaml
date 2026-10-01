@@ -1,0 +1,58 @@
+eventLogRecord: 
+    eventTime: 1790840660154
+    logTime: 1790840660154
+    groupingId: null
+    event: Reading
+    eventToString: Reading[value=12.0]
+    thread: processor-agent
+    nodeLogs: 
+        - alarmMonitor: { value: 12.0, raised: true}
+        - alarmPublisher: { published: true, changes: 1}
+    endTime: 1790840660156
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1790840660196
+    groupingId: null
+    event: Signal
+    eventToString: Signal: {filterString: admin:alarm.reset, value: AdminCommandRequest(command=alarm.reset, arguments=[DEMO-operator])}
+    thread: processor-agent
+    eventFilter: admin:alarm.reset
+    nodeLogs: 
+        - alarmMonitor: { reset: true, resetBy: [DEMO-operator]}
+        - alarmPublisher: { published: false, changes: 2}
+    endTime: 1790840660196
+---
+eventLogRecord: 
+    eventTime: 1790840660231
+    logTime: 1790840660231
+    groupingId: null
+    event: Reading
+    eventToString: Reading[value=12.0]
+    thread: processor-agent
+    nodeLogs: 
+        - alarmMonitor: { value: 12.0, raised: true}
+        - alarmPublisher: { published: true, changes: 3}
+    endTime: 1790840660231
+---
+eventLogRecord: 
+    eventTime: 1790840660270
+    logTime: 1790840660270
+    groupingId: null
+    event: AdminCommandEvent
+    eventToString: AdminCommandEvent[command=alarm.lambda, args=[DEMO-operator]]
+    thread: processor-agent
+    nodeLogs: 
+        - alarmMonitor: { lambdaReset: true, at: 1790840660270}
+    endTime: 1790840660271
+---
+eventLogRecord: 
+    eventTime: 1790840660328
+    logTime: 1790840660328
+    groupingId: null
+    event: Reading
+    eventToString: Reading[value=5.0]
+    thread: processor-agent
+    nodeLogs: 
+        - alarmMonitor: { value: 5.0, raised: false}
+    endTime: 1790840660329

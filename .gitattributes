@@ -12,6 +12,8 @@ docs/handoff/evidence/tool-agreement-2026-09-21/end-marker-integration-resolutio
 # off every check for its file. Round five asked for the narrow form here: this fixture should still be
 # caught if it ever grows a tab-space indent fault, and only its trailing spaces are deliberate.
 src/test/resources/conformance/c21-real-export.yaml whitespace=-blank-at-eol
+# UPS-1: c31 is also a real Mongoose export (1.0.32 through mongoose-plugins 1.0.45), kept byte for byte.
+src/test/resources/conformance/c31-broken-value.yaml whitespace=-blank-at-eol
 
 # Preserve Maven's raw failing output, including its '[ERROR] ' line endings.
 docs/handoff/evidence/project-chart-review-fix-2026-09-24/before.txt whitespace=-blank-at-eol
@@ -34,3 +36,6 @@ docs/handoff/evidence/m68-1-rereview-2026-09-24/set7-p38-e2e-4251bae3.txt whites
 # MA-0's whitespace-only fixture is three blank lines and nothing else: the blank lines at its end ARE the fixture.
 # Only the end-of-file check is switched off, so a trailing space or a tab-space fault would still be caught.
 src/test/resources/conformance/c27-whitespace-only.yaml whitespace=-blank-at-eof
+
+# UPS-1 captures, kept byte for byte as the producer wrote them.
+docs/handoff/evidence/ups1-admin-command-records-2026-10-01/*.yaml whitespace=-blank-at-eol

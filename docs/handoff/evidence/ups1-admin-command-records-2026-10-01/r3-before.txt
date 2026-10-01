@@ -1,0 +1,9 @@
+# R3 regressions on unchanged 95bca345 production code
+
+JDK 21; mvn -o -q test -Dtest=RecordRepeatedScalarTest
+
+total / failures / errors / skips: 3 / 3 / 0 / 0
+
+threadPayloadMustNotBecomeEndTime — thread's forged first endTime must be withheld when event text is disabled ==> expected: <null> but was: <999>
+groupingIdPayloadMustNotBecomeEvent — groupingId's forged first event must be withheld, not presented as evidence ==> expected: <null> but was: <Forged>
+aLaterRepeatWithholdsItsFirstCopyEvenAfterAnEarlierBreak — a repeat after the first break still withholds the earlier forged event ==> expected: <null> but was: <Forged>

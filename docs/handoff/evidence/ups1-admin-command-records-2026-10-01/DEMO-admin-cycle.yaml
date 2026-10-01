@@ -1,0 +1,34 @@
+eventLogRecord: 
+    eventTime: 1790840666260
+    logTime: 1790840666260
+    groupingId: null
+    event: Reading
+    eventToString: Reading[value=12.0]
+    thread: processor-agent
+    nodeLogs: 
+        - alarmMonitor: { value: 12.0, raised: true}
+        - alarmPublisher: { published: true, changes: 1}
+    endTime: 1790840666260
+---
+eventLogRecord: 
+    eventTime: 1790840666301
+    logTime: 1790840666301
+    groupingId: null
+    event: AdminCommandEvent
+    eventToString: AdminCommandEvent[command=alarm.refresh, args=[]]
+    thread: processor-agent
+    nodeLogs: 
+        - alarmMonitor: { refreshRequested: true}
+    endTime: 1790840666302
+---
+eventLogRecord: 
+    eventTime: 1790840666302
+    logTime: 1790840666302
+    groupingId: null
+    event: Reading
+    eventToString: Reading[value=5.0]
+    thread: processor-agent
+    nodeLogs: 
+        - alarmMonitor: { value: 5.0, raised: false}
+        - alarmPublisher: { published: false, changes: 2}
+    endTime: 1790840666302

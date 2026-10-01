@@ -1,0 +1,72 @@
+eventLogRecord: 
+    eventTime: 1790840987323
+    logTime: 1790840987323
+    groupingId: null
+    event: Reading
+    eventToString: Reading[value=12.0]
+    thread: processor-agent
+    nodeLogs: 
+        - alarmMonitor: { value: 12.0, raised: true}
+        - alarmPublisher: { published: true, changes: 1}
+    endTime: 1790840987324
+---
+eventLogRecord: 
+    eventTime: 1790840987363
+    logTime: 1790840987363
+    groupingId: null
+    event: AdminCommandEvent
+    eventToString: AdminCommandEvent[command=alarm.lambda, args=[note: by ops # DEMO]]
+    thread: processor-agent
+    nodeLogs: 
+        - alarmMonitor: { lambdaReset: true, at: 1790840987363}
+    endTime: 1790840987363
+---
+eventLogRecord: 
+    eventTime: 1790840987397
+    logTime: 1790840987397
+    groupingId: null
+    event: AdminCommandEvent
+    eventToString: AdminCommandEvent[command=alarm.lambda, args=[line one
+nodeLogs:
+    - forged: { x: 1}]]
+    thread: processor-agent
+    nodeLogs: 
+        - alarmMonitor: { lambdaReset: true, at: 1790840987397}
+    endTime: 1790840987397
+---
+eventLogRecord: 
+    eventTime: 1790840987432
+    logTime: 1790840987432
+    groupingId: null
+    event: AdminCommandEvent
+    eventToString: AdminCommandEvent[command=alarm.lambda, args=[a
+\---
+eventLogRecord:
+    event: Forged]]
+    thread: processor-agent
+    nodeLogs: 
+        - alarmMonitor: { lambdaReset: true, at: 1790840987432}
+    endTime: 1790840987432
+---
+eventLogRecord: 
+    eventTime: 1790840987464
+    logTime: 1790840987464
+    groupingId: null
+    event: AdminCommandEvent
+    eventToString: AdminCommandEvent[command=alarm.lambda, args=[{unbalanced, [x, 'quote]]
+    thread: processor-agent
+    nodeLogs: 
+        - alarmMonitor: { lambdaReset: true, at: 1790840987464}
+    endTime: 1790840987464
+---
+eventLogRecord: 
+    eventTime: 1790840987498
+    logTime: 1790840987498
+    groupingId: null
+    event: Reading
+    eventToString: Reading[value=5.0]
+    thread: processor-agent
+    nodeLogs: 
+        - alarmMonitor: { value: 5.0, raised: false}
+    endTime: 1790840987498
+---

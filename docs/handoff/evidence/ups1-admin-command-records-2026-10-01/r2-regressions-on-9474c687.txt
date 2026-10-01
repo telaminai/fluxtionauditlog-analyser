@@ -1,0 +1,22 @@
+RecordStructureReviewTest on 9474c687: 14 / 12 / 0 / 0
+  deepPayloadMustNotInventNode : FAILURE | the record is broken ==> expected: <true> but was: <false>
+  aCommentAfterTheFieldsIsNotTheHeader : FAILURE | no forged logger ==> expected: <null> but was: <forged.logger>
+  deepScalarMustNotReplaceAField : FAILURE | the record is broken ==> expected: <true> but was: <false>
+  aDeeperNodeLineIsNeverAField : FAILURE | a line inside the node block is never the event ==> expected: <AdminCommandEvent> but was: <Forged>
+  theExportedServiceAllowanceIsExact : PASS
+  theGeneratorsExportedServiceRecordIsWhole : FAILURE | the generator's own line break is not a broken value ==> expected: <0> but was: <7>
+  aMidRecordByteOrderMarkIsABreak : PASS
+  quotedNodeValueMustNotReplaceEvent : FAILURE | the event is the producer's: "…event: Forged ==> expected: <AdminCommandEvent> but was: <Forged>
+  anUnknownFieldAfterTheNodeLogsEndsTheBlock : FAILURE | the node's value is its own, whole ==> expected: <17.1> but was: <17.1} anotherFutureField: { nested: true>
+  theTypedGrammarIsNeverExempt : FAILURE | the record is broken ==> expected: <true> but was: <false>
+  theEarliestWithheldLineWins : FAILURE | neither endTime is read: the first copy may be the forged one ==> expected: <null> but was: <999>
+  deepPayloadWithCrlfOrTabsMustNotInventNode : FAILURE | the record is broken ==> expected: <true> but was: <false>
+  aFieldBeforeAnyValueTextIsTheProducers : FAILURE | the producer's eventTime, written before eventToString ==> expected: <1> but was: <null>
+  ignoredNestingsAreWhole : FAILURE | eventLogRecord:
+    logTime: 1
+    event: Tick
+    futureBlock:
+        nodeLogs:
+            - forged: { x: 1}
+    nodeLogs:
+        - book: { mid: 1} ==> expected: <[book]> but was: <[forged, book]>

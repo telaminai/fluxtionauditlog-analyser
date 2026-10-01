@@ -59,8 +59,10 @@ mongoose-plugins **1.0.45** (separator escaping, #39). The 2026-09-27 order is i
 
 ## Upstream releases to absorb — 2026-10-01
 
-- [UPS-1] ☐ **Admin commands now audit as their own record** (fluxtion 1.1.0, compiler 1.0.76, mongoose 1.0.32). Capture
-  a real log with an admin command and check framing, coverage, topology and the table; then close mongoose#45.
+- [UPS-1] ◧ **Admin commands audit as their own record** — PR #92: a line break in an argument forged a node and an event
+  type; now one structural rule and withheld-not-absent (C31, C32). [Evidence](../handoff/evidence/ups1-admin-command-records-2026-10-01/RESULTS-r2.md); close mongoose#45 on merge.
+- [UPS-1a] ☐ **Upstream: quote line breaks in values** — [UP-FLX-55](../proposals/upstream-asks.md); the raw record stream
+  (no export escaping) still splits on a `---` inside a value, which is MA-7's framing fault.
 - [UPS-2] ◧ **Fixtures on the released stack** — PR #104: runtime 1.1.0 / builder 1.0.76; test fixtures and session processor
   regenerated; review R1 fixed. [Evidence](../handoff/evidence/ups2-released-stack-2026-10-01/RESULTS.md). Owner: the start-page DEMO set.
 - [UPS-2a] ☐ Review of PR #104, follow-ups: N2 (the source/GraphML test checks seven names, not generation identity) and
