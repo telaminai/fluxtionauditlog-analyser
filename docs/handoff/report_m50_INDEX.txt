@@ -37,8 +37,8 @@ TWO FACTS THAT WILL WASTE YOUR TIME IF YOU DO NOT KNOW THEM
   WAS run for the maven plugin, and doing so changed the answer to which repo that is — see that brief.
 
 WHERE THE ARGUMENT LIVES
-  docs/specs/spec-generated-dispatch-performance.md  — Parts I-IV; §19 is the consolidated work list
-  docs/specs/spec-manifest-optimisation-metadata.md  — W14 in full
+  docs/proposals/upstream-specs/spec-generated-dispatch-performance.md  — Parts I-IV; §19 is the consolidated work list
+  docs/proposals/upstream-specs/spec-manifest-optimisation-metadata.md  — W14 in full
   docs/experience/runs/round-58/NOTES.md             — the evidence, ~700 runs, 19 addenda
 
   Round 58 produced FOUR wrong headline figures before the right one. All four are preserved in the

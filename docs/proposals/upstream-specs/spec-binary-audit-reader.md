@@ -1,5 +1,7 @@
 # Spec — `fluxtion-audit-reader`, a binary audit log reader that is itself a Fluxtion processor
 
+**Moved 2026-10-01** from `docs/specs/` to `docs/proposals/upstream-specs/`: owned by fluxtion-compiler; this repository keeps the evidence. Tracker: M52.
+
 **Status:** PROPOSED · **Owner:** fluxtion-compiler (new module) · **Repo:** `telaminai/fluxtion-compiler`
 **Depends on:** [`spec-binary-audit-encoding.md`](spec-binary-audit-encoding.md) §6.3 (the wire format)
 **Blocks:** that spec's §10 step 6 — `LOW_LATENCY_AUDIT` cannot select the binary record until something

@@ -1,8 +1,10 @@
 # SPEC — manifest optimisation metadata: integrating a jar without introspecting it
 
+**Moved 2026-10-01** from `docs/specs/` to `docs/proposals/upstream-specs/`: owned by fluxtion-builder and fluxtion-maven-plugin; this repository keeps the evidence. Tracker: M50.
+
 **Status** PROPOSED · **Item** M50/W14 · **Date** 2026-09-06
 **Target** `fluxtion-builder` (the analysis) exposed by a new goal in `fluxtion-maven-plugin` (the adapter)
-**Evidence** [`round-58`](../experience/runs/round-58/NOTES.md) · **Plan**
+**Evidence** [`round-58`](../../experience/runs/round-58/NOTES.md) · **Plan**
 [`spec-generated-dispatch-performance.md`](spec-generated-dispatch-performance.md) Part IV
 
 **Paired document:** [`spec-component-catalogue.md`](spec-component-catalogue.md) owns *capability*
@@ -62,7 +64,7 @@ and a trust system.
 **R3 — Generated, never hand-written.** A hand-maintained attribute is a second authority for a
 derivable fact, and it rots silently. Reinforced by a live defect: a manifest without a trailing
 newline **loses its last attribute** with no error
-([walkthrough](spec-authoring-session-walkthrough.md)). The emitter must be the only writer.
+([walkthrough](../../specs/spec-authoring-session-walkthrough.md)). The emitter must be the only writer.
 
 **R4 — The consumer holds the bytecode and must be able to re-check.** Every attribute in §5 carries
 a normative derivation rule precise enough for an independent implementation to recompute it and get

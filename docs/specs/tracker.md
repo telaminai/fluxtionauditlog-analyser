@@ -1152,8 +1152,8 @@ _The M50 working-directory brief that sat here (a 2026-09 review snapshot) moved
 
 ## M52 · Binary audit encoding + the reader that makes it usable — ◑ PART SHIPPED 2026-09-09, cross-repo
 
-Specs: **[spec-binary-audit-encoding.md](spec-binary-audit-encoding.md)** (core + mongoose) and
-**[spec-binary-audit-reader.md](spec-binary-audit-reader.md)** (a new `fluxtion-audit-reader` module in
+Specs: **[spec-binary-audit-encoding.md](../proposals/upstream-specs/spec-binary-audit-encoding.md)** (core + mongoose) and
+**[spec-binary-audit-reader.md](../proposals/upstream-specs/spec-binary-audit-reader.md)** (a new `fluxtion-audit-reader` module in
 the compiler repo). Evidence: `docs/experience/runs/round-63/NOTES.md` §6–§8, §33–§36.
 
 The measurement that motivated this said **94% of JIT cost and 98% of native was building a text audit
@@ -1203,7 +1203,7 @@ own decoder? Now sharper than when it was written, because the CLI's decoder exi
 
 ## M51 · The native-ready starter template — ☐ SPEC DRAFTED, cross-repo
 
-Spec: **[spec-native-ready-template.md](spec-native-ready-template.md)**. Raised by the owner
+Spec: **[spec-native-ready-template.md](../proposals/upstream-specs/spec-native-ready-template.md)**. Raised by the owner
 2026-09-07: the playground template the analyser downloads should be *the best one for native use*.
 
 Read live: the catalogue entry named **"Fluxtion AOT (native-ready)"** carries `compileMode: "aot"` and
@@ -1237,7 +1237,7 @@ pathway the catalogue exists to serve.
 
 ## M50 · Compiler & runtime optimisation — ◧ PERFORMANCE SPINE SHIPPED (runtime 1.0.15, compiler 1.0.67); determinism spine not started
 
-Spec: **[spec-generated-dispatch-performance.md](spec-generated-dispatch-performance.md)** — Part IV §19
+Spec: **[spec-generated-dispatch-performance.md](../proposals/upstream-specs/spec-generated-dispatch-performance.md)** — Part IV §19
 is the single work list. Evidence: **[round-58](../experience/runs/round-58/NOTES.md)**, ~700 measured
 runs across 9 runtimes, disassembly, every wrong answer preserved. Cross-repo: **UP-FLX-49**.
 
@@ -1340,7 +1340,7 @@ _**The hazard is documented on the flag** — a subclass overriding `eventReceiv
 `false` loses its callbacks silently, so overriding a callback means overriding the flag._
 
 **[M50.11] ☐ W14 — manifest optimisation metadata** · SPEC COMPLETE 2026-09-06 ·
-_[spec-manifest-optimisation-metadata.md](spec-manifest-optimisation-metadata.md). The facts W4/W5/W11/W13c
+_[spec-manifest-optimisation-metadata.md](../proposals/upstream-specs/spec-manifest-optimisation-metadata.md). The facts W4/W5/W11/W13c
 would otherwise rediscover by scanning vendor bytecode are computed once by the component's own build and
 published in its manifest. **R2 — absence is not a claim:** every attribute is three-valued and unknown
 POISONS the graph-level fold, so a build cannot become permissive by adding an unanalysed dependency.
@@ -1358,7 +1358,7 @@ is derivable and an attribute would be a second authority. Net: one new annotati
 on existing ones — the opposite of the first answer on both counts._
 
 _**W14a0 — the `fluxtion:catalogue` goal does not exist.** The plugin's three mojos all generate a
-processor; it writes no manifest entries at all. W14 and [spec-component-catalogue.md](spec-component-catalogue.md)
+processor; it writes no manifest entries at all. W14 and [spec-component-catalogue.md](../proposals/upstream-specs/spec-component-catalogue.md)
 therefore share one piece of new machinery and must agree on it (spec §2, §10.1). Analysis belongs in
 `fluxtion-builder` so the same code serves the producing build and the consumer's verification pass; the mojo
 is an adapter. Worktree `~/IdeaProjects/telamin/worktrees/mavenplugin-w14`, branch
@@ -2402,7 +2402,7 @@ decomposed by them and is not measured.
 Specs: **[`spec-authoring-modes.md`](spec-authoring-modes.md)** (the taxonomy, the owner's eleven items,
 the delivery order), **[`spec-authoring-mode-selector.md`](spec-authoring-mode-selector.md)** (the end
 state, the handoff contract, the analyser's role),
-**[`spec-builder-component-resolution.md`](spec-builder-component-resolution.md)** (the builder-owned
+**[`spec-builder-component-resolution.md`](../proposals/upstream-specs/spec-builder-component-resolution.md)** (the builder-owned
 resolver, typed Spring document and production acceptance gates),
 **[`spec-authoring-session-walkthrough.md`](spec-authoring-session-walkthrough.md)** (four sessions, real
 output). Evidence: `docs/experience/runs/round-5[3-7]/`.
@@ -2448,7 +2448,7 @@ the declared surface cannot decide, it reports the ambiguity and refuses to gues
 - [M48.13] ☐ **compiler-generated component manifests** — today's are hand-authored. Until the build
       emits them, the resolver result is conditional on a convention nobody's toolchain enforces.
       **Stage 2.** Implementation belongs in the existing `fluxtion-builder` jar and is exposed by the
-      Maven plugin. Spec: [`spec-component-catalogue.md`](spec-component-catalogue.md).
+      Maven plugin. Spec: [`spec-component-catalogue.md`](../proposals/upstream-specs/spec-component-catalogue.md).
 - [M48.14] ☐ **resolver + Spring document productisation** — the Python prototype now has **24 smoke
       checks wired into CI**, including reviewed cycle, identity and machine-readable-path regressions;
       that does not substitute for the production test matrix. Port one typed resolution authority to
@@ -2457,7 +2457,7 @@ the declared surface cannot decide, it reports the ambiguity and refuses to gues
       consumer. Builder main remains Java 8 compatible; the Java parser is a desktop build/API surface,
       with a CheerpJ load-and-normal-compile smoke gate because its classes share the browser-loaded jar.
       `Fluxtion-Consumes` remains parsed and unused in solving. Spec:
-      [`spec-builder-component-resolution.md`](spec-builder-component-resolution.md).
+      [`spec-builder-component-resolution.md`](../proposals/upstream-specs/spec-builder-component-resolution.md).
 - [M48.15] ☐ **one-command experiment reproduction** — round 57 lacks its jar workspace; M49 lacks a
       run script, pinned dependency provenance and raw output for several tables.
 - [M48.16] ☐ **measure goal → formal requirements** — **the largest evidence gap.** Every round in
@@ -2533,7 +2533,7 @@ name in different packages emit uncompilable code with no diagnostic; a componen
   Builder main remains Java 8 compatible; the JDK parser is not a browser surface, and a CheerpJ smoke
   test guards against breaking the jar that the playground loads. `fluxtion-runtime` is untouched.
   Canonical production spec:
-  [`spec-builder-component-resolution.md`](spec-builder-component-resolution.md).
+  [`spec-builder-component-resolution.md`](../proposals/upstream-specs/spec-builder-component-resolution.md).
 
 - **The commercial model, and where the analyser sits in it** _(owner, 2026-09-01)_. Recorded because it
   bears on **D-S1.2**, the open licence choice that blocks a release, and because the reasoning would

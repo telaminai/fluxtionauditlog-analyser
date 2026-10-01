@@ -167,7 +167,7 @@ not grow the always-on context.
 
 **R5 — a catalogue-generating build MUST fail** if two entry points share a type surface and either
 declares no `Fluxtion-Convention`, since silence is not a match and an undeclared variant becomes
-unselectable. (Belongs in [`spec-component-catalogue.md`](spec-component-catalogue.md).)
+unselectable. (Belongs in [`spec-component-catalogue.md`](../proposals/upstream-specs/spec-component-catalogue.md).)
 
 ## What is built, and what is not
 

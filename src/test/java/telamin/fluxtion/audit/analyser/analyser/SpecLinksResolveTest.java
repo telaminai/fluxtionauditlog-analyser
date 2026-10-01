@@ -36,7 +36,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class SpecLinksResolveTest {
 
-    private static final Path SPECS = Path.of("docs/specs");
+    /** The spec directory, and the upstream-owned specs moved out of it (2026-10-01) — still ours to keep linked. */
+    private static final List<Path> ROOTS = List.of(Path.of("docs/specs"), Path.of("docs/proposals/upstream-specs"));
 
     /** A markdown link to a relative {@code .md}, ignoring anchors, URLs and mail links. */
     private static final Pattern LINK = Pattern.compile("\\[[^\\]]*\\]\\(([^)#:]+\\.md)[^)]*\\)");
@@ -59,10 +60,12 @@ class SpecLinksResolveTest {
 
     private static List<Link> allLinks() throws IOException {
         List<Link> links = new ArrayList<>();
-        try (Stream<Path> files = Files.walk(SPECS)) {
-            for (Path md : files.filter(p -> p.toString().endsWith(".md")).toList()) {
-                Matcher m = LINK.matcher(Files.readString(md));
-                while (m.find()) links.add(new Link(md, m.group(1)));
+        for (Path root : ROOTS) {
+            try (Stream<Path> files = Files.walk(root)) {
+                for (Path md : files.filter(p -> p.toString().endsWith(".md")).toList()) {
+                    Matcher m = LINK.matcher(Files.readString(md));
+                    while (m.find()) links.add(new Link(md, m.group(1)));
+                }
             }
         }
         return links;

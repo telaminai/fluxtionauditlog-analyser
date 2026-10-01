@@ -167,6 +167,7 @@ If you are relying on a gate, check first that it can see the thing you are rely
 
 ## Where to read next
 
+- `docs/specs/README.md` — the index of live specs, grouped by theme, with each one's status and owning tracker section.
 - `docs/specs/spec.md` — the product spec (start here for the "what/why").
 - `docs/specs/tracker.md` — **live** work items only, with the current delivery order (next up:
   **M13** MCP bridge and the **M18.0** admin-surface spike — independent tracks); finished milestones
