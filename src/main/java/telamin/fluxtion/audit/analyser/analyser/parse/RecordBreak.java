@@ -45,9 +45,8 @@ import java.util.regex.Pattern;
  *       first copy is the producer's: fluxtion-runtime writes {@code eventTime}, {@code logTime}, {@code groupingId} and
  *       {@code event} from its own state, never from an event's text.</li>
  * </ul>
- * Every break in the record is collected, and the record is read only up to the <b>earliest</b> line any of them withholds
- * from. And because a value's text can begin forged lines only after the first field that carries it, a broken record
- * is never read past that field's own line: a forged field before the visible break — {@code eventType}, which a text
+ * The record is read only up to its first break. And because a value's text can begin forged lines only after the first
+ * field that carries it, a broken record is never read past that field's own line: a forged field before the visible break — {@code eventType}, which a text
  * producer never writes, so never repeats — is withheld with everything after it.
  *
  * <p><b>The exported-service signature</b> (finding 4). An exported service call's {@code eventToString} is the generator's
@@ -164,7 +163,7 @@ public record RecordBreak(int line, int keepBefore, String reason) {
                 // key after it is the break, which UNSEPARATED names. An ESCAPED separator ("\---") is a value's text.
                 if (t.equals("---")) continue;
                 if (t.equals(RECORD_KEY)) {
-                    breaks.add(i, i, SECOND_RECORD_KEY);
+                    breaks.add(i, SECOND_RECORD_KEY);
                     continue;
                 }
                 if (indent < fieldIndent) {
@@ -175,7 +174,7 @@ public record RecordBreak(int line, int keepBefore, String reason) {
                         previousKey = null;
                         continue;
                     }
-                    breaks.add(i, i, "a line less indented than the record's fields");
+                    breaks.add(i, "a line less indented than the record's fields");
                     continue;
                 }
                 if (inNode) {
@@ -188,7 +187,7 @@ public record RecordBreak(int line, int keepBefore, String reason) {
                 }
                 if (indent > fieldIndent) {
                     if (nestedIgnored || blockScalar) continue;   // an ignored nesting, or a block scalar's text
-                    breaks.add(i, i, "a line more indented than the record's fields, outside its node logs");
+                    breaks.add(i, "a line more indented than the record's fields, outside its node logs");
                     continue;
                 }
             }
@@ -197,7 +196,7 @@ public record RecordBreak(int line, int keepBefore, String reason) {
             blockScalar = false;
             String key = keyOf(t);
             if (key == null) {
-                breaks.add(i, i, "a line at the fields' indentation that is not a field");
+                breaks.add(i, "a line at the fields' indentation that is not a field");
                 continue;
             }
             roles[i] = Role.FIELD;
@@ -210,7 +209,7 @@ public record RecordBreak(int line, int keepBefore, String reason) {
                 Integer first = firstAt.putIfAbsent(key, i);
                 // the second copy is withheld; a forged FIRST copy can only follow the first text-carrying field, and
                 // a broken record is never read past that field's line (Breaks.result)
-                if (first != null) breaks.add(i, i, "the field '" + key + "' a second time");
+                if (first != null) breaks.add(i, "the field '" + key + "' a second time");
                 if (key.equals("nodeLogs")) inNode = true;
                 else if (BLOCK_SCALAR.matcher(value).matches()) blockScalar = true;
                 if (key.equals("event") && first == null) firstEvent = value;
@@ -221,23 +220,22 @@ public record RecordBreak(int line, int keepBefore, String reason) {
         return new Structure(roles, breaks.result(textFrom));
     }
 
-    /** The earliest structural break, and the earliest line any break withholds from. */
+    /** The first structural break; nothing from its line on is read. */
     private static final class Breaks {
-        private int line = -1, keepBefore = Integer.MAX_VALUE;
+        private int line = -1;
         private String reason;
 
-        void add(int index, int withholdFrom, String why) {
-            if (line < 0 || index < line) {
+        void add(int index, String why) {
+            if (line < 0) {
                 line = index;
                 reason = why;
             }
-            keepBefore = Math.min(keepBefore, withholdFrom);
         }
 
         /** @param textFrom the first field that can carry a value's text: nothing after its line is read once broken */
         RecordBreak result(int textFrom) {
             if (line < 0) return null;
-            int keep = textFrom == Integer.MAX_VALUE ? keepBefore : Math.min(keepBefore, textFrom + 1);
+            int keep = textFrom == Integer.MAX_VALUE ? line : Math.min(line, textFrom + 1);
             return new RecordBreak(line + 1, keep, reason);
         }
     }

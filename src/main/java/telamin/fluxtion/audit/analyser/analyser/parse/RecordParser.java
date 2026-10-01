@@ -112,13 +112,8 @@ public final class RecordParser {
             }
         }
 
-        if (broken != null) {
-            nodeLogs.setLength(0);
-            nodeLinePositions.clear();
-            nodeLogsCount = 0;
-            hasNaN = false;
-            hasBreach = false;
-        }
+        // A broken record reads none of its node logs: RecordBreak never reads one past its first text-carrying field
+        // (nodeLogs is one), so no node line precedes readLines.
         EventDimension dim = EventDimension.derive(event, eventToString);
         String resolvedThread = thread != null ? thread : header.thread();
         final String block = nodeLogs.toString();
