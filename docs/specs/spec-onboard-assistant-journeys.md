@@ -1,5 +1,7 @@
 # Onboard assistant, persistent chat window and conversation journeys
 
+**Status (2026-10-01):** implemented and released in 1.29.0 (PR #77, including review R1–R5 and the R1c idle-filter correction); acceptance remains open — the authorised live-provider run, native input and IME, the journey's native screenshots and a cross-machine recipient (tracker ▸ *Onboard assistant and conversation journeys*).
+
 **Status: PROPOSED r1 — 2026-09-29.** Documentation only; no implementation or acceptance is claimed.
 **Source baseline:** main `ba8b601b`. The Start-page integration must also incorporate PR #71's final merged labels and navigation; that PR was not part of this baseline.
 

@@ -1,6 +1,8 @@
 # Workspace start page and Swing reading surfaces
 
-**Status:** PR #71 with review corrections, 2026-09-29. This records the owner's newer start-page direction and supersedes the layout and no-log navigation portions of [the shipped start-page spec](completed/spec-start-page.md). Its empty-state and no-first-run-modal principles still apply.
+**Archived 2026-10-01:** shipped, and moved to `docs/specs/completed/`. Released in 1.28.0 (M71). The optional M71.F1 stays in the live tracker ▸ M71.
+
+**Status:** PR #71 with review corrections, 2026-09-29. This records the owner's newer start-page direction and supersedes the layout and no-log navigation portions of [the shipped start-page spec](spec-start-page.md). Its empty-state and no-first-run-modal principles still apply.
 
 ## Intent
 

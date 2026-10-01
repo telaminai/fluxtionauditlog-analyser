@@ -317,7 +317,7 @@ Measured, and none of it produced to support this document.
 
   **Consequence for how this is sold.** If every session under-values it until they try it, then no amount
   of explanation substitutes for the first moment a claim is checked and survives or dies. That is
-  precisely what [spec-guided-start.md](spec-guided-start.md) D-G2 is for — the tutor points, the screen
+  precisely what [spec-guided-start.md](completed/spec-guided-start.md) D-G2 is for — the tutor points, the screen
   proves — and it makes the demo's job *reaching that moment quickly*, not enumerating features.
 - **Seventy-three review findings, and not one is in the generated code** (owner's observation,
   2026-08-30; counted the same day). Across **17 independent review sessions** in `docs/handoff/` —

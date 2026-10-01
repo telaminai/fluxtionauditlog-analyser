@@ -1,6 +1,6 @@
 # Start Page — the empty state, doing a job (Design Spec)
 
-_2026-09-29 owner update:_ PR #71 proposes a [full-width workspace start page](../spec-workspace-start.md) with project and evidence-bundle choices. That spec supersedes this document's left-column layout and no-log navigation rule; this document remains the record of the earlier shipped design.
+_2026-09-29 owner update:_ PR #71 proposes a [full-width workspace start page](spec-workspace-start.md) with project and evidence-bundle choices. That spec supersedes this document's left-column layout and no-log navigation rule; this document remains the record of the earlier shipped design.
 
 _Status: **SHIPPED** — .1–.5 on 2026-08-25 (moved to completed/ 2026-08-27; only the rule-1 upstream ask in the live tracker remains). Written 2026-08-25 from the owner's ask: a start page with "what it does · how it
 helps · where it fits in the cycle · are you a developer, support, data analyst". This document

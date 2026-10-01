@@ -1,5 +1,7 @@
 # Spec — spotlight: the tutor points at the thing on screen
 
+**Archived 2026-10-01:** shipped, and moved to `docs/specs/completed/`. M64.13 (menu-target follow-ups) stays in the live tracker ▸ M64.
+
 **Status:** SHIPPED — M64.1–.9 in analyser 1.14.0 (2026-09-17), M64.10/.11/.12 in 1.15.0 (2026-09-18: a target may name its
 chart — `graph:<name>:…` — or reach a menu item — `menu:<Menu>:<item>`; the guidance says a call REPLACES unless `add: true`).
 M64.13 (menu follow-ups from the M64.11 review) remains open. Java source spotlight shipped in [1.19.0](https://github.com/telaminai/fluxtionauditlog-analyser/releases/tag/v1.19.0) on 2026-09-23 after independent MERGE review and the three low-finding corrections. History: ON MAIN 2026-09-17 (M64.1–.7; reviewed in two
@@ -10,9 +12,9 @@ spotlights and callouts at once; the guidance in the GENERAL assistant guidance,
 `docs/handoff/completed/report_m64_6_multi_spotlight.txt`) — see *As built* at the end, which records **one assumption of this
 spec that was wrong** (D-SP1/D-SP5: the screenshot does NOT paint the glass pane) and how it was corrected.
 PROPOSED 2026-09-16 (owner question: *"how difficult would it be to create a callout in a separate
-window that points to the item the guided-start runbook wants to highlight?"*). **Tracker:** [tracker.md](tracker.md) ▸ M64.
+window that points to the item the guided-start runbook wants to highlight?"*). **Tracker:** [tracker.md](../tracker.md) ▸ M64.
 **Related:** [spec-guided-start.md](spec-guided-start.md) (D-G2 — *the tutor POINTS; the screen PROVES* — this is the
-pointing), [spec-trust-structure.md](spec-trust-structure.md) (D-T3: a spotlight is evidence about WHERE, never
+pointing), [spec-trust-structure.md](../spec-trust-structure.md) (D-T3: a spotlight is evidence about WHERE, never
 testimony about WHAT), M35.9 (no dialog ever fires at an empty screen — a spotlight is not a modal and never blocks).
 
 ## The idea, in one sentence
@@ -404,7 +406,7 @@ lighting the plot, rather than claiming the marker is absent. The companion mark
 
 ## Java source spotlight — implementation contract (shipped in 1.19.0)
 
-The [reviewed source spotlight proposal](../proposals/source-spotlight.md) defines this extension and
+The [reviewed source spotlight proposal](../../proposals/source-spotlight.md) defines this extension and
 its acceptance/mutation checks. `source:java:<fqn>` means the visible Java text viewport;
 `source:java:<fqn>:line:<n>` means one logical editor line including wrapped rows and the final empty
 line after a trailing newline. No node alias is added.
@@ -421,5 +423,5 @@ is measurable the qualification is omitted and remeasurement extinguishes the ta
 refusal. Both viewers now notify remeasurement on viewport changes. Java bindings are transient,
 revision-bound, and removed when their document or surface stops being visible.
 
-See the [source navigation guide](../site/user-guide/source-navigation.md#point-at-java-beside-the-graph)
+See the [source navigation guide](../../site/user-guide/source-navigation.md#point-at-java-beside-the-graph)
 for examples, lookup differences and the reread/discovery limit.

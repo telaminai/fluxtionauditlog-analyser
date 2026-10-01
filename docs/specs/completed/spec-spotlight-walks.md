@@ -1,5 +1,7 @@
 # M69 · Spotlight walks — saved, stepped explanations on the overlay
 
+**Archived 2026-10-01:** shipped, and moved to `docs/specs/completed/`. Follow-ups M69.F2/F4/F5 stay in the live tracker ▸ *M69 follow-ups*.
+
 **Status: SHIPPED in 1.26.0 (2026-09-28)**, merged as `5cdd12ec` (PR #57). ACCEPTED r4 (2026-09-27), consolidated. The
 owner accepted r3 and asked for one contract. This file is that contract. [§9](#9-revision-history) records how
 r1–r3 reached it, and what each review changed. The r3 wording that r4 folds in is in git history at `80decad7`.
@@ -296,7 +298,7 @@ events, with an asserted focus owner, and are registered in both CI frame lists.
 
 ## 5. Predictions — committed before code
 
-The predictions live in [`docs/handoff/evidence/m69-spotlight-walks-2026-09-27/PREDICTIONS.md`](../handoff/evidence/m69-spotlight-walks-2026-09-27/PREDICTIONS.md),
+The predictions live in [`docs/handoff/evidence/m69-spotlight-walks-2026-09-27/PREDICTIONS.md`](../../handoff/evidence/m69-spotlight-walks-2026-09-27/PREDICTIONS.md),
 and are scored in `RESULTS.md` beside it.
 
 ## 6. Plan, re-planned against R1–R9
@@ -337,7 +339,7 @@ slices.
 |---|---|---|---|
 | r1 | 2026-09-27 | Claude (analyser session) | First draft from the owner's direction: overlay arrows, stored like reports, standalone. |
 | r2 | 2026-09-27 | the same | Right-click save (owner). Feature request 40 / P1 absorbed. O-1 to O-3 answered by the owner. |
-| r3 | 2026-09-27 | Codex | [Source review](../handoff/review_spec_m69_spotlight_walks_2026_09_27_codex.md), R1–R9. Storage needs every tier and share path (R1). View verbs persist, and grouping was missing (R2). A completed action is not a drawn chart (R3). A record digest does not bind a chart; attribution is never "you" (R4). The graph digest can belong to the previous graph (R5). Focus names do not bind definitions (R6). The press hook runs after dismissal; focus needs a policy (R7). Generation alone is not the whole lifecycle (R8). The verb inventory was incomplete (R9). |
+| r3 | 2026-09-27 | Codex | [Source review](../../handoff/review_spec_m69_spotlight_walks_2026_09_27_codex.md), R1–R9. Storage needs every tier and share path (R1). View verbs persist, and grouping was missing (R2). A completed action is not a drawn chart (R3). A record digest does not bind a chart; attribution is never "you" (R4). The graph digest can belong to the previous graph (R5). Focus names do not bind definitions (R6). The press hook runs after dismissal; focus needs a policy (R7). Generation alone is not the whole lifecycle (R8). The verb inventory was incomplete (R9). |
 | r4a | 2026-09-27 | the owner, recorded by Claude | Before any code: playback moves into the session processor (§3.8), superseding O-3. |
 | r4 | 2026-09-27 | Claude (analyser session) | The owner accepted r3. This revision consolidates it into one contract, with these v1 choices made explicit: charts selected, never opened or edited, with an *Open chart* affordance; the chart window out of v1; the run basis from the read identity's file digests; a paint outcome as the drawn fact; a presentation ticket for own-step changes; the R5 fix as slice S0. It re-plans the work as S0–S4. |
 | r5 | 2026-09-28 | Claude (analyser session) and the implementation reviewers | Implemented as S0–S4, then two review rounds on the implementation. PR57 R1–R9 are all fixed: identity constrains playback, no rebinding on another run, numbering, hidden records, a frozen definition with definition-change facts, correlated play answers, filter defaults, range checks, and record representation (R4). The fix review closed the bulk-path reports (F1, including a stale-baseline follow-up), topology as selection-dependent (F4), the unassessed-log caveat (F5) and restore reports (F6), and withdrew F3. §3.5's unassessed-log paragraph was added by the fix review and ships with 1.26.0. W-A4 is shown in bytes; W-A11 (native capture) remains open. |
