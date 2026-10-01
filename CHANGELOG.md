@@ -8,7 +8,7 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ### Changed
 
-- The analyser now runs on fluxtion runtime 1.1.0, the released stack (compiler 1.0.76, mongoose 1.0.32). Its own session processor and the DEMO and replay fixtures were regenerated with builder 1.0.76. Every audit log and replay record they produce is unchanged, byte for byte.
+- The analyser now runs on fluxtion runtime 1.1.0, the released stack (compiler 1.0.76, mongoose 1.0.32). Its own session processor and the DEMO and replay test fixtures were regenerated with builder 1.0.76; the existing test fixtures' audit logs and replay records are unchanged, byte for byte. The DEMO set the start page installs is unchanged.
 
 ### Fixed
 
