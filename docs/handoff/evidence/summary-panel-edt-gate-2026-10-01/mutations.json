@@ -1,0 +1,727 @@
+{
+  "mode": "mutations",
+  "runs": [
+    {
+      "name": "m44-5-f1-new-generation-resets-outstanding",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/LogEvidence.java",
+      "sha256": "dbbfeafac60de764d91b2f3b781d133e655ae955ca382704b6df802b4ce3a51f",
+      "baselineGreen": true,
+      "engine": "fast",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "restoreRewrote": [
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/session/node/LogEvidence.class"
+      ],
+      "siteKind": "java",
+      "fullCompileFallback": false,
+      "mutated": {
+        "command": [
+          "java",
+          "-Djava.awt.headless=false",
+          "-Dbasedir=<worktree>",
+          "-cp",
+          "<worktree>/target/gate/launcher:target/test-classes:target/classes:<home>/.m2/repository/com/formdev/flatlaf/3.5.1/flatlaf-3.5.1.jar:<home>/.m2/repository/com/telamin/fluxtion/fluxtion-runtime/1.0.16/fluxtion-runtime-1.0.16.jar:<home>/.m2/repository/org/agrona/agrona/2.3.0/agrona-2.3.0.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter/5.10.2/junit-jupiter-5.10.2.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.10.2/junit-jupiter-api-5.10.2.jar:<home>/.m2/repository/org/opentest4j/opentest4j/1.3.0/opentest4j-1.3.0.jar:<home>/.m2/repository/org/junit/platform/junit-platform-commons/1.10.2/junit-platform-commons-1.10.2.jar:<home>/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.10.2/junit-jupiter-params-5.10.2.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.10.2/junit-jupiter-engine-5.10.2.jar:<home>/.m2/repository/org/junit/platform/junit-platform-engine/1.10.2/junit-platform-engine-1.10.2.jar:<home>/.m2/repository/com/telamin/svc-admin-web/1.0.45/svc-admin-web-1.0.45.jar:target/gate/lib/junit-platform-launcher-1.10.2.jar",
+          "GateLauncher",
+          "<worktree>/target/gate/last-run.jsonl",
+          "telamin.fluxtion.audit.analyser.analyser.session.LogEvidenceTest#aDroppedScanDoesNotSwallowTheNextGenerationsScan"
+        ],
+        "exit": 1,
+        "suites": [
+          {
+            "name": "LogEvidenceTest",
+            "tests": 1,
+            "failures": 1,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "aDroppedScanDoesNotSwallowTheNextGenerationsScan"
+            ],
+            "assertions": [
+              {
+                "test": "aDroppedScanDoesNotSwallowTheNextGenerationsScan",
+                "kind": "failure",
+                "message": "org.opentest4j.AssertionFailedError: the new generation asks for a scan of its own ==> expected: <[1, 2]> but was: <[1]>"
+              }
+            ]
+          }
+        ],
+        "output": "",
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.session.LogEvidenceTest",
+            "method": "aDroppedScanDoesNotSwallowTheNextGenerationsScan",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: the new generation asks for a scan of its own ==> expected: <[1, 2]> but was: <[1]>"
+          }
+        ]
+      },
+      "restored": {
+        "command": [
+          "java",
+          "-Djava.awt.headless=false",
+          "-Dbasedir=<worktree>",
+          "-cp",
+          "<worktree>/target/gate/launcher:target/test-classes:target/classes:<home>/.m2/repository/com/formdev/flatlaf/3.5.1/flatlaf-3.5.1.jar:<home>/.m2/repository/com/telamin/fluxtion/fluxtion-runtime/1.0.16/fluxtion-runtime-1.0.16.jar:<home>/.m2/repository/org/agrona/agrona/2.3.0/agrona-2.3.0.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter/5.10.2/junit-jupiter-5.10.2.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.10.2/junit-jupiter-api-5.10.2.jar:<home>/.m2/repository/org/opentest4j/opentest4j/1.3.0/opentest4j-1.3.0.jar:<home>/.m2/repository/org/junit/platform/junit-platform-commons/1.10.2/junit-platform-commons-1.10.2.jar:<home>/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.10.2/junit-jupiter-params-5.10.2.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.10.2/junit-jupiter-engine-5.10.2.jar:<home>/.m2/repository/org/junit/platform/junit-platform-engine/1.10.2/junit-platform-engine-1.10.2.jar:<home>/.m2/repository/com/telamin/svc-admin-web/1.0.45/svc-admin-web-1.0.45.jar:target/gate/lib/junit-platform-launcher-1.10.2.jar",
+          "GateLauncher",
+          "<worktree>/target/gate/last-run.jsonl",
+          "telamin.fluxtion.audit.analyser.analyser.session.LogEvidenceTest#aDroppedScanDoesNotSwallowTheNextGenerationsScan"
+        ],
+        "exit": 0,
+        "suites": [
+          {
+            "name": "LogEvidenceTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "aDroppedScanDoesNotSwallowTheNextGenerationsScan"
+            ],
+            "assertions": []
+          }
+        ],
+        "output": "",
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.session.LogEvidenceTest",
+            "method": "aDroppedScanDoesNotSwallowTheNextGenerationsScan",
+            "kind": "passed",
+            "message": null
+          }
+        ]
+      },
+      "seconds": 1.6,
+      "verdict": "caught"
+    },
+    {
+      "name": "m44-5-f1-frame-next-log-is-scanned",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/LogEvidence.java",
+      "sha256": "dbbfeafac60de764d91b2f3b781d133e655ae955ca382704b6df802b4ce3a51f",
+      "baselineGreen": true,
+      "engine": "fast",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "restoreRewrote": [
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/session/node/LogEvidence.class"
+      ],
+      "siteKind": "java",
+      "fullCompileFallback": false,
+      "mutated": {
+        "command": [
+          "java",
+          "-Djava.awt.headless=false",
+          "-Dbasedir=<worktree>",
+          "-cp",
+          "<worktree>/target/gate/launcher:target/test-classes:target/classes:<home>/.m2/repository/com/formdev/flatlaf/3.5.1/flatlaf-3.5.1.jar:<home>/.m2/repository/com/telamin/fluxtion/fluxtion-runtime/1.0.16/fluxtion-runtime-1.0.16.jar:<home>/.m2/repository/org/agrona/agrona/2.3.0/agrona-2.3.0.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter/5.10.2/junit-jupiter-5.10.2.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.10.2/junit-jupiter-api-5.10.2.jar:<home>/.m2/repository/org/opentest4j/opentest4j/1.3.0/opentest4j-1.3.0.jar:<home>/.m2/repository/org/junit/platform/junit-platform-commons/1.10.2/junit-platform-commons-1.10.2.jar:<home>/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.10.2/junit-jupiter-params-5.10.2.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.10.2/junit-jupiter-engine-5.10.2.jar:<home>/.m2/repository/org/junit/platform/junit-platform-engine/1.10.2/junit-platform-engine-1.10.2.jar:<home>/.m2/repository/com/telamin/svc-admin-web/1.0.45/svc-admin-web-1.0.45.jar:target/gate/lib/junit-platform-launcher-1.10.2.jar",
+          "GateLauncher",
+          "<worktree>/target/gate/last-run.jsonl",
+          "telamin.fluxtion.audit.analyser.analyser.ui.LogFindingsOnEverySurfaceFrameTest#aLoadThatThrowsPartWayDoesNotStopTheNextLogsEvidence"
+        ],
+        "exit": 1,
+        "suites": [
+          {
+            "name": "LogFindingsOnEverySurfaceFrameTest",
+            "tests": 1,
+            "failures": 1,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "aLoadThatThrowsPartWayDoesNotStopTheNextLogsEvidence"
+            ],
+            "assertions": [
+              {
+                "test": "aLoadThatThrowsPartWayDoesNotStopTheNextLogsEvidence",
+                "kind": "failure",
+                "message": "org.opentest4j.MultipleFailuresError: F1: the next log's evidence is scanned and rendered (3 failures)\n\torg.opentest4j.AssertionFailedError: no scan is left outstanding ==> expected: <false> but was: <true>\n\torg.opentest4j.AssertionFailedError: the composed line: Loading <temp>/junit3580236321091443170/good.yml \u2026 ==> expected: <true> but was: <false>\n\torg.opentest4j.AssertionFailedError: context.timeOrder ==> expected: not <null>"
+              }
+            ]
+          }
+        ],
+        "output": "",
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.ui.LogFindingsOnEverySurfaceFrameTest",
+            "method": "aLoadThatThrowsPartWayDoesNotStopTheNextLogsEvidence",
+            "kind": "failure",
+            "message": "org.opentest4j.MultipleFailuresError: F1: the next log's evidence is scanned and rendered (3 failures)\n\torg.opentest4j.AssertionFailedError: no scan is left outstanding ==> expected: <false> but was: <true>\n\torg.opentest4j.AssertionFailedError: the composed line: Loading <temp>/junit3580236321091443170/good.yml \u2026 ==> expected: <true> but was: <false>\n\torg.opentest4j.AssertionFailedError: context.timeOrder ==> expected: not <null>"
+          }
+        ]
+      },
+      "restored": {
+        "command": [
+          "java",
+          "-Djava.awt.headless=false",
+          "-Dbasedir=<worktree>",
+          "-cp",
+          "<worktree>/target/gate/launcher:target/test-classes:target/classes:<home>/.m2/repository/com/formdev/flatlaf/3.5.1/flatlaf-3.5.1.jar:<home>/.m2/repository/com/telamin/fluxtion/fluxtion-runtime/1.0.16/fluxtion-runtime-1.0.16.jar:<home>/.m2/repository/org/agrona/agrona/2.3.0/agrona-2.3.0.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter/5.10.2/junit-jupiter-5.10.2.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.10.2/junit-jupiter-api-5.10.2.jar:<home>/.m2/repository/org/opentest4j/opentest4j/1.3.0/opentest4j-1.3.0.jar:<home>/.m2/repository/org/junit/platform/junit-platform-commons/1.10.2/junit-platform-commons-1.10.2.jar:<home>/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.10.2/junit-jupiter-params-5.10.2.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.10.2/junit-jupiter-engine-5.10.2.jar:<home>/.m2/repository/org/junit/platform/junit-platform-engine/1.10.2/junit-platform-engine-1.10.2.jar:<home>/.m2/repository/com/telamin/svc-admin-web/1.0.45/svc-admin-web-1.0.45.jar:target/gate/lib/junit-platform-launcher-1.10.2.jar",
+          "GateLauncher",
+          "<worktree>/target/gate/last-run.jsonl",
+          "telamin.fluxtion.audit.analyser.analyser.ui.LogFindingsOnEverySurfaceFrameTest#aLoadThatThrowsPartWayDoesNotStopTheNextLogsEvidence"
+        ],
+        "exit": 0,
+        "suites": [
+          {
+            "name": "LogFindingsOnEverySurfaceFrameTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "aLoadThatThrowsPartWayDoesNotStopTheNextLogsEvidence"
+            ],
+            "assertions": []
+          }
+        ],
+        "output": "",
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.ui.LogFindingsOnEverySurfaceFrameTest",
+            "method": "aLoadThatThrowsPartWayDoesNotStopTheNextLogsEvidence",
+            "kind": "passed",
+            "message": null
+          }
+        ]
+      },
+      "seconds": 4.1,
+      "verdict": "caught"
+    },
+    {
+      "name": "edt-unexpected-failure-fails-the-test",
+      "site": "src/test/java/telamin/fluxtion/audit/analyser/analyser/ui/EdtExceptionWatch.java",
+      "sha256": "9e9e546fde9f86ee95383b0c0abc11226d97e7b1b053f0589630aa323f01974c",
+      "baselineGreen": true,
+      "engine": "fast",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "restoreRewrote": [
+        "rewrote target/test-classes/telamin/fluxtion/audit/analyser/analyser/ui/EdtExceptionWatch.class"
+      ],
+      "siteKind": "java",
+      "fullCompileFallback": false,
+      "mutated": {
+        "command": [
+          "java",
+          "-Djava.awt.headless=false",
+          "-Dbasedir=<worktree>",
+          "-cp",
+          "<worktree>/target/gate/launcher:target/test-classes:target/classes:<home>/.m2/repository/com/formdev/flatlaf/3.5.1/flatlaf-3.5.1.jar:<home>/.m2/repository/com/telamin/fluxtion/fluxtion-runtime/1.0.16/fluxtion-runtime-1.0.16.jar:<home>/.m2/repository/org/agrona/agrona/2.3.0/agrona-2.3.0.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter/5.10.2/junit-jupiter-5.10.2.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.10.2/junit-jupiter-api-5.10.2.jar:<home>/.m2/repository/org/opentest4j/opentest4j/1.3.0/opentest4j-1.3.0.jar:<home>/.m2/repository/org/junit/platform/junit-platform-commons/1.10.2/junit-platform-commons-1.10.2.jar:<home>/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.10.2/junit-jupiter-params-5.10.2.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.10.2/junit-jupiter-engine-5.10.2.jar:<home>/.m2/repository/org/junit/platform/junit-platform-engine/1.10.2/junit-platform-engine-1.10.2.jar:<home>/.m2/repository/com/telamin/svc-admin-web/1.0.45/svc-admin-web-1.0.45.jar:target/gate/lib/junit-platform-launcher-1.10.2.jar",
+          "GateLauncher",
+          "<worktree>/target/gate/last-run.jsonl",
+          "telamin.fluxtion.audit.analyser.analyser.ui.EdtExceptionWatchTest#unexpectedFailureMakesTheWatchFailAndRestoresTheHandler"
+        ],
+        "exit": 1,
+        "suites": [
+          {
+            "name": "EdtExceptionWatchTest",
+            "tests": 1,
+            "failures": 1,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "unexpectedFailureMakesTheWatchFailAndRestoresTheHandler"
+            ],
+            "assertions": [
+              {
+                "test": "unexpectedFailureMakesTheWatchFailAndRestoresTheHandler",
+                "kind": "failure",
+                "message": "org.opentest4j.AssertionFailedError: anUnexpectedEdtExceptionMustFailTheTest ==> Expected java.lang.AssertionError to be thrown, but nothing was thrown."
+              }
+            ]
+          }
+        ],
+        "output": "",
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.ui.EdtExceptionWatchTest",
+            "method": "unexpectedFailureMakesTheWatchFailAndRestoresTheHandler",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: anUnexpectedEdtExceptionMustFailTheTest ==> Expected java.lang.AssertionError to be thrown, but nothing was thrown."
+          }
+        ]
+      },
+      "restored": {
+        "command": [
+          "java",
+          "-Djava.awt.headless=false",
+          "-Dbasedir=<worktree>",
+          "-cp",
+          "<worktree>/target/gate/launcher:target/test-classes:target/classes:<home>/.m2/repository/com/formdev/flatlaf/3.5.1/flatlaf-3.5.1.jar:<home>/.m2/repository/com/telamin/fluxtion/fluxtion-runtime/1.0.16/fluxtion-runtime-1.0.16.jar:<home>/.m2/repository/org/agrona/agrona/2.3.0/agrona-2.3.0.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter/5.10.2/junit-jupiter-5.10.2.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.10.2/junit-jupiter-api-5.10.2.jar:<home>/.m2/repository/org/opentest4j/opentest4j/1.3.0/opentest4j-1.3.0.jar:<home>/.m2/repository/org/junit/platform/junit-platform-commons/1.10.2/junit-platform-commons-1.10.2.jar:<home>/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.10.2/junit-jupiter-params-5.10.2.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.10.2/junit-jupiter-engine-5.10.2.jar:<home>/.m2/repository/org/junit/platform/junit-platform-engine/1.10.2/junit-platform-engine-1.10.2.jar:<home>/.m2/repository/com/telamin/svc-admin-web/1.0.45/svc-admin-web-1.0.45.jar:target/gate/lib/junit-platform-launcher-1.10.2.jar",
+          "GateLauncher",
+          "<worktree>/target/gate/last-run.jsonl",
+          "telamin.fluxtion.audit.analyser.analyser.ui.EdtExceptionWatchTest#unexpectedFailureMakesTheWatchFailAndRestoresTheHandler"
+        ],
+        "exit": 0,
+        "suites": [
+          {
+            "name": "EdtExceptionWatchTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "unexpectedFailureMakesTheWatchFailAndRestoresTheHandler"
+            ],
+            "assertions": []
+          }
+        ],
+        "output": "",
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.ui.EdtExceptionWatchTest",
+            "method": "unexpectedFailureMakesTheWatchFailAndRestoresTheHandler",
+            "kind": "passed",
+            "message": null
+          }
+        ]
+      },
+      "seconds": 1.9,
+      "verdict": "caught"
+    },
+    {
+      "name": "summary-injected-failure-must-be-observed",
+      "site": "src/test/java/telamin/fluxtion/audit/analyser/analyser/ui/LogFindingsOnEverySurfaceFrameTest.java",
+      "sha256": "12b6ed0772850eafdfce13b4dcd474f7c5089b6561420c15a8d1a47ab8181551",
+      "baselineGreen": true,
+      "engine": "fast",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "restoreRewrote": [
+        "rewrote target/test-classes/telamin/fluxtion/audit/analyser/analyser/ui/LogFindingsOnEverySurfaceFrameTest.class"
+      ],
+      "siteKind": "java",
+      "fullCompileFallback": false,
+      "mutated": {
+        "command": [
+          "java",
+          "-Djava.awt.headless=false",
+          "-Dbasedir=<worktree>",
+          "-cp",
+          "<worktree>/target/gate/launcher:target/test-classes:target/classes:<home>/.m2/repository/com/formdev/flatlaf/3.5.1/flatlaf-3.5.1.jar:<home>/.m2/repository/com/telamin/fluxtion/fluxtion-runtime/1.0.16/fluxtion-runtime-1.0.16.jar:<home>/.m2/repository/org/agrona/agrona/2.3.0/agrona-2.3.0.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter/5.10.2/junit-jupiter-5.10.2.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.10.2/junit-jupiter-api-5.10.2.jar:<home>/.m2/repository/org/opentest4j/opentest4j/1.3.0/opentest4j-1.3.0.jar:<home>/.m2/repository/org/junit/platform/junit-platform-commons/1.10.2/junit-platform-commons-1.10.2.jar:<home>/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.10.2/junit-jupiter-params-5.10.2.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.10.2/junit-jupiter-engine-5.10.2.jar:<home>/.m2/repository/org/junit/platform/junit-platform-engine/1.10.2/junit-platform-engine-1.10.2.jar:<home>/.m2/repository/com/telamin/svc-admin-web/1.0.45/svc-admin-web-1.0.45.jar:target/gate/lib/junit-platform-launcher-1.10.2.jar",
+          "GateLauncher",
+          "<worktree>/target/gate/last-run.jsonl",
+          "telamin.fluxtion.audit.analyser.analyser.ui.LogFindingsOnEverySurfaceFrameTest#aLoadThatThrowsPartWayDoesNotStopTheNextLogsEvidence"
+        ],
+        "exit": 1,
+        "suites": [
+          {
+            "name": "LogFindingsOnEverySurfaceFrameTest",
+            "tests": 1,
+            "failures": 1,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "aLoadThatThrowsPartWayDoesNotStopTheNextLogsEvidence"
+            ],
+            "assertions": [
+              {
+                "test": "aLoadThatThrowsPartWayDoesNotStopTheNextLogsEvidence",
+                "kind": "failure",
+                "message": "org.opentest4j.AssertionFailedError: theInjectedEdtFailureWasObserved ==> Unexpected null value, expected: <java.lang.NullPointerException> but was: <null>"
+              }
+            ]
+          }
+        ],
+        "output": "",
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.ui.LogFindingsOnEverySurfaceFrameTest",
+            "method": "aLoadThatThrowsPartWayDoesNotStopTheNextLogsEvidence",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: theInjectedEdtFailureWasObserved ==> Unexpected null value, expected: <java.lang.NullPointerException> but was: <null>"
+          }
+        ]
+      },
+      "restored": {
+        "command": [
+          "java",
+          "-Djava.awt.headless=false",
+          "-Dbasedir=<worktree>",
+          "-cp",
+          "<worktree>/target/gate/launcher:target/test-classes:target/classes:<home>/.m2/repository/com/formdev/flatlaf/3.5.1/flatlaf-3.5.1.jar:<home>/.m2/repository/com/telamin/fluxtion/fluxtion-runtime/1.0.16/fluxtion-runtime-1.0.16.jar:<home>/.m2/repository/org/agrona/agrona/2.3.0/agrona-2.3.0.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter/5.10.2/junit-jupiter-5.10.2.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.10.2/junit-jupiter-api-5.10.2.jar:<home>/.m2/repository/org/opentest4j/opentest4j/1.3.0/opentest4j-1.3.0.jar:<home>/.m2/repository/org/junit/platform/junit-platform-commons/1.10.2/junit-platform-commons-1.10.2.jar:<home>/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.10.2/junit-jupiter-params-5.10.2.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.10.2/junit-jupiter-engine-5.10.2.jar:<home>/.m2/repository/org/junit/platform/junit-platform-engine/1.10.2/junit-platform-engine-1.10.2.jar:<home>/.m2/repository/com/telamin/svc-admin-web/1.0.45/svc-admin-web-1.0.45.jar:target/gate/lib/junit-platform-launcher-1.10.2.jar",
+          "GateLauncher",
+          "<worktree>/target/gate/last-run.jsonl",
+          "telamin.fluxtion.audit.analyser.analyser.ui.LogFindingsOnEverySurfaceFrameTest#aLoadThatThrowsPartWayDoesNotStopTheNextLogsEvidence"
+        ],
+        "exit": 0,
+        "suites": [
+          {
+            "name": "LogFindingsOnEverySurfaceFrameTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "aLoadThatThrowsPartWayDoesNotStopTheNextLogsEvidence"
+            ],
+            "assertions": []
+          }
+        ],
+        "output": "",
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.ui.LogFindingsOnEverySurfaceFrameTest",
+            "method": "aLoadThatThrowsPartWayDoesNotStopTheNextLogsEvidence",
+            "kind": "passed",
+            "message": null
+          }
+        ]
+      },
+      "seconds": 4.6,
+      "verdict": "caught"
+    },
+    {
+      "name": "summary-injected-failure-is-accounted",
+      "site": "src/test/java/telamin/fluxtion/audit/analyser/analyser/ui/LogFindingsOnEverySurfaceFrameTest.java",
+      "sha256": "12b6ed0772850eafdfce13b4dcd474f7c5089b6561420c15a8d1a47ab8181551",
+      "baselineGreen": true,
+      "engine": "fast",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "restoreRewrote": [
+        "rewrote target/test-classes/telamin/fluxtion/audit/analyser/analyser/ui/LogFindingsOnEverySurfaceFrameTest.class"
+      ],
+      "siteKind": "java",
+      "fullCompileFallback": false,
+      "mutated": {
+        "command": [
+          "java",
+          "-Djava.awt.headless=false",
+          "-Dbasedir=<worktree>",
+          "-cp",
+          "<worktree>/target/gate/launcher:target/test-classes:target/classes:<home>/.m2/repository/com/formdev/flatlaf/3.5.1/flatlaf-3.5.1.jar:<home>/.m2/repository/com/telamin/fluxtion/fluxtion-runtime/1.0.16/fluxtion-runtime-1.0.16.jar:<home>/.m2/repository/org/agrona/agrona/2.3.0/agrona-2.3.0.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter/5.10.2/junit-jupiter-5.10.2.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.10.2/junit-jupiter-api-5.10.2.jar:<home>/.m2/repository/org/opentest4j/opentest4j/1.3.0/opentest4j-1.3.0.jar:<home>/.m2/repository/org/junit/platform/junit-platform-commons/1.10.2/junit-platform-commons-1.10.2.jar:<home>/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.10.2/junit-jupiter-params-5.10.2.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.10.2/junit-jupiter-engine-5.10.2.jar:<home>/.m2/repository/org/junit/platform/junit-platform-engine/1.10.2/junit-platform-engine-1.10.2.jar:<home>/.m2/repository/com/telamin/svc-admin-web/1.0.45/svc-admin-web-1.0.45.jar:target/gate/lib/junit-platform-launcher-1.10.2.jar",
+          "GateLauncher",
+          "<worktree>/target/gate/last-run.jsonl",
+          "telamin.fluxtion.audit.analyser.analyser.ui.LogFindingsOnEverySurfaceFrameTest#aLoadThatThrowsPartWayDoesNotStopTheNextLogsEvidence"
+        ],
+        "exit": 1,
+        "suites": [
+          {
+            "name": "LogFindingsOnEverySurfaceFrameTest",
+            "tests": 1,
+            "failures": 1,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "aLoadThatThrowsPartWayDoesNotStopTheNextLogsEvidence"
+            ],
+            "assertions": [
+              {
+                "test": "aLoadThatThrowsPartWayDoesNotStopTheNextLogsEvidence",
+                "kind": "failure",
+                "message": "org.opentest4j.AssertionFailedError: uncaughtEdtFailure: [java.lang.NullPointerException: Cannot invoke \"telamin.fluxtion.audit.analyser.analyser.ui.SummaryPanel.bind(telamin.fluxtion.audit.analyser.analyser.parse.LogStore, telamin.fluxtion.audit.analyser.analyser.filter.FilterState)\" because \"this.summaryPanel\" is null] ==> expected: <true> but was: <false>"
+              }
+            ]
+          }
+        ],
+        "output": "",
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.ui.LogFindingsOnEverySurfaceFrameTest",
+            "method": "aLoadThatThrowsPartWayDoesNotStopTheNextLogsEvidence",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: uncaughtEdtFailure: [java.lang.NullPointerException: Cannot invoke \"telamin.fluxtion.audit.analyser.analyser.ui.SummaryPanel.bind(telamin.fluxtion.audit.analyser.analyser.parse.LogStore, telamin.fluxtion.audit.analyser.analyser.filter.FilterState)\" because \"this.summaryPanel\" is null] ==> expected: <true> but was: <false>"
+          }
+        ]
+      },
+      "restored": {
+        "command": [
+          "java",
+          "-Djava.awt.headless=false",
+          "-Dbasedir=<worktree>",
+          "-cp",
+          "<worktree>/target/gate/launcher:target/test-classes:target/classes:<home>/.m2/repository/com/formdev/flatlaf/3.5.1/flatlaf-3.5.1.jar:<home>/.m2/repository/com/telamin/fluxtion/fluxtion-runtime/1.0.16/fluxtion-runtime-1.0.16.jar:<home>/.m2/repository/org/agrona/agrona/2.3.0/agrona-2.3.0.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter/5.10.2/junit-jupiter-5.10.2.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.10.2/junit-jupiter-api-5.10.2.jar:<home>/.m2/repository/org/opentest4j/opentest4j/1.3.0/opentest4j-1.3.0.jar:<home>/.m2/repository/org/junit/platform/junit-platform-commons/1.10.2/junit-platform-commons-1.10.2.jar:<home>/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.10.2/junit-jupiter-params-5.10.2.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.10.2/junit-jupiter-engine-5.10.2.jar:<home>/.m2/repository/org/junit/platform/junit-platform-engine/1.10.2/junit-platform-engine-1.10.2.jar:<home>/.m2/repository/com/telamin/svc-admin-web/1.0.45/svc-admin-web-1.0.45.jar:target/gate/lib/junit-platform-launcher-1.10.2.jar",
+          "GateLauncher",
+          "<worktree>/target/gate/last-run.jsonl",
+          "telamin.fluxtion.audit.analyser.analyser.ui.LogFindingsOnEverySurfaceFrameTest#aLoadThatThrowsPartWayDoesNotStopTheNextLogsEvidence"
+        ],
+        "exit": 0,
+        "suites": [
+          {
+            "name": "LogFindingsOnEverySurfaceFrameTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "aLoadThatThrowsPartWayDoesNotStopTheNextLogsEvidence"
+            ],
+            "assertions": []
+          }
+        ],
+        "output": "",
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.ui.LogFindingsOnEverySurfaceFrameTest",
+            "method": "aLoadThatThrowsPartWayDoesNotStopTheNextLogsEvidence",
+            "kind": "passed",
+            "message": null
+          }
+        ]
+      },
+      "seconds": 5.0,
+      "verdict": "caught"
+    }
+  ],
+  "engine": "fast",
+  "baseline": {
+    "command": [
+      "java",
+      "-Djava.awt.headless=false",
+      "-Dbasedir=<worktree>",
+      "-cp",
+      "<worktree>/target/gate/launcher:target/test-classes:target/classes:<home>/.m2/repository/com/formdev/flatlaf/3.5.1/flatlaf-3.5.1.jar:<home>/.m2/repository/com/telamin/fluxtion/fluxtion-runtime/1.0.16/fluxtion-runtime-1.0.16.jar:<home>/.m2/repository/org/agrona/agrona/2.3.0/agrona-2.3.0.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter/5.10.2/junit-jupiter-5.10.2.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.10.2/junit-jupiter-api-5.10.2.jar:<home>/.m2/repository/org/opentest4j/opentest4j/1.3.0/opentest4j-1.3.0.jar:<home>/.m2/repository/org/junit/platform/junit-platform-commons/1.10.2/junit-platform-commons-1.10.2.jar:<home>/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.10.2/junit-jupiter-params-5.10.2.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.10.2/junit-jupiter-engine-5.10.2.jar:<home>/.m2/repository/org/junit/platform/junit-platform-engine/1.10.2/junit-platform-engine-1.10.2.jar:<home>/.m2/repository/com/telamin/svc-admin-web/1.0.45/svc-admin-web-1.0.45.jar:target/gate/lib/junit-platform-launcher-1.10.2.jar",
+      "GateLauncher",
+      "<worktree>/target/gate/last-run.jsonl",
+      "telamin.fluxtion.audit.analyser.analyser.session.LogEvidenceTest",
+      "telamin.fluxtion.audit.analyser.analyser.ui.LogFindingsOnEverySurfaceFrameTest",
+      "telamin.fluxtion.audit.analyser.analyser.ui.EdtExceptionWatchTest"
+    ],
+    "exit": 0,
+    "suites": [
+      {
+        "name": "LogEvidenceTest",
+        "tests": 12,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "aDroppedScanDoesNotSwallowTheNextGenerationsScan",
+          "anOpenRequestsOneScan",
+          "anAppendIsOutstandingEvidenceAtOnce",
+          "anIdenticalRescanChangesNothing",
+          "followSurvivesAReloadOnlyWhereItCanRun",
+          "theContentSignatureDecidesARescan",
+          "aStaleResultIsRefused",
+          "provenanceAndItsSourceArePublished",
+          "aCloseClearsAndAReopenAsksAgain",
+          "resultsArePublished",
+          "followIsSessionState",
+          "aRescanThatFindsTheSameStillSettles"
+        ],
+        "assertions": []
+      },
+      {
+        "name": "LogFindingsOnEverySurfaceFrameTest",
+        "tests": 14,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "aFollowedFileThatGainsAZeroMarkerSaysWhatAColdOpenSays",
+          "aTimeOrderViolationAppendedUnderFollowIsReported",
+          "aColdOpenOfAFileWhoseMarkerSaysItEndedSaysSo",
+          "theFollowLineKeepsTheProvenanceAndTheOrderWarning",
+          "aRecordStillBeingWrittenIsNotAnEmptyFile",
+          "theTabIsCurrentAfterASecondLogLoads_withNoVerbInBetween",
+          "aLoadThatThrowsPartWayDoesNotStopTheNextLogsEvidence",
+          "theExportedPdfCarriesTheLogsFindings_andLosesThemWhenARecordArrives",
+          "theLineNeverCountsNewRowsBesideTheOldFindings",
+          "aRolledSetsFileOverlapReachesContextAndTheLine",
+          "aOneMemberSetOpenedInTheFrameIsWordedAsItsFile",
+          "anEmptyFollowedFileSaysSoEverywhere_andEverySurfaceClearsWhenARecordArrives",
+          "anEnvironmentsProvenanceIsTheSessionsAndEverySurfaceStatesIt",
+          "theTabIsCurrentAfterAFollowPoll_withNoVerbInBetween"
+        ],
+        "assertions": []
+      },
+      {
+        "name": "EdtExceptionWatchTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "unexpectedFailureMakesTheWatchFailAndRestoresTheHandler",
+          "noFaultLeavesTheOriginalHandlerInPlace",
+          "anExpectedFaultDoesNotHideAnotherFailure",
+          "aMismatchedExpectedFaultRemainsAnUnexpectedFailure"
+        ],
+        "assertions": []
+      }
+    ],
+    "output": "",
+    "rows": [
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.session.LogEvidenceTest",
+        "method": "aDroppedScanDoesNotSwallowTheNextGenerationsScan",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.session.LogEvidenceTest",
+        "method": "anOpenRequestsOneScan",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.session.LogEvidenceTest",
+        "method": "anAppendIsOutstandingEvidenceAtOnce",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.session.LogEvidenceTest",
+        "method": "anIdenticalRescanChangesNothing",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.session.LogEvidenceTest",
+        "method": "followSurvivesAReloadOnlyWhereItCanRun",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.session.LogEvidenceTest",
+        "method": "theContentSignatureDecidesARescan",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.session.LogEvidenceTest",
+        "method": "aStaleResultIsRefused",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.session.LogEvidenceTest",
+        "method": "provenanceAndItsSourceArePublished",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.session.LogEvidenceTest",
+        "method": "aCloseClearsAndAReopenAsksAgain",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.session.LogEvidenceTest",
+        "method": "resultsArePublished",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.session.LogEvidenceTest",
+        "method": "followIsSessionState",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.session.LogEvidenceTest",
+        "method": "aRescanThatFindsTheSameStillSettles",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.LogFindingsOnEverySurfaceFrameTest",
+        "method": "aFollowedFileThatGainsAZeroMarkerSaysWhatAColdOpenSays",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.LogFindingsOnEverySurfaceFrameTest",
+        "method": "aTimeOrderViolationAppendedUnderFollowIsReported",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.LogFindingsOnEverySurfaceFrameTest",
+        "method": "aColdOpenOfAFileWhoseMarkerSaysItEndedSaysSo",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.LogFindingsOnEverySurfaceFrameTest",
+        "method": "theFollowLineKeepsTheProvenanceAndTheOrderWarning",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.LogFindingsOnEverySurfaceFrameTest",
+        "method": "aRecordStillBeingWrittenIsNotAnEmptyFile",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.LogFindingsOnEverySurfaceFrameTest",
+        "method": "theTabIsCurrentAfterASecondLogLoads_withNoVerbInBetween",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.LogFindingsOnEverySurfaceFrameTest",
+        "method": "aLoadThatThrowsPartWayDoesNotStopTheNextLogsEvidence",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.LogFindingsOnEverySurfaceFrameTest",
+        "method": "theExportedPdfCarriesTheLogsFindings_andLosesThemWhenARecordArrives",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.LogFindingsOnEverySurfaceFrameTest",
+        "method": "theLineNeverCountsNewRowsBesideTheOldFindings",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.LogFindingsOnEverySurfaceFrameTest",
+        "method": "aRolledSetsFileOverlapReachesContextAndTheLine",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.LogFindingsOnEverySurfaceFrameTest",
+        "method": "aOneMemberSetOpenedInTheFrameIsWordedAsItsFile",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.LogFindingsOnEverySurfaceFrameTest",
+        "method": "anEmptyFollowedFileSaysSoEverywhere_andEverySurfaceClearsWhenARecordArrives",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.LogFindingsOnEverySurfaceFrameTest",
+        "method": "anEnvironmentsProvenanceIsTheSessionsAndEverySurfaceStatesIt",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.LogFindingsOnEverySurfaceFrameTest",
+        "method": "theTabIsCurrentAfterAFollowPoll_withNoVerbInBetween",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.EdtExceptionWatchTest",
+        "method": "unexpectedFailureMakesTheWatchFailAndRestoresTheHandler",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.EdtExceptionWatchTest",
+        "method": "noFaultLeavesTheOriginalHandlerInPlace",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.EdtExceptionWatchTest",
+        "method": "anExpectedFaultDoesNotHideAnotherFailure",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.EdtExceptionWatchTest",
+        "method": "aMismatchedExpectedFaultRemainsAnUnexpectedFailure",
+        "kind": "passed",
+        "message": null
+      }
+    ]
+  },
+  "seconds": 30.9
+}

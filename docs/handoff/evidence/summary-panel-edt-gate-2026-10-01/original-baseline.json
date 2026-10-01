@@ -1,0 +1,16 @@
+{
+  "command": [
+    "mvn",
+    "-o",
+    "-q",
+    "test",
+    "-Dtest=LogFindingsOnEverySurfaceFrameTest#aLoadThatThrowsPartWayDoesNotStopTheNextLogsEvidence",
+    "-Djava.awt.headless=false",
+    "-DargLine=-Djava.awt.headless=false",
+    "-Dsurefire.failIfNoSpecifiedTests=false"
+  ],
+  "exit": 0,
+  "uncaughtSummaryPanelException": true,
+  "sourceRestoredByteIdentical": true,
+  "classesRestoredByteIdentical": true
+}
