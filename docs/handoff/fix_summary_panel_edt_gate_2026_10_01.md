@@ -66,3 +66,7 @@ with `<worktree>`, `<home>` or `<temp>`.
 
 Exact-head CI is recorded on the pull request after pushing. The earlier main run is diagnostic
 context, not verification of this change. This work does not close the separate issue #84 review findings.
+
+PR #105's initial CI stopped on a skipped native mouse mutation witness, while its build and display
+jobs passed. The failed attempt and the acquisition correction are documented in
+[native press acquisition](evidence/summary-panel-edt-gate-2026-10-01/native-acquisition/README.md).

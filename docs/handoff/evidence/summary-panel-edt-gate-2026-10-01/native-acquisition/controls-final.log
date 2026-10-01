@@ -1,0 +1,14 @@
+mouse-loss-press-acquisition : green / named assertion red / restored green, bytes identical
+mouse-loss-unavailable-input-is-error : green / named assertion red / restored green, bytes identical
+mouse-loss-table-hook : green / named assertion red / restored green, bytes identical
+mouse-loss-table-timer : green / named assertion red / restored green, bytes identical
+mouse-loss-slider-hook : green / named assertion red / restored green, bytes identical
+mouse-loss-autoscroll-restored : green / named assertion red / restored green, bytes identical
+mouse-loss-column-adjustment : green / named assertion red / restored green, bytes identical
+mouse-loss-nonmodal-preserved : green / named assertion red / restored green, bytes identical
+m44-5-f1-new-generation-resets-outstanding : green / named assertion red / restored green, bytes identical
+m44-5-f1-frame-next-log-is-scanned : green / named assertion red / restored green, bytes identical
+edt-unexpected-failure-fails-the-test : green / named assertion red / restored green, bytes identical
+summary-injected-failure-must-be-observed : green / named assertion red / restored green, bytes identical
+summary-injected-failure-is-accounted : green / named assertion red / restored green, bytes identical
+mutations: 13 controls caught with the fast engine in 171.3 s

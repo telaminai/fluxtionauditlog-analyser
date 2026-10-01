@@ -44,12 +44,67 @@ class TableDragCancellationFrameTest {
         for (int n = 1; n <= 12; n++) robot.mouseMove(from.x + (to.x - from.x) * n / 12, from.y + (to.y - from.y) * n / 12);
     }
 
+    private static void requireNativeInput(boolean available, String reason) {
+        if (!available) throw new IllegalStateException("native input unavailable: " + reason);
+    }
+
+    /** Retry only a press the OS never delivered, before any gesture or cancellation assertion starts. */
+    private static Point press(Robot robot, Component component, Supplier<Point> localPoint,
+                               BooleanSupplier started) throws Exception {
+        AtomicInteger delivered = new AtomicInteger();
+        MouseAdapter observed = new MouseAdapter() {
+            @Override public void mousePressed(MouseEvent event) {
+                if (event.getButton() == MouseEvent.BUTTON1) delivered.incrementAndGet();
+            }
+        };
+        onEdt(() -> component.addMouseListener(observed));
+        try {
+            for (int attempt = 0; attempt < 3; attempt++) {
+                onEdt(() -> {
+                    // A window focus request cannot activate an inactive application on macOS.
+                    if (Desktop.isDesktopSupported()) {
+                        Desktop desktop = Desktop.getDesktop();
+                        if (desktop.isSupported(Desktop.Action.APP_REQUEST_FOREGROUND)) desktop.requestForeground(true);
+                    }
+                    Window window = SwingUtilities.getWindowAncestor(component);
+                    window.toFront(); window.requestFocus(); component.requestFocusInWindow();
+                });
+                Point point = edt(() -> {
+                    Point p = localPoint.get();
+                    requireNativeInput(component.isShowing() && component.contains(p), "native press target is visible");
+                    SwingUtilities.convertPointToScreen(p, component);
+                    return p;
+                });
+                int before = delivered.get();
+                robot.mouseMove(point.x, point.y); robot.waitForIdle();
+                robot.mousePress(InputEvent.BUTTON1_DOWN_MASK); robot.waitForIdle();
+                if (until(() -> delivered.get() > before)) {
+                    requireNativeInput(until(() -> SwingUtilities.getWindowAncestor(component).isFocused()),
+                            "a delivered native press must focus its window");
+                    requireNativeInput(until(started), "a delivered native press must start the gesture");
+                    return point; // keep the button held for the actual interruption test
+                }
+                robot.mouseRelease(InputEvent.BUTTON1_DOWN_MASK); robot.waitForIdle();
+            }
+            throw new IllegalStateException("nativePressDeliveredBeforeGestureChecks: the desktop dropped all three presses");
+        } finally {
+            onEdt(() -> component.removeMouseListener(observed));
+        }
+    }
+
+    private static Point tablePressPoint(JTable table) {
+        Rectangle visible = table.getVisibleRect();
+        return new Point(visible.x + 180, visible.y + visible.height / 2);
+    }
+
     private static void open(Frame f) throws Exception {
         f.dialogs.stop(); // This test must keep the real modal open; it owns dialog cleanup.
-        onEdt(() -> { f.frame.setSize(1200, 800); f.frame.setVisible(true); f.frame.toFront(); });
+        onEdt(() -> { f.frame.setSize(1200, 800); f.frame.setVisible(true); f.frame.toFront(); f.frame.requestFocus(); });
         onEdt(() -> render(f.ex, "open", Map.of("log", Path.of("src/main/resources/demo/demo-quote-series.yaml").toAbsolutePath().toString())));
         awaitLoaded(f.ex);
-        assumeTrue(until(f.frame::isFocused), "native mouse regression requires the frame to receive desktop focus");
+        onEdt(() -> { f.frame.toFront(); f.frame.requestFocus(); });
+        // A native press can activate a window whose programmatic focus request the desktop refused.
+        // press() verifies focus and the started gesture before the interruption checks begin.
     }
 
     private static Window settings(Frame f) throws Exception {
@@ -99,10 +154,9 @@ class TableDragCancellationFrameTest {
                 robot.waitForIdle();
                 Rectangle visible = edt(table::getVisibleRect);
                 int beforeDragY = visible.y;
-                Point start = screen(table, visible.x + 180, visible.y + visible.height / 2);
+                Point start = press(robot, table, () -> tablePressPoint(table),
+                        () -> table.getSelectionModel().getValueIsAdjusting());
                 Point end = screen(table, visible.x + 180, visible.y - 8);
-                robot.mouseMove(start.x, start.y); robot.mousePress(InputEvent.BUTTON1_DOWN_MASK);
-                assumeTrue(until(() -> table.getSelectionModel().getValueIsAdjusting()), "native mouse press must reach the table, not be dropped by the desktop");
                 assertTrue(edt(() -> table.getColumnModel().getSelectionModel().getValueIsAdjusting()),
                         "control: the native table press starts column adjustment too");
                 move(robot, start, end);
@@ -134,10 +188,11 @@ class TableDragCancellationFrameTest {
                 assertTrue(until(f.frame::isFocused), "the main window regains focus for the next gesture");
                 onEdt(() -> table.scrollRectToVisible(table.getCellRect(65, 0, true)));
                 visible = edt(table::getVisibleRect);
-                start = screen(table, visible.x + 180, visible.y + visible.height / 2);
+                start = press(robot, table, () -> tablePressPoint(table),
+                        () -> table.getSelectionModel().getValueIsAdjusting());
                 end = screen(table, visible.x + 180, visible.y - 8);
                 int initialY = visible.y;
-                robot.mouseMove(start.x, start.y); robot.mousePress(InputEvent.BUTTON1_DOWN_MASK); move(robot, start, end);
+                move(robot, start, end);
                 assertTrue(until(() -> table.getVisibleRect().y < initialY), "the next normal drag can still autoscroll");
                 robot.mouseRelease(InputEvent.BUTTON1_DOWN_MASK); robot.waitForIdle();
                 assertTrue(until(() -> !table.getSelectionModel().getValueIsAdjusting()), "normal release still ends the next gesture");
@@ -158,10 +213,15 @@ class TableDragCancellationFrameTest {
                 onEdt(() -> {
                     long span = (long) field(slider, "absMax") - (long) field(slider, "absMin");
                     slider.setWindowMillis(span / 4);
+                    long min = (long) field(slider, "min"), max = (long) field(slider, "max");
+                    // Acquire the thumb inside the window: a press at the edge itself starts the timer,
+                    // which can pan to the absolute boundary while native delivery is synchronised.
+                    long from = min + (max - min) / 4, to = max - (max - min) / 4;
+                    render(f.ex, "filter", Map.of("from", from, "to", to));
+                    assertEquals(from, field(slider, "lo"), "control: prepare an interior thumb through the filter action");
                 });
-                Point start = screen(slider, 12, 34), end = screen(slider, 0, 34);
-                robot.mouseMove(start.x, start.y); robot.mousePress(InputEvent.BUTTON1_DOWN_MASK);
-                assumeTrue(until(() -> (int) field(slider, "dragMode") >= 0), "native mouse press must reach the slider");
+                Point start = press(robot, slider, () -> new Point(12 + (slider.getWidth() - 24) / 4, 34),
+                        () -> (int) field(slider, "dragMode") >= 0), end = screen(slider, 0, 34);
                 move(robot, start, end);
                 assertTrue(until(edge::isRunning), "control: the native edge drag starts the slider timer");
                 AtomicReference<long[]> atFocusLoss = new AtomicReference<>();
@@ -208,10 +268,10 @@ class TableDragCancellationFrameTest {
                 open(f);
                 JTable table = ((LogTablePanel) field(f.frame, "tablePanel")).table();
                 Rectangle visible = edt(table::getVisibleRect);
-                Point start = screen(table, visible.x + 180, visible.y + 40);
+                Point start = press(robot, table, () -> {
+                    Rectangle v = table.getVisibleRect(); return new Point(v.x + 180, v.y + 40);
+                }, () -> table.getSelectionModel().getValueIsAdjusting());
                 Point end = screen(table, visible.x + 180, visible.y + 160);
-                robot.mouseMove(start.x, start.y); robot.mousePress(InputEvent.BUTTON1_DOWN_MASK);
-                assumeTrue(until(() -> table.getSelectionModel().getValueIsAdjusting()), "native press must reach table for non-modal control");
                 AtomicInteger finalized = new AtomicInteger();
                 onEdt(() -> {
                     table.getSelectionModel().addListSelectionListener(e -> { if (!e.getValueIsAdjusting()) finalized.incrementAndGet(); });
@@ -233,6 +293,55 @@ class TableDragCancellationFrameTest {
                 assertTrue(until(() -> !table.getSelectionModel().getValueIsAdjusting()), "release finalizes the continued drag");
                 assertTrue(finalized.get() > 0, "release publishes the final selection");
             } finally { robot.mouseRelease(InputEvent.BUTTON1_DOWN_MASK); onEdt(other::dispose); disposeDialogs(); }
+        } finally { robot.mouseMove(previous.x, previous.y); }
+    }
+
+    @Test
+    void aDroppedNativePressIsRetriedBeforeTheGestureStarts() throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless(), "a real display is required");
+        AtomicInteger presses = new AtomicInteger();
+        Robot robot = new Robot() {
+            @Override public synchronized void mousePress(int buttons) {
+                if (presses.incrementAndGet() > 1) super.mousePress(buttons); // deterministic dropped first press
+            }
+        };
+        robot.setAutoDelay(25);
+        Point previous = MouseInfo.getPointerInfo().getLocation();
+        // This tests acquisition itself. The three interruption witnesses above still use MainFrame.
+        JTable table = edt(() -> new JTable(100, 1));
+        JFrame frame = edt(() -> {
+            JFrame window = new JFrame("DEMO native press acquisition");
+            window.setContentPane(new JScrollPane(table));
+            window.setSize(500, 350); window.setLocationRelativeTo(null);
+            window.setVisible(true); window.toFront(); window.requestFocus();
+            return window;
+        });
+        try {
+            try {
+                try {
+                    press(robot, table, () -> tablePressPoint(table),
+                            () -> table.getSelectionModel().getValueIsAdjusting());
+                } catch (IllegalStateException unavailable) {
+                    if (unavailable.getMessage().startsWith("nativePressDeliveredBeforeGestureChecks:"))
+                        assertTrue(presses.get() > 1, "aDroppedNativePressMustBeRetried");
+                    throw unavailable; // all three failed: environment error, never a cancellation witness
+                }
+                assertTrue(presses.get() >= 2, "the first press was deliberately dropped");
+                assertTrue(edt(() -> table.getSelectionModel().getValueIsAdjusting()),
+                        "recovery established a real held gesture before testing cancellation");
+                robot.mouseRelease(InputEvent.BUTTON1_DOWN_MASK); robot.waitForIdle();
+                assertTrue(until(() -> !table.getSelectionModel().getValueIsAdjusting()),
+                        "normal release still ends the acquired gesture");
+                Robot noInput = new Robot() {
+                    @Override public synchronized void mousePress(int buttons) { } // deterministic unavailable input
+                };
+                var unavailable = assertThrows(IllegalStateException.class, () ->
+                                press(noInput, table, () -> tablePressPoint(table),
+                                        () -> table.getSelectionModel().getValueIsAdjusting()),
+                        "unavailableNativeInputMustNotCountAsAnAssertionFailure");
+                assertTrue(unavailable.getMessage().startsWith("nativePressDeliveredBeforeGestureChecks:"),
+                        "the exhausted acquisition boundary was reached");
+            } finally { robot.mouseRelease(InputEvent.BUTTON1_DOWN_MASK); onEdt(frame::dispose); }
         } finally { robot.mouseMove(previous.x, previous.y); }
     }
 

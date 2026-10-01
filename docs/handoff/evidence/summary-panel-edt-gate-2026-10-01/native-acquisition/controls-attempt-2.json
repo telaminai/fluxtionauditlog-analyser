@@ -1,0 +1,83 @@
+{
+  "mode": "mutations",
+  "runs": [],
+  "engine": "fast",
+  "baseline": {
+    "command": [
+      "java",
+      "-Djava.awt.headless=false",
+      "-Dbasedir=<worktree>",
+      "-cp",
+      "<worktree>/target/gate/launcher:target/test-classes:target/classes:<home>/.m2/repository/com/formdev/flatlaf/3.5.1/flatlaf-3.5.1.jar:<home>/.m2/repository/com/telamin/fluxtion/fluxtion-runtime/1.0.16/fluxtion-runtime-1.0.16.jar:<home>/.m2/repository/org/agrona/agrona/2.3.0/agrona-2.3.0.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter/5.10.2/junit-jupiter-5.10.2.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.10.2/junit-jupiter-api-5.10.2.jar:<home>/.m2/repository/org/opentest4j/opentest4j/1.3.0/opentest4j-1.3.0.jar:<home>/.m2/repository/org/junit/platform/junit-platform-commons/1.10.2/junit-platform-commons-1.10.2.jar:<home>/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.10.2/junit-jupiter-params-5.10.2.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.10.2/junit-jupiter-engine-5.10.2.jar:<home>/.m2/repository/org/junit/platform/junit-platform-engine/1.10.2/junit-platform-engine-1.10.2.jar:<home>/.m2/repository/com/telamin/svc-admin-web/1.0.45/svc-admin-web-1.0.45.jar:target/gate/lib/junit-platform-launcher-1.10.2.jar",
+      "GateLauncher",
+      "<worktree>/target/gate/last-run.jsonl",
+      "telamin.fluxtion.audit.analyser.analyser.ui.TableDragCancellationFrameTest"
+    ],
+    "exit": 1,
+    "suites": [
+      {
+        "name": "TableDragCancellationFrameTest",
+        "tests": 4,
+        "failures": 4,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "aDroppedNativePressIsRetriedBeforeTheGestureStarts",
+          "aNonModalFocusLossKeepsSelectionDeferredUntilRelease",
+          "aModalEndsTheNativeSliderEdgePanWithoutChangingItsRange",
+          "aModalEndsTheNativeTableDragAndTheNextDragStillWorks"
+        ],
+        "assertions": [
+          {
+            "test": "aDroppedNativePressIsRetriedBeforeTheGestureStarts",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: native mouse regression requires the frame to receive desktop focus ==> expected: <true> but was: <false>"
+          },
+          {
+            "test": "aNonModalFocusLossKeepsSelectionDeferredUntilRelease",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: native mouse regression requires the frame to receive desktop focus ==> expected: <true> but was: <false>"
+          },
+          {
+            "test": "aModalEndsTheNativeSliderEdgePanWithoutChangingItsRange",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: native mouse regression requires the frame to receive desktop focus ==> expected: <true> but was: <false>"
+          },
+          {
+            "test": "aModalEndsTheNativeTableDragAndTheNextDragStillWorks",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: native mouse regression requires the frame to receive desktop focus ==> expected: <true> but was: <false>"
+          }
+        ]
+      }
+    ],
+    "output": "",
+    "rows": [
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.TableDragCancellationFrameTest",
+        "method": "aDroppedNativePressIsRetriedBeforeTheGestureStarts",
+        "kind": "failure",
+        "message": "org.opentest4j.AssertionFailedError: native mouse regression requires the frame to receive desktop focus ==> expected: <true> but was: <false>"
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.TableDragCancellationFrameTest",
+        "method": "aNonModalFocusLossKeepsSelectionDeferredUntilRelease",
+        "kind": "failure",
+        "message": "org.opentest4j.AssertionFailedError: native mouse regression requires the frame to receive desktop focus ==> expected: <true> but was: <false>"
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.TableDragCancellationFrameTest",
+        "method": "aModalEndsTheNativeSliderEdgePanWithoutChangingItsRange",
+        "kind": "failure",
+        "message": "org.opentest4j.AssertionFailedError: native mouse regression requires the frame to receive desktop focus ==> expected: <true> but was: <false>"
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.TableDragCancellationFrameTest",
+        "method": "aModalEndsTheNativeTableDragAndTheNextDragStillWorks",
+        "kind": "failure",
+        "message": "org.opentest4j.AssertionFailedError: native mouse regression requires the frame to receive desktop focus ==> expected: <true> but was: <false>"
+      }
+    ]
+  },
+  "seconds": 29.6
+}

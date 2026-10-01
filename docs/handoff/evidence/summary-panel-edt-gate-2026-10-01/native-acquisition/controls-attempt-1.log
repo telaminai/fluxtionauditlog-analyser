@@ -1,0 +1,11 @@
+Traceback (most recent call last):
+  File "<worktree>/tools/verify_project_chart_review.py", line 849, in <module>
+    main()
+    ~~~~^^
+  File "<worktree>/tools/verify_project_chart_review.py", line 841, in main
+    run_gate(cases, engine, fail_fast=True, on_entry=keep, on_baseline=keep_baseline)
+    ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<worktree>/tools/verify_project_chart_review.py", line 677, in run_gate
+    assert green(baseline), baseline['output']
+           ~~~~~^^^^^^^^^^
+AssertionError

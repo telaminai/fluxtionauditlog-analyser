@@ -1,0 +1,152 @@
+{
+  "mode": "mutations",
+  "runs": [
+    {
+      "name": "mouse-loss-column-adjustment",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/LogTablePanel.java",
+      "sha256": "ea97ed448a2ed64c39d7ba030d1fdfebf4212fa289ebe447a7802962c8d5ef7f",
+      "baselineGreen": true,
+      "engine": "fast",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "restoreRewrote": [
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/LogTablePanel$2.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/LogTablePanel.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/LogTablePanel$3.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/LogTablePanel$1.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/LogTablePanel$NodeBarRenderer.class"
+      ],
+      "siteKind": "java",
+      "fullCompileFallback": false,
+      "mutated": {
+        "command": [
+          "java",
+          "-Djava.awt.headless=false",
+          "-Dbasedir=<worktree>",
+          "-cp",
+          "<worktree>/target/gate/launcher:target/test-classes:target/classes:<home>/.m2/repository/com/formdev/flatlaf/3.5.1/flatlaf-3.5.1.jar:<home>/.m2/repository/com/telamin/fluxtion/fluxtion-runtime/1.0.16/fluxtion-runtime-1.0.16.jar:<home>/.m2/repository/org/agrona/agrona/2.3.0/agrona-2.3.0.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter/5.10.2/junit-jupiter-5.10.2.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.10.2/junit-jupiter-api-5.10.2.jar:<home>/.m2/repository/org/opentest4j/opentest4j/1.3.0/opentest4j-1.3.0.jar:<home>/.m2/repository/org/junit/platform/junit-platform-commons/1.10.2/junit-platform-commons-1.10.2.jar:<home>/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.10.2/junit-jupiter-params-5.10.2.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.10.2/junit-jupiter-engine-5.10.2.jar:<home>/.m2/repository/org/junit/platform/junit-platform-engine/1.10.2/junit-platform-engine-1.10.2.jar:<home>/.m2/repository/com/telamin/svc-admin-web/1.0.45/svc-admin-web-1.0.45.jar:target/gate/lib/junit-platform-launcher-1.10.2.jar",
+          "GateLauncher",
+          "<worktree>/target/gate/last-run.jsonl",
+          "telamin.fluxtion.audit.analyser.analyser.ui.TableDragCancellationFrameTest#aModalEndsTheNativeTableDragAndTheNextDragStillWorks"
+        ],
+        "exit": 1,
+        "suites": [
+          {
+            "name": "TableDragCancellationFrameTest",
+            "tests": 1,
+            "failures": 1,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "aModalEndsTheNativeTableDragAndTheNextDragStillWorks"
+            ],
+            "assertions": [
+              {
+                "test": "aModalEndsTheNativeTableDragAndTheNextDragStillWorks",
+                "kind": "failure",
+                "message": "org.opentest4j.AssertionFailedError: column adjustment ends with the cancelled gesture ==> expected: <false> but was: <true>"
+              }
+            ]
+          }
+        ],
+        "output": "",
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.ui.TableDragCancellationFrameTest",
+            "method": "aModalEndsTheNativeTableDragAndTheNextDragStillWorks",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: column adjustment ends with the cancelled gesture ==> expected: <false> but was: <true>"
+          }
+        ]
+      },
+      "restored": {
+        "command": [
+          "java",
+          "-Djava.awt.headless=false",
+          "-Dbasedir=<worktree>",
+          "-cp",
+          "<worktree>/target/gate/launcher:target/test-classes:target/classes:<home>/.m2/repository/com/formdev/flatlaf/3.5.1/flatlaf-3.5.1.jar:<home>/.m2/repository/com/telamin/fluxtion/fluxtion-runtime/1.0.16/fluxtion-runtime-1.0.16.jar:<home>/.m2/repository/org/agrona/agrona/2.3.0/agrona-2.3.0.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter/5.10.2/junit-jupiter-5.10.2.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.10.2/junit-jupiter-api-5.10.2.jar:<home>/.m2/repository/org/opentest4j/opentest4j/1.3.0/opentest4j-1.3.0.jar:<home>/.m2/repository/org/junit/platform/junit-platform-commons/1.10.2/junit-platform-commons-1.10.2.jar:<home>/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.10.2/junit-jupiter-params-5.10.2.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.10.2/junit-jupiter-engine-5.10.2.jar:<home>/.m2/repository/org/junit/platform/junit-platform-engine/1.10.2/junit-platform-engine-1.10.2.jar:<home>/.m2/repository/com/telamin/svc-admin-web/1.0.45/svc-admin-web-1.0.45.jar:target/gate/lib/junit-platform-launcher-1.10.2.jar",
+          "GateLauncher",
+          "<worktree>/target/gate/last-run.jsonl",
+          "telamin.fluxtion.audit.analyser.analyser.ui.TableDragCancellationFrameTest#aModalEndsTheNativeTableDragAndTheNextDragStillWorks"
+        ],
+        "exit": 0,
+        "suites": [
+          {
+            "name": "TableDragCancellationFrameTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "aModalEndsTheNativeTableDragAndTheNextDragStillWorks"
+            ],
+            "assertions": []
+          }
+        ],
+        "output": "",
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.ui.TableDragCancellationFrameTest",
+            "method": "aModalEndsTheNativeTableDragAndTheNextDragStillWorks",
+            "kind": "passed",
+            "message": null
+          }
+        ]
+      },
+      "seconds": 9.1,
+      "verdict": "caught"
+    }
+  ],
+  "engine": "fast",
+  "baseline": {
+    "command": [
+      "java",
+      "-Djava.awt.headless=false",
+      "-Dbasedir=<worktree>",
+      "-cp",
+      "<worktree>/target/gate/launcher:target/test-classes:target/classes:<home>/.m2/repository/com/formdev/flatlaf/3.5.1/flatlaf-3.5.1.jar:<home>/.m2/repository/com/telamin/fluxtion/fluxtion-runtime/1.0.16/fluxtion-runtime-1.0.16.jar:<home>/.m2/repository/org/agrona/agrona/2.3.0/agrona-2.3.0.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter/5.10.2/junit-jupiter-5.10.2.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.10.2/junit-jupiter-api-5.10.2.jar:<home>/.m2/repository/org/opentest4j/opentest4j/1.3.0/opentest4j-1.3.0.jar:<home>/.m2/repository/org/junit/platform/junit-platform-commons/1.10.2/junit-platform-commons-1.10.2.jar:<home>/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.10.2/junit-jupiter-params-5.10.2.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.10.2/junit-jupiter-engine-5.10.2.jar:<home>/.m2/repository/org/junit/platform/junit-platform-engine/1.10.2/junit-platform-engine-1.10.2.jar:<home>/.m2/repository/com/telamin/svc-admin-web/1.0.45/svc-admin-web-1.0.45.jar:target/gate/lib/junit-platform-launcher-1.10.2.jar",
+      "GateLauncher",
+      "<worktree>/target/gate/last-run.jsonl",
+      "telamin.fluxtion.audit.analyser.analyser.ui.TableDragCancellationFrameTest"
+    ],
+    "exit": 0,
+    "suites": [
+      {
+        "name": "TableDragCancellationFrameTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "aNonModalFocusLossKeepsSelectionDeferredUntilRelease",
+          "aModalEndsTheNativeSliderEdgePanWithoutChangingItsRange",
+          "aModalEndsTheNativeTableDragAndTheNextDragStillWorks"
+        ],
+        "assertions": []
+      }
+    ],
+    "output": "",
+    "rows": [
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.TableDragCancellationFrameTest",
+        "method": "aNonModalFocusLossKeepsSelectionDeferredUntilRelease",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.TableDragCancellationFrameTest",
+        "method": "aModalEndsTheNativeSliderEdgePanWithoutChangingItsRange",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.TableDragCancellationFrameTest",
+        "method": "aModalEndsTheNativeTableDragAndTheNextDragStillWorks",
+        "kind": "passed",
+        "message": null
+      }
+    ]
+  },
+  "seconds": 25.4
+}
