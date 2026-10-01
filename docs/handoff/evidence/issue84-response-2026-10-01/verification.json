@@ -1,0 +1,2479 @@
+{
+  "kind": "IMPLEMENTER_VERIFICATION_NOT_INDEPENDENT_APPROVAL",
+  "startingSha": "258da371d957044625da4b88f5a433922f987b00",
+  "jdk": 21,
+  "baselineJarSha256": "08da9f3041117c892647c258f40253e8660934cb3e99751700fab2227e228fe3",
+  "candidateJarSha256": "35db61634dbfc6d03f4f7c59692ff9acc2a07fc7e7eeaf6e9f50a8afaffd646d",
+  "baselineHeadless": {
+    "tests": 3084,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 218,
+    "reports": 406,
+    "sourceMapped": 406,
+    "orphans": [],
+    "suites": null
+  },
+  "candidateHeadless": {
+    "tests": 3121,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 245,
+    "reports": 412,
+    "sourceMapped": 412,
+    "orphans": [],
+    "suites": null
+  },
+  "unchangedOriginalBundleProbes": {
+    "tests": 12,
+    "failures": 5,
+    "errors": 0,
+    "skipped": 0,
+    "results": [
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.BundleReleaseProbeTest",
+        "method": "startupDoesNotRewriteACommittedProfile",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.BundleReleaseProbeTest",
+        "method": "previewLeavesNoWorkingCopy",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.BundleReleaseProbeTest",
+        "method": "fallbackOfferMustNotDescribeAnUnrelatedLogAsInsideTheProject",
+        "kind": "failure",
+        "message": "org.opentest4j.AssertionFailedError: anUnrelatedRecentLogMustNotBeCalledInsideThisProject ==> expected: <false> but was: <true>"
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.BundleReleaseProbeTest",
+        "method": "machineValuesDoNotRideProjectShareOrBundle",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.BundleReleaseProbeTest",
+        "method": "recentsSurviveRestartWithoutWorkingCopiesOrFilenameCollisions",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.BundleReleaseProbeTest",
+        "method": "clearingOwnRootsOutsideABundleKeepsItsAnchor",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.BundleReleaseProbeTest",
+        "method": "anUnrelatedEditDoesNotDeleteAnUnavailableAnchor",
+        "kind": "failure",
+        "message": "org.opentest4j.AssertionFailedError: unrelatedReportsImportMustNotDeleteThePersonsAnchor ==> expected: <[<temporary-data>/DEMO-offline-anchor-7296796343863331313/DEMO-code]> but was: <[]>"
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.BundleReleaseProbeTest",
+        "method": "aReplacementProfileIsNotTheSendersEvidence",
+        "kind": "failure",
+        "message": "org.opentest4j.AssertionFailedError: replacementProfileMustNotCarryTheAbortedBundlesIdentity ==> expected: <false> but was: <true>"
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.BundleReleaseProbeTest",
+        "method": "processorInContextIsExplicitlyTheSendersClaim",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.BundleReleaseProbeTest",
+        "method": "importingGraphsKeepsIncomingNotes",
+        "kind": "failure",
+        "message": "org.opentest4j.AssertionFailedError: incomingGraphSurvivesTheSaveFunnel ==> expected: <DEMO sender> but was: <DEMO recipient>"
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.BundleReleaseProbeTest",
+        "method": "aDisabledOfferIsRecordedAsSkipped",
+        "kind": "failure",
+        "message": "org.opentest4j.AssertionFailedError: disabledOfferMustBeRecordedAsSkipped ==> expected: <true> but was: <false>"
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.BundleReleaseProbeTest",
+        "method": "aPersonsReopenOfferRunsAfterTheCycle",
+        "kind": "passed",
+        "message": null
+      }
+    ]
+  },
+  "unchangedOriginalWalkProbes": {
+    "tests": 12,
+    "failures": 6,
+    "errors": 0,
+    "skipped": 0,
+    "results": [
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.JavaWalkProbeTest",
+        "method": "unreadSourceMustStayPreparing",
+        "kind": "failure",
+        "message": "org.opentest4j.AssertionFailedError: aJavaWalkMustNotClaimSHOWNBeforeItHasReadOrLitTheSource ==> expected: <PREPARING> but was: <SHOWN>"
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.JavaWalkProbeTest",
+        "method": "aViewChangeDuringReadMustNotUndoThePersonsChoice",
+        "kind": "failure",
+        "message": "org.opentest4j.AssertionFailedError: lateWalkReadMustNotReplaceThePersonsNewView ==> expected: <telamin.fluxtion.audit.analyser.analyser.ui.SummaryPanel[,11,33,289x517,hidden,layout=java.awt.BorderLayout,alignmentX=0.0,alignmentY=0.0,border=javax.swing.border.EmptyBorder@25d250c6,flags=9,maximumSize=,minimumSize=java.awt.Dimension[width=200,height=120],preferredSize=]> but was: <telamin.fluxtion.audit.analyser.analyser.ui.SourcePanel[,11,33,289x517,layout=java.awt.BorderLayout,alignmentX=0.0,alignmentY=0.0,border=javax.swing.border.EmptyBorder@4df50bcc,flags=329,maximumSize=,minimumSize=java.awt.Dimension[width=200,height=120],preferredSize=]>"
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.JavaWalkProbeTest",
+        "method": "anUnavailableLineReportsNotShown",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.JavaWalkProbeTest",
+        "method": "availabilityMustNotReadOnTheEventThread",
+        "kind": "failure",
+        "message": "org.opentest4j.AssertionFailedError: javaWalkAvailabilityMustNotBlockTheEDT ==> expected: <true> but was: <false>"
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.JavaWalkProbeTest",
+        "method": "changedRootsRefuseTheLateRead",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.JavaWalkProbeTest",
+        "method": "aClosedSourceTabCannotBeClaimedShown",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.JavaWalkProbeTest",
+        "method": "anUnreadableResolvedClassReportsFailureInsteadOfPreparingForever",
+        "kind": "failure",
+        "message": "org.opentest4j.AssertionFailedError: sourceAvailabilityFailureMustSettleHonestlyInsteadOfLeavingPREPARING ==> expected: <NOT_SHOWN> but was: <PREPARING>"
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.JavaWalkProbeTest",
+        "method": "aNeverReturningPreparationExpiresAndReleasesOwnership",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.JavaWalkProbeTest",
+        "method": "projectSwitchCannotResurrectALateStep",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.JavaWalkProbeTest",
+        "method": "aMovedJavaLineMustNotBeMarkedCurrentAgainstTheSavedWalk",
+        "kind": "failure",
+        "message": "org.opentest4j.AssertionFailedError: savedJavaLineMustNotClaimCurrentAfterItsTextChanges ==> expected: not equal but was: <CURRENT>"
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.JavaWalkProbeTest",
+        "method": "backAndNextDoNotLightTheSupersededRead",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.JavaWalkProbeTest",
+        "method": "backDuringTheOriginalReadMustNotBlockTheEventThread",
+        "kind": "failure",
+        "message": "org.opentest4j.AssertionFailedError: BackDuringAReadMustNotBlockTheEDTOnTheOriginalLookup ==> expected: <true> but was: <false>"
+      }
+    ]
+  },
+  "unchangedOriginalControls": {
+    "requested": [
+      "review-panel-direct-frame",
+      "review-navigator-list-closed",
+      "review-panel-inner-frame",
+      "review-navigator-inherited-action",
+      "bundle-provenance-matches-the-applied-profile",
+      "bundle-anchor-forgotten-when-deleted",
+      "bundle-anchor-restored"
+    ],
+    "caught": [
+      "review-panel-direct-frame",
+      "review-navigator-list-closed",
+      "bundle-provenance-matches-the-applied-profile",
+      "bundle-anchor-forgotten-when-deleted",
+      "bundle-anchor-restored"
+    ],
+    "survived": [
+      "review-panel-inner-frame",
+      "review-navigator-inherited-action"
+    ]
+  },
+  "maintainedBeforeBundle": {
+    "tests": 15,
+    "failures": 7,
+    "errors": 0,
+    "skipped": 0,
+    "results": [
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.Issue84BundleFrameTest",
+        "method": "startupDoesNotRewriteACommittedProfile",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.Issue84BundleFrameTest",
+        "method": "previewLeavesNoWorkingCopy",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.Issue84BundleFrameTest",
+        "method": "fallbackOfferMustNotDescribeAnUnrelatedLogAsInsideTheProject",
+        "kind": "failure",
+        "message": "org.opentest4j.AssertionFailedError: anUnrelatedRecentLogMustNotBeCalledInsideThisProject ==> expected: <false> but was: <true>"
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.Issue84BundleFrameTest",
+        "method": "topologyFallbackHasItsOwnOriginBesideAProjectLog",
+        "kind": "failure",
+        "message": "org.opentest4j.AssertionFailedError: projectLogOriginIsPreserved ==> expected: <true> but was: <false>"
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.Issue84BundleFrameTest",
+        "method": "aDeferredHumanOfferDoesNotBelongToTheNextSocketProject",
+        "kind": "failure",
+        "message": "org.opentest4j.AssertionFailedError: aLaterSocketOperationCannotInheritAHumanOffer ==> expected: <0> but was: <1>"
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.Issue84BundleFrameTest",
+        "method": "machineValuesDoNotRideProjectShareOrBundle",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.Issue84BundleFrameTest",
+        "method": "recentsSurviveRestartWithoutWorkingCopiesOrFilenameCollisions",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.Issue84BundleFrameTest",
+        "method": "clearingOwnRootsOutsideABundleKeepsItsAnchor",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.Issue84BundleFrameTest",
+        "method": "anUnrelatedEditDoesNotDeleteAnUnavailableAnchor",
+        "kind": "failure",
+        "message": "org.opentest4j.AssertionFailedError: unrelatedReportsImportMustNotDeleteThePersonsAnchor ==> expected: <[<temporary-data>/DEMO-offline-anchor-17484037709424382580/DEMO-code]> but was: <[]>"
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.Issue84BundleFrameTest",
+        "method": "aReplacementProfileIsNotTheSendersEvidence",
+        "kind": "failure",
+        "message": "org.opentest4j.AssertionFailedError: replacementProfileMustNotCarryTheAbortedBundlesIdentity ==> expected: <false> but was: <true>"
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.Issue84BundleFrameTest",
+        "method": "processorInContextIsExplicitlyTheSendersClaim",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.Issue84BundleFrameTest",
+        "method": "aBackgroundChartActionReportsItsViewChangeOnTheEdt",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.Issue84BundleFrameTest",
+        "method": "importingGraphsKeepsIncomingNotes",
+        "kind": "failure",
+        "message": "org.opentest4j.AssertionFailedError: incomingNotesAreOnScreen ==> expected: <DEMO sender> but was: <DEMO recipient>"
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.Issue84BundleFrameTest",
+        "method": "aDisabledOfferIsRecordedAsSkipped",
+        "kind": "failure",
+        "message": "org.opentest4j.AssertionFailedError: disabledOfferMustBeRecordedAsSkipped ==> expected: <true> but was: <false>"
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.Issue84BundleFrameTest",
+        "method": "aPersonsReopenOfferRunsAfterTheCycle",
+        "kind": "passed",
+        "message": null
+      }
+    ]
+  },
+  "maintainedBeforeWalk": {
+    "tests": 12,
+    "failures": 7,
+    "errors": 0,
+    "skipped": 0,
+    "results": [
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.Issue84JavaWalkFrameTest",
+        "method": "unreadSourceMustStayPreparing",
+        "kind": "failure",
+        "message": "org.opentest4j.AssertionFailedError: unreadSourceCannotAdvanceAcceptedDialogue ==> expected: <-1> but was: <0>"
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.Issue84JavaWalkFrameTest",
+        "method": "aViewChangeDuringReadMustNotUndoThePersonsChoice",
+        "kind": "failure",
+        "message": "org.opentest4j.AssertionFailedError: lateWalkReadMustNotReplaceThePersonsNewView ==> expected: <telamin.fluxtion.audit.analyser.analyser.ui.SummaryPanel[,11,33,289x517,hidden,layout=java.awt.BorderLayout,alignmentX=0.0,alignmentY=0.0,border=javax.swing.border.EmptyBorder@7c0c77c7,flags=9,maximumSize=,minimumSize=java.awt.Dimension[width=200,height=120],preferredSize=]> but was: <telamin.fluxtion.audit.analyser.analyser.ui.SourcePanel[,11,33,289x517,layout=java.awt.BorderLayout,alignmentX=0.0,alignmentY=0.0,border=javax.swing.border.EmptyBorder@7adda9cc,flags=329,maximumSize=,minimumSize=java.awt.Dimension[width=200,height=120],preferredSize=]>"
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.Issue84JavaWalkFrameTest",
+        "method": "anUnavailableLineReportsNotShown",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.Issue84JavaWalkFrameTest",
+        "method": "availabilityMustNotReadOnTheEventThread",
+        "kind": "failure",
+        "message": "org.opentest4j.AssertionFailedError: javaWalkAvailabilityMustNotBlockTheEDT ==> expected: <true> but was: <false>"
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.Issue84JavaWalkFrameTest",
+        "method": "changedRootsRefuseTheLateRead",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.Issue84JavaWalkFrameTest",
+        "method": "aClosedSourceTabCannotBeClaimedShown",
+        "kind": "failure",
+        "message": "org.opentest4j.AssertionFailedError: expected: <false> but was: <true>"
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.Issue84JavaWalkFrameTest",
+        "method": "anUnreadableResolvedClassReportsFailureInsteadOfPreparingForever",
+        "kind": "failure",
+        "message": "org.opentest4j.AssertionFailedError: sourceAvailabilityFailureMustSettleHonestlyInsteadOfLeavingPREPARING ==> expected: <NOT_SHOWN> but was: <PREPARING>"
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.Issue84JavaWalkFrameTest",
+        "method": "aNeverReturningPreparationExpiresAndReleasesOwnership",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.Issue84JavaWalkFrameTest",
+        "method": "projectSwitchCannotResurrectALateStep",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.Issue84JavaWalkFrameTest",
+        "method": "aMovedJavaLineMustNotBeMarkedCurrentAgainstTheSavedWalk",
+        "kind": "failure",
+        "message": "org.opentest4j.AssertionFailedError: changedLineMustDiscloseNoSavedRevisionComparison ==> expected: <true> but was: <false>"
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.Issue84JavaWalkFrameTest",
+        "method": "backAndNextDoNotLightTheSupersededRead",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.Issue84JavaWalkFrameTest",
+        "method": "backDuringTheOriginalReadMustNotBlockTheEventThread",
+        "kind": "failure",
+        "message": "org.opentest4j.AssertionFailedError: BackDuringAReadMustNotBlockTheEDTOnTheOriginalLookup ==> expected: <true> but was: <false>"
+      }
+    ]
+  },
+  "maintainedAfterBundle": {
+    "tests": 15,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "results": [
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.Issue84BundleFrameTest",
+        "method": "startupDoesNotRewriteACommittedProfile",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.Issue84BundleFrameTest",
+        "method": "previewLeavesNoWorkingCopy",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.Issue84BundleFrameTest",
+        "method": "fallbackOfferMustNotDescribeAnUnrelatedLogAsInsideTheProject",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.Issue84BundleFrameTest",
+        "method": "topologyFallbackHasItsOwnOriginBesideAProjectLog",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.Issue84BundleFrameTest",
+        "method": "aDeferredHumanOfferDoesNotBelongToTheNextSocketProject",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.Issue84BundleFrameTest",
+        "method": "machineValuesDoNotRideProjectShareOrBundle",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.Issue84BundleFrameTest",
+        "method": "recentsSurviveRestartWithoutWorkingCopiesOrFilenameCollisions",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.Issue84BundleFrameTest",
+        "method": "clearingOwnRootsOutsideABundleKeepsItsAnchor",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.Issue84BundleFrameTest",
+        "method": "anUnrelatedEditDoesNotDeleteAnUnavailableAnchor",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.Issue84BundleFrameTest",
+        "method": "aReplacementProfileIsNotTheSendersEvidence",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.Issue84BundleFrameTest",
+        "method": "processorInContextIsExplicitlyTheSendersClaim",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.Issue84BundleFrameTest",
+        "method": "aBackgroundChartActionReportsItsViewChangeOnTheEdt",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.Issue84BundleFrameTest",
+        "method": "importingGraphsKeepsIncomingNotes",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.Issue84BundleFrameTest",
+        "method": "aDisabledOfferIsRecordedAsSkipped",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.Issue84BundleFrameTest",
+        "method": "aPersonsReopenOfferRunsAfterTheCycle",
+        "kind": "passed",
+        "message": null
+      }
+    ]
+  },
+  "maintainedAfterWalk": {
+    "tests": 12,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "results": [
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.Issue84JavaWalkFrameTest",
+        "method": "unreadSourceMustStayPreparing",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.Issue84JavaWalkFrameTest",
+        "method": "aViewChangeDuringReadMustNotUndoThePersonsChoice",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.Issue84JavaWalkFrameTest",
+        "method": "anUnavailableLineReportsNotShown",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.Issue84JavaWalkFrameTest",
+        "method": "availabilityMustNotReadOnTheEventThread",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.Issue84JavaWalkFrameTest",
+        "method": "changedRootsRefuseTheLateRead",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.Issue84JavaWalkFrameTest",
+        "method": "aClosedSourceTabCannotBeClaimedShown",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.Issue84JavaWalkFrameTest",
+        "method": "anUnreadableResolvedClassReportsFailureInsteadOfPreparingForever",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.Issue84JavaWalkFrameTest",
+        "method": "aNeverReturningPreparationExpiresAndReleasesOwnership",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.Issue84JavaWalkFrameTest",
+        "method": "projectSwitchCannotResurrectALateStep",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.Issue84JavaWalkFrameTest",
+        "method": "aMovedJavaLineMustNotBeMarkedCurrentAgainstTheSavedWalk",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.Issue84JavaWalkFrameTest",
+        "method": "backAndNextDoNotLightTheSupersededRead",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.Issue84JavaWalkFrameTest",
+        "method": "backDuringTheOriginalReadMustNotBlockTheEventThread",
+        "kind": "passed",
+        "message": null
+      }
+    ]
+  },
+  "relevantDisplay": {
+    "tests": 114,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 2,
+    "reports": 14,
+    "sourceMapped": 14,
+    "orphans": [],
+    "suites": [
+      {
+        "name": "WalkVerbFrameTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "SessionRecoveryFrameTest",
+        "tests": 10,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "Issue84JavaWalkFrameTest",
+        "tests": 12,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "AssistantScopeRaceFrameTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "SourceFreshnessFrameTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "WalkArrowKeysFrameTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 1
+      },
+      {
+        "name": "IdentityMarkFrameTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "Issue84BundleFrameTest",
+        "tests": 15,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "JavaSourceSpotlightFrameTest",
+        "tests": 13,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "WalkPlaybackFrameTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "DuplicateChartRepairFrameTest",
+        "tests": 10,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "BundleProvenanceFrameTest",
+        "tests": 18,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "WalkReviewFrameTest",
+        "tests": 12,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "StartWorkspaceFrameTest",
+        "tests": 12,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 1
+      }
+    ]
+  },
+  "finalControls": {
+    "requested": [
+      "issue84-startup-offer-superseded",
+      "issue84-topology-fallback-origin",
+      "issue84-source-error-is-a-fact",
+      "issue84-back-read-off-edt",
+      "issue84-aborted-plan-cannot-be-reowned",
+      "issue84-loaded-content-bound",
+      "issue84-verified-profile-read",
+      "issue84-incoming-charts-live",
+      "issue84-offline-anchor-not-deletion",
+      "issue84-walk-waits-for-light",
+      "issue84-native-navigation-supersedes",
+      "issue84-source-read-off-edt",
+      "issue84-offer-permission",
+      "issue84-offer-operation",
+      "review-panel-inner-frame",
+      "review-navigator-inherited-action",
+      "review-panel-direct-frame",
+      "review-navigator-list-closed",
+      "issue84-fallback-origin",
+      "issue84-saved-source-disclosure",
+      "bundle-provenance-matches-the-applied-profile",
+      "bundle-provenance-cleared-on-restore",
+      "bundle-anchor-remembered",
+      "bundle-anchor-forgotten-when-deleted",
+      "bundle-anchor-restore-requested",
+      "bundle-anchor-restored",
+      "walk-can-point-at-java",
+      "bundle-provenance-settles",
+      "bundle-provenance-holds-plan",
+      "oa4-accepted-step-tracked",
+      "issue84-view-fact-on-edt"
+    ],
+    "caught": [
+      "issue84-view-fact-on-edt",
+      "issue84-startup-offer-superseded",
+      "issue84-topology-fallback-origin",
+      "issue84-source-error-is-a-fact",
+      "issue84-back-read-off-edt",
+      "issue84-aborted-plan-cannot-be-reowned",
+      "issue84-loaded-content-bound",
+      "issue84-verified-profile-read",
+      "issue84-incoming-charts-live",
+      "issue84-offline-anchor-not-deletion",
+      "issue84-walk-waits-for-light",
+      "issue84-native-navigation-supersedes",
+      "issue84-source-read-off-edt",
+      "issue84-offer-permission",
+      "issue84-offer-operation",
+      "review-panel-inner-frame",
+      "review-navigator-inherited-action",
+      "review-panel-direct-frame",
+      "review-navigator-list-closed",
+      "issue84-fallback-origin",
+      "issue84-saved-source-disclosure",
+      "bundle-provenance-matches-the-applied-profile",
+      "bundle-provenance-cleared-on-restore",
+      "bundle-anchor-remembered",
+      "bundle-anchor-forgotten-when-deleted",
+      "bundle-anchor-restore-requested",
+      "bundle-anchor-restored",
+      "walk-can-point-at-java",
+      "bundle-provenance-settles",
+      "bundle-provenance-holds-plan",
+      "oa4-accepted-step-tracked"
+    ],
+    "missing": [],
+    "seconds": 164.3,
+    "runs": [
+      {
+        "name": "issue84-view-fact-on-edt",
+        "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java",
+        "sha256": "803b8eab19d3e75afe787852caf249e3a5c6d63947cd5d0c424f7c9258026adb",
+        "baselineGreen": true,
+        "verdict": "caught",
+        "engine": "fast",
+        "fullCompileFallback": false,
+        "restoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "mutationExit": 1,
+        "assertions": [
+          {
+            "test": "aBackgroundChartActionReportsItsViewChangeOnTheEdt",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: viewObservationMustReturnToTheEdt ==> Unexpected exception thrown: telamin.fluxtion.audit.analyser.analyser.session.SessionDriver$ProtocolViolation: post(WalkViewChanged) on main; the driver is confined to AWT-EventQueue-0"
+          }
+        ],
+        "restoredExit": 0
+      },
+      {
+        "name": "issue84-startup-offer-superseded",
+        "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/ProjectReopenOffer.java",
+        "sha256": "e081453fada77e054a470b5bcf13e0f2643d21b8ce507abdae35a4fbd88b1362",
+        "baselineGreen": true,
+        "verdict": "caught",
+        "engine": "fast",
+        "fullCompileFallback": false,
+        "restoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "mutationExit": 1,
+        "assertions": [
+          {
+            "test": "startupCannotLendItsAudienceToAnOperationBeforeTheWindowAppears",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: startupMustNotReopenAnOfferAfterANewerOperation ==> expected: <0> but was: <1>"
+          }
+        ],
+        "restoredExit": 0
+      },
+      {
+        "name": "issue84-topology-fallback-origin",
+        "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/config/ProjectReopen.java",
+        "sha256": "a0146d0b8a2fa95f23b24119fbe12110b6d92f1401387cd63920062d3c07c77c",
+        "baselineGreen": true,
+        "verdict": "caught",
+        "engine": "fast",
+        "fullCompileFallback": false,
+        "restoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "mutationExit": 1,
+        "assertions": [
+          {
+            "test": "topologyFallbackHasItsOwnOriginBesideAProjectLog",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: topologyFallbackNamesItsOwnOrigin ==> expected: <true> but was: <false>"
+          }
+        ],
+        "restoredExit": 0
+      },
+      {
+        "name": "issue84-source-error-is-a-fact",
+        "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java",
+        "sha256": "803b8eab19d3e75afe787852caf249e3a5c6d63947cd5d0c424f7c9258026adb",
+        "baselineGreen": true,
+        "verdict": "caught",
+        "engine": "fast",
+        "fullCompileFallback": false,
+        "restoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "mutationExit": 1,
+        "assertions": [
+          {
+            "test": "anUnreadableResolvedClassReportsFailureInsteadOfPreparingForever",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: invalidUtf8MustReportTheReadFailure ==> expected: <true> but was: <false>"
+          }
+        ],
+        "restoredExit": 0
+      },
+      {
+        "name": "issue84-back-read-off-edt",
+        "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java",
+        "sha256": "803b8eab19d3e75afe787852caf249e3a5c6d63947cd5d0c424f7c9258026adb",
+        "baselineGreen": true,
+        "verdict": "caught",
+        "engine": "fast",
+        "fullCompileFallback": false,
+        "restoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "mutationExit": 1,
+        "assertions": [
+          {
+            "test": "backDuringTheOriginalReadMustNotBlockTheEventThread",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: BackDuringAReadMustNotBlockTheEDTOnTheOriginalLookup ==> expected: <true> but was: <false>"
+          }
+        ],
+        "restoredExit": 0
+      },
+      {
+        "name": "issue84-aborted-plan-cannot-be-reowned",
+        "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/OpenBundle.java",
+        "sha256": "38224af11b583576d33c685be9e4f0969cdd8a48fa05bfa9db842e29229e3c40",
+        "baselineGreen": true,
+        "verdict": "caught",
+        "engine": "fast",
+        "fullCompileFallback": false,
+        "restoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "mutationExit": 1,
+        "assertions": [
+          {
+            "test": "aReplacementProfileIsNotTheSendersEvidence",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: replacementProfileMustNotCarryTheAbortedBundlesIdentity ==> expected: <false> but was: <true>"
+          }
+        ],
+        "restoredExit": 0
+      },
+      {
+        "name": "issue84-loaded-content-bound",
+        "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/OpenBundle.java",
+        "sha256": "38224af11b583576d33c685be9e4f0969cdd8a48fa05bfa9db842e29229e3c40",
+        "baselineGreen": true,
+        "verdict": "caught",
+        "engine": "fast",
+        "fullCompileFallback": false,
+        "restoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "mutationExit": 1,
+        "assertions": [
+          {
+            "test": "aDifferentLoadedDigestCannotClaimThePlan",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: loadedContentMustMatchTheVerifiedPlan ==> expected: <false> but was: <true>"
+          }
+        ],
+        "restoredExit": 0
+      },
+      {
+        "name": "issue84-verified-profile-read",
+        "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/config/ProjectProfile.java",
+        "sha256": "391a4c69d805a66bdf108c036da1138db72ce58bb21e98b0c162b8e2642e631b",
+        "baselineGreen": true,
+        "verdict": "caught",
+        "engine": "fast",
+        "fullCompileFallback": false,
+        "restoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "mutationExit": 1,
+        "assertions": [
+          {
+            "test": "changedContentIsRefusedBeforeSettingsAreApplied",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: replacementContentMustBeRefused ==> expected: <false> but was: <true>"
+          }
+        ],
+        "restoredExit": 0
+      },
+      {
+        "name": "issue84-incoming-charts-live",
+        "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java",
+        "sha256": "803b8eab19d3e75afe787852caf249e3a5c6d63947cd5d0c424f7c9258026adb",
+        "baselineGreen": true,
+        "verdict": "caught",
+        "engine": "fast",
+        "fullCompileFallback": false,
+        "restoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "mutationExit": 1,
+        "assertions": [
+          {
+            "test": "importingGraphsKeepsIncomingNotes",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: incomingNotesAreOnScreen ==> expected: <DEMO sender> but was: <DEMO recipient>"
+          }
+        ],
+        "restoredExit": 0
+      },
+      {
+        "name": "issue84-offline-anchor-not-deletion",
+        "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/BundleAnchor.java",
+        "sha256": "c280971e5b90ace01ef2f13ebee0a0162e86b6a7ed10ee122888d65180dab871",
+        "baselineGreen": true,
+        "verdict": "caught",
+        "engine": "fast",
+        "fullCompileFallback": false,
+        "restoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "mutationExit": 1,
+        "assertions": [
+          {
+            "test": "anUnrelatedEditDoesNotDeleteAnUnavailableAnchor",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: unrelatedReportsImportMustNotDeleteThePersonsAnchor ==> expected: <[<temporary-data>/DEMO-offline-anchor-14309415473115041754/DEMO-code]> but was: <[]>"
+          }
+        ],
+        "restoredExit": 0
+      },
+      {
+        "name": "issue84-walk-waits-for-light",
+        "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/WalkPlayback.java",
+        "sha256": "f80686b871af37cf66dd19d19e6fa25ed4b6d8eb86e66a31a5102a5da0ee9284",
+        "baselineGreen": true,
+        "verdict": "caught",
+        "engine": "fast",
+        "fullCompileFallback": false,
+        "restoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "mutationExit": 1,
+        "assertions": [
+          {
+            "test": "unreadSourceMustStayPreparing",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: unreadSourceCannotAdvanceAcceptedDialogue ==> expected: <-1> but was: <0>"
+          }
+        ],
+        "restoredExit": 0
+      },
+      {
+        "name": "issue84-native-navigation-supersedes",
+        "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/WalkPlayback.java",
+        "sha256": "f80686b871af37cf66dd19d19e6fa25ed4b6d8eb86e66a31a5102a5da0ee9284",
+        "baselineGreen": true,
+        "verdict": "caught",
+        "engine": "fast",
+        "fullCompileFallback": false,
+        "restoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "mutationExit": 1,
+        "assertions": [
+          {
+            "test": "aViewChangeDuringReadMustNotUndoThePersonsChoice",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: lateWalkReadMustNotReplaceThePersonsNewView ==> expected: <telamin.fluxtion.audit.analyser.analyser.ui.SummaryPanel[,11,33,289x517,hidden,layout=java.awt.BorderLayout,alignmentX=0.0,alignmentY=0.0,border=javax.swing.border.EmptyBorder@2a32de6c,flags=9,maximumSize=,minimumSize=java.awt.Dimension[width=200,height=120],preferredSize=]> but was: <telamin.fluxtion.audit.analyser.analyser.ui.SourcePanel[,11,33,289x517,layout=java.awt.BorderLayout,alignmentX=0.0,alignmentY=0.0,border=javax.swing.border.EmptyBorder@7692d9cc,flags=331,maximumSize=,minimumSize=java.awt.Dimension[width=200,height=120],preferredSize=]>"
+          }
+        ],
+        "restoredExit": 0
+      },
+      {
+        "name": "issue84-source-read-off-edt",
+        "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java",
+        "sha256": "803b8eab19d3e75afe787852caf249e3a5c6d63947cd5d0c424f7c9258026adb",
+        "baselineGreen": true,
+        "verdict": "caught",
+        "engine": "fast",
+        "fullCompileFallback": false,
+        "restoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "mutationExit": 1,
+        "assertions": [
+          {
+            "test": "availabilityMustNotReadOnTheEventThread",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: javaWalkAvailabilityMustNotBlockTheEDT ==> expected: <true> but was: <false>"
+          }
+        ],
+        "restoredExit": 0
+      },
+      {
+        "name": "issue84-offer-permission",
+        "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/ProjectReopenOffer.java",
+        "sha256": "e081453fada77e054a470b5bcf13e0f2643d21b8ce507abdae35a4fbd88b1362",
+        "baselineGreen": true,
+        "verdict": "caught",
+        "engine": "fast",
+        "fullCompileFallback": false,
+        "restoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "mutationExit": 1,
+        "assertions": [
+          {
+            "test": "permissionAndOriginBelongToTheOperation",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: onlyAnAuthorisedPersonOperationOffers ==> expected: <0> but was: <1>"
+          }
+        ],
+        "restoredExit": 0
+      },
+      {
+        "name": "issue84-offer-operation",
+        "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/ProjectReopenOffer.java",
+        "sha256": "e081453fada77e054a470b5bcf13e0f2643d21b8ce507abdae35a4fbd88b1362",
+        "baselineGreen": true,
+        "verdict": "caught",
+        "engine": "fast",
+        "fullCompileFallback": false,
+        "restoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "mutationExit": 1,
+        "assertions": [
+          {
+            "test": "aLaterOperationCannotInheritOrReviveAnOffer",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: aNewOperationMustNotInheritThePersonsOffer ==> expected: <0> but was: <1>"
+          }
+        ],
+        "restoredExit": 0
+      },
+      {
+        "name": "review-panel-inner-frame",
+        "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/ProjectPanel.java",
+        "sha256": "37fa7d2c90cd904153cf5ad6133a37285d0449434f02ef7f0fe094904907cb04",
+        "baselineGreen": true,
+        "verdict": "caught",
+        "engine": "fast",
+        "fullCompileFallback": true,
+        "restoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "mutationExit": 1,
+        "assertions": [
+          {
+            "test": "thePanelNeverNamesMainFrame_itsOnlyExitIsTheTwoMethodNavigator",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: D-L3 reachable helper must not reach the frame/action surface: telamin/fluxtion/audit/analyser/analyser/ui/MainFrame ==> expected: <false> but was: <true>"
+          }
+        ],
+        "restoredExit": 0
+      },
+      {
+        "name": "review-navigator-inherited-action",
+        "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/ProjectPanel.java",
+        "sha256": "37fa7d2c90cd904153cf5ad6133a37285d0449434f02ef7f0fe094904907cb04",
+        "baselineGreen": true,
+        "verdict": "caught",
+        "engine": "fast",
+        "fullCompileFallback": true,
+        "restoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "mutationExit": 1,
+        "assertions": [
+          {
+            "test": "thePanelNeverNamesMainFrame_itsOnlyExitIsTheTwoMethodNavigator",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: the Navigator's surface is a closed list; adding a method here is a spec change (D-L3). showReport/showGraph were added deliberately (owner, 2026-09-24, 35eeb320): revealing a SPECIFIC item is still moving the eye. The four state-changing actions were added deliberately too (owner, 2026-09-30): a row that shows you a source root you did not expect is exactly where removing it belongs. The panel still cannot act by itself — it asks the frame, which is what the bytecode assertions above hold. ==> expected: <[openProcessorSource, openSettings, removeProcessor, removeSourceRoot, setActiveProcessor, showGraph, showReport, showTab]> but was: <[openProcessorSource, openSettings, removeProcessor, removeSourceRoot, runAnything, setActiveProcessor, showGraph, showReport, showTab]>"
+          }
+        ],
+        "restoredExit": 0
+      },
+      {
+        "name": "review-panel-direct-frame",
+        "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/ProjectPanel.java",
+        "sha256": "37fa7d2c90cd904153cf5ad6133a37285d0449434f02ef7f0fe094904907cb04",
+        "baselineGreen": true,
+        "verdict": "caught",
+        "engine": "fast",
+        "fullCompileFallback": false,
+        "restoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "mutationExit": 1,
+        "assertions": [
+          {
+            "test": "thePanelNeverNamesMainFrame_itsOnlyExitIsTheTwoMethodNavigator",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: D-L3 reachable helper must not reach the frame/action surface: telamin/fluxtion/audit/analyser/analyser/ui/MainFrame ==> expected: <false> but was: <true>"
+          }
+        ],
+        "restoredExit": 0
+      },
+      {
+        "name": "review-navigator-list-closed",
+        "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/ProjectPanel.java",
+        "sha256": "37fa7d2c90cd904153cf5ad6133a37285d0449434f02ef7f0fe094904907cb04",
+        "baselineGreen": true,
+        "verdict": "caught",
+        "engine": "fast",
+        "fullCompileFallback": true,
+        "restoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "mutationExit": 1,
+        "assertions": [
+          {
+            "test": "thePanelNeverNamesMainFrame_itsOnlyExitIsTheTwoMethodNavigator",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: the Navigator's surface is a closed list; adding a method here is a spec change (D-L3). showReport/showGraph were added deliberately (owner, 2026-09-24, 35eeb320): revealing a SPECIFIC item is still moving the eye. The four state-changing actions were added deliberately too (owner, 2026-09-30): a row that shows you a source root you did not expect is exactly where removing it belongs. The panel still cannot act by itself — it asks the frame, which is what the bytecode assertions above hold. ==> expected: <[openProcessorSource, openSettings, removeProcessor, removeSourceRoot, setActiveProcessor, showGraph, showReport, showTab]> but was: <[discardEverything, openProcessorSource, openSettings, removeProcessor, removeSourceRoot, setActiveProcessor, showGraph, showReport, showTab]>"
+          }
+        ],
+        "restoredExit": 0
+      },
+      {
+        "name": "issue84-fallback-origin",
+        "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/config/ProjectReopen.java",
+        "sha256": "a0146d0b8a2fa95f23b24119fbe12110b6d92f1401387cd63920062d3c07c77c",
+        "baselineGreen": true,
+        "verdict": "caught",
+        "engine": "fast",
+        "fullCompileFallback": false,
+        "restoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "mutationExit": 1,
+        "assertions": [
+          {
+            "test": "fallbackOfferMustNotDescribeAnUnrelatedLogAsInsideTheProject",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: fallbackLogListMustNameItsMachineOrigin ==> expected: <true> but was: <false>"
+          }
+        ],
+        "restoredExit": 0
+      },
+      {
+        "name": "issue84-saved-source-disclosure",
+        "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/walk/WalkResolver.java",
+        "sha256": "df3680099f91dd439b8cc1fc54c284eb25a971da1a3f9dc4a0eacff6de7c1902",
+        "baselineGreen": true,
+        "verdict": "caught",
+        "engine": "fast",
+        "fullCompileFallback": false,
+        "restoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "mutationExit": 1,
+        "assertions": [
+          {
+            "test": "aMovedJavaLineMustNotBeMarkedCurrentAgainstTheSavedWalk",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: visibleCaptionMustDiscloseNoSavedRevisionComparison ==> expected: <true> but was: <false>"
+          }
+        ],
+        "restoredExit": 0
+      },
+      {
+        "name": "bundle-provenance-matches-the-applied-profile",
+        "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/OpenBundle.java",
+        "sha256": "38224af11b583576d33c685be9e4f0969cdd8a48fa05bfa9db842e29229e3c40",
+        "baselineGreen": true,
+        "verdict": "caught",
+        "engine": "fast",
+        "fullCompileFallback": false,
+        "restoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "mutationExit": 1,
+        "assertions": [
+          {
+            "test": "appliedPathMustStillBeTheVerifiedProfile",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: aDifferentAppliedProfileCannotBorrowThePlan ==> expected: <false> but was: <true>"
+          }
+        ],
+        "restoredExit": 0
+      },
+      {
+        "name": "bundle-provenance-cleared-on-restore",
+        "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/OpenBundle.java",
+        "sha256": "38224af11b583576d33c685be9e4f0969cdd8a48fa05bfa9db842e29229e3c40",
+        "baselineGreen": true,
+        "verdict": "caught",
+        "engine": "fast",
+        "fullCompileFallback": false,
+        "restoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "mutationExit": 1,
+        "assertions": [
+          {
+            "test": "closingBackToOwnSettingsClearsTheBundle",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: clearedOnSettingsRestored ==> expected: <false> but was: <true>"
+          }
+        ],
+        "restoredExit": 0
+      },
+      {
+        "name": "bundle-anchor-remembered",
+        "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/BundleAnchor.java",
+        "sha256": "c280971e5b90ace01ef2f13ebee0a0162e86b6a7ed10ee122888d65180dab871",
+        "baselineGreen": true,
+        "verdict": "caught",
+        "engine": "fast",
+        "fullCompileFallback": false,
+        "restoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "mutationExit": 1,
+        "assertions": [
+          {
+            "test": "anchoringABundleToASourceTreeIsRemembered",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: anchorIsRememberedAgainstTheBundle, however the root was added ==> expected: <[<temporary-data>/junit7831811623502473543/checkout/src/main/java]> but was: <[]>"
+          }
+        ],
+        "restoredExit": 0
+      },
+      {
+        "name": "bundle-anchor-forgotten-when-deleted",
+        "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/config/AppConfig.java",
+        "sha256": "76870097b4c1de68e8df950fda2b7f7ed6d1308b354c2c2ed46a5a7269cd772f",
+        "baselineGreen": true,
+        "verdict": "caught",
+        "engine": "fast",
+        "fullCompileFallback": false,
+        "restoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "mutationExit": 1,
+        "assertions": [
+          {
+            "test": "deletingTheAnchorSticks",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: theAnchorIsForgottenWhenYouDeleteIt ==> expected: <[]> but was: <[<temporary-data>/junit9541818746679707524/checkout/src/main/java]>"
+          }
+        ],
+        "restoredExit": 0
+      },
+      {
+        "name": "bundle-anchor-restore-requested",
+        "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/BundleAnchor.java",
+        "sha256": "c280971e5b90ace01ef2f13ebee0a0162e86b6a7ed10ee122888d65180dab871",
+        "baselineGreen": true,
+        "verdict": "caught",
+        "engine": "fast",
+        "fullCompileFallback": false,
+        "restoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "mutationExit": 1,
+        "assertions": [
+          {
+            "test": "anchoringABundleToASourceTreeIsRemembered",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: anchorIsRestoredOnReopen (waited for the reopen to land) ==> expected: <true> but was: <false>"
+          }
+        ],
+        "restoredExit": 0
+      },
+      {
+        "name": "bundle-anchor-restored",
+        "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java",
+        "sha256": "803b8eab19d3e75afe787852caf249e3a5c6d63947cd5d0c424f7c9258026adb",
+        "baselineGreen": true,
+        "verdict": "caught",
+        "engine": "fast",
+        "fullCompileFallback": false,
+        "restoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "mutationExit": 1,
+        "assertions": [
+          {
+            "test": "anchoringABundleToASourceTreeIsRemembered",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: anchorIsRestoredOnReopen (waited for the reopen to land) ==> expected: <true> but was: <false>"
+          }
+        ],
+        "restoredExit": 0
+      },
+      {
+        "name": "walk-can-point-at-java",
+        "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/WalkPresenter.java",
+        "sha256": "e33bb75bda801229e8d45bac6aa79e81cd375049589e550f20d983b80f732a9d",
+        "baselineGreen": true,
+        "verdict": "caught",
+        "engine": "fast",
+        "fullCompileFallback": false,
+        "restoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "mutationExit": 1,
+        "assertions": [
+          {
+            "test": "aWalkStepCanPointAtJavaSource",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: aJavaTargetIsSHOWN — the walk refused source outright before #72:  ==> expected: <SHOWN> but was: <NOT_SHOWN>"
+          }
+        ],
+        "restoredExit": 0
+      },
+      {
+        "name": "bundle-provenance-settles",
+        "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/OpenBundle.java",
+        "sha256": "38224af11b583576d33c685be9e4f0969cdd8a48fa05bfa9db842e29229e3c40",
+        "baselineGreen": true,
+        "verdict": "caught",
+        "engine": "fast",
+        "fullCompileFallback": false,
+        "restoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "mutationExit": 1,
+        "assertions": [
+          {
+            "test": "provenanceOutlivesTheTransition",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: the settled session came from a verified bundle ==> expected: <true> but was: <false>"
+          }
+        ],
+        "restoredExit": 0
+      },
+      {
+        "name": "bundle-provenance-holds-plan",
+        "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/OpenBundle.java",
+        "sha256": "38224af11b583576d33c685be9e4f0969cdd8a48fa05bfa9db842e29229e3c40",
+        "baselineGreen": true,
+        "verdict": "caught",
+        "engine": "fast",
+        "fullCompileFallback": false,
+        "restoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "mutationExit": 1,
+        "assertions": [
+          {
+            "test": "provenanceOutlivesTheTransition",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: the settled session came from a verified bundle ==> expected: <true> but was: <false>"
+          }
+        ],
+        "restoredExit": 0
+      },
+      {
+        "name": "oa4-accepted-step-tracked",
+        "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/WalkPlayback.java",
+        "sha256": "f80686b871af37cf66dd19d19e6fa25ed4b6d8eb86e66a31a5102a5da0ee9284",
+        "baselineGreen": true,
+        "verdict": "caught",
+        "engine": "fast",
+        "fullCompileFallback": false,
+        "restoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "mutationExit": 1,
+        "assertions": [
+          {
+            "test": "aRefusedStepKeepsTheAcceptedPrefix",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: the dialogue stays at step 1's prefix ==> expected: <0> but was: <1>"
+          }
+        ],
+        "restoredExit": 0
+      }
+    ]
+  },
+  "earlierControlAttempts": [
+    {
+      "artifact": "controls-first.json",
+      "seconds": 49.6,
+      "runs": [
+        {
+          "name": "issue84-aborted-plan-cannot-be-reowned",
+          "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/OpenBundle.java",
+          "sha256": "38224af11b583576d33c685be9e4f0969cdd8a48fa05bfa9db842e29229e3c40",
+          "baselineGreen": true,
+          "verdict": "survived",
+          "engine": "fast",
+          "fullCompileFallback": false,
+          "restoredByteIdentical": true,
+          "classesRestoredByteIdentical": true,
+          "mutationExit": 0,
+          "assertions": [],
+          "restoredExit": 0
+        }
+      ]
+    },
+    {
+      "artifact": "controls-second.json",
+      "seconds": 45,
+      "runs": [
+        {
+          "name": "issue84-aborted-plan-cannot-be-reowned",
+          "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/OpenBundle.java",
+          "sha256": "38224af11b583576d33c685be9e4f0969cdd8a48fa05bfa9db842e29229e3c40",
+          "baselineGreen": true,
+          "verdict": "survived",
+          "engine": "fast",
+          "fullCompileFallback": false,
+          "restoredByteIdentical": true,
+          "classesRestoredByteIdentical": true,
+          "mutationExit": 0,
+          "assertions": [],
+          "restoredExit": 0
+        }
+      ]
+    },
+    {
+      "artifact": "controls-third.json",
+      "seconds": 69.3,
+      "runs": [
+        {
+          "name": "issue84-aborted-plan-cannot-be-reowned",
+          "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/OpenBundle.java",
+          "sha256": "38224af11b583576d33c685be9e4f0969cdd8a48fa05bfa9db842e29229e3c40",
+          "baselineGreen": true,
+          "verdict": "caught",
+          "engine": "fast",
+          "fullCompileFallback": false,
+          "restoredByteIdentical": true,
+          "classesRestoredByteIdentical": true,
+          "mutationExit": 1,
+          "assertions": [
+            {
+              "test": "aReplacementProfileIsNotTheSendersEvidence",
+              "kind": "failure",
+              "message": "org.opentest4j.AssertionFailedError: replacementProfileMustNotCarryTheAbortedBundlesIdentity ==> expected: <false> but was: <true>"
+            }
+          ],
+          "restoredExit": 0
+        },
+        {
+          "name": "issue84-loaded-content-bound",
+          "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/OpenBundle.java",
+          "sha256": "38224af11b583576d33c685be9e4f0969cdd8a48fa05bfa9db842e29229e3c40",
+          "baselineGreen": true,
+          "verdict": "caught",
+          "engine": "fast",
+          "fullCompileFallback": false,
+          "restoredByteIdentical": true,
+          "classesRestoredByteIdentical": true,
+          "mutationExit": 1,
+          "assertions": [
+            {
+              "test": "aDifferentLoadedDigestCannotClaimThePlan",
+              "kind": "failure",
+              "message": "org.opentest4j.AssertionFailedError: loadedContentMustMatchTheVerifiedPlan ==> expected: <false> but was: <true>"
+            }
+          ],
+          "restoredExit": 0
+        },
+        {
+          "name": "issue84-verified-profile-read",
+          "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/config/ProjectProfile.java",
+          "sha256": "391a4c69d805a66bdf108c036da1138db72ce58bb21e98b0c162b8e2642e631b",
+          "baselineGreen": true,
+          "verdict": "caught",
+          "engine": "fast",
+          "fullCompileFallback": false,
+          "restoredByteIdentical": true,
+          "classesRestoredByteIdentical": true,
+          "mutationExit": 1,
+          "assertions": [
+            {
+              "test": "changedContentIsRefusedBeforeSettingsAreApplied",
+              "kind": "failure",
+              "message": "org.opentest4j.AssertionFailedError: replacementContentMustBeRefused ==> expected: <false> but was: <true>"
+            }
+          ],
+          "restoredExit": 0
+        },
+        {
+          "name": "issue84-incoming-charts-live",
+          "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java",
+          "sha256": "f6cffaa5a18a65cdc1da663cc19ed4a4a09af1696e98466ae28fd6f399ae9539",
+          "baselineGreen": true,
+          "verdict": "caught",
+          "engine": "fast",
+          "fullCompileFallback": false,
+          "restoredByteIdentical": true,
+          "classesRestoredByteIdentical": true,
+          "mutationExit": 1,
+          "assertions": [
+            {
+              "test": "importingGraphsKeepsIncomingNotes",
+              "kind": "failure",
+              "message": "org.opentest4j.AssertionFailedError: incomingNotesAreOnScreen ==> expected: <DEMO sender> but was: <DEMO recipient>"
+            }
+          ],
+          "restoredExit": 0
+        },
+        {
+          "name": "issue84-offline-anchor-not-deletion",
+          "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/BundleAnchor.java",
+          "sha256": "56065a7ca7938d74b78bb3dcc2df46caa59cb498d2b584fb22b1fab27d835e3e",
+          "baselineGreen": true,
+          "verdict": "caught",
+          "engine": "fast",
+          "fullCompileFallback": false,
+          "restoredByteIdentical": true,
+          "classesRestoredByteIdentical": true,
+          "mutationExit": 1,
+          "assertions": [
+            {
+              "test": "anUnrelatedEditDoesNotDeleteAnUnavailableAnchor",
+              "kind": "failure",
+              "message": "org.opentest4j.AssertionFailedError: unrelatedReportsImportMustNotDeleteThePersonsAnchor ==> expected: <[<temporary-data>/DEMO-offline-anchor-2705367654344767505/DEMO-code]> but was: <[]>"
+            }
+          ],
+          "restoredExit": 0
+        },
+        {
+          "name": "issue84-walk-waits-for-light",
+          "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/WalkPlayback.java",
+          "sha256": "f80686b871af37cf66dd19d19e6fa25ed4b6d8eb86e66a31a5102a5da0ee9284",
+          "baselineGreen": true,
+          "verdict": "caught",
+          "engine": "fast",
+          "fullCompileFallback": false,
+          "restoredByteIdentical": true,
+          "classesRestoredByteIdentical": true,
+          "mutationExit": 1,
+          "assertions": [
+            {
+              "test": "unreadSourceMustStayPreparing",
+              "kind": "failure",
+              "message": "org.opentest4j.AssertionFailedError: unreadSourceCannotAdvanceAcceptedDialogue ==> expected: <-1> but was: <0>"
+            }
+          ],
+          "restoredExit": 0
+        },
+        {
+          "name": "issue84-native-navigation-supersedes",
+          "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/WalkPlayback.java",
+          "sha256": "f80686b871af37cf66dd19d19e6fa25ed4b6d8eb86e66a31a5102a5da0ee9284",
+          "baselineGreen": true,
+          "verdict": "caught",
+          "engine": "fast",
+          "fullCompileFallback": false,
+          "restoredByteIdentical": true,
+          "classesRestoredByteIdentical": true,
+          "mutationExit": 1,
+          "assertions": [
+            {
+              "test": "aViewChangeDuringReadMustNotUndoThePersonsChoice",
+              "kind": "failure",
+              "message": "org.opentest4j.AssertionFailedError: lateWalkReadMustNotReplaceThePersonsNewView ==> expected: <telamin.fluxtion.audit.analyser.analyser.ui.SummaryPanel[,11,33,289x517,hidden,layout=java.awt.BorderLayout,alignmentX=0.0,alignmentY=0.0,border=javax.swing.border.EmptyBorder@7692d9cc,flags=9,maximumSize=,minimumSize=java.awt.Dimension[width=200,height=120],preferredSize=]> but was: <telamin.fluxtion.audit.analyser.analyser.ui.SourcePanel[,11,33,289x517,layout=java.awt.BorderLayout,alignmentX=0.0,alignmentY=0.0,border=javax.swing.border.EmptyBorder@75f32542,flags=329,maximumSize=,minimumSize=java.awt.Dimension[width=200,height=120],preferredSize=]>"
+            }
+          ],
+          "restoredExit": 0
+        },
+        {
+          "name": "issue84-source-read-off-edt",
+          "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java",
+          "sha256": "f6cffaa5a18a65cdc1da663cc19ed4a4a09af1696e98466ae28fd6f399ae9539",
+          "baselineGreen": true,
+          "verdict": "caught",
+          "engine": "fast",
+          "fullCompileFallback": false,
+          "restoredByteIdentical": true,
+          "classesRestoredByteIdentical": true,
+          "mutationExit": 1,
+          "assertions": [
+            {
+              "test": "availabilityMustNotReadOnTheEventThread",
+              "kind": "failure",
+              "message": "org.opentest4j.AssertionFailedError: javaWalkAvailabilityMustNotBlockTheEDT ==> expected: <true> but was: <false>"
+            }
+          ],
+          "restoredExit": 0
+        },
+        {
+          "name": "issue84-offer-permission",
+          "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/ProjectReopenOffer.java",
+          "sha256": "e977f3bdeee9a441fc47f7119ee71f771c1a8dcf40c1a873b16003b3ff14bdae",
+          "baselineGreen": true,
+          "verdict": "caught",
+          "engine": "fast",
+          "fullCompileFallback": false,
+          "restoredByteIdentical": true,
+          "classesRestoredByteIdentical": true,
+          "mutationExit": 1,
+          "assertions": [
+            {
+              "test": "permissionAndOriginBelongToTheOperation",
+              "kind": "failure",
+              "message": "org.opentest4j.AssertionFailedError: onlyAnAuthorisedPersonOperationOffers ==> expected: <0> but was: <1>"
+            }
+          ],
+          "restoredExit": 0
+        },
+        {
+          "name": "issue84-offer-operation",
+          "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/ProjectReopenOffer.java",
+          "sha256": "e977f3bdeee9a441fc47f7119ee71f771c1a8dcf40c1a873b16003b3ff14bdae",
+          "baselineGreen": true,
+          "verdict": "survived",
+          "engine": "fast",
+          "fullCompileFallback": false,
+          "restoredByteIdentical": true,
+          "classesRestoredByteIdentical": true,
+          "mutationExit": 0,
+          "assertions": [],
+          "restoredExit": 0
+        }
+      ]
+    }
+  ],
+  "intermediateGreenControlRuns": [
+    {
+      "artifact": "controls-fourth.json",
+      "seconds": 173.2,
+      "caught": [
+        "issue84-topology-fallback-origin",
+        "issue84-source-error-is-a-fact",
+        "issue84-back-read-off-edt",
+        "issue84-aborted-plan-cannot-be-reowned",
+        "issue84-loaded-content-bound",
+        "issue84-verified-profile-read",
+        "issue84-incoming-charts-live",
+        "issue84-offline-anchor-not-deletion",
+        "issue84-walk-waits-for-light",
+        "issue84-native-navigation-supersedes",
+        "issue84-source-read-off-edt",
+        "issue84-offer-permission",
+        "issue84-offer-operation",
+        "review-panel-inner-frame",
+        "review-navigator-inherited-action",
+        "review-panel-direct-frame",
+        "review-navigator-list-closed",
+        "issue84-fallback-origin",
+        "issue84-saved-source-disclosure",
+        "bundle-provenance-matches-the-applied-profile",
+        "bundle-provenance-cleared-on-restore",
+        "bundle-anchor-remembered",
+        "bundle-anchor-forgotten-when-deleted",
+        "bundle-anchor-restore-requested",
+        "bundle-anchor-restored",
+        "walk-can-point-at-java",
+        "bundle-provenance-settles",
+        "bundle-provenance-holds-plan",
+        "oa4-accepted-step-tracked"
+      ]
+    },
+    {
+      "artifact": "controls-final.json",
+      "seconds": 160.4,
+      "caught": [
+        "issue84-startup-offer-superseded",
+        "issue84-topology-fallback-origin",
+        "issue84-source-error-is-a-fact",
+        "issue84-back-read-off-edt",
+        "issue84-aborted-plan-cannot-be-reowned",
+        "issue84-loaded-content-bound",
+        "issue84-verified-profile-read",
+        "issue84-incoming-charts-live",
+        "issue84-offline-anchor-not-deletion",
+        "issue84-walk-waits-for-light",
+        "issue84-native-navigation-supersedes",
+        "issue84-source-read-off-edt",
+        "issue84-offer-permission",
+        "issue84-offer-operation",
+        "review-panel-inner-frame",
+        "review-navigator-inherited-action",
+        "review-panel-direct-frame",
+        "review-navigator-list-closed",
+        "issue84-fallback-origin",
+        "issue84-saved-source-disclosure",
+        "bundle-provenance-matches-the-applied-profile",
+        "bundle-provenance-cleared-on-restore",
+        "bundle-anchor-remembered",
+        "bundle-anchor-forgotten-when-deleted",
+        "bundle-anchor-restore-requested",
+        "bundle-anchor-restored",
+        "walk-can-point-at-java",
+        "bundle-provenance-settles",
+        "bundle-provenance-holds-plan",
+        "oa4-accepted-step-tracked"
+      ]
+    }
+  ],
+  "earlierFullDisplayAttempt": {
+    "counts": {
+      "tests": 242,
+      "failures": 2,
+      "errors": 2,
+      "skipped": 8
+    },
+    "suites": [
+      {
+        "name": "PairingDuringLoadFrameTest",
+        "tests": 12,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "freshWindow_socketGraphThenMismatchingSocketLog_closesTheGraphWithoutADialog(Path)",
+          "pendingTrailingRecordIsVisibleInContextAndFollowStatus(Path)",
+          "aFollowAppendMakesTheWholeLogVerdictStale(Path)",
+          "theSameThroughAnExplicitReaderFormat(Path)",
+          "openingCommittedCopiesAnnouncesDisagreementWithoutRefusing(Path)",
+          "committedGraphPairsIdenticallyThroughFrameDiscoveryAndSession(Path)",
+          "aFollowAppendEvictsNoTransitionRecordAndTheClaimIsCurrent(Path)",
+          "assistantFollowEchoAndHumanControlsAgree(Path)",
+          "aSampledPairingAgreesAcrossFrameDiscoveryAndSession(Path)",
+          "humanArrivalThenSocketGraphOpenAndClose_noDialogForTheSocketOperations(Path)",
+          "recentGraphmlByAPerson_thenSocketClose_noDialog_andAHumanCloseStillWarns(Path)",
+          "aGraphOpenedWhileTheNextLogLoads_contextSaysPending_thenJudgesTheNewPair(Path)"
+        ],
+        "assertions": []
+      },
+      {
+        "name": "AsyncOpenInterleavingFrameTest",
+        "tests": 12,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "m44_3b_onAFreshAnalyser_theMenuCanCloseAFirstLoadThatIsStillPending(Path)",
+          "b2_control_aBadProjectPathIsRefusedBeforeTheGate_theLoadSurvives(Path)",
+          "b1_aHumanRecentGraphmlDuringAPendingSocketLoad_doesNotMakeTheArrivalModal(Path)",
+          "b3_aSupersededFailure_isRecordedButNeverShown(Path)",
+          "b1_control_aHumanArrivalStillWarnsAsADialog(Path)",
+          "b3_control_anAcceptedHumanFailureStillWarns(Path)",
+          "b2_control_aLaterStaleResultDoesNotClearANewerPendingOpen(Path)",
+          "b2_aFailedSwitchStillRetiresThePendingLoad_andTheSurvivingLogPairsAtOnce(Path)",
+          "m44_3b_closingTheLogDuringAPendingLoad_retiresIt_andTheEchoSaysSo(Path)",
+          "b2_aProjectSwitchDuringAPendingLoad_retiresIt(Path)",
+          "b2_control_reopeningTheActiveProjectIsANoOp_theLoadSurvives(Path)",
+          "m44_3b_control_closingTheGraphIsNotAboutTheLog_theLoadSurvives(Path)"
+        ],
+        "assertions": []
+      },
+      {
+        "name": "SpotlightFrameTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "anUnknownNodeIsRefused_andLightsNothing(Path)",
+          "theScreenshotVerbsImageHasTheCutOutOverTheNode_dimOutside_untouchedInside(Path)",
+          "twoNodesLitTogether_bothCutOutInTheScreenshot_numbered_andASetIsAllOrNothing(Path)",
+          "aRefusedCall_leavesTheFilter_theSelection_andTheStandingSpotlightsExactlyAsTheyWere(Path)"
+        ],
+        "assertions": []
+      },
+      {
+        "name": "WestColumnStartsCollapsedFrameTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "startingWithBothPanelsOff_theColumnIsTheRail_notTheLastChosenWidth(Path)",
+          "theRule_aChosenWidthWhileAPanelShows_theRailAloneWhenNoneDoes",
+          "control_startingWithAPanelOn_stillOpensAtTheChosenWidth(Path)"
+        ],
+        "assertions": []
+      },
+      {
+        "name": "MenuScreenshotFrameTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "anOpenMenuReportsWhereEachItemIs_insideTheWindow_topToBottom(Path)"
+        ],
+        "assertions": []
+      },
+      {
+        "name": "PersonAtTheScreenFrameTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 1,
+        "testNames": [
+          "theAiMenusPostureItems_andClearRecord_writeTheSharedCanvas(Path)",
+          "escapeWithTheSearchHistoryPopupFocused_putsSeveralSpotlightsOut(Path)",
+          "aLogRestoredAtStartup_isAttributedToThePreviousSession_onContextAndTheProjectRow(Path)"
+        ],
+        "assertions": []
+      },
+      {
+        "name": "NamedGraphAndMenuSpotlightFrameTest",
+        "tests": 7,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "aMenuMissSaysWhereTheItemIs_andContextListsTheMenus(Path)",
+          "aMenuItemIsLitInsideTheWindow_paintedIntoTheShot_chosenByAPress_andOutWhenTheMenuCloses(Path)",
+          "lightingASecondMenu_keepsWhatTheEchoSaid_byReplaceAndByAdd(Path)",
+          "aNoteOnANamedChart_lightsTheFIRSTTime_andARefusalNeverNamesTheChartItWasAskedFor(Path)",
+          "markerSpotlightRefusalNamesTheUnsupportedTarget(Path)",
+          "hiddenProjectRowIsRevealedBeforeSpotlighting(Path)",
+          "aGraphTargetThatNamesItsChart_selectsThatChart_andTheSelectedChartRefusalNamesWhereItIs(Path)"
+        ],
+        "assertions": []
+      },
+      {
+        "name": "SessionRecoveryFrameTest",
+        "tests": 10,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "shutdownCaptureReappearsOnlyAsAnOfferAndCanBeDeclined",
+          "confirmationFlagSurvivesExplicitRecoveryOnlyAgainstTheSameLog",
+          "supersededRecoveryCompletionLeavesTheOfferDecidable(boolean)[1]",
+          "supersededRecoveryCompletionLeavesTheOfferDecidable(boolean)[2]",
+          "closeReopenOffersThenRestoresLogDesignDiagnosticsAndGraph",
+          "changedBytesDuringTheReaderAreWithheldBeforePublication",
+          "changedLogIsRefusedWhileUnchangedDesignIsRestored",
+          "fileEditedBeforeCloseCannotAcquireTheOldViewsIdentity",
+          "aProjectRecreatedAtTheSamePathIsNotOfferedTheOldProjectsSession",
+          "aMissingMemberRefusesTheWholeRolledSet"
+        ],
+        "assertions": []
+      },
+      {
+        "name": "SourceFreshnessFrameTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "aFailedTypeClickInProcessorModeShowsItsReason(Path)",
+          "bothPanesShowTheFileAsItIsAfterTheLogIsReopenedAndOnTheNextNavigation(Path)"
+        ],
+        "assertions": []
+      },
+      {
+        "name": "TemplateCatalogueFrameTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "allEntriesAndDisclosuresAppearInTheRealPicker"
+        ],
+        "assertions": []
+      },
+      {
+        "name": "DesignSpotlightFrameTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "anOverflowingStatusNoteLeavesTheXmlItsHeight(Path)",
+          "sourceViewportRefusesHiddenLinesAndAddReportsDepartures(Path)",
+          "viewportMovementExtinguishesPartiallyVisibleDesignBand(Path)",
+          "atTheDefaultWindowSizeTheXmlIsReadableAndABeanCanBeLit(Path)"
+        ],
+        "assertions": []
+      },
+      {
+        "name": "JavaSourceSpotlightFrameTest",
+        "tests": 13,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "graphAndJavaUseOneVisibleDestinationInEitherOrder(Path)",
+          "clickEscapeSelectiveClearAndReplaceReleaseBindings(Path)",
+          "blockedArchiveReadLeavesEdtFreeAndClearConfigurationAndNewRequestSupersedeIt(Path)",
+          "viewportHooksRemeasureWithoutAnotherRequestAndBindingsNeverRetarget(Path)",
+          "interruptedCallerCancelsOnlyItsOwnPreparation(Path)",
+          "duplicateRootPolicyIsDisclosedAndGlanceStillRefuses(Path)",
+          "wrappedLogicalLineMeasuresAllRowsClipsAndReportsPartial(Path)",
+          "invalidJavaBeforeRecordRevealKeepsSelectionAndFilter(Path)",
+          "preparationDeadlineRefusesBeforeReadReturnsAndLateCompletionCannotLight(Path)",
+          "realEntranceRereadsJarMissAndHitButNewJarNeedsReconfiguration(Path)",
+          "changedSelectedProcessorUpdatesModelAndBadBatchDoesNotReveal(Path)",
+          "missingBandDoesNotClaimPartialDuringApply(Path)",
+          "anEndedAssistantCannotApplyACompletedSourceLookup(Path)"
+        ],
+        "assertions": []
+      },
+      {
+        "name": "LoadedFileObservationFrameTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "overwrittenLogAndGraphAreObservedWithoutReplacingTheLoadedSnapshot(Path)"
+        ],
+        "assertions": []
+      },
+      {
+        "name": "ChartLifecycleReviewFrameTest",
+        "tests": 11,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "closedNamesAreReservedForCreationAndRename",
+          "cancelPreservesBytesAndConfirmDeletesOnlyTheNamedChart",
+          "alternatingReportRowsReachesTheRealReportsPanelByIdentity",
+          "graphActionOnClosedChartPreservesItsDefinition",
+          "projectSwitchDoesNotMergeOutgoingChartsIntoIncomingProfile",
+          "rowReopenPersistsOpenStateWithoutAnotherEdit",
+          "importingOverAnOpenChartKeepsIncomingDefinitionAndOpenState",
+          "renameMovesTheDefinitionInsteadOfLeavingAGhost",
+          "closeAndReloadKeepDefinitionAndOpenRestoresItsContent",
+          "dropdownChoiceIsSavedByTheProductionListener",
+          "confirmationCannotDeleteAReplacementTab"
+        ],
+        "assertions": []
+      },
+      {
+        "name": "ProjectPanelChartLifecycleFrameTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "cancellingDeleteInARealFrameChangesNothing",
+          "openOnASavedChartRowOpensThatChartInTheFrame",
+          "openOnEachReportRowRevealsTheReportsTab"
+        ],
+        "assertions": []
+      },
+      {
+        "name": "DuplicateGlobalChartsFrameTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "duplicateGlobalChartsAreWithheldAndLogLoadingCompletes",
+          "validProjectWorksAndClosingItRestoresTheGlobalRefusal"
+        ],
+        "assertions": []
+      },
+      {
+        "name": "SilentActionDisclosureFrameTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "openingASavedChartWithNoLogTellsThePersonWhy(Path)"
+        ],
+        "assertions": []
+      },
+      {
+        "name": "StatusExplanationSurvivesFrameTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "aReportLinkToAChartThatIsGoneSaysSo",
+          "anExplanationSurvivesAnIdleFollowTick",
+          "aFailedFollowPollPublishesIdentityAndDamageOnce",
+          "aReportLinkToAClosedChartOpensIt",
+          "pendingGrowthRefreshesFindingsWithoutAddingAnyRows"
+        ],
+        "assertions": []
+      },
+      {
+        "name": "DuplicateChartRepairFrameTest",
+        "tests": 10,
+        "failures": 0,
+        "errors": 1,
+        "skipped": 0,
+        "testNames": [
+          "aListThatChangedWhileTheDialogWasOpenIsRefused",
+          "repairingRenamesOneKeepsBothAndLoadsThem",
+          "renamingOntoAnUnsavedChartIsRefusedRatherThanDestroyingIt",
+          "anAmbiguousProfileNoLongerBlocksMakingANewChart",
+          "okWithNothingChosenSaysSo",
+          "cancellingTheRepairChangesNothing",
+          "aChartMadeDuringTheRefusalSurvivesTheRepair",
+          "aPartialAnswerIsRefusedAndNothingIsLost",
+          "theAssistantCanEditAChartItCreatedDuringTheRefusal",
+          "theRefusalNamesTheRepairControl"
+        ],
+        "assertions": [
+          {
+            "test": "theAssistantCanEditAChartItCreatedDuringTheRefusal",
+            "kind": "error",
+            "message": "post(WalkViewChanged) on main; the driver is confined to AWT-EventQueue-0"
+          }
+        ]
+      },
+      {
+        "name": "MenuLayoutFrameTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "projectSourcesAndAuditHaveTheirOwnActions",
+          "closeBothFromItsMenuKeepsProjectAndCharts",
+          "closeGraphFromItsMenuKeepsLogProjectAndCharts",
+          "closeLogFromItsMenuPreservesTheProjectAndSavedChart",
+          "sourceShortcutsOpenTheNamedSettingsPage"
+        ],
+        "assertions": []
+      },
+      {
+        "name": "NoLogDesignJourneyFrameTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "designTopologyAndJavaOpenWithNoLogAndClaimNoComparison(Path)"
+        ],
+        "assertions": []
+      },
+      {
+        "name": "IdentityMarkFrameTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 1,
+        "skipped": 0,
+        "testNames": [
+          "anInPlaceRewriteIsStatedOnTheTableTheChartsAndTheDetailPane"
+        ],
+        "assertions": [
+          {
+            "test": "anInPlaceRewriteIsStatedOnTheTableTheChartsAndTheDetailPane",
+            "kind": "error",
+            "message": "post(WalkViewChanged) on main; the driver is confined to AWT-EventQueue-0"
+          }
+        ]
+      },
+      {
+        "name": "LogFindingsOnEverySurfaceFrameTest",
+        "tests": 14,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "aFollowedFileThatGainsAZeroMarkerSaysWhatAColdOpenSays",
+          "aTimeOrderViolationAppendedUnderFollowIsReported",
+          "aColdOpenOfAFileWhoseMarkerSaysItEndedSaysSo",
+          "theFollowLineKeepsTheProvenanceAndTheOrderWarning",
+          "aRecordStillBeingWrittenIsNotAnEmptyFile",
+          "theTabIsCurrentAfterASecondLogLoads_withNoVerbInBetween",
+          "aLoadThatThrowsPartWayDoesNotStopTheNextLogsEvidence",
+          "theExportedPdfCarriesTheLogsFindings_andLosesThemWhenARecordArrives",
+          "theLineNeverCountsNewRowsBesideTheOldFindings",
+          "aRolledSetsFileOverlapReachesContextAndTheLine",
+          "aOneMemberSetOpenedInTheFrameIsWordedAsItsFile",
+          "anEmptyFollowedFileSaysSoEverywhere_andEverySurfaceClearsWhenARecordArrives",
+          "anEnvironmentsProvenanceIsTheSessionsAndEverySurfaceStatesIt",
+          "theTabIsCurrentAfterAFollowPoll_withNoVerbInBetween"
+        ],
+        "assertions": []
+      },
+      {
+        "name": "ReportRecoverableDeleteFrameTest",
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "aRetitleThroughTheVerbKeepsTheSectionsAndSaysWhichLogTheyWereWrittenAgainst",
+          "aProjectExchangeCannotExportThroughANestedOutsideLink",
+          "theCompactReportActionsDeleteAndRestore",
+          "aReportNamedTrueIsRestoredRatherThanListed",
+          "theAssistantsDeleteCanBeUndone",
+          "restoreRefusesMixedOperationsWithoutChangingAnything"
+        ],
+        "assertions": []
+      },
+      {
+        "name": "ChartDrawnFactFrameTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "emptyWindowsSayWhy",
+          "theDrawnFactFollowsThePaint"
+        ],
+        "assertions": []
+      },
+      {
+        "name": "WalkPlaybackFrameTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "theSaveMenuSavesWhatIsLit(Path)",
+          "theStripStepsAndEnds(Path)"
+        ],
+        "assertions": []
+      },
+      {
+        "name": "WalkArrowKeysFrameTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 1,
+        "testNames": [
+          "arrowKeysMove(Path)"
+        ],
+        "assertions": []
+      },
+      {
+        "name": "WalkVerbFrameTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "theVerbAndTheTabAreOnePath(Path)"
+        ],
+        "assertions": []
+      },
+      {
+        "name": "WalkReviewFrameTest",
+        "tests": 12,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "playbackPersistsNothing(Path)",
+          "aDegradedIdentityConstrainsTheTargets(Path)",
+          "replacingTheShowingWalkIsTheSessionsDecision(Path)",
+          "anImportOfTheSameWalkLeavesItShowing(Path)",
+          "aRefusedViewLeavesThePreviousStep(Path)",
+          "aWalkStepCanPointAtJavaSource(Path)",
+          "aRefusedPlayIsReportedAsRefused(Path)",
+          "animportOfTheShowingWalkIsReported(Path)",
+          "theOverlayKeepsTheSessionsNumbers(Path)",
+          "aVerbSaveBetweenTwoImportsIsStillReported(Path)",
+          "aHiddenRecordIsNotClaimedAsShown(Path)",
+          "renameKeepsItAndDeleteEndsIt(Path)"
+        ],
+        "assertions": []
+      },
+      {
+        "name": "ContextLogGenerationFrameTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "theProjectSaysWhenItsFileLagsTheSession(Path)",
+          "theGenerationIsPublishedAndMoves(Path)"
+        ],
+        "assertions": []
+      },
+      {
+        "name": "EvidenceCaptureFrameTest",
+        "tests": 15,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "aReplayIsCarriedOnlyWhenItPairs(Path)",
+          "aCloseDuringTheWriteDeletesEverything(Path)",
+          "aGrowingLogBundlesWhatWasRead(Path)",
+          "aProjectSwitchIsNotInFlight(Path)",
+          "aCaptureFlushesAndWrites(Path)",
+          "anExcerpt(Path)",
+          "anOpenChartEditIsCaptured(Path)",
+          "aReadOnlyProfileDoesNotMakeTheBundleStale(Path)",
+          "noLog(Path)",
+          "aLoadPending(Path)",
+          "appendedBytes(Path)",
+          "anUnchangedMappedLogIsCaptured(Path)",
+          "notOnePlainFile(Path)",
+          "anotherLogOpenedDuringTheWriteDeletesTheBundle(Path)",
+          "aReadOnlyOwnSettingsFileDoesNotMakeTheBundleStale(Path)"
+        ],
+        "assertions": []
+      },
+      {
+        "name": "TableDragCancellationFrameTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 3,
+        "testNames": [
+          "aNonModalFocusLossKeepsSelectionDeferredUntilRelease(Path)",
+          "aModalEndsTheNativeSliderEdgePanWithoutChangingItsRange(Path)",
+          "aModalEndsTheNativeTableDragAndTheNextDragStillWorks(Path)"
+        ],
+        "assertions": []
+      },
+      {
+        "name": "StartWorkspaceFrameTest",
+        "tests": 12,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 1,
+        "testNames": [
+          "recentProjectChoiceOpensItsWorkspaceWithoutOpeningALog",
+          "startChoicesGroupByActivityAndStackOnANarrowWindow",
+          "delayedBundleCompletionCannotReplaceANewerProject",
+          "startPageReplacesTheWholeInvestigationArea",
+          "nativeFileDropOnHeroTextOpensAuditLog",
+          "guidedTourChoiceSavesAndPlaysTheDemoSpotlightWalk",
+          "mixedDropRefusalIsVisibleOnTheStartPage",
+          "delayedBundleCompletionCannotReplaceANewerGraph",
+          "narrowWalkSeriesAndFindingControlsRemainReachable",
+          "sampleChoiceOpensARealDemoProject",
+          "droppingSpringDesignThenGraphAndLogOpensTheirRealViews",
+          "droppingVerifiedExperimentOpensItsOwnProjectGraphAndLog"
+        ],
+        "assertions": []
+      },
+      {
+        "name": "AssistantLiveFrameTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "explainPrimesWithoutSending(Path)",
+          "aLiveTurnWithNoLog(Path)"
+        ],
+        "assertions": []
+      },
+      {
+        "name": "AssistantScopeRaceFrameTest",
+        "tests": 5,
+        "failures": 2,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "assistantsOwnFilterThenGraphCompletesInOneReply(Path)",
+          "personsOpenSupersedesHeldAssistantOpenAndItsLateResultCannotMakeAChart(Path)",
+          "changedFilterSupersedesHeldReplyBeforeItsChartCanUseTheNewView(Path)",
+          "idleSearchFieldEditKeepsSendAvailableAfterTheDebounce(Path)",
+          "assistantsOwnOpenFinishesBeforeItsNextChartRuns(Path)"
+        ],
+        "assertions": [
+          {
+            "test": "assistantsOwnFilterThenGraphCompletesInOneReply(Path)",
+            "kind": "failure",
+            "message": "the second action produced the chart under its own filter ==> expected: not <null>"
+          },
+          {
+            "test": "assistantsOwnOpenFinishesBeforeItsNextChartRuns(Path)",
+            "kind": "failure",
+            "message": "the next action ran against the assistant's completed log ==> expected: not <null>"
+          }
+        ]
+      },
+      {
+        "name": "AssistantHostFrameTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "reachableAtTheDefaultSizeAndThemed(Path)",
+          "closingTheWindowDocks(Path)",
+          "theWindowGoesWithTheAnalyser(Path)",
+          "oneConversationAcrossHosts(Path)"
+        ],
+        "assertions": []
+      },
+      {
+        "name": "AssistantNativeFrameTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 2,
+        "testNames": [
+          "theDockedAssistantsPressesAreItsOwn(Path)",
+          "theWindowsInputIsTheAssistants(Path)"
+        ],
+        "assertions": []
+      },
+      {
+        "name": "ConversationEditorFrameTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "captureFromALiveChat(Path)"
+        ],
+        "assertions": []
+      },
+      {
+        "name": "ConversationJourneyFrameTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "theHandoffIsAFreshThread(Path)",
+          "aJourneyPlays(Path)"
+        ],
+        "assertions": []
+      },
+      {
+        "name": "BundleProvenanceFrameTest",
+        "tests": 18,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "anOrdinaryLogSaysNothingAboutBundles(Path)",
+          "closingDoesNotPoisonTheAnchor(Path)",
+          "theOfferYieldsToAWalkthrough(Path)",
+          "aWorkingFolderIsNeverListedAsEvidence(Path)",
+          "anOpenedBundleSaysSoForTheSessionsLife(Path)",
+          "theTitleNamesTheBundle(Path)",
+          "openingAProjectConfiguresSource(Path)",
+          "anOpenedBundleIsDiscoverableAfterwards(Path)",
+          "aProjectAfterAnExperimentKeepsItsSource(Path)",
+          "aRestoredProjectHasItsSourceInForce(Path)",
+          "anchoredSourceDoesNotLeakIntoTheNextProject(Path)",
+          "notesCarryWhateverStructureTheAuthorWrites(Path)",
+          "aBundleCarriesItsEventProcessor(Path)",
+          "anchoringABundleToASourceTreeIsRemembered(Path)",
+          "aRestoredProjectIsAlsoOffered(Path)",
+          "deletingTheAnchorSticks(Path)",
+          "aCloseWhoseRenderFailsDropsTheClaimOnTheRealFrame(Path)",
+          "openingAProjectOffersWhatBelongsToIt(Path)"
+        ],
+        "assertions": []
+      },
+      {
+        "name": "Issue84BundleFrameTest",
+        "tests": 14,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "startupDoesNotRewriteACommittedProfile",
+          "previewLeavesNoWorkingCopy",
+          "fallbackOfferMustNotDescribeAnUnrelatedLogAsInsideTheProject",
+          "topologyFallbackHasItsOwnOriginBesideAProjectLog",
+          "aDeferredHumanOfferDoesNotBelongToTheNextSocketProject",
+          "machineValuesDoNotRideProjectShareOrBundle",
+          "recentsSurviveRestartWithoutWorkingCopiesOrFilenameCollisions",
+          "clearingOwnRootsOutsideABundleKeepsItsAnchor",
+          "anUnrelatedEditDoesNotDeleteAnUnavailableAnchor",
+          "aReplacementProfileIsNotTheSendersEvidence",
+          "processorInContextIsExplicitlyTheSendersClaim",
+          "importingGraphsKeepsIncomingNotes",
+          "aDisabledOfferIsRecordedAsSkipped",
+          "aPersonsReopenOfferRunsAfterTheCycle"
+        ],
+        "assertions": []
+      },
+      {
+        "name": "Issue84JavaWalkFrameTest",
+        "tests": 12,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "unreadSourceMustStayPreparing",
+          "aViewChangeDuringReadMustNotUndoThePersonsChoice",
+          "anUnavailableLineReportsNotShown",
+          "availabilityMustNotReadOnTheEventThread",
+          "changedRootsRefuseTheLateRead",
+          "aClosedSourceTabCannotBeClaimedShown",
+          "anUnreadableResolvedClassReportsFailureInsteadOfPreparingForever",
+          "aNeverReturningPreparationExpiresAndReleasesOwnership",
+          "projectSwitchCannotResurrectALateStep",
+          "aMovedJavaLineMustNotBeMarkedCurrentAgainstTheSavedWalk",
+          "backAndNextDoNotLightTheSupersededRead",
+          "backDuringTheOriginalReadMustNotBlockTheEventThread"
+        ],
+        "assertions": []
+      }
+    ],
+    "explanation": "Direct view-fact posting broke off-EDT chart actions; fixed by capturing origin then marshalling the fact to EDT. Native-focus assumptions also skipped on this desktop. This run is NOT represented as green; the full zero-skip display requirement remains exact-head CI."
+  },
+  "earlierDeferredOfferWait": {
+    "tests": 14,
+    "failures": 7,
+    "errors": 0,
+    "skipped": 0,
+    "results": [
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.Issue84BundleFrameTest",
+        "method": "startupDoesNotRewriteACommittedProfile",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.Issue84BundleFrameTest",
+        "method": "previewLeavesNoWorkingCopy",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.Issue84BundleFrameTest",
+        "method": "fallbackOfferMustNotDescribeAnUnrelatedLogAsInsideTheProject",
+        "kind": "failure",
+        "message": "org.opentest4j.AssertionFailedError: anUnrelatedRecentLogMustNotBeCalledInsideThisProject ==> expected: <false> but was: <true>"
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.Issue84BundleFrameTest",
+        "method": "topologyFallbackHasItsOwnOriginBesideAProjectLog",
+        "kind": "failure",
+        "message": "org.opentest4j.AssertionFailedError: projectLogOriginIsPreserved ==> expected: <true> but was: <false>"
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.Issue84BundleFrameTest",
+        "method": "aDeferredHumanOfferDoesNotBelongToTheNextSocketProject",
+        "kind": "failure",
+        "message": "org.opentest4j.AssertionFailedError: timed out waiting for: obsolete offer was judged"
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.Issue84BundleFrameTest",
+        "method": "machineValuesDoNotRideProjectShareOrBundle",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.Issue84BundleFrameTest",
+        "method": "recentsSurviveRestartWithoutWorkingCopiesOrFilenameCollisions",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.Issue84BundleFrameTest",
+        "method": "clearingOwnRootsOutsideABundleKeepsItsAnchor",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.Issue84BundleFrameTest",
+        "method": "anUnrelatedEditDoesNotDeleteAnUnavailableAnchor",
+        "kind": "failure",
+        "message": "org.opentest4j.AssertionFailedError: unrelatedReportsImportMustNotDeleteThePersonsAnchor ==> expected: <[<temporary-data>/DEMO-offline-anchor-9369285646408277639/DEMO-code]> but was: <[]>"
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.Issue84BundleFrameTest",
+        "method": "aReplacementProfileIsNotTheSendersEvidence",
+        "kind": "failure",
+        "message": "org.opentest4j.AssertionFailedError: replacementProfileMustNotCarryTheAbortedBundlesIdentity ==> expected: <false> but was: <true>"
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.Issue84BundleFrameTest",
+        "method": "processorInContextIsExplicitlyTheSendersClaim",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.Issue84BundleFrameTest",
+        "method": "importingGraphsKeepsIncomingNotes",
+        "kind": "failure",
+        "message": "org.opentest4j.AssertionFailedError: incomingNotesAreOnScreen ==> expected: <DEMO sender> but was: <DEMO recipient>"
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.Issue84BundleFrameTest",
+        "method": "aDisabledOfferIsRecordedAsSkipped",
+        "kind": "failure",
+        "message": "org.opentest4j.AssertionFailedError: disabledOfferMustBeRecordedAsSkipped ==> expected: <true> but was: <false>"
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.Issue84BundleFrameTest",
+        "method": "aPersonsReopenOfferRunsAfterTheCycle",
+        "kind": "passed",
+        "message": null
+      }
+    ]
+  },
+  "preflight": {
+    "frameSuites": 42,
+    "anchors": 580
+  },
+  "otherChecks": {
+    "projectChartHarnessTests": 5,
+    "strictMkDocs": "passed",
+    "diffCheck": "passed"
+  },
+  "ci": "Read exact-head PR checks; local results do not stand in for the full CI gate."
+}

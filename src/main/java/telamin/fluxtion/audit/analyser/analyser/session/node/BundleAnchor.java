@@ -29,6 +29,8 @@ public class BundleAnchor implements EventLogSource {
     private final EffectQueue effects;
 
     private EventLogger auditLog = NullEventLogger.INSTANCE;
+    private java.util.List<String> visibleRoots = java.util.List.of();
+    private java.util.List<String> rememberedRoots = java.util.List.of();
 
     public BundleAnchor(OpenBundle openBundle, EffectQueue effects) {
         this.openBundle = openBundle;
@@ -52,6 +54,8 @@ public class BundleAnchor implements EventLogSource {
      */
     @OnEventHandler
     public boolean onProfileApplied(SessionEvents.ProfileApplied event) {
+        visibleRoots = java.util.List.of();
+        rememberedRoots = java.util.List.of();
         var bundle = openBundle.provenance();
         if (!bundle.fromBundle() || bundle.source() == null) {
             return false;
@@ -59,6 +63,14 @@ public class BundleAnchor implements EventLogSource {
         effects.request(new SessionEffects.RestoreBundleAnchorEffect(event.opId(), bundle.source()));
         auditLog.info("anchor", "restoreRequested").info("bundle", bundle.source());
         return true;
+    }
+
+    @OnEventHandler
+    public boolean onBundleRootsRestored(SessionEvents.BundleRootsRestored event) {
+        if (!java.util.Objects.equals(openBundle.provenance().source(), event.bundleSource())) return false;
+        visibleRoots = event.visible();
+        rememberedRoots = event.remembered();
+        return false;
     }
 
     /**
@@ -70,7 +82,9 @@ public class BundleAnchor implements EventLogSource {
      * at all during a transition's rendering half, so a transient empty never reaches this node. What
      * the refusal actually did was make a deliberate deletion meaningless — delete a bundle's source
      * root, close, reopen, and it came back, because the deletion was never recorded (found in use,
-     * 2026-09-30). An observation that gets here is a person's edit, and their edits are the answer.
+     * 2026-09-30). An observation here may instead be an unrelated config edit (#95). Compare it with
+     * the last restored/observed VISIBLE roots: remove only a root that disappeared from that set,
+     * retaining remembered roots that were unavailable during restoration.
      */
     @OnEventHandler
     public boolean onSourceRootsObserved(SessionEvents.SourceRootsObserved event) {
@@ -78,7 +92,15 @@ public class BundleAnchor implements EventLogSource {
         if (!bundle.fromBundle() || bundle.source() == null) {
             return false;
         }
-        effects.request(new SessionEffects.RememberBundleAnchorEffect(0L, bundle.source(), event.roots()));
+        // A config observation is not necessarily a root edit. Restore may have omitted offline
+        // directories; only removal of a previously VISIBLE root is a person's deletion (#95).
+        var changed = new java.util.LinkedHashSet<>(rememberedRoots);
+        visibleRoots.stream().filter(root -> !event.roots().contains(root)).forEach(changed::remove);
+        changed.addAll(event.roots());
+        visibleRoots = event.roots();
+        if (rememberedRoots.equals(java.util.List.copyOf(changed))) return false;
+        rememberedRoots = java.util.List.copyOf(changed);
+        effects.request(new SessionEffects.RememberBundleAnchorEffect(0L, bundle.source(), rememberedRoots));
         auditLog.info("anchor", "remember").info("roots", event.roots().size());
         return true;
     }

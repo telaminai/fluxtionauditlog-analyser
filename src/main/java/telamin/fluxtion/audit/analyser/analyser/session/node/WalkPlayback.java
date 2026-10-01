@@ -140,6 +140,18 @@ public class WalkPlayback implements EventLogSource {
         return true;
     }
 
+    @OnEventHandler
+    public boolean onWalkViewChanged(SessionEvents.WalkViewChanged e) {
+        if (walk == null || !"PREPARING".equals(phase) || e.ownerTicket() == ticket) return false;
+        end("the view changed outside the preparing walk");
+        return true;
+    }
+
+    /** The adapter asks before installing asynchronously read source; ownership stays in this node. */
+    public boolean permitsSourceApplication(long named) {
+        return walk != null && ticket == named && "PREPARING".equals(phase);
+    }
+
     /** Review PR57 R6: the node decides what a change to the SHOWING definition means; the adapter only reports it. */
     @OnEventHandler
     public boolean onWalkDefinitionChanged(SessionEvents.WalkDefinitionChanged e) {
@@ -179,6 +191,7 @@ public class WalkPlayback implements EventLogSource {
     @OnEventHandler
     public boolean onWalkStepPrepared(SessionEvents.WalkStepPrepared e) {
         if (stale(e.ticket(), "WalkStepPrepared")) return false;
+        if (!"PREPARING".equals(phase)) return false;
         // Defensive: a new generation already ended the walk and moved the ticket, so the ticket check above refuses
         // first; this only catches an adapter answering with a generation it was not given. No control can reach it.
         if (e.generation() != generation) {
@@ -187,11 +200,8 @@ public class WalkPlayback implements EventLogSource {
         }
         targets = e.targets();
         List<SessionEvents.WalkTargetState> available = targets.stream().filter(SessionEvents.WalkTargetState::available).toList();
-        phase = available.size() == targets.size() ? "SHOWN" : available.isEmpty() ? "NOT_SHOWN" : "PARTLY_SHOWN";
-        if (!"NOT_SHOWN".equals(phase)) accepted = step;   // OA-4: the dialogue may reveal up to what was actually shown
         reason = withIdentityCaveat(e.note());
-        lastShown.put(walk, step);
-        auditLog.info("walkShown", phase).info("lit", available.size()).info("of", targets.size());
+        auditLog.info("walkPrepared", available.size()).info("of", targets.size());
         // review PR57 R1: ALWAYS say what is lit, even nothing — a re-resolution that makes every target unavailable must
         // take down the light the previous preparation put up, not leave it pointing at what can no longer be certified
         effects.request(new SessionEffects.LightWalkTargetsEffect(0L, ticket, available));
@@ -201,14 +211,17 @@ public class WalkPlayback implements EventLogSource {
     @OnEventHandler
     public boolean onWalkTargetsLit(SessionEvents.WalkTargetsLit e) {
         if (stale(e.ticket(), "WalkTargetsLit")) return false;
+        if (!"PREPARING".equals(phase)) return false;
         long wanted = targets.stream().filter(SessionEvents.WalkTargetState::available).count();
-        if (e.lit() < wanted) {
-            phase = e.lit() == 0 ? "NOT_SHOWN" : "PARTLY_SHOWN";
-            reason = e.reason();
-            auditLog.warn("walkLitFewer", e.lit()).warn("wanted", wanted);
-            return true;
+        int lit = (int) Math.min(wanted, Math.max(0, e.lit()));
+        phase = lit == 0 ? "NOT_SHOWN" : lit == targets.size() ? "SHOWN" : "PARTLY_SHOWN";
+        if (lit > 0) accepted = step;
+        if (e.reason() != null && !e.reason().isBlank()) {
+            reason = reason == null || reason.isBlank() ? e.reason() : reason + "; " + e.reason();
         }
-        return false;
+        lastShown.put(walk, step);
+        auditLog.info("walkShown", phase).info("lit", lit).info("of", targets.size());
+        return true;
     }
 
     /** OA-4 (§6.2): "Ask about this evidence" ends the demonstration; assistantLoop opens the fresh live thread. */

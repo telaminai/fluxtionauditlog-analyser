@@ -23,7 +23,20 @@ import java.util.function.Predicate;
  * <p>Both parts are independent. A topology with no log is a perfectly good thing to open, and so is
  * a log with no topology, so neither list constrains the other.
  */
-public record ProjectReopen(List<String> logs, List<String> topologies) {
+public record ProjectReopen(List<String> logs, List<String> topologies, Origin logOrigin, Origin topologyOrigin) {
+
+    public enum Origin { PROJECT, MACHINE }
+
+    public ProjectReopen(List<String> logs, List<String> topologies) {
+        this(logs, topologies, Origin.PROJECT, Origin.PROJECT);
+    }
+
+    public ProjectReopen withFallback(ProjectReopen machine) {
+        return new ProjectReopen(logs.isEmpty() ? machine.logs : logs,
+                topologies.isEmpty() ? machine.topologies : topologies,
+                logs.isEmpty() ? machine.logOrigin : logOrigin,
+                topologies.isEmpty() ? machine.topologyOrigin : topologyOrigin);
+    }
 
     /** At most this many of each, most-recent first: an offer, not a file manager. */
     public static final int MOST = 12;
@@ -44,7 +57,7 @@ public record ProjectReopen(List<String> logs, List<String> topologies) {
      */
     public static ProjectReopen recent(List<String> recentLogs, List<String> recentGraphml,
                                        Predicate<String> exists) {
-        return new ProjectReopen(usable(recentLogs, exists), usable(recentGraphml, exists));
+        return new ProjectReopen(usable(recentLogs, exists), usable(recentGraphml, exists), Origin.MACHINE, Origin.MACHINE);
     }
 
     /** Nothing to offer — this machine has opened neither a log nor a topology inside this project. */

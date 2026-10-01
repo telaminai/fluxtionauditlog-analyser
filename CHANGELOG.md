@@ -6,6 +6,10 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+- Bundle provenance is bound to the accepted operation and the verified profile content, not a reused pathname (#93). Borrowed charts reach the live view before saving (#94), and unrelated edits preserve temporarily unavailable bundle source anchors while deliberate deletion still works (#95).
+- Java walk steps stay **Preparing** until their targets are actually lit; source reads run off the UI thread, fail or expire explicitly, and native keyboard navigation supersedes pending work (#96–#98). Java captions and target reasons now disclose that the saved source revision was not compared; **CURRENT** remains name/line lookup, not source-content verification (#102).
+- Project reopen offers use operation-scoped origin and permission in the session processor, record disabled offers as skipped, and label project and machine-fallback candidates independently (#99, #101). The Project-panel architecture gate now covers nested helpers and inherited Navigator actions (#100).
+
 - Bundle profile redaction recognises Unicode path segments, including decomposed accents (refs #79). Quote a complete path with double, single, backtick or curly quotes, or Japanese corner brackets, to redact it whole. Quoting preserves the existing ratio, URL and path-shape exemptions. Quoted spans containing sentence punctuation, another quote type, a second path start or a parenthesised message fall back to ordinary path handling, preserving the surrounding prose. A straight or curly single closing quote needs a separator before a following letter; double quotes and corner brackets can sit beside prose. An unquoted final segment containing Han, Hiragana, Katakana, Hangul or Thai still refuses export with a request to quote the path. The existing limits for other scripts and ambiguous path spellings remain documented.
 
 ## [1.30.1] - 2026-09-30

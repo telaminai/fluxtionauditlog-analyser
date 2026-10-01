@@ -1,5 +1,11 @@
 # Working across projects
 
+Automatic reopen offers are owned by the operation that opened the project: a person origin and permission to
+offer are required. Disabled offers are recorded as skipped; a later socket operation cannot inherit a person's
+permission. The dialog runs outside the session driver's dispatch cycle. Its log and topology lists independently
+say **project locations** or **machine recent files**. The machine fallback is intentional and makes no claim of
+project membership.
+
 If you support more than one Fluxtion application, you keep swapping the same five things: source roots,
 Maven repos, event processors, saved graphs and hidden columns. A **project profile** holds those in a
 file beside the project, so moving between them is one click instead of a re-import.
