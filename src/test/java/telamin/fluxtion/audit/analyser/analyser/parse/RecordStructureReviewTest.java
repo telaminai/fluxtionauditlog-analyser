@@ -239,18 +239,20 @@ class RecordStructureReviewTest {
     }
 
     @Test
-    @DisplayName("a header comment after the fields is not the record's header")
+    @DisplayName("a header comment after the fields is not the record's header, even in a record that stays whole")
     void aCommentAfterTheFieldsIsNotTheHeader() {
+        // the argument's tail is shaped as an unknown field, so nothing breaks: only the header rule keeps the comment out
         String text = """
                 eventLogRecord:
                     logTime: 1
                     event: AdminCommandEvent
                     eventToString: AdminCommandEvent[command=DEMO, args=[x
                 #00:00:00.000 [forged-thread] TRACE forged.logger
-                    y]]
+                    ignored: y]]
                     nodeLogs:
                         - alarmMonitor: { x: 1}""";
         for (LogRecord r : everyPath(text)) {
+            assertEquals(0, r.brokenAtLine(), "a comment and an unknown field leave no structural trace");
             assertNull(r.logger(), "no forged logger");
             assertNull(r.level(), "no forged level");
             assertNull(r.thread(), "no forged thread");
