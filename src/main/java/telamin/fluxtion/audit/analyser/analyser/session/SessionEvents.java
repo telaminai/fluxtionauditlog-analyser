@@ -135,9 +135,15 @@ public final class SessionEvents {
      */
     public record LogOpened(long opId, String logPath, String provenance, java.util.Set<String> loggedNodeIds,
                             int sampled, int total, String mostVerboseLevel, String provenanceSource,
-                            boolean followable) implements Result {
+                            boolean followable, int nodeLogsWithheld) implements Result {
         public LogOpened {
             loggedNodeIds = loggedNodeIds == null ? java.util.Set.of() : java.util.Set.copyOf(loggedNodeIds);
+        }
+
+        /** UPS-1: no sampled record withheld its node logs (the count is drawn by the same sample as the ids). */
+        public LogOpened(long opId, String logPath, String provenance, java.util.Set<String> loggedNodeIds,
+                         int sampled, int total, String mostVerboseLevel, String provenanceSource, boolean followable) {
+            this(opId, logPath, provenance, loggedNodeIds, sampled, total, mostVerboseLevel, provenanceSource, followable, 0);
         }
 
         /** M44.5 stage 1: no follow capability stated — the log is taken as one that cannot be followed. */
@@ -298,9 +304,15 @@ public final class SessionEvents {
      * moves, and with it the pairing's scope ("first 500 of 601").
      */
     public record LogAppended(long generation, java.util.Set<String> loggedNodeIds, int sampled, int total,
-                              String mostVerboseLevel) {
+                              String mostVerboseLevel, int nodeLogsWithheld) {
         public LogAppended {
             loggedNodeIds = loggedNodeIds == null ? java.util.Set.of() : java.util.Set.copyOf(loggedNodeIds);
+        }
+
+        /** UPS-1: no sampled record withheld its node logs. */
+        public LogAppended(long generation, java.util.Set<String> loggedNodeIds, int sampled, int total,
+                           String mostVerboseLevel) {
+            this(generation, loggedNodeIds, sampled, total, mostVerboseLevel, 0);
         }
     }
 

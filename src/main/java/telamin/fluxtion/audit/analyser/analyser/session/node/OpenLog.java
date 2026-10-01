@@ -38,6 +38,8 @@ public class OpenLog implements EventLogSource {
      */
     private java.util.Set<String> loggedNodeIds = java.util.Set.of();
     private int sampled;
+    /** UPS-1: sampled records whose node logs were not read — the ids above are what was READ (finding 3). */
+    private int nodeLogsWithheld;
     private int total;
     private String mostVerboseLevel;
     private long generation;
@@ -66,6 +68,7 @@ public class OpenLog implements EventLogSource {
         following = false;
         loggedNodeIds = java.util.Set.of();
         sampled = 0;
+        nodeLogsWithheld = 0;
         total = 0;
         mostVerboseLevel = null;
         identity = null;                        // M68.5: a deliberate close ends the story; a later open is not a reopen
@@ -88,6 +91,7 @@ public class OpenLog implements EventLogSource {
         following = following && event.followable();
         loggedNodeIds = event.loggedNodeIds();
         sampled = event.sampled();
+        nodeLogsWithheld = event.nodeLogsWithheld();
         total = event.total();
         mostVerboseLevel = event.mostVerboseLevel();
         // M68.5: a log reopened at the SAME path because the previous content was replaced says so, whatever the
@@ -117,6 +121,7 @@ public class OpenLog implements EventLogSource {
         following = false;
         loggedNodeIds = java.util.Set.of();
         sampled = 0;
+        nodeLogsWithheld = 0;
         total = 0;
         mostVerboseLevel = null;
         identity = null;
@@ -134,10 +139,11 @@ public class OpenLog implements EventLogSource {
     public boolean onLogAppended(SessionEvents.LogAppended event) {
         if (!current(event.generation(), "LogAppended")) return false;
         boolean moved = total != event.total() || sampled != event.sampled()
-                || !loggedNodeIds.equals(event.loggedNodeIds())
+                || !loggedNodeIds.equals(event.loggedNodeIds()) || nodeLogsWithheld != event.nodeLogsWithheld()
                 || !java.util.Objects.equals(mostVerboseLevel, event.mostVerboseLevel());
         loggedNodeIds = event.loggedNodeIds();
         sampled = event.sampled();
+        nodeLogsWithheld = event.nodeLogsWithheld();
         total = event.total();
         mostVerboseLevel = event.mostVerboseLevel();
         auditLog.info("openLog", "appended").info("sampled", sampled).info("total", total);
@@ -224,6 +230,11 @@ public class OpenLog implements EventLogSource {
     /** Distinct instanceIds seen in the sample — the raw evidence a pairing needs. */
     public java.util.Set<String> loggedNodeIds() {
         return loggedNodeIds;
+    }
+
+    /** UPS-1: how many sampled records had their node logs withheld (their structure breaks); 0 when every one was read. */
+    public int nodeLogsWithheld() {
+        return nodeLogsWithheld;
     }
 
     public int sampled() {

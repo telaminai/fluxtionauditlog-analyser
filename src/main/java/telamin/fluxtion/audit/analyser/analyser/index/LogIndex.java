@@ -76,6 +76,8 @@ public final class LogIndex {
     public static final int FLAG_PARSE_ERROR = 1;
     public static final int FLAG_NAN = 2;
     public static final int FLAG_BREACH = 4;
+    /** UPS-1: a broken record, whose node logs were NOT READ — withheld, never "none logged" (review of 9474c687, finding 3). */
+    public static final int FLAG_NODE_LOGS_WITHHELD = 8;
 
     private final Dictionary dimensions = new Dictionary();
     private final Dictionary loggers = new Dictionary();
@@ -117,6 +119,7 @@ public final class LogIndex {
         if (r.kind() == telamin.fluxtion.audit.analyser.analyser.model.EventKind.PARSE_ERROR) f |= FLAG_PARSE_ERROR;
         if (r.hasNaN()) f |= FLAG_NAN;
         if (r.hasBreach()) f |= FLAG_BREACH;
+        if (r.brokenAtLine() > 0) f |= FLAG_NODE_LOGS_WITHHELD;
         flags[size] = f;
 
         if (lt != NO_TIME) {
@@ -228,6 +231,8 @@ public final class LogIndex {
     public boolean parseError(int i){ return (flags[i] & FLAG_PARSE_ERROR) != 0; }
     public boolean hasNaN(int i)   { return (flags[i] & FLAG_NAN) != 0; }
     public boolean hasBreach(int i){ return (flags[i] & FLAG_BREACH) != 0; }
+    /** The record's node logs were not read (its structure breaks): its count is unknown, not zero. */
+    public boolean nodeLogsWithheld(int i){ return (flags[i] & FLAG_NODE_LOGS_WITHHELD) != 0; }
 
     private static String blankToNull(String s) { return (s == null || s.isEmpty()) ? null : s; }
 
@@ -369,6 +374,7 @@ public final class LogIndex {
         public boolean parseError(int i) { return (flags[i] & FLAG_PARSE_ERROR) != 0; }
         public boolean hasNaN(int i)     { return (flags[i] & FLAG_NAN) != 0; }
         public boolean hasBreach(int i)  { return (flags[i] & FLAG_BREACH) != 0; }
+        public boolean nodeLogsWithheld(int i) { return (flags[i] & FLAG_NODE_LOGS_WITHHELD) != 0; }
 
         public Long minLogTime() { return size == 0 || minLog == Long.MAX_VALUE ? null : minLog; }
         public Long maxLogTime() { return size == 0 || maxLog == Long.MIN_VALUE ? null : maxLog; }

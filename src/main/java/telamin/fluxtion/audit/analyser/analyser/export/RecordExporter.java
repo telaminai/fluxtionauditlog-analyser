@@ -36,7 +36,8 @@ public final class RecordExporter {
             append(sb, nz(idx.callback(row))); sb.append(',');
             append(sb, nz(idx.eventToString(row))); sb.append(',');
             append(sb, nz(idx.thread(row))); sb.append(',');
-            append(sb, Integer.toString(idx.nodeLogsCount(row)));
+            // UPS-1: a broken record's node logs were not read, so its count is "withheld", never 0
+            append(sb, idx.nodeLogsWithheld(row) ? "withheld" : Integer.toString(idx.nodeLogsCount(row)));
             sb.append('\n');
         }
         return sb.toString();

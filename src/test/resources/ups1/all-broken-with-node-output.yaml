@@ -1,0 +1,26 @@
+---
+eventLogRecord:
+    eventTime: 1790840987397
+    logTime: 1790840987397
+    groupingId: null
+    event: AdminCommandEvent
+    eventToString: AdminCommandEvent[command=alarm.lambda, args=[DEMO
+        ignored: DEMO]]
+    thread: processor-agent
+    nodeLogs:
+        - alarmMonitor: { lambdaReset: true}
+    endTime: 1790840987398
+---
+eventLogRecord:
+    eventTime: 1790840987432
+    logTime: 1790840987432
+    groupingId: null
+    event: AdminCommandEvent
+    eventToString: AdminCommandEvent[command=alarm.lambda, args=[DEMO
+DEMO]]
+    thread: processor-agent
+    nodeLogs:
+        - alarmMonitor: { lambdaReset: true}
+        - alarmPublisher: { published: true}
+    endTime: 1790840987433
+---
