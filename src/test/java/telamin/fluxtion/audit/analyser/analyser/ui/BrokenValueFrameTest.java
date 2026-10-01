@@ -64,4 +64,42 @@ class BrokenValueFrameTest {
             });
         }
     }
+
+    /**
+     * The review of 9474c687, finding 3, in the real frame: every record is broken and each withheld block holds genuine
+     * node output, so the {@code coverage} verb, the pairing in {@code context} and the records table must say the node
+     * logs were withheld — never that a node never wrote, that no node output was recorded, or that a record holds 0.
+     */
+    @Test
+    void withheldNodeLogsAreNeverReportedAsAbsent(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        Path log = tmp.resolve("DEMO-all-broken.yaml");
+        Path graph = tmp.resolve("DEMO-CycleAlarmProcessor.graphml");
+        try (var in = getClass().getResourceAsStream("/ups1/all-broken-with-node-output.yaml")) { Files.write(log, in.readAllBytes()); }
+        try (var in = getClass().getResourceAsStream("/topology/demo-cycle-alarm-processor.graphml")) { Files.write(graph, in.readAllBytes()); }
+        try (AsyncOpenInterleavingFrameTest.Frame f = new AsyncOpenInterleavingFrameTest.Frame(tmp)) {
+            assertTrue(f.ex.render("open", Map.of("log", log.toString(), "graphml", graph.toString())).ok());
+            long deadline = System.currentTimeMillis() + 20_000;
+            String context;
+            while (true) {
+                context = f.ex.render("context", Map.of("sections", List.of("log", "pairing"))).toJson();
+                if (context.contains("\"records\":2") && context.contains("\"verdict\"") && !context.contains("pending")) break;
+                assertTrue(System.currentTimeMillis() < deadline, "the log and its pairing never published: " + context);
+                Thread.sleep(50);
+            }
+            assertFalse(context.contains("no node output was recorded"), "the pairing does not call withheld output silence: " + context);
+            assertTrue(context.contains("withheld"), "the pairing states the withheld records: " + context);
+
+            String coverage = f.ex.render("coverage", Map.of()).toJson();
+            assertFalse(coverage.contains("never wrote audit output"), "coverage never says a node never wrote: " + coverage);
+            assertTrue(coverage.contains("\"nodeLogsWithheld\":2"), "coverage states the withheld records: " + coverage);
+
+            onEdt(() -> {
+                LogTableModel model = (LogTableModel) ((javax.swing.JTable) field(field(f.frame, "tablePanel"), "table")).getModel();
+                for (int row = 0; row < model.getRowCount(); row++) {
+                    assertNull(model.getValueAt(row, LogTableModel.COL_NODE_LOGS), "row " + row + " shows a count it never read");
+                }
+            });
+        }
+    }
 }
