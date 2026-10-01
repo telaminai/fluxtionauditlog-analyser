@@ -42,14 +42,24 @@ import java.util.regex.Pattern;
  * </ul>
  * <p>Path segments accept Unicode letters, combining marks and digits without normalising the author's text.
  * Start-of-path lookbehinds remain narrower so URLs and ordinary slash-separated Latin prose are not paths.
- * Explicit double, single, backtick or curly double quotes delimit a complete path, including spaces and a
- * Unicode final segment; the quotes remain in the exported prose.
+ * Explicit double, single, backtick, curly double/single quotes or Japanese corner/double-corner brackets
+ * can delimit a complete path, including spaces and a Unicode final segment. The quoted content must match
+ * the same supported shape rules as unquoted text: quoting does not turn a ratio, one-segment POSIX string,
+ * or protocol-relative URL into a path. The delimiters remain in the exported prose.
+ *
+ * <p>A quoted boundary is trusted only for one path: no sentence punctuation ({@code 。、！？}),
+ * parenthesised message, another quote type, or second path start after whitespace. A straight or curly
+ * closing single quote followed by a letter is treated as a possible apostrophe, not a boundary; put a
+ * separator after it, or use double quotes/corner brackets beside prose. An untrusted span falls back to
+ * unquoted handling, including its ambiguity refusal. Plain paths containing spaces remain supported,
+ * but arbitrary prose versus a space-containing filename cannot be distinguished lexically.
  *
  * <p><b>Ambiguous unquoted endings refuse export (owner decision, PR #87, 2026-10-01).</b>
  * Han, Hiragana, Katakana, Hangul and Thai in the final segment can be a filename or adjoining prose.
  * Neither deleting that text nor leaving a possible path suffix is safe. The export names the key and asks
  * the author to quote the complete path separately from the prose. All path forms use this same check.
- * This is a lexical guard, not a general recogniser of every possible filesystem name.
+ * This is a lexical guard, not a general recogniser of every possible filesystem name. Lao, Khmer and
+ * Myanmar suffixes are not in the ambiguity set and can still be consumed as part of an unquoted path.
  *
  * <p><b>A digit-leading username is still a username.</b> The tilde form is three alternatives because a
  * {@code ~user} segment that must start with a letter silently stopped redacting {@code ~7dev/logs/x.yaml} and
@@ -113,16 +123,8 @@ public final class BundleProfile {
     static final Pattern WHOLE_PATH = Pattern.compile(
             "^(?:/|~[/\\\\]|~$|~" + SEG + "+/|[A-Za-z]:[/\\\\]|\\\\\\\\|(?i:file):)[^ \\t\\n\\x0B\\f\\r]*$");
 
-    /** Explicit delimiters identify the end without guessing which alphabet is prose. */
-    private static String quotedPath(String open, String close) {
-        return "(?<=" + Pattern.quote(open) + ")(?:/|~(?:" + SEG + "+)?/|[A-Za-z]:[/\\\\]|\\\\\\\\|(?i:file):/)[^"
-                + close + "\\r\\n]+(?=" + Pattern.quote(close) + ")";
-    }
-
-    /** A machine path INSIDE prose: redacted. Each alternative needs a real path shape, not just a slash or a colon. */
-    static final Pattern EMBEDDED_PATH = Pattern.compile(String.join("|",
-            "(?<quoted>" + String.join("|", quotedPath("\"", "\""), quotedPath("'", "'"),
-                    quotedPath("`", "`"), quotedPath("“", "”")) + ")",
+    /** Shared shape grammar: quoting changes the boundary, not the exemptions. */
+    private static final String PATH_SHAPES = String.join("|",
             "(?i:(?<![" + WORDISH + "])file:/+[\\p{L}\\p{M}\\p{N}_.\\-~%@:/+]*)",                       // file:///etc/x
             "(?<![" + WORDISH + ".~:/\\\\\\-])/" + SEG + "+(?:/" + SEG + "+)*/" + SEG + "*/?",           // /Users/x/y, not a/b or https://h/p
             "(?<![" + WORDISH + "/~])~(?:" + SEG + "*[\\p{L}_]" + SEG + "*)?/" + SEG + "*(?:/" + SEG + "+)*"
@@ -130,7 +132,38 @@ public final class BundleProfile {
             "(?<![" + WORDISH + "/~])~[0-9]" + SEG + "*/" + SEG + "+(?:/" + SEG + "+)+/?",                       // ~123/secret/a.yaml
             "(?<![" + WORDISH + "/~])~[0-9]" + SEG + "*/[\\p{L}\\p{M}\\p{N}_\\-]+\\.[\\p{L}]" + SEG + "*",  // ~123/notes.yaml
             "(?<![" + WORDISH + "])[A-Za-z]:[\\\\/][\\p{L}\\p{M}\\p{N}_.$\\-]+(?:[\\\\/][\\p{L}\\p{M}\\p{N}_.$\\-]+)*[\\\\/]?",  // C:\\Users\\x
-            "(?<![" + WORDISH + "\\\\])\\\\\\\\[\\p{L}\\p{M}\\p{N}_.$\\-]+(?:\\\\[\\p{L}\\p{M}\\p{N}_.$\\-]+)+"));   // \\\\server\\share
+            "(?<![" + WORDISH + "\\\\])\\\\\\\\[\\p{L}\\p{M}\\p{N}_.$\\-]+(?:\\\\[\\p{L}\\p{M}\\p{N}_.$\\-]+)+");   // \\\\server\\share
+
+    /** A full quoted candidate must still have a supported shape. Spaces are allowed within its segments. */
+    private static String quotedShape(String close) {
+        return "(?=(?:" + PATH_SHAPES.replace("\\p{N}", "\\p{N} ") + ")" + Pattern.quote(close) + ")";
+    }
+
+    /** Conservative delimiters: otherwise the ordinary unquoted alternatives below get the same input. */
+    private static String quotedBound(String open, String close) {
+        String otherQuotes = "\"'`“”‘’「」『』".replace(open, "").replace(close, "");
+        String body = "[^" + close + otherQuotes + "。、！？()\\r\\n]+";
+        String secondStart = "[ \\t](?:/|~|[A-Za-z]:[/\\\\]|\\\\\\\\|(?i:file):/)";
+        String apostrophe = ("'".equals(close) || "’".equals(close)) ? "(?!\\p{L})" : "";
+        return "(?![^" + close + "\\r\\n]*" + secondStart + ")"
+                + "(?=" + body + Pattern.quote(close) + apostrophe + ")";
+    }
+
+    /** Explicit delimiters are trusted only around one path, not around a sentence that starts with one. */
+    private static String quotedPath(String open, String close) {
+        return "(?<=" + Pattern.quote(open) + ")"
+                + quotedShape(close)
+                + quotedBound(open, close)
+                + "(?:/|~(?:" + SEG + "+)?/|[A-Za-z]:[/\\\\]|\\\\\\\\|(?i:file):/)[^"
+                + close + "\\r\\n]+(?=" + Pattern.quote(close) + ")";
+    }
+
+    /** A machine path INSIDE prose: redacted. Each alternative needs a real path shape, not just a slash or a colon. */
+    static final Pattern EMBEDDED_PATH = Pattern.compile(String.join("|",
+            "(?<quoted>" + String.join("|", quotedPath("\"", "\""), quotedPath("'", "'"),
+                    quotedPath("`", "`"), quotedPath("“", "”"), quotedPath("「", "」"),
+                    quotedPath("『", "』"), quotedPath("‘", "’")) + ")",
+            PATH_SHAPES));
 
     /**
      * Write the allow-listed profile of {@code settings} to {@code out}. {@code settings} is the open project's
@@ -217,7 +250,7 @@ public final class BundleProfile {
                     int lastSeparator = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'));
                     if (AMBIGUOUS_END.matcher(path.substring(lastSeparator + 1)).find()) {
                         throw new IOException("ambiguous unquoted machine path in " + key
-                                + "; quote the complete path separately from the surrounding prose and retry");
+                                + "; quote the complete path separately from the surrounding prose (for example, with double quotes) and retry");
                     }
                     while (end > m.start() + 1 && v.charAt(end - 1) == '.') end--;
                 }

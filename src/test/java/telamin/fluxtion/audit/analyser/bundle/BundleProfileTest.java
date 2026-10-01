@@ -215,7 +215,11 @@ public class BundleProfileTest {
     @Test
     @DisplayName("F2 mirror: ordinary writing passes untouched — %, colons, ratios, and/or, URLs, relative paths, C: alone")
     void ordinaryProsePassesUntouched(@TempDir Path tmp) throws Exception {
+        var checks = new java.util.ArrayList<org.junit.jupiter.api.function.Executable>();
         for (String prose : List.of(
+                "the formula \"~1/price²\" holds; and '~2/3' of cycles",
+                "run \"/status\" to check",
+                "a protocol-relative \"//cdn.example/lib.js\" link",
                 "~5% of records carried a spread above 0.004",
                 // found in a SHIPPED bundle 2026-09-29: "~1/price" was redacted to the marker, so the
                 // chart explanation a recipient reads lost the very formula it was explaining.
@@ -235,11 +239,14 @@ public class BundleProfileTest {
                 "see https://fluxtion-playground.dev/fluxtion-golden-path.md for the model",
                 "the uat logs live under logs/uat/quote-service-uat.yaml in the project",
                 "dated 28/09/2026, window 09:00:00.090 to 09:00:00.360")) {
-            List<String> redacted = new java.util.ArrayList<>();
-            Path dir = Files.createDirectories(tmp.resolve(Integer.toHexString(prose.hashCode())));
-            assertEquals(prose, exportedNarrative(dir, prose, redacted), "ordinary writing is left alone");
-            assertEquals(List.of(), redacted, "and nothing is reported as redacted: " + prose);
+            checks.add(() -> {
+                List<String> redacted = new java.util.ArrayList<>();
+                Path dir = Files.createDirectories(tmp.resolve(Integer.toHexString(prose.hashCode())));
+                assertEquals(prose, exportedNarrative(dir, prose, redacted), "ordinary writing is left alone");
+                assertEquals(List.of(), redacted, "and nothing is reported as redacted: " + prose);
+            });
         }
+        assertAll("ordinaryProseKeepsItsExemptions", checks);
     }
 
     @Test
@@ -342,11 +349,12 @@ public class BundleProfileTest {
     @DisplayName("#87 R1: explicitly quoted Unicode paths are removed whole through the exporter")
     void quotedUnicodePathsAreRemovedWhole(String path, @TempDir Path tmp) throws Exception {
         int fixture = 0;
-        for (String quotes : List.of("\"\"", "''", "``", "“”")) {
+        for (String quotes : List.of("\"\"", "''", "``", "“”", "「」", "『』", "‘’")) {
             var removed = new java.util.ArrayList<String>();
             Path dir = Files.createDirectories(tmp.resolve("quoted-" + fixture++));
             String prefix = "ログは" + quotes.charAt(0);
-            String suffix = quotes.charAt(1) + "にあります";
+            String separator = quotes.equals("''") || quotes.equals("‘’") ? " " : "";
+            String suffix = quotes.charAt(1) + separator + "にあります";
             assertEquals(prefix + BundleProfile.REDACTED + suffix,
                     exportedNarrative(dir, prefix + path + suffix, removed),
                     "quotedPathRemovedWhole: the delimiter identifies the entire Unicode path: " + path);
@@ -354,4 +362,93 @@ public class BundleProfileTest {
                     "the reported removal is exactly the path, without quotes or prose");
         }
     }
+
+    static java.util.stream.Stream<org.junit.jupiter.params.provider.Arguments> quotedProseCases() {
+        String mark = BundleProfile.REDACTED;
+        return java.util.stream.Stream.of(
+                org.junit.jupiter.params.provider.Arguments.of(
+                        "ログは\"/Users/DEMO/q.yaml にあります。詳細は\"設定\"を参照",
+                        "ログは\"" + mark + " にあります。詳細は\"設定\"を参照", List.of("/Users/DEMO/q.yaml")),
+                org.junit.jupiter.params.provider.Arguments.of(
+                        "it's under '/Users/DEMO/x isn't it' fine",
+                        "it's under '" + mark + " isn't it' fine", List.of("/Users/DEMO/x")),
+                org.junit.jupiter.params.provider.Arguments.of(
+                        "it’s under ‘/Users/DEMO/x isn’t it’ fine",
+                        "it’s under ‘" + mark + " isn’t it’ fine", List.of("/Users/DEMO/x")),
+                org.junit.jupiter.params.provider.Arguments.of(
+                        "the log said \"/Users/DEMO/a.yaml (No such file or directory)\" and stopped",
+                        "the log said \"" + mark + " (No such file or directory)\" and stopped", List.of("/Users/DEMO/a.yaml")),
+                org.junit.jupiter.params.provider.Arguments.of(
+                        "see \"/Users/DEMO/a.yaml /Users/DEMO/b.yaml\" today",
+                        "see \"" + mark + " " + mark + "\" today", List.of("/Users/DEMO/a.yaml", "/Users/DEMO/b.yaml")),
+                org.junit.jupiter.params.provider.Arguments.of(
+                        "see \"/Users/DEMO/a.yaml 'aside'\" today",
+                        "see \"" + mark + " 'aside'\" today", List.of("/Users/DEMO/a.yaml")),
+                org.junit.jupiter.params.provider.Arguments.of(
+                        "see \"/Users/DEMO/a.yaml！tail\" today",
+                        "see \"" + mark + "！tail\" today", List.of("/Users/DEMO/a.yaml")));
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.MethodSource("quotedProseCases")
+    void aQuotedSpanEndsAtThePath(String narrative, String expected, List<String> paths, @TempDir Path tmp) throws Exception {
+        var removed = new java.util.ArrayList<String>();
+        assertEquals(expected, exportedNarrative(tmp, narrative, removed),
+                "quotedSpanEndsAtPath: surrounding prose must survive an unreliable quoted boundary");
+        assertEquals(paths.stream().map(path -> "report.0.s.0.text: " + path).toList(), removed,
+                "quotedRemovalIsExact: do not report sentence text as part of a removed path");
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {
+            "/Users/DEMO/my logs/a.yaml", "~/DEMO/my logs/a.yaml", "~DEMO/my logs/a.yaml",
+            "~123/my logs/a.yaml", "file:///DEMO/my logs/a.yaml", "C:\\DEMO\\my logs\\a.yaml",
+            "\\\\DEMO\\share\\my logs\\a.yaml"
+    })
+    void aQuotedPathCanStillContainSpaces(String path, @TempDir Path tmp) throws Exception {
+        var removed = new java.util.ArrayList<String>();
+        assertEquals("see \"" + BundleProfile.REDACTED + "\" today",
+                exportedNarrative(tmp, "see \"" + path + "\" today", removed), "a bounded quoted path may contain spaces");
+        assertEquals(List.of("report.0.s.0.text: " + path), removed, "spaces within a quoted path are removed too");
+    }
+
+    @Test
+    void theRefusalRecommendsAWorkingDelimiter(@TempDir Path tmp) throws Exception {
+        String path = "/Users/DEMO/機密";
+        Path input = withNarrative(tmp, "ログは" + path + "にあります");
+        IOException refusal = assertThrows(IOException.class,
+                () -> BundleProfile.export(input, tmp.resolve("refused.fluxtion-settings")), "ambiguous prose refuses");
+        assertTrue(refusal.getMessage().contains("double quotes"), "refusal names a supported delimiter: double quotes");
+        var removed = new java.util.ArrayList<String>();
+        Path recovered = Files.createDirectories(tmp.resolve("recovered"));
+        assertEquals("ログは\"" + BundleProfile.REDACTED + "\"にあります",
+                exportedNarrative(recovered, "ログは\"" + path + "\"にあります", removed),
+                "the spelling recommended by the refusal succeeds and keeps the prose");
+        assertEquals(List.of("report.0.s.0.text: " + path), removed, "recovery removes precisely the path");
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"ລາວ", "ខ្មែរ", "မြန်မာ"})
+    void theUnquotedScriptLimitIsDisclosed(String suffix, @TempDir Path tmp) throws Exception {
+        var removed = new java.util.ArrayList<String>();
+        String path = "/Users/DEMO/q.yaml";
+        assertEquals("ログは" + BundleProfile.REDACTED,
+                exportedNarrative(tmp, "ログは" + path + suffix, removed),
+                "documented limit: Lao, Khmer and Myanmar suffixes remain part of the unquoted path candidate");
+        assertEquals(List.of("report.0.s.0.text: " + path + suffix), removed,
+                "disclosure must state that these suffixes are currently removed, not preserved or refused");
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"''", "‘’"})
+    void aSingleQuotedUnicodePathNeedsASeparator(String quotes, @TempDir Path tmp) throws Exception {
+        String path = "/Users/DEMO/機密";
+        Path input = withNarrative(tmp, "ログは" + quotes.charAt(0) + path + quotes.charAt(1) + "にあります");
+        IOException refusal = assertThrows(IOException.class,
+                () -> BundleProfile.export(input, tmp.resolve("refused.fluxtion-settings")),
+                "singleQuoteBeforeLetterIsNotABoundary: fall back to ambiguous-ending refusal");
+        assertTrue(refusal.getMessage().contains("double quotes"), "the refusal offers a delimiter usable beside prose");
+        assertFalse(Files.exists(tmp.resolve("refused.fluxtion-settings")), "an untrusted single-quote boundary writes nothing");
+    }
+
 }

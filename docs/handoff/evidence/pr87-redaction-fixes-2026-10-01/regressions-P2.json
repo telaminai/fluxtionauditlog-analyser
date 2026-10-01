@@ -1,0 +1,95 @@
+{
+  "beforeProduction": "11df0d26",
+  "before": {
+    "counts": {
+      "tests": 28,
+      "failures": 17,
+      "errors": 0,
+      "skipped": 0
+    },
+    "failures": [
+      {
+        "test": "quotedUnicodePathsAreRemovedWhole(String, Path)[1]",
+        "message": "prose never refuses the export: ログは「/Users/DEMO王」にあります ==> Unexpected exception thrown: java.io.IOException: ambiguous unquoted machine path in report.0.s.0.text; quote the complete path separately from the surrounding prose and retry"
+      },
+      {
+        "test": "quotedUnicodePathsAreRemovedWhole(String, Path)[2]",
+        "message": "prose never refuses the export: ログは「/home/DEMO/机密.yaml」にあります ==> Unexpected exception thrown: java.io.IOException: ambiguous unquoted machine path in report.0.s.0.text; quote the complete path separately from the surrounding prose and retry"
+      },
+      {
+        "test": "quotedUnicodePathsAreRemovedWhole(String, Path)[3]",
+        "message": "prose never refuses the export: ログは「~/DEMO/機密」にあります ==> Unexpected exception thrown: java.io.IOException: ambiguous unquoted machine path in report.0.s.0.text; quote the complete path separately from the surrounding prose and retry"
+      },
+      {
+        "test": "quotedUnicodePathsAreRemovedWhole(String, Path)[4]",
+        "message": "prose never refuses the export: ログは「~DEMO/機密」にあります ==> Unexpected exception thrown: java.io.IOException: ambiguous unquoted machine path in report.0.s.0.text; quote the complete path separately from the surrounding prose and retry"
+      },
+      {
+        "test": "quotedUnicodePathsAreRemovedWhole(String, Path)[5]",
+        "message": "prose never refuses the export: ログは「file:///DEMO/機密」にあります ==> Unexpected exception thrown: java.io.IOException: ambiguous unquoted machine path in report.0.s.0.text; quote the complete path separately from the surrounding prose and retry"
+      },
+      {
+        "test": "quotedUnicodePathsAreRemovedWhole(String, Path)[6]",
+        "message": "prose never refuses the export: ログは「C:\\DEMO\\機密」にあります ==> Unexpected exception thrown: java.io.IOException: ambiguous unquoted machine path in report.0.s.0.text; quote the complete path separately from the surrounding prose and retry"
+      },
+      {
+        "test": "quotedUnicodePathsAreRemovedWhole(String, Path)[7]",
+        "message": "prose never refuses the export: ログは「\\\\DEMO\\share\\機密」にあります ==> Unexpected exception thrown: java.io.IOException: ambiguous unquoted machine path in report.0.s.0.text; quote the complete path separately from the surrounding prose and retry"
+      },
+      {
+        "test": "ordinaryProsePassesUntouched(Path)",
+        "message": "ordinaryProseKeepsItsExemptions (3 failures)\n org.opentest4j.AssertionFailedError: ordinary writing is left alone ==> expected: <the formula \"~1/price²\" holds; and '~2/3' of cycles> but was: <the formula \"‹path removed›\" holds; and '‹path removed›' of cycles>\n org.opentest4j.AssertionFailedError: ordinary writing is left alone ==> expected: <run \"/status\" to check> but was: <run \"‹path removed›\" to check>\n org.opentest4j.AssertionFailedError: ordinary writing is left alone ==> expected: <a protocol-relative \"//cdn.example/lib.js\" link> but was: <a protocol-relative \"‹path removed›\" link>"
+      },
+      {
+        "test": "theRefusalRecommendsAWorkingDelimiter(Path)",
+        "message": "refusal names a supported delimiter: double quotes ==> expected: <true> but was: <false>"
+      },
+      {
+        "test": "aQuotedSpanEndsAtThePath(String, String, List, Path)[1]",
+        "message": "quotedSpanEndsAtPath: surrounding prose must survive an unreliable quoted boundary ==> expected: <ログは\"‹path removed› にあります。詳細は\"設定\"を参照> but was: <ログは\"‹path removed›\"設定\"を参照>"
+      },
+      {
+        "test": "aQuotedSpanEndsAtThePath(String, String, List, Path)[2]",
+        "message": "quotedSpanEndsAtPath: surrounding prose must survive an unreliable quoted boundary ==> expected: <it's under '‹path removed› isn't it' fine> but was: <it's under '‹path removed›'t it' fine>"
+      },
+      {
+        "test": "aQuotedSpanEndsAtThePath(String, String, List, Path)[4]",
+        "message": "quotedSpanEndsAtPath: surrounding prose must survive an unreliable quoted boundary ==> expected: <the log said \"‹path removed› (No such file or directory)\" and stopped> but was: <the log said \"‹path removed›\" and stopped>"
+      },
+      {
+        "test": "aQuotedSpanEndsAtThePath(String, String, List, Path)[5]",
+        "message": "quotedSpanEndsAtPath: surrounding prose must survive an unreliable quoted boundary ==> expected: <see \"‹path removed› ‹path removed›\" today> but was: <see \"‹path removed›\" today>"
+      },
+      {
+        "test": "aQuotedSpanEndsAtThePath(String, String, List, Path)[6]",
+        "message": "quotedSpanEndsAtPath: surrounding prose must survive an unreliable quoted boundary ==> expected: <see \"‹path removed› 'aside'\" today> but was: <see \"‹path removed›\" today>"
+      },
+      {
+        "test": "aQuotedSpanEndsAtThePath(String, String, List, Path)[7]",
+        "message": "quotedSpanEndsAtPath: surrounding prose must survive an unreliable quoted boundary ==> expected: <see \"‹path removed›！tail\" today> but was: <see \"‹path removed›\" today>"
+      },
+      {
+        "test": "aSingleQuotedUnicodePathNeedsASeparator(String, Path)[1]",
+        "message": "singleQuoteBeforeLetterIsNotABoundary: fall back to ambiguous-ending refusal ==> Expected java.io.IOException to be thrown, but nothing was thrown."
+      },
+      {
+        "test": "aSingleQuotedUnicodePathNeedsASeparator(String, Path)[2]",
+        "message": "the refusal offers a delimiter usable beside prose ==> expected: <true> but was: <false>"
+      }
+    ]
+  },
+  "restored": {
+    "counts": {
+      "tests": 68,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "failures": []
+  },
+  "restore": {
+    "sourceSha256": "0643383777fe6464c97a44bf0847f4da05f7ab42dcc48cec88787e2e12ed860c",
+    "restoredSha256": "0643383777fe6464c97a44bf0847f4da05f7ab42dcc48cec88787e2e12ed860c",
+    "byteIdentical": true
+  }
+}

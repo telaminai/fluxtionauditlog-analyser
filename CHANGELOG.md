@@ -6,7 +6,7 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
-- Bundle profile redaction recognises Unicode path segments, including decomposed accents (#79). Quote a complete path with double quotes, single quotes, backticks or curly double quotes to redact it whole while preserving the surrounding prose. An unquoted final segment containing Han, Hiragana, Katakana, Hangul or Thai now refuses export and asks you to quote the path: it could be either a filename or adjoining prose. This applies to POSIX, home, file-URI, drive and UNC paths. Path-valued keys still refuse export; URLs, ratios and ordinary slash-separated prose retain their existing exemptions.
+- Bundle profile redaction recognises Unicode path segments, including decomposed accents (refs #79). Quote a complete path with double, single, backtick or curly quotes, or Japanese corner brackets, to redact it whole. Quoting preserves the existing ratio, URL and path-shape exemptions. Quoted spans containing sentence punctuation, another quote type, a second path start or a parenthesised message fall back to ordinary path handling, preserving the surrounding prose. A straight or curly single closing quote needs a separator before a following letter; double quotes and corner brackets can sit beside prose. An unquoted final segment containing Han, Hiragana, Katakana, Hangul or Thai still refuses export with a request to quote the path. The existing limits for other scripts and ambiguous path spellings remain documented.
 
 ## [1.30.1] - 2026-09-30
 
