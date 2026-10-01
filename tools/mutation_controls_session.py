@@ -1968,4 +1968,8 @@ CONTROLS = [
      'public void runInEventCycle(Object auditEvent, Runnable action) {',
      'public void runInEventCycleRenamed(Object auditEvent, Runnable action) {',
      'FixtureGeneratorToolchainTest#theDemoProcessorsImplementTheReleasedCycle'),
+    ('ups2-capture-tool-takes-the-pom-runtime', 'tools/capture-bundle-conversations.py',
+     '           / f"fluxtion-runtime-{RUNTIME_VERSION}.jar")',
+     '           / "fluxtion-runtime-1.0.16.jar")',
+     'FixtureGeneratorToolchainTest#theCaptureToolTakesTheRuntimeFromThePom'),
 ]
