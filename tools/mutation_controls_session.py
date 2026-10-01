@@ -27,7 +27,139 @@ COMPARE = 'src/main/java/telamin/fluxtion/audit/analyser/bundle/ReplayCompare.ja
 RUNNER = 'tools/replay/ReplayBundle.java'
 GRAPHML = 'src/main/resources/telamin/fluxtion/audit/analyser/analyser/session/generated/SessionProcessor.graphml'
 
+# Reintroduce the review's complete pathname-only defect. Removing only operation correlation
+# leaves the independent digest check in force, an intentionally surviving partial mutation.
+PROVENANCE_APPLICATION = """    @OnEventHandler
+    public boolean onOpenProjectRequested(SessionEvents.OpenProjectRequested event) {
+        pending = null;
+        pendingOperation = event.kind() == TransitionKind.OPEN_BUNDLE ? event.opId() : -1;
+        verifiedContentLoaded = false;
+        return false;
+    }
+
+    @OnEventHandler
+    public boolean onProfileLoaded(SessionEvents.ProfileLoaded event) {
+        if (!gate.accepted()) {
+            return false;
+        }
+        if (!event.ok()) {
+            pending = null;
+            return false;
+        }
+        // Only a load that CARRIES a plan sets one; the bundle's own profile load carries none (see above).
+        if (event.bundlePlan() != null) {
+            if (event.opId() == pendingOperation) pending = event.bundlePlan();
+        } else if (pending != null && event.opId() == pendingOperation) {
+            verifiedContentLoaded = pending.profileDigest() != null
+                    && pending.profileDigest().equals(event.contentDigest());
+        }
+        return false;
+    }
+
+    @OnEventHandler
+    public boolean onProfileApplied(SessionEvents.ProfileApplied event) {
+        if (!gate.accepted()) {
+            return false;
+        }
+        // An unrelated failed effect does not revoke a genuinely applied bundle. A new application
+        // does: both the causal operation and the exact loaded content must establish its provenance.
+        current = pending != null && event.opId() == pendingOperation && verifiedContentLoaded
+                && pending.profilePath().equals(event.profilePath())
+                ? new BundleProvenance(pending.identity(), pending.source(), pending.workingCopy(),
+                        pending.limits(), pending.notes(), pending.processor())
+                : BundleProvenance.NONE;"""
+
 CONTROLS = [
+    ("issue84-java-apply-view-is-walk-owned", UI + 'MainFrame.java',
+     '                    walkViewChangeTicket = walkTicket;',
+     '                    walkViewChangeTicket = -1;',
+     "Issue84JavaWalkFrameTest#aJavaTargetOnANonSourceStepKeepsItsWalk"),
+    ("issue84-view-fact-on-edt", UI + 'MainFrame.java',
+     '        else SwingUtilities.invokeLater(report);', '        else report.run();',
+     "Issue84BundleFrameTest#aBackgroundChartActionReportsItsViewChangeOnTheEdt"),
+    ("issue84-startup-offer-superseded", NODE + 'ProjectReopenOffer.java',
+     '        if (anotherOperationSeen) return skipped("startup offer was superseded");\n', '',
+     "ProjectReopenOwnershipTest#startupCannotLendItsAudienceToAnOperationBeforeTheWindowAppears"),
+    ("issue84-topology-fallback-origin", J + 'config/ProjectReopen.java',
+     "topologies.isEmpty() ? machine.topologyOrigin : topologyOrigin", "topologyOrigin",
+     "Issue84BundleFrameTest#topologyFallbackHasItsOwnOriginBesideAProjectLog"),
+    ("issue84-source-error-is-a-fact", UI + 'MainFrame.java',
+     '                }, ex -> result.complete(telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("Java source spotlight refused: " + ex.getMessage())));',
+     '                }, ex -> { });',
+     "Issue84JavaWalkFrameTest#anUnreadableResolvedClassReportsFailureInsteadOfPreparingForever"),
+    ("issue84-back-read-off-edt", UI + 'MainFrame.java',
+     "        var lookup = sourceService.captureLookup();\n        var capturedStore = store;",
+     "        var lookup = sourceService.captureLookup();\n        if (walkTicket >= 0) sourceService.sourceForFqn(asked.requests().stream().map(r -> SpotlightTarget.parse(r.target()).target()).filter(SpotlightTarget::javaSource).findFirst().orElseThrow().sourceFqn());\n        var capturedStore = store;",
+     "Issue84JavaWalkFrameTest#backDuringTheOriginalReadMustNotBlockTheEventThread"),
+    # Issue #84 third-review corrections, real boundary witnesses and named D-L3 mutants.
+    ("issue84-aborted-plan-cannot-be-reowned", NODE + 'OpenBundle.java',
+     PROVENANCE_APPLICATION,
+     PROVENANCE_APPLICATION.replace(
+         '        pending = null;\n        pendingOperation = event.kind()',
+         '        if (event.kind() != TransitionKind.OPEN_BUNDLE) return false;\n'
+         '        pending = null;\n        pendingOperation = event.kind()').replace(
+         'pending != null && event.opId() == pendingOperation && verifiedContentLoaded', 'pending != null'),
+     "Issue84BundleFrameTest#aReplacementProfileIsNotTheSendersEvidence"),
+    ("issue84-loaded-content-bound", NODE + 'OpenBundle.java',
+     "pending.profileDigest().equals(event.contentDigest())",
+     "true",
+     "BundleOperationOwnershipTest#aDifferentLoadedDigestCannotClaimThePlan"),
+    ("issue84-verified-profile-read", J + 'config/ProjectProfile.java',
+     "expectedDigest != null && !expectedDigest.equals(digest)",
+     "false",
+     "VerifiedProfileContentTest#changedContentIsRefusedBeforeSettingsAreApplied"),
+    ("issue84-incoming-charts-live", UI + 'MainFrame.java',
+     "            if (selected.contains(telamin.fluxtion.audit.analyser.analyser.config.SettingsShare.Category.GRAPHS)) {\n                restoreGraphDefinitions(List.copyOf(config.savedGraphs));\n            }\n",
+     "",
+     "Issue84BundleFrameTest#importingGraphsKeepsIncomingNotes"),
+    ("issue84-offline-anchor-not-deletion", NODE + 'BundleAnchor.java',
+     "new java.util.LinkedHashSet<>(rememberedRoots)",
+     "new java.util.LinkedHashSet<String>()",
+     "Issue84BundleFrameTest#anUnrelatedEditDoesNotDeleteAnUnavailableAnchor"),
+    ("issue84-walk-waits-for-light", NODE + 'WalkPlayback.java',
+     "        auditLog.info(\"walkPrepared\", available.size()).info(\"of\", targets.size());",
+     "        phase = \"SHOWN\"; accepted = step;\n        auditLog.info(\"walkPrepared\", available.size()).info(\"of\", targets.size());",
+     "Issue84JavaWalkFrameTest#unreadSourceMustStayPreparing"),
+    ("issue84-native-navigation-supersedes", NODE + 'WalkPlayback.java',
+     "if (walk == null || !\"PREPARING\".equals(phase) || e.ownerTicket() == ticket) return false;",
+     "if (true) return false;",
+     "Issue84JavaWalkFrameTest#aViewChangeDuringReadMustNotUndoThePersonsChoice"),
+    ("issue84-source-read-off-edt", UI + 'MainFrame.java',
+     "        var lookup = sourceService.captureLookup();\n        var capturedStore = store;",
+     "        var lookup = sourceService.captureLookup();\n        if (walkTicket >= 0) sourceService.sourceForFqn(asked.requests().stream().map(r -> SpotlightTarget.parse(r.target()).target()).filter(SpotlightTarget::javaSource).findFirst().orElseThrow().sourceFqn());\n        var capturedStore = store;",
+     "Issue84JavaWalkFrameTest#availabilityMustNotReadOnTheEventThread"),
+    ("issue84-offer-permission", NODE + 'ProjectReopenOffer.java',
+     "|| audience.origin() != SessionEvents.OperationOrigin.PERSON || !audience.offersAllowed()",
+     "|| audience.origin() != SessionEvents.OperationOrigin.PERSON",
+     "ProjectReopenOwnershipTest#permissionAndOriginBelongToTheOperation"),
+    ("issue84-offer-operation", NODE + 'ProjectReopenOffer.java',
+     "        if (event.opId() != operation || !operationCurrent()\n                || !java.util.Objects.equals(appliedProfile, event.profilePath())",
+     "        if (!java.util.Objects.equals(appliedProfile, event.profilePath())",
+     "ProjectReopenOwnershipTest#aLaterOperationCannotInheritOrReviveAnOffer"),
+    ("review-panel-inner-frame", UI + 'ProjectPanel.java',
+     "public final class ProjectPanel extends JPanel {",
+     "public final class ProjectPanel extends JPanel {\n    private Object forbiddenBridge() { return FrameBridge.make(); }\n    private static class FrameBridge { static Object make() { return new MainFrame(); } }",
+     "ProjectPanelIsRevealOnlyTest#thePanelNeverNamesMainFrame_itsOnlyExitIsTheTwoMethodNavigator"),
+    ("review-navigator-inherited-action", UI + 'ProjectPanel.java',
+     "    public interface Navigator {",
+     "    private interface HiddenActions { default void runAnything(Runnable effect) { effect.run(); } }\n    public interface Navigator extends HiddenActions {",
+     "ProjectPanelIsRevealOnlyTest#thePanelNeverNamesMainFrame_itsOnlyExitIsTheTwoMethodNavigator"),
+    ("review-panel-direct-frame", UI + 'ProjectPanel.java',
+     "public final class ProjectPanel extends JPanel {",
+     "public final class ProjectPanel extends JPanel {\n    private MainFrame forbidden;",
+     "ProjectPanelIsRevealOnlyTest#thePanelNeverNamesMainFrame_itsOnlyExitIsTheTwoMethodNavigator"),
+    ("review-navigator-list-closed", UI + 'ProjectPanel.java',
+     "    public interface Navigator {",
+     "    public interface Navigator {\n        default void discardEverything() { }",
+     "ProjectPanelIsRevealOnlyTest#thePanelNeverNamesMainFrame_itsOnlyExitIsTheTwoMethodNavigator"),
+    ("issue84-fallback-origin", J + 'config/ProjectReopen.java',
+     "logs.isEmpty() ? machine.logOrigin : logOrigin",
+     "logOrigin",
+     "Issue84BundleFrameTest#fallbackOfferMustNotDescribeAnUnrelatedLogAsInsideTheProject"),
+    ("issue84-saved-source-disclosure", J + 'walk/WalkResolver.java',
+     "String mark = javaSource ? \" (saved source revision not compared)\"",
+     "String mark = javaSource ? \"\"",
+     "Issue84JavaWalkFrameTest#aMovedJavaLineMustNotBeMarkedCurrentAgainstTheSavedWalk"),
     # NO CONTROL, deliberately, for "a close does not poison the anchor" -- and that is the finding, not
     # an omission. It had one while the decision lived in the frame: delete the guard beside the render
     # and the DEMO bundle picked up 19 unrelated repositories. Moving the decision into bundleAnchor
@@ -77,9 +209,9 @@ CONTROLS = [
     # The decision is the APPLIED PROFILE's identity. Guessing from effect names was wrong in both
     # directions (reviews, 2026-09-29), so the guess is gone and this pins what replaced it.
     ('bundle-provenance-matches-the-applied-profile', NODE + 'OpenBundle.java',
-     '        current = pending != null && pending.profilePath().equals(event.profilePath())\n',
-     '        current = pending != null\n',
-     'BundleProvenanceTest#anAbortedBundleNeverLabelsTheNextProject'),
+     '                && pending.profilePath().equals(event.profilePath())\n',
+     '\n',
+     'BundleOperationOwnershipTest#appliedPathMustStillBeTheVerifiedProfile'),
     ('bundle-provenance-cleared-on-restore', NODE + 'OpenBundle.java',
      '    public boolean onSettingsRestored(SessionEvents.SettingsRestored event) {\n        if (!gate.accepted()) {\n',
      '    public boolean onSettingsRestored(SessionEvents.SettingsRestored event) {\n        if (true) {\n',
@@ -97,7 +229,7 @@ CONTROLS = [
     # Anchored in the CONFIG FUNNEL, not beside one edit: the Settings dialog rebuilds sourceRoots
     # directly and never calls addSourceRoot, so a hook there caught the verb and missed the person.
     ('bundle-anchor-remembered', NODE + 'BundleAnchor.java',
-     '        effects.request(new SessionEffects.RememberBundleAnchorEffect(0L, bundle.source(), event.roots()));\n',
+     '        effects.request(new SessionEffects.RememberBundleAnchorEffect(0L, bundle.source(), rememberedRoots));\n',
      '',
      'BundleProvenanceFrameTest#anchoringABundleToASourceTreeIsRemembered'),
     # and it must not record the transient emptiness a reopen passes through, which wiped the anchor
@@ -148,8 +280,8 @@ CONTROLS = [
     # target is invisible until it has been prepared, so the visibility question judged every one
     # unavailable and none was ever lit (found authoring a pricing walkthrough, 2026-09-30).
     ('walk-can-point-at-java', J + 'ui/WalkPresenter.java',
-     '            if (available && isSource(t.target())) {\n',
-     '            if (available && false) {\n',
+     '            if (available && !isSource(t.target())) {\n',
+     '            if (available) {\n',
      'WalkReviewFrameTest#aWalkStepCanPointAtJavaSource'),
     # Bundle discovery (#73): a recipient could not find out what they had been sent.
     ('bundle-recent-recorded', UI + 'MainFrame.java',
@@ -199,16 +331,16 @@ CONTROLS = [
     # Bundle provenance (#76): the facts existed and were dropped when the transition settled. Each control
     # removes one reason the session keeps them, and must turn its NAMED assertion red.
     ('bundle-provenance-settles', NODE + 'OpenBundle.java',
-     '        current = pending != null && pending.profilePath().equals(event.profilePath())\n',
-     '        current = false && pending != null && pending.profilePath().equals(event.profilePath())\n',
+     '        current = pending != null && event.opId() == pendingOperation && verifiedContentLoaded\n',
+     '        current = false && pending != null && event.opId() == pendingOperation && verifiedContentLoaded\n',
      'BundleProvenanceTest#provenanceOutlivesTheTransition'),
     ('bundle-provenance-holds-plan', NODE + 'OpenBundle.java',
-     '        if (event.bundlePlan() != null) {\n            pending = event.bundlePlan();\n        }\n',
-     '        pending = event.bundlePlan();\n',
+     '        if (event.bundlePlan() != null) {\n',
+     '        if (true) {\n',
      'BundleProvenanceTest#provenanceOutlivesTheTransition'),
     ('bundle-provenance-source-is-the-fexp', UI + 'MainFrame.java',
-     '                bundlePath, verification.processor());\n',
-     '                null, verification.processor());\n',
+     '                bundlePath, verification.processor(), verification.members().stream()\n',
+     '                null, verification.processor(), verification.members().stream()\n',
      'BundleProvenanceFrameTest#anOpenedBundleSaysSoForTheSessionsLife'),
     # Independent PR77 review: boundary regressions, each red on the reviewed head.
     ('oa-review-provider-words', J + 'assistant/AssistantAdapter.java',
@@ -1911,7 +2043,7 @@ CONTROLS = [
      '        int upTo = refused || preparing ? w.accepted() : w.step();', '        int upTo = w.step();',
      'ConversationJourneyFrameTest#aJourneyPlays'),
     ('oa4-accepted-step-tracked', NODE + 'WalkPlayback.java',
-     '        if (!"NOT_SHOWN".equals(phase)) accepted = step;', '        accepted = step;',
+     '        if (lit > 0) accepted = step;', '        accepted = step;',
      'ConversationWalkPlaybackTest#aRefusedStepKeepsTheAcceptedPrefix'),
     ('oa4-pending-turn-blocks-demo', NODE + 'WalkPlayback.java',
      '        if (hasDialogue(e.walk()) && assistantLoop.state().busy()) {', '        if (false) {',

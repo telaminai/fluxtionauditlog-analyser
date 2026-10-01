@@ -37,6 +37,47 @@ invokes the Fluxtion source generator), and say whether it needs a Fluxtion API 
 
 Read the regenerated processor afterwards to confirm your node was wired. Do not edit it: it is an output.
 
+## Close the authoring loop with evidence
+
+Before running the changed application, write down predictions that can be disproved:
+
+- the authored node id and dependency edge;
+- where the generated processor should dispatch it and which dirty guard should control it;
+- which fixture events should and should not reach it, with the values expected there; and
+- which existing sink output or other behaviour must remain unchanged.
+
+Then verify the change using the project's existing entry points; do not ask the analyser to build, run,
+export or decide whether the change is correct.
+
+1. For a graph change, validate and regenerate as above. For a body-only logging change, rebuild without
+   regenerating. Read the current authoring receipt and diagnostics before trusting either result.
+2. Inspect the generated processor and GraphML for the predicted dependency, dispatch position and guard.
+   This proves what was generated, not what a runtime event actually exercised.
+3. Run the project's tests. Include a positive case and a control that should not propagate when the
+   node's trigger is conditional.
+4. Follow the project-declared `run-mongoose-server` skill (or the host skill named in
+   `context.runbooks`) to run the real fixture, export its audit and stop it cleanly. Use a fresh capture
+   location when retained records would mix this run with older evidence; preserve the earlier evidence
+   before moving or deleting anything.
+   The exported **Fluxtion audit log**, not Mongoose's ordinary server log, is the evidence for
+   deterministic application dispatch, values and outcomes. Read Mongoose logs only when the host's
+   stochastic boundary itself needs explaining — for example input arrival, connector delivery,
+   lifecycle, transport, capture/export availability or shutdown — and label those observations as
+   host-level rather than application-semantic evidence.
+5. Follow `load-audit-log` to open that export with the generated GraphML. Wait for
+   `analyser_context.graphPairing`: the initial open result can still be pending.
+6. Compare the relevant records and business output with the written predictions. Graph pairing proves
+   membership, and coverage proves that a node logged; neither alone proves the intended values, gating
+   or unchanged output.
+
+Report the change as verified only when the generated structure, tests and fresh runtime evidence agree.
+If they disagree, keep the artifacts and report the conflicting observation rather than changing the
+prediction after seeing the result.
+
+The model owns this sequence and its judgement. Project scripts execute build and host operations;
+Fluxtion audit records carry deterministic application evidence; the analyser opens and queries evidence
+already produced. Do not introduce a compound analyser verb for this workflow.
+
 ## The two things that fail SILENTLY here
 
 **A bean that is in no list is not in the graph.** The precise rule, from

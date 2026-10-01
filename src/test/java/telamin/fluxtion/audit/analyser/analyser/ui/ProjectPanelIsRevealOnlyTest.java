@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.DataInputStream;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -19,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * M37 D-L1 and D-L3, both structural.
  *
  * <p>D-L3: nothing on the panel can mutate the app. The panel's only way out is {@link ProjectPanel.Navigator}
- * (four navigation methods), and its bytecode never names MainFrame — the same constant-pool check
+ * (a closed list of named actions), and its reachable helper bytecode never names MainFrame — a constant-pool check
  * McpBridgeHeadlessTest uses, because a test that merely clicked buttons would pass while a reference
  * sat on a branch it did not take.
  *
@@ -37,8 +38,51 @@ class ProjectPanelIsRevealOnlyTest {
         }
     }
 
+    /** Follow concrete dependencies, including nested/anonymous helpers and inherited interfaces.
+     * Never follow implementations of an interface: Navigator-to-frame is the authorised adapter route. */
+    private static void assertNoActionReachability() throws IOException {
+        var pending = new java.util.ArrayDeque<String>();
+        var visited = new java.util.HashSet<String>();
+        pending.add(ProjectPanel.class.getName().replace('.', '/'));
+        pending.add(ProjectModel.class.getName().replace('.', '/'));
+        while (!pending.isEmpty()) {
+            String name = pending.removeFirst();
+            if (!visited.add(name)) continue;
+            assertFalse(name.contains("ui/MainFrame") || name.endsWith("/ActionExecutor") || name.endsWith("/AppControl"),
+                    "D-L3 reachable helper must not reach the frame/action surface: " + name);
+            if (!name.startsWith("telamin/fluxtion/audit/analyser/")) continue;
+            try (var stream = ProjectPanel.class.getClassLoader().getResourceAsStream(name + ".class")) {
+                assertNotNull(stream, "missing helper bytecode: " + name);
+                var in = new DataInputStream(stream);
+                assertEquals(0xcafebabe, in.readInt());
+                in.readUnsignedShort(); in.readUnsignedShort();
+                int count = in.readUnsignedShort();
+                String[] utf8 = new String[count];
+                var classes = new java.util.ArrayList<Integer>();
+                for (int i = 1; i < count; i++) {
+                    switch (in.readUnsignedByte()) {
+                        case 1 -> utf8[i] = in.readUTF();
+                        case 7 -> classes.add(in.readUnsignedShort());
+                        case 3, 4, 9, 10, 11, 12, 17, 18 -> in.skipNBytes(4);
+                        case 5, 6 -> { in.skipNBytes(8); i++; }
+                        case 8, 16, 19, 20 -> in.skipNBytes(2);
+                        case 15 -> in.skipNBytes(3);
+                        default -> fail("unrecognised constant-pool entry in " + name);
+                    }
+                }
+                for (int index : classes) if (!utf8[index].startsWith("[")) pending.add(utf8[index]);
+                // Field/method descriptors can name a forbidden type without a CONSTANT_Class entry.
+                for (String value : utf8) if (value != null) {
+                    Matcher descriptor = Pattern.compile("L(telamin/fluxtion/audit/analyser/[A-Za-z0-9_/$]+)").matcher(value);
+                    while (descriptor.find()) pending.add(descriptor.group(1));
+                }
+            }
+        }
+    }
+
     @Test
     void thePanelNeverNamesMainFrame_itsOnlyExitIsTheTwoMethodNavigator() throws IOException {
+        assertNoActionReachability();
         for (Class<?> c : new Class<?>[]{ProjectPanel.class, ProjectModel.class}) {
             String bytes = bytecodeOf(c);
             assertFalse(bytes.contains("ui/MainFrame"), c.getSimpleName() + " must not reference MainFrame");
@@ -66,7 +110,7 @@ class ProjectPanelIsRevealOnlyTest {
         // Set.of threw "duplicate element: openSettings" -- the guard died before it could report
         // anything at all, which is worse than a guard that fails loudly (review, 2026-09-30).
         Set<String> navigator = new TreeSet<>(java.util.Arrays.stream(
-                        ProjectPanel.Navigator.class.getDeclaredMethods())
+                        ProjectPanel.Navigator.class.getMethods())
                 .map(java.lang.reflect.Method::getName).toList());
         assertEquals(new TreeSet<>(Set.of("showTab", "openSettings", "showReport", "showGraph",
                         "removeSourceRoot", "openProcessorSource", "setActiveProcessor", "removeProcessor")),

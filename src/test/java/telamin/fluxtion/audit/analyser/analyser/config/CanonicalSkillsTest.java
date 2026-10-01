@@ -52,6 +52,19 @@ class CanonicalSkillsTest {
     }
 
     @Test
+    void springSkillOwnsTheAuthoringProofLoop_withoutInventingAnAnalyserWorkflowVerb() throws Exception {
+        String text = Files.readString(ROOT.resolve("spring/add-a-node/SKILL.md"));
+        assertTrue(text.contains("Before running the changed application, write down predictions"));
+        assertTrue(text.contains("`run-mongoose-server`"));
+        assertTrue(text.contains("`load-audit-log`"));
+        assertTrue(text.contains("`analyser_context.graphPairing`"));
+        assertTrue(text.contains("The exported **Fluxtion audit log**, not Mongoose's ordinary server log"));
+        assertTrue(text.contains("host-level rather than application-semantic evidence"));
+        assertTrue(text.contains("The model owns this sequence and its judgement"));
+        assertTrue(text.contains("Do not introduce a compound analyser verb for this workflow"));
+    }
+
+    @Test
     void auditEvidenceRunbookAndSkillShareTheVersionedLimitsAndDeliveryBoundary() throws Exception {
         String skill = Files.readString(ROOT.resolve("mongoose/run-mongoose-server/SKILL.md"));
         String runbook = Files.readString(Path.of("docs/runbooks/mongoose-audit-evidence.md"));
