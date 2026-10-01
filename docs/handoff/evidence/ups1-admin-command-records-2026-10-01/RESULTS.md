@@ -1,5 +1,11 @@
 # UPS-1 — admin command records — results
 
+> **Superseded in part by the review round:** [RESULTS-r2.md](RESULTS-r2.md). The independent review of 9474c687 showed
+> three claims below to be false: that the parser never reads a quoted continuation as a field (finding 2); that every
+> surface says *not read* (finding 3: coverage, pairing, CSV and table did not); and P3, "every whole record parses as
+> before" (finding 4: the generator's exported-service records lost their thread, endTime and node logs). They are
+> corrected there, and this file is kept as it was written.
+
 Predictions: [PREDICTIONS.md](PREDICTIONS.md), committed before any code (`ab630614`). Branch
 `fix/ups1-admin-command-records`, from `main` at `473cd674`. DEMO data only; JDK 21.
 

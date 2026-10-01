@@ -59,11 +59,8 @@ mongoose-plugins **1.0.45** (separator escaping, #39). The 2026-09-27 order is i
 
 ## Upstream releases to absorb — 2026-10-01
 
-- [UPS-1] ☑ **Admin commands audit as their own record — checked; one defect found and fixed** (this branch,
-  `fix/ups1-admin-command-records`). Framing, table, coverage and step-through are right; an operator-typed argument with
-  a line break forged a node and an event type, now a named broken record (`BROKEN_VALUE`, conformance C31). The bar
-  also keeps producer warnings when a graph opens. [Evidence](../handoff/evidence/ups1-admin-command-records-2026-10-01/RESULTS.md).
-  Close mongoose#45 when this merges.
+- [UPS-1] ◧ **Admin commands audit as their own record** — PR #92: a line break in an argument forged a node and an event
+  type; now one structural rule and withheld-not-absent (C31, C32). [Evidence](../handoff/evidence/ups1-admin-command-records-2026-10-01/RESULTS-r2.md); close mongoose#45 on merge.
 - [UPS-1a] ☐ **Upstream: quote line breaks in values** — [UP-FLX-55](../proposals/upstream-asks.md); the raw record stream
   (no export escaping) still splits on a `---` inside a value, which is MA-7's framing fault.
 - [UPS-2] ☐ **Fixtures on the released stack** — the DEMO and replay fixtures still use runtime 1.0.16 / builder 1.0.71.

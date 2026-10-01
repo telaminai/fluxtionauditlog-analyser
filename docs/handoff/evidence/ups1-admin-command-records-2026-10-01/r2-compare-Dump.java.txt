@@ -1,0 +1,65 @@
+import telamin.fluxtion.audit.analyser.analyser.model.LogRecord;
+import telamin.fluxtion.audit.analyser.analyser.model.NodeLog;
+import telamin.fluxtion.audit.analyser.analyser.parse.HeapLogStore;
+import telamin.fluxtion.audit.analyser.analyser.parse.LogStore;
+import telamin.fluxtion.audit.analyser.analyser.parse.RecordFramer;
+import telamin.fluxtion.audit.analyser.analyser.spi.AuditLogReader;
+import telamin.fluxtion.audit.analyser.analyser.spi.SpiLogStore;
+
+import java.nio.file.*;
+import java.util.*;
+import java.util.function.Consumer;
+
+/** Field-by-field dump of every record of every audit text named on stdin, per reader path: one TSV line per field. */
+public class Dump {
+    static final class Pass implements AuditLogReader {
+        final TextEncoding enc;
+        Pass(TextEncoding enc) { this.enc = enc; }
+        @Override public TextEncoding textEncoding() { return enc; }
+        @Override public String formatId() { return "cmp-passthrough"; }
+        @Override public String displayName() { return "cmp pass-through"; }
+        @Override public boolean canOpen(Path source) { return true; }
+        @Override public TimeBase timeBase() { return TimeBase.wallClockMillisUtc(); }
+        @Override public Capabilities capabilities() { return new Capabilities(false, false, true, Ordering.TOTAL); }
+        @Override public void read(Path source, Consumer<String> out) throws java.io.IOException {
+            RecordFramer.frameForPlugin(Files.readString(source), raw -> out.accept(raw.text()));
+        }
+    }
+
+    static String esc(Object o) {
+        return o == null ? "<null>" : String.valueOf(o).replace("\\", "\\\\").replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t");
+    }
+
+    static void dump(String file, String path, LogStore s, StringBuilder out) {
+        out.append(file).append('\t').append(path).append("\t-\tcount\t").append(s.size()).append('\n');
+        for (int i = 0; i < s.size(); i++) {
+            LogRecord r = s.record(i);
+            Map<String, Object> f = new LinkedHashMap<>();
+            f.put("eventTime", r.eventTime()); f.put("logTime", r.logTime()); f.put("endTime", r.endTime());
+            f.put("groupingId", r.groupingId()); f.put("event", r.event()); f.put("eventType", r.eventType());
+            f.put("eventToString", r.eventToString()); f.put("thread", r.thread()); f.put("logger", r.logger());
+            f.put("level", r.level()); f.put("headerTime", r.headerTime()); f.put("kind", r.kind());
+            f.put("callback", r.callback()); f.put("declaringType", r.declaringType()); f.put("dimension", r.eventDimension());
+            f.put("nodeLogsCount", r.nodeLogsCount()); f.put("hasNaN", r.hasNaN()); f.put("hasBreach", r.hasBreach());
+            StringBuilder nl = new StringBuilder();
+            for (NodeLog n : r.nodeLogs()) nl.append(n.instanceId()).append(n.entries()).append(n.traced() ? "T" : "").append(';');
+            f.put("nodeLogs", nl);
+            for (var e : f.entrySet()) out.append(file).append('\t').append(path).append('\t').append(i).append('\t')
+                    .append(e.getKey()).append('\t').append(esc(e.getValue())).append('\n');
+        }
+    }
+
+    public static void main(String[] a) throws Exception {
+        StringBuilder out = new StringBuilder();
+        for (String line : new String(System.in.readAllBytes()).split("\n")) {
+            if (line.isBlank()) continue;
+            Path p = Path.of(line);
+            String text = Files.readString(p);
+            try { dump(line, "builtin", new HeapLogStore(text), out); } catch (Throwable t) { out.append(line).append("\tbuiltin\t-\terror\t").append(esc(t)).append('\n'); }
+            for (var enc : AuditLogReader.TextEncoding.values()) {
+                try { dump(line, "spi-" + enc, SpiLogStore.open(new Pass(enc), p), out); } catch (Throwable t) { out.append(line).append("\tspi-" + enc + "\t-\terror\t").append(esc(t)).append('\n'); }
+            }
+        }
+        System.out.print(out);
+    }
+}
