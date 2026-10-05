@@ -189,3 +189,5 @@ public final class DuplicateChartRepair {
         return out;
     }
 }
+
+// DEMO acceptance fixture: exercise narrow draft feedback; never merge.
