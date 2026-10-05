@@ -190,4 +190,4 @@ public final class DuplicateChartRepair {
     }
 }
 
-// DEMO acceptance fixture: exercise narrow draft feedback; never merge.
+// DEMO acceptance fixture: superseding ready run one; never merge.
