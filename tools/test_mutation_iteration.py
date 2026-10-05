@@ -37,6 +37,20 @@ class IterationTest(unittest.TestCase):
         self.assertEqual(['ExampleTest#chosen', 'ExampleTest#other'], engine.run.call_args.args[0],
                          'baseline must execute only the distinct named witnesses, never unrelated class methods')
 
+    def test_reference_baseline_is_explicit_and_normal_runs_keep_named_methods(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            for options, expected in [([], 'methods'), (['--baseline-policy', 'classes'], 'classes')]:
+                output = Path(tmp) / 'result.json'
+                args = ['gate', '--mode', 'mutations', '--output', str(output), *options]
+                with self.subTest(expected=expected), patch.object(sys, 'argv', args), \
+                     patch.object(gate, 'selected_cases', return_value=[('demo','unused','a','b','DemoTest#chosen')]), \
+                     patch.object(gate, 'run_gate') as run, contextlib.redirect_stdout(io.StringIO()):
+                    gate.main()
+                self.assertEqual(expected, run.call_args.kwargs['baseline_policy'],
+                                 'reference trials must execute the requested baseline without changing the default')
+                self.assertEqual(expected, json.loads(output.read_text())['baselinePolicy'],
+                                 'evidence must record which baseline ran')
+
     def test_shared_test_resource_change_forces_full(self):
         cases = [('a', 'src/main/java/Example.java', 'a', 'b', 'ExampleTest#chosen')]
         selected, skipped = gate.fast.select_subset(cases, ['src/test/resources/shared-fixture.xml'])
@@ -48,6 +62,14 @@ class EvidenceScopeTest(fixtures.ShardingTest):
     def test_partial_scope_cannot_masquerade_as_full(self):
         self.docs[0]['scope'] = 'feedback'
         self.reject('scope')
+
+    def test_collector_rejects_timeout_even_with_named_failure(self):
+        self.docs[0]['runs'][0]['mutated']['exit'] = 124
+        self.reject('named assertion failure')
+
+    def test_collector_requires_explicit_normal_completion(self):
+        self.docs[0]['runs'][0]['mutated'].pop('completedNormally', None)
+        self.reject('normal completion')
 
     def test_unknown_schema_cannot_be_accepted(self):
         self.docs[0]['schema'] = -1
@@ -220,6 +242,59 @@ with patch.object(gate,'selected_cases',return_value=[case]),patch.object(gate,'
 
     def test_normal_parent_exit_does_not_leave_a_descendant_writer(self):
         self.assert_descendant_stopped(False)
+
+    def test_detached_descendant_pipe_drain_is_bounded_and_keeps_output(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            pidfile = Path(tmp) / 'pid'
+            child = "import time; print('DEMO detached output',flush=True); time.sleep(5)"
+            parent = ("import subprocess,sys,time; from pathlib import Path; "
+                      "p=subprocess.Popen([sys.executable,'-c'," + repr(child) + "],start_new_session=True); "
+                      "Path(" + repr(str(pidfile)) + ").write_text(str(p.pid)); time.sleep(10)")
+            started = time.monotonic()
+            try:
+                code, output = gate.fast.run_with_timeout([sys.executable, '-c', parent], .3)
+                elapsed = time.monotonic() - started
+                self.assertTrue(pidfile.exists(), 'the detached child must actually be launched')
+                self.assertEqual(124, code, 'a command timeout must remain a refused run')
+                self.assertIn('DEMO detached output', output, 'bounded drain must retain captured output')
+                self.assertLess(elapsed, 3, 'timeout drain must not wait for the detached descendant lifetime')
+            finally:
+                if pidfile.exists():
+                    try: os.kill(int(pidfile.read_text()), signal.SIGKILL)
+                    except ProcessLookupError: pass
+
+    def test_maven_reference_runner_uses_bounded_process_cleanup(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            report = Path(tmp) / 'TEST-DemoTest.xml'
+            report.write_text('<testsuite tests="1" failures="0" errors="0" skipped="0"><testcase name="chosen"/></testsuite>')
+            with patch.object(gate.fast, 'run_with_timeout', return_value=(124, 'DEMO timeout')) as run, \
+                 patch.object(gate.subprocess, 'run', return_value=Mock(returncode=124, stdout='DEMO timeout')), \
+                 patch.object(Path, 'glob', side_effect=[[], [report]]):
+                result = gate.run('DemoTest#chosen')
+            self.assertEqual(1, run.call_count, 'Maven reference execution must use owned bounded process cleanup')
+            self.assertEqual(124, result['exit'], 'timeout must remain an unsuccessful run')
+            self.assertFalse(gate.green(result), 'a timeout cannot be green even with a completed suite')
+
+    def test_a_named_assertion_before_timeout_is_not_a_caught_mutation(self):
+        result = {'exit': 124, 'suites': [{'errors': 0, 'skipped': 0,
+                  'assertions': [{'test': 'chosen', 'kind': 'failure'}]}]}
+        self.assertFalse(gate.caught(result, 'chosen'),
+                         'a named assertion followed by timeout is not a completed wrong-result witness')
+
+    def test_fast_launcher_keeps_abnormal_exit_after_a_named_assertion(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            def process(*args, **kwargs):
+                out = Path(tmp) / gate.fast.GATE / 'last-run.jsonl'
+                out.write_text(json.dumps({'class':'DemoTest','method':'chosen','kind':'failure','message':'DEMO wrong result'})+'\n')
+                return 124, 'DEMO timeout after assertion'
+            for exit_code in (1, 124, -15):
+                def abnormal(*args, **kwargs):
+                    process()
+                    return exit_code, 'DEMO abnormal exit after assertion'
+                with self.subTest(exit_code=exit_code), patch.object(gate.fast, 'run_with_timeout', side_effect=abnormal):
+                    result = gate.fast.launch('', tmp, ['DemoTest#chosen'], ['DemoTest#chosen'], 1, tmp)
+                self.assertEqual(exit_code, result['exit'], 'launcher must preserve abnormal exit status')
+                self.assertFalse(gate.caught(result, 'chosen'), 'partial assertion output cannot conceal abnormal termination')
 
     def test_unknown_registry_mutations_refuse_instead_of_silently_dropping_controls(self):
         base = "CONTROLS=[('a','site','old','new','Test#method')]\n"

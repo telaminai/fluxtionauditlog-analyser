@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+- Faster development checks: focused draft mutation feedback, cancellation of superseded PR runs, and eight full-gate workers with named witness baselines; complete mutation evidence is still required for merge.
+
 ## [1.31.0] - 2026-10-05
 
 ### Changed

@@ -111,3 +111,29 @@ and retained both deliberately surviving controls in both variants. The two focu
 (source and classes), and rerun green; engine elapsed 12.9 seconds. No full local sweep.
 Strict MkDocs, whitespace and public-data checks were clean. The independent agent's final local
 correctness verdict is passes; the declared platform and performance acceptance gaps remain.
+
+## External correction N1 and residual N2
+
+RAN before correction: the detached-descendant regression returned after 5.05s, failing the named
+3s upper bound. The reference Maven-runner test initially failed at missing-suite rather than its
+intended helper assertion; its fixture was corrected and then failed at the named helper-use assertion.
+The timeout pipe drain is now bounded to one second, preserving partial output. A descendant that
+explicitly creates a new session is outside process-group containment; this helper is not a sandbox.
+The reference Maven runner now uses the same bounded owned-process helper. Nonzero runs with no
+suite report remain unsuccessful, never invented green evidence.
+
+Miss: the first bounded-drain implementation tried to kill an already-stopped group again in finally,
+producing PermissionError on the local platform. Cleanup is now idempotent. Both attempts were kept;
+this was not resolved by widening permissions. The final 46-test run was green before adding the
+explicit reference-baseline CLI regression. Timing wording now states the latest attempt interval.
+
+An explicit --baseline-policy classes option retains the reference execution path for acceptance
+trials. Normal runs still use methods; the evidence records the chosen policy. No production control
+or witness has been changed. CHANGELOG now names the development-facing improvement.
+
+The local recheck of N2 exposed an additional wrong-result witness: a named assertion followed by
+a process timeout could count as caught. Three regressions failed before correction (predicate,
+actual fast JSONL parsing, collector). Fast results now preserve abnormal exits and explicit normal
+completion. The full collector requires the completion field to be true; a missing-field control also
+failed before correction. Evidence schema is 3, so old schema-2 receipts cannot satisfy new collection.
+The launcher regression covers raw exits 1, 124 and -15, not only the timeout code.

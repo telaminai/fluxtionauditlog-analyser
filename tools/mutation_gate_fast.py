@@ -40,6 +40,7 @@ TEST_SOURCES = Path('src/test/java')
 CLASS_TREES = (Path('target/classes'), Path('target/test-classes'))
 # One fresh JVM runs one witness, or the deduplicated baseline witnesses: minutes, never an hour.
 RUN_TIMEOUT_SECONDS = 600
+DRAIN_TIMEOUT_SECONDS = 1
 
 # Anything here changes how EVERY control runs or what it tests, so a diff touching it selects the full set.
 FULL_SET_TRIGGERS = (
@@ -68,18 +69,30 @@ def run_with_timeout(command, timeout, cwd=None):
     proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                             cwd=cwd, start_new_session=True)
 
+    group_stopped = False
+
     def stop_group():
+        nonlocal group_stopped
+        if group_stopped:
+            return
         try:
             os.killpg(proc.pid, signal.SIGKILL)
         except ProcessLookupError:
             pass
+        group_stopped = True
 
     try:
         output, _ = proc.communicate(timeout=timeout)
         return proc.returncode, output.decode('utf-8', 'replace')
     except subprocess.TimeoutExpired:
         stop_group()
-        output, _ = proc.communicate()
+        try:
+            output, _ = proc.communicate(timeout=DRAIN_TIMEOUT_SECONDS)
+        except subprocess.TimeoutExpired as drained:
+            # A descendant may deliberately leave our process group while retaining stdout.
+            # It is outside this helper's containment; never let its pipe defeat our bound.
+            output = drained.output or b''
+            proc.stdout.close()
         return 124, output.decode('utf-8', 'replace') + '\nTIMED OUT after %g s' % timeout
     finally:
         # Covers interruption as well as descendants whose parent exited first. A descendant
@@ -267,7 +280,8 @@ def launch(cp, launcher_dir, selectors, names, timeout, workdir='.'):
                                       for r in mine if r['kind'] in ('failure', 'error')]})
     # a row for a class nobody asked about (an engine or discovery failure) still fails the run
     failed = any(r['kind'] in ('failure', 'error') for r in rows)
-    return {'command': command, 'exit': 1 if (code != 0 or failed or not rows) else 0,
+    return {'command': command, 'exit': code if code != 0 else (1 if failed or not rows else 0),
+            'completedNormally': code == 0,
             'suites': suites, 'output': output, 'rows': rows}
 
 

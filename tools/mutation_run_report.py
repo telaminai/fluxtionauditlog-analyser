@@ -27,7 +27,7 @@ def summarise(run, jobs):
     return {'run': run['html_url'], 'head': run['head_sha'], 'event': run['event'],
             'conclusion': run['conclusion'], 'elapsedSeconds': seconds(run['run_started_at'], run['updated_at']),
             'jobExecutionMinutes': sum(j['seconds'] for j in rows) / 60,
-            'meaning': 'All job attempts: wall-clock durations, not billed minutes; elapsedSeconds is the API run interval; steps include setup/upload when reported',
+            'meaning': 'All job attempts: wall-clock durations, not billed minutes; elapsedSeconds is the latest attempt API interval; steps include setup/upload when reported',
             'jobs': rows}
 
 

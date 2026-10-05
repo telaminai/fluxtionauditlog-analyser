@@ -25,7 +25,7 @@ class ShardingTest(unittest.TestCase):
         self.docs = self.evidence()
 
     def result(self, failure=False):
-        return {'exit': 1 if failure else 0, 'output': '', 'suites': [{
+        return {'completedNormally': True, 'exit': 1 if failure else 0, 'output': '', 'suites': [{
             'name': 'FixtureTest', 'tests': 1, 'failures': int(failure), 'errors': 0, 'skipped': 0,
             'testNames': ['checksBehaviour'],
             'assertions': [{'test': 'checksBehaviour', 'kind': 'failure'}] if failure else []}]}

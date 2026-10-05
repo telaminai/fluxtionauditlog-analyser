@@ -523,17 +523,19 @@ def run(names):
     for cls in classes:
         for report in Path('target/surefire-reports').glob('TEST-*.' + cls + '.xml'):
             report.unlink()
-    proc = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    code, output = fast.run_with_timeout(command, fast.RUN_TIMEOUT_SECONDS)
     suites = []
     for cls in classes:
         paths = list(Path('target/surefire-reports').glob('TEST-*.' + cls + '.xml'))
+        if not paths and code != 0:
+            continue  # Timeout/failure before this suite produced a report; never green.
         assert len(paths) == 1, 'missing suite ' + cls
         root = ET.parse(paths[0]).getroot()
         suites.append({'name': cls, **{k: int(root.get(k, '0')) for k in ['tests','failures','errors','skipped']},
             'testNames': [t.get('name') for t in root.findall('testcase')],
             'assertions': [{'test': t.get('name'), 'kind': e.tag, 'message': e.get('message')}
                 for t in root.findall('testcase') for e in list(t) if e.tag in ['failure', 'error']]})
-    return {'command': command, 'exit': proc.returncode, 'suites': suites, 'output': proc.stdout}
+    return {'command': command, 'exit': code, 'suites': suites, 'output': output}
 
 
 def green(result):
@@ -660,7 +662,7 @@ def maven_run_safe(names):
 
 
 def caught(result, test):
-    return result['exit'] != 0 and all(s['errors'] == s['skipped'] == 0 for s in result['suites']) and any(fast.same_test(a['test'], test) and a['kind'] == 'failure'
+    return result['exit'] == 1 and result.get('completedNormally', True) and all(s['errors'] == s['skipped'] == 0 for s in result['suites']) and any(fast.same_test(a['test'], test) and a['kind'] == 'failure'
                                        for s in result['suites'] for a in s['assertions'])
 
 
@@ -730,6 +732,8 @@ def run_gate(cases, engine, fail_fast, on_entry=lambda entry: None, on_baseline=
 def run_main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--output', required=True)
+    parser.add_argument('--baseline-policy', choices=['methods', 'classes'], default='methods',
+                        help='classes retains the reference baseline for explicit acceptance trials')
     parser.add_argument('--mode', choices=['preflight', 'display', 'mutations', 'compare', 'compare-baselines', 'selftest'], required=True)
     parser.add_argument('--case', action='append')
     parser.add_argument('--engine', choices=['maven', 'fast'], default='maven',
@@ -857,7 +861,9 @@ def run_main():
     try:
         if engine:
             engine.prepare()
-        run_gate(cases, engine, fail_fast=True, on_entry=keep, on_baseline=keep_baseline)
+        result['baselinePolicy'] = args.baseline_policy
+        run_gate(cases, engine, fail_fast=True, on_entry=keep, on_baseline=keep_baseline,
+                 baseline_policy=args.baseline_policy)
     finally:
         result['seconds'] = round(time.monotonic() - started, 1)
         if engine:

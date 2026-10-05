@@ -14,7 +14,7 @@ from pathlib import Path
 
 TIMINGS = Path(__file__).with_name('mutation_timings.json')
 PRIORITY = 'design-status-capped'
-SCHEMA = 2
+SCHEMA = 3
 
 
 def require(condition, message):
@@ -108,6 +108,7 @@ def collect(cases, documents, count, expected_revision, gate):
             require(entry.get('restoredByteIdentical') is True and
                     entry.get('classesRestoredByteIdentical') is True, f'{name}: bytes not restored')
             mutated = entry.get('mutated', {})
+            require(mutated.get('completedNormally') is True, f'{name}: missing or abnormal process normal completion')
             require(gate.caught(mutated, method) and all(
                 s['errors'] == s['skipped'] == 0 for s in mutated.get('suites', [])) and any(
                 s['name'] == cls and any(a['kind'] == 'failure' and gate.fast.same_test(a['test'], method)
