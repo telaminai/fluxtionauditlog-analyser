@@ -24,6 +24,20 @@ import static org.junit.jupiter.api.Assertions.*;
  * clock and version, has a known identity. Every refusal names the member. Headless: no display, no session.
  */
 public class EvidenceBundleTest {
+    private String previousHome;
+
+    @org.junit.jupiter.api.BeforeEach
+    void isolatedWorkingCopies(@TempDir Path home) {
+        previousHome = System.getProperty("user.home");
+        System.setProperty("user.home", home.toString());
+    }
+
+    @org.junit.jupiter.api.AfterEach
+    void restoreHome() {
+        if (previousHome == null) System.clearProperty("user.home");
+        else System.setProperty("user.home", previousHome);
+    }
+
 
     static final Instant AT = Instant.parse("2026-09-28T12:00:00Z");
     static final String VERSION = "1.27.0-test";
@@ -292,6 +306,7 @@ public class EvidenceBundleTest {
         org.junit.jupiter.api.Assumptions.assumeTrue(Files.isDirectory(root) || root.toFile().mkdirs());
 
         Path stale = Files.createTempDirectory(root, "bundle-DEMO-stale-");
+        try (var owner = WorkingCopyOwnership.create(stale)) { }
         var opened = EvidenceBundle.unpackAndReap(bundle, root);
 
         assertTrue(opened.verification().ok());
@@ -299,6 +314,7 @@ public class EvidenceBundleTest {
         assertFalse(Files.exists(stale),
                 "andTheOnesNoLongerInUseAreRemoved: a fresh copy per open is what keeps a copy equal to the "
                         + "bundle, and reaping is what stops them accumulating");
+        opened.close();
         EvidenceBundle.reap(EvidenceBundle.workingCopies(), null);
     }
 
@@ -309,6 +325,8 @@ public class EvidenceBundleTest {
         org.junit.jupiter.api.Assumptions.assumeTrue(Files.isDirectory(root) || root.toFile().mkdirs());
         Path a = Files.createTempDirectory(root, "bundle-DEMOaaaaaaaa");
         Path b = Files.createTempDirectory(root, "bundle-DEMObbbbbbbb");
+        try (var owner = WorkingCopyOwnership.create(a)) { }
+        try (var owner = WorkingCopyOwnership.create(b)) { }
         try {
             int removed = EvidenceBundle.reap(java.util.List.of(a, b), a);
 
@@ -319,4 +337,19 @@ public class EvidenceBundleTest {
             EvidenceBundle.reap(java.util.List.of(a, b), null);
         }
     }
+    @Test
+    void pendingExtractionsCannotReapEachOther(@TempDir Path tmp) throws Exception {
+        Path bundle = writtenBundle(tmp), root = EvidenceBundle.workingCopiesRoot();
+        try (var first = EvidenceBundle.unpackAndReap(bundle, root);
+             var second = EvidenceBundle.unpackAndReap(bundle, root)) {
+            assertTrue(Files.isDirectory(first.workingCopy()), "anotherOpenMustNotReapAPendingExtraction");
+            first.close();
+            try (var third = EvidenceBundle.unpackAndReap(bundle, root)) {
+                assertFalse(Files.exists(first.workingCopy()), "aReleasedPreparationCanBeReaped");
+                assertTrue(Files.isDirectory(second.workingCopy()), "theOtherPendingOpenStaysOwned");
+                assertTrue(Files.isDirectory(third.workingCopy()), "theNewestPendingOpenStaysOwned");
+            }
+        }
+    }
+
 }

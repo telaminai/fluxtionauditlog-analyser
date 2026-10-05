@@ -81,10 +81,10 @@ closed); PR #104's released-stack adoption; PR #92's admin-record acceptance. [F
   #67 excerpt of a non-time-ordered log · #68 walk save's generation check in the frame (rule 9) · #69 small leftovers.
 - ◑ #73 discovery: recents and project inventory exist; pre-open preview and working-copy management remain open.
 - ☐ #74 (design) project-bound or standalone · #82 a walkthrough reel (PR #108) · #83 import off the event thread and
-  #85 working-copy reaping (PR #88 is not merged).
+  #85 working-copy reaping with cross-process ownership (PR #88 is not merged; older unmarked copies stay).
 - ☐ #109 a bundle's working copy should be read-only evidence, not the project the session writes into. Raised from
   the #88 review: sharing one copy per identity made a reopened bundle lose its provenance in silence, because the
-  session had saved its own settings over a member. #88 takes a fresh copy per open and reaps the rest, which keeps
+  session had saved its own settings over a member. #88 takes a fresh copy per open and reaps only provably unused managed copies, which keeps
   the invariant but re-unzips every time; #109 is the fix that would make the class of bug impossible.
 - Optional improvements from PR #103’s later review (not unfinished #84 corrections or release blockers): generic-action
   guard hardening, fallback preselection, caption/revision refinement, and unavailable-anchor presentation/removal.

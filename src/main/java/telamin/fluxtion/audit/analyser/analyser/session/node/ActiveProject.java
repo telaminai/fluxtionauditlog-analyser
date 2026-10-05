@@ -25,6 +25,7 @@ public class ActiveProject implements EventLogSource {
     private EventLogger auditLog = NullEventLogger.INSTANCE;
     private String profilePath;
     private String name;
+    private long generation;
 
     public ActiveProject(OperationGate gate) {
         this.gate = gate;
@@ -40,6 +41,7 @@ public class ActiveProject implements EventLogSource {
         if (!gate.accepted()) {
             return false;
         }
+        generation++;
         profilePath = event.profilePath();
         name = event.name();
         auditLog.info("activeProject", name).info("path", profilePath);
@@ -51,10 +53,22 @@ public class ActiveProject implements EventLogSource {
         if (!gate.accepted()) {
             return false;
         }
+        generation++;
         profilePath = null;
         name = null;
         auditLog.info("activeProject", "none");
         return true;
+    }
+
+    /** A read begun in this project lifetime cannot apply after a switch, even back to the same path. */
+    public record BorrowBasis(String profilePath, long generation) { }
+
+    public BorrowBasis borrowBasis() {
+        return profilePath == null ? null : new BorrowBasis(profilePath, generation);
+    }
+
+    public boolean permitsBorrow(BorrowBasis basis) {
+        return basis != null && generation == basis.generation() && isAt(basis.profilePath());
     }
 
     public boolean isActive() {
