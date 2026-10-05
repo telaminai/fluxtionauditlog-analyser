@@ -1,0 +1,38 @@
+{
+  "mode": "compare-baselines",
+  "comparison": [
+    {
+      "name": "dialog-unanswered-row",
+      "classes": "caught",
+      "methods": "caught",
+      "expected": "caught",
+      "ok": true
+    },
+    {
+      "name": "plant-survivor-comment",
+      "classes": "survived",
+      "methods": "survived",
+      "expected": "survived",
+      "ok": true
+    },
+    {
+      "name": "plant-survivor-api-change",
+      "classes": "survived",
+      "methods": "survived",
+      "expected": "survived",
+      "ok": true
+    }
+  ],
+  "variants": {
+    "classes": {
+      "seconds": 19.8,
+      "baselineGreen": true,
+      "fullCompileFallbacks": 1
+    },
+    "methods": {
+      "seconds": 13.3,
+      "baselineGreen": true,
+      "fullCompileFallbacks": 1
+    }
+  }
+}

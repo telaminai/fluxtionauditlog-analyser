@@ -27,22 +27,31 @@ fails the run even when every test method passed.
 """
 import hashlib
 import json
+import os
+import signal
 import re
 import subprocess
 import tempfile
+import time
 from pathlib import Path
 
 GATE = Path('target/gate')
 TEST_SOURCES = Path('src/test/java')
 CLASS_TREES = (Path('target/classes'), Path('target/test-classes'))
-# One fresh JVM runs one test method, or the baseline's handful of classes: minutes, never an hour.
+# One fresh JVM runs one witness, or the deduplicated baseline witnesses: minutes, never an hour.
 RUN_TIMEOUT_SECONDS = 600
+DRAIN_TIMEOUT_SECONDS = 1
 
 # Anything here changes how EVERY control runs or what it tests, so a diff touching it selects the full set.
 FULL_SET_TRIGGERS = (
     'tools/verify_project_chart_review.py',
     'tools/mutation_gate_fast.py',
     'tools/mutation_shards.py',
+    'tools/mutation_policy.py',
+    'tools/mutation_controls_session.py',
+    'tools/test_mutation',
+    'tools/test_project_chart_review.py',
+    'src/test/resources/',
     'tools/mutation_timings.json',
     'tools/gate/',
     'pom.xml',
@@ -52,20 +61,44 @@ FULL_SET_TRIGGERS = (
 
 def mvn(*args):
     """Run Maven quietly; return (exit, output)."""
-    proc = subprocess.run(['mvn', '-q', *args], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-    return proc.returncode, proc.stdout
+    return run_with_timeout(['mvn', '-q', *args], RUN_TIMEOUT_SECONDS)
 
 
 def run_with_timeout(command, timeout, cwd=None):
-    """Run a command; a hang becomes exit 124 with whatever it printed, never an exception or a stall."""
+    """Own the command's process group; stop its writers before mutation restoration."""
+    proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                            cwd=cwd, start_new_session=True)
+
+    group_stopped = False
+
+    def stop_group():
+        nonlocal group_stopped
+        if group_stopped:
+            return
+        try:
+            os.killpg(proc.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        group_stopped = True
+
     try:
-        proc = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=timeout, cwd=cwd)
-        return proc.returncode, proc.stdout.decode('utf-8', 'replace')
-    except subprocess.TimeoutExpired as hung:
-        partial = hung.stdout or b''
-        if isinstance(partial, bytes):          # TimeoutExpired carries BYTES even when the run asked for text
-            partial = partial.decode('utf-8', 'replace')
-        return 124, partial + '\nTIMED OUT after %d s' % timeout
+        output, _ = proc.communicate(timeout=timeout)
+        return proc.returncode, output.decode('utf-8', 'replace')
+    except subprocess.TimeoutExpired:
+        stop_group()
+        try:
+            output, _ = proc.communicate(timeout=DRAIN_TIMEOUT_SECONDS)
+        except subprocess.TimeoutExpired as drained:
+            # A descendant may deliberately leave our process group while retaining stdout.
+            # It is outside this helper's containment; never let its pipe defeat our bound.
+            output = drained.output or b''
+            proc.stdout.close()
+        return 124, output.decode('utf-8', 'replace') + '\nTIMED OUT after %g s' % timeout
+    finally:
+        # Covers interruption as well as descendants whose parent exited first. A descendant
+        # must not keep compiling after FastEngine has restored its class snapshot.
+        stop_group()
+        proc.wait()
 
 
 class Site:
@@ -108,11 +141,15 @@ class FastEngine:
         self.launcher_dir = GATE / 'launcher'
         self.snapshot = None
         self.fallbacks = 0
+        self.phases = {}
 
     # ---- set-up -------------------------------------------------------------------------------------------
 
     def prepare(self):
+        started = time.monotonic()
         code, out = mvn('test-compile')
+        self.phases['testCompile'] = time.monotonic() - started
+        started = time.monotonic()
         assert code == 0, 'test-compile failed:\n' + out
         GATE.mkdir(parents=True, exist_ok=True)
         cp_file = GATE / 'test-classpath.txt'
@@ -131,8 +168,13 @@ class FastEngine:
         # Surefire's order: test-classes, classes, then dependencies. The launcher comes last and matches the
         # platform version already on the classpath, so it cannot shadow anything the tests load.
         self.cp = ':'.join(['target/test-classes', 'target/classes', deps, str(launcher_jar)])
+        self.phases['classpath'] = time.monotonic() - started
+        started = time.monotonic()
         compile_launcher(self.cp, self.launcher_dir)
+        self.phases['launcherCompile'] = time.monotonic() - started
+        started = time.monotonic()
         self.snapshot = tree_snapshot()
+        self.phases['classSnapshot'] = time.monotonic() - started
 
     # ---- one JVM ------------------------------------------------------------------------------------------
 
@@ -150,25 +192,40 @@ class FastEngine:
         original = path.read_bytes()
         mutated = None
         full_compile = False
+        phases = entry.setdefault('phases', {})
+        prepared = time.monotonic()
         try:
             path.write_bytes(original.decode().replace(old, new).encode())
             if where.kind == 'java':
+                started = time.monotonic()
                 before = api_fingerprint(where.class_files())
+                phases['apiBefore'] = time.monotonic() - started
+                started = time.monotonic()
                 code, out = run_with_timeout(['javac', '-nowarn', '--release', compiler_release(),
                                               '-d', str(where.tree), '-cp', self.cp, site], RUN_TIMEOUT_SECONDS)
+                phases['singleFileCompile'] = time.monotonic() - started
+                started = time.monotonic()
                 if code != 0:
                     mutated = {'command': ['javac', site], 'exit': code, 'suites': [],
                                'output': 'mutated source does not compile:\n' + out}
                 elif needs_full_compile(before, where.class_files()):
                     full_compile = True
                     self.fallbacks += 1
+                    phases['apiAfter'] = time.monotonic() - started
+                    started = time.monotonic()
                     force_full_compile()
+                    phases['fallbackCompile'] = time.monotonic() - started
+                phases.setdefault('apiAfter', time.monotonic() - started)
             elif where.kind == 'resource':
                 where.runtime_copy().parent.mkdir(parents=True, exist_ok=True)
                 where.runtime_copy().write_bytes(path.read_bytes())
+            phases['mutationCompileAndApi'] = time.monotonic() - prepared
             if mutated is None:
+                started = time.monotonic()
                 mutated = self.run([target])
+                phases['mutatedJvm'] = time.monotonic() - started
         finally:
+            started = time.monotonic()
             path.write_bytes(original)
             entry['restoredByteIdentical'] = path.read_bytes() == original
             # Every path — single file, fallback, resource — ends by writing BOTH class trees back to the snapshot
@@ -180,10 +237,13 @@ class FastEngine:
             entry['restoreRewrote'] = corrected[:20]
             if drift:
                 entry['classDrift'] = drift[:20]
+            phases['restoreAndHash'] = time.monotonic() - started
         entry['engine'] = 'fast'
         entry['siteKind'] = where.kind
         entry['fullCompileFallback'] = full_compile
+        started = time.monotonic()
         restored = self.run([target])
+        phases['restoredJvm'] = time.monotonic() - started
         return mutated, restored
 
 
@@ -220,7 +280,8 @@ def launch(cp, launcher_dir, selectors, names, timeout, workdir='.'):
                                       for r in mine if r['kind'] in ('failure', 'error')]})
     # a row for a class nobody asked about (an engine or discovery failure) still fails the run
     failed = any(r['kind'] in ('failure', 'error') for r in rows)
-    return {'command': command, 'exit': 1 if (code != 0 or failed or not rows) else 0,
+    return {'command': command, 'exit': code if code != 0 else (1 if failed or not rows else 0),
+            'completedNormally': code == 0,
             'suites': suites, 'output': output, 'rows': rows}
 
 
@@ -356,7 +417,11 @@ def select_subset(cases, changed):
     """
     sites = {c[1] for c in cases}
     triggers = [f for f in changed if f.startswith(FULL_SET_TRIGGERS)
-                or (f.startswith('src/main/resources/') and f not in sites)]
+                or (f.startswith('src/main/resources/') and f not in sites)
+                or (f.startswith('src/test/java/') and not Path(f).stem.endswith('Test'))]
+    known = lambda f: (f in sites or f.endswith('.java') and f.startswith(('src/main/java/', 'src/test/java/'))
+                       or f.endswith('.md') and not f.startswith(('src/', 'docs/skills/')))
+    triggers += [f for f in changed if not known(f) and f not in triggers]
     if triggers:
         return [(c, 'full set: the diff touches ' + triggers[0]) for c in cases], []
     java_changed = {Path(f).stem: f for f in changed
@@ -376,8 +441,8 @@ def select_subset(cases, changed):
         if site in changed:
             selected.append((case, 'site changed: ' + site))
             continue
-        if target_file is not None and str(target_file) in changed:
-            selected.append((case, 'target test changed: ' + str(target_file)))
+        if any(f.startswith('src/test/java/') and Path(f).stem == cls for f in changed):
+            selected.append((case, 'target test changed: ' + cls))
             continue
         why = None
         for stem, f in java_changed.items():
@@ -510,6 +575,22 @@ def launcher_selftest(cp, launcher_dir):
             'package probe; import org.junit.jupiter.api.*; import java.nio.file.*;\n'
             'class BasedirProbe { @Test void basedir() {\n'
             '  Assertions.assertEquals(Path.of("").toAbsolutePath().toString(), System.getProperty("basedir")); } }\n')
+        (src / 'SelectiveProbe.java').write_text(
+            'package probe; import org.junit.jupiter.api.*;\n'
+            'class SelectiveProbe { static boolean started; @BeforeAll static void setup() { started=true; }'
+            ' @Test void chosen() { Assertions.assertTrue(started, "baseline lifecycle must execute"); }'
+            ' @Test void unrelated() { Assertions.fail("unrelated whole-class method ran"); } }')
+        (src / 'InheritedProbe.java').write_text(
+            'package probe; import org.junit.jupiter.api.*;\n'
+            'class ParentProbe { @Test void inherited() { Assertions.assertTrue(true); } }'
+            'class InheritedProbe extends ParentProbe {}')
+        (src / 'BeforeAllProbe.java').write_text(
+            'package probe; import org.junit.jupiter.api.*;\n'
+            'class BeforeAllProbe { @BeforeAll static void setup() { throw new IllegalStateException("before-all failure"); }'
+            ' @Test void chosen() {} }')
+        (src / 'SkippedProbe.java').write_text(
+            'package probe; import org.junit.jupiter.api.*;\n'
+            'class SkippedProbe { @Test @Disabled("disabled witness") void chosen() {} }')
         code, out = run_with_timeout(['javac', '-d', str(classes), '-cp', cp, *map(str, src.glob('*.java'))], 300)
         assert code == 0, out
         full_cp = str(classes) + ':' + ':'.join(str(Path(e).resolve()) if not Path(e).is_absolute() else e
@@ -525,4 +606,15 @@ def launcher_selftest(cp, launcher_dir):
             'ok': r['exit'] == 0 and r['suites'][0]['testNames'] == ['parameter']}
         r = launch(full_cp, launcher_dir, ['probe.BasedirProbe#basedir'], ['BasedirProbe#basedir'], 120, workdir=tmp)
         results['basedir is set as Surefire sets it'] = {'exit': r['exit'], 'ok': r['exit'] == 0}
+        for selector, kind in [('SelectiveProbe#chosen', 'passed'), ('InheritedProbe#inherited', 'passed'),
+                               ('BeforeAllProbe#chosen', 'error'), ('SkippedProbe#chosen', 'skipped'),
+                               ('SelectiveProbe#missing', 'error'), ('SelectiveProbe', 'failure')]:
+            r = launch(full_cp, launcher_dir, ['probe.' + selector], [selector], 120, workdir=tmp)
+            rows = r['rows']
+            expected_method = selector.partition('#')[2]
+            okay = any(row['kind'] == kind for row in rows)
+            if kind == 'passed':
+                okay = (r['exit'] == 0 and len(rows) == 1 and rows[0]['method'] == expected_method
+                        and rows[0]['kind'] == 'passed')
+            results['named baseline probe ' + selector] = {'ok': okay, 'rows': rows}
     return results
