@@ -14,6 +14,7 @@ J = 'src/main/java/telamin/fluxtion/audit/analyser/analyser/'
 SESSION = J + 'session/'
 NODE = SESSION + 'node/'
 UI = J + 'ui/'
+UI_TEST = 'src/test/java/telamin/fluxtion/audit/analyser/analyser/ui/'
 PARSE = J + 'parse/'
 BUNDLE = 'src/main/java/telamin/fluxtion/audit/analyser/bundle/EvidenceBundle.java'
 MAIN = 'src/main/java/telamin/fluxtion/audit/analyser/Main.java'
@@ -193,6 +194,10 @@ CONTROLS = [
      'BundleProvenanceFrameTest#aBundleCarriesItsEventProcessor'),
     ('bundle-processor-adopted-on-open', UI + 'MainFrame.java',
      '                    config.selectedEventProcessor = plan.processor();\n',
+     '',
+     'BundleProvenanceFrameTest#aBundleCarriesItsEventProcessor'),
+    ('bundle-recipient-can-choose-processor', UI + 'MainFrame.java',
+     '            config.selectedEventProcessor = fqn;\n',
      '',
      'BundleProvenanceFrameTest#aBundleCarriesItsEventProcessor'),
     # A transition's REAL half happens in ProjectSession before either effect arm runs. Reporting a render
@@ -378,6 +383,14 @@ CONTROLS = [
      '        if (!gate.accepted()) {\n', '        if (false) {\n',
      'BundleOpenReplayTest#lateFirstBundleCannotStealASecondPendingBundle'),
     # Native gesture cancellation: every witness starts with a Robot drag through the OS router.
+    ('mouse-loss-press-acquisition', UI_TEST + 'TableDragCancellationFrameTest.java',
+     '            for (int attempt = 0; attempt < 3; attempt++) {',
+     '            for (int attempt = 0; attempt < 1; attempt++) {',
+     'TableDragCancellationFrameTest#aDroppedNativePressIsRetriedBeforeTheGestureStarts'),
+    ('mouse-loss-unavailable-input-is-error', UI_TEST + 'TableDragCancellationFrameTest.java',
+     '            throw new IllegalStateException("nativePressDeliveredBeforeGestureChecks: the desktop dropped all three presses");',
+     '            return fail("nativePressDeliveredBeforeGestureChecks: the desktop dropped all three presses");',
+     'TableDragCancellationFrameTest#aDroppedNativePressIsRetriedBeforeTheGestureStarts'),
     ('mouse-loss-table-hook', UI + 'MainFrame.java',
      '                tablePanel.cancelMouseGesture();', '                // table cancellation removed',
      'TableDragCancellationFrameTest#aModalEndsTheNativeTableDragAndTheNextDragStillWorks'),
@@ -800,6 +813,19 @@ CONTROLS = [
      'LogEvidenceTest#aDroppedScanDoesNotSwallowTheNextGenerationsScan'),
     ('m44-5-f1-frame-next-log-is-scanned', NODE + 'LogEvidence.java',
      '        scanPending = false;\n        boundGeneration = generation;', '        boundGeneration = generation;',
+     'LogFindingsOnEverySurfaceFrameTest#aLoadThatThrowsPartWayDoesNotStopTheNextLogsEvidence'),
+    # The F1 frame witness deliberately removes SummaryPanel. Account for that fault, while failing on every
+    # other EDT exception: an exception printed on stderr alone must not count as a successful display check.
+    ('edt-unexpected-failure-fails-the-test', UI_TEST + 'EdtExceptionWatch.java',
+     '        assertTrue(unaccounted.isEmpty(), () -> "uncaughtEdtFailure: " + unaccounted);',
+     '        assertTrue(true, () -> "uncaughtEdtFailure: " + unaccounted);',
+     'EdtExceptionWatchTest#unexpectedFailureMakesTheWatchFailAndRestoresTheHandler'),
+    ('summary-injected-failure-must-be-observed', UI_TEST + 'LogFindingsOnEverySurfaceFrameTest.java',
+     'panel.set(f.frame, null);', 'panel.set(f.frame, original);',
+     'LogFindingsOnEverySurfaceFrameTest#aLoadThatThrowsPartWayDoesNotStopTheNextLogsEvidence'),
+    ('summary-injected-failure-is-accounted', UI_TEST + 'LogFindingsOnEverySurfaceFrameTest.java',
+     'var injected = edtFailures.expect(NullPointerException.class, MainFrame.class.getName(), "applyLoaded");',
+     'var injected = new NullPointerException("summaryPanel");',
      'LogFindingsOnEverySurfaceFrameTest#aLoadThatThrowsPartWayDoesNotStopTheNextLogsEvidence'),
     ('m44-5-f2-set-carries-its-cross-file-order', UI + 'MainFrame.java',
      'files, config.memoryThresholdMb, set.report());', 'files, config.memoryThresholdMb, null);',

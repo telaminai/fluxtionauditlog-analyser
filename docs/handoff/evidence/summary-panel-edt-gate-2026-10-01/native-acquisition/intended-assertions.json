@@ -1,0 +1,77 @@
+{
+  "requestedNames": [
+    "mouse-loss-press-acquisition",
+    "mouse-loss-unavailable-input-is-error",
+    "mouse-loss-table-hook",
+    "mouse-loss-table-timer",
+    "mouse-loss-slider-hook",
+    "mouse-loss-autoscroll-restored",
+    "mouse-loss-column-adjustment",
+    "mouse-loss-nonmodal-preserved",
+    "m44-5-f1-new-generation-resets-outstanding",
+    "m44-5-f1-frame-next-log-is-scanned",
+    "edt-unexpected-failure-fails-the-test",
+    "summary-injected-failure-must-be-observed",
+    "summary-injected-failure-is-accounted"
+  ],
+  "caughtNames": [
+    "mouse-loss-press-acquisition",
+    "mouse-loss-unavailable-input-is-error",
+    "mouse-loss-table-hook",
+    "mouse-loss-table-timer",
+    "mouse-loss-slider-hook",
+    "mouse-loss-autoscroll-restored",
+    "mouse-loss-column-adjustment",
+    "mouse-loss-nonmodal-preserved",
+    "m44-5-f1-new-generation-resets-outstanding",
+    "m44-5-f1-frame-next-log-is-scanned",
+    "edt-unexpected-failure-fails-the-test",
+    "summary-injected-failure-must-be-observed",
+    "summary-injected-failure-is-accounted"
+  ],
+  "assertionFragments": {
+    "mouse-loss-press-acquisition": [
+      "aDroppedNativePressMustBeRetried"
+    ],
+    "mouse-loss-unavailable-input-is-error": [
+      "unavailableNativeInputMustNotCountAsAnAssertionFailure"
+    ],
+    "mouse-loss-table-hook": [
+      "before release, losing window focus cancels the table's adjusting gesture"
+    ],
+    "mouse-loss-table-timer": [
+      "no table selection growth after window loses drag",
+      "no table scrolling after window loses drag"
+    ],
+    "mouse-loss-slider-hook": [
+      "before release, losing window focus cancels the slider gesture"
+    ],
+    "mouse-loss-autoscroll-restored": [
+      "cancellation preserves the configured autoscroll behaviour"
+    ],
+    "mouse-loss-column-adjustment": [
+      "column adjustment ends with the cancelled gesture"
+    ],
+    "mouse-loss-nonmodal-preserved": [
+      "non-modal focus loss keeps selection adjusting"
+    ],
+    "m44-5-f1-new-generation-resets-outstanding": [
+      "the new generation asks for a scan of its own"
+    ],
+    "m44-5-f1-frame-next-log-is-scanned": [
+      "F1: the next log's evidence is scanned and rendered"
+    ],
+    "edt-unexpected-failure-fails-the-test": [
+      "anUnexpectedEdtExceptionMustFailTheTest"
+    ],
+    "summary-injected-failure-must-be-observed": [
+      "theInjectedEdtFailureWasObserved"
+    ],
+    "summary-injected-failure-is-accounted": [
+      "uncaughtEdtFailure"
+    ]
+  },
+  "allIntendedAssertionsVerified": true,
+  "allSourceAndClassesRestoredByteIdentical": true,
+  "allRestoredRunsGreen": true
+}

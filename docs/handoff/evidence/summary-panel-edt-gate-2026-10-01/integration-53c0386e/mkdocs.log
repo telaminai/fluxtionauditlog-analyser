@@ -1,0 +1,9 @@
+INFO    -  Cleaning site directory
+INFO    -  Building documentation to directory: <worktree>/target/docs-site
+INFO    -  DeprecationWarning: codecs.open() is deprecated. Use open() instead.
+  File "<home>/IdeaProjects/telamin/fluxtionauditlog-analyser/.venv/lib/python3.14/site-packages/pymdownx/snippets.py", line 403, in run
+    return self.parse_snippets(lines)
+  File "<home>/IdeaProjects/telamin/fluxtionauditlog-analyser/.venv/lib/python3.14/site-packages/pymdownx/snippets.py", line 346, in parse_snippets
+    with codecs.open(snippet, 'r', encoding=self.encoding) as f:
+
+INFO    -  Documentation built in 0.85 seconds

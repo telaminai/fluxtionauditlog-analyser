@@ -1,0 +1,223 @@
+{
+  "parents": [
+    "be2d337e",
+    "2a54894f"
+  ],
+  "workingTree": "main integration with additive changelog resolution; no application change",
+  "commands": {
+    "headless": "mvn -o -q clean test",
+    "display": "mvn -o -q test -Dtest=<class> -Djava.awt.headless=false -DargLine=-Djava.awt.headless=false",
+    "controls": "python3 tools/verify_project_chart_review.py --mode mutations --engine fast --case <each requested> --output <scratch>/controls.json"
+  },
+  "checks": {
+    "headless": {
+      "counts": [
+        3184,
+        0,
+        0,
+        249
+      ],
+      "reports": 420,
+      "orphans": []
+    },
+    "TableDragCancellationFrameTest": {
+      "counts": [
+        4,
+        0,
+        0,
+        0
+      ],
+      "reports": 1,
+      "orphans": []
+    },
+    "LogFindingsOnEverySurfaceFrameTest": {
+      "counts": [
+        14,
+        0,
+        0,
+        0
+      ],
+      "reports": 1,
+      "orphans": []
+    },
+    "BundleProvenanceFrameTest": {
+      "counts": [
+        18,
+        0,
+        0,
+        0
+      ],
+      "reports": 1,
+      "orphans": []
+    }
+  },
+  "controls": [
+    {
+      "name": "bundle-carries-its-processor",
+      "verdict": "caught",
+      "sourceRestored": true,
+      "classesRestored": true,
+      "assertions": [
+        "org.opentest4j.AssertionFailedError: theManifestNamesTheProcessor: {\"format\":1,\"createdAt\":\"2026-10-05T15:02:01.892138Z\",\"analyser\":\"dev\",\"log\":{\"member\":\"log/demo-quote-audit.yaml\"},\"members\":[{\"path\":\"log/demo-quote-audit.yaml\",\"sha256\":\"91ba6bf8f3241c0ec605d9073897208bc02437833089eede461bca07fa32e0c2\",\"bytes\":4053},{\"path\":\"profile/project.fluxtion-settings\",\"sha256\":\"644c04b07f0bfef5c933f0bb8003d81e69edd0f789cd8316d389173740121b31\",\"bytes\":528}],\"limits\":[\"unsigned: verification detects a changed member; it does not authenticate the sender\",\"no replay: this bundle shows an investigation; it does not reproduce or fix it\"]}\n ==> expected: <true> but was: <false>"
+      ],
+      "seconds": 6.2
+    },
+    {
+      "name": "bundle-processor-adopted-on-open",
+      "verdict": "caught",
+      "sourceRestored": true,
+      "classesRestored": true,
+      "assertions": [
+        "org.opentest4j.AssertionFailedError: aRecipientWithNoneAdoptsIt ==> expected: <com.acme.demo.generated.DemoQuoteRecordedProcessor> but was: <>"
+      ],
+      "seconds": 6.9
+    },
+    {
+      "name": "bundle-recipient-can-choose-processor",
+      "verdict": "caught",
+      "sourceRestored": true,
+      "classesRestored": true,
+      "assertions": [
+        "org.opentest4j.AssertionFailedError: theRecipientCanStillChooseWithinTheSession ==> expected: <com.acme.RecipientProcessor> but was: <com.acme.demo.generated.DemoQuoteRecordedProcessor>"
+      ],
+      "seconds": 7.2
+    },
+    {
+      "name": "mouse-loss-press-acquisition",
+      "verdict": "caught",
+      "sourceRestored": true,
+      "classesRestored": true,
+      "assertions": [
+        "org.opentest4j.AssertionFailedError: aDroppedNativePressMustBeRetried ==> expected: <true> but was: <false>"
+      ],
+      "seconds": 24.2
+    },
+    {
+      "name": "mouse-loss-unavailable-input-is-error",
+      "verdict": "caught",
+      "sourceRestored": true,
+      "classesRestored": true,
+      "assertions": [
+        "org.opentest4j.AssertionFailedError: unavailableNativeInputMustNotCountAsAnAssertionFailure ==> Unexpected exception type thrown, expected: <java.lang.IllegalStateException> but was: <org.opentest4j.AssertionFailedError>"
+      ],
+      "seconds": 36.9
+    },
+    {
+      "name": "mouse-loss-table-hook",
+      "verdict": "caught",
+      "sourceRestored": true,
+      "classesRestored": true,
+      "assertions": [
+        "org.opentest4j.AssertionFailedError: before release, losing window focus cancels the table's adjusting gesture ==> expected: <false> but was: <true>"
+      ],
+      "seconds": 9.4
+    },
+    {
+      "name": "mouse-loss-table-timer",
+      "verdict": "caught",
+      "sourceRestored": true,
+      "classesRestored": true,
+      "assertions": [
+        "org.opentest4j.AssertionFailedError: no table selection growth after window loses drag ==> array lengths differ, expected: <8> but was: <13>"
+      ],
+      "seconds": 9.1
+    },
+    {
+      "name": "mouse-loss-slider-hook",
+      "verdict": "caught",
+      "sourceRestored": true,
+      "classesRestored": true,
+      "assertions": [
+        "org.opentest4j.AssertionFailedError: before release, losing window focus cancels the slider gesture ==> expected: <-1> but was: <0>"
+      ],
+      "seconds": 8.6
+    },
+    {
+      "name": "mouse-loss-autoscroll-restored",
+      "verdict": "caught",
+      "sourceRestored": true,
+      "classesRestored": true,
+      "assertions": [
+        "org.opentest4j.AssertionFailedError: cancellation preserves the configured autoscroll behaviour ==> expected: <true> but was: <false>"
+      ],
+      "seconds": 8.3
+    },
+    {
+      "name": "mouse-loss-column-adjustment",
+      "verdict": "caught",
+      "sourceRestored": true,
+      "classesRestored": true,
+      "assertions": [
+        "org.opentest4j.AssertionFailedError: column adjustment ends with the cancelled gesture ==> expected: <false> but was: <true>"
+      ],
+      "seconds": 8.7
+    },
+    {
+      "name": "mouse-loss-nonmodal-preserved",
+      "verdict": "caught",
+      "sourceRestored": true,
+      "classesRestored": true,
+      "assertions": [
+        "org.opentest4j.AssertionFailedError: non-modal focus loss keeps selection adjusting ==> expected: <true> but was: <false>"
+      ],
+      "seconds": 6.7
+    },
+    {
+      "name": "m44-5-f1-frame-next-log-is-scanned",
+      "verdict": "caught",
+      "sourceRestored": true,
+      "classesRestored": true,
+      "assertions": [
+        "org.opentest4j.MultipleFailuresError: F1: the next log's evidence is scanned and rendered (3 failures)\n\torg.opentest4j.AssertionFailedError: no scan is left outstanding ==> expected: <false> but was: <true>\n\torg.opentest4j.AssertionFailedError: the composed line: Loading /var/folders/s9/4cyctxf52cb1x715qb3qb59h0000gn/T/junit7379521400583405557/good.yml \u2026 ==> expected: <true> but was: <false>\n\torg.opentest4j.AssertionFailedError: context.timeOrder ==> expected: not <null>"
+      ],
+      "seconds": 3.9
+    },
+    {
+      "name": "edt-unexpected-failure-fails-the-test",
+      "verdict": "caught",
+      "sourceRestored": true,
+      "classesRestored": true,
+      "assertions": [
+        "org.opentest4j.AssertionFailedError: anUnexpectedEdtExceptionMustFailTheTest ==> Expected java.lang.AssertionError to be thrown, but nothing was thrown."
+      ],
+      "seconds": 2.3
+    },
+    {
+      "name": "summary-injected-failure-must-be-observed",
+      "verdict": "caught",
+      "sourceRestored": true,
+      "classesRestored": true,
+      "assertions": [
+        "org.opentest4j.AssertionFailedError: theInjectedEdtFailureWasObserved ==> Unexpected null value, expected: <java.lang.NullPointerException> but was: <null>"
+      ],
+      "seconds": 7.0
+    },
+    {
+      "name": "summary-injected-failure-is-accounted",
+      "verdict": "caught",
+      "sourceRestored": true,
+      "classesRestored": true,
+      "assertions": [
+        "org.opentest4j.AssertionFailedError: uncaughtEdtFailure: [java.lang.NullPointerException: Cannot invoke \"telamin.fluxtion.audit.analyser.analyser.ui.SummaryPanel.bind(telamin.fluxtion.audit.analyser.analyser.parse.LogStore, telamin.fluxtion.audit.analyser.analyser.filter.FilterState)\" because \"this.summaryPanel\" is null] ==> expected: <true> but was: <false>"
+      ],
+      "seconds": 4.5
+    }
+  ],
+  "controlSeconds": 180.0,
+  "pythonIteration": [
+    51,
+    0,
+    0,
+    0
+  ],
+  "pythonHarness": [
+    5,
+    0,
+    0,
+    0
+  ],
+  "preflight": {
+    "frameSuites": 43,
+    "anchors": 634
+  }
+}

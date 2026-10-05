@@ -31,6 +31,17 @@ import static telamin.fluxtion.audit.analyser.analyser.ui.AsyncOpenInterleavingF
 class LogFindingsOnEverySurfaceFrameTest {
 
     @TempDir Path tmp;
+    private EdtExceptionWatch edtFailures;
+
+    @org.junit.jupiter.api.BeforeEach
+    void accountForEdtFailures() throws Exception {
+        if (!GraphicsEnvironment.isHeadless()) edtFailures = new EdtExceptionWatch();
+    }
+
+    @org.junit.jupiter.api.AfterEach
+    void noUnexpectedEdtFailure() throws Exception {
+        if (edtFailures != null) edtFailures.close();
+    }
 
     private static final String EMPTY = "No records in this file yet.";
 
@@ -537,7 +548,8 @@ class LogFindingsOnEverySurfaceFrameTest {
     /**
      * Review F1 (PR #43), through the frame: a load that throws inside onLoaded AFTER LogOpened never performs its
      * scan, and must not stop the next log's. The fault is a later load step failing — here the summary panel is
-     * absent while the first log loads — and it is put back before the second open.
+     * deliberately removed while the first log loads, then put back before the second open. The EDT watch must
+     * observe exactly this injected failure; every other asynchronous failure still fails the test.
      */
     @Test
     void aLoadThatThrowsPartWayDoesNotStopTheNextLogsEvidence() throws Exception {
@@ -549,10 +561,16 @@ class LogFindingsOnEverySurfaceFrameTest {
             panel.setAccessible(true);
             Object original = onEdtGet(() -> panel.get(f.frame));
             onEdt(() -> { try { panel.set(f.frame, null); } catch (IllegalAccessException e) { throw new AssertionError(e); } });
-            assertTrue(f.ex.render("open", Map.of("log", broken.toString())).ok());
-            AsyncOpenInterleavingFrameTest.awaitLoaded(f.ex);
+            try {
+                assertTrue(f.ex.render("open", Map.of("log", broken.toString())).ok());
+                AsyncOpenInterleavingFrameTest.awaitLoaded(f.ex);
+                onEdt(() -> { }); // the load callback, including its exception handler, has finished
+                var injected = edtFailures.expect(NullPointerException.class, MainFrame.class.getName(), "applyLoaded");
+                assertTrue(injected.getMessage().contains("summaryPanel"), "the summary panel was deliberately removed");
+            } finally {
+                onEdt(() -> { try { panel.set(f.frame, original); } catch (IllegalAccessException e) { throw new AssertionError(e); } });
+            }
             onEdt(() -> {
-                try { panel.set(f.frame, original); } catch (IllegalAccessException e) { throw new AssertionError(e); }
                 assertTrue(status(f.frame).getText().startsWith("Loading "),
                         "control: the broken load threw after LogOpened, so nothing claims it loaded: "
                                 + status(f.frame).getText());

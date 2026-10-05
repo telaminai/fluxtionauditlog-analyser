@@ -1,0 +1,4 @@
+bundle-carries-its-processor : green / named assertion red / restored green, bytes identical
+bundle-processor-adopted-on-open : green / named assertion red / restored green, bytes identical
+bundle-recipient-can-choose-processor : green / named assertion red / restored green, bytes identical
+mutations: 3 controls caught with the fast engine in 42.9 s

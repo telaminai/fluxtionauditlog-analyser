@@ -661,35 +661,81 @@ class BundleProvenanceFrameTest {
     void aBundleCarriesItsEventProcessor(@TempDir Path tmp) throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless());
         String fqn = "com.acme.demo.generated.DemoQuoteRecordedProcessor";
-        try (var f = shown(tmp)) {
+        Path fexp;
+        // Capture and receipt are separate sessions. The sender's log-inference callback must not
+        // become a second outstanding source refresh in the recipient's completion boundary.
+        try (var f = shown(tmp.resolve("sender"))) {
             Path dir = exchange(f, tmp);
             openLog(f, EvidenceCaptureFrameTest.DEMO_LOG);
             var config = (telamin.fluxtion.audit.analyser.analyser.config.AppConfig) field(f.frame, "config");
-            onEdt(() -> config.selectedEventProcessor = fqn);
-            onEdt(() -> render(f.ex, "report", Map.of("bundle", Map.of("path", "withproc.fexp"))));
+            onEdt(() -> {
+                config.selectedEventProcessor = fqn;
+                render(f.ex, "report", Map.of("bundle", Map.of("path", "withproc.fexp")));
+            });
             assertEquals("WRITTEN", awaitDecided(f).get("phase"));
+            fexp = dir.resolve("withproc.fexp");
 
             // it is in the manifest, as a class name -- the graph never names the processor, only its nodes
-            try (var zip = new java.util.zip.ZipFile(dir.resolve("withproc.fexp").toFile())) {
+            try (var zip = new java.util.zip.ZipFile(fexp.toFile())) {
                 String manifest = new String(zip.getInputStream(zip.getEntry("manifest.json")).readAllBytes(),
                         java.nio.charset.StandardCharsets.UTF_8);
                 assertTrue(manifest.contains("\"processor\":\"" + fqn + "\""),
                         "theManifestNamesTheProcessor: " + manifest);
             }
-
+        }
+        try (var f = shown(tmp.resolve("recipient-home"))) {
+            var config = (telamin.fluxtion.audit.analyser.analyser.config.AppConfig) field(f.frame, "config");
             // a recipient who has none adopts it; without this the Source tab opens empty
             onEdt(() -> { config.selectedEventProcessor = ""; config.eventProcessorFqns.clear(); });
-            openBundleAndWait(f, dir.resolve("withproc.fexp"));
-            assertEquals(fqn, config.selectedEventProcessor, "aRecipientWithNoneAdoptsIt");
-            assertTrue(config.eventProcessorFqns.contains(fqn));
+            var sourcePanel = (SourcePanel) field(f.frame, "sourcePanel");
+            var combo = (javax.swing.JComboBox<?>) field(sourcePanel, "processorCombo");
+            Object priorStore = onEdtGet(() -> field(f.frame, "store"));
+            var sourceRefreshes = new java.util.concurrent.CountDownLatch(2);
+            java.beans.PropertyChangeListener refresh = event -> {
+                Object currentStore = field(f.frame, "store");
+                if (currentStore != null && currentStore != priorStore) sourceRefreshes.countDown();
+            };
+            onEdt(() -> combo.addPropertyChangeListener("model", refresh));
+            try {
+                openBundleAndWait(f, fexp);
+                onEdt(() -> {
+                    assertEquals(fqn, config.selectedEventProcessor, "aRecipientWithNoneAdoptsIt");
+                    assertTrue(config.eventProcessorFqns.contains(fqn));
+                });
+                // Provenance precedes the bundled log's arrival. applyLoaded refreshes this model,
+                // then the asynchronous inference callback refreshes it again. Await both actual
+                // effects for the NEW store before making a choice, rather than sleeping or polling
+                // a processor value which was already true when provenance first appeared.
+                assertTrue(sourceRefreshes.await(20, java.util.concurrent.TimeUnit.SECONDS),
+                        "theBundleLogAndSourceInferenceHaveCompleted");
+            } finally {
+                onEdt(() -> combo.removePropertyChangeListener("model", refresh));
+            }
 
             // and the recipient can still choose differently: the selection is project-scoped, so it holds
             // for the session and is replaced by the NEXT project switch, exactly as any project setting is.
             // (A previous project's choice does not survive opening a bundle, because applying the bundle's
             // profile clears project-scoped settings first — that is a project switch, not an override.)
-            onEdt(() -> config.selectedEventProcessor = "com.example.MyOwn");
-            assertEquals("com.example.MyOwn", config.selectedEventProcessor,
-                    "theRecipientCanStillChooseWithinTheSession");
+            Path code = java.nio.file.Files.createDirectories(tmp.resolve("recipient/com/acme"));
+            java.nio.file.Files.writeString(code.resolve("RecipientProcessor.java"),
+                    "package com.acme; public class RecipientProcessor {}\n");
+            var rootedSourceRefreshes = new java.util.concurrent.CountDownLatch(2);
+            java.beans.PropertyChangeListener rootedRefresh = event -> rootedSourceRefreshes.countDown();
+            onEdt(() -> combo.addPropertyChangeListener("model", rootedRefresh));
+            try {
+                onEdt(() -> render(f.ex, "source_root", Map.of("add", List.of(tmp.resolve("recipient").toString()))));
+                // Root addition also starts inference; finish that setup before choosing a processor.
+                assertTrue(rootedSourceRefreshes.await(20, java.util.concurrent.TimeUnit.SECONDS),
+                        "theAddedRootSourceInferenceHasCompleted");
+            } finally {
+                onEdt(() -> combo.removePropertyChangeListener("model", rootedRefresh));
+            }
+            onEdt(() -> {
+                var selected = render(f.ex, "open", Map.of("processor", "com.acme.RecipientProcessor"));
+                assertEquals(Boolean.TRUE, selected.get("ok"), "theRecipientSelectionUsesTheRealAction: " + selected);
+            });
+            onEdt(() -> assertEquals("com.acme.RecipientProcessor", config.selectedEventProcessor,
+                    "theRecipientCanStillChooseWithinTheSession"));
         }
     }
 

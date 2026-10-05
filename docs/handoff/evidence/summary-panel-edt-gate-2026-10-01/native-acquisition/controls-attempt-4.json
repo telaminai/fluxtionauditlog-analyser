@@ -1,0 +1,311 @@
+{
+  "mode": "mutations",
+  "runs": [],
+  "engine": "fast",
+  "baseline": {
+    "command": [
+      "java",
+      "-Djava.awt.headless=false",
+      "-Dbasedir=<worktree>",
+      "-cp",
+      "<worktree>/target/gate/launcher:target/test-classes:target/classes:<home>/.m2/repository/com/formdev/flatlaf/3.5.1/flatlaf-3.5.1.jar:<home>/.m2/repository/com/telamin/fluxtion/fluxtion-runtime/1.0.16/fluxtion-runtime-1.0.16.jar:<home>/.m2/repository/org/agrona/agrona/2.3.0/agrona-2.3.0.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter/5.10.2/junit-jupiter-5.10.2.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.10.2/junit-jupiter-api-5.10.2.jar:<home>/.m2/repository/org/opentest4j/opentest4j/1.3.0/opentest4j-1.3.0.jar:<home>/.m2/repository/org/junit/platform/junit-platform-commons/1.10.2/junit-platform-commons-1.10.2.jar:<home>/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.10.2/junit-jupiter-params-5.10.2.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.10.2/junit-jupiter-engine-5.10.2.jar:<home>/.m2/repository/org/junit/platform/junit-platform-engine/1.10.2/junit-platform-engine-1.10.2.jar:<home>/.m2/repository/com/telamin/svc-admin-web/1.0.45/svc-admin-web-1.0.45.jar:target/gate/lib/junit-platform-launcher-1.10.2.jar",
+      "GateLauncher",
+      "<worktree>/target/gate/last-run.jsonl",
+      "telamin.fluxtion.audit.analyser.analyser.ui.TableDragCancellationFrameTest",
+      "telamin.fluxtion.audit.analyser.analyser.session.LogEvidenceTest",
+      "telamin.fluxtion.audit.analyser.analyser.ui.LogFindingsOnEverySurfaceFrameTest",
+      "telamin.fluxtion.audit.analyser.analyser.ui.EdtExceptionWatchTest"
+    ],
+    "exit": 1,
+    "suites": [
+      {
+        "name": "TableDragCancellationFrameTest",
+        "tests": 4,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "aDroppedNativePressIsRetriedBeforeTheGestureStarts",
+          "aNonModalFocusLossKeepsSelectionDeferredUntilRelease",
+          "aModalEndsTheNativeSliderEdgePanWithoutChangingItsRange",
+          "aModalEndsTheNativeTableDragAndTheNextDragStillWorks"
+        ],
+        "assertions": [
+          {
+            "test": "aModalEndsTheNativeSliderEdgePanWithoutChangingItsRange",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: control: the native edge drag starts the slider timer ==> expected: <true> but was: <false>"
+          }
+        ]
+      },
+      {
+        "name": "LogEvidenceTest",
+        "tests": 12,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "aDroppedScanDoesNotSwallowTheNextGenerationsScan",
+          "anOpenRequestsOneScan",
+          "anAppendIsOutstandingEvidenceAtOnce",
+          "anIdenticalRescanChangesNothing",
+          "followSurvivesAReloadOnlyWhereItCanRun",
+          "theContentSignatureDecidesARescan",
+          "aStaleResultIsRefused",
+          "provenanceAndItsSourceArePublished",
+          "aCloseClearsAndAReopenAsksAgain",
+          "resultsArePublished",
+          "followIsSessionState",
+          "aRescanThatFindsTheSameStillSettles"
+        ],
+        "assertions": []
+      },
+      {
+        "name": "LogFindingsOnEverySurfaceFrameTest",
+        "tests": 14,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "aFollowedFileThatGainsAZeroMarkerSaysWhatAColdOpenSays",
+          "aTimeOrderViolationAppendedUnderFollowIsReported",
+          "aColdOpenOfAFileWhoseMarkerSaysItEndedSaysSo",
+          "theFollowLineKeepsTheProvenanceAndTheOrderWarning",
+          "aRecordStillBeingWrittenIsNotAnEmptyFile",
+          "theTabIsCurrentAfterASecondLogLoads_withNoVerbInBetween",
+          "aLoadThatThrowsPartWayDoesNotStopTheNextLogsEvidence",
+          "theExportedPdfCarriesTheLogsFindings_andLosesThemWhenARecordArrives",
+          "theLineNeverCountsNewRowsBesideTheOldFindings",
+          "aRolledSetsFileOverlapReachesContextAndTheLine",
+          "aOneMemberSetOpenedInTheFrameIsWordedAsItsFile",
+          "anEmptyFollowedFileSaysSoEverywhere_andEverySurfaceClearsWhenARecordArrives",
+          "anEnvironmentsProvenanceIsTheSessionsAndEverySurfaceStatesIt",
+          "theTabIsCurrentAfterAFollowPoll_withNoVerbInBetween"
+        ],
+        "assertions": []
+      },
+      {
+        "name": "EdtExceptionWatchTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "unexpectedFailureMakesTheWatchFailAndRestoresTheHandler",
+          "noFaultLeavesTheOriginalHandlerInPlace",
+          "anExpectedFaultDoesNotHideAnotherFailure",
+          "aMismatchedExpectedFaultRemainsAnUnexpectedFailure"
+        ],
+        "assertions": []
+      }
+    ],
+    "output": "",
+    "rows": [
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.TableDragCancellationFrameTest",
+        "method": "aDroppedNativePressIsRetriedBeforeTheGestureStarts",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.TableDragCancellationFrameTest",
+        "method": "aNonModalFocusLossKeepsSelectionDeferredUntilRelease",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.TableDragCancellationFrameTest",
+        "method": "aModalEndsTheNativeSliderEdgePanWithoutChangingItsRange",
+        "kind": "failure",
+        "message": "org.opentest4j.AssertionFailedError: control: the native edge drag starts the slider timer ==> expected: <true> but was: <false>"
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.TableDragCancellationFrameTest",
+        "method": "aModalEndsTheNativeTableDragAndTheNextDragStillWorks",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.session.LogEvidenceTest",
+        "method": "aDroppedScanDoesNotSwallowTheNextGenerationsScan",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.session.LogEvidenceTest",
+        "method": "anOpenRequestsOneScan",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.session.LogEvidenceTest",
+        "method": "anAppendIsOutstandingEvidenceAtOnce",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.session.LogEvidenceTest",
+        "method": "anIdenticalRescanChangesNothing",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.session.LogEvidenceTest",
+        "method": "followSurvivesAReloadOnlyWhereItCanRun",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.session.LogEvidenceTest",
+        "method": "theContentSignatureDecidesARescan",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.session.LogEvidenceTest",
+        "method": "aStaleResultIsRefused",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.session.LogEvidenceTest",
+        "method": "provenanceAndItsSourceArePublished",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.session.LogEvidenceTest",
+        "method": "aCloseClearsAndAReopenAsksAgain",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.session.LogEvidenceTest",
+        "method": "resultsArePublished",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.session.LogEvidenceTest",
+        "method": "followIsSessionState",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.session.LogEvidenceTest",
+        "method": "aRescanThatFindsTheSameStillSettles",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.LogFindingsOnEverySurfaceFrameTest",
+        "method": "aFollowedFileThatGainsAZeroMarkerSaysWhatAColdOpenSays",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.LogFindingsOnEverySurfaceFrameTest",
+        "method": "aTimeOrderViolationAppendedUnderFollowIsReported",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.LogFindingsOnEverySurfaceFrameTest",
+        "method": "aColdOpenOfAFileWhoseMarkerSaysItEndedSaysSo",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.LogFindingsOnEverySurfaceFrameTest",
+        "method": "theFollowLineKeepsTheProvenanceAndTheOrderWarning",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.LogFindingsOnEverySurfaceFrameTest",
+        "method": "aRecordStillBeingWrittenIsNotAnEmptyFile",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.LogFindingsOnEverySurfaceFrameTest",
+        "method": "theTabIsCurrentAfterASecondLogLoads_withNoVerbInBetween",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.LogFindingsOnEverySurfaceFrameTest",
+        "method": "aLoadThatThrowsPartWayDoesNotStopTheNextLogsEvidence",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.LogFindingsOnEverySurfaceFrameTest",
+        "method": "theExportedPdfCarriesTheLogsFindings_andLosesThemWhenARecordArrives",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.LogFindingsOnEverySurfaceFrameTest",
+        "method": "theLineNeverCountsNewRowsBesideTheOldFindings",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.LogFindingsOnEverySurfaceFrameTest",
+        "method": "aRolledSetsFileOverlapReachesContextAndTheLine",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.LogFindingsOnEverySurfaceFrameTest",
+        "method": "aOneMemberSetOpenedInTheFrameIsWordedAsItsFile",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.LogFindingsOnEverySurfaceFrameTest",
+        "method": "anEmptyFollowedFileSaysSoEverywhere_andEverySurfaceClearsWhenARecordArrives",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.LogFindingsOnEverySurfaceFrameTest",
+        "method": "anEnvironmentsProvenanceIsTheSessionsAndEverySurfaceStatesIt",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.LogFindingsOnEverySurfaceFrameTest",
+        "method": "theTabIsCurrentAfterAFollowPoll_withNoVerbInBetween",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.EdtExceptionWatchTest",
+        "method": "unexpectedFailureMakesTheWatchFailAndRestoresTheHandler",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.EdtExceptionWatchTest",
+        "method": "noFaultLeavesTheOriginalHandlerInPlace",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.EdtExceptionWatchTest",
+        "method": "anExpectedFaultDoesNotHideAnotherFailure",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.EdtExceptionWatchTest",
+        "method": "aMismatchedExpectedFaultRemainsAnUnexpectedFailure",
+        "kind": "passed",
+        "message": null
+      }
+    ]
+  },
+  "seconds": 32.4
+}

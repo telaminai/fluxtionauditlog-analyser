@@ -6,6 +6,11 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Fixed
+
+- The log-findings display suite now accounts for its deliberately injected SummaryPanel failure and fails on unexpected EDT exceptions. Its failed-load recovery assertion and mutation controls remain in place.
+- Native mouse regressions confirm delivery before testing a gesture and retry only an undelivered setup press. Unavailable input is an error, so it cannot be scored as a caught cancellation mutant. Cancellation assertions and controls remain unchanged.
+- The bundle processor regression waits for the bundled log's source inference before checking a recipient's later choice, and exercises the real processor-selection action instead of assigning its config field directly.
 - Faster development checks: focused draft mutation feedback, cancellation of superseded PR runs, and eight full-gate workers with named witness baselines; complete mutation evidence is still required for merge.
 
 ## [1.31.0] - 2026-10-05

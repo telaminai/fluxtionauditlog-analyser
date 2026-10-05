@@ -1,0 +1,26 @@
+-------------------------------------------------------------------------------
+Test set: telamin.fluxtion.audit.analyser.analyser.ui.BundleProvenanceFrameTest
+-------------------------------------------------------------------------------
+Tests run: 18, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 18.78 s <<< FAILURE! -- in telamin.fluxtion.audit.analyser.analyser.ui.BundleProvenanceFrameTest
+telamin.fluxtion.audit.analyser.analyser.ui.BundleProvenanceFrameTest.aBundleCarriesItsEventProcessor(Path) -- Time elapsed: 0.867 s <<< FAILURE!
+org.opentest4j.AssertionFailedError: theRecipientCanStillChooseWithinTheSession ==> expected: <com.acme.RecipientProcessor> but was: <com.acme.demo.generated.DemoQuoteRecordedProcessor>
+	at org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
+	at org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
+	at org.junit.jupiter.api.AssertEquals.failNotEqual(AssertEquals.java:197)
+	at org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:182)
+	at org.junit.jupiter.api.Assertions.assertEquals(Assertions.java:1156)
+	at telamin.fluxtion.audit.analyser.analyser.ui.BundleProvenanceFrameTest.lambda$aBundleCarriesItsEventProcessor$53(BundleProvenanceFrameTest.java:727)
+	at telamin.fluxtion.audit.analyser.analyser.ui.AsyncOpenInterleavingFrameTest.lambda$onEdt$44(AsyncOpenInterleavingFrameTest.java:502)
+	at java.desktop/java.awt.event.InvocationEvent.dispatch(InvocationEvent.java:308)
+	at java.desktop/java.awt.EventQueue.dispatchEventImpl(EventQueue.java:773)
+	at java.desktop/java.awt.EventQueue$4.run(EventQueue.java:720)
+	at java.desktop/java.awt.EventQueue$4.run(EventQueue.java:714)
+	at java.base/java.security.AccessController.doPrivileged(AccessController.java:400)
+	at java.base/java.security.ProtectionDomain$JavaSecurityAccessImpl.doIntersectionPrivilege(ProtectionDomain.java:87)
+	at java.desktop/java.awt.EventQueue.dispatchEvent(EventQueue.java:742)
+	at java.desktop/java.awt.EventDispatchThread.pumpOneEventForFilters(EventDispatchThread.java:203)
+	at java.desktop/java.awt.EventDispatchThread.pumpEventsForFilter(EventDispatchThread.java:124)
+	at java.desktop/java.awt.EventDispatchThread.pumpEventsForHierarchy(EventDispatchThread.java:113)
+	at java.desktop/java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:109)
+	at java.desktop/java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:101)
+	at java.desktop/java.awt.EventDispatchThread.run(EventDispatchThread.java:90)

@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: telamin.fluxtion.audit.analyser.analyser.ui.BundleProvenanceFrameTest
+-------------------------------------------------------------------------------
+Tests run: 18, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 14.98 s -- in telamin.fluxtion.audit.analyser.analyser.ui.BundleProvenanceFrameTest
