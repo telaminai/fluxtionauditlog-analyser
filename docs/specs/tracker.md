@@ -17,7 +17,7 @@ entry to one or two lines; put anything longer in the spec, an issue or an evide
 
 ## Delivery order
 
-_Refreshed 2026-10-01, after 1.30.1._ **Shipped since the 2026-09-27 refresh:** **1.25.0** (chart and report lifecycle,
+_Refreshed 2026-10-05, after 1.31.0._ **Shipped since the 2026-09-27 refresh:** **1.25.0** (chart and report lifecycle,
 PR #51); **1.26.0 / 1.26.1** (M69 spotlight walks); **1.27.0** (evidence bundles, first delivery); **1.28.0** (M70
 replay, M71 Workspace Start); **1.29.0** (the onboard assistant and conversation journeys, PR #77); **1.30.0** (bundles as
 experiments, a project that opens with its settings applied); **1.30.1** (a walk step can point at Java source, #72).
@@ -26,7 +26,7 @@ recorded at dispatch) and **1.0.32** (admin commands run in the event cycle and 
 mongoose-plugins **1.0.45** (separator escaping, #39). The 2026-09-27 order is in the
 [detail snapshot](completed/tracker-detail-2026-10-01.md) ▸ *Suggested delivery order*.
 
-**Completed on main since 1.30.1, awaiting release:** PR #87 redaction; PR #103's ten #84 corrections (#93–#102, all
+**Released in 1.31.0 (2026-10-05):** PR #87 redaction; PR #103's ten #84 corrections (#93–#102, all
 closed); PR #104's released-stack adoption; PR #92's admin-record acceptance. [Final integration review and CI](https://github.com/telaminai/fluxtionauditlog-analyser/pull/92#issuecomment-5931355484).
 
 1. **Assurance debt on shipped work.**
@@ -39,8 +39,8 @@ closed); PR #104's released-stack adoption; PR #92's admin-record acceptance. [F
    - **Branch protection** requiring `mutation-gate`; **M44.6**; **BETA-B3**; **M39**'s four questions; **M34.5**'s
      field name; **AF-8/AF-9** together and **OD-5**; **O2** (graph-content identity); **#74** (is a bundle bound to a
      project or standalone?).
-3. **Release the merged upstream adoption.** UPS-1 and UPS-2 are complete on main (`787f2e1a`, `b6458a4e`), not yet
-   released by the analyser. The start-page DEMO refresh is a separate owner decision (UPS-2b); upstream quoting remains UPS-1a.
+3. **Upstream adoption follow-ups.** UPS-1 and UPS-2 shipped in 1.31.0. The start-page DEMO refresh remains
+   the separate UPS-2b owner decision; upstream quoting remains UPS-1a.
 4. **Finish M44** — §13's remaining acceptance, the "store installed" fact, M44.6 once decided.
 5. **Small correctness items, ready now:** N2; OBL-1, OBL-2; the restart checker's path aliases; feedback 36 and 42's
    MCP series remove/replace; the open evidence-bundle items listed below (resolved issues are marked separately).
@@ -59,12 +59,8 @@ closed); PR #104's released-stack adoption; PR #92's admin-record acceptance. [F
 
 ## Upstream releases to absorb — 2026-10-01
 
-- [UPS-1] ☑ **Admin-command reader acceptance, on main; unreleased** — PR #92, `787f2e1a`; C31/C32, withheld-not-absent
-  and repeated-field first-copy refusal. [Final review/CI](https://github.com/telaminai/fluxtionauditlog-analyser/pull/92#issuecomment-5931355484); mongoose proposal PR #45 superseded by implementation and acceptance.
 - [UPS-1a] ☐ **Upstream: quote line breaks in values** — [UP-FLX-55](../proposals/upstream-asks.md); the raw record stream
   (no export escaping) still splits on a `---` inside a value, which is MA-7's framing fault.
-- [UPS-2] ☑ **Released-stack pins and test fixtures, on main; unreleased** — PR #104, `b6458a4e`: runtime 1.1.0 / builder
-  1.0.76; session and test processors regenerated. [Evidence](../handoff/evidence/ups2-released-stack-2026-10-01/RESULTS.md).
 - [UPS-2a] ☐ Review of PR #104, follow-ups: N2 (the source/GraphML test checks seven names, not generation identity) and
   `tools/gen-fqn.py`'s glob-chosen runtime jar; one header policy for generated source (M19.22).
 - [UPS-2b] ☐ **(owner) Refresh the start-page DEMO set** — deliberately unchanged by PR #104; includes dependent screenshots
@@ -86,16 +82,11 @@ closed); PR #104's released-stack adoption; PR #92's admin-record acceptance. [F
 - ◑ #73 discovery: recents and project inventory exist; pre-open preview and working-copy management remain open.
 - ☐ #74 (design) project-bound or standalone · #82 a walkthrough reel · #83 import off the event thread and #85 working-copy
   reaping (PR #88 is not merged).
-- ☑ #75 recipient source anchoring/restoration; #76 persistent bundle title/Project provenance; #80 bundle open/inventory/selective
-  import — implemented on main, with #93–#95 corrections in PR #103. Captures still exclude sender machine paths/source trees.
-- ☑ #93–#101 corrected on main (`07fe00d0`); ☑ #102 resolved by explicit saved-source-revision disclosure, not revision binding.
-  [Corrections, regressions and remaining nits](../handoff/handoff_issue84_third_review_response_2026_10_01.md).
 - Optional improvements from PR #103’s later review (not unfinished #84 corrections or release blockers): generic-action
   guard hardening, fallback preselection, caption/revision refinement, and unavailable-anchor presentation/removal.
-- ☑ PR #87 Unicode/quoted-path correction on main (`258da371`), unreleased; #79 is already closed on GitHub.
-  ☐ Colon policy and disclosed ambiguous-path residuals remain owner/follow-up work; closure is not a universal redaction guarantee.
+- ☐ Redaction: colon policy and disclosed ambiguous-path residuals remain owner/follow-up work; closure is not a universal redaction guarantee.
 - ☐ #56 general graph/context/spotlight drawn-state reporting remains open; walk playback already uses the drawn fact.
-- #84's review is complete; its actionable findings are tracked above, rather than keeping the review itself open.
+- #84's review and all ten corrections are complete; see [the 1.31.0 archive](completed/tracker.md).
 
 ### M68 · Evidence integrity — analyser side shipped ([spec](spec-evidence-integrity.md))
 - The producer half (D-E9) is tracked under MA-2 / MA-7 below. ▸ detail: *M68*.

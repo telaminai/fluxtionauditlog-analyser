@@ -1,6 +1,6 @@
 # Analyser 1.31.0 release evidence
 
-Status: prepared; publication and download verification pending.
+Status: published and verified on 2026-10-05.
 
 Candidate: `c66f744d5fd7039be70032d79747f9a67df1514a`. Application tree is the reviewed
 PR #92 integration at `787f2e1a`; the subsequent change reconciles the tracker only.
@@ -53,5 +53,18 @@ unconfirmed; the released modal-focus cancellation does not claim to explain it.
 
 ## Publication
 
-Pending: release workflow, tag, public artefact hashes and manifests, stable download route,
-release-notes page and docs deployment.
+- [Release 1.31.0](https://github.com/telaminai/fluxtionauditlog-analyser/releases/tag/v1.31.0), published 2026-10-05 07:25:38 UTC.
+- Tag: `v1.31.0`, commit `89c3329ff2a4e002c22ce3f94552682703e2a5e1`.
+- [Release workflow 37277531781](https://github.com/telaminai/fluxtionauditlog-analyser/actions/runs/37277531781): success; `mvn -B verify` returned 3179 / 0 / 0 / 248.
+- Native-image refresh and this receipt's preparation: `8adbad5c`; [candidate CI 37276959282](https://github.com/telaminai/fluxtionauditlog-analyser/actions/runs/37276959282): success (docs-only routing).
+- [Release docs deployment 37277675927](https://github.com/telaminai/fluxtionauditlog-analyser/actions/runs/37277675927): success; public release-notes page checked for the version and date.
+- Downloaded the versioned jar, stable-name jar and checksum file. Both jars are 4,650,155 bytes,
+  byte-identical, and match `SHA256SUMS.sha256`. SHA-256:
+  `7ebf5cf22da0275ad6b54bd221f79a667334043bb9d51ebf3fac3695960b01ea`.
+- Both manifests declare `Implementation-Version: 1.31.0`; both contain the stamped 1.31.0 changelog.
+- Separately downloaded the public `releases/latest/download` jar; its hash matches too.
+- Personal commit identity checked before documentation commits. The release stamp uses the documented
+  GitHub Actions bot identity. No new restricted-domain authors were introduced since 1.30.1.
+
+All main application CI evidence was read directly. This publication does not claim the deliberately
+open acceptance and producer dependencies above have been completed.
