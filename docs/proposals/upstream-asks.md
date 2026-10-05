@@ -533,6 +533,26 @@ because nothing warns · _Not filed yet (2026-09-28)._
 graph-raised events in its runner. This ask would let every Fluxtion user have the same without writing them. This removes the duplicate and turns graph-raised events into a divergence check. The fallback, if this is delayed,
 is for the generator to emit the processor's input types as the recorder's default whitelist.
 
+### UP-FLX-55 ☐ The audit writer prints `eventToString` unquoted, so a line break in an event's text breaks the record
+
+**Target** `fluxtion` (runtime, the YAML audit record writer) · **Priority** high — operator text reaches it ·
+_Not filed yet (2026-10-01)._ Related: mongoose's `AdminCommandEvent.toString`, and MA-7's framing injection.
+
+**Evidence: measured** (`docs/handoff/evidence/ups1-admin-command-records-2026-10-01/`). On mongoose 1.0.32 with fluxtion
+runtime 1.1.0, an admin command's arguments are operator-typed and reach the record verbatim:
+`eventToString: AdminCommandEvent[command=alarm.lambda, args=[line one` followed by the rest of the argument on new
+lines. An argument holding a line break and `nodeLogs:` wrote a node-log block nobody logged; one holding `---`,
+`eventLogRecord:` and `event: Forged` wrote a second record header and an event type. mongoose-plugins 1.0.45's export
+escapes the `---` line, so the record count survives the export; the raw record stream splits into two records.
+
+**Ask.** Quote or escape every value that can carry a line break — `eventToString` above all, and node-log values that
+print caller-supplied text — so one record's text is one record's structure. A YAML double-quoted scalar with `\n`
+escapes is enough, and Format 1 readers already read quoted values.
+
+**Not a blocker.** Since UPS-1 the analyser reads such a record only up to its break, reads none of its node logs, and
+names it (`BROKEN_VALUE`, Format specification §2), so the text can no longer appear as a node or an event type. It
+cannot recover what the record would have said; only the writer can.
+
 ---
 
 ## 1c · Fluxtion compiler — diagnostics measured by the experience loop

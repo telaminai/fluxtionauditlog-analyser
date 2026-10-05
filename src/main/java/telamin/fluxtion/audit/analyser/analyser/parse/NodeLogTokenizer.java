@@ -78,13 +78,21 @@ public final class NodeLogTokenizer {
         StringBuilder current = null;
         int sourceOffset = 0, itemOffset = 0;
         boolean multiline = false;
-        for (String rawLine : block.split("\n", -1)) {
+        // UPS-1 (review of 9474c687, finding 2): a line that begins inside a closed quoted value continues that value even
+        // when it starts "- " — quotes tracked as FramingScan and RecordBreak track them, so the item the record parser
+        // counted is the item read here. A quote that never closes is text, as there.
+        String[] blockLines = block.split("\n", -1);
+        boolean quotesCount = RecordBreak.quotesClose(blockLines);
+        char open = 0;
+        for (String rawLine : blockLines) {
             int lineOffset = sourceOffset;
             sourceOffset += rawLine.length() + 1;
             String line = stripCr(rawLine);
+            boolean insideQuote = quotesCount && open != 0;
+            open = FramingScan.quoteStateAfter(line, 0, line.length(), open);
             String t = line.strip();
             if (t.isEmpty()) continue;
-            if (t.startsWith("- ") || t.equals("-")) {
+            if (!insideQuote && (t.startsWith("- ") || t.equals("-"))) {
                 if (current != null) appendItem(out, spans, current, quotedScalars, itemOffset, multiline);
                 current = new StringBuilder(t.length() >= 2 ? t.substring(2) : "");
                 itemOffset = lineOffset + line.indexOf(t) + (t.length() >= 2 ? 2 : 1);

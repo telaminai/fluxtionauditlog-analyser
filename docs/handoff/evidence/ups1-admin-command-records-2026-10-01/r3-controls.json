@@ -1,0 +1,649 @@
+{
+  "runs": [
+    {
+      "name": "m44-journey-scope",
+      "verdict": "caught",
+      "source": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/Pairing.java",
+      "sourceSha256": "a899d82d8ad73e35c99682e641b4424a46353c0217679bf8a0b436081debf8a7",
+      "baselineGreen": true,
+      "sourceRestoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "assertions": [
+        {
+          "test": "openOrderDoesNotChangeTheVerdict",
+          "kind": "failure"
+        }
+      ]
+    },
+    {
+      "name": "ups1-less-indented-breaks",
+      "verdict": "caught",
+      "source": "src/main/java/telamin/fluxtion/audit/analyser/analyser/parse/RecordBreak.java",
+      "sourceSha256": "f2c63a390ba39e82838bce2906d0931e25d447b1e0a2045e15f602cb14ce01eb",
+      "baselineGreen": true,
+      "sourceRestoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "assertions": [
+        {
+          "test": "aLessIndentedLineBreaksTheRecord",
+          "kind": "failure"
+        }
+      ]
+    },
+    {
+      "name": "ups1-second-record-key-breaks",
+      "verdict": "caught",
+      "source": "src/main/java/telamin/fluxtion/audit/analyser/analyser/parse/RecordBreak.java",
+      "sourceSha256": "f2c63a390ba39e82838bce2906d0931e25d447b1e0a2045e15f602cb14ce01eb",
+      "baselineGreen": true,
+      "sourceRestoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "assertions": [
+        {
+          "test": "aSecondRecordKeyIsABreak",
+          "kind": "failure"
+        }
+      ]
+    },
+    {
+      "name": "ups1-repeated-field-breaks",
+      "verdict": "caught",
+      "source": "src/main/java/telamin/fluxtion/audit/analyser/analyser/parse/RecordBreak.java",
+      "sourceSha256": "f2c63a390ba39e82838bce2906d0931e25d447b1e0a2045e15f602cb14ce01eb",
+      "baselineGreen": true,
+      "sourceRestoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "assertions": [
+        {
+          "test": "aRepeatedFieldIsReadUpToItsFirstOccurrence",
+          "kind": "failure"
+        }
+      ]
+    },
+    {
+      "name": "ups1-unclosed-quote-is-text",
+      "verdict": "caught",
+      "source": "src/main/java/telamin/fluxtion/audit/analyser/analyser/parse/RecordBreak.java",
+      "sourceSha256": "f2c63a390ba39e82838bce2906d0931e25d447b1e0a2045e15f602cb14ce01eb",
+      "baselineGreen": true,
+      "sourceRestoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "assertions": [
+        {
+          "test": "anUnclosedQuoteHidesNothing",
+          "kind": "failure"
+        }
+      ]
+    },
+    {
+      "name": "ups1-parser-stops-at-break",
+      "verdict": "caught",
+      "source": "src/main/java/telamin/fluxtion/audit/analyser/analyser/parse/RecordParser.java",
+      "sourceSha256": "4fbbb790794df5054594069e6e1484b4ffcedc00c710300eb0d8fd3aa420a728",
+      "baselineGreen": true,
+      "sourceRestoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "assertions": [
+        {
+          "test": "anEscapedSeparatorBreaksTheRecord",
+          "kind": "failure"
+        }
+      ]
+    },
+    {
+      "name": "ups1-parser-reads-no-node-logs",
+      "verdict": "caught",
+      "source": "src/main/java/telamin/fluxtion/audit/analyser/analyser/parse/RecordBreak.java",
+      "sourceSha256": "f2c63a390ba39e82838bce2906d0931e25d447b1e0a2045e15f602cb14ce01eb",
+      "baselineGreen": true,
+      "sourceRestoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "assertions": [
+        {
+          "test": "nodeLogsBeforeTheBreakAreNotTrusted",
+          "kind": "failure"
+        }
+      ]
+    },
+    {
+      "name": "ups1-parser-quote-continuation",
+      "verdict": "caught",
+      "source": "src/main/java/telamin/fluxtion/audit/analyser/analyser/parse/RecordBreak.java",
+      "sourceSha256": "f2c63a390ba39e82838bce2906d0931e25d447b1e0a2045e15f602cb14ce01eb",
+      "baselineGreen": true,
+      "sourceRestoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "assertions": [
+        {
+          "test": "quotedNodeValueMustNotReplaceEvent",
+          "kind": "failure"
+        }
+      ]
+    },
+    {
+      "name": "ups1-unsplit-separator-is-framing",
+      "verdict": "caught",
+      "source": "src/main/java/telamin/fluxtion/audit/analyser/analyser/parse/RecordBreak.java",
+      "sourceSha256": "f2c63a390ba39e82838bce2906d0931e25d447b1e0a2045e15f602cb14ce01eb",
+      "baselineGreen": true,
+      "sourceRestoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "assertions": [
+        {
+          "test": "anUnsplitSeparatorIsFramingNotAValue",
+          "kind": "failure"
+        }
+      ]
+    },
+    {
+      "name": "ups1-broken-value-finding",
+      "verdict": "caught",
+      "source": "src/main/java/telamin/fluxtion/audit/analyser/analyser/parse/ProducerDiagnostics.java",
+      "sourceSha256": "ca1050161608cefa375e65fbca83a20482f046ad015259f93c1360548c746785",
+      "baselineGreen": true,
+      "sourceRestoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "assertions": [
+        {
+          "test": "theFindingNamesTheRecordAndLine",
+          "kind": "failure"
+        }
+      ]
+    },
+    {
+      "name": "ups1-one-cause-one-name",
+      "verdict": "caught",
+      "source": "src/main/java/telamin/fluxtion/audit/analyser/analyser/parse/ProducerDiagnostics.java",
+      "sourceSha256": "ca1050161608cefa375e65fbca83a20482f046ad015259f93c1360548c746785",
+      "baselineGreen": true,
+      "sourceRestoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "assertions": [
+        {
+          "test": "c31_aBrokenValueForgesNothingOnEitherPath",
+          "kind": "failure"
+        }
+      ]
+    },
+    {
+      "name": "ups1-graph-line-keeps-warnings",
+      "verdict": "caught",
+      "source": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java",
+      "sourceSha256": "fb99bb2f0818c33ccfcb341101901a7529c97eb0027fcd5d69d84fbc3b77506b",
+      "baselineGreen": true,
+      "sourceRestoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "assertions": [
+        {
+          "test": "aBrokenValueForgesNoNodeAndNoEventOnAnySurface",
+          "kind": "failure"
+        }
+      ]
+    },
+    {
+      "name": "ups1-detail-says-not-read",
+      "verdict": "caught",
+      "source": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/LogicalLogView.java",
+      "sourceSha256": "5072e6ccc7b5250d3d957e423445728db5764d499f1112e9e09a87658ebd90c5",
+      "baselineGreen": true,
+      "sourceRestoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "assertions": [
+        {
+          "test": "aBrokenRecordSaysNotReadRatherThanNoneLogged",
+          "kind": "failure"
+        }
+      ]
+    },
+    {
+      "name": "ups1-step-cursor-says-not-read",
+      "verdict": "caught",
+      "source": "src/main/java/telamin/fluxtion/audit/analyser/analyser/topology/StepCursor.java",
+      "sourceSha256": "71a46a9608c6a83e69d3bb5a52ea26db914b5dd500cd25fb5005b6bcab9434c9",
+      "baselineGreen": true,
+      "sourceRestoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "assertions": [
+        {
+          "test": "aBrokenRecordSaysNotReadRatherThanNoneLogged",
+          "kind": "failure"
+        }
+      ]
+    },
+    {
+      "name": "ups1-r2-deeper-line-breaks",
+      "verdict": "caught",
+      "source": "src/main/java/telamin/fluxtion/audit/analyser/analyser/parse/RecordBreak.java",
+      "sourceSha256": "f2c63a390ba39e82838bce2906d0931e25d447b1e0a2045e15f602cb14ce01eb",
+      "baselineGreen": true,
+      "sourceRestoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "assertions": [
+        {
+          "test": "deepPayloadMustNotInventNode",
+          "kind": "failure"
+        }
+      ]
+    },
+    {
+      "name": "ups1-r2-non-field-line-breaks",
+      "verdict": "caught",
+      "source": "src/main/java/telamin/fluxtion/audit/analyser/analyser/parse/RecordBreak.java",
+      "sourceSha256": "f2c63a390ba39e82838bce2906d0931e25d447b1e0a2045e15f602cb14ce01eb",
+      "baselineGreen": true,
+      "sourceRestoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "assertions": [
+        {
+          "test": "nothingAfterTheFirstTextFieldIsReadOnceBroken",
+          "kind": "failure"
+        }
+      ]
+    },
+    {
+      "name": "ups1-r2-withhold-after-first-text",
+      "verdict": "caught",
+      "source": "src/main/java/telamin/fluxtion/audit/analyser/analyser/parse/RecordBreak.java",
+      "sourceSha256": "f2c63a390ba39e82838bce2906d0931e25d447b1e0a2045e15f602cb14ce01eb",
+      "baselineGreen": true,
+      "sourceRestoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "assertions": [
+        {
+          "test": "nothingAfterTheFirstTextFieldIsReadOnceBroken",
+          "kind": "failure"
+        }
+      ]
+    },
+    {
+      "name": "ups1-r2-node-block-by-indent",
+      "verdict": "caught",
+      "source": "src/main/java/telamin/fluxtion/audit/analyser/analyser/parse/RecordBreak.java",
+      "sourceSha256": "f2c63a390ba39e82838bce2906d0931e25d447b1e0a2045e15f602cb14ce01eb",
+      "baselineGreen": true,
+      "sourceRestoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "assertions": [
+        {
+          "test": "aDeeperNodeLineIsNeverAField",
+          "kind": "failure"
+        }
+      ]
+    },
+    {
+      "name": "ups1-r2-header-before-fields",
+      "verdict": "caught",
+      "source": "src/main/java/telamin/fluxtion/audit/analyser/analyser/parse/RecordBreak.java",
+      "sourceSha256": "f2c63a390ba39e82838bce2906d0931e25d447b1e0a2045e15f602cb14ce01eb",
+      "baselineGreen": true,
+      "sourceRestoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "assertions": [
+        {
+          "test": "aCommentAfterTheFieldsIsNotTheHeader",
+          "kind": "failure"
+        }
+      ]
+    },
+    {
+      "name": "ups1-r2-unknown-nesting-ignored",
+      "verdict": "caught",
+      "source": "src/main/java/telamin/fluxtion/audit/analyser/analyser/parse/RecordBreak.java",
+      "sourceSha256": "f2c63a390ba39e82838bce2906d0931e25d447b1e0a2045e15f602cb14ce01eb",
+      "baselineGreen": true,
+      "sourceRestoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "assertions": [
+        {
+          "test": "ignoredNestingsAreWhole",
+          "kind": "failure"
+        }
+      ]
+    },
+    {
+      "name": "ups1-r2-block-scalar-text",
+      "verdict": "caught",
+      "source": "src/main/java/telamin/fluxtion/audit/analyser/analyser/parse/RecordBreak.java",
+      "sourceSha256": "f2c63a390ba39e82838bce2906d0931e25d447b1e0a2045e15f602cb14ce01eb",
+      "baselineGreen": true,
+      "sourceRestoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "assertions": [
+        {
+          "test": "ignoredNestingsAreWhole",
+          "kind": "failure"
+        }
+      ]
+    },
+    {
+      "name": "ups1-r2-mid-record-bom",
+      "verdict": "caught",
+      "source": "src/main/java/telamin/fluxtion/audit/analyser/analyser/parse/RecordBreak.java",
+      "sourceSha256": "f2c63a390ba39e82838bce2906d0931e25d447b1e0a2045e15f602cb14ce01eb",
+      "baselineGreen": true,
+      "sourceRestoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "assertions": [
+        {
+          "test": "aMidRecordByteOrderMarkIsABreak",
+          "kind": "failure"
+        }
+      ]
+    },
+    {
+      "name": "ups1-r2-parser-reads-by-role",
+      "verdict": "caught",
+      "source": "src/main/java/telamin/fluxtion/audit/analyser/analyser/parse/RecordParser.java",
+      "sourceSha256": "4fbbb790794df5054594069e6e1484b4ffcedc00c710300eb0d8fd3aa420a728",
+      "baselineGreen": true,
+      "sourceRestoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "assertions": [
+        {
+          "test": "aQuotedFieldValueIsNeverItsFields",
+          "kind": "failure"
+        }
+      ]
+    },
+    {
+      "name": "ups1-r2-typed-grammar-not-exempt",
+      "verdict": "caught",
+      "source": "src/main/java/telamin/fluxtion/audit/analyser/analyser/parse/RecordParser.java",
+      "sourceSha256": "4fbbb790794df5054594069e6e1484b4ffcedc00c710300eb0d8fd3aa420a728",
+      "baselineGreen": true,
+      "sourceRestoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "assertions": [
+        {
+          "test": "theTypedGrammarIsNeverExempt",
+          "kind": "failure"
+        }
+      ]
+    },
+    {
+      "name": "ups1-r2-tokenizer-quoted-item",
+      "verdict": "caught",
+      "source": "src/main/java/telamin/fluxtion/audit/analyser/analyser/parse/NodeLogTokenizer.java",
+      "sourceSha256": "1dab0a94e53fb2c3fd87edba6655ad5abd8c487f6f4580950ba2c97127e7465b",
+      "baselineGreen": true,
+      "sourceRestoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "assertions": [
+        {
+          "test": "quotedNodeValueMustNotReplaceEvent",
+          "kind": "failure"
+        }
+      ]
+    },
+    {
+      "name": "ups1-r2-export-signature-is-whole",
+      "verdict": "caught",
+      "source": "src/main/java/telamin/fluxtion/audit/analyser/analyser/parse/RecordBreak.java",
+      "sourceSha256": "f2c63a390ba39e82838bce2906d0931e25d447b1e0a2045e15f602cb14ce01eb",
+      "baselineGreen": true,
+      "sourceRestoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "assertions": [
+        {
+          "test": "theGeneratorsExportedServiceRecordIsWhole",
+          "kind": "failure"
+        }
+      ]
+    },
+    {
+      "name": "ups1-r2-export-needs-its-event",
+      "verdict": "caught",
+      "source": "src/main/java/telamin/fluxtion/audit/analyser/analyser/parse/RecordBreak.java",
+      "sourceSha256": "f2c63a390ba39e82838bce2906d0931e25d447b1e0a2045e15f602cb14ce01eb",
+      "baselineGreen": true,
+      "sourceRestoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "assertions": [
+        {
+          "test": "theExportedServiceAllowanceIsExact",
+          "kind": "failure"
+        }
+      ]
+    },
+    {
+      "name": "ups1-r2-export-needs-override",
+      "verdict": "caught",
+      "source": "src/main/java/telamin/fluxtion/audit/analyser/analyser/parse/RecordBreak.java",
+      "sourceSha256": "f2c63a390ba39e82838bce2906d0931e25d447b1e0a2045e15f602cb14ce01eb",
+      "baselineGreen": true,
+      "sourceRestoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "assertions": [
+        {
+          "test": "theExportedServiceAllowanceIsExact",
+          "kind": "failure"
+        }
+      ]
+    },
+    {
+      "name": "ups1-r2-export-one-signature",
+      "verdict": "caught",
+      "source": "src/main/java/telamin/fluxtion/audit/analyser/analyser/parse/RecordBreak.java",
+      "sourceSha256": "f2c63a390ba39e82838bce2906d0931e25d447b1e0a2045e15f602cb14ce01eb",
+      "baselineGreen": true,
+      "sourceRestoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "assertions": [
+        {
+          "test": "theExportedServiceAllowanceIsExact",
+          "kind": "failure"
+        }
+      ]
+    },
+    {
+      "name": "ups1-r2-index-marks-withheld",
+      "verdict": "caught",
+      "source": "src/main/java/telamin/fluxtion/audit/analyser/analyser/index/LogIndex.java",
+      "sourceSha256": "121de456f4b64384a3a8c54a6be2afcfaed233f6569bd32a9e32c8367188f683",
+      "baselineGreen": true,
+      "sourceRestoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "assertions": [
+        {
+          "test": "exportedCountsDistinguishUnreadFromZero",
+          "kind": "failure"
+        }
+      ]
+    },
+    {
+      "name": "ups1-r2-csv-says-withheld",
+      "verdict": "caught",
+      "source": "src/main/java/telamin/fluxtion/audit/analyser/analyser/export/RecordExporter.java",
+      "sourceSha256": "4a4fe40b4dc3264aa54596ffaad06adbfa18b86bc9a028986189ee223d5bb940",
+      "baselineGreen": true,
+      "sourceRestoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "assertions": [
+        {
+          "test": "exportedCountsDistinguishUnreadFromZero",
+          "kind": "failure"
+        }
+      ]
+    },
+    {
+      "name": "ups1-r2-table-cell-not-zero",
+      "verdict": "caught",
+      "source": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/LogTableModel.java",
+      "sourceSha256": "a70d5e9eb0a466e1c5677b011c5cc9185fc08299005a6b6a96e5d7aa9f1920e1",
+      "baselineGreen": true,
+      "sourceRestoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "assertions": [
+        {
+          "test": "exportedCountsDistinguishUnreadFromZero",
+          "kind": "failure"
+        }
+      ]
+    },
+    {
+      "name": "ups1-r2-coverage-counts-withheld",
+      "verdict": "caught",
+      "source": "src/main/java/telamin/fluxtion/audit/analyser/analyser/topology/CoverageService.java",
+      "sourceSha256": "7ca99289a93b1c2919bd4f6214a428e223d7e8ece4a6e0f9ac3598cdd7bdd09e",
+      "baselineGreen": true,
+      "sourceRestoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "assertions": [
+        {
+          "test": "withheldLogsMustNotClaimNeverLogged",
+          "kind": "failure"
+        }
+      ]
+    },
+    {
+      "name": "ups1-r2-coverage-reason-withheld",
+      "verdict": "caught",
+      "source": "src/main/java/telamin/fluxtion/audit/analyser/analyser/topology/CoverageService.java",
+      "sourceSha256": "7ca99289a93b1c2919bd4f6214a428e223d7e8ece4a6e0f9ac3598cdd7bdd09e",
+      "baselineGreen": true,
+      "sourceRestoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "assertions": [
+        {
+          "test": "withheldLogsMustNotClaimNeverLogged",
+          "kind": "failure"
+        }
+      ]
+    },
+    {
+      "name": "ups1-r2-pairing-says-read",
+      "verdict": "caught",
+      "source": "src/main/java/telamin/fluxtion/audit/analyser/analyser/topology/GraphPairing.java",
+      "sourceSha256": "bb363dcb0fa81b54ba6da669f3b11eae7f4b0a7e708f50c6743df01660b78037",
+      "baselineGreen": true,
+      "sourceRestoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "assertions": [
+        {
+          "test": "withheldLogsMustNotClaimNoOutputRecorded",
+          "kind": "failure"
+        }
+      ]
+    },
+    {
+      "name": "ups1-r2-policy-says-read",
+      "verdict": "caught",
+      "source": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/CoveragePolicy.java",
+      "sourceSha256": "e2709aa5e4e5dc31e056db559f5864975c66975fdd2d3a2131c0f7284db98d07",
+      "baselineGreen": true,
+      "sourceRestoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "assertions": [
+        {
+          "test": "withheldLogsMustNotClaimNoOutputRecorded",
+          "kind": "failure"
+        }
+      ]
+    },
+    {
+      "name": "ups1-r2-session-holds-withheld",
+      "verdict": "caught",
+      "source": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/OpenLog.java",
+      "sourceSha256": "bf1eb438a0d26b6899390194cab73b8d6a0221fd6da7fc5531f1ea513f84c655",
+      "baselineGreen": true,
+      "sourceRestoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "assertions": [
+        {
+          "test": "anAllWithheldLogIsNotSilence",
+          "kind": "failure"
+        }
+      ]
+    },
+    {
+      "name": "ups1-r2-session-append-withheld",
+      "verdict": "caught",
+      "source": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/OpenLog.java",
+      "sourceSha256": "bf1eb438a0d26b6899390194cab73b8d6a0221fd6da7fc5531f1ea513f84c655",
+      "baselineGreen": true,
+      "sourceRestoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "assertions": [
+        {
+          "test": "anAppendThatWithholdsMovesThePairing",
+          "kind": "failure"
+        }
+      ]
+    },
+    {
+      "name": "ups1-r2-pairing-node-passes-withheld",
+      "verdict": "caught",
+      "source": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/Pairing.java",
+      "sourceSha256": "a899d82d8ad73e35c99682e641b4424a46353c0217679bf8a0b436081debf8a7",
+      "baselineGreen": true,
+      "sourceRestoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "assertions": [
+        {
+          "test": "anAllWithheldLogIsNotSilence",
+          "kind": "failure"
+        }
+      ]
+    },
+    {
+      "name": "ups1-r2-arrival-carries-withheld",
+      "verdict": "caught",
+      "source": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java",
+      "sourceSha256": "fb99bb2f0818c33ccfcb341101901a7529c97eb0027fcd5d69d84fbc3b77506b",
+      "baselineGreen": true,
+      "sourceRestoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "assertions": [
+        {
+          "test": "withheldNodeLogsAreNeverReportedAsAbsent",
+          "kind": "failure"
+        }
+      ]
+    },
+    {
+      "name": "ups1-r3-grouping-first-copy-withheld",
+      "verdict": "caught",
+      "source": "src/main/java/telamin/fluxtion/audit/analyser/analyser/parse/RecordBreak.java",
+      "sourceSha256": "f2c63a390ba39e82838bce2906d0931e25d447b1e0a2045e15f602cb14ce01eb",
+      "baselineGreen": true,
+      "sourceRestoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "assertions": [
+        {
+          "test": "groupingIdPayloadMustNotBecomeEvent",
+          "kind": "failure"
+        }
+      ]
+    },
+    {
+      "name": "ups1-r3-thread-first-copy-withheld",
+      "verdict": "caught",
+      "source": "src/main/java/telamin/fluxtion/audit/analyser/analyser/parse/RecordBreak.java",
+      "sourceSha256": "f2c63a390ba39e82838bce2906d0931e25d447b1e0a2045e15f602cb14ce01eb",
+      "baselineGreen": true,
+      "sourceRestoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "assertions": [
+        {
+          "test": "threadPayloadMustNotBecomeEndTime",
+          "kind": "failure"
+        }
+      ]
+    },
+    {
+      "name": "ups1-r3-repeat-after-break-still-withholds",
+      "verdict": "caught",
+      "source": "src/main/java/telamin/fluxtion/audit/analyser/analyser/parse/RecordBreak.java",
+      "sourceSha256": "f2c63a390ba39e82838bce2906d0931e25d447b1e0a2045e15f602cb14ce01eb",
+      "baselineGreen": true,
+      "sourceRestoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "assertions": [
+        {
+          "test": "aLaterRepeatWithholdsItsFirstCopyEvenAfterAnEarlierBreak",
+          "kind": "failure"
+        }
+      ]
+    }
+  ]
+}

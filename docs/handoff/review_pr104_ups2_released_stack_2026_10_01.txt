@@ -1,0 +1,314 @@
+INDEPENDENT REVIEW — PR #104, UPS-2 — 2026-10-01
+
+VERDICT: REQUEST CHANGES at fdb1c7d96311be23bc99cc5defe946aaa5e3c402.
+
+The runtime/toolchain upgrade and regenerated fixtures check out. The requested
+change is narrow: make the new confidentiality-header stripper stop at the first
+Java comment terminator, and add maintained regression protection for that boundary
+and for the promised notice-free DEMO output. No runtime regression was found.
+
+Base measured: 258da371d957044625da4b88f5a433922f987b00.
+Fetched review head: fdb1c7d96311be23bc99cc5defe946aaa5e3c402.
+Both were tested in separate detached worktrees. No other session's worktree was
+edited. JDK: Temurin 21.0.5. Maven invocations were serial. No commit, push, merge,
+release or deployment was performed. Hosted generation was used only after the
+owner explicitly authorised Maven generation during this review; the configured
+key was neither inspected nor printed.
+
+VERIFIED means executed here, including comparisons and inspection of downloaded
+CI evidence. INFERRED means a conclusion from source/document reading or a stated
+review judgement, not an independently executed scenario.
+
+REQUIRED CHANGE
+
+R1 — P2 — The new stripper can consume real Java after the header.
+VERIFIED. examples/fixture-generator/pom.xml:116-117.
+
+The expression is anchored at the start of the file, but its lazy wildcard stops
+at the first SPACE-prefixed " */" followed by LF, not the first Java "*/".
+A valid opening notice whose terminator loses the leading space therefore allows
+the match to cross out of the comment and into the package/imports and subsequent
+documentation. This is a formatting-sensitive source-deletion boundary.
+
+Concrete input, using the exact prefix the production expression recognises:
+
+    /*
+     * This source code is protected under international copyright law.
+     * DEMO notice
+    */
+    package com.acme.demo.generated;
+    /** DEMO later documentation */
+    public class NoSpace {}
+
+I copied the candidate fixture pom into a scratch project, placed this file in its
+configured generated-source directory, and ran only:
+
+    mvn -q org.apache.maven.plugins:maven-antrun-plugin:3.1.0:run@strip-generated-attribution
+
+The result was exactly:
+
+    public class NoSpace {}
+
+The named assertion failed:
+    UPS2-STRIP: real Java package declaration was deleted
+
+The positive control, differing only by a space before the header's closing */,
+kept its package and later documentation. Both outputs compiled: the control
+produced com/acme/demo/generated/Normal.class, whereas the damaged source produced
+NoSpace.class in the default package. This is not a compiler-error witness.
+The current hosted generator uses the expected spacing and the candidate's
+committed sources are NOT damaged. The failing scenario is a legal variation in
+the input that this newly introduced source-transform step processes.
+
+Remedy: identify the first comment terminator independently of its indentation,
+and never scan beyond it while deciding whether the leading comment is the notice.
+Either leave an unrecognised header untouched and fail a publication check, or
+remove only that comment. Test normal, column-zero and CRLF terminators, a second
+comment, and package/import/code preservation using the actual stripping task.
+
+There is also no maintained notice-return check to close this correction under
+rule 8. I disabled ONLY the notice regex, kept attribution stripping enabled, and
+regenerated all three DEMOs through the real plugin. All six Java copies acquired
+"This file is confidential". GeneratedSourceIsPublishableTest still passed
+2 / 0 / 0 / 0; FixtureGeneratorToolchainTest passed 3 / 0 / 0 / 0.
+The publication test at lines 62-76 checks only the four sweep terms. Add a cheap
+check of the chosen DEMO notice policy plus a negative control for the strip task;
+the two successful regenerations in the handoff are evidence, not a future guard.
+
+NON-BLOCKING NOTES
+
+N1 — Added cycle capability is not protected by the selected maintained guards.
+VERIFIED. examples/fixture-generator/src/main/java/com/acme/demo/generated/
+DemoQuoteRecordedProcessor.java:536; ReplayRunnerEndToEndTest.
+
+As a review mutation only, I renamed runInEventCycle to an ordinary unrelated
+method, allowing the DataFlow interface's unsupported-operation default to apply.
+The source compiled. ReplayRunnerEndToEndTest, GeneratedSourceIsPublishableTest and
+FixtureGeneratorToolchainTest stayed green: respectively 5, 2 and 3 tests, with
+zero failures/errors/skips. A separate reviewer probe that calls the API did fail
+at the named assertion UPS2-CYCLE; the original and byte-restored class both passed.
+That probe runs a host command which writes a DEMO node value and queues a market
+event, and requires the host audit followed by the queued event's audit.
+INFERRED judgement: add a small maintained capability check if S1 is to remain an
+ongoing fixture guarantee. This is not a present analyser failure: its session
+driver and replay runner do not call the new method, and the candidate implements
+it correctly in the exercised case. I did not run the entire suite under this
+mutation, so the claim is limited to the named guards above.
+
+N2 — The source/GraphML correspondence test is weaker than its name suggests.
+INFERRED. GeneratedSourceIsPublishableTest.java:81-91 only checks seven names occur
+in both texts; it does not compare edges, fingerprints, versions or the two Java
+copies. A previous graph containing the same names can pass. VERIFIED: this PR's
+actual session source, resources copy and GraphML regenerated byte-for-byte, so
+there is no observed mismatch here. Do not cite that test alone as proof of
+same-generation provenance; strengthen it separately if that is its intended job.
+
+N3 — Other unguarded version selections remain.
+VERIFIED search; INFERRED impact. A whole tracked-tree coordinate/property search
+returned 184 matches in 96 files. The active documentation-capture tool still
+hard-codes runtime 1.0.16 at tools/capture-bundle-conversations.py:50. Its build()
+uses that path directly: a cache populated only by the current build need not
+contain that old jar. tools/gen-fqn.py:11-12 chooses a runtime jar by sorting a
+glob, rather than following the root pom. Neither selection is covered by the
+three moved guards. Prefer deriving the active capture tool's runtime from the
+pom or resolved build classpath, and pin that agreement. I did not run the full
+documentation-capture journey or its cold-cache failure.
+Historical latency-kit scripts intentionally name 1.0.15-SNAPSHOT; historical
+spikes and vendored documents also retain old versions. Do not mass-rewrite those
+as though they were current dependency declarations.
+
+N4 — Header policy and shipped DEMO scope should be explicit, not inferred.
+VERIFIED: root regeneration strips attribution only; SessionProcessor still has
+the confidentiality notice. The fixture generator strips both. All current six
+fixture Java outputs are within its two non-recursive *.java filesets, which cover
+the three builders' actual package. They are not a recursive promise for arbitrary
+future generated packages.
+INFERRED judgement: one documented publication policy for generated artefacts is
+preferable. Either remove this notice consistently once the owner chooses that
+policy, or explicitly name the temporary exceptions tracked by M19.22. The present
+asymmetry is not an additional runtime blocker or a new grant of licence rights.
+
+VERIFIED: shipped src/main/resources/demo was last changed by a33fe6cf on
+2026-08-25 (M36). Its generated headers say "unknown api version", "unknown analyser
+version" and "unknown generator version", rather than naming a toolchain. The
+topology test fixtures were regenerated at 6def685f on 2026-09-28 (M70.R0b); replay
+was added by f6dadbad the same day. The shipped audit, traced audit, series and
+GraphML already differed from the test equivalents at the base. PR #104 does not
+change the shipped set. DemoAssets installs that set as data/source for inspection,
+not by executing its generated Java.
+INFERRED judgement: keeping that internally paired historical example is safe for
+this upgrade; refreshing the user's first-run experience remains a separate owner
+decision. CHANGELOG.md:11 should say "test DEMO/replay fixtures" so it cannot be
+read as saying the shipped start-page set was refreshed.
+
+CLAIMS CHECKED AGAINST SOURCE AND EXECUTION
+
+Toolchain — VERIFIED current pairing; INFERRED historical failure attribution.
+Read the live framework reference and golden path, the Mongoose admin-generation
+README and its pom. The README's CycleAlarmProcessor section gives runtime 1.1.0
+and builder 1.0.76 overrides; its pom supplies fluxtion-maven-plugin 1.3.0.
+Citation: https://github.com/telaminai/mongoose/blob/main/design-doc/admin-gen/README.md
+and the adjacent pom.xml. I then independently generated the session and the three
+fixture processors with that pairing and exercised their audit output.
+The R0 record and FixtureGeneratorToolchainTest describe the older BOM 1.0.64 /
+builder-api 1.0.13 failure against generator 1.0.75. I did not reproduce that
+historical combination against today's service. Equality of the two local poms
+does not negotiate compatibility with a changing remote service, nor does every
+numerically different builder/generator pair necessarily fail.
+
+Runtime delta — VERIFIED source-jar comparison; INFERRED reachability assessment.
+Compared all 290 Java source entries in each released runtime source jar. Only
+DataFlow.java and DefaultEventProcessor.java differ, adding runInEventCycle.
+Read the 1.1.0 Clock, LogRecord, audit completion and relevant caller paths.
+Clock.shareReading, the cached process-time read, endTime's true default and its
+live closing read are unchanged from 1.0.16. The generated processors explicitly
+retain recordEndTime=true. SessionDriver uses onEvent/batchEnd; ReplayBundle feeds
+onEvent with a data-driven ClockStrategy. ExporterFramingAgreementTest uses the
+runtime LogRecord and the separately pinned svc-admin-web 1.0.45 YAML container
+writer; that writer did not change in this PR. Its four tests passed under 1.1.0.
+No other changed runtime behaviour was found to reach the analyser. This is not a
+complete proof of coverage of all unchanged runtime paths.
+
+Byte equality — VERIFIED, with the count and invocation made precise.
+There are SIX YAML files here, not ten: three topology audits, recorded audit,
+replay input records, and replayed audit. All six are byte-identical to the base.
+The two fixture GraphML diffs change only fluxtion.toolchainVersion. Normalising
+that single field makes both XML trees equal.
+
+I compiled and ran the committed DEMO sources independently into empty scratch
+output directories. This produced the same content; five audits differed only in
+thread name (plain java's "main" versus Maven exec's
+"com.acme.demo.GenerateFixtures.main()"). I then ran the DOCUMENTED Maven command:
+
+    cd examples/fixture-generator
+    mvn -q process-classes exec:java -Dexec.mainClass=com.acme.demo.GenerateFixtures
+
+All six freshly written YAML files matched the committed bytes exactly. The audits
+contain 10, 10 and 726 topology records, and 8 recorded / 8 replayed records.
+The replay writer produces seven input entries; the graph supplies the additional
+risk-breach cycle. The replay reproduction assertion in GenerateFixtures passed.
+The generator pins FIXED_START_MILLIS, supplies a counting ClockStrategy, fixes the
+series seed, and filters audit-configuration records. Equality is the right
+expectation here: no invoked event-path behaviour changed. The new host-cycle API
+is not exercised by those fixture journeys, so equality does not test that API.
+
+The new generated DEMOs have non-empty auditEvent methods in both overloads, with
+clock before logger, and the recorded processor also calls the replay auditor.
+The session processor already contained runInEventCycle on the base; its committed
+diff really is the two version header lines plus descriptor toolchain version in
+each Java copy and the GraphML version. Running:
+
+    mvn -q -Pregen process-classes
+
+reproduced all three session files exactly. Fresh fixture generation also preserved
+all three GraphML files; only the HashSet input order in the recorded processor's
+Java copies varied. This harmless ordering difference is another reason to qualify
+RESULTS.md's "and nothing else" about generated source. Source copies were restored
+from saved bytes after inspection; no generated source was retained as a review edit.
+
+CHANGELOG's "Every audit log and replay record they produce is unchanged, byte for
+byte" is accurate for these regenerated fixture journeys with the documented
+invocation, not a general claim about all applications, threads, or new API calls.
+User-meaningful wording: existing test fixture audit/replay results are unchanged
+under the upgraded toolchain. Do not imply the start-page DEMO set was regenerated.
+
+GATES — ALL COUNTS ARE total / failures / errors / skips
+
+VERIFIED locally:
+  Base mvn -q clean test:       3084 / 0 / 0 / 218; 406 reports; 0 source orphans.
+  Candidate same command:      3084 / 0 / 0 / 218; 406 reports; 0 source orphans.
+  Restored clean rerun:        3084 / 0 / 0 / 218; 406 reports; 0 source orphans.
+  All 40 frame suites serial:   216 / 0 / 0 /   1.
+
+Each local frame class had its own Maven invocation with BOTH overrides:
+  -Djava.awt.headless=false -DargLine=-Djava.awt.headless=false
+All ran sequentially under the shared display lock. The one skipped case is
+PersonAtTheScreenFrameTest.escapeWithTheSearchHistoryPopupFocused_putsSeveralSpotlightsOut:
+the macOS display did not give the test frame keyboard focus. This is NOT 216
+passes or a local zero-skip gate. No local test failed and no rerun was substituted
+for that first result. CI below supplies the executed zero-skip counterpart.
+
+  Controls preflight: 40 registered frame suites, 559 valid anchors.
+  tools/test_project_chart_review.py: 5 tests, OK.
+  OneDispatchModelTest: 5 / 0 / 0 / 0 in both full runs.
+  GeneratedSourceIsPublishableTest: 2 / 0 / 0 / 0 unmutated.
+  Strict MkDocs build: passed.
+  git diff --check 258da371..fdb1c7d9: empty.
+  Exact CLAUDE.md tracked-file public-data sweep: empty.
+  Additional scan of all 24 tracked generated/demo Java files for attribution or
+  an email address of any domain: zero hits. Repeated after regeneration/restoration.
+  Built jar, isolated home, real display: loaded the 10-record DEMO log and its
+  topology, captured and inspected the window. The graph declared all five logged
+  nodes; the table and topology were visible. No participant data was used.
+
+VERIFIED CI, read directly rather than copied from the PR:
+  https://github.com/telaminai/fluxtionauditlog-analyser/actions/runs/36850980191
+  Head association: fdb1c7d96311be23bc99cc5defe946aaa5e3c402.
+  Tested PR merge commit: 2bab3878204522ff6da85bc2d4c8ab71e706224d.
+  Parents are the exact base and head above. Both merge and head have tree
+  79b3aae2a9192a4804e443b68cfb83084898242f, verified through GitHub's commit API.
+  Thus this is not evidence from a different code tree.
+  build SUCCESS: 3084 / 0 / 0 / 218.
+  ui-frame SUCCESS: 216 / 0 / 0 / 0, all 40 explicit per-suite report rows checked.
+  mutation-selftest SUCCESS: all 21 self-checks true.
+  mutation-shards (0), (1), (2), (3): SUCCESS.
+  mutation-gate SUCCESS: complete=true, 559 controls.
+  Downloaded collector/shard evidence: requested registry names = caught names,
+  559/559, no missing, unexpected or duplicated names. Every collected mutation
+  has a failure assertion without an error; every source/class restoration flag
+  is true and every restored run is green. loop-bench and static jobs also report
+  SUCCESS. No missing, running or waived job is represented as green here.
+
+INDEPENDENT MUTATIONS AND RESTORATION
+
+VERIFIED. Each pin was changed separately back to its prior branch value, then
+restored from a byte copy. None relied on a compilation error.
+
+  root runtime -> 1.0.16:
+    PomShapeTest.theDefaultDependenciesAreRuntimeOnly
+    4 / 1 / 0 / 0; expected 1.1.0, got 1.0.16.
+  fixture runtime -> 1.0.16:
+    FixtureGeneratorToolchainTest.theFixtureGeneratorBuildsWithTheAnalysersToolchain
+    3 / 1 / 0 / 0; assertion names runtime root/fixture disagreement.
+  fixture builder -> 1.0.71:
+    same named test; 3 / 1 / 0 / 0; assertion names builder disagreement.
+  replay //DEPS runtime -> 1.0.16:
+    ReplayRunnerEndToEndTest.theRunnerResolvesWhereTheAnalyserDoes
+    5 / 1 / 0 / 0; assertion names the incorrect //DEPS.
+
+The two additional independent mutations were the notice-strip disablement (R1)
+and cycle-method disablement (N1). Their surviving maintained checks and the
+reviewer's named wrong-result witnesses are stated above, not counted as catches
+by the normal gate. These controls are not among the 559 registered mutations.
+
+SHA-256 after restoration matched the saved originals:
+  root pom: ba46554758c7a0da4e3121e464791476bbbc1ec5099bec354784287d358824c8
+  fixture pom: 427e3e33e998b03ac03c850c56409ed04c9caaca1760a7bfe0c11c591402442f
+  replay runner: f36eb22c907f5e719b46fb70ccf24f31d0ec47c91cdee62e013b9b36bb39305c
+  recorded source: 5abda14ccfc1f679d5493d8cbf810be8edfcbb3f503b7f1c478ed12b744933b7
+  review-compiled recorded class:
+    776972c972d1516656fcccb08b980d3709658cc15f6a56f48dd24ffc9f24deb8
+All 32 tracked generation/fixture snapshot members matched their saved bytes.
+The final clean full run supplies restored-green evidence for all moved guards.
+
+WHAT I DID NOT VERIFY
+
+- Did not re-run all 559 mutations locally; inspected the successful exact-tree
+  CI artifacts, and ran the independent focused mutations above locally.
+- Did not execute the one locally skipped native-focus assertion; CI did.
+- Did not reproduce the historical R0 mismatched toolchain on today's hosted
+  generator. The current paired generation and non-empty audit output were run.
+- Did not exhaustively test runInEventCycle's exception, Event-timestamp, buffered
+  calculation and re-entrancy contracts; the host/queued-event audit probe is one
+  positive control, not an independent review of runtime 1.1.0 itself.
+- Did not run the complete documentation-capture journey, cold-cache tool scripts,
+  native-image/performance benches, other operating systems or source-revision
+  provenance work. No performance equivalence is claimed.
+- Did not refresh the shipped start-page DEMO, change the owner-selected header
+  policy, review UPS-1/PR #92, or re-review unrelated analyser features/PR #87.
+- The raw local logs, XML reports, CI artifacts, snapshots and the failed/successful
+  probes remain in review scratch storage. They are not public attachments because
+  they contain ordinary machine paths. This report intentionally carries only
+  portable reproductions, neutral DEMO data and result summaries.
+
+This is an independent review, not an implementation or a merge approval.

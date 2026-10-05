@@ -78,4 +78,34 @@ class FixtureGeneratorToolchainTest {
         assertTrue(found.get(1).contains("fixture generator null"), found.get(1));
         assertFalse(disagreements(root, root).iterator().hasNext(), "identical poms agree");
     }
+
+    /**
+     * UPS-2, the review of PR #104, N1: the regenerated DEMO processors implement fluxtion 1.1.0's
+     * {@code DataFlow.runInEventCycle}; without it the interface's refusing default applies, and nothing else here or in
+     * the replay runner's test noticed when the review renamed it. A static check of the declaration only — the method's
+     * behaviour is the runtime's and the generator's, and is exercised upstream (mongoose GeneratedCycleAdminAuditTest).
+     */
+    @Test
+    void theDemoProcessorsImplementTheReleasedCycle() throws IOException {
+        for (String processor : List.of("DemoQuoteProcessor", "DemoQuoteTracedProcessor", "DemoQuoteRecordedProcessor")) {
+            for (String root : List.of("src/main/java", "src/main/resources")) {
+                Path file = Path.of("examples/fixture-generator", root, "com/acme/demo/generated", processor + ".java");
+                assertTrue(Files.readString(file).contains("public void runInEventCycle(Object auditEvent, Runnable action) {"),
+                        file + " does not implement DataFlow.runInEventCycle (fluxtion runtime 1.1.0)");
+            }
+        }
+    }
+
+    /**
+     * UPS-2, the review of PR #104, N3: the documentation-capture tool compiles the DEMO replay processor against the
+     * analyser's runtime, so it reads that version from the root pom rather than naming one. It named 1.0.16 after the
+     * pom moved to 1.1.0, and no guard noticed.
+     */
+    @Test
+    void theCaptureToolTakesTheRuntimeFromThePom() throws IOException {
+        String tool = Files.readString(Path.of("tools/capture-bundle-conversations.py"));
+        assertTrue(tool.contains("<fluxtion\\.version>"), "the tool reads fluxtion.version from the pom");
+        Matcher pinned = Pattern.compile("fluxtion-runtime[/-]\\d+\\.\\d+\\.\\d+").matcher(tool);
+        assertFalse(pinned.find(), "the tool pins a runtime version of its own");
+    }
 }

@@ -43,11 +43,25 @@ public final class SessionEvents {
      * @param source      which surface asked, for the record only — it must not drive a decision
      */
     public record OpenProjectRequested(long opId, String profilePath, TransitionKind kind, String source,
-                                       AssistantActionOrigin assistantOrigin) {
+                                       AssistantActionOrigin assistantOrigin, ProjectAudience audience) {
+        public OpenProjectRequested(long opId, String profilePath, TransitionKind kind, String source,
+                                    AssistantActionOrigin assistantOrigin) {
+            this(opId, profilePath, kind, source, assistantOrigin, new ProjectAudience(OperationOrigin.MACHINE, false));
+        }
         public OpenProjectRequested(long opId, String profilePath, TransitionKind kind, String source) {
             this(opId, profilePath, kind, source, null);
         }
     }
+
+    public enum OperationOrigin { PERSON, MACHINE }
+    public record ProjectAudience(OperationOrigin origin, boolean offersAllowed) { }
+    /** A restored project became visible; it did not cross ProfileApplied in this process. */
+    public record ProjectReopenRequested(long opId, String profilePath, ProjectAudience audience) { }
+    /** Filesystem/display observations, never a decision to show a modal. */
+    public record ProjectReopenReady(long opId, String profilePath, String label,
+                                     telamin.fluxtion.audit.analyser.analyser.config.ProjectReopen candidates,
+                                     boolean occupied) implements Result { }
+    public record ProjectReopenPresented(long opId, boolean shown) implements Result { }
 
     /**
      * A combined {@code open} request arrived, and these are the parameter names it supplied.
@@ -135,9 +149,15 @@ public final class SessionEvents {
      */
     public record LogOpened(long opId, String logPath, String provenance, java.util.Set<String> loggedNodeIds,
                             int sampled, int total, String mostVerboseLevel, String provenanceSource,
-                            boolean followable) implements Result {
+                            boolean followable, int nodeLogsWithheld) implements Result {
         public LogOpened {
             loggedNodeIds = loggedNodeIds == null ? java.util.Set.of() : java.util.Set.copyOf(loggedNodeIds);
+        }
+
+        /** UPS-1: no sampled record withheld its node logs (the count is drawn by the same sample as the ids). */
+        public LogOpened(long opId, String logPath, String provenance, java.util.Set<String> loggedNodeIds,
+                         int sampled, int total, String mostVerboseLevel, String provenanceSource, boolean followable) {
+            this(opId, logPath, provenance, loggedNodeIds, sampled, total, mostVerboseLevel, provenanceSource, followable, 0);
         }
 
         /** M44.5 stage 1: no follow capability stated — the log is taken as one that cannot be followed. */
@@ -163,7 +183,11 @@ public final class SessionEvents {
      * log starts describing intentions.
      */
     public record ProfileLoaded(long opId, String profilePath, boolean ok, String name,
-                                int unknownKeys, String reason, BundlePlan bundlePlan) implements Result {
+                                int unknownKeys, String reason, BundlePlan bundlePlan, String contentDigest) implements Result {
+        public ProfileLoaded(long opId, String profilePath, boolean ok, String name,
+                             int unknownKeys, String reason, BundlePlan bundlePlan) {
+            this(opId, profilePath, ok, name, unknownKeys, reason, bundlePlan, null);
+        }
         public ProfileLoaded(long opId, String profilePath, boolean ok, String name,
                              int unknownKeys, String reason) {
             this(opId, profilePath, ok, name, unknownKeys, reason, null);
@@ -171,16 +195,26 @@ public final class SessionEvents {
     }
 
     /**
-     * The source roots now in force, as the adapter observes them after a person changed them.
+     * The source roots now in force after a non-transition config change. This may be unrelated
+     * to source: the node compares it with restored visible roots before deciding whether an edit occurred.
      *
      * <p>Deliberately NOT reported while a transition is rendering. A close puts the person's own settings
      * back before the render runs, so reporting then would state somebody else's roots as this session's —
      * which is exactly how a bundle came to be anchored to 19 unrelated repositories (2026-09-30). The
-     * adapter reports what it sees when a person changes it; the node decides what that means.
+     * adapter reports what it sees; the node decides which visible roots were deliberately added or removed.
      */
     public record SourceRootsObserved(java.util.List<String> roots) {
         public SourceRootsObserved {
             roots = java.util.List.copyOf(roots == null ? java.util.List.of() : roots);
+        }
+    }
+
+    /** Restoration is not an edit: unavailable remembered roots remain owned by this bundle. */
+    public record BundleRootsRestored(long opId, String bundleSource, java.util.List<String> remembered,
+                                      java.util.List<String> visible) implements Result {
+        public BundleRootsRestored {
+            remembered = java.util.List.copyOf(remembered);
+            visible = java.util.List.copyOf(visible);
         }
     }
 
@@ -193,7 +227,11 @@ public final class SessionEvents {
      */
     public record BundlePlan(String profilePath, String graphPath, String logPath,
                              String identity, String workingCopy, String limits, String notes, String source,
-                             String processor) {
+                             String processor, String profileDigest) {
+        public BundlePlan(String profilePath, String graphPath, String logPath, String identity,
+                          String workingCopy, String limits, String notes, String source, String processor) {
+            this(profilePath, graphPath, logPath, identity, workingCopy, limits, notes, source, processor, null);
+        }
         /** A plan with nothing the sender wrote — the shape every pre-#73 caller uses. */
         public BundlePlan(String profilePath, String graphPath, String logPath,
                           String identity, String workingCopy, String limits) {
@@ -298,9 +336,15 @@ public final class SessionEvents {
      * moves, and with it the pairing's scope ("first 500 of 601").
      */
     public record LogAppended(long generation, java.util.Set<String> loggedNodeIds, int sampled, int total,
-                              String mostVerboseLevel) {
+                              String mostVerboseLevel, int nodeLogsWithheld) {
         public LogAppended {
             loggedNodeIds = loggedNodeIds == null ? java.util.Set.of() : java.util.Set.copyOf(loggedNodeIds);
+        }
+
+        /** UPS-1: no sampled record withheld its node logs. */
+        public LogAppended(long generation, java.util.Set<String> loggedNodeIds, int sampled, int total,
+                           String mostVerboseLevel) {
+            this(generation, loggedNodeIds, sampled, total, mostVerboseLevel, 0);
         }
     }
 
@@ -403,6 +447,9 @@ public final class SessionEvents {
     /** ◀ ▶ or ← →: move by {@code delta} steps. */
     public record WalkNavigated(int delta) {
     }
+
+    /** A native tab change; -1 means an external action, otherwise the effect's walk ticket. */
+    public record WalkViewChanged(long ownerTicket) { }
 
     /** Esc, ✕, a press outside the strip, or a view change from outside the walk. */
     public record WalkEndRequested(String reason) {

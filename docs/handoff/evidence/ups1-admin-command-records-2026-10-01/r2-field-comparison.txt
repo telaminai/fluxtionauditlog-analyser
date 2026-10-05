@@ -1,0 +1,99 @@
+UPS-1 review round: field-by-field comparison of every audit text in the repository (44 inputs), three reader paths
+(built-in, SPI LEGACY, SPI QUOTED_SCALARS), 19 fields per record incl. node logs. Tool: Dump.java + diff.py, compiled against each tree.
+
+== 473cd674 (before UPS-1) -> 9474c687 (reviewed head)
+changed fields: 252 records: 78 by path: {'builtin': 84, 'spi-LEGACY': 84, 'spi-QUOTED_SCALARS': 84}
+    10 builtin              DEMO-admin-hostile-args-export.yaml
+    10 spi-LEGACY           DEMO-admin-hostile-args-export.yaml
+    10 spi-QUOTED_SCALARS   DEMO-admin-hostile-args-export.yaml
+     4 builtin              DEMO-admin-hostile-args-stream.yaml
+     4 spi-LEGACY           DEMO-admin-hostile-args-stream.yaml
+     4 spi-QUOTED_SCALARS   DEMO-admin-hostile-args-stream.yaml
+     6 builtin              apostrophe-then-collapse.yaml
+     6 spi-LEGACY           apostrophe-then-collapse.yaml
+     6 spi-QUOTED_SCALARS   apostrophe-then-collapse.yaml
+    30 builtin              c21-real-export.yaml
+    30 spi-LEGACY           c21-real-export.yaml
+    30 spi-QUOTED_SCALARS   c21-real-export.yaml
+    10 builtin              c31-broken-value.yaml
+    10 spi-LEGACY           c31-broken-value.yaml
+    10 spi-QUOTED_SCALARS   c31-broken-value.yaml
+     8 builtin              client-shape-collapsed.yaml
+     8 spi-LEGACY           client-shape-collapsed.yaml
+     8 spi-QUOTED_SCALARS   client-shape-collapsed.yaml
+     8 builtin              demo-quote-audit-traced.yaml
+     8 spi-LEGACY           demo-quote-audit-traced.yaml
+     8 spi-QUOTED_SCALARS   demo-quote-audit-traced.yaml
+     8 builtin              demo-quote-audit.yaml
+     8 spi-LEGACY           demo-quote-audit.yaml
+     8 spi-QUOTED_SCALARS   demo-quote-audit.yaml
+
+== 473cd674 (before UPS-1) -> this round's head
+    10 builtin              DEMO-admin-hostile-args-export.yaml
+     4 builtin              DEMO-admin-hostile-args-stream.yaml
+     7 builtin              apostrophe-then-collapse.yaml
+     1 builtin              c02-unknown-fields.yaml
+    10 builtin              c31-broken-value.yaml
+     9 builtin              client-shape-collapsed.yaml
+  DEMO-admin-hostile-args-export.yaml builtin rec 2 endTime : 1790840987397 -> <null>
+  DEMO-admin-hostile-args-export.yaml builtin rec 2 nodeLogs : forged[KV[key=null, rawValue={ x: 1}]], quoted=false]];alarmMonitor[KV[key=lambdaReset, rawValue=true, quoted=false], KV[key=at, rawValue=1790840987397, quoted=false]]; ->
+  DEMO-admin-hostile-args-export.yaml builtin rec 2 nodeLogsCount : 2 -> 0
+  DEMO-admin-hostile-args-export.yaml builtin rec 2 thread : processor-agent -> <null>
+  DEMO-admin-hostile-args-export.yaml builtin rec 3 dimension : Forged]] -> AdminCommandEvent
+  DEMO-admin-hostile-args-export.yaml builtin rec 3 endTime : 1790840987432 -> <null>
+  DEMO-admin-hostile-args-export.yaml builtin rec 3 event : Forged]] -> AdminCommandEvent
+  DEMO-admin-hostile-args-export.yaml builtin rec 3 nodeLogs : alarmMonitor[KV[key=lambdaReset, rawValue=true, quoted=false], KV[key=at, rawValue=1790840987432, quoted=false]]; ->
+  DEMO-admin-hostile-args-export.yaml builtin rec 3 nodeLogsCount : 1 -> 0
+  DEMO-admin-hostile-args-export.yaml builtin rec 3 thread : processor-agent -> <null>
+  DEMO-admin-hostile-args-stream.yaml builtin rec 2 endTime : 1790840987397 -> <null>
+  DEMO-admin-hostile-args-stream.yaml builtin rec 2 nodeLogs : forged[KV[key=null, rawValue={ x: 1}]], quoted=false]];alarmMonitor[KV[key=lambdaReset, rawValue=true, quoted=false], KV[key=at, rawValue=1790840987397, quoted=false]]; ->
+  DEMO-admin-hostile-args-stream.yaml builtin rec 2 nodeLogsCount : 2 -> 0
+  DEMO-admin-hostile-args-stream.yaml builtin rec 2 thread : processor-agent -> <null>
+  c02-unknown-fields.yaml builtin rec 0 nodeLogs : book[KV[key=mid, rawValue=17.1} anotherFutureField: { nested: true, quoted=false]]; -> book[KV[key=mid, rawValue=17.1, quoted=false]];
+  c31-broken-value.yaml builtin rec 1 endTime : 1790840987397 -> <null>
+  c31-broken-value.yaml builtin rec 1 nodeLogs : forged[KV[key=null, rawValue={ x: 1}]], quoted=false]];alarmMonitor[KV[key=lambdaReset, rawValue=true, quoted=false], KV[key=at, rawValue=1790840987397, quoted=false]]; ->
+  c31-broken-value.yaml builtin rec 1 nodeLogsCount : 2 -> 0
+  c31-broken-value.yaml builtin rec 1 thread : processor-agent -> <null>
+  c31-broken-value.yaml builtin rec 2 dimension : Forged]] -> AdminCommandEvent
+  c31-broken-value.yaml builtin rec 2 endTime : 1790840987432 -> <null>
+  c31-broken-value.yaml builtin rec 2 event : Forged]] -> AdminCommandEvent
+  c31-broken-value.yaml builtin rec 2 nodeLogs : alarmMonitor[KV[key=lambdaReset, rawValue=true, quoted=false], KV[key=at, rawValue=1790840987432, quoted=false]]; ->
+  c31-broken-value.yaml builtin rec 2 nodeLogsCount : 1 -> 0
+  c31-broken-value.yaml builtin rec 2 thread : processor-agent -> <null>
+  apostrophe-then-collapse.yaml builtin rec 0 endTime : 3002 -> <null>
+  apostrophe-then-collapse.yaml builtin rec 0 eventTime : 3001 -> 3000
+  apostrophe-then-collapse.yaml builtin rec 0 eventToString : second record, run together -> it's a plain value with an apostrophe
+  apostrophe-then-collapse.yaml builtin rec 0 logTime : 3001 -> 3000
+  apostrophe-then-collapse.yaml builtin rec 0 nodeLogs : notes[KV[key=size, rawValue=1, quoted=false]];notes[KV[key=size, rawValue=2, quoted=false]]; ->
+  apostrophe-then-collapse.yaml builtin rec 0 nodeLogsCount : 2 -> 0
+  apostrophe-then-collapse.yaml builtin rec 0 thread : main -> <null>
+  client-shape-collapsed.yaml builtin rec 0 dimension : Checked -> LifecycleEvent
+  client-shape-collapsed.yaml builtin rec 0 endTime : 1009 -> <null>
+  client-shape-collapsed.yaml builtin rec 0 event : Checked -> LifecycleEvent
+  client-shape-collapsed.yaml builtin rec 0 eventTime : 1008 -> 1000
+  client-shape-collapsed.yaml builtin rec 0 eventToString : Checked[price=40.0, count=1] -> Init
+  client-shape-collapsed.yaml builtin rec 0 logTime : 1008 -> 1000
+  client-shape-collapsed.yaml builtin rec 0 nodeLogs : child[KV[key=lifecycle, rawValue=initialise, quoted=false]];checked[KV[key=method, rawValue=sinkRegistration, quoted=false]];rootNode[KV[key=method, rawValue=onPriceUpdate, quoted=false], KV[key=price, rawValue=10.0, quoted=false]];child[KV[key=method, rawValue=onChild, quoted=false], KV[key=triggerFired, rawValue=true, quoted=false]];child[KV[key=method, rawValue=onSignalPause, quoted=false]];rootNode[KV[key=method, rawValue=onPriceUpdate, quoted=false], KV[key=price, rawValue=30.0, quoted=false]];child[KV[key=method, rawValue=onChild, quoted=false], KV[key=triggerFired, rawValue=true, quoted=false]];child[KV[key=method, rawValue=reset, quoted=false]];rootNode[KV[key=method, rawValue=onPriceUpdate, quoted=false], KV[key=price, rawValue=40.0, quoted=false]];child[KV[key=method, rawValue=onChild, quoted=false], KV[key=triggerFired, rawValue=true, quoted=false]];checked[KV[key=price, rawValue=40.0, quoted=false], KV[key=count, rawValue=1, quoted=false]]; ->
+  client-shape-collapsed.yaml builtin rec 0 nodeLogsCount : 11 -> 0
+  client-shape-collapsed.yaml builtin rec 0 thread : main -> <null>
+
+== 9474c687 (reviewed head) -> this round's head
+changed fields: 153 records: 66 by path: {'builtin': 51, 'spi-LEGACY': 51, 'spi-QUOTED_SCALARS': 51}
+     2 builtin              apostrophe-then-collapse.yaml
+     2 spi-LEGACY           apostrophe-then-collapse.yaml
+     2 spi-QUOTED_SCALARS   apostrophe-then-collapse.yaml
+     1 builtin              c02-unknown-fields.yaml
+     1 spi-LEGACY           c02-unknown-fields.yaml
+     1 spi-QUOTED_SCALARS   c02-unknown-fields.yaml
+    30 builtin              c21-real-export.yaml
+    30 spi-LEGACY           c21-real-export.yaml
+    30 spi-QUOTED_SCALARS   c21-real-export.yaml
+     2 builtin              client-shape-collapsed.yaml
+     2 spi-LEGACY           client-shape-collapsed.yaml
+     2 spi-QUOTED_SCALARS   client-shape-collapsed.yaml
+     8 builtin              demo-quote-audit-traced.yaml
+     8 spi-LEGACY           demo-quote-audit-traced.yaml
+     8 spi-QUOTED_SCALARS   demo-quote-audit-traced.yaml
+     8 builtin              demo-quote-audit.yaml
+     8 spi-LEGACY           demo-quote-audit.yaml
+     8 spi-QUOTED_SCALARS   demo-quote-audit.yaml

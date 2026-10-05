@@ -70,3 +70,7 @@ context, not verification of this change. This work does not close the separate 
 PR #105's initial CI stopped on a skipped native mouse mutation witness, while its build and display
 jobs passed. The failed attempt and the acquisition correction are documented in
 [native press acquisition](evidence/summary-panel-edt-gate-2026-10-01/native-acquisition/README.md).
+
+The branch was subsequently integrated with main. Verification of that combined code, including
+all 13 targeted controls and the larger headless suite, is recorded in
+[integration evidence](evidence/summary-panel-edt-gate-2026-10-01/integration-c66f744d/README.md).

@@ -1,6 +1,6 @@
 ///usr/bin/env jbang "$0" "$@" ; exit $?
 //REPOS mavencentral,repsy-fluxtion-public=https://repo.repsy.io/mvn/fluxtion/fluxtion-public
-//DEPS com.telamin.fluxtion:fluxtion-runtime:1.0.16
+//DEPS com.telamin.fluxtion:fluxtion-runtime:1.1.0
 //JAVA 21
 
 import com.telamin.fluxtion.runtime.DataFlow;

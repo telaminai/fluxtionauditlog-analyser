@@ -57,9 +57,16 @@ import java.util.Set;
  *                        deliberately-opened one (M35.3), so each caller supplies its own verb
  * @param recordsScanned  how many records the comparison read, or {@code -1} when the caller did not say
  * @param recordsTotal    how many records the log holds, or {@code -1} when the caller did not say
+ * @param nodeLogsWithheld UPS-1: how many of the compared records had their node logs withheld (their structure
+ *                        breaks), so {@code logged} counts what was READ — never silence (review of 9474c687, finding 3)
  */
 public record GraphPairing(int logged, int matched, boolean applies, String reason,
-                           int recordsScanned, int recordsTotal) {
+                           int recordsScanned, int recordsTotal, int nodeLogsWithheld) {
+
+    /** No compared record withheld its node logs. */
+    public GraphPairing(int logged, int matched, boolean applies, String reason, int recordsScanned, int recordsTotal) {
+        this(logged, matched, applies, reason, recordsScanned, recordsTotal, 0);
+    }
 
     /** A comparison whose scope was not recorded — a pure call with no log in hand. */
     public GraphPairing(int logged, int matched, boolean applies, String reason) {
@@ -110,7 +117,8 @@ public record GraphPairing(int logged, int matched, boolean applies, String reas
     public GraphPairing rescoped(int total) {
         if (recordsScanned < 0 || total == recordsTotal) return this;
         String base = reason.replaceFirst(" \\(judged on the first \\d+ of \\d+ records\\)$", "");
-        return new GraphPairing(logged, matched, applies, base, recordsScanned, -1).withScope(recordsScanned, total);
+        return new GraphPairing(logged, matched, applies, base, recordsScanned, -1, nodeLogsWithheld)
+                .withScope(recordsScanned, total);
     }
 
     /**
@@ -124,6 +132,7 @@ public record GraphPairing(int logged, int matched, boolean applies, String reas
         m.put("everyObservedIdDeclared", everyObservedIdDeclared());
         m.put("pairingScope", scope());
         m.put("pairingSampled", sampled());
+        if (nodeLogsWithheld > 0) m.put("nodeLogsWithheld", nodeLogsWithheld);
         return m;
     }
 
@@ -137,7 +146,11 @@ public record GraphPairing(int logged, int matched, boolean applies, String reas
         // a 500-record sample read on screen as "every node id checked is declared" with nothing saying which.
         String lead = sampled() ? scope() + ": " : "";
         if (!applies) return "\u26a0 DOES NOT FIT THIS LOG \u2014 " + reason;
-        if (!evidenced()) return lead + "kept, not confirmed \u2014 no node output in the records checked";
+        if (!evidenced()) {
+            return lead + "kept, not confirmed \u2014 " + (nodeLogsWithheld > 0
+                    ? "no node output read in the records checked (" + nodeLogsWithheld + " withheld)"
+                    : "no node output in the records checked");
+        }
         if (!everyObservedIdDeclared()) {
             return lead + "kept on a partial match (" + matched + "/" + logged + " ids declared)";
         }
@@ -153,7 +166,7 @@ public record GraphPairing(int logged, int matched, boolean applies, String reas
         String said = total > scanned
                 ? reason + " (judged on the first " + scanned + " of " + total + " records)"
                 : reason;
-        return new GraphPairing(logged, matched, applies, said, scanned, total);
+        return new GraphPairing(logged, matched, applies, said, scanned, total, nodeLogsWithheld);
     }
 
     /**
@@ -174,6 +187,23 @@ public record GraphPairing(int logged, int matched, boolean applies, String reas
     }
 
     public static GraphPairing of(Set<String> declared, Set<String> logged) {
+        return of(declared, logged, 0);
+    }
+
+    /**
+     * UPS-1 (review of 9474c687, finding 3): {@code withheld} of the compared records had their node logs withheld, so
+     * {@code logged} is what was READ. The reason says so, and never that no node output was recorded.
+     */
+    public static GraphPairing of(Set<String> declared, Set<String> logged, int withheld) {
+        GraphPairing p = judge(declared, logged, withheld);
+        if (withheld <= 0) return p;
+        String said = p.reason;
+        if (p.logged > 0) said += "; " + withheld + " record(s) checked had their node logs withheld (their structure "
+                + "breaks), and this comparison could not read them";
+        return new GraphPairing(p.logged, p.matched, p.applies, said, p.recordsScanned, p.recordsTotal, withheld);
+    }
+
+    private static GraphPairing judge(Set<String> declared, Set<String> logged, int withheld) {
         if (declared == null || declared.isEmpty()) {
             return new GraphPairing(logged == null ? 0 : logged.size(), 0, false,
                     "the loaded graph declares no nodes");
@@ -181,8 +211,11 @@ public record GraphPairing(int logged, int matched, boolean applies, String reas
         if (logged == null || logged.isEmpty()) {
             // nothing logged says nothing about the graph — a log with no nodeLogs cannot convict it
             // policy: kept. evidence: none. evidenced() is false, so no surface may call this a fit
-            return new GraphPairing(0, 0, true,
-                    "no node output was recorded in the records checked, so no membership comparison was "
+            return new GraphPairing(0, 0, true, withheld > 0
+                    ? "no node output was read in the records checked — " + withheld + " of them had their node logs "
+                            + "withheld because their structure breaks — so no membership comparison was possible; the "
+                            + "graph is kept, not confirmed"
+                    : "no node output was recorded in the records checked, so no membership comparison was "
                             + "possible — the graph is kept, not confirmed");
         }
         NodeCoverage cov = NodeCoverage.of(declared, logged, Set.of());

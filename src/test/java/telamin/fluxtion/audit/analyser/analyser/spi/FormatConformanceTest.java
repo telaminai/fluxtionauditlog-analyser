@@ -595,11 +595,46 @@ class FormatConformanceTest {
                     "c20-marker-lookalike.yaml", "c21-real-export.yaml", "c22-marker-syntax.yaml",
                     "c23-marker-values.yaml", "c24-unterminated-marker.yaml", "c25-marker-declaring-zero.yaml",
                     "c26-two-empty-segments.yaml", "c27-whitespace-only.yaml", "c28-zero-bytes.yaml",
-                    "c29-no-record-key.yaml", "c30-per-node-level.yaml"), names,
+                    "c29-no-record-key.yaml", "c30-per-node-level.yaml", "c31-broken-value.yaml",
+                    "c32-record-structure.yaml"), names,
                     "add a fixture here AND a test above — c10 needs no file, it is about the reader's claim");
             assertTrue(Files.exists(res.resolve("README.md")), "the set is published with its table");
             for (String n : names) bothPathsAgree(n);
         }
+    }
+
+    /**
+     * C32 — one structural rule (UPS-1, the review of 9474c687, findings 1, 2 and 4). A field is a key line at the fields'
+     * indentation, outside a quoted value and outside the node-log block; a payload indented DEEPER than the fields is a
+     * break, not fields; a closed quoted node-log value's continuation is that value, never the event or a new item; and
+     * the generator's exported-service record ({@code @Override} and one signature at column 0) is whole. Held on the
+     * built-in path, the legacy SPI path and a reader declaring the typed grammar.
+     */
+    @Test
+    void c32_theRecordsOwnStructureIsOneRule() throws IOException {
+        bothPathsAgree("c32-record-structure.yaml");
+        for (LogStore s : List.of(builtIn("c32-record-structure.yaml"), viaSpi("c32-record-structure.yaml"),
+                viaSpi("c32-record-structure.yaml", AuditLogReader.TextEncoding.QUOTED_SCALARS))) {
+            assertEquals(3, s.size());
+            var deep = s.record(0);
+            assertTrue(deep.brokenAtLine() > 0, "a deeper payload breaks its record");
+            assertEquals("AdminCommandEvent", deep.event());
+            assertEquals(0, deep.nodeLogsCount(), "and forges no node");
+            assertNotEquals(Long.valueOf(123), deep.endTime(), "and no endTime");
+            var quoted = s.record(1);
+            assertEquals(0, quoted.brokenAtLine(), "a closed quoted value is whole");
+            assertEquals("AdminCommandEvent", quoted.event(), "its continuation is never the event");
+            assertEquals(List.of("alarmMonitor"), quoted.nodeLogs().stream().map(n -> n.instanceId()).toList(),
+                    "nor a new node");
+            assertEquals(Long.valueOf(1790840990004L), quoted.endTime(), "the block ends at the record's endTime");
+            var exported = s.record(2);
+            assertEquals(0, exported.brokenAtLine(), "the generator's exported-service signature is whole");
+            assertEquals("@Override", exported.eventToString());
+            assertEquals("processor-agent", exported.thread());
+            assertEquals(1, exported.nodeLogsCount(), "its genuine node log is read");
+        }
+        assertTrue(findings(builtIn("c32-record-structure.yaml")).messages().stream()
+                .anyMatch(m -> m.contains("1 record breaks its own structure: record 1")), "only record 1 is named");
     }
 
     /** A tiny declared graph in the analyser's own GraphML dialect: authored nodes, directed edges. */
@@ -870,6 +905,46 @@ class FormatConformanceTest {
                 .toList();
         assertEquals(1, named.size(), () -> "the headerless document is named: " + findings(s).messages());
         assertTrue(named.get(0).message().contains("Record 2"), named.get(0).message());
+    }
+
+    /**
+     * UPS-1 — a value written unquoted with a line break in it (an operator-typed admin command argument, mongoose 1.0.32
+     * with fluxtion 1.1.0, through mongoose-plugins' export) is not evidence: on both paths the broken records withhold
+     * repeated fields, read no node logs — so no node is forged — and are named, while the whole records around
+     * them read exactly as before.
+     */
+    @Test
+    void c31_aBrokenValueForgesNothingOnEitherPath() throws IOException {
+        // UPS-1, review of 9474c687, finding 5: a reader declaring the TYPED grammar gets the same broken-record rule
+        LogStore typed = viaSpi("c31-broken-value.yaml", AuditLogReader.TextEncoding.QUOTED_SCALARS);
+        assertEquals(5, typed.size());
+        for (int i = 0; i < typed.size(); i++) {
+            for (var n : typed.record(i).nodeLogs()) {
+                assertNotEquals("forged", n.instanceId(), "typed grammar: record " + (i + 1) + " forged a node");
+            }
+            assertNotEquals("Forged]]", typed.record(i).event(), "typed grammar: record " + (i + 1) + " forged an event");
+        }
+        assertTrue(typed.record(1).brokenAtLine() > 0, "typed grammar: the broken record is named");
+        assertEquals(0, typed.record(1).nodeLogsCount(), "typed grammar: a broken record's node logs are not read");
+        LogStore s = bothPathsAgree("c31-broken-value.yaml");
+        assertEquals(5, s.size(), "the export escaped the separator, so the count is right");
+        for (int i = 0; i < s.size(); i++) {
+            for (var n : s.record(i).nodeLogs()) {
+                assertNotEquals("forged", n.instanceId(), "record " + (i + 1) + " forged a node");
+            }
+            assertNotEquals("Forged]]", s.record(i).event(), "record " + (i + 1) + " forged an event type");
+        }
+        assertEquals("AdminCommandEvent", s.record(1).event());
+        assertEquals(0, s.record(1).nodeLogsCount(), "a broken record's node logs are not read");
+        assertNull(s.record(2).event(), "both copies of the repeated event are withheld, including the genuine first one");
+        assertNull(typed.record(2).event(), "the typed reader also withholds both copies");
+        assertEquals(0, s.record(2).nodeLogsCount());
+        assertEquals(1, s.record(3).nodeLogsCount(), "brackets and a quote in an argument break nothing");
+        assertEquals(2, s.record(0).nodeLogsCount(), "the whole records read as before");
+        var d = findings(s);
+        assertEquals(List.of(ProducerDiagnostics.Kind.BROKEN_VALUE), kinds(d), d.messages().toString());
+        String m = d.findings().get(0).message();
+        assertTrue(m.contains("record 2 at its line 7") && m.contains("record 3 at its line 7"), m);
     }
 
     /**

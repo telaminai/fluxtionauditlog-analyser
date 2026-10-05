@@ -26,11 +26,12 @@ recorded at dispatch) and **1.0.32** (admin commands run in the event cycle and 
 mongoose-plugins **1.0.45** (separator escaping, #39). The 2026-09-27 order is in the
 [detail snapshot](completed/tracker-detail-2026-10-01.md) ▸ *Suggested delivery order*.
 
+**Completed on main since 1.30.1, awaiting release:** PR #87 redaction; PR #103's ten #84 corrections (#93–#102, all
+closed); PR #104's released-stack adoption; PR #92's admin-record acceptance. [Final integration review and CI](https://github.com/telaminai/fluxtionauditlog-analyser/pull/92#issuecomment-5931355484).
+
 1. **Assurance debt on shipped work.**
-   - **#84**: the third review of the 1.30.0 bundle-provenance work and #72; the full gate is already green on a head
-     that contains it.
    - **PR #70**: the whole-feature review of M70 replay, most of which reached `main` unreviewed.
-   - **PR #87** (#79, redaction of non-Latin paths, trust-class) and **PR #88** (#83, #85): green, awaiting review.
+   - **PR #88 ◧** (#83, #85): still open; do not treat its import/copy-management changes as merged.
 2. **Owner decisions — they unblock the most.**
    - **M70 vs Mongoose replay:** whether bundles and `--replay-compare` accept mongoose 1.0.31's dispatch-time
      recording (▸ M70).
@@ -38,12 +39,11 @@ mongoose-plugins **1.0.45** (separator escaping, #39). The 2026-09-27 order is i
    - **Branch protection** requiring `mutation-gate`; **M44.6**; **BETA-B3**; **M39**'s four questions; **M34.5**'s
      field name; **AF-8/AF-9** together and **OD-5**; **O2** (graph-content identity); **#74** (is a bundle bound to a
      project or standalone?).
-3. **The analyser against the new upstream stack.** Move the DEMO and replay fixtures from runtime 1.0.16 / builder
-   1.0.71 to runtime 1.1.0 / compiler 1.0.76, then capture a mongoose 1.0.32 log with an admin command and check how
-   1.30.x frames, covers and tables an `AdminCommandEvent` record — the defect mongoose#45 was raised from (▸ UPS-1).
+3. **Release the merged upstream adoption.** UPS-1 and UPS-2 are complete on main (`787f2e1a`, `b6458a4e`), not yet
+   released by the analyser. The start-page DEMO refresh is a separate owner decision (UPS-2b); upstream quoting remains UPS-1a.
 4. **Finish M44** — §13's remaining acceptance, the "store installed" fact, M44.6 once decided.
 5. **Small correctness items, ready now:** N2; OBL-1, OBL-2; the restart checker's path aliases; feedback 36 and 42's
-   MCP series remove/replace; the evidence-bundle issues #64–#69 and #73–#85.
+   MCP series remove/replace; the open evidence-bundle items listed below (resolved issues are marked separately).
 6. **The onboard assistant's acceptance (OA-1…OA-6)** — an authorised live-provider run, native input and IME, the
    journey's native screenshots, a cross-machine recipient.
 7. **The beta** — B3 (item 2), B4's binary publication, BETA-8's A3 scoring gap.
@@ -59,9 +59,16 @@ mongoose-plugins **1.0.45** (separator escaping, #39). The 2026-09-27 order is i
 
 ## Upstream releases to absorb — 2026-10-01
 
-- [UPS-1] ☐ **Admin commands now audit as their own record** (fluxtion 1.1.0, compiler 1.0.76, mongoose 1.0.32). Capture
-  a real log with an admin command and check framing, coverage, topology and the table; then close mongoose#45.
-- [UPS-2] ☐ **Fixtures on the released stack** — the DEMO and replay fixtures still use runtime 1.0.16 / builder 1.0.71.
+- [UPS-1] ☑ **Admin-command reader acceptance, on main; unreleased** — PR #92, `787f2e1a`; C31/C32, withheld-not-absent
+  and repeated-field first-copy refusal. [Final review/CI](https://github.com/telaminai/fluxtionauditlog-analyser/pull/92#issuecomment-5931355484); mongoose proposal PR #45 superseded by implementation and acceptance.
+- [UPS-1a] ☐ **Upstream: quote line breaks in values** — [UP-FLX-55](../proposals/upstream-asks.md); the raw record stream
+  (no export escaping) still splits on a `---` inside a value, which is MA-7's framing fault.
+- [UPS-2] ☑ **Released-stack pins and test fixtures, on main; unreleased** — PR #104, `b6458a4e`: runtime 1.1.0 / builder
+  1.0.76; session and test processors regenerated. [Evidence](../handoff/evidence/ups2-released-stack-2026-10-01/RESULTS.md).
+- [UPS-2a] ☐ Review of PR #104, follow-ups: N2 (the source/GraphML test checks seven names, not generation identity) and
+  `tools/gen-fqn.py`'s glob-chosen runtime jar; one header policy for generated source (M19.22).
+- [UPS-2b] ☐ **(owner) Refresh the start-page DEMO set** — deliberately unchanged by PR #104; includes dependent screenshots
+  and journey bundles. Test-fixture adoption is complete and does not settle this presentation decision.
 - [UPS-3] ☐ **Mongoose replay at dispatch** (mongoose#47, 1.0.31) — input to the M70 owner decision; see ▸ M70.
 - [UPS-4] ☐ **Failure-mode follow-ups** fluxtion#35 / compiler#98 (a throwing node no longer wedges the processor) are
   open drafts upstream; when they ship, check how a failed cycle appears in the log.
@@ -76,10 +83,19 @@ mongoose-plugins **1.0.45** (separator escaping, #39). The 2026-09-27 order is i
 ### Evidence bundles — follow-ups as issues
 - ☐ #64 withheld chart definitions captured silently · #65 Follow-growth premise · #66 restoring Follow after capture ·
   #67 excerpt of a non-time-ordered log · #68 walk save's generation check in the frame (rule 9) · #69 small leftovers.
-- ☐ #73 discover/manage received bundles · #74 (design) project-bound or standalone · #75 source links across capture ·
-  #76 the UI says you are in a bundle · #79 non-Latin path redaction (PR #87) · #80 bundles invisible to an agent ·
-  #82 a walkthrough reel · #83 import off the event thread (PR #88) · #84 close-the-loop review · #85 working copies
-  never reaped (PR #88).
+- ◑ #73 discovery: recents and project inventory exist; pre-open preview and working-copy management remain open.
+- ☐ #74 (design) project-bound or standalone · #82 a walkthrough reel · #83 import off the event thread and #85 working-copy
+  reaping (PR #88 is not merged).
+- ☑ #75 recipient source anchoring/restoration; #76 persistent bundle title/Project provenance; #80 bundle open/inventory/selective
+  import — implemented on main, with #93–#95 corrections in PR #103. Captures still exclude sender machine paths/source trees.
+- ☑ #93–#101 corrected on main (`07fe00d0`); ☑ #102 resolved by explicit saved-source-revision disclosure, not revision binding.
+  [Corrections, regressions and remaining nits](../handoff/handoff_issue84_third_review_response_2026_10_01.md).
+- Optional improvements from PR #103’s later review (not unfinished #84 corrections or release blockers): generic-action
+  guard hardening, fallback preselection, caption/revision refinement, and unavailable-anchor presentation/removal.
+- ☑ PR #87 Unicode/quoted-path correction on main (`258da371`), unreleased; #79 is already closed on GitHub.
+  ☐ Colon policy and disclosed ambiguous-path residuals remain owner/follow-up work; closure is not a universal redaction guarantee.
+- ☐ #56 general graph/context/spotlight drawn-state reporting remains open; walk playback already uses the drawn fact.
+- #84's review is complete; its actionable findings are tracked above, rather than keeping the review itself open.
 
 ### M68 · Evidence integrity — analyser side shipped ([spec](spec-evidence-integrity.md))
 - The producer half (D-E9) is tracked under MA-2 / MA-7 below. ▸ detail: *M68*.

@@ -25,11 +25,11 @@ import java.nio.file.Files;
 public final class ProjectPanel extends JPanel {
 
     /**
-     * How the panel asks the frame to show something. Navigation only — see class doc.
+     * The closed set of named requests the panel can send to its adapter (D-L3).
      *
      * <p>Adding a method here is a spec change, and {@code ProjectPanelIsRevealOnlyTest} asserts the exact
-     * set so it cannot happen by accident. A new method must REVEAL something that already exists; one that
-     * creates, edits or discards state belongs on the action surface, which this panel may not reach.
+     * set, including inherited actions, so it cannot happen by accident. The explicitly approved root/processor
+     * actions may change state; arbitrary action execution and direct frame access remain forbidden.
      */
     public interface Navigator {
         /** Bring a right-hand tab forward by title ("Topology", "Source"). */

@@ -1,0 +1,18 @@
+UPS-1 mutation controls, fast engine, one run, final code. name | site | named failing test | assertion
+ups1-less-indented-breaks | RecordBreak.java | RecordBreakTest#aLessIndentedLineBreaksTheRecord | org.opentest4j.AssertionFailedError: expected: not <null>
+ups1-second-record-key-breaks | RecordBreak.java | RecordBreakTest#aSecondRecordKeyIsABreak | org.opentest4j.AssertionFailedError: the field 'logTime' a second time ==> expected: <true> but was: <false>
+ups1-repeated-field-breaks | RecordBreak.java | RecordBreakTest#aRepeatedFieldIsReadUpToItsFirstOccurrence | org.opentest4j.AssertionFailedError: expected: not <null>
+ups1-repeated-field-first-occurrence | RecordBreak.java | RecordBreakTest#aRepeatedFieldIsReadUpToItsFirstOccurrence | org.opentest4j.AssertionFailedError: line index 4 is the first 'nodeLogs:', the forged one ==> expected: <4> but was: <7>
+ups1-unclosed-quote-is-text | RecordBreak.java | RecordBreakTest#anUnclosedQuoteHidesNothing | org.opentest4j.AssertionFailedError: the column-0 line is a break, not the inside of a quote ==> expected: not <null>
+ups1-parser-stops-at-break | RecordParser.java | RecordBreakTest#anEscapedSeparatorBreaksTheRecord | org.opentest4j.AssertionFailedError: not 'Forged]]' ==> expected: <AdminCommandEvent> but was: <Forged]]>
+ups1-parser-reads-no-node-logs | RecordParser.java | RecordBreakTest#nodeLogsBeforeTheBreakAreNotTrusted | org.opentest4j.AssertionFailedError: the forged block before the break is not read: [NodeLog[instanceId=forged, entries=[KV[key=x, rawValue=
+ups1-parser-quote-continuation | RecordParser.java | RecordBreakTest#aQuotedContinuationIsNotABreak | org.opentest4j.AssertionFailedError: expected: <[a]> but was: <[closes", a]>
+ups1-broken-value-finding | ProducerDiagnostics.java | RecordBreakTest#theFindingNamesTheRecordAndLine | org.opentest4j.AssertionFailedError: [] ==> expected: <1> but was: <0>
+ups1-one-cause-one-name | ProducerDiagnostics.java | FormatConformanceTest#c31_aBrokenValueForgesNothingOnEitherPath | org.opentest4j.AssertionFailedError: [Suspected missing record separators: record 3 appears to hold 2 records run together — its line(s) [8]
+ups1-graph-line-keeps-warnings | MainFrame.java | BrokenValueFrameTest#aBrokenValueForgesNoNodeAndNoEventOnAnySurface | org.opentest4j.AssertionFailedError: the status bar says so in words: 5 records · graph DEMO-CycleAlarmProcessor.graphml · the graph declare
+ups1-unsplit-separator-is-framing | RecordBreak.java | RecordBreakTest#anUnsplitSeparatorIsFramingNotAValue | org.opentest4j.AssertionFailedError: UNSEPARATED names it, not BROKEN_VALUE: a line less indented than the record's fields ==> expected: <tr
+ups1-detail-says-not-read | LogicalLogView.java | RecordBreakTest#aBrokenRecordSaysNotReadRatherThanNoneLogged | org.opentest4j.AssertionFailedError: AdminCommandEvent
+  AdminCommandEvent[command=alarm.lambda, args=[line one
+  (no node logged in this cy
+ups1-step-cursor-says-not-read | StepCursor.java | RecordBreakTest#aBrokenRecordSaysNotReadRatherThanNoneLogged | org.opentest4j.AssertionFailedError: entry · no node logged in this cycle ==> expected: <true> but was: <false>
+14 requested, 14 caught; baseline green, restored byte-identical (sources and classes) for every control.

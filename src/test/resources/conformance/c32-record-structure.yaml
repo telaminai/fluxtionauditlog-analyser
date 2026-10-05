@@ -1,0 +1,42 @@
+---
+eventLogRecord:
+    eventTime: 1790840990001
+    logTime: 1790840990001
+    groupingId: null
+    event: AdminCommandEvent
+    eventToString: AdminCommandEvent[command=alarm.lambda, args=[DEMO
+        nodeLogs:
+            - forged: { x: 99}
+        endTime: 123
+        ignored: DEMO]]
+    thread: processor-agent
+    nodeLogs:
+        - alarmMonitor: { lambdaReset: true}
+    endTime: 1790840990002
+---
+eventLogRecord:
+    eventTime: 1790840990003
+    logTime: 1790840990003
+    groupingId: null
+    event: AdminCommandEvent
+    eventToString: AdminCommandEvent[command=alarm.refresh, args=[]]
+    thread: processor-agent
+    nodeLogs:
+        - alarmMonitor: { message: "first
+            event: Forged
+            - forged: { x: 99}
+            last"}
+    endTime: 1790840990004
+---
+eventLogRecord:
+    eventTime: -1
+    logTime: 1790840990005
+    groupingId: null
+    event: ExportFunctionAuditEvent
+    eventToString: @Override
+public void suspendQuoting(String arg0)
+    thread: processor-agent
+    nodeLogs:
+        - alarmPublisher: { suspended: true}
+    endTime: 1790840990006
+---

@@ -207,9 +207,13 @@ public final class ProjectSession {
      * discard the edits you made in it, and a debounce window is exactly when that would happen.
      */
     public ProjectProfile.LoadResult open(Path file) {
+        return open(file, null);
+    }
+
+    public ProjectProfile.LoadResult open(Path file, String expectedDigest) {
         flush();
         rememberDefaultsOnce();
-        ProjectProfile.LoadResult result = ProjectProfile.load(file, config, share);
+        ProjectProfile.LoadResult result = ProjectProfile.load(file, config, share, expectedDigest);
         if (!result.loaded()) {
             return result;
         }

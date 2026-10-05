@@ -87,6 +87,7 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
         performed.add(effect);
         return switch (effect) {
             case SessionEffects.PrepareBundleEffect e -> new SessionEvents.Pending(e.opId(), "verifying " + e.bundlePath());
+            case SessionEffects.ShowProjectReopenEffect e -> new SessionEvents.ProjectReopenPresented(e.opId(), true);
             case SessionEffects.OpenBundleEvidenceEffect e -> new SessionEvents.Pending(e.opId(), "opening " + e.plan().logPath());
             case SessionEffects.ScanLogEvidenceEffect e -> new SessionEvents.ScanScheduled(e.opId(), e.generation());
             // M69: the recording backend for walk playback — what the node ASKED, and a plain answer
@@ -148,7 +149,7 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
                 boolean ok = loadable.contains(e.profilePath());
                 yield new SessionEvents.ProfileLoaded(e.opId(), e.profilePath(), ok,
                         ok ? nameOf(e.profilePath()) : null, 0,
-                        ok ? null : "no such profile: " + e.profilePath());
+                        ok ? null : "no such profile: " + e.profilePath(), null, e.expectedDigest());
             }
             case SessionEffects.CreateProfileEffect e -> {
                 loadable.add(e.profilePath());

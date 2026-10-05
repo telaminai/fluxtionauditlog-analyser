@@ -79,7 +79,8 @@ public final class LogTableModel extends AbstractTableModel {
             case COL_CALLBACK -> nz(index.callback(row));
             case COL_EVENT_TO_STRING -> displayEventToString(row);
             case COL_THREAD -> nz(index.thread(row));
-            case COL_NODE_LOGS -> index.nodeLogsCount(row);
+            // UPS-1: a broken record's node logs were not read; its count is unknown, so the cell is empty, never 0
+            case COL_NODE_LOGS -> index.nodeLogsWithheld(row) ? null : index.nodeLogsCount(row);
             case COL_END_TIME -> index.endTime(row);
             default -> null;
         };

@@ -1,0 +1,22 @@
+updating event log config:EventLogConfig{level=INFO, logRecordProcessor=null, sourceId=null, groupId=null}
+updating event log config:EventLogConfig{level=INFO, logRecordProcessor=null, sourceId=null, groupId=null}
+updating event log config:EventLogConfig{level=INFO, logRecordProcessor=null, sourceId=null, groupId=null}
+[mouseTrace] not installed: java.nio.file.NoSuchFileException: /this/path/does/not/exist/trace.log
+[analyser] shutdown step failed, continuing: java.lang.IllegalStateException: boom
+[analyser] shutdown step failed, continuing: java.lang.RuntimeException: middle blew up
+[analyser] shutdown step failed, continuing: java.lang.NoClassDefFoundError: some/Class
+updating event log config:EventLogConfig{level=INFO, logRecordProcessor=null, sourceId=null, groupId=null}
+updating event log config:EventLogConfig{level=WARN, logRecordProcessor=null, sourceId=riskMonitor, groupId=null}
+updating event log config:EventLogConfig{level=INFO, logRecordProcessor=null, sourceId=null, groupId=null}
+updating event log config:EventLogConfig{level=WARN, logRecordProcessor=null, sourceId=null, groupId=null}
+updating event log config:EventLogConfig{level=INFO, logRecordProcessor=null, sourceId=null, groupId=alpha}
+updating event log config:EventLogConfig{level=INFO, logRecordProcessor=null, sourceId=null, groupId=null}
+updating event log config:EventLogConfig{level=WARN, logRecordProcessor=null, sourceId=null, groupId=null}
+updating event log config:EventLogConfig{level=INFO, logRecordProcessor=null, sourceId=null, groupId=null}
+updating event log config:EventLogConfig{level=WARN, logRecordProcessor=null, sourceId=riskMonitor, DEMO, groupId=null}
+updating event log config:EventLogConfig{level=INFO, logRecordProcessor=null, sourceId=null, groupId=null}
+updating event log config:EventLogConfig{level=WARN, logRecordProcessor=null, sourceId=riskMonitor}DEMO, groupId=null}
+updating event log config:EventLogConfig{level=INFO, logRecordProcessor=null, sourceId=null, groupId=null}
+updating event log config:EventLogConfig{level=WARN, logRecordProcessor=null, sourceId= riskMonitor , groupId=null}
+updating event log config:EventLogConfig{level=INFO, logRecordProcessor=null, sourceId=null, groupId=null}
+updating event log config:EventLogConfig{level=WARN, logRecordProcessor=null, sourceId=, groupId=null}

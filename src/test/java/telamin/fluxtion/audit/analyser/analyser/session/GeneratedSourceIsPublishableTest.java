@@ -13,6 +13,7 @@ import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -74,6 +75,29 @@ class GeneratedSourceIsPublishableTest {
                                 + "test exists rather than a note in the spec.");
             }
         }
+    }
+
+    /**
+     * UPS-2, the independent review of PR #104: the DEMO processors are published WITHOUT the generator's confidentiality
+     * notice (fluxtion#24). The fixture generator strips it; disabling only that strip and regenerating put the notice back
+     * into all six copies while every other check here stayed green. The analyser's own SessionProcessor still carries the
+     * notice — the root regen profile strips the attribution only — and is deliberately NOT held to this: which notice the
+     * generated session source carries is an owner decision (tracker M19.22), not something this test decides.
+     */
+    @Test
+    @DisplayName("the DEMO processors carry no confidentiality notice (the session processor is an owner-decided exception)")
+    void theDemoProcessorsCarryNoConfidentialityNotice() throws IOException {
+        int checked = 0;
+        for (Path file : GENERATED) {
+            String name = file.toString().replace('\\', '/');
+            if (!name.startsWith("examples/fixture-generator/") || !name.endsWith(".java")) continue;
+            String body = Files.readString(file);
+            assertFalse(body.contains("This file is confidential"), file + " carries the generator's confidentiality notice; "
+                    + "the fixture generator's strip-generated-attribution execution removes it (GeneratedHeaderStripTest)");
+            assertFalse(body.contains("protected under international copyright law"), file + " carries the notice's first line");
+            checked++;
+        }
+        assertEquals(6, checked, "the three DEMO processors, each in src/main/java and src/main/resources");
     }
 
     @Test

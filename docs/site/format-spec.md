@@ -254,6 +254,57 @@ raw text; counts are preserved and nothing is dropped silently. A record with no
 legitimate record: it is kept and readable, it is **off the timeline** (it does not move the log's
 start or end), and it **orders nothing** (§2.1). *(Fixtures C01, C02, C03, C04, C05, C09.)*
 
+**A value MUST NOT break its record.** A value that can hold a line break — above all `eventToString`, which carries
+an event's own text, and so whatever an operator typed into an admin command's arguments — MUST be quoted or escaped,
+because a raw line break ends the line and whatever follows reads as if the producer had written it.
+
+The analyser reads a record's structure by **one rule**, the same for finding a break and for reading fields:
+
+- **A field** is a `key:` line at the fields' indentation (the first field's), outside a quoted value and outside the
+  node-log block.
+- **The node-log block** follows `nodeLogs:`. It holds every line more indented than the fields, and the `- ` items at
+  the fields' indentation. A line at the fields' indentation that is not an item ends it.
+- **A line that begins inside a closed quoted value** continues that value, wherever it is. It is never a field, never
+  a new item and never the end of the block. A quote that never closes is text.
+
+These shapes are impossible in a record written whole, so each makes it a **broken record**:
+
+- a line less indented than the fields;
+- outside the node-log block, a line more indented than the fields — unless it continues a block scalar (`|`, `>`)
+  or nests under an unknown key with no value, which is ignored like any unknown field;
+- a non-blank line at the fields' indentation that is not a field;
+- a second `eventLogRecord:` line;
+- a field written twice.
+
+(A bare `---` line the framer did not split on is framing's subject, not a value's: the record key after it is the
+break, and the run-together records are reported as such.)
+
+**What a broken record keeps.** It is kept and counted. Reading stops before the earliest structural break and
+before the FIRST occurrence of every repeated recognised field, even when the repeat follows another break. Neither
+copy is trusted: grouping IDs and thread names are also written unquoted, so a first copy can be payload text before
+`eventToString`, or when event text is disabled. This conservative rule can withhold a genuine first copy too.
+
+The additional cutoff at `eventToString`, `nodeLogs`, or an unknown field remains: a broken record is never read past
+that field's own line. This also withholds later, never-repeated forged fields. It is not a guarantee that other
+producer-written strings are safe; the structurally indistinguishable-input limit below still applies. **None of a
+broken record's node logs are read**, and the analyser names the break by record and line.
+
+**Withheld is not absent.** A broken record's node logs were recorded, and the analyser declined to read them. Coverage,
+the graph pairing, the records table and the CSV export say so — *withheld*, *not read* — and never that a node never
+wrote or that the record holds no node logs.
+
+**The one line break a producer writes on purpose.** An exported service call's `eventToString` is the generator's
+description of the method: `@Override`, a line break, and the method's `public …(…)` signature. It is a constant in the
+generated processor, never runtime data. Exactly that shape is whole: the record's first `event` is
+`ExportFunctionAuditEvent`, `eventToString` is exactly `@Override`, and the next line is one signature at column 0. The
+value reads `@Override`, and AF-9 tracks reading the signature.
+
+**Not detectable.** A forged field at the fields' own indentation, under a key the producer did not write for that
+record, followed by text shaped as an unknown field, leaves no structural trace. Only the producer quoting its values
+closes that gap.
+
+*(Fixtures C31, C32.)*
+
 ### 2.1 Time order is a claim the analyser checks
 
 `logTime` SHOULD be non-decreasing in container order. When it is not, the analyser **reports** it —
@@ -450,6 +501,8 @@ order, for every fixture.
 | C27 whitespace only | blank lines are no records: `unknown`, the finding |
 | C28 zero bytes | also the empty export: `unknown`, the finding |
 | C29 no record key | completeness is not integrity: a headerless run-together line under a marker declaring 3 reads `complete, 3 of 3`, and record 2 is still named |
+| C31 broken value | a line break in an unquoted value forges nothing: two admin command records whose arguments carry `nodeLogs:` / `eventLogRecord:` and `event:` lines keep their dispatched event, read no node logs and are named; the whole records around them read as before |
+| C32 record structure | one structural rule: a payload indented deeper than the fields breaks the record and forges nothing; a closed quoted node-log value's continuation is never the event or a new node; the generator's exported-service record (`@Override` and one signature at column 0) is whole — on the built-in path, the legacy SPI path and a reader declaring the typed grammar |
 | C30 per-node level | a control record setting a node to `WARN` annotates that node on both paths; it stays uncovered |
 | C15 graph provenance | a `SourceGraph` cannot exist without DECLARED/INFERRED; INFERRED forbids coverage; an opened graph outranks a supplied one; dangling edges dropped |
 

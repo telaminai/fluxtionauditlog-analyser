@@ -47,7 +47,12 @@ RECORDED_REPLAY = REPLAY_DIR / "demo-quote-recorded.replay.yaml"
 PROCESSOR = "com.acme.demo.generated.DemoQuoteRecordedProcessor"
 DEMO_SRC = REPO / "examples/fixture-generator/src/main/java"
 DEMO_GRAPHML = REPO / "examples/fixture-generator/src/main/resources/com/acme/demo/generated/DemoQuoteRecordedProcessor.graphml"
-RUNTIME = pathlib.Path.home() / ".m2/repository/com/telamin/fluxtion/fluxtion-runtime/1.0.16/fluxtion-runtime-1.0.16.jar"
+# The analyser's own runtime, read from the root pom, never a version of its own: the review of PR #104 (N3) found this
+# pinned to 1.0.16 after the pom moved, so a cache filled by the current build need not hold it.
+# FixtureGeneratorToolchainTest#theCaptureToolTakesTheRuntimeFromThePom holds it.
+RUNTIME_VERSION = re.search(r"<fluxtion\.version>([^<]+)</fluxtion\.version>", (REPO / "pom.xml").read_text()).group(1)
+RUNTIME = (pathlib.Path.home() / ".m2/repository/com/telamin/fluxtion/fluxtion-runtime" / RUNTIME_VERSION
+           / f"fluxtion-runtime-{RUNTIME_VERSION}.jar")
 
 
 # ---- the recorder, plus the recipient's commands ---------------------------------------------------------------------

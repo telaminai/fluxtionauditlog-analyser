@@ -123,7 +123,10 @@ public final class CoveragePolicy {
                 ? " Also: " + levelReason(mostVerboseLevel) : "";
         if (pairing != null && !pairing.evidenced()) {
             return new Assessment(Claim.QUALIFIED,
-                    "no node output was recorded in the records the pairing checked, so it could not "
+                    (pairing.nodeLogsWithheld() > 0
+                            ? "no node output was read in the records the pairing checked (" + pairing.nodeLogsWithheld()
+                              + " had their node logs withheld because their structure breaks), so it could not "
+                            : "no node output was recorded in the records the pairing checked, so it could not ")
                             + "establish that this graph describes this log. The graph is kept and the number "
                             + "is computable, but it rests on no membership evidence, and every eligible node "
                             + "therefore reads as uncovered: " + pairing.reason() + "." + levelCaveat);

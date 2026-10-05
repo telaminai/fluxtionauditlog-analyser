@@ -204,6 +204,10 @@ public final class StepCursor {
         if (isEmpty()) return "no records";
         int total = rowCount();
         if (atEntry()) {
+            LogRecord record = record();
+            if (total == 0 && record != null && record.brokenAtLine() > 0) {
+                return "entry · node logs not read (the record's structure breaks at its line " + record.brokenAtLine() + ")";
+            }
             return total == 0
                     ? "entry · no node logged in this cycle"
                     : "entry · " + total + (traced() ? " invocation(s)" : " logged row(s)");
