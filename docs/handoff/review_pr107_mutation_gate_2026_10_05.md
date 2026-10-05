@@ -63,8 +63,10 @@ correctness verdict is passes; the declared platform and performance acceptance 
 
 ## Final acceptance addendum
 
-The earlier acceptance gaps are superseded by the [acceptance receipt](evidence/mutation-gate-iteration-2026-10-05/ACCEPTANCE.md):
+The earlier parity, timing-observation and PR-lifecycle gaps are addressed by the [acceptance receipt](evidence/mutation-gate-iteration-2026-10-05/ACCEPTANCE.md):
 six complete parity phases, three paired timing observations, and real draft/ready/supersession trials.
 The independent local agent accepted code head `5a4d1977` and independently recollected all six phases.
 No required code correction remains. Ready for owner merge once the final documentation head's CI is green.
-The disclosed baseline flake is tracked in #112; performance limits and deferred grouping remain explicit.
+The disclosed intermittent baseline failure is tracked in #112; its cause is unproven. Actual main/release
+event isolation remains source-reviewed only (the unexecuted part of MG-A3); performance limits and
+deferred grouping remain explicit.

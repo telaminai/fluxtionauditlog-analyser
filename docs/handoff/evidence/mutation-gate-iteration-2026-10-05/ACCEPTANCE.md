@@ -104,8 +104,9 @@ completed with successful feedback and an explicitly failed full mutation gate (
 Its feedback contains one caught control and 627 omitted controls. Build and display succeeded.
 This closes the draft/ready/supersession experiment; the temporary PR is not a delivery candidate.
 
-MG-A2/A3 lifecycle, MG-A11 full parity and MG-A12 three paired observations are demonstrated above.
+MG-A2 and the PR lifecycle/supersession portion of MG-A3, MG-A11 full parity and MG-A12 three paired observations are demonstrated above.
 The independent local reviewer accepted the correctness fixes and independently recomputed the six
-phase receipts and timing medians. Remaining limits are performance characterization and the explicitly
-deferred grouping design, not required code corrections. The implementation is ready for owner merge,
+phase receipts and timing medians. Actual main/release event isolation was source-reviewed, not exercised: that part of MG-A3 remains
+unexecuted acceptance evidence. Performance characterization and the explicitly deferred grouping
+design also remain limited as stated above. None is a newly found code defect. The implementation is ready for owner merge,
 subject to successful CI on the final documentation head. No merge or release was performed here.
