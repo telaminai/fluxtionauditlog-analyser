@@ -1,0 +1,104 @@
+{
+  "head": "c1cd9aa7beb6893a8c4700cdb9e09f10790d5401",
+  "controls": 628,
+  "complete": true,
+  "metrics": {
+    "workerSeconds": [
+      415.1,
+      426.1,
+      387.1,
+      297.5,
+      270.2,
+      268.5,
+      389.7,
+      373.7
+    ],
+    "baselineInvocations": [
+      77,
+      74,
+      82,
+      99,
+      76,
+      75,
+      78,
+      87
+    ],
+    "fallbacks": 3,
+    "slowestControls": [
+      {
+        "name": "review-panel-inner-frame",
+        "seconds": 20.9
+      },
+      {
+        "name": "m69-s3-dismissal-reports-end",
+        "seconds": 20.2
+      },
+      {
+        "name": "source-embedded-refresh",
+        "seconds": 19.4
+      },
+      {
+        "name": "bundle-published-to-context",
+        "seconds": 19.3
+      },
+      {
+        "name": "review-navigator-list-closed",
+        "seconds": 19.2
+      },
+      {
+        "name": "mouse-loss-autoscroll-restored",
+        "seconds": 19.1
+      },
+      {
+        "name": "m69-s4-tab-uses-the-verb-path",
+        "seconds": 18.9
+      },
+      {
+        "name": "m69-r6c-baseline-follows-the-verb",
+        "seconds": 17.8
+      },
+      {
+        "name": "global-refusal",
+        "seconds": 17.8
+      },
+      {
+        "name": "bundle-anchor-restore-requested",
+        "seconds": 17.5
+      },
+      {
+        "name": "global-preservation",
+        "seconds": 17.3
+      },
+      {
+        "name": "m69-s3-strip-before-dismissal",
+        "seconds": 16.9
+      },
+      {
+        "name": "bundle-anchor-restored",
+        "seconds": 16.4
+      },
+      {
+        "name": "mouse-loss-table-timer",
+        "seconds": 15.9
+      },
+      {
+        "name": "oa-close-docks",
+        "seconds": 15.8
+      }
+    ],
+    "meaning": "engine elapsed time; excludes runner queue, checkout and upload"
+  },
+  "schema": 2,
+  "planDigest": "1899cc147354a06657dfc0ec2cef0fcfa6c0010329fe0d0b4de5def19b9a790e",
+  "scope": "full",
+  "baselineSeconds": [
+    18.201005597999995,
+    22.843234840999997,
+    22.197791394999967,
+    32.13590287,
+    12.768774987999997,
+    16.228398638,
+    11.021041616999995,
+    17.894001912999997
+  ]
+}

@@ -72,3 +72,9 @@ line, and update this index in the same change.
 | [spec-baselines.md](spec-baselines.md) | specified; four owner questions open | M39 |
 | [spec-latency-model-and-controls.md](spec-latency-model-and-controls.md) | proposed; no tracker item owns it | none — owner to file or withdraw |
 | [spec-formula-golden-fixtures.md](spec-formula-golden-fixtures.md) | harness and first tranche landed; the corpus grows | Hardening |
+
+## Development and release tooling
+
+| Spec | Status | Tracker |
+|---|---|---|
+| [spec-mutation-gate-iteration.md](spec-mutation-gate-iteration.md) | r2; implementation under review; grouping deferred | MG-1 |

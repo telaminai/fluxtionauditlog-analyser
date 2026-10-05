@@ -24,6 +24,20 @@ mvn -o clean verify                                     # offline full build + t
 
 `src/test/resources/sample.yml` is a representative audit log to open.
 
+## Fast iteration and mutation evidence
+
+Run relevant ordinary tests while editing. Do not run mutations after every edit or repeat the full
+local gate for a normal feature review. At correction milestones, use the fast engine with explicit
+`--case NAME` for new/changed and implicated controls; each must fail at its named assertion and
+restore green (rule 8). Never run mutation processes concurrently in one worktree; display work
+still requires the shared display lock.
+
+Narrow draft PRs get explicitly partial feedback. Ready PRs and main run every control on eight
+isolated workers. Shared infrastructure changes require the full gate even on drafts. The owner
+keeps merge/release enforcement manual: inspect evidence for the actual current candidate. A draft's
+intentionally failing deferred full-gate check is not permission to merge. The
+[MG-1 specification](specs/spec-mutation-gate-iteration.md) defines the policy.
+
 ## Architecture — packages under `telamin.fluxtion.audit.analyser.analyser`
 
 | Package | Role |

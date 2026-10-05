@@ -68,6 +68,14 @@ architecture, conventions). This file is only the rules that must never be skipp
    and `docs/skills/`, or a site image — `tools/ci_docs_only.py`) runs `build` only: docs are test inputs, so the
    headless suite still runs, while the frame suites, loop bench and mutation shards are skipped. Report
    skips separately from passes; use the built jar for visual and action-socket acceptance.
+   **Mutation iteration (MG-1):** local edits use relevant ordinary tests, with no mutation run by default.
+   Once a correction stabilises, demonstrate only its new/changed and specifically implicated controls
+   (`--mode mutations --engine fast --case NAME`). Do not repeat the full local gate for ordinary development
+   or review. Narrow draft PRs publish partial `mutation-feedback`; ready PRs and main run the complete gate.
+   Harness changes force full evidence, including on drafts. Manual merge/release enforcement is the owner's
+   decision: inspect the current candidate's complete CI evidence; partial or stale results do not qualify.
+   Rule 8's named wrong-result witness remains mandatory; CI may provide it. See
+   `docs/specs/spec-mutation-gate-iteration.md` for policy and implementation acceptance.
 5. **Docs site** (`docs/site/`, root `mkdocs.yml`, MkDocs Material): `mkdocs build --strict` must pass
    before pushing site changes (CI link-checks). Local: `pip3 install -r docs-requirements.txt &&
    mkdocs serve`.

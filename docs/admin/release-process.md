@@ -151,15 +151,36 @@ fatjar with the version stamped in → publishes a GitHub Release with the notes
 ## 5. CI workflow
 
 [The executable CI workflow](../../.github/workflows/ci.yml) is the source of truth, rather than a
-second YAML copy here. Every push and PR to main runs the build, loop bench, display frame gate and
-full fast mutation gate. The mutation job uploads its JSON evidence. Frame suites must appear in
-both registration lists; a skipped display suite is a failure, not a pass. The default headless
-Maven suite alone cannot verify a click or dialog.
+second YAML copy here. Ordinary CI keeps the build, loop bench and display policy; proven docs-only
+changes retain their explicit exemption. Narrow draft PRs run partial `mutation-feedback`, while
+ready PRs and main run the complete fast mutation gate across eight isolated workers. Shared
+infrastructure changes force full checks even on drafts. The deferred draft `mutation-gate` concludes
+failure, never neutral/skipped success. Converting to ready triggers full CI even without a new commit.
 
-The fast mutation engine uses a fresh test JVM per control and a full rebuild when its API guard
-requires one. Local mutation runs still default to the Maven engine for the initial comparison
-cycle. Branch-subset selection is a development aid, not a replacement for CI's full gate.
-Whether checks are required by branch protection is an owner setting.
+Frame suites must appear in both registration lists; a skipped display suite is a failure, not a
+pass. The headless Maven suite alone cannot verify a click or dialog. Mutation witnesses use fresh
+JVMs and byte restoration per control; named baselines do not replace the ordinary full suite.
+
+Local development runs relevant tests, with correction-specific mutation witnesses at milestones.
+Do not repeat a full local mutation gate for release: use successful full main CI for the candidate
+code. Record the PR head, base, tested merge candidate and main validation revision/run, accounting
+explicitly for any later docs-only changes. Changed base or candidate means old evidence is stale.
+
+**Owner decision MG-O1: manual enforcement.** No GitHub branch protection is introduced. The person
+merging/releasing must inspect complete current-candidate evidence; partial, cancelled, failed or
+missing work cannot be substituted. A docs-only exemption makes no “all controls caught” claim.
+The full collector retains rejection evidence as well as successes.
+
+For gate maintenance, use `tools/refresh_mutation_timings.py --help`: download at least three
+complete collector artifacts and keep another run held out. The script records medians, provenance
+and missing observations; the registry still decides membership. Read exact-run job/step costs with
+`python3 tools/mutation_run_report.py --run RUN --output REPORT.json` after completion. This reports
+execution minutes and available queue intervals, not billing. Preserve failed attempts too.
+
+Harness reviewers can compare the old whole-class baseline with named baselines using
+`--mode compare-baselines --case NAME --output REPORT.json` in an isolated worktree. Both variants
+run the same controls and the two intentional survivors with fresh witness JVMs. Omit `--case` only
+for the spec's explicit full parity trial on isolated CI; this is not an ordinary local gate.
 
 ## 6. Release workflow
 

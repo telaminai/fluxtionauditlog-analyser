@@ -1,0 +1,89 @@
+{
+  "schema": 2,
+  "scope": "feedback",
+  "mode": "mutations",
+  "engine": "fast",
+  "seconds": 9.8,
+  "runs": [
+    {
+      "name": "dialog-unanswered-row",
+      "sha256": "73ebb4d32f30e26c9bddedf93c7b7785b7395f288291111c735fa5156466137b",
+      "verdict": "caught",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "seconds": 1.0,
+      "mutated": [
+        {
+          "name": "DuplicateChartRepairTest",
+          "tests": 1,
+          "failures": 1,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "anUnansweredRowProducesNoChoiceAtAll"
+          ],
+          "assertions": [
+            {
+              "test": "anUnansweredRowProducesNoChoiceAtAll",
+              "kind": "failure",
+              "message": "org.opentest4j.AssertionFailedError: \"Choose\u2026\" must contribute NOTHING \u2014 a default here is the silent winner that refusing a partial repair exists to prevent ==> expected: <null> but was: <Choice[action=DELETE, newName=null]>"
+            }
+          ]
+        }
+      ],
+      "restored": [
+        {
+          "name": "DuplicateChartRepairTest",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "anUnansweredRowProducesNoChoiceAtAll"
+          ],
+          "assertions": []
+        }
+      ]
+    },
+    {
+      "name": "design-status-capped",
+      "sha256": "1e4e78237e75b13a3d5f1ba8b417853a849aec2faa6fd546052b6d0193169935",
+      "verdict": "caught",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "seconds": 3.5,
+      "mutated": [
+        {
+          "name": "DesignSpotlightFrameTest",
+          "tests": 1,
+          "failures": 1,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "anOverflowingStatusNoteLeavesTheXmlItsHeight"
+          ],
+          "assertions": [
+            {
+              "test": "anOverflowingStatusNoteLeavesTheXmlItsHeight",
+              "kind": "failure",
+              "message": "org.opentest4j.AssertionFailedError: an overflowing status note must leave the XML its height: xml 0 of 418 px ==> expected: <true> but was: <false>"
+            }
+          ]
+        }
+      ],
+      "restored": [
+        {
+          "name": "DesignSpotlightFrameTest",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "anOverflowingStatusNoteLeavesTheXmlItsHeight"
+          ],
+          "assertions": []
+        }
+      ]
+    }
+  ]
+}

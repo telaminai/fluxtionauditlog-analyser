@@ -25,14 +25,15 @@ class ShardingTest(unittest.TestCase):
         self.docs = self.evidence()
 
     def result(self, failure=False):
-        return {'exit': 1 if failure else 0, 'output': '', 'suites': [{
+        return {'completedNormally': True, 'exit': 1 if failure else 0, 'output': '', 'suites': [{
             'name': 'FixtureTest', 'tests': 1, 'failures': int(failure), 'errors': 0, 'skipped': 0,
             'testNames': ['checksBehaviour'],
             'assertions': [{'test': 'checksBehaviour', 'kind': 'failure'}] if failure else []}]}
 
     def evidence(self):
         plan, _ = shards.plan(self.cases, 4)
-        return [{'mode': 'mutations', 'engine': 'fast', 'baseline': self.result(),
+        return [{'schema': shards.SCHEMA, 'scope': 'full',
+                 'planDigest': shards.plan_digest(self.cases, 4), 'mode': 'mutations', 'engine': 'fast', 'baseline': self.result(),
                  'shard': {'index': i, 'count': 4, 'revision': self.revision, 'cases': [c[0] for c in group]},
                  'runs': [{'name': c[0], 'site': c[1], 'sha256': hashlib.sha256(self.source.read_bytes()).hexdigest(),
                            'engine': 'fast', 'baselineGreen': True, 'verdict': 'caught',
@@ -81,7 +82,7 @@ class ShardingTest(unittest.TestCase):
 
     def test_changed_source_fails(self):
         self.source.write_text('different source')
-        self.reject('wrong source snapshot')
+        self.reject('wrong plan digest')
 
     def test_falsely_claimed_completion_fails(self):
         self.docs[0]['complete'] = True
@@ -205,7 +206,9 @@ class ShardingTest(unittest.TestCase):
                             '--output', str(folder / 'combined.json')], capture_output=True, text=True)
         self.assertEqual(1, r.returncode, 'absent results must fail the required check')
         self.assertIn('expected 4 shard results, got 0', r.stderr, 'failure must identify missing evidence')
-        self.assertFalse((folder / 'combined.json').exists(), 'must not write a successful combined result')
+        rejected = json.loads((folder / 'combined.json').read_text())
+        self.assertFalse(rejected['complete'], 'rejection evidence must never claim completion')
+        self.assertIn('expected 4 shard results', rejected['rejection'], 'retain the rejection reason')
 
     def test_worker_uses_full_preflight_then_only_its_assigned_controls(self):
         output = Path(self.tmp.name) / 'worker.json'
@@ -217,7 +220,7 @@ class ShardingTest(unittest.TestCase):
             for entry in self.docs[1]['runs']:
                 kwargs['on_entry'](entry)
         with patch.object(sys, 'argv', args), patch.object(gate, 'selected_cases', return_value=self.cases) as selected, \
-                patch.object(gate.fast, 'FastEngine'), patch.object(gate, 'run_gate', side_effect=execute), \
+                patch.object(gate.fast, 'FastEngine', return_value=type('Engine', (), {'phases': {}, 'fallbacks': 0, 'prepare': lambda self: None})()), patch.object(gate, 'run_gate', side_effect=execute), \
                 patch.object(shards, 'revision', return_value=self.revision):
             gate.main()
         selected.assert_called_once_with(None)

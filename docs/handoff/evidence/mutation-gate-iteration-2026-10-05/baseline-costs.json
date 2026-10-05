@@ -1,0 +1,556 @@
+{
+  "run": "https://github.com/telaminai/fluxtionauditlog-analyser/actions/runs/36864001774",
+  "head": "787f2e1a1e26c22bd58e62362990bce829860b1c",
+  "event": "push",
+  "conclusion": "success",
+  "elapsedSeconds": 889.0,
+  "jobExecutionMinutes": 63.55,
+  "meaning": "API wall-clock job durations, not billed minutes; steps include setup/upload when reported",
+  "jobs": [
+    {
+      "name": "build",
+      "conclusion": "success",
+      "seconds": 112.0,
+      "queueSeconds": 2.0,
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success",
+          "seconds": 1.0
+        },
+        {
+          "name": "Run actions/checkout@v5",
+          "conclusion": "success",
+          "seconds": 8.0
+        },
+        {
+          "name": "Run actions/setup-java@v5",
+          "conclusion": "success",
+          "seconds": 3.0
+        },
+        {
+          "name": "Test generated-bundle contract preflight",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "dispatch bench harness tests (M46/W10)",
+          "conclusion": "success",
+          "seconds": 1.0
+        },
+        {
+          "name": "Resolver and mode-selector smoke tests",
+          "conclusion": "success",
+          "seconds": 1.0
+        },
+        {
+          "name": "Acceptance analyser supervision tests",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "G14 harness tests (key-leak scan, group reaping, refusals)",
+          "conclusion": "success",
+          "seconds": 29.0
+        },
+        {
+          "name": "Docs-only classifier tests (which changes may skip the expensive jobs)",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Evidence bundle driver tests (the capture skill's refusals, headless)",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Run mvn -B verify",
+          "conclusion": "success",
+          "seconds": 65.0
+        },
+        {
+          "name": "Post Run actions/setup-java@v5",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Post Run actions/checkout@v5",
+          "conclusion": "success",
+          "seconds": 1.0
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success",
+          "seconds": 0.0
+        }
+      ]
+    },
+    {
+      "name": "changes",
+      "conclusion": "success",
+      "seconds": 16.0,
+      "queueSeconds": 2.0,
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success",
+          "seconds": 1.0
+        },
+        {
+          "name": "Run actions/checkout@v5",
+          "conclusion": "success",
+          "seconds": 11.0
+        },
+        {
+          "name": "Run if [ \"$EVENT\" = pull_request ]; then",
+          "conclusion": "success",
+          "seconds": 1.0
+        },
+        {
+          "name": "Post Run actions/checkout@v5",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success",
+          "seconds": 0.0
+        }
+      ]
+    },
+    {
+      "name": "mutation-shards (1)",
+      "conclusion": "success",
+      "seconds": 848.0,
+      "queueSeconds": 2.0,
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success",
+          "seconds": 1.0
+        },
+        {
+          "name": "Run actions/checkout@v5",
+          "conclusion": "success",
+          "seconds": 6.0
+        },
+        {
+          "name": "Run actions/setup-java@v5",
+          "conclusion": "success",
+          "seconds": 2.0
+        },
+        {
+          "name": "Install virtual display",
+          "conclusion": "success",
+          "seconds": 9.0
+        },
+        {
+          "name": "Run this shard (full registry partition, never a changed-files subset)",
+          "conclusion": "success",
+          "seconds": 827.0
+        },
+        {
+          "name": "Keep partial evidence even when a control fails",
+          "conclusion": "success",
+          "seconds": 1.0
+        },
+        {
+          "name": "Post Run actions/setup-java@v5",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Post Run actions/checkout@v5",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success",
+          "seconds": 0.0
+        }
+      ]
+    },
+    {
+      "name": "mutation-shards (3)",
+      "conclusion": "success",
+      "seconds": 838.0,
+      "queueSeconds": 2.0,
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success",
+          "seconds": 1.0
+        },
+        {
+          "name": "Run actions/checkout@v5",
+          "conclusion": "success",
+          "seconds": 6.0
+        },
+        {
+          "name": "Run actions/setup-java@v5",
+          "conclusion": "success",
+          "seconds": 2.0
+        },
+        {
+          "name": "Install virtual display",
+          "conclusion": "success",
+          "seconds": 10.0
+        },
+        {
+          "name": "Run this shard (full registry partition, never a changed-files subset)",
+          "conclusion": "success",
+          "seconds": 815.0
+        },
+        {
+          "name": "Keep partial evidence even when a control fails",
+          "conclusion": "success",
+          "seconds": 1.0
+        },
+        {
+          "name": "Post Run actions/setup-java@v5",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Post Run actions/checkout@v5",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success",
+          "seconds": 0.0
+        }
+      ]
+    },
+    {
+      "name": "mutation-shards (0)",
+      "conclusion": "success",
+      "seconds": 846.0,
+      "queueSeconds": 2.0,
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success",
+          "seconds": 2.0
+        },
+        {
+          "name": "Run actions/checkout@v5",
+          "conclusion": "success",
+          "seconds": 9.0
+        },
+        {
+          "name": "Run actions/setup-java@v5",
+          "conclusion": "success",
+          "seconds": 2.0
+        },
+        {
+          "name": "Install virtual display",
+          "conclusion": "success",
+          "seconds": 7.0
+        },
+        {
+          "name": "Run this shard (full registry partition, never a changed-files subset)",
+          "conclusion": "success",
+          "seconds": 822.0
+        },
+        {
+          "name": "Keep partial evidence even when a control fails",
+          "conclusion": "success",
+          "seconds": 1.0
+        },
+        {
+          "name": "Post Run actions/setup-java@v5",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Post Run actions/checkout@v5",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success",
+          "seconds": 0.0
+        }
+      ]
+    },
+    {
+      "name": "mutation-selftest",
+      "conclusion": "success",
+      "seconds": 135.0,
+      "queueSeconds": 2.0,
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success",
+          "seconds": 1.0
+        },
+        {
+          "name": "Run actions/checkout@v5",
+          "conclusion": "success",
+          "seconds": 7.0
+        },
+        {
+          "name": "Run actions/setup-java@v5",
+          "conclusion": "success",
+          "seconds": 2.0
+        },
+        {
+          "name": "Test allocation and fail-closed collection",
+          "conclusion": "success",
+          "seconds": 1.0
+        },
+        {
+          "name": "Check the fast engine, including real compile fallbacks",
+          "conclusion": "success",
+          "seconds": 119.0
+        },
+        {
+          "name": "Keep the engine's evidence",
+          "conclusion": "success",
+          "seconds": 1.0
+        },
+        {
+          "name": "Post Run actions/setup-java@v5",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Post Run actions/checkout@v5",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success",
+          "seconds": 0.0
+        }
+      ]
+    },
+    {
+      "name": "ui-frame",
+      "conclusion": "success",
+      "seconds": 159.0,
+      "queueSeconds": 2.0,
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success",
+          "seconds": 1.0
+        },
+        {
+          "name": "Run actions/checkout@v5",
+          "conclusion": "success",
+          "seconds": 7.0
+        },
+        {
+          "name": "Run actions/setup-java@v5",
+          "conclusion": "success",
+          "seconds": 2.0
+        },
+        {
+          "name": "Install virtual display",
+          "conclusion": "success",
+          "seconds": 10.0
+        },
+        {
+          "name": "Verify frame-suite registration and mutation anchors",
+          "conclusion": "success",
+          "seconds": 1.0
+        },
+        {
+          "name": "Run the frame lifecycle tests on a display",
+          "conclusion": "success",
+          "seconds": 136.0
+        },
+        {
+          "name": "Fail if any suite skipped",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Post Run actions/setup-java@v5",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Post Run actions/checkout@v5",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success",
+          "seconds": 0.0
+        }
+      ]
+    },
+    {
+      "name": "mutation-shards (2)",
+      "conclusion": "success",
+      "seconds": 793.0,
+      "queueSeconds": 2.0,
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success",
+          "seconds": 1.0
+        },
+        {
+          "name": "Run actions/checkout@v5",
+          "conclusion": "success",
+          "seconds": 8.0
+        },
+        {
+          "name": "Run actions/setup-java@v5",
+          "conclusion": "success",
+          "seconds": 2.0
+        },
+        {
+          "name": "Install virtual display",
+          "conclusion": "success",
+          "seconds": 7.0
+        },
+        {
+          "name": "Run this shard (full registry partition, never a changed-files subset)",
+          "conclusion": "success",
+          "seconds": 771.0
+        },
+        {
+          "name": "Keep partial evidence even when a control fails",
+          "conclusion": "success",
+          "seconds": 1.0
+        },
+        {
+          "name": "Post Run actions/setup-java@v5",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Post Run actions/checkout@v5",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success",
+          "seconds": 0.0
+        }
+      ]
+    },
+    {
+      "name": "loop-bench",
+      "conclusion": "success",
+      "seconds": 51.0,
+      "queueSeconds": 2.0,
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success",
+          "seconds": 2.0
+        },
+        {
+          "name": "Run actions/checkout@v5",
+          "conclusion": "success",
+          "seconds": 7.0
+        },
+        {
+          "name": "Run actions/setup-java@v5",
+          "conclusion": "success",
+          "seconds": 1.0
+        },
+        {
+          "name": "Install virtual display",
+          "conclusion": "success",
+          "seconds": 7.0
+        },
+        {
+          "name": "Package analyser",
+          "conclusion": "success",
+          "seconds": 13.0
+        },
+        {
+          "name": "Run registry/export/analyser/MCP loop",
+          "conclusion": "success",
+          "seconds": 7.0
+        },
+        {
+          "name": "Verify session recovery across JVM restarts",
+          "conclusion": "success",
+          "seconds": 12.0
+        },
+        {
+          "name": "Post Run actions/setup-java@v5",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Post Run actions/checkout@v5",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success",
+          "seconds": 0.0
+        }
+      ]
+    },
+    {
+      "name": "mutation-gate",
+      "conclusion": "success",
+      "seconds": 15.0,
+      "queueSeconds": 3.0,
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success",
+          "seconds": 2.0
+        },
+        {
+          "name": "Run actions/checkout@v5",
+          "conclusion": "success",
+          "seconds": 8.0
+        },
+        {
+          "name": "Docs-only change \u2014 no mutation control can be affected",
+          "conclusion": "skipped",
+          "seconds": 0.0
+        },
+        {
+          "name": "Require successful workers and engine self-test",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Run actions/download-artifact@v4",
+          "conclusion": "success",
+          "seconds": 1.0
+        },
+        {
+          "name": "Verify every current control exactly once against this revision",
+          "conclusion": "success",
+          "seconds": 0.0
+        },
+        {
+          "name": "Keep the combined evidence",
+          "conclusion": "success",
+          "seconds": 1.0
+        },
+        {
+          "name": "Post Run actions/checkout@v5",
+          "conclusion": "success",
+          "seconds": 1.0
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success",
+          "seconds": 0.0
+        }
+      ]
+    }
+  ]
+}

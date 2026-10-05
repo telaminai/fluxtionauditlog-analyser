@@ -2,10 +2,18 @@ name: CI
 
 # main must be green before it can be released; the release workflow re-verifies too (M16 §5).
 on:
+  workflow_dispatch:
   push:
     branches: [main]
   pull_request:
     branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
+
+# Only newer runs of this workflow for the SAME PR supersede one another.
+# Unique non-PR keys prevent even pending main runs from being replaced.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || format('run-{0}-{1}', github.run_id, github.run_attempt) }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   changes:
@@ -16,6 +24,9 @@ jobs:
     timeout-minutes: 5
     outputs:
       docs_only: ${{ steps.classify.outputs.docs_only }}
+      mutation_mode: ${{ steps.mutations.outputs.mutation_mode }}
+      shard_count: ${{ steps.mutations.outputs.shard_count }}
+      shard_matrix: ${{ steps.mutations.outputs.shard_matrix }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -33,6 +44,22 @@ jobs:
             python3 tools/ci_docs_only.py "$PUSH_BEFORE" "$GITHUB_SHA" >> "$GITHUB_OUTPUT"
           fi
           cat "$GITHUB_OUTPUT"
+
+      - id: mutations
+        if: steps.classify.outputs.docs_only != 'true'
+        env:
+          EVENT: ${{ github.event_name }}
+          PR_DRAFT: ${{ github.event.pull_request.draft }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: python3 tools/mutation_policy.py --output target/mutation-plan.json >> "$GITHUB_OUTPUT"
+      - name: Keep selection and candidate provenance
+        if: always() && steps.classify.outputs.docs_only != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: mutation-plan
+          path: target/mutation-plan.json
+          if-no-files-found: error
 
   build:
     runs-on: ubuntu-latest
@@ -64,6 +91,11 @@ jobs:
       # no model session and contact no network.
       - name: G14 harness tests (key-leak scan, group reaping, refusals)
         run: python3 tools/test_g14_runner.py
+      - name: Mutation policy and evidence tests (no mutation execution)
+        run: |
+          python3 tools/test_mutation_shards.py
+          python3 tools/test_mutation_iteration.py
+          python3 tools/test_project_chart_review.py
       - name: Docs-only classifier tests (which changes may skip the expensive jobs)
         run: python3 tools/test_ci_docs_only.py
       - name: Evidence bundle driver tests (the capture skill's refusals, headless)
@@ -137,9 +169,9 @@ jobs:
           done
 
   mutation-selftest:
-    # Independent required job: do not put this setup cost in every shard's critical path.
+    # Independent full-gate job: do not put this setup cost in every shard's critical path.
     needs: changes
-    if: ${{ !cancelled() && needs.changes.outputs.docs_only != 'true' }}
+    if: ${{ !cancelled() && needs.changes.outputs.mutation_mode == 'full' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -167,14 +199,13 @@ jobs:
     # Separate runners mean separate workspaces, class trees and Xvfb displays. Controls within a
     # shard remain sequential: one baseline, then named failure / byte restore / restored green.
     needs: changes
-    if: ${{ !cancelled() && needs.changes.outputs.docs_only != 'true' }}
+    if: ${{ !cancelled() && needs.changes.outputs.mutation_mode == 'full' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
       fail-fast: false
-      max-parallel: 4
       matrix:
-        shard: [0, 1, 2, 3]
+        shard: ${{ fromJSON(needs.changes.outputs.shard_matrix) }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -189,7 +220,7 @@ jobs:
       - name: Run this shard (full registry partition, never a changed-files subset)
         run: >
           xvfb-run -a python3 tools/verify_project_chart_review.py --mode mutations --engine fast
-          --shard-index ${{ matrix.shard }} --shard-count 4
+          --shard-index ${{ matrix.shard }} --shard-count ${{ needs.changes.outputs.shard_count }}
           --output target/mutation-shard-${{ matrix.shard }}.json
       - name: Keep partial evidence even when a control fails
         if: always()
@@ -199,9 +230,39 @@ jobs:
           path: target/mutation-shard-${{ matrix.shard }}.json
           if-no-files-found: error
 
+  mutation-feedback:
+    # Explicitly partial draft feedback; never consumed by the full collector.
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.mutation_mode == 'feedback' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Install virtual display
+        run: sudo apt-get update && sudo apt-get install -y xvfb
+      - name: Run selected witnesses only
+        env:
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+        run: >
+          xvfb-run -a python3 tools/verify_project_chart_review.py --mode mutations --engine fast
+          --changed-since "$PR_BASE" --output target/mutation-feedback.json
+      - name: Keep selected, caught and not-run evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mutation-feedback
+          path: target/mutation-feedback.json
+          if-no-files-found: error
+
   mutation-gate:
-    # Preserve the existing required-check name. A failed/cancelled/skipped worker or self-test
-    # fails this job; successful jobs must also prove complete, exactly-once control coverage.
+    # Same check name; manual enforcement (MG-O1). Deferred draft means FAILURE, never neutral/skip.
     needs: [changes, mutation-selftest, mutation-shards]
     if: always()
     runs-on: ubuntu-latest
@@ -210,29 +271,57 @@ jobs:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
-      - name: Docs-only change — no mutation control can be affected
+      - name: Require a successful policy decision
+        env:
+          CHANGES_RESULT: ${{ needs.changes.result }}
+        run: test "$CHANGES_RESULT" = success
+      - name: Docs-only exemption (not an all-controls claim)
         if: needs.changes.outputs.docs_only == 'true'
-        run: echo "docs-only change; the mutation shards and self-test were skipped by design (tools/ci_docs_only.py)"
+        run: echo "docs-only change; mutation work omitted by tools/ci_docs_only.py"
+      - name: Full gate deferred while draft
+        if: needs.changes.outputs.mutation_mode == 'feedback'
+        run: |
+          echo "full gate deferred while draft; mark ready to run"
+          exit 1
       - name: Require successful workers and engine self-test
         if: needs.changes.outputs.docs_only != 'true'
         env:
+          MODE: ${{ needs.changes.outputs.mutation_mode }}
           SELFTEST_RESULT: ${{ needs.mutation-selftest.result }}
           SHARDS_RESULT: ${{ needs.mutation-shards.result }}
-        run: |
-          test "$SELFTEST_RESULT" = success && test "$SHARDS_RESULT" = success
+        run: test "$MODE" = full && test "$SELFTEST_RESULT" = success && test "$SHARDS_RESULT" = success
       - uses: actions/download-artifact@v4
-        if: needs.changes.outputs.docs_only != 'true'
+        if: needs.changes.outputs.mutation_mode == 'full'
         with:
           pattern: mutation-shard-*
           path: target/mutation-shards
           merge-multiple: true
-      - name: Verify every current control exactly once against this revision
-        if: needs.changes.outputs.docs_only != 'true'
+      - name: Verify every current control exactly once against this candidate
+        if: needs.changes.outputs.mutation_mode == 'full'
         run: >
-          python3 tools/mutation_shards.py --artifacts target/mutation-shards --count 4
+          python3 tools/mutation_shards.py --artifacts target/mutation-shards
+          --count ${{ needs.changes.outputs.shard_count }}
           --revision "$GITHUB_SHA" --output target/mutation-gate.json
-      - name: Keep the combined evidence
-        if: needs.changes.outputs.docs_only != 'true'
+      - name: Retain rejection when collection could not start
+        if: always() && needs.changes.outputs.docs_only != 'true'
+        env:
+          MODE: ${{ needs.changes.outputs.mutation_mode }}
+          CHANGES_RESULT: ${{ needs.changes.result }}
+          SELFTEST_RESULT: ${{ needs.mutation-selftest.result }}
+          SHARDS_RESULT: ${{ needs.mutation-shards.result }}
+        run: |
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          p = Path('target/mutation-gate.json')
+          if not p.exists():
+              p.parent.mkdir(parents=True, exist_ok=True)
+              p.write_text(json.dumps({'complete': False, 'revision': os.environ['GITHUB_SHA'],
+                  'rejection': 'collection not reached; see job results',
+                  'jobs': {k: os.environ[k] for k in ('MODE', 'CHANGES_RESULT', 'SELFTEST_RESULT', 'SHARDS_RESULT')}}, indent=2))
+          PY
+      - name: Keep combined evidence or rejection
+        if: always() && needs.changes.outputs.docs_only != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: mutation-gate
