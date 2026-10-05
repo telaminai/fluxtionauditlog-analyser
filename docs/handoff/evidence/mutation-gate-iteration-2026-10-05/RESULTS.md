@@ -1,4 +1,4 @@
-# MG-1 implementation evidence (in progress)
+# MG-1 implementation evidence
 
 Implementation branch: `feat/mutation-gate-iteration`, based on spec r2 `744379aa`.
 Predictions were committed first as `cea820b0`. This is the implementer's evidence, not independent approval.
@@ -49,9 +49,31 @@ not eight-worker implementation trials or cached evidence of current correctness
 ## Acceptance not yet verified
 
 Real GitHub draft-to-ready/ready-to-draft transitions, supersession cancellation and unchanged-head transitions;
-complete implementation-head CI; full-registry old/new parity; three paired complete timing trials; median/p95
+full-registry old/new parity; three paired complete timing trials; median/p95
 performance targets. Source/configuration tests do not establish platform behaviour. MG-A7/A8 remain deferred
 with grouping. Manual enforcement is the owner's decision, not a claim of GitHub protection.
 
 The implementation adds `workflow_dispatch` for full diagnostic CI on the feature branch. It does not make
 such runs interchangeable with PR merge-candidate evidence. No merge or release is authorised by these results.
+
+## Full diagnostic CI at the implementation commit
+
+RAN: [run 37298189215](https://github.com/telaminai/fluxtionauditlog-analyser/actions/runs/37298189215),
+`workflow_dispatch` at `c1cd9aa7beb6893a8c4700cdb9e09f10790d5401`: success. Build 3179 / 0 / 0 / 248;
+registered display 246 / 0 / 0 / 0 across 43 suites. Loop benchmark and engine self-test succeeded.
+All eight workers succeeded. The collector reports 628 controls caught exactly once; downloaded
+worker artifacts were independently recollected locally against the exact registry/source/plan,
+again 628 complete. The feedback job was intentionally skipped because this was a full run.
+
+Wall clock: 521 seconds (8m41s); all-job execution total 57.85 minutes (not billed minutes).
+For comparison, the same API report for historical run 36864001774 gives 889 seconds (14m49s)
+and 63.55 job-execution minutes. These are different runs/revisions, not controlled paired trials.
+Worker engine durations were 415.1, 426.1, 387.1, 297.5, 270.2, 268.5, 389.7, 373.7 seconds.
+Baseline invocation counts were 77, 74, 82, 99, 76, 75, 78, 87 (648 total), versus 601 distinct
+selectors across the plan: parameterized witnesses can execute more than once. Baseline phases
+were 11.02–32.14 seconds. These are one-run observations, not a median or a paired performance trial.
+
+The UI job emitted a SummaryPanel null-pointer annotation despite passing. The same annotation
+exists in baseline run 36864001774 (READ logs). No application code changed; this is retained as
+an existing caveat, not silently called fixed. The branch diagnostic run does not replace a PR's
+current merge-candidate validation. Later receipt changes are documentation only.
