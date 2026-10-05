@@ -110,7 +110,9 @@ CONTROLS = [
      "false",
      "VerifiedProfileContentTest#changedContentIsRefusedBeforeSettingsAreApplied"),
     ("issue84-incoming-charts-live", UI + 'MainFrame.java',
-     "            if (selected.contains(telamin.fluxtion.audit.analyser.analyser.config.SettingsShare.Category.GRAPHS)) {\n                restoreGraphDefinitions(List.copyOf(config.savedGraphs));\n            }\n",
+     # the call moved one nesting level deeper when the settings apply was wrapped in an EDT hop (#83);
+     # the anchor follows it. Deleting the branch is still the mutation.
+     "                if (selected.contains(telamin.fluxtion.audit.analyser.analyser.config.SettingsShare.Category.GRAPHS)) {\n                    restoreGraphDefinitions(List.copyOf(config.savedGraphs));\n                }\n",
      "",
      "Issue84BundleFrameTest#importingGraphsKeepsIncomingNotes"),
     ("issue84-offline-anchor-not-deletion", NODE + 'BundleAnchor.java',
