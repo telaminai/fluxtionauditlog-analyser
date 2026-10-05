@@ -15,7 +15,11 @@ class Issue84BoundaryContractTest {
         assertTrue(provenance.contains("event.opId() == pendingOperation && verifiedContentLoaded"), "operationAndContentOwnProvenance");
         assertTrue(source("session/node/SessionBoundary").contains("inFlightBundle.profileDigest()"), "verifiedContentTravelsToTheLoader");
         assertTrue(source("session/node/BundleAnchor").contains("event.remembered()"), "restorationPreservesUnavailableRoots");
-        assertTrue(source("ui/MainFrame").contains("Category.GRAPHS)) {\n                restoreGraphDefinitions"), "importUpdatesTheLiveCharts");
+        // whitespace-normalised: the call moved one nesting level deeper when the settings apply
+        // was wrapped in an EDT hop (#83). The property asserted is unchanged -- the restore still
+        // sits immediately inside the GRAPHS branch.
+        assertTrue(source("ui/MainFrame").replaceAll("\\s+", " ")
+                .contains("Category.GRAPHS)) { restoreGraphDefinitions"), "importUpdatesTheLiveCharts");
     }
 
     @Test void sourcePreparationAndDisplayAcceptanceHaveOneOwner() throws Exception {
