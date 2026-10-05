@@ -60,3 +60,11 @@ and retained both deliberately surviving controls in both variants. The two focu
 (source and classes), and rerun green; engine elapsed 12.9 seconds. No full local sweep.
 Strict MkDocs, whitespace and public-data checks were clean. The independent agent's final local
 correctness verdict is passes; the declared platform and performance acceptance gaps remain.
+
+## Final acceptance addendum
+
+The earlier acceptance gaps are superseded by the [acceptance receipt](evidence/mutation-gate-iteration-2026-10-05/ACCEPTANCE.md):
+six complete parity phases, three paired timing observations, and real draft/ready/supersession trials.
+The independent local agent accepted code head `5a4d1977` and independently recollected all six phases.
+No required code correction remains. Ready for owner merge once the final documentation head's CI is green.
+The disclosed baseline flake is tracked in #112; performance limits and deferred grouping remain explicit.

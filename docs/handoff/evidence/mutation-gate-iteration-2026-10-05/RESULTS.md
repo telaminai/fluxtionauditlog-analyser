@@ -137,3 +137,21 @@ actual fast JSONL parsing, collector). Fast results now preserve abnormal exits 
 completion. The full collector requires the completion field to be true; a missing-field control also
 failed before correction. Evidence schema is 3, so old schema-2 receipts cannot satisfy new collection.
 The launcher regression covers raw exits 1, 124 and -15, not only the timeout code.
+
+## Final acceptance, 2026-10-05
+
+RAN: final local Python iteration suite 51 / 0 / 0 / 0 (includes the 21 sharding tests),
+harness 5 / 0 / 0 / 0, classifier 5 / 0 / 0 / 0. Code head `5a4d1977` CI 37314151906
+succeeded: headless 3179 / 0 / 0 / 248; display 246 / 0 / 0 / 0; self-test 27 checks;
+628 controls caught exactly once. The full acceptance record and limitations are in
+[ACCEPTANCE.md](ACCEPTANCE.md), with [paired measurements](acceptance-pairs.json).
+
+RAN: six full phases independently collected; three pairs give median worker span 878s versus
+452s. This excludes shared policy/collector and ordinary CI jobs. Pair three increased compute
+13.6%; cold-cache and p95 claims remain unverified. Complete code-head CI took 502s, missing the
+eight-minute planning target. No controls were omitted to meet it. Draft feedback, explicit full-gate
+refusal, unchanged-head ready execution and supersession cancellation were exercised in temporary PR #111.
+
+The independent local reviewer accepted the final correctness fixes and independently recomputed
+all six receipts. Failed baseline attempts remain disclosed in issue #112; no application fix is claimed.
+No full local mutation sweep was run. The final documentation head requires its own CI before merge.

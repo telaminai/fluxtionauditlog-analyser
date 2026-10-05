@@ -1,9 +1,11 @@
 # Mutation gate: fast iteration, complete merge evidence
 
-**Status: PROPOSED r2 — 2026-10-05.** Documentation only. No workflow, runner, test or
-branch-protection change is implemented or accepted by this document.
-**Implementation status:** `feat/mutation-gate-iteration` implements the first package; independent acceptance
-and complete timing/lifecycle trials remain open. See [the implementation evidence](../handoff/evidence/mutation-gate-iteration-2026-10-05/RESULTS.md).
+**Status: r2, implemented and acceptance recorded — 2026-10-05; awaiting merge.**
+PR #107 contains the specification and implementation on `spec/mutation-gate-iteration`.
+Independent review corrections, six full-registry parity phases, three paired timings and live
+PR lifecycle trials are recorded in [the acceptance receipt](../handoff/evidence/mutation-gate-iteration-2026-10-05/ACCEPTANCE.md).
+The historical proposal measurements below remain labelled by revision; they are not current runtime measurements.
+No branch-protection settings were changed. The final PR head must still have complete green CI before merge.
 **Source baseline:** main `53c0386e` (application released as 1.31.0).
 **Tracker:** MG-1. **Delivery:** one implementation PR for MG-D1–D5/D7/D9, independently reviewed as a package.
 MG-D6 (identical-mutation grouping) is retained as a deferred design, not part of this delivery.

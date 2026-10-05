@@ -1,0 +1,683 @@
+{
+  "candidate": "5a4d1977",
+  "trialRevision": "735a40b7",
+  "method": "Three alternating reference four-worker/class and optimized eight-worker/method pairs; same implementation and control source bytes. Temporary workflow only; never merge.",
+  "runs": [
+    {
+      "run": "https://github.com/telaminai/fluxtionauditlog-analyser/actions/runs/37314313577",
+      "phases": [
+        {
+          "phase": "first",
+          "variant": "reference",
+          "shards": 4,
+          "schema": 3,
+          "controls": 628,
+          "complete": true,
+          "verdictDigest": "7c4791fe8b961e3551289d07b798864a5166878874bbab9a9021e144472a6e10",
+          "allCaughtNormallyAndRestored": true,
+          "elapsedWorkerPhaseSeconds": 896.0,
+          "jobExecutionMinutes": 55.25,
+          "queueSeconds": [
+            1.0,
+            1.0,
+            1.0,
+            2.0
+          ],
+          "cacheHits": [
+            "true",
+            "true",
+            "true",
+            "true"
+          ],
+          "metrics": {
+            "workerSeconds": [
+              835.6,
+              876.9,
+              654.9,
+              853.2
+            ],
+            "baselineInvocations": [
+              875,
+              782,
+              784,
+              814
+            ],
+            "fallbacks": 3,
+            "slowestControls": [
+              {
+                "name": "review-panel-inner-frame",
+                "seconds": 21.2
+              },
+              {
+                "name": "review-navigator-inherited-action",
+                "seconds": 20.0
+              },
+              {
+                "name": "bundle-published-to-context",
+                "seconds": 19.9
+              },
+              {
+                "name": "m69-s3-dismissal-reports-end",
+                "seconds": 19.4
+              },
+              {
+                "name": "source-embedded-refresh",
+                "seconds": 19.3
+              },
+              {
+                "name": "m69-s3-own-light-does-not-end",
+                "seconds": 19.0
+              },
+              {
+                "name": "m69-s4-tab-uses-the-verb-path",
+                "seconds": 18.8
+              },
+              {
+                "name": "oa-close-docks",
+                "seconds": 18.5
+              },
+              {
+                "name": "m69-r6b-import-reports-walks",
+                "seconds": 18.5
+              },
+              {
+                "name": "global-refusal",
+                "seconds": 18.2
+              },
+              {
+                "name": "bundle-anchor-restored",
+                "seconds": 17.8
+              },
+              {
+                "name": "bundle-anchor-restore-requested",
+                "seconds": 17.3
+              },
+              {
+                "name": "m69-s3-strip-before-dismissal",
+                "seconds": 17.0
+              },
+              {
+                "name": "m69-r6-authoring-reports-every-save",
+                "seconds": 16.2
+              },
+              {
+                "name": "m69-s3-popup-never-dismisses",
+                "seconds": 16.2
+              }
+            ],
+            "meaning": "engine elapsed time; excludes runner queue, checkout and upload"
+          }
+        },
+        {
+          "phase": "second",
+          "variant": "optimized",
+          "shards": 8,
+          "schema": 3,
+          "controls": 628,
+          "complete": true,
+          "verdictDigest": "7c4791fe8b961e3551289d07b798864a5166878874bbab9a9021e144472a6e10",
+          "allCaughtNormallyAndRestored": true,
+          "elapsedWorkerPhaseSeconds": 447.0,
+          "jobExecutionMinutes": 54.7,
+          "queueSeconds": [
+            2.0,
+            2.0,
+            2.0,
+            2.0,
+            2.0,
+            2.0,
+            2.0,
+            2.0
+          ],
+          "cacheHits": [
+            "true",
+            "true",
+            "true",
+            "true",
+            "true",
+            "true",
+            "true",
+            "true"
+          ],
+          "metrics": {
+            "workerSeconds": [
+              407.6,
+              413.9,
+              275.5,
+              398.2,
+              423.6,
+              403.9,
+              359.8,
+              401.4
+            ],
+            "baselineInvocations": [
+              77,
+              74,
+              82,
+              99,
+              76,
+              75,
+              78,
+              87
+            ],
+            "fallbacks": 3,
+            "slowestControls": [
+              {
+                "name": "review-panel-inner-frame",
+                "seconds": 20.1
+              },
+              {
+                "name": "m69-s3-dismissal-reports-end",
+                "seconds": 20.0
+              },
+              {
+                "name": "bundle-anchor-restored",
+                "seconds": 19.9
+              },
+              {
+                "name": "review-navigator-inherited-action",
+                "seconds": 19.5
+              },
+              {
+                "name": "source-embedded-refresh",
+                "seconds": 19.4
+              },
+              {
+                "name": "m69-s3-own-light-does-not-end",
+                "seconds": 19.1
+              },
+              {
+                "name": "m69-r6b-import-reports-walks",
+                "seconds": 18.7
+              },
+              {
+                "name": "bundle-published-to-context",
+                "seconds": 18.7
+              },
+              {
+                "name": "m69-s4-tab-uses-the-verb-path",
+                "seconds": 18.5
+              },
+              {
+                "name": "global-preservation",
+                "seconds": 18.1
+              },
+              {
+                "name": "oa-close-docks",
+                "seconds": 17.8
+              },
+              {
+                "name": "review-navigator-list-closed",
+                "seconds": 17.5
+              },
+              {
+                "name": "global-refusal",
+                "seconds": 17.3
+              },
+              {
+                "name": "m69-s3-strip-before-dismissal",
+                "seconds": 17.0
+              },
+              {
+                "name": "bundle-anchor-restore-requested",
+                "seconds": 16.9
+              }
+            ],
+            "meaning": "engine elapsed time; excludes runner queue, checkout and upload"
+          }
+        }
+      ]
+    },
+    {
+      "run": "https://github.com/telaminai/fluxtionauditlog-analyser/actions/runs/37314316821",
+      "phases": [
+        {
+          "phase": "first",
+          "variant": "optimized",
+          "shards": 8,
+          "schema": 3,
+          "controls": 628,
+          "complete": true,
+          "verdictDigest": "7c4791fe8b961e3551289d07b798864a5166878874bbab9a9021e144472a6e10",
+          "allCaughtNormallyAndRestored": true,
+          "elapsedWorkerPhaseSeconds": 452.0,
+          "jobExecutionMinutes": 52.97,
+          "queueSeconds": [
+            2.0,
+            2.0,
+            2.0,
+            2.0,
+            2.0,
+            2.0,
+            2.0,
+            2.0
+          ],
+          "cacheHits": [
+            "true",
+            "true",
+            "true",
+            "true",
+            "true",
+            "true",
+            "true",
+            "true"
+          ],
+          "metrics": {
+            "workerSeconds": [
+              428.8,
+              298.5,
+              282.9,
+              418.7,
+              408.9,
+              360.6,
+              397.3,
+              395.1
+            ],
+            "baselineInvocations": [
+              77,
+              74,
+              82,
+              99,
+              76,
+              75,
+              78,
+              87
+            ],
+            "fallbacks": 3,
+            "slowestControls": [
+              {
+                "name": "m69-s3-dismissal-reports-end",
+                "seconds": 20.0
+              },
+              {
+                "name": "source-embedded-refresh",
+                "seconds": 19.6
+              },
+              {
+                "name": "bundle-published-to-context",
+                "seconds": 19.4
+              },
+              {
+                "name": "bundle-anchor-restored",
+                "seconds": 19.0
+              },
+              {
+                "name": "review-navigator-list-closed",
+                "seconds": 18.6
+              },
+              {
+                "name": "oa-close-docks",
+                "seconds": 18.5
+              },
+              {
+                "name": "review-navigator-inherited-action",
+                "seconds": 18.5
+              },
+              {
+                "name": "m69-r6b-import-reports-walks",
+                "seconds": 18.2
+              },
+              {
+                "name": "global-preservation",
+                "seconds": 18.1
+              },
+              {
+                "name": "m69-s3-own-light-does-not-end",
+                "seconds": 18.0
+              },
+              {
+                "name": "global-refusal",
+                "seconds": 17.8
+              },
+              {
+                "name": "m69-s3-strip-before-dismissal",
+                "seconds": 17.2
+              },
+              {
+                "name": "m69-r6-authoring-reports-every-save",
+                "seconds": 15.7
+              },
+              {
+                "name": "m69-r1-light-states-nothing-too",
+                "seconds": 15.7
+              },
+              {
+                "name": "mouse-loss-column-adjustment",
+                "seconds": 15.5
+              }
+            ],
+            "meaning": "engine elapsed time; excludes runner queue, checkout and upload"
+          }
+        },
+        {
+          "phase": "second",
+          "variant": "reference",
+          "shards": 4,
+          "schema": 3,
+          "controls": 628,
+          "complete": true,
+          "verdictDigest": "7c4791fe8b961e3551289d07b798864a5166878874bbab9a9021e144472a6e10",
+          "allCaughtNormallyAndRestored": true,
+          "elapsedWorkerPhaseSeconds": 878.0,
+          "jobExecutionMinutes": 56.6,
+          "queueSeconds": [
+            2.0,
+            2.0,
+            2.0,
+            2.0
+          ],
+          "cacheHits": [
+            "true",
+            "true",
+            "true",
+            "true"
+          ],
+          "metrics": {
+            "workerSeconds": [
+              782.4,
+              854.6,
+              832.3,
+              834.3
+            ],
+            "baselineInvocations": [
+              875,
+              782,
+              784,
+              814
+            ],
+            "fallbacks": 3,
+            "slowestControls": [
+              {
+                "name": "review-panel-inner-frame",
+                "seconds": 20.6
+              },
+              {
+                "name": "review-navigator-list-closed",
+                "seconds": 19.8
+              },
+              {
+                "name": "bundle-anchor-restored",
+                "seconds": 19.6
+              },
+              {
+                "name": "bundle-published-to-context",
+                "seconds": 19.5
+              },
+              {
+                "name": "m69-s3-dismissal-reports-end",
+                "seconds": 19.1
+              },
+              {
+                "name": "source-embedded-refresh",
+                "seconds": 18.9
+              },
+              {
+                "name": "m69-s4-tab-uses-the-verb-path",
+                "seconds": 18.9
+              },
+              {
+                "name": "m69-s3-own-light-does-not-end",
+                "seconds": 18.9
+              },
+              {
+                "name": "m69-r6c-baseline-follows-the-verb",
+                "seconds": 18.7
+              },
+              {
+                "name": "global-refusal",
+                "seconds": 18.2
+              },
+              {
+                "name": "global-preservation",
+                "seconds": 18.2
+              },
+              {
+                "name": "m69-r6b-import-reports-walks",
+                "seconds": 18.0
+              },
+              {
+                "name": "oa-close-docks",
+                "seconds": 17.9
+              },
+              {
+                "name": "review-navigator-inherited-action",
+                "seconds": 17.7
+              },
+              {
+                "name": "bundle-anchor-restore-requested",
+                "seconds": 17.5
+              }
+            ],
+            "meaning": "engine elapsed time; excludes runner queue, checkout and upload"
+          }
+        }
+      ]
+    },
+    {
+      "run": "https://github.com/telaminai/fluxtionauditlog-analyser/actions/runs/37314319900",
+      "phases": [
+        {
+          "phase": "first",
+          "variant": "reference",
+          "shards": 4,
+          "schema": 3,
+          "controls": 628,
+          "complete": true,
+          "verdictDigest": "7c4791fe8b961e3551289d07b798864a5166878874bbab9a9021e144472a6e10",
+          "allCaughtNormallyAndRestored": true,
+          "elapsedWorkerPhaseSeconds": 840.0,
+          "jobExecutionMinutes": 50.17,
+          "queueSeconds": [
+            2.0,
+            2.0,
+            2.0,
+            2.0
+          ],
+          "cacheHits": [
+            "true",
+            "true",
+            "true",
+            "true"
+          ],
+          "metrics": {
+            "workerSeconds": [
+              809.2,
+              688.8,
+              819.9,
+              595.5
+            ],
+            "baselineInvocations": [
+              875,
+              782,
+              784,
+              814
+            ],
+            "fallbacks": 3,
+            "slowestControls": [
+              {
+                "name": "bundle-anchor-restored",
+                "seconds": 19.5
+              },
+              {
+                "name": "review-navigator-list-closed",
+                "seconds": 19.5
+              },
+              {
+                "name": "source-embedded-refresh",
+                "seconds": 19.4
+              },
+              {
+                "name": "m69-r6c-baseline-follows-the-verb",
+                "seconds": 18.7
+              },
+              {
+                "name": "global-preservation",
+                "seconds": 18.2
+              },
+              {
+                "name": "bundle-published-to-context",
+                "seconds": 17.3
+              },
+              {
+                "name": "m69-s3-strip-before-dismissal",
+                "seconds": 17.0
+              },
+              {
+                "name": "mouse-loss-autoscroll-restored",
+                "seconds": 16.9
+              },
+              {
+                "name": "m69-s4-tab-uses-the-verb-path",
+                "seconds": 16.4
+              },
+              {
+                "name": "global-refusal",
+                "seconds": 16.3
+              },
+              {
+                "name": "m69-s3-dismissal-reports-end",
+                "seconds": 16.2
+              },
+              {
+                "name": "m69-s3-own-light-does-not-end",
+                "seconds": 16.1
+              },
+              {
+                "name": "m69-r6-authoring-reports-every-save",
+                "seconds": 16.0
+              },
+              {
+                "name": "m69-s3-popup-never-dismisses",
+                "seconds": 15.9
+              },
+              {
+                "name": "oa-close-docks",
+                "seconds": 15.8
+              }
+            ],
+            "meaning": "engine elapsed time; excludes runner queue, checkout and upload"
+          }
+        },
+        {
+          "phase": "second",
+          "variant": "optimized",
+          "shards": 8,
+          "schema": 3,
+          "controls": 628,
+          "complete": true,
+          "verdictDigest": "7c4791fe8b961e3551289d07b798864a5166878874bbab9a9021e144472a6e10",
+          "allCaughtNormallyAndRestored": true,
+          "elapsedWorkerPhaseSeconds": 472.0,
+          "jobExecutionMinutes": 57.0,
+          "queueSeconds": [
+            2.0,
+            2.0,
+            3.0,
+            2.0,
+            2.0,
+            2.0,
+            3.0,
+            2.0
+          ],
+          "cacheHits": [
+            "true",
+            "true",
+            "true",
+            "true",
+            "true",
+            "true",
+            "true",
+            "true"
+          ],
+          "metrics": {
+            "workerSeconds": [
+              397.6,
+              408.7,
+              331.5,
+              399.2,
+              429.9,
+              400.4,
+              409.6,
+              413.6
+            ],
+            "baselineInvocations": [
+              77,
+              74,
+              82,
+              99,
+              76,
+              75,
+              78,
+              87
+            ],
+            "fallbacks": 3,
+            "slowestControls": [
+              {
+                "name": "mouse-loss-table-hook",
+                "seconds": 24.0
+              },
+              {
+                "name": "review-panel-inner-frame",
+                "seconds": 20.8
+              },
+              {
+                "name": "review-navigator-inherited-action",
+                "seconds": 20.7
+              },
+              {
+                "name": "mouse-loss-column-adjustment",
+                "seconds": 20.4
+              },
+              {
+                "name": "bundle-anchor-restored",
+                "seconds": 19.8
+              },
+              {
+                "name": "review-navigator-list-closed",
+                "seconds": 19.5
+              },
+              {
+                "name": "bundle-published-to-context",
+                "seconds": 19.4
+              },
+              {
+                "name": "m69-s3-dismissal-reports-end",
+                "seconds": 19.0
+              },
+              {
+                "name": "m69-s3-own-light-does-not-end",
+                "seconds": 18.9
+              },
+              {
+                "name": "m69-s4-tab-uses-the-verb-path",
+                "seconds": 18.8
+              },
+              {
+                "name": "m69-r6b-import-reports-walks",
+                "seconds": 18.6
+              },
+              {
+                "name": "source-embedded-refresh",
+                "seconds": 18.4
+              },
+              {
+                "name": "global-preservation",
+                "seconds": 18.1
+              },
+              {
+                "name": "global-refusal",
+                "seconds": 17.9
+              },
+              {
+                "name": "oa-close-docks",
+                "seconds": 17.8
+              }
+            ],
+            "meaning": "engine elapsed time; excludes runner queue, checkout and upload"
+          }
+        }
+      ]
+    }
+  ],
+  "interpretation": "Worker-phase wall time includes checkout/setup/upload; excludes initial workflow delay and shared collector. Job minutes are execution, not billing. Three pairs are insufficient for p95. One pair increased compute cost."
+}
