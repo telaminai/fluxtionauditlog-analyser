@@ -96,3 +96,5 @@ public final class McpTools {
         return a;
     }
 }
+
+// DEMO acceptance fixture: superseding ready run two; never merge.

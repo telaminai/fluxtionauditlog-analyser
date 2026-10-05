@@ -189,5 +189,3 @@ public final class DuplicateChartRepair {
         return out;
     }
 }
-
-// DEMO acceptance fixture: superseding ready run one; never merge.
