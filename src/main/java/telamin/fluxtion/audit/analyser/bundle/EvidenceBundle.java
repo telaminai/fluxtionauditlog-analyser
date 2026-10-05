@@ -429,17 +429,22 @@ public final class EvidenceBundle {
         if (!first.verification().ok()) return new Unpacked(first.verification(), null);
         Files.createDirectories(parent);
         String stem = first.verification().identity().substring("sha256:".length(), "sha256:".length() + 12);
-        // REUSE the copy this identity already has (#85). Every open used to mint a fresh directory
-        // with a random suffix, so opening one bundle ten times left ten copies -- thirty-two had
-        // accumulated on the first machine that used this in anger, and nothing ever removed them.
-        // The identity IS the name: same bytes, same copy. A copy whose marker is missing or whose
-        // identity does not match is not this bundle's, so it is replaced rather than trusted.
-        Path settled = parent.resolve("bundle-" + stem).toAbsolutePath().normalize();
-        if (Files.isDirectory(settled) && first.verification().identity().equals(identityOf(settled))) {
-            return new Unpacked(first.verification(), settled);
-        }
-        deleteTree(settled);
-        Path dir = Files.createDirectory(settled).toAbsolutePath().normalize();
+        // EVERY open gets its own pristine extraction (#85, corrected).
+        //
+        // A reuse-by-identity scheme was tried and withdrawn. Opening a bundle applies its profile as the
+        // PROJECT, so the session writes into the copy as soon as any setting changes -- which means a
+        // reused copy is no longer the bundle's content. The next open then verified a modified profile,
+        // its digest no longer matched the plan, and OpenBundle dropped the bundle's provenance silently:
+        // a genuine bundle read as an ordinary folder somebody had opened. Checking the members on reuse
+        // only moved the problem -- the copy is dirty after almost every session, so reuse rarely applied,
+        // and re-extracting over it discarded the previous session's work and raced the anchor restore.
+        //
+        // A fresh copy per open keeps the invariant the rest of the code relies on: a working copy IS the
+        // bundle's content. Accumulation -- the thirty-two copies actually reported -- is solved by reaping
+        // instead (reap, workingCopies, and the Private settings control), which is what #85 asked for.
+        // Making the copy read-only so it could be shared is the better long-term answer and is its own
+        // issue; it changes what "a bundle is the project" means and does not belong in a bug fix.
+        Path dir = Files.createTempDirectory(parent, "bundle-" + stem + "-").toAbsolutePath().normalize();
         Pass second;
         try {
             second = check(bundle, dir);
@@ -453,31 +458,29 @@ public final class EvidenceBundle {
             return new Unpacked(new Verification(first.verification().identity(), List.of(),
                     "the bundle changed while it was being unpacked (" + why + "); nothing was kept"), null);
         }
-        // the copy says whose it is, so the next open can recognise it instead of unpacking again
-        Files.writeString(dir.resolve(IDENTITY_MARKER), first.verification().identity());
         return new Unpacked(first.verification(), dir);
     }
 
     public record Unpacked(Verification verification, Path workingCopy) { }
 
     /**
-     * The marker a working copy carries so it can be recognised as one bundle's (#85).
+     * Unpack, then remove the copies no longer in use — the open one is kept (#85).
      *
-     * <p>A copy does not contain the manifest — the manifest describes the bundle, and what is
-     * extracted is what the bundle CARRIES. So the identity is written beside the extraction. Its
-     * name starts with a dot to say it is not part of the evidence.
+     * <p>Every open takes a fresh extraction, which is what keeps a working copy equal to the bundle's
+     * content. Left alone that accumulates, which is the complaint #85 was raised for: thirty-two copies
+     * on the first machine to use this in earnest. Reaping here bounds it at the one in force without
+     * anything having to trust, or reuse, a copy a session has written to. The manual control in Private
+     * settings remains, for copies an abrupt exit left behind.</p>
+     *
+     * <p>Reaping NEVER touches the bundles themselves, and never the copy just produced. A copy that
+     * cannot be removed is left; it is disposable, and failing an open over it would be worse.</p>
      */
-    private static final String IDENTITY_MARKER = ".identity";
-
-    /** The identity a working copy claims, or null when it claims none or cannot be read. */
-    private static String identityOf(Path workingCopy) {
-        Path marker = workingCopy.resolve(IDENTITY_MARKER);
-        if (!Files.isRegularFile(marker)) return null;
-        try {
-            return Files.readString(marker).strip();
-        } catch (IOException | RuntimeException unreadable) {
-            return null;        // an unreadable copy is not this bundle's copy
+    public static Unpacked unpackAndReap(Path bundle, Path parent) throws IOException {
+        Unpacked unpacked = unpack(bundle, parent);
+        if (unpacked.workingCopy() != null) {
+            reap(workingCopies(), unpacked.workingCopy());
         }
+        return unpacked;
     }
 
     /**

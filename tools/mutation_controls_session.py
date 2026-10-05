@@ -299,14 +299,18 @@ CONTROLS = [
      '                return app == null ? ActionResult.error("\'import\' is not enabled here")\n'
      '                        : onEdt(() -> app.importFromBundle(path, chosen));\n',
      'BundleImportOffTheEdtFrameTest#theReadIsNotOnTheEventThread'),
-    # #85: the same bundle reuses its working copy. A fresh one per open left thirty-two on the
-    # first machine to use this in anger, and nothing ever removed them.
-    ('bundle-working-copy-is-reused', BUNDLE,
-     '        if (Files.isDirectory(settled) && first.verification().identity().equals(identityOf(settled))) {\n'
-     '            return new Unpacked(first.verification(), settled);\n'
-     '        }\n',
-     '',
-     'EvidenceBundleTest#theSameBundleReusesItsCopy'),
+    # NO CONTROL, deliberately, for "every open takes its own pristine copy" -- and that is the finding,
+    # not an omission. Freshness is now STRUCTURAL: Files.createTempDirectory cannot hand back a directory
+    # that already exists, so no single-line mutation falsifies the invariant without simply crashing the
+    # extraction, which the harness scores as survived rather than as a witness. The reuse scheme this
+    # replaced DID have a control, and it is exactly the control that passed while the behaviour was
+    # wrong: it proved a copy was reused, which was never the property that mattered. Asserted instead by
+    # EvidenceBundleTest#everyOpenTakesItsOwnPristineCopy, and guarded in anger by the three frame tests
+    # in Issue84BundleFrameTest that caught the regression in CI.
+    # and reaping is what keeps that from accumulating -- the thirty-two copies #85 was raised for
+    ('bundle-open-reaps-the-rest', BUNDLE,
+     '            reap(workingCopies(), unpacked.workingCopy());\n', '',
+     'EvidenceBundleTest#unpackAndReapBoundsTheCopies'),
     # ...and reaping never removes the copy a person is looking at.
     ('reap-spares-the-open-copy', BUNDLE,
      '            if (at.equals(spared) || !isWorkingCopy(at)) continue;\n',

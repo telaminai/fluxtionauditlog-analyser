@@ -1471,7 +1471,10 @@ public final class MainFrame extends JFrame {
     private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileLoaded prepareBundle(
             long opId, String bundlePath) throws java.io.IOException {
         Path parent = telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.workingCopiesRoot();
-        var unpacked = telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.unpack(Path.of(bundlePath), parent);
+        // reap as part of opening: a fresh copy per open is what keeps a copy equal to the bundle,
+        // and reaping is what stops those copies piling up (#85)
+        var unpacked = telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.unpackAndReap(
+                Path.of(bundlePath), parent);
         var verification = unpacked.verification();
         if (!verification.ok()) {
             return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileLoaded(
