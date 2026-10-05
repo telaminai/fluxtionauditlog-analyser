@@ -2,6 +2,8 @@
 
 **Status: PROPOSED r2 — 2026-10-05.** Documentation only. No workflow, runner, test or
 branch-protection change is implemented or accepted by this document.
+**Implementation status:** `feat/mutation-gate-iteration` implements the first package; independent acceptance
+and complete timing/lifecycle trials remain open. See [the implementation evidence](../handoff/evidence/mutation-gate-iteration-2026-10-05/RESULTS.md).
 **Source baseline:** main `53c0386e` (application released as 1.31.0).
 **Tracker:** MG-1. **Delivery:** one implementation PR for MG-D1–D5/D7/D9, independently reviewed as a package.
 MG-D6 (identical-mutation grouping) is retained as a deferred design, not part of this delivery.

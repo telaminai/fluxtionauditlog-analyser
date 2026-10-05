@@ -77,4 +77,4 @@ line, and update this index in the same change.
 
 | Spec | Status | Tracker |
 |---|---|---|
-| [spec-mutation-gate-iteration.md](spec-mutation-gate-iteration.md) | proposed r2; no implementation; grouping deferred | MG-1 |
+| [spec-mutation-gate-iteration.md](spec-mutation-gate-iteration.md) | r2; implementation under review; grouping deferred | MG-1 |

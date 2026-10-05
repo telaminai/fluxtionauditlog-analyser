@@ -1,0 +1,57 @@
+# MG-1 implementation evidence (in progress)
+
+Implementation branch: `feat/mutation-gate-iteration`, based on spec r2 `744379aa`.
+Predictions were committed first as `cea820b0`. This is the implementer's evidence, not independent approval.
+
+## RAN locally
+
+- JDK 21, `mvn -o -q test`: 3179 / 0 / 0 / 248 (total / failures / errors / skips), 419 reports, no orphans.
+- Initial five regression witnesses on the old implementation: 47 / 5 / 0 / 0. That run included the existing
+  sharding class twice through unittest discovery; the final module removes that duplication. Named failures:
+  `test_baseline_runs_only_deduplicated_witnesses`, `test_shared_test_resource_change_forces_full`,
+  `test_partial_scope_cannot_masquerade_as_full`, `test_unknown_schema_cannot_be_accepted`,
+  `test_changed_plan_cannot_be_accepted`. These were assertions about wrong results, not import/compile errors.
+- `python3 tools/test_mutation_iteration.py`: 38 / 0 / 0 / 0 (includes 21 inherited collector tests).
+- `python3 tools/test_mutation_shards.py`: 21 / 0 / 0 / 0; `tools/test_project_chart_review.py`: 5 / 0 / 0 / 0;
+  `tools/test_ci_docs_only.py`: 5 / 0 / 0 / 0. Counts overlap; do not add them as distinct coverage.
+- `--mode selftest`: 27 executable checks, no failed checks. Includes genuine JUnit launcher probes for
+  injected parameters, inherited methods, missing and disabled witnesses, class lifecycle errors and an
+  unrelated failing method excluded by named selection. Both real compile-fallback controls were caught/restored.
+- `--mode compare-baselines --case dialog-unanswered-row`: both variants caught the real control and left
+  both planted survivors uncaught, including the API-change fallback. Whole-class variant 19.8s, named-method
+  variant 13.3s. One warm local comparison is not evidence for a general speed-up.
+- Under the shared display lock, `--mode mutations --engine fast --case design-status-capped
+  --case dialog-unanswered-row`: 2 requested, 2 caught at named assertions; both source and class restore flags
+  true, restored runs green without skips. Total engine elapsed 9.8s. No full local mutation sweep.
+- Preflight: 43 registered frame suites, 628 anchors. No controls removed or grouped.
+- Strict MkDocs, whitespace check and public-data sweep: clean before commit.
+
+## Timings refreshed, not performance proved
+
+Three complete published collector artifacts trained the medians: runs 36861284238, 36859073552,
+36854482047. Run 36864001774 was held out. 559 controls have at least three observations; remaining
+controls use the conservative 8.0s fallback. The held-out run contains all 628 controls. The current eight-worker plan has 78/78/79/78/79/79/79/78 controls
+and 72/74/76/78/76/75/72/78 baseline selectors (601 total; this is an allocation count). The JSON records
+run/revision provenance and the allocation model. These are historical measurements with the old baselines,
+not eight-worker implementation trials or cached evidence of current correctness.
+
+## Misses and failed attempts retained
+
+- The first test command replaced PATH without Maven's installation directory; exit 127, no tests executed.
+  Retrying with the normal Maven path produced the headless counts above.
+- Adding phase data exposed an incomplete fake engine in the Python tests (MagicMock not JSON serializable,
+  then a missing prepare method). The fixture now supplies real serializable phase fields and a no-op prepare.
+- The initial safe historical-registry reader missed append/extend forms: the exact-registry comparison failed
+  with 15 missing controls. It now handles those literal operations without executing historical Python.
+- The test-only selection probe initially missed a named class when its test fixture was not on disk. Matching
+  the changed test filename fixes that and preserves explicit test-only coverage.
+
+## Acceptance not yet verified
+
+Real GitHub draft-to-ready/ready-to-draft transitions, supersession cancellation and unchanged-head transitions;
+complete implementation-head CI; full-registry old/new parity; three paired complete timing trials; median/p95
+performance targets. Source/configuration tests do not establish platform behaviour. MG-A7/A8 remain deferred
+with grouping. Manual enforcement is the owner's decision, not a claim of GitHub protection.
+
+The implementation adds `workflow_dispatch` for full diagnostic CI on the feature branch. It does not make
+such runs interchangeable with PR merge-candidate evidence. No merge or release is authorised by these results.

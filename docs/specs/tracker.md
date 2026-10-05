@@ -276,7 +276,7 @@ closed); PR #104's released-stack adoption; PR #92's admin-record acceptance. [F
 - [M40.2c] ☐ _(optional)_ follow the supertype chain.
 
 ### Release tooling
-- [MG-1] ☐ **Mutation-gate iteration policy and runtime** — proposed: minimal local checks, draft feedback, full merge gate,
+- [MG-1] ◧ **Mutation-gate iteration policy and runtime** — implementation awaiting CI/independent acceptance: minimal local checks, draft feedback, full merge gate,
   eight workers, supersession cancellation and named baselines; grouping deferred. [Spec](spec-mutation-gate-iteration.md).
 - ☐ Canonicalise the restart checker's compared file paths on macOS.
 

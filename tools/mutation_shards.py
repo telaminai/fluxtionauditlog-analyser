@@ -8,10 +8,13 @@ import hashlib
 import json
 import math
 import subprocess
+import time
+import os
 from pathlib import Path
 
 TIMINGS = Path(__file__).with_name('mutation_timings.json')
 PRIORITY = 'design-status-capped'
+SCHEMA = 2
 
 
 def require(condition, message):
@@ -50,6 +53,16 @@ def plan(cases, count):
     return allocate(cases, count, weights, default)
 
 
+def plan_digest(cases, count):
+    """Bind full registry tuples, original source bytes and allocation, never workers' claims."""
+    shards, _ = plan(cases, count)
+    content = {'schema': SCHEMA, 'count': count, 'cases': cases,
+               'sources': {site: hashlib.sha256(Path(site).read_bytes()).hexdigest()
+                           for site in sorted({c[1] for c in cases})},
+               'allocation': [[c[0] for c in shard] for shard in shards]}
+    return hashlib.sha256(json.dumps(content, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+
+
 def revision():
     return subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
 
@@ -58,8 +71,12 @@ def collect(cases, documents, count, expected_revision, gate):
     """Recompute the plan and verify the evidence, not just each worker's verdict string."""
     shards, _ = plan(cases, count)
     require(len(documents) == count, f'expected {count} shard results, got {len(documents)}')
+    digest = plan_digest(cases, count)
     seen, entries = set(), []
     for doc in documents:
+        require(doc.get('schema') == SCHEMA, 'unsupported evidence schema')
+        require(doc.get('scope') == 'full', 'partial scope is not full evidence')
+        require(doc.get('planDigest') == digest, 'wrong plan digest')
         meta = doc.get('shard', {})
         index = meta.get('index')
         require(type(index) is int and 0 <= index < count, f'invalid shard index: {index}')
@@ -91,7 +108,8 @@ def collect(cases, documents, count, expected_revision, gate):
             require(entry.get('restoredByteIdentical') is True and
                     entry.get('classesRestoredByteIdentical') is True, f'{name}: bytes not restored')
             mutated = entry.get('mutated', {})
-            require(gate.caught(mutated, method) and any(
+            require(gate.caught(mutated, method) and all(
+                s['errors'] == s['skipped'] == 0 for s in mutated.get('suites', [])) and any(
                 s['name'] == cls and any(a['kind'] == 'failure' and gate.fast.same_test(a['test'], method)
                                        for a in s['assertions']) for s in mutated['suites']),
                 f'{name}: no named assertion failure')
@@ -101,7 +119,14 @@ def collect(cases, documents, count, expected_revision, gate):
                 for s in restored['suites']), f'{name}: named test not restored green')
             entries.append(entry)
     require(seen == set(range(count)), 'missing shard')
-    return {'mode': 'mutations', 'engine': 'fast', 'revision': expected_revision,
+    metrics = {'workerSeconds': [d.get('seconds') for d in documents],
+               'baselineInvocations': [sum(s['tests'] for s in d['baseline']['suites']) for d in documents],
+               'fallbacks': sum(bool(e.get('fullCompileFallback')) for e in entries),
+               'slowestControls': [{'name': e['name'], 'seconds': e.get('seconds')}
+                                   for e in sorted(entries, key=lambda e: e.get('seconds', 0), reverse=True)[:15]],
+               'meaning': 'engine elapsed time; excludes runner queue, checkout and upload'}
+    return {'schema': SCHEMA, 'scope': 'full', 'planDigest': digest, 'metrics': metrics,
+            'mode': 'mutations', 'engine': 'fast', 'revision': expected_revision,
             'shards': count, 'controls': len(entries), 'complete': True,
             'runs': sorted(entries, key=lambda e: e['name'])}
 
@@ -115,15 +140,24 @@ def main():
     args = parser.parse_args()
     import verify_project_chart_review as gate
     # Validate all current anchors independently of the workers' evidence.
-    cases = gate.selected_cases(None)
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    started = time.monotonic()
     try:
+        cases = gate.selected_cases(None)
         documents = [json.loads(p.read_text()) for p in sorted(args.artifacts.glob('mutation-shard-*.json'))]
         result = collect(cases, documents, args.count, args.revision, gate)
-    except (ValueError, KeyError, TypeError, OSError) as exc:
+    except (ValueError, KeyError, TypeError, OSError, AssertionError) as exc:
+        args.output.write_text(json.dumps({'schema': SCHEMA, 'scope': 'full', 'complete': False,
+                                          'revision': args.revision, 'rejection': str(exc)}, indent=2) + '\n')
         parser.exit(1, f'mutation evidence rejected: {exc}\n')
     args.output.parent.mkdir(parents=True, exist_ok=True)
+    result['collectorSeconds'] = time.monotonic() - started
     args.output.write_text(json.dumps(result, indent=2) + '\n')
-    print(f"Complete: {result['controls']} controls caught exactly once across {args.count} shards")
+    summary = f"Complete: {result['controls']} controls caught exactly once across {args.count} shards"
+    print(summary)
+    if os.environ.get('GITHUB_STEP_SUMMARY'):
+        with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as out:
+            out.write(summary + '\n\n```json\n' + json.dumps(result['metrics'], indent=2) + '\n```\n')
 
 
 if __name__ == '__main__':

@@ -16,6 +16,7 @@ import json
 import re
 import subprocess
 import sys
+import signal
 import time
 from pathlib import Path
 import xml.etree.ElementTree as ET
@@ -659,19 +660,24 @@ def maven_run_safe(names):
 
 
 def caught(result, test):
-    return result['exit'] != 0 and any(fast.same_test(a['test'], test) and a['kind'] == 'failure'
+    return result['exit'] != 0 and all(s['errors'] == s['skipped'] == 0 for s in result['suites']) and any(fast.same_test(a['test'], test) and a['kind'] == 'failure'
                                        for s in result['suites'] for a in s['assertions'])
 
 
-def run_gate(cases, engine, fail_fast, on_entry=lambda entry: None, on_baseline=lambda baseline: None):
+def run_gate(cases, engine, fail_fast, on_entry=lambda entry: None, on_baseline=lambda baseline: None,
+             baseline_policy="methods"):
     """Baseline, then every control. Returns (baseline, entries); each entry carries a verdict.
 
     `on_entry` is called after every control, so the evidence is on disk before the next one starts: a gate
     that dies half way (PR #18 review, finding 3) still leaves what it established.
     """
     runner = engine.run if engine else (lambda names: maven_run_safe(','.join(names)))
-    classes = list(dict.fromkeys(c[4].split('#')[0] for c in cases))
-    baseline = runner(classes)
+    assert baseline_policy in ('methods', 'classes'), 'unknown baseline policy'
+    selectors = list(dict.fromkeys(c[4] if baseline_policy == 'methods' else c[4].split('#')[0] for c in cases))
+    baseline_started = time.monotonic()
+    baseline = runner(selectors)
+    baseline['seconds'] = time.monotonic() - baseline_started
+    baseline['selectors'] = selectors
     on_baseline(baseline)
     if fail_fast:
         assert green(baseline), baseline['output']
@@ -688,7 +694,12 @@ def run_gate(cases, engine, fail_fast, on_entry=lambda entry: None, on_baseline=
                  'baselineGreen': green(baseline), 'engine': 'fast' if engine else 'maven'}
         started = time.monotonic()
         if engine:
-            mutated, restored = engine.control(case, entry)
+            try:
+                mutated, restored = engine.control(case, entry)
+            except BaseException:
+                entry['verdict'] = 'interrupted-or-error'
+                on_entry(entry)
+                raise
         else:
             try:
                 path.write_text(original.decode().replace(old, new))
@@ -719,7 +730,7 @@ def run_gate(cases, engine, fail_fast, on_entry=lambda entry: None, on_baseline=
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--output', required=True)
-    parser.add_argument('--mode', choices=['preflight', 'display', 'mutations', 'compare', 'selftest'], required=True)
+    parser.add_argument('--mode', choices=['preflight', 'display', 'mutations', 'compare', 'compare-baselines', 'selftest'], required=True)
     parser.add_argument('--case', action='append')
     parser.add_argument('--engine', choices=['maven', 'fast'], default='maven',
                         help='mutations mode: maven = a Maven lifecycle per run (the original engine); '
@@ -737,7 +748,9 @@ def main():
             parser.error('sharding requires fast mutations, both shard arguments, a valid index, and no subset/case selection')
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
-    result = {'mode': args.mode, 'runs': []}
+    result = {'mode': args.mode, 'runs': [], 'schema': sharding.SCHEMA,
+              'scope': 'feedback' if args.case or args.changed_since or args.mode.startswith('compare') else 'full',
+              'revision': sharding.revision()}
     def save():
         output.write_text(json.dumps(result, indent=2) + '\n')
     if args.mode == 'selftest':
@@ -769,6 +782,7 @@ def main():
         return
     cases = selected_cases(args.case)  # ALL anchors before the shared baseline or any mutation
     if args.shard_index is not None:
+        result['planDigest'] = sharding.plan_digest(cases, args.shard_count)
         shards, loads = sharding.plan(cases, args.shard_count)
         cases = shards[args.shard_index]
         result['shard'] = {'index': args.shard_index, 'count': args.shard_count,
@@ -776,11 +790,12 @@ def main():
         save()
         print(f'Shard {args.shard_index + 1}/{args.shard_count}: {len(cases)} controls; '
               f'estimated control time {loads[args.shard_index]:.1f}s (setup/baseline additional)', flush=True)
-    if args.mode == 'compare':
+    if args.mode in ('compare', 'compare-baselines'):
         planted = [c for c in PLANTED if Path(c[1]).read_text().count(c[2]) == 1]
         assert len(planted) == len(PLANTED), 'a planted control lost its anchor'
         verdicts = {}
-        for label, engine in (('maven', None), ('fast', fast.FastEngine())):
+        variants = (('classes', fast.FastEngine()), ('methods', fast.FastEngine())) if args.mode == 'compare-baselines' else (('maven', None), ('fast', fast.FastEngine()))
+        for label, engine in variants:
             started = time.monotonic()
             if engine:
                 engine.prepare()
@@ -788,59 +803,70 @@ def main():
             def keep(entry, partial=partial):
                 partial['entries'].append(entry)
                 save()
-            baseline, entries = run_gate(cases + planted, engine, fail_fast=False, on_entry=keep)
+            baseline, entries = run_gate(cases + planted, engine, fail_fast=False, on_entry=keep,
+                                         baseline_policy='classes' if label == 'classes' else 'methods')
             seconds = round(time.monotonic() - started, 1)
             result[label] = {'seconds': seconds, 'baselineGreen': green(baseline), 'entries': entries,
                              'fullCompileFallbacks': engine.fallbacks if engine else None}
             verdicts[label] = {e['name']: e['verdict'] for e in entries}
             save()
             print(label, 'engine:', seconds, 's', flush=True)
+        left, right = [label for label, _ in variants]
         rows = []
-        for name in verdicts['maven']:
+        for name in verdicts[left]:
             expected = 'survived' if name.startswith('plant-') else 'caught'
-            m, f = verdicts['maven'][name], verdicts['fast'][name]
-            rows.append({'name': name, 'maven': m, 'fast': f, 'expected': expected, 'ok': m == f == expected})
-            print(('ok   ' if rows[-1]['ok'] else 'DIFF ') + name, 'maven=' + m, 'fast=' + f, 'expected=' + expected)
+            m, f = verdicts[left][name], verdicts[right][name]
+            rows.append({'name': name, left: m, right: f, 'expected': expected, 'ok': m == f == expected})
+            print(('ok   ' if rows[-1]['ok'] else 'DIFF ') + name, left + '=' + m, right + '=' + f, 'expected=' + expected)
         result['comparison'] = rows
         save()
         # PR #18 review, finding 4: identical verdicts over RED baselines prove nothing about either engine
-        red = [label for label in ('maven', 'fast') if not result[label]['baselineGreen']]
+        red = [label for label in (left, right) if not result[label]['baselineGreen']]
         assert not red, 'baseline not green for: ' + ', '.join(red)
         assert all(r['ok'] for r in rows), 'the engines disagree, or a control or plant has the wrong verdict'
-        print('compare: identical verdicts on', len(rows), 'controls; maven', result['maven']['seconds'],
-              's, fast', result['fast']['seconds'], 's')
+        print('compare: identical verdicts on', len(rows), 'controls;', left, result[left]['seconds'],
+              's,', right, result[right]['seconds'], 's')
         return
     # mutations
     if args.changed_since:
-        chosen, skipped = fast.select_subset(cases, fast.changed_files(args.changed_since))
-        result['subset'] = {'since': args.changed_since,
-                            'selected': [{'name': c[0], 'why': why} for c, why in chosen],
-                            'skipped': [{'name': c[0], 'why': why} for c, why in skipped]}
+        import mutation_policy
+        selection = mutation_policy.selection(cases, args.changed_since)
+        result['subset'] = selection
+        selected_names = {c['name'] for c in selection['selected']}
         save()
-        for c, why in chosen:
-            print('selected', c[0], '-', why)
-        for c, why in skipped:
-            print('SKIPPED ', c[0], '-', why)
-        print('SUBSET: %d of %d controls will run; %d skipped. A subset is a branch signal, not the gate.'
-              % (len(chosen), len(cases), len(skipped)), flush=True)
-        cases = [c for c, _ in chosen]
+        for label, key in [('selected', 'selected'), ('NOT RUN', 'notRun')]:
+            for c in selection[key]:
+                print(label, c['name'], '-', c['why'])
+        print('FEEDBACK: %d selected; %d not run. Not full merge evidence.' %
+              (len(selected_names), len(selection['notRun'])), flush=True)
+        cases = [c for c in cases if c[0] in selected_names]
         if not cases:
+            result['complete'] = False
+            save()
             return
     engine = fast.FastEngine() if args.engine == 'fast' else None
     started = time.monotonic()
-    if engine:
-        engine.prepare()
     result.update({'engine': args.engine, 'runs': []})
+    save()
     def keep(entry):
         result['runs'].append(entry)
         save()
     def keep_baseline(baseline):
         result['baseline'] = baseline
         save()
+    def terminate(signum, frame):
+        raise KeyboardInterrupt('mutation run terminated; restoring byte copies')
+    previous_term = signal.signal(signal.SIGTERM, terminate)
     try:
+        if engine:
+            engine.prepare()
         run_gate(cases, engine, fail_fast=True, on_entry=keep, on_baseline=keep_baseline)
     finally:
+        signal.signal(signal.SIGTERM, previous_term)
         result['seconds'] = round(time.monotonic() - started, 1)
+        if engine:
+            result['setupPhases'] = engine.phases
+            result['fullCompileFallbacks'] = engine.fallbacks
         save()
     print('mutations:', len(result['runs']), 'controls caught with the', args.engine, 'engine in', result['seconds'], 's')
 
