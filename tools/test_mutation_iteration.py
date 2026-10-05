@@ -3,6 +3,11 @@ import tempfile
 import subprocess
 import json
 import os
+import sys
+import time
+import signal
+import contextlib
+import io
 import unittest
 from pathlib import Path
 from unittest.mock import Mock, patch
@@ -113,6 +118,137 @@ class RunReportTest(unittest.TestCase):
         self.assertIsNone(r['jobs'][0]['queueSeconds'], 'missing queue timestamps are unknown, not zero')
         with self.assertRaisesRegex(ValueError, 'complete run'):
             run_report.summarise({**run, 'status': 'in_progress'}, [job])
+
+
+class ReviewCorrectionsTest(unittest.TestCase):
+    def test_compare_sigterm_restores_the_real_mutated_source(self):
+        script = r"""import os, signal, sys
+from pathlib import Path
+from unittest.mock import patch
+sys.path.insert(0, 'tools')
+import verify_project_chart_review as gate
+import mutation_gate_fast as fast
+source=Path(sys.argv[1]); output=sys.argv[2]
+case=('probe',str(source),'original','mutant','FixtureTest#chosen')
+class Engine(fast.FastEngine):
+ def prepare(self): self.snapshot={}; self.calls=0
+ def run(self, names):
+  self.calls+=1
+  if self.calls==2: os.kill(os.getpid(), signal.SIGTERM)
+  return {'exit':0,'output':'','suites':[{'name':'FixtureTest','tests':1,'errors':0,'skipped':0,'failures':0,'testNames':['chosen'],'assertions':[]}]}
+sys.argv=['gate','--mode','compare-baselines','--engine','fast','--case','probe','--output',output]
+with patch.object(gate,'selected_cases',return_value=[case]),patch.object(gate,'PLANTED',[]),patch.object(fast,'FastEngine',Engine),patch.object(fast,'restore_trees',return_value=[]),patch.object(fast,'tree_drift',return_value=[]):
+ gate.main()
+"""
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / 'source.md'
+            source.write_text('original')
+            result = subprocess.run([sys.executable, '-c', script, str(source), str(Path(tmp) / 'out.json')],
+                                    capture_output=True, text=True, timeout=10)
+            self.assertNotEqual(0, result.returncode, 'termination cannot report a successful comparison')
+            self.assertEqual('original', source.read_text(), 'SIGTERM during comparison must restore the source')
+
+    def test_timeout_descendant_cannot_overwrite_restored_class_bytes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / 'source.md'; source.write_bytes(b'original source')
+            classes = root / 'classes'; classes.mkdir()
+            existing = classes / 'Existing.class'; existing.write_bytes(b'original class')
+            ready = root / 'ready'
+            child = ('import time; from pathlib import Path; '
+                     'Path(' + repr(str(ready)) + ').write_text("ready"); time.sleep(.7); '
+                     'Path(' + repr(str(existing)) + ').write_bytes(b"late mutant")')
+            parent = ('import subprocess,sys,time; subprocess.Popen([sys.executable,"-c",' + repr(child) + '],'
+                      'stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL); time.sleep(10)')
+            engine = gate.fast.FastEngine(); engine.snapshot = gate.fast.tree_snapshot((classes,))
+            original_restore, original_drift = gate.fast.restore_trees, gate.fast.tree_drift
+            calls = []
+            def run(_):
+                if not calls:
+                    calls.append('mutated')
+                    code, out = gate.fast.run_with_timeout([sys.executable, '-c', parent], .3)
+                    return {'exit': code, 'output': out, 'suites': []}
+                return {'exit': 0, 'output': '', 'suites': []}
+            entry = {}
+            with patch.object(engine, 'run', side_effect=run), \
+                 patch.object(gate.fast, 'restore_trees', side_effect=lambda snap: original_restore(snap, (classes,))), \
+                 patch.object(gate.fast, 'tree_drift', side_effect=lambda snap: original_drift(snap, (classes,))):
+                engine.control(('restore', str(source), 'original', 'mutant', 'FixtureTest#chosen'), entry)
+            self.assertTrue(ready.exists(), 'the descendant must have started before the timeout')
+            self.assertTrue(entry['classesRestoredByteIdentical'], 'immediate restoration must be checked')
+            time.sleep(.8)  # explicitly cross the descendant's scheduled late write, not an async success wait
+            self.assertEqual(b'original class', existing.read_bytes(),
+                             'a timed-out descendant must not overwrite restored class bytes')
+
+    def assert_descendant_stopped(self, interrupt):
+        # Real processes: the command waits for its descendant to start before exiting
+        # or signalling the wrapper. DEVNULL prevents pipe lifetime hiding the defect.
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            ready, target = root / 'ready', root / 'class-bytes'
+            target.write_text('restored')
+            child = ("import time; from pathlib import Path; "
+                     "Path(" + repr(str(ready)) + ").write_text('started'); time.sleep(.6); "
+                     "Path(" + repr(str(target)) + ").write_text('late mutant')")
+            parent = ("import os,signal,subprocess,sys,time; from pathlib import Path\n"
+                      "subprocess.Popen([sys.executable,'-c'," + repr(child) + "], "
+                      "stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)\n"
+                      "deadline=time.monotonic()+5\n"
+                      "while not Path(" + repr(str(ready)) + ").exists():\n"
+                      " if time.monotonic()>deadline: raise RuntimeError('descendant never started')\n"
+                      " time.sleep(.01)\n" +
+                      ("os.kill(os.getppid(),signal.SIGTERM); time.sleep(10)\n" if interrupt else ""))
+            wrapper = ("import signal,sys; sys.path.insert(0,'tools')\n"
+                       "from mutation_gate_fast import run_with_timeout\n"
+                       "def terminate(*_): raise KeyboardInterrupt('cancelled')\n"
+                       "signal.signal(signal.SIGTERM,terminate)\n"
+                       "try:\n"
+                       " code, output = run_with_timeout([sys.executable,'-c'," + repr(parent) + "],10)\n"
+                       " print('completed',code)\n"
+                       "except KeyboardInterrupt: print('cancelled')\n")
+            result = subprocess.run([sys.executable, '-c', wrapper], capture_output=True, text=True, timeout=15)
+            self.assertEqual(0, result.returncode, 'the wrapper must complete its cleanup: ' + result.stderr)
+            self.assertTrue(ready.exists(), 'the descendant must actually start before cleanup')
+            self.assertIn('cancelled' if interrupt else 'completed 0', result.stdout,
+                          'the requested cancellation or normal-exit path must run')
+            time.sleep(.8)  # cross the scheduled write; absence is the wrong-result witness
+            self.assertEqual('restored', target.read_text(),
+                             'a descendant must not write after ' + ('SIGTERM cleanup' if interrupt else 'normal parent exit'))
+
+    def test_sigterm_stops_descendants_before_returning_to_restoration(self):
+        self.assert_descendant_stopped(True)
+
+    def test_normal_parent_exit_does_not_leave_a_descendant_writer(self):
+        self.assert_descendant_stopped(False)
+
+    def test_unknown_registry_mutations_refuse_instead_of_silently_dropping_controls(self):
+        base = "CONTROLS=[('a','site','old','new','Test#method')]\n"
+        for suffix in ("if True: CONTROLS.append(('b','site','old','new','Test#other'))",
+                       "for x in [1]: CONTROLS.clear()", "del CONTROLS[0]", "CONTROLS[0]=('b','s','o','n','T#m')",
+                       "alias=CONTROLS\nalias.clear()"):
+            with self.subTest(suffix=suffix), self.assertRaises(ValueError, msg='unsupported registry mutation must refuse'):
+                policy.assignments(base + suffix, 'CONTROLS')
+
+    def test_run_report_keeps_failed_jobs_from_earlier_attempts(self):
+        run = {'status': 'completed', 'html_url': 'DEMO', 'head_sha': 'abc', 'event': 'pull_request',
+               'conclusion': 'success', 'run_started_at': '2026-10-05T10:00:00Z',
+               'updated_at': '2026-10-05T10:04:00Z', 'run_attempt': 2}
+        job = {'status': 'completed', 'name': 'mutation-shards',
+               'started_at': '2026-10-05T10:00:00Z', 'completed_at': '2026-10-05T10:01:00Z'}
+        first = {**job, 'id': 1, 'run_attempt': 1, 'conclusion': 'failure'}
+        second = {**job, 'id': 2, 'run_attempt': 2, 'conclusion': 'success'}
+        def api(cmd, **kwargs):
+            path = cmd[-1]
+            return json.dumps({'jobs': [first, second] if 'filter=all' in path else [second]} if '/jobs?' in path else run)
+        with tempfile.TemporaryDirectory() as tmp:
+            output = Path(tmp) / 'report.json'
+            with patch.object(sys, 'argv', ['report', '--run', '123', '--output', str(output)]), \
+                 patch.object(run_report.subprocess, 'check_output', side_effect=api), contextlib.redirect_stdout(io.StringIO()):
+                run_report.main()
+            r = json.loads(output.read_text())
+        self.assertEqual(2, r['jobExecutionMinutes'], 'failed earlier attempts must remain in total execution cost')
+        self.assertEqual([1, 2], [j['attempt'] for j in r['jobs']], 'attempt identity must be retained')
+        self.assertEqual(['failure', 'success'], [j['conclusion'] for j in r['jobs']], 'do not hide failed attempts')
 
 
 class PolicyTest(unittest.TestCase):

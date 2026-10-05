@@ -17,7 +17,7 @@ def seconds(start, end):
 def summarise(run, jobs):
     if run['status'] != 'completed' or any(j['status'] != 'completed' for j in jobs):
         raise ValueError('wait for the complete run; partial jobs are not timing evidence')
-    rows = [{'name': j['name'], 'conclusion': j['conclusion'],
+    rows = [{'id': j.get('id'), 'attempt': j.get('run_attempt'), 'name': j['name'], 'conclusion': j['conclusion'],
              'seconds': seconds(j['started_at'], j['completed_at']),
              'queueSeconds': seconds(j['created_at'], j['started_at']) if j.get('created_at') else None,
              'steps': [{'name': s['name'], 'conclusion': s['conclusion'],
@@ -27,7 +27,7 @@ def summarise(run, jobs):
     return {'run': run['html_url'], 'head': run['head_sha'], 'event': run['event'],
             'conclusion': run['conclusion'], 'elapsedSeconds': seconds(run['run_started_at'], run['updated_at']),
             'jobExecutionMinutes': sum(j['seconds'] for j in rows) / 60,
-            'meaning': 'API wall-clock job durations, not billed minutes; steps include setup/upload when reported',
+            'meaning': 'All job attempts: wall-clock durations, not billed minutes; elapsedSeconds is the API run interval; steps include setup/upload when reported',
             'jobs': rows}
 
 
@@ -42,7 +42,7 @@ def main():
     jobs = []
     page = 1
     while True:
-        batch = api(f'/jobs?per_page=100&page={page}')['jobs']
+        batch = api(f'/jobs?filter=all&per_page=100&page={page}')['jobs']
         jobs.extend(batch)
         if len(batch) < 100:
             break

@@ -727,7 +727,7 @@ def run_gate(cases, engine, fail_fast, on_entry=lambda entry: None, on_baseline=
     return baseline, entries
 
 
-def main():
+def run_main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--output', required=True)
     parser.add_argument('--mode', choices=['preflight', 'display', 'mutations', 'compare', 'compare-baselines', 'selftest'], required=True)
@@ -854,21 +854,28 @@ def main():
     def keep_baseline(baseline):
         result['baseline'] = baseline
         save()
-    def terminate(signum, frame):
-        raise KeyboardInterrupt('mutation run terminated; restoring byte copies')
-    previous_term = signal.signal(signal.SIGTERM, terminate)
     try:
         if engine:
             engine.prepare()
         run_gate(cases, engine, fail_fast=True, on_entry=keep, on_baseline=keep_baseline)
     finally:
-        signal.signal(signal.SIGTERM, previous_term)
         result['seconds'] = round(time.monotonic() - started, 1)
         if engine:
             result['setupPhases'] = engine.phases
             result['fullCompileFallbacks'] = engine.fallbacks
         save()
     print('mutations:', len(result['runs']), 'controls caught with the', args.engine, 'engine in', result['seconds'], 's')
+
+
+def main():
+    # Comparison and self-test modes mutate too. Install before dispatching any mode.
+    def terminate(signum, frame):
+        raise KeyboardInterrupt('mutation run terminated; restoring byte copies')
+    previous_term = signal.signal(signal.SIGTERM, terminate)
+    try:
+        run_main()
+    finally:
+        signal.signal(signal.SIGTERM, previous_term)
 
 
 if __name__ == '__main__':

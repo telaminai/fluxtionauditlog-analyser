@@ -17,11 +17,13 @@ REGISTRY_FILES = ('tools/verify_project_chart_review.py', 'tools/mutation_contro
 
 
 def literal(node, values):
-    if isinstance(node, ast.Constant) and isinstance(node.value, (str, int)):
+    if isinstance(node, ast.Constant) and (node.value is None or isinstance(node.value, (str, int))):
         return node.value
     if isinstance(node, (ast.List, ast.Tuple)):
         result = [literal(n, values) for n in node.elts]
         return tuple(result) if isinstance(node, ast.Tuple) else result
+    if isinstance(node, ast.Dict):
+        return {literal(k, values): literal(v, values) for k, v in zip(node.keys, node.values)}
     if isinstance(node, ast.Name):
         return values[node.id]
     if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add):
@@ -40,12 +42,13 @@ def assignments(source, wanted, initial=None):
     for node in ast.parse(source).body:
         if isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
             name = node.targets[0].id
-            # Constants used by the registry are string expressions. Unrelated module state is ignored.
+            # No aliases of mutable registries: their later mutations cannot be ignored.
+            if isinstance(node.value, ast.Name) and isinstance(values.get(node.value.id), (list, dict)):
+                raise ValueError('unsupported registry alias')
             try:
                 values[name] = literal(node.value, values)
             except (ValueError, KeyError, TypeError):
-                if name == wanted:
-                    raise ValueError('cannot parse registry')
+                raise ValueError('cannot parse registry or its dependencies') from None
         elif isinstance(node, ast.AugAssign) and isinstance(node.target, ast.Name) and node.target.id == wanted:
             if not isinstance(node.op, ast.Add):
                 raise ValueError('unsupported registry update')
@@ -57,6 +60,30 @@ def assignments(source, wanted, initial=None):
                     raise ValueError('unsupported registry update')
                 item = literal(call.args[0], values)
                 values[wanted] += [item] if call.func.attr == 'append' else item
+            elif ast.unparse(call) != 'sys.path.insert(0, str(Path(__file__).resolve().parent))':
+                raise ValueError('unsupported module call')
+        elif isinstance(node, (ast.Import, ast.ImportFrom)):
+            continue  # Only the supplied initial values resolve imported registry names.
+        elif isinstance(node, ast.Expr) and isinstance(node.value, ast.Constant) and isinstance(node.value.value, str):
+            continue  # Module documentation.
+        elif isinstance(node, ast.FunctionDef):
+            # Bodies are not run at import. Decorators/defaults/annotations are; accept only
+            # the non-mutating forms in this registry, otherwise choose the full gate.
+            defaults = node.args.defaults + [n for n in node.args.kw_defaults if n is not None]
+            annotations = [a.annotation for a in (*node.args.posonlyargs, *node.args.args, *node.args.kwonlyargs)
+                           if a.annotation is not None] + ([node.returns] if node.returns else [])
+            if node.decorator_list or any(isinstance(n, (ast.Call, ast.NamedExpr)) and ast.unparse(n) != "Path('.')"
+                                          for expr in defaults + annotations for n in ast.walk(expr)):
+                raise ValueError('unsupported function definition effects')
+        elif isinstance(node, ast.Assert) and not any(isinstance(n, (ast.Call, ast.NamedExpr)) for n in ast.walk(node)):
+            continue  # Pure duplicate-name assertion, not a registry transformation.
+        elif (isinstance(node, ast.If) and ast.unparse(node.test) == "__name__ == '__main__'"
+              and len(node.body) == 1 and ast.unparse(node.body[0]) == 'main()' and not node.orelse):
+            continue
+        else:
+            # Never skip an unfamiliar if/loop/delete/subscript update and pretend that
+            # the partial registry is complete. Historical Python is not executed.
+            raise ValueError('unsupported registry module statement')
     cases = values[wanted]
     if not cases or any(not isinstance(c, tuple) or len(c) != 5 or
                         not all(isinstance(v, str) for v in c) for c in cases):

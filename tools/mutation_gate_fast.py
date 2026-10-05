@@ -27,6 +27,8 @@ fails the run even when every test method passed.
 """
 import hashlib
 import json
+import os
+import signal
 import re
 import subprocess
 import tempfile
@@ -62,15 +64,28 @@ def mvn(*args):
 
 
 def run_with_timeout(command, timeout, cwd=None):
-    """Run a command; a hang becomes exit 124 with whatever it printed, never an exception or a stall."""
+    """Own the command's process group; stop its writers before mutation restoration."""
+    proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                            cwd=cwd, start_new_session=True)
+
+    def stop_group():
+        try:
+            os.killpg(proc.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+
     try:
-        proc = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=timeout, cwd=cwd)
-        return proc.returncode, proc.stdout.decode('utf-8', 'replace')
-    except subprocess.TimeoutExpired as hung:
-        partial = hung.stdout or b''
-        if isinstance(partial, bytes):          # TimeoutExpired carries BYTES even when the run asked for text
-            partial = partial.decode('utf-8', 'replace')
-        return 124, partial + '\nTIMED OUT after %d s' % timeout
+        output, _ = proc.communicate(timeout=timeout)
+        return proc.returncode, output.decode('utf-8', 'replace')
+    except subprocess.TimeoutExpired:
+        stop_group()
+        output, _ = proc.communicate()
+        return 124, output.decode('utf-8', 'replace') + '\nTIMED OUT after %g s' % timeout
+    finally:
+        # Covers interruption as well as descendants whose parent exited first. A descendant
+        # must not keep compiling after FastEngine has restored its class snapshot.
+        stop_group()
+        proc.wait()
 
 
 class Site:

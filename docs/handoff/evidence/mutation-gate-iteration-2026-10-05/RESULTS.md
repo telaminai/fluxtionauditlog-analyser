@@ -77,3 +77,37 @@ The UI job emitted a SummaryPanel null-pointer annotation despite passing. The s
 exists in baseline run 36864001774 (READ logs). No application code changed; this is retained as
 an existing caveat, not silently called fixed. The branch diagnostic run does not replace a PR's
 current merge-candidate validation. Later receipt changes are documentation only.
+
+## Independent review correction round
+
+The spec and implementation are now together on PR #107 (`spec/mutation-gate-iteration`);
+PR #110 was closed as a duplicate. The feature branch is not a second delivery PR.
+
+See [the independent local review](../../review_pr107_mutation_gate_2026_10_05.md).
+Four implementation assumptions missed by the original tests were falsified: all mutation modes
+were not termination-safe; killing only a parent did not prevent later class writes; unknown
+historical registry statements were not rejected; and timing reports omitted earlier attempts.
+These were discovered during review, not predictions committed before implementation.
+
+All four now have discriminating regressions. The initial review regressions ran before the fixes:
+42 tests / 8 assertion failures / 0 errors / 0 skips (five failures are parser subtests).
+Two additional descendant tests ran against the original helper: 2 / 2 / 0 / 0, both named late-write
+assertions. Byte-copy/SHA-256 restoration was verified. Final Python results: 44 / 0 / 0 / 0 iteration,
+21 / 0 / 0 / 0 sharding (overlap), 5 / 0 / 0 / 0 harness, 5 / 0 / 0 / 0 classifier.
+The independent agent's final local correctness recheck passes; it does not close acceptance experiments.
+
+The first Maven attempt in this round recorded 3179 / 0 / 36 / 248: all 36 errors were sandbox
+loopback-socket refusals. Its reports and log were retained separately before retrying with socket access.
+The duplicate PR's failed baseline and cancellation are retained in the review; the later successful
+PR #107 run is evidence of a successful attempt, not proof the earlier failure is fixed.
+
+## Final local verification of the corrections
+
+RAN: Maven retry with loopback access: 3179 / 0 / 0 / 248, 419 reports, no orphans.
+Engine self-test: 27 checks, none failed. Preflight: 43 frame suites, 628 anchors.
+Under the shared display lock, comparison of class and method baselines caught the real control
+and retained both deliberately surviving controls in both variants. The two focused controls
+`dialog-unanswered-row` and `design-status-capped` were both caught, restored byte-identically
+(source and classes), and rerun green; engine elapsed 12.9 seconds. No full local sweep.
+Strict MkDocs, whitespace and public-data checks were clean. The independent agent's final local
+correctness verdict is passes; the declared platform and performance acceptance gaps remain.
