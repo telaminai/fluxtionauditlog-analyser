@@ -2,12 +2,14 @@ package telamin.fluxtion.audit.analyser.analyser.walk;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.util.Base64;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -37,7 +39,7 @@ class WalkReelPageTest {
                 "recorded-run.fexp",
                 List.of("unsigned: verification detects a changed member; it does not authenticate the sender",
                         "no replay: this bundle shows an investigation; it does not reproduce or fix it"),
-                "Captured after the Tuesday incident.");
+                "Captured after the Tuesday incident.", "");
     }
 
     @Test
@@ -81,6 +83,47 @@ class WalkReelPageTest {
     }
 
     @Test
+    @DisplayName("#82: a write that fails leaves no reel at all, never a page cut off before its evidence")
+    void aFailedWriteLeavesNothingAtTheTarget(@TempDir java.nio.file.Path dir) throws Exception {
+        java.nio.file.Path out = dir.resolve("tour.html");
+        // the staging name is occupied by a DIRECTORY, so the write fails after the target has been chosen
+        java.nio.file.Files.createDirectory(dir.resolve("tour.html.part"));
+        assertThrows(java.io.IOException.class, () -> WalkReel.write(out, WalkReel.bytes(reel(bundle()))));
+        assertFalse(java.nio.file.Files.exists(out),
+                "a half-written reel would render with its finish page missing: nothing may be left at the target");
+    }
+
+    @Test
+    @DisplayName("#82: a reel is staged and moved, so the finished name never holds a partial page")
+    void aWrittenReelIsCompleteAndLeavesNoStagingFile(@TempDir java.nio.file.Path dir) throws Exception {
+        java.nio.file.Path out = dir.resolve("tour.html");
+        WalkReel.write(out, WalkReel.bytes(reel(bundle())));
+        String html = java.nio.file.Files.readString(out);
+        assertTrue(html.contains(WalkReel.OPEN_IT_YOURSELF), "the finish page is present in the written file");
+        assertTrue(html.trim().endsWith("</html>"), "and the document is whole");
+        assertFalse(java.nio.file.Files.exists(dir.resolve("tour.html.part")), "no staging file is left behind");
+    }
+
+    @Test
+    @DisplayName("#82: a bundle that does not carry these frames' log is not offered as their evidence")
+    void aBundleThatDoesNotCoverTheFramesSaysSoInsteadOfInviting() {
+        WalkReel.Evidence other = new WalkReel.Evidence(
+                "sha256:cbd8f28dbc50263d45678cc926f089e6ad5cffab1a990f37e8ec87b20fa21743", "recorded-run.fexp",
+                List.of("unsigned: verification detects a changed member; it does not authenticate the sender"),
+                "", "The log shown above was opened separately, not from this bundle's unpacked copy.");
+        assertFalse(other.coversTheseFrames(), "a stated relation means the bundle is not the evidence");
+        String html = WalkReel.html(reel(other));
+        assertTrue(html.contains(WalkReel.esc(WalkReel.BUNDLE_IS_NOT_THESE_RECORDS)),
+                "the page says the bundle is not the evidence for these frames");
+        assertTrue(html.contains("opened separately"), "and why, in the analyser's own words");
+        assertFalse(html.contains(WalkReel.OPEN_IT_YOURSELF),
+                "it must NOT also invite replaying these steps against a bundle that cannot reproduce them");
+        assertTrue(html.contains("sha256:cbd8f28dbc50263d45678cc926f089e6ad5cffab1a990f37e8ec87b20fa21743"),
+                "the identity is still shown: the bundle is real, it is just not the evidence here");
+        assertFalse(html.contains(WalkReel.NO_BUNDLE), "and this is not the no-bundle case either");
+    }
+
+    @Test
     @DisplayName("#82: a reel with no bundle behind it says so plainly, rather than leaving the question open")
     void aReelWithoutABundleSaysSo() {
         String html = WalkReel.html(reel(null));
@@ -93,7 +136,7 @@ class WalkReelPageTest {
     @Test
     @DisplayName("#82: an evidence record with no identity is not a bundle — a working copy alone never reads as one")
     void anEvidenceWithoutAnIdentityIsNotABundle() {
-        WalkReel.Reel r = reel(new WalkReel.Evidence("", "recorded-run.fexp", List.of(), ""));
+        WalkReel.Reel r = reel(new WalkReel.Evidence("", "recorded-run.fexp", List.of(), "", ""));
         assertFalse(r.fromBundle());
         assertTrue(WalkReel.html(r).contains(WalkReel.NO_BUNDLE));
     }
@@ -140,7 +183,7 @@ class WalkReelPageTest {
                 List.of(), PNG);
         String html = WalkReel.html(new WalkReel.Reel("w", "", "", "", "now", "",
                 new WalkReel.Log("demo.yaml", 1, "", ""),
-                new WalkReel.Evidence("sha256:aa", "a\"b.fexp", List.of(), "<b>hi</b>"), List.of(f)));
+                new WalkReel.Evidence("sha256:aa", "a\"b.fexp", List.of(), "<b>hi</b>", ""), List.of(f)));
         assertFalse(html.contains("<script>alert"), "a caption cannot become a script");
         assertTrue(html.contains("&lt;script&gt;alert(1)&lt;/script&gt;"));
         assertTrue(html.contains("a &amp; b"));

@@ -39,6 +39,48 @@ public final class WalkReel {
     public static final String OPEN_IT_YOURSELF =
             "Open this bundle in the Fluxtion Audit Log Analyser to replay these steps yourself against the real log.";
 
+    /**
+     * Said INSTEAD of {@link #OPEN_IT_YOURSELF} when a bundle is in force but the frames show a log it does not
+     * carry. The invitation would otherwise be false in the one way that survives checking: the recipient opens a
+     * genuine bundle, verification passes, and the records they get are not the records in the pictures.
+     */
+    public static final String BUNDLE_IS_NOT_THESE_RECORDS =
+            "This bundle is NOT the evidence for the frames above. It supplied the project — its charts, walks and "
+            + "reports — but the log in these pictures is not one of its records, so opening it will not reproduce "
+            + "these steps. Verification of the bundle will succeed and still tell you nothing about them.";
+
+    /**
+     * Write {@code bytes} to {@code out}, or leave nothing at {@code out} at all.
+     *
+     * <p>HTML has no integrity check. A reel written straight to its destination and interrupted part-way — a full
+     * volume, an I/O error, an unmounted home — renders in a browser as a reel that simply stops, and what it stops
+     * before is the finish page: the one that names the evidence, or says there is none. A truncated reel is an
+     * undisclosed claim, so it must never exist under the name of a finished one. Written beside the target and
+     * moved into place; the partial is removed if the write fails.</p>
+     *
+     * @throws java.io.IOException if the reel could not be written; {@code out} is then untouched
+     */
+    public static void write(java.nio.file.Path out, byte[] bytes) throws java.io.IOException {
+        java.nio.file.Path part = out.resolveSibling(out.getFileName() + ".part");
+        try {
+            if (out.getParent() != null) java.nio.file.Files.createDirectories(out.getParent());
+            java.nio.file.Files.write(part, bytes);
+            try {
+                java.nio.file.Files.move(part, out, java.nio.file.StandardCopyOption.ATOMIC_MOVE,
+                        java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            } catch (java.nio.file.AtomicMoveNotSupportedException acrossStores) {
+                java.nio.file.Files.move(part, out, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            }
+        } catch (java.io.IOException failed) {
+            try {
+                java.nio.file.Files.deleteIfExists(part);
+            } catch (java.io.IOException ignored) {
+                // could not remove the partial; it is named .part and was never presented as a reel
+            }
+            throw failed;
+        }
+    }
+
     /** What is being shown: the log the frames came from, named the way the window names it — by file, never by path. */
     public record Log(String name, int records, String span, String processor) {
         public Log {
@@ -59,13 +101,25 @@ public final class WalkReel {
      * @param fileName the {@code .fexp}'s own file name, never the path it happened to sit at
      * @param limits   what the bundle itself states it does and does not evidence, one per line
      * @param notes    what the SENDER wrote. Their words, not a fact about the evidence, and labelled as such.
+     * @param logRelation empty when the frames show a log this bundle carries; otherwise WHY the bundle is not the
+     *                 evidence for them. A bundle's provenance is about the PROJECT, not whichever log is on screen
+     *                 (see {@code BundleProvenanceTest#theClaimIsAboutTheProjectNotTheLogOnScreen}), so a reel can
+     *                 be recorded with a bundle in force while showing a log the bundle never contained. Naming the
+     *                 bundle then is an affirmative false claim that the recipient's own --verify would confirm,
+     *                 because the bundle is genuine. The page says which it is describing.
      */
-    public record Evidence(String identity, String fileName, List<String> limits, String notes) {
+    public record Evidence(String identity, String fileName, List<String> limits, String notes, String logRelation) {
         public Evidence {
             identity = identity == null ? "" : identity.trim();
             fileName = fileName == null ? "" : fileName.trim();
             limits = List.copyOf(limits == null ? List.of() : limits);
             notes = notes == null ? "" : notes.trim();
+            logRelation = logRelation == null ? "" : logRelation.trim();
+        }
+
+        /** The frames' log is one this bundle carries, so the invitation to replay them against it is true. */
+        public boolean coversTheseFrames() {
+            return logRelation.isEmpty();
         }
     }
 
@@ -230,7 +284,14 @@ public final class WalkReel {
             }
             out.append("<dt>Identity</dt><dd><code class=\"identity\">").append(esc(e.identity()))
                     .append("</code></dd>\n</dl>\n");
-            out.append("<p class=\"invite\">").append(esc(OPEN_IT_YOURSELF)).append("</p>\n");
+            // the invitation is only true when this bundle carries the records in the pictures; when it does not,
+            // the page says so INSTEAD, never both
+            if (e.coversTheseFrames()) {
+                out.append("<p class=\"invite\">").append(esc(OPEN_IT_YOURSELF)).append("</p>\n");
+            } else {
+                out.append("<p class=\"warn notinbundle\">").append(esc(BUNDLE_IS_NOT_THESE_RECORDS))
+                        .append("</p>\n<p class=\"muted\">").append(esc(e.logRelation())).append("</p>\n");
+            }
             if (!e.limits().isEmpty()) {
                 out.append("<h3>What this bundle does and does not evidence</h3>\n<ul class=\"limits\">\n");
                 for (String l : e.limits()) out.append("<li>").append(esc(l)).append("</li>\n");

@@ -2312,6 +2312,21 @@ CONTROLS = [
      '            out.append("<h2>No evidence bundle</h2>\\n<p class=\\"warn nobundle\\">").append(esc(NO_BUNDLE))\n                    .append("</p>\\n");\n',
      '',
      'WalkReelPageTest#aReelWithoutABundleSaysSo'),
+    # F1: a bundle's provenance is about the PROJECT, not the log on screen. A reel recorded with a bundle in
+    # force but an unrelated log open must not invite the recipient to replay these frames against it.
+    ('reel-relation-decides-coverage', WALKREEL,
+     '            return logRelation.isEmpty();',
+     '            return true;',
+     'WalkReelPageTest#aBundleThatDoesNotCoverTheFramesSaysSoInsteadOfInviting'),
+    ('reel-not-covering-does-not-invite', WALKREEL,
+     '            if (e.coversTheseFrames()) {',
+     '            if (true) {',
+     'WalkReelPageTest#aBundleThatDoesNotCoverTheFramesSaysSoInsteadOfInviting'),
+    # F2: a truncated reel is a page whose evidence disclosure was cut off, under the name of a finished one
+    ('reel-write-stages-before-the-name', WALKREEL,
+     '            java.nio.file.Files.write(part, bytes);',
+     '            java.nio.file.Files.write(out, bytes);',
+     'WalkReelPageTest#aFailedWriteLeavesNothingAtTheTarget'),
     # a working copy without a verified identity is NOT a bundle; keyed on the identity, as BundleProvenance is
     ('reel-from-bundle-needs-an-identity', WALKREEL,
      '            return evidence != null && !evidence.identity().isEmpty();',

@@ -80,8 +80,10 @@ closed); PR #104's released-stack adoption; PR #92's admin-record acceptance. [F
 - ☐ #64 withheld chart definitions captured silently · #65 Follow-growth premise · #66 restoring Follow after capture ·
   #67 excerpt of a non-time-ordered log · #68 walk save's generation check in the frame (rule 9) · #69 small leftovers.
 - ◑ #73 discovery: recents and project inventory exist; pre-open preview and working-copy management remain open.
-- ☐ #74 (design) project-bound or standalone · #82 a walkthrough reel · #83 import off the event thread and #85 working-copy
+- ☐ #74 (design) project-bound or standalone · #83 import off the event thread and #85 working-copy
   reaping (PR #88 is not merged).
+- ◑ #82 a walkthrough reel: recorded as a self-contained page, with the finish page stating whether a bundle stands
+  behind the frames and refusing to invite replay against one that does not carry them. Open in review.
 - Optional improvements from PR #103’s later review (not unfinished #84 corrections or release blockers): generic-action
   guard hardening, fallback preselection, caption/revision refinement, and unavailable-anchor presentation/removal.
 - ☐ Redaction: colon policy and disclosed ambiguous-path residuals remain owner/follow-up work; closure is not a universal redaction guarantee.

@@ -3130,9 +3130,11 @@ public final class MainFrame extends JFrame {
                 return;
             }
             var reel = reelOf(walk, recording.frames(), recordedAt);
+            // a failed write must leave NOTHING at `out`: a truncated reel renders as one whose finish page --
+            // the evidence disclosure -- was simply cut off. WalkReel.write stages and moves into place.
             try {
-                if (out.getParent() != null) Files.createDirectories(out.getParent());
-                Files.write(out, telamin.fluxtion.audit.analyser.analyser.walk.WalkReel.bytes(reel));
+                telamin.fluxtion.audit.analyser.analyser.walk.WalkReel.write(
+                        out, telamin.fluxtion.audit.analyser.analyser.walk.WalkReel.bytes(reel));
             } catch (java.io.IOException e) {
                 onDone.accept(telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
                         "could not write " + out + ": " + e.getMessage()));
@@ -3143,13 +3145,42 @@ public final class MainFrame extends JFrame {
             wrote.put("steps", reel.frames().size());
             wrote.put("bundle", reel.fromBundle() ? reel.evidence().identity() : null);
             // the rule this feature exists for, said back to the caller rather than left to be discovered on the page
-            wrote.put("evidence", reel.fromBundle()
-                    ? "the finish page names the bundle, its identity and its limits"
-                    : "NOT captured from an evidence bundle — the finish page says so, and there is nothing to verify "
-                      + "these frames against");
+            wrote.put("evidence", !reel.fromBundle()
+                    ? "NOT captured from an evidence bundle — the finish page says so, and there is nothing to verify "
+                      + "these frames against"
+                    : reel.evidence().coversTheseFrames()
+                            ? "the finish page names the bundle, its identity and its limits"
+                            : "a bundle is in force but it does NOT carry the log in these frames — the finish page "
+                              + "says so instead of inviting the recipient to replay them against it");
             onDone.accept(telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("walk", "reel", wrote));
         });
         return null;
+    }
+
+    /**
+     * Empty when the log on screen is one this bundle unpacked, otherwise why the bundle is not the evidence for
+     * these frames.
+     *
+     * <p>A bundle's provenance is about the PROJECT, not whichever log happens to be open — opening an unrelated
+     * log leaves it in force, by design. The reel is the one surface that then puts an identity next to pictures
+     * of other records, so it has to say which it is describing.</p>
+     */
+    private String logRelationTo(telamin.fluxtion.audit.analyser.analyser.session.BundleProvenance provenance) {
+        String copy = provenance.workingCopy();
+        if (copy == null || copy.isBlank() || logDisplayLocation == null || logDisplayLocation.isBlank()) {
+            // nothing to compare: say the weaker thing rather than imply the stronger one
+            return "The analyser could not establish whether the log shown above came from this bundle.";
+        }
+        java.nio.file.Path root = java.nio.file.Path.of(copy).toAbsolutePath().normalize();
+        java.nio.file.Path shown;
+        try {
+            shown = java.nio.file.Path.of(logDisplayLocation).toAbsolutePath().normalize();
+        } catch (RuntimeException notAPath) {   // an s3:// or other non-filesystem location is never in a copy
+            return "The log shown above was opened from " + logDisplayLocation
+                   + ", which is not a member of this bundle.";
+        }
+        return shown.startsWith(root) ? ""
+                : "The log shown above was opened separately, not from this bundle's unpacked copy.";
     }
 
     /** What the page states about this session: what was being shown, and what evidence stands behind it. */
@@ -3176,7 +3207,7 @@ public final class MainFrame extends JFrame {
                     provenance.identity(), bundleFileName(provenance.source()),
                     provenance.limits() == null || provenance.limits().isBlank()
                             ? java.util.List.of() : java.util.List.of(provenance.limits().split("\n")),
-                    provenance.notes());
+                    provenance.notes(), logRelationTo(provenance));
         }
         // a purpose is the walk's own title; when it has none, the page says so rather than repeating the name
         String purpose = walk.title().isBlank() || walk.title().equals(walk.name()) ? "" : walk.title();
