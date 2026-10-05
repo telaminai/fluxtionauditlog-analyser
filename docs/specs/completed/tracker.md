@@ -1,3 +1,19 @@
+## 1.31.0 — shipped 2026-10-05
+
+- [UPS-1] ☑ Admin-command reader acceptance (PR #92, `787f2e1a`): C31/C32, broken-record refusal,
+  withheld-not-absent reporting, and repeated-field first-copy refusal. The design-only upstream PR #45 is superseded.
+- [UPS-2] ☑ Runtime 1.1.0 / builder 1.0.76 adoption (PR #104, `b6458a4e`); session and test processors regenerated.
+- ☑ PR #103: all ten #84 corrections, #93–#102. The last is explicit saved-source-revision disclosure, not revision binding.
+  [Regressions and dispositions](../../handoff/handoff_issue84_third_review_response_2026_10_01.md).
+- ☑ Bundle issues #75, #76 and #80: source anchoring/restoration, persistent provenance and selective import,
+  with the PR #103 corrections. Sender machine paths and source trees are still excluded from captures.
+- ☑ PR #87: Unicode/quoted-path correction. The closed issue #79 does not establish universal redaction;
+  colon policy and documented residuals stay in the live tracker.
+- ☑ Release smoke: agent API, handoff, spotlight, restart, seven scripted conversations and five native captures.
+
+[Release receipt](../../handoff/release_analyser_1_31_0_2026_10_05.md).
+UPS-1a, UPS-2a/2b, PR #103's optional improvements, and outstanding acceptance remain live.
+
 ## Evidence bundles · first delivery — ☑ SHIPPED in 1.27.0 (PR #63, merged `77d268be`, 2026-09-28) — [spec](spec-evidence-bundle-packaging.md)
 
 Capture is one operation on the running analyser (`report {bundle}`), decided by the `evidenceCapture` node; the

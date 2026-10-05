@@ -101,7 +101,7 @@ architecture, conventions). This file is only the rules that must never be skipp
 
 ## Current work
 
-**Latest release: 1.30.1 (2026-09-30).** The tracker's delivery order is current as of 2026-10-01 and is the place to
+**Latest release: 1.31.0 (2026-10-05).** The tracker's delivery order is current as of 2026-10-01 and is the place to
 start; the notes below are older context and may lag it.
 
 `docs/specs/tracker.md` has the delivery order; fully-shipped milestones live in

@@ -74,3 +74,6 @@ jobs passed. The failed attempt and the acquisition correction are documented in
 The branch was subsequently integrated with main. Verification of that combined code, including
 all 13 targeted controls and the larger headless suite, is recorded in
 [integration evidence](evidence/summary-panel-edt-gate-2026-10-01/integration-c66f744d/README.md).
+The subsequent main release documentation was also integrated; the
+[final-tree headless and documentation checks](evidence/summary-panel-edt-gate-2026-10-01/integration-53c0386e/README.md)
+passed with the two unshipped test corrections retained under Unreleased.
