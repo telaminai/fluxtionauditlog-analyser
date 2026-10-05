@@ -77,3 +77,8 @@ all 13 targeted controls and the larger headless suite, is recorded in
 The subsequent main release documentation was also integrated; the
 [final-tree headless and documentation checks](evidence/summary-panel-edt-gate-2026-10-01/integration-53c0386e/README.md)
 passed with the two unshipped test corrections retained under Unreleased.
+
+The second CI attempt passed the native controls, but another shard stopped on an unmutated bundle
+fixture's source-inference race. Its failed baseline, intermediate attempts, corrected recipient action
+and three targeted wrong-result witnesses are recorded in
+[bundle source completion evidence](evidence/summary-panel-edt-gate-2026-10-01/bundle-source-boundary/README.md).

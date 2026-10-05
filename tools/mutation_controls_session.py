@@ -196,6 +196,10 @@ CONTROLS = [
      '                    config.selectedEventProcessor = plan.processor();\n',
      '',
      'BundleProvenanceFrameTest#aBundleCarriesItsEventProcessor'),
+    ('bundle-recipient-can-choose-processor', UI + 'MainFrame.java',
+     '            config.selectedEventProcessor = fqn;\n',
+     '',
+     'BundleProvenanceFrameTest#aBundleCarriesItsEventProcessor'),
     # A transition's REAL half happens in ProjectSession before either effect arm runs. Reporting a render
     # failure as the transition's failure left the session naming a project that was gone (review 2026-09-29).
     ('transition-render-failure-is-not-a-transition-failure', UI + 'MainFrame.java',

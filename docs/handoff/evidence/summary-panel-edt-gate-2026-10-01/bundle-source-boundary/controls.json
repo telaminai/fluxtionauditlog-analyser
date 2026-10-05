@@ -1,0 +1,480 @@
+{
+  "mode": "mutations",
+  "runs": [
+    {
+      "name": "bundle-carries-its-processor",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/bundle/EvidenceBundle.java",
+      "sha256": "3e5318def2f2647393574c97f674bbb4b204b8126841bf98a26bd190b980763c",
+      "baselineGreen": true,
+      "engine": "fast",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "restoreRewrote": [
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/bundle/EvidenceBundle$Digest.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/bundle/EvidenceBundle$Unpacked.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/bundle/EvidenceBundle$Member.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/bundle/EvidenceBundle$Verification.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/bundle/EvidenceBundle$Pass.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/bundle/EvidenceBundle.class"
+      ],
+      "siteKind": "java",
+      "fullCompileFallback": false,
+      "mutated": {
+        "command": [
+          "java",
+          "-Djava.awt.headless=false",
+          "-Dbasedir=<worktree>",
+          "-cp",
+          "<worktree>/target/gate/launcher:target/test-classes:target/classes:<home>/.m2/repository/com/formdev/flatlaf/3.5.1/flatlaf-3.5.1.jar:<home>/.m2/repository/com/telamin/fluxtion/fluxtion-runtime/1.1.0/fluxtion-runtime-1.1.0.jar:<home>/.m2/repository/org/agrona/agrona/2.3.0/agrona-2.3.0.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter/5.10.2/junit-jupiter-5.10.2.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.10.2/junit-jupiter-api-5.10.2.jar:<home>/.m2/repository/org/opentest4j/opentest4j/1.3.0/opentest4j-1.3.0.jar:<home>/.m2/repository/org/junit/platform/junit-platform-commons/1.10.2/junit-platform-commons-1.10.2.jar:<home>/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.10.2/junit-jupiter-params-5.10.2.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.10.2/junit-jupiter-engine-5.10.2.jar:<home>/.m2/repository/org/junit/platform/junit-platform-engine/1.10.2/junit-platform-engine-1.10.2.jar:<home>/.m2/repository/org/apache/ant/ant/1.10.12/ant-1.10.12.jar:<home>/.m2/repository/org/apache/ant/ant-launcher/1.10.12/ant-launcher-1.10.12.jar:<home>/.m2/repository/com/telamin/svc-admin-web/1.0.45/svc-admin-web-1.0.45.jar:target/gate/lib/junit-platform-launcher-1.10.2.jar",
+          "GateLauncher",
+          "<worktree>/target/gate/last-run.jsonl",
+          "telamin.fluxtion.audit.analyser.analyser.ui.BundleProvenanceFrameTest#aBundleCarriesItsEventProcessor"
+        ],
+        "exit": 1,
+        "suites": [
+          {
+            "name": "BundleProvenanceFrameTest",
+            "tests": 1,
+            "failures": 1,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "aBundleCarriesItsEventProcessor"
+            ],
+            "assertions": [
+              {
+                "test": "aBundleCarriesItsEventProcessor",
+                "kind": "failure",
+                "message": "org.opentest4j.AssertionFailedError: theManifestNamesTheProcessor: {\"format\":1,\"createdAt\":\"2026-10-05T08:51:55.116042Z\",\"analyser\":\"dev\",\"log\":{\"member\":\"log/demo-quote-audit.yaml\"},\"members\":[{\"path\":\"log/demo-quote-audit.yaml\",\"sha256\":\"91ba6bf8f3241c0ec605d9073897208bc02437833089eede461bca07fa32e0c2\",\"bytes\":4053},{\"path\":\"profile/project.fluxtion-settings\",\"sha256\":\"644c04b07f0bfef5c933f0bb8003d81e69edd0f789cd8316d389173740121b31\",\"bytes\":528}],\"limits\":[\"unsigned: verification detects a changed member; it does not authenticate the sender\",\"no replay: this bundle shows an investigation; it does not reproduce or fix it\"]}\n ==> expected: <true> but was: <false>"
+              }
+            ]
+          }
+        ],
+        "output": "",
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.ui.BundleProvenanceFrameTest",
+            "method": "aBundleCarriesItsEventProcessor",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: theManifestNamesTheProcessor: {\"format\":1,\"createdAt\":\"2026-10-05T08:51:55.116042Z\",\"analyser\":\"dev\",\"log\":{\"member\":\"log/demo-quote-audit.yaml\"},\"members\":[{\"path\":\"log/demo-quote-audit.yaml\",\"sha256\":\"91ba6bf8f3241c0ec605d9073897208bc02437833089eede461bca07fa32e0c2\",\"bytes\":4053},{\"path\":\"profile/project.fluxtion-settings\",\"sha256\":\"644c04b07f0bfef5c933f0bb8003d81e69edd0f789cd8316d389173740121b31\",\"bytes\":528}],\"limits\":[\"unsigned: verification detects a changed member; it does not authenticate the sender\",\"no replay: this bundle shows an investigation; it does not reproduce or fix it\"]}\n ==> expected: <true> but was: <false>"
+          }
+        ]
+      },
+      "restored": {
+        "command": [
+          "java",
+          "-Djava.awt.headless=false",
+          "-Dbasedir=<worktree>",
+          "-cp",
+          "<worktree>/target/gate/launcher:target/test-classes:target/classes:<home>/.m2/repository/com/formdev/flatlaf/3.5.1/flatlaf-3.5.1.jar:<home>/.m2/repository/com/telamin/fluxtion/fluxtion-runtime/1.1.0/fluxtion-runtime-1.1.0.jar:<home>/.m2/repository/org/agrona/agrona/2.3.0/agrona-2.3.0.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter/5.10.2/junit-jupiter-5.10.2.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.10.2/junit-jupiter-api-5.10.2.jar:<home>/.m2/repository/org/opentest4j/opentest4j/1.3.0/opentest4j-1.3.0.jar:<home>/.m2/repository/org/junit/platform/junit-platform-commons/1.10.2/junit-platform-commons-1.10.2.jar:<home>/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.10.2/junit-jupiter-params-5.10.2.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.10.2/junit-jupiter-engine-5.10.2.jar:<home>/.m2/repository/org/junit/platform/junit-platform-engine/1.10.2/junit-platform-engine-1.10.2.jar:<home>/.m2/repository/org/apache/ant/ant/1.10.12/ant-1.10.12.jar:<home>/.m2/repository/org/apache/ant/ant-launcher/1.10.12/ant-launcher-1.10.12.jar:<home>/.m2/repository/com/telamin/svc-admin-web/1.0.45/svc-admin-web-1.0.45.jar:target/gate/lib/junit-platform-launcher-1.10.2.jar",
+          "GateLauncher",
+          "<worktree>/target/gate/last-run.jsonl",
+          "telamin.fluxtion.audit.analyser.analyser.ui.BundleProvenanceFrameTest#aBundleCarriesItsEventProcessor"
+        ],
+        "exit": 0,
+        "suites": [
+          {
+            "name": "BundleProvenanceFrameTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "aBundleCarriesItsEventProcessor"
+            ],
+            "assertions": []
+          }
+        ],
+        "output": "",
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.ui.BundleProvenanceFrameTest",
+            "method": "aBundleCarriesItsEventProcessor",
+            "kind": "passed",
+            "message": null
+          }
+        ]
+      },
+      "seconds": 5.9,
+      "verdict": "caught"
+    },
+    {
+      "name": "bundle-processor-adopted-on-open",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java",
+      "sha256": "437736c4e289bcff2e4bece12e8e820a3acbc28b8d7acb5c380f32f44543bc7e",
+      "baselineGreen": true,
+      "engine": "fast",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "restoreRewrote": [
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame$PendingRecovery.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame$8.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame$23.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame$21.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame$DesignReadContext.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame$LoggedSample.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame$25.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame$18.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame$27.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame$20.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame$DropKind.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame$22.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame$9.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame$26.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame$9$1.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame$SourceTarget.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame$JavaBinding.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame$19.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame$24.class"
+      ],
+      "siteKind": "java",
+      "fullCompileFallback": false,
+      "mutated": {
+        "command": [
+          "java",
+          "-Djava.awt.headless=false",
+          "-Dbasedir=<worktree>",
+          "-cp",
+          "<worktree>/target/gate/launcher:target/test-classes:target/classes:<home>/.m2/repository/com/formdev/flatlaf/3.5.1/flatlaf-3.5.1.jar:<home>/.m2/repository/com/telamin/fluxtion/fluxtion-runtime/1.1.0/fluxtion-runtime-1.1.0.jar:<home>/.m2/repository/org/agrona/agrona/2.3.0/agrona-2.3.0.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter/5.10.2/junit-jupiter-5.10.2.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.10.2/junit-jupiter-api-5.10.2.jar:<home>/.m2/repository/org/opentest4j/opentest4j/1.3.0/opentest4j-1.3.0.jar:<home>/.m2/repository/org/junit/platform/junit-platform-commons/1.10.2/junit-platform-commons-1.10.2.jar:<home>/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.10.2/junit-jupiter-params-5.10.2.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.10.2/junit-jupiter-engine-5.10.2.jar:<home>/.m2/repository/org/junit/platform/junit-platform-engine/1.10.2/junit-platform-engine-1.10.2.jar:<home>/.m2/repository/org/apache/ant/ant/1.10.12/ant-1.10.12.jar:<home>/.m2/repository/org/apache/ant/ant-launcher/1.10.12/ant-launcher-1.10.12.jar:<home>/.m2/repository/com/telamin/svc-admin-web/1.0.45/svc-admin-web-1.0.45.jar:target/gate/lib/junit-platform-launcher-1.10.2.jar",
+          "GateLauncher",
+          "<worktree>/target/gate/last-run.jsonl",
+          "telamin.fluxtion.audit.analyser.analyser.ui.BundleProvenanceFrameTest#aBundleCarriesItsEventProcessor"
+        ],
+        "exit": 1,
+        "suites": [
+          {
+            "name": "BundleProvenanceFrameTest",
+            "tests": 1,
+            "failures": 1,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "aBundleCarriesItsEventProcessor"
+            ],
+            "assertions": [
+              {
+                "test": "aBundleCarriesItsEventProcessor",
+                "kind": "failure",
+                "message": "org.opentest4j.AssertionFailedError: aRecipientWithNoneAdoptsIt ==> expected: <com.acme.demo.generated.DemoQuoteRecordedProcessor> but was: <>"
+              }
+            ]
+          }
+        ],
+        "output": "",
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.ui.BundleProvenanceFrameTest",
+            "method": "aBundleCarriesItsEventProcessor",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: aRecipientWithNoneAdoptsIt ==> expected: <com.acme.demo.generated.DemoQuoteRecordedProcessor> but was: <>"
+          }
+        ]
+      },
+      "restored": {
+        "command": [
+          "java",
+          "-Djava.awt.headless=false",
+          "-Dbasedir=<worktree>",
+          "-cp",
+          "<worktree>/target/gate/launcher:target/test-classes:target/classes:<home>/.m2/repository/com/formdev/flatlaf/3.5.1/flatlaf-3.5.1.jar:<home>/.m2/repository/com/telamin/fluxtion/fluxtion-runtime/1.1.0/fluxtion-runtime-1.1.0.jar:<home>/.m2/repository/org/agrona/agrona/2.3.0/agrona-2.3.0.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter/5.10.2/junit-jupiter-5.10.2.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.10.2/junit-jupiter-api-5.10.2.jar:<home>/.m2/repository/org/opentest4j/opentest4j/1.3.0/opentest4j-1.3.0.jar:<home>/.m2/repository/org/junit/platform/junit-platform-commons/1.10.2/junit-platform-commons-1.10.2.jar:<home>/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.10.2/junit-jupiter-params-5.10.2.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.10.2/junit-jupiter-engine-5.10.2.jar:<home>/.m2/repository/org/junit/platform/junit-platform-engine/1.10.2/junit-platform-engine-1.10.2.jar:<home>/.m2/repository/org/apache/ant/ant/1.10.12/ant-1.10.12.jar:<home>/.m2/repository/org/apache/ant/ant-launcher/1.10.12/ant-launcher-1.10.12.jar:<home>/.m2/repository/com/telamin/svc-admin-web/1.0.45/svc-admin-web-1.0.45.jar:target/gate/lib/junit-platform-launcher-1.10.2.jar",
+          "GateLauncher",
+          "<worktree>/target/gate/last-run.jsonl",
+          "telamin.fluxtion.audit.analyser.analyser.ui.BundleProvenanceFrameTest#aBundleCarriesItsEventProcessor"
+        ],
+        "exit": 0,
+        "suites": [
+          {
+            "name": "BundleProvenanceFrameTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "aBundleCarriesItsEventProcessor"
+            ],
+            "assertions": []
+          }
+        ],
+        "output": "",
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.ui.BundleProvenanceFrameTest",
+            "method": "aBundleCarriesItsEventProcessor",
+            "kind": "passed",
+            "message": null
+          }
+        ]
+      },
+      "seconds": 7.6,
+      "verdict": "caught"
+    },
+    {
+      "name": "bundle-recipient-can-choose-processor",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java",
+      "sha256": "437736c4e289bcff2e4bece12e8e820a3acbc28b8d7acb5c380f32f44543bc7e",
+      "baselineGreen": true,
+      "engine": "fast",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "restoreRewrote": [
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame$PendingRecovery.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame$8.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame$23.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame$21.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame$DesignReadContext.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame$LoggedSample.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame$25.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame$18.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame$27.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame$20.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame$DropKind.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame$22.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame$9.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame$26.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame$9$1.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame$SourceTarget.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame$JavaBinding.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame$19.class",
+        "rewrote target/classes/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame$24.class"
+      ],
+      "siteKind": "java",
+      "fullCompileFallback": false,
+      "mutated": {
+        "command": [
+          "java",
+          "-Djava.awt.headless=false",
+          "-Dbasedir=<worktree>",
+          "-cp",
+          "<worktree>/target/gate/launcher:target/test-classes:target/classes:<home>/.m2/repository/com/formdev/flatlaf/3.5.1/flatlaf-3.5.1.jar:<home>/.m2/repository/com/telamin/fluxtion/fluxtion-runtime/1.1.0/fluxtion-runtime-1.1.0.jar:<home>/.m2/repository/org/agrona/agrona/2.3.0/agrona-2.3.0.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter/5.10.2/junit-jupiter-5.10.2.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.10.2/junit-jupiter-api-5.10.2.jar:<home>/.m2/repository/org/opentest4j/opentest4j/1.3.0/opentest4j-1.3.0.jar:<home>/.m2/repository/org/junit/platform/junit-platform-commons/1.10.2/junit-platform-commons-1.10.2.jar:<home>/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.10.2/junit-jupiter-params-5.10.2.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.10.2/junit-jupiter-engine-5.10.2.jar:<home>/.m2/repository/org/junit/platform/junit-platform-engine/1.10.2/junit-platform-engine-1.10.2.jar:<home>/.m2/repository/org/apache/ant/ant/1.10.12/ant-1.10.12.jar:<home>/.m2/repository/org/apache/ant/ant-launcher/1.10.12/ant-launcher-1.10.12.jar:<home>/.m2/repository/com/telamin/svc-admin-web/1.0.45/svc-admin-web-1.0.45.jar:target/gate/lib/junit-platform-launcher-1.10.2.jar",
+          "GateLauncher",
+          "<worktree>/target/gate/last-run.jsonl",
+          "telamin.fluxtion.audit.analyser.analyser.ui.BundleProvenanceFrameTest#aBundleCarriesItsEventProcessor"
+        ],
+        "exit": 1,
+        "suites": [
+          {
+            "name": "BundleProvenanceFrameTest",
+            "tests": 1,
+            "failures": 1,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "aBundleCarriesItsEventProcessor"
+            ],
+            "assertions": [
+              {
+                "test": "aBundleCarriesItsEventProcessor",
+                "kind": "failure",
+                "message": "org.opentest4j.AssertionFailedError: theRecipientCanStillChooseWithinTheSession ==> expected: <com.acme.RecipientProcessor> but was: <com.acme.demo.generated.DemoQuoteRecordedProcessor>"
+              }
+            ]
+          }
+        ],
+        "output": "",
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.ui.BundleProvenanceFrameTest",
+            "method": "aBundleCarriesItsEventProcessor",
+            "kind": "failure",
+            "message": "org.opentest4j.AssertionFailedError: theRecipientCanStillChooseWithinTheSession ==> expected: <com.acme.RecipientProcessor> but was: <com.acme.demo.generated.DemoQuoteRecordedProcessor>"
+          }
+        ]
+      },
+      "restored": {
+        "command": [
+          "java",
+          "-Djava.awt.headless=false",
+          "-Dbasedir=<worktree>",
+          "-cp",
+          "<worktree>/target/gate/launcher:target/test-classes:target/classes:<home>/.m2/repository/com/formdev/flatlaf/3.5.1/flatlaf-3.5.1.jar:<home>/.m2/repository/com/telamin/fluxtion/fluxtion-runtime/1.1.0/fluxtion-runtime-1.1.0.jar:<home>/.m2/repository/org/agrona/agrona/2.3.0/agrona-2.3.0.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter/5.10.2/junit-jupiter-5.10.2.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.10.2/junit-jupiter-api-5.10.2.jar:<home>/.m2/repository/org/opentest4j/opentest4j/1.3.0/opentest4j-1.3.0.jar:<home>/.m2/repository/org/junit/platform/junit-platform-commons/1.10.2/junit-platform-commons-1.10.2.jar:<home>/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.10.2/junit-jupiter-params-5.10.2.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.10.2/junit-jupiter-engine-5.10.2.jar:<home>/.m2/repository/org/junit/platform/junit-platform-engine/1.10.2/junit-platform-engine-1.10.2.jar:<home>/.m2/repository/org/apache/ant/ant/1.10.12/ant-1.10.12.jar:<home>/.m2/repository/org/apache/ant/ant-launcher/1.10.12/ant-launcher-1.10.12.jar:<home>/.m2/repository/com/telamin/svc-admin-web/1.0.45/svc-admin-web-1.0.45.jar:target/gate/lib/junit-platform-launcher-1.10.2.jar",
+          "GateLauncher",
+          "<worktree>/target/gate/last-run.jsonl",
+          "telamin.fluxtion.audit.analyser.analyser.ui.BundleProvenanceFrameTest#aBundleCarriesItsEventProcessor"
+        ],
+        "exit": 0,
+        "suites": [
+          {
+            "name": "BundleProvenanceFrameTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "aBundleCarriesItsEventProcessor"
+            ],
+            "assertions": []
+          }
+        ],
+        "output": "",
+        "rows": [
+          {
+            "class": "telamin.fluxtion.audit.analyser.analyser.ui.BundleProvenanceFrameTest",
+            "method": "aBundleCarriesItsEventProcessor",
+            "kind": "passed",
+            "message": null
+          }
+        ]
+      },
+      "seconds": 8.8,
+      "verdict": "caught"
+    }
+  ],
+  "engine": "fast",
+  "baseline": {
+    "command": [
+      "java",
+      "-Djava.awt.headless=false",
+      "-Dbasedir=<worktree>",
+      "-cp",
+      "<worktree>/target/gate/launcher:target/test-classes:target/classes:<home>/.m2/repository/com/formdev/flatlaf/3.5.1/flatlaf-3.5.1.jar:<home>/.m2/repository/com/telamin/fluxtion/fluxtion-runtime/1.1.0/fluxtion-runtime-1.1.0.jar:<home>/.m2/repository/org/agrona/agrona/2.3.0/agrona-2.3.0.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter/5.10.2/junit-jupiter-5.10.2.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.10.2/junit-jupiter-api-5.10.2.jar:<home>/.m2/repository/org/opentest4j/opentest4j/1.3.0/opentest4j-1.3.0.jar:<home>/.m2/repository/org/junit/platform/junit-platform-commons/1.10.2/junit-platform-commons-1.10.2.jar:<home>/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.10.2/junit-jupiter-params-5.10.2.jar:<home>/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.10.2/junit-jupiter-engine-5.10.2.jar:<home>/.m2/repository/org/junit/platform/junit-platform-engine/1.10.2/junit-platform-engine-1.10.2.jar:<home>/.m2/repository/org/apache/ant/ant/1.10.12/ant-1.10.12.jar:<home>/.m2/repository/org/apache/ant/ant-launcher/1.10.12/ant-launcher-1.10.12.jar:<home>/.m2/repository/com/telamin/svc-admin-web/1.0.45/svc-admin-web-1.0.45.jar:target/gate/lib/junit-platform-launcher-1.10.2.jar",
+      "GateLauncher",
+      "<worktree>/target/gate/last-run.jsonl",
+      "telamin.fluxtion.audit.analyser.analyser.ui.BundleProvenanceFrameTest"
+    ],
+    "exit": 0,
+    "suites": [
+      {
+        "name": "BundleProvenanceFrameTest",
+        "tests": 18,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "anOrdinaryLogSaysNothingAboutBundles",
+          "closingDoesNotPoisonTheAnchor",
+          "theOfferYieldsToAWalkthrough",
+          "aWorkingFolderIsNeverListedAsEvidence",
+          "anOpenedBundleSaysSoForTheSessionsLife",
+          "theTitleNamesTheBundle",
+          "openingAProjectConfiguresSource",
+          "anOpenedBundleIsDiscoverableAfterwards",
+          "aProjectAfterAnExperimentKeepsItsSource",
+          "aRestoredProjectHasItsSourceInForce",
+          "anchoredSourceDoesNotLeakIntoTheNextProject",
+          "notesCarryWhateverStructureTheAuthorWrites",
+          "aBundleCarriesItsEventProcessor",
+          "anchoringABundleToASourceTreeIsRemembered",
+          "aRestoredProjectIsAlsoOffered",
+          "deletingTheAnchorSticks",
+          "aCloseWhoseRenderFailsDropsTheClaimOnTheRealFrame",
+          "openingAProjectOffersWhatBelongsToIt"
+        ],
+        "assertions": []
+      }
+    ],
+    "output": "",
+    "rows": [
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.BundleProvenanceFrameTest",
+        "method": "anOrdinaryLogSaysNothingAboutBundles",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.BundleProvenanceFrameTest",
+        "method": "closingDoesNotPoisonTheAnchor",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.BundleProvenanceFrameTest",
+        "method": "theOfferYieldsToAWalkthrough",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.BundleProvenanceFrameTest",
+        "method": "aWorkingFolderIsNeverListedAsEvidence",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.BundleProvenanceFrameTest",
+        "method": "anOpenedBundleSaysSoForTheSessionsLife",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.BundleProvenanceFrameTest",
+        "method": "theTitleNamesTheBundle",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.BundleProvenanceFrameTest",
+        "method": "openingAProjectConfiguresSource",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.BundleProvenanceFrameTest",
+        "method": "anOpenedBundleIsDiscoverableAfterwards",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.BundleProvenanceFrameTest",
+        "method": "aProjectAfterAnExperimentKeepsItsSource",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.BundleProvenanceFrameTest",
+        "method": "aRestoredProjectHasItsSourceInForce",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.BundleProvenanceFrameTest",
+        "method": "anchoredSourceDoesNotLeakIntoTheNextProject",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.BundleProvenanceFrameTest",
+        "method": "notesCarryWhateverStructureTheAuthorWrites",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.BundleProvenanceFrameTest",
+        "method": "aBundleCarriesItsEventProcessor",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.BundleProvenanceFrameTest",
+        "method": "anchoringABundleToASourceTreeIsRemembered",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.BundleProvenanceFrameTest",
+        "method": "aRestoredProjectIsAlsoOffered",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.BundleProvenanceFrameTest",
+        "method": "deletingTheAnchorSticks",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.BundleProvenanceFrameTest",
+        "method": "aCloseWhoseRenderFailsDropsTheClaimOnTheRealFrame",
+        "kind": "passed",
+        "message": null
+      },
+      {
+        "class": "telamin.fluxtion.audit.analyser.analyser.ui.BundleProvenanceFrameTest",
+        "method": "openingAProjectOffersWhatBelongsToIt",
+        "kind": "passed",
+        "message": null
+      }
+    ]
+  },
+  "seconds": 42.9
+}
