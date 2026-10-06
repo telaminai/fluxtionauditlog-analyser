@@ -2101,6 +2101,17 @@ CONTROLS = [
      '                if (assistantWindow != null) assistantWindow.dispose();\n            }\n            @Override public void windowOpened(',
      '            }\n            @Override public void windowOpened(',
      'AssistantHostFrameTest#theWindowGoesWithTheAnalyser'),
+    # Saving a provider key in Settings must redraw the assistant at once (PR #78's bug). Nothing renders it directly:
+    # onConfigChanged posts SourceRootsObserved, whose snapshot redraws it. That post exists for bundle anchoring, so
+    # the refresh is a dependency nobody would see -- narrow the post and the stale banner returns with every other
+    # test green. This control makes the dependency fail loudly.
+    ('oa-settings-save-redraws-assistant', UI + 'MainFrame.java',
+     '        if (!fromTransition && session != null) {\n'
+     '            session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents\n'
+     '                    .SourceRootsObserved(List.copyOf(config.sourceRoots)));\n'
+     '        }\n',
+     '',
+     'AssistantLiveFrameTest#savingProviderSettingsRefreshesAssistant'),
     # ---- OA-3 (spec §6.1, §7): typed dialogue on walks, its storage, sharing and privacy -----------------------------
     ('oa3-binding-validated', UI + 'WalkAuthoring.java',
      'String binding = dialogue == null || dialogue.supported() ? WalkConversation.bindingProblem(dialogue, steps) : null;\n        if (binding != null) return binding;',
