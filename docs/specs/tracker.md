@@ -17,7 +17,7 @@ entry to one or two lines; put anything longer in the spec, an issue or an evide
 
 ## Delivery order
 
-_Refreshed 2026-10-05, after 1.31.0._ **Shipped since the 2026-09-27 refresh:** **1.25.0** (chart and report lifecycle,
+_Refreshed 2026-10-06, after 1.32.0._ **Shipped since the 2026-09-27 refresh:** **1.25.0** (chart and report lifecycle,
 PR #51); **1.26.0 / 1.26.1** (M69 spotlight walks); **1.27.0** (evidence bundles, first delivery); **1.28.0** (M70
 replay, M71 Workspace Start); **1.29.0** (the onboard assistant and conversation journeys, PR #77); **1.30.0** (bundles as
 experiments, a project that opens with its settings applied); **1.30.1** (a walk step can point at Java source, #72).
@@ -29,9 +29,15 @@ mongoose-plugins **1.0.45** (separator escaping, #39). The 2026-09-27 order is i
 **Released in 1.31.0 (2026-10-05):** PR #87 redaction; PR #103's ten #84 corrections (#93–#102, all
 closed); PR #104's released-stack adoption; PR #92's admin-record acceptance. [Final integration review and CI](https://github.com/telaminai/fluxtionauditlog-analyser/pull/92#issuecomment-5931355484).
 
+**Released in 1.32.0 (2026-10-06):** PR #108 the walkthrough reel (#82) with its text redacted by the bundle's
+rule (#113); PR #88 bundle import off the event thread and working-copy reaping with cross-process ownership (#83,
+#85); PR #107 MG-1 mutation-gate iteration; PR #105 EDT-fault and native-input test guards; PR #123 the assistant's
+settings-save redraw, pinned (supersedes #78). [Release receipt](../handoff/release_analyser_1_32_0_2026_10_06.md).
+
 1. **Assurance debt on shipped work.**
    - **PR #70**: the whole-feature review of M70 replay, most of which reached `main` unreviewed.
-   - **PR #88 ◧** (#83, #85): still open; do not treat its import/copy-management changes as merged.
+   - **#119** (from PR #88, released in 1.32.0): no bundle opens on a filesystem without `fcntl` locks, where opens
+     worked before — a capability regression in shipped work.
 2. **Owner decisions — they unblock the most.**
    - **M70 vs Mongoose replay:** whether bundles and `--replay-compare` accept mongoose 1.0.31's dispatch-time
      recording (▸ M70).
@@ -81,15 +87,18 @@ closed); PR #104's released-stack adoption; PR #92's admin-record acceptance. [F
   #67 excerpt of a non-time-ordered log · #68 walk save's generation check in the frame (rule 9) · #69 small leftovers.
 - ◑ #73 discovery: recents and project inventory exist; pre-open preview and working-copy management remain open.
 - ☐ #74 (design) project-bound or standalone.
-- ☑ #83 import off the event thread and #85 working-copy reaping with cross-process ownership — merged in PR #88
-  (older unmarked copies stay). Follow-ups from its correction-delta review: #118 busy-on-coordination-lock, #119
+- ☑ #83 import off the event thread and #85 working-copy reaping with cross-process ownership — PR #88, released in
+  1.32.0 (older unmarked copies stay). Follow-ups from its correction-delta review: #118 busy-on-coordination-lock, #119
   no bundle opens on a filesystem without fcntl locks (a regression for those filesystems), #120 test teardown can
   reap under the real home, #121 low-severity items.
-- ◐ #82 a walkthrough reel: recorded as a self-contained page, with the finish page stating whether a bundle stands
+- ☑ #82 a walkthrough reel — PR #108, released in 1.32.0; the owner read a reel recorded from the release jar.
+  Recorded as a self-contained page, with the finish page stating whether a bundle stands
   behind the frames and refusing to invite replay against one that does not carry them; its text is redacted with
   the bundle's own rule and its title page says the frame images are not (#113). PR #108. Deferred from its reviews:
   #114 encoding on the event thread, #115 a failed screenshot renders silently, #116 the recording wait exceeds the
-  MCP call timeout, #117 the lighting guard is witnessed only through a fake.
+  MCP call timeout, #117 the lighting guard is witnessed only through a fake; #122 the review's residuals, including
+  an **owner decision**: a CJK-named source file in a failing step blocks the reel, because a generated reason cannot
+  be quoted the way a bundle path can.
 - ☐ #109 a bundle's working copy should be read-only evidence, not the project the session writes into. Raised from
   the #88 review: sharing one copy per identity made a reopened bundle lose its provenance in silence, because the
   session had saved its own settings over a member. #88 takes a fresh copy per open and reaps only provably unused managed copies, which keeps
@@ -288,8 +297,10 @@ closed); PR #104's released-stack adoption; PR #92's admin-record acceptance. [F
 - [M40.2c] ☐ _(optional)_ follow the supertype chain.
 
 ### Release tooling
-- [MG-1] ◧ **Mutation-gate iteration policy and runtime** — implemented and independently checked, acceptance recorded in PR #107; awaiting merge: minimal local checks, draft feedback, full merge gate,
-  eight workers, supersession cancellation and named baselines; grouping deferred. [Spec](spec-mutation-gate-iteration.md).
+- [MG-1] ◐ **Mutation-gate iteration policy and runtime** — PR #107, released in 1.32.0: minimal local checks, draft
+  feedback, full merge gate, eight workers, supersession cancellation and named baselines. Acceptance open: MG-A3's
+  main/release event isolation was source-reviewed, not exercised; MG-D6 grouping and MG-A7/A8 stay deferred.
+  [Spec](spec-mutation-gate-iteration.md) · [acceptance](../handoff/evidence/mutation-gate-iteration-2026-10-05/ACCEPTANCE.md).
 - ☐ Canonicalise the restart checker's compared file paths on macOS.
 
 ### Hardening — test-only, ongoing ([spec](spec-formula-golden-fixtures.md))
