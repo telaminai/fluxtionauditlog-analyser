@@ -9,8 +9,15 @@ import telamin.fluxtion.audit.analyser.analyser.config.AppConfig;
 import telamin.fluxtion.audit.analyser.analyser.session.AssistantState;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionDriver;
 
+import javax.swing.JButton;
+import javax.swing.JComboBox;
+import javax.swing.JPanel;
+import javax.swing.JTextField;
+import javax.swing.SwingUtilities;
 import java.awt.GraphicsEnvironment;
+import java.awt.Window;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -25,6 +32,44 @@ import static telamin.fluxtion.audit.analyser.analyser.ui.AsyncOpenInterleavingF
  * client against a loopback fake, and the frame's shared dispatcher and action executor. No log is open.
  */
 class AssistantLiveFrameTest {
+
+    @Test
+    @DisplayName("Saving an OpenAI key in Settings immediately enables the assistant without another session event")
+    void savingProviderSettingsRefreshesAssistant(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless(), "a real display is required");
+        try (var f = new AsyncOpenInterleavingFrameTest.Frame(tmp)) {
+            f.dialogs.stop();
+            onEdt(() -> { f.frame.setSize(1200, 800); f.frame.setVisible(true); });
+            AssistantPanel assistant = panel(f.frame);
+            onEdt(() -> {
+                assertTrue(((JPanel) field(assistant, "noProvider")).isVisible());
+                SwingUtilities.invokeLater(((JButton) field(assistant, "configure"))::doClick);
+            });
+            ConfigPanel settings = null;
+            long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+            while (settings == null && System.nanoTime() < until) {
+                AtomicReference<ConfigPanel> found = new AtomicReference<>();
+                onEdt(() -> found.set(Arrays.stream(Window.getWindows())
+                        .filter(w -> w instanceof ConfigPanel && w.isShowing())
+                        .map(w -> (ConfigPanel) w).findFirst().orElse(null)));
+                settings = found.get();
+                if (settings == null) Thread.sleep(20);
+            }
+            assertNotNull(settings, "the actual Configure provider action opened Settings");
+            ConfigPanel dialog = settings;
+            onEdt(() -> {
+                dialog.selectPage("LLM");
+                ((JComboBox<?>) field(dialog, "providerCombo")).setSelectedItem("openai");
+                ((JTextField) field(dialog, "apiKeyField")).setText(FakeProvider.KEY);
+                dialog.getRootPane().getDefaultButton().doClick();
+                assertEquals(FakeProvider.KEY, ((AppConfig) field(f.frame, "config")).apiKey,
+                        "control: Settings saved the fake key before the assistant refreshed");
+                assertFalse(((JPanel) field(assistant, "noProvider")).isVisible(),
+                        "the old no-provider banner must clear as soon as Settings is saved");
+                assertTrue(assistant.sendButton().isEnabled(), "Send must become available without New chat or restart");
+            });
+        }
+    }
 
     static AssistantState assistant(MainFrame f) {
         return ((SessionDriver) field(f, "session")).snapshot().assistant();
