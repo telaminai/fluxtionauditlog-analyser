@@ -123,6 +123,70 @@ class WalkReelFrameTest {
     }
 
     @Test
+    @DisplayName("#82 review F1: a bundle in force over a log it does not carry is not offered as the frames' evidence")
+    void aBundleOverAnotherLogIsNotOfferedAsTheEvidence(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        try (var f = shown(tmp)) {
+            Path dir = exchange(f, tmp);
+            openLog(f, EvidenceCaptureFrameTest.DEMO_LOG);
+            saveTwoStepWalk(f);
+            onEdt(() -> render(f.ex, "report", Map.of("bundle", Map.of("path", "recorded-run.fexp"))));
+            assertEquals("WRITTEN", awaitDecided(f).get("phase"), "the fixture bundle was written");
+            openBundle(f, dir.resolve("recorded-run.fexp"));
+
+            // the bundle's project stays in force (BundleProvenance: it is about the project), but the records on
+            // screen are now an ordinary copy of the log, opened from outside the bundle's working copy
+            Path other = Files.copy(EvidenceCaptureFrameTest.DEMO_LOG, Files.createDirectories(tmp.resolve("mine"))
+                    .resolve("demo-quote-audit.yaml"));
+            openLog(f, other);
+
+            Map<String, Object> answer = reel(f, "tour", "over-another-log.html");
+            assertEquals(Boolean.TRUE, answer.get("ok"), "the reel was recorded: " + answer);
+            String html = page(dir.resolve("over-another-log.html"));
+            assertFalse(html.contains(WalkReel.OPEN_IT_YOURSELF),
+                    "aBundleOverAnotherLogIsNotOfferedAsTheEvidence: no invitation to replay these frames against it");
+            assertTrue(html.contains(WalkReel.esc(WalkReel.BUNDLE_IS_NOT_THESE_RECORDS)),
+                    "the page says the bundle is not the evidence for these frames");
+            @SuppressWarnings("unchecked")
+            Map<String, Object> wrote = (Map<String, Object>) answer.get("reel");
+            assertTrue(String.valueOf(wrote.get("evidence")).contains("does NOT carry"), "and says so to the caller");
+        }
+    }
+
+    @Test
+    @DisplayName("#113: a reel from a session full of home-directory paths carries none of them in its text")
+    void aReelCarriesNoMachinePath(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        String home = "/home/demo-user/De\u0301mo-ünïcode/logs";       // invented; decomposed, as macOS stores it
+        try (var f = shown(tmp)) {
+            Path dir = exchange(f, tmp);
+            // the log itself sits under a Unicode directory of THIS run's temp folder
+            Path log = Files.copy(EvidenceCaptureFrameTest.DEMO_LOG,
+                    Files.createDirectories(tmp.resolve("De\u0301mo-ünïcode")).resolve("demo-quote-audit.yaml"));
+            openLog(f, log);
+            onEdt(() -> render(f.ex, "walk", Map.of("name", "paths", "steps", List.of(
+                    Map.of("caption", "the run under " + home + "/quote-run.yaml starts here",
+                            "view", Map.of("tab", "summary"),
+                            "targets", List.of(Map.of("target", "tab:summary",
+                                    "caption", "read from " + home + "/quote-run.yaml")))))));
+
+            Map<String, Object> answer = reel(f, "paths", "paths.html");
+            assertEquals(Boolean.TRUE, answer.get("ok"), "the reel was recorded: " + answer);
+            String html = page(dir.resolve("paths.html"));
+            for (String leaked : List.of("demo-user", "/home/", "De\u0301mo", "Démo", "ünïcode", tmp.toString(),
+                    tmp.toRealPath().toString(), System.getProperty("user.home"))) {
+                assertFalse(html.contains(leaked), "aReelCarriesNoMachinePath: '" + leaked + "' left the machine");
+            }
+            assertTrue(html.contains("demo-quote-audit.yaml"), "the log is still named, by file");
+            assertTrue(html.contains(WalkReel.esc(WalkReel.FRAMES_NOT_REDACTED)), "and the pixels are declared");
+            @SuppressWarnings("unchecked")
+            Map<String, Object> wrote = (Map<String, Object>) answer.get("reel");
+            assertTrue(String.valueOf(wrote.get("redacted")).contains("step 1 caption: " + home),
+                    "the caller is told what the text lost: " + wrote.get("redacted"));
+        }
+    }
+
+    @Test
     @DisplayName("#82: a reel is a walk operation like any other — a second one beside it is refused")
     void aReelBesideAnotherOperationIsRefused(@TempDir Path tmp) throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless());

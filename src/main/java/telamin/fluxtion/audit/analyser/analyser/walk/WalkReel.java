@@ -185,132 +185,219 @@ public final class WalkReel {
 
     // ---- the page ---------------------------------------------------------------------------------------------
 
-    /** The whole reel as one HTML document: no scripts, no network, every frame embedded. */
+    /**
+     * Said on the title page, before anything else a sender might act on (#113). The page's TEXT goes through the
+     * evidence bundle's path redaction; the frames are pixels and cannot, so the page says which is which.
+     */
+    public static final String FRAMES_NOT_REDACTED =
+            "Machine paths in this page's text are replaced with "
+            + telamin.fluxtion.audit.analyser.bundle.BundleProfile.REDACTED
+            + ". The frame images are screenshots of the analyser's window and are NOT redacted: they may show "
+            + "local file paths.";
+
+    /**
+     * The page, and every machine path its text had removed.
+     *
+     * @param redacted one line per distinct removal, {@code "<where>: <path>"} — what the sender is told was taken
+     *                 out (a field the page writes twice, such as a caption that is also the image's alt text, is
+     *                 named once)
+     */
+    public record Rendered(String html, List<String> redacted) {
+        public Rendered {
+            redacted = List.copyOf(new java.util.LinkedHashSet<>(redacted));
+        }
+
+        public byte[] bytes() {
+            return html.getBytes(StandardCharsets.UTF_8);
+        }
+    }
+
+    /**
+     * The whole reel as one HTML document: no scripts, no network, every frame embedded, and no machine path in its
+     * text.
+     *
+     * <p><b>A reel is sent, so its text leaves the machine (#113).</b> Every string written into the page — the
+     * title-page fields, each step's caption, callouts, reason and dialogue, and the finish page — goes through
+     * {@link telamin.fluxtion.audit.analyser.bundle.BundleProfile#redactProse}, the one rule an evidence bundle uses.
+     * There is no other way onto the page: {@link Page#text} is the only writer of words.</p>
+     *
+     * @throws java.io.IOException when a path's ending is ambiguous and the bundle rule refuses to guess where it
+     *                             stops; no page is produced, exactly as no bundle would be
+     */
+    public static Rendered render(Reel reel) throws java.io.IOException {
+        Page p = new Page();
+        try {
+            p.raw("<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n")
+                    .raw("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n")
+                    .raw("<title>").text("walk name", reel.walkName()).raw(" — spotlight walk</title>\n")
+                    .raw("<style>\n").raw(CSS).raw("</style>\n</head>\n<body>\n");
+            titlePage(p, reel);
+            for (Frame f : reel.frames()) framePage(p, reel, f);
+            finishPage(p, reel);
+            p.raw("</body>\n</html>\n");
+        } catch (java.io.UncheckedIOException refused) {
+            throw refused.getCause();
+        }
+        return new Rendered(p.out.toString(), p.redacted);
+    }
+
+    /** {@link #render}'s page, for a caller that only wants the HTML; a refusal is unchecked here. */
     public static String html(Reel reel) {
-        StringBuilder out = new StringBuilder(64 * 1024);
-        out.append("<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n")
-                .append("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n")
-                .append("<title>").append(esc(reel.walkName())).append(" — spotlight walk</title>\n")
-                .append("<style>\n").append(CSS).append("</style>\n</head>\n<body>\n");
-        titlePage(out, reel);
-        for (Frame f : reel.frames()) framePage(out, reel, f);
-        finishPage(out, reel);
-        out.append("</body>\n</html>\n");
-        return out.toString();
+        try {
+            return render(reel).html();
+        } catch (java.io.IOException e) {
+            throw new java.io.UncheckedIOException(e);
+        }
     }
 
     /** The bytes written to disk. */
-    public static byte[] bytes(Reel reel) {
-        return html(reel).getBytes(StandardCharsets.UTF_8);
+    public static byte[] bytes(Reel reel) throws java.io.IOException {
+        return render(reel).bytes();
     }
 
-    private static void titlePage(StringBuilder out, Reel reel) {
-        out.append("<section class=\"page title\">\n");
-        out.append("<p class=\"kicker\">Spotlight walk</p>\n");
-        out.append("<h1>").append(esc(reel.walkName())).append("</h1>\n");
+    /**
+     * The page being written. Markup goes in through {@link #raw}; WORDS go in through {@link #text}, which redacts
+     * then escapes, and nothing else does both. A new field on the page cannot reach it unredacted without
+     * appending through {@code raw}, which is for constants and markup.
+     */
+    private static final class Page {
+        final StringBuilder out = new StringBuilder(64 * 1024);
+        final List<String> redacted = new java.util.ArrayList<>();
+
+        Page raw(String markup) {
+            out.append(markup);
+            return this;
+        }
+
+        Page text(String where, String words) {
+            String clean;
+            try {
+                clean = telamin.fluxtion.audit.analyser.bundle.BundleProfile.redactProse(where, words, redacted);
+            } catch (java.io.IOException ambiguous) {
+                throw new java.io.UncheckedIOException(ambiguous);
+            }
+            out.append(esc(clean));
+            return this;
+        }
+
+        Page number(int n) {
+            out.append(n);
+            return this;
+        }
+    }
+
+    private static void titlePage(Page p, Reel reel) {
+        p.raw("<section class=\"page title\">\n");
+        p.raw("<p class=\"kicker\">Spotlight walk</p>\n");
+        p.raw("<h1>").text("walk name", reel.walkName()).raw("</h1>\n");
         if (!reel.purpose().isEmpty()) {
-            out.append("<p class=\"purpose\">").append(esc(reel.purpose())).append("</p>\n");
+            p.raw("<p class=\"purpose\">").text("purpose", reel.purpose()).raw("</p>\n");
         } else {
-            out.append("<p class=\"purpose muted\">This walk records no one-line purpose.</p>\n");
+            p.raw("<p class=\"purpose muted\">This walk records no one-line purpose.</p>\n");
         }
-        out.append("<h2>What you are looking at</h2>\n<dl>\n");
+        p.raw("<h2>What you are looking at</h2>\n<dl>\n");
         if (reel.log().known()) {
-            row(out, "Audit log", reel.log().name());
-            row(out, "Records", String.format("%,d", reel.log().records()));
-            row(out, "Time span", reel.log().span().isEmpty() ? "no timestamps" : reel.log().span());
+            row(p, "Audit log", reel.log().name());
+            row(p, "Records", String.format("%,d", reel.log().records()));
+            row(p, "Time span", reel.log().span().isEmpty() ? "no timestamps" : reel.log().span());
         } else {
-            row(out, "Audit log", "none was open when these frames were recorded");
+            row(p, "Audit log", "none was open when these frames were recorded");
         }
-        row(out, "Event processor", reel.log().processor().isEmpty()
+        row(p, "Event processor", reel.log().processor().isEmpty()
                 ? "not declared for this session" : reel.log().processor());
-        row(out, "Steps", reel.frames().size() + (reel.frames().size() == 1 ? " step" : " steps"));
-        if (!reel.author().isEmpty()) row(out, "Walk", reel.author());
-        if (!reel.walkSaved().isEmpty()) row(out, "Walk saved", reel.walkSaved());
-        row(out, "Reel recorded", reel.recordedAt());
-        if (!reel.dialogueLabel().isEmpty()) row(out, "Dialogue", reel.dialogueLabel());
-        out.append("</dl>\n");
-        out.append("<p class=\"note\">Every frame below is the analyser's own window, painted as it stood at that "
-                   + "step. The evidence behind them is named at the end of this page.</p>\n");
-        out.append("</section>\n");
+        row(p, "Steps", reel.frames().size() + (reel.frames().size() == 1 ? " step" : " steps"));
+        if (!reel.author().isEmpty()) row(p, "Walk", reel.author());
+        if (!reel.walkSaved().isEmpty()) row(p, "Walk saved", reel.walkSaved());
+        row(p, "Reel recorded", reel.recordedAt());
+        if (!reel.dialogueLabel().isEmpty()) row(p, "Dialogue", reel.dialogueLabel());
+        p.raw("</dl>\n");
+        p.raw("<p class=\"note\">Every frame below is the analyser's own window, painted as it stood at that "
+              + "step. The evidence behind them is named at the end of this page.</p>\n");
+        p.raw("<p class=\"note warn unredacted\">").text("title page", FRAMES_NOT_REDACTED).raw("</p>\n");
+        p.raw("</section>\n");
     }
 
-    private static void framePage(StringBuilder out, Reel reel, Frame f) {
-        out.append("<section class=\"page step\">\n");
-        out.append("<p class=\"kicker\">Step ").append(f.number()).append(" of ").append(reel.frames().size());
+    private static void framePage(Page p, Reel reel, Frame f) {
+        String step = "step " + f.number();
+        p.raw("<section class=\"page step\">\n");
+        p.raw("<p class=\"kicker\">Step ").number(f.number()).raw(" of ").number(reel.frames().size());
         String state = f.stateLabel();
-        if (!state.isEmpty()) out.append(" <span class=\"warn\">· ").append(esc(state)).append("</span>");
-        out.append("</p>\n");
-        if (!f.caption().isEmpty()) out.append("<h2>").append(esc(f.caption())).append("</h2>\n");
+        if (!state.isEmpty()) p.raw(" <span class=\"warn\">· ").text(step + " state", state).raw("</span>");
+        p.raw("</p>\n");
+        if (!f.caption().isEmpty()) p.raw("<h2>").text(step + " caption", f.caption()).raw("</h2>\n");
         if (f.png().length > 0) {
-            out.append("<img alt=\"Step ").append(f.number()).append(": ")
-                    .append(esc(f.caption().isEmpty() ? "the analyser at this step" : f.caption()))
-                    .append("\" width=\"").append(f.width()).append("\" height=\"").append(f.height())
-                    .append("\" src=\"data:image/png;base64,")
-                    .append(Base64.getEncoder().encodeToString(f.png())).append("\">\n");
+            p.raw("<img alt=\"Step ").number(f.number()).raw(": ")
+                    .text(step + " caption", f.caption().isEmpty() ? "the analyser at this step" : f.caption())
+                    .raw("\" width=\"").number(f.width()).raw("\" height=\"").number(f.height())
+                    .raw("\" src=\"data:image/png;base64,")
+                    .raw(Base64.getEncoder().encodeToString(f.png())).raw("\">\n");
         }
         if (!f.targets().isEmpty()) {
-            out.append("<ol class=\"targets\">\n");
-            for (String c : f.targets()) out.append("<li>").append(esc(c)).append("</li>\n");
-            out.append("</ol>\n");
+            p.raw("<ol class=\"targets\">\n");
+            int n = 1;
+            for (String c : f.targets()) p.raw("<li>").text(step + " callout " + n++, c).raw("</li>\n");
+            p.raw("</ol>\n");
         }
         if (!f.reason().isEmpty()) {
-            out.append("<p class=\"warn\">").append(esc(f.reason())).append("</p>\n");
+            p.raw("<p class=\"warn\">").text(step + " reason", f.reason()).raw("</p>\n");
         }
         if (!f.dialogue().isEmpty()) {
-            out.append("<div class=\"dialogue\">\n");
+            p.raw("<div class=\"dialogue\">\n");
             if (!reel.dialogueLabel().isEmpty()) {
-                out.append("<p class=\"kicker\">").append(esc(reel.dialogueLabel())).append("</p>\n");
+                p.raw("<p class=\"kicker\">").text("dialogue label", reel.dialogueLabel()).raw("</p>\n");
             }
+            int n = 1;
             for (WalkSpec.Turn t : f.dialogue()) {
-                out.append("<p class=\"turn ").append("assistant".equals(t.role()) ? "assistant" : "user")
-                        .append("\"><span class=\"role\">").append(esc(t.role())).append("</span> ")
-                        .append(esc(t.text())).append("</p>\n");
+                p.raw("<p class=\"turn ").raw("assistant".equals(t.role()) ? "assistant" : "user")
+                        .raw("\"><span class=\"role\">").text(step + " turn " + n + " role", t.role()).raw("</span> ")
+                        .text(step + " turn " + n++, t.text()).raw("</p>\n");
             }
-            out.append("</div>\n");
+            p.raw("</div>\n");
         }
-        out.append("</section>\n");
+        p.raw("</section>\n");
     }
 
-    private static void finishPage(StringBuilder out, Reel reel) {
-        out.append("<section class=\"page finish\">\n");
+    private static void finishPage(Page p, Reel reel) {
+        p.raw("<section class=\"page finish\">\n");
         if (reel.fromBundle()) {
             Evidence e = reel.evidence();
-            out.append("<h2>The evidence behind this reel</h2>\n<dl>\n");
+            p.raw("<h2>The evidence behind this reel</h2>\n<dl>\n");
             if (!e.fileName().isEmpty()) {
                 // relative, by file name: a reel travels beside its bundle, and an absolute path would be both
                 // unusable on the recipient's machine and a disclosure nobody asked for
-                out.append("<dt>Bundle</dt><dd><a href=\"").append(escAttr(e.fileName())).append("\"><code>")
-                        .append(esc(e.fileName())).append("</code></a></dd>\n");
+                p.raw("<dt>Bundle</dt><dd><a href=\"").text("bundle file name", e.fileName()).raw("\"><code>")
+                        .text("bundle file name", e.fileName()).raw("</code></a></dd>\n");
             }
-            out.append("<dt>Identity</dt><dd><code class=\"identity\">").append(esc(e.identity()))
-                    .append("</code></dd>\n</dl>\n");
+            p.raw("<dt>Identity</dt><dd><code class=\"identity\">").text("bundle identity", e.identity())
+                    .raw("</code></dd>\n</dl>\n");
             // the invitation is only true when this bundle carries the records in the pictures; when it does not,
             // the page says so INSTEAD, never both
             if (e.coversTheseFrames()) {
-                out.append("<p class=\"invite\">").append(esc(OPEN_IT_YOURSELF)).append("</p>\n");
+                p.raw("<p class=\"invite\">").text("finish page", OPEN_IT_YOURSELF).raw("</p>\n");
             } else {
-                out.append("<p class=\"warn notinbundle\">").append(esc(BUNDLE_IS_NOT_THESE_RECORDS))
-                        .append("</p>\n<p class=\"muted\">").append(esc(e.logRelation())).append("</p>\n");
+                p.raw("<p class=\"warn notinbundle\">").text("finish page", BUNDLE_IS_NOT_THESE_RECORDS)
+                        .raw("</p>\n<p class=\"muted\">").text("log relation", e.logRelation()).raw("</p>\n");
             }
             if (!e.limits().isEmpty()) {
-                out.append("<h3>What this bundle does and does not evidence</h3>\n<ul class=\"limits\">\n");
-                for (String l : e.limits()) out.append("<li>").append(esc(l)).append("</li>\n");
-                out.append("</ul>\n");
+                p.raw("<h3>What this bundle does and does not evidence</h3>\n<ul class=\"limits\">\n");
+                for (String l : e.limits()) p.raw("<li>").text("bundle limits", l).raw("</li>\n");
+                p.raw("</ul>\n");
             }
             if (!e.notes().isEmpty()) {
-                out.append("<h3>From the sender</h3>\n<blockquote>").append(esc(e.notes()))
-                        .append("</blockquote>\n<p class=\"muted\">").append(esc(SENDER_WORDS)).append("</p>\n");
+                p.raw("<h3>From the sender</h3>\n<blockquote>").text("sender's note", e.notes())
+                        .raw("</blockquote>\n<p class=\"muted\">").text("finish page", SENDER_WORDS).raw("</p>\n");
             }
         } else {
-            out.append("<h2>No evidence bundle</h2>\n<p class=\"warn nobundle\">").append(esc(NO_BUNDLE))
-                    .append("</p>\n");
+            p.raw("<h2>No evidence bundle</h2>\n<p class=\"warn nobundle\">").text("finish page", NO_BUNDLE)
+                    .raw("</p>\n");
         }
-        out.append("<p class=\"muted\">Recorded by the Fluxtion Audit Log Analyser.</p>\n");
-        out.append("</section>\n");
+        p.raw("<p class=\"muted\">Recorded by the Fluxtion Audit Log Analyser.</p>\n");
+        p.raw("</section>\n");
     }
 
-    private static void row(StringBuilder out, String term, String value) {
-        out.append("<dt>").append(esc(term)).append("</dt><dd>").append(esc(value)).append("</dd>\n");
+    private static void row(Page p, String term, String value) {
+        p.raw("<dt>").text("title page", term).raw("</dt><dd>").text(term.toLowerCase(java.util.Locale.ROOT), value)
+                .raw("</dd>\n");
     }
 
     /** Escape for element text. {@code '} is escaped too, so the same function is safe in a quoted attribute. */
@@ -329,10 +416,6 @@ public final class WalkReel {
             }
         }
         return b.toString();
-    }
-
-    private static String escAttr(String s) {
-        return esc(s);
     }
 
     private static final String CSS = """

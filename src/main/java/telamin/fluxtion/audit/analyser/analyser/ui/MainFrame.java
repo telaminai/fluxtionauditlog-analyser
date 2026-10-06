@@ -3130,11 +3130,20 @@ public final class MainFrame extends JFrame {
                 return;
             }
             var reel = reelOf(walk, recording.frames(), recordedAt);
+            // #113: the page's text is redacted by the evidence bundle's own rule; a path it will not guess the end of
+            // refuses the page, as it refuses a bundle
+            telamin.fluxtion.audit.analyser.analyser.walk.WalkReel.Rendered page;
+            try {
+                page = telamin.fluxtion.audit.analyser.analyser.walk.WalkReel.render(reel);
+            } catch (java.io.IOException e) {
+                onDone.accept(telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
+                        "the reel was not written: " + e.getMessage()));
+                return;
+            }
             // a failed write must leave NOTHING at `out`: a truncated reel renders as one whose finish page --
             // the evidence disclosure -- was simply cut off. WalkReel.write stages and moves into place.
             try {
-                telamin.fluxtion.audit.analyser.analyser.walk.WalkReel.write(
-                        out, telamin.fluxtion.audit.analyser.analyser.walk.WalkReel.bytes(reel));
+                telamin.fluxtion.audit.analyser.analyser.walk.WalkReel.write(out, page.bytes());
             } catch (java.io.IOException e) {
                 onDone.accept(telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
                         "could not write " + out + ": " + e.getMessage()));
@@ -3144,6 +3153,9 @@ public final class MainFrame extends JFrame {
             wrote.put("path", out.toAbsolutePath().toString());
             wrote.put("steps", reel.frames().size());
             wrote.put("bundle", reel.fromBundle() ? reel.evidence().identity() : null);
+            // what the sender is owed before sending: which paths the text lost, and that the pictures lost none
+            wrote.put("redacted", page.redacted());
+            wrote.put("frames", "not redacted — screenshots may show local file paths; the title page says so");
             // the rule this feature exists for, said back to the caller rather than left to be discovered on the page
             wrote.put("evidence", !reel.fromBundle()
                     ? "NOT captured from an evidence bundle — the finish page says so, and there is nothing to verify "

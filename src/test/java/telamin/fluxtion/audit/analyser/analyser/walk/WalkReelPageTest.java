@@ -123,6 +123,74 @@ class WalkReelPageTest {
         assertFalse(html.contains(WalkReel.NO_BUNDLE), "and this is not the no-bundle case either");
     }
 
+    /**
+     * #113: an invented home directory with a Unicode segment, written the way macOS stores it (decomposed: {@code e}
+     * + U+0301) as well as composed, because the bundle rule exists precisely to remove both whole.
+     */
+    private static final String HOME = "/home/demo-user/De\u0301mo-ünïcode/logs";
+    private static final String HOME_COMPOSED = "/home/demo-user/Démo-ünïcode/logs";
+
+    /** A reel as the recorder builds it from a session whose targets, reasons and log all carry a home path. */
+    private static WalkReel.Reel reelFullOfPaths() {
+        WalkReel.Frame f = new WalkReel.Frame(1, "the run under " + HOME + "/quote-run.yaml starts here",
+                List.of("the source pane — not shown: could not read " + HOME_COMPOSED + "/src/PriceNode.java",
+                        "~demo-user/notes/why.yaml"),
+                "PARTLY_SHOWN", "the chart's series file " + HOME + "/series.csv is not on this machine", 8, 6,
+                List.of(new WalkSpec.Turn("t1", "user", "why does " + HOME_COMPOSED + "/quote-run.yaml stop?")), PNG);
+        return new WalkReel.Reel("tour " + HOME + "/walk.yaml", "found in " + HOME_COMPOSED + "/quote-run.yaml",
+                "by " + HOME + "/author", "", "2026-09-30T10:15:00Z", "Simulated conversation",
+                new WalkReel.Log("quote-run.yaml", 12, "", "loaded from " + HOME + "/quote-run.yaml"),
+                new WalkReel.Evidence("sha256:aa", "recorded-run.fexp",
+                        List.of("the profile once lived at " + HOME_COMPOSED + "/project.fluxtion-settings"),
+                        "sent from " + HOME + "/inbox",
+                        "The log shown above was opened from " + HOME_COMPOSED + "/quote-run.yaml, which is not a "
+                        + "member of this bundle."),
+                List.of(f));
+    }
+
+    @Test
+    @DisplayName("#113: a reel is sent — no machine path, in any alphabet, survives anywhere in its text")
+    void aReelCarriesNoMachinePathInItsText() throws Exception {
+        WalkReel.Rendered page = WalkReel.render(reelFullOfPaths());
+        String html = page.html();
+        for (String leaked : List.of("demo-user", "/home/", "De\u0301mo", "Démo", "ünïcode",
+                "PriceNode.java", "series.csv", "~demo-user")) {
+            assertFalse(html.contains(leaked), "aReelCarriesNoMachinePathInItsText: '" + leaked + "' left the machine");
+        }
+        assertTrue(html.contains(telamin.fluxtion.audit.analyser.bundle.BundleProfile.REDACTED),
+                "the bundle's own marker stands where each path was");
+        assertTrue(html.contains("<dd>quote-run.yaml</dd>"), "a bare file name is not a path and is kept");
+        assertTrue(html.contains("the source pane — not shown: could not read "), "the words around a path stay");
+        // the sender is told what was taken out, exactly as a bundle tells its author
+        assertTrue(page.redacted().stream().anyMatch(r -> r.startsWith("step 1 callout 1: " + HOME_COMPOSED)),
+                "the removal is named, by where it was: " + page.redacted());
+        assertTrue(page.redacted().stream().anyMatch(r -> r.startsWith("step 1 reason: " + HOME)), page.redacted().toString());
+        assertTrue(page.redacted().stream().anyMatch(r -> r.startsWith("log relation: ")), page.redacted().toString());
+        assertEquals(12, page.redacted().size(), "every path, once each: " + page.redacted());
+    }
+
+    @Test
+    @DisplayName("#113: the title page says the frames are pixels and are NOT redacted, before anyone sends it")
+    void theTitlePageSaysTheFramesAreNotRedacted() {
+        String html = WalkReel.html(reel(null));
+        int title = html.indexOf("<section class=\"page title\">");
+        int firstStep = html.indexOf("<section class=\"page step\">");
+        int said = html.indexOf(WalkReel.esc(WalkReel.FRAMES_NOT_REDACTED));
+        assertTrue(said > title && said < firstStep,
+                "theTitlePageSaysTheFramesAreNotRedacted: stated on the title page, before the first frame");
+    }
+
+    @Test
+    @DisplayName("#113: a path whose end the bundle rule will not guess refuses the page, as it refuses a bundle")
+    void anAmbiguousPathRefusesThePage() {
+        WalkReel.Frame f = new WalkReel.Frame(1, "ログは/home/demo-user/logs/価格ログ", List.of(), "SHOWN", "", 8, 6,
+                List.of(), PNG);
+        WalkReel.Reel r = new WalkReel.Reel("w", "", "", "", "now", "", new WalkReel.Log("demo.yaml", 1, "", ""),
+                null, List.of(f));
+        var refused = assertThrows(java.io.IOException.class, () -> WalkReel.render(r));
+        assertTrue(refused.getMessage().contains("step 1 caption"), "the refusal names where: " + refused.getMessage());
+    }
+
     @Test
     @DisplayName("#82: a reel with no bundle behind it says so plainly, rather than leaving the question open")
     void aReelWithoutABundleSaysSo() {
