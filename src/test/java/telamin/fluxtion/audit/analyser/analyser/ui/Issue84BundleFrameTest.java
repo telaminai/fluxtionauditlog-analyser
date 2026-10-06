@@ -59,7 +59,7 @@ public class Issue84BundleFrameTest {
                 if(!"DEMO recipient".equals(note(((GraphTabs)field(f.frame,"graphTabs")).specs()))) throw new IllegalStateException("recipient chart precondition");
             });
             AtomicReference<Map<String,Object>> result = new AtomicReference<>();
-            onEdt(() -> result.set(render(f.ex, "import", Map.of("bundle", exchange.resolve("import.fexp").toString(), "categories", List.of("GRAPHS")))));
+            result.set(render(f.ex, "import", Map.of("bundle", exchange.resolve("import.fexp").toString(), "categories", List.of("GRAPHS"))));
             System.out.println("import reply=" + result.get());
             onEdt(() -> {
                 var config = (AppConfig) field(f.frame, "config");
@@ -189,7 +189,10 @@ public class Issue84BundleFrameTest {
                 if(!config.sourceRoots.isEmpty())throw new IllegalStateException("offline source precondition");
                 if(!List.of(root).equals(config.bundleSourceRoots(bundle.toString())))throw new IllegalStateException("remembered anchor precondition");
                 System.out.println("offline anchor before unrelated REPORTS import="+config.bundleSourceRoots(bundle.toString()));
-                var reply=render(f.ex,"import",Map.of("bundle",bundle.toString(),"categories",List.of("REPORTS")));
+            });
+            var reply=render(f.ex,"import",Map.of("bundle",bundle.toString(),"categories",List.of("REPORTS")));
+            assertEquals(Boolean.TRUE, reply.get("ok"), "the unrelated import actually ran");
+            onEdt(()->{
                 System.out.println("REPORTS-only import reply="+reply);
                 System.out.println("offline anchor after unrelated REPORTS import="+config.bundleSourceRoots(bundle.toString()));
             });
@@ -254,7 +257,7 @@ public class Issue84BundleFrameTest {
             Path copies=tmp.resolve("home/.fluxtion-analyser/bundles");
             Set<Path> before=children(copies);
             Map<String,Object>[] reply=new Map[1];
-            onEdt(()->reply[0]=render(f.ex,"import",Map.of("bundle",exchange.resolve("DEMO-borrow.fexp").toString())));
+            reply[0]=render(f.ex,"import",Map.of("bundle",exchange.resolve("DEMO-borrow.fexp").toString()));
             System.out.println("preview reply="+reply[0]+" workingCopiesBefore="+before.size()+" after="+children(copies).size());
             assertEquals(before,children(copies),"previewMustNotCreateAWorkingCopy");
             assertTrue(Boolean.TRUE.equals(reply[0].get("ok")));

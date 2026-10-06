@@ -517,6 +517,7 @@ public final class MainFrame extends JFrame {
             layoutWest(west);
         });
         machinePanel = new MachinePanel();
+        machinePanel.onClearWorkingCopies(this::clearUnusedWorkingCopies);
         machinePanel.setVisible(!config.machinePanelCollapsed);
         rail.addToggle("Private settings", !config.machinePanelCollapsed, showing -> {
             machinePanel.setVisible(showing);
@@ -704,6 +705,43 @@ public final class MainFrame extends JFrame {
      * Rebuilt on every toggle rather than hiding a split-pane child — JSplitPane keeps giving an invisible
      * child its share, and the divider is persisted only when both are showing (it is meaningless otherwise).
      */
+    /**
+     * Remove the unpacked working copies except the one in force (#85).
+     *
+     * <p>Never on the app's own account: a copy is a throwaway, but it is one the person may be
+     * looking at. The open one is named and spared; the bundles themselves are never touched.
+     */
+    private void clearUnusedWorkingCopies() {
+        int answer = JOptionPane.showConfirmDialog(this,
+                "Clear unused unpacked working copies?\n\n"
+                        + "Copies held by any analyser or pending open are kept. Older unmarked copies and "
+                        + "copies whose ownership cannot be checked are kept too. The bundles themselves are untouched.",
+                "Clear unused working copies", JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
+        if (answer != JOptionPane.OK_OPTION) return;
+        Background.run(() -> telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.reapUnused(bundleCopiesRoot), removed -> {
+            sayToStatus("Removed " + removed + " working cop" + (removed == 1 ? "y" : "ies")
+                    + "; in-use and unverified copies were kept.");
+            refreshProjectPanel();
+        }, error -> sayToStatus("Working-copy cleanup could not finish: " + rootMessage(error)));
+    }
+
+    private final Path bundleCopiesRoot = telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.workingCopiesRoot();
+    private final telamin.fluxtion.audit.analyser.bundle.WorkingCopyScope bundleCopies =
+            new telamin.fluxtion.audit.analyser.bundle.WorkingCopyScope();
+
+    /** Resource release follows the session's settled state; it never decides or publishes a transition. */
+    private void releaseUnusedBundleCopies(telamin.fluxtion.audit.analyser.analyser.session.SessionSnapshot snapshot) {
+        if (snapshot.pending()) return;
+        var paths = new java.util.ArrayList<Path>();
+        if (project.activeFile() != null) paths.add(project.activeFile());
+        if (snapshot.logOpen() && snapshot.logPath() != null && !S3Source.isS3(snapshot.logPath()))
+            paths.add(Path.of(snapshot.logPath()));
+        if (snapshot.graphOpen() && snapshot.graphPath() != null) paths.add(Path.of(snapshot.graphPath()));
+        // A rolled store's display location is not a member path. Keep the resources it actually holds.
+        if (store != null) for (var identity : store.readIdentities()) paths.add(Path.of(identity.path()));
+        bundleCopies.retain(paths);
+    }
+
     /** The machine tier, drawn under the project it qualifies. Never a source of truth — a view. */
     private void renderMachinePanel(Map<String, Object> context) {
         if (machinePanel == null) return;
@@ -1439,10 +1477,23 @@ public final class MainFrame extends JFrame {
     }
 
     /** Pure preparation: every outcome, including refusal, is reported to the session graph with its request id. */
-    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileLoaded prepareBundle(
-            long opId, String bundlePath) throws java.io.IOException {
-        Path parent = telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.workingCopiesRoot();
-        var unpacked = telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.unpack(Path.of(bundlePath), parent);
+    private record PreparedBundle(telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileLoaded result,
+                                  telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.Unpacked unpacked) { }
+
+    private PreparedBundle prepareBundle(long opId, String bundlePath) throws java.io.IOException {
+        var unpacked = telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.unpackAndReap(
+                Path.of(bundlePath), bundleCopiesRoot);
+        try {
+            return new PreparedBundle(prepareBundleProfile(opId, bundlePath, unpacked), unpacked);
+        } catch (java.io.IOException | RuntimeException error) {
+            unpacked.close();
+            throw error;
+        }
+    }
+
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileLoaded prepareBundleProfile(
+            long opId, String bundlePath, telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.Unpacked unpacked)
+            throws java.io.IOException {
         var verification = unpacked.verification();
         if (!verification.ok()) {
             return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileLoaded(
@@ -4296,6 +4347,7 @@ public final class MainFrame extends JFrame {
             // the assistant's window is UNOWNED (so it does not float above the analyser), which also means nothing
             // disposes it with the analyser: found on CI, where a disposed analyser left its assistant window showing
             @Override public void windowClosed(java.awt.event.WindowEvent e) {
+                bundleCopies.close();
                 if (assistantWindow != null) assistantWindow.dispose();
             }
             @Override public void windowOpened(java.awt.event.WindowEvent e) {
@@ -5076,6 +5128,11 @@ public final class MainFrame extends JFrame {
             return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Pending(opId, "opening " + location);
         }
         Path path = Path.of(location);
+        try { bundleCopies.hold(path); }
+        catch (java.io.IOException unavailable) {
+            return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogOpenFailed(
+                    opId, location, unavailable.getMessage());
+        }
         if (format == null && !Files.isReadable(path)) {
             return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogOpenFailed(opId, location, "cannot read log '" + location + "'");
         }
@@ -5116,6 +5173,13 @@ public final class MainFrame extends JFrame {
      * opened during the load was judged against the previous log.
      */
     private void loadFile(Path path, String format, OpenRequest request, long opId) {
+        final var readCopies = new telamin.fluxtion.audit.analyser.bundle.WorkingCopyScope();
+        try { readCopies.hold(path); }
+        catch (java.io.IOException unavailable) {
+            readCopies.close();
+            onLoadFailed(opId, path.toString(), request, unavailable);
+            return;
+        }
         final boolean liveRead = following();
         status.setText("Loading " + path + " …");
         setBusy(true);
@@ -5149,6 +5213,7 @@ public final class MainFrame extends JFrame {
                     }
                 },
                 out -> {
+                    try {
                     @SuppressWarnings("unchecked") var readIdentity = (java.util.List<telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.Identity>)out[2];
                     if (!acceptRecoveryRead(opId, (LogStore)out[0], readIdentity)) return;
                     onLoaded((LogStore) out[0], path.toString(), request, opId);
@@ -5160,8 +5225,12 @@ public final class MainFrame extends JFrame {
                         @SuppressWarnings("unchecked") var identity = (java.util.List<telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.Identity>)out[2];
                         loadedLogIdentity = identity;
                     }
+                    } finally { readCopies.close(); }
                 },
-                err -> onLoadFailed(opId, path.toString(), request, err));
+                err -> {
+                    try { onLoadFailed(opId, path.toString(), request, err); }
+                    finally { readCopies.close(); }
+                });
     }
 
     private static List<telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.Identity> readIdentities(LogStore store) {
@@ -5184,6 +5253,14 @@ public final class MainFrame extends JFrame {
                                OpenRequest request, long opId) {
         var files = set.ordered().stream()
                 .map(telamin.fluxtion.audit.analyser.analyser.parse.RollSetResolver.Sibling::file).toList();
+        final var readCopies = new telamin.fluxtion.audit.analyser.bundle.WorkingCopyScope();
+        try {
+            for (Path file : files) { readCopies.hold(file); bundleCopies.hold(file); }
+        } catch (java.io.IOException unavailable) {
+            readCopies.close();
+            onLoadFailed(opId, "rolled set", request, unavailable);
+            return;
+        }
         pendingRolledSetOffer = null;   // the set IS the answer to any offer that was pending
         status.setText("Loading rolled set (" + files.size() + " files) …");
         setBusy(true);
@@ -5203,6 +5280,7 @@ public final class MainFrame extends JFrame {
                     }
                 },
                 out -> {
+                    try {
                     @SuppressWarnings("unchecked") var readIdentity = (java.util.List<telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.Identity>)out[1];
                     if (!acceptRecoveryRead(opId, (LogStore)out[0], readIdentity)) return;
                     onLoaded((LogStore) out[0],
@@ -5215,8 +5293,12 @@ public final class MainFrame extends JFrame {
                         logObservations = (List<Map<String,Object>>)out[2];
                         refreshProjectPanel();
                     }
+                    } finally { readCopies.close(); }
                 },
-                err -> onLoadFailed(opId, "rolled set", request, err));
+                err -> {
+                    try { onLoadFailed(opId, "rolled set", request, err); }
+                    finally { readCopies.close(); }
+                });
     }
 
     // ---- M35.1 · lifecycle -----------------------------------------------------------------------
@@ -5908,6 +5990,7 @@ public final class MainFrame extends JFrame {
         if (walksPanel != null) walksPanel.render(next.walkPlayback());
         renderLogEvidence(next);                 // M44.5: the log's line, tooltip, Reports tab and time-order report
         renderAssistant(next);                   // OA-1: the assistant, as assistantLoop decided it
+        releaseUnusedBundleCopies(next);
         renderBundleProvenance(next);            // #76: whether this session is received evidence, and which bundle
     }
 
@@ -7229,8 +7312,11 @@ public final class MainFrame extends JFrame {
                 Background.run(() -> {
                     try { return prepareBundle(opId, e.bundlePath()); }
                     catch (java.io.IOException ex) { throw new java.io.UncheckedIOException(ex); }
-                }, result -> {
+                }, prepared -> {
+                    var result = prepared.result();
+                    bundleCopies.add(prepared.unpacked().lease());
                     driver.post(result);
+                    releaseUnusedBundleCopies(driver.snapshot());
                     syncBusyWithGate();
                     // The processor has finished its accepted apply effect by now. Mirror the resulting
                     // project in the recovery journal, as synchronous requestProject does after submit.
@@ -7254,6 +7340,7 @@ public final class MainFrame extends JFrame {
                 // "loaded" here means both. Splitting them is a later slice; what is already true and
                 // was not before is that the log and graph close only on a load that SUCCEEDED, and
                 // that the close is proven by LogClosed rather than assumed from the request.
+                bundleCopies.hold(Path.of(e.profilePath()));
                 var r = project.open(Path.of(e.profilePath()), e.expectedDigest());
                 yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileLoaded(
                         opId, e.profilePath(), r.loaded(),
@@ -7534,6 +7621,14 @@ public final class MainFrame extends JFrame {
      * cannot otherwise provoke, and it is the failure that let two reviews find a false evidence claim.
      */
     static volatile Runnable beforeProjectRender = () -> { };
+
+    /**
+     * A test's hold on the READING half of a borrow, run just before the bundle is verified and
+     * unpacked. A no-op in the product. It exists because "this does not run on the event thread"
+     * (#83) is otherwise assertable only by timing, and a timing assertion for a thread rule is a
+     * flake waiting to happen.
+     */
+    static volatile Runnable beforeBundleRead = () -> { };
 
     private void renderAfterTheRealWorkIsDone(String what) {
         try {
@@ -7991,6 +8086,11 @@ public final class MainFrame extends JFrame {
                     "Open GraphML", JOptionPane.WARNING_MESSAGE);
             return;
         }
+        try { bundleCopies.hold(file); }
+        catch (java.io.IOException unavailable) {
+            sayToStatus(unavailable.getMessage());
+            return;
+        }
         topologyPanel.load(file);   // the load listener records it
         if (sideTabs != null) sideTabs.setSelectedComponent(topologyPanel);
     }
@@ -8116,9 +8216,23 @@ public final class MainFrame extends JFrame {
         }
 
         @Override
+        /**
+         * #83: the READ happens on the calling thread, and only the change hops to the event thread.
+         *
+         * <p>This used to run whole through {@code onEdt}: two SHA-256 passes over every entry and an
+         * unzip, on the event thread, with no progress and no way to cancel — a large bundle froze the
+         * window and the app looked hung. Every other bundle path already does its reading off the EDT.
+         * Nothing here touches Swing until {@link #applyBorrowedSettings}, which is the only part that
+         * has to.
+         */
         public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult importFromBundle(
                 String path, java.util.List<String> categories) {
-            if (!project.hasProject()) {
+            if (SwingUtilities.isEventDispatchThread()) {
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
+                        "bundle import must run on a worker thread; no settings were changed");
+            }
+            var basis = actionExecutor.onEdt(() -> session().processor().activeProject.borrowBasis());
+            if (basis == null) {
                 return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
                         "import borrows INTO a project; none is open. Use open {project} first, or "
                                 + "open {bundle} to work in the bundle itself");
@@ -8127,7 +8241,9 @@ public final class MainFrame extends JFrame {
             if (!Files.isRegularFile(file)) {
                 return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("no evidence bundle at " + file);
             }
-            final telamin.fluxtion.audit.analyser.analyser.config.SettingsShare.ImportPlan plan;
+            beforeBundleRead.run();     // a test's hold on the reading half; a no-op in the product
+            final String settingsText;
+            final Path settingsBase;
             final String identity;
             // Borrowing reads ONE file out of the bundle -- its profile -- so the copy it needs is a
             // scratch one, removed when we are done. It used to unpack into the working-copies
@@ -8148,57 +8264,77 @@ public final class MainFrame extends JFrame {
                     return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
                             "the bundle carries no project profile to borrow from");
                 }
-                plan = new telamin.fluxtion.audit.analyser.analyser.config.SettingsShare()
-                        .preview(Files.readString(profile), config, profile.getParent());
+                settingsText = Files.readString(profile);
+                settingsBase = profile.getParent();
             } catch (java.io.IOException | RuntimeException ex) {
                 return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
                         "could not read the bundle: " + ex);
             } finally {
                 deleteTree(scratch);
             }
-            Map<String, Object> echo = new java.util.LinkedHashMap<>();
-            echo.put("bundle", file.toString());
-            echo.put("identity", identity);
-            Map<String, Object> offered = new java.util.LinkedHashMap<>();
-            plan.summary().forEach((cat, text) -> offered.put(cat.name(), text));
-            echo.put("offers", offered);
-            if (categories == null) {
-                echo.put("applied", false);
-                echo.put("note", "PREVIEW — your settings were not changed, and the scratch copy this "
-                        + "read was removed. Name 'categories' to apply. REPORTS carries "
-                        + "prose the sender wrote about their data, so it is applied only when named");
-                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("import", "preview", echo);
-            }
-            var selected = new java.util.LinkedHashSet<
-                    telamin.fluxtion.audit.analyser.analyser.config.SettingsShare.Category>();
-            List<String> unknown = new java.util.ArrayList<>();
-            for (String name : categories) {
-                var match = telamin.fluxtion.audit.analyser.analyser.config.SettingsShare.CATEGORIES_BY_NAME
-                        .get(name == null ? "" : name.trim().toUpperCase(java.util.Locale.ROOT));
-                if (match == null) unknown.add(String.valueOf(name));
-                else selected.add(match);
-            }
-            if (!unknown.isEmpty()) {
-                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
-                        "not a category this bundle can carry: " + unknown + " — a bundle holds "
-                                + telamin.fluxtion.audit.analyser.bundle.BundleProfile.CATEGORIES);
-            }
-            selected.retainAll(plan.present());
-            if (selected.isEmpty()) {
-                echo.put("applied", false);
-                echo.put("note", "none of the named categories is in this bundle");
-                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("import", "preview", echo);
-            }
+            return actionExecutor.onEdt(() -> {
+                if (!session().processor().activeProject.permitsBorrow(basis)) {
+                    return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
+                            "the project changed while the bundle was read; no settings were changed");
+                }
+                var plan = new telamin.fluxtion.audit.analyser.analyser.config.SettingsShare()
+                        .preview(settingsText, config, settingsBase);
+                Map<String, Object> echo = new java.util.LinkedHashMap<>();
+                echo.put("bundle", file.toString());
+                echo.put("identity", identity);
+                Map<String, Object> offered = new java.util.LinkedHashMap<>();
+                plan.summary().forEach((cat, text) -> offered.put(cat.name(), text));
+                echo.put("offers", offered);
+                if (categories == null) {
+                    echo.put("applied", false);
+                    echo.put("note", "PREVIEW — your settings were not changed, and the scratch copy this "
+                            + "read was removed. Name 'categories' to apply. REPORTS carries "
+                            + "prose the sender wrote about their data, so it is applied only when named");
+                    return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("import", "preview", echo);
+                }
+                var selected = new java.util.LinkedHashSet<
+                        telamin.fluxtion.audit.analyser.analyser.config.SettingsShare.Category>();
+                List<String> unknown = new java.util.ArrayList<>();
+                for (String name : categories) {
+                    var match = telamin.fluxtion.audit.analyser.analyser.config.SettingsShare.CATEGORIES_BY_NAME
+                            .get(name == null ? "" : name.trim().toUpperCase(java.util.Locale.ROOT));
+                    if (match == null) unknown.add(String.valueOf(name));
+                    else selected.add(match);
+                }
+                if (!unknown.isEmpty()) {
+                    return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
+                            "not a category this bundle can carry: " + unknown + " — a bundle holds "
+                                    + telamin.fluxtion.audit.analyser.bundle.BundleProfile.CATEGORIES);
+                }
+                selected.retainAll(plan.present());
+                if (selected.isEmpty()) {
+                    echo.put("applied", false);
+                    echo.put("note", "none of the named categories is in this bundle");
+                    return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("import", "preview", echo);
+                }
+                applyBorrowedSettings(plan, selected);
+                echo.put("applied", true);
+                echo.put("categories", selected.stream().map(Enum::name).toList());
+                echo.put("into", project.activeFile().toString());
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("import", "applied", echo);
+            });
+        }
+
+        /**
+         * The only part of a borrow that must be on the event thread: it changes the config and
+         * re-renders. #83 — verification and unzip run on the worker; preview and apply read live config on the EDT. Reading a
+         * large bundle on the EDT froze the window.
+         */
+        private void applyBorrowedSettings(
+                telamin.fluxtion.audit.analyser.analyser.config.SettingsShare.ImportPlan plan,
+                java.util.Set<telamin.fluxtion.audit.analyser.analyser.config.SettingsShare.Category> selected) {
+            // Called only inside ActionExecutor.onEdt, after its cancellation guard and the node's basis check.
             new telamin.fluxtion.audit.analyser.analyser.config.SettingsShare().apply(plan, selected, config);
             if (selected.contains(telamin.fluxtion.audit.analyser.analyser.config.SettingsShare.Category.GRAPHS)) {
                 restoreGraphDefinitions(List.copyOf(config.savedGraphs));
             }
             onConfigChanged();
             refreshProjectPanel();
-            echo.put("applied", true);
-            echo.put("categories", selected.stream().map(Enum::name).toList());
-            echo.put("into", project.activeFile().toString());
-            return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("import", "applied", echo);
         }
 
         @Override
@@ -8512,6 +8648,10 @@ public final class MainFrame extends JFrame {
                         + ". Pass an absolute path";
                 return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
                         "cannot read graphml '" + path + "'" + why);
+            }
+            try { bundleCopies.hold(file); }
+            catch (java.io.IOException unavailable) {
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(unavailable.getMessage());
             }
             topologyPanel.load(file);
             if (!topologyPanel.hasTopology()) {

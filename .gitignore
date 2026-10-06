@@ -97,3 +97,7 @@ heldout-results.md
 
 ### maven-shade build output (R8-7) ###
 dependency-reduced-pom.xml
+
+# JVM crash logs: never evidence, and they carry absolute paths
+hs_err_pid*.log
+replay_pid*.log

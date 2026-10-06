@@ -425,28 +425,118 @@ public final class EvidenceBundle {
     }
 
     public static Unpacked unpack(Path bundle, Path parent) throws IOException {
+        try (Unpacked unpacked = unpackOwned(bundle, parent)) {
+            return new Unpacked(unpacked.verification(), unpacked.workingCopy());
+        }
+    }
+
+    /** The caller holds this lease throughout preparation and every use of the extracted files. */
+    public static Unpacked unpackOwned(Path bundle, Path parent) throws IOException {
         Pass first = check(bundle, null);
         if (!first.verification().ok()) return new Unpacked(first.verification(), null);
         Files.createDirectories(parent);
         String stem = first.verification().identity().substring("sha256:".length(), "sha256:".length() + 12);
+        // EVERY open gets its own pristine extraction (#85, corrected).
+        //
+        // A reuse-by-identity scheme was tried and withdrawn. Opening a bundle applies its profile as the
+        // PROJECT, so the session writes into the copy as soon as any setting changes -- which means a
+        // reused copy is no longer the bundle's content. The next open then verified a modified profile,
+        // its digest no longer matched the plan, and OpenBundle dropped the bundle's provenance silently:
+        // a genuine bundle read as an ordinary folder somebody had opened. Checking the members on reuse
+        // only moved the problem -- the copy is dirty after almost every session, so reuse rarely applied,
+        // and re-extracting over it discarded the previous session's work and raced the anchor restore.
+        //
+        // A fresh copy per open keeps the invariant the rest of the code relies on: a working copy IS the
+        // bundle's content. Accumulation -- the thirty-two copies actually reported -- is solved by reaping
+        // instead (reap, workingCopies, and the Private settings control), which is what #85 asked for.
+        // Making the copy read-only so it could be shared is the better long-term answer and is its own
+        // issue; it changes what "a bundle is the project" means and does not belong in a bug fix.
         Path dir = Files.createTempDirectory(parent, "bundle-" + stem + "-").toAbsolutePath().normalize();
+        WorkingCopyOwnership.Lease lease = null;
         Pass second;
         try {
+            lease = WorkingCopyOwnership.create(dir);
             second = check(bundle, dir);
         } catch (IOException | RuntimeException ex) {
+            if (lease != null) lease.close();
             deleteTree(dir);
             throw ex;
         }
         if (!second.verification().ok() || !first.verification().identity().equals(second.verification().identity())) {
+            lease.close();
             deleteTree(dir);
             String why = second.verification().ok() ? "a different manifest" : second.verification().refusal();
             return new Unpacked(new Verification(first.verification().identity(), List.of(),
                     "the bundle changed while it was being unpacked (" + why + "); nothing was kept"), null);
         }
-        return new Unpacked(first.verification(), dir);
+        return new Unpacked(first.verification(), dir, lease);
     }
 
-    public record Unpacked(Verification verification, Path workingCopy) { }
+    public record Unpacked(Verification verification, Path workingCopy,
+                           WorkingCopyOwnership.Lease lease) implements AutoCloseable {
+        public Unpacked(Verification verification, Path workingCopy) { this(verification, workingCopy, null); }
+        @Override public void close() { if (lease != null) lease.close(); }
+    }
+
+    /** Fresh extraction, held through pending open; only provably unused managed copies are reaped. */
+    public static Unpacked unpackAndReap(Path bundle, Path parent) throws IOException {
+        Unpacked unpacked = unpackOwned(bundle, parent);
+        if (unpacked.workingCopy() != null) {
+            reap(workingCopies(), unpacked.workingCopy());
+        }
+        return unpacked;
+    }
+
+    /**
+     * Working copies this machine holds, newest first — what {@link #reap} would consider and what a
+     * person is shown before any of it is removed.
+     */
+    public static List<Path> workingCopies() {
+        return workingCopies(workingCopiesRoot());
+    }
+
+    private static List<Path> workingCopies(Path root) {
+        if (!Files.isDirectory(root)) return List.of();
+        try (var list = Files.list(root)) {
+            return list.filter(Files::isDirectory)
+                    .filter(d -> d.getFileName().toString().startsWith("bundle-"))
+                    .sorted(java.util.Comparator.comparing(EvidenceBundle::modifiedAt).reversed())
+                    .toList();
+        } catch (IOException | java.io.UncheckedIOException unreadable) {
+            return List.of();
+        }
+    }
+
+    private static java.nio.file.attribute.FileTime modifiedAt(Path dir) {
+        try {
+            return Files.getLastModifiedTime(dir);
+        } catch (IOException unreadable) {
+            return java.nio.file.attribute.FileTime.fromMillis(0);
+        }
+    }
+
+    /**
+     * Remove only direct managed children with a same-host marker and a free exclusive lock.
+     * Live readers (including pending opens), unknown ownership and legacy unmarked copies are kept.
+     * The optional keep is an additional exclusion, never evidence that the other copies are unused.
+     */
+    public static int reap(List<Path> copies, Path keep) {
+        int removed = 0;
+        Path spared = keep == null ? null : keep.toAbsolutePath().normalize();
+        for (Path copy : copies) {
+            Path at = copy.toAbsolutePath().normalize();
+            if (at.equals(spared)) continue;
+            if (WorkingCopyOwnership.reap(at)) removed++;
+        }
+        return removed;
+    }
+
+    /** Background cleanup uses the window's captured root, not a later change of user.home. */
+    public static int reapUnused(Path root) {
+        int removed = 0;
+        for (Path copy : workingCopies(root)) if (WorkingCopyOwnership.reap(root, copy)) removed++;
+        return removed;
+    }
 
     private static void deleteTree(Path dir) throws IOException {
         if (!Files.exists(dir)) return;

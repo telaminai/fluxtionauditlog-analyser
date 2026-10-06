@@ -1,0 +1,597 @@
+{
+  "description": "Locally executed targeted controls; compact receipt, not a full CI collector artifact. Commands, absolute paths and fixture stdout omitted. Source hashes checked after restore.",
+  "engine": "fast",
+  "requested": [
+    "pr88-copy-pending-open",
+    "pr88-borrow-keeps-cancellation-guard",
+    "pr88-borrow-keeps-project-basis",
+    "pr88-borrow-keeps-project-generation",
+    "pr88-copy-references",
+    "pr88-copy-foreign-host",
+    "pr88-copy-cross-process-lock",
+    "pr88-copy-direct-child",
+    "pr88-copy-profile-open",
+    "pr88-copy-session-release",
+    "import-reads-off-the-event-thread",
+    "bundle-open-reaps-the-rest",
+    "reap-spares-the-open-copy",
+    "issue84-incoming-charts-live"
+  ],
+  "seconds": 61.8,
+  "runs": [
+    {
+      "name": "issue84-incoming-charts-live",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java",
+      "sha256": "ee18e6b02b455a59b21c3845351d61ca726848304160c7ee945d999bba76b92f",
+      "baselineGreen": true,
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "verdict": "caught",
+      "mutatedSuites": [
+        {
+          "name": "Issue84BundleFrameTest",
+          "tests": 1,
+          "failures": 1,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "importingGraphsKeepsIncomingNotes"
+          ],
+          "assertions": [
+            {
+              "test": "importingGraphsKeepsIncomingNotes",
+              "kind": "failure",
+              "message": "org.opentest4j.AssertionFailedError: incomingNotesAreOnScreen ==> expected: <DEMO sender> but was: <DEMO recipient>"
+            }
+          ]
+        }
+      ],
+      "restoredSuites": [
+        {
+          "name": "Issue84BundleFrameTest",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "importingGraphsKeepsIncomingNotes"
+          ],
+          "assertions": []
+        }
+      ]
+    },
+    {
+      "name": "import-reads-off-the-event-thread",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/ActionExecutor.java",
+      "sha256": "7e0300bae9e6629aab0bcb5e2ea37e6d677e9d554afcc6cbfd93e8479a958d1a",
+      "baselineGreen": true,
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "verdict": "caught",
+      "mutatedSuites": [
+        {
+          "name": "BundleImportOffTheEdtFrameTest",
+          "tests": 1,
+          "failures": 1,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "theReadIsNotOnTheEventThread"
+          ],
+          "assertions": [
+            {
+              "test": "theReadIsNotOnTheEventThread",
+              "kind": "failure",
+              "message": "org.opentest4j.AssertionFailedError: the worker preview succeeds ==> expected: <true> but was: <false>"
+            }
+          ]
+        }
+      ],
+      "restoredSuites": [
+        {
+          "name": "BundleImportOffTheEdtFrameTest",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "theReadIsNotOnTheEventThread"
+          ],
+          "assertions": []
+        }
+      ]
+    },
+    {
+      "name": "bundle-open-reaps-the-rest",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/bundle/EvidenceBundle.java",
+      "sha256": "f126893f75056aa70b83c0a09205cfb0763a036abf47b67acad33a5ce4a2d6da",
+      "baselineGreen": true,
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "verdict": "caught",
+      "mutatedSuites": [
+        {
+          "name": "EvidenceBundleTest",
+          "tests": 1,
+          "failures": 1,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "unpackAndReapBoundsTheCopies"
+          ],
+          "assertions": [
+            {
+              "test": "unpackAndReapBoundsTheCopies",
+              "kind": "failure",
+              "message": "org.opentest4j.AssertionFailedError: andTheOnesNoLongerInUseAreRemoved: a fresh copy per open is what keeps a copy equal to the bundle, and reaping is what stops them accumulating ==> expected: <false> but was: <true>"
+            }
+          ]
+        }
+      ],
+      "restoredSuites": [
+        {
+          "name": "EvidenceBundleTest",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "unpackAndReapBoundsTheCopies"
+          ],
+          "assertions": []
+        }
+      ]
+    },
+    {
+      "name": "reap-spares-the-open-copy",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/bundle/EvidenceBundle.java",
+      "sha256": "f126893f75056aa70b83c0a09205cfb0763a036abf47b67acad33a5ce4a2d6da",
+      "baselineGreen": true,
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "verdict": "caught",
+      "mutatedSuites": [
+        {
+          "name": "EvidenceBundleTest",
+          "tests": 1,
+          "failures": 1,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "reapSparesTheOpenCopy"
+          ],
+          "assertions": [
+            {
+              "test": "reapSparesTheOpenCopy",
+              "kind": "failure",
+              "message": "org.opentest4j.AssertionFailedError: expected: <1> but was: <2>"
+            }
+          ]
+        }
+      ],
+      "restoredSuites": [
+        {
+          "name": "EvidenceBundleTest",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "reapSparesTheOpenCopy"
+          ],
+          "assertions": []
+        }
+      ]
+    },
+    {
+      "name": "pr88-copy-pending-open",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/bundle/EvidenceBundle.java",
+      "sha256": "f126893f75056aa70b83c0a09205cfb0763a036abf47b67acad33a5ce4a2d6da",
+      "baselineGreen": true,
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "verdict": "caught",
+      "mutatedSuites": [
+        {
+          "name": "EvidenceBundleTest",
+          "tests": 1,
+          "failures": 1,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "pendingExtractionsCannotReapEachOther"
+          ],
+          "assertions": [
+            {
+              "test": "pendingExtractionsCannotReapEachOther",
+              "kind": "failure",
+              "message": "org.opentest4j.AssertionFailedError: anotherOpenMustNotReapAPendingExtraction ==> expected: <true> but was: <false>"
+            }
+          ]
+        }
+      ],
+      "restoredSuites": [
+        {
+          "name": "EvidenceBundleTest",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "pendingExtractionsCannotReapEachOther"
+          ],
+          "assertions": []
+        }
+      ]
+    },
+    {
+      "name": "pr88-borrow-keeps-cancellation-guard",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java",
+      "sha256": "ee18e6b02b455a59b21c3845351d61ca726848304160c7ee945d999bba76b92f",
+      "baselineGreen": true,
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "verdict": "caught",
+      "mutatedSuites": [
+        {
+          "name": "BundleImportOffTheEdtFrameTest",
+          "tests": 1,
+          "failures": 1,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "cancellationDuringReadCannotApplyTheBorrow"
+          ],
+          "assertions": [
+            {
+              "test": "cancellationDuringReadCannotApplyTheBorrow",
+              "kind": "failure",
+              "message": "org.opentest4j.AssertionFailedError: cancelledBorrowMustNotApply ==> expected: <[eventTime, groupingId, eventToString, endTime]> but was: <[DEMO-borrowed]>"
+            }
+          ]
+        }
+      ],
+      "restoredSuites": [
+        {
+          "name": "BundleImportOffTheEdtFrameTest",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "cancellationDuringReadCannotApplyTheBorrow"
+          ],
+          "assertions": []
+        }
+      ]
+    },
+    {
+      "name": "pr88-borrow-keeps-project-basis",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/ActiveProject.java",
+      "sha256": "b33323f5bea1023cc937636a1343851505e17585cb8fef6f15596fc842f8d4e1",
+      "baselineGreen": true,
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "verdict": "caught",
+      "mutatedSuites": [
+        {
+          "name": "BundleImportOffTheEdtFrameTest",
+          "tests": 1,
+          "failures": 1,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "aProjectSwitchDuringReadCannotReceiveTheBorrow"
+          ],
+          "assertions": [
+            {
+              "test": "aProjectSwitchDuringReadCannotReceiveTheBorrow",
+              "kind": "failure",
+              "message": "org.opentest4j.AssertionFailedError: newProjectMustNotReceiveTheOldBorrow ==> expected: <[eventTime, groupingId, eventToString, endTime]> but was: <[DEMO-borrowed]>"
+            }
+          ]
+        }
+      ],
+      "restoredSuites": [
+        {
+          "name": "BundleImportOffTheEdtFrameTest",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "aProjectSwitchDuringReadCannotReceiveTheBorrow"
+          ],
+          "assertions": []
+        }
+      ]
+    },
+    {
+      "name": "pr88-borrow-keeps-project-generation",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/ActiveProject.java",
+      "sha256": "b33323f5bea1023cc937636a1343851505e17585cb8fef6f15596fc842f8d4e1",
+      "baselineGreen": true,
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "verdict": "caught",
+      "mutatedSuites": [
+        {
+          "name": "BundleImportOffTheEdtFrameTest",
+          "tests": 1,
+          "failures": 1,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "switchingAwayAndBackDoesNotReviveTheBorrow"
+          ],
+          "assertions": [
+            {
+              "test": "switchingAwayAndBackDoesNotReviveTheBorrow",
+              "kind": "failure",
+              "message": "org.opentest4j.AssertionFailedError: returningToAProjectMustNotReviveTheBorrow ==> expected: <[eventTime, groupingId, eventToString, endTime]> but was: <[DEMO-borrowed]>"
+            }
+          ]
+        }
+      ],
+      "restoredSuites": [
+        {
+          "name": "BundleImportOffTheEdtFrameTest",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "switchingAwayAndBackDoesNotReviveTheBorrow"
+          ],
+          "assertions": []
+        }
+      ]
+    },
+    {
+      "name": "pr88-copy-references",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/bundle/WorkingCopyOwnership.java",
+      "sha256": "a2172cc595b1c742ad47b19d7dfe5b2f621e5a1b7ccfe82dde5ae4e5e9ff0510",
+      "baselineGreen": true,
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "verdict": "caught",
+      "mutatedSuites": [
+        {
+          "name": "WorkingCopyOwnershipTest",
+          "tests": 1,
+          "failures": 1,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "eachWindowKeepsItsOwnReference"
+          ],
+          "assertions": [
+            {
+              "test": "eachWindowKeepsItsOwnReference",
+              "kind": "failure",
+              "message": "org.opentest4j.AssertionFailedError: otherWindowMustKeepItsLease ==> expected: <0> but was: <1>"
+            }
+          ]
+        }
+      ],
+      "restoredSuites": [
+        {
+          "name": "WorkingCopyOwnershipTest",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "eachWindowKeepsItsOwnReference"
+          ],
+          "assertions": []
+        }
+      ]
+    },
+    {
+      "name": "pr88-copy-foreign-host",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/bundle/WorkingCopyOwnership.java",
+      "sha256": "a2172cc595b1c742ad47b19d7dfe5b2f621e5a1b7ccfe82dde5ae4e5e9ff0510",
+      "baselineGreen": true,
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "verdict": "caught",
+      "mutatedSuites": [
+        {
+          "name": "WorkingCopyOwnershipTest",
+          "tests": 1,
+          "failures": 1,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "unknownAndForeignCopiesAreKept"
+          ],
+          "assertions": [
+            {
+              "test": "unknownAndForeignCopiesAreKept",
+              "kind": "failure",
+              "message": "org.opentest4j.AssertionFailedError: unknownOwnershipMustNeverBeDeleted ==> expected: <0> but was: <1>"
+            }
+          ]
+        }
+      ],
+      "restoredSuites": [
+        {
+          "name": "WorkingCopyOwnershipTest",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "unknownAndForeignCopiesAreKept"
+          ],
+          "assertions": []
+        }
+      ]
+    },
+    {
+      "name": "pr88-copy-cross-process-lock",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/bundle/WorkingCopyOwnership.java",
+      "sha256": "a2172cc595b1c742ad47b19d7dfe5b2f621e5a1b7ccfe82dde5ae4e5e9ff0510",
+      "baselineGreen": true,
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "verdict": "caught",
+      "mutatedSuites": [
+        {
+          "name": "WorkingCopyOwnershipTest",
+          "tests": 1,
+          "failures": 1,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "anotherProcessProtectsTheCopyAndOurOwnLeaseSurvivesAProbe"
+          ],
+          "assertions": [
+            {
+              "test": "anotherProcessProtectsTheCopyAndOurOwnLeaseSurvivesAProbe",
+              "kind": "failure",
+              "message": "org.opentest4j.AssertionFailedError: anotherProcessMustPreventDeletion ==> expected: <0> but was: <1>"
+            }
+          ]
+        }
+      ],
+      "restoredSuites": [
+        {
+          "name": "WorkingCopyOwnershipTest",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "anotherProcessProtectsTheCopyAndOurOwnLeaseSurvivesAProbe"
+          ],
+          "assertions": []
+        }
+      ]
+    },
+    {
+      "name": "pr88-copy-direct-child",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/bundle/WorkingCopyOwnership.java",
+      "sha256": "a2172cc595b1c742ad47b19d7dfe5b2f621e5a1b7ccfe82dde5ae4e5e9ff0510",
+      "baselineGreen": true,
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "verdict": "caught",
+      "mutatedSuites": [
+        {
+          "name": "WorkingCopyOwnershipTest",
+          "tests": 1,
+          "failures": 1,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "cleanupCannotDeleteTheRootNestedOrLinkedDirectories"
+          ],
+          "assertions": [
+            {
+              "test": "cleanupCannotDeleteTheRootNestedOrLinkedDirectories",
+              "kind": "failure",
+              "message": "org.opentest4j.AssertionFailedError: onlyDirectRealCopiesAreEligible ==> expected: <0> but was: <2>"
+            }
+          ]
+        }
+      ],
+      "restoredSuites": [
+        {
+          "name": "WorkingCopyOwnershipTest",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "cleanupCannotDeleteTheRootNestedOrLinkedDirectories"
+          ],
+          "assertions": []
+        }
+      ]
+    },
+    {
+      "name": "pr88-copy-profile-open",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java",
+      "sha256": "ee18e6b02b455a59b21c3845351d61ca726848304160c7ee945d999bba76b92f",
+      "baselineGreen": true,
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "verdict": "caught",
+      "mutatedSuites": [
+        {
+          "name": "BundleImportOffTheEdtFrameTest",
+          "tests": 1,
+          "failures": 1,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "anUnpackedProfileOpenAlsoOwnsTheCopy"
+          ],
+          "assertions": [
+            {
+              "test": "anUnpackedProfileOpenAlsoOwnsTheCopy",
+              "kind": "failure",
+              "message": "org.opentest4j.AssertionFailedError: openingAWorkingProfileDirectlyMustAcquireOwnership ==> expected: <0> but was: <1>"
+            }
+          ]
+        }
+      ],
+      "restoredSuites": [
+        {
+          "name": "BundleImportOffTheEdtFrameTest",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "anUnpackedProfileOpenAlsoOwnsTheCopy"
+          ],
+          "assertions": []
+        }
+      ]
+    },
+    {
+      "name": "pr88-copy-session-release",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java",
+      "sha256": "ee18e6b02b455a59b21c3845351d61ca726848304160c7ee945d999bba76b92f",
+      "baselineGreen": true,
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "verdict": "caught",
+      "mutatedSuites": [
+        {
+          "name": "BundleImportOffTheEdtFrameTest",
+          "tests": 1,
+          "failures": 1,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "anOpenedCopySurvivesCleanupAndAClosedOneIsReaped"
+          ],
+          "assertions": [
+            {
+              "test": "anOpenedCopySurvivesCleanupAndAClosedOneIsReaped",
+              "kind": "failure",
+              "message": "org.opentest4j.AssertionFailedError: aSettledProjectCloseReleasesAndReapsItsCopy ==> expected: <false> but was: <true>"
+            }
+          ]
+        }
+      ],
+      "restoredSuites": [
+        {
+          "name": "BundleImportOffTheEdtFrameTest",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "anOpenedCopySurvivesCleanupAndAClosedOneIsReaped"
+          ],
+          "assertions": []
+        }
+      ]
+    }
+  ]
+}

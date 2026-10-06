@@ -56,3 +56,20 @@ without extracting it, run `analyser --verify <bundle>.fexp`.
   the version the caption described. The overlay and `context.walks` disclose this independently of source/run pairing.
 - **Your recents change.** The recent-files lists gain the working copy's log, graph and project. Nothing else
   about your settings changes.
+
+## Working-copy cleanup
+
+Each open extracts a fresh copy. Opening another bundle, or choosing **Private settings → Clear unused
+copies**, can remove copies that no analyser is using. A pending open also holds its copy. The original
+`.fexp` files are never removed.
+
+Cleanup requires a same-host ownership marker and an available exclusive file lock. Older unmarked
+copies, copies from another host, and copies whose ownership cannot be checked stay in place. Closing
+or switching the project releases its copy once its log and graph are no longer in use; deletion happens
+on a later bundle open or an explicit cleanup. An abrupt process exit releases its locks too. This is
+coordination between cooperating analysers, not protection against another program replacing local files.
+Copies extracted with `--into` outside the standard working-copy directory are not cleaned automatically.
+
+Borrowing with `import {bundle}` reads off the UI thread. Applying the selected categories checks
+cancellation and the project lifetime again on the UI thread. If you switched projects during the read,
+even away and back, the borrow is refused without applying it; retry in the intended project.
