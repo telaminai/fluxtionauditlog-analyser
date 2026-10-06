@@ -34,6 +34,9 @@ rule (#113); PR #88 bundle import off the event thread and working-copy reaping 
 #85); PR #107 MG-1 mutation-gate iteration; PR #105 EDT-fault and native-input test guards; PR #123 the assistant's
 settings-save redraw, pinned (supersedes #78). [Release receipt](../handoff/release_analyser_1_32_0_2026_10_06.md).
 
+**Starting now: the assurance MVP demo** (▸ *Assurance MVP demo*, below) — "what was tested is
+what was deployed, and runtime evidence names that exact artefact". ASSURE-0 (the spec) and owner decisions D1–D3 come first.
+
 1. **Assurance debt on shipped work.**
    - **PR #70**: the whole-feature review of M70 replay, most of which reached `main` unreviewed.
    - **#119** (from PR #88, released in 1.32.0): no bundle opens on a filesystem without `fcntl` locks, where opens
@@ -62,6 +65,30 @@ settings-save redraw, pinned (supersedes #78). [Release receipt](../handoff/rele
     (starter template).
 
 ---
+
+## Assurance MVP demo — 2026-10-06
+
+Goal: demonstrate that the executable a third party deploys is the one that was tested, and that runtime evidence names
+that exact artefact. Today the processor's only identity is a self-declared digest of its graph model, no audit session
+carries an identity, and a bundle names only the processor's class.
+- [ASSURE-0] ☐ **The spec** (`spec-assurance-mvp-demo.md`): the identity's definition and measurement boundary, the
+  session-start record, the bundle fields, the approval record, the demo script, and what the claim may and may not say.
+- [ASSURE-D1] ☐ **(owner)** The identity: a hash of the processor's own class bytes plus per-JAR classpath hashes
+  (recommended), or a whole-JAR hash.
+- [ASSURE-D2] ☐ **(owner)** Where the demo runs: Mongoose-hosted (recommended, needs ASSURE-3…5) or embedded.
+- [ASSURE-D3] ☐ **(owner)** Where the verifier lives: an analyser CLI command (recommended) or a standalone JAR.
+- [ASSURE-1] ☐ Executable identity and `verify-artefact <jar> --expect <sha256>` — offline, public SHA-256 only.
+- [ASSURE-2] ☐ The bundle manifest carries the processor identity and declared model digest; `--verify --expect
+  <bundle-id>`; the replay runner verifies the bundle first and refuses a build whose identity differs.
+- [ASSURE-3] ☐ Mongoose (cross-repo): measure the loaded processor at registration and write a session-start record
+  (identity, classpath and config hashes, versions) before any audit record.
+- [ASSURE-4] ☐ mongoose-plugins (cross-repo): the audit export carries the session-start record.
+- [ASSURE-5] ☐ Format §1b stream-start marker, conformance fixtures, and the analyser parsing, showing and comparing it
+  with the bundle and graph — the long pole; the spec half can start before ASSURE-3.
+- [ASSURE-6] ☐ The approval record (JSON: identity, bundle id, application, version, time, approved/superseded/revoked)
+  and tamper witnesses: a changed processor, a changed JAR, a log claiming another build, a changed graph.
+- [ASSURE-7] ☐ The demo itself: processor A tested, bundled and verified; changed to B and refused; B rebuilt, replayed
+  and bundled; a reel per bundle as the shareable result. Run from a local disk (#119).
 
 ## Upstream releases to absorb — 2026-10-01
 
