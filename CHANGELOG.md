@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+## [1.32.0] - 2026-10-06
+
 ### Added
 
 - A saved spotlight walk can be recorded as a **reel**: one self-contained HTML page — a title page naming the walk, the log, its record count, its time span and the event processor; a frame per step with its own words and callouts; and a finish page (#82). *Reports ▸ Spotlight walks ▸ More ▸ Record reel…*, or `walk {name, reel: "<file>.html"}`. The frames are the analyser's own window with its spotlights composited in, photographed only once the session says the step has settled.
