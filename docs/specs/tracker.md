@@ -80,8 +80,16 @@ closed); PR #104's released-stack adoption; PR #92's admin-record acceptance. [F
 - ☐ #64 withheld chart definitions captured silently · #65 Follow-growth premise · #66 restoring Follow after capture ·
   #67 excerpt of a non-time-ordered log · #68 walk save's generation check in the frame (rule 9) · #69 small leftovers.
 - ◑ #73 discovery: recents and project inventory exist; pre-open preview and working-copy management remain open.
-- ☐ #74 (design) project-bound or standalone · #82 a walkthrough reel (PR #108) · #83 import off the event thread and
-  #85 working-copy reaping with cross-process ownership (PR #88 is not merged; older unmarked copies stay).
+- ☐ #74 (design) project-bound or standalone.
+- ☑ #83 import off the event thread and #85 working-copy reaping with cross-process ownership — merged in PR #88
+  (older unmarked copies stay). Follow-ups from its correction-delta review: #118 busy-on-coordination-lock, #119
+  no bundle opens on a filesystem without fcntl locks (a regression for those filesystems), #120 test teardown can
+  reap under the real home, #121 low-severity items.
+- ◐ #82 a walkthrough reel: recorded as a self-contained page, with the finish page stating whether a bundle stands
+  behind the frames and refusing to invite replay against one that does not carry them; its text is redacted with
+  the bundle's own rule and its title page says the frame images are not (#113). PR #108. Deferred from its reviews:
+  #114 encoding on the event thread, #115 a failed screenshot renders silently, #116 the recording wait exceeds the
+  MCP call timeout, #117 the lighting guard is witnessed only through a fake.
 - ☐ #109 a bundle's working copy should be read-only evidence, not the project the session writes into. Raised from
   the #88 review: sharing one copy per identity made a reopened bundle lose its provenance in silence, because the
   session had saved its own settings over a member. #88 takes a fresh copy per open and reaps only provably unused managed copies, which keeps

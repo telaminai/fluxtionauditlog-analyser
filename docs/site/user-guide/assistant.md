@@ -310,6 +310,30 @@ A walk can carry a **conversation** shown beside it as it plays — a *conversat
   machine path in a turn is removed when a bundle is written, and named. An analyser from before conversation journeys
   plays the walk without its conversation, and keeps the conversation if it saves the project.
 
+### Send it as a reel
+
+A walk replays beautifully **for somebody who has the analyser**. For a manager, a customer, or a thread where you
+have to show rather than tell, record it as a **reel**: one self-contained HTML page that opens anywhere.
+
+- **Record one.** Reports ▸ Spotlight walks ▸ **More ▸ Record reel…**, and choose where to write it. The analyser
+  plays the walk, waits for each step to actually settle, and photographs the window — the spotlights, their
+  callouts and the playback strip are in the picture, because that is what the walk shows. Or ask for one:
+  `walk {name, reel: "why-quoting-stopped.html"}`, which writes inside the exchange directory like every other
+  file the assistant writes.
+- **What is in it.** A **title page** naming the walk, its purpose, the audit log, its record count, its time span
+  and the event processor the run came from; a page per step with the step's own words and its callouts; and a
+  **finish page**. Every frame is embedded in the file, so there is nothing to keep beside it.
+- **The finish page is the point.** A reel is pixels, and pixels can be cropped, staged or simply wrong — a viewer
+  cannot tell. So if the session came from a verified [evidence bundle](../evidence-bundles/index.md), the finish
+  page carries its `sha256:` identity, its file name as a link, the limits the bundle itself states, and the one
+  sentence that answers *how do I know?* — **open this bundle in the Fluxtion Audit Log Analyser and replay these
+  steps yourself against the real log**. Send the `.fexp` beside the page and the link works.
+- **And if there was no bundle, it says so.** A reel recorded from an ordinary session ends by saying plainly that
+  there is nothing to open and no identity to check. An unanswered question reads as a claim, so the question is
+  answered on the page rather than left open.
+- **A step that could not be shown is not hidden.** *Partly shown* and *not shown* are carried onto the page with
+  the reason the analyser gave, exactly as the strip gives it.
+
 ## Connect an MCP client
 
 !!! tip "Step-by-step, with a working check"

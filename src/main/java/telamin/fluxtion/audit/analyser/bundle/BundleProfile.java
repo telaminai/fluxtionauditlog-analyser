@@ -240,30 +240,47 @@ public final class BundleProfile {
                 throw new IOException("the profile would carry a machine path as the value of " + key + " (" + v.trim()
                         + "); no machine path leaves in an evidence bundle, and a path-valued key cannot be redacted");
             }
-            java.util.regex.Matcher m = EMBEDDED_PATH.matcher(v);
-            StringBuilder b = new StringBuilder();
-            int at = 0;
-            while (m.find()) {
-                int end = m.end();
-                if (m.group("quoted") == null) {
-                    String path = m.group();
-                    int lastSeparator = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'));
-                    if (AMBIGUOUS_END.matcher(path.substring(lastSeparator + 1)).find()) {
-                        throw new IOException("ambiguous unquoted machine path in " + key
-                                + "; quote the complete path separately from the surrounding prose (for example, with double quotes) and retry");
-                    }
-                    while (end > m.start() + 1 && v.charAt(end - 1) == '.') end--;
-                }
-                redacted.add(key + ": " + v.substring(m.start(), end));
-                b.append(v, at, m.start()).append(REDACTED);
-                at = end;
-            }
-            b.append(v.substring(at));
-            kept.put(key, b.toString());
+            kept.put(key, redactProse(key, v, redacted));
         }
         if (!redacted.isEmpty()) text = serialise(text, kept);        // untouched otherwise: the exporter's own bytes
         Files.writeString(out, text, StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW);
         return new Export(List.copyOf(leftOut), List.copyOf(dangling), List.copyOf(redacted));
+    }
+
+    /**
+     * The prose rule on its own: every machine path inside {@code v} replaced with {@link #REDACTED}, each removal
+     * appended to {@code redacted} as {@code "<key>: <path>"}. The ONE copy of the rule. The profile member applies
+     * it to every kept value, and anything else that sends the session's words off this machine (a walk reel, #113)
+     * applies it to every string it writes, rather than growing a second, drifting copy.
+     *
+     * @param key      where the text came from, named in a redaction and in a refusal
+     * @param v        the text; returned unchanged when it holds no machine path
+     * @param redacted receives one line per removed path
+     * @throws IOException when an unquoted path has an ambiguous ending (see the class comment): the caller must
+     *                     not send the text at all
+     */
+    public static String redactProse(String key, String v, List<String> redacted) throws IOException {
+        if (v == null || v.isEmpty()) return v;
+        java.util.regex.Matcher m = EMBEDDED_PATH.matcher(v);
+        StringBuilder b = new StringBuilder();
+        int at = 0;
+        while (m.find()) {
+            int end = m.end();
+            if (m.group("quoted") == null) {
+                String path = m.group();
+                int lastSeparator = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'));
+                if (AMBIGUOUS_END.matcher(path.substring(lastSeparator + 1)).find()) {
+                    throw new IOException("ambiguous unquoted machine path in " + key
+                            + "; quote the complete path separately from the surrounding prose (for example, with double quotes) and retry");
+                }
+                while (end > m.start() + 1 && v.charAt(end - 1) == '.') end--;
+            }
+            redacted.add(key + ": " + v.substring(m.start(), end));
+            b.append(v, at, m.start()).append(REDACTED);
+            at = end;
+        }
+        b.append(v.substring(at));
+        return b.toString();
     }
 
     /** The exporter's comment lines, then every key in order, each escaped exactly as {@link Properties#store} does. */

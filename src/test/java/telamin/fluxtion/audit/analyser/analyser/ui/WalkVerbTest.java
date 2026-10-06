@@ -268,6 +268,9 @@ class WalkVerbTest {
         assertTrue(telamin.fluxtion.audit.analyser.analyser.llm.ActionDispatcherAccess.readsRecords("walk", Map.of("steps", List.of())));
         // review PR57 R1: playing READS record text (each record target is digested), so it honours the policy too
         assertTrue(telamin.fluxtion.audit.analyser.analyser.llm.ActionDispatcherAccess.readsRecords("walk", Map.of("play", true)));
+        // #82: a reel PLAYS the walk to photograph it, so it reads record text exactly as a play does
+        assertTrue(telamin.fluxtion.audit.analyser.analyser.llm.ActionDispatcherAccess.readsRecords(
+                "walk", Map.of("name", "w", "reel", "r.html")), "a reel plays, so it reads records");
         assertFalse(telamin.fluxtion.audit.analyser.analyser.llm.ActionDispatcherAccess.readsRecords("walk", Map.of("name", "w", "delete", true)),
                 "the bin and the list stay available");
         assertFalse(telamin.fluxtion.audit.analyser.analyser.llm.ActionDispatcherAccess.readsRecords("walk", Map.of("end", true)));

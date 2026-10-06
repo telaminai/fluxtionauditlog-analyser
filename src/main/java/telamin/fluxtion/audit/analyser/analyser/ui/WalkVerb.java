@@ -56,7 +56,38 @@ final class WalkVerb {
             "rename", Set.of("rename", "name"),
             "restore", Set.of("restore"),
             "play", Set.of("play", "name", "step"),
+            // #82: recording is asynchronous and writes a file, so the recorder performs it — but which operation a
+            // call names is decided HERE for every operation, or a reel beside a delete would be judged by two rules
+            "reel", Set.of("reel", "name"),
             "end", Set.of("end"));
+
+    /** The one operation a call names, or why it names none, several, or a field that operation does not take. */
+    record Chosen(String op, String error) {
+        boolean ok() {
+            return error == null;
+        }
+    }
+
+    /** Applied identically wherever a {@code walk} call enters, so the rule is stated once (review PR57 R9). */
+    static Chosen choose(Map<String, Object> params, java.util.function.Supplier<?> names) {
+        List<String> named = OPERATIONS.keySet().stream().filter(params::containsKey)
+                // OA-3: 'conversation' names its own operation only alone; beside 'steps' it is that save's dialogue
+                .filter(op -> !("conversation".equals(op) && params.containsKey("steps"))).sorted().toList();
+        if (named.isEmpty()) {
+            return new Chosen(null, "walk needs one operation: steps (save), conversation, delete, rename, restore,"
+                                    + " play, reel or end — walks: " + names.get());
+        }
+        if (named.size() > 1) {
+            return new Chosen(null, "walk takes ONE operation per call — " + named + " were given; nothing was changed");
+        }
+        String op = named.get(0);
+        Set<String> alien = new TreeSet<>(params.keySet());
+        alien.removeAll(OPERATIONS.get(op));
+        if (!alien.isEmpty()) {
+            return new Chosen(null, "walk " + op + " does not take " + alien + " — nothing was changed");
+        }
+        return new Chosen(op, null);
+    }
 
     private final Frame frame;
     /** Review PR57 R7: this verb's play requests, numbered so the node's answer can be matched to its request. */
@@ -78,22 +109,9 @@ final class WalkVerb {
      * from either place ends its own showing the same way.
      */
     ActionResult run(Map<String, Object> params, String origin) {
-        List<String> named = OPERATIONS.keySet().stream().filter(params::containsKey)
-                // OA-3: 'conversation' names its own operation only alone; beside 'steps' it is that save's dialogue
-                .filter(op -> !("conversation".equals(op) && params.containsKey("steps"))).sorted().toList();
-        if (named.isEmpty()) {
-            return ActionResult.error("walk needs one operation: steps (save), conversation, delete, rename, restore, play or end"
-                    + " — walks: " + names());
-        }
-        if (named.size() > 1) {
-            return ActionResult.error("walk takes ONE operation per call — " + named + " were given; nothing was changed");
-        }
-        String op = named.get(0);
-        Set<String> alien = new TreeSet<>(params.keySet());
-        alien.removeAll(OPERATIONS.get(op));
-        if (!alien.isEmpty()) {
-            return ActionResult.error("walk " + op + " does not take " + alien + " — nothing was changed");
-        }
+        Chosen chosen = choose(params, this::names);
+        if (!chosen.ok()) return ActionResult.error(chosen.error());
+        String op = chosen.op();
         String name = params.get("name") == null ? null : String.valueOf(params.get("name"));
         return switch (op) {
             case "steps" -> save(name, params.get("title") == null ? "" : String.valueOf(params.get("title")), params.get("steps"),
@@ -105,6 +123,10 @@ final class WalkVerb {
             case "restore" -> restore(params.get("restore"));
             case "play" -> Boolean.TRUE.equals(params.get("play")) ? play(name, params.get("step"), origin)
                     : ActionResult.error("walk 'play' must be true");
+            // #82: a reel plays the walk step by step and waits for each to settle, so it cannot run on the event
+            // thread — ActionExecutor routes it past this class to the recorder. Reaching here means it was called
+            // from somewhere that has no file to write to, which is a refusal, never a silent no-op.
+            case "reel" -> ActionResult.error("walk 'reel' records a file and is not available on this path");
             default -> Boolean.TRUE.equals(params.get("end")) ? end(origin) : ActionResult.error("walk 'end' must be true");
         };
     }

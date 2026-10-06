@@ -6,6 +6,14 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Added
+
+- A saved spotlight walk can be recorded as a **reel**: one self-contained HTML page — a title page naming the walk, the log, its record count, its time span and the event processor; a frame per step with its own words and callouts; and a finish page (#82). *Reports ▸ Spotlight walks ▸ More ▸ Record reel…*, or `walk {name, reel: "<file>.html"}`. The frames are the analyser's own window with its spotlights composited in, photographed only once the session says the step has settled.
+- **No reel without its bundle named on the finish page.** A reel recorded from a session that came from a verified evidence bundle ends with that bundle's `sha256:` identity, its file name as a link, the limits the bundle already states, and "open this bundle in the Fluxtion Audit Log Analyser to replay these steps yourself against the real log". A reel recorded from an ordinary session says plainly that there is no bundle to open and no identity to check — a reel is a claim, and an unanswered question reads as one. A step the analyser could not fully show carries its state and reason onto the page rather than being hidden.
+- **A bundle that does not carry the frames' log is not offered as their evidence.** A bundle's provenance is about the project, not whichever log is open, so a reel could be recorded with a verified bundle in force while the frames showed an unrelated log. The finish page named that bundle and invited the recipient to replay the steps against it — a false claim their own verification would have confirmed, because the bundle is genuine. The page now states that the bundle is not the evidence for those frames and why, and makes no invitation it cannot honour.
+- **A reel that cannot be written leaves nothing behind.** The page was written straight to its destination, so an interrupted write left a truncated HTML file that a browser renders as a reel which simply stops — before the finish page, the one that names the evidence. It is now staged beside the target and moved into place.
+- **A reel's text carries no machine path (#113).** A reel is meant to be sent, but its captions, callouts, reasons, dialogue and title- and finish-page fields went onto the page as written, so a step pointing at a local file sent your home directory with it. Every word on the page now goes through the evidence bundle's own path redaction — the same rule, Unicode paths included — and the `walk` answer lists what was removed. A path whose ending that rule will not guess refuses the reel, as it refuses a bundle. The frames are screenshots and are not redacted; the title page says so, so a sender knows before sending.
+
 ### Fixed
 
 - The log-findings display suite now accounts for its deliberately injected SummaryPanel failure and fails on unexpected EDT exceptions. Its failed-load recovery assertion and mutation controls remain in place.

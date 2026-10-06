@@ -221,6 +221,18 @@ public interface AppControl {
         return ActionResult.error("'walk' is not enabled here");
     }
 
+    /**
+     * #82: {@code walk {name, reel}} — play the walk and record every step as one self-contained HTML page,
+     * ending on the bundle the frames came from. {@code resolvedPath} is the caller's path AFTER the export
+     * guard; this method never resolves one itself.
+     *
+     * <p><b>It must not be called on the event thread.</b> Recording drives the walk step by step and waits for
+     * each to settle, which the event thread has to be free to do.
+     */
+    default ActionResult walkReel(java.util.Map<String, Object> params, String resolvedPath) {
+        return ActionResult.error("'walk' is not enabled here");
+    }
+
     default ActionResult report(java.util.Map<String, Object> params, String resolvedPath) {
         return ActionResult.error("'report' sections are not enabled here");
     }

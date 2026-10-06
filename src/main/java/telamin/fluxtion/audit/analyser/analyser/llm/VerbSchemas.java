@@ -445,8 +445,14 @@ public final class VerbSchemas {
                         + "edited-recording, author?, turns: [{id, role: user|assistant, text}]} with the steps, "
                         + "giving steps 'id' and 'conversationThrough' (the last turn visible there), or attach one to "
                         + "a saved walk: {name, conversation, through: [turn id or null per step]}; conversation: null "
-                        + "removes it. Dialogue is labelled and shown beside the real view, never run. context.walks "
-                        + "lists the walks and the showing step's target states.",
+                        + "removes it. Dialogue is labelled and shown beside the real view, never run. REEL (send it "
+                        + "to somebody who does not have the analyser): {name, reel: \"<file>.html\"} plays the walk, "
+                        + "photographs every settled step and writes ONE self-contained page — a title page naming "
+                        + "the log, its record count, its time span and the event processor; a frame per step with "
+                        + "its captions; and a finish page naming the EVIDENCE. If this session came from an "
+                        + "evidence bundle the finish page carries its sha256 identity, its file name and the limits "
+                        + "the bundle states; if it did not, the page says so plainly, because a reel with nothing "
+                        + "behind it is a claim. context.walks lists the walks and the showing step's target states.",
                 props(
                         p("name", string(), "the walk's identity — saving again with the same name REPLACES it"),
                         p("title", string(), "the headline shown on the strip"),
@@ -461,6 +467,9 @@ public final class VerbSchemas {
                                 "use alone: true lists what can be restored; a string restores that walk, refusing a taken name"),
                         p("play", bool(), "true presents the walk named by 'name' to the person"),
                         p("step", integer(), "with play: the step to start from, counted from 1 (default 1)"),
+                        p("reel", string(), "record the walk named by 'name' as one self-contained HTML page at this "
+                                + "path (inside the exchange directory, never overwriting); the page ends by naming "
+                                + "the evidence bundle behind it, or by saying there is none"),
                         p("end", bool(), "true ends the showing walk")),
                 List.of()));
 

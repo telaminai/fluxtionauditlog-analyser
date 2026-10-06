@@ -69,6 +69,13 @@ final class WalksPanel extends JPanel {
     /** OA-3: write or capture the selected walk's dialogue (the frame opens the editor). */
     final JMenuItem conversation = new JMenuItem("Conversation…");
     java.util.function.Consumer<WalkSpec> onConversation = w -> { };
+    /**
+     * #82: record the selected walk as a page you can send. Not a {@link WalkVerb} call like every other button
+     * here: recording plays the walk and waits for each step to settle, which this thread has to be free to do —
+     * so the frame runs it and answers when it is finished.
+     */
+    final JMenuItem reel = new JMenuItem("Record reel…");
+    java.util.function.Consumer<WalkSpec> onReel = w -> { };
 
     WalksPanel(Supplier<List<WalkSpec>> walks, Function<Map<String, Object>, ActionResult> walk,
                Supplier<List<String>> restorable) {
@@ -102,8 +109,12 @@ final class WalksPanel extends JPanel {
         });
         conversation.setToolTipText("Write, or capture from the current chat, dialogue shown beside this walk's steps");
         conversation.addActionListener(e -> withSelected(w -> onConversation.accept(w)));
+        reel.setToolTipText("Play this walk, photograph every step, and write one page you can send to somebody "
+                + "who does not have the analyser");
+        reel.addActionListener(e -> withSelected(w -> onReel.accept(w)));
         JPopupMenu actions = new JPopupMenu();
         actions.add(conversation);
+        actions.add(reel);
         actions.addSeparator();
         actions.add(rename);
         actions.add(delete);
@@ -262,6 +273,7 @@ final class WalksPanel extends JPanel {
         playFrom.setEnabled(selected && steps.getSelectedIndex() >= 0);
         rename.setEnabled(selected);
         conversation.setEnabled(selected);
+        reel.setEnabled(selected);
         delete.setEnabled(selected);
         restore.setEnabled(!restorable.get().isEmpty());
     }
