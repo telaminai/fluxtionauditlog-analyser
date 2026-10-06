@@ -170,8 +170,12 @@ public final class ActionExecutor implements RenderExecutor {
                     cats = raw.stream().map(String::valueOf).toList();
                 }
                 java.util.List<String> chosen = cats;
+                // #83: NOT through onEdt. Borrowing verifies the zip twice and unzips it, and doing
+                // that on the event thread froze the window on a large bundle with no progress and no
+                // cancel. The call reads here, on this thread, and hops to the EDT itself for the one
+                // part that changes anything. Every other bundle path already reads off the EDT.
                 return app == null ? ActionResult.error("'import' is not enabled here")
-                        : onEdt(() -> app.importFromBundle(path, chosen));
+                        : app.importFromBundle(path, chosen);
             }
             case "open" -> {
                 if (params.containsKey("follow")) {

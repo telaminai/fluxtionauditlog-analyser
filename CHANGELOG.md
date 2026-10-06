@@ -20,6 +20,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 - Native mouse regressions confirm delivery before testing a gesture and retry only an undelivered setup press. Unavailable input is an error, so it cannot be scored as a caught cancellation mutant. Cancellation assertions and controls remain unchanged.
 - The bundle processor regression waits for the bundled log's source inference before checking a recipient's later choice, and exercises the real processor-selection action instead of assigning its config field directly.
 - Faster development checks: focused draft mutation feedback, cancellation of superseded PR runs, and eight full-gate workers with named witness baselines; complete mutation evidence is still required for merge.
+- Borrowing from an evidence bundle reads and unpacks off the event thread (#83). The guarded settings update runs on the event thread and is refused if cancelled or if the project changed during the read, including switching away and back.
+- Evidence-bundle opens still create a pristine working copy (#85). Opening another bundle or choosing **Private settings → Clear unused copies** removes only marked, same-host copies whose ownership locks are free. Active readers in another analyser and pending opens are kept; older unmarked copies and uncertain ownership are kept too. Closing a project releases its copy for a later cleanup. The bundle files themselves are untouched.
 
 ## [1.31.0] - 2026-10-05
 

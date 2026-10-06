@@ -111,6 +111,7 @@ CONTROLS = [
      "false",
      "VerifiedProfileContentTest#changedContentIsRefusedBeforeSettingsAreApplied"),
     ("issue84-incoming-charts-live", UI + 'MainFrame.java',
+     # The guarded EDT transaction calls the apply helper directly; deleting the graph restore is still the fault.
      "            if (selected.contains(telamin.fluxtion.audit.analyser.analyser.config.SettingsShare.Category.GRAPHS)) {\n                restoreGraphDefinitions(List.copyOf(config.savedGraphs));\n            }\n",
      "",
      "Issue84BundleFrameTest#importingGraphsKeepsIncomingNotes"),
@@ -289,6 +290,72 @@ CONTROLS = [
      '            if (available && !isSource(t.target())) {\n',
      '            if (available) {\n',
      'WalkReviewFrameTest#aWalkStepCanPointAtJavaSource'),
+    # #83: borrowing verifies the zip twice and unzips it. Through onEdt that ran on the event
+    # thread and froze the window on a large bundle, with no progress and no cancel, while every
+    # other bundle path already read off it.
+    ('import-reads-off-the-event-thread', UI + 'ActionExecutor.java',
+     '                return app == null ? ActionResult.error("\'import\' is not enabled here")\n'
+     '                        : app.importFromBundle(path, chosen);\n',
+     '                return app == null ? ActionResult.error("\'import\' is not enabled here")\n'
+     '                        : onEdt(() -> app.importFromBundle(path, chosen));\n',
+     'BundleImportOffTheEdtFrameTest#theReadIsNotOnTheEventThread'),
+    # NO CONTROL, deliberately, for "every open takes its own pristine copy" -- and that is the finding,
+    # not an omission. Freshness is now STRUCTURAL: Files.createTempDirectory cannot hand back a directory
+    # that already exists, so no single-line mutation falsifies the invariant without simply crashing the
+    # extraction, which the harness scores as survived rather than as a witness. The reuse scheme this
+    # replaced DID have a control, and it is exactly the control that passed while the behaviour was
+    # wrong: it proved a copy was reused, which was never the property that mattered. Asserted instead by
+    # EvidenceBundleTest#everyOpenTakesItsOwnPristineCopy, and guarded in anger by the three frame tests
+    # in Issue84BundleFrameTest that caught the regression in CI.
+    # and reaping is what keeps that from accumulating -- the thirty-two copies #85 was raised for
+    ('bundle-open-reaps-the-rest', BUNDLE,
+     '            reap(workingCopies(), unpacked.workingCopy());\n', '',
+     'EvidenceBundleTest#unpackAndReapBoundsTheCopies'),
+    # ...and reaping never removes the copy a person is looking at.
+    ('reap-spares-the-open-copy', BUNDLE,
+     '            if (at.equals(spared)) continue;\n', '',
+     'EvidenceBundleTest#reapSparesTheOpenCopy'),
+    ('pr88-copy-pending-open', BUNDLE,
+     '        Unpacked unpacked = unpackOwned(bundle, parent);\n',
+     '        Unpacked unpacked = unpack(bundle, parent);\n',
+     'EvidenceBundleTest#pendingExtractionsCannotReapEachOther'),
+    # PR #88: cancellation, project lifetime and cross-process file-resource ownership.
+    ('pr88-borrow-keeps-cancellation-guard', UI + 'MainFrame.java',
+     '            return actionExecutor.onEdt(() -> {\n                if (!session().processor().activeProject.permitsBorrow(basis)) {',
+     '            ActionExecutor.bindGuard(null);\n            return actionExecutor.onEdt(() -> {\n                if (!session().processor().activeProject.permitsBorrow(basis)) {',
+     'BundleImportOffTheEdtFrameTest#cancellationDuringReadCannotApplyTheBorrow'),
+    ('pr88-borrow-keeps-project-basis', NODE + 'ActiveProject.java',
+     '        return basis != null && generation == basis.generation() && isAt(basis.profilePath());',
+     '        return true;',
+     'BundleImportOffTheEdtFrameTest#aProjectSwitchDuringReadCannotReceiveTheBorrow'),
+    ('pr88-borrow-keeps-project-generation', NODE + 'ActiveProject.java',
+     'generation == basis.generation() && isAt(basis.profilePath())',
+     'isAt(basis.profilePath())',
+     'BundleImportOffTheEdtFrameTest#switchingAwayAndBackDoesNotReviveTheBorrow'),
+    ('pr88-copy-references', 'src/main/java/telamin/fluxtion/audit/analyser/bundle/WorkingCopyOwnership.java',
+     'held != null && --held.references == 0',
+     'held != null',
+     'WorkingCopyOwnershipTest#eachWindowKeepsItsOwnReference'),
+    ('pr88-copy-foreign-host', 'src/main/java/telamin/fluxtion/audit/analyser/bundle/WorkingCopyOwnership.java',
+     '                        if (!HOST.equals(StandardCharsets.UTF_8.decode(text).toString())) return false;\n',
+     '',
+     'WorkingCopyOwnershipTest#unknownAndForeignCopiesAreKept'),
+    ('pr88-copy-cross-process-lock', 'src/main/java/telamin/fluxtion/audit/analyser/bundle/WorkingCopyOwnership.java',
+     '                    if (lock == null) return false;\n',
+     '',
+     'WorkingCopyOwnershipTest#anotherProcessProtectsTheCopyAndOurOwnLeaseSurvivesAProbe'),
+    ('pr88-copy-direct-child', 'src/main/java/telamin/fluxtion/audit/analyser/bundle/WorkingCopyOwnership.java',
+     '            if (!root.equals(at.getParent()) || !at.getFileName().toString().startsWith("bundle-")) return false;\n',
+     '',
+     'WorkingCopyOwnershipTest#cleanupCannotDeleteTheRootNestedOrLinkedDirectories'),
+    ('pr88-copy-profile-open', UI + 'MainFrame.java',
+     '                bundleCopies.hold(Path.of(e.profilePath()));\n',
+     '',
+     'BundleImportOffTheEdtFrameTest#anUnpackedProfileOpenAlsoOwnsTheCopy'),
+    ('pr88-copy-session-release', UI + 'MainFrame.java',
+     '        releaseUnusedBundleCopies(next);\n',
+     '',
+     'BundleImportOffTheEdtFrameTest#anOpenedCopySurvivesCleanupAndAClosedOneIsReaped'),
     # Bundle discovery (#73): a recipient could not find out what they had been sent.
     ('bundle-recent-recorded', UI + 'MainFrame.java',
      '                config.addRecentBundle(plan.source(), plan.identity(), plan.notes());\n',
