@@ -57,7 +57,7 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 - The event-type checklist can no longer starve the records table: it takes at most a third of the Facts column and scrolls beyond that.
 - Clearing a project's default focus now sticks. `defaultFocus` was not an owned key family, so the previous value was copied back over the blank one: the setting could be changed but never cleared.
 - Starting the analyser no longer rewrites a restored project's committed profile. Applying its settings entered the save half of the funnel, so a launch alone produced a diff nobody asked for.
-- Borrowing from an evidence bundle reads and unpacks off the event thread (#83). The guarded settings update runs on the event thread and is refused if cancelled or if the project changed during the read, including switching away and back.
+- Borrowing from an evidence bundle no longer leaves a full working copy behind while reporting "nothing was changed". It reads one file, from a scratch copy it removes.
 - `context.project.bundle` now names the event processor as the **sender's claim** and says it is not paired against the log, rather than adopting it silently.
 - `context.bundles` says whether the exchange directory in force was declared by the project or is this machine's own, instead of calling both "this project's".
 - A project restored when the analyser starts now has its settings **in force**, not merely loaded. Its source roots reached the config but nothing applied them, so every event processor read "source not found" and the Source tab was empty while the Project panel listed all the roots.
