@@ -134,6 +134,16 @@ One file, two consumers: the analyser reads it from the classpath, the playgroun
 build/release time and vendors a snapshot exactly as it does for skills (D-R3 — never at runtime). A second
 copy under `docs/` was rejected: it would drift, which is the failure this whole design exists to avoid.
 
+### Supporting files
+
+A skill may tell a model to run a file that ships beside it — `spring/add-a-node/audit-compare.py` is the
+first. In `m19-skills/2` such a file is listed under its specialisation's **`files`**, next to `skills`,
+and is selected and hash-pinned exactly like a skill: a template that selects the specialisation gets the
+file, at the same revision, verified by the same `sha256` map. A file must sit in the directory of a skill
+its own specialisation selects, so a generator knows where it goes (beside that skill's `SKILL.md`).
+`CanonicalSkillsTest` refuses a file beside a skill that no `files` list ships. `files` is additive: a
+generator that reads only `skills` keeps working, and does not ship the file until it learns the field.
+
 When either published skill changes, update the index revision to the commit containing those new bytes
 and update the parity test in `CanonicalSkillsTest`. A revision change without matching content, or
 content drift without the matching revision/hash update, fails the analyser build.

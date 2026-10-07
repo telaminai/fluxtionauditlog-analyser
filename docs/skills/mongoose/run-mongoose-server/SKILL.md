@@ -31,7 +31,8 @@ the bottom of this file, and the check belongs immediately before it.
    port or start a second copy. The registry entry supplies the base URL, auth mode, token, environment
    and process id without putting any of them in this skill.
 
-3. Export the captured Chronicle audit through **this project's own export script**:
+3. Export the captured Chronicle audit through **this project's own export script** — one export per
+   processor:
 
    ```
    TODO(bundle): substitute the exact export command and its concrete ./logs/audit-<name>.yaml target.
@@ -40,6 +41,12 @@ the bottom of this file, and the check belongs immediately before it.
    Mongoose does not write analyser-readable YAML directly. The script selects the recorded audit file
    through the registry/API and calls `/api/audit/file/{id}/export?format=yaml`; claiming the run itself
    writes the YAML skips a required step and leaves `load-audit-log` with a path that does not exist.
+
+   **Each processor has its own export.** A bundle may host several processors, and each one's audit is
+   captured separately, so each needs its own file: `logs/audit-<processor>.yaml`. When this project
+   hosts more than one, check that the export wrote a file for **every** processor the server runs — an
+   export that wrote one file exported one processor, and the others' evidence is not in it. Open each
+   file with its own processor's GraphML, and never read one processor's log as the whole server's.
 
    **The export is cumulative.** Chronicle capture persists across restarts — the capture ROLLS to a new
    file on a schedule (daily, in the starter) and nothing deletes the old ones — so the YAML holds every run

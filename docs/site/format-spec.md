@@ -455,6 +455,13 @@ adds — and only then treats absence as *did not run*; otherwise it says *may h
 not*. A single component logging a business key called `method` MUST NOT make a sparse record look
 complete, and does not. *(Fixture C12.)*
 
+Tracing writes `thread` (when thread names are printed) and `method` into each entry, and from Fluxtion
+runtime 1.1.1 also `annotation` — the simple name of the annotation that dispatched the callback, after
+`method`: `- quoteDEMO: { thread: main, method: onTrigger, annotation: OnTrigger}`. All three are
+framework data, not the component's own: an entry carrying only those keys logged no business value.
+Only `method` decides the traced regime; a lone `thread` or `annotation` is a business key.
+*(Fixture C33.)*
+
 A declared marker is an open upstream ask (UP-FLX-11). Until it lands, an emitter that traces every
 invocation SHOULD carry `method` on every entry so the inference holds; one that does not MUST NOT
 fake it.
@@ -504,6 +511,7 @@ order, for every fixture.
 | C31 broken value | a line break in an unquoted value forges nothing: two admin command records whose arguments carry `nodeLogs:` / `eventLogRecord:` and `event:` lines keep their dispatched event, read no node logs and are named; the whole records around them read as before |
 | C32 record structure | one structural rule: a payload indented deeper than the fields breaks the record and forges nothing; a closed quoted node-log value's continuation is never the event or a new node; the generator's exported-service record (`@Override` and one signature at column 0) is whole — on the built-in path, the legacy SPI path and a reader declaring the typed grammar |
 | C30 per-node level | a control record setting a node to `WARN` annotates that node on both paths; it stays uncovered |
+| C33 trace annotation | `annotation`, written after `method` by Fluxtion 1.1.1 tracing, is framework data like `thread` and `method`; a lone `annotation` is a business key and makes nothing look traced |
 | C15 graph provenance | a `SourceGraph` cannot exist without DECLARED/INFERRED; INFERRED forbids coverage; an opened graph outranks a supplied one; dangling edges dropped |
 
 To check an emitter: write its records to a file, open it in the analyser (or run the fixture

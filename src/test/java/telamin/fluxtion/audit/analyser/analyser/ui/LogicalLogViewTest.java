@@ -131,6 +131,8 @@ class LogicalLogViewTest {
         // they are the marker that says the record is traced — hiding them would hide the regime
         assertTrue(LogicalLogView.isFrameworkKey("thread"));
         assertTrue(LogicalLogView.isFrameworkKey("method"));
+        assertTrue(LogicalLogView.isFrameworkKey("annotation"),
+                "Fluxtion 1.1.1 tracing names the dispatching annotation after method; it is framework data");
         assertFalse(LogicalLogView.isFrameworkKey("mid"));
 
         LogicalLogView.Layout layout = LogicalLogView.layout(parse("""

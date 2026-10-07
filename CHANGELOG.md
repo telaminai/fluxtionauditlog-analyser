@@ -6,6 +6,14 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Added
+
+- The `add-a-node` skill shows how to **prove a change by comparing audit logs** (#126): capture the same input before and after, compare the business records — the keys nodes chose to log — separately from the framework records invocation tracing adds (`thread`, `method`, `annotation`, `forkedExecution`, `asyncMethod`), and conclude "business behaviour changed / did not change" from the business comparison alone. It ships `audit-compare.py` (Python 3, standard library only), which prints that split and exits non-zero when business records differ, and it says to verify behaviour from the audit log rather than from generated code. The `load-audit-log`, `run-mongoose-server` and `add-a-node` skills now say a bundle hosting several processors exports one file per processor, `logs/audit-<processor>.yaml`. The skills index re-pins them, and ships the script as a pinned supporting file.
+
+### Changed
+
+- The trace key `annotation`, which Fluxtion runtime 1.1.1 writes after `method` to name the annotation that dispatched a callback, is read as framework data like `thread` and `method`: the logical log view mutes it, and `read` still reports a node whose entry carries only trace keys as `traceLikeOnly`. A lone `annotation` with no `method` stays the node's own key. Conformance fixture C33 pins it.
+
 ## [1.32.0] - 2026-10-06
 
 ### Added
