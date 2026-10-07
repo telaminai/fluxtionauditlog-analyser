@@ -1,0 +1,19 @@
+---
+#00:00:00.000 [main] INFO DEMO
+eventLogRecord:
+  logTime: 1000
+  event: Tick
+  thread: main
+  nodeLogs:
+    - priceSource: { thread: main, method: onTick, annotation: OnEventHandler, price: 101.5}
+    - quoteDEMO: { thread: main, method: onTrigger, annotation: OnTrigger}
+---
+#00:00:00.000 [main] INFO DEMO
+eventLogRecord:
+  logTime: 1001
+  event: Tick
+  thread: main
+  nodeLogs:
+    - priceSource: { price: 102.0}
+    - quoteDEMO: { annotation: aBusinessKeyThatHappensToBeCalledAnnotation}
+---

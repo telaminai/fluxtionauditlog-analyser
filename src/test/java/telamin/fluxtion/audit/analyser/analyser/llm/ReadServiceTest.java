@@ -281,6 +281,26 @@ class ReadServiceTest {
 
     @Test
     @SuppressWarnings("unchecked")
+    void theTracedAnnotationKeyIsNotBusinessData_soATraceOnlyNodeStaysTraceLike() throws IOException {
+        // Fluxtion runtime 1.1.1 writes `annotation` after `method` on every traced entry (fluxtion PR #39).
+        // Without it in the trace-key set, quoteDEMO would read as a node that logged a business value.
+        HeapLogStore s = new HeapLogStore(Files.readString(
+                Path.of("src/test/resources/conformance/c33-trace-annotation.yaml"), StandardCharsets.UTF_8));
+        Map<String, Object> out = ReadService.read(s.index().snapshot(),
+                Map.of("recordIndex", 0, "after", 1,
+                        "fields", List.of("priceSource.price", "quoteDEMO.annotation")),
+                s::rawText);
+        List<Map<String, Object>> recs = records(out);
+        assertEquals(List.of("quoteDEMO"), recs.get(0).get("traceLikeOnly"),
+                "thread+method+annotation and nothing else is the tracing regime's spelling");
+        assertNull(recs.get(1).get("traceLikeOnly"),
+                "control: a lone `annotation` with no `method` is the node's own key, as a lone `thread` is");
+        assertEquals("aBusinessKeyThatHappensToBeCalledAnnotation",
+                ((Map<String, String>) recs.get(1).get("values")).get("quoteDEMO.annotation"));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
     void legacyTraceLikeOnly_isInferredPerInstanceOverEveryContribution() {
         HeapLogStore s = tracedStore();
         Map<String, Object> out = ReadService.read(s.index().snapshot(),

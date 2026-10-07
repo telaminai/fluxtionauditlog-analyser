@@ -65,6 +65,29 @@ class CanonicalSkillsTest {
     }
 
     @Test
+    void springSkillProvesAChangeByComparingBusinessRecords_andNamesTheScriptItShips() throws Exception {
+        String text = Files.readString(ROOT.resolve("spring/add-a-node/SKILL.md"));
+        assertTrue(text.contains("## Prove a change by comparing audit logs"));
+        assertTrue(text.contains("## Verify from the audit log, not from generated code"));
+        assertTrue(text.contains("python3 audit-compare.py before/audit-<processor>.yaml after/audit-<processor>.yaml"));
+        for (String key : List.of("`thread`", "`method`", "`annotation`", "`forkedExecution`", "`asyncMethod`"))
+            assertTrue(text.contains(key), "the framework keys the script separates must be named: " + key);
+        assertTrue(text.contains("comparison **only**"),
+                "the verdict comes from the business comparison alone");
+        assertTrue(Files.isRegularFile(ROOT.resolve("spring/add-a-node/audit-compare.py")),
+                "the skill names a script that must ship beside it");
+    }
+
+    @Test
+    void everySkillThatNamesTheExportSaysEachProcessorHasItsOwn() throws Exception {
+        // issue #126: a bundle may host several processors; one export path read as the whole server hid the rest
+        for (String skill : List.of("common/load-audit-log/SKILL.md", "mongoose/run-mongoose-server/SKILL.md",
+                "spring/add-a-node/SKILL.md")) {
+            assertTrue(Files.readString(ROOT.resolve(skill)).contains("`logs/audit-<processor>.yaml`"), skill);
+        }
+    }
+
+    @Test
     void auditEvidenceRunbookAndSkillShareTheVersionedLimitsAndDeliveryBoundary() throws Exception {
         String skill = Files.readString(ROOT.resolve("mongoose/run-mongoose-server/SKILL.md"));
         String runbook = Files.readString(Path.of("docs/runbooks/mongoose-audit-evidence.md"));
@@ -160,6 +183,26 @@ class CanonicalSkillsTest {
         for (SkillDiscovery.Candidate candidate : SkillDiscovery.find(ROOT, Map.of()).candidates()) {
             assertTrue(indexed.contains(candidate.path()),
                     candidate.path() + " exists in the library but no index entry ships it");
+            // a supporting file beside a skill (a script it tells the model to run) ships through `files`
+            Path dir = ROOT.resolve(candidate.path()).getParent();
+            try (var siblings = Files.list(dir)) {
+                for (Path sibling : siblings.filter(Files::isRegularFile).toList()) {
+                    String relative = ROOT.relativize(sibling).toString().replace('\\', '/');
+                    if (relative.equals(candidate.path())) continue;
+                    assertTrue(indexed.contains(relative), relative + " sits beside " + candidate.path()
+                            + " but no specialisation's `files` ships it, so a generated bundle would lack it");
+                }
+            }
+        }
+        for (Object spec : ((Map<String, Object>) v2.get("specialisations")).values()) {
+            Map<String, Object> entry = (Map<String, Object>) spec;
+            Set<String> skillDirs = ((List<String>) entry.get("skills")).stream()
+                    .map(p -> p.substring(0, p.lastIndexOf('/'))).collect(Collectors.toSet());
+            for (String file : (List<String>) entry.getOrDefault("files", List.of())) {
+                assertTrue(skillDirs.contains(file.substring(0, file.lastIndexOf('/'))),
+                        file + " must sit beside a skill its own specialisation selects, or nothing says where it goes");
+                assertTrue(Files.isRegularFile(ROOT.resolve(file)), "ships a missing file: " + file);
+            }
         }
     }
 
@@ -275,6 +318,8 @@ class CanonicalSkillsTest {
         List<String> paths = new java.util.ArrayList<>((List<String>) v2.get("common"));
         for (Object spec : ((Map<String, Object>) v2.get("specialisations")).values()) {
             paths.addAll((List<String>) ((Map<String, Object>) spec).get("skills"));
+            // supporting files a skill ships with are selected and pinned exactly like the skill itself
+            paths.addAll((List<String>) ((Map<String, Object>) spec).getOrDefault("files", List.of()));
         }
         return paths;
     }

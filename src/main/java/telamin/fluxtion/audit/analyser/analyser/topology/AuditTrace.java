@@ -5,6 +5,7 @@ import telamin.fluxtion.audit.analyser.analyser.model.LogRecord;
 import telamin.fluxtion.audit.analyser.analyser.model.NodeLog;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * Tells whether a record's audit covers <b>every node invocation</b>, or only the nodes that chose to log.
@@ -29,6 +30,21 @@ public final class AuditTrace {
 
     /** The key node-invocation tracing adds to every entry in the TEXT record. */
     private static final String METHOD = "method";
+
+    /**
+     * The keys the TEXT runtime's invocation tracing writes into a node's entry beside whatever the node
+     * logged itself: {@code thread} (when thread names are printed), {@code method}, and, from Fluxtion
+     * runtime 1.1.1, {@code annotation} — the simple name of the annotation that dispatched the callback,
+     * written after {@code method} ({@code - source: { thread: main, method: onTrigger, annotation: OnTrigger}}).
+     * They are framework data, not business data. Only {@code method} decides the traced regime: the
+     * others accompany it, and a lone one is a business key until a {@code method} says otherwise.
+     */
+    private static final Set<String> TRACE_KEYS = Set.of("thread", METHOD, "annotation");
+
+    /** True when invocation tracing writes this key in the TEXT record — framework data, not the node's own. */
+    public static boolean isTraceKey(String key) {
+        return key != null && TRACE_KEYS.contains(key);
+    }
 
     /**
      * True when this record traces every invocation — every logged node carries a {@code method}

@@ -171,8 +171,9 @@ public final class ReadService {
      * <ul>
      *   <li>{@code marked}: a wire TRACE marker said the node ran ({@link NodeLog#traced()}) and no
      *       contribution carries an entry — explicit provenance, any grammar.</li>
-     *   <li>{@code inferred}: legacy text grammar only, where invocation tracing writes {@code thread} and
-     *       {@code method}: every entry across the contributions is one of those two keys AND a
+     *   <li>{@code inferred}: legacy text grammar only, where invocation tracing writes {@code thread},
+     *       {@code method} and {@code annotation} ({@link telamin.fluxtion.audit.analyser.analyser.topology.AuditTrace#isTraceKey}):
+     *       every entry across the contributions is one of those keys AND a
      *       {@code method} entry is present. A lone {@code thread} key is a business key until a
      *       {@code method} says otherwise, matching the {@code AuditTrace} inference. This is an inference
      *       from spelling, so it is reported under its own name.</li>
@@ -192,7 +193,8 @@ public final class ReadService {
             if (nl.traced()) f[0] = true;
             for (KV kv : nl.entries()) {
                 f[1] = true;
-                boolean traceKey = legacyText && ("thread".equals(kv.key()) || "method".equals(kv.key()));
+                boolean traceKey = legacyText
+                        && telamin.fluxtion.audit.analyser.analyser.topology.AuditTrace.isTraceKey(kv.key());
                 if (!traceKey) f[2] = true;
                 if (legacyText && "method".equals(kv.key())) f[3] = true;
             }

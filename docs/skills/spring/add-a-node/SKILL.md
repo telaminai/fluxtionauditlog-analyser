@@ -1,6 +1,6 @@
 ---
 name: add-a-node
-description: Add a new node to a Spring-XML authored Fluxtion graph, or make an existing node log its values, and prove it ran. A new node needs regeneration; logging from an existing node is a body-only change and does not.
+description: Add a node to a Spring-XML authored Fluxtion graph, or make an existing node log its values, and prove it ran; or prove whether a change altered business behaviour by comparing before and after audit logs. A new node needs regeneration; a body-only logging change does not.
 x-analyser-min-version: 1.12.0
 ---
 
@@ -77,6 +77,59 @@ prediction after seeing the result.
 The model owns this sequence and its judgement. Project scripts execute build and host operations;
 Fluxtion audit records carry deterministic application evidence; the analyser opens and queries evidence
 already produced. Do not introduce a compound analyser verb for this workflow.
+
+## Verify from the audit log, not from generated code
+
+The generated processor and GraphML show what the generator **wrote**: the wiring, the dispatch position,
+the guard. They cannot show what an event **did**. Read them to check a structural prediction, then
+answer every behavioural question from the audit log. With invocation tracing on, a record lists every
+node invoked for its event, in dispatch order, each with its `method` (and, from Fluxtion runtime 1.1.1,
+the `annotation` that dispatched it) — that is the evidence for dispatch order, not a reading of the
+generated `onEvent` body.
+
+When the log cannot answer — a node ran but logged none of the state behind its decision, or the level
+in force hid it — make the log answer: add `auditLog` calls to the node, or raise its `logLevel`, then
+run again. Do not fill the gap by reasoning from generated code, and do not report a conclusion the
+log does not show.
+
+## Prove a change by comparing audit logs
+
+A refactor, a new node or a moved edge should change **framework** records — another dispatch path, a
+renamed callback, a new trace-only record — and leave **business** records alone unless the change was
+meant to alter them. Prove which happened by comparing two runs of the **same input**:
+
+1. Capture the audit log **before** the change: run the fixture, export it, keep the file under a name of
+   its own. A bundle that hosts several processors exports one file per processor
+   (`logs/audit-<processor>.yaml`); compare each processor's export with its own counterpart, never one
+   processor's log with another's.
+2. Make the change, rebuild (regenerate if it was a graph change), and capture the **after** log from the
+   same input, in a fresh capture location so older runs do not mix in.
+3. Compare them:
+
+   ```
+   python3 audit-compare.py before/audit-<processor>.yaml after/audit-<processor>.yaml
+   ```
+
+   `audit-compare.py` is published beside this skill (Python 3, standard library only). If this
+   project's copy of the skill does not carry it, take the canonical copy,
+   `docs/skills/spring/add-a-node/audit-compare.py` in the analyser repository, at the revision this skill
+   came from — do not write your own on the spot. It splits every node entry into **business** data —
+   the keys the node chose to log — and **framework** data — the keys invocation tracing adds: `thread`,
+   `method`, `annotation`, `forkedExecution`, `asyncMethod` (a lone `thread` or `annotation` with no
+   `method` beside it is the node's own key, as it is in the analyser). It compares the business records
+   in order — event, event text and every node's business entries; never times or thread names — and
+   reports framework differences separately. Exit `0`: business records are the same; `1`: they differ,
+   and the changed records are printed; `2`: a log holds no business record, so nothing follows.
+
+4. Conclude **"business behaviour changed"** or **"business behaviour did not change"** from the business
+   comparison **only**. A framework difference never decides it either way: a new trace-only record or a
+   renamed callback is not a behaviour change, and a quiet framework section does not prove business
+   output is right. Report the framework differences as what they are — evidence about dispatch — and
+   check each one against your written prediction.
+
+The comparison is only as good as the input being identical. If the two runs read different input, or
+one export carries an extra run (exports are cumulative — see `run-mongoose-server`), the difference is
+in the evidence, not the code; fix the capture and compare again before concluding anything.
 
 ## The two things that fail SILENTLY here
 

@@ -34,9 +34,6 @@ public final class LogicalLogView {
 
     private LogicalLogView() { }
 
-    /** Keys the audit framework adds for every invocation when tracing is compiled in. */
-    private static final List<String> FRAMEWORK_KEYS = List.of("thread", "method");
-
     /** A node's block in the rendered text: {@code [start, end)} covering its header and values. */
     public record Block(int start, int end, int headerStart, int headerEnd, String instanceId, String method) { }
 
@@ -123,9 +120,13 @@ public final class LogicalLogView {
     /** How a keyless entry is shown: the binary reader's own marker, so the two views agree. */
     public static final String UNKEYED_MARKER = EvidenceText.UNKEYED_MARKER;
 
-    /** True when this key is one the audit framework adds rather than one the node chose to log. */
+    /**
+     * True when this key is one the audit framework adds rather than one the node chose to log —
+     * invocation tracing's {@code thread}, {@code method} and {@code annotation}, one list owned by
+     * {@link telamin.fluxtion.audit.analyser.analyser.topology.AuditTrace#isTraceKey}.
+     */
     public static boolean isFrameworkKey(String key) {
-        return FRAMEWORK_KEYS.contains(key);
+        return telamin.fluxtion.audit.analyser.analyser.topology.AuditTrace.isTraceKey(key);
     }
 
     // ---- styling ----------------------------------------------------------------------------------
