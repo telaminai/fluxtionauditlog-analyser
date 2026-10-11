@@ -74,7 +74,7 @@ def resolve_java_home(explicit=None):
     return str(Path(found).resolve().parent.parent) if found else ''
 
 
-def isolation_profile(base, port, java_home, home=None, key_file=None):
+def isolation_profile(base, port, java_home, home=None, key_file=None, cli_dir=None):
     """Per-run sandbox profile.
 
     Deliberately weaker than the cold-start profile in three places, each forced by the journey:
@@ -97,11 +97,16 @@ def isolation_profile(base, port, java_home, home=None, key_file=None):
       as something only `--bare` skips, and in that mode "OAuth and keychain are never read" with auth
       strictly ANTHROPIC_API_KEY or apiKeyHelper — incompatible with the CLAUDE_CODE_OAUTH_TOKEN this
       rig uses. So the read is kept, narrowed from the whole directory to the login keychain database.
+
+    `cli_dir`, when given, is a per-run copy of the Claude Code binary (`--claude-bin`): READABLE so the
+    sandbox can execute it, never writable, because the write rule below grants only project and tmp.
+    Without it the profile is byte-identical to before.
     """
     # home/key_file are parameters so the enforcement tests can build a policy over disposable
     # fixtures and run sandbox-exec against it without going near the real home or the real key.
     home = str(home) if home else str(Path.home())
     key_file = str(key_file) if key_file else str(KEY_FILE)
+    cli_read = f'\n  (require-not (subpath "{cli_dir}"))' if cli_dir else ''
     return f'''(version 1)
 (allow default)
 (deny file-read*
@@ -114,7 +119,7 @@ def isolation_profile(base, port, java_home, home=None, key_file=None):
   (require-not (literal "{home}/Library/Preferences/com.apple.security.plist")))
  (require-all (subpath "/private/tmp")
   (require-not (subpath "{base}/project"))
-  (require-not (subpath "{base}/tmp"))))
+  (require-not (subpath "{base}/tmp")){cli_read}))
 (allow file-read-metadata)
 (deny file-write*
  (require-all
@@ -164,6 +169,12 @@ def child_env(base, tmp, home, java_home):
         # grants and which would contaminate the evidence with locally installed artefacts.
         'MAVEN_OPTS': f'-Dmaven.repo.local={repo_local}',
         'MAVEN_ARGS': f'-s {settings}',
+        # The same account-not-environment trap for the Mongoose server registry: its admin service
+        # resolves ~/.mongoose/servers from user.home, which the profile denies writing, so a bundle's
+        # run/export/stop would fail for the environment's sake. The bundle's scripts honour this
+        # variable (run-server.sh passes it as -Dmongoose.servers.dir). user.home itself is NOT
+        # overridden: the build finds the compilation key through it.
+        'MONGOOSE_SERVERS_DIR': f'{home}/.mongoose/servers',
     })
     env['PATH'] = java_home + '/bin:' + env['PATH']
     env['CLAUDE_CODE_OAUTH_TOKEN'] = TRIAL_TOKEN.read_text().strip()  # trial-only; never printed
@@ -539,7 +550,24 @@ def fail(message):
     return 2
 
 
-def run_trial(run, model, base, input_file, cap, java_home):
+def stage_cli(base, claude_bin):
+    """Copy `claude_bin` into `<base>/cli/claude`, read-only, and return (path, sha256).
+
+    The installed CLI at CLAUDE_BIN cannot always run the model a trial needs (a model newer than the
+    install is refused as unrecognized). A per-run copy outside the subject's writable area lets every
+    cell of a grid run one recorded CLI version without touching the owner's install.
+    """
+    cli_dir = Path(base) / 'cli'
+    target = cli_dir / 'claude'
+    if target.exists():
+        return target, sha256_file(target)
+    cli_dir.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(claude_bin, target)
+    target.chmod(0o555)
+    return target, sha256_file(target)
+
+
+def run_trial(run, model, base, input_file, cap, java_home, claude_bin=None):
     base = Path(base)
     archive = base / run
 
@@ -570,11 +598,18 @@ def run_trial(run, model, base, input_file, cap, java_home):
     if not settings.exists():
         settings.write_text('<settings/>\n')
 
-    (archive / 'isolation.sb').write_text(isolation_profile(base, port, java_home))
+    cli, cli_sha = (stage_cli(base, claude_bin) if claude_bin else (Path(CLAUDE_BIN), None))
+    try:
+        cli_version = subprocess.run([str(cli), '--version'], capture_output=True, text=True,
+                                     timeout=60).stdout.strip()
+    except (OSError, subprocess.SubprocessError) as exc:
+        return fail(f'cannot run the Claude Code binary {cli}: {exc}')
+    (archive / 'isolation.sb').write_text(
+        isolation_profile(base, port, java_home, cli_dir=cli.parent if claude_bin else None))
     mcp = {'mcpServers': {'fluxtion-analyser': {'type': 'stdio', 'command': java_home + '/bin/java',
                                                 'args': ['-Duser.home=' + home, '-jar', jar, '--mcp']}}}
     env = child_env(base, tmp, home, java_home)
-    command = ['/usr/bin/sandbox-exec', '-f', str(archive / 'isolation.sb'), CLAUDE_BIN,
+    command = ['/usr/bin/sandbox-exec', '-f', str(archive / 'isolation.sb'), str(cli),
                '-p', '--model', model, '--effort', 'medium', '--no-session-persistence',
                '--setting-sources', 'project,local', '--strict-mcp-config',
                '--mcp-config', json.dumps(mcp),
@@ -586,6 +621,7 @@ def run_trial(run, model, base, input_file, cap, java_home):
         'run': run, 'model': model, 'base': str(base), 'port': port, 'capSeconds': cap,
         'jarSha256': sha256_file(jar), 'mcp': mcp, 'builtInTools': True,
         'keyGranted': True, 'gate': 'G14', 'javaHome': java_home,
+        'claudeBin': str(cli), 'claudeBinSha256': cli_sha, 'claudeVersion': cli_version,
         'mavenRepoLocal': str(repo_local), 'mavenSettings': str(settings)}, indent=1) + '\n')
 
     # Written BEFORE launch, so an interrupted run is identifiable as one rather than as a fresh start.
@@ -643,6 +679,8 @@ def run_trial(run, model, base, input_file, cap, java_home):
 
     meta.update({'endedUtc': datetime.datetime.now(datetime.timezone.utc).isoformat(),
                  'clock': clock.sample()})
+    if cli_sha:  # the subject cannot write the copy; a changed digest would mean the sandbox did not hold
+        meta['claudeBinUnchanged'] = sha256_file(cli) == cli_sha
 
     # What the subject actually acquired, for comparison with the pristine copy the operator preserved.
     zips = sorted(project.rglob('*.zip'))
@@ -677,6 +715,8 @@ def main():
     parser.add_argument('--base', help='per-run base directory under /private/tmp')
     parser.add_argument('--cap', type=int, default=DEFAULT_CAP_SECONDS, help='seconds (default 1800)')
     parser.add_argument('--java-home', help='JDK 21 home; default /usr/libexec/java_home -v 21')
+    parser.add_argument('--claude-bin', help='a Claude Code binary to copy into <base>/cli, read-only, '
+                        f'instead of {CLAUDE_BIN} (for a model the installed CLI does not know)')
     parser.add_argument('args', nargs='*', help='<run-name> <model> <base> <input-file>')
     ns = parser.parse_args()
     java_home = resolve_java_home(ns.java_home)
@@ -689,7 +729,9 @@ def main():
         parser.error('need <run-name> <model> <base> <input-file>, or --preflight --base <dir>')
     if not java_home:
         return fail('no JDK 21 found — pass --java-home')
-    return run_trial(ns.args[0], ns.args[1], ns.args[2], ns.args[3], ns.cap, java_home)
+    if ns.claude_bin and not Path(ns.claude_bin).is_file():
+        return fail(f'--claude-bin {ns.claude_bin} is not a file')
+    return run_trial(ns.args[0], ns.args[1], ns.args[2], ns.args[3], ns.cap, java_home, ns.claude_bin)
 
 
 if __name__ == '__main__':

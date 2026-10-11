@@ -18,6 +18,7 @@ import tempfile
 import textwrap
 import time
 import unittest
+from unittest import mock
 from pathlib import Path
 
 spec = importlib.util.spec_from_file_location('g14_runner', Path(__file__).parent / 'g14_runner.py')
@@ -417,6 +418,71 @@ class SandboxEnforcementTest(unittest.TestCase):
         """The source tree stays unreadable — PROTOCOL's first claim."""
         self.assertNotEqual(self.cat(self.elsewhere).returncode, 0,
                             'a file elsewhere in home was readable')
+
+
+class ClaudeBinGrantTest(SandboxEnforcementTest):
+    """`--claude-bin`: the per-run CLI copy is readable (so it can run) and never writable, and the grant
+    exists only when asked for. Same disposable fixtures as SandboxEnforcementTest; the probe binary is
+    a two-line shell script, not a real CLI."""
+
+    def setUp(self):
+        super().setUp()
+        self.cli_dir = self.base / 'cli'
+        self.cli_dir.mkdir()
+        self.cli = self.cli_dir / 'claude'
+        # A script, not a copy of /bin/echo: macOS kills a relocated Apple platform binary (SIGKILL),
+        # which would look exactly like the grant failing.
+        self.cli.write_text('#!/bin/sh\necho "$@"\n')
+        self.cli.chmod(0o555)
+        self.granted = self.base / 'isolation-cli.sb'
+        self.granted.write_text(g14.isolation_profile(self.base, '54321', '/opt/jdk21', home=self.home,
+                                                      key_file=self.key, cli_dir=self.cli_dir))
+
+    def under(self, policy, *argv):
+        return subprocess.run(['/usr/bin/sandbox-exec', '-f', str(policy), *argv],
+                              capture_output=True, text=True, timeout=60)
+
+    def test_the_cli_copy_runs_under_the_grant(self):
+        out = self.under(self.granted, str(self.cli), 'cli-ran')
+        self.assertEqual(out.returncode, 0, f'the CLI copy could not run under its grant: {out.stderr}')
+        self.assertIn('cli-ran', out.stdout)
+
+    def test_the_cli_directory_is_not_writable(self):
+        out = self.under(self.granted, '/usr/bin/touch', str(self.cli_dir / 'planted'))
+        self.assertNotEqual(out.returncode, 0, 'the subject could write next to its own CLI')
+        self.assertFalse((self.cli_dir / 'planted').exists())
+
+    def test_control_without_the_grant_the_cli_is_unreadable(self):
+        """The default profile (no cli_dir) must still deny it: the grant is opt-in, not ambient."""
+        self.assertNotEqual(self.under(self.policy, '/bin/cat', str(self.cli)).returncode, 0,
+                            'the CLI copy was readable without --claude-bin')
+
+    def test_the_grant_leaves_the_rest_of_home_denied(self):
+        self.assertNotEqual(self.under(self.granted, '/bin/cat', str(self.elsewhere)).returncode, 0)
+
+
+class MongooseRegistryEnvTest(TempKeyTest):
+    def test_the_server_registry_is_kept_inside_the_run_home(self):
+        with tempfile.TemporaryDirectory() as d, mock.patch.object(g14, 'TRIAL_TOKEN', self.key):
+            env = g14.child_env(Path(d), Path(d) / 'tmp', str(Path(d) / 'tmp' / 'home'), '/opt/jdk21')
+        self.assertEqual(env['MONGOOSE_SERVERS_DIR'], str(Path(d) / 'tmp' / 'home' / '.mongoose' / 'servers'))
+        self.assertNotIn('JAVA_TOOL_OPTIONS', env, 'user.home must not be overridden: the build finds the key by it')
+
+
+class StageCliTest(unittest.TestCase):
+    def test_copy_is_read_only_and_digest_recorded(self):
+        with tempfile.TemporaryDirectory() as d:
+            src = Path(d) / 'src-claude'
+            src.write_bytes(b'#!/bin/sh\necho ok\n')
+            target, digest = g14.stage_cli(Path(d) / 'base', src)
+            self.assertEqual(target, Path(d) / 'base' / 'cli' / 'claude')
+            self.assertEqual(digest, g14.sha256_file(src))
+            self.assertEqual(target.stat().st_mode & 0o777, 0o555)
+
+    def test_profile_without_cli_dir_is_unchanged(self):
+        a = g14.isolation_profile('/private/tmp/fx', '1', '/opt/jdk21')
+        self.assertEqual(a, g14.isolation_profile('/private/tmp/fx', '1', '/opt/jdk21', cli_dir=None))
+        self.assertNotIn('/cli"', a)
 
 
 class NormalExitCleanupTest(unittest.TestCase):
