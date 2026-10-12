@@ -509,6 +509,35 @@ class PrestagedTest(unittest.TestCase):
             self.assertEqual(g14.main(), 2)
 
 
+class SweepBaseProcessesTest(unittest.TestCase):
+    """2026-10-12: servers a subject started with `(cmd &)` / nohup left the process group and outlived runs."""
+
+    def test_a_process_that_left_the_group_but_lives_in_the_base_is_killed(self):
+        with tempfile.TemporaryDirectory(dir='/private/tmp') as d:
+            base = Path(d).resolve()
+            escaped = subprocess.Popen(['/bin/sleep', '300'], cwd=base, start_new_session=True)
+            try:
+                time.sleep(.5)
+                out = g14.sweep_base_processes(base, grace=5)
+                self.assertIn(escaped.pid, [f['pid'] for f in out['swept']])
+                self.assertEqual(out['survivors'], [])
+                escaped.wait(timeout=10)
+            finally:
+                if escaped.poll() is None:
+                    escaped.kill()
+
+    def test_control_a_process_outside_the_base_is_left_alone(self):
+        with tempfile.TemporaryDirectory(dir='/private/tmp') as d, tempfile.TemporaryDirectory(dir='/private/tmp') as other:
+            bystander = subprocess.Popen(['/bin/sleep', '300'], cwd=Path(other).resolve(), start_new_session=True)
+            try:
+                time.sleep(.5)
+                out = g14.sweep_base_processes(Path(d).resolve(), grace=2)
+                self.assertNotIn(bystander.pid, [f['pid'] for f in out['swept']])
+                self.assertIsNone(bystander.poll(), 'a process outside the run was killed')
+            finally:
+                bystander.kill(); bystander.wait()
+
+
 class SubjectCommandTest(unittest.TestCase):
     def test_dont_ask_mode_carries_the_tools_the_journey_needs(self):
         cmd = g14.subject_command('/p.sb', '/cli', 'claude-haiku-5-5', {'mcpServers': {}}, 'the task')

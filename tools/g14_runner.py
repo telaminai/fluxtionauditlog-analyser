@@ -586,6 +586,73 @@ def stage_cli(base, claude_bin):
 SUBJECT_TOOLS = ('Bash', 'Read', 'Write', 'Edit', 'Glob', 'Grep', 'WebFetch', 'TodoWrite', 'mcp__fluxtion-analyser')
 
 
+def _cwd(pid):
+    try:
+        out = subprocess.run(['/usr/sbin/lsof', '-a', '-p', str(pid), '-d', 'cwd', '-Fn'], capture_output=True,
+                             text=True, timeout=10).stdout
+    except (OSError, subprocess.SubprocessError):
+        return ''
+    return next((ln[1:] for ln in out.splitlines() if ln.startswith('n')), '')
+
+
+def _running(pid):
+    """Alive and not a zombie: a killed process its parent has not yet reaped holds no port or file."""
+    if not _pid_alive(pid):
+        return False
+    try:
+        stat = subprocess.run(['/bin/ps', '-o', 'stat=', '-p', str(pid)], capture_output=True, text=True,
+                              timeout=10).stdout.strip()
+    except (OSError, subprocess.SubprocessError):
+        return True
+    return bool(stat) and not stat.startswith('Z')
+
+
+def sweep_base_processes(base, grace=10.0):
+    """Kill every process whose command line or working directory lies inside `base`, and report them.
+
+    Group reaping cannot see a process that left the group. On 2026-10-12 three Mongoose servers started by
+    subjects (`(./run-server.sh &)`, `nohup java ...`) were reparented to launchd in their own groups and
+    outlived their runs while meta.json said the group was reaped; the next runs found port 8181 taken.
+    The run base is unique to a run, so anything still living in it after the run belongs to it.
+    """
+    base = str(Path(base).resolve())
+    me = os.getpid()
+    try:
+        listing = subprocess.run(['/bin/ps', '-axo', 'pid=,command='], capture_output=True, text=True,
+                                 timeout=20).stdout
+    except (OSError, subprocess.SubprocessError) as exc:
+        return {'swept': None, 'error': str(exc)}
+    found = []
+    for line in listing.splitlines():
+        parts = line.strip().split(None, 1)
+        if len(parts) != 2 or not parts[0].isdigit():
+            continue
+        pid, command = int(parts[0]), parts[1]
+        if pid == me or 'sweep_base_processes' in command:
+            continue
+        if base in command or _cwd(pid).startswith(base):
+            found.append({'pid': pid, 'command': command[:160]})
+    for f in found:
+        try:
+            os.kill(f['pid'], signal.SIGTERM)
+        except OSError:
+            pass
+    deadline = time.time() + grace
+    while time.time() < deadline and any(_running(f['pid']) for f in found):
+        time.sleep(.25)
+    for f in found:
+        if _running(f['pid']):
+            try:
+                os.kill(f['pid'], signal.SIGKILL)
+            except OSError:
+                pass
+            f['killed'] = 'SIGKILL'
+        else:
+            f['killed'] = 'SIGTERM'
+    time.sleep(.5)
+    return {'swept': found, 'survivors': [f['pid'] for f in found if _running(f['pid'])]}
+
+
 def subject_command(policy, cli, model, mcp, prompt):
     return ['/usr/bin/sandbox-exec', '-f', str(policy), str(cli),
             '-p', '--model', model, '--effort', 'medium', '--no-session-persistence',
@@ -696,6 +763,10 @@ def run_trial(run, model, base, input_file, cap, java_home, claude_bin=None, pre
         # Reap the GROUP, on the cap and after a normal exit alike: anything the subject backgrounded
         # outlives its leader otherwise, and the scan below would run while it is still writing.
         meta['processGroupReaped'] = reap_process_group(pgid)
+        sweep = sweep_base_processes(base)
+        meta['strayProcesses'] = sweep
+        if sweep.get('swept') is None or sweep.get('survivors'):
+            meta['processGroupReaped'] = False  # something outside the group is still alive, or unknown
         try:
             meta['exit'] = p.wait(timeout=20)
         except subprocess.TimeoutExpired:
