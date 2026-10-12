@@ -107,6 +107,34 @@ class KeyLeakScanTest(TempKeyTest):
         self.assertFalse(verdict['keyFilePresent'])
 
 
+class TrialTokenScanTest(TempKeyTest):
+    TOKEN = 'sk-ant-oat01-DEMO-NOT-A-REAL-TOKEN-0123456789abcdef'
+
+    def setUp(self):
+        super().setUp()
+        self.token.write_text(self.TOKEN + '\n')
+
+    def test_the_token_printed_in_a_transcript_fails_the_scan(self):
+        (self.archive / 'raw.jsonl').write_text('{"env": "CLAUDE_CODE_OAUTH_TOKEN=%s"}\n' % self.TOKEN)
+        v = g14.key_leak_scan(self.archive)
+        self.assertEqual(v['tokenOccurrences'], 1)
+        self.assertFalse(v['clean'])
+
+    def test_a_read_of_the_token_path_fails_the_scan(self):
+        (self.archive / 'raw.jsonl').write_text('{"cmd": "cat ~/.claude-trial-token"}\n')
+        v = g14.key_leak_scan(self.archive)
+        self.assertEqual(v['tokenPathReads'], 1)
+        self.assertFalse(v['clean'])
+
+    def test_the_verdict_never_contains_the_token(self):
+        (self.archive / 'raw.jsonl').write_text(self.TOKEN)
+        self.assertNotIn(self.TOKEN, json.dumps(g14.key_leak_scan(self.archive)))
+
+    def test_a_clean_transcript_stays_clean(self):
+        (self.archive / 'raw.jsonl').write_text('{"type": "result", "result": "ok"}\n')
+        self.assertTrue(g14.key_leak_scan(self.archive)['clean'])
+
+
 class KeyFormatTest(TempKeyTest):
     """Finding 7 — the parser must not report clean because the file is not `key=value`.
 

@@ -36,6 +36,7 @@ from coldstart_clock import ObserverClock  # noqa: E402  (path set above)
 # The owner's compilation key. G14 is the only trial permitted to use it (docs/specs/tracker.md).
 KEY_FILE = Path.home() / '.fluxtion' / 'fluxtion.apiKeyFile'
 TRIAL_TOKEN = Path.home() / '.claude-trial-token'
+TOKEN_PATH_PATTERN = re.compile(r'\.claude-trial-token')
 CLAUDE_BIN = str(Path.home() / '.local/bin/claude')
 SCAFFOLD_URL = 'https://fluxtion-playground.dev/start/scaffold?template=analyser-bundle'
 DEFAULT_CAP_SECONDS = 1800  # the interrupted 1.0.74 attempt ran 869s and never reached a chart
@@ -420,8 +421,13 @@ def key_leak_scan(archive, base=None):
     """
     verdict = {'scannedUtc': datetime.datetime.now(datetime.timezone.utc).isoformat(),
                'keyFilePresent': KEY_FILE.exists(), 'secretOccurrences': 0, 'keyPathReads': 0,
-               'files': {}, 'filesScanned': 0, 'filesSkipped': 0, 'unsupportedKeyLines': 0}
+               'files': {}, 'filesScanned': 0, 'filesSkipped': 0, 'unsupportedKeyLines': 0,
+               'tokenOccurrences': 0, 'tokenPathReads': 0}
     secrets, unsupported = key_secrets()
+    # The trial token reaches every subject in its environment, so a subject that prints its
+    # environment writes it to the transcript. Searched for like the key; never returned.
+    token = TRIAL_TOKEN.read_text().strip() if TRIAL_TOKEN.exists() else ''
+    token = token if len(token) >= 16 else ''
     verdict['unsupportedKeyLines'] = len(unsupported)
     if not verdict['keyFilePresent']:
         verdict['note'] = 'key file absent; scan is vacuous'
@@ -448,11 +454,16 @@ def key_leak_scan(archive, base=None):
         text = data.decode('utf-8', errors='replace')
         hits = sum(text.count(s) for s in secrets)
         reads = len(KEY_PATH_PATTERN.findall(text))
+        token_hits = text.count(token) if token else 0
+        token_reads = len(TOKEN_PATH_PATTERN.findall(text))
         verdict['filesScanned'] += 1
-        if hits or reads:
-            verdict['files'][label] = {'secretOccurrences': hits, 'keyPathReads': reads}
+        if hits or reads or token_hits or token_reads:
+            verdict['files'][label] = {'secretOccurrences': hits, 'keyPathReads': reads,
+                                       'tokenOccurrences': token_hits, 'tokenPathReads': token_reads}
         verdict['secretOccurrences'] += hits
         verdict['keyPathReads'] += reads
+        verdict['tokenOccurrences'] += token_hits
+        verdict['tokenPathReads'] += token_reads
 
     archive = Path(archive)
     for name in ('raw.jsonl', 'events.jsonl', 'stderr.log'):
@@ -474,7 +485,8 @@ def key_leak_scan(archive, base=None):
     if unsupported:
         verdict['clean'] = None
     else:
-        verdict['clean'] = verdict['secretOccurrences'] == 0 and verdict['keyPathReads'] == 0
+        verdict['clean'] = (verdict['secretOccurrences'] == 0 and verdict['keyPathReads'] == 0
+                            and verdict['tokenOccurrences'] == 0 and verdict['tokenPathReads'] == 0)
     return verdict
 
 
