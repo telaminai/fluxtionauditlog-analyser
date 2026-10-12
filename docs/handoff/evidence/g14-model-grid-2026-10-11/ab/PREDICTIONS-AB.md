@@ -1,6 +1,8 @@
-# A/B on the G14 rig: predictions, sealed before launch (2026-10-12)
+# A/B on the G14 rig: predictions, sealed before launch (r2, 2026-10-12)
 
-Prestaged comparison, never a G14 acceptance (runner `--prestaged`, analyser commit `dac3f8ac86ce981b105c6dca4e1c03a1f7ba444d`).
+r2 changes only the runner commit and run names. The first two A/B runs (ab-ctl-r1, ab-trt-r1) were VOID: three Mongoose servers left by earlier baseline runs held port 8181 (and 8182, 8190), having escaped the runner's process-group cleanup. They were stopped before any A/B result. The runner now sweeps processes that live in a run's base, and the orchestrator refuses to start while port 8181 is held or a run's process survives. The new runs are named `...b`. The predictions are unchanged. r1 is kept as PREDICTIONS-AB.r1.md.
+
+Prestaged comparison, never a G14 acceptance (runner `--prestaged`, analyser commit `8f8b25ff67ce5da6423ec97a9d9fb28fb361ccb6`).
 Model claude-haiku-5-5, Claude Code 2.1.296, analyser 1.32.0, cap 1800 s, 3 runs per arm, interleaved
 ctl, trt, ctl, trt, ctl, trt. Task: `TASK-AB.txt`, the G14 grid task without its download paragraph.
 
