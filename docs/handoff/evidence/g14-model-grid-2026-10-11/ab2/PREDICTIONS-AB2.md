@@ -1,4 +1,6 @@
-# A/B v2 on the G14 rig: predictions, sealed before launch (2026-10-12)
+# A/B v2 on the G14 rig: predictions, sealed before launch (r2, 2026-10-12)
+
+r2 changes only the orchestrator's leftover-process pattern. After ab-ctl2-r1 (kept), the precondition refused ab-trt2-r1: its pattern matched the operator's own monitor, whose command line names `fx-ab-ctl2-r*`. It now matches run folders only (`-r<n>/`). The predictions are unchanged.
 
 Prestaged comparison, never a G14 acceptance. Harness: analyser commit `6522367c4f5d5defbfac3edc2a8e9b0c24902afb`. Model claude-haiku-5-5,
 Claude Code 2.1.296, analyser 1.32.0, cap 1800 s, 3 runs per arm, interleaved ctl2, trt2, ctl2, trt2, ctl2, trt2.
