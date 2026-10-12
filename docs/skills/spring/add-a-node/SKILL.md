@@ -35,14 +35,17 @@ TODO(bundle): substitute this project's exact regeneration command (the Maven pr
 invokes the Fluxtion source generator), and say whether it needs a Fluxtion API key.
 ```
 
-Read the regenerated processor afterwards to confirm your node was wired. Do not edit it: it is an output.
+Then read only the compiler's own messages — the validation report (its node and edge counts), the
+authoring receipt and the compiler diagnostics. They say whether the graph compiled as declared. Do not
+read the regenerated processor, its GraphML text or the builder to confirm the wiring: they are outputs,
+they cost thousands of tokens to read, and the audit log shows the dispatch order directly.
 
 ## Close the authoring loop with evidence
 
 Before running the changed application, write down predictions that can be disproved:
 
 - the authored node id and dependency edge;
-- where the generated processor should dispatch it and which dirty guard should control it;
+- where it should appear in each event's dispatch order, and which dirty guard should control it;
 - which fixture events should and should not reach it, with the values expected there; and
 - which existing sink output or other behaviour must remain unchanged.
 
@@ -51,8 +54,9 @@ export or decide whether the change is correct.
 
 1. For a graph change, validate and regenerate as above. For a body-only logging change, rebuild without
    regenerating. Read the current authoring receipt and diagnostics before trusting either result.
-2. Inspect the generated processor and GraphML for the predicted dependency, dispatch position and guard.
-   This proves what was generated, not what a runtime event actually exercised.
+2. Check the predicted node and edge against the validation report's counts and the compiler
+   diagnostics. Do not read the generated processor, GraphML text or builder: the dispatch position and
+   guard are checked in step 6, from what the audit log shows an event actually did.
 3. Run the project's tests. Include a positive case and a control that should not propagate when the
    node's trigger is conditional.
 4. Follow the project-declared `run-mongoose-server` skill (or the host skill named in
@@ -70,7 +74,7 @@ export or decide whether the change is correct.
    membership, and coverage proves that a node logged; neither alone proves the intended values, gating
    or unchanged output.
 
-Report the change as verified only when the generated structure, tests and fresh runtime evidence agree.
+Report the change as verified only when the compiler's messages, tests and fresh runtime evidence agree.
 If they disagree, keep the artifacts and report the conflicting observation rather than changing the
 prediction after seeing the result.
 
@@ -80,9 +84,10 @@ already produced. Do not introduce a compound analyser verb for this workflow.
 
 ## Verify from the audit log, not from generated code
 
-The generated processor and GraphML show what the generator **wrote**: the wiring, the dispatch position,
-the guard. They cannot show what an event **did**. Read them to check a structural prediction, then
-answer every behavioural question from the audit log. With invocation tracing on, a record lists every
+The generated processor and GraphML show what the generator **wrote**; they cannot show what an event
+**did**. Do not read them. The compiler's messages say whether the declared graph compiled, and the audit
+log answers every behavioural question. Reading generated source costs thousands of tokens and answers
+nothing those two do not. With invocation tracing on, a record lists every
 node invoked for its event, in dispatch order, each with its `method` (and, from Fluxtion runtime 1.1.1,
 the `annotation` that dispatched it) — that is the evidence for dispatch order, not a reading of the
 generated `onEvent` body.

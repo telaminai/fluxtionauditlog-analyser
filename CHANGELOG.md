@@ -12,6 +12,7 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ### Changed
 
+- The `add-a-node` skill no longer tells the author to read the regenerated processor, its GraphML text or the builder to confirm a change. It reads the Spring XML, the compiler's own messages (validation counts, authoring receipt, diagnostics) and the audit log, which shows dispatch order directly. In a G14 authoring run those reads were about a fifth of all tool output and answered nothing the compiler messages and audit log did not. `CanonicalSkillsTest` fails on any skill sentence that tells the author to read generated code.
 - The trace key `annotation`, which Fluxtion runtime 1.1.1 writes after `method` to name the annotation that dispatched a callback, is read as framework data like `thread` and `method`: the logical log view mutes it, and `read` still reports a node whose entry carries only trace keys as `traceLikeOnly`. A lone `annotation` with no `method` stays the node's own key. Conformance fixture C33 pins it.
 
 ## [1.32.0] - 2026-10-06

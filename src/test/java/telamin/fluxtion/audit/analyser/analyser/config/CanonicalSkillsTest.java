@@ -79,6 +79,27 @@ class CanonicalSkillsTest {
     }
 
     @Test
+    void noSkillTellsTheAuthorToReadGeneratedCode() throws Exception {
+        // G14 grid 2026-10-12: an author verifying its change read the generated processor, the builder and the
+        // scripts' source - about a fifth of all tool output - and none of it was needed; the skill told it to.
+        // The author reads the Spring XML, the compiler's own messages and the audit log.
+        java.util.regex.Pattern instruction = java.util.regex.Pattern.compile(
+                "(?i)\\b(read|inspect|open|check)\\b[^.\\n]{0,60}\\b(re)?generated (processor|source|code)|"
+                        + "(?i)\\b(read|inspect)\\b[^.\\n]{0,40}\\bbuilder\\b");
+        try (var skills = Files.walk(ROOT)) {
+            for (Path skill : skills.filter(f -> f.getFileName().toString().equals("SKILL.md")).toList()) {
+                for (String sentence : Files.readString(skill).split("(?<=[.:;])\\s+")) {
+                    if (instruction.matcher(sentence).find())
+                        assertTrue(sentence.matches("(?is).*\\b(do not|don't|never|not)\\b.*"),
+                                ROOT.relativize(skill) + " tells the author to read generated code: " + sentence.strip());
+                }
+            }
+        }
+        String addANode = Files.readString(ROOT.resolve("spring/add-a-node/SKILL.md"));
+        assertTrue(addANode.contains("read only the compiler's own messages"), "the replacement instruction is present");
+    }
+
+    @Test
     void everySkillThatNamesTheExportSaysEachProcessorHasItsOwn() throws Exception {
         // issue #126: a bundle may host several processors; one export path read as the whole server hid the rest
         for (String skill : List.of("common/load-audit-log/SKILL.md", "mongoose/run-mongoose-server/SKILL.md",
