@@ -579,6 +579,23 @@ def stage_cli(base, claude_bin):
     return target, sha256_file(target)
 
 
+# dontAsk DENIES every tool that no rule allows, built-ins included, and the subject runs with no user
+# settings, so without this list it could not run a shell, write a file or fetch the download: the first
+# executed launch (2026-10-12) ended in 17 s with Bash and WebFetch refused. The sandbox profile, not the
+# permission mode, is the containment; this list only states what G14 already grants.
+SUBJECT_TOOLS = ('Bash', 'Read', 'Write', 'Edit', 'Glob', 'Grep', 'WebFetch', 'TodoWrite', 'mcp__fluxtion-analyser')
+
+
+def subject_command(policy, cli, model, mcp, prompt):
+    return ['/usr/bin/sandbox-exec', '-f', str(policy), str(cli),
+            '-p', '--model', model, '--effort', 'medium', '--no-session-persistence',
+            '--setting-sources', 'project,local', '--strict-mcp-config',
+            '--mcp-config', json.dumps(mcp),
+            # Built-in tools stay ON: the subject must download, unpack and build.
+            '--permission-mode', 'dontAsk', '--allowedTools', *SUBJECT_TOOLS, '--no-chrome',
+            '--output-format', 'stream-json', '--verbose', '--', prompt]
+
+
 def run_trial(run, model, base, input_file, cap, java_home, claude_bin=None):
     base = Path(base)
     archive = base / run
@@ -621,14 +638,7 @@ def run_trial(run, model, base, input_file, cap, java_home, claude_bin=None):
     mcp = {'mcpServers': {'fluxtion-analyser': {'type': 'stdio', 'command': java_home + '/bin/java',
                                                 'args': ['-Duser.home=' + home, '-jar', jar, '--mcp']}}}
     env = child_env(base, tmp, home, java_home)
-    command = ['/usr/bin/sandbox-exec', '-f', str(archive / 'isolation.sb'), str(cli),
-               '-p', '--model', model, '--effort', 'medium', '--no-session-persistence',
-               '--setting-sources', 'project,local', '--strict-mcp-config',
-               '--mcp-config', json.dumps(mcp),
-               # Built-in tools stay ON: the subject must download, unpack and build.
-               '--permission-mode', 'dontAsk', '--no-chrome',
-               '--output-format', 'stream-json', '--verbose',
-               Path(input_file).read_text()]
+    command = subject_command(archive / 'isolation.sb', cli, model, mcp, Path(input_file).read_text())
     (archive / 'config.json').write_text(json.dumps({
         'run': run, 'model': model, 'base': str(base), 'port': port, 'capSeconds': cap,
         'jarSha256': sha256_file(jar), 'mcp': mcp, 'builtInTools': True,
