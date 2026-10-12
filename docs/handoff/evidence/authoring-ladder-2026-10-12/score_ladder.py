@@ -16,8 +16,11 @@ JAVA = subprocess.run(['/usr/libexec/java_home', '-v', '21'], capture_output=Tru
 
 
 def project_root(project):
-    hits = sorted(project.rglob('src/main/fluxtion/designer/application-context.xml'))
-    return hits[0].parents[4] if hits else None
+    """The shallowest design XML whose project has validate.sh. A subject may keep a backup copy of the project inside
+    it (lad-r2-h55-1 left one under .fluxtion/), which sorted first and was scored by mistake."""
+    hits = [h.parents[4] for h in project.rglob('src/main/fluxtion/designer/application-context.xml')]
+    hits = sorted((r for r in hits if (r / 'validate.sh').exists()), key=lambda r: (len(r.parts), str(r)))
+    return hits[0] if hits else None
 
 
 def env_for(base):
@@ -35,8 +38,8 @@ def run(cmd, cwd, env, timeout=900):
 
 
 def oracle(rung, base, root):
-    if rung == 3:
-        rc, out = run([sys.executable, '-B', str(L / 'r3/r3_oracle.py'), str(root)], root, os.environ)
+    if rung in (3, 5):
+        rc, out = run([sys.executable, '-B', str(L / f'r{rung}/r{rung}_oracle.py'), str(root)], root, os.environ)
         try:
             detail = json.loads(out.strip().splitlines()[-1])
         except Exception:
