@@ -607,6 +607,14 @@ def _running(pid):
     return bool(stat) and not stat.startswith('Z')
 
 
+def operator_instance(command, base):
+    """The isolated analyser the OPERATOR starts before launch (METHOD.md: `java -Duser.home=<base>/tmp/home -jar
+    <base>/tmp/jar/analyser.jar --rest`). It lives in the base by construction and must survive the run, because
+    the canvas is scored from it afterwards. The subject's own MCP bridge runs the same jar with `--mcp`, so it is
+    not exempt."""
+    return f'{base}/tmp/jar/analyser.jar' in command and '--rest' in command.split() and '--mcp' not in command.split()
+
+
 def sweep_base_processes(base, grace=10.0):
     """Kill every process whose command line or working directory lies inside `base`, and report them.
 
@@ -630,6 +638,8 @@ def sweep_base_processes(base, grace=10.0):
         pid, command = int(parts[0]), parts[1]
         if pid == me or 'sweep_base_processes' in command:
             continue
+        if operator_instance(command, base):
+            continue  # the operator's REST instance: started before the run, scored after it, stopped by the operator
         if base in command or _cwd(pid).startswith(base):
             found.append({'pid': pid, 'command': command[:160]})
     for f in found:

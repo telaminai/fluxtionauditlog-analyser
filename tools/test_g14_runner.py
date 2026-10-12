@@ -526,6 +526,14 @@ class SweepBaseProcessesTest(unittest.TestCase):
                 if escaped.poll() is None:
                     escaped.kill()
 
+    def test_the_operators_rest_instance_survives_and_the_subjects_mcp_bridge_does_not(self):
+        base = '/private/tmp/fx-x'
+        rest = f'/opt/jdk/bin/java -Duser.home={base}/tmp/home -jar {base}/tmp/jar/analyser.jar --rest'
+        mcp = f'/opt/jdk/bin/java -Duser.home={base}/tmp/home -jar {base}/tmp/jar/analyser.jar --mcp'
+        self.assertTrue(g14.operator_instance(rest, base))
+        self.assertFalse(g14.operator_instance(mcp, base))
+        self.assertFalse(g14.operator_instance(f'java -jar {base}/project/target/app.jar', base))
+
     def test_control_a_process_outside_the_base_is_left_alone(self):
         with tempfile.TemporaryDirectory(dir='/private/tmp') as d, tempfile.TemporaryDirectory(dir='/private/tmp') as other:
             bystander = subprocess.Popen(['/bin/sleep', '300'], cwd=Path(other).resolve(), start_new_session=True)
