@@ -3,17 +3,31 @@ import java.util.ArrayList;
 import java.util.List;
 
 /** Rung-4 oracle: the greenfield VWAP spec. Checks only what the spec fixes: the Trade event, the `clear` signal and
- *  the `vwap` sink. VwapUpdate's fields are the author's choice; each output must carry one String (the symbol) and
- *  one number (the vwap). Expected: (A,10) (A,15) (B,50) (A,22.5) (A,30) (A,60) (B,70). */
+ *  the `vwap` sink. VwapUpdate's shape (record or class) and field names are the author's choice; each output must
+ *  carry one String (the symbol) and one number (the vwap). Expected: (A,10) (A,15) (B,50) (A,22.5) (A,30) (A,60) (B,70). */
 public class R4Oracle {
     record Out(String symbol, double vwap) {}
     static final List<Out> outputs = new ArrayList<>();
 
+    /** The values an output carries: a record's components, or else its public no-argument accessors. The spec asks
+     *  for "a VwapUpdate carrying the symbol and its VWAP", not for a record (lad-r4-h55-1 wrote a final class). */
+    static List<Object> values(Object o) throws Exception {
+        List<Object> out = new ArrayList<>();
+        if (o.getClass().isRecord()) {
+            for (RecordComponent c : o.getClass().getRecordComponents()) out.add(c.getAccessor().invoke(o));
+            return out;
+        }
+        for (java.lang.reflect.Method m : o.getClass().getMethods()) {
+            if (m.getParameterCount() == 0 && m.getDeclaringClass() != Object.class && !m.getName().equals("hashCode")
+                    && !m.getName().equals("toString") && m.getReturnType() != void.class)
+                out.add(m.invoke(o));
+        }
+        return out;
+    }
+
     static Out read(Object o) throws Exception {
-        if (!o.getClass().isRecord()) throw new AssertionError("VwapUpdate is not a record: " + o.getClass());
         String sym = null; Double v = null;
-        for (RecordComponent c : o.getClass().getRecordComponents()) {
-            Object x = c.getAccessor().invoke(o);
+        for (Object x : values(o)) {
             if (x instanceof String s) { if (sym != null) throw new AssertionError("two String fields"); sym = s; }
             else if (x instanceof Number n) { if (v != null) throw new AssertionError("two numeric fields"); v = n.doubleValue(); }
         }

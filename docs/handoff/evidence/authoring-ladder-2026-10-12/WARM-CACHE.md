@@ -31,3 +31,17 @@ and made no request to Repsy.
 endpoint served earlier today. The model, task, fixture, oracle and scoring are unchanged, and so are the predictions.
 Each seeded run carries `warm-cache.json`. The five cells completed before the outage (rung 2 x4, lad-r3-h55-1) ran
 cold.
+
+## Oracle correction: rung 4 (disclosed 2026-10-12T22:53:13Z, before any further rung 4 result)
+
+The sealed R4Oracle required `VwapUpdate` to be a record. lad-r4-h55-1 wrote a `final class` with `symbol()` and
+`vwap()` accessors, which the spec allows ("a VwapUpdate carrying the symbol and its current VWAP"). r1 threw "not a
+record".
+
+r2 reads either a record's components or a class's public no-argument accessors. The rule (one String and one number,
+values as sealed) is unchanged.
+
+- **Ground truth:** passes under r2.
+- **lad-r4-h55-1:** passes under r2, with all 7 outputs exact.
+- **Control:** the no-eviction control still fails at output 4 (26 vs 30).
+- **Record kept:** the run's score.json keeps the r1 verdict as ORACLE_r1.
