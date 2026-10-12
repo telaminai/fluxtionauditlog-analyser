@@ -1,6 +1,6 @@
-# G14 model grid: predictions, sealed before launch (r2, 2026-10-12)
+# G14 model grid: predictions, sealed before launch (r3, 2026-10-12)
 
-r2 changes only the harness line and prediction 4, before any run: the runner gained a trial-token leak check (commit below). r1 is kept as PREDICTIONS.r1.md.
+r2 changed only the harness line and prediction 4: the runner gained a trial-token leak check. r3 changes only the harness line: the first executed launch (g14-55-r1, 17 s) was VOID, because dontAsk denied every tool (Bash and WebFetch refused before any work). The runner now allows the journey's tools. g14-55-r1 is preserved and not scored; the grid's runs are named `...b`. r1 and r2 are kept beside this file.
 
 ## What is under test (measured)
 
@@ -8,7 +8,7 @@ r2 changes only the harness line and prediction 4, before any run: the runner ga
 - Pins the download declares: fluxtion 1.1.0, BOM 1.0.76, maven plugin 1.3.0, mongoose 1.0.32, mongoose-plugins 1.0.45.
 - Analyser: released `fluxtion-auditlog-analyser-1.32.0.jar` sha256 `f125050b33a1ac4c62682927f46b74cfd68b683bb2511c693f1bd63fd9d8c149` (matches the release's SHA256SUMS). 1.32.0 is after 1.23.0, so M68.7 chart marking is present.
 - Cloud generator stamped, on the operator's ground-truth run: `generator version: 1.0.76`.
-- Harness: `tools/g14_runner.py` at analyser commit `7ca21d7c2252e18d5b9699e2d85880dac1a8bf3c` (branch feature/g14-model-grid), with `--claude-bin` set to Claude Code 2.1.296, binary sha256 `c9b5341637becbd423ddffc5b254afb645682a3868cb708bbc6cc0e7bb419937`.
+- Harness: `tools/g14_runner.py` at analyser commit `6ba1c91338ad5907b3aa889e389ceae9d5a2d4d8` (branch feature/g14-model-grid), with `--claude-bin` set to Claude Code 2.1.296, binary sha256 `c9b5341637becbd423ddffc5b254afb645682a3868cb708bbc6cc0e7bb419937`.
 - Instances: one isolated analyser 1.32.0 per run. Cap 1800 s. Models: claude-haiku-5-5 and claude-haiku-4-5-20251001, 3 runs each, interleaved 5.5, 4.5, 5.5, 4.5, 5.5, 4.5. Effort: medium (the runner's setting).
 - Per-run Maven repository `<base>/tmp/m2`, empty at launch.
 - Task: `TASK.txt` (names a URL, no file). It is G14 plus one authoring change. It is NOT the frozen 19 September G14 task, so these runs are model-comparison evidence, not a G14 acceptance.
