@@ -596,7 +596,7 @@ def subject_command(policy, cli, model, mcp, prompt):
             '--output-format', 'stream-json', '--verbose', '--', prompt]
 
 
-def run_trial(run, model, base, input_file, cap, java_home, claude_bin=None):
+def run_trial(run, model, base, input_file, cap, java_home, claude_bin=None, prestaged=None):
     base = Path(base)
     archive = base / run
 
@@ -621,6 +621,10 @@ def run_trial(run, model, base, input_file, cap, java_home, claude_bin=None):
     project.mkdir(parents=True, exist_ok=True)
     if any(project.iterdir()):
         return fail(f'{project} must be empty — the subject performs acquisition')
+    if prestaged:
+        # A comparison of two project variants, NOT a G14 acceptance: acquisition is not what is measured,
+        # and it costs every arm alike. Recorded in config.json and meta.json so it can never be read as one.
+        shutil.copytree(prestaged, project, dirs_exist_ok=True, symlinks=True)
 
     repo_local, settings = maven_paths(base)
     repo_local.mkdir(parents=True, exist_ok=True)
@@ -644,6 +648,8 @@ def run_trial(run, model, base, input_file, cap, java_home, claude_bin=None):
         'jarSha256': sha256_file(jar), 'mcp': mcp, 'builtInTools': True,
         'keyGranted': True, 'gate': 'G14', 'javaHome': java_home,
         'claudeBin': str(cli), 'claudeBinSha256': cli_sha, 'claudeVersion': cli_version,
+        'prestaged': str(prestaged) if prestaged else None,
+        'acceptanceEligible': not prestaged,
         'mavenRepoLocal': str(repo_local), 'mavenSettings': str(settings)}, indent=1) + '\n')
 
     # Written BEFORE launch, so an interrupted run is identifiable as one rather than as a fresh start.
@@ -652,7 +658,8 @@ def run_trial(run, model, base, input_file, cap, java_home, claude_bin=None):
         'startedUtc': datetime.datetime.now(datetime.timezone.utc).isoformat()}, indent=2) + '\n')
 
     clock = ObserverClock()
-    meta = {'run': run, 'requestedModel': model, 'gate': 'G14',
+    meta = {'run': run, 'requestedModel': model, 'gate': 'G14' if not prestaged else 'G14-rig comparison (prestaged)',
+            'acceptanceEligible': not prestaged,
             'startedUtc': datetime.datetime.now(datetime.timezone.utc).isoformat()}
     # 'x' not 'w': never reopen an existing transcript, even if the refusal above is ever loosened.
     with (archive / 'stderr.log').open('x') as err, (archive / 'raw.jsonl').open('x') as raw, \
@@ -737,6 +744,8 @@ def main():
     parser.add_argument('--base', help='per-run base directory under /private/tmp')
     parser.add_argument('--cap', type=int, default=DEFAULT_CAP_SECONDS, help='seconds (default 1800)')
     parser.add_argument('--java-home', help='JDK 21 home; default /usr/libexec/java_home -v 21')
+    parser.add_argument('--prestaged', help='copy this project into <base>/project before launch: a comparison '
+                        'of project variants, never a G14 acceptance (recorded in config and meta)')
     parser.add_argument('--claude-bin', help='a Claude Code binary to copy into <base>/cli, read-only, '
                         f'instead of {CLAUDE_BIN} (for a model the installed CLI does not know)')
     parser.add_argument('args', nargs='*', help='<run-name> <model> <base> <input-file>')
@@ -753,7 +762,10 @@ def main():
         return fail('no JDK 21 found — pass --java-home')
     if ns.claude_bin and not Path(ns.claude_bin).is_file():
         return fail(f'--claude-bin {ns.claude_bin} is not a file')
-    return run_trial(ns.args[0], ns.args[1], ns.args[2], ns.args[3], ns.cap, java_home, ns.claude_bin)
+    if ns.prestaged and not Path(ns.prestaged).is_dir():
+        return fail(f'--prestaged {ns.prestaged} is not a directory')
+    return run_trial(ns.args[0], ns.args[1], ns.args[2], ns.args[3], ns.cap, java_home, ns.claude_bin,
+                     ns.prestaged)
 
 
 if __name__ == '__main__':

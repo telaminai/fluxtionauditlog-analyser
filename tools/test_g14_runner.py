@@ -497,6 +497,18 @@ class MongooseRegistryEnvTest(TempKeyTest):
         self.assertNotIn('JAVA_TOOL_OPTIONS', env, 'user.home must not be overridden: the build finds the key by it')
 
 
+class PrestagedTest(unittest.TestCase):
+    def test_a_prestaged_run_can_never_read_as_an_acceptance(self):
+        src = Path(g14.__file__).read_text()
+        self.assertIn("'acceptanceEligible': not prestaged", src)
+        self.assertIn("'G14-rig comparison (prestaged)'", src)
+
+    def test_a_missing_prestaged_directory_is_refused(self):
+        with tempfile.TemporaryDirectory() as d, mock.patch.object(sys, 'argv', [
+                'g14_runner.py', '--prestaged', str(Path(d) / 'absent'), 'r', 'm', d, str(Path(d) / 'in.txt')]):
+            self.assertEqual(g14.main(), 2)
+
+
 class SubjectCommandTest(unittest.TestCase):
     def test_dont_ask_mode_carries_the_tools_the_journey_needs(self):
         cmd = g14.subject_command('/p.sb', '/cli', 'claude-haiku-5-5', {'mcpServers': {}}, 'the task')
