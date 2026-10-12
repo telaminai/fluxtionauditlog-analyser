@@ -1,8 +1,8 @@
-# A/B on the G14 rig: predictions, sealed before launch (r2, 2026-10-12)
+# A/B on the G14 rig: predictions, sealed before launch (r3, 2026-10-12)
 
-r2 changes only the runner commit and run names. The first two A/B runs (ab-ctl-r1, ab-trt-r1) were VOID: three Mongoose servers left by earlier baseline runs held port 8181 (and 8182, 8190), having escaped the runner's process-group cleanup. They were stopped before any A/B result. The runner now sweeps processes that live in a run's base, and the orchestrator refuses to start while port 8181 is held or a run's process survives. The new runs are named `...b`. The predictions are unchanged. r1 is kept as PREDICTIONS-AB.r1.md.
+r2 changes only the runner commit and run names. The first two A/B runs (ab-ctl-r1, ab-trt-r1) were VOID: three Mongoose servers left by earlier baseline runs held port 8181 (and 8182, 8190), having escaped the runner's process-group cleanup. They were stopped before any A/B result. The runner now sweeps processes that live in a run's base, and the orchestrator refuses to start while port 8181 is held or a run's process survives. The new runs are named `...b`. r3: ab-ctl-r1b was also VOID for scoring. The new sweep killed the operator's REST analyser instance, whose command line names the run base, so the canvas could not be scored. That run's key scan also failed on a key-path pattern (a `grep … >/dev/null` presence check of a path that holds no key in the run home), with 0 secret occurrences. The sweep now spares exactly the operator instance, and the runs are named `...c`. The predictions are unchanged in every revision. r1 and r2 are kept.
 
-Prestaged comparison, never a G14 acceptance (runner `--prestaged`, analyser commit `8f8b25ff67ce5da6423ec97a9d9fb28fb361ccb6`).
+Prestaged comparison, never a G14 acceptance (runner `--prestaged`, analyser commit `0afe01a6b5322777d814a886b39106e3cac0714e`).
 Model claude-haiku-5-5, Claude Code 2.1.296, analyser 1.32.0, cap 1800 s, 3 runs per arm, interleaved
 ctl, trt, ctl, trt, ctl, trt. Task: `TASK-AB.txt`, the G14 grid task without its download paragraph.
 
