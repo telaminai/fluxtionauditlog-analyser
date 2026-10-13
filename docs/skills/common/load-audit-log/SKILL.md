@@ -10,13 +10,20 @@ Use this before answering any question about what the running system did.
 
 ## Steps
 
-1. **The export command, log path and graph path are written into the generated project.** For a
+1. **The export command, log paths and graph paths are written into the generated project.** For a
    Mongoose bundle, run its export command first: Chronicle capture is not itself analyser-readable
    YAML. The unopened path is not discoverable from the analyser, and asking it is the wrong move:
 
    ```
    TODO(bundle): substitute the bundle's exact export command (where required), concrete YAML-export path and GraphML path here.
    ```
+
+   **One log per processor.** A bundle may host several processors, and each is captured and exported
+   on its own — `logs/audit-<processor>.yaml` — beside its own GraphML. Open the export of the
+   processor your question is about, with **that** processor's graph; a log paired with another
+   processor's graph fails the pairing check in step 4, and a node missing from the wrong log is not
+   evidence of anything. If the bundle hosts several processors and the export produced fewer files,
+   the missing processors were not exported — say so rather than reading one log as the whole system.
 
    **Do not use `analyser_context` to find an unopened log** — an earlier version of this skill said to,
    and it was false (review F3, 2026-08-29). `context.log` describes the log **already open**; on a fresh

@@ -65,6 +65,113 @@ class CanonicalSkillsTest {
     }
 
     @Test
+    void springSkillProvesAChangeByComparingBusinessRecords_andNamesTheScriptItShips() throws Exception {
+        String text = Files.readString(ROOT.resolve("spring/add-a-node/SKILL.md"));
+        assertTrue(text.contains("## Prove a change by comparing audit logs"));
+        assertTrue(text.contains("## Verify from the audit log, not from generated code"));
+        assertTrue(text.contains("python3 audit-compare.py before/audit-<processor>.yaml after/audit-<processor>.yaml"));
+        for (String key : List.of("`thread`", "`method`", "`annotation`", "`forkedExecution`", "`asyncMethod`"))
+            assertTrue(text.contains(key), "the framework keys the script separates must be named: " + key);
+        assertTrue(text.contains("comparison **only**"),
+                "the verdict comes from the business comparison alone");
+        assertTrue(Files.isRegularFile(ROOT.resolve("spring/add-a-node/audit-compare.py")),
+                "the skill names a script that must ship beside it");
+    }
+
+    @Test
+    void noSkillTellsTheAuthorToReadGeneratedCode() throws Exception {
+        // G14 grid 2026-10-12: an author verifying its change read the generated processor, the builder and the
+        // scripts' source - about a fifth of all tool output - and none of it was needed; the skill told it to.
+        // The author reads the Spring XML, the compiler's own messages and the audit log.
+        // Review of PR 127: the first guard knew four verbs and exempted any sentence containing "not"; each of
+        // these evasions passed it. They are the witnesses the guard must catch.
+        for (String evasion : List.of(
+                "Look at the generated processor to confirm the order.",
+                "Review the generated Java before you run.",
+                "Examine the GraphML to see the edges.",
+                "Open target/generated-sources/fluxtion/Processor.java and find your node.",
+                "Confirm the dispatch order in the generated onEvent body.",
+                "Read the processor the generator wrote.",
+                "Read the generated processor if the receipt does not list your node.",
+                "cat the builder to see the wiring.",
+                "Start by reading the generated processor.",
+                "Grep the generated processor for your node.",
+                "Search the generated source for onTrigger.",
+                "Look through the generated code.",
+                "Study the regenerated dispatch code.",
+                "Open the GraphML in a text editor.",
+                "Open src/main/java/com/acme/generated/QuoteProcessor.java.",
+                "It is not enough to check the XML, read the generated processor."))
+            assertTrue(tellsTheAuthorToReadGeneratedCode(evasion), "the guard must catch: " + evasion);
+        for (String allowed : List.of(
+                "Do not read the regenerated processor, its GraphML text or the builder to confirm the wiring.",
+                "Never read the generated processor.",
+                "Follow `load-audit-log` to open that export with the generated GraphML.",
+                "That is the evidence for dispatch order, not a reading of the generated `onEvent` body.",
+                "Check a source the builder reads."))
+            assertFalse(tellsTheAuthorToReadGeneratedCode(allowed), "a prohibition or an analyser step is allowed: " + allowed);
+        try (var skills = Files.walk(ROOT)) {
+            for (Path skill : skills.filter(f -> f.getFileName().toString().equals("SKILL.md")).toList()) {
+                for (String sentence : Files.readString(skill).split("(?<=[.:;])\\s+")) {
+                    assertFalse(tellsTheAuthorToReadGeneratedCode(sentence),
+                            ROOT.relativize(skill) + " tells the author to read generated code: " + sentence.strip());
+                }
+            }
+        }
+        String addANode = Files.readString(ROOT.resolve("spring/add-a-node/SKILL.md"));
+        assertTrue(addANode.contains("read only the compiler's own messages"), "the replacement instruction is present");
+    }
+
+    private static final java.util.regex.Pattern READ_VERB = java.util.regex.Pattern.compile(
+            "(?i)\\b(read(?:s|ing)?|inspect(?:s|ing)?|open(?:s|ing)?|check(?:s|ing)?|look(?:s|ing)? (?:at|in|through)"
+                    + "|review(?:s|ing)?|examin(?:e|es|ing)|confirm(?:s|ing)?|view(?:s|ing)?|cat|grep(?:s|ping)?"
+                    + "|search(?:es|ing)?|stud(?:y|ies|ying))\\b");
+    private static final java.util.regex.Pattern GENERATED_OBJECT = java.util.regex.Pattern.compile(
+            "(?i)^[^.\\n]{0,60}?(\\b(re)?generated[ -](processor|sources?|code|java|file|onEvent|dispatch)|generated-sources"
+                    + "|/generated/|\\bprocessor the generator wrote|\\bGraphML\\b)");
+    /** The builder only as the verb's direct object: "a source the builder reads" (fluxtion-builder, the tool) is not. */
+    private static final java.util.regex.Pattern BUILDER_OBJECT = java.util.regex.Pattern.compile(
+            "(?i)^\\s+((the|its|generated)\\s+)*builder\\b");
+    /** Negation that governs the matched verb: directly before it, at most two words between. */
+    private static final java.util.regex.Pattern NEGATED = java.util.regex.Pattern.compile(
+            "(?is).*\\b(do not|don't|never|nor|not)\\s+(\\w+\\s+){0,2}$");
+
+    /**
+     * True when the sentence instructs reading generated output: SOME reading verb in it (each one is tested, so
+     * a negated verb cannot shield a later one) has a generated object after it and no negation governing it.
+     * Opening the GraphML is the analyser step and is allowed, unless the sentence says to read it as text.
+     */
+    static boolean tellsTheAuthorToReadGeneratedCode(String sentence) {
+        var verbs = READ_VERB.matcher(sentence);
+        while (verbs.find()) {
+            String verb = verbs.group(1).toLowerCase(java.util.Locale.ROOT);
+            String after = sentence.substring(verbs.end());
+            var object = GENERATED_OBJECT.matcher(after);
+            boolean generated = object.find();
+            String lower = sentence.toLowerCase(java.util.Locale.ROOT);
+            if (generated && object.group(1).equalsIgnoreCase("GraphML")) {
+                boolean opens = verb.startsWith("open") || verb.startsWith("view");
+                boolean asText = lower.contains("text editor") || lower.contains("as text") || lower.contains("graphml text");
+                boolean viaAnalyser = lower.contains("analyser") || lower.contains("load-audit-log");
+                // opening the GraphML (with a log, in the analyser) is the analyser step; reading it as text is not
+                if (opens ? !asText : viaAnalyser) generated = false;
+            }
+            if (!generated && !BUILDER_OBJECT.matcher(after).find()) continue;
+            if (!NEGATED.matcher(sentence.substring(0, verbs.start())).matches()) return true;
+        }
+        return false;
+    }
+
+    @Test
+    void everySkillThatNamesTheExportSaysEachProcessorHasItsOwn() throws Exception {
+        // issue #126: a bundle may host several processors; one export path read as the whole server hid the rest
+        for (String skill : List.of("common/load-audit-log/SKILL.md", "mongoose/run-mongoose-server/SKILL.md",
+                "spring/add-a-node/SKILL.md")) {
+            assertTrue(Files.readString(ROOT.resolve(skill)).contains("`logs/audit-<processor>.yaml`"), skill);
+        }
+    }
+
+    @Test
     void auditEvidenceRunbookAndSkillShareTheVersionedLimitsAndDeliveryBoundary() throws Exception {
         String skill = Files.readString(ROOT.resolve("mongoose/run-mongoose-server/SKILL.md"));
         String runbook = Files.readString(Path.of("docs/runbooks/mongoose-audit-evidence.md"));
@@ -160,6 +267,26 @@ class CanonicalSkillsTest {
         for (SkillDiscovery.Candidate candidate : SkillDiscovery.find(ROOT, Map.of()).candidates()) {
             assertTrue(indexed.contains(candidate.path()),
                     candidate.path() + " exists in the library but no index entry ships it");
+            // a supporting file beside a skill (a script it tells the model to run) ships through `files`
+            Path dir = ROOT.resolve(candidate.path()).getParent();
+            try (var siblings = Files.list(dir)) {
+                for (Path sibling : siblings.filter(Files::isRegularFile).toList()) {
+                    String relative = ROOT.relativize(sibling).toString().replace('\\', '/');
+                    if (relative.equals(candidate.path())) continue;
+                    assertTrue(indexed.contains(relative), relative + " sits beside " + candidate.path()
+                            + " but no specialisation's `files` ships it, so a generated bundle would lack it");
+                }
+            }
+        }
+        for (Object spec : ((Map<String, Object>) v2.get("specialisations")).values()) {
+            Map<String, Object> entry = (Map<String, Object>) spec;
+            Set<String> skillDirs = ((List<String>) entry.get("skills")).stream()
+                    .map(p -> p.substring(0, p.lastIndexOf('/'))).collect(Collectors.toSet());
+            for (String file : (List<String>) entry.getOrDefault("files", List.of())) {
+                assertTrue(skillDirs.contains(file.substring(0, file.lastIndexOf('/'))),
+                        file + " must sit beside a skill its own specialisation selects, or nothing says where it goes");
+                assertTrue(Files.isRegularFile(ROOT.resolve(file)), "ships a missing file: " + file);
+            }
         }
     }
 
@@ -275,6 +402,8 @@ class CanonicalSkillsTest {
         List<String> paths = new java.util.ArrayList<>((List<String>) v2.get("common"));
         for (Object spec : ((Map<String, Object>) v2.get("specialisations")).values()) {
             paths.addAll((List<String>) ((Map<String, Object>) spec).get("skills"));
+            // supporting files a skill ships with are selected and pinned exactly like the skill itself
+            paths.addAll((List<String>) ((Map<String, Object>) spec).getOrDefault("files", List.of()));
         }
         return paths;
     }

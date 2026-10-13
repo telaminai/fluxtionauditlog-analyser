@@ -23,7 +23,9 @@ import java.util.List;
  * that logged it, in dispatch order, which is the order the question is usually asked in.
  *
  * <p><b>Framework-added keys are muted, not hidden.</b> Under {@code addEventAudit(LogLevel.TRACE)} every
- * entry carries {@code thread} and {@code method}; they are what makes the traced regime readable
+ * entry starts with {@code thread} and {@code method} (and, from runtime 1.1.1, {@code annotation}); only
+ * that leading run is muted ({@link Layout#traceLines()}), so a node's own key spelled the same is not.
+ * They are what makes the traced regime readable
  * (absence becomes evidence) but they are not what the node computed, so they are toned down rather than
  * dropped — dropping them would hide the very marker that tells you the record is traced.
  *
@@ -34,14 +36,15 @@ public final class LogicalLogView {
 
     private LogicalLogView() { }
 
-    /** Keys the audit framework adds for every invocation when tracing is compiled in. */
-    private static final List<String> FRAMEWORK_KEYS = List.of("thread", "method");
-
     /** A node's block in the rendered text: {@code [start, end)} covering its header and values. */
     public record Block(int start, int end, int headerStart, int headerEnd, String instanceId, String method) { }
 
     /** Rendered text plus the offsets callers need to map clicks and cursor positions back to nodes. */
-    public record Layout(String text, List<Block> blocks, List<Integer> recordStarts) {
+    public record Layout(String text, List<Block> blocks, List<Integer> recordStarts, java.util.Set<Integer> traceLines) {
+
+        public Layout(String text, List<Block> blocks, List<Integer> recordStarts) {
+            this(text, blocks, recordStarts, java.util.Set.of());
+        }
 
         /** The block containing {@code offset}, or null when the offset is between blocks. */
         public Block blockAt(int offset) {
@@ -67,6 +70,7 @@ public final class LogicalLogView {
         StringBuilder sb = new StringBuilder();
         List<Block> blocks = new ArrayList<>();
         List<Integer> recordStarts = new ArrayList<>();
+        java.util.Set<Integer> traceLines = new java.util.HashSet<>();
         if (records == null || records.isEmpty()) {
             return new Layout("", List.of(), List.of());
         }
@@ -103,29 +107,46 @@ public final class LogicalLogView {
                 sb.append("  ").append(EvidenceText.name(node.instanceId())).append('\n');
                 int headerEnd = sb.length() - 1;
 
+                // muted by POSITION, not spelling: only the leading run tracing wrote (AuditTrace.traceEntryCount),
+                // in the legacy text grammar or wherever a wire TRACE marker says the node ran (the binary log
+                // writes the same run after its marker)
+                int run = record.textEncoding() == telamin.fluxtion.audit.analyser.analyser.spi.AuditLogReader.TextEncoding.LEGACY
+                        || node.traced()
+                        ? telamin.fluxtion.audit.analyser.analyser.topology.AuditTrace.traceEntryCount(node.entries()) : 0;
                 String method = null;
-                for (KV kv : node.entries()) {
-                    if ("method".equals(kv.key())) method = kv.rawValue();
+                for (KV kv : node.entries().subList(0, run)) {
+                    if ("method".equals(kv.key()) || "asyncMethod".equals(kv.key())) method = kv.rawValue();
+                }
+                if (method == null && run == 0) {
+                    for (KV kv : node.entries()) {
+                        if ("method".equals(kv.key())) { method = kv.rawValue(); break; }   // first, never a later business key
+                    }
                 }
                 if (method == null) method = record.callback();
                 if (method == null && !node.entries().isEmpty()) method = node.entries().get(0).key();
 
+                int index = 0;
                 for (KV kv : node.entries()) {
+                    if (index++ < run) traceLines.add(sb.length());
                     sb.append("      ").append(EvidenceText.name(kv.key()))
                             .append(": ").append(EvidenceText.value(kv)).append('\n');
                 }
                 blocks.add(new Block(start, sb.length(), headerStart, headerEnd, node.instanceId(), method));
             }
         }
-        return new Layout(sb.toString(), List.copyOf(blocks), List.copyOf(recordStarts));
+        return new Layout(sb.toString(), List.copyOf(blocks), List.copyOf(recordStarts), java.util.Set.copyOf(traceLines));
     }
 
     /** How a keyless entry is shown: the binary reader's own marker, so the two views agree. */
     public static final String UNKEYED_MARKER = EvidenceText.UNKEYED_MARKER;
 
-    /** True when this key is one the audit framework adds rather than one the node chose to log. */
+    /**
+     * True when invocation tracing can write a key of this spelling — one list owned by
+     * {@link telamin.fluxtion.audit.analyser.analyser.topology.AuditTrace#isTraceKey}. Spelling only: what is
+     * muted is decided by position ({@link Layout#traceLines()}).
+     */
     public static boolean isFrameworkKey(String key) {
-        return FRAMEWORK_KEYS.contains(key);
+        return telamin.fluxtion.audit.analyser.analyser.topology.AuditTrace.isTraceKey(key);
     }
 
     // ---- styling ----------------------------------------------------------------------------------
@@ -184,11 +205,11 @@ public final class LogicalLogView {
         int colon = line.indexOf(':', indent);
         if (colon < 0) return;
         String keyText = line.substring(indent, colon);
-        doc.setCharacterAttributes(offset + indent, keyText.length(),
-                isFrameworkKey(keyText) ? muted : key, true);
+        boolean trace = layout.traceLines().contains(offset);
+        doc.setCharacterAttributes(offset + indent, keyText.length(), trace ? muted : key, true);
         int valueStart = colon + 1;
         String value = line.substring(valueStart);
-        if (isFrameworkKey(keyText)) {
+        if (trace) {
             doc.setCharacterAttributes(offset + valueStart, value.length(), muted, true);
             return;
         }

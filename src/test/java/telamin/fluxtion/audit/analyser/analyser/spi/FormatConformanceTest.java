@@ -364,6 +364,38 @@ class FormatConformanceTest {
     }
 
     @Test
+    void c33_theTracedAnnotationIsFrameworkData_neverTheNodesOwn() throws IOException {
+        // Fluxtion runtime 1.1.1 (fluxtion PR #39): invocation tracing also names the dispatching
+        // annotation, written AFTER method — `- quoteDEMO: { thread: main, method: onTrigger, annotation: OnTrigger}`.
+        LogStore s = bothPathsAgree("c33-trace-annotation.yaml");
+        LogRecord traced = s.record(0), untraced = s.record(1);
+        assertTrue(AuditTrace.tracesEveryInvocation(traced), "every entry still carries method: the regime is unchanged");
+        var quote = traced.nodeLogs().get(1);
+        assertEquals("quoteDEMO", quote.instanceId());
+        assertEquals(List.of("thread", "method", "annotation"), quote.entries().stream().map(kv -> kv.key()).toList(),
+                "the reader keeps the trace entries in the producer's order");
+        assertEquals(3, AuditTrace.traceEntryCount(quote.entries()), "the whole entry is the trace run, so quoteDEMO logged no business value");
+        var price = traced.nodeLogs().get(0);
+        assertEquals(List.of("price"), price.entries().subList(AuditTrace.traceEntryCount(price.entries()), price.entries().size())
+                        .stream().map(kv -> kv.key()).toList(),
+                "the business data after the trace run is the price alone, not the annotation");
+        assertEquals(2L, points(s, "priceSource.price"), "the business series is untouched by the extra trace key");
+        assertFalse(AuditTrace.tracesEveryInvocation(untraced),
+                "a node's own key spelled `annotation`, with no method, must not make a sparse record look traced");
+        assertEquals(0, AuditTrace.traceEntryCount(untraced.nodeLogs().get(1).entries()), "a lone annotation is business");
+
+        // Trace is decided by POSITION (review of PR 127): only the leading run is trace.
+        LogRecord mixed = s.record(2);
+        assertTrue(AuditTrace.tracesEveryInvocation(mixed), "a forked node's asyncMethod is tracing too");
+        assertEquals(3, AuditTrace.traceEntryCount(mixed.nodeLogs().get(0).entries()),
+                "a second `annotation` after the run is the node's own: reviewer logged `approved`");
+        assertEquals(2, AuditTrace.traceEntryCount(mixed.nodeLogs().get(1).entries()),
+                "an `annotation` whose value is not an annotation name is the node's own (a pre-1.1.1 node's key)");
+        assertEquals(4, AuditTrace.traceEntryCount(mixed.nodeLogs().get(2).entries()),
+                "the forked run: thread, forkedExecution, asyncMethod, annotation");
+    }
+
+    @Test
     void c13_anExportedCallIsDimensionedByItsCallback() throws IOException {
         LogStore s = bothPathsAgree("c13-exported-call.yaml");
         LogRecord r = s.record(0);
@@ -596,7 +628,7 @@ class FormatConformanceTest {
                     "c23-marker-values.yaml", "c24-unterminated-marker.yaml", "c25-marker-declaring-zero.yaml",
                     "c26-two-empty-segments.yaml", "c27-whitespace-only.yaml", "c28-zero-bytes.yaml",
                     "c29-no-record-key.yaml", "c30-per-node-level.yaml", "c31-broken-value.yaml",
-                    "c32-record-structure.yaml"), names,
+                    "c32-record-structure.yaml", "c33-trace-annotation.yaml"), names,
                     "add a fixture here AND a test above — c10 needs no file, it is about the reader's claim");
             assertTrue(Files.exists(res.resolve("README.md")), "the set is published with its table");
             for (String n : names) bothPathsAgree(n);

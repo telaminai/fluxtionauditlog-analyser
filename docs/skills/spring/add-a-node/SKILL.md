@@ -1,6 +1,6 @@
 ---
 name: add-a-node
-description: Add a new node to a Spring-XML authored Fluxtion graph, or make an existing node log its values, and prove it ran. A new node needs regeneration; logging from an existing node is a body-only change and does not.
+description: Add a node to a Spring-XML authored Fluxtion graph, or make an existing node log its values, and prove it ran; or show whether a change altered the logged business values by comparing before and after audit logs. A new node needs regeneration; a body-only logging change does not.
 x-analyser-min-version: 1.12.0
 ---
 
@@ -35,14 +35,17 @@ TODO(bundle): substitute this project's exact regeneration command (the Maven pr
 invokes the Fluxtion source generator), and say whether it needs a Fluxtion API key.
 ```
 
-Read the regenerated processor afterwards to confirm your node was wired. Do not edit it: it is an output.
+Then read only the compiler's own messages — the validation report (its node and edge counts), the
+authoring receipt and the compiler diagnostics. They say whether the graph compiled as declared. Do not
+read the regenerated processor, its GraphML text or the builder to confirm the wiring: they are outputs,
+they cost thousands of tokens to read, and the audit log shows the dispatch order directly.
 
 ## Close the authoring loop with evidence
 
 Before running the changed application, write down predictions that can be disproved:
 
 - the authored node id and dependency edge;
-- where the generated processor should dispatch it and which dirty guard should control it;
+- where it should appear in each event's dispatch order, and which dirty guard should control it;
 - which fixture events should and should not reach it, with the values expected there; and
 - which existing sink output or other behaviour must remain unchanged.
 
@@ -51,8 +54,9 @@ export or decide whether the change is correct.
 
 1. For a graph change, validate and regenerate as above. For a body-only logging change, rebuild without
    regenerating. Read the current authoring receipt and diagnostics before trusting either result.
-2. Inspect the generated processor and GraphML for the predicted dependency, dispatch position and guard.
-   This proves what was generated, not what a runtime event actually exercised.
+2. Check the predicted node and edge against the validation report's counts and the compiler
+   diagnostics. Do not read the generated processor, GraphML text or builder: the dispatch position and
+   guard are checked in step 6, from what the audit log shows an event actually did.
 3. Run the project's tests. Include a positive case and a control that should not propagate when the
    node's trigger is conditional.
 4. Follow the project-declared `run-mongoose-server` skill (or the host skill named in
@@ -70,13 +74,77 @@ export or decide whether the change is correct.
    membership, and coverage proves that a node logged; neither alone proves the intended values, gating
    or unchanged output.
 
-Report the change as verified only when the generated structure, tests and fresh runtime evidence agree.
+Report the change as verified only when the compiler's messages, tests and fresh runtime evidence agree.
 If they disagree, keep the artifacts and report the conflicting observation rather than changing the
 prediction after seeing the result.
 
 The model owns this sequence and its judgement. Project scripts execute build and host operations;
 Fluxtion audit records carry deterministic application evidence; the analyser opens and queries evidence
 already produced. Do not introduce a compound analyser verb for this workflow.
+
+## Verify from the audit log, not from generated code
+
+The generated processor and GraphML show what the generator **wrote**; they cannot show what an event
+**did**. Do not read the processor or the GraphML text: the GraphML is opened in the analyser (step 5),
+never read. The compiler's messages say whether the declared graph compiled, and the audit
+log answers every behavioural question. Generated source costs thousands of tokens to take in and answers
+nothing those two do not. With invocation tracing on, a record lists every
+node invoked for its event, in dispatch order, each with its `method` (and, from Fluxtion runtime 1.1.1,
+the `annotation` that dispatched it) — that is the evidence for dispatch order, not a reading of the
+generated `onEvent` body.
+
+When the log cannot answer — a node ran but logged none of the state behind its decision, or the level
+in force hid it — make the log answer: add `auditLog` calls to the node, or raise its `logLevel`, then
+run again. Do not fill the gap by reasoning from generated code, and do not report a conclusion the
+log does not show.
+
+## Prove a change by comparing audit logs
+
+A refactor, a new node or a moved edge should change **framework** records — another dispatch path, a
+renamed callback, a new trace-only record — and leave **business** records alone unless the change was
+meant to alter them. Prove which happened by comparing two runs of the **same input**:
+
+1. Capture the audit log **before** the change: run the fixture, export it, keep the file under a name of
+   its own. A bundle that hosts several processors exports one file per processor
+   (`logs/audit-<processor>.yaml`); compare each processor's export with its own counterpart, never one
+   processor's log with another's.
+2. Make the change, rebuild (regenerate if it was a graph change), and capture the **after** log from the
+   same input, in a fresh capture location so older runs do not mix in.
+3. Compare them:
+
+   ```
+   python3 audit-compare.py before/audit-<processor>.yaml after/audit-<processor>.yaml
+   ```
+
+   `audit-compare.py` is published beside this skill (Python 3, standard library only). If this
+   project's copy of the skill does not carry it, take the canonical copy,
+   `docs/skills/spring/add-a-node/audit-compare.py` in the analyser repository, at the revision this skill
+   came from — do not write your own on the spot. It splits every node entry into **business** data —
+   the keys the node chose to log — and **framework** data — the keys invocation tracing writes FIRST in an
+   entry: an optional `thread`, then `method` (or `forkedExecution` and `asyncMethod`), then an optional
+   `annotation` naming an annotation. Only that leading run is framework, as it is in the analyser; a key
+   after it, or a lone `thread` or `annotation`, is the node's own. It compares the business records
+   in order — event, event type, event text, any field the reader does not know, and every node's business
+   entries; never times, the thread or the grouping id, which vary between runs — and
+   reports framework differences separately. Exit `0`: the logged business entries match; `1`: they
+   differ, and the changed records are printed; `3`: inconclusive — they match only if an `annotation`
+   straight after the method is tracing's (runtime 1.1.1+) rather than an older node's own key; pass
+   `--annotations-are-trace` only when both captures come from runtime 1.1.1 or later and no node logs a
+   key called `annotation` first; `2`: nothing follows — a log holds no business record, or is in a shape
+   the script refuses to guess at (records run together without `---`, a list-shaped export, a value whose
+   line break broke the record's structure).
+
+4. Conclude **"the logged business entries changed"** or **"the logged business entries did not change,
+   for this input"** from the business comparison **only** — not "behaviour did not change": an output or
+   side effect no node logs is not compared, and logging a new value shows as a difference. When the
+   conclusion needs an output, make a node log it (or assert it) first. A framework difference never
+   decides it either way: a new trace-only record or a renamed callback is not a business change, and a
+   quiet framework section does not prove business output is right. Report the framework differences as what they are — evidence about dispatch — and
+   check each one against your written prediction.
+
+The comparison is only as good as the input being identical. If the two runs read different input, or
+one export carries an extra run (exports are cumulative — see `run-mongoose-server`), the difference is
+in the evidence, not the code; fix the capture and compare again before concluding anything.
 
 ## The two things that fail SILENTLY here
 

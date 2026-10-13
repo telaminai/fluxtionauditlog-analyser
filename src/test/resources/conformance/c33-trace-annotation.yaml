@@ -1,0 +1,29 @@
+---
+#00:00:00.000 [main] INFO DEMO
+eventLogRecord:
+  logTime: 1000
+  event: Tick
+  thread: main
+  nodeLogs:
+    - priceSource: { thread: main, method: onTick, annotation: OnEventHandler, price: 101.5}
+    - quoteDEMO: { thread: main, method: onTrigger, annotation: OnTrigger}
+---
+#00:00:00.000 [main] INFO DEMO
+eventLogRecord:
+  logTime: 1001
+  event: Tick
+  thread: main
+  nodeLogs:
+    - priceSource: { price: 102.0}
+    - quoteDEMO: { annotation: aBusinessKeyThatHappensToBeCalledAnnotation}
+---
+#00:00:00.000 [main] INFO DEMO
+eventLogRecord:
+  logTime: 1002
+  event: Tick
+  thread: main
+  nodeLogs:
+    - reviewer: { thread: main, method: onTrigger, annotation: OnTrigger, annotation: approved}
+    - auditor: { thread: main, method: onTrigger, annotation: approved}
+    - forker: { thread: main, forkedExecution: true, asyncMethod: onTrigger, annotation: OnTrigger}
+---
