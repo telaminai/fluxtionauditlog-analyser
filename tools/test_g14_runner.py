@@ -570,6 +570,15 @@ class SubjectCommandTest(unittest.TestCase):
             self.assertIn(needed, tools, f'{needed} would be refused under dontAsk')
         self.assertEqual(cmd[cmd.index('--permission-mode') + 1], 'dontAsk')
 
+    def test_the_subagent_tool_is_granted_only_on_request(self):
+        def tools(**kw):
+            cmd = g14.subject_command('/p.sb', '/cli', 'm', {}, 'the task', **kw)
+            return cmd[cmd.index('--allowedTools') + 1:cmd.index('--no-chrome')]
+        for name in ('Agent', 'Task'):
+            self.assertNotIn(name, tools(), 'the default grant must stay what G14 and both ladders ran with')
+            self.assertIn(name, tools(allow_subagent=True))
+        self.assertEqual(tools(allow_subagent=True)[:len(g14.SUBJECT_TOOLS)], list(g14.SUBJECT_TOOLS))
+
     def test_the_prompt_is_the_last_argument_after_a_separator(self):
         """A variadic --allowedTools would otherwise swallow the prompt as a tool name."""
         cmd = g14.subject_command('/p.sb', '/cli', 'm', {}, 'the task')

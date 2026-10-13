@@ -584,6 +584,10 @@ def stage_cli(base, claude_bin):
 # executed launch (2026-10-12) ended in 17 s with Bash and WebFetch refused. The sandbox profile, not the
 # permission mode, is the containment; this list only states what G14 already grants.
 SUBJECT_TOOLS = ('Bash', 'Read', 'Write', 'Edit', 'Glob', 'Grep', 'WebFetch', 'TodoWrite', 'mcp__fluxtion-analyser')
+# M72 L4 (iii): the subagent tool, granted only on request (--allow-subagent) and then to BOTH arms of a comparison,
+# so the arms differ in guidance alone. Claude Code names it `Agent`, with the older `Task` as an alias (read from the
+# 2.1.282 binary; 2.1.296's init event lists `Task`): both are granted, so either CLI resolves it.
+SUBAGENT_TOOLS = ('Agent', 'Task')
 
 
 def _cwd(pid):
@@ -679,17 +683,18 @@ def sweep_base_processes(base, grace=10.0):
     return {'swept': found, 'survivors': [f['pid'] for f in found if _running(f['pid'])]}
 
 
-def subject_command(policy, cli, model, mcp, prompt):
+def subject_command(policy, cli, model, mcp, prompt, allow_subagent=False):
+    tools = SUBJECT_TOOLS + (SUBAGENT_TOOLS if allow_subagent else ())
     return ['/usr/bin/sandbox-exec', '-f', str(policy), str(cli),
             '-p', '--model', model, '--effort', 'medium', '--no-session-persistence',
             '--setting-sources', 'project,local', '--strict-mcp-config',
             '--mcp-config', json.dumps(mcp),
             # Built-in tools stay ON: the subject must download, unpack and build.
-            '--permission-mode', 'dontAsk', '--allowedTools', *SUBJECT_TOOLS, '--no-chrome',
+            '--permission-mode', 'dontAsk', '--allowedTools', *tools, '--no-chrome',
             '--output-format', 'stream-json', '--verbose', '--', prompt]
 
 
-def run_trial(run, model, base, input_file, cap, java_home, claude_bin=None, prestaged=None):
+def run_trial(run, model, base, input_file, cap, java_home, claude_bin=None, prestaged=None, allow_subagent=False):
     base = Path(base)
     archive = base / run
 
@@ -735,14 +740,15 @@ def run_trial(run, model, base, input_file, cap, java_home, claude_bin=None, pre
     mcp = {'mcpServers': {'fluxtion-analyser': {'type': 'stdio', 'command': java_home + '/bin/java',
                                                 'args': ['-Duser.home=' + home, '-jar', jar, '--mcp']}}}
     env = child_env(base, tmp, home, java_home)
-    command = subject_command(archive / 'isolation.sb', cli, model, mcp, Path(input_file).read_text())
+    command = subject_command(archive / 'isolation.sb', cli, model, mcp, Path(input_file).read_text(),
+                              allow_subagent=allow_subagent)
     (archive / 'config.json').write_text(json.dumps({
         'run': run, 'model': model, 'base': str(base), 'port': port, 'capSeconds': cap,
         'jarSha256': sha256_file(jar), 'mcp': mcp, 'builtInTools': True,
         'keyGranted': True, 'gate': 'G14', 'javaHome': java_home,
         'claudeBin': str(cli), 'claudeBinSha256': cli_sha, 'claudeVersion': cli_version,
         'prestaged': str(prestaged) if prestaged else None,
-        'acceptanceEligible': not prestaged,
+        'acceptanceEligible': not prestaged, 'subagentAllowed': bool(allow_subagent),
         'mavenRepoLocal': str(repo_local), 'mavenSettings': str(settings)}, indent=1) + '\n')
 
     # Written BEFORE launch, so an interrupted run is identifiable as one rather than as a fresh start.
@@ -845,6 +851,8 @@ def main():
                         'of project variants, never a G14 acceptance (recorded in config and meta)')
     parser.add_argument('--claude-bin', help='a Claude Code binary to copy into <base>/cli, read-only, '
                         f'instead of {CLAUDE_BIN} (for a model the installed CLI does not know)')
+    parser.add_argument('--allow-subagent', action='store_true', help='also grant the subagent tool (Agent/Task); '
+                        'give it to every arm of a comparison alike (M72 L4 iii), recorded in config.json')
     parser.add_argument('args', nargs='*', help='<run-name> <model> <base> <input-file>')
     ns = parser.parse_args()
     java_home = resolve_java_home(ns.java_home)
@@ -862,7 +870,7 @@ def main():
     if ns.prestaged and not Path(ns.prestaged).is_dir():
         return fail(f'--prestaged {ns.prestaged} is not a directory')
     return run_trial(ns.args[0], ns.args[1], ns.args[2], ns.args[3], ns.cap, java_home, ns.claude_bin,
-                     ns.prestaged)
+                     ns.prestaged, ns.allow_subagent)
 
 
 if __name__ == '__main__':

@@ -2,7 +2,8 @@
 
 **Status** PROPOSED, 2026-10-13, revised the same day after review of PR #130, and again to add L7 (model
 selection) and decide L2's form (review of PR #132); revised again 2026-10-13 when L0 was built and measured
-(§1.3, §1.5, L0, L1, L3, L4, L5, L7 and §4 now cite **[T]** figures; D-N3 decided in L2) · **Milestone** M72 (unused before
+(§1.3, §1.5, L0, L1, L3, L4, L5, L7 and §4 now cite **[T]** figures; D-N3 decided in L2); revised again the same day
+to design L4 (iii), *as designed* in L4 · **Milestone** M72 (unused before
 this spec; M70 and M71 are the last allocated) · **Owner direction** 2026-10-12/13 (quoted in §2)
 **Evidence** PR #129, merged 2026-10-13 as `00378d5a`:
 `docs/handoff/evidence/authoring-ladder-2026-10-12/RESULTS.md` (the *first ladder*),
@@ -341,7 +342,7 @@ rung; otherwise the item is reported as *no effect shown*, not as a saving.
 - **Acceptance, per rung, against the interleaved control.** Rungs 3 and 5, with (i)(ii) applied to the bundle:
   median `over100k` at most half the control's, and median cost below the control's by more than the control's
   min–max spread. Rungs 2 and 4: the same criteria, once UP-PG-06 ships, and not before. (iii) is accepted
-  separately: rungs 3–5, total cost (both contexts) below the control's single-context cost, PASS not lower.
+  separately, on rungs 2–5, as *L4 (iii) — as designed* below states.
 - **Regression checks.** (i)(ii): a script test runs each project script against a failing and a passing fixture
   and asserts that stdout stays within a fixed line budget while the full log file holds the error; removing the
   cap fails it. The test belongs with the scripts (upstream); this repo's copy of the canonical skills asserts
@@ -349,6 +350,86 @@ rung; otherwise the item is reported as *no effect shown*, not as a saving.
   `CanonicalSkillsTest` assertion keeps the text present. The text stays only while an ablation shows it saves
   turns (P2: only a measurement retires a guardrail; P3: words are cheap, turns are not), and it is deleted once
   L3's receipt makes the procedure unnecessary (P1).
+
+#### L4 (iii) — as designed (2026-10-13)
+
+- **Mechanism: skill text only (option a), in `common/load-audit-log`.** When the build has succeeded and the run
+  has written its export, the author hands diagnosis to a Claude Code subagent (`subagent_type:
+  "general-purpose"`, the same model and tools as the author), whose whole prompt is a filled-in **brief**. That is
+  the only fresh context available inside one author session. No analyser verb, `context` section or bundle script
+  is added, for three reasons:
+  1. **What the brief must carry is the author's, not the analyser's**: the change made, the prediction and the
+     question. No session node holds them, so a generated brief could not produce them.
+  2. **The evidence facts already have one producer.** The file-identity verdict (`log.identity`, M68.7), the
+     pairing, `timeOrder`, `producer`, `inFlight` and `dispatchOrder` are composed by the session processor and
+     served by `context {sections: ["log", "pairing"]}`, with each qualifier carried (`ContextSections.QUALIFIERS`).
+     A brief that copied them would be a second call site for those values (rule 9), and a copy that goes stale
+     when the file is rewritten, which is how base-r2-h55-3 failed CHART [B, INFERRED]. The analyser is one process
+     shared by both contexts, so the fresh context reads them live.
+  3. **It can be measured**: the two arms differ by one skill section.
+  Not chosen: (b) a generated brief, for reasons 1 and 2; (c) both, because (b) adds nothing to (a). The graph's
+  nodes and edges are not copied into the brief either. The fresh context opens the GraphML in the analyser.
+- **The brief, exactly** (the fenced template in the skill): a first line saying it is the fresh context and must
+  not delegate, edit files or read the export as text; `project`; `logs`, one line per processor (name,
+  `logs/audit-<processor>.yaml`, its GraphML); `provenance`; `change` (each node or edge declared or changed: bean
+  id, class, from → to); `predicted` (the expected record facts); `question` (with any chart or report to leave on
+  the canvas); then three steps: load-audit-log steps 2–4, `context {sections: ["log", "pairing"]}`, and answers from
+  `read {fields}`, `series` and `aggregate` cited by `recordIndex`. The reply contract is the answer, each fact with
+  its `recordIndex`, the qualifications from step 2 (or "not stated"), what was left on the canvas, and what the log
+  cannot show. **Size bound**: the filled brief is at most 2,000 characters; the template is 1,028, and
+  `CanonicalSkillsTest` caps it at 1,200 so there is room to fill it. Against the ≈ 22k base the fresh context
+  re-pays [T], that is under 3%.
+- **So that no evidence is hidden** (§2.5): the brief carries pointers and the question, never evidence. The
+  qualifications are read in the fresh context and return in its reply. The author gives the person that reply with
+  its qualifications and does not repeat its reads. A defect the subagent reports is fixed in the design context,
+  the run is repeated, and a new brief is sent; the subagent never edits.
+- **Reach.** Rungs 3 and 5: the analyser bundle vendors the `common` skills. In 4 of the 6 baseline bundle runs the
+  author read `load-audit-log` [S, from the uncommitted transcripts]. Step 1 now routes a design conversation to
+  the section, and `add-a-node` already routes to `load-audit-log`. Rungs 2 and 4: the Spring starter ships no
+  `.claude/skills`; its authors read `RUNBOOK.md` and `runbooks/analyser.md` [S]. Productising it there is
+  **UP-PG-08**. For the measurement, the rung 2 and 4 treatment fixture carries the same section in
+  `runbooks/analyser.md` as a recorded fixture patch (FIXTURES.md), applied to that arm only.
+- **Harness, built with this design.** `tools/g14_runner.py --allow-subagent` grants the subagent tool (`Agent`, alias
+  `Task`; the default grant is unchanged) and records `subagentAllowed` in config.json. `tools/token_split.py`
+  assigns each request to a context by stream-json's `parent_tool_use_id`, carries a result only within its own
+  context, and starts D at the first analyser call **or delegation** after E. A run that delegated gets
+  `buckets.contexts` (per context: requests, over 100k, first and maximum prompt, cost, model) and
+  `phases.delegation` (delegations, brief characters, reply bytes, subagent and main-diagnosis requests and
+  over-100k counts, `warnings`). Re-split, the 28 L0 runs reproduce their committed tables exactly, apart from
+  phases.json's `definition` text [S, re-split from the uncommitted transcripts]. **Not yet seen in a real transcript**: that subagent messages reach
+  stream-json under `-p`, and whether `result.usage.output_tokens` includes their output. A run that delegated but
+  shows no subagent request is flagged, not silently scored.
+- **Acceptance (interleaved; no run made yet; the runs need owner approval).**
+  - **Setup.** Haiku 5.5, rungs 2–5, n = 3 per arm per rung, arms alternating run by run in one session window.
+    Both arms run with `--allow-subagent` and the same pinned CLI binary. Control = the baseline fixtures. Treatment
+    = the same fixtures plus the section (the bundle's `.claude/skills/load-audit-log/SKILL.md` replaced by this
+    revision's; the starter's `runbooks/analyser.md` patched).
+  - **Metrics**, all from `token_split.py` tables: diagnosis-phase cost (main diagnosis plus subagent requests),
+    diagnosis-phase requests over 100k, and total run cost.
+  - **Pass**, per rung:
+    - the treatment's median diagnosis-phase cost is below the control's by more than the control's min–max
+      spread on that rung;
+    - its median diagnosis over-100k count is at most half the control's;
+    - its median total cost (both contexts) is not above the control's;
+    - PASS, ORACLE and CHART are not below the control's.
+  - **Reporting.**
+    - Delegation is reported per run and the runs are scored as assigned: a treatment run that did not delegate
+      stays in its arm.
+    - A run with a `delegation.warnings` entry is reported, and is excluded from the cost metrics only.
+    - The out-of-sample check is L0's: cost recomputed within 2% of billed.
+  - **Otherwise** the result is *no effect shown* and the section is deleted (P2: a measurement retires it; P3: it
+    costs turns).
+  - **The idea is wrong if** the subagent's first prompt and its extra turns cost more than the diagnosis saves
+    (§5), or if CHART falls because the fresh context lost implicit context.
+- **Regression checks (rule 8).**
+  - `CanonicalSkillsTest.loadLogSkillDiagnosesInAFreshContextWithABriefThatCarriesNoEvidence` requires each of
+    these in the section: the subagent type; the size bound; no delegate, no edit and no raw-export read; the
+    `sections` call; every qualification key; `recordIndex`; the reply contract; "never the evidence"; and the
+    defect loop. It also requires step 1's routing and caps the template's length. Its witnesses remove each
+    requirement in turn, and each removal must turn the check red.
+  - `test_token_split.py`'s `DelegationTest` pins the contexts, the phase boundary and the warnings. Its witness:
+    carrying results across contexts, or not starting D at a delegation, fails it.
+  - `test_g14_runner.py` pins that the subagent grant is opt-in.
 
 ### L5 — One-call diagnosis summary
 
@@ -495,7 +576,7 @@ the doubt.
 | 3 | **L4 (i)(ii)** for rungs 2/4 (UP-PG-06) | High | Medium | Medium | the same lever, but the starter has no script yet |
 | 4 | **L1** tabular view + skill default | Low | High | Medium | L0: auditLog kind 8.8% of tool bytes (upper bound; ≤ 1.4% more echoed) [T]; the view is deferred, the skill text stays |
 | 5 | **L5** diagnosis summary | Medium | Medium | Medium | turns r = 0.83 on the baseline; one existing surface |
-| 6 | **L4 (iii)** design/diagnosis split | High? | Medium | Low | L0: diagnosis is 54.8% of baseline cost, 88 of 102 over-100k requests [T] (first ladder 39.3%, Sonnet 18.3%); cause INFERRED; the base is re-paid |
+| 6 | **L4 (iii)** design/diagnosis split | High? | Medium | Low | L0: diagnosis is 54.8% of baseline cost, 88 of 102 over-100k requests [T] (first ladder 39.3%, Sonnet 18.3%); cause INFERRED; the base is re-paid. Designed and the skill text shipped (*as designed*); the measurement is pending |
 | 7 | **L3** design receipt | Medium | Low | Medium–High | generated code is 1.0% of baseline tool bytes [T]; the design question also reads XML with sources, build output and classes (shares bounded, not ranked); upstream |
 | 8 | **L2** `compare` verb | Low | High | Medium | correctness and one reader, not tokens; form and D-N3 decided |
 | — | **L7** model selection | High (kept, not new) | Medium | Low | the 18× is already realised [D]; the lever stops it drifting; docs + one test |

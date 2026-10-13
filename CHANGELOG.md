@@ -8,6 +8,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ### Added
 
+- The `load-audit-log` skill has a section, **Diagnose in a fresh context**. After a design change has been built and run, the author hands the diagnosis to a subagent instead of continuing in the long design conversation. The subagent's prompt is a brief of at most 2,000 characters: the project, each processor's export and GraphML, the change, the prediction and the question. The brief carries no evidence. The subagent reads the file-identity verdict, the pairing, the time order, the producer findings and the in-flight state from the analyser itself, and reports them with its answer, each fact cited by `recordIndex`. On the authoring ladder's baseline, diagnosis was 54.8% of the cost; whether this lowers it has not been measured yet. `CanonicalSkillsTest` checks the section, and the skills index re-pins it.
+
 - The Spring authoring guide has a **Model choice** section (step 2), for authoring with the Spring XML starter and the Audit analyser bundle: Claude Haiku 5.5 is the default and meets the acceptance bar on ladder rungs 3–5, with rung 2 (the chart step) still open; Claude Sonnet 5 is not recommended (on the first ladder, no rung where it passed and the default did not, at about 18 times the cost per run); Claude Haiku 4.5 is not for the chart step; other models are unmeasured. It covers your own LLM client, not the in-app assistant. *Connecting an LLM* and *Playground to analyser* point to it. Every row is checked against the committed run evidence on each build (`ModelChoiceEvidenceTest`, with a digest of the cited score files), so a row's status cannot disagree with its runs' pass or chart results.
 
 ### Fixed

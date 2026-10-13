@@ -2030,6 +2030,27 @@ at the latest, not when the playground deploys.
 **Cost to us if unfixed.** The fixture is accurate only as of fluxtion-web `36d811a`; the next root script a
 template adds is installed non-executable until the next release's live leg, or a user, finds it.
 
+## UP-PG-08 ☐ Carry "diagnose in a fresh context" to both templates
+
+**Target** `fluxtion-web` (playground scaffold) · **Spec** [`spec-authoring-token-lowering.md`](../specs/spec-authoring-token-lowering.md)
+L4 (iii) *as designed* · **Milestone** M72
+
+**Evidence.** On the released-stack baseline, the diagnosis phase pays 54.8% of the cost and holds 88 of the 102
+requests over 100k, while reading 9.6% of the tool bytes (TOKEN-SPLIT.md). That it does so because it carries the
+design context is INFERRED. The canonical `load-audit-log` skill now sends diagnosis to a subagent seeded with a
+brief of at most 2,000 characters. The analyser bundle gets that guidance by re-vendoring the skills. The Spring
+starter ships no `.claude/skills`; its authors read `RUNBOOK.md` and `runbooks/analyser.md`.
+
+**The ask.** (1) Re-vendor the bundle's skills at the index revision that carries the section. (2) The Spring
+starter's `runbooks/analyser.md` carries the same section, *Diagnose in a fresh context*, copied from
+`docs/skills/common/load-audit-log/SKILL.md`. Only the brief's step 1 changes: it names the starter's own steps
+for opening a log with its graph. The `RUNBOOK.md` step that runs the scenario points to the section. (3) Keep
+both until the L4 (iii) acceptance reports. If it shows no effect, the section is removed from the canonical skill,
+and the templates follow at their next re-vendor.
+
+**Cost to us if unfixed.** Rungs 2 and 4 can be measured only with a fixture patch. A starter author pays for the
+design context in every diagnosis request.
+
 ## Spring authoring edit loop — 2026-09-25 intake
 
 **Status: proposed handoff, not implemented.** Canonical acceptance is the

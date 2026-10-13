@@ -25,11 +25,11 @@ Use this before answering any question about what the running system did.
    evidence of anything. If the bundle hosts several processors and the export produced fewer files,
    the missing processors were not exported — say so rather than reading one log as the whole system.
 
-   **Do not use `analyser_context` to find an unopened log** — an earlier version of this skill said to,
-   and it was false (review F3, 2026-08-29). `context.log` describes the log **already open**; on a fresh
-   project it is absent, and the profile stores no log path at all (`ProjectProfile` has no such
-   category). An agent following the old instruction on a fresh bundle would find nothing and conclude the
-   project was broken.
+   **Do not use `analyser_context` to find an unopened log**: `context.log` describes the log already
+   open, and the profile stores no log path.
+
+   If this conversation designed or changed the graph, stop after this step and follow
+   *Diagnose in a fresh context* below.
 
 2. Make sure this project's profile is active. `analyser_context.project.active` tells you whether it
    is. If it is absent or names a different project, open this project **in a call of its own** first:
@@ -59,6 +59,35 @@ Use this before answering any question about what the running system did.
    1.13.1 the echo says `pairing: pending`; earlier versions echoed a verdict about the PREVIOUS log, or
    "no log is open". Either way, `analyser_context.graphPairing` is the authority — read it after the
    open, not the echo.
+
+## Diagnose in a fresh context
+
+Once the build has succeeded and the run has written its export, give the diagnosis to a subagent
+(`subagent_type: "general-purpose"`) instead of doing it here: this conversation still carries everything
+read while designing, and every further request pays for it again. The subagent's whole prompt is this
+brief, filled in from what you already know, at most 2,000 characters:
+
+```
+You are the fresh context for diagnosing a Fluxtion run: do not delegate, do not edit files, and never
+read the export as text. Use the analyser MCP tools.
+project: <absolute project root>
+logs: <processor>  <logs/audit-<processor>.yaml>  <its GraphML>   (one line per processor)
+provenance: <which system and run>
+change: <each node or edge declared or changed: bean id, class, from -> to; or none>
+predicted: <the record facts you expect if the change works>
+question: <what the person asked, with any chart or report to leave on the canvas>
+1. Follow .claude/skills/load-audit-log/SKILL.md steps 2-4 to open each log with its graph.
+2. Read analyser_context {"sections": ["log", "pairing"]}: note log.identity, graphPairing, timeOrder,
+   producer, inFlight and dispatchOrder as stated, or "not stated".
+3. Answer from read {fields}, series and aggregate; cite every fact by recordIndex.
+Reply with: the answer; each fact and its recordIndex; the step 2 qualifications; what you left on the
+canvas; what the log cannot show.
+```
+
+The brief carries pointers and the question, never the evidence: the subagent reads the identity verdict,
+pairing, time order, producer findings and in-flight state itself, because a copy taken now is stale once the
+file is rewritten. Give the person its reply with those qualifications, without repeating its reads here. If
+it reports a defect, fix it here, run again and send a new brief.
 
 ## What to do when there is no log yet
 
