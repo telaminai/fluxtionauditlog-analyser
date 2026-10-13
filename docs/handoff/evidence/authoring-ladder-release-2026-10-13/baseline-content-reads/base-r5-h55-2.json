@@ -1,0 +1,1 @@
+{"contentReads": 1, "contentBytes": 9187, "byMarker": {"builderSource": 1}, "calls": [{"shape": "Bash: cd ./src/main/java/com/example/myapp && cat node/RiskCheck.java node/CsvRejections.java builder/MarketProcessorSupplier.java | head -200; ec", "markers": ["builderSource"], "resultBytes": 9187, "partial": false}]}

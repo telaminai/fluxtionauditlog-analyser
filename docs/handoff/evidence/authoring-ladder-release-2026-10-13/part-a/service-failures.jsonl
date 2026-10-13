@@ -1,0 +1,15 @@
+{"run": "rel-r2-h55-1", "eventProcessingFailure": false, "uninjectedService": false}
+{"run": "rel-r2-h55-2", "eventProcessingFailure": false, "uninjectedService": false}
+{"run": "rel-r2-h55-3", "eventProcessingFailure": false, "uninjectedService": false}
+{"run": "rel-r3-h55-1", "eventProcessingFailure": false, "uninjectedService": false}
+{"run": "rel-r3-h55-2", "eventProcessingFailure": true, "uninjectedService": true, "window": {"failedRunCall": 26, "failureFirstSeenCall": 31, "firstCall": 27, "lastCall": 34, "toolCalls": 8, "requests": 8, "toolResultBytes": 29835, "serverLogReads": 4, "serverLogBytes": 22498, "over100kRequests": 3, "costUsd": 0.0386, "phases": ["run"]}}
+{"run": "rel-r3-h55-3", "eventProcessingFailure": true, "uninjectedService": true, "window": {"failedRunCall": 36, "failureFirstSeenCall": 38, "firstCall": 37, "lastCall": 48, "toolCalls": 12, "requests": 11, "toolResultBytes": 13589, "serverLogReads": 2, "serverLogBytes": 6787, "over100kRequests": 0, "costUsd": 0.0162, "phases": ["design"]}}
+{"run": "rel-r4-h55-1", "eventProcessingFailure": false, "uninjectedService": false}
+{"run": "rel-r4-h55-2", "eventProcessingFailure": false, "uninjectedService": false}
+{"run": "rel-r4-h55-3", "eventProcessingFailure": false, "uninjectedService": false}
+{"run": "rel-r5-h55-1", "eventProcessingFailure": false, "uninjectedService": false}
+{"run": "rel-r5-h55-2", "eventProcessingFailure": false, "uninjectedService": false}
+{"run": "rel-r5-h55-3", "eventProcessingFailure": false, "uninjectedService": false}
+{"run": "rel-r6-h55-1", "eventProcessingFailure": false, "uninjectedService": false}
+{"run": "rel-r6-h55-2", "eventProcessingFailure": false, "uninjectedService": false}
+{"run": "rel-r6-h55-3", "eventProcessingFailure": false, "uninjectedService": false}

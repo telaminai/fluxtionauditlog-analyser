@@ -1,0 +1,1 @@
+{"contentReads": 1, "contentBytes": 11114, "byMarker": {"builderSource": 1}, "calls": [{"shape": "Bash: cat src/main/fluxtion/designer/application-context.xml && echo ---- && cat src/main/java/com/example/myapp/node/TradeIntake.java && echo ---", "markers": ["builderSource"], "resultBytes": 11114, "partial": false}]}

@@ -1,0 +1,1 @@
+{"base": "/private/tmp/fx-rel13/gt-r5", "root": "/private/tmp/fx-rel13/gt-r5/project", "VALID": true, "ORACLE": {"ok": true, "detail": {"logs": ["logs/audit-marketProcessor.yaml"], "I1seen": [["EURUSD", 1.085], ["GBPUSD", 1.271], ["EURUSD", 1.09], ["USDJPY", 149.2], ["GBPUSD", 1.265]], "I1": true, "I2": true, "I3": true, "ok": true}}}

@@ -1,0 +1,1 @@
+{"contentReads": 1, "contentBytes": 12712, "byMarker": {"builderSource": 1}, "calls": [{"shape": "Bash: cat generate.sh && echo ---KEYCHK-- && sed -n 1,20p check-fluxtion-key.sh && echo ---BUILDER--- && cat src/main/java/com/example/myapp/build", "markers": ["builderSource"], "resultBytes": 12712, "partial": false}]}

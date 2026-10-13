@@ -1,0 +1,1 @@
+{"contentReads": 1, "contentBytes": 11137, "byMarker": {"builderSource": 1}, "calls": [{"shape": "Bash: cat config/server-config.yml; cat src/main/java/com/example/myapp/MongooseMain.java; cat src/main/java/com/example/myapp/builder/SpringAotBu", "markers": ["builderSource"], "resultBytes": 11137, "partial": false}]}

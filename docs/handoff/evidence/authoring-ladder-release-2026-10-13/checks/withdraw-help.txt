@@ -1,0 +1,7 @@
+Usage: withdraw [--project DIR] [--xml FILE] --class FQCN [--member KEY] [--still-declared]
+  Remove the class's entry (or, with --member, one member key such as field:rootNode) from
+  "ownership" in fluxtion-authoring.json, so the starter stops managing that code. Java source
+  is never edited. A class the XML still declares as a bean is refused unless --still-declared
+  is given (the starter then treats its source as hand-written); the project's recorded XML is
+  checked as well as any --xml file. A reconcile conflict about a
+  withdrawal prints the exact command to run.

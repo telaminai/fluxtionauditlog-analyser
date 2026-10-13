@@ -1,0 +1,12 @@
+diff -ruN gt-r6/project/src/main/fluxtion/designer/application-context.xml ctl-r6c2/project/src/main/fluxtion/designer/application-context.xml
+--- gt-r6/project/src/main/fluxtion/designer/application-context.xml	2026-10-13 21:33:21
++++ ctl-r6c2/project/src/main/fluxtion/designer/application-context.xml	2026-10-13 21:48:27
+@@ -80,7 +80,7 @@
+                 <bean class="com.telamin.fluxtion.builder.extern.spring.FluxtionSpringConfig.ReferenceBinding">
+                     <property name="ownerBean" value="turnoverTracker"/>
+                     <property name="referencedBean" value="csvRejections"/>
+-                    <property name="mode" value="DATA"/>
++                    <property name="mode" value="TRIGGER"/>
+                 </bean>
+             </list>
+         </property>

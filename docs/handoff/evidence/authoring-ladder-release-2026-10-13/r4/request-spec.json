@@ -1,0 +1,57 @@
+{
+ "analyserSupport": true,
+ "build": "maven",
+ "group": "com.example",
+ "artifact": "trade-app",
+ "version": "1.0.0-SNAPSHOT",
+ "javaRelease": 21,
+ "basePackage": "com.example.myapp",
+ "versions": {},
+ "type": {
+  "fluxtion": true,
+  "mongoose": false
+ },
+ "fluxtion": {
+  "processorName": "TradeProcessor",
+  "nodeClassName": "TradeIntake",
+  "triggerClasses": [],
+  "definition": "spring",
+  "builderStyle": "imperative",
+  "compileMode": "aot",
+  "runner": {
+   "host": "bare",
+   "feeds": [],
+   "sinks": []
+  },
+  "events": [
+   {
+    "name": "Trade",
+    "kind": "class",
+    "fields": [
+     {
+      "name": "symbol",
+      "type": "String"
+     },
+     {
+      "name": "price",
+      "type": "double"
+     },
+     {
+      "name": "qty",
+      "type": "long"
+     }
+    ]
+   }
+  ],
+  "auditors": {
+   "eventAudit": true,
+   "replayRecord": false,
+   "userMetrics": false,
+   "customAuditor": false,
+   "perfMonitor": false
+  },
+  "messageSink": false,
+  "addTestShell": true,
+  "springDeclarations": {}
+ }
+}

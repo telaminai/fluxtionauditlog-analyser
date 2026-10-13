@@ -1,0 +1,1 @@
+{"logs": ["logs/audit-marketProcessor.yaml"], "I1seen": [["EURUSD", 1.085], ["GBPUSD", 1.271], ["EURUSD", 1.09], ["USDJPY", 149.2], ["GBPUSD", 1.265]], "I1": true, "I2": true, "I3": false, "I3javaChanged": [["com/example/myapp/node/FxAdapter.java", "6df3e8e11f5498b40449f4c898b5365804cb105a8d765ca8f9451874d32b5f15"]], "ok": false}

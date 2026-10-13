@@ -1,0 +1,4 @@
+r2-scaffold.zip -> install-1 [check-fluxtion-key.sh=x, generate.sh=x, mvnw=x, run.sh=x, setup.sh=x, validate.sh=x]
+r4-scaffold.zip -> install-2 [check-fluxtion-key.sh=x, generate.sh=x, mvnw=x, run.sh=x, setup.sh=x, validate.sh=x]
+bundle.zip -> install-3 [check-fluxtion-key.sh=x, export-audit.sh=x, generate.sh=x, mvnw=x, run-and-export.sh=x, run-server.sh=x, setup.sh=x, stop-server.sh=x, validate.sh=x]
+INSTALL-CHECK PASS

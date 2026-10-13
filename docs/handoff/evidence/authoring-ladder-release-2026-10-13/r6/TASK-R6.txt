@@ -1,0 +1,12 @@
+This directory holds a Fluxtion and Mongoose project, the analyser bundle starter, already unpacked. Its shipped documentation is README.md, RUNBOOK.md, CLAUDE.md, PROJECT.md and runbooks/. Never print, copy or modify the compilation key file; use the shipped generation script.
+
+Extend its business logic:
+
+- Add a new node, com.example.myapp.node.TurnoverTracker. It runs once for every accepted price, after both RootNode and RiskCheck have handled that price, and works out the trade's notional value (price times volume).
+- TurnoverTracker also reports how many CSV rows have been rejected so far, which it reads from CsvRejections. A rejected row on its own must not make TurnoverTracker run.
+- TurnoverTracker publishes one record per accepted price on a new output named "turnover", which the server writes to data/turnover.txt. Each line shows the symbol, the notional and the rejected-row count.
+- The new node, its inputs and the new output belong in the project's Spring XML design, not only in Java or the server configuration.
+
+The sample data in data/input.txt includes one row the CSV mapper rejects. The change has to be in the compiled processor, not only in the source. Run it on the sample data and export its audit log. Then use the Fluxtion analyser, which you have as an MCP server, to put a chart of the recorded notional values on the analyser canvas.
+
+Finish by telling me the lines written to data/turnover.txt, and what evidence in the audit log shows that TurnoverTracker ran after both RootNode and RiskCheck for each accepted price and did not run for the rejected row.

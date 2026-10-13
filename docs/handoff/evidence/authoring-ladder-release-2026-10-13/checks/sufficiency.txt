@@ -1,0 +1,5 @@
+r2 offline setup=0 validate=1 (seed-spring)
+r3 offline setup=0 validate=0 (seed-bundle)
+r4 offline setup=0 validate=0 (seed-spring)
+r5 offline setup=0 validate=0 (seed-bundle)
+r6 offline setup=0 validate=0 (seed-bundle)

@@ -1,0 +1,1 @@
+{"contentReads": 1, "contentBytes": 6455, "byMarker": {"builderSource": 1}, "calls": [{"shape": "Bash: cd ./supplier-repo/com/acme/fx/acme-fx/1.0.0 && cat acme-fx-1.0.0.pom && unzip -l acme-fx-1.0.0.jar && cd . && echo ---- && cat src/main/jav", "markers": ["builderSource"], "resultBytes": 6455, "partial": false}]}
