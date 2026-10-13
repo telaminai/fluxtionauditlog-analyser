@@ -587,6 +587,11 @@ SUBJECT_TOOLS = ('Bash', 'Read', 'Write', 'Edit', 'Glob', 'Grep', 'WebFetch', 'T
 
 
 def _cwd(pid):
+    if Path('/proc/self/cwd').exists():  # Linux (CI); macOS has no /proc and uses lsof below
+        try:
+            return os.readlink(f'/proc/{pid}/cwd')
+        except OSError:
+            return ''
     try:
         out = subprocess.run(['/usr/sbin/lsof', '-a', '-p', str(pid), '-d', 'cwd', '-Fn'], capture_output=True,
                              text=True, timeout=10).stdout

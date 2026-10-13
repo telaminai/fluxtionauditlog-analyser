@@ -509,11 +509,15 @@ class PrestagedTest(unittest.TestCase):
             self.assertEqual(g14.main(), 2)
 
 
+# macOS runs put bases under /private/tmp; Linux CI has no /private, so the sweep tests use the platform temp root.
+SCRATCH_ROOT = '/private/tmp' if os.path.isdir('/private/tmp') else tempfile.gettempdir()
+
+
 class SweepBaseProcessesTest(unittest.TestCase):
     """2026-10-12: servers a subject started with `(cmd &)` / nohup left the process group and outlived runs."""
 
     def test_a_process_that_left_the_group_but_lives_in_the_base_is_killed(self):
-        with tempfile.TemporaryDirectory(dir='/private/tmp') as d:
+        with tempfile.TemporaryDirectory(dir=SCRATCH_ROOT) as d:
             base = Path(d).resolve()
             escaped = subprocess.Popen(['/bin/sleep', '300'], cwd=base, start_new_session=True)
             try:
@@ -547,7 +551,7 @@ class SweepBaseProcessesTest(unittest.TestCase):
         self.assertFalse(g14.in_base(f'java -cp {base}.bak/x Main', '/', base), 'a sibling with a suffix')
 
     def test_control_a_process_outside_the_base_is_left_alone(self):
-        with tempfile.TemporaryDirectory(dir='/private/tmp') as d, tempfile.TemporaryDirectory(dir='/private/tmp') as other:
+        with tempfile.TemporaryDirectory(dir=SCRATCH_ROOT) as d, tempfile.TemporaryDirectory(dir=SCRATCH_ROOT) as other:
             bystander = subprocess.Popen(['/bin/sleep', '300'], cwd=Path(other).resolve(), start_new_session=True)
             try:
                 time.sleep(.5)
