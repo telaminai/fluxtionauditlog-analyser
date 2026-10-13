@@ -45,6 +45,7 @@ line, and update this index in the same change.
 | [spec-authoring-modes.md](spec-authoring-modes.md) | proposed; the canonical authoring architecture | M48 |
 | [spec-authoring-mode-selector.md](spec-authoring-mode-selector.md) | proposed; M48.7 built | M48 |
 | [spec-authoring-session-walkthrough.md](spec-authoring-session-walkthrough.md) | companion to the mode selector (real harness output) | M48 |
+| [spec-authoring-token-lowering.md](spec-authoring-token-lowering.md) | proposed 2026-10-13; Higgins lowering for the authoring loop | M72 |
 
 ## Onboarding and journeys
 

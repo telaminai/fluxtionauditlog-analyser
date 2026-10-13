@@ -230,6 +230,9 @@ settings-save redraw, pinned (supersedes #78). [Release receipt](../handoff/rele
   compiler-generated manifests · [M48.14] ☐ resolver productisation · [M48.15] ☐ one-command reproduction ·
   [M48.16] ☐ goal → formal requirements. ▸ detail: *M48*.
 
+### M72 · Authoring token lowering ([spec](spec-authoring-token-lowering.md)) — proposed 2026-10-13
+- [M72] ☐ Lower facts locally, send the residual (L0–L6); first slice L0 + capped script output, gated on the ladder re-run.
+
 ### Upstream template content — three drafts
 - [UC5] ◧ Idioms audited against the app that produced them.
 - [UC1] ☐ `audit-authoring.md` · [UC2] ☐ `audit-runtime.md` · [UC3] ☐ `node-field-wiring-and-workflow.md` ·
