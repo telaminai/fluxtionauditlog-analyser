@@ -1,0 +1,1 @@
+{"contentReads": 1, "contentBytes": 26764, "byMarker": {"builderSource": 1}, "calls": [{"shape": "Bash: cd . && ls -R config data && cat config/*.yml && echo ---- && cat .claude/skills/add-a-node/SKILL.md && echo ---- && cat src/main/java/com/e", "markers": ["builderSource"], "resultBytes": 26764}]}

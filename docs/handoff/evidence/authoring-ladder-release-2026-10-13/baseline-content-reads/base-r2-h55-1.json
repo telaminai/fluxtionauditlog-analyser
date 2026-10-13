@@ -1,0 +1,1 @@
+{"contentReads": 1, "contentBytes": 10039, "byMarker": {"builderSource": 1}, "calls": [{"shape": "Bash: cat src/main/java/com/example/myapp/FluxtionMain.java && echo ---- && cat src/main/java/com/example/myapp/builder/SpringAotBuilder.java && e", "markers": ["builderSource"], "resultBytes": 10039}]}

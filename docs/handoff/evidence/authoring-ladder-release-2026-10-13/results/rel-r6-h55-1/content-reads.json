@@ -1,0 +1,1 @@
+{"contentReads": 1, "contentBytes": 1679, "byMarker": {"builderSource": 1}, "calls": [{"shape": "Read: ./src/main/java/com/example/myapp/builder/MarketProcessorSupplier.java", "markers": ["builderSource"], "resultBytes": 1679}]}

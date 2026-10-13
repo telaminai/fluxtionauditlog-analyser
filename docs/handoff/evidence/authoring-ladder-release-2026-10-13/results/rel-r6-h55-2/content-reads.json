@@ -1,0 +1,1 @@
+{"contentReads": 1, "contentBytes": 17542, "byMarker": {"builderSource": 1}, "calls": [{"shape": "Bash: for f in src/main/java/com/example/myapp/node/*.java src/main/java/com/example/myapp/event/PriceEvent.java src/main/java/com/example/myapp/m", "markers": ["builderSource"], "resultBytes": 17542}]}
