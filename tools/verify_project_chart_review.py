@@ -328,8 +328,13 @@ CASES += [
      '                why -> { });',
      'SourcePanelFreshnessTest#aNodeRequestWhoseProcessorReadTimesOutSaysWhyItDidNotOpen'),
     # edit-loop spec §G, feedback 8: archive modes are ignored, so the fixed list is what makes generate.sh runnable
-    ('installer-authoring-executables', TEMPLATE_ARCHIVE, '"setup.sh", "validate.sh", "generate.sh");',
-     '"setup.sh", "validate.sh");', 'TemplateArchiveTest#springAuthoringScriptsAreInstalledRunnableWithoutChmod'),
+    ('installer-authoring-executables', TEMPLATE_ARCHIVE, '"setup.sh", "validate.sh", "generate.sh",',
+     '"setup.sh", "validate.sh",', 'TemplateArchiveTest#springAuthoringScriptsAreInstalledRunnableWithoutChmod'),
+    # 2026-10-13: the bundle's one documented command, run-and-export.sh, arrived 0644 — the list had drifted from
+    # the templates; the fixture of every template's root scripts is what catches the next drift
+    ('installer-template-executables-fixture', TEMPLATE_ARCHIVE,
+     '"run-and-export.sh", "run.sh", "setup-java.sh", "runWasm.sh");', '"run.sh", "setup-java.sh", "runWasm.sh");',
+     'TemplateExecutablesTest#everyScriptAPlaygroundTemplateShipsIsInstalledRunnable'),
     # PR #27 review nit 1: only ROOT entries on the list become executable; a basename-only match would
     # make a nested bundle/tools/generate.sh executable
     ('installer-nested-script-not-executable', TEMPLATE_ARCHIVE,

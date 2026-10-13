@@ -9,7 +9,7 @@ import sys
 
 
 REPO = pathlib.Path(__file__).resolve().parent.parent.parent
-FOCUSED = "TemplateCatalogueTest,TemplateArchiveTest,TemplateUiContractTest"
+FOCUSED = "TemplateCatalogueTest,TemplateArchiveTest,TemplateExecutablesTest,TemplateUiContractTest"
 LIVE_MAIN = "telamin.fluxtion.audit.analyser.analyser.template.TemplateLiveBench"
 
 

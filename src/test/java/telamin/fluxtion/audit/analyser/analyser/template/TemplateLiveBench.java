@@ -38,7 +38,32 @@ public final class TemplateLiveBench {
             check(config.runbooks.values().stream().allMatch(pointer ->
                             Files.isRegularFile(installed.projectRoot().resolve(pointer.path()).normalize())),
                     "profile runbooks resolve inside the downloaded project");
-            System.out.println("6 passed, 0 failed");
+            int checks = 6;
+            // Drift: every root script a deployed template marks executable must be executable once installed.
+            // The archive's marks are read only for this comparison; the installer never applies them (D-4).
+            for (var each : selection.entries()) {
+                var eachDefaults = client.defaults(each);
+                byte[] eachZip = client.download(new TemplateClient.Download(each, eachDefaults.artifact(),
+                        eachDefaults.group(), eachDefaults.basePackage()));
+                var eachInstalled = new TemplateArchive().install(eachZip,
+                        work.resolve("drift-" + checks + "-" + eachDefaults.artifact()));
+                var marked = TemplateExecutablesTest.archiveMarkedRootExecutables(eachZip);
+                // Without marks there is nothing to compare: if the scaffold stopped writing unix modes, an empty
+                // set would pass every check below. Every catalogue template ships mvnw, so it must be marked.
+                check(marked.contains("mvnw"), each.file() + " archive marks its root scripts executable"
+                        + " (mvnw among them) — marked: " + marked);
+                checks++;
+                var notRunnable = new java.util.TreeSet<String>();
+                for (String script : marked) {
+                    if (!TemplateExecutablesTest.executable(eachInstalled.projectRoot().resolve(script))) {
+                        notRunnable.add(script);
+                    }
+                }
+                check(notRunnable.isEmpty(), each.file() + " root scripts installed executable"
+                        + (notRunnable.isEmpty() ? "" : " — not: " + notRunnable));
+                checks++;
+            }
+            System.out.println(checks + " passed, 0 failed");
         } finally {
             try (var paths = Files.walk(work)) {
                 for (Path path : paths.sorted(Comparator.reverseOrder()).toList()) Files.deleteIfExists(path);

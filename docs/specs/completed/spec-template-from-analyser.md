@@ -187,6 +187,9 @@ negotiable, and the acceptance bench must attack each one:
 - cap entry count, per-entry size and total expansion (a zip bomb is a plausible bad day)
 - the executable bit is granted **only** to the fixed root lifecycle allowlist (`mvnw`, run, export,
   stop and key-check shell wrappers) — never taken from the archive's own mode bits
+  *(2026-10-13: kept as a named list, not a root `*.sh` rule — this bullet decides which names may
+  become executable. It drifted when the templates added `run-and-export.sh`, `run.sh` and `setup-java.sh`;
+  `TemplateExecutablesTest` now checks it against a fixture of every template's root scripts, UP-PG-07.)*
 - the whole extraction is atomic: stage in a sibling temp directory, move into place on success, and
   leave nothing behind on failure
 

@@ -2006,6 +2006,30 @@ escape. (3) A test in the template repository asserts the stdout line budget on 
 pays for build and server output in every later turn of the session.
 
 
+## UP-PG-07 ☐ Keep the analyser's record of each template's root scripts in step
+
+**Target** `fluxtion-web` (playground scaffold) · **Analyser side** `TemplateExecutablesTest`,
+`src/test/resources/template/playground-executables.txt`
+
+**Evidence.** The analyser's template installer never applies a downloaded archive's mode bits (D-4 of
+[`spec-template-from-analyser.md`](../specs/completed/spec-template-from-analyser.md)); it grants execute
+only to a fixed list of root script names. The templates added `run-and-export.sh`, `run.sh` and
+`setup-java.sh` without the list knowing, and analyser 1.33.0 installed the bundle's one documented command
+`-rw-r--r--` (`./run-and-export.sh` exited 126, 2026-10-13). The same drift happened before with `setup.sh`.
+
+**The ask.** A test in the template repository that builds every catalogue template with
+`buildStarterZip(builtinTemplateSpec(id))`, lists the root entries it marks executable (`.cmd` excluded) and the
+`./<script>` commands its top-level Markdown names, and fails when that differs from a committed copy in the
+analyser's fixture format (`exec <id>: …` / `doc <id>: …`). A template change that adds a root script then
+updates that copy in the same PR, and the analyser copies it across. Until then, the analyser's live leg
+(`tools/bench/template-bench.py --live`) compares every deployed template's marked root scripts with what the
+installer made executable. It is not run by CI: it runs by hand, as an item on the pre-release checklist
+(`docs/admin/release-process.md` §4.0), so drift that reaches production is caught at the next analyser release
+at the latest, not when the playground deploys.
+
+**Cost to us if unfixed.** The fixture is accurate only as of fluxtion-web `36d811a`; the next root script a
+template adds is installed non-executable until the next release's live leg, or a user, finds it.
+
 ## Spring authoring edit loop — 2026-09-25 intake
 
 **Status: proposed handoff, not implemented.** Canonical acceptance is the

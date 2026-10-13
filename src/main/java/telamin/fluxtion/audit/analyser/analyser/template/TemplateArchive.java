@@ -31,12 +31,17 @@ public final class TemplateArchive {
     public static final long MAX_ENTRY_BYTES = 64L * 1024 * 1024;
     public static final long MAX_EXPANDED_BYTES = 512L * 1024 * 1024;
     private static final Pattern WINDOWS_ABSOLUTE = Pattern.compile("^[A-Za-z]:[/\\\\].*");
-    // Spring authoring bundles ship setup/validate/generate beside the lifecycle scripts; the template marks
-    // them executable, but this installer never trusts archive modes, so they must be named here too
-    // (edit-loop spec §G, feedback 8: they arrived 0644 and ./setup.sh failed with "permission denied").
-    private static final Set<String> POSIX_EXECUTABLES = Set.of(
+    // D-4: the executable bit comes only from this fixed list of root scripts, never from the archive's own
+    // mode bits. The list must name every top-level script the playground templates ship; it has drifted
+    // twice — setup/validate/generate (edit-loop spec §G, feedback 8: they arrived 0644) and then
+    // run-and-export.sh, run.sh and setup-java.sh (2026-10-13: ./run-and-export.sh exited 126).
+    // Kept as a list rather than a "*.sh at the root" rule because D-4 is itself about WHICH names may become
+    // executable and its bench attacks an archive-marked root evil.sh; the drift is caught instead by
+    // TemplateExecutablesTest against src/test/resources/template/playground-executables.txt (upstream ask UP-PG-07).
+    static final Set<String> POSIX_EXECUTABLES = Set.of(
             "mvnw", "run-server.sh", "export-audit.sh", "stop-server.sh", "check-fluxtion-key.sh",
-            "setup.sh", "validate.sh", "generate.sh");
+            "setup.sh", "validate.sh", "generate.sh",
+            "run-and-export.sh", "run.sh", "setup-java.sh", "runWasm.sh");
 
     public record Installed(Path projectRoot, Path profile, List<String> commands) {
         public Installed {

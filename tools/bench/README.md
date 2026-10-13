@@ -12,7 +12,7 @@ record format got one (M34.3).
 | `bundle-client-bench.py` | the **fresh-analyser/MCP half of M19 P3** | opens a producer-run bundle in a disposable analyser home, verifies profile/runbooks/provenance, log/GraphML pairing and coverage, then proves the packaged MCP bridge sees the same state |
 | `dispatch-bench.py` | the **M50/W10 dispatch bench** | the gated comparison: both arms in one binary, runtime kind recorded, identical check values before any timing is believed, an elimination floor below which a figure is a deleted loop rather than a result |
 | `land-native.py` | the **M50/W9 native build lottery** | the route to a repeatable 1.6 ns: collect a PGO profile, build, measure, repeat until it lands — then keep the **profile**, not just the binary. The profile decides the mode and reproduces it on every rebuild; collection is what varies ([oracle/graal#14387](https://github.com/oracle/graal/issues/14387)). `--profile` rebuilds from a known-good one |
-| `template-bench.py` | the **M19.5 template-picker boundary** | always runs the catalogue/version and hostile-ZIP tests; `--live` also downloads the deployed onboarding template and opens its profile through `ProjectSession` |
+| `template-bench.py` | the **M19.5 template-picker boundary** | always runs the catalogue/version and hostile-ZIP tests; `--live` also downloads the deployed onboarding template and opens its profile through `ProjectSession`, then downloads every catalogue template and checks each root script its archive marks executable is installed executable (a release-checklist item) |
 
 ## Preflight the analyser template picker
 
