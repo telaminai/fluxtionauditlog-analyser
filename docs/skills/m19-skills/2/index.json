@@ -43,7 +43,8 @@
     "RE-PINNED 2026-10-12 (#126, second edit): add-a-node no longer tells the author to read generated code; it confirms a change from the Spring XML, the compiler's messages and the audit log. Same contract, same selection; only the revision and the add-a-node hash moved.",
     "RE-PINNED 2026-10-13 (#126, review of PR 127): audit-compare.py reads trace keys by position, refuses run-together and list-shaped logs, compares multi-line event text and masks only ClassName@hash; add-a-node says the GraphML is opened in the analyser, never read as text. Same contract, same selection; only the revision and the add-a-node and audit-compare.py hashes moved.",
     "RE-PINNED 2026-10-13 (#126, second review of PR 127): audit-compare.py refuses broken records, reports an ambiguous annotation as inconclusive (exit 3) and scopes its verdict to the logged business entries; add-a-node concludes in those words. Same contract, same selection; only the revision and the add-a-node and audit-compare.py hashes moved.",
-    "RE-PINNED 2026-10-13 (#126, third review of PR 127): audit-compare.py reads each record by the analyser's own structural rule (RecordBreak, C32) and refuses a broken one. Same contract, same selection; only the revision and the audit-compare.py hash moved."
+    "RE-PINNED 2026-10-13 (#126, third review of PR 127): audit-compare.py reads each record by the analyser's own structural rule (RecordBreak, C32) and refuses a broken one. Same contract, same selection; only the revision and the audit-compare.py hash moved.",
+    "RE-PINNED 2026-10-13 (#126, fourth review of PR 127): audit-compare.py compares block scalars and every non-time field, and strips and splits lines as the analyser does. Same contract, same selection; only the revision and the audit-compare.py hash moved."
   ],
   "common": [
     "common/load-audit-log/SKILL.md",
@@ -79,7 +80,7 @@
       ]
     }
   },
-  "revision": "d6c49b964cf6aea14a35e640ff76be811046a71c",
+  "revision": "5894502c8a234949150b46be9e80298c8862bb48",
   "sha256": {
     "common/load-audit-log/SKILL.md": "240ba202b418a21c6fb8acc384cc4f036381a4bdf134f6e831230bdf55f42d0c",
     "common/guided-start/SKILL.md": "fdead498fa56b4df27d360f070de5357f833c16dd9cb8e0eef4ad3a5690c2d47",
@@ -87,7 +88,7 @@
     "mongoose/run-mongoose-server/SKILL.md": "296aab9ca1987153becfd96abcc9d967bb67148a22e727c0bb25d82b79e0a9ca",
     "embedded/run-embedded/SKILL.md": "d98ddd4dc536feb2772150a4855fd13c4abb02f73927cd39c83742978c7b7014",
     "spring/add-a-node/SKILL.md": "218ef138d9676904dc037cfe36820888c80898819cd4378b38a6dc94f19d641b",
-    "spring/add-a-node/audit-compare.py": "e2610aaa6d3aec732ef3cde7e22e0de7e3a2c0f680e081fcf560ad29e4e631d6",
+    "spring/add-a-node/audit-compare.py": "62c64cfd45da408b6bec4e40d9815f016d60334bdfe7294ae1dabfcb8ad5ba3c",
     "common/replay-a-run/SKILL.md": "548646b354f2c76ae41bdb3c737faa131032341a19a9a7872ec591421a1091d4"
   }
 }
