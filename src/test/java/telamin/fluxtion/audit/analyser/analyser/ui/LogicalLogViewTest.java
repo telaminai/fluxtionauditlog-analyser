@@ -172,6 +172,30 @@ class LogicalLogViewTest {
         assertFalse(layout.traceLines().contains(line.apply("annotation: draft")), "a lone annotation is business");
         assertFalse(layout.traceLines().contains(line.apply("thread: mine")), "a lone thread is business");
         assertEquals(3, layout.traceLines().size());
+        assertEquals("onTrigger", layout.blocks().get(0).method(), "the block opens the traced method, not a later key");
+    }
+
+    @Test
+    void aWireTraceMarkerMakesPositionAuthoritativeInAnyGrammar() {
+        // delta review of PR 127: a traced binary log writes the same run after its TRACE marker, and was left
+        // unmuted once muting stopped being by spelling
+        String yaml = """
+                ---
+                eventLogRecord:
+                    logTime: 1
+                    event: E
+                    nodeLogs:
+                        - risk: { @invoked: true, thread: main, method: onEvent, value: 7}
+                """;
+        HeapLogStore store = new HeapLogStore(yaml);
+        LogRecord quoted = telamin.fluxtion.audit.analyser.analyser.parse.RecordParser.parse(store.rawText(0),
+                store.index().snapshot().offset(0),
+                telamin.fluxtion.audit.analyser.analyser.spi.AuditLogReader.TextEncoding.QUOTED_SCALARS);
+        assertTrue(quoted.nodeLogs().get(0).traced(), "fixture: the marker is read");
+        LogicalLogView.Layout layout = LogicalLogView.layout(List.of(quoted));
+        String text = layout.text();
+        assertTrue(layout.traceLines().contains(text.indexOf("      method: onEvent")), text);
+        assertFalse(layout.traceLines().contains(text.indexOf("      value: 7")), text);
     }
 
     @Test

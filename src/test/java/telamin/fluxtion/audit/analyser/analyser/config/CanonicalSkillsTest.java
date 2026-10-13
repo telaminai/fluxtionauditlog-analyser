@@ -93,7 +93,15 @@ class CanonicalSkillsTest {
                 "Confirm the dispatch order in the generated onEvent body.",
                 "Read the processor the generator wrote.",
                 "Read the generated processor if the receipt does not list your node.",
-                "cat the builder to see the wiring."))
+                "cat the builder to see the wiring.",
+                "Start by reading the generated processor.",
+                "Grep the generated processor for your node.",
+                "Search the generated source for onTrigger.",
+                "Look through the generated code.",
+                "Study the regenerated dispatch code.",
+                "Open the GraphML in a text editor.",
+                "Open src/main/java/com/acme/generated/QuoteProcessor.java.",
+                "It is not enough to check the XML, read the generated processor."))
             assertTrue(tellsTheAuthorToReadGeneratedCode(evasion), "the guard must catch: " + evasion);
         for (String allowed : List.of(
                 "Do not read the regenerated processor, its GraphML text or the builder to confirm the wiring.",
@@ -114,29 +122,42 @@ class CanonicalSkillsTest {
         assertTrue(addANode.contains("read only the compiler's own messages"), "the replacement instruction is present");
     }
 
-    private static final String READ_VERB = "\\b(read|inspect|open|check|look at|review|examine|confirm|view|cat)\\b";
-    private static final java.util.regex.Pattern READ_GENERATED = java.util.regex.Pattern.compile(
-            "(?i)" + READ_VERB + "([^.\\n]{0,60}?)"
-                    + "(\\b(re)?generated[ -](processor|sources?|code|java|file|onEvent)|generated-sources"
-                    + "|\\bprocessor the generator wrote|\\bGraphML(?! *\\(| with| in the analyser))");
+    private static final java.util.regex.Pattern READ_VERB = java.util.regex.Pattern.compile(
+            "(?i)\\b(read(?:s|ing)?|inspect(?:s|ing)?|open(?:s|ing)?|check(?:s|ing)?|look(?:s|ing)? (?:at|in|through)"
+                    + "|review(?:s|ing)?|examin(?:e|es|ing)|confirm(?:s|ing)?|view(?:s|ing)?|cat|grep(?:s|ping)?"
+                    + "|search(?:es|ing)?|stud(?:y|ies|ying))\\b");
+    private static final java.util.regex.Pattern GENERATED_OBJECT = java.util.regex.Pattern.compile(
+            "(?i)^[^.\\n]{0,60}?(\\b(re)?generated[ -](processor|sources?|code|java|file|onEvent|dispatch)|generated-sources"
+                    + "|/generated/|\\bprocessor the generator wrote|\\bGraphML\\b)");
     /** The builder only as the verb's direct object: "a source the builder reads" (fluxtion-builder, the tool) is not. */
-    private static final java.util.regex.Pattern READ_BUILDER = java.util.regex.Pattern.compile(
-            "(?i)" + READ_VERB + "\\s+((the|its|generated)\\s+)*builder\\b");
+    private static final java.util.regex.Pattern BUILDER_OBJECT = java.util.regex.Pattern.compile(
+            "(?i)^\\s+((the|its|generated)\\s+)*builder\\b");
     /** Negation that governs the matched verb: directly before it, at most two words between. */
     private static final java.util.regex.Pattern NEGATED = java.util.regex.Pattern.compile(
             "(?is).*\\b(do not|don't|never|nor|not)\\s+(\\w+\\s+){0,2}$");
 
-    /** True when the sentence instructs reading generated output: a reading verb that no negation governs. */
+    /**
+     * True when the sentence instructs reading generated output: SOME reading verb in it (each one is tested, so
+     * a negated verb cannot shield a later one) has a generated object after it and no negation governing it.
+     * Opening the GraphML is the analyser step and is allowed, unless the sentence says to read it as text.
+     */
     static boolean tellsTheAuthorToReadGeneratedCode(String sentence) {
-        for (var pattern : List.of(READ_GENERATED, READ_BUILDER)) {
-            var m = pattern.matcher(sentence);
-            while (m.find()) {
-                String verb = m.group(1).toLowerCase(java.util.Locale.ROOT);
-                boolean graphml = pattern == READ_GENERATED
-                        && m.group(3).toLowerCase(java.util.Locale.ROOT).startsWith("graphml");
-                if (graphml && (verb.equals("open") || verb.equals("view"))) continue;   // the analyser opens it
-                if (!NEGATED.matcher(sentence.substring(0, m.start())).matches()) return true;
+        var verbs = READ_VERB.matcher(sentence);
+        while (verbs.find()) {
+            String verb = verbs.group(1).toLowerCase(java.util.Locale.ROOT);
+            String after = sentence.substring(verbs.end());
+            var object = GENERATED_OBJECT.matcher(after);
+            boolean generated = object.find();
+            String lower = sentence.toLowerCase(java.util.Locale.ROOT);
+            if (generated && object.group(1).equalsIgnoreCase("GraphML")) {
+                boolean opens = verb.startsWith("open") || verb.startsWith("view");
+                boolean asText = lower.contains("text editor") || lower.contains("as text") || lower.contains("graphml text");
+                boolean viaAnalyser = lower.contains("analyser") || lower.contains("load-audit-log");
+                // opening the GraphML (with a log, in the analyser) is the analyser step; reading it as text is not
+                if (opens ? !asText : viaAnalyser) generated = false;
             }
+            if (!generated && !BUILDER_OBJECT.matcher(after).find()) continue;
+            if (!NEGATED.matcher(sentence.substring(0, verbs.start())).matches()) return true;
         }
         return false;
     }

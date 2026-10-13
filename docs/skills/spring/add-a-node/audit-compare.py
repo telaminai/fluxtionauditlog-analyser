@@ -6,7 +6,7 @@
 Both files are analyser-readable YAML audit exports (Format 1). Every entry a node writes is split into
 BUSINESS data - the keys the node chose to log - and FRAMEWORK data - the keys invocation tracing adds.
 Tracing writes them FIRST in an entry, in a fixed order, and the rule is positional, as it is in the
-analyser: an optional `thread` (before or just after the method), then `method` (or `forkedExecution` then `asyncMethod` for a forked node),
+analyser: an optional `thread`, then `method` (or `forkedExecution` then `asyncMethod` for a forked node),
 then an optional `annotation` whose value is an annotation's simple name (`OnTrigger`). Only that leading
 run is framework. Everything after it is the node's own, even when spelled like a trace key, and an entry
 with no leading `method`/`asyncMethod` has no framework keys at all: a lone `thread` or `annotation` is
@@ -14,14 +14,20 @@ business. A record with at least one business entry is a business record, and th
 business comparison is the sequence of business records: their event, event text and every node's
 business entries, in dispatch order. Times and the record's thread are never compared.
 
-The verdict comes from the business comparison alone. Framework differences - another dispatch path,
+The verdict is about the LOGGED business entries of these two captures, not about behaviour in general: an output
+or side effect that no node logs is not covered, and logging a new value shows as a difference. It comes from
+the business comparison alone. Framework differences - another dispatch path,
 a trace-only record, a renamed callback - are reported separately and never decide it.
 
 Masked before comparing (`--keep-identity-hashes` keeps them): `Object.toString` identity hashes, in the
 `ClassName@1a2b3c4d` shape only, and lambda class addresses (`$$Lambda/0x...`); the count is printed.
 Event text that runs onto further lines (an exported service's `@Override` + signature) is compared whole.
 
-Exit status: 0 business behaviour did not change; 1 it changed; 2 nothing comparable (a file is
+An `annotation` straight after the method is ambiguous (tracing's from runtime 1.1.1, or an older node's own key):
+when the match depends on it the verdict is INCONCLUSIVE (exit 3) unless --annotations-are-trace says it is
+tracing's.
+
+Exit status: 0 the logged business entries match; 1 they differ; 3 inconclusive (see above); 2 nothing comparable (a file is
 missing, holds no business record, or is in a shape this script does not read - a list-shaped
 `eventLogRecords:` export, or records run together without `---`), because an empty or misread
 comparison proves nothing.
@@ -35,8 +41,12 @@ import sys
 MARKER_KEYS = {"streamEnd", "streamEndRecords", "logTime"}
 # Object.toString's identity hash: a class name (simple name capitalised, optionally package-qualified or
 # nested) directly before the @. A bare `batch@20261013` or `ops@cafe01` is a value, not a hash.
-IDENTITY_HASH = re.compile(r"(?<![\w$.])((?:[a-z_$][\w$]*\.)*[A-Z][\w$]*)@[0-9a-f]{1,8}\b")
-LAMBDA_ADDRESS = re.compile(r"\$\$Lambda/0x[0-9a-f]+(?:@[0-9a-f]{1,8}\b)?")  # the address, and its hash
+# Five to eight hex digits (an identity hash is a 31-bit value; `Release@2026` is a version), and nothing that
+# continues the token after it (`Bob@deadbeef.com` is an address).
+_HASH = r"@[0-9a-f]{5,8}(?![\w.@])"
+IDENTITY_HASH = re.compile(r"(?<![\w$.])((?:[A-Za-z_$][\w$]*\.)*[A-Z][\w$]*|\[+L[\w.$]+;|\[+[BCDFIJSZ])" + _HASH)
+# a lambda class address, JDK 9-20 (`$$Lambda$14/0x...`) and 21+ (`$$Lambda/0x...`), and the hash after it
+LAMBDA_ADDRESS = re.compile(r"\$\$Lambda(?:\$\d+)?/(?:0x)?[0-9a-f]+(?:@[0-9a-f]{1,8}(?![\w.@]))?")
 ANNOTATION_NAME = re.compile(r"[A-Z][A-Za-z0-9_]*")
 
 
@@ -44,24 +54,27 @@ class Unreadable(Exception):
     """A log in a shape this script does not read: comparing it would prove nothing."""
 
 
+def item_closed(text):
+    """True when a node entry is complete: its text ends with the `}` that closes it. A text export is always the
+    legacy grammar (format spec section 3): a quote mark is data, never syntax, so no brace is "inside quotes"."""
+    return "{" in text and text.rstrip().endswith("}")
+
+
 def trace_run(entries):
     """The number of leading entries invocation tracing wrote: thread?, method | forkedExecution asyncMethod,
     annotation?. Zero when the entry does not start with that run - then every key is the node's own."""
     keys = [k for k, _ in entries]
-    thread = keys[:1] == ["thread"]
-    i = 1 if thread else 0
+    i = 1 if keys[:1] == ["thread"] else 0
     if keys[i:i + 1] == ["method"]:
         i += 1
     elif keys[i:i + 2] == ["forkedExecution", "asyncMethod"]:
         i += 2
     else:
         return 0
-    if not thread and keys[i:i + 1] == ["thread"]:   # older logs: method, then thread (as the analyser reads it)
-        i += 1
     if keys[i:i + 1] == ["annotation"] and ANNOTATION_NAME.fullmatch(entries[i][1] or ""):
         i += 1
     return i
-ITEM = re.compile(r"^\s*-\s+(\S+?):\s*\{(.*)\}\s*$", re.S)
+ITEM = re.compile(r'^\s*-\s+("(?:[^"\\]|\\.)*"|\S+?):\s*\{(.*)\}\s*$', re.S)
 
 
 def split_top_level(body):
@@ -105,17 +118,34 @@ def parse(path):
             records.append({"raw": "\n".join(l.strip() for l in lines)})
             continue
         fields, items, pending, last_field = {}, [], None, None
+        field_indent, header, item_indent = None, True, None
         for line in lines[1:]:
             if pending is not None:                      # an item whose value ran onto the next line
                 pending += "\n" + line
                 line, pending = pending, None
             stripped = line.strip()
-            if not line[:1].isspace() and last_field is not None and not items:
-                fields[last_field] += "\n" + stripped   # a field value continued at column 0 (event text)
+            indent = len(line) - len(line.lstrip())
+            if field_indent is None and re.match(r"[A-Za-z_]\w*:", stripped):
+                field_indent = indent                    # the record's own keys sit at this indentation
+            if header and not (indent == field_indent and re.match(r"[A-Za-z_]\w*:", stripped)):
+                if last_field is None:
+                    raise Unreadable(f"{path}: a record line before any field: {stripped[:60]}")
+                fields[last_field] += "\n" + line.rstrip()  # event text continued, at any indentation, compared whole
                 continue
+            if header and stripped.startswith("nodeLogs:"):
+                header = False                           # from here: node entries, then the closing fields
+            if not header and pending is None and item_indent is not None and indent > item_indent:
+                # a line deeper than the entries after an entry closed: a value with a line break ran on past a
+                # `}` (a forged entry inside it). The analyser marks such a record broken; so does this script.
+                raise Unreadable(f"{path}: record structure breaks at '{stripped[:60]}': a value was written with a "
+                                 "line break in it, so its node entries cannot be read")
             if stripped.startswith("- "):
-                match = ITEM.match(line)
-                if match:
+                if item_indent is None:
+                    item_indent = indent
+                if item_closed(line):                    # quote-aware: a brace inside a quoted value closes nothing
+                    match = ITEM.match(line)
+                    if not match:
+                        raise Unreadable(f"{path}: a node entry that is not `- name: {{...}}`: {stripped[:60]}")
                     items.append((match.group(1), split_top_level(match.group(2))))
                 else:
                     pending = line
@@ -127,20 +157,27 @@ def parse(path):
                 else:
                     last_field = None
         if pending is not None:
-            items.append(("?", [(None, pending.strip())]))
+            raise Unreadable(f"{path}: a node entry that never closes: {pending.strip()[:60]}")
         if not items and fields and set(fields) <= MARKER_KEYS and "streamEnd" in fields:
             continue                                     # a stream-end marker is a container fact
         records.append({"event": fields.get("event"), "text": fields.get("eventToString"), "items": items})
     return records
 
 
-def split_record(record, normalise):
-    """Return (business view or None, framework view) of one record."""
+def split_record(record, normalise, annotations_are_trace=True):
+    """Return (business view or None, framework view) of one record.
+
+    An `annotation` at the end of the trace run is AMBIGUOUS: Fluxtion 1.1.1 tracing writes the dispatching
+    annotation there, and a node of an older runtime that logged its own `annotation: Approved` first reads the
+    same. With annotations_are_trace=False it is kept in the business view, so the caller can tell whether the
+    verdict depends on it."""
     if "raw" in record:
         return ("UNPARSED", normalise(record["raw"])), ()
     business, framework = [], []
     for node, entries in record["items"]:
         run = trace_run(entries)
+        if not annotations_are_trace and run and entries[run - 1][0] == "annotation":
+            run -= 1
         own = tuple((k, normalise(v)) for k, v in entries[run:])
         trace = tuple(entries[:run])
         if own:
@@ -159,7 +196,7 @@ def describe(view):
     return f"{event} [{text[:60]}] {shown}"
 
 
-def compare(before, after, max_diffs=10, keep_identity_hashes=False, out=sys.stdout):
+def compare(before, after, max_diffs=10, keep_identity_hashes=False, out=sys.stdout, annotations_are_trace=False):
     masked = [0]
 
     def mask(s):
@@ -185,7 +222,18 @@ def compare(before, after, max_diffs=10, keep_identity_hashes=False, out=sys.std
     report("framework (reported, does not decide the verdict)", sides[0][1], sides[1][1], max_diffs, out)
     if sides[0][2] != sides[1][2]:
         print(f"  framework-only records: {sides[0][2]} before, {sides[1][2]} after", file=out)
-    print("verdict: business behaviour " + ("CHANGED" if changed else "did not change"), file=out)
+    print("note: this compares what nodes LOGGED for these captures; an output or side effect no node logged is not "
+          "covered, and a change to what is logged shows as a difference", file=out)
+    if not changed and not annotations_are_trace:
+        strict = [[b for b in (split_record(r, normalise, False)[0] for r in records) if b is not None]
+                  for records in (before, after)]
+        if strict[0] != strict[1]:
+            print("verdict: INCONCLUSIVE - the entries match only if every `annotation` written straight after the "
+                  "method is tracing's (Fluxtion 1.1.1+); a node of an older runtime logging its own `annotation` "
+                  "reads the same. Pass --annotations-are-trace when both captures come from runtime 1.1.1 or later "
+                  "and no node logs a key called annotation first.", file=out)
+            return 3
+    print("verdict: logged business entries " + ("DIFFER" if changed else "MATCH") + " for these captures", file=out)
     return 1 if changed else 0
 
 
@@ -210,6 +258,9 @@ def main(argv=None):
     parser.add_argument("before")
     parser.add_argument("after")
     parser.add_argument("--max-diffs", type=int, default=10)
+    parser.add_argument("--annotations-are-trace", action="store_true",
+                        help="treat an `annotation` straight after the method as tracing's (both captures from "
+                             "Fluxtion runtime 1.1.1+, and no node logs a key called annotation first)")
     parser.add_argument("--keep-identity-hashes", action="store_true",
                         help="compare Object.toString identity hashes (@1a2b3c4d) instead of masking them")
     args = parser.parse_args(argv)
@@ -219,7 +270,8 @@ def main(argv=None):
         print(f"audit-compare: {error}", file=sys.stderr)
         print("verdict: NOTHING TO COMPARE - a log could not be read, so no conclusion follows")
         return 2
-    return compare(before, after, args.max_diffs, args.keep_identity_hashes)
+    return compare(before, after, args.max_diffs, args.keep_identity_hashes,
+                   annotations_are_trace=args.annotations_are_trace)
 
 
 if __name__ == "__main__":

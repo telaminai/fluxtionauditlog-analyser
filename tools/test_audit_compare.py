@@ -80,6 +80,11 @@ def framework_only_changes(text):
 class AuditCompareTest(unittest.TestCase):
 
     def run_compare(self, before, after, *flags):
+        return self._run(before, after, '--annotations-are-trace', *flags) if self.ANNOTATIONS_ARE_TRACE else self._run(before, after, *flags)
+
+    ANNOTATIONS_ARE_TRACE = True   # most cases are about something else; the ambiguity has its own tests
+
+    def _run(self, before, after, *flags):
         with tempfile.TemporaryDirectory() as tmp:
             b, a = Path(tmp, 'before.yaml'), Path(tmp, 'after.yaml')
             b.write_text(before, encoding='utf-8')
@@ -91,7 +96,7 @@ class AuditCompareTest(unittest.TestCase):
     def test_identical_logs_did_not_change(self):
         code, out = self.run_compare(BEFORE, BEFORE)
         self.assertEqual(0, code, out)
-        self.assertIn('verdict: business behaviour did not change', out)
+        self.assertIn('verdict: logged business entries MATCH for these captures', out)
 
     def test_framework_only_differences_are_reported_and_never_decide_the_verdict(self):
         code, out = self.run_compare(BEFORE, framework_only_changes(BEFORE))
@@ -99,7 +104,7 @@ class AuditCompareTest(unittest.TestCase):
         self.assertIn('business: same', out)
         self.assertIn('framework (reported, does not decide the verdict): DIFFERENT', out)
         self.assertIn('framework-only records: 0 before, 1 after', out)
-        self.assertIn('verdict: business behaviour did not change', out)
+        self.assertIn('verdict: logged business entries MATCH for these captures', out)
 
     def test_WRONG_RESULT_CONTROL_a_business_difference_hidden_among_framework_differences_is_reported(self):
         after = framework_only_changes(BEFORE).replace('spread: 0.75, decision: publish',
@@ -110,7 +115,7 @@ class AuditCompareTest(unittest.TestCase):
         self.assertIn('- PriceEvent [PriceEvent[symbol=DEMO, price=102.0]]', out)
         self.assertIn('quoteDEMO {spread: 0.75, decision: hold}', out, 'the changed record is named, with its values')
         self.assertIn('framework (reported, does not decide the verdict): DIFFERENT', out)
-        self.assertIn('verdict: business behaviour CHANGED', out)
+        self.assertIn('verdict: logged business entries DIFFER for these captures', out)
 
     def test_a_dropped_business_record_is_a_change(self):
         records = BEFORE.split('---\n')
@@ -216,6 +221,65 @@ class AuditCompareTest(unittest.TestCase):
                                   'eventToString: @Override\n' + signature)
         code, out = self.run_compare(exported('public void setLimit(int limit)'), exported('public void cancelAll()'))
         self.assertEqual(1, code, out)
+
+    def test_event_text_continued_on_indented_lines_is_compared_whole(self):
+        # delta review of PR 127: an indented continuation was dropped, or read as a header field never compared
+        def text(continuation):
+            return BEFORE.replace('eventToString: PriceEvent[symbol=DEMO, price=99.0]',
+                                  'eventToString: Order{\n' + continuation)
+        self.assertEqual(1, self.run_compare(text('      price=5}'), text('      price=9}'))[0])
+        self.assertEqual(1, self.run_compare(text('  "price": 5\n}'), text('  "price": 9\n}'))[0])
+        self.assertEqual(0, self.run_compare(text('      price=5}'), text('      price=5}'))[0])
+
+    def test_a_business_thread_after_the_method_is_the_nodes_own(self):
+        # tracing writes thread BEFORE method; a `thread` after it (printThreadName off) is the node's own key
+        b = BEFORE.replace('- quoteDEMO: { thread: main, method: onTrigger}', '- quoteDEMO: { method: onTrigger, thread: worker-1}')
+        self.assertEqual(1, self.run_compare(b, b.replace('worker-1', 'worker-2'))[0])
+
+    def test_hash_like_values_that_are_not_identity_hashes_are_compared(self):
+        for before, after in (('ver: Release@2026', 'ver: Release@2027'), ('user: Bob@deadbeef.com', 'user: Bob@cafe00.com')):
+            self.assertEqual(1, self.run_compare(BEFORE.replace('decision: hold', before),
+                                                 BEFORE.replace('decision: hold', after))[0], before)
+
+    def test_older_lambdas_and_arrays_are_masked(self):
+        for before, after in (('s: Foo$$Lambda$14/0x0000000800c0b040@1b2c3d4e', 's: Foo$$Lambda$14/0x0000000800c0c999@5f6a7b8c'),
+                              ('s: [Ljava.lang.String;@1b2c3d4e', 's: [Ljava.lang.String;@5f6a7b8c'),
+                              ('s: [I@1b2c3d4e', 's: [I@5f6a7b8c')):
+            self.assertEqual(0, self.run_compare(BEFORE.replace('decision: hold', before),
+                                                 BEFORE.replace('decision: hold', after))[0], before)
+
+    # --- second review of PR 127 ---
+
+    def test_a_value_run_on_past_a_forged_brace_is_refused_and_a_multiline_entry_is_read_whole(self):
+        c32 = Path(__file__).resolve().parent.parent / 'src/test/resources/conformance/c32-record-structure.yaml'
+        text = c32.read_text(encoding='utf-8')
+        self.assertIn('last"}', text)
+        code, out = self.run_compare(text, text.replace('last"}', 'final"}'))
+        self.assertEqual(2, code, 'a value run on past a forged `}` is a broken record, refused as the analyser does: ' + out)
+        legacy = Path(__file__).resolve().parent.parent / 'src/test/resources/conformance/c17-legacy-quotes.yaml'
+        text = legacy.read_text(encoding='utf-8')
+        self.assertEqual(0, self.run_compare(text, text)[0], 'a quote mark is data in the legacy grammar')
+        self.assertEqual(1, self.run_compare(text, text.replace('end, price: 77}', 'end, price: 78}'))[0],
+                         'a multiline legacy entry is read whole')
+
+    def test_an_entry_that_never_closes_is_refused(self):
+        broken = BEFORE.replace('- quoteDEMO: { spread: 0.25, decision: hold}', '- quoteDEMO: { spread: 0.25, note: "open')
+        self.assertNotEqual(BEFORE, broken)
+        self.assertEqual(2, self.run_compare(broken, broken)[0])
+
+    def test_an_ambiguous_annotation_makes_a_match_inconclusive_unless_declared_trace(self):
+        def entry(value):
+            return BEFORE.replace('- quoteDEMO: { thread: main, method: onTrigger}',
+                                  f'- quoteDEMO: {{ thread: main, method: onTrigger, annotation: {value}, price: 100}}')
+        code, out = self._run(entry('Approved'), entry('Rejected'))
+        self.assertEqual(3, code, out)
+        self.assertIn('INCONCLUSIVE', out)
+        self.assertEqual(0, self._run(entry('OnTrigger'), entry('OnParentUpdate'), '--annotations-are-trace')[0])
+        self.assertEqual(0, self._run(entry('Approved'), entry('Approved'))[0], 'the same value either way matches')
+
+    def test_the_verdict_names_what_it_covers(self):
+        out = self.run_compare(BEFORE, BEFORE)[1]
+        self.assertIn('an output or side effect no node logged is not covered', out)
 
 if __name__ == '__main__':
     unittest.main()

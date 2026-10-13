@@ -107,16 +107,24 @@ public final class LogicalLogView {
                 sb.append("  ").append(EvidenceText.name(node.instanceId())).append('\n');
                 int headerEnd = sb.length() - 1;
 
+                // muted by POSITION, not spelling: only the leading run tracing wrote (AuditTrace.traceEntryCount),
+                // in the legacy text grammar or wherever a wire TRACE marker says the node ran (the binary log
+                // writes the same run after its marker)
+                int run = record.textEncoding() == telamin.fluxtion.audit.analyser.analyser.spi.AuditLogReader.TextEncoding.LEGACY
+                        || node.traced()
+                        ? telamin.fluxtion.audit.analyser.analyser.topology.AuditTrace.traceEntryCount(node.entries()) : 0;
                 String method = null;
-                for (KV kv : node.entries()) {
-                    if ("method".equals(kv.key())) method = kv.rawValue();
+                for (KV kv : node.entries().subList(0, run)) {
+                    if ("method".equals(kv.key()) || "asyncMethod".equals(kv.key())) method = kv.rawValue();
+                }
+                if (method == null && run == 0) {
+                    for (KV kv : node.entries()) {
+                        if ("method".equals(kv.key())) { method = kv.rawValue(); break; }   // first, never a later business key
+                    }
                 }
                 if (method == null) method = record.callback();
                 if (method == null && !node.entries().isEmpty()) method = node.entries().get(0).key();
 
-                // muted by POSITION, not spelling: only the leading run tracing wrote (AuditTrace.traceEntryCount)
-                int run = record.textEncoding() == telamin.fluxtion.audit.analyser.analyser.spi.AuditLogReader.TextEncoding.LEGACY
-                        ? telamin.fluxtion.audit.analyser.analyser.topology.AuditTrace.traceEntryCount(node.entries()) : 0;
                 int index = 0;
                 for (KV kv : node.entries()) {
                     if (index++ < run) traceLines.add(sb.length());

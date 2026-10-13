@@ -1,6 +1,6 @@
 ---
 name: add-a-node
-description: Add a node to a Spring-XML authored Fluxtion graph, or make an existing node log its values, and prove it ran; or prove whether a change altered business behaviour by comparing before and after audit logs. A new node needs regeneration; a body-only logging change does not.
+description: Add a node to a Spring-XML authored Fluxtion graph, or make an existing node log its values, and prove it ran; or show whether a change altered the logged business values by comparing before and after audit logs. A new node needs regeneration; a body-only logging change does not.
 x-analyser-min-version: 1.12.0
 ---
 
@@ -87,7 +87,7 @@ already produced. Do not introduce a compound analyser verb for this workflow.
 The generated processor and GraphML show what the generator **wrote**; they cannot show what an event
 **did**. Do not read the processor or the GraphML text: the GraphML is opened in the analyser (step 5),
 never read. The compiler's messages say whether the declared graph compiled, and the audit
-log answers every behavioural question. Reading generated source costs thousands of tokens and answers
+log answers every behavioural question. Generated source costs thousands of tokens to take in and answers
 nothing those two do not. With invocation tracing on, a record lists every
 node invoked for its event, in dispatch order, each with its `method` (and, from Fluxtion runtime 1.1.1,
 the `annotation` that dispatched it) — that is the evidence for dispatch order, not a reading of the
@@ -120,17 +120,25 @@ meant to alter them. Prove which happened by comparing two runs of the **same in
    project's copy of the skill does not carry it, take the canonical copy,
    `docs/skills/spring/add-a-node/audit-compare.py` in the analyser repository, at the revision this skill
    came from — do not write your own on the spot. It splits every node entry into **business** data —
-   the keys the node chose to log — and **framework** data — the keys invocation tracing adds: `thread`,
-   `method`, `annotation`, `forkedExecution`, `asyncMethod` (a lone `thread` or `annotation` with no
-   `method` beside it is the node's own key, as it is in the analyser). It compares the business records
+   the keys the node chose to log — and **framework** data — the keys invocation tracing writes FIRST in an
+   entry: an optional `thread`, then `method` (or `forkedExecution` and `asyncMethod`), then an optional
+   `annotation` naming an annotation. Only that leading run is framework, as it is in the analyser; a key
+   after it, or a lone `thread` or `annotation`, is the node's own. It compares the business records
    in order — event, event text and every node's business entries; never times or thread names — and
-   reports framework differences separately. Exit `0`: business records are the same; `1`: they differ,
-   and the changed records are printed; `2`: a log holds no business record, so nothing follows.
+   reports framework differences separately. Exit `0`: the logged business entries match; `1`: they
+   differ, and the changed records are printed; `3`: inconclusive — they match only if an `annotation`
+   straight after the method is tracing's (runtime 1.1.1+) rather than an older node's own key; pass
+   `--annotations-are-trace` only when both captures come from runtime 1.1.1 or later and no node logs a
+   key called `annotation` first; `2`: nothing follows — a log holds no business record, or is in a shape
+   the script refuses to guess at (records run together without `---`, a list-shaped export, a value whose
+   line break broke the record's structure).
 
-4. Conclude **"business behaviour changed"** or **"business behaviour did not change"** from the business
-   comparison **only**. A framework difference never decides it either way: a new trace-only record or a
-   renamed callback is not a behaviour change, and a quiet framework section does not prove business
-   output is right. Report the framework differences as what they are — evidence about dispatch — and
+4. Conclude **"the logged business entries changed"** or **"the logged business entries did not change,
+   for this input"** from the business comparison **only** — not "behaviour did not change": an output or
+   side effect no node logs is not compared, and logging a new value shows as a difference. When the
+   conclusion needs an output, make a node log it (or assert it) first. A framework difference never
+   decides it either way: a new trace-only record or a renamed callback is not a business change, and a
+   quiet framework section does not prove business output is right. Report the framework differences as what they are — evidence about dispatch — and
    check each one against your written prediction.
 
 The comparison is only as good as the input being identical. If the two runs read different input, or

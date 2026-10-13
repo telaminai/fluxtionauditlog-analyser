@@ -50,7 +50,7 @@ public final class AuditTrace {
     /**
      * How many of this entry's leading values invocation tracing wrote. Tracing writes first, in a fixed
      * order ({@code EventLogManager.nodeInvoked}, and each invocation starts its own entry): an optional
-     * {@code thread} (accepted once, before or just after the method, as older logs wrote it), then {@code method} — or {@code forkedExecution} then {@code asyncMethod} — then an
+     * {@code thread}, then {@code method} — or {@code forkedExecution} then {@code asyncMethod} — then an
      * optional {@code annotation} whose value is an annotation's simple name. Only that leading run is trace;
      * everything after it is the node's own, even when spelled like a trace key, and an entry that does not
      * start with the run has no trace values at all (a lone {@code thread} or {@code annotation} is business).
@@ -60,13 +60,11 @@ public final class AuditTrace {
      */
     public static int traceEntryCount(List<KV> entries) {
         int n = entries == null ? 0 : entries.size(), i = 0;
-        boolean thread = i < n && "thread".equals(entries.get(i).key());
-        if (thread) i++;
+        if (i < n && "thread".equals(entries.get(i).key())) i++;
         if (i < n && METHOD.equals(entries.get(i).key())) i++;
         else if (i + 1 < n && "forkedExecution".equals(entries.get(i).key())
                 && "asyncMethod".equals(entries.get(i + 1).key())) i += 2;
         else return 0;
-        if (!thread && i < n && "thread".equals(entries.get(i).key())) i++;   // older logs: method, then thread
         if (i < n && "annotation".equals(entries.get(i).key()) && entries.get(i).rawValue() != null
                 && ANNOTATION_NAME.matcher(entries.get(i).rawValue()).matches()) i++;
         return i;
