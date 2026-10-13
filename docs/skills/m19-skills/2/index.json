@@ -40,7 +40,8 @@
     "RE-PINNED after tool-agreement review: combined main point-at-the-fault/add-a-node and corrected Mongoose guidance; this revision contains every selected byte.",
     "RE-PINNED 2026-10-01: add-a-node now makes the model own the prediction-to-evidence verification loop while project scripts perform operations and Fluxtion audit records remain the deterministic application evidence. Mongoose logs are reserved for explaining the stochastic host boundary. Tested end to end on a generated Spring + Mongoose bundle before re-pinning.",
     "RE-PINNED 2026-10-07 (issue #126): THE SELECTION GREW BY ONE FILE. add-a-node gains 'Prove a change by comparing audit logs' and 'Verify from the audit log, not from generated code', and ships spring/add-a-node/audit-compare.py, listed under the spring specialisation's new `files` - a supporting file selected and hash-pinned exactly like a skill, placed beside the skill whose directory it shares. Additive: a generator that reads only `skills` keeps working and does not ship the script until it learns `files`. load-audit-log and run-mongoose-server say each processor has its own export (logs/audit-<processor>.yaml); every TODO(bundle) line is byte-identical. Same contract; the revision, three hashes and one new hash moved. The playground must re-vendor.",
-    "RE-PINNED 2026-10-12 (#126, second edit): add-a-node no longer tells the author to read generated code; it confirms a change from the Spring XML, the compiler's messages and the audit log. Same contract, same selection; only the revision and the add-a-node hash moved."
+    "RE-PINNED 2026-10-12 (#126, second edit): add-a-node no longer tells the author to read generated code; it confirms a change from the Spring XML, the compiler's messages and the audit log. Same contract, same selection; only the revision and the add-a-node hash moved.",
+    "RE-PINNED 2026-10-13 (#126, review of PR 127): audit-compare.py reads trace keys by position, refuses run-together and list-shaped logs, compares multi-line event text and masks only ClassName@hash; add-a-node says the GraphML is opened in the analyser, never read as text. Same contract, same selection; only the revision and the add-a-node and audit-compare.py hashes moved."
   ],
   "common": [
     "common/load-audit-log/SKILL.md",
@@ -76,15 +77,15 @@
       ]
     }
   },
-  "revision": "374b7e55de7a0f00a2d46b10fd9d3e64b5c80b8f",
+  "revision": "4f52a06e8bb5ed4418844cf4845f76af2e769317",
   "sha256": {
     "common/load-audit-log/SKILL.md": "240ba202b418a21c6fb8acc384cc4f036381a4bdf134f6e831230bdf55f42d0c",
     "common/guided-start/SKILL.md": "fdead498fa56b4df27d360f070de5357f833c16dd9cb8e0eef4ad3a5690c2d47",
     "common/point-at-the-fault/SKILL.md": "5c02e6d1d9a205fb5ab43613248a9c7bdbb924cb4175826582c865af6067f2f5",
     "mongoose/run-mongoose-server/SKILL.md": "296aab9ca1987153becfd96abcc9d967bb67148a22e727c0bb25d82b79e0a9ca",
     "embedded/run-embedded/SKILL.md": "d98ddd4dc536feb2772150a4855fd13c4abb02f73927cd39c83742978c7b7014",
-    "spring/add-a-node/SKILL.md": "880a08da50b78ccb130b36191f21303d03d41b7c1b975e3980f93c88adfc5638",
-    "spring/add-a-node/audit-compare.py": "6f6f43700300410533c12e1466d715179f6ca0545990124b4cf9bcf2d9b93f2b",
+    "spring/add-a-node/SKILL.md": "ac90ecfe9d15911462b8fb9fd79882b694c2233ef4f95afb0e0fbf679eb1b460",
+    "spring/add-a-node/audit-compare.py": "84ac5b3cca2d9e355bbb84c3113a8a89ab971d2d75c55f6cae05772343bb6b65",
     "common/replay-a-run/SKILL.md": "548646b354f2c76ae41bdb3c737faa131032341a19a9a7872ec591421a1091d4"
   }
 }
