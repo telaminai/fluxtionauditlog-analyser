@@ -10,6 +10,10 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 - The Spring authoring guide has a **Model choice** section (step 2), for authoring with the Spring XML starter and the Audit analyser bundle: Claude Haiku 5.5 is the default and meets the acceptance bar on ladder rungs 3–5, with rung 2 (the chart step) still open; Claude Sonnet 5 is not recommended (on the first ladder, no rung where it passed and the default did not, at about 18 times the cost per run); Claude Haiku 4.5 is not for the chart step; other models are unmeasured. It covers your own LLM client, not the in-app assistant. *Connecting an LLM* and *Playground to analyser* point to it. Every row is checked against the committed run evidence on each build (`ModelChoiceEvidenceTest`, with a digest of the cited score files), so a row's status cannot disagree with its runs' pass or chart results.
 
+### Fixed
+
+- *Project ▸ New project from template…* installs every script a template ships at its root executable. The **Audit analyser bundle**'s `run-and-export.sh` — the one command its CLAUDE.md names — arrived without the execute bit, so `./run-and-export.sh` failed with "permission denied"; so did the Fluxtion and Spring starters' `run.sh`, and `setup-java.sh`. The installer still never takes execute permission from the downloaded archive: it grants it to a fixed list of root script names, now checked on every build against a record of what each playground template ships (`TemplateExecutablesTest`), including every `./` command a template's own guide tells you to run.
+
 ## [1.33.0] - 2026-10-13
 
 ### Added
