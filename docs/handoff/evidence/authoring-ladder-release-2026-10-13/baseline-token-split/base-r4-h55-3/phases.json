@@ -1,0 +1,268 @@
+{
+ "schema": "token-split/1",
+ "run": "base-r4-h55-3",
+ "definition": "Calls in transcript order. E (the export) = the last run call (rules runScript or javaRun) before the last analyser `open` that names a log; with no such open, the last run call. B (the build) = the last successful build call (generate.sh executed, mvn/mvnw, or javac; successful = not is_error and no failure marker in the result) before E, or the last one overall when there is no E. D = the first analyser call or subagent delegation (Agent/Task) after E (after B when there is no E). design = calls up to and including B (with no B: the calls before the first run call); diagnosis = D to the end; run = everything between. A request takes the phase of the first tool call it emits; a request that emits none takes the phase of the nearest earlier request that emitted one (design when there is none). CLI side calls (sideCalls) are not placed in a phase.",
+ "boundaries": {
+  "exportCall": 47,
+  "lastBuildCall": 33,
+  "diagnosisStartCall": 48,
+  "designEndCall": 33
+ },
+ "phases": {
+  "design": {
+   "toolCalls": 34,
+   "analyserCalls": 0,
+   "toolResultBytes": 77812,
+   "requests": 27,
+   "over100k": 0,
+   "input": 54,
+   "cacheRead": 1384233,
+   "cacheWrite": 71760,
+   "outputAllocated": 27572.584,
+   "costUsd": 0.04198604
+  },
+  "run": {
+   "toolCalls": 14,
+   "analyserCalls": 4,
+   "toolResultBytes": 20841,
+   "requests": 12,
+   "over100k": 7,
+   "input": 24,
+   "cacheRead": 1172857,
+   "cacheWrite": 28802,
+   "outputAllocated": 7461.758,
+   "costUsd": 0.07715235
+  },
+  "diagnosis": {
+   "toolCalls": 6,
+   "analyserCalls": 5,
+   "toolResultBytes": 3374,
+   "requests": 7,
+   "over100k": 7,
+   "input": 14,
+   "cacheRead": 809669,
+   "cacheWrite": 5314,
+   "outputAllocated": 4767.659,
+   "costUsd": 0.05772361
+  }
+ },
+ "sideCallsCostUsd": 0.002236,
+ "calls": [
+  {
+   "n": 0,
+   "phase": "design"
+  },
+  {
+   "n": 1,
+   "phase": "design"
+  },
+  {
+   "n": 2,
+   "phase": "design"
+  },
+  {
+   "n": 3,
+   "phase": "design"
+  },
+  {
+   "n": 4,
+   "phase": "design"
+  },
+  {
+   "n": 5,
+   "phase": "design"
+  },
+  {
+   "n": 6,
+   "phase": "design"
+  },
+  {
+   "n": 7,
+   "phase": "design"
+  },
+  {
+   "n": 8,
+   "phase": "design"
+  },
+  {
+   "n": 9,
+   "phase": "design"
+  },
+  {
+   "n": 10,
+   "phase": "design"
+  },
+  {
+   "n": 11,
+   "phase": "design"
+  },
+  {
+   "n": 12,
+   "phase": "design"
+  },
+  {
+   "n": 13,
+   "phase": "design"
+  },
+  {
+   "n": 14,
+   "phase": "design"
+  },
+  {
+   "n": 15,
+   "phase": "design"
+  },
+  {
+   "n": 16,
+   "phase": "design"
+  },
+  {
+   "n": 17,
+   "phase": "design"
+  },
+  {
+   "n": 18,
+   "phase": "design"
+  },
+  {
+   "n": 19,
+   "phase": "design"
+  },
+  {
+   "n": 20,
+   "phase": "design"
+  },
+  {
+   "n": 21,
+   "phase": "design"
+  },
+  {
+   "n": 22,
+   "phase": "design"
+  },
+  {
+   "n": 23,
+   "phase": "design"
+  },
+  {
+   "n": 24,
+   "phase": "design"
+  },
+  {
+   "n": 25,
+   "phase": "design"
+  },
+  {
+   "n": 26,
+   "phase": "design"
+  },
+  {
+   "n": 27,
+   "phase": "design"
+  },
+  {
+   "n": 28,
+   "phase": "design"
+  },
+  {
+   "n": 29,
+   "phase": "design"
+  },
+  {
+   "n": 30,
+   "phase": "design"
+  },
+  {
+   "n": 31,
+   "phase": "design"
+  },
+  {
+   "n": 32,
+   "phase": "design"
+  },
+  {
+   "n": 33,
+   "phase": "design"
+  },
+  {
+   "n": 34,
+   "phase": "run"
+  },
+  {
+   "n": 35,
+   "phase": "run"
+  },
+  {
+   "n": 36,
+   "phase": "run"
+  },
+  {
+   "n": 37,
+   "phase": "run"
+  },
+  {
+   "n": 38,
+   "phase": "run"
+  },
+  {
+   "n": 39,
+   "phase": "run"
+  },
+  {
+   "n": 40,
+   "phase": "run"
+  },
+  {
+   "n": 41,
+   "phase": "run"
+  },
+  {
+   "n": 42,
+   "phase": "run"
+  },
+  {
+   "n": 43,
+   "phase": "run"
+  },
+  {
+   "n": 44,
+   "phase": "run"
+  },
+  {
+   "n": 45,
+   "phase": "run"
+  },
+  {
+   "n": 46,
+   "phase": "run"
+  },
+  {
+   "n": 47,
+   "phase": "run"
+  },
+  {
+   "n": 48,
+   "phase": "diagnosis"
+  },
+  {
+   "n": 49,
+   "phase": "diagnosis"
+  },
+  {
+   "n": 50,
+   "phase": "diagnosis"
+  },
+  {
+   "n": 51,
+   "phase": "diagnosis"
+  },
+  {
+   "n": 52,
+   "phase": "diagnosis"
+  },
+  {
+   "n": 53,
+   "phase": "diagnosis"
+  }
+ ]
+}

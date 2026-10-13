@@ -32,8 +32,10 @@ for rid in P:
     tot = sum(o.values())
     if not tot:
         lever = 'none needed: stayed under 100k'
+    elif o['diagnosis'] * 2 > tot:
+        lever = 'fresh context / fewer diagnosis turns (a strict majority of over-100k requests are in diagnosis)'
     elif o['diagnosis'] >= max(o['design'], o['run']) and o['diagnosis'] > 0:
-        lever = 'fresh context / fewer diagnosis turns (most over-100k requests are in diagnosis)'
+        lever = f"fresh context, in part (diagnosis is the largest phase, {o['diagnosis']} of {tot}, but not a majority)"
     elif o['design'] >= o['run']:
         lever = 'fewer orientation reads / smaller base (crossed during design)'
     else:

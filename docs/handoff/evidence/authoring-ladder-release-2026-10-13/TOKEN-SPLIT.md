@@ -62,6 +62,13 @@ rendered by `harness/past100k_md.py` from:
 The per-call rows (request index and phase of each named read) are in `part-a/past100k.jsonl`. Every estimate
 marked INFERRED is a model of what a run *would* have cost, not a measurement.
 
+**Call and request indices** in these tables and in `part-a/*.jsonl` are **0-based**, in transcript order, as
+token_split numbers them. Add 1 for a 1-based count.
+
+*Corrected 2026-10-14 (review of PR #140, reporting only):*
+- the phase table's lever now distinguishes a strict majority from a plurality;
+- the server.log figures now state their scope.
+
 ### Where each run first crosses 100k
 
 Prompt = input + cache-read + cache-write tokens of one request. Carried bytes = tool-result bytes returned before the crossing request, so inside its prompt, by L0 kind (kB).
@@ -88,21 +95,21 @@ Prompt = input + cache-read + cache-write tokens of one request. Carried bytes =
 
 | run | design | run | diagnosis | design tool kB | lever the split points to (INFERRED) |
 |---|---|---|---|---|---|
-| rel-r2-h55-1 | 0 | 1 | 9 | 78.0 | fresh context / fewer diagnosis turns (most over-100k requests are in diagnosis) |
-| rel-r2-h55-2 | 0 | 0 | 12 | 84.8 | fresh context / fewer diagnosis turns (most over-100k requests are in diagnosis) |
-| rel-r2-h55-3 | 6 | 5 | 9 | 119.1 | fresh context / fewer diagnosis turns (most over-100k requests are in diagnosis) |
-| rel-r3-h55-1 | 0 | 0 | 6 | 75.1 | fresh context / fewer diagnosis turns (most over-100k requests are in diagnosis) |
-| rel-r3-h55-2 | 0 | 5 | 9 | 108.9 | fresh context / fewer diagnosis turns (most over-100k requests are in diagnosis) |
-| rel-r3-h55-3 | 0 | 1 | 10 | 100.5 | fresh context / fewer diagnosis turns (most over-100k requests are in diagnosis) |
-| rel-r4-h55-1 | 5 | 5 | 7 | 105.5 | fresh context / fewer diagnosis turns (most over-100k requests are in diagnosis) |
+| rel-r2-h55-1 | 0 | 1 | 9 | 78.0 | fresh context / fewer diagnosis turns (a strict majority of over-100k requests are in diagnosis) |
+| rel-r2-h55-2 | 0 | 0 | 12 | 84.8 | fresh context / fewer diagnosis turns (a strict majority of over-100k requests are in diagnosis) |
+| rel-r2-h55-3 | 6 | 5 | 9 | 119.1 | fresh context, in part (diagnosis is the largest phase, 9 of 20, but not a majority) |
+| rel-r3-h55-1 | 0 | 0 | 6 | 75.1 | fresh context / fewer diagnosis turns (a strict majority of over-100k requests are in diagnosis) |
+| rel-r3-h55-2 | 0 | 5 | 9 | 108.9 | fresh context / fewer diagnosis turns (a strict majority of over-100k requests are in diagnosis) |
+| rel-r3-h55-3 | 0 | 1 | 10 | 100.5 | fresh context / fewer diagnosis turns (a strict majority of over-100k requests are in diagnosis) |
+| rel-r4-h55-1 | 5 | 5 | 7 | 105.5 | fresh context, in part (diagnosis is the largest phase, 7 of 17, but not a majority) |
 | rel-r4-h55-2 | 22 | 4 | 9 | 121.0 | fewer orientation reads / smaller base (crossed during design) |
 | rel-r4-h55-3 | 14 | 4 | 4 | 116.2 | fewer orientation reads / smaller base (crossed during design) |
-| rel-r5-h55-1 | 0 | 0 | 18 | 87.3 | fresh context / fewer diagnosis turns (most over-100k requests are in diagnosis) |
+| rel-r5-h55-1 | 0 | 0 | 18 | 87.3 | fresh context / fewer diagnosis turns (a strict majority of over-100k requests are in diagnosis) |
 | rel-r5-h55-2 | 0 | 0 | 0 | 61.0 | none needed: stayed under 100k |
-| rel-r5-h55-3 | 0 | 0 | 3 | 69.2 | fresh context / fewer diagnosis turns (most over-100k requests are in diagnosis) |
+| rel-r5-h55-3 | 0 | 0 | 3 | 69.2 | fresh context / fewer diagnosis turns (a strict majority of over-100k requests are in diagnosis) |
 | rel-r6-h55-1 | 0 | 0 | 0 | 64.8 | none needed: stayed under 100k |
 | rel-r6-h55-2 | 0 | 0 | 0 | 48.4 | none needed: stayed under 100k |
-| rel-r6-h55-3 | 0 | 0 | 7 | 86.3 | fresh context / fewer diagnosis turns (most over-100k requests are in diagnosis) |
+| rel-r6-h55-3 | 0 | 0 | 7 | 86.3 | fresh context / fewer diagnosis turns (a strict majority of over-100k requests are in diagnosis) |
 
 ### Named file reads: bytes, request, phase, and over-100k requests each would have avoided if absent (INFERRED)
 
@@ -150,7 +157,7 @@ A read is a Bash call whose read verb (cat, head, tail, sed, grep, awk, nl, less
 **Where runs cross.**
 - 12 of the 15 runs cross 100k; 3 never do (rel-r5-h55-2, rel-r6-h55-1, rel-r6-h55-2).
 - Of the 12: 5 cross in diagnosis, 3 in the run phase, and 4 in design.
-- In 10 of the 12, most over-100k requests fall in diagnosis.
+- In 8 of the 12, a strict majority of the over-100k requests fall in diagnosis. In 2 more (rel-r2-h55-3, 9 of 20; rel-r4-h55-1, 7 of 17) diagnosis is the largest phase but not a majority. In the other 2 (rel-r4-h55-2 and -3), design dominates.
 - Over all 15 runs, diagnosis holds 103 of the 175 over-100k requests (the phase table above), and run holds 25.
 - **Lever:** a fresh context for diagnosis (L4 (iii)) is the lever these runs point to (INFERRED). It removes the
   carried design history from every diagnosis request at the price of re-paying the base once.
@@ -173,8 +180,12 @@ A read is a Bash call whose read verb (cat, head, tail, sed, grep, awk, nl, less
 - The file-group columns overlap, because one compound call can read several files, so they are **not additive**.
 
 **`logs/server.log`.**
-- It is read only in rel-r3-h55-2 (5 reads, 26.1 kB) and rel-r3-h55-3 (3 reads, 7.5 kB). Each read is a grep or
-  sed slice, not a whole-file read; the file is 30–32 kB.
+- It is read only in rel-r3-h55-2 and rel-r3-h55-3. Each read is a grep or sed slice, not a whole-file read; the
+  file is 30–32 kB. Two scopes are counted:
+  - **whole run** (the file-read table above: every call whose read verb names the file, including compound ones):
+    5 calls / 26.1 kB, and 3 calls / 7.5 kB;
+  - **failure-diagnosis window only** (the table below: a read verb taking the file, not a `cp` of it): 4 reads /
+    22.5 kB, and 2 reads / 6.8 kB.
 - By the bytes/4 model, each run's reads would have avoided 1 over-100k request (INFERRED).
 - **Cause:** see the next section.
 
@@ -192,13 +203,25 @@ the missing business records and grepped `logs/server.log` to find out why.
 **What diagnosing the failure cost**, measured from the call after the failed run to the call before the fixing
 rerun:
 
-| run | calls | requests | tool bytes | server.log reads, bytes | over-100k requests | cost |
+| run | calls in window | requests | all tool bytes in window | server.log reads in window, bytes | over-100k requests | window cost |
 |---|---|---|---|---|---|---|
 | rel-r3-h55-2 | 8 | 8 | 29.8 kB | 4, 22.5 kB | 3 | $0.039 |
 | rel-r3-h55-3 | 12 | 11 | 13.6 kB | 2, 6.8 kB | 0 | $0.016 |
 
 In rel-r3-h55-2, three greps make up 20.9 kB of its 22.5 kB of server.log reads, and a `grep -c` after a `cp` makes
 up the remaining 1.6 kB.
+
+**The window is the direct cost only.** The two windows cost $0.055 together, against a rung-3 rise of $0.245 in
+total cost: the release's rung-3 total is $0.446 and the baseline's $0.200. Without its window, each of the two runs
+still costs about $0.15 ($0.147 and $0.151), about twice the baseline median of $0.073.
+
+The rest sits mostly in the **diagnosis phase** that follows the fix: its median is $0.091, against the baseline's
+$0.034, with 9 over-100k requests against 3 (the baseline split is committed in `baseline-token-split/`).
+- The two failing runs **entered diagnosis with prompts of 120.6k and 112.5k tokens**, against 74–97k at baseline.
+  Every diagnosis request after the fix was therefore billed above the 100k tier.
+- That carried context, including the failure loop's own reads, is the likely mechanism (INFERRED).
+- The part not explained by the failure is rel-r3-h55-1's: it had no failure, and its diagnosis cost $0.056,
+  against $0.013–0.047 at baseline.
 
 **Not a regression.** The pointer "server output in logs/server.log" was already printed before fluxtion-web #11;
 the baseline runs printed it and nobody read the log. No other run hit an event-processing failure, and both of

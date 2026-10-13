@@ -18,6 +18,11 @@ truth, controls, seeds).
 - `TOKEN-SPLIT.md` holds the L0 split and the "what fills the context past 100k" analysis;
 - transcripts are not committed, and home paths are redacted to `~`.
 
+**Indices:** call and request indices are **0-based**, in transcript order, unless marked 1-based.
+
+**Post-seal corrections:** the reporting corrections of 2026-10-14 (review of PR #140) are listed in
+`POST-SEAL-NOTES.md`. None of them changes a score.
+
 **PASS** = ORACLE + VALID + CHART + S6′ (`harness/score_ladder.py`). Rung 6's ORACLE is `r6/r6_oracle.py`, which is
 X1 (XML-first) + X2 (dispatch) + X3 (output).
 
@@ -47,7 +52,7 @@ Two columns report generated-code reads:
 | rel-r5-h55-1 | False | True | True | False | True | 0.196 | 57 | 276 | 119077 | 18 | 3 | 1 | 115116 | 4 | 4 | 1 | 3 | 0 / True | 1.0.79 | True |
 | rel-r5-h55-2 | True | True | True | True | True | 0.045 | 40 | 138 | 96556 | 0 | 2 | 1 | 100203 | 2 | 2 | 0 | 0 | 0 / True | 1.0.79 | True |
 | rel-r5-h55-3 | True | True | True | True | True | 0.077 | 48 | 239 | 103654 | 3 | 1 | 0 | 92378 | 5 | 5 | 0 | 1 | 0 / True | 1.0.79 | True |
-| rel-r6-h55-1 | True | True | True | True | True | 0.042 | 39 | 169 | 90892 | 0 | 4 | 1 | 85923 | 4 | 2 | 0 | 0 | 0 / True | 1.0.79 | True |
+| rel-r6-h55-1 | True | True | True | True | True | 0.042 | 39 | 169 | 90892 | 0 | 4 | 2 | 85923 | 4 | 2 | 0 | 0 | 0 / True | 1.0.79 | True |
 | rel-r6-h55-2 | True | True | True | True | True | 0.038 | 32 | 122 | 87930 | 0 | 2 | 1 | 70990 | 2 | 2 | 0 | 0 | 0 / True | 1.0.79 | True |
 | rel-r6-h55-3 | True | True | True | True | True | 0.101 | 43 | 222 | 105104 | 7 | 1 | 1 | 105682 | 3 | 2 | 0 | 0 | 0 / True | 1.0.79 | True |
 
@@ -80,8 +85,9 @@ The `withdraw` column is the probe's count of calls naming the starter's `withdr
   one run).
 - **Generated-code reads:**
   - pattern: total 33 and median 3 on rungs 2–5;
-  - content: **0 reads of the generated processor or its GraphML in any of the 15 runs**. Builder or supplier
-    source was read in 12 of 15 runs, 1 call each.
+  - content (corrected 2026-10-14): **2 partial reads of the generated processor, 0 dispatch-code or GraphML
+    reads**. The partial reads are `head -c 3000` of the shipped TradeProcessor.java (rel-r4-h55-3) and a 5-line
+    `grep` (rel-r6-h55-1). Builder or supplier source was read in 12 of 15 runs, 1 call each.
 - **Bundle runs (rungs 3, 5, 6):** `run-and-export.sh` was used in **9 of 9**. Median `runExportCalls` was 4, and
   every exported log carries `annotation:` (9 of 9).
 - **Generator:** every final generated processor stamps target generator **1.0.79** (15 of 15).
@@ -159,12 +165,26 @@ All figures are the median per run, except PASS.
 **What changed, by rung:**
 - **Rung 2:** up from 1/3 to 3/3. All three of the baseline's CHART failures are gone, and cost and over-100k
   counts are flat.
-- **Rung 3:** still 3/3, but its median cost more than doubled ($0.073 → $0.167). Two of its three runs hit an
-  un-injected service (TradeLimits) in the author's own change: the server ran, every event failed in the new node,
-  and the authors diagnosed it from `logs/server.log` (TOKEN-SPLIT.md).
-- **Rung 4:** still 3/3, but its median cost doubled ($0.126 → $0.260), with 22 over-100k prompts against 9. Two of
-  its three runs entered a reconcile loop: SPRING_RECONCILE_CONFLICT, then `withdraw`, then regenerate. One of them
-  logged 9 conflict results and 35 over-100k requests.
+- **Rung 3:** still 3/3, but its median cost more than doubled ($0.073 → $0.167), and its total rose $0.245
+  ($0.200 → $0.446). Two of the three runs hit an un-injected service (TradeLimits) in the author's own change: the
+  server ran, every event failed in the new node, and the authors diagnosed it from `logs/server.log`.
+  - **The failure explains only part of the rise, and how much is INFERRED.** The two diagnosis windows cost
+    $0.055 of the $0.245. Without them the two runs still cost $0.147 and $0.151, about twice the baseline median.
+  - **Most of the rest is in the diagnosis phase after the fix.** Its median is $0.091, against $0.034 at baseline.
+    The failing runs entered it with prompts of 120.6k and 112.5k tokens (74–97k at baseline), so every diagnosis
+    request was billed above the 100k tier.
+  - **Unexplained:** rel-r3-h55-1, with no failure, still cost $0.093 against a baseline median of $0.073.
+  - The phase split per run is in TOKEN-SPLIT.md, from `baseline-token-split/`.
+- **Rung 4:** still 3/3, but its median cost doubled ($0.126 → $0.260), and its total rose $0.423. Prompts over
+  100k: a median of 22, against 9.
+  - **The rise is in design**: a median of $0.183 per run, against $0.042, and 14 over-100k design requests,
+    against 0.
+  - Two of the three runs entered a reconcile loop: SPRING_RECONCILE_CONFLICT, then `withdraw`, then regenerate.
+    rel-r4-h55-2 has 8 reconciler conflict results and 35 over-100k requests; rel-r4-h55-3 has 2.
+  - **That loop does not explain the whole rise (INFERRED).** rel-r4-h55-1 had no conflict and no `withdraw`, yet
+    cost $0.199, more than any baseline rung-4 run (max $0.180), with 17 over-100k requests and 5 of them in
+    design. Its design included a failed build, FLX-1009 (an unmapped final field), and 6 generate calls.
+  - **What is unexplained:** why all three release runs needed 29–46 design requests, against 20–27 at baseline.
 - **Rung 5:** fell from 3/3 to 2/3, the one CHART failure; its median cost fell ($0.160 → $0.077).
 
 None of these rung-level changes can be attributed to one lever; the confounds are stated above.
@@ -209,12 +229,14 @@ Rung 6 was the cheapest rung: a median of $0.042, 39 turns, and 0 over-100k prom
 
 Four runs invoked the starter's new `withdraw` command. The table gives the calls themselves; reconciler and
 starter messages are quoted, never file content. The bundle's own PROJECT.md and runbooks name the conflict and
-point to the remedy; those doc mentions are what the probe's `reconcileConflicts` counts in rel-r5-h55-1.
+point to the remedy, and the probe's `reconcileConflicts` counts those doc mentions too: 9, 3, 2 and 3 in the
+per-run JSON. **Reconciler results** count only the starter's own conflict output: a conflict line in a generate
+result, or the reconciliation report. Those are 8, 2, 0 and 1 respectively.
 
 | run | conflict, from the reconciler's own messages | withdraw call(s) | then |
 |---|---|---|---|
-| rel-r4-h55-2 | `VwapNode#field:sinkVwap`, "Unowned construct contradicts the declaration" (9 conflict results) | `withdraw --help`, then `withdraw --class com.example.myapp.node.VwapNode --still-declared` | regenerate: "3 adopted" |
-| rel-r4-h55-3 | 3 conflict results | `withdraw --class …VwapCalculator --member field:vwapPublisher` | regenerate: clean |
+| rel-r4-h55-2 | `VwapNode#field:sinkVwap`, "Unowned construct contradicts the declaration" (8 reconciler results, calls 24, 26, 27, 30, 33, 37, 39, 40, 1-based) | `withdraw --help`, then `withdraw --class com.example.myapp.node.VwapNode --still-declared` | regenerate: "3 adopted" |
+| rel-r4-h55-3 | 2 reconciler results (calls 21, 34, 1-based) | `withdraw --class …VwapCalculator --member field:vwapPublisher` | regenerate: clean |
 | rel-r5-h55-1 | **No conflict in any generate result.** Its first generate after declaring the supplier beans reported "members 3 added": class shells written under `src/main/java/com/acme/fx`, read back at call 22. | `withdraw --help`, then `withdraw --class com.acme.fx.FxQuote` and `--class com.acme.fx.FxRateBook --still-declared`, then the shells removed | `./generate.sh --no-reconcile` |
 | rel-r5-h55-3 | `com.acme.fx.FxRateBook#<class>`, "Recorded source src/main/java/com/acme/fx/FxRateBook.java has been removed" | `withdraw --class com.acme.fx.FxRateBook --still-declared`, then `--class com.acme.fx.FxQuote` | regenerate: clean |
 
@@ -243,14 +265,19 @@ GraphML file, the builder, or a script's source read with cat/sed/head/less). Th
 
 `harness/content_reads.py` (post-seal, reporting only) counts a call only when its **tool result** carries
 generator-written content: the processor's version stamp, generated dispatch identifiers (`isDirty_…`,
-`guardCheck_…`), GraphML, or a builder or supplier class body. Each such call is listed by command shape in
-`results/<run>/content-reads.json`.
+`guardCheck_…`, `initialiseAuditor(`), GraphML, or a builder or supplier class body.
 
-| | Pattern count (measure_reads) | Content reads: processor or GraphML | Content reads: builder or supplier source |
-|---|---|---|---|
-| Release, rungs 2–5 (12 runs) | 33 (median 3) | **0** | 9 (9 runs) |
-| Release, rung 6 (3 runs) | 7 | **0** | 3 (3 runs) |
-| Baseline, rungs 2–5 (12 runs) | 41 (median 3.5) | **0** | 11 (10 runs) |
+**Since 2026-10-14** (review of PR #140) it also counts a **path-named read**: a read verb whose argument is a
+`generated/…java` or `.graphml` file and whose result is not empty. That catches a slice that carries none of the
+markers above, such as a `grep` of matching lines or a `head -c`. A count-only grep (`-c`, `-l`) and a listing do
+not count. The first version missed these slices, so the earlier "0 reads" was false. All 27 runs (15 release, 12
+baseline) were re-run. Each counted call is listed by command shape in `results/<run>/content-reads.json`.
+
+| | Pattern count (measure_reads) | Processor: partial reads | Processor dispatch code or GraphML | Builder or supplier source |
+|---|---|---|---|---|
+| Release, rungs 2–5 (12 runs) | 33 (median 3) | **1**: rel-r4-h55-3, `head -c 3000` of the shipped TradeProcessor.java, before any regeneration | **0** | 9 (9 runs) |
+| Release, rung 6 (3 runs) | 7 | **1**: rel-r6-h55-1, a `grep -n -i turnover` of the regenerated processor, 5 lines (an import, the SinkPublisher field, the TurnoverTracker construction) | **0** | 3 (3 runs) |
+| Baseline, rungs 2–5 (12 runs) | 41 (median 3.5) | **1**: base-r4-h55-3, `cat … TradeProcessor.java \| head -80`, before any regeneration | **0** | 11 (10 runs) |
 
 The baseline content reads were computed from the baseline's preserved transcripts and are committed in
 `baseline-content-reads/`.
@@ -260,7 +287,9 @@ The baseline content reads were computed from the baseline's preserved transcrip
 match without content (a listing, or a Write of one's own file) is not a read.
 
 Judged that way:
-- no run on this stack, and none on the baseline, read the generated processor or its GraphML;
+- on this stack, 2 of 15 runs took a partial read of the generated processor: 3,000 bytes, and 5 grep lines. No
+  run read its dispatch code or its GraphML;
+- on the baseline, 1 of 12 runs took a partial read (80 lines), with the same 0 dispatch-code or GraphML reads;
 - the builder and supplier sources the guidance also names are still read once in most runs, typically inside an
   orientation `cat` of several sources.
 
@@ -301,4 +330,7 @@ For contrast, the first ladder's lad-r2-h55-1 read MyProcessor.java dispatch cod
   baseline.
 - **Rung 6 fixture.** It carries two modifications, disclosed in FIXTURES.md. One makes `CsvRejections` propagate,
   so that "not triggered by the DATA parent" is observable; it was found by control C2 before sealing.
+- **Rung 6 limitations** (POST-SEAL-NOTES.md): the fixture's edited `CsvRejections` return comment is a mild hint
+  visible to the agent, and X1 accepts only constructor-arg references, so a property-injected parent would fail
+  it. No run was affected: all three used constructor args.
 - **Prestaged G14 rig, never an acceptance.** `acceptanceEligible` is false in all 15 meta.json files.
