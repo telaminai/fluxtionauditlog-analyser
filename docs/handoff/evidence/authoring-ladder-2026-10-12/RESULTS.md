@@ -46,14 +46,21 @@ The Sonnet 5 rung-3 failure is the counter running on every trade; its final ans
 | 3 | R3: Haiku ≤ 1/3, Sonnet 1/1 | Haiku 3/3 (wrong); Sonnet 0/1 (wrong) |
 | 4 | R3: the most common Haiku failure is F1 | not applicable (no Haiku R3 failure) |
 | 5 | R4: Haiku ≤ 1/3, Sonnet 1/1 | Haiku 3/3 under the corrected oracle, 2/3 under the sealed one (wrong either way); Sonnet 1/1 |
-| 6 | Haiku falls to ≤ 1/3 on every rung | wrong (3/3, 3/3, 3/3, 2/3) |
+| 6 | Haiku falls to ≤ 1/3 on every rung here (rungs 2–4) | wrong (3/3, 3/3, 3/3) |
 | 7 | Haiku median ≤ $0.40 per rung; Sonnet ≥ 10× per run | holds (16–21×) |
 | 8 | Some run reaches the 2400 s cap | wrong (longest 1231 s) |
 | 9 | S6′ holds in 12 of 12 | holds |
 
-R5 (PREDICTIONS-R5.md) predicted that every plain generate hits SPRING_RECONCILE_CONFLICT on starter 1.0.76. It
-did. The fix is compiler 1.0.77 (fluxtion-compiler #100, tag `v1.0.77`). The predictions underestimated Haiku
-5.5 on every rung.
+| # | Prediction (PREDICTIONS-R5.md) | Outcome |
+|---|---|---|
+| 1 | Haiku 5.5 ≤ 1/3, Sonnet 5 1/1 | Haiku 2/3 (wrong); Sonnet 1/1 (holds) |
+| 2 | Every plain generate hits SPRING_RECONCILE_CONFLICT (starter 1.0.76) | holds: every R5 run ran a plain generate and hit it (INFERRED from the transcripts' mentions) |
+| 3 | The most common Haiku failure is I3 (hand-written Java) | wrong: the one failure stopped at the conflict and wrote no Java (its I3 passes) |
+| 4 | No run modifies the supplier repository | holds (I3's supplier-repository check passes in 4 of 4) |
+| 5 | S6′ holds in 4 of 4 | holds |
+
+The conflict was fixed in compiler 1.0.77 (fluxtion-compiler #100, tag `v1.0.77`). The predictions underestimated
+Haiku 5.5 on every rung.
 
 **Under the sealed scoring**, Haiku 5.5 is **10/12**: lad-r4-h55-1 fails the sealed rung-4 oracle (kept as
 `ORACLE_r1` in its score.json).
@@ -69,7 +76,8 @@ did. The fix is compiler 1.0.77 (fluxtion-compiler #100, tag `v1.0.77`). The pre
   are kept as evidence and excluded from the totals, and their rungs were re-run.
 - **Three post-seal scorer corrections**, applied to every run alike:
   1. **The rung-4 oracle** (r2) accepts a class with accessors as well as a record. It is disclosed in
-     WARM-CACHE.md ("Oracle correction: rung 4"), after lad-r4-h55-1 had ended; that run's r1 verdict is kept.
+     WARM-CACHE.md ("Oracle correction: rung 4") at 22:53:13Z: after lad-r4-h55-1 had ended (its r1 verdict is
+     kept) and after lad-r4-s5-1 had started (22:52:09Z), but before any further rung-4 result.
   2. **`score_ladder.py`'s `project_root`** changed from the sealed `8c93c0b3…` to `00a06490…`, so a backup copy
      of the project a subject left inside the run is not scored. This was after lad-r2-h55-1…3 had started, and
      is disclosed in commit 84ce9cc7.

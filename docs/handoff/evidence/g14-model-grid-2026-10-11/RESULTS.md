@@ -54,7 +54,7 @@ was scanned before committing. Two public endpoint paths that also appear in the
 | ab-ctl2-r1 | v2 control | True | 5 | 85379 | 0.0378 | 33 |
 | ab-ctl2-r2 | v2 control | True | 3 | 75545 | 0.0368 | 34 |
 | ab-ctl2-r3 | v2 control | True | 4 | 91981 | 0.0385 | 31 |
-| ab-trt-r1 | — | VOID: stray servers from earlier runs held port 8181 | | | | |
+| ab-trt-r1 | — | VOID: started at 18:00:55Z after the strays were stopped (8181 free), then halted by the operator about 16 s later while the runner was fixed; incomplete. The sealed PREDICTIONS-AB r2 text gives a different reason; this row corrects it | | | | |
 | ab-trt-r1c | v1 treatment | True | 4 | 89701 | 0.0462 | 40 |
 | ab-trt-r2c | v1 treatment | True | 6 | 89678 | 0.0367 | 38 |
 | ab-trt-r3c | v1 treatment | False | 2 | 92668 | 0.0319 | 26 |
@@ -73,7 +73,7 @@ v1 shows no effect on generated-code reads. **v2 shows one:** median reads 4 →
 
 **How strong this is.** v1 control and v2 control are the same pristine arm, run in different sessions, yet they
 differ by 26% in cost and 18% in bytes. That noise is as large as the effect. The −20% bytes result clears sealed
-prediction 2 (at least 20%) by only 0.2 percentage points, at n=3. The robust result is reads 4 → 1; the byte and
+prediction 2 of `ab2/PREDICTIONS-AB2.md` (at least 20%) by only 0.2 percentage points, at n=3. The robust result is reads 4 → 1; the byte and
 cost deltas are indicative, not established.
 
 ## Disclosures
@@ -89,23 +89,30 @@ cost deltas are indicative, not established.
     (6 each).
   - 12 are the `host` value, the public RapidAPI URL.
 
-  The model found them by running `strings` on the builder jar, where they are class constants. The API-key
+  The model found them by extracting classes from `.fluxtion/fluxtion-starter-core.jar` and running
+  `grep -a -o "[[:print:]]{6,}"` over them; they are class constants there. The API-key
   fields (`apiKey`, `llmApiKey`) occur 0 times, and the trial token 0 times. This is the false positive S6′ exists
   for. Sealed prediction 4 says to rotate on any failed scan; the key was **not rotated**, because none of its
   secret values left the box. Follow-up: the scanner should not treat path, URL or host fields as secrets.
 - **Other "not clean" scans, all key-path references with no secret value or token:** ab-ctl-r1b (4),
   ab-ctl-r1c (4), ab-ctl-r2c (8), ab-ctl2-r3 (4), ab-trt-r1c (4). S6′ passes them.
-- **Environment contamination: three grid runs** (`g14-55-r2b`, `g14-45-r2b`, `g14-55-r3b`). Each ran while a
-  stray Mongoose server from an earlier run (working directory under `fx-g14-45-r1b`) held port 8181; r2b and
-  r3b also found 8182 busy.
-  - The subjects spent turns moving the server to another port and using a private registry. In g14-45-r2b the
-    first export failed, and its sealed S4 is False.
-  - These are exactly the grid runs with prompts over 100k (13, 7 and 6), so the contamination inflates their
-    cost, turns and >100k counts.
-  - Each exported from its own server: node names and registries match.
+- **Environment contamination: four grid runs** (`g14-45-r2b`, `g14-45-r3b`, `g14-55-r2b`, `g14-55-r3b`). Each
+  ran while stray Mongoose servers from earlier runs held port 8181. The first of them (pid 84873, working directory
+  under `fx-g14-45-r1b`) ran from 17:21Z until the operator stopped it at 18:00:41Z.
+  - **Ports:** g14-45-r2b moved its server to 8182 and bound it. g14-55-r2b moved to 8282. g14-55-r3b found 8182
+    held by g14-45-r2b's strays and moved again.
+  - **g14-45-r3b** hit the busy port too (`JavalinBindException … 8181` in its own server.log), but read only the
+    first 50 lines of the log, so the clash never appears in its transcript.
+  - **Effect:** three of the four (g14-45-r2b, g14-55-r2b, g14-55-r3b) are the grid runs with prompts over 100k
+    (13, 7, 6). g14-45-r3b has none. So contamination plausibly inflated cost, turns and >100k counts, but that
+    is a correlation, not an established cause. In g14-45-r2b the first export failed, and its sealed S4 is False.
   - The runner's stray-server sweep was added afterwards, for this reason.
-- **Post-seal scorer corrections**, applied to every run alike and committed here: S1′ by content
-  (`score_s1_content.py`; the scaffold's digest differs per request), S4′ for the log's list shape
-  (`score_s4_formats.py`), and S6′ (key values and the trial token, not path references). These corrections are
+- **Post-seal scorer corrections**, applied to every run alike and committed here:
+  - **S1′ by content** (`score_s1_content.py`): the scaffold's digest differs per request. The committed
+    `results/*/S1prime.json` keep only the zips that unpack identically. The script itself lists every zip it
+    opens (53–54 per base, because jars are zips), with the same verdicts. Its pristine path is a local file
+    whose hash `9004bbea…` matches MANIFEST.
+  - **S4′ for the log's list shape** (`ab2/score_s4_formats.py`).
+  - **S6′**: key values and the trial token, not path references. These corrections are
   disclosed here and in the commit history; `PREDICTIONS.md` itself is unchanged from its seal.
 - **VOID A/B rows** are listed above with their reasons and are excluded from the medians.

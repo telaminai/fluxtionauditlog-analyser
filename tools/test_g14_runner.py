@@ -542,6 +542,9 @@ class SweepBaseProcessesTest(unittest.TestCase):
         self.assertTrue(g14.in_base('sleep 300', base + '/project', base))
         self.assertFalse(g14.in_base(f'java -jar {base}b/project/target/app.jar', '/', base))
         self.assertFalse(g14.in_base('sleep 300', base + 'b/project', base))
+        for ending in ('"', "'", ' ', ':', ';', ',', ')', ''):
+            self.assertTrue(g14.in_base(f'java -cp {base}{ending}x Main' if ending else f'cd {base}', '/', base), repr(ending))
+        self.assertFalse(g14.in_base(f'java -cp {base}.bak/x Main', '/', base), 'a sibling with a suffix')
 
     def test_control_a_process_outside_the_base_is_left_alone(self):
         with tempfile.TemporaryDirectory(dir='/private/tmp') as d, tempfile.TemporaryDirectory(dir='/private/tmp') as other:

@@ -621,7 +621,9 @@ def in_base(command, cwd, base):
     base = str(base).rstrip('/')
     if cwd == base or cwd.startswith(base + '/'):
         return True
-    return re.search(re.escape(base) + r'(?=/|\s|$|["\'])', command) is not None
+    # the base as a whole path: anything may follow except a path-name character (so `:`, `;`, `,`, `)`, quotes,
+    # space and end all count, and `fx-…-r1b` does not match base `fx-…-r1`)
+    return re.search(re.escape(base) + r'(?![\w.-])', command) is not None
 
 
 def sweep_base_processes(base, grace=10.0):
