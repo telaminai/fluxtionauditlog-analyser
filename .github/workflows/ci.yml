@@ -96,6 +96,10 @@ jobs:
           python3 tools/test_mutation_shards.py
           python3 tools/test_mutation_iteration.py
           python3 tools/test_project_chart_review.py
+      # M72 L0: the token-split tables are committed evidence; their classifier, tier and phase rules are pinned
+      # on synthetic transcripts (no real transcript, key or network is read).
+      - name: Token-split scorer tests (M72 L0)
+        run: python3 tools/test_token_split.py
       - name: Docs-only classifier tests (which changes may skip the expensive jobs)
         run: python3 tools/test_ci_docs_only.py
       - name: Evidence bundle driver tests (the capture skill's refusals, headless)

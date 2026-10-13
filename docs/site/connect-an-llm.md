@@ -74,6 +74,9 @@ the registration does not require an executable rename.
     local analyser-to-bridge chain, not that a client has imported the registration. Restart or reload
     your client where that client requires it.
 
+    Which model to run the client with, for Spring and bundle authoring, is measured in
+    [Model choice](spring-authoring-getting-started.md#model-choice).
+
 ### The registration screens
 
 The Generic MCP choice shows a complete, selectable `mcpServers` record. **Copy configuration** copies

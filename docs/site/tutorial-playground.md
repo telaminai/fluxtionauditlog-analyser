@@ -152,7 +152,8 @@ Without a provider key, **Copy prompt** gives the same evidence and action proto
 
 To let an MCP client work in this analyser window, use **AI ▸ Connect an AI client…**. The dialog
 resolves the launcher for this installation and provides the exact client record; do not reconstruct a
-hard-coded command from this tutorial.
+hard-coded command from this tutorial. Which model to run that client with is measured in
+[Model choice](spring-authoring-getting-started.md#model-choice).
 
 ![The generated generic MCP client record, using a neutral isolated documentation home](assets/mcp-generic-setup.png)
 
