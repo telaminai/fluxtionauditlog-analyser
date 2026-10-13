@@ -47,7 +47,8 @@
     "RE-PINNED 2026-10-13 (#126, fourth review of PR 127): audit-compare.py compares block scalars and every non-time field, and strips and splits lines as the analyser does. Same contract, same selection; only the revision and the audit-compare.py hash moved.",
     "RE-PINNED 2026-10-13 (#126, fifth review of PR 127): audit-compare.py compares text the analyser skips and splits entries exactly as its tokenizer does; add-a-node says which fields are compared. Same contract, same selection; only the revision and the add-a-node and audit-compare.py hashes moved.",
     "RE-PINNED 2026-10-13 (#126, approving review of PR 127): audit-compare.py treats an empty node body as no entry, as the analyser does. Same contract, same selection; only the revision and the audit-compare.py hash moved.",
-    "RE-PINNED 2026-10-13 (owner cycle 5, findings 5.7/5.8): add-a-node declares a node XML first - its bean, ReferenceBindings (DATA; parentUpdateCallback on a TRIGGER parent) and a SinkBinding under sinks - then validate and regenerate, which writes the class shell; the author fills only the bodies and does not hand-write the class or wire a sink outside the XML. Checked by validate, regenerate, build, run and export on a scratch analyser bundle (starter 1.0.77). Same contract, same selection; only the revision and the add-a-node hash moved. The playground must re-vendor."
+    "RE-PINNED 2026-10-13 (owner cycle 5, findings 5.7/5.8): add-a-node declares a node XML first - its bean, ReferenceBindings (DATA; parentUpdateCallback on a TRIGGER parent) and a SinkBinding under sinks - then validate and regenerate, which writes the class shell; the author fills only the bodies and does not hand-write the class or wire a sink outside the XML. Checked by validate, regenerate, build, run and export on a scratch analyser bundle (starter 1.0.77). Same contract, same selection; only the revision and the add-a-node hash moved. The playground must re-vendor.",
+    "RE-PINNED 2026-10-13 (review of PR 137): the add-a-node snippet uses placeholder ids rather than a ladder task's names; a hand-wired sink is described as not declared in the design, and a hand-written class that disagrees with the XML as refused (SPRING_RECONCILE_CONFLICT). Same contract, same selection; only the revision and the add-a-node hash moved."
   ],
   "common": [
     "common/load-audit-log/SKILL.md",
@@ -83,14 +84,14 @@
       ]
     }
   },
-  "revision": "ecbfb3a31888f2b34b04b0e79f89ead7152952d2",
+  "revision": "e78e50a6a9477f05b2fc7335bfbf7ffbabce96a0",
   "sha256": {
     "common/load-audit-log/SKILL.md": "240ba202b418a21c6fb8acc384cc4f036381a4bdf134f6e831230bdf55f42d0c",
     "common/guided-start/SKILL.md": "fdead498fa56b4df27d360f070de5357f833c16dd9cb8e0eef4ad3a5690c2d47",
     "common/point-at-the-fault/SKILL.md": "5c02e6d1d9a205fb5ab43613248a9c7bdbb924cb4175826582c865af6067f2f5",
     "mongoose/run-mongoose-server/SKILL.md": "296aab9ca1987153becfd96abcc9d967bb67148a22e727c0bb25d82b79e0a9ca",
     "embedded/run-embedded/SKILL.md": "d98ddd4dc536feb2772150a4855fd13c4abb02f73927cd39c83742978c7b7014",
-    "spring/add-a-node/SKILL.md": "81e9f4aacb56c16a4504e2f16cc1ad8f2ec6c0f71c55959317a56e27b2cac07e",
+    "spring/add-a-node/SKILL.md": "f483bf37e550218d5cdd2241658219e51ee786e081ff81f90cc9f4ebf660d2ed",
     "spring/add-a-node/audit-compare.py": "c3b5fae86ad418f4311ce446896a796a75f79da2697d000ce5c6bd0b0a5de5fb",
     "common/replay-a-run/SKILL.md": "548646b354f2c76ae41bdb3c737faa131032341a19a9a7872ec591421a1091d4"
   }
