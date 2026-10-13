@@ -1988,6 +1988,24 @@ from for native work, so the recommendation has to live in prose that nobody rea
 choosing.
 
 
+## UP-PG-06 ☐ The Spring starter has no single run-and-export command, and project scripts print unbounded output
+
+**Target** `fluxtion-web` (playground scaffold) · **Spec** [`spec-authoring-token-lowering.md`](../specs/spec-authoring-token-lowering.md) L4 · **Milestone** M72
+
+**Evidence.** The analyser bundle ships `run-and-export.sh` (start, wait, settle, export every processor, stop);
+the Spring starter does not (PR #131, `FIXTURES.md`). On the bundle's rung 3 the released stack's median prompts
+over 100k fell 18 → 3 and median cost $0.213 → $0.073, with confounds named in the spec (§1.4). Across the
+baseline, the count of prompts over 100k correlates +0.985 with run cost.
+
+**The ask.** (1) The Spring starter gains the same one-command run/settle/export/stop script. (2) Every project
+script in both templates writes its full output to a file under `logs/` and prints a bounded summary: exit status,
+the first error with its location, and the file path. Builds run quiet by default (`-q -ntp`), with a verbose
+escape. (3) A test in the template repository asserts the stdout line budget on a failing and a passing fixture.
+
+**Cost to us if unfixed.** Rungs 2 and 4 of the authoring ladder cannot test L4, and every Spring-starter author
+pays for build and server output in every later turn of the session.
+
+
 ## Spring authoring edit loop — 2026-09-25 intake
 
 **Status: proposed handoff, not implemented.** Canonical acceptance is the
