@@ -1,7 +1,7 @@
 {
  "schema": "token-split/1",
  "run": "base-r4-h55-1",
- "definition": "Calls in transcript order. E (the export) = the last run call (rules runScript or javaRun) before the last analyser `open` that names a log; with no such open, the last run call. B (the build) = the last successful build call (generate.sh executed, mvn/mvnw, or javac; successful = not is_error and no failure marker in the result) before E, or the last one overall when there is no E. D = the first analyser call after E (after B when there is no E). design = calls up to and including B (with no B: the calls before the first run call); diagnosis = D to the end; run = everything between. A request takes the phase of the first tool call it emits, or of the last call before it when it emits none (design when there is none). CLI side calls (sideCalls) are not placed in a phase.",
+ "definition": "Calls in transcript order. E (the export) = the last run call (rules runScript or javaRun) before the last analyser `open` that names a log; with no such open, the last run call. B (the build) = the last successful build call (generate.sh executed, mvn/mvnw, or javac; successful = not is_error and no failure marker in the result) before E, or the last one overall when there is no E. D = the first analyser call after E (after B when there is no E). design = calls up to and including B (with no B: the calls before the first run call); diagnosis = D to the end; run = everything between. A request takes the phase of the first tool call it emits; a request that emits none takes the phase of the nearest earlier request that emitted one (design when there is none). CLI side calls (sideCalls) are not placed in a phase.",
  "boundaries": {
   "exportCall": 27,
   "lastBuildCall": 25,

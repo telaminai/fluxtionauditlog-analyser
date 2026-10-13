@@ -145,6 +145,9 @@ _HEREDOC = re.compile(r"<<-?\s*['\"]?(\w+)['\"]?[^\n]*\n.*?\n\s*\1\b", re.DOTALL
 BUILD_RULES = {'maven', 'javac'}
 BUILD_GENERATE = re.compile(_EXEC + r'generate\.sh\b')
 RUN_RULES = {'runScript', 'javaRun'}
+# A result that carries audit-record keys: a run, build or server output echoing the audit log it writes. Counted
+# per call (`auditEcho`) so the audit log's share can be bounded from the committed tables, not only by kind.
+AUDIT_ECHO = re.compile(r'\b(?:eventToString|nodeLogs|triggerFired)\b')
 FAILED = re.compile(r'BUILD FAILURE|\[ERROR\]|\bexit[=: ]+[1-9]|\b(?:validate|generate|setup|package|build)'
                     r'(?:[ -]?exit)?[=: ]+[1-9]\b|COMPILATION ERROR')
 
@@ -155,7 +158,8 @@ PHASE_DEFINITION = (
     'result) before E, or the last one overall when there is no E. D = the first analyser call after E (after B '
     'when there is no E). design = calls up to and including B (with no B: the calls before the first run call); '
     'diagnosis = D to the end; run = everything between. A request takes the phase of the first tool call it '
-    'emits, or of the last call before it when it emits none (design when there is none). CLI side calls '
+    'emits; a request that emits none takes the phase of the nearest earlier request that emitted one (design when '
+    'there is none). CLI side calls '
     '(sideCalls) are not placed in a phase.')
 
 
@@ -276,6 +280,7 @@ def parse(lines):
                         call['bytes'] += len(body)       # the measure score.json's toolResultBytes uses
                         call['isError'] = c.get('is_error')
                         call['text'] = body[-4000:]      # held in memory for the success check; never written
+                        call['auditEcho'] = call.get('auditEcho', False) or bool(AUDIT_ECHO.search(body))
         elif t == 'result':
             result = d
     return [dict(requests[i], id=i) for i in order], calls, result
@@ -446,8 +451,13 @@ def split(lines, run=None):
         'kindPriority': list(KINDS), 'kinds': kinds, 'byRule': dict(sorted(by_rule.items())),
         'multiKindCalls': sum(1 for c in calls if len(c['kinds']) > 1),
         'multiKindBytes': sum(c['bytes'] for c in calls if len(c['kinds']) > 1),
+        # whole-call bytes of build/server results that carry audit-record keys: an upper bound on audit text the
+        # auditLog kind does not count
+        'auditEchoBytes': {k: sum(c['bytes'] for c in calls if c['kind'] == k and c.get('auditEcho'))
+                           for k in ('server', 'build')},
         'calls': [{'n': c['n'], 'tool': c['name'], 'kind': c['kind'], 'kinds': c['kinds'], 'rule': c['rule'],
-                   'bytes': c['bytes'], 'isError': c['isError'], 'request': c['request']} for c in calls],
+                   'bytes': c['bytes'], 'isError': c['isError'], 'request': c['request'],
+                   'auditEcho': bool(c.get('auditEcho'))} for c in calls],
     }
 
     # phases
@@ -506,7 +516,7 @@ def summary(dirs):
     for results in dirs:
         runs = load_runs(results)
         models = sorted({r['buckets']['model'] for r in runs if isinstance(r['buckets']['model'], str)})
-        out.append(f'### {Path(results).parent.name}\n')
+        out.append(f'### {Path(results).resolve().parent.name}\n')
         out.append('| run | toolResultBytes = score.json | cost recomputed / billed | >100k requests | >100k cost share |')
         out.append('|---|---|---|---|---|')
         for r in runs:
@@ -519,8 +529,10 @@ def summary(dirs):
             rs = [r for r in runs if r['buckets']['model'] == model]
             tot_bytes = sum(r['categories']['toolResultBytes'] for r in rs)
             out.append(f'\n**{model}, {len(rs)} runs — tool-result bytes by kind** (share of {tot_bytes:,} bytes; '
-                       'lower = single-kind calls only, upper = every call that names the kind)\n')
-            out.append('| kind | bytes | share | lower | upper | calls | carried share | tier-weighted carried share |')
+                       'share = bytes assigned by kind priority; single-kind = calls that read only that kind, the '
+                       'lower bound; upper = every call that names the kind)\n')
+            out.append('| kind | bytes | share | single-kind share (lower) | upper | calls | carried share | '
+                       'tier-weighted carried share |')
             out.append('|---|---|---|---|---|---|---|---|')
             car = sum(r['categories']['kinds'][k]['carried'] for r in rs for k in r['categories']['kinds'])
             carw = sum(r['categories']['kinds'][k]['carriedTierWeighted'] for r in rs for k in r['categories']['kinds'])
@@ -538,9 +550,11 @@ def summary(dirs):
             per_run = [sum(v['bytes'] for rule, v in r['categories']['byRule'].items()
                            if v['kind'] == 'auditLog' and rule != 'auditCompare') / r['categories']['toolResultBytes']
                        for r in rs]
+            echo = sum(sum(r['categories'].get('auditEchoBytes', {}).values()) for r in rs)
             out.append(f'\nRaw audit-log text (auditLog without auditCompare): {raw_audit:,} bytes, '
                        f'{_pct(raw_audit, tot_bytes, 1)} of tool bytes; per run median {statistics.median(per_run):.1%}, '
-                       f'max {max(per_run):.1%}.')
+                       f'max {max(per_run):.1%}. Build/server results that also carry audit-record keys: {echo:,} bytes, '
+                       f'{_pct(echo, tot_bytes, 1)} (whole calls, an upper bound on echoed audit text).')
             billed = sum(r['buckets']['totals']['costUsd'] or 0 for r in rs)
             rec = sum(r['buckets']['totals']['costRecomputedUsd'] or 0 for r in rs)
             hi_cost = sum(r['buckets']['totals']['gt100k']['costUsd'] or 0 for r in rs)

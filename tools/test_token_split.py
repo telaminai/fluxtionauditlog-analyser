@@ -135,6 +135,14 @@ class ClassifierTest(unittest.TestCase):
         _, cat, _ = ts.split(t.finish())
         self.assertEqual(cat['byRule']['openedLog']['bytes'], 70)
 
+    def test_build_or_server_output_echoing_audit_records_is_counted(self):
+        t = Transcript()
+        t.call('Bash', {'command': './run.sh'}, 'eventToString: PriceEvent nodeLogs: []' + 'x' * 20)
+        t.call('Bash', {'command': './mvnw -q package'}, 'BUILD SUCCESS')
+        _, cat, _ = ts.split(t.finish())
+        self.assertEqual(cat['auditEchoBytes'], {'server': 58, 'build': 0})
+        self.assertEqual([c['auditEcho'] for c in cat['calls']], [True, False])
+
     def test_tables_hold_no_command_text_or_path(self):
         t = Transcript()
         t.call('Bash', {'command': f'cat /{SENTINEL}/logs/audit-x.yaml'}, f'{SENTINEL} body')
@@ -243,6 +251,14 @@ class SummaryTest(unittest.TestCase):
                 ts.write_tables(raw, results / name, run=name)
                 (results / name / 'score.json').write_text(json.dumps({'reads': {'toolResultBytes': 40}}))
             text = ts.summary([results])
+            self.assertIn('### evidence', text)
+            import os
+            cwd = os.getcwd()
+            try:                                           # a relative results dir names its evidence folder too
+                os.chdir(results)
+                self.assertIn('### evidence', ts.summary(['.']))
+            finally:
+                os.chdir(cwd)
             self.assertIn('| r-1 | 40 = 40 yes', text)
             self.assertNotIn('r-2-VOID-x', text)                      # VOID runs are skipped
 

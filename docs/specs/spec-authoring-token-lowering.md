@@ -74,10 +74,13 @@ construction, which is exactly why it is the lever.
   that measure counts every call naming `/builder/` or reading a setup/validate/generate script — mostly compound
   reads of hand-written sources. **L0's `generated` kind (the generated processor and GraphML only) is 16.9% on the
   first ladder and 1.0% on the baseline** [T]: reads of the generated processor itself nearly stopped; §3 L3.
-- **Measured by L0** [T], baseline Haiku 5.5 tool bytes: design 22.6% (bounds 1.0–25.3%), docs 18.0%, build 14.6%,
-  analyser replies 10.7%, hand-written source 10.5%, library inspection 9.6%, **audit log 8.8%** (raw text 8.2%),
-  other 3.1%, server 1.2%, generated 1.0%. Compound commands make the bounds wide for design and source; the audit
-  log's upper bound is 8.8%.
+- **Measured by L0** [T], baseline Haiku 5.5 tool bytes, as share by classifier priority (single-kind lower bound –
+  upper bound): **audit log 8.8%** (3.5–8.8%; raw text 8.2%), analyser replies 10.7% (exact), design 1.0–25.3%,
+  docs 6.0–33.6%, build 3.5–15.9%, hand-written source 9.5–50.9%, library inspection 3.4–16.5%, server 0.2–3.0%,
+  generated 0.0–1.0%. Most bytes come from **compound orientation reads** (`cat` of the authoring JSON with config,
+  scripts, skills and runbooks, or of the XML with several Java sources), whose split between kinds is not measured;
+  design's priority share of 22.6% is an artefact of that (96% of it from multi-kind calls), so the non-audit kinds
+  are not ranked.
 
 ### 1.4 Levers already shipped (the baseline, not proposals)
 
@@ -177,13 +180,15 @@ rung; otherwise the item is reported as *no effect shown*, not as a saving.
     highest-priority kind (`auditLog` first), so every kind reports lower and upper bounds.
   - **Phases**: E = the last run call before the last analyser `open` of a log (a Spring run writes its log without
     an export script); B = the last successful build *before E*, so a rebuild during diagnosis stays in diagnosis;
-    D = the first analyser call after E. A request takes the phase of its first tool call. CLI side calls (in
+    D = the first analyser call after E. A request takes the phase of its first tool call; one that emits none takes
+    the phase of the nearest earlier request that emitted one. CLI side calls (in
     `result.modelUsage`, never visible as requests) are reported separately, not placed in a phase.
   - **Output tokens per request are not in stream-json** (the per-message value is the stream-start count); the
     billed run total is allocated by what each request emitted, and the input buckets are exact.
   - **Backfilled** over the baseline and the first ladder (28 runs, VOID runs skipped) [T]: the category bytes sum to
-    `toolResultBytes` in every run, and the recomputed cost is within 2% of `usage.costUsd` in every run — the
-    acceptance's two conditions already hold on the backfill; the interleaved pair remains to be run.
+    `toolResultBytes` in every run, and the recomputed cost is within 2% of `usage.costUsd` in every run. The cost
+    condition is **in-sample** here: the prices were fitted to these same runs, so it shows the bucket arithmetic is
+    consistent, not that the prices are right. The out-of-sample check is the interleaved pair, still to be run.
   **Because transcripts are never committed, the scorer writes derived per-run tables** (`buckets.json`,
   `categories.json`, `phases.json`) next to score.json, and those are committed; a re-score from a transcript is a
   check of the tables, not the evidence.
@@ -208,9 +213,12 @@ rung; otherwise the item is reported as *no effect shown*, not as a saving.
   `cat`/`grep` the export.
 - **Driver.** Tool results (≈ 55% of growth [S]); the owner's first quote.
 - **Saving.** ≈ **16× fewer tokens** than the raw log for one audit log [S, one sample]. **L0 measured the raw-log
-  share** [T]: audit-log text is at most 8.8% of baseline tool bytes (median 7.6% per run, max 13.8%; first ladder
-  4.6%) and 7.1% of the tier-weighted bytes the context carries. At L1's acceptance (−75%) that removes at most ≈ 5%
-  of what tool results cost to carry — below the 26% between-session noise [G]. **Decision from L0: the table view
+  share** [T]: the `auditLog` kind is 8.8% of baseline tool bytes — the classifier's upper bound, auditCompare output
+  included; raw text alone is 8.2%, with a per-run median of 7.6% and maximum of 13.8%. Build and server results that
+  echo audit records add at most 1.4% more as whole calls (first ladder Haiku 5.5: 4.6% plus up to 5.8%; Sonnet 5:
+  2.6% plus up to 5.8%). Weighted by what the context carries, the kind is 7.1%. At L1's acceptance (−75%) that
+  removes ≈ 5% of what tool results cost to carry, a little more counting echoed records — below the 26%
+  between-session noise [G]. **Decision from L0: the table view
   is not built in the first slice**; L1's skill text pointing at `read {fields}`, `series` and `aggregate` stands.
 - **Acceptance.** Against the interleaved control, L0's `auditLog` bytes per run fall ≥ 75%, every rung's oracle
   and CHART still pass at the control's rate, and no run reads the raw export with a shell tool.
@@ -296,9 +304,10 @@ rung; otherwise the item is reported as *no effect shown*, not as a saving.
   scripts and sources read in compound commands.
   **The guidance did not stop them**, which is P1 of the minimal-instructions spec in action: prose describing
   where not to look loses to an artefact that does not answer the question.
-- **Saving.** Up to the 1.0% of baseline tool bytes that are generated code [T], if a receipt removes the reads; the
-  design question is also answered today by reading the XML (22.6%), build output (14.6%) and library classes (9.6%)
-  [T], which a receipt could reach. Confidence
+- **Saving.** Up to the 1.0% of baseline tool bytes that are generated code [T], if a receipt removes the reads. The
+  design question is also answered today by compound orientation reads of the XML with Java sources, by build output
+  and by library inspection (design 1.0–25.3%, build 3.5–15.9%, library 3.4–16.5% of tool bytes, single-kind to
+  upper bound [T]), part of which a receipt could reach; how much is not measured. Confidence
   is low: generated reads correlate −0.21 with cost on the baseline [D], so those bytes may not be the ones that
   push prompts over the tier.
 - **Acceptance.** Against the interleaved control, median generated-code reads **0** on every rung, PASS not
@@ -322,8 +331,11 @@ rung; otherwise the item is reported as *no effect shown*, not as a saving.
   the tier [D].
 - **Saving.** At most ≈ 48% of the baseline's Haiku 5.5 cost if no request crossed the tier at unchanged token counts
   (§1.5 [T]; previously an INFERRED 30–35%). **L0's phases point at (iii)**: the diagnosis phase pays 54.8% of the
-  baseline's cost and holds 88 of its 102 over-100k requests while reading 9.6% of the tool bytes, because it
-  carries the design phase's context (78.7% of the bytes) [T]. The
+  baseline's cost and holds 88 of its 102 over-100k requests while reading 9.6% of the tool bytes [T]. That this is
+  *because* it carries the design phase's context is INFERRED: the tables do not attribute carried context to the
+  phase that produced it, and as the last phase diagnosis necessarily carries the largest context. The contrasts:
+  first ladder Haiku 5.5, diagnosis 39.3% vs design 40.8%; Sonnet 5, diagnosis 18.3% [T]. The fresh-context saving
+  is therefore not estimated. The
   rung-3 evidence in §1.4 (over 100k 18 → 3, cost −66% [B]) shows the lever can work, with the confounds named
   there. (iii) carries the most uncertainty, because a fresh context re-pays the ≈ 22k base [S].
 - **Acceptance, per rung, against the interleaved control.** Rungs 3 and 5, with (i)(ii) applied to the bundle:
@@ -397,8 +409,9 @@ ladder measures (Spring and bundle authoring), and when to step up.
     sides: two of the three Haiku 4.5 runs (`g14-45-r2b`, `r3b`) and two of the three Haiku 5.5 `-b` runs
     (`g14-55-r2b`, `r3b`) [G], so both medians in the 24% ratio are partly contaminated.
   - **The ≈ 40× figure** the owner works with is a price-list ratio [S]; the measured per-run ratio is 18× [D]. **L0's
-    fitted prices account for it** [T]: Sonnet 5 costs **20×** Haiku 5.5's base rate on every bucket and has no
-    tier, so against Haiku 5.5's requests over 100k it is only 4× — the measured 18× sits between. Sonnet's prompts
+    fitted prices bracket it** [T]: Sonnet 5 costs **20×** Haiku 5.5's base rate on every bucket and has no
+    tier, so against Haiku 5.5's requests over 100k it is only 4× — the measured 18× sits between. Which mix produces
+    18× is INFERRED, because request counts and prompt sizes also differ. Sonnet's prompts
     are also larger for the same first-ladder harness (first request median 32.7k vs 21.4k tokens, 1.53×; tokenizer
     and system prompt not separated) [T]. The earlier reasoning, kept for the record: Sonnet made more requests per run (106.5 vs 45.2) and
     more of them over 100k (51% vs 33%) [L, D], which alone would push the ratio *above* the list price; the
@@ -480,10 +493,10 @@ the doubt.
 | 1 | **L0** measure the split | — | High | Low | every other estimate depends on it |
 | 2 | **L4 (i)(ii)** capped output, rungs 3/5 | High | Medium | Low–Medium | strongest driver in both datasets; rung-3 evidence; upstream bundle change |
 | 3 | **L4 (i)(ii)** for rungs 2/4 (UP-PG-06) | High | Medium | Medium | the same lever, but the starter has no script yet |
-| 4 | **L1** tabular view + skill default | Low | High | Medium | L0: raw-log text ≤ 8.8% of tool bytes [T]; the view is deferred, the skill text stays |
+| 4 | **L1** tabular view + skill default | Low | High | Medium | L0: auditLog kind 8.8% of tool bytes (upper bound; ≤ 1.4% more echoed) [T]; the view is deferred, the skill text stays |
 | 5 | **L5** diagnosis summary | Medium | Medium | Medium | turns r = 0.83 on the baseline; one existing surface |
-| 6 | **L4 (iii)** design/diagnosis split | High? | Medium | Low | L0: diagnosis is 54.8% of baseline cost, 88 of 102 over-100k requests [T]; the base is re-paid |
-| 7 | **L3** design receipt | Medium | Low | Medium–High | generated code is 1.0% of baseline tool bytes [T]; the design question also reads XML, build output and classes; upstream |
+| 6 | **L4 (iii)** design/diagnosis split | High? | Medium | Low | L0: diagnosis is 54.8% of baseline cost, 88 of 102 over-100k requests [T] (first ladder 39.3%, Sonnet 18.3%); cause INFERRED; the base is re-paid |
+| 7 | **L3** design receipt | Medium | Low | Medium–High | generated code is 1.0% of baseline tool bytes [T]; the design question also reads XML with sources, build output and classes (shares bounded, not ranked); upstream |
 | 8 | **L2** `compare` verb | Low | High | Medium | correctness and one reader, not tokens; form and D-N3 decided |
 | — | **L7** model selection | High (kept, not new) | Medium | Low | the 18× is already realised [D]; the lever stops it drifting; docs + one test |
 | — | **L6** compression / base64 | none | High | — | rejected [S] |
@@ -494,7 +507,7 @@ is docs plus one test, and every later measurement assumes the default it states
 **Recommended first slice:** L0, plus L7's *Model choice* section and test, plus L4 (i)(ii) on the analyser
 bundle, plus the skill text of L1 pointing at the existing `read {fields}`, `series` and `aggregate` (no new analyser code). Measure it on rungs 3 and 5 against
 an interleaved control. File UP-PG-06 at the same time. Build L1's table view only if L0 shows raw-log text is a
-material share of tool bytes — **L0 shows it is not** (≤ 8.8% [T]), so the view is deferred; L4 (iii) moves up.
+material share of tool bytes — **L0 shows it is not** (8.8%, the classifier's upper bound, plus ≤ 1.4% echoed [T]), so the view is deferred; L4 (iii) moves up.
 
 ---
 

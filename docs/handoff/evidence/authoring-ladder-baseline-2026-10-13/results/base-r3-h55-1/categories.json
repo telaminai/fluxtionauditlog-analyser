@@ -189,6 +189,10 @@
  },
  "multiKindCalls": 10,
  "multiKindBytes": 59226,
+ "auditEchoBytes": {
+  "server": 0,
+  "build": 1580
+ },
  "calls": [
   {
    "n": 0,
@@ -201,7 +205,8 @@
    "rule": "markdown",
    "bytes": 8176,
    "isError": false,
-   "request": 0
+   "request": 0,
+   "auditEcho": false
   },
   {
    "n": 1,
@@ -215,7 +220,8 @@
    "rule": "springXml",
    "bytes": 17472,
    "isError": false,
-   "request": 0
+   "request": 0,
+   "auditEcho": false
   },
   {
    "n": 2,
@@ -228,7 +234,8 @@
    "rule": "authoringJson",
    "bytes": 2262,
    "isError": false,
-   "request": 1
+   "request": 1,
+   "auditEcho": true
   },
   {
    "n": 3,
@@ -241,7 +248,8 @@
    "rule": "authoringJson",
    "bytes": 11356,
    "isError": false,
-   "request": 2
+   "request": 2,
+   "auditEcho": false
   },
   {
    "n": 4,
@@ -254,7 +262,8 @@
    "rule": "buildScript",
    "bytes": 11137,
    "isError": false,
-   "request": 3
+   "request": 3,
+   "auditEcho": false
   },
   {
    "n": 5,
@@ -266,7 +275,8 @@
    "rule": "projectFile",
    "bytes": 6594,
    "isError": false,
-   "request": 3
+   "request": 3,
+   "auditEcho": false
   },
   {
    "n": 6,
@@ -279,7 +289,8 @@
    "rule": "buildScript",
    "bytes": 1129,
    "isError": false,
-   "request": 4
+   "request": 4,
+   "auditEcho": false
   },
   {
    "n": 7,
@@ -291,7 +302,8 @@
    "rule": "webFetch",
    "bytes": 3084,
    "isError": null,
-   "request": 4
+   "request": 4,
+   "auditEcho": false
   },
   {
    "n": 8,
@@ -304,7 +316,8 @@
    "rule": "buildScript",
    "bytes": 1151,
    "isError": false,
-   "request": 5
+   "request": 5,
+   "auditEcho": false
   },
   {
    "n": 9,
@@ -316,7 +329,8 @@
    "rule": "webFetch",
    "bytes": 1886,
    "isError": null,
-   "request": 5
+   "request": 5,
+   "auditEcho": false
   },
   {
    "n": 10,
@@ -328,7 +342,8 @@
    "rule": "springXml",
    "bytes": 3318,
    "isError": null,
-   "request": 6
+   "request": 6,
+   "auditEcho": false
   },
   {
    "n": 11,
@@ -340,7 +355,8 @@
    "rule": "projectFile",
    "bytes": 3178,
    "isError": null,
-   "request": 6
+   "request": 6,
+   "auditEcho": false
   },
   {
    "n": 12,
@@ -352,7 +368,8 @@
    "rule": "javaSource",
    "bytes": 2043,
    "isError": null,
-   "request": 6
+   "request": 6,
+   "auditEcho": false
   },
   {
    "n": 13,
@@ -364,7 +381,8 @@
    "rule": "editAck",
    "bytes": 190,
    "isError": null,
-   "request": 7
+   "request": 7,
+   "auditEcho": false
   },
   {
    "n": 14,
@@ -376,7 +394,8 @@
    "rule": "editAck",
    "bytes": 200,
    "isError": null,
-   "request": 7
+   "request": 7,
+   "auditEcho": false
   },
   {
    "n": 15,
@@ -388,7 +407,8 @@
    "rule": "editAck",
    "bytes": 189,
    "isError": null,
-   "request": 7
+   "request": 7,
+   "auditEcho": false
   },
   {
    "n": 16,
@@ -400,7 +420,8 @@
    "rule": "editAck",
    "bytes": 188,
    "isError": null,
-   "request": 7
+   "request": 7,
+   "auditEcho": false
   },
   {
    "n": 17,
@@ -412,7 +433,8 @@
    "rule": "classpath",
    "bytes": 194,
    "isError": false,
-   "request": 8
+   "request": 8,
+   "auditEcho": false
   },
   {
    "n": 18,
@@ -424,7 +446,8 @@
    "rule": "classpath",
    "bytes": 258,
    "isError": false,
-   "request": 9
+   "request": 9,
+   "auditEcho": false
   },
   {
    "n": 19,
@@ -436,7 +459,8 @@
    "rule": "editAck",
    "bytes": 199,
    "isError": null,
-   "request": 10
+   "request": 10,
+   "auditEcho": false
   },
   {
    "n": 20,
@@ -448,7 +472,8 @@
    "rule": "editAck",
    "bytes": 199,
    "isError": null,
-   "request": 10
+   "request": 10,
+   "auditEcho": false
   },
   {
    "n": 21,
@@ -460,7 +485,8 @@
    "rule": "editAck",
    "bytes": 194,
    "isError": null,
-   "request": 11
+   "request": 11,
+   "auditEcho": false
   },
   {
    "n": 22,
@@ -472,7 +498,8 @@
    "rule": "editAck",
    "bytes": 194,
    "isError": null,
-   "request": 11
+   "request": 11,
+   "auditEcho": false
   },
   {
    "n": 23,
@@ -484,7 +511,8 @@
    "rule": "editAck",
    "bytes": 168,
    "isError": null,
-   "request": 12
+   "request": 12,
+   "auditEcho": false
   },
   {
    "n": 24,
@@ -496,7 +524,8 @@
    "rule": "editAck",
    "bytes": 139,
    "isError": null,
-   "request": 12
+   "request": 12,
+   "auditEcho": false
   },
   {
    "n": 25,
@@ -508,7 +537,8 @@
    "rule": "editAck",
    "bytes": 139,
    "isError": null,
-   "request": 12
+   "request": 12,
+   "auditEcho": false
   },
   {
    "n": 26,
@@ -520,7 +550,8 @@
    "rule": "editAck",
    "bytes": 139,
    "isError": null,
-   "request": 12
+   "request": 12,
+   "auditEcho": false
   },
   {
    "n": 27,
@@ -533,7 +564,8 @@
    "rule": "buildScript",
    "bytes": 1580,
    "isError": false,
-   "request": 13
+   "request": 13,
+   "auditEcho": true
   },
   {
    "n": 28,
@@ -546,7 +578,8 @@
    "rule": "compilerReport",
    "bytes": 4649,
    "isError": false,
-   "request": 14
+   "request": 14,
+   "auditEcho": false
   },
   {
    "n": 29,
@@ -558,7 +591,8 @@
    "rule": "editAck",
    "bytes": 199,
    "isError": null,
-   "request": 15
+   "request": 15,
+   "auditEcho": false
   },
   {
    "n": 30,
@@ -570,7 +604,8 @@
    "rule": "editAck",
    "bytes": 199,
    "isError": null,
-   "request": 15
+   "request": 15,
+   "auditEcho": false
   },
   {
    "n": 31,
@@ -582,7 +617,8 @@
    "rule": "buildScript",
    "bytes": 354,
    "isError": false,
-   "request": 16
+   "request": 16,
+   "auditEcho": false
   },
   {
    "n": 32,
@@ -596,7 +632,8 @@
    "rule": "maven",
    "bytes": 314,
    "isError": false,
-   "request": 17
+   "request": 17,
+   "auditEcho": false
   },
   {
    "n": 33,
@@ -608,7 +645,8 @@
    "rule": "runScript",
    "bytes": 693,
    "isError": false,
-   "request": 18
+   "request": 18,
+   "auditEcho": false
   },
   {
    "n": 34,
@@ -620,7 +658,8 @@
    "rule": "auditDir",
    "bytes": 9752,
    "isError": false,
-   "request": 19
+   "request": 19,
+   "auditEcho": true
   },
   {
    "n": 35,
@@ -632,7 +671,8 @@
    "rule": "skillLoad",
    "bytes": 31,
    "isError": null,
-   "request": 20
+   "request": 20,
+   "auditEcho": false
   },
   {
    "n": 36,
@@ -644,7 +684,8 @@
    "rule": "toolSchema",
    "bytes": 679,
    "isError": null,
-   "request": 20
+   "request": 20,
+   "auditEcho": false
   },
   {
    "n": 37,
@@ -656,7 +697,8 @@
    "rule": "analyserVerb",
    "bytes": 1032,
    "isError": null,
-   "request": 21
+   "request": 21,
+   "auditEcho": false
   },
   {
    "n": 38,
@@ -668,7 +710,8 @@
    "rule": "analyserVerb",
    "bytes": 826,
    "isError": null,
-   "request": 22
+   "request": 22,
+   "auditEcho": false
   },
   {
    "n": 39,
@@ -680,7 +723,8 @@
    "rule": "analyserVerb",
    "bytes": 1032,
    "isError": null,
-   "request": 23
+   "request": 23,
+   "auditEcho": false
   },
   {
    "n": 40,
@@ -692,7 +736,8 @@
    "rule": "analyserVerb",
    "bytes": 4421,
    "isError": null,
-   "request": 24
+   "request": 24,
+   "auditEcho": true
   },
   {
    "n": 41,
@@ -704,7 +749,8 @@
    "rule": "toolSchema",
    "bytes": 165,
    "isError": null,
-   "request": 25
+   "request": 25,
+   "auditEcho": false
   },
   {
    "n": 42,
@@ -716,7 +762,8 @@
    "rule": "analyserVerb",
    "bytes": 374,
    "isError": null,
-   "request": 26
+   "request": 26,
+   "auditEcho": false
   },
   {
    "n": 43,
@@ -728,7 +775,8 @@
    "rule": "analyserVerb",
    "bytes": 607,
    "isError": null,
-   "request": 27
+   "request": 27,
+   "auditEcho": false
   },
   {
    "n": 44,
@@ -740,7 +788,8 @@
    "rule": "analyserVerb",
    "bytes": 361,
    "isError": null,
-   "request": 27
+   "request": 27,
+   "auditEcho": false
   },
   {
    "n": 45,
@@ -752,7 +801,8 @@
    "rule": "analyserVerb",
    "bytes": 326,
    "isError": null,
-   "request": 28
+   "request": 28,
+   "auditEcho": false
   },
   {
    "n": 46,
@@ -764,7 +814,8 @@
    "rule": "analyserVerb",
    "bytes": 499,
    "isError": null,
-   "request": 28
+   "request": 28,
+   "auditEcho": false
   },
   {
    "n": 47,
@@ -776,7 +827,8 @@
    "rule": "projectFile",
    "bytes": 166,
    "isError": false,
-   "request": 29
+   "request": 29,
+   "auditEcho": false
   }
  ]
 }

@@ -13,7 +13,9 @@ unchanged. Tags as in the spec: **[D]** derived from these tables.
   `reads.toolResultBytes` [D]. One call of 90 bytes (first ladder) and one of 162 (Sonnet 5) are `unclassified`;
   the baseline has none.
 - **Cost**: cost recomputed from the per-request buckets is within **0.987–1.006** of the CLI's billed
-  `usage.costUsd` on every Haiku 5.5 run and exact on every Sonnet 5 run [D] — inside L0's 2% acceptance.
+  `usage.costUsd` on every Haiku 5.5 run and exact on every Sonnet 5 run [D]. This is **in-sample**: the prices were
+  fitted to these runs, so it shows the bucket arithmetic is consistent, not that the prices are right; the
+  out-of-sample check is L0's interleaved pair.
 - **Pricing used** (fitted to the billed cost; re-read the provider's page before relying on it): Haiku 5.5
   $0.10 input / $0.01 cache read / **$0.20 one-hour cache write** / $0.50 output per M, ×5 for a request over
   100k; Sonnet 5 $2 / $0.20 / $4 / $10 per M, **no tier** (prompts up to 210k billed flat). The spec's supplied
@@ -23,30 +25,39 @@ unchanged. Tags as in the spec: **[D]** derived from these tables.
 
 ## The answers
 
-**1. Tool-result bytes by kind — raw audit-log text is small.** Baseline (Haiku 5.5, 1.20 MB of tool results):
+**1. Tool-result bytes by kind — the audit log is a small share; the kinds cannot be ranked.** Baseline (Haiku
+5.5, 1.20 MB of tool results), listed in the classifier's priority order, not by size:
 
-| kind | share | bounds | tier-weighted carried share |
-|---|---|---|---|
-| design (Spring XML, authoring JSON — and the compound reads that include them) | 22.6% | 1.0–25.3% | 24.4% |
-| docs (Markdown, skills, help, WebFetch) | 18.0% | 6.0–33.6% | 19.7% |
-| build (generate/validate/mvn/javac and compiler reports) | 14.6% | 3.5–15.9% | 15.4% |
-| analyser replies | 10.7% | 10.7% | 5.9% |
-| source (hand-written Java, POM, scripts, config, data) | 10.5% | 9.5–50.9% | 10.7% |
-| library (javap, jars, classes, the Maven repository) | 9.6% | 3.4–16.5% | 11.3% |
-| **audit log** | **8.8%** (raw text 8.2%) | 3.5–8.8% | **7.1%** |
-| other / server / generated | 3.1% / 1.2% / 1.0% | | 3.0% / 1.2% / 1.4% |
+| kind | share by priority | single-kind share (lower bound) | upper bound | tier-weighted carried share |
+|---|---|---|---|---|
+| **audit log** | **8.8%** (raw text 8.2%) | 3.5% | 8.8% (+ ≤ 1.4% echoed, below) | **7.1%** |
+| generated (processor, GraphML) | 1.0% | 0.0% | 1.0% | 1.4% |
+| server (run scripts, `java`, server logs) | 1.2% | 0.2% | 3.0% | 1.2% |
+| build (generate/validate/mvn/javac, compiler reports) | 14.6% | 3.5% | 15.9% | 15.4% |
+| design (Spring XML, authoring JSON) | 22.6% | 1.0% | 25.3% | 24.4% |
+| library (javap, jars, classes, Maven repository) | 9.6% | 3.4% | 16.5% | 11.3% |
+| docs (Markdown, skills, help, WebFetch) | 18.0% | 6.0% | 33.6% | 19.7% |
+| source (hand-written Java, POM, scripts, config, data) | 10.5% | 9.5% | 50.9% | 10.7% |
+| analyser replies | 10.7% | 10.7% | 10.7% | 5.9% |
+| other | 3.1% | 3.1% | 22.3% | 3.0% |
 
-"Bounds" are lower = calls that read only that kind, upper = every call that names it; a compound `cat a && cat b`
-counts toward the upper bound of each kind it names, so the bound width is the classifier's doubt. "Tier-weighted
-carried" weights each result by the later requests that re-read it, ×5 for those over 100k: the share of what a
-kind costs to keep in the context. First ladder: audit log 4.6% (carried 3.1%); Sonnet 5: 2.6% [D].
+A call's bytes go to the highest-priority kind it names; the **single-kind share** counts only calls that read one
+kind (the lower bound), and the **upper bound** counts every call that names the kind. Most bytes come from
+**compound orientation reads** — one `cat … && cat …` of the authoring JSON with config, scripts, skills and
+runbooks, or of the Spring XML with several Java sources. For those the split between kinds is not measured: design's
+22.6% is a priority artefact (96% of its bytes come from multi-kind calls; single-kind 1.0%), and source (up to
+50.9%) and docs (up to 33.6%) could each be larger. So no ranking of design, docs, build and source is claimed.
+"Tier-weighted carried" weights each result by the later requests that re-read it, ×5 for those over 100k.
 
-**L1's table view is not worth building yet.** Raw audit-log text is at most **8.8%** of baseline tool bytes
-(median 7.6% per run, max 13.8%) and **7.1%** of the tier-weighted carried bytes. L1's own acceptance (auditLog
-bytes −75%) would therefore remove at most ≈ 5% (0.75 × 7.1%) of what tool results cost to carry — far smaller than
-the 26% between-session cost noise [G], so it could not even be shown. The spec's §4 condition ("only if raw-log text is a material share") is not met; L1's skill text pointing
-at the existing `read {fields}`, `series` and `aggregate` is enough for now. The larger shares are design, docs and
-build output: those, not the audit log, are what L3 and L4 (i) would reach.
+**L1's table view is not worth building yet.** The `auditLog` kind is **8.8%** of baseline tool bytes — its
+classifier upper bound, auditCompare output included; raw text (without auditCompare) is 8.2%, with a per-run median
+of 7.6% and a per-run maximum of 13.8%. Build and server results that also carry audit-record keys (a run or build
+echoing records) add at most **1.4%** more as whole calls (first ladder Haiku 5.5: auditLog 4.6% plus up to 5.8%;
+Sonnet 5: 2.6% plus up to 5.8%) [D]. Weighted by what the context carries, the auditLog kind is **7.1%**. L1's own
+acceptance (auditLog bytes −75%) would therefore remove ≈ 5% (0.75 × 7.1%) of what tool results cost to carry, or a
+little more counting echoed records — far smaller than the 26% between-session cost noise [G], so it could not even be
+shown. The spec's §4 condition ("only if raw-log text is a material share") is not met; L1's skill text pointing at
+the existing `read {fields}`, `series` and `aggregate` is enough for now.
 
 **Correction to §1.3/L3: generated code is 1.0% of baseline tool bytes, not 26%.** score.json's `generatedBytes`
 counts any call whose command names `/builder/` or reads a setup/validate/generate script, and most such calls are
@@ -61,7 +72,7 @@ spec stated; the remaining reads are hand-written sources, builder code and scri
 would cut the baseline's cost by 0.8 × 60.0% = **48%** (first ladder 58%) [D] — an upper bound, since keeping a
 request under 100k also changes what it holds.
 
-**3. Per-phase cost — diagnosis is the expensive phase, and it is expensive because of what it carries.**
+**3. Per-phase cost — diagnosis is the most expensive phase on the baseline.**
 
 | baseline, Haiku 5.5 | cost share | requests | over 100k | tool bytes share |
 |---|---|---|---|---|
@@ -69,10 +80,12 @@ request under 100k also changes what it holds.
 | run | 14.6% | 62 | 14 | 11.7% |
 | diagnosis | **54.8%** | 131 | **88** | 9.6% |
 
-Diagnosis reads 9.6% of the tool bytes but pays 54.8% of the cost and holds 88 of the 102 requests over 100k,
-because every diagnosis request re-reads the design phase's context. First ladder Haiku 5.5: 40.8 / 18.7 / 39.3%;
-Sonnet 5: 74.2 / 7.5 / 18.3% [D]. This is the measurement L4 (iii) (diagnosis in a fresh context seeded with the
-receipt) was waiting for: the design phase's 78.7% of bytes is what diagnosis requests carry over the tier.
+Diagnosis reads 9.6% of the tool bytes but pays 54.8% of the cost and holds 88 of the 102 requests over 100k [D].
+That it does so *because it re-reads the design phase's context* is INFERRED: the tables do not attribute a
+request's carried context to the phase that produced it, and as the last phase diagnosis necessarily carries the
+largest context. The contrasts matter: on the first ladder (Haiku 5.5) diagnosis is 39.3% against design's 40.8%,
+and for Sonnet 5 it is 18.3% (design 74.2%) [D]. L4 (iii) (diagnosis in a fresh context seeded with the receipt)
+is better supported than before, but its saving is not estimated from these tables.
 
 **Also measured**: the first request's prompt (the base prompt) has median **21.8k** tokens on the baseline (20.4k–23.1k),
 confirming §1.3's ≈ 22k [S]. On the first ladder, where both models ran the same harness, the first prompt's
@@ -83,10 +96,12 @@ median is 21.4k for Haiku 5.5 and **32.7k** for Sonnet 5, 1.53× [D].
 Calls in transcript order. E = the last run call (a run/export script executed, or `java` run) before the last
 analyser `open` of a log; B = the last successful build (generate.sh executed, mvn/mvnw, javac) before E; D = the
 first analyser call after E. design = up to B, run = between, diagnosis = from D. A request takes the phase of the
-first tool call it emits. Full text in each phases.json and in the script. One run (lad-r5-h55-1) has no diagnosis
+first tool call it emits; one that emits none takes the phase of the nearest earlier request that emitted one. Full text in each phases.json and in the script. One run (lad-r5-h55-1) has no diagnosis
 phase: it made no analyser call after its export.
 
-## Generated summary (`python3 tools/token_split.py summary results ../authoring-ladder-2026-10-12/results`)
+## Generated summary
+
+Run from this folder: `python3 ../../../../tools/token_split.py summary results ../authoring-ladder-2026-10-12/results`
 
 ### authoring-ladder-baseline-2026-10-13
 
@@ -105,9 +120,9 @@ phase: it made no analyser call after its export.
 | base-r5-h55-2 | 108109 = 108109 yes | 1.0063 | 7/38 | 0.5241 |
 | base-r5-h55-3 | 114664 = 114664 yes | 1.0011 | 13/41 | 0.7109 |
 
-**claude-haiku-5-5, 12 runs — tool-result bytes by kind** (share of 1,200,467 bytes; lower = single-kind calls only, upper = every call that names the kind)
+**claude-haiku-5-5, 12 runs — tool-result bytes by kind** (share of 1,200,467 bytes; share = bytes assigned by kind priority; single-kind = calls that read only that kind, the lower bound; upper = every call that names the kind)
 
-| kind | bytes | share | lower | upper | calls | carried share | tier-weighted carried share |
+| kind | bytes | share | single-kind share (lower) | upper | calls | carried share | tier-weighted carried share |
 |---|---|---|---|---|---|---|---|
 | auditLog | 105,154 | 8.8% | 3.5% | 8.8% | 59 | 5.3% | 7.1% |
 | generated | 11,554 | 1.0% | 0.0% | 1.0% | 4 | 1.4% | 1.4% |
@@ -121,7 +136,7 @@ phase: it made no analyser call after its export.
 | other | 36,966 | 3.1% | 3.1% | 22.3% | 148 | 2.5% | 3.0% |
 | unclassified | 0 | 0.0% | 0.0% | 0.0% | 0 | 0.0% | 0.0% |
 
-Raw audit-log text (auditLog without auditCompare): 98,602 bytes, 8.2% of tool bytes; per run median 7.6%, max 13.8%.
+Raw audit-log text (auditLog without auditCompare): 98,602 bytes, 8.2% of tool bytes; per run median 7.6%, max 13.8%. Build/server results that also carry audit-record keys: 17,117 bytes, 1.4% (whole calls, an upper bound on echoed audit text).
 
 Cost: billed $1.4930, recomputed $1.4866 (0.9957); requests over 100k $0.8914 = **60.0%** of recomputed cost (input side alone $0.7120 = 47.9%); at or under 100k $0.5794 = 39.0%; CLI side calls $0.0158 = 1.1%.
 
@@ -153,9 +168,9 @@ Cost: billed $1.4930, recomputed $1.4866 (0.9957); requests over 100k $0.8914 = 
 | lad-r5-h55-3 | 137858 = 137858 yes | 0.9942 | 20/55 | 0.7441 |
 | lad-r5-s5-1 | 199550 = 199550 yes | 1.0 | 54/94 | 0.6796 |
 
-**claude-haiku-5-5, 12 runs — tool-result bytes by kind** (share of 1,448,215 bytes; lower = single-kind calls only, upper = every call that names the kind)
+**claude-haiku-5-5, 12 runs — tool-result bytes by kind** (share of 1,448,215 bytes; share = bytes assigned by kind priority; single-kind = calls that read only that kind, the lower bound; upper = every call that names the kind)
 
-| kind | bytes | share | lower | upper | calls | carried share | tier-weighted carried share |
+| kind | bytes | share | single-kind share (lower) | upper | calls | carried share | tier-weighted carried share |
 |---|---|---|---|---|---|---|---|
 | auditLog | 66,256 | 4.6% | 1.3% | 4.6% | 58 | 2.2% | 3.1% |
 | generated | 245,432 | 16.9% | 3.2% | 17.2% | 53 | 19.6% | 19.9% |
@@ -169,7 +184,7 @@ Cost: billed $1.4930, recomputed $1.4866 (0.9957); requests over 100k $0.8914 = 
 | other | 36,523 | 2.5% | 2.5% | 20.2% | 167 | 1.9% | 2.2% |
 | unclassified | 90 | 0.0% | 0.0% | 0.0% | 1 | 0.0% | 0.0% |
 
-Raw audit-log text (auditLog without auditCompare): 66,256 bytes, 4.6% of tool bytes; per run median 5.1%, max 13.5%.
+Raw audit-log text (auditLog without auditCompare): 66,256 bytes, 4.6% of tool bytes; per run median 5.1%, max 13.5%. Build/server results that also carry audit-record keys: 84,166 bytes, 5.8% (whole calls, an upper bound on echoed audit text).
 
 Cost: billed $2.3387, recomputed $2.3326 (0.9974); requests over 100k $1.6972 = **72.8%** of recomputed cost (input side alone $1.3758 = 59.0%); at or under 100k $0.6070 = 26.0%; CLI side calls $0.0285 = 1.2%.
 
@@ -182,9 +197,9 @@ Cost: billed $2.3387, recomputed $2.3326 (0.9974); requests over 100k $1.6972 = 
 
 Runs with no diagnosis phase: lad-r5-h55-1.
 
-**claude-sonnet-5, 4 runs — tool-result bytes by kind** (share of 659,005 bytes; lower = single-kind calls only, upper = every call that names the kind)
+**claude-sonnet-5, 4 runs — tool-result bytes by kind** (share of 659,005 bytes; share = bytes assigned by kind priority; single-kind = calls that read only that kind, the lower bound; upper = every call that names the kind)
 
-| kind | bytes | share | lower | upper | calls | carried share | tier-weighted carried share |
+| kind | bytes | share | single-kind share (lower) | upper | calls | carried share | tier-weighted carried share |
 |---|---|---|---|---|---|---|---|
 | auditLog | 17,097 | 2.6% | 1.2% | 2.6% | 17 | 2.2% | 2.2% |
 | generated | 32,040 | 4.9% | 3.4% | 4.9% | 26 | 4.6% | 4.6% |
@@ -198,7 +213,7 @@ Runs with no diagnosis phase: lad-r5-h55-1.
 | other | 24,574 | 3.7% | 3.7% | 32.0% | 97 | 4.4% | 4.4% |
 | unclassified | 162 | 0.0% | 0.0% | 0.0% | 1 | 0.0% | 0.0% |
 
-Raw audit-log text (auditLog without auditCompare): 17,097 bytes, 2.6% of tool bytes; per run median 2.4%, max 5.6%.
+Raw audit-log text (auditLog without auditCompare): 17,097 bytes, 2.6% of tool bytes; per run median 2.4%, max 5.6%. Build/server results that also carry audit-record keys: 38,244 bytes, 5.8% (whole calls, an upper bound on echoed audit text).
 
 Cost: billed $13.6692, recomputed $13.6692 (1.0000); requests over 100k $8.6019 = **62.9%** of recomputed cost (input side alone $7.5735 = 55.4%); at or under 100k $5.0566 = 37.0%; CLI side calls $0.0108 = 0.1%.
 
