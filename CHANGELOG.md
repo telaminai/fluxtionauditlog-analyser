@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+## [1.34.0] - 2026-10-13
+
 ### Added
 
 - The `add-a-node` skill adds a node **XML first**: declare the bean, its `ReferenceBinding`s (`DATA` for a parent that must not trigger it, `parentUpdateCallback` on a `TRIGGER` parent for an `@OnParentUpdate` callback) and its sink (`SinkBinding` under `sinks`) in the designer XML, validate and regenerate — regeneration writes the class shell with its annotations, so the author fills only the method bodies. It says not to hand-write the class or wire a sink outside the XML: a sink wired by hand is not declared in the design, and a hand-written class that disagrees with the XML is refused (`SPRING_RECONCILE_CONFLICT`) (cycle-5 findings 5.7, 5.8).
