@@ -374,7 +374,7 @@ ladder measures (Spring and bundle authoring), and when to step up.
   |---|---|---|---|---|
   | Haiku 5.5 | **default**; meets acceptance on rungs 3–5; **open on rung 2** (the chart step, 1/3) | `docs/handoff/evidence/authoring-ladder-baseline-2026-10-13` | `PASS` per rung | rungs 3–5 ≥ 2/3; rung 2 < 2/3 |
   | Sonnet 5 | **advisory: not recommended** — no rung where it passes and the default fails, at 16.5–30× per run | `docs/handoff/evidence/authoring-ladder-2026-10-12` | `PASS` per rung, both models | no rung with Sonnet 5 passing and Haiku 5.5 < 2/3 |
-  | Haiku 4.5 | **negative: not for the chart step** | `docs/handoff/evidence/g14-model-grid-2026-10-11` | `S5` | `S5` false in every Haiku 4.5 run |
+  | Haiku 4.5 | **negative: not for the chart step** | `docs/handoff/evidence/g14-model-grid-2026-10-11` | `checks.S5` | `checks.S5` false in every `claude-haiku-4-5-20251001` run |
   | others (Opus-class, …) | **unmeasured** | — | — | exempt: an `unmeasured` row may cite nothing |
   - **Step-up rule:** none documented, because no failure class has a larger-model arm. Until one exists, the
     section says to re-run a failed step with the default before paying for a larger model — marked as advice,
@@ -397,12 +397,15 @@ ladder measures (Spring and bundle authoring), and when to step up.
 - **Regression check (rule 8).** `ModelChoiceEvidenceTest` parses the *Model choice* table. Every row has a
   status from a closed set — `meets acceptance` (with any `open` rungs), `advisory`, `negative`, `unmeasured` —
   and every row but `unmeasured` names its evidence folder and the field it reads (`PASS` per rung for the
-  ladders; `S5` for the grid, whose score.json has no `rung` and whose `PASS` is the sealed value). The test
+  ladders; `S5` for the grid, whose score.json has no `rung` and whose `PASS` is the sealed value). Runs are
+  selected by `model` id; `*-VOID-*` runs and score files with no `model` (the grid folder's A/B controls, e.g.
+  `ab-ctl-r1`, and the empty `ab-ctl-r1b`) are excluded and listed in the test's output. The test
   applies the row's stated check (the last column) and fails if: a *meets acceptance* rung is below 2/3; an *open*
   rung is in fact ≥ 2/3 (stale); an *advisory* or *negative* row's check does not hold; a non-`unmeasured` row
   cites no folder or field; or a status is outside the set. **The score files are not sealed by the
   `MANIFEST*.sha256` files** — those seal predictions, tasks and harness inputs before the runs — so the test reads
-  a committed digest file (`docs/specs/model-choice-evidence.sha256`, one sha256 per cited `score.json`) and fails
+  a committed digest file (`docs/specs/model-choice-evidence.sha256`, created with the test; one sha256 per cited
+  `score.json`) and fails
   on any mismatch: editing evidence then fails the test unless the digest file is changed in the same reviewed
   diff. Witness: on a temporary copy of a cited folder, flip two `PASS` values on one claimed rung — the test must
   go red, both on the digest and, with the digest updated, on the claim.
