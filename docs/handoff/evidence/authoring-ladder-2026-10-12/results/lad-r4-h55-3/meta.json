@@ -1,0 +1,32 @@
+{
+  "run": "lad-r4-h55-3",
+  "requestedModel": "claude-haiku-5-5",
+  "gate": "G14-rig comparison (prestaged)",
+  "acceptanceEligible": false,
+  "startedUtc": "2026-10-12T23:07:26.237110+00:00",
+  "processGroupId": 10563,
+  "processGroupReaped": true,
+  "strayProcesses": {
+    "swept": [],
+    "survivors": []
+  },
+  "exit": 0,
+  "endedUtc": "2026-10-12T23:11:38.794396+00:00",
+  "clock": {
+    "utcNs": 1791846698794444000,
+    "awakeNs": 4081451393200458,
+    "continuousNs": 4206342140501000,
+    "elapsedSeconds": 252.557016375,
+    "awakeSeconds": 252.556999333,
+    "utcElapsedSeconds": 252.557341,
+    "suspendSeconds": 1.704199999608136e-05,
+    "utcDriftSeconds": 0.0003246250000188411
+  },
+  "claudeBinUnchanged": true,
+  "acquired": [],
+  "mavenRepoLocal": {
+    "path": "/private/tmp/fx-lad-r4-h55-3/tmp/m2",
+    "bytes": 58305631
+  },
+  "keyScanClean": true
+}

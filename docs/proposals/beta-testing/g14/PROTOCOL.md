@@ -48,6 +48,43 @@ stays invisible.
 **4. The cap is longer.** The interrupted 1.0.74 attempt ran 869 s and never reached a chart, so a 600 s
 cap would end a G14 run before the part that failed last time. Default 1800 s, recorded in `meta.json`.
 
+## Cache state: warm by default, a first-run check occasionally
+
+Owner decision, 2026-10-12. **A run starts with a warm Maven cache unless it is the occasional first-run check.**
+
+**Why.** A fully cold cache is not what a user has. The bundle's README sends a new user to `./mvnw package` first ("uses
+the shipped processor and needs no compilation key"), and `setup.sh` only before the first graph change. By the time
+anyone authors, that first build has already resolved most of the classpath, and a Java developer usually holds the
+common Central artefacts from other projects. The analyser does not change this: its JBang alias runs the shaded
+release jar from its download URL and caches it under `~/.jbang`, not in `~/.m2`.
+
+**What the cold runs measured instead.** On 2026-10-12, an empty per-run cache made `setup.sh` take 90 to 200 s,
+downloading 360 to 450 artefacts (60 to 83 MB). That is network time, not Fluxtion or model behaviour. With a warm
+cache it took 5.4 s, and `generate.sh` 8 to 11 s. The same evening, Repsy returned 502 for over an hour and voided two
+runs that had nothing to do with the model.
+
+**Warm runs (the default: comparisons, ladders, A/B and model grids).**
+- Seed the run's own repository (`<base>/tmp/m2`, never the owner's `~/.m2`) from a frozen cache that a run of the
+  same bundle filled from an empty start.
+- Check provenance before seeding. Every artefact directory must carry `_remote.repositories` naming a remote
+  (Central or public Repsy). Refuse a locally installed artefact, a jar with no recorded source, and any SNAPSHOT.
+  The owner's `~/.m2` fails this check by construction: it holds test builds, SNAPSHOTs and local installs.
+- Record the seed's name and tree digest with the run, so a warm run can never be read as a first-run result.
+- Check sufficiency once per seed: the bundle's `setup.sh` succeeds from the seed with no request to Repsy.
+
+**The first-run check (occasional, and the condition for a G14 acceptance).**
+- A fresh machine state with no project cache, following the README exactly: download, `./mvnw package`, then
+  `./setup.sh` before the first graph change. Do not start from `setup.sh` on an empty cache.
+- Its purpose is what only a cold start can show: the published artefacts resolve, Repsy and Central are reachable,
+  and first-run time is acceptable. Report first-run time separately from the authoring result.
+- Run it when the published pins, the bundle's dependencies or the repository arrangement change, and before an
+  acceptance. Not on every run.
+
+**Status.** On 2026-10-12 the ladder runs were seeded by the orchestrator (`WARM-CACHE.md` in the ladder evidence).
+Moving this into the runner as `--seed-m2 <dir>` follows once those runs finish, so the sealed harness does not change
+under them. That change brings the provenance check, a recorded digest in `config.json` and `meta.json`, tests and a
+wrong-result control.
+
 ## The control that replaces the one we gave up
 
 Granting the key re-opens a failure this project has already observed: on the released bundle, **2 of 6

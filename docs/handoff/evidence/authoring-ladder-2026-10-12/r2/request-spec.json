@@ -1,0 +1,104 @@
+{
+  "analyserSupport": true,
+  "build": "maven",
+  "group": "com.example",
+  "artifact": "my-app",
+  "version": "1.0.0-SNAPSHOT",
+  "javaRelease": 21,
+  "basePackage": "com.example.myapp",
+  "versions": {},
+  "type": {
+    "fluxtion": true,
+    "mongoose": false
+  },
+  "fluxtion": {
+    "processorName": "MyProcessor",
+    "nodeClassName": "RootNode",
+    "triggerClasses": [
+      "Child"
+    ],
+    "definition": "spring",
+    "builderStyle": "imperative",
+    "compileMode": "aot",
+    "runner": {
+      "host": "bare",
+      "feeds": [],
+      "sinks": []
+    },
+    "events": [
+      {
+        "name": "PriceUpdate",
+        "kind": "class",
+        "fields": [
+          {
+            "name": "symbol",
+            "type": "String"
+          },
+          {
+            "name": "price",
+            "type": "double"
+          }
+        ]
+      }
+    ],
+    "auditors": {
+      "eventAudit": true,
+      "replayRecord": false,
+      "userMetrics": false,
+      "customAuditor": false,
+      "perfMonitor": false
+    },
+    "messageSink": false,
+    "addTestShell": true,
+    "springDeclarations": {
+      "references": [
+        {
+          "owner": "Child",
+          "target": "RootNode",
+          "mode": "DATA",
+          "field": "parent"
+        }
+      ],
+      "exports": [
+        {
+          "service": "com.example.myapp.service.Commands",
+          "node": "Child",
+          "methods": [
+            "cancel(java.lang.String)",
+            "reset()"
+          ]
+        }
+      ],
+      "handlers": [
+        {
+          "event": "com.example.myapp.event.PriceUpdate",
+          "nodes": [
+            "RootNode"
+          ],
+          "filterId": 7,
+          "propagate": false
+        }
+      ],
+      "signals": [
+        {
+          "name": "pause",
+          "nodes": [
+            "Child"
+          ]
+        }
+      ],
+      "sinks": [
+        {
+          "name": "checked",
+          "valueType": "com.example.myapp.event.Checked",
+          "nodes": [
+            "Child"
+          ]
+        }
+      ],
+      "lifecycleNodes": [
+        "Child"
+      ]
+    }
+  }
+}

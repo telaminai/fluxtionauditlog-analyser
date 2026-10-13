@@ -1,0 +1,27 @@
+{
+  "run": "g14-55-r1b",
+  "requestedModel": "claude-haiku-5-5",
+  "gate": "G14",
+  "startedUtc": "2026-10-12T17:10:03.160564+00:00",
+  "processGroupId": 83038,
+  "processGroupReaped": true,
+  "exit": 0,
+  "endedUtc": "2026-10-12T17:16:47.861791+00:00",
+  "clock": {
+    "utcNs": 1791825407861817000,
+    "awakeNs": 4060160550722916,
+    "continuousNs": 4185051298011375,
+    "elapsedSeconds": 404.700327459,
+    "awakeSeconds": 404.700322958,
+    "utcElapsedSeconds": 404.701259,
+    "suspendSeconds": 4.5009999780631915e-06,
+    "utcDriftSeconds": 0.0009315409999999247
+  },
+  "claudeBinUnchanged": true,
+  "acquired": [],
+  "mavenRepoLocal": {
+    "path": "/private/tmp/fx-g14-55-r1b/tmp/m2",
+    "bytes": 80885820
+  },
+  "keyScanClean": true
+}

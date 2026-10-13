@@ -1,0 +1,38 @@
+{
+  "run": "ab-ctl-r1b",
+  "requestedModel": "claude-haiku-5-5",
+  "gate": "G14-rig comparison (prestaged)",
+  "acceptanceEligible": false,
+  "startedUtc": "2026-10-12T18:05:18.553640+00:00",
+  "processGroupId": 99671,
+  "processGroupReaped": true,
+  "strayProcesses": {
+    "swept": [
+      {
+        "pid": 99653,
+        "command": "~/Library/Java/JavaVirtualMachines/corretto-21.0.9/Contents/Home/bin/java -Duser.home=/private/tmp/fx-ab-ctl-r1b/tmp/home -jar /private/tmp/fx-ab-ctl-",
+        "killed": "SIGTERM"
+      }
+    ],
+    "survivors": []
+  },
+  "exit": 0,
+  "endedUtc": "2026-10-12T18:12:24.813628+00:00",
+  "clock": {
+    "utcNs": 1791828744813687000,
+    "awakeNs": 4063497459928666,
+    "continuousNs": 4188388207228083,
+    "elapsedSeconds": 426.256588542,
+    "awakeSeconds": 426.256572666,
+    "utcElapsedSeconds": 426.260057,
+    "suspendSeconds": 1.5875999963554932e-05,
+    "utcDriftSeconds": 0.0034684580000430287
+  },
+  "claudeBinUnchanged": true,
+  "acquired": [],
+  "mavenRepoLocal": {
+    "path": "/private/tmp/fx-ab-ctl-r1b/tmp/m2",
+    "bytes": 80885820
+  },
+  "keyScanClean": false
+}

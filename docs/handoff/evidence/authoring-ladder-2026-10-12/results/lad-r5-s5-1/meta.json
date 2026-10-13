@@ -1,0 +1,32 @@
+{
+  "run": "lad-r5-s5-1",
+  "requestedModel": "claude-sonnet-5",
+  "gate": "G14-rig comparison (prestaged)",
+  "acceptanceEligible": false,
+  "startedUtc": "2026-10-12T23:18:58.579839+00:00",
+  "processGroupId": 16073,
+  "processGroupReaped": true,
+  "strayProcesses": {
+    "swept": [],
+    "survivors": []
+  },
+  "exit": 0,
+  "endedUtc": "2026-10-12T23:34:39.394306+00:00",
+  "clock": {
+    "utcNs": 1791848079394392000,
+    "awakeNs": 4082831991300750,
+    "continuousNs": 4207722738615583,
+    "elapsedSeconds": 940.813337917,
+    "awakeSeconds": 940.813306834,
+    "utcElapsedSeconds": 940.814562,
+    "suspendSeconds": 3.108300006715581e-05,
+    "utcDriftSeconds": 0.0012240830000109781
+  },
+  "claudeBinUnchanged": true,
+  "acquired": [],
+  "mavenRepoLocal": {
+    "path": "/private/tmp/fx-lad-r5-s5-1/tmp/m2",
+    "bytes": 80890638
+  },
+  "keyScanClean": true
+}

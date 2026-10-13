@@ -1,0 +1,14 @@
+{
+ "pristineFiles": 50,
+ "zips": [
+  {
+   "path": "tmp/home/.claude/projects/-private-tmp-fx-g14-55-r1b-project/14019d42-23bc-4a43-b728-88eb97b304b5/tool-results/webfetch-1791825014453-7ca7m9.zip",
+   "files": 50,
+   "identical": true,
+   "missing": [],
+   "extra": [],
+   "differing": []
+  }
+ ],
+ "ok": true
+}
