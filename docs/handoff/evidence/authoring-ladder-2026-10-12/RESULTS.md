@@ -54,8 +54,8 @@ The Sonnet 5 rung-3 failure is the counter running on every trade; its final ans
 | # | Prediction (PREDICTIONS-R5.md) | Outcome |
 |---|---|---|
 | 1 | Haiku 5.5 ≤ 1/3, Sonnet 5 1/1 | Haiku 2/3 (wrong); Sonnet 1/1 (holds) |
-| 2 | Every plain generate hits SPRING_RECONCILE_CONFLICT (starter 1.0.76) | holds: every R5 run ran a plain generate and hit it (INFERRED from the transcripts' mentions) |
-| 3 | The most common Haiku failure is I3 (hand-written Java) | wrong: the one failure stopped at the conflict and wrote no Java (its I3 passes) |
+| 2 | Every plain generate hits SPRING_RECONCILE_CONFLICT (starter 1.0.76) | holds: every R5 run ran a plain `./generate.sh` before any `--no-reconcile` and hit it (checked in all four transcripts: 7, 6, 11 and 10 mentions) |
+| 3 | The most common Haiku failure is I3 (hand-written Java), or a generation that never succeeds | wrong: the one failure is I1 (it generated without the supplier node and wrote no Java; its I3 passes) |
 | 4 | No run modifies the supplier repository | holds (I3's supplier-repository check passes in 4 of 4) |
 | 5 | S6′ holds in 4 of 4 | holds |
 
