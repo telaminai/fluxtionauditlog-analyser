@@ -188,7 +188,7 @@ rung; otherwise the item is reported as *no effect shown*, not as a saving.
   removed, a record is dropped without being counted, or any one qualification (identity verdict, timeOrder,
   producer finding, in-flight) is dropped. `CanonicalSkillsTest` asserts the skills name the view.
 - **Why the qualifications are load-bearing.** Baseline run base-r2-h55-3 failed CHART on an identity note: the
-  charted file was rewritten after charting (design edited and regenerated) [B, INFERRED — the note's text was not
+  charted file was rewritten after charting (design edited, then reverted, and the run re-written) [B, INFERRED — the note's text was not
   captured]. Its ORACLE passed; what went stale was the chart's evidence. A projection that dropped the
   file-identity verdict would have hidden exactly that.
 
