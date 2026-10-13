@@ -209,22 +209,58 @@ public final class TemplateArchive {
         }
     }
 
-    /** Commands are fixed analyser strings selected by known filenames; no archive text is executed. */
+    /**
+     * The first-run commands the post-install dialog lists, in order: the sequence the template's own top-level
+     * guide gives for a first run, one way to do each thing. They are fixed analyser strings selected by known root
+     * filenames; no archive text is read for them or executed. Each shape is checked against what the playground
+     * templates' guides say by {@code TemplateExecutablesTest} (the fixture's {@code first} lines):
+     * <ul>
+     *   <li>the analyser bundle ({@code run-and-export.sh}): {@code ./mvnw package} — its RUNBOOK's "First run",
+     *       keyless on the shipped processor — then {@code ./run-and-export.sh}, the ONE command its CLAUDE.md
+     *       names, which replaces run-server/export-audit/stop-server. {@code setup.sh} is for graph changes.</li>
+     *   <li>a Spring authoring starter ({@code setup.sh}, {@code validate.sh}, {@code generate.sh}): those three,
+     *       then its run script — its README's "follow RUNBOOK.md: setup.sh, validate.sh, generate.sh … Then
+     *       run".</li>
+     *   <li>any other starter: {@code ./check-fluxtion-key.sh} when shipped, then {@code ./run.sh} or
+     *       {@code ./run-server.sh}, which build on first use — its README's "Build &amp; run".</li>
+     * </ul>
+     * On Windows a sequence is offered only when every step has a {@code .cmd} form; otherwise nothing is, and
+     * the dialog points to the README rather than listing half a sequence.
+     */
     public static List<String> commandsFor(Path root) {
-        List<String> commands = new ArrayList<>();
-        boolean windows = System.getProperty("os.name", "").toLowerCase().contains("win");
-        if (Files.isRegularFile(root.resolve(windows ? "mvnw.cmd" : "mvnw"))) {
-            commands.add(windows ? "mvnw.cmd package" : "./mvnw package");
+        return commandsFor(root, System.getProperty("os.name", "").toLowerCase().contains("win"));
+    }
+
+    static List<String> commandsFor(Path root, boolean windows) {
+        List<String> steps = new ArrayList<>(); // POSIX names: "mvnw" means "./mvnw package"
+        String run = present(root, "run.sh") ? "run.sh" : present(root, "run-server.sh") ? "run-server.sh" : null;
+        if (present(root, "run-and-export.sh")) {
+            if (present(root, "mvnw")) steps.add("mvnw");
+            steps.add("run-and-export.sh");
+        } else if (run != null && present(root, "setup.sh") && present(root, "validate.sh")
+                && present(root, "generate.sh")) {
+            steps.addAll(List.of("setup.sh", "validate.sh", "generate.sh", run));
+        } else if (run != null) {
+            if (present(root, "check-fluxtion-key.sh")) steps.add("check-fluxtion-key.sh");
+            steps.add(run);
+        } else if (present(root, "mvnw")) {
+            steps.add("mvnw"); // a pre-M19 template with no run script: building is the one known step
         }
-        addCommand(root, commands, windows, "run-server");
-        addCommand(root, commands, windows, "export-audit");
-        addCommand(root, commands, windows, "stop-server");
+        List<String> commands = new ArrayList<>();
+        for (String step : steps) {
+            if (!windows) {
+                commands.add(step.equals("mvnw") ? "./mvnw package" : "./" + step);
+                continue;
+            }
+            String file = step.equals("mvnw") ? "mvnw.cmd" : step.substring(0, step.length() - ".sh".length()) + ".cmd";
+            if (!present(root, file)) return List.of();
+            commands.add(step.equals("mvnw") ? "mvnw.cmd package" : file);
+        }
         return List.copyOf(commands);
     }
 
-    private static void addCommand(Path root, List<String> commands, boolean windows, String stem) {
-        String file = stem + (windows ? ".cmd" : ".sh");
-        if (Files.isRegularFile(root.resolve(file))) commands.add(windows ? file : "./" + file);
+    private static boolean present(Path root, String file) {
+        return Files.isRegularFile(root.resolve(file), LinkOption.NOFOLLOW_LINKS);
     }
 
     private static void setFixedPermissions(Path file, String archiveName) throws IOException {

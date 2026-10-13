@@ -108,6 +108,48 @@ class TemplateExecutablesTest {
         }
     }
 
+    /**
+     * PR #135 review: the dialog offered {@code ./mvnw package} and run-server/export-audit/stop-server to every
+     * template, so the bundle never saw {@code ./run-and-export.sh} — the one command its CLAUDE.md names — and the
+     * starters never saw {@code ./run.sh}. It must offer each template's documented first run, in order.
+     */
+    @Test
+    void postInstallCommandsAreEachTemplatesDocumentedFirstRun() throws Exception {
+        Fixture fixture = Fixture.load();
+        assertEquals(List.copyOf(fixture.doc.keySet()), List.copyOf(fixture.first.keySet()),
+                "each catalogue template has a first line");
+        List<String> failures = new ArrayList<>();
+        for (var template : fixture.first.entrySet()) {
+            String id = template.getKey();
+            for (String step : template.getValue()) {
+                assertTrue(fixture.doc.get(id).contains(step), id + ": first-run step " + step
+                        + " is not a command its guide names");
+            }
+            List<String> documented = template.getValue().stream()
+                    .map(step -> step.equals("mvnw") ? "./mvnw package" : "./" + step).toList();
+            List<String> offered = TemplateArchive.commandsFor(installUnmarked(id, fixture.exec.get(id)), false);
+            if (!offered.equals(documented)) failures.add(id + ": offers " + offered + ", its guide says " + documented);
+        }
+        assertEquals(List.of(), failures, "post-install commands that are not the template's documented first run");
+    }
+
+    /** Windows: a sequence is offered only when every step has a .cmd form, never half of one. */
+    @Test
+    void windowsOffersAWholeSequenceOrNone() throws Exception {
+        Path bundle = Files.createDirectories(temp.resolve("windows-bundle"));
+        for (String file : List.of("mvnw", "mvnw.cmd", "run-and-export.sh", "export-audit.cmd", "stop-server.cmd")) {
+            Files.writeString(bundle.resolve(file), "x");
+        }
+        assertEquals(List.of(), TemplateArchive.commandsFor(bundle, true),
+                "the bundle ships no run-and-export.cmd, so Windows is pointed at the README");
+        Path server = Files.createDirectories(temp.resolve("windows-server"));
+        for (String file : List.of("mvnw", "mvnw.cmd", "run-server.sh", "run-server.cmd")) {
+            Files.writeString(server.resolve(file), "x");
+        }
+        assertEquals(List.of("run-server.cmd"), TemplateArchive.commandsFor(server, true));
+        assertEquals(List.of("./run-server.sh"), TemplateArchive.commandsFor(server, false));
+    }
+
     @Test
     void archiveMarkReaderSeesOnlyMarkedRootEntries() throws Exception {
         Path zip = temp.resolve("marked.zip");
@@ -207,11 +249,15 @@ class TemplateExecutablesTest {
         }
     }
 
-    /** The committed record of what the playground templates ship: {@code exec <id>: …} and {@code doc <id>: …}. */
-    record Fixture(Map<String, Set<String>> exec, Map<String, Set<String>> doc) {
+    /**
+     * The committed record of what the playground templates ship: {@code exec <id>: …} and {@code doc <id>: …}
+     * (sets), and {@code first <id>: …} (the documented first run, in order).
+     */
+    record Fixture(Map<String, Set<String>> exec, Map<String, Set<String>> doc, Map<String, List<String>> first) {
         static Fixture load() throws IOException {
             Map<String, Set<String>> exec = new LinkedHashMap<>();
             Map<String, Set<String>> doc = new LinkedHashMap<>();
+            Map<String, List<String>> first = new LinkedHashMap<>();
             try (InputStream in = TemplateExecutablesTest.class.getResourceAsStream(FIXTURE)) {
                 assertNotNull(in, FIXTURE);
                 for (String line : new String(in.readAllBytes(), StandardCharsets.UTF_8).split("\n")) {
@@ -220,16 +266,18 @@ class TemplateExecutablesTest {
                     String[] kindAndRest = trimmed.split("\\s+", 2);
                     int colon = kindAndRest[1].indexOf(':');
                     String id = kindAndRest[1].substring(0, colon).strip();
-                    Set<String> names = new TreeSet<>(List.of(kindAndRest[1].substring(colon + 1).strip().split("\\s+")));
-                    names.remove("");
+                    List<String> ordered = new ArrayList<>(List.of(kindAndRest[1].substring(colon + 1).strip().split("\\s+")));
+                    ordered.remove("");
+                    Set<String> names = new TreeSet<>(ordered);
                     switch (kindAndRest[0]) {
                         case "exec" -> exec.put(id, names);
                         case "doc" -> doc.put(id, names);
+                        case "first" -> first.put(id, List.copyOf(ordered));
                         default -> throw new IllegalStateException("unknown fixture line: " + line);
                     }
                 }
             }
-            return new Fixture(exec, doc);
+            return new Fixture(exec, doc, first);
         }
     }
 }

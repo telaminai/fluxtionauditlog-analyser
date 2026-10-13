@@ -32,6 +32,7 @@ class TemplateArchiveTest {
         entries.put("bundle/run-server.sh", "untrusted run text".getBytes());
         entries.put("bundle/export-audit.sh", "untrusted export text".getBytes());
         entries.put("bundle/stop-server.sh", "untrusted stop text".getBytes());
+        entries.put("bundle/run-and-export.sh", "untrusted run-and-export text".getBytes());
         entries.put("bundle/notes.txt", "data".getBytes());
 
         Path destination = temp.resolve("chosen-project");
@@ -39,8 +40,8 @@ class TemplateArchiveTest {
 
         assertEquals(destination, installed.projectRoot());
         assertEquals(destination.resolve(".analyser/project.fluxtion-settings"), installed.profile());
-        assertEquals(List.of("./mvnw package", "./run-server.sh", "./export-audit.sh", "./stop-server.sh"),
-                installed.commands());
+        // the bundle's first run, one way each: run-and-export.sh replaces run-server/export-audit/stop-server
+        assertEquals(List.of("./mvnw package", "./run-and-export.sh"), installed.commands());
         assertEquals("data", Files.readString(destination.resolve("notes.txt")));
         try {
             Set<PosixFilePermission> notes = Files.getPosixFilePermissions(destination.resolve("notes.txt"));

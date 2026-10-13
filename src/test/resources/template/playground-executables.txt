@@ -4,37 +4,65 @@
 #
 #   exec <id>: the root entries the template's zip marks executable (unix mode 0755), .cmd excluded
 #   doc  <id>: the ./<script> commands its top-level Markdown (CLAUDE.md, README.md, RUNBOOK.md) tells you to run
+#   first <id>: the template's documented FIRST RUN, in order, one way to do each thing; "mvnw" is ./mvnw package.
+#               TemplateArchive.commandsFor (the post-install dialog) must offer exactly this. Read from:
+#               analyser-bundle  RUNBOOK.md/README.md "First run: ./mvnw package … needs no compilation key", then
+#                                CLAUDE.md "./run-and-export.sh   # ONE command" (it replaces run-server, export-audit
+#                                and stop-server); setup.sh is "For graph changes".
+#               fluxtion-spring, fluxtion-spring-mongoose  README.md "follow RUNBOOK.md: setup.sh, validate.sh,
+#                                generate.sh … Then run ./run.sh" (./run-server.sh); its API-key block "applies to
+#                                remote generation".
+#               every other      README.md "## Build & run" block (./run.sh / ./run-server.sh build on first use;
+#                                ./mvnw package is the "by hand" alternative). mongoose-dynamic-feed and
+#                                mongoose-dynamic-spring keep the key check out of that block but say the runtime
+#                                load needs a subscribed key, "verify with ./check-fluxtion-key.sh".
 #   exec generator: root scripts the generator emits only for options no catalogue template uses
 #
 # Produced from fluxtion-web origin/main 36d811a (2026-10-13) by building every catalogue template with
-# buildStarterZip(builtinTemplateSpec(id)) and reading the zip. Regenerate when the templates change; the
+# buildStarterZip(builtinTemplateSpec(id)) and reading the zip; re-read at
+# fluxtion-web origin/main 247488f (2026-10-13, starter 1.0.79), where every exec line is unchanged and the first lines
+# were added from each generated template's top-level Markdown. Regenerate when the templates change; the
 # producer side of keeping this in step is upstream ask UP-PG-07.
 exec analyser-bundle: check-fluxtion-key.sh export-audit.sh generate.sh mvnw run-and-export.sh run-server.sh setup.sh stop-server.sh validate.sh
 doc  analyser-bundle: check-fluxtion-key.sh export-audit.sh generate.sh mvnw run-and-export.sh run-server.sh setup.sh stop-server.sh validate.sh
+first analyser-bundle: mvnw run-and-export.sh
 exec fluxtion-aot: check-fluxtion-key.sh mvnw run.sh
 doc  fluxtion-aot: check-fluxtion-key.sh mvnw run.sh
+first fluxtion-aot: check-fluxtion-key.sh run.sh
 exec fluxtion-audit: check-fluxtion-key.sh mvnw run.sh
 doc  fluxtion-audit: check-fluxtion-key.sh mvnw run.sh
+first fluxtion-audit: check-fluxtion-key.sh run.sh
 exec fluxtion-connector: check-fluxtion-key.sh mvnw run.sh
 doc  fluxtion-connector: check-fluxtion-key.sh mvnw run.sh
+first fluxtion-connector: check-fluxtion-key.sh run.sh
 exec fluxtion-dag-multi-io: check-fluxtion-key.sh mvnw run.sh
 doc  fluxtion-dag-multi-io: check-fluxtion-key.sh mvnw run.sh
+first fluxtion-dag-multi-io: check-fluxtion-key.sh run.sh
 exec fluxtion-dsl: check-fluxtion-key.sh mvnw run.sh
 doc  fluxtion-dsl: check-fluxtion-key.sh mvnw run.sh
+first fluxtion-dsl: check-fluxtion-key.sh run.sh
 exec fluxtion-embedded: check-fluxtion-key.sh mvnw run.sh
 doc  fluxtion-embedded: check-fluxtion-key.sh mvnw run.sh
+first fluxtion-embedded: check-fluxtion-key.sh run.sh
 exec fluxtion-service-export: check-fluxtion-key.sh mvnw run.sh
 doc  fluxtion-service-export: check-fluxtion-key.sh mvnw run.sh
+first fluxtion-service-export: check-fluxtion-key.sh run.sh
 exec fluxtion-spring-mongoose: check-fluxtion-key.sh generate.sh mvnw run-server.sh setup.sh validate.sh
 doc  fluxtion-spring-mongoose: check-fluxtion-key.sh generate.sh run-server.sh setup.sh validate.sh
+first fluxtion-spring-mongoose: setup.sh validate.sh generate.sh run-server.sh
 exec fluxtion-spring: check-fluxtion-key.sh generate.sh mvnw run.sh setup.sh validate.sh
 doc  fluxtion-spring: check-fluxtion-key.sh generate.sh mvnw run.sh setup.sh validate.sh
+first fluxtion-spring: setup.sh validate.sh generate.sh run.sh
 exec mongoose-dynamic-feed: check-fluxtion-key.sh mvnw run-server.sh
 doc  mongoose-dynamic-feed: check-fluxtion-key.sh run-server.sh
+first mongoose-dynamic-feed: check-fluxtion-key.sh run-server.sh
 exec mongoose-dynamic-spring: check-fluxtion-key.sh mvnw run-server.sh
 doc  mongoose-dynamic-spring: check-fluxtion-key.sh run-server.sh
+first mongoose-dynamic-spring: check-fluxtion-key.sh run-server.sh
 exec mongoose-hosted-fluxtion: check-fluxtion-key.sh mvnw run-server.sh
 doc  mongoose-hosted-fluxtion: check-fluxtion-key.sh run-server.sh
+first mongoose-hosted-fluxtion: check-fluxtion-key.sh run-server.sh
 exec mongoose-server: mvnw run-server.sh
 doc  mongoose-server: run-server.sh
+first mongoose-server: run-server.sh
 exec generator: runWasm.sh setup-java.sh
