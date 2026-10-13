@@ -9,6 +9,7 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ### Fixed
 
 - After *Project ▸ New project from template…*, the dialog that lists the commands to run now lists each template's own first run, in its guide's order, one way to do each thing. The **Audit analyser bundle** gets `./mvnw package` then `./run-and-export.sh` (the one command its CLAUDE.md names) instead of `./run-server.sh`, `./export-audit.sh` and `./stop-server.sh` separately. The Spring starters get `./setup.sh`, `./validate.sh`, `./generate.sh`, then `./run.sh` or `./run-server.sh`, as their README says. The other Fluxtion starters get `./check-fluxtion-key.sh` then `./run.sh`, where the dialog offered only `./mvnw package`; the Mongoose starters get `./run-server.sh`, after the key check where one ships. On Windows, a template whose first run has no `.cmd` form for every step is pointed at its README instead of getting half a sequence. `TemplateExecutablesTest` checks the list against a record of what each playground template's guide says.
+- The `add-a-node` skill says that any bean a `ReferenceBinding` names must also be listed in `nodeBeans`. A parent reached only through a `constructor-arg` ref is not a node, and validation refuses the binding with `SPRING_REFERENCE_UNKNOWN_BEAN`. The skills index re-pins it.
 
 ## [1.34.0] - 2026-10-13
 

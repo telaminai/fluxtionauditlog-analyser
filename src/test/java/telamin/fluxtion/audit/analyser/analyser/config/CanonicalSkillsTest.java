@@ -73,6 +73,11 @@ class CanonicalSkillsTest {
                 "FluxtionSpringConfig.ReferenceBinding", "<property name=\"mode\" value=\"DATA\"/>",
                 "<property name=\"parentUpdateCallback\" value=\"true\"/>"))
             assertTrue(text.contains(route), "the XML route must be shown: " + route);
+        // PR 137 review: a ReferenceBinding's referencedBean must itself be in nodeBeans. A parent reached only
+        // through a constructor-arg ref is not a node, and starter 1.0.79's offline validate refuses the binding
+        // with SPRING_REFERENCE_UNKNOWN_BEAN.
+        assertTrue(text.contains("`fluxtionSpringConfig`'s `nodeBeans`**, and any bean a binding names."),
+                "step 2 must say a bean a binding names is listed in nodeBeans");
         assertTrue(text.contains("Then **regenerate** — a graph change needs it"), "the regenerate step is pinned");
         assertTrue(text.contains("**Regeneration writes the class shell**"));
         assertTrue(text.contains("there are no imports to find"));
