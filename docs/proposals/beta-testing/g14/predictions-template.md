@@ -21,8 +21,12 @@ Nothing below may change after sealing. A prediction edited after a result is no
   published-artefact evidence.
 - **Pass condition 3 is a CHART** (owner, option A, 2026-09-26). A report may accompany it; it cannot
   pass this gate alone. Predict the chart, not "a chart or report".
-- Per-run Maven repository: `<base>/tmp/m2`, empty at launch. Recorded again in `meta.json` with its
-  final size, so a reviewer can see the build resolved from the network rather than from a warm cache.
+- Per-run Maven repository: `<base>/tmp/m2`. State which (PROTOCOL ▸ *Cache state*):
+  - **warm** (the default): seeded from `<seed name>`, tree sha256 `<digest>`, provenance-checked;
+  - **first-run check**: no project cache, following the README's own first-run path (`./mvnw package`, then
+    `./setup.sh`).
+
+  The final size is recorded again in `meta.json`.
 
 State the pristine digest here **before** launch. The run records what the subject actually obtained;
 the gate is that the two agree.

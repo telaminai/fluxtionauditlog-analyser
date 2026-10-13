@@ -1,0 +1,13 @@
+{
+  "scannedUtc": "2026-10-12T17:07:33.288788+00:00",
+  "keyFilePresent": true,
+  "secretOccurrences": 0,
+  "keyPathReads": 0,
+  "files": {},
+  "filesScanned": 13,
+  "filesSkipped": 1,
+  "unsupportedKeyLines": 0,
+  "tokenOccurrences": 0,
+  "tokenPathReads": 0,
+  "clean": true
+}

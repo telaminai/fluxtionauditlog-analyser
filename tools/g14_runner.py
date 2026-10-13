@@ -36,6 +36,7 @@ from coldstart_clock import ObserverClock  # noqa: E402  (path set above)
 # The owner's compilation key. G14 is the only trial permitted to use it (docs/specs/tracker.md).
 KEY_FILE = Path.home() / '.fluxtion' / 'fluxtion.apiKeyFile'
 TRIAL_TOKEN = Path.home() / '.claude-trial-token'
+TOKEN_PATH_PATTERN = re.compile(r'\.claude-trial-token')
 CLAUDE_BIN = str(Path.home() / '.local/bin/claude')
 SCAFFOLD_URL = 'https://fluxtion-playground.dev/start/scaffold?template=analyser-bundle'
 DEFAULT_CAP_SECONDS = 1800  # the interrupted 1.0.74 attempt ran 869s and never reached a chart
@@ -74,7 +75,7 @@ def resolve_java_home(explicit=None):
     return str(Path(found).resolve().parent.parent) if found else ''
 
 
-def isolation_profile(base, port, java_home, home=None, key_file=None):
+def isolation_profile(base, port, java_home, home=None, key_file=None, cli_dir=None):
     """Per-run sandbox profile.
 
     Deliberately weaker than the cold-start profile in three places, each forced by the journey:
@@ -97,11 +98,16 @@ def isolation_profile(base, port, java_home, home=None, key_file=None):
       as something only `--bare` skips, and in that mode "OAuth and keychain are never read" with auth
       strictly ANTHROPIC_API_KEY or apiKeyHelper — incompatible with the CLAUDE_CODE_OAUTH_TOKEN this
       rig uses. So the read is kept, narrowed from the whole directory to the login keychain database.
+
+    `cli_dir`, when given, is a per-run copy of the Claude Code binary (`--claude-bin`): READABLE so the
+    sandbox can execute it, never writable, because the write rule below grants only project and tmp.
+    Without it the profile is byte-identical to before.
     """
     # home/key_file are parameters so the enforcement tests can build a policy over disposable
     # fixtures and run sandbox-exec against it without going near the real home or the real key.
     home = str(home) if home else str(Path.home())
     key_file = str(key_file) if key_file else str(KEY_FILE)
+    cli_read = f'\n  (require-not (subpath "{cli_dir}"))' if cli_dir else ''
     return f'''(version 1)
 (allow default)
 (deny file-read*
@@ -114,7 +120,7 @@ def isolation_profile(base, port, java_home, home=None, key_file=None):
   (require-not (literal "{home}/Library/Preferences/com.apple.security.plist")))
  (require-all (subpath "/private/tmp")
   (require-not (subpath "{base}/project"))
-  (require-not (subpath "{base}/tmp"))))
+  (require-not (subpath "{base}/tmp")){cli_read}))
 (allow file-read-metadata)
 (deny file-write*
  (require-all
@@ -164,6 +170,12 @@ def child_env(base, tmp, home, java_home):
         # grants and which would contaminate the evidence with locally installed artefacts.
         'MAVEN_OPTS': f'-Dmaven.repo.local={repo_local}',
         'MAVEN_ARGS': f'-s {settings}',
+        # The same account-not-environment trap for the Mongoose server registry: its admin service
+        # resolves ~/.mongoose/servers from user.home, which the profile denies writing, so a bundle's
+        # run/export/stop would fail for the environment's sake. The bundle's scripts honour this
+        # variable (run-server.sh passes it as -Dmongoose.servers.dir). user.home itself is NOT
+        # overridden: the build finds the compilation key through it.
+        'MONGOOSE_SERVERS_DIR': f'{home}/.mongoose/servers',
     })
     env['PATH'] = java_home + '/bin:' + env['PATH']
     env['CLAUDE_CODE_OAUTH_TOKEN'] = TRIAL_TOKEN.read_text().strip()  # trial-only; never printed
@@ -409,8 +421,13 @@ def key_leak_scan(archive, base=None):
     """
     verdict = {'scannedUtc': datetime.datetime.now(datetime.timezone.utc).isoformat(),
                'keyFilePresent': KEY_FILE.exists(), 'secretOccurrences': 0, 'keyPathReads': 0,
-               'files': {}, 'filesScanned': 0, 'filesSkipped': 0, 'unsupportedKeyLines': 0}
+               'files': {}, 'filesScanned': 0, 'filesSkipped': 0, 'unsupportedKeyLines': 0,
+               'tokenOccurrences': 0, 'tokenPathReads': 0}
     secrets, unsupported = key_secrets()
+    # The trial token reaches every subject in its environment, so a subject that prints its
+    # environment writes it to the transcript. Searched for like the key; never returned.
+    token = TRIAL_TOKEN.read_text().strip() if TRIAL_TOKEN.exists() else ''
+    token = token if len(token) >= 16 else ''
     verdict['unsupportedKeyLines'] = len(unsupported)
     if not verdict['keyFilePresent']:
         verdict['note'] = 'key file absent; scan is vacuous'
@@ -437,11 +454,16 @@ def key_leak_scan(archive, base=None):
         text = data.decode('utf-8', errors='replace')
         hits = sum(text.count(s) for s in secrets)
         reads = len(KEY_PATH_PATTERN.findall(text))
+        token_hits = text.count(token) if token else 0
+        token_reads = len(TOKEN_PATH_PATTERN.findall(text))
         verdict['filesScanned'] += 1
-        if hits or reads:
-            verdict['files'][label] = {'secretOccurrences': hits, 'keyPathReads': reads}
+        if hits or reads or token_hits or token_reads:
+            verdict['files'][label] = {'secretOccurrences': hits, 'keyPathReads': reads,
+                                       'tokenOccurrences': token_hits, 'tokenPathReads': token_reads}
         verdict['secretOccurrences'] += hits
         verdict['keyPathReads'] += reads
+        verdict['tokenOccurrences'] += token_hits
+        verdict['tokenPathReads'] += token_reads
 
     archive = Path(archive)
     for name in ('raw.jsonl', 'events.jsonl', 'stderr.log'):
@@ -463,7 +485,8 @@ def key_leak_scan(archive, base=None):
     if unsupported:
         verdict['clean'] = None
     else:
-        verdict['clean'] = verdict['secretOccurrences'] == 0 and verdict['keyPathReads'] == 0
+        verdict['clean'] = (verdict['secretOccurrences'] == 0 and verdict['keyPathReads'] == 0
+                            and verdict['tokenOccurrences'] == 0 and verdict['tokenPathReads'] == 0)
     return verdict
 
 
@@ -539,7 +562,129 @@ def fail(message):
     return 2
 
 
-def run_trial(run, model, base, input_file, cap, java_home):
+def stage_cli(base, claude_bin):
+    """Copy `claude_bin` into `<base>/cli/claude`, read-only, and return (path, sha256).
+
+    The installed CLI at CLAUDE_BIN cannot always run the model a trial needs (a model newer than the
+    install is refused as unrecognized). A per-run copy outside the subject's writable area lets every
+    cell of a grid run one recorded CLI version without touching the owner's install.
+    """
+    cli_dir = Path(base) / 'cli'
+    target = cli_dir / 'claude'
+    if target.exists():
+        return target, sha256_file(target)
+    cli_dir.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(claude_bin, target)
+    target.chmod(0o555)
+    return target, sha256_file(target)
+
+
+# dontAsk DENIES every tool that no rule allows, built-ins included, and the subject runs with no user
+# settings, so without this list it could not run a shell, write a file or fetch the download: the first
+# executed launch (2026-10-12) ended in 17 s with Bash and WebFetch refused. The sandbox profile, not the
+# permission mode, is the containment; this list only states what G14 already grants.
+SUBJECT_TOOLS = ('Bash', 'Read', 'Write', 'Edit', 'Glob', 'Grep', 'WebFetch', 'TodoWrite', 'mcp__fluxtion-analyser')
+
+
+def _cwd(pid):
+    try:
+        out = subprocess.run(['/usr/sbin/lsof', '-a', '-p', str(pid), '-d', 'cwd', '-Fn'], capture_output=True,
+                             text=True, timeout=10).stdout
+    except (OSError, subprocess.SubprocessError):
+        return ''
+    return next((ln[1:] for ln in out.splitlines() if ln.startswith('n')), '')
+
+
+def _running(pid):
+    """Alive and not a zombie: a killed process its parent has not yet reaped holds no port or file."""
+    if not _pid_alive(pid):
+        return False
+    try:
+        stat = subprocess.run(['/bin/ps', '-o', 'stat=', '-p', str(pid)], capture_output=True, text=True,
+                              timeout=10).stdout.strip()
+    except (OSError, subprocess.SubprocessError):
+        return True
+    return bool(stat) and not stat.startswith('Z')
+
+
+def operator_instance(command, base):
+    """The isolated analyser the OPERATOR starts before launch (METHOD.md: `java -Duser.home=<base>/tmp/home -jar
+    <base>/tmp/jar/analyser.jar --rest`). It lives in the base by construction and must survive the run, because
+    the canvas is scored from it afterwards. The subject's own MCP bridge runs the same jar with `--mcp`, so it is
+    not exempt."""
+    return f'{base}/tmp/jar/analyser.jar' in command and '--rest' in command.split() and '--mcp' not in command.split()
+
+
+def in_base(command, cwd, base):
+    """True when a process lives in `base` as a PATH: its working directory is the base or under it, or its command
+    names a path under it. A sibling base sharing a prefix (`fx-g14-55-r1` vs `fx-g14-55-r1b`) is not inside."""
+    base = str(base).rstrip('/')
+    if cwd == base or cwd.startswith(base + '/'):
+        return True
+    # the base as a whole path: anything may follow except a path-name character (so `:`, `;`, `,`, `)`, quotes,
+    # space and end all count, and `fx-…-r1b` does not match base `fx-…-r1`)
+    return re.search(re.escape(base) + r'(?![\w.-])', command) is not None
+
+
+def sweep_base_processes(base, grace=10.0):
+    """Kill every process whose command line or working directory lies inside `base`, and report them.
+
+    Group reaping cannot see a process that left the group. On 2026-10-12 three Mongoose servers started by
+    subjects (`(./run-server.sh &)`, `nohup java ...`) were reparented to launchd in their own groups and
+    outlived their runs while meta.json said the group was reaped; the next runs found port 8181 taken.
+    The run base is unique to a run, so anything still living in it after the run belongs to it.
+    """
+    base = str(Path(base).resolve())
+    me = os.getpid()
+    try:
+        listing = subprocess.run(['/bin/ps', '-axo', 'pid=,command='], capture_output=True, text=True,
+                                 timeout=20).stdout
+    except (OSError, subprocess.SubprocessError) as exc:
+        return {'swept': None, 'error': str(exc)}
+    found = []
+    for line in listing.splitlines():
+        parts = line.strip().split(None, 1)
+        if len(parts) != 2 or not parts[0].isdigit():
+            continue
+        pid, command = int(parts[0]), parts[1]
+        if pid == me or 'sweep_base_processes' in command:
+            continue
+        if operator_instance(command, base):
+            continue  # the operator's REST instance: started before the run, scored after it, stopped by the operator
+        if in_base(command, _cwd(pid), base):
+            found.append({'pid': pid, 'command': command[:160]})
+    for f in found:
+        try:
+            os.kill(f['pid'], signal.SIGTERM)
+        except OSError:
+            pass
+    deadline = time.time() + grace
+    while time.time() < deadline and any(_running(f['pid']) for f in found):
+        time.sleep(.25)
+    for f in found:
+        if _running(f['pid']):
+            try:
+                os.kill(f['pid'], signal.SIGKILL)
+            except OSError:
+                pass
+            f['killed'] = 'SIGKILL'
+        else:
+            f['killed'] = 'SIGTERM'
+    time.sleep(.5)
+    return {'swept': found, 'survivors': [f['pid'] for f in found if _running(f['pid'])]}
+
+
+def subject_command(policy, cli, model, mcp, prompt):
+    return ['/usr/bin/sandbox-exec', '-f', str(policy), str(cli),
+            '-p', '--model', model, '--effort', 'medium', '--no-session-persistence',
+            '--setting-sources', 'project,local', '--strict-mcp-config',
+            '--mcp-config', json.dumps(mcp),
+            # Built-in tools stay ON: the subject must download, unpack and build.
+            '--permission-mode', 'dontAsk', '--allowedTools', *SUBJECT_TOOLS, '--no-chrome',
+            '--output-format', 'stream-json', '--verbose', '--', prompt]
+
+
+def run_trial(run, model, base, input_file, cap, java_home, claude_bin=None, prestaged=None):
     base = Path(base)
     archive = base / run
 
@@ -564,28 +709,35 @@ def run_trial(run, model, base, input_file, cap, java_home):
     project.mkdir(parents=True, exist_ok=True)
     if any(project.iterdir()):
         return fail(f'{project} must be empty — the subject performs acquisition')
+    if prestaged:
+        # A comparison of two project variants, NOT a G14 acceptance: acquisition is not what is measured,
+        # and it costs every arm alike. Recorded in config.json and meta.json so it can never be read as one.
+        shutil.copytree(prestaged, project, dirs_exist_ok=True, symlinks=True)
 
     repo_local, settings = maven_paths(base)
     repo_local.mkdir(parents=True, exist_ok=True)
     if not settings.exists():
         settings.write_text('<settings/>\n')
 
-    (archive / 'isolation.sb').write_text(isolation_profile(base, port, java_home))
+    cli, cli_sha = (stage_cli(base, claude_bin) if claude_bin else (Path(CLAUDE_BIN), None))
+    try:
+        cli_version = subprocess.run([str(cli), '--version'], capture_output=True, text=True,
+                                     timeout=60).stdout.strip()
+    except (OSError, subprocess.SubprocessError) as exc:
+        return fail(f'cannot run the Claude Code binary {cli}: {exc}')
+    (archive / 'isolation.sb').write_text(
+        isolation_profile(base, port, java_home, cli_dir=cli.parent if claude_bin else None))
     mcp = {'mcpServers': {'fluxtion-analyser': {'type': 'stdio', 'command': java_home + '/bin/java',
                                                 'args': ['-Duser.home=' + home, '-jar', jar, '--mcp']}}}
     env = child_env(base, tmp, home, java_home)
-    command = ['/usr/bin/sandbox-exec', '-f', str(archive / 'isolation.sb'), CLAUDE_BIN,
-               '-p', '--model', model, '--effort', 'medium', '--no-session-persistence',
-               '--setting-sources', 'project,local', '--strict-mcp-config',
-               '--mcp-config', json.dumps(mcp),
-               # Built-in tools stay ON: the subject must download, unpack and build.
-               '--permission-mode', 'dontAsk', '--no-chrome',
-               '--output-format', 'stream-json', '--verbose',
-               Path(input_file).read_text()]
+    command = subject_command(archive / 'isolation.sb', cli, model, mcp, Path(input_file).read_text())
     (archive / 'config.json').write_text(json.dumps({
         'run': run, 'model': model, 'base': str(base), 'port': port, 'capSeconds': cap,
         'jarSha256': sha256_file(jar), 'mcp': mcp, 'builtInTools': True,
         'keyGranted': True, 'gate': 'G14', 'javaHome': java_home,
+        'claudeBin': str(cli), 'claudeBinSha256': cli_sha, 'claudeVersion': cli_version,
+        'prestaged': str(prestaged) if prestaged else None,
+        'acceptanceEligible': not prestaged,
         'mavenRepoLocal': str(repo_local), 'mavenSettings': str(settings)}, indent=1) + '\n')
 
     # Written BEFORE launch, so an interrupted run is identifiable as one rather than as a fresh start.
@@ -594,7 +746,8 @@ def run_trial(run, model, base, input_file, cap, java_home):
         'startedUtc': datetime.datetime.now(datetime.timezone.utc).isoformat()}, indent=2) + '\n')
 
     clock = ObserverClock()
-    meta = {'run': run, 'requestedModel': model, 'gate': 'G14',
+    meta = {'run': run, 'requestedModel': model, 'gate': 'G14' if not prestaged else 'G14-rig comparison (prestaged)',
+            'acceptanceEligible': not prestaged,
             'startedUtc': datetime.datetime.now(datetime.timezone.utc).isoformat()}
     # 'x' not 'w': never reopen an existing transcript, even if the refusal above is ever loosened.
     with (archive / 'stderr.log').open('x') as err, (archive / 'raw.jsonl').open('x') as raw, \
@@ -631,6 +784,10 @@ def run_trial(run, model, base, input_file, cap, java_home):
         # Reap the GROUP, on the cap and after a normal exit alike: anything the subject backgrounded
         # outlives its leader otherwise, and the scan below would run while it is still writing.
         meta['processGroupReaped'] = reap_process_group(pgid)
+        sweep = sweep_base_processes(base)
+        meta['strayProcesses'] = sweep
+        if sweep.get('swept') is None or sweep.get('survivors'):
+            meta['processGroupReaped'] = False  # something outside the group is still alive, or unknown
         try:
             meta['exit'] = p.wait(timeout=20)
         except subprocess.TimeoutExpired:
@@ -643,6 +800,8 @@ def run_trial(run, model, base, input_file, cap, java_home):
 
     meta.update({'endedUtc': datetime.datetime.now(datetime.timezone.utc).isoformat(),
                  'clock': clock.sample()})
+    if cli_sha:  # the subject cannot write the copy; a changed digest would mean the sandbox did not hold
+        meta['claudeBinUnchanged'] = sha256_file(cli) == cli_sha
 
     # What the subject actually acquired, for comparison with the pristine copy the operator preserved.
     zips = sorted(project.rglob('*.zip'))
@@ -677,6 +836,10 @@ def main():
     parser.add_argument('--base', help='per-run base directory under /private/tmp')
     parser.add_argument('--cap', type=int, default=DEFAULT_CAP_SECONDS, help='seconds (default 1800)')
     parser.add_argument('--java-home', help='JDK 21 home; default /usr/libexec/java_home -v 21')
+    parser.add_argument('--prestaged', help='copy this project into <base>/project before launch: a comparison '
+                        'of project variants, never a G14 acceptance (recorded in config and meta)')
+    parser.add_argument('--claude-bin', help='a Claude Code binary to copy into <base>/cli, read-only, '
+                        f'instead of {CLAUDE_BIN} (for a model the installed CLI does not know)')
     parser.add_argument('args', nargs='*', help='<run-name> <model> <base> <input-file>')
     ns = parser.parse_args()
     java_home = resolve_java_home(ns.java_home)
@@ -689,7 +852,12 @@ def main():
         parser.error('need <run-name> <model> <base> <input-file>, or --preflight --base <dir>')
     if not java_home:
         return fail('no JDK 21 found — pass --java-home')
-    return run_trial(ns.args[0], ns.args[1], ns.args[2], ns.args[3], ns.cap, java_home)
+    if ns.claude_bin and not Path(ns.claude_bin).is_file():
+        return fail(f'--claude-bin {ns.claude_bin} is not a file')
+    if ns.prestaged and not Path(ns.prestaged).is_dir():
+        return fail(f'--prestaged {ns.prestaged} is not a directory')
+    return run_trial(ns.args[0], ns.args[1], ns.args[2], ns.args[3], ns.cap, java_home, ns.claude_bin,
+                     ns.prestaged)
 
 
 if __name__ == '__main__':

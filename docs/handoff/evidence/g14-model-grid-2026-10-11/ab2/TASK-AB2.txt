@@ -1,0 +1,7 @@
+This directory holds a Fluxtion and Mongoose project, the analyser bundle starter, already unpacked.
+
+Extend its business logic: add a new node, after the risk check, that works out each trade's notional value (price times volume), records it in the audit log, and flags the trade as large when the notional is over 1,000,000. The change has to be in the compiled processor, not only in the source.
+
+Run it on the sample data. Then use the Fluxtion analyser, which you have as an MCP server, to put a chart of the recorded notional values on the analyser canvas.
+
+Finish by telling me which trades were flagged as large, and what evidence shows the new step ran.

@@ -195,6 +195,7 @@ settings-save redraw, pinned (supersedes #78). [Release receipt](../handoff/rele
 
 ### Spring-side work block — one piece of work
 - ☐ **G14** — the acceptance run from a real download; the owner accepts three residual risks, then one supervised run.
+- ☐ **G14-W** — warm cache is the default for LLM runs; a README-faithful first-run check runs occasionally ([PROTOCOL ▸ Cache state](../proposals/beta-testing/g14/PROTOCOL.md)). Next: the runner flag `--seed-m2`, with its provenance check, tests and control.
 - [SG-2] ◧ Provisioning closed; **changed-graph generation and run on the hosted ZIP** open.
 - ☐ **The jars**, built once for BETA-B4 and M67.1.
 - ☐ Reconciler follow-ups **G12, G5, F5/G13/F10, G7, F9** and the non-blocking P1, NF1, G22, G23 (compiler-owned).

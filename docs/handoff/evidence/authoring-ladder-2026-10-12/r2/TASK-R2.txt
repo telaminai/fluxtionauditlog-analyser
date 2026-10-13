@@ -1,0 +1,23 @@
+This directory holds a Fluxtion project from the public project starter (Spring XML design, AOT-generated processor). Its shipped documentation is README.md, RUNBOOK.md, CLAUDE.md and runbooks/. Start with its own setup.sh as the runbook requires, then validate. Never print, copy or modify the compilation key file; use the shipped generation script.
+
+USER TASK:
+Extend the supplied price-processing design. Only PriceUpdate events with filter
+ID 7 are eligible. An eligible price should reach Child and, when not paused,
+increment its processed count, set lastProcessedPrice, and publish one Checked
+result containing that price and count through the named checked sink. A pause
+signal pauses processing without changing the count or lastProcessedPrice. The
+exported reset command sets count and lastProcessedPrice to zero and unpauses,
+without publishing a Checked result. Initial count/lastProcessedPrice are zero and
+initial state is unpaused. Preserve unrelated declarations and implemented code.
+
+Start by reading the runbook and validating the supplied project. Repair any
+validation issue, make the design and implementation changes, generate, and run the
+scenario below twice from a fresh process.
+Use the Fluxtion analyser, which you have as an MCP server, to show what happened, including a chart.
+Answer: does the wrong filter increment the count; does a price received
+while paused increment it; does reset itself publish; and what changes after reset?
+Distinguish measured results from conclusions that the available evidence cannot
+support.
+
+Scenario: PriceUpdate(DEMO,10,7); PriceUpdate(DEMO,20,9); pause signal;
+PriceUpdate(DEMO,30,7); exported reset(); PriceUpdate(DEMO,40,7).

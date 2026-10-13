@@ -18,6 +18,7 @@ import tempfile
 import textwrap
 import time
 import unittest
+from unittest import mock
 from pathlib import Path
 
 spec = importlib.util.spec_from_file_location('g14_runner', Path(__file__).parent / 'g14_runner.py')
@@ -104,6 +105,34 @@ class KeyLeakScanTest(TempKeyTest):
         verdict = g14.key_leak_scan(self.archive)
         self.assertIsNone(verdict['clean'])
         self.assertFalse(verdict['keyFilePresent'])
+
+
+class TrialTokenScanTest(TempKeyTest):
+    TOKEN = 'sk-ant-oat01-DEMO-NOT-A-REAL-TOKEN-0123456789abcdef'
+
+    def setUp(self):
+        super().setUp()
+        self.token.write_text(self.TOKEN + '\n')
+
+    def test_the_token_printed_in_a_transcript_fails_the_scan(self):
+        (self.archive / 'raw.jsonl').write_text('{"env": "CLAUDE_CODE_OAUTH_TOKEN=%s"}\n' % self.TOKEN)
+        v = g14.key_leak_scan(self.archive)
+        self.assertEqual(v['tokenOccurrences'], 1)
+        self.assertFalse(v['clean'])
+
+    def test_a_read_of_the_token_path_fails_the_scan(self):
+        (self.archive / 'raw.jsonl').write_text('{"cmd": "cat ~/.claude-trial-token"}\n')
+        v = g14.key_leak_scan(self.archive)
+        self.assertEqual(v['tokenPathReads'], 1)
+        self.assertFalse(v['clean'])
+
+    def test_the_verdict_never_contains_the_token(self):
+        (self.archive / 'raw.jsonl').write_text(self.TOKEN)
+        self.assertNotIn(self.TOKEN, json.dumps(g14.key_leak_scan(self.archive)))
+
+    def test_a_clean_transcript_stays_clean(self):
+        (self.archive / 'raw.jsonl').write_text('{"type": "result", "result": "ok"}\n')
+        self.assertTrue(g14.key_leak_scan(self.archive)['clean'])
 
 
 class KeyFormatTest(TempKeyTest):
@@ -417,6 +446,146 @@ class SandboxEnforcementTest(unittest.TestCase):
         """The source tree stays unreadable — PROTOCOL's first claim."""
         self.assertNotEqual(self.cat(self.elsewhere).returncode, 0,
                             'a file elsewhere in home was readable')
+
+
+class ClaudeBinGrantTest(SandboxEnforcementTest):
+    """`--claude-bin`: the per-run CLI copy is readable (so it can run) and never writable, and the grant
+    exists only when asked for. Same disposable fixtures as SandboxEnforcementTest; the probe binary is
+    a two-line shell script, not a real CLI."""
+
+    def setUp(self):
+        super().setUp()
+        self.cli_dir = self.base / 'cli'
+        self.cli_dir.mkdir()
+        self.cli = self.cli_dir / 'claude'
+        # A script, not a copy of /bin/echo: macOS kills a relocated Apple platform binary (SIGKILL),
+        # which would look exactly like the grant failing.
+        self.cli.write_text('#!/bin/sh\necho "$@"\n')
+        self.cli.chmod(0o555)
+        self.granted = self.base / 'isolation-cli.sb'
+        self.granted.write_text(g14.isolation_profile(self.base, '54321', '/opt/jdk21', home=self.home,
+                                                      key_file=self.key, cli_dir=self.cli_dir))
+
+    def under(self, policy, *argv):
+        return subprocess.run(['/usr/bin/sandbox-exec', '-f', str(policy), *argv],
+                              capture_output=True, text=True, timeout=60)
+
+    def test_the_cli_copy_runs_under_the_grant(self):
+        out = self.under(self.granted, str(self.cli), 'cli-ran')
+        self.assertEqual(out.returncode, 0, f'the CLI copy could not run under its grant: {out.stderr}')
+        self.assertIn('cli-ran', out.stdout)
+
+    def test_the_cli_directory_is_not_writable(self):
+        out = self.under(self.granted, '/usr/bin/touch', str(self.cli_dir / 'planted'))
+        self.assertNotEqual(out.returncode, 0, 'the subject could write next to its own CLI')
+        self.assertFalse((self.cli_dir / 'planted').exists())
+
+    def test_control_without_the_grant_the_cli_is_unreadable(self):
+        """The default profile (no cli_dir) must still deny it: the grant is opt-in, not ambient."""
+        self.assertNotEqual(self.under(self.policy, '/bin/cat', str(self.cli)).returncode, 0,
+                            'the CLI copy was readable without --claude-bin')
+
+    def test_the_grant_leaves_the_rest_of_home_denied(self):
+        self.assertNotEqual(self.under(self.granted, '/bin/cat', str(self.elsewhere)).returncode, 0)
+
+
+class MongooseRegistryEnvTest(TempKeyTest):
+    def test_the_server_registry_is_kept_inside_the_run_home(self):
+        with tempfile.TemporaryDirectory() as d, mock.patch.object(g14, 'TRIAL_TOKEN', self.key):
+            env = g14.child_env(Path(d), Path(d) / 'tmp', str(Path(d) / 'tmp' / 'home'), '/opt/jdk21')
+        self.assertEqual(env['MONGOOSE_SERVERS_DIR'], str(Path(d) / 'tmp' / 'home' / '.mongoose' / 'servers'))
+        self.assertNotIn('JAVA_TOOL_OPTIONS', env, 'user.home must not be overridden: the build finds the key by it')
+
+
+class PrestagedTest(unittest.TestCase):
+    def test_a_prestaged_run_can_never_read_as_an_acceptance(self):
+        src = Path(g14.__file__).read_text()
+        self.assertIn("'acceptanceEligible': not prestaged", src)
+        self.assertIn("'G14-rig comparison (prestaged)'", src)
+
+    def test_a_missing_prestaged_directory_is_refused(self):
+        with tempfile.TemporaryDirectory() as d, mock.patch.object(sys, 'argv', [
+                'g14_runner.py', '--prestaged', str(Path(d) / 'absent'), 'r', 'm', d, str(Path(d) / 'in.txt')]):
+            self.assertEqual(g14.main(), 2)
+
+
+class SweepBaseProcessesTest(unittest.TestCase):
+    """2026-10-12: servers a subject started with `(cmd &)` / nohup left the process group and outlived runs."""
+
+    def test_a_process_that_left_the_group_but_lives_in_the_base_is_killed(self):
+        with tempfile.TemporaryDirectory(dir='/private/tmp') as d:
+            base = Path(d).resolve()
+            escaped = subprocess.Popen(['/bin/sleep', '300'], cwd=base, start_new_session=True)
+            try:
+                time.sleep(.5)
+                out = g14.sweep_base_processes(base, grace=5)
+                self.assertIn(escaped.pid, [f['pid'] for f in out['swept']])
+                self.assertEqual(out['survivors'], [])
+                escaped.wait(timeout=10)
+            finally:
+                if escaped.poll() is None:
+                    escaped.kill()
+
+    def test_the_operators_rest_instance_survives_and_the_subjects_mcp_bridge_does_not(self):
+        base = '/private/tmp/fx-x'
+        rest = f'/opt/jdk/bin/java -Duser.home={base}/tmp/home -jar {base}/tmp/jar/analyser.jar --rest'
+        mcp = f'/opt/jdk/bin/java -Duser.home={base}/tmp/home -jar {base}/tmp/jar/analyser.jar --mcp'
+        self.assertTrue(g14.operator_instance(rest, base))
+        self.assertFalse(g14.operator_instance(mcp, base))
+        self.assertFalse(g14.operator_instance(f'java -jar {base}/project/target/app.jar', base))
+
+    def test_a_sibling_base_that_shares_a_prefix_is_not_inside(self):
+        # review of PR 129: `base in command` and `cwd.startswith(base)` matched fx-g14-55-r1b for base fx-g14-55-r1
+        base = '/private/tmp/fx-g14-55-r1'
+        self.assertTrue(g14.in_base(f'java -jar {base}/project/target/app.jar', '/', base))
+        self.assertTrue(g14.in_base('sleep 300', base, base))
+        self.assertTrue(g14.in_base('sleep 300', base + '/project', base))
+        self.assertFalse(g14.in_base(f'java -jar {base}b/project/target/app.jar', '/', base))
+        self.assertFalse(g14.in_base('sleep 300', base + 'b/project', base))
+        for ending in ('"', "'", ' ', ':', ';', ',', ')', ''):
+            self.assertTrue(g14.in_base(f'java -cp {base}{ending}x Main' if ending else f'cd {base}', '/', base), repr(ending))
+        self.assertFalse(g14.in_base(f'java -cp {base}.bak/x Main', '/', base), 'a sibling with a suffix')
+
+    def test_control_a_process_outside_the_base_is_left_alone(self):
+        with tempfile.TemporaryDirectory(dir='/private/tmp') as d, tempfile.TemporaryDirectory(dir='/private/tmp') as other:
+            bystander = subprocess.Popen(['/bin/sleep', '300'], cwd=Path(other).resolve(), start_new_session=True)
+            try:
+                time.sleep(.5)
+                out = g14.sweep_base_processes(Path(d).resolve(), grace=2)
+                self.assertNotIn(bystander.pid, [f['pid'] for f in out['swept']])
+                self.assertIsNone(bystander.poll(), 'a process outside the run was killed')
+            finally:
+                bystander.kill(); bystander.wait()
+
+
+class SubjectCommandTest(unittest.TestCase):
+    def test_dont_ask_mode_carries_the_tools_the_journey_needs(self):
+        cmd = g14.subject_command('/p.sb', '/cli', 'claude-haiku-5-5', {'mcpServers': {}}, 'the task')
+        tools = cmd[cmd.index('--allowedTools') + 1:cmd.index('--no-chrome')]
+        for needed in ('Bash', 'Write', 'Read', 'WebFetch', 'mcp__fluxtion-analyser'):
+            self.assertIn(needed, tools, f'{needed} would be refused under dontAsk')
+        self.assertEqual(cmd[cmd.index('--permission-mode') + 1], 'dontAsk')
+
+    def test_the_prompt_is_the_last_argument_after_a_separator(self):
+        """A variadic --allowedTools would otherwise swallow the prompt as a tool name."""
+        cmd = g14.subject_command('/p.sb', '/cli', 'm', {}, 'the task')
+        self.assertEqual(cmd[-2:], ['--', 'the task'])
+
+
+class StageCliTest(unittest.TestCase):
+    def test_copy_is_read_only_and_digest_recorded(self):
+        with tempfile.TemporaryDirectory() as d:
+            src = Path(d) / 'src-claude'
+            src.write_bytes(b'#!/bin/sh\necho ok\n')
+            target, digest = g14.stage_cli(Path(d) / 'base', src)
+            self.assertEqual(target, Path(d) / 'base' / 'cli' / 'claude')
+            self.assertEqual(digest, g14.sha256_file(src))
+            self.assertEqual(target.stat().st_mode & 0o777, 0o555)
+
+    def test_profile_without_cli_dir_is_unchanged(self):
+        a = g14.isolation_profile('/private/tmp/fx', '1', '/opt/jdk21')
+        self.assertEqual(a, g14.isolation_profile('/private/tmp/fx', '1', '/opt/jdk21', cli_dir=None))
+        self.assertNotIn('/cli"', a)
 
 
 class NormalExitCleanupTest(unittest.TestCase):
