@@ -51,7 +51,8 @@
     "RE-PINNED 2026-10-13 (review of PR 137): the add-a-node snippet uses placeholder ids rather than a ladder task's names; a hand-wired sink is described as not declared in the design, and a hand-written class that disagrees with the XML as refused (SPRING_RECONCILE_CONFLICT). Same contract, same selection; only the revision and the add-a-node hash moved.",
     "RE-PINNED 2026-10-13 (M72 L4 iii): load-audit-log gains 'Diagnose in a fresh context' - after a design change is built and run, diagnosis goes to a subagent seeded with a brief of at most 2,000 characters that carries pointers and the question, never evidence; the subagent reads the identity verdict, pairing, timeOrder, producer and inFlight from the analyser and reports them. Step 1 routes a design conversation there. Same contract, same selection; only the revision and the load-audit-log hash moved. The playground must re-vendor (UP-PG-08).",
     "RE-PINNED 2026-10-13 (M72 L4 iii, review of PR 138): the subagent runs in the foreground and the author waits; only a diagnosis needing more than one analyser read is delegated; the brief works log by log and names analyser calls only. Same contract, same selection; only the revision and the load-audit-log hash moved.",
-    "RE-PINNED 2026-10-13 (merge of main after PR 137 into PR 138): no single earlier revision carried both the add-a-node of PR 137 and the load-audit-log of PR 138; the revision is now the merge commit, which carries both. Same bytes, same hashes."
+    "RE-PINNED 2026-10-13 (merge of main after PR 137 into PR 138): no single earlier revision carried both the add-a-node of PR 137 and the load-audit-log of PR 138; the revision is now the merge commit, which carries both. Same bytes, same hashes.",
+    "RE-PINNED 2026-10-13 (review of PR 137, residue): add-a-node step 2 says any bean a binding names is listed in nodeBeans too; a parent reached only through a constructor-arg ref is not a node, and validate refuses the binding with SPRING_REFERENCE_UNKNOWN_BEAN (checked offline with starter 1.0.79). Same contract, same selection; only the revision and the add-a-node hash moved. The playground must re-vendor add-a-node."
   ],
   "common": [
     "common/load-audit-log/SKILL.md",
@@ -87,14 +88,14 @@
       ]
     }
   },
-  "revision": "a6570f4eb14068ac76e3f85ede2233d0a6bea646",
+  "revision": "2560d2ab71ff0e0c6e202fe73d6c3454b5604acb",
   "sha256": {
     "common/load-audit-log/SKILL.md": "c5b7d90867adfee693cfdf049bd3588d8618eb252981db08135d6c85fce59c62",
     "common/guided-start/SKILL.md": "fdead498fa56b4df27d360f070de5357f833c16dd9cb8e0eef4ad3a5690c2d47",
     "common/point-at-the-fault/SKILL.md": "5c02e6d1d9a205fb5ab43613248a9c7bdbb924cb4175826582c865af6067f2f5",
     "mongoose/run-mongoose-server/SKILL.md": "296aab9ca1987153becfd96abcc9d967bb67148a22e727c0bb25d82b79e0a9ca",
     "embedded/run-embedded/SKILL.md": "d98ddd4dc536feb2772150a4855fd13c4abb02f73927cd39c83742978c7b7014",
-    "spring/add-a-node/SKILL.md": "f483bf37e550218d5cdd2241658219e51ee786e081ff81f90cc9f4ebf660d2ed",
+    "spring/add-a-node/SKILL.md": "90da0ee0cbe436e51af49ec9b5e814a869b52a3ca13da56c2dda4c6deb1a2e10",
     "spring/add-a-node/audit-compare.py": "c3b5fae86ad418f4311ce446896a796a75f79da2697d000ce5c6bd0b0a5de5fb",
     "common/replay-a-run/SKILL.md": "548646b354f2c76ae41bdb3c737faa131032341a19a9a7872ec591421a1091d4"
   }
