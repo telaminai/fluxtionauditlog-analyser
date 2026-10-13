@@ -11,8 +11,9 @@ then an optional `annotation` whose value is an annotation's simple name (`OnTri
 run is framework. Everything after it is the node's own, even when spelled like a trace key, and an entry
 with no leading `method`/`asyncMethod` has no framework keys at all: a lone `thread` or `annotation` is
 business. A record with at least one business entry is a business record, and the
-business comparison is the sequence of business records: their event, event text and every node's
-business entries, in dispatch order. Times and the record's thread are never compared.
+business comparison is the sequence of business records: their event, event type, event text, any field the
+reader does not know, and every node's business entries, in dispatch order. The times, the record's thread and
+the grouping id are never compared: they vary between runs of the same input.
 
 The verdict is about the LOGGED business entries of these two captures, not about behaviour in general: an output
 or side effect that no node logs is not covered, and logging a new value shows as a difference. It comes from
@@ -25,7 +26,8 @@ Each record is read by the analyser's own structural rule (RecordBreak, fixture 
 lines is one value, the generator's exported-service signature belongs to its `@Override`, and a record whose
 structure breaks - a value written unquoted with a line break in it, where the analyser can tell - is refused, as
 the analyser reads it without its node logs. Where it cannot tell (a continuation that looks like a field), the
-"field" is compared like every field but the times, the thread and the grouping id.
+"field" is compared like every field but the times, the thread and the grouping id, and a `#` line or a nesting
+under an unknown key - text the analyser skips - is compared with the value it sits in.
 
 An `annotation` straight after the method is ambiguous (tracing's from runtime 1.1.1, or an older node's own key):
 when the match depends on it the verdict is INCONCLUSIVE (exit 3) unless --annotations-are-trace says it is
@@ -76,31 +78,33 @@ ITEM = re.compile(r'^\s*-\s+("(?:[^"\\]|\\.)*"|\S+?):\s*\{(.*)\}\s*$', re.S)
 
 
 def split_top_level(body):
-    """Split `k: v, k: v` on commas outside (), [], {} and double quotes (Format 1 section 3)."""
-    parts, depth, quoted, start, escaped = [], 0, False, 0, False
+    """Split `k: v, k: v` exactly as the analyser's NodeLogTokenizer.splitTopLevel does for a text export (the legacy
+    grammar): on commas outside (), [], {} and outside single or double quotes, with no escapes (a backslash is
+    text there), keeping every part - an empty one, a trailing one - as an entry."""
+    parts, depth, start, in_s, in_d = [], 0, 0, False, False
     for i, ch in enumerate(body):
-        if quoted and escaped:
-            escaped = False
+        if in_s:
+            in_s = ch != "'"
             continue
-        if quoted and ch == "\\":
-            escaped = True
+        if in_d:
+            in_d = ch != '"'
             continue
-        if ch == '"':
-            quoted = not quoted
-        elif not quoted and ch in "([{":
+        if ch == "'":
+            in_s = True
+        elif ch == '"':
+            in_d = True
+        elif ch in "([{":
             depth += 1
-        elif not quoted and ch in ")]}":
+        elif ch in ")]}":
             depth = max(0, depth - 1)
-        elif not quoted and depth == 0 and ch == ",":
+        elif ch == "," and depth == 0:
             parts.append(body[start:i])
             start = i + 1
     parts.append(body[start:])
     entries = []
-    for index, part in enumerate(astrip(p) for p in parts):
-        if not part and index == len(parts) - 1:
-            continue                                 # a trailing comma, not a value
+    for part in (astrip(p) for p in parts):
         key, sep, value = part.partition(":")
-        entries.append((astrip(key), astrip(value)) if sep else (None, part))   # an empty part is kept: it is text
+        entries.append((astrip(key), astrip(value)) if sep else (None, part))
     return entries
 
 
@@ -208,6 +212,10 @@ def analyse(lines):
         if not t:
             continue
         if t.startswith("#"):
+            if field_indent >= 0:
+                # after the first field a `#` line is a value's text (no producer writes a comment there): the
+                # analyser skips it, and so would a comparison that ignored it - so it is compared with its value
+                roles[i] = "NODE_LINE" if in_node else "TEXT"
             continue
         indent = len(raw) - len(raw.lstrip(" \t"))
         if field_indent < 0:
@@ -241,6 +249,7 @@ def analyse(lines):
                     roles[i] = "BLOCK"           # a block scalar's text: part of its field's value
                     continue
                 if nested_ignored:
+                    roles[i] = "TEXT"            # nesting under an unknown key: the analyser ignores it; compared here
                     continue
                 brk(i, "a line more indented than the record's fields, outside its node logs")
                 continue
@@ -277,11 +286,11 @@ def parse(path):
     records = []
     for number, doc in enumerate(documents):
         all_lines = doc.split("\n")
-        lines = [l for l in all_lines if l.strip() and not l.lstrip().startswith("#")]
+        lines = [l for l in all_lines if astrip(l) and not astrip(l).startswith("#")]
         if not lines:
             continue
-        if lines[0].strip() != "eventLogRecord:":
-            records.append({"raw": "\n".join(l.strip() for l in lines)})
+        if astrip(lines[0]) != "eventLogRecord:":
+            records.append({"raw": "\n".join(astrip(l) for l in lines)})
             continue
         roles, broken = analyse(all_lines)
         if broken is not None:
@@ -295,7 +304,7 @@ def parse(path):
                 key, _, value = astrip(raw).partition(":")
                 fields[astrip(key)] = astrip(value)
                 last_field = astrip(key)
-            elif role in ("QUOTED", "SIGNATURE", "BLOCK") and last_field is not None:
+            elif role in ("QUOTED", "SIGNATURE", "BLOCK", "TEXT") and last_field is not None:
                 fields[last_field] += "\n" + astrip(raw)        # a value continued: compared whole
             elif role == "NODE_ITEM":
                 items.append(raw)

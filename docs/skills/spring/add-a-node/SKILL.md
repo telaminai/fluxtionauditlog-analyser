@@ -124,7 +124,8 @@ meant to alter them. Prove which happened by comparing two runs of the **same in
    entry: an optional `thread`, then `method` (or `forkedExecution` and `asyncMethod`), then an optional
    `annotation` naming an annotation. Only that leading run is framework, as it is in the analyser; a key
    after it, or a lone `thread` or `annotation`, is the node's own. It compares the business records
-   in order — event, event text and every node's business entries; never times or thread names — and
+   in order — event, event type, event text, any field the reader does not know, and every node's business
+   entries; never times, the thread or the grouping id, which vary between runs — and
    reports framework differences separately. Exit `0`: the logged business entries match; `1`: they
    differ, and the changed records are printed; `3`: inconclusive — they match only if an `annotation`
    straight after the method is tracing's (runtime 1.1.1+) rather than an older node's own key; pass

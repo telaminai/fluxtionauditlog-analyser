@@ -369,14 +369,16 @@ class AuditCompareTest(unittest.TestCase):
         self.assertEqual(0, self.run_compare(a, a)[0], self.last_stderr)
         self.assertEqual(1, self.run_compare(a, a.replace('deeper 1', 'deeper 2'))[0])
 
-    def test_an_escaped_quote_does_not_end_a_quoted_value_and_empty_parts_are_kept(self):
-        a = BEFORE.replace('decision: hold', 'v: "a\\",,b"')
-        b = BEFORE.replace('decision: hold', 'v: "a\\",b"')
-        self.assertEqual(1, self.run_compare(a, b)[0], 'an empty part is kept')
-        # one quoted value holding an escaped quote and a comma; a split at that comma strips the space after it
-        a = BEFORE.replace('decision: hold', 'v: "a\\", w: 1"')
-        b = BEFORE.replace('decision: hold', 'v: "a\\",w: 1"')
-        self.assertEqual(1, self.run_compare(a, b)[0], 'the escaped quote does not end the value')
+    def test_entries_split_as_the_analyser_splits_a_text_export(self):
+        # legacy grammar (NodeLogTokenizer.splitTopLevel): no escapes, single and double quotes, every part kept
+        self.assertEqual([('v', 'a'), (None, ''), (None, 'b')], audit_compare.split_top_level(' v: a,,b'))
+        self.assertEqual([('a', '1'), (None, '')], audit_compare.split_top_level('a: 1,'))
+        self.assertEqual([('a', "'x, y'"), ('b', '2')], audit_compare.split_top_level("a: 'x, y', b: 2"))
+        self.assertEqual(1, self.run_compare(BEFORE.replace('decision: hold', 'v: a,,b'),
+                                             BEFORE.replace('decision: hold', 'v: a,b'))[0], 'an empty part is kept')
+        # a backslash is text: a quoted value ending in one closes there, so the trace run after it is still framework
+        a = BEFORE.replace('- quoteDEMO: { thread: main, method: onTrigger}', '- quoteDEMO: { thread: "a\\", method: onA, price: 5}')
+        self.assertEqual(0, self.run_compare(a, a.replace('method: onA', 'method: onB'))[0])
 
     def test_port_quote_rules(self):
         q = audit_compare.quote_state_after
@@ -400,6 +402,44 @@ class AuditCompareTest(unittest.TestCase):
                                 'public void x()', '  nodeLogs:'])[1], 'the signature allowance needs @Override')
         self.assertIsNone(a(['eventLogRecord:', '  event: ExportFunctionAuditEvent', '  eventToString: @Override',
                              'public void x()', '  nodeLogs:'])[1])
+
+    # --- fifth review of PR 127: text the analyser skips is still compared ---
+
+    def assert_value_compared(self, make):
+        self.assertEqual(0, self.run_compare(make('5'), make('5'))[0], self.last_stderr)
+        self.assertEqual(1, self.run_compare(make('5'), make('9'))[0], make('5'))
+
+    def record(self, header, items='    - n: { v: 1}'):
+        return '---\neventLogRecord:\n  event: E\n' + header + '\n  nodeLogs:\n' + items + '\n---\n'
+
+    def test_a_hash_line_in_unquoted_event_text_is_compared(self):
+        self.assert_value_compared(lambda p: self.record('  eventToString: Order{id=1,\n#price=' + p + '}'))
+
+    def test_a_hash_line_inside_a_block_scalar_is_compared(self):
+        self.assert_value_compared(lambda p: self.record('  eventToString: |\n    Order\n    #price=' + p))
+
+    def test_nesting_under_an_unknown_key_is_compared(self):
+        self.assert_value_compared(lambda p: self.record('  eventToString: Order{id=1,\n  detail:\n    price=' + p + '}'))
+
+    def test_a_hash_line_inside_a_node_value_is_compared(self):
+        self.assert_value_compared(lambda p: self.record('  eventToString: x',
+                                                         '    - n: { note: a,\n#price=' + p + '\n        v: 1}'))
+
+    def test_a_record_behind_a_mid_file_byte_order_mark_is_read(self):
+        a = BEFORE.replace('---\neventLogRecord:\n  logTime: 2000', '---\n\ufeffeventLogRecord:\n  logTime: 2000', 1)
+        self.assertNotEqual(a, BEFORE)
+        b = a.replace('method: onTrigger}', 'method: onQuote}')
+        self.assertEqual(0, self.run_compare(a, b)[0], 'a framework-only change, so the record was parsed, not compared raw')
+
+    def test_which_fields_are_compared(self):
+        self.assert_value_compared(lambda p: self.record('  eventType: com.acme.E' + p))
+        self.assert_value_compared(lambda p: self.record('  eventToString: x\n  venue: DEMO' + p))
+        g = lambda p: self.record('  eventToString: x\n  groupingId: ' + p)
+        self.assertEqual(0, self.run_compare(g('5'), g('9'))[0], 'the grouping id is never compared')
+
+    def test_only_ascii_whitespace_is_stripped(self):
+        e = lambda sp: self.record('  eventToString: x', '    - n: { v: ' + sp + '1}')
+        self.assertEqual(1, self.run_compare(e(''), e('\u2003'))[0], 'an em space is text, as in the analyser')
 
 if __name__ == '__main__':
     unittest.main()
