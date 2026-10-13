@@ -439,7 +439,16 @@ class AuditCompareTest(unittest.TestCase):
 
     def test_only_ascii_whitespace_is_stripped(self):
         e = lambda sp: self.record('  eventToString: x', '    - n: { v: ' + sp + '1}')
-        self.assertEqual(1, self.run_compare(e(''), e('\u2003'))[0], 'an em space is text, as in the analyser')
+        # conservative: the analyser's node-entry tokenizer would strip an em space; the script compares it as text,
+        # which can only report a difference, never hide one
+        self.assertEqual(1, self.run_compare(e(''), e('\u2003'))[0], 'an em space is compared as text')
+
+    def test_an_empty_node_body_is_no_entry(self):
+        # sixth review of PR 127: `{ }` became a business entry (the analyser's parseItem splits only a non-blank body)
+        a = BEFORE.replace('- quoteDEMO: { thread: main, method: onTrigger}',
+                           '- quoteDEMO: { thread: main, method: onTrigger}\n    - m: { }')
+        self.assertNotEqual(a, BEFORE)
+        self.assertEqual(0, self.run_compare(a, BEFORE)[0])
 
 if __name__ == '__main__':
     unittest.main()

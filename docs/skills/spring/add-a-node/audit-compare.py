@@ -27,7 +27,8 @@ lines is one value, the generator's exported-service signature belongs to its `@
 structure breaks - a value written unquoted with a line break in it, where the analyser can tell - is refused, as
 the analyser reads it without its node logs. Where it cannot tell (a continuation that looks like a field), the
 "field" is compared like every field but the times, the thread and the grouping id, and a `#` line or a nesting
-under an unknown key - text the analyser skips - is compared with the value it sits in.
+under an unknown key - text the analyser skips - is compared with the value it sits in (unless that value is one
+of the fields never compared).
 
 An `annotation` straight after the method is ambiguous (tracing's from runtime 1.1.1, or an older node's own key):
 when the match depends on it the verdict is INCONCLUSIVE (exit 3) unless --annotations-are-trace says it is
@@ -318,7 +319,9 @@ def parse(path):
             if not match:
                 raise Unreadable(f"{path}: a node entry that is not `- name: {{...}}` in document {number}: "
                                  f"{item.strip()[:60]}")
-            parsed.append((match.group(1), split_top_level(match.group(2))))
+            body = match.group(2)
+            # as the analyser's parseItem: an empty or blank body is no entry at all
+            parsed.append((match.group(1), split_top_level(body) if astrip(body) else []))
         if not parsed and fields and set(fields) <= MARKER_KEYS and "streamEnd" in fields:
             continue                                     # a stream-end marker is a container fact
         other = tuple(sorted((k, v) for k, v in fields.items() if k not in NOT_COMPARED | {"event", "eventToString"}))
