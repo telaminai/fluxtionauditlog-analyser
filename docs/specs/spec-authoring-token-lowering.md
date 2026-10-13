@@ -213,14 +213,14 @@ rung; otherwise the item is reported as *no effect shown*, not as a saving.
   2. **Not a parameter on `aggregate`.** Its reply is buckets over one log; its `filter` is the shape `context`
      returns, and a compare parameter would have to say whether it scopes both logs; `ReportResolver` stores an
      `aggregate` call as a table source that re-issues exactly (M33.7), which a compare parameter would make
-     ambiguous between a bucket table and a differences table; and `aggregate` already has the longest schema
-     description.
+     ambiguous between a bucket table and a differences table.
   3. **Token cost does not discriminate.** One verb schema is about the size of `coverage`'s; a parameter saves
      tens of tokens of schema and spends them on a longer `aggregate` description (INFERRED).
   - **M39.4 is re-scoped, not absorbed.** Only its *comparison* lands as an operand of `compare`. *Build* writes a
     project-tier artefact and *list* enumerates them; they keep a writing `baseline` verb (or *list* becomes a
-    `context.baselines` section, as reports and walks are) when M39 ships. `compare` makes the verb count 18;
-    each addition is a Decisions entry, because `VerbSchemasTest` pins the set, and changes the tool list,
+    `context.baselines` section, as reports and walks are) when M39 ships. `VerbSchemasTest` pins 18 verbs today (`import` included); `compare` makes 19, and a
+    writing M39 `baseline` verb 20;
+    each addition is a Decisions entry, because that test pins the set, and changes the tool list,
     `/manifest`, the verb reference in `docs/site/user-guide/assistant.md` and the schemas together.
   - **Condition 1 — rule 9.** The second export is parsed, compared and discarded **inside the call**: no cached
     index, no "current comparison". If paging the first N differences ever needs a cache, that cache is session
@@ -349,29 +349,33 @@ ladder measures (Spring and bundle authoring), and when to step up.
     claimed success while the counter ran on every trade [L] — a rung Haiku 5.5 passed 3/3 [L].
   - **Haiku 4.5**: in the grid, S5 (the chart) failed in 3/3 Haiku 4.5 runs and passed in 3/3 Haiku 5.5 `-b` runs
     [G]; Haiku 5.5's median cost there was 24% of Haiku 4.5's ($0.109 vs $0.459) [G]. Every grid run of every model
-    failed the sealed S1, so the specific fact is S5, not sealed PASS. Two of the three Haiku 4.5 runs were among
-    the four grid runs a stray server contaminated [G].
+    failed the sealed S1, so the specific fact is S5, not sealed PASS. The stray-server contamination touched both
+    sides: two of the three Haiku 4.5 runs (`g14-45-r2b`, `r3b`) and two of the three Haiku 5.5 `-b` runs
+    (`g14-55-r2b`, `r3b`) [G], so both medians in the 24% ratio are partly contaminated.
   - **The ≈ 40× figure** the owner works with is a price-list ratio [S]; the measured per-run ratio is 18× [D]. The
     gap is **unexplained until L0** records token buckets. Sonnet made more requests per run (106.5 vs 45.2) and
     more of them over 100k (51% vs 33%) [L, D], which alone would push the ratio *above* the list price; the
     likelier cause is Haiku 5.5's 5× tier above 100k [L], with caching and tokenizer differences (the
-    minimal-instructions spec measured a 1.35× tokenizer gap) — INFERRED.
+    minimal-instructions spec measured a 1.35× tokenizer gap between Opus 5 and Haiku 4.5; unmeasured for this
+    pair) — INFERRED.
   - **Opus-class models**: not measured on the ladder. No claim is made.
   - **Step-up evidence**: none. Haiku 5.5's one first-ladder failure (rung 5, `lad-r5-h55-1`, ORACLE + CHART) followed
     the starter's reconcile conflict on supplier nodes, fixed in compiler 1.0.77 (INFERRED), and the baseline passes rung 5 3/3 [B]; Sonnet passed rung 5
     at n = 1 [L], inside the noise band. The baseline's rung-2 CHART failures had no larger-model arm. No Haiku 5.5
     failure class has a larger-model comparison.
-- **Change.** A *Model choice* section in `docs/site/spring-authoring-getting-started.md`, scoped to that task
-  family, with a one-line pointer from `docs/site/connect-an-llm.md` and an explicit statement that it does **not**
+- **Change.** A *Model choice* section in `docs/site/spring-authoring-getting-started.md` (its step 2, where the
+  LLM is connected), worded for the task family the ladder measured — **the Spring starter (rungs 2, 4) and the
+  analyser bundle (rungs 3, 5)** — with one-line pointers from `docs/site/connect-an-llm.md` and the playground
+  bundle page, and an explicit statement that it does **not**
   cover the in-app assistant's provider/model setting (nothing there was measured). Per model, not per activity:
   every ladder run uses one model end to end and PASS is a conjunction, so activities cannot yet be scored apart.
   Proposed content from today's evidence:
-  | model | status | evidence |
-  |---|---|---|
-  | Haiku 5.5 | **default**; meets acceptance on rungs 3–5, **open on rung 2 (the chart step, 1/3)** | baseline [B] |
-  | Sonnet 5 | not recommended: no measured gain at 16.5–30× per run, one confident wrong answer | first ladder [L] |
-  | Haiku 4.5 | **not for the chart step** (S5 0/3) | grid [G] |
-  | others (Opus-class, …) | unmeasured | — |
+  | model | status | evidence folder | field | the test checks |
+  |---|---|---|---|---|
+  | Haiku 5.5 | **default**; meets acceptance on rungs 3–5; **open on rung 2** (the chart step, 1/3) | `docs/handoff/evidence/authoring-ladder-baseline-2026-10-13` | `PASS` per rung | rungs 3–5 ≥ 2/3; rung 2 < 2/3 |
+  | Sonnet 5 | **advisory: not recommended** — no rung where it passes and the default fails, at 16.5–30× per run | `docs/handoff/evidence/authoring-ladder-2026-10-12` | `PASS` per rung, both models | no rung with Sonnet 5 passing and Haiku 5.5 < 2/3 |
+  | Haiku 4.5 | **negative: not for the chart step** | `docs/handoff/evidence/g14-model-grid-2026-10-11` | `S5` | `S5` false in every Haiku 4.5 run |
+  | others (Opus-class, …) | **unmeasured** | — | — | exempt: an `unmeasured` row may cite nothing |
   - **Step-up rule:** none documented, because no failure class has a larger-model arm. Until one exists, the
     section says to re-run a failed step with the default before paying for a larger model — marked as advice,
     not a measured result.
@@ -390,13 +394,18 @@ ladder measures (Spring and bundle authoring), and when to step up.
   recommendation needs L0's phases **and** a mixed-model arm (one model for design, another for the chart); a
   step-up rule needs an interleaved run in which the larger model passes a failure class the default fails,
   outside the noise band (§3). The rung-2 chart step is the first candidate for that run.
-- **Regression check (rule 8).** `ModelChoiceEvidenceTest` parses the *Model choice* table. Each row names its
-  evidence folder **and the field it reads** (`PASS` per rung for the ladders; `S5` for the grid, whose score.json
-  has no `rung` and whose `PASS` is the sealed value). The test first verifies the folder's `MANIFEST*.sha256`, so
-  editing evidence cannot make it pass, then fails if: a *meets acceptance* claim covers a rung below 2/3; an
-  *open* claim names a rung that is in fact ≥ 2/3 (stale); a negative row's field is not failing as stated; or a
-  row cites no evidence. Witness: on a **temporary copy** of a cited folder (never the sealed files), flip two
-  `PASS` values on one claimed rung — the test must go red.
+- **Regression check (rule 8).** `ModelChoiceEvidenceTest` parses the *Model choice* table. Every row has a
+  status from a closed set — `meets acceptance` (with any `open` rungs), `advisory`, `negative`, `unmeasured` —
+  and every row but `unmeasured` names its evidence folder and the field it reads (`PASS` per rung for the
+  ladders; `S5` for the grid, whose score.json has no `rung` and whose `PASS` is the sealed value). The test
+  applies the row's stated check (the last column) and fails if: a *meets acceptance* rung is below 2/3; an *open*
+  rung is in fact ≥ 2/3 (stale); an *advisory* or *negative* row's check does not hold; a non-`unmeasured` row
+  cites no folder or field; or a status is outside the set. **The score files are not sealed by the
+  `MANIFEST*.sha256` files** — those seal predictions, tasks and harness inputs before the runs — so the test reads
+  a committed digest file (`docs/specs/model-choice-evidence.sha256`, one sha256 per cited `score.json`) and fails
+  on any mismatch: editing evidence then fails the test unless the digest file is changed in the same reviewed
+  diff. Witness: on a temporary copy of a cited folder, flip two `PASS` values on one claimed rung — the test must
+  go red, both on the digest and, with the digest updated, on the claim.
 - **Risks.** n = 3 per rung for Haiku 5.5 and n = 1 per rung for Sonnet 5 [L, B]; a policy drawn from one task
   family may not transfer; a model release can change the table overnight, which is why the test reads evidence,
   not a hard-coded name.
