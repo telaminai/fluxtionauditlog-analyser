@@ -4,10 +4,18 @@
 to 13:03:57Z. None was VOID and none was re-run.
 
 **Stack:**
-- the operator's analyser: 1.33.0;
+- the analyser: 1.33.0, both as the operator's `--rest` instance and as the subject's MCP bridge. The bridge is
+  the same jar (`config.json` `mcp.args`). In the first ladder both were 1.32.0 (jar `f125050b…`), and 1.33.0
+  itself changed skill guidance and how the `annotation` trace key is read (CHANGELOG 1.33.0);
 - starter-core and BOM 1.0.77, runtime 1.1.1;
 - hosted generator 1.0.78;
 - Claude Code 2.1.296: the same read-only binary as the first ladder, `claudeBinUnchanged` in every meta.json.
+
+**What the comparison can and cannot attribute:** the analyser, starter, BOM, runtime, hosted generator and
+template guidance all changed together between the two ladders. Every delta below is therefore a delta of the
+**whole released stack**, and none can be attributed to the guidance alone, or to any single lever.
+`POST-SEAL-NOTES.md` records this, and the other corrections made after the review of PR #131, against the sealed
+files, which are left byte-identical.
 
 **Sealing:** the predictions and manifest were sealed at 2026-10-13T12:16:09Z (commit `b2234e52`, pushed) before
 the first run. See `FIXTURES.md` for what was downloaded and how each fixture and seed was built.
@@ -140,10 +148,14 @@ fact (`first-ladder-probe/`).
 - **base-r2-h55-1** saved no graph. It opened its own audit log, read series and records, spotlighted, and stored a
   *report* with a series section, but it never called `graph`. The scorer saw `graphs: []`.
 - **base-r2-h55-3** saved a graph, "Scenario counts", with 4 points, but the scorer's read of its first series
-  carried an `identityNote`. After charting, the subject edited the design XML and regenerated twice, so the
-  charted log predates the final design. That this is what the analyser's identity verdict flagged is
-  **INFERRED**: the note's text was not captured, because the operator instance is stopped after scoring. Opening
-  the same file fresh on a 1.33.0 or a 1.32.0 instance gives no identityNote.
+  carried an `identityNote`. The likely cause, **INFERRED**, is that **the charted file was rewritten after
+  charting**. From the transcript's tool calls, in order:
+  - the subject opened and charted `target/scenario-run1.audit.log` (calls 46 and 52);
+  - it changed the design to `propagate=false` and regenerated (calls 55 and 56), then reverted it (call 57);
+  - in call 58 it regenerated and re-ran its Scenario driver with output to that same file.
+  1.33.0 attaches `identityNote` when a read finds the file changed under the loaded store (`ReadThroughIdentity`,
+  through `ActionDispatcher.withIdentityNote`). The note's text was not captured, because the operator instance is
+  stopped after scoring. Opening the same file fresh on a 1.33.0 or a 1.32.0 instance gives no identityNote.
 - **The scorer itself:** a post-run check of `score_ladder.py`'s CHART code against a fresh 1.33.0 instance, with a
   saved graph over the r3 ground-truth log, scored `ok: True` (5 points, no identity mark). The 1.33.0 context
   shape is therefore read correctly. This check changed nothing in the scoring.
@@ -164,27 +176,45 @@ ladder's rung-2 runs all passed CHART.
     because the export was renamed to `audit-marketProcessor.yaml`. Its business keys equal the old baseline's.
 - **Key scans:** two runs read "not clean", **base-r3-h55-3** and **base-r5-h55-1**. Each has **0** key-value
   occurrences, **0** trial-token occurrences and **4** key-*path* pattern hits: 2 in `raw.jsonl` and 2 in its
-  mirror `events.jsonl`. These are path-reference false positives:
-  - the matching commands were `cat check-fluxtion-key.sh`, whose output is the shipped script's own text naming
-    the key path, and, in r3-h55-3, `test -f ~/.fluxtion/fluxtion.apiKeyFile && echo …`;
-  - no run read the key file;
-  - S6′ passes in both, no key material left the box, and the runner's "rotate the key" message is over-cautious
-    here, as in the first ladder's lad-r5-h55-3.
+  mirror `events.jsonl`. The commands, checked against the transcripts (the shipped `check-fluxtion-key.sh` does not
+  contain the string `apiKey`):
+  - **base-r3-h55-3:** `… tail -5 logs/setup.log; ls -la .fluxtion …; test -f ~/.fluxtion/fluxtion.apiKeyFile
+    && echo …`. This is an existence test, and its result was "key file absent".
+  - **base-r5-h55-1:** the pattern hits are `… head -3; test -e ~/.fluxtion/fluxtion.apiKeyFile`, an existence
+    test whose result was "key path absent". Separately, the subject ran
+    `grep -s '^apiKey=' ~/.fluxtion/fluxtion.apiKeyFile >/dev/null && echo "key file present" || echo "NO key
+    file"`. That is an attempt to **open and read** the key file, with the output discarded, and the scan's pattern
+    does not count it.
+  - **Why nothing was read:** in both runs `~` was the run's isolated home (`HOME` is set to `<base>/tmp/home`), and
+    no `.fluxtion` directory existed there. The grep printed "NO key file".
+  - **Verdict:** no key value and no token appear in any captured output (0 and 0 across raw.jsonl, events.jsonl,
+    stderr.log and the project and tmp trees), so S6′ holds in both. The grep is still a hygiene finding: the
+    subject tried to read a file the task said not to print, copy or modify. The runner's "rotate the key" message
+    is over-cautious here, because no key bytes were reachable at the path the subject used.
 - **No contamination:**
   - every run's precondition (`results/<run>/precondition.json`) found port 8181 free and no stray process;
   - every meta.json reports the process group reaped. Eleven runs swept no strays. base-r2-h55-1 swept one
-    process, and it was the **operator's own** status-wait shell (`zsh -c … until grep … fx-base-r2-h55-1/score.json`),
-    not a subject process: its command line named the run base, so the runner's end-of-run sweep matched it and
-    terminated it (SIGTERM) after the subject had exited. It touched nothing in the run. Later waits named no run
-    base;
+    process, and it was the **operator's own** status-wait shell, not a subject process. Its command line named
+    the run base (`… cat /private/tmp/fx-base-r2-h55-1/score.json …`), so the runner's end-of-run sweep matched it
+    and terminated it (SIGTERM) after the subject had exited. It only read files. The committed meta.json truncates
+    the command at 160 characters, before the quoted text; the full command, from the operator's session record, is
+    in `results/base-r2-h55-1/operator-swept-shell.txt` (path-redacted). Later waits named no run base;
   - after the last run, no server held 8181 and no run process remained.
 - **Warm against cold:**
   - every baseline run was warm, seeded from caches cold-filled today and provenance-checked (see FIXTURES.md);
   - in the first ladder, 4 of the 12 Haiku runs were cold: rung 2 × 3 and lad-r3-h55-1;
-  - the wall-clock comparison, rung 2's especially, therefore includes download time on the first side. The cost,
-    turns, reads and prompt comparisons are not affected by it.
+  - the wall-clock comparison, rung 2's especially, therefore includes download time on the first side;
+  - the cost, turns, reads and prompt comparisons are not expected to be materially affected. A check after the
+    review (`harness/setup_bytes.py` → `first-ladder-probe/setup-bytes.jsonl`) found that the tool results of
+    calls naming `setup.sh` total 12,825–15,132 bytes in the 4 cold runs, within the 8 warm runs' range of
+    4,175–26,459. This is a coarse measure, because a call that also reads docs counts whole.
 - **Rung 4, first ladder:** under its sealed oracle (r1) the first ladder had 10/12. The comparison uses its
   corrected 11/12; this baseline used the corrected oracle from the start.
 - **Rung 5:** the first ladder's rung 5 passed only by `--no-reconcile` or failed at the conflict. Here, plain
   generation works on the released 1.0.77 starter, and all three runs pass without the option.
+- **Runner:** the first ladder's sealed runner is `39393be5…` (analyser `2eb87ca9`); this one is `b28ca7de…`
+  (`df8dab57`). Their only difference is the stray-sweep path match: `in_base()` replaces a substring test, so a
+  sibling base sharing a prefix is no longer swept. `coldstart_clock.py` is unchanged. Sealed
+  PREDICTIONS-BASELINE.md says "the runner, `b28ca7de…`" under "What stays the same", which is wrong about the
+  first ladder's runner; see POST-SEAL-NOTES.md.
 - **Prestaged G14 rig, never an acceptance.** `acceptanceEligible` is false in every meta.json.

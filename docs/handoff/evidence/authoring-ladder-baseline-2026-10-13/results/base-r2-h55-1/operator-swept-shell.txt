@@ -1,0 +1,11 @@
+Post-seal record (2026-10-13, review of PR #131 finding 6). meta.json's strayProcesses truncates each command at 160
+characters, before the operator's quoted text. This is the full command the operator issued through the Claude Code
+Bash tool, from the operator's session record (not otherwise committed). The harness ran it as
+`/bin/zsh -c source ~/.claude/shell-snapshots/<snapshot>.sh … && eval '<command>'`, with the home directory redacted
+to ~. Its own line breaks are kept.
+
+until grep -q "base-r2-h55-1 runner\|refusing\|Traceback\|driver exit" /private/tmp/fx-base13/progress.txt; do sleep 15; done; tail -3 /private/tmp/fx-base13/progress.txt | cut -c1-300; cat /private/tmp/fx-base-r2-h55-1/score.json | python3 -c "import json,sys;d=json.load(sys.stdin);print(d['PASS'],d['ORACLE']['ok'],d['VALID']['ok'],d['CHART']['ok'],d['S6prime'],d['usage']['costUsd'],d['usage']['turns'],d['wallSeconds'],d['reads'])"
+
+The command names /private/tmp/fx-base-r2-h55-1/score.json, a path under the run base. The runner's end-of-run sweep
+(in_base) therefore matched it, and SIGTERMed it after the subject had exited. The operator's background task
+reported exit 144. It only read files, and nothing in the run was written by it.
