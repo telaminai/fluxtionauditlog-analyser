@@ -1,0 +1,624 @@
+{
+ "schema": "token-split/1",
+ "run": "base-r3-h55-2",
+ "toolResultBytes": 70837,
+ "toolCalls": 33,
+ "kindPriority": [
+  "auditLog",
+  "generated",
+  "server",
+  "build",
+  "design",
+  "library",
+  "docs",
+  "source",
+  "analyser",
+  "other"
+ ],
+ "kinds": {
+  "auditLog": {
+   "calls": 1,
+   "bytes": 4164,
+   "lowerBound": 4164,
+   "upperBound": 4164,
+   "carried": 41640,
+   "carriedTierWeighted": 41640.0
+  },
+  "generated": {
+   "calls": 1,
+   "bytes": 183,
+   "lowerBound": 0,
+   "upperBound": 183,
+   "carried": 2379,
+   "carriedTierWeighted": 2379.0
+  },
+  "server": {
+   "calls": 2,
+   "bytes": 459,
+   "lowerBound": 459,
+   "upperBound": 459,
+   "carried": 5094,
+   "carriedTierWeighted": 5094.0
+  },
+  "build": {
+   "calls": 3,
+   "bytes": 2793,
+   "lowerBound": 2738,
+   "upperBound": 2976,
+   "carried": 39859,
+   "carriedTierWeighted": 39859.0
+  },
+  "design": {
+   "calls": 2,
+   "bytes": 22964,
+   "lowerBound": 0,
+   "upperBound": 23147,
+   "carried": 523607,
+   "carriedTierWeighted": 523607.0
+  },
+  "library": {
+   "calls": 2,
+   "bytes": 847,
+   "lowerBound": 0,
+   "upperBound": 847,
+   "carried": 15386,
+   "carriedTierWeighted": 15386.0
+  },
+  "docs": {
+   "calls": 5,
+   "bytes": 27812,
+   "lowerBound": 2291,
+   "upperBound": 27812,
+   "carried": 640204,
+   "carriedTierWeighted": 640204.0
+  },
+  "source": {
+   "calls": 1,
+   "bytes": 1569,
+   "lowerBound": 1569,
+   "upperBound": 42170,
+   "carried": 26673,
+   "carriedTierWeighted": 26673.0
+  },
+  "analyser": {
+   "calls": 7,
+   "bytes": 8334,
+   "lowerBound": 8334,
+   "upperBound": 8334,
+   "carried": 40871,
+   "carriedTierWeighted": 40871.0
+  },
+  "other": {
+   "calls": 9,
+   "bytes": 1712,
+   "lowerBound": 1712,
+   "upperBound": 10681,
+   "carried": 22860,
+   "carriedTierWeighted": 22860.0
+  },
+  "unclassified": {
+   "calls": 0,
+   "bytes": 0,
+   "lowerBound": 0,
+   "upperBound": 0,
+   "carried": 0,
+   "carriedTierWeighted": 0.0
+  }
+ },
+ "byRule": {
+  "analyserVerb": {
+   "kind": "analyser",
+   "calls": 7,
+   "bytes": 8334
+  },
+  "auditDir": {
+   "kind": "auditLog",
+   "calls": 1,
+   "bytes": 4164
+  },
+  "authoringJson": {
+   "kind": "design",
+   "calls": 1,
+   "bytes": 16831
+  },
+  "buildScript": {
+   "kind": "build",
+   "calls": 3,
+   "bytes": 2793
+  },
+  "classpath": {
+   "kind": "library",
+   "calls": 2,
+   "bytes": 847
+  },
+  "editAck": {
+   "kind": "other",
+   "calls": 7,
+   "bytes": 1120
+  },
+  "generatedDir": {
+   "kind": "generated",
+   "calls": 1,
+   "bytes": 183
+  },
+  "javaSource": {
+   "kind": "source",
+   "calls": 1,
+   "bytes": 1569
+  },
+  "markdown": {
+   "kind": "docs",
+   "calls": 4,
+   "bytes": 25521
+  },
+  "runScript": {
+   "kind": "server",
+   "calls": 2,
+   "bytes": 459
+  },
+  "springXml": {
+   "kind": "design",
+   "calls": 1,
+   "bytes": 6133
+  },
+  "toolSchema": {
+   "kind": "other",
+   "calls": 2,
+   "bytes": 592
+  },
+  "webFetch": {
+   "kind": "docs",
+   "calls": 1,
+   "bytes": 2291
+  }
+ },
+ "multiKindCalls": 10,
+ "multiKindBytes": 49570,
+ "auditEchoBytes": {
+  "server": 0,
+  "build": 0
+ },
+ "calls": [
+  {
+   "n": 0,
+   "tool": "Bash",
+   "kind": "docs",
+   "kinds": [
+    "docs",
+    "other"
+   ],
+   "rule": "markdown",
+   "bytes": 8914,
+   "isError": false,
+   "request": 0,
+   "auditEcho": false
+  },
+  {
+   "n": 1,
+   "tool": "Bash",
+   "kind": "design",
+   "kinds": [
+    "design",
+    "source"
+   ],
+   "rule": "springXml",
+   "bytes": 6133,
+   "isError": false,
+   "request": 0,
+   "auditEcho": false
+  },
+  {
+   "n": 2,
+   "tool": "Bash",
+   "kind": "docs",
+   "kinds": [
+    "docs",
+    "source"
+   ],
+   "rule": "markdown",
+   "bytes": 2262,
+   "isError": false,
+   "request": 1,
+   "auditEcho": true
+  },
+  {
+   "n": 3,
+   "tool": "Bash",
+   "kind": "docs",
+   "kinds": [
+    "docs",
+    "source"
+   ],
+   "rule": "markdown",
+   "bytes": 13275,
+   "isError": false,
+   "request": 2,
+   "auditEcho": false
+  },
+  {
+   "n": 4,
+   "tool": "Bash",
+   "kind": "design",
+   "kinds": [
+    "design",
+    "source"
+   ],
+   "rule": "authoringJson",
+   "bytes": 16831,
+   "isError": false,
+   "request": 3,
+   "auditEcho": false
+  },
+  {
+   "n": 5,
+   "tool": "Bash",
+   "kind": "build",
+   "kinds": [
+    "build"
+   ],
+   "rule": "buildScript",
+   "bytes": 61,
+   "isError": false,
+   "request": 4,
+   "auditEcho": false
+  },
+  {
+   "n": 6,
+   "tool": "WebFetch",
+   "kind": "docs",
+   "kinds": [
+    "docs"
+   ],
+   "rule": "webFetch",
+   "bytes": 2291,
+   "isError": null,
+   "request": 4,
+   "auditEcho": false
+  },
+  {
+   "n": 7,
+   "tool": "Bash",
+   "kind": "build",
+   "kinds": [
+    "build",
+    "other"
+   ],
+   "rule": "buildScript",
+   "bytes": 55,
+   "isError": false,
+   "request": 5,
+   "auditEcho": false
+  },
+  {
+   "n": 8,
+   "tool": "Bash",
+   "kind": "library",
+   "kinds": [
+    "library",
+    "source"
+   ],
+   "rule": "classpath",
+   "bytes": 140,
+   "isError": false,
+   "request": 6,
+   "auditEcho": false
+  },
+  {
+   "n": 9,
+   "tool": "Bash",
+   "kind": "library",
+   "kinds": [
+    "library",
+    "source"
+   ],
+   "rule": "classpath",
+   "bytes": 707,
+   "isError": true,
+   "request": 7,
+   "auditEcho": false
+  },
+  {
+   "n": 10,
+   "tool": "Write",
+   "kind": "other",
+   "kinds": [
+    "other"
+   ],
+   "rule": "editAck",
+   "bytes": 190,
+   "isError": null,
+   "request": 8,
+   "auditEcho": false
+  },
+  {
+   "n": 11,
+   "tool": "Write",
+   "kind": "other",
+   "kinds": [
+    "other"
+   ],
+   "rule": "editAck",
+   "bytes": 195,
+   "isError": null,
+   "request": 8,
+   "auditEcho": false
+  },
+  {
+   "n": 12,
+   "tool": "Read",
+   "kind": "source",
+   "kinds": [
+    "source"
+   ],
+   "rule": "javaSource",
+   "bytes": 1569,
+   "isError": null,
+   "request": 8,
+   "auditEcho": true
+  },
+  {
+   "n": 13,
+   "tool": "Write",
+   "kind": "other",
+   "kinds": [
+    "other"
+   ],
+   "rule": "editAck",
+   "bytes": 189,
+   "isError": null,
+   "request": 9,
+   "auditEcho": false
+  },
+  {
+   "n": 14,
+   "tool": "Write",
+   "kind": "other",
+   "kinds": [
+    "other"
+   ],
+   "rule": "editAck",
+   "bytes": 188,
+   "isError": null,
+   "request": 9,
+   "auditEcho": false
+  },
+  {
+   "n": 15,
+   "tool": "Edit",
+   "kind": "other",
+   "kinds": [
+    "other"
+   ],
+   "rule": "editAck",
+   "bytes": 128,
+   "isError": null,
+   "request": 10,
+   "auditEcho": false
+  },
+  {
+   "n": 16,
+   "tool": "Edit",
+   "kind": "other",
+   "kinds": [
+    "other"
+   ],
+   "rule": "editAck",
+   "bytes": 128,
+   "isError": null,
+   "request": 10,
+   "auditEcho": false
+  },
+  {
+   "n": 17,
+   "tool": "Edit",
+   "kind": "other",
+   "kinds": [
+    "other"
+   ],
+   "rule": "editAck",
+   "bytes": 102,
+   "isError": null,
+   "request": 10,
+   "auditEcho": false
+  },
+  {
+   "n": 18,
+   "tool": "Bash",
+   "kind": "build",
+   "kinds": [
+    "build"
+   ],
+   "rule": "buildScript",
+   "bytes": 2677,
+   "isError": false,
+   "request": 11,
+   "auditEcho": false
+  },
+  {
+   "n": 19,
+   "tool": "Bash",
+   "kind": "generated",
+   "kinds": [
+    "generated",
+    "build",
+    "design",
+    "source"
+   ],
+   "rule": "generatedDir",
+   "bytes": 183,
+   "isError": false,
+   "request": 12,
+   "auditEcho": false
+  },
+  {
+   "n": 20,
+   "tool": "Bash",
+   "kind": "server",
+   "kinds": [
+    "server"
+   ],
+   "rule": "runScript",
+   "bytes": 45,
+   "isError": false,
+   "request": 13,
+   "auditEcho": false
+  },
+  {
+   "n": 21,
+   "tool": "Bash",
+   "kind": "server",
+   "kinds": [
+    "server"
+   ],
+   "rule": "runScript",
+   "bytes": 414,
+   "isError": false,
+   "request": 14,
+   "auditEcho": false
+  },
+  {
+   "n": 22,
+   "tool": "Bash",
+   "kind": "auditLog",
+   "kinds": [
+    "auditLog"
+   ],
+   "rule": "auditDir",
+   "bytes": 4164,
+   "isError": false,
+   "request": 15,
+   "auditEcho": true
+  },
+  {
+   "n": 23,
+   "tool": "ToolSearch",
+   "kind": "other",
+   "kinds": [
+    "other"
+   ],
+   "rule": "toolSchema",
+   "bytes": 509,
+   "isError": null,
+   "request": 16,
+   "auditEcho": false
+  },
+  {
+   "n": 24,
+   "tool": "Bash",
+   "kind": "docs",
+   "kinds": [
+    "docs",
+    "source"
+   ],
+   "rule": "markdown",
+   "bytes": 1070,
+   "isError": false,
+   "request": 16,
+   "auditEcho": false
+  },
+  {
+   "n": 25,
+   "tool": "mcp__fluxtion-analyser__analyser_open",
+   "kind": "analyser",
+   "kinds": [
+    "analyser"
+   ],
+   "rule": "analyserVerb",
+   "bytes": 86,
+   "isError": true,
+   "request": 17,
+   "auditEcho": false
+  },
+  {
+   "n": 26,
+   "tool": "mcp__fluxtion-analyser__analyser_open",
+   "kind": "analyser",
+   "kinds": [
+    "analyser"
+   ],
+   "rule": "analyserVerb",
+   "bytes": 1233,
+   "isError": null,
+   "request": 18,
+   "auditEcho": false
+  },
+  {
+   "n": 27,
+   "tool": "mcp__fluxtion-analyser__analyser_open",
+   "kind": "analyser",
+   "kinds": [
+    "analyser"
+   ],
+   "rule": "analyserVerb",
+   "bytes": 1094,
+   "isError": null,
+   "request": 19,
+   "auditEcho": false
+  },
+  {
+   "n": 28,
+   "tool": "mcp__fluxtion-analyser__analyser_context",
+   "kind": "analyser",
+   "kinds": [
+    "analyser"
+   ],
+   "rule": "analyserVerb",
+   "bytes": 4428,
+   "isError": null,
+   "request": 20,
+   "auditEcho": true
+  },
+  {
+   "n": 29,
+   "tool": "ToolSearch",
+   "kind": "other",
+   "kinds": [
+    "other"
+   ],
+   "rule": "toolSchema",
+   "bytes": 83,
+   "isError": null,
+   "request": 21,
+   "auditEcho": false
+  },
+  {
+   "n": 30,
+   "tool": "mcp__fluxtion-analyser__analyser_graph",
+   "kind": "analyser",
+   "kinds": [
+    "analyser"
+   ],
+   "rule": "analyserVerb",
+   "bytes": 374,
+   "isError": null,
+   "request": 22,
+   "auditEcho": false
+  },
+  {
+   "n": 31,
+   "tool": "mcp__fluxtion-analyser__analyser_series",
+   "kind": "analyser",
+   "kinds": [
+    "analyser"
+   ],
+   "rule": "analyserVerb",
+   "bytes": 607,
+   "isError": null,
+   "request": 23,
+   "auditEcho": false
+  },
+  {
+   "n": 32,
+   "tool": "mcp__fluxtion-analyser__analyser_spotlight",
+   "kind": "analyser",
+   "kinds": [
+    "analyser"
+   ],
+   "rule": "analyserVerb",
+   "bytes": 512,
+   "isError": null,
+   "request": 24,
+   "auditEcho": false
+  }
+ ]
+}

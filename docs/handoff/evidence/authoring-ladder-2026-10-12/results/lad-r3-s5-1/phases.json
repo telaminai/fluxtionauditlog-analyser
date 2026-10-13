@@ -1,0 +1,588 @@
+{
+ "schema": "token-split/1",
+ "run": "lad-r3-s5-1",
+ "definition": "Calls in transcript order. E (the export) = the last run call (rules runScript or javaRun) before the last analyser `open` that names a log; with no such open, the last run call. B (the build) = the last successful build call (generate.sh executed, mvn/mvnw, or javac; successful = not is_error and no failure marker in the result) before E, or the last one overall when there is no E. D = the first analyser call after E (after B when there is no E). design = calls up to and including B (with no B: the calls before the first run call); diagnosis = D to the end; run = everything between. A request takes the phase of the first tool call it emits; a request that emits none takes the phase of the nearest earlier request that emitted one (design when there is none). CLI side calls (sideCalls) are not placed in a phase.",
+ "boundaries": {
+  "exportCall": 118,
+  "lastBuildCall": 105,
+  "diagnosisStartCall": 121,
+  "designEndCall": 105
+ },
+ "phases": {
+  "design": {
+   "toolCalls": 106,
+   "analyserCalls": 0,
+   "toolResultBytes": 165363,
+   "requests": 95,
+   "over100k": 47,
+   "input": 190,
+   "cacheRead": 9530813,
+   "cacheWrite": 177095,
+   "outputAllocated": 58195.76,
+   "costUsd": 3.1968802
+  },
+  "run": {
+   "toolCalls": 15,
+   "analyserCalls": 0,
+   "toolResultBytes": 12723,
+   "requests": 15,
+   "over100k": 15,
+   "input": 30,
+   "cacheRead": 2733542,
+   "cacheWrite": 11963,
+   "outputAllocated": 3374.641,
+   "costUsd": 0.62836681
+  },
+  "diagnosis": {
+   "toolCalls": 13,
+   "analyserCalls": 10,
+   "toolResultBytes": 9438,
+   "requests": 12,
+   "over100k": 12,
+   "input": 24,
+   "cacheRead": 2391129,
+   "cacheWrite": 20565,
+   "outputAllocated": 2056.6,
+   "costUsd": 0.5810998
+  }
+ },
+ "sideCallsCostUsd": 0.0032215,
+ "calls": [
+  {
+   "n": 0,
+   "phase": "design"
+  },
+  {
+   "n": 1,
+   "phase": "design"
+  },
+  {
+   "n": 2,
+   "phase": "design"
+  },
+  {
+   "n": 3,
+   "phase": "design"
+  },
+  {
+   "n": 4,
+   "phase": "design"
+  },
+  {
+   "n": 5,
+   "phase": "design"
+  },
+  {
+   "n": 6,
+   "phase": "design"
+  },
+  {
+   "n": 7,
+   "phase": "design"
+  },
+  {
+   "n": 8,
+   "phase": "design"
+  },
+  {
+   "n": 9,
+   "phase": "design"
+  },
+  {
+   "n": 10,
+   "phase": "design"
+  },
+  {
+   "n": 11,
+   "phase": "design"
+  },
+  {
+   "n": 12,
+   "phase": "design"
+  },
+  {
+   "n": 13,
+   "phase": "design"
+  },
+  {
+   "n": 14,
+   "phase": "design"
+  },
+  {
+   "n": 15,
+   "phase": "design"
+  },
+  {
+   "n": 16,
+   "phase": "design"
+  },
+  {
+   "n": 17,
+   "phase": "design"
+  },
+  {
+   "n": 18,
+   "phase": "design"
+  },
+  {
+   "n": 19,
+   "phase": "design"
+  },
+  {
+   "n": 20,
+   "phase": "design"
+  },
+  {
+   "n": 21,
+   "phase": "design"
+  },
+  {
+   "n": 22,
+   "phase": "design"
+  },
+  {
+   "n": 23,
+   "phase": "design"
+  },
+  {
+   "n": 24,
+   "phase": "design"
+  },
+  {
+   "n": 25,
+   "phase": "design"
+  },
+  {
+   "n": 26,
+   "phase": "design"
+  },
+  {
+   "n": 27,
+   "phase": "design"
+  },
+  {
+   "n": 28,
+   "phase": "design"
+  },
+  {
+   "n": 29,
+   "phase": "design"
+  },
+  {
+   "n": 30,
+   "phase": "design"
+  },
+  {
+   "n": 31,
+   "phase": "design"
+  },
+  {
+   "n": 32,
+   "phase": "design"
+  },
+  {
+   "n": 33,
+   "phase": "design"
+  },
+  {
+   "n": 34,
+   "phase": "design"
+  },
+  {
+   "n": 35,
+   "phase": "design"
+  },
+  {
+   "n": 36,
+   "phase": "design"
+  },
+  {
+   "n": 37,
+   "phase": "design"
+  },
+  {
+   "n": 38,
+   "phase": "design"
+  },
+  {
+   "n": 39,
+   "phase": "design"
+  },
+  {
+   "n": 40,
+   "phase": "design"
+  },
+  {
+   "n": 41,
+   "phase": "design"
+  },
+  {
+   "n": 42,
+   "phase": "design"
+  },
+  {
+   "n": 43,
+   "phase": "design"
+  },
+  {
+   "n": 44,
+   "phase": "design"
+  },
+  {
+   "n": 45,
+   "phase": "design"
+  },
+  {
+   "n": 46,
+   "phase": "design"
+  },
+  {
+   "n": 47,
+   "phase": "design"
+  },
+  {
+   "n": 48,
+   "phase": "design"
+  },
+  {
+   "n": 49,
+   "phase": "design"
+  },
+  {
+   "n": 50,
+   "phase": "design"
+  },
+  {
+   "n": 51,
+   "phase": "design"
+  },
+  {
+   "n": 52,
+   "phase": "design"
+  },
+  {
+   "n": 53,
+   "phase": "design"
+  },
+  {
+   "n": 54,
+   "phase": "design"
+  },
+  {
+   "n": 55,
+   "phase": "design"
+  },
+  {
+   "n": 56,
+   "phase": "design"
+  },
+  {
+   "n": 57,
+   "phase": "design"
+  },
+  {
+   "n": 58,
+   "phase": "design"
+  },
+  {
+   "n": 59,
+   "phase": "design"
+  },
+  {
+   "n": 60,
+   "phase": "design"
+  },
+  {
+   "n": 61,
+   "phase": "design"
+  },
+  {
+   "n": 62,
+   "phase": "design"
+  },
+  {
+   "n": 63,
+   "phase": "design"
+  },
+  {
+   "n": 64,
+   "phase": "design"
+  },
+  {
+   "n": 65,
+   "phase": "design"
+  },
+  {
+   "n": 66,
+   "phase": "design"
+  },
+  {
+   "n": 67,
+   "phase": "design"
+  },
+  {
+   "n": 68,
+   "phase": "design"
+  },
+  {
+   "n": 69,
+   "phase": "design"
+  },
+  {
+   "n": 70,
+   "phase": "design"
+  },
+  {
+   "n": 71,
+   "phase": "design"
+  },
+  {
+   "n": 72,
+   "phase": "design"
+  },
+  {
+   "n": 73,
+   "phase": "design"
+  },
+  {
+   "n": 74,
+   "phase": "design"
+  },
+  {
+   "n": 75,
+   "phase": "design"
+  },
+  {
+   "n": 76,
+   "phase": "design"
+  },
+  {
+   "n": 77,
+   "phase": "design"
+  },
+  {
+   "n": 78,
+   "phase": "design"
+  },
+  {
+   "n": 79,
+   "phase": "design"
+  },
+  {
+   "n": 80,
+   "phase": "design"
+  },
+  {
+   "n": 81,
+   "phase": "design"
+  },
+  {
+   "n": 82,
+   "phase": "design"
+  },
+  {
+   "n": 83,
+   "phase": "design"
+  },
+  {
+   "n": 84,
+   "phase": "design"
+  },
+  {
+   "n": 85,
+   "phase": "design"
+  },
+  {
+   "n": 86,
+   "phase": "design"
+  },
+  {
+   "n": 87,
+   "phase": "design"
+  },
+  {
+   "n": 88,
+   "phase": "design"
+  },
+  {
+   "n": 89,
+   "phase": "design"
+  },
+  {
+   "n": 90,
+   "phase": "design"
+  },
+  {
+   "n": 91,
+   "phase": "design"
+  },
+  {
+   "n": 92,
+   "phase": "design"
+  },
+  {
+   "n": 93,
+   "phase": "design"
+  },
+  {
+   "n": 94,
+   "phase": "design"
+  },
+  {
+   "n": 95,
+   "phase": "design"
+  },
+  {
+   "n": 96,
+   "phase": "design"
+  },
+  {
+   "n": 97,
+   "phase": "design"
+  },
+  {
+   "n": 98,
+   "phase": "design"
+  },
+  {
+   "n": 99,
+   "phase": "design"
+  },
+  {
+   "n": 100,
+   "phase": "design"
+  },
+  {
+   "n": 101,
+   "phase": "design"
+  },
+  {
+   "n": 102,
+   "phase": "design"
+  },
+  {
+   "n": 103,
+   "phase": "design"
+  },
+  {
+   "n": 104,
+   "phase": "design"
+  },
+  {
+   "n": 105,
+   "phase": "design"
+  },
+  {
+   "n": 106,
+   "phase": "run"
+  },
+  {
+   "n": 107,
+   "phase": "run"
+  },
+  {
+   "n": 108,
+   "phase": "run"
+  },
+  {
+   "n": 109,
+   "phase": "run"
+  },
+  {
+   "n": 110,
+   "phase": "run"
+  },
+  {
+   "n": 111,
+   "phase": "run"
+  },
+  {
+   "n": 112,
+   "phase": "run"
+  },
+  {
+   "n": 113,
+   "phase": "run"
+  },
+  {
+   "n": 114,
+   "phase": "run"
+  },
+  {
+   "n": 115,
+   "phase": "run"
+  },
+  {
+   "n": 116,
+   "phase": "run"
+  },
+  {
+   "n": 117,
+   "phase": "run"
+  },
+  {
+   "n": 118,
+   "phase": "run"
+  },
+  {
+   "n": 119,
+   "phase": "run"
+  },
+  {
+   "n": 120,
+   "phase": "run"
+  },
+  {
+   "n": 121,
+   "phase": "diagnosis"
+  },
+  {
+   "n": 122,
+   "phase": "diagnosis"
+  },
+  {
+   "n": 123,
+   "phase": "diagnosis"
+  },
+  {
+   "n": 124,
+   "phase": "diagnosis"
+  },
+  {
+   "n": 125,
+   "phase": "diagnosis"
+  },
+  {
+   "n": 126,
+   "phase": "diagnosis"
+  },
+  {
+   "n": 127,
+   "phase": "diagnosis"
+  },
+  {
+   "n": 128,
+   "phase": "diagnosis"
+  },
+  {
+   "n": 129,
+   "phase": "diagnosis"
+  },
+  {
+   "n": 130,
+   "phase": "diagnosis"
+  },
+  {
+   "n": 131,
+   "phase": "diagnosis"
+  },
+  {
+   "n": 132,
+   "phase": "diagnosis"
+  },
+  {
+   "n": 133,
+   "phase": "diagnosis"
+  }
+ ]
+}

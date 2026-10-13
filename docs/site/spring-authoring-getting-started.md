@@ -86,6 +86,30 @@ Open your LLM client in the same project directory. In the analyser, use
 See [Connecting an LLM](connect-an-llm.md). The download does not contain a machine-specific MCP
 endpoint: configure the actual running analyser, then have the client call `analyser_context`.
 
+### Model choice
+
+Which model to run your LLM client with, for the task family that has been measured: **authoring with the
+Fluxtion Spring XML starter** (this guide) **and with the Audit analyser bundle**
+([Playground to analyser](tutorial-playground.md)). Each row rests on committed run evidence, and a test reads that
+evidence on every build: each row's status must agree with the runs' `PASS` (per rung) or chart result. The cost
+figures below are taken from the same runs but are not checked by that test.
+
+| model | status | evidence folder | field | the test checks |
+|---|---|---|---|---|
+| Claude Haiku 5.5 (`claude-haiku-5-5`) | **default** — `meets acceptance` on rungs 3–5; `open` on rung 2 (the chart step: 1 of 3 runs passed) | `docs/handoff/evidence/authoring-ladder-baseline-2026-10-13` | `PASS` per rung | rungs 3–5 at least 2 of 3; rung 2 below 2 of 3 |
+| Claude Sonnet 5 (`claude-sonnet-5`) | `advisory`: not recommended — on the first ladder, no rung where it passed and the default did not, at 16.5–30× the cost per run | `docs/handoff/evidence/authoring-ladder-2026-10-12` | `PASS` per rung, both models | no rung where Sonnet 5 passed and Haiku 5.5 is below 2 of 3 |
+| Claude Haiku 4.5 (`claude-haiku-4-5-20251001`) | `negative`: not for the chart step | `docs/handoff/evidence/g14-model-grid-2026-10-11` | `checks.S5` | `checks.S5` false in every run |
+| Others (Opus-class, …) | `unmeasured` | — | — | — |
+
+- **Rungs** are the authoring ladder's tasks: rungs 2 and 4 on the Spring starter, rungs 3 and 5 on the analyser
+  bundle. A run passes only when its oracle, the design validation and its chart in the analyser all pass.
+- **Cost**: on the first ladder, where both models ran, the default's median was $0.19 per run and Sonnet 5's
+  $3.43, about 18 times more; on the baseline the default's median was $0.13.
+- **When a step fails**, re-run that step with the default before paying for a larger model. This is advice,
+  not a measured result: no failure has yet been re-run with a larger model under the same conditions.
+- This choice is for **your own LLM client** (Claude Code, Codex and similar). It does not cover the analyser's
+  in-app assistant, whose provider and model are set under **Settings ▸ Assistant**; nothing there was measured.
+
 Paste this prompt once the client can access the project and analyser:
 
 ```text
