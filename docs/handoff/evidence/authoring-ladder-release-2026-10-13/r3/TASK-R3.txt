@@ -1,0 +1,11 @@
+This directory holds a Fluxtion and Mongoose project, the analyser bundle starter, already unpacked. Its shipped documentation is README.md, RUNBOOK.md, CLAUDE.md, PROJECT.md and runbooks/. Never print, copy or modify the compilation key file; use the shipped generation script.
+
+Extend its business logic:
+
+- The large-trade limit comes from the server, not from code. Add a service interface com.example.myapp.service.TradeLimits with one method, double largeTradeLimit(). Provide it from the Mongoose server's configuration, with a limit of 300000.
+- Add a new node, after the risk check, that works out each trade's notional value (price times volume), records it in the audit log, and flags the trade as large when the notional exceeds the limit from the TradeLimits service.
+- Add a second new node, AlertCounter, that runs only for trades flagged as large and records the running count of alerts.
+
+The change has to be in the compiled processor, not only in the source. Run it on the sample data. Then use the Fluxtion analyser, which you have as an MCP server, to put a chart of the recorded notional values on the analyser canvas.
+
+Finish by telling me which trades were flagged as large, the final alert count, and what evidence shows that the limit came from the service and that AlertCounter ran only for large trades.

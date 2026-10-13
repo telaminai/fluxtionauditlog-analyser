@@ -1,0 +1,19 @@
+--- downloads/u/bundle/audit-analyser-bundle/src/main/java/com/example/myapp/node/CsvRejections.java	2026-10-13 20:40:56
++++ r6/fixture/src/main/java/com/example/myapp/node/CsvRejections.java	2026-10-13 21:47:41
+@@ -33,6 +33,6 @@
+         auditLog.info("rejectedDetail", event.detail());
+         auditLog.info("rejectedLine", event.auditLine());
+         auditLog.info("rejectedCount", rejectedCount);
+-        return false; // accounted here; nothing downstream reacts to a rejected row
++        return true; // a rejection is a change: a node that references CsvRejections may observe it
+     }
+ }
+--- downloads/u/bundle/audit-analyser-bundle/data/input.txt	2026-10-13 20:40:56
++++ r6/fixture/data/input.txt	2026-10-13 21:41:39
+@@ -1,5 +1,6 @@
+ AAPL,195.30,1200
+ MSFT,410.10,800
+ GOOG,155.75,1500
++TSLA,n/a,300
+ AMZN,178.22,640
+ NVDA,905.60,2100

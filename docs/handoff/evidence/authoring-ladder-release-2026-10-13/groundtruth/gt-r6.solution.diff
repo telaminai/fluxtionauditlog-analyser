@@ -1,0 +1,237 @@
+diff -ruN fixture/config/server-config.yml gt/config/server-config.yml
+--- fixture/config/server-config.yml	2026-10-13 21:51:12
++++ gt/config/server-config.yml	2026-10-13 21:51:12
+@@ -38,6 +38,9 @@
+   - name: output
+     instance: !!com.telamin.mongoose.connector.file.FileMessageSink
+       filename: data/output.txt
++  - name: turnover
++    instance: !!com.telamin.mongoose.connector.file.FileMessageSink
++      filename: data/turnover.txt
+ 
+ # Performance monitoring — per-node counters + optional Chronicle-backed audit capture.
+ # Captured audit records support inspection and visual playback in the admin console's Replay
+diff -ruN fixture/fluxtion-authoring.json gt/fluxtion-authoring.json
+--- fixture/fluxtion-authoring.json	2026-10-13 21:51:12
++++ gt/fluxtion-authoring.json	2026-10-13 21:51:12
+@@ -1,46 +1,84 @@
+ {
+-  "schemaVersion": "1.0",
+-  "starterVersion": "1.0.79",
+-  "templateMode": "spring-aot-bundle",
+-  "xml": "src/main/fluxtion/designer/application-context.xml",
+-  "sourceRoot": "src/main/java",
+-  "reconcileExisting": true,
+-  "generateDeregistration": false,
+-  "ownership": {
+-    "com.example.myapp.node.CsvRejections": {
+-      "onCsvRejection(com.example.myapp.event.CsvRejection)": {
+-        "state": "owned",
+-        "signature": "public boolean onCsvRejection(com.example.myapp.event.CsvRejection)",
+-        "ownedAnnotations": {
+-          "com.telamin.fluxtion.runtime.annotations.OnEventHandler": {}
++  "schemaVersion" : "1.0",
++  "starterVersion" : "1.0.79",
++  "templateMode" : "spring-aot-bundle",
++  "xml" : "src/main/fluxtion/designer/application-context.xml",
++  "sourceRoot" : "src/main/java",
++  "reconcileExisting" : true,
++  "generateDeregistration" : false,
++  "ownership" : {
++    "com.example.myapp.node.CsvRejections" : {
++      "onCsvRejection(com.example.myapp.event.CsvRejection)" : {
++        "state" : "owned",
++        "signature" : "public boolean onCsvRejection(com.example.myapp.event.CsvRejection)",
++        "ownedAnnotations" : {
++          "com.telamin.fluxtion.runtime.annotations.OnEventHandler" : { }
+         },
+-        "stubBodyHash": "sha256:0f4ab51bd0acaee4a17fddd11d0e4201d50379f03bd711028553b666aef91404"
++        "stubBodyHash" : "sha256:0f4ab51bd0acaee4a17fddd11d0e4201d50379f03bd711028553b666aef91404"
+       }
+     },
+-    "com.example.myapp.node.RiskCheck": {
+-      "onRiskCheck()": {
+-        "state": "owned",
+-        "signature": "public boolean onRiskCheck()",
+-        "ownedAnnotations": {
+-          "com.telamin.fluxtion.runtime.annotations.OnTrigger": {}
+-        },
+-        "stubBodyHash": "sha256:4000a64d82d50fcbc10002988db37592de4cf7324a76ab61c7f3e5f6d882cbfb"
++    "com.example.myapp.node.RiskCheck" : {
++      "field:rootNode" : {
++        "state" : "owned",
++        "signature" : "final private com.example.myapp.node.RootNode rootNode",
++        "ownedAnnotations" : { }
+       },
+-      "field:rootNode": {
+-        "state": "owned",
+-        "signature": "final private com.example.myapp.node.RootNode rootNode",
+-        "ownedAnnotations": {},
+-        "stubBodyHash": null
++      "onRiskCheck()" : {
++        "state" : "owned",
++        "signature" : "public boolean onRiskCheck()",
++        "ownedAnnotations" : {
++          "com.telamin.fluxtion.runtime.annotations.OnTrigger" : { }
++        },
++        "stubBodyHash" : "sha256:4000a64d82d50fcbc10002988db37592de4cf7324a76ab61c7f3e5f6d882cbfb"
+       }
+     },
+-    "com.example.myapp.node.RootNode": {
+-      "onPriceEvent(com.example.myapp.event.PriceEvent)": {
+-        "state": "owned",
+-        "signature": "public boolean onPriceEvent(com.example.myapp.event.PriceEvent)",
+-        "ownedAnnotations": {
+-          "com.telamin.fluxtion.runtime.annotations.OnEventHandler": {}
++    "com.example.myapp.node.RootNode" : {
++      "onPriceEvent(com.example.myapp.event.PriceEvent)" : {
++        "state" : "owned",
++        "signature" : "public boolean onPriceEvent(com.example.myapp.event.PriceEvent)",
++        "ownedAnnotations" : {
++          "com.telamin.fluxtion.runtime.annotations.OnEventHandler" : { }
+         },
+-        "stubBodyHash": "sha256:27cc721f971886f8eb48aa81aeeef9aa13dfffecfb2d609a8d8443b17395579f"
++        "stubBodyHash" : "sha256:27cc721f971886f8eb48aa81aeeef9aa13dfffecfb2d609a8d8443b17395579f"
++      }
++    },
++    "com.example.myapp.node.TurnoverTracker" : {
++      "field:csvRejections" : {
++        "state" : "owned",
++        "signature" : "final private com.example.myapp.node.CsvRejections csvRejections",
++        "ownedAnnotations" : {
++          "com.telamin.fluxtion.runtime.annotations.NoTriggerReference" : { }
++        }
++      },
++      "field:riskCheck" : {
++        "state" : "owned",
++        "signature" : "final private com.example.myapp.node.RiskCheck riskCheck",
++        "ownedAnnotations" : { }
++      },
++      "field:rootNode" : {
++        "state" : "owned",
++        "signature" : "final private com.example.myapp.node.RootNode rootNode",
++        "ownedAnnotations" : { }
++      },
++      "field:sinkTurnover" : {
++        "state" : "owned",
++        "signature" : "public com.telamin.fluxtion.runtime.output.SinkPublisher<java.lang.Object> sinkTurnover",
++        "ownedAnnotations" : { },
++        "stubBodyHash" : "sha256:c2488188bf17aef8f29ebd72bed9f52e579e28337381f3301a958edb0626e94f"
++      },
++      "onTurnoverTracker()" : {
++        "state" : "owned",
++        "signature" : "public boolean onTurnoverTracker()",
++        "ownedAnnotations" : {
++          "com.telamin.fluxtion.runtime.annotations.OnTrigger" : { }
++        },
++        "stubBodyHash" : "sha256:98c9d1f1e43e729dd5c9a4940f862da121d3651b01b6f794a7784227f88ef2a6"
++      },
++      "type:com.example.myapp.node.TurnoverTracker" : {
++        "state" : "owned",
++        "signature" : "type com.example.myapp.node.TurnoverTracker",
++        "ownedAnnotations" : { },
++        "stubBodyHash" : "sha256:3f796c86aca92aa9de1edb693708a123c9dd89f15f03ad79fdd36c7c1ba505bd"
+       }
+     }
+   }
+diff -ruN fixture/src/main/fluxtion/designer/application-context.xml gt/src/main/fluxtion/designer/application-context.xml
+--- fixture/src/main/fluxtion/designer/application-context.xml	2026-10-13 21:51:12
++++ gt/src/main/fluxtion/designer/application-context.xml	2026-10-13 21:51:12
+@@ -13,6 +13,12 @@
+         <constructor-arg ref="rootNode"/>
+     </bean>
+ 
++    <bean id="turnoverTracker" class="com.example.myapp.node.TurnoverTracker">
++        <constructor-arg ref="rootNode"/>
++        <constructor-arg ref="riskCheck"/>
++        <constructor-arg ref="csvRejections"/>
++    </bean>
++
+     <!-- Rows the feed's CSV mapper refused (typed CsvRejection): counted and audited here. A leaf,
+          so a rejected row never reaches a business node. -->
+     <bean id="csvRejections" class="com.example.myapp.node.CsvRejections"/>
+@@ -30,6 +36,7 @@
+                 <value>rootNode</value>
+                 <value>riskCheck</value>
+                 <value>csvRejections</value>
++                <value>turnoverTracker</value>
+             </list>
+         </property>
+         <property name="eventTypes">
+@@ -55,6 +62,33 @@
+                             <value>csvRejections</value>
+                         </list>
+                     </property>
++                </bean>
++            </list>
++        </property>
++        <property name="referenceBindings">
++            <list>
++                <bean class="com.telamin.fluxtion.builder.extern.spring.FluxtionSpringConfig.ReferenceBinding">
++                    <property name="ownerBean" value="turnoverTracker"/>
++                    <property name="referencedBean" value="rootNode"/>
++                    <property name="mode" value="TRIGGER"/>
++                </bean>
++                <bean class="com.telamin.fluxtion.builder.extern.spring.FluxtionSpringConfig.ReferenceBinding">
++                    <property name="ownerBean" value="turnoverTracker"/>
++                    <property name="referencedBean" value="riskCheck"/>
++                    <property name="mode" value="TRIGGER"/>
++                </bean>
++                <bean class="com.telamin.fluxtion.builder.extern.spring.FluxtionSpringConfig.ReferenceBinding">
++                    <property name="ownerBean" value="turnoverTracker"/>
++                    <property name="referencedBean" value="csvRejections"/>
++                    <property name="mode" value="DATA"/>
++                </bean>
++            </list>
++        </property>
++        <property name="sinks">
++            <list>
++                <bean class="com.telamin.fluxtion.builder.extern.spring.FluxtionSpringConfig.SinkBinding">
++                    <property name="name" value="turnover"/>
++                    <property name="nodeBeans"><list><value>turnoverTracker</value></list></property>
+                 </bean>
+             </list>
+         </property>
+diff -ruN fixture/src/main/java/com/example/myapp/node/TurnoverTracker.java gt/src/main/java/com/example/myapp/node/TurnoverTracker.java
+--- fixture/src/main/java/com/example/myapp/node/TurnoverTracker.java	1970-01-01 01:00:00
++++ gt/src/main/java/com/example/myapp/node/TurnoverTracker.java	2026-10-13 21:51:12
+@@ -0,0 +1,39 @@
++package com.example.myapp.node;
++
++public class TurnoverTracker extends com.telamin.fluxtion.runtime.audit.EventLogNode {
++
++    public TurnoverTracker(com.example.myapp.node.RootNode arg0, com.example.myapp.node.RiskCheck arg1, com.example.myapp.node.CsvRejections arg2) {
++        this.rootNode = arg0;
++        this.riskCheck = arg1;
++        this.csvRejections = arg2;
++    }
++
++    // This reference's propagation mode is declared in the XML; it does not make the referenced object immutable. See https://fluxtion-playground.dev/spring-authoring/contract.md#local-authoring-workflow-and-extended-declarations
++    private final com.example.myapp.node.RootNode rootNode;
++
++    // This reference's propagation mode is declared in the XML; it does not make the referenced object immutable. See https://fluxtion-playground.dev/spring-authoring/contract.md#local-authoring-workflow-and-extended-declarations
++    private final com.example.myapp.node.RiskCheck riskCheck;
++
++    // This reference's propagation mode is declared in the XML; it does not make the referenced object immutable. See https://fluxtion-playground.dev/spring-authoring/contract.md#local-authoring-workflow-and-extended-declarations
++    @com.telamin.fluxtion.runtime.annotations.NoTriggerReference
++    private final com.example.myapp.node.CsvRejections csvRejections;
++
++    // Publish output according to the declared sink and value-type contract. See https://fluxtion-playground.dev/spring-authoring/contract.md#local-authoring-workflow-and-extended-declarations
++    @javax.annotation.processing.Generated("fluxtion-starter")
++    public com.telamin.fluxtion.runtime.output.SinkPublisher<java.lang.Object> sinkTurnover = new com.telamin.fluxtion.runtime.output.SinkPublisher<>("turnover");
++
++    // Implement this trigger callback according to the XML declaration and callback return contract. See https://fluxtion-playground.dev/spring-authoring/contract.md#local-authoring-workflow-and-extended-declarations
++    @com.telamin.fluxtion.runtime.annotations.OnTrigger
++    @javax.annotation.processing.Generated("fluxtion-starter")
++    public boolean onTurnoverTracker() {
++        auditLog.info("triggerFired", true);
++        if (!(riskCheck.getLatestEvent() instanceof com.example.myapp.event.PriceEvent e)) return false;
++        double notional = e.price() * e.volume();
++        long rejected = csvRejections.getRejectedCount();
++        auditLog.info("symbol", e.symbol());
++        auditLog.info("notional", notional);
++        auditLog.info("rejectedSoFar", rejected);
++        sinkTurnover.publish(e.symbol() + "," + notional + "," + rejected);
++        return true;
++    }
++}

@@ -1,0 +1,47 @@
+diff -ruN gt-r6/project/src/main/fluxtion/designer/application-context.xml ctl-r6c1/project/src/main/fluxtion/designer/application-context.xml
+--- gt-r6/project/src/main/fluxtion/designer/application-context.xml	2026-10-13 21:33:21
++++ ctl-r6c1/project/src/main/fluxtion/designer/application-context.xml	2026-10-13 21:48:41
+@@ -84,14 +84,6 @@
+                 </bean>
+             </list>
+         </property>
+-        <property name="sinks">
+-            <list>
+-                <bean class="com.telamin.fluxtion.builder.extern.spring.FluxtionSpringConfig.SinkBinding">
+-                    <property name="name" value="turnover"/>
+-                    <property name="nodeBeans"><list><value>turnoverTracker</value></list></property>
+-                </bean>
+-            </list>
+-        </property>
+         <property name="logLevel" value="INFO"/>
+         <property name="auditors">
+             <list>
+--- gt-r6/project/src/main/java/com/example/myapp/node/TurnoverTracker.java	2026-10-13 21:34:21
++++ ctl-r6c1/project/src/main/java/com/example/myapp/node/TurnoverTracker.java	2026-10-13 21:48:41
+@@ -18,10 +18,14 @@
+     @com.telamin.fluxtion.runtime.annotations.NoTriggerReference
+     private final com.example.myapp.node.CsvRejections csvRejections;
+ 
+-    // Publish output according to the declared sink and value-type contract. See https://fluxtion-playground.dev/spring-authoring/contract.md#local-authoring-workflow-and-extended-declarations
+-    @javax.annotation.processing.Generated("fluxtion-starter")
+-    public com.telamin.fluxtion.runtime.output.SinkPublisher<java.lang.Object> sinkTurnover = new com.telamin.fluxtion.runtime.output.SinkPublisher<>("turnover");
++    // hand-wired sink (control C1): delivered by the host, not declared in the design XML
++    private transient com.telamin.fluxtion.runtime.output.MessageSink<Object> turnoverSink;
+ 
++    @com.telamin.fluxtion.runtime.annotations.runtime.ServiceRegistered
++    public void sinkRegistered(com.telamin.fluxtion.runtime.output.MessageSink<Object> sink, String name) {
++        if ("turnover".equals(name)) turnoverSink = sink;
++    }
++
+     // Implement this trigger callback according to the XML declaration and callback return contract. See https://fluxtion-playground.dev/spring-authoring/contract.md#local-authoring-workflow-and-extended-declarations
+     @com.telamin.fluxtion.runtime.annotations.OnTrigger
+     @javax.annotation.processing.Generated("fluxtion-starter")
+@@ -33,7 +37,7 @@
+         auditLog.info("symbol", e.symbol());
+         auditLog.info("notional", notional);
+         auditLog.info("rejectedSoFar", rejected);
+-        sinkTurnover.publish(e.symbol() + "," + notional + "," + rejected);
++        if (turnoverSink != null) turnoverSink.accept(e.symbol() + "," + notional + "," + rejected);
+         return true;
+     }
+ }

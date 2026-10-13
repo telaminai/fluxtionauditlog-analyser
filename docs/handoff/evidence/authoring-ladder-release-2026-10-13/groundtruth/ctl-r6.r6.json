@@ -1,0 +1,1 @@
+{"X1": {"xml": "src/main/fluxtion/designer/application-context.xml", "ok": false, "reason": "no bean of class com.example.myapp.node.TurnoverTracker"}, "X2": {"ok": false, "reason": "no node id"}, "X3": {"file": "data/turnover.txt", "ok": false, "reason": "no data/turnover.txt"}, "ok": false}

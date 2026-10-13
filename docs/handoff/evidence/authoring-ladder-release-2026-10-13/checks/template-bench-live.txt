@@ -1,0 +1,37 @@
++ mvn -q -Dtest=TemplateCatalogueTest,TemplateArchiveTest,TemplateExecutablesTest,TemplateUiContractTest test
++ mvn -q -DskipTests test-compile
++ java -cp ~/IdeaProjects/telamin/worktrees/analyser-ladder-release/target/test-classes:~/IdeaProjects/telamin/worktrees/analyser-ladder-release/target/classes telamin.fluxtion.audit.analyser.analyser.template.TemplateLiveBench
+  PASS  catalogue offers at least one template
+  PASS  selected catalogue template — analyser-bundle.starter.json
+  PASS  real scaffold endpoint returned a zip
+  PASS  downloaded project contains its analyser profile
+  PASS  downloaded profile opens through ProjectSession
+  PASS  profile runbooks resolve inside the downloaded project
+  PASS  fluxtion-embedded.starter.json archive marks its root scripts executable (mvnw among them) — marked: [check-fluxtion-key.sh, mvnw, run.sh]
+  PASS  fluxtion-embedded.starter.json root scripts installed executable
+  PASS  fluxtion-connector.starter.json archive marks its root scripts executable (mvnw among them) — marked: [check-fluxtion-key.sh, mvnw, run.sh]
+  PASS  fluxtion-connector.starter.json root scripts installed executable
+  PASS  fluxtion-dag-multi-io.starter.json archive marks its root scripts executable (mvnw among them) — marked: [check-fluxtion-key.sh, mvnw, run.sh]
+  PASS  fluxtion-dag-multi-io.starter.json root scripts installed executable
+  PASS  fluxtion-aot.starter.json archive marks its root scripts executable (mvnw among them) — marked: [check-fluxtion-key.sh, mvnw, run.sh]
+  PASS  fluxtion-aot.starter.json root scripts installed executable
+  PASS  fluxtion-audit.starter.json archive marks its root scripts executable (mvnw among them) — marked: [check-fluxtion-key.sh, mvnw, run.sh]
+  PASS  fluxtion-audit.starter.json root scripts installed executable
+  PASS  fluxtion-service-export.starter.json archive marks its root scripts executable (mvnw among them) — marked: [check-fluxtion-key.sh, mvnw, run.sh]
+  PASS  fluxtion-service-export.starter.json root scripts installed executable
+  PASS  fluxtion-dsl.starter.json archive marks its root scripts executable (mvnw among them) — marked: [check-fluxtion-key.sh, mvnw, run.sh]
+  PASS  fluxtion-dsl.starter.json root scripts installed executable
+  PASS  fluxtion-spring.starter.json archive marks its root scripts executable (mvnw among them) — marked: [check-fluxtion-key.sh, generate.sh, mvnw, run.sh, setup.sh, validate.sh]
+  PASS  fluxtion-spring.starter.json root scripts installed executable
+  PASS  mongoose-server.starter.json archive marks its root scripts executable (mvnw among them) — marked: [mvnw, run-server.sh]
+  PASS  mongoose-server.starter.json root scripts installed executable
+  PASS  mongoose-hosted-fluxtion.starter.json archive marks its root scripts executable (mvnw among them) — marked: [check-fluxtion-key.sh, mvnw, run-server.sh]
+  PASS  mongoose-hosted-fluxtion.starter.json root scripts installed executable
+  PASS  fluxtion-spring-mongoose.starter.json archive marks its root scripts executable (mvnw among them) — marked: [check-fluxtion-key.sh, generate.sh, mvnw, run-server.sh, setup.sh, validate.sh]
+  PASS  fluxtion-spring-mongoose.starter.json root scripts installed executable
+  PASS  mongoose-dynamic-feed.starter.json archive marks its root scripts executable (mvnw among them) — marked: [check-fluxtion-key.sh, mvnw, run-server.sh]
+  PASS  mongoose-dynamic-feed.starter.json root scripts installed executable
+  PASS  mongoose-dynamic-spring.starter.json archive marks its root scripts executable (mvnw among them) — marked: [check-fluxtion-key.sh, mvnw, run-server.sh]
+  PASS  mongoose-dynamic-spring.starter.json root scripts installed executable
+  PASS  analyser-bundle.starter.json archive marks its root scripts executable (mvnw among them) — marked: [check-fluxtion-key.sh, export-audit.sh, generate.sh, mvnw, run-and-export.sh, run-server.sh, setup.sh, stop-server.sh, validate.sh]
+  PASS  analyser-bundle.starter.json root scripts installed executable
