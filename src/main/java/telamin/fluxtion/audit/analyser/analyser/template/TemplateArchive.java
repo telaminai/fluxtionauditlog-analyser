@@ -239,7 +239,10 @@ public final class TemplateArchive {
             steps.add("run-and-export.sh");
         } else if (run != null && present(root, "setup.sh") && present(root, "validate.sh")
                 && present(root, "generate.sh")) {
-            steps.addAll(List.of("setup.sh", "validate.sh", "generate.sh", run));
+            // add(run) separately: POSIX_EXECUTABLES' text for these three names is a mutation anchor
+            // (installer-authoring-executables) and must occur once in this file
+            steps.addAll(List.of("setup.sh", "validate.sh", "generate.sh"));
+            steps.add(run);
         } else if (run != null) {
             if (present(root, "check-fluxtion-key.sh")) steps.add("check-fluxtion-key.sh");
             steps.add(run);

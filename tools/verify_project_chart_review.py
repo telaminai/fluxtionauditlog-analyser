@@ -335,6 +335,11 @@ CASES += [
     ('installer-template-executables-fixture', TEMPLATE_ARCHIVE,
      '"run-and-export.sh", "run.sh", "setup-java.sh", "runWasm.sh");', '"run.sh", "setup-java.sh", "runWasm.sh");',
      'TemplateExecutablesTest#everyScriptAPlaygroundTemplateShipsIsInstalledRunnable'),
+    # PR #135 review: the post-install dialog offered the bundle run-server/export/stop, never run-and-export.sh;
+    # the fixture's first-run lines are what catch a template offered something its guide does not say
+    ('installer-first-run-commands', TEMPLATE_ARCHIVE, '            steps.add("run-and-export.sh");',
+     '            steps.add("run-server.sh");',
+     'TemplateExecutablesTest#postInstallCommandsAreEachTemplatesDocumentedFirstRun'),
     # PR #27 review nit 1: only ROOT entries on the list become executable; a basename-only match would
     # make a nested bundle/tools/generate.sh executable
     ('installer-nested-script-not-executable', TEMPLATE_ARCHIVE,
