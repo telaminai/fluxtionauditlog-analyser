@@ -13,20 +13,39 @@ The field rules and the error triage live in the Fluxtion orientation — read
 <https://fluxtion-playground.dev/CLAUDE.md> when the build rejects a field. This file covers only what is
 specific to a Spring-authored project.
 
-## The three edits
+## Declare it in the XML; regeneration writes the class
 
-1. **Write the class.** Copy the shape of a node already in this project rather than inventing one.
-2. **Declare the bean** in the designer context XML. Its `<constructor-arg ref="…"/>` entries **are the
-   graph edges** — this is how the compiler learns what depends on what.
-3. **Add the bean id to `fluxtionSpringConfig`'s `nodeBeans`.**
+All three edits are in the designer XML that `fluxtion-authoring.json` names:
 
-**Before you regenerate, check the fields.** Fluxtion constructor-maps every eligible **instance** field that is
-`final` and neither `transient` nor `@FluxtionIgnore` (static fields are never mapped, and `@ConstructorArg` /
-`@AssignToField` opt a field in explicitly), and the build stops with *cannot find matching constructor … failed
-to match for these fields: […]* when no constructor accepts them. Derived local state — a map, a counter, a
-buffer the node builds for itself — should be `transient` (or `@FluxtionIgnore`); only builder-supplied
-configuration and references to other nodes belong in the constructor. This is the first error every new
-node with a `Map` or `List` field hits; the triage table at the link above carries the full rule.
+1. **Declare the bean.** Its `<constructor-arg ref="…"/>` entries, one per parent, **are the graph
+   edges** — this is how the compiler learns what depends on what.
+2. **Add the bean id to `fluxtionSpringConfig`'s `nodeBeans`.**
+3. **Bind its references and outputs** in `fluxtionSpringConfig`. A parent that must not trigger the node
+   is a `ReferenceBinding` with `mode` `DATA`. With several trigger parents, `parentUpdateCallback` `true`
+   on a `TRIGGER` binding adds an `@OnParentUpdate` callback naming the parent that changed. An output is
+   a `SinkBinding` under `sinks`:
+
+   ```xml
+   <property name="referenceBindings"><list>
+     <bean class="com.telamin.fluxtion.builder.extern.spring.FluxtionSpringConfig.ReferenceBinding">
+       <property name="ownerBean" value="alertNode"/>
+       <property name="referencedBean" value="riskCheck"/>
+       <property name="mode" value="TRIGGER"/>
+       <property name="parentUpdateCallback" value="true"/>
+     </bean>
+     <bean class="com.telamin.fluxtion.builder.extern.spring.FluxtionSpringConfig.ReferenceBinding">
+       <property name="ownerBean" value="alertNode"/>
+       <property name="referencedBean" value="csvRejections"/>
+       <property name="mode" value="DATA"/>
+     </bean>
+   </list></property>
+   <property name="sinks"><list>
+     <bean class="com.telamin.fluxtion.builder.extern.spring.FluxtionSpringConfig.SinkBinding">
+       <property name="name" value="alerts"/>
+       <property name="nodeBeans"><list><value>alertNode</value></list></property>
+     </bean>
+   </list></property>
+   ```
 
 Then **regenerate** — a graph change needs it, a change inside a method body does not:
 
@@ -39,6 +58,26 @@ Then read only the compiler's own messages — the validation report (its node a
 authoring receipt and the compiler diagnostics. They say whether the graph compiled as declared. Do not
 read the regenerated processor, its GraphML text or the builder to confirm the wiring: they are outputs,
 they cost thousands of tokens to read, and the audit log shows the dispatch order directly.
+
+**Regeneration writes the class shell**: constructor, fields (a DATA field carries `@NoTriggerReference`),
+a `SinkPublisher` field per sink (`sinkAlerts`) and the callback methods, annotations fully qualified —
+there are no imports to find. Fill only the method bodies, then rebuild, run and prove it from the audit
+log as below.
+
+**Do not write the class yourself, and do not wire a sink outside the XML** (a hand-written
+`@ServiceRegistered` callback is not a sink). Either leaves the design XML without what the code does,
+and a hand-written class meets reconciliation conflicts. If a class must be hand-written, mark each DATA
+field `@NoTriggerReference`.
+The host still needs a destination of the sink's name — in Mongoose, a `server-config.yml` `eventSinks`
+entry.
+
+**Check any field you add.** Fluxtion constructor-maps every eligible **instance** field that is
+`final` and neither `transient` nor `@FluxtionIgnore` (static fields are never mapped, and `@ConstructorArg` /
+`@AssignToField` opt a field in explicitly), and the build stops with *cannot find matching constructor … failed
+to match for these fields: […]* when no constructor accepts them. Derived local state — a map, a counter, a
+buffer the node builds for itself — should be `transient` (or `@FluxtionIgnore`); only builder-supplied
+configuration and references to other nodes belong in the constructor. This is the first error every new
+node with a `Map` or `List` field hits; the triage table at the link above carries the full rule.
 
 ## Close the authoring loop with evidence
 
