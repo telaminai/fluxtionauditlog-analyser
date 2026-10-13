@@ -21,7 +21,10 @@ a trace-only record, a renamed callback - are reported separately and never deci
 
 Masked before comparing (`--keep-identity-hashes` keeps them): `Object.toString` identity hashes, in the
 `ClassName@1a2b3c4d` shape only, and lambda class addresses (`$$Lambda/0x...`); the count is printed.
-Event text that runs onto further lines (an exported service's `@Override` + signature) is compared whole.
+Each record is read by the analyser's own structural rule (RecordBreak, fixture C32): a quoted value that spans
+lines is one value, the generator's exported-service signature belongs to its `@Override`, and a record whose
+structure breaks - a value written unquoted with a line break in it - is refused, as the analyser reads it
+without its node logs.
 
 An `annotation` straight after the method is ambiguous (tracing's from runtime 1.1.1, or an older node's own key):
 when the match depends on it the verdict is INCONCLUSIVE (exit 3) unless --annotations-are-trace says it is
@@ -52,12 +55,6 @@ ANNOTATION_NAME = re.compile(r"[A-Z][A-Za-z0-9_]*")
 
 class Unreadable(Exception):
     """A log in a shape this script does not read: comparing it would prove nothing."""
-
-
-def item_closed(text):
-    """True when a node entry is complete: its text ends with the `}` that closes it. A text export is always the
-    legacy grammar (format spec section 3): a quote mark is data, never syntax, so no brace is "inside quotes"."""
-    return "{" in text and text.rstrip().endswith("}")
 
 
 def trace_run(entries):
@@ -99,6 +96,153 @@ def split_top_level(body):
     return entries
 
 
+# ---- record structure: a port of the analyser's RecordBreak.analyse and FramingScan.quoteStateAfter (UPS-1, C32) ----
+# One rule says what each line of a record is. A record whose structure breaks - a value written unquoted with a
+# line break in it - is one the analyser reads only up to the break, without its node logs, and this script refuses
+# it: comparing what is left could report a match the text does not support.
+
+FIELD_KEYS = {"eventTime", "logTime", "endTime", "groupingId", "event", "eventType", "eventToString", "thread",
+              "nodeLogs"}
+EXPORT_SIGNATURE = re.compile(r"public [^:#'\"{}()]+\([^:#'\"{}()]*\)( throws [\w$., ]+)?")
+BLOCK_SCALAR = re.compile(r"[|>][+-]?[1-9]?[+-]?")
+
+
+def quote_state_after(s, open_q):
+    """The quote still open at the end of one line (FramingScan.quoteStateAfter): double quotes honour backslash
+    escapes, single quotes close on a lone ' ('' escapes it), and outside a quote one opens only at a value position."""
+    k, n = 0, len(s)
+    value_position = open_q == ""
+    while k < n:
+        c = s[k]
+        if open_q == '"':
+            if c == "\\":
+                k += 2
+                continue
+            if c == '"':
+                open_q = ""
+        elif open_q == "'":
+            if c == "'":
+                if k + 1 < n and s[k + 1] == "'":
+                    k += 2
+                    continue
+                open_q = ""
+        else:
+            if c in " \t":
+                k += 1
+                continue
+            if value_position and c in "\"'":
+                open_q, value_position = c, False
+                k += 1
+                continue
+            if c == "#" and value_position:
+                return ""
+            if c == ":" and k + 1 < n and s[k + 1] == " ":
+                value_position = True
+                k += 2
+                continue
+            if c == "-" and value_position and k + 1 < n and s[k + 1] == " ":
+                k += 2
+                continue
+            value_position = False
+        k += 1
+    return open_q
+
+
+def key_of(t):
+    if t == "eventLogRecord:":
+        return None
+    idx = t.find(":")
+    if idx <= 0:
+        return None
+    key = t[:idx]
+    if not key[0].isalpha() or not all(ch.isalnum() or ch == "_" for ch in key[1:]):
+        return None
+    return key
+
+
+def analyse(lines):
+    """Each line's role and the first break (None when whole), by RecordBreak.analyse's rule."""
+    roles = ["OUTSIDE"] * len(lines)
+    broken = None
+    open_q = ""
+    for line in lines:
+        open_q = quote_state_after(line, open_q)
+    quotes_count = open_q == ""          # quotes are trusted only when every one opened in the record closes
+    field_indent, open_q, in_node, nested_ignored, block_scalar = -1, "", False, False, False
+    first_event, previous_key, previous_value, seen = None, None, None, set()
+
+    def brk(i, why):
+        nonlocal broken
+        if broken is None:
+            broken = (i + 1, why)
+
+    for i, raw in enumerate(lines):
+        raw = raw.rstrip("\r")
+        inside_quote = quotes_count and open_q != ""
+        open_q = quote_state_after(raw, open_q)
+        if inside_quote:
+            roles[i] = "NODE_LINE" if in_node else "QUOTED"
+            continue
+        t = raw.strip()
+        if not t:
+            continue
+        if t.startswith("#"):
+            continue
+        indent = len(raw) - len(raw.lstrip(" \t"))
+        if field_indent < 0:
+            if t == "eventLogRecord:":
+                continue
+            if key_of(t) is None:
+                continue
+            field_indent = indent
+        else:
+            if t == "---":
+                continue
+            if t == "eventLogRecord:":
+                brk(i, "a second 'eventLogRecord:' line (records run together without '---')")
+                continue
+            if indent < field_indent:
+                if (indent == 0 and first_event == "ExportFunctionAuditEvent" and previous_key == "eventToString"
+                        and previous_value == "@Override" and key_of(t) is None and EXPORT_SIGNATURE.fullmatch(t)):
+                    roles[i] = "SIGNATURE"
+                    previous_key = None
+                    continue
+                brk(i, "a line less indented than the record's fields")
+                continue
+            if in_node:
+                item = t.startswith("- ") or t == "-"
+                if indent > field_indent or item:
+                    roles[i] = "NODE_ITEM" if item else "NODE_LINE"
+                    continue
+                in_node = False
+            if indent > field_indent:
+                if nested_ignored or block_scalar:
+                    continue
+                brk(i, "a line more indented than the record's fields, outside its node logs")
+                continue
+        nested_ignored = block_scalar = False
+        key = key_of(t)
+        if key is None:
+            brk(i, "a line at the fields' indentation that is not a field")
+            continue
+        roles[i] = "FIELD"
+        value = t[len(key) + 1:].strip()
+        previous_key, previous_value = key, value
+        if key in FIELD_KEYS:
+            if key in seen:
+                brk(i, f"the field '{key}' a second time")
+            seen.add(key)
+            if key == "nodeLogs":
+                in_node = True
+            elif BLOCK_SCALAR.fullmatch(value):
+                block_scalar = True
+            if key == "event":
+                first_event = value
+        elif not value:
+            nested_ignored = True
+    return roles, broken
+
+
 def parse(path):
     """Return the log's records, each {event, text, items: [(instanceId, [(key, value)])]} or {raw}."""
     with open(path, encoding="utf-8-sig") as handle:
@@ -107,60 +251,44 @@ def parse(path):
         raise Unreadable(f"{path}: a list-shaped (eventLogRecords:) log; export it as a document stream")
     documents = re.split(r"(?m)^---[ \t\r]*$", content)
     records = []
-    for doc in documents:
-        lines = [l for l in doc.splitlines() if l.strip() and not l.lstrip().startswith("#")]
+    for number, doc in enumerate(documents):
+        all_lines = doc.split("\n")
+        lines = [l for l in all_lines if l.strip() and not l.lstrip().startswith("#")]
         if not lines:
             continue
-        if sum(1 for l in lines if l.strip() == "eventLogRecord:") > 1:
-            raise Unreadable(f"{path}: records run together without a '---' separator: "
-                             + lines[0].strip()[:40] + " ...")
         if lines[0].strip() != "eventLogRecord:":
             records.append({"raw": "\n".join(l.strip() for l in lines)})
             continue
-        fields, items, pending, last_field = {}, [], None, None
-        field_indent, header, item_indent = None, True, None
-        for line in lines[1:]:
-            if pending is not None:                      # an item whose value ran onto the next line
-                pending += "\n" + line
-                line, pending = pending, None
-            stripped = line.strip()
-            indent = len(line) - len(line.lstrip())
-            if field_indent is None and re.match(r"[A-Za-z_]\w*:", stripped):
-                field_indent = indent                    # the record's own keys sit at this indentation
-            if header and not (indent == field_indent and re.match(r"[A-Za-z_]\w*:", stripped)):
-                if last_field is None:
-                    raise Unreadable(f"{path}: a record line before any field: {stripped[:60]}")
-                fields[last_field] += "\n" + line.rstrip()  # event text continued, at any indentation, compared whole
-                continue
-            if header and stripped.startswith("nodeLogs:"):
-                header = False                           # from here: node entries, then the closing fields
-            if not header and pending is None and item_indent is not None and indent > item_indent:
-                # a line deeper than the entries after an entry closed: a value with a line break ran on past a
-                # `}` (a forged entry inside it). The analyser marks such a record broken; so does this script.
-                raise Unreadable(f"{path}: record structure breaks at '{stripped[:60]}': a value was written with a "
-                                 "line break in it, so its node entries cannot be read")
-            if stripped.startswith("- "):
-                if item_indent is None:
-                    item_indent = indent
-                if item_closed(line):                    # quote-aware: a brace inside a quoted value closes nothing
-                    match = ITEM.match(line)
-                    if not match:
-                        raise Unreadable(f"{path}: a node entry that is not `- name: {{...}}`: {stripped[:60]}")
-                    items.append((match.group(1), split_top_level(match.group(2))))
-                else:
-                    pending = line
-            elif ":" in stripped and pending is None:
-                key, _, value = stripped.partition(":")
-                if key.strip() not in fields:
-                    fields[key.strip()] = value.strip()
-                    last_field = key.strip()
-                else:
-                    last_field = None
-        if pending is not None:
-            raise Unreadable(f"{path}: a node entry that never closes: {pending.strip()[:60]}")
-        if not items and fields and set(fields) <= MARKER_KEYS and "streamEnd" in fields:
+        roles, broken = analyse(all_lines)
+        if broken is not None:
+            raise Unreadable(f"{path}: record structure breaks at line {broken[0]} of document {number}: {broken[1]}. "
+                             "A value was written with a line break in it; the analyser reads such a record without "
+                             "its node logs, so no comparison of it can be trusted")
+        fields, items, last_field = {}, [], None
+        for raw, role in zip(all_lines, roles):
+            raw = raw.rstrip("\r")
+            if role == "FIELD":
+                key, _, value = raw.strip().partition(":")
+                fields[key.strip()] = value.strip()
+                last_field = key.strip()
+            elif role in ("QUOTED", "SIGNATURE") and last_field is not None:
+                fields[last_field] += "\n" + raw.strip()        # a value continued: compared whole
+            elif role == "NODE_ITEM":
+                items.append(raw)
+            elif role == "NODE_LINE":
+                if not items:
+                    raise Unreadable(f"{path}: a node-log line before any entry in document {number}")
+                items[-1] += "\n" + raw
+        parsed = []
+        for item in items:
+            match = ITEM.match(item)
+            if not match:
+                raise Unreadable(f"{path}: a node entry that is not `- name: {{...}}` in document {number}: "
+                                 f"{item.strip()[:60]}")
+            parsed.append((match.group(1), split_top_level(match.group(2))))
+        if not parsed and fields and set(fields) <= MARKER_KEYS and "streamEnd" in fields:
             continue                                     # a stream-end marker is a container fact
-        records.append({"event": fields.get("event"), "text": fields.get("eventToString"), "items": items})
+        records.append({"event": fields.get("event"), "text": fields.get("eventToString"), "items": parsed})
     return records
 
 

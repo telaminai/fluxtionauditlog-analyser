@@ -215,22 +215,6 @@ class AuditCompareTest(unittest.TestCase):
         self.assertEqual(0, self.run_compare(b, a)[0])
         self.assertEqual(1, self.run_compare(b, a, '--keep-identity-hashes')[0])
 
-    def test_event_text_continued_onto_further_lines_is_compared_whole(self):
-        def exported(signature):
-            return BEFORE.replace('eventToString: PriceEvent[symbol=DEMO, price=99.0]',
-                                  'eventToString: @Override\n' + signature)
-        code, out = self.run_compare(exported('public void setLimit(int limit)'), exported('public void cancelAll()'))
-        self.assertEqual(1, code, out)
-
-    def test_event_text_continued_on_indented_lines_is_compared_whole(self):
-        # delta review of PR 127: an indented continuation was dropped, or read as a header field never compared
-        def text(continuation):
-            return BEFORE.replace('eventToString: PriceEvent[symbol=DEMO, price=99.0]',
-                                  'eventToString: Order{\n' + continuation)
-        self.assertEqual(1, self.run_compare(text('      price=5}'), text('      price=9}'))[0])
-        self.assertEqual(1, self.run_compare(text('  "price": 5\n}'), text('  "price": 9\n}'))[0])
-        self.assertEqual(0, self.run_compare(text('      price=5}'), text('      price=5}'))[0])
-
     def test_a_business_thread_after_the_method_is_the_nodes_own(self):
         # tracing writes thread BEFORE method; a `thread` after it (printThreadName off) is the node's own key
         b = BEFORE.replace('- quoteDEMO: { thread: main, method: onTrigger}', '- quoteDEMO: { method: onTrigger, thread: worker-1}')
@@ -250,18 +234,6 @@ class AuditCompareTest(unittest.TestCase):
 
     # --- second review of PR 127 ---
 
-    def test_a_value_run_on_past_a_forged_brace_is_refused_and_a_multiline_entry_is_read_whole(self):
-        c32 = Path(__file__).resolve().parent.parent / 'src/test/resources/conformance/c32-record-structure.yaml'
-        text = c32.read_text(encoding='utf-8')
-        self.assertIn('last"}', text)
-        code, out = self.run_compare(text, text.replace('last"}', 'final"}'))
-        self.assertEqual(2, code, 'a value run on past a forged `}` is a broken record, refused as the analyser does: ' + out)
-        legacy = Path(__file__).resolve().parent.parent / 'src/test/resources/conformance/c17-legacy-quotes.yaml'
-        text = legacy.read_text(encoding='utf-8')
-        self.assertEqual(0, self.run_compare(text, text)[0], 'a quote mark is data in the legacy grammar')
-        self.assertEqual(1, self.run_compare(text, text.replace('end, price: 77}', 'end, price: 78}'))[0],
-                         'a multiline legacy entry is read whole')
-
     def test_an_entry_that_never_closes_is_refused(self):
         broken = BEFORE.replace('- quoteDEMO: { spread: 0.25, decision: hold}', '- quoteDEMO: { spread: 0.25, note: "open')
         self.assertNotEqual(BEFORE, broken)
@@ -280,6 +252,49 @@ class AuditCompareTest(unittest.TestCase):
     def test_the_verdict_names_what_it_covers(self):
         out = self.run_compare(BEFORE, BEFORE)[1]
         self.assertIn('an output or side effect no node logged is not covered', out)
+
+    # --- the analyser's record-structure rule (RecordBreak, C32), ported ---
+
+    C32 = Path(__file__).resolve().parent.parent / 'src/test/resources/conformance/c32-record-structure.yaml'
+
+    def c32_record(self, n):
+        return '---' + self.C32.read_text(encoding='utf-8').split('\n---')[n].lstrip('-') + '\n---\n'
+
+    def test_c32_a_deeper_payload_breaks_its_record_and_is_refused(self):
+        code, out = self.run_compare(self.c32_record(0), self.c32_record(0))
+        self.assertEqual(2, code, out)
+
+    def test_c32_a_closed_quoted_node_value_is_whole_and_compared(self):
+        record = self.c32_record(1)
+        self.assertIn('last"}', record)
+        self.assertEqual(0, self.run_compare(record, record)[0])
+        code, out = self.run_compare(record, record.replace('last"}', 'final"}'))
+        self.assertEqual(1, code, 'the trailing text of a quoted value is part of it: ' + out)
+        self.assertEqual(1, self.run_compare(record, record.replace('event: Forged', 'event: Other'))[0])
+
+    def test_c32_the_exported_service_signature_is_whole_and_compared(self):
+        record = self.c32_record(2)
+        self.assertEqual(0, self.run_compare(record, record)[0])
+        self.assertEqual(1, self.run_compare(record, record.replace('suspendQuoting(String arg0)', 'resumeQuoting(String arg0)'))[0])
+
+    def test_a_quoted_event_text_across_lines_is_one_value(self):
+        # second independent review: the continuation became an unrelated `detail` field, never compared
+        def log(detail):
+            return ('---\neventLogRecord:\n  event: PriceEvent\n  eventToString: "first\n  detail: ' + detail
+                    + '\n  last"\n  nodeLogs:\n    - priceSource: { price: 100}\n---\n')
+        self.assertEqual(0, self.run_compare(log('before'), log('before'))[0])
+        self.assertEqual(1, self.run_compare(log('before'), log('after'))[0])
+
+    def test_an_unquoted_indented_continuation_breaks_the_record(self):
+        broken = BEFORE.replace('eventToString: PriceEvent[symbol=DEMO, price=99.0]',
+                                'eventToString: Order{\n      price=5}')
+        self.assertEqual(2, self.run_compare(broken, broken)[0])
+
+    def test_a_multiline_legacy_entry_is_read_whole(self):
+        legacy = Path(__file__).resolve().parent.parent / 'src/test/resources/conformance/c17-legacy-quotes.yaml'
+        text = legacy.read_text(encoding='utf-8')
+        self.assertEqual(0, self.run_compare(text, text)[0], 'a quote mark mid-value is data in the legacy grammar')
+        self.assertEqual(1, self.run_compare(text, text.replace('end, price: 77}', 'end, price: 78}'))[0])
 
 if __name__ == '__main__':
     unittest.main()
