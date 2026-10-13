@@ -1,0 +1,17 @@
+{
+ "logs": [
+  "logs/audit-audit-analyser-bundle.yaml"
+ ],
+ "symbolsMatched": [
+  "AAPL",
+  "AMZN",
+  "GOOG",
+  "MSFT",
+  "NVDA"
+ ],
+ "flagTrueFor": null,
+ "ok": true,
+ "flagKeysCorrect": [
+  "largeTrade"
+ ]
+}

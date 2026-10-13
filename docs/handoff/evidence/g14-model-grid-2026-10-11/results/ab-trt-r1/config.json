@@ -1,0 +1,33 @@
+{
+ "run": "ab-trt-r1",
+ "model": "claude-haiku-5-5",
+ "base": "/private/tmp/fx-ab-trt-r1",
+ "port": "56007",
+ "capSeconds": 1800,
+ "jarSha256": "f125050b33a1ac4c62682927f46b74cfd68b683bb2511c693f1bd63fd9d8c149",
+ "mcp": {
+  "mcpServers": {
+   "fluxtion-analyser": {
+    "type": "stdio",
+    "command": "~/Library/Java/JavaVirtualMachines/corretto-21.0.9/Contents/Home/bin/java",
+    "args": [
+     "-Duser.home=/private/tmp/fx-ab-trt-r1/tmp/home",
+     "-jar",
+     "/private/tmp/fx-ab-trt-r1/tmp/jar/analyser.jar",
+     "--mcp"
+    ]
+   }
+  }
+ },
+ "builtInTools": true,
+ "keyGranted": true,
+ "gate": "G14",
+ "javaHome": "~/Library/Java/JavaVirtualMachines/corretto-21.0.9/Contents/Home",
+ "claudeBin": "/private/tmp/fx-ab-trt-r1/cli/claude",
+ "claudeBinSha256": "c9b5341637becbd423ddffc5b254afb645682a3868cb708bbc6cc0e7bb419937",
+ "claudeVersion": "2.1.296 (Claude Code)",
+ "prestaged": "/private/tmp/fx-g14-grid/treatment",
+ "acceptanceEligible": false,
+ "mavenRepoLocal": "/private/tmp/fx-ab-trt-r1/tmp/m2",
+ "mavenSettings": "/private/tmp/fx-ab-trt-r1/tmp/settings-empty.xml"
+}

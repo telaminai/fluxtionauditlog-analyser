@@ -1,0 +1,22 @@
+{
+ "pristineFiles": 50,
+ "zips": [
+  {
+   "path": "tmp/download-1791825816/bundle.zip",
+   "files": 50,
+   "identical": true,
+   "missing": [],
+   "extra": [],
+   "differing": []
+  },
+  {
+   "path": "tmp/home/.claude/projects/-private-tmp-fx-g14-55-r2b-project/6c8fc360-9fda-41f9-afbb-f5534e8235f8/tool-results/webfetch-1791825808093-imh9ps.zip",
+   "files": 50,
+   "identical": true,
+   "missing": [],
+   "extra": [],
+   "differing": []
+  }
+ ],
+ "ok": true
+}

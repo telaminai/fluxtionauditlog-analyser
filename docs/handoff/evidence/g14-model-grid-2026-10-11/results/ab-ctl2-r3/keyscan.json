@@ -1,0 +1,26 @@
+{
+  "scannedUtc": "2026-10-12T20:02:43.393693+00:00",
+  "keyFilePresent": true,
+  "secretOccurrences": 0,
+  "keyPathReads": 4,
+  "files": {
+    "raw.jsonl": {
+      "secretOccurrences": 0,
+      "keyPathReads": 2,
+      "tokenOccurrences": 0,
+      "tokenPathReads": 0
+    },
+    "events.jsonl": {
+      "secretOccurrences": 0,
+      "keyPathReads": 2,
+      "tokenOccurrences": 0,
+      "tokenPathReads": 0
+    }
+  },
+  "filesScanned": 1714,
+  "filesSkipped": 279,
+  "unsupportedKeyLines": 0,
+  "tokenOccurrences": 0,
+  "tokenPathReads": 0,
+  "clean": false
+}
