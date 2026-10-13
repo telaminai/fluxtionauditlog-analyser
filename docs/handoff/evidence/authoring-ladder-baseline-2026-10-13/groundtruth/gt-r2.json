@@ -1,0 +1,1 @@
+{"base": "/private/tmp/fx-base13/gt-r2", "root": "/private/tmp/fx-base13/gt-r2/project", "VALID": true, "ORACLE": {"ok": true, "detail": {"tail": "STEP 0 outputs=0\nSTEP 1 outputs=1\nSTEP 2 outputs=1\nSTEP 3 outputs=1\nSTEP 4 outputs=1\nSTEP 5 outputs=1\nSTEP 6 outputs=2\nPASS outputs=[{10,1},{40,1}]\n"}}}

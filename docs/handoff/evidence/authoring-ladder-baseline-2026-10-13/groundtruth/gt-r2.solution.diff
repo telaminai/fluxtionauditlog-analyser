@@ -1,0 +1,306 @@
+diff -ruN fixture/fluxtion-authoring.json gt/fluxtion-authoring.json
+--- fixture/fluxtion-authoring.json	2026-10-13 13:13:51
++++ gt/fluxtion-authoring.json	2026-10-13 13:13:51
+@@ -1,109 +1,105 @@
+ {
+-  "schemaVersion": "1.0",
+-  "starterVersion": "1.0.77",
+-  "templateMode": "spring-aot",
+-  "xml": "src/main/fluxtion/designer/application-context.xml",
+-  "sourceRoot": "src/main/java",
+-  "reconcileExisting": true,
+-  "generateDeregistration": false,
+-  "ownership": {
+-    "com.example.myapp.node.RootNode": {
+-      "onPriceUpdate(com.example.myapp.event.PriceUpdate)": {
+-        "state": "owned",
+-        "signature": "public boolean onPriceUpdate(com.example.myapp.event.PriceUpdate)",
+-        "ownedAnnotations": {
+-          "com.telamin.fluxtion.runtime.annotations.OnEventHandler": {
+-            "filterId": "7",
+-            "propagate": "false"
+-          }
+-        },
+-        "stubBodyHash": "sha256:aabc4b9647cf915aab2c0d3fbae75e9d08750d45e219d50d728db200326fa057"
+-      }
+-    },
+-    "com.example.myapp.node.Child": {
+-      "onChild()": {
+-        "state": "owned",
+-        "signature": "public boolean onChild()",
+-        "ownedAnnotations": {
+-          "com.telamin.fluxtion.runtime.annotations.OnTrigger": {}
+-        },
+-        "stubBodyHash": "sha256:db8c8d1e9d77b9af3c2db7eecc3d86c75c5a4fa962d8ffb00c6447b4c9df0c96"
++  "schemaVersion" : "1.0",
++  "starterVersion" : "1.0.77",
++  "templateMode" : "spring-aot",
++  "xml" : "src/main/fluxtion/designer/application-context.xml",
++  "sourceRoot" : "src/main/java",
++  "reconcileExisting" : true,
++  "generateDeregistration" : false,
++  "ownership" : {
++    "com.example.myapp.node.Child" : {
++      "cancel(java.lang.String)" : {
++        "state" : "owned",
++        "signature" : "public void cancel(java.lang.String)",
++        "ownedAnnotations" : { },
++        "stubBodyHash" : "sha256:bbaa971bc41901db6f76aea6ec5f59b97567aa1fcae8b7abc2533f1375bc61be"
+       },
+-      "initialise()": {
+-        "state": "owned",
+-        "signature": "public void initialise()",
+-        "ownedAnnotations": {
+-          "com.telamin.fluxtion.runtime.annotations.Initialise": {}
+-        },
+-        "stubBodyHash": "sha256:0ff09c19e1427d6a232efdcfcffbcdc387bc6ab777fffd76b75a4982f428e590"
++      "field:parent" : {
++        "state" : "owned",
++        "signature" : "final private com.example.myapp.node.RootNode parent",
++        "ownedAnnotations" : { }
+       },
+-      "start()": {
+-        "state": "owned",
+-        "signature": "public void start()",
+-        "ownedAnnotations": {
+-          "com.telamin.fluxtion.runtime.annotations.Start": {}
+-        },
+-        "stubBodyHash": "sha256:7e4c6dcdaea45626e1bd624bb179b1240606bc3ceabfc9fd0549ca9d910eb18a"
++      "field:sinkChecked" : {
++        "state" : "owned",
++        "signature" : "public com.telamin.fluxtion.runtime.output.SinkPublisher<com.example.myapp.event.Checked> sinkChecked",
++        "ownedAnnotations" : { },
++        "stubBodyHash" : "sha256:1b0f3ae5bdd06b3bdf70e63008dafd5db29fcc62f06dff89e29642a90b8a9f8e"
+       },
+-      "stop()": {
+-        "state": "owned",
+-        "signature": "public void stop()",
+-        "ownedAnnotations": {
+-          "com.telamin.fluxtion.runtime.annotations.Stop": {}
++      "implements:com.example.myapp.service.Commands" : {
++        "state" : "owned",
++        "signature" : "implements com.example.myapp.service.Commands",
++        "ownedAnnotations" : {
++          "com.telamin.fluxtion.runtime.annotations.ExportService" : { }
++        }
++      },
++      "initialise()" : {
++        "state" : "owned",
++        "signature" : "public void initialise()",
++        "ownedAnnotations" : {
++          "com.telamin.fluxtion.runtime.annotations.Initialise" : { }
+         },
+-        "stubBodyHash": "sha256:af357d416ce019bd44951e13fff701b15449cae0b6dffbe5122a159eaeb018f0"
++        "stubBodyHash" : "sha256:0ff09c19e1427d6a232efdcfcffbcdc387bc6ab777fffd76b75a4982f428e590"
+       },
+-      "tearDown()": {
+-        "state": "owned",
+-        "signature": "public void tearDown()",
+-        "ownedAnnotations": {
+-          "com.telamin.fluxtion.runtime.annotations.TearDown": {}
++      "onChild()" : {
++        "state" : "owned",
++        "signature" : "public boolean onChild()",
++        "ownedAnnotations" : {
++          "com.telamin.fluxtion.runtime.annotations.OnTrigger" : { }
+         },
+-        "stubBodyHash": "sha256:48c0e198d9d269c6c9801901f4ce99ce70f3ad7ec13ef696461b95d15405cbac"
++        "stubBodyHash" : "sha256:db8c8d1e9d77b9af3c2db7eecc3d86c75c5a4fa962d8ffb00c6447b4c9df0c96"
+       },
+-      "onSignalPause(com.telamin.fluxtion.runtime.event.Signal<?>)": {
+-        "state": "owned",
+-        "signature": "public boolean onSignalPause(com.telamin.fluxtion.runtime.event.Signal<?>)",
+-        "ownedAnnotations": {
+-          "com.telamin.fluxtion.runtime.annotations.OnEventHandler": {
+-            "filterString": "\"pause\""
++      "onSignalPause(com.telamin.fluxtion.runtime.event.Signal<?>)" : {
++        "state" : "owned",
++        "signature" : "public boolean onSignalPause(com.telamin.fluxtion.runtime.event.Signal<?>)",
++        "ownedAnnotations" : {
++          "com.telamin.fluxtion.runtime.annotations.OnEventHandler" : {
++            "filterString" : "\"pause\""
+           }
+         },
+-        "stubBodyHash": "sha256:8d29fbbaea369d71b5ba09154b6a90e18db50d89cda88cd1c5a44b3a18635a7a"
++        "stubBodyHash" : "sha256:8d29fbbaea369d71b5ba09154b6a90e18db50d89cda88cd1c5a44b3a18635a7a"
+       },
+-      "cancel(java.lang.String)": {
+-        "state": "owned",
+-        "signature": "public void cancel(java.lang.String)",
+-        "ownedAnnotations": {},
+-        "stubBodyHash": "sha256:bbaa971bc41901db6f76aea6ec5f59b97567aa1fcae8b7abc2533f1375bc61be"
++      "reset()" : {
++        "state" : "owned",
++        "signature" : "public void reset()",
++        "ownedAnnotations" : { },
++        "stubBodyHash" : "sha256:bbaa971bc41901db6f76aea6ec5f59b97567aa1fcae8b7abc2533f1375bc61be"
+       },
+-      "reset()": {
+-        "state": "owned",
+-        "signature": "public void reset()",
+-        "ownedAnnotations": {},
+-        "stubBodyHash": "sha256:bbaa971bc41901db6f76aea6ec5f59b97567aa1fcae8b7abc2533f1375bc61be"
++      "start()" : {
++        "state" : "owned",
++        "signature" : "public void start()",
++        "ownedAnnotations" : {
++          "com.telamin.fluxtion.runtime.annotations.Start" : { }
++        },
++        "stubBodyHash" : "sha256:7e4c6dcdaea45626e1bd624bb179b1240606bc3ceabfc9fd0549ca9d910eb18a"
+       },
+-      "field:parent": {
+-        "state": "owned",
+-        "signature": "final private com.example.myapp.node.RootNode parent",
+-        "ownedAnnotations": {
+-          "com.telamin.fluxtion.runtime.annotations.NoTriggerReference": {}
++      "stop()" : {
++        "state" : "owned",
++        "signature" : "public void stop()",
++        "ownedAnnotations" : {
++          "com.telamin.fluxtion.runtime.annotations.Stop" : { }
+         },
+-        "stubBodyHash": null
++        "stubBodyHash" : "sha256:af357d416ce019bd44951e13fff701b15449cae0b6dffbe5122a159eaeb018f0"
+       },
+-      "field:sinkChecked": {
+-        "state": "owned",
+-        "signature": "public com.telamin.fluxtion.runtime.output.SinkPublisher<com.example.myapp.event.Checked> sinkChecked",
+-        "ownedAnnotations": {},
+-        "stubBodyHash": "sha256:1b0f3ae5bdd06b3bdf70e63008dafd5db29fcc62f06dff89e29642a90b8a9f8e"
+-      },
+-      "implements:com.example.myapp.service.Commands": {
+-        "state": "owned",
+-        "signature": "implements com.example.myapp.service.Commands",
+-        "ownedAnnotations": {
+-          "com.telamin.fluxtion.runtime.annotations.ExportService": {}
++      "tearDown()" : {
++        "state" : "owned",
++        "signature" : "public void tearDown()",
++        "ownedAnnotations" : {
++          "com.telamin.fluxtion.runtime.annotations.TearDown" : { }
+         },
+-        "stubBodyHash": null
++        "stubBodyHash" : "sha256:48c0e198d9d269c6c9801901f4ce99ce70f3ad7ec13ef696461b95d15405cbac"
++      }
++    },
++    "com.example.myapp.node.RootNode" : {
++      "onPriceUpdate(com.example.myapp.event.PriceUpdate)" : {
++        "state" : "owned",
++        "signature" : "public boolean onPriceUpdate(com.example.myapp.event.PriceUpdate)",
++        "ownedAnnotations" : {
++          "com.telamin.fluxtion.runtime.annotations.OnEventHandler" : {
++            "filterId" : "7",
++            "propagate" : "true"
++          }
++        },
++        "stubBodyHash" : "sha256:aabc4b9647cf915aab2c0d3fbae75e9d08750d45e219d50d728db200326fa057"
+       }
+     }
+   }
+diff -ruN fixture/src/main/fluxtion/designer/application-context.xml gt/src/main/fluxtion/designer/application-context.xml
+--- fixture/src/main/fluxtion/designer/application-context.xml	2026-10-13 13:13:51
++++ gt/src/main/fluxtion/designer/application-context.xml	2026-10-13 13:13:51
+@@ -27,10 +27,10 @@
+                 <value>com.example.myapp.event.PriceUpdate</value>
+             </list>
+         </property>
+-<property name="referenceBindings"><list><bean class="com.telamin.fluxtion.builder.extern.spring.FluxtionSpringConfig.ReferenceBinding"><property name="ownerBean" value="child"/><property name="referencedBean" value="rootNode"/><property name="mode" value="DATA"/><property name="referenceField" value="parent"/></bean></list></property>
++<property name="referenceBindings"><list><bean class="com.telamin.fluxtion.builder.extern.spring.FluxtionSpringConfig.ReferenceBinding"><property name="ownerBean" value="child"/><property name="referencedBean" value="rootNode"/><property name="mode" value="TRIGGER"/><property name="referenceField" value="parent"/></bean></list></property>
+         <property name="exportedServices"><list><bean class="com.telamin.fluxtion.builder.extern.spring.FluxtionSpringConfig.ExportedService"><property name="service" value="com.example.myapp.service.Commands"/><property name="nodeBean" value="child"/><property name="exportedMethods"><list><value>cancel(java.lang.String)</value><value>reset()</value></list></property></bean></list></property>
+-        <property name="eventHandlers"><list><bean class="com.telamin.fluxtion.builder.extern.spring.FluxtionSpringConfig.EventHandlerBinding"><property name="event" value="com.example.myapp.event.PriceUpdate"/><property name="nodeBeans"><list><value>rootNode</value></list></property><property name="filterId" value="7"/><property name="propagate" value="false"/></bean></list></property>
+-        <property name="signalHandlers"><list><bean class="com.telamin.fluxtion.builder.extern.spring.FluxtionSpringConfig.SignalBinding"><property name="name" value="pause"/><property name="nodeBeans"><list><value>childTypo</value></list></property></bean></list></property>
++        <property name="eventHandlers"><list><bean class="com.telamin.fluxtion.builder.extern.spring.FluxtionSpringConfig.EventHandlerBinding"><property name="event" value="com.example.myapp.event.PriceUpdate"/><property name="nodeBeans"><list><value>rootNode</value></list></property><property name="filterId" value="7"/><property name="propagate" value="true"/></bean></list></property>
++        <property name="signalHandlers"><list><bean class="com.telamin.fluxtion.builder.extern.spring.FluxtionSpringConfig.SignalBinding"><property name="name" value="pause"/><property name="nodeBeans"><list><value>child</value></list></property></bean></list></property>
+         <property name="sinks"><list><bean class="com.telamin.fluxtion.builder.extern.spring.FluxtionSpringConfig.SinkBinding"><property name="name" value="checked"/><property name="valueType" value="com.example.myapp.event.Checked"/><property name="nodeBeans"><list><value>child</value></list></property></bean></list></property>
+         <property name="lifecycleNodes"><list><value>child</value></list></property>
+         <property name="logLevel" value="INFO"/>
+diff -ruN fixture/src/main/java/com/example/myapp/event/Checked.java gt/src/main/java/com/example/myapp/event/Checked.java
+--- fixture/src/main/java/com/example/myapp/event/Checked.java	2026-10-13 13:13:51
++++ gt/src/main/java/com/example/myapp/event/Checked.java	2026-10-13 13:13:51
+@@ -1,2 +1,2 @@
+ package com.example.myapp.event;
+-public record Checked() {}
++public record Checked(double price, int count) {}
+diff -ruN fixture/src/main/java/com/example/myapp/node/Child.java gt/src/main/java/com/example/myapp/node/Child.java
+--- fixture/src/main/java/com/example/myapp/node/Child.java	2026-10-13 13:13:51
++++ gt/src/main/java/com/example/myapp/node/Child.java	2026-10-13 13:13:51
+@@ -11,10 +11,23 @@
+ 
+     // This reference's propagation mode is declared in the XML; it does not make the referenced object immutable. See https://fluxtion-playground.dev/spring-authoring/contract.md#local-authoring-workflow-and-extended-declarations
+     @javax.annotation.processing.Generated("fluxtion-starter")
+-    @com.telamin.fluxtion.runtime.annotations.NoTriggerReference
+     private final RootNode parent;
+     private Object latestEvent;
++    private int processedCount;
++    private double lastProcessedPrice;
++    private boolean paused;
+ 
++    public int getProcessedCount() { return processedCount; }
++    public double getLastProcessedPrice() { return lastProcessedPrice; }
++    public boolean isPaused() { return paused; }
++
++    private void auditState(String action) {
++        auditLog.info("action", action);
++        auditLog.info("processedCount", processedCount);
++        auditLog.info("lastProcessedPrice", lastProcessedPrice);
++        auditLog.info("paused", paused);
++    }
++
+     public Child(RootNode parent) {
+         this.parent = parent;
+     }
+@@ -32,7 +45,14 @@
+ 
+         Object event = parent.getLatestEvent();
+         this.latestEvent = event;
+-        // TODO: react to the updated RootNode state
++        if (paused || !(event instanceof com.example.myapp.event.PriceUpdate price)) {
++            auditState("priceIgnoredWhilePaused");
++            return false;
++        }
++        processedCount++;
++        lastProcessedPrice = price.price();
++        sinkChecked.publish(new com.example.myapp.event.Checked(lastProcessedPrice, processedCount));
++        auditState("priceProcessed");
+         return true;
+     }
+ 
+@@ -40,7 +60,7 @@
+     @javax.annotation.processing.Generated("fluxtion-starter")
+     @com.telamin.fluxtion.runtime.annotations.Initialise public void initialise() {
+         auditLog.info("lifecycle", "initialise");
+- /* TODO lifecycle */ }
++        processedCount = 0; lastProcessedPrice = 0; paused = false; auditState("initialise"); }
+ 
+     // Implement lifecycle work at the phase declared in the XML. See https://fluxtion-playground.dev/spring-authoring/contract.md#local-authoring-workflow-and-extended-declarations
+     @javax.annotation.processing.Generated("fluxtion-starter")
+@@ -69,7 +89,8 @@
+             if (auditEvent.filterId() != com.telamin.fluxtion.runtime.event.Event.NO_INT_FILTER) auditLog.info("filterId", auditEvent.filterId());
+             if (auditEvent.filterString() != null && !auditEvent.filterString().isEmpty()) auditLog.info("filterString", auditEvent.filterString().replace('\r', ' ').replace('\n', ' ').replaceAll("[^a-zA-Z0-9_. /@+-]", "_"));
+         }
+- return true; }
++        paused = true; auditState("pause");
++ return false; }
+ 
+     // Publish output according to the declared sink and value-type contract. See https://fluxtion-playground.dev/spring-authoring/contract.md#local-authoring-workflow-and-extended-declarations
+     @javax.annotation.processing.Generated("fluxtion-starter")
+@@ -82,5 +103,5 @@
+ 
+     // Implement this exported command according to the declared service contract. See https://fluxtion-playground.dev/spring-authoring/contract.md#local-authoring-workflow-and-extended-declarations
+     @javax.annotation.processing.Generated("fluxtion-starter")
+-    public void reset() { /* TODO exported command */ }
++    public void reset() { processedCount = 0; lastProcessedPrice = 0; paused = false; auditState("reset"); }
+ }
+diff -ruN fixture/src/main/java/com/example/myapp/node/RootNode.java gt/src/main/java/com/example/myapp/node/RootNode.java
+--- fixture/src/main/java/com/example/myapp/node/RootNode.java	2026-10-13 13:13:51
++++ gt/src/main/java/com/example/myapp/node/RootNode.java	2026-10-13 13:13:51
+@@ -20,8 +20,8 @@
+     }
+ 
+     // Implement this event callback according to the XML declaration and callback return contract. See https://fluxtion-playground.dev/spring-authoring/contract.md#local-authoring-workflow-and-extended-declarations
++    @com.telamin.fluxtion.runtime.annotations.OnEventHandler(filterId = 7, propagate = true)
+     @javax.annotation.processing.Generated("fluxtion-starter")
+-    @com.telamin.fluxtion.runtime.annotations.OnEventHandler(filterId = 7, propagate = false)
+     public boolean onPriceUpdate(PriceUpdate event) {
+         auditLog.info("handledEvent", event.getClass().getName());
+         if ((Object) event instanceof com.telamin.fluxtion.runtime.event.Event) {

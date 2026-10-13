@@ -1,0 +1,15 @@
+This directory holds a minimal Fluxtion project from the public project starter (Spring XML design, AOT-generated processor). It has one node, TradeIntake, which handles Trade events. Its shipped documentation is README.md, RUNBOOK.md, CLAUDE.md and runbooks/. Start with its own setup.sh as the runbook requires. Never print, copy or modify the compilation key file; use the shipped generation script.
+
+Build this into a VWAP service:
+
+- For each symbol, keep the volume-weighted average price (VWAP) of that symbol's last 3 accepted trades.
+- After every accepted trade, publish a VwapUpdate carrying the symbol and its current VWAP on a sink named "vwap".
+- A trade with a quantity of zero or less is rejected: it changes nothing and publishes nothing.
+- A signal named "clear" empties every symbol's window and publishes nothing.
+- Put the calculation in a new node fed by TradeIntake.
+
+The change has to be in the compiled processor, not only in the source. Then run this scenario from a fresh process and show the published VwapUpdates:
+
+Trade(A,10,100); Trade(A,20,100); Trade(B,50,10); Trade(A,30,200); Trade(A,40,100); Trade(A,99,0); clear signal; Trade(A,60,100); Trade(B,70,30).
+
+Use the Fluxtion analyser, which you have as an MCP server, to put a chart of the VWAP values on the analyser canvas. Finish with the list of published VwapUpdates, and what evidence shows each rule held.
