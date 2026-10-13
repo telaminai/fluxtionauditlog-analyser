@@ -73,10 +73,15 @@ class CanonicalSkillsTest {
                 "FluxtionSpringConfig.ReferenceBinding", "<property name=\"mode\" value=\"DATA\"/>",
                 "<property name=\"parentUpdateCallback\" value=\"true\"/>"))
             assertTrue(text.contains(route), "the XML route must be shown: " + route);
+        assertTrue(text.contains("Then **regenerate** — a graph change needs it"), "the regenerate step is pinned");
         assertTrue(text.contains("**Regeneration writes the class shell**"));
         assertTrue(text.contains("there are no imports to find"));
         assertTrue(text.contains("**Do not write the class yourself, and do not wire a sink outside the XML**"));
-        assertTrue(text.contains("mark each DATA\nfield `@NoTriggerReference`"));
+        assertTrue(text.contains("mark each DATA field `@NoTriggerReference`"));
+        assertTrue(text.contains("disagrees with the XML is refused\n(`SPRING_RECONCILE_CONFLICT`)"));
+        assertTrue(text.contains("is not declared in the design"));
+        for (String taskName : List.of("alertNode", "riskCheck", "csvRejections", "\"alerts\""))
+            assertFalse(text.contains(taskName), "the snippet must not carry a ladder task's own names: " + taskName);
         assertFalse(text.contains("**Write the class.**"), "the hand-written-class step is gone");
     }
 

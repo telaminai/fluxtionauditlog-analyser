@@ -28,21 +28,18 @@ All three edits are in the designer XML that `fluxtion-authoring.json` names:
    ```xml
    <property name="referenceBindings"><list>
      <bean class="com.telamin.fluxtion.builder.extern.spring.FluxtionSpringConfig.ReferenceBinding">
-       <property name="ownerBean" value="alertNode"/>
-       <property name="referencedBean" value="riskCheck"/>
-       <property name="mode" value="TRIGGER"/>
-       <property name="parentUpdateCallback" value="true"/>
+       <property name="ownerBean" value="myNode"/><property name="referencedBean" value="parentA"/>
+       <property name="mode" value="TRIGGER"/><property name="parentUpdateCallback" value="true"/>
      </bean>
      <bean class="com.telamin.fluxtion.builder.extern.spring.FluxtionSpringConfig.ReferenceBinding">
-       <property name="ownerBean" value="alertNode"/>
-       <property name="referencedBean" value="csvRejections"/>
+       <property name="ownerBean" value="myNode"/><property name="referencedBean" value="lookup"/>
        <property name="mode" value="DATA"/>
      </bean>
    </list></property>
    <property name="sinks"><list>
      <bean class="com.telamin.fluxtion.builder.extern.spring.FluxtionSpringConfig.SinkBinding">
-       <property name="name" value="alerts"/>
-       <property name="nodeBeans"><list><value>alertNode</value></list></property>
+       <property name="name" value="out"/>
+       <property name="nodeBeans"><list><value>myNode</value></list></property>
      </bean>
    </list></property>
    ```
@@ -60,14 +57,14 @@ read the regenerated processor, its GraphML text or the builder to confirm the w
 they cost thousands of tokens to read, and the audit log shows the dispatch order directly.
 
 **Regeneration writes the class shell**: constructor, fields (a DATA field carries `@NoTriggerReference`),
-a `SinkPublisher` field per sink (`sinkAlerts`) and the callback methods, annotations fully qualified —
+a `SinkPublisher` field per sink (`sinkOut`) and the callback methods, annotations fully qualified —
 there are no imports to find. Fill only the method bodies, then rebuild, run and prove it from the audit
 log as below.
 
 **Do not write the class yourself, and do not wire a sink outside the XML** (a hand-written
-`@ServiceRegistered` callback is not a sink). Either leaves the design XML without what the code does,
-and a hand-written class meets reconciliation conflicts. If a class must be hand-written, mark each DATA
-field `@NoTriggerReference`.
+`@ServiceRegistered` callback delivers at runtime but is not declared in the design). Either leaves the
+design XML without what the code does, and a hand-written class that disagrees with the XML is refused
+(`SPRING_RECONCILE_CONFLICT`). If a class must be hand-written, mark each DATA field `@NoTriggerReference`.
 The host still needs a destination of the sink's name — in Mongoose, a `server-config.yml` `eventSinks`
 entry.
 
