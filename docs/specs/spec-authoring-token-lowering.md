@@ -94,8 +94,9 @@ ladder runs failed or worked around the reconcile conflict that 1.0.77 fixed, so
 
 The transcripts are not committed [L, B], so per-request token buckets cannot be checked. Assume an over-100k
 request averages ≈ 110k–120k tokens of mostly cache-read input ($0.05/M → ≈ $0.006) and an under-100k request
-≈ 60k ($0.01/M → ≈ $0.0006). Baseline: 102 × $0.006 ≈ $0.61 and 350 × $0.0006 ≈ $0.21, so **≈ 40% of the $1.49
-total came from over-100k requests**; the remainder is output and cache writes. Moving every such request under
+≈ 60k ($0.01/M → ≈ $0.0006). Baseline: 102 × $0.006 ≈ $0.61 and 350 × $0.0006 ≈ $0.21, so **input on over-100k
+requests was ≈ 40% of the $1.49 total**. The remaining ≈ 60% is under-100k input (≈ $0.21, ≈ 14%), output and
+cache writes. Moving every such request under
 the tier would save **an estimated ≈ 30–35%** of the total (≈ 0.8 × $0.61). This is an estimate, not a bound:
 tiering of output and cache-write tokens is not modelled, and including it could raise the figure. The same
 method on the first ladder gives ≈ 36% [D, INFERRED]. L0 replaces this paragraph with a measurement.
@@ -186,9 +187,10 @@ rung; otherwise the item is reported as *no effect shown*, not as a saving.
   value equals the same field from a raw `read`; and separate assertions fail when the omission statement is
   removed, a record is dropped without being counted, or any one qualification (identity verdict, timeOrder,
   producer finding, in-flight) is dropped. `CanonicalSkillsTest` asserts the skills name the view.
-- **Why the qualifications are load-bearing.** Baseline run base-r2-h55-3 failed CHART because its chart carried
-  an identity note: it edited and regenerated after charting [B]. A projection that dropped that verdict would
-  have hidden the one fact that made the answer wrong.
+- **Why the qualifications are load-bearing.** Baseline run base-r2-h55-3 failed CHART on an identity note: the
+  charted file was rewritten after charting (design edited and regenerated) [B, INFERRED — the note's text was not
+  captured]. Its ORACLE passed; what went stale was the chart's evidence. A projection that dropped the
+  file-identity verdict would have hidden exactly that.
 
 ### L2 — One comparison surface: lower `audit-compare.py` into the analyser
 
@@ -262,8 +264,12 @@ rung; otherwise the item is reported as *no effect shown*, not as a saving.
 
 ### L5 — One-call diagnosis summary
 
-- **Change.** One surface: **`aggregate` with a per-node summary** (`aggregate {groupBy: "node", summary: true}`,
-  name to be fixed in the schema), returning per node: record count, first/last `recordIndex`, and for each
+- **Change.** One surface: **`aggregate` with a per-node summary**. Today `aggregate.groupBy` is an enum
+  (`dimension`, `thread`, `hour`, `minute`, `day`, `none`) and `metric` is required (`VerbSchemas`). `dimension`
+  buckets by the record's event dimension, not by the node instance that wrote an entry, so the summary adds a
+  `groupBy` value **`node`** (bucket by logging instance) and a `metric` value **`summary`**, valid only with
+  `groupBy: "node"` and refused otherwise before any work: `aggregate {metric: "summary", groupBy: "node"}`.
+  The other metrics may also take `groupBy: "node"`. It returns per node: record count, first/last `recordIndex`, and for each
   business key first/last/min/max. It is a query, not a workflow verb (the `add-a-node` skill rules out a compound
   build/run verb). It is **not** a `context` section (sections are exactly what the full context holds, and none
   carries per-node values) and **not** `coverage` (coverage is graph × log and refuses an inferred graph). It must
@@ -275,8 +281,13 @@ rung; otherwise the item is reported as *no effect shown*, not as a saving.
   context, so a turn saved late in a run is worth more than one saved early.
 - **Acceptance.** Against the interleaved control, L0's diagnosis-phase analyser calls fall ≥ 50% and diagnosis-
   phase turns fall by more than the control's spread; PASS and CHART not lower.
-- **Regression check.** On a frozen fixture, the summary's values equal `aggregate` / `series` over the same keys,
-  and a mutation that routes the summary through a separate computation fails that equality. A node that never
+- **Regression check.** Equal values do not show reuse, so the check is **structural**, in the style of
+  `OneDispatchModelTest`: a static test names the one index service that computes counts, ranges and anchors for
+  `aggregate` and `series`, and fails if the summary's implementation computes any of them itself (a second
+  accumulator, its own min/max, its own record walk). Its witness is the mutation that inlines a min/max loop into
+  the summary: it must turn the test red. A fixture test additionally checks that the summary's values equal
+  `aggregate` / `series` over the same keys, and the schema test that `metric: "summary"` without
+  `groupBy: "node"` is refused. A node that never
   logged appears with count 0; dropping it fails (the uncovered node is the finding, M40).
 
 ### L6 — Text-log → binary pre-parse, and why compression is not the route (a rejection)
@@ -295,7 +306,9 @@ rung; otherwise the item is reported as *no effect shown*, not as a saving.
 
 ## 4. Ranking and the first slice
 
-Score = expected saving × confidence ÷ cost to build (each High / Medium / Low). Ranked on both datasets.
+Score = expected saving × confidence ÷ cost to build (each High / Medium / Low). Ranked on both datasets. A "?"
+marks a saving that is plausible but unmeasured; it is scored at face value, because confidence already carries
+the doubt.
 
 | rank | item | saving | confidence | cost | why |
 |---|---|---|---|---|---|
@@ -304,8 +317,8 @@ Score = expected saving × confidence ÷ cost to build (each High / Medium / Low
 | 3 | **L4 (i)(ii)** for rungs 2/4 (UP-PG-06) | High | Medium | Medium | the same lever, but the starter has no script yet |
 | 4 | **L1** tabular view + skill default | High? | Low–Medium | Medium | one 16× sample [S]; raw-log share unmeasured |
 | 5 | **L5** diagnosis summary | Medium | Medium | Medium | turns r = 0.83 on the baseline; one existing surface |
-| 6 | **L3** design receipt | Medium | Low | Medium–High | 26% of tool bytes, but uncorrelated with cost; upstream |
-| 7 | **L4 (iii)** design/diagnosis split | High? | Low | Low | the biggest prompt cut, but the base is re-paid; model-dependent |
+| 6 | **L4 (iii)** design/diagnosis split | High? | Low | Low | the biggest prompt cut, but the base is re-paid; model-dependent |
+| 7 | **L3** design receipt | Medium | Low | Medium–High | 26% of tool bytes, but uncorrelated with cost; upstream |
 | 8 | **L2** one comparison surface | Low | High | Medium | correctness and one reader, not tokens; owner decision open |
 | — | **L6** compression / base64 | none | High | — | rejected [S] |
 
