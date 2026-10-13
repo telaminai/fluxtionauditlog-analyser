@@ -46,7 +46,8 @@
     "RE-PINNED 2026-10-13 (#126, third review of PR 127): audit-compare.py reads each record by the analyser's own structural rule (RecordBreak, C32) and refuses a broken one. Same contract, same selection; only the revision and the audit-compare.py hash moved.",
     "RE-PINNED 2026-10-13 (#126, fourth review of PR 127): audit-compare.py compares block scalars and every non-time field, and strips and splits lines as the analyser does. Same contract, same selection; only the revision and the audit-compare.py hash moved.",
     "RE-PINNED 2026-10-13 (#126, fifth review of PR 127): audit-compare.py compares text the analyser skips and splits entries exactly as its tokenizer does; add-a-node says which fields are compared. Same contract, same selection; only the revision and the add-a-node and audit-compare.py hashes moved.",
-    "RE-PINNED 2026-10-13 (#126, approving review of PR 127): audit-compare.py treats an empty node body as no entry, as the analyser does. Same contract, same selection; only the revision and the audit-compare.py hash moved."
+    "RE-PINNED 2026-10-13 (#126, approving review of PR 127): audit-compare.py treats an empty node body as no entry, as the analyser does. Same contract, same selection; only the revision and the audit-compare.py hash moved.",
+    "RE-PINNED 2026-10-13 (M72 L4 iii): load-audit-log gains 'Diagnose in a fresh context' - after a design change is built and run, diagnosis goes to a subagent seeded with a brief of at most 2,000 characters that carries pointers and the question, never evidence; the subagent reads the identity verdict, pairing, timeOrder, producer and inFlight from the analyser and reports them. Step 1 routes a design conversation there. Same contract, same selection; only the revision and the load-audit-log hash moved. The playground must re-vendor (UP-PG-08)."
   ],
   "common": [
     "common/load-audit-log/SKILL.md",
@@ -82,9 +83,9 @@
       ]
     }
   },
-  "revision": "7057074d715362d11fa07f6ece333f27b4b7bc16",
+  "revision": "22edb551d17c16966d96f3e242059711c52d4097",
   "sha256": {
-    "common/load-audit-log/SKILL.md": "240ba202b418a21c6fb8acc384cc4f036381a4bdf134f6e831230bdf55f42d0c",
+    "common/load-audit-log/SKILL.md": "5b2649f7b8ca47f127df2d1563a2294814049cadd5977abb034ef78f968b758e",
     "common/guided-start/SKILL.md": "fdead498fa56b4df27d360f070de5357f833c16dd9cb8e0eef4ad3a5690c2d47",
     "common/point-at-the-fault/SKILL.md": "5c02e6d1d9a205fb5ab43613248a9c7bdbb924cb4175826582c865af6067f2f5",
     "mongoose/run-mongoose-server/SKILL.md": "296aab9ca1987153becfd96abcc9d967bb67148a22e727c0bb25d82b79e0a9ca",
