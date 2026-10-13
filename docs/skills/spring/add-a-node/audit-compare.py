@@ -23,8 +23,9 @@ Masked before comparing (`--keep-identity-hashes` keeps them): `Object.toString`
 `ClassName@1a2b3c4d` shape only, and lambda class addresses (`$$Lambda/0x...`); the count is printed.
 Each record is read by the analyser's own structural rule (RecordBreak, fixture C32): a quoted value that spans
 lines is one value, the generator's exported-service signature belongs to its `@Override`, and a record whose
-structure breaks - a value written unquoted with a line break in it - is refused, as the analyser reads it
-without its node logs.
+structure breaks - a value written unquoted with a line break in it, where the analyser can tell - is refused, as
+the analyser reads it without its node logs. Where it cannot tell (a continuation that looks like a field), the
+"field" is compared like every field but the times, the thread and the grouping id.
 
 An `annotation` straight after the method is ambiguous (tracing's from runtime 1.1.1, or an older node's own key):
 when the match depends on it the verdict is INCONCLUSIVE (exit 3) unless --annotations-are-trace says it is
@@ -76,8 +77,14 @@ ITEM = re.compile(r'^\s*-\s+("(?:[^"\\]|\\.)*"|\S+?):\s*\{(.*)\}\s*$', re.S)
 
 def split_top_level(body):
     """Split `k: v, k: v` on commas outside (), [], {} and double quotes (Format 1 section 3)."""
-    parts, depth, quoted, start = [], 0, False, 0
+    parts, depth, quoted, start, escaped = [], 0, False, 0, False
     for i, ch in enumerate(body):
+        if quoted and escaped:
+            escaped = False
+            continue
+        if quoted and ch == "\\":
+            escaped = True
+            continue
         if ch == '"':
             quoted = not quoted
         elif not quoted and ch in "([{":
@@ -89,11 +96,21 @@ def split_top_level(body):
             start = i + 1
     parts.append(body[start:])
     entries = []
-    for part in (p.strip() for p in parts):
-        if part:
-            key, sep, value = part.partition(":")
-            entries.append((key.strip(), value.strip()) if sep else (None, part))
+    for index, part in enumerate(astrip(p) for p in parts):
+        if not part and index == len(parts) - 1:
+            continue                                 # a trailing comma, not a value
+        key, sep, value = part.partition(":")
+        entries.append((astrip(key), astrip(value)) if sep else (None, part))   # an empty part is kept: it is text
     return entries
+
+
+def astrip(s):
+    """The analyser's AuditText.strip: ASCII whitespace (space, tab, CR, LF) and every leading byte-order mark, and
+    nothing else - str.strip() also removes Unicode spaces, which the analyser treats as text."""
+    s = s.strip(" \t\r\n")
+    while s.startswith("\ufeff"):
+        s = s[1:].strip(" \t\r\n")
+    return s
 
 
 # ---- record structure: a port of the analyser's RecordBreak.analyse and FramingScan.quoteStateAfter (UPS-1, C32) ----
@@ -101,6 +118,10 @@ def split_top_level(body):
 # line break in it - is one the analyser reads only up to the break, without its node logs, and this script refuses
 # it: comparing what is left could report a match the text does not support.
 
+# record fields never compared: times, the thread and the grouping id vary between runs; nodeLogs is the entries.
+# Every other field - event, eventType, eventToString and any field the reader does not know - is compared, so a
+# continuation line that merely LOOKS like a field (`detail: price=5`) is still compared.
+NOT_COMPARED = {"eventTime", "logTime", "endTime", "thread", "groupingId", "nodeLogs"}
 FIELD_KEYS = {"eventTime", "logTime", "endTime", "groupingId", "event", "eventType", "eventToString", "thread",
               "nodeLogs"}
 EXPORT_SIGNATURE = re.compile(r"public [^:#'\"{}()]+\([^:#'\"{}()]*\)( throws [\w$., ]+)?")
@@ -183,7 +204,7 @@ def analyse(lines):
         if inside_quote:
             roles[i] = "NODE_LINE" if in_node else "QUOTED"
             continue
-        t = raw.strip()
+        t = astrip(raw)
         if not t:
             continue
         if t.startswith("#"):
@@ -216,7 +237,10 @@ def analyse(lines):
                     continue
                 in_node = False
             if indent > field_indent:
-                if nested_ignored or block_scalar:
+                if block_scalar:
+                    roles[i] = "BLOCK"           # a block scalar's text: part of its field's value
+                    continue
+                if nested_ignored:
                     continue
                 brk(i, "a line more indented than the record's fields, outside its node logs")
                 continue
@@ -226,7 +250,7 @@ def analyse(lines):
             brk(i, "a line at the fields' indentation that is not a field")
             continue
         roles[i] = "FIELD"
-        value = t[len(key) + 1:].strip()
+        value = astrip(t[len(key) + 1:])
         previous_key, previous_value = key, value
         if key in FIELD_KEYS:
             if key in seen:
@@ -245,7 +269,7 @@ def analyse(lines):
 
 def parse(path):
     """Return the log's records, each {event, text, items: [(instanceId, [(key, value)])]} or {raw}."""
-    with open(path, encoding="utf-8-sig") as handle:
+    with open(path, encoding="utf-8-sig", newline="") as handle:   # split on \n only, as the analyser does
         content = handle.read()
     if re.search(r"(?m)^\s*eventLogRecords:\s*$|^\s*-\s+eventLogRecord:", content):
         raise Unreadable(f"{path}: a list-shaped (eventLogRecords:) log; export it as a document stream")
@@ -268,11 +292,11 @@ def parse(path):
         for raw, role in zip(all_lines, roles):
             raw = raw.rstrip("\r")
             if role == "FIELD":
-                key, _, value = raw.strip().partition(":")
-                fields[key.strip()] = value.strip()
-                last_field = key.strip()
-            elif role in ("QUOTED", "SIGNATURE") and last_field is not None:
-                fields[last_field] += "\n" + raw.strip()        # a value continued: compared whole
+                key, _, value = astrip(raw).partition(":")
+                fields[astrip(key)] = astrip(value)
+                last_field = astrip(key)
+            elif role in ("QUOTED", "SIGNATURE", "BLOCK") and last_field is not None:
+                fields[last_field] += "\n" + astrip(raw)        # a value continued: compared whole
             elif role == "NODE_ITEM":
                 items.append(raw)
             elif role == "NODE_LINE":
@@ -288,7 +312,9 @@ def parse(path):
             parsed.append((match.group(1), split_top_level(match.group(2))))
         if not parsed and fields and set(fields) <= MARKER_KEYS and "streamEnd" in fields:
             continue                                     # a stream-end marker is a container fact
-        records.append({"event": fields.get("event"), "text": fields.get("eventToString"), "items": parsed})
+        other = tuple(sorted((k, v) for k, v in fields.items() if k not in NOT_COMPARED | {"event", "eventToString"}))
+        records.append({"event": fields.get("event"), "text": fields.get("eventToString"), "other": other,
+                        "items": parsed})
     return records
 
 
@@ -312,16 +338,17 @@ def split_record(record, normalise, annotations_are_trace=True):
             business.append((node, own))
         if trace:
             framework.append((node, trace))
-    head = (record["event"], normalise(record["text"] or ""))
+    head = (record["event"], normalise(record["text"] or ""), tuple((k, normalise(v)) for k, v in record.get("other", ())))
     return ((head, tuple(business)) if business else None), (head, tuple(framework))
 
 
 def describe(view):
     if view[0] == "UNPARSED":
         return "unparsed document: " + view[1][:120]
-    (event, text), nodes = view
+    (event, text, other), nodes = view
     shown = "; ".join(f"{n} {{{', '.join(f'{k}: {v}' for k, v in e)}}}" for n, e in nodes)
-    return f"{event} [{text[:60]}] {shown}"
+    extra = "".join(f" {k}={v[:30]}" for k, v in other)
+    return f"{event}{extra} [{text[:60]}] {shown}"
 
 
 def compare(before, after, max_diffs=10, keep_identity_hashes=False, out=sys.stdout, annotations_are_trace=False):

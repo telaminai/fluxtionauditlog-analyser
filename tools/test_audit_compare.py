@@ -91,6 +91,7 @@ class AuditCompareTest(unittest.TestCase):
             a.write_text(after, encoding='utf-8')
             result = subprocess.run([sys.executable, str(SCRIPT), str(b), str(a), *flags],
                                     capture_output=True, text=True)
+        self.last_stderr = result.stderr
         return result.returncode, result.stdout
 
     def test_identical_logs_did_not_change(self):
@@ -295,6 +296,110 @@ class AuditCompareTest(unittest.TestCase):
         text = legacy.read_text(encoding='utf-8')
         self.assertEqual(0, self.run_compare(text, text)[0], 'a quote mark mid-value is data in the legacy grammar')
         self.assertEqual(1, self.run_compare(text, text.replace('end, price: 77}', 'end, price: 78}'))[0])
+
+    # --- third review of PR 127 ---
+
+    # Every conformance fixture compared with itself: (file, exit, (records, business) or None, refused as broken).
+    # Pinned, so a change to how any fixture reads is visible here (rule 8). A broken record is refused, never a match.
+    FIXTURE_TABLE = [
+        ('c01-minimal.yaml', 0, (1, 1), False),
+        ('c02-unknown-fields.yaml', 0, (1, 1), False),
+        ('c03-header.yaml', 0, (2, 2), False),
+        ('c04-times.yaml', 0, (2, 2), False),
+        ('c05-untimed.yaml', 0, (3, 3), False),
+        ('c06-out-of-order.yaml', 2, (3, 0), False),
+        ('c07-duplicate-instance.yaml', 0, (1, 1), False),
+        ('c08-lenient-values.yaml', 0, (1, 1), False),
+        ('c09-garbage.yaml', 0, (3, 3), False),
+        ('c11-attribution.yaml', 0, (1, 1), False),
+        ('c12-traced-regime.yaml', 0, (2, 2), False),
+        ('c13-exported-call.yaml', 0, (1, 1), False),
+        ('c16-quoted-scalars.yaml', 0, (1, 1), False),
+        ('c17-legacy-quotes.yaml', 0, (3, 3), False),
+        ('c18-stream-end.yaml', 0, (2, 2), False),
+        ('c19-export-layout.yaml', 0, (2, 2), False),
+        ('c20-marker-lookalike.yaml', 0, (2, 2), False),
+        ('c21-real-export.yaml', 0, (25, 7), False),
+        ('c22-marker-syntax.yaml', 0, (2, 2), False),
+        ('c23-marker-values.yaml', 0, (9, 9), False),
+        ('c24-unterminated-marker.yaml', 0, (2, 2), False),
+        ('c25-marker-declaring-zero.yaml', 2, (0, 0), False),
+        ('c26-two-empty-segments.yaml', 2, (0, 0), False),
+        ('c27-whitespace-only.yaml', 2, (0, 0), False),
+        ('c28-zero-bytes.yaml', 2, (0, 0), False),
+        ('c29-no-record-key.yaml', 0, (3, 3), False),
+        ('c30-per-node-level.yaml', 0, (2, 1), False),
+        ('c31-broken-value.yaml', 2, None, True),
+        ('c32-record-structure.yaml', 2, None, True),
+        ('c33-trace-annotation.yaml', 0, (3, 3), False),
+    ]
+
+    def test_every_conformance_fixture_reads_as_pinned(self):
+        root = Path(__file__).resolve().parent.parent / 'src/test/resources/conformance'
+        self.assertEqual(sorted(p.name for p in root.glob('*.yaml')), [row[0] for row in self.FIXTURE_TABLE],
+                         'a fixture was added or removed: pin it here')
+        for name, code, counts, broken in self.FIXTURE_TABLE:
+            text = (root / name).read_text(encoding='utf-8')
+            got, out = self.run_compare(text, text)
+            self.assertEqual(code, got, name + ': ' + out + self.last_stderr)
+            if counts:
+                self.assertIn(f'before: {counts[0]} records, {counts[1]} business', out, name)
+            self.assertEqual(broken, 'record structure breaks' in self.last_stderr, name + ': ' + self.last_stderr)
+
+    def test_a_block_scalar_event_text_is_compared(self):
+        def log(price):
+            return ('---\neventLogRecord:\n  event: PriceEvent\n  eventToString: |\n    Order{price=' + price
+                    + '}\n  nodeLogs:\n    - n: { v: 1}\n---\n')
+        self.assertEqual(0, self.run_compare(log('5'), log('5'))[0])
+        self.assertEqual(1, self.run_compare(log('5'), log('9'))[0])
+
+    def test_a_continuation_that_looks_like_a_field_is_still_compared(self):
+        # the analyser cannot tell `detail:` from a field, so neither can the script - but it compares it
+        def log(price):
+            return ('---\neventLogRecord:\n  event: PriceEvent\n  eventToString: Order{id=1,\n  detail: price='
+                    + price + '}\n  nodeLogs:\n    - n: { v: 1}\n---\n')
+        self.assertEqual(1, self.run_compare(log('5'), log('9'))[0])
+        times = log('5').replace('event: PriceEvent', 'event: PriceEvent\n  logTime: 1\n  thread: a')
+        self.assertEqual(0, self.run_compare(times, times.replace('logTime: 1', 'logTime: 2').replace('thread: a', 'thread: b'))[0],
+                         'times and the thread are never compared')
+
+    def test_a_lone_carriage_return_does_not_split_a_line(self):
+        # the analyser splits on \n only: `abc\r      deeper` is ONE line, not a deeper line that breaks the record
+        a = '---\neventLogRecord:\n  event: E\n  eventToString: abc\r      deeper 1\n  nodeLogs:\n    - n: { v: 1}\n---\n'
+        self.assertEqual(0, self.run_compare(a, a)[0], self.last_stderr)
+        self.assertEqual(1, self.run_compare(a, a.replace('deeper 1', 'deeper 2'))[0])
+
+    def test_an_escaped_quote_does_not_end_a_quoted_value_and_empty_parts_are_kept(self):
+        a = BEFORE.replace('decision: hold', 'v: "a\\",,b"')
+        b = BEFORE.replace('decision: hold', 'v: "a\\",b"')
+        self.assertEqual(1, self.run_compare(a, b)[0], 'an empty part is kept')
+        # one quoted value holding an escaped quote and a comma; a split at that comma strips the space after it
+        a = BEFORE.replace('decision: hold', 'v: "a\\", w: 1"')
+        b = BEFORE.replace('decision: hold', 'v: "a\\",w: 1"')
+        self.assertEqual(1, self.run_compare(a, b)[0], 'the escaped quote does not end the value')
+
+    def test_port_quote_rules(self):
+        q = audit_compare.quote_state_after
+        self.assertEqual('"', q('  key: "open', ''))
+        self.assertEqual('', q('  key: "a \\" b"', ''), 'a backslash escapes a double quote')
+        self.assertEqual("'", q("  key: 'it''s", ''), "'' is an escaped single quote")
+        self.assertEqual('', q("  key: it's plain", ''), 'a quote mid-scalar is text')
+        self.assertEqual('', q('  # "comment', ''), 'a comment opens nothing')
+        self.assertEqual('', q('more" tail', '"'), 'a continuation closes the open quote')
+        lines = ['eventLogRecord:', '  event: E', '  eventToString: "never closes', '  nodeLogs:', '    - n: { v: 1}']
+        roles, broken = audit_compare.analyse(lines)
+        self.assertIsNone(broken)
+        self.assertEqual('NODE_ITEM', roles[4], 'a quote that never closes is text, so it hides nothing (quotesClose)')
+
+    def test_port_breaks(self):
+        a = audit_compare.analyse
+        self.assertIsNotNone(a(['eventLogRecord:', '  event: E', '  event: F', '  nodeLogs:'])[1], 'a repeated field')
+        self.assertIsNone(a(['eventLogRecord:', '  event: E', '  extra:', '    nested: 1', '  nodeLogs:'])[1],
+                          'nesting under an unknown key with no value is ignored')
+        self.assertIsNotNone(a(['eventLogRecord:', '  event: ExportFunctionAuditEvent', '  eventToString: other',
+                                'public void x()', '  nodeLogs:'])[1], 'the signature allowance needs @Override')
+        self.assertIsNone(a(['eventLogRecord:', '  event: ExportFunctionAuditEvent', '  eventToString: @Override',
+                             'public void x()', '  nodeLogs:'])[1])
 
 if __name__ == '__main__':
     unittest.main()
