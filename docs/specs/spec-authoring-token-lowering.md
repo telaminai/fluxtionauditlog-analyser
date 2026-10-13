@@ -1,6 +1,7 @@
 # SPEC (PROPOSED) — authoring token lowering: state facts locally, send the model the residual
 
-**Status** PROPOSED, 2026-10-13, revised the same day after review of PR #130 · **Milestone** M72 (unused before
+**Status** PROPOSED, 2026-10-13, revised the same day after review of PR #130, and again to add L7 (model
+selection) and a stated preference for L2's form · **Milestone** M72 (unused before
 this spec; M70 and M71 are the last allocated) · **Owner direction** 2026-10-12/13 (quoted in §2)
 **Evidence** PR #129, merged 2026-10-13 as `00378d5a`:
 `docs/handoff/evidence/authoring-ladder-2026-10-12/RESULTS.md` (the *first ladder*),
@@ -203,10 +204,21 @@ rung; otherwise the item is reported as *no effect shown*, not as a saving.
   be one comparison surface**: M39.2's comparison engine with two operand kinds (a baseline, or a second export),
   not two verbs. Whichever form is chosen, a new verb or a new parameter changes the tool list, `/manifest`, the
   verb reference in `docs/site/user-guide/assistant.md` and the schemas, which must be updated together.
+- **Form — REVIEWER DECISION (open); the author's preference.** One new read-only verb, `compare`, whose operand
+  says what the loaded log is compared with: `compare {with: {export: "<path>"}}` (this lever) or
+  `compare {with: {baseline: "<name>"}}` (M39.4). M39.4 then lands as an operand of `compare`, not as a separate
+  `baseline` verb. Reasons: (a) one surface means one schema entry, one `/manifest` line and one paragraph of
+  guidance for the model to learn, where two verbs, or a parameter hung off `read` or `aggregate`, cost more
+  prompt and invite the wrong one; (b) both operands share M39.2's engine and the same refusal rules; (c) a
+  parameter on an existing verb would change that verb's reply shape depending on one argument, which the
+  verb-reference contract avoids elsewhere. The alternatives a reviewer may choose instead: a `baseline` verb
+  with an `export` operand (M39's name wins), or a `compare` parameter on `aggregate`. Whichever is chosen is
+  recorded here before any code.
 - **OWNER DECISION (open).** D-N3 says a comparison "never renders a verdict". `audit-compare.py`'s MATCH /
   DIFFER / INCONCLUSIVE is scoped to *same-input equality of logged business entries*, not to "normal". The owner
   has not decided whether that distinction holds. Until then, the surface returns the two facts and no verdict
-  word.
+  word. The author's preference, if the owner keeps a verdict: allow it for the `export` operand only (same input,
+  equality is checkable) and never for the `baseline` operand, where D-N3 stands unchanged.
 - **Driver.** Turns and re-reads when the script is missing or misread; two readers of one format.
 - **Saving.** **Small for tokens**: the script already prints a compact verdict (INFERRED). The real gain is one
   reader instead of two, and an answer for clients without Python.
@@ -302,6 +314,53 @@ rung; otherwise the item is reported as *no effect shown*, not as a saving.
   log". Its rule-8 check is a `CanonicalSkillsTest` assertion that the line is present, and it is subject to the
   same P1–P3 retirement rule as L4 (iii)(iv).
 
+### L7 — Model selection: the cheapest model that passes, per activity
+
+Lowering (§2) is what lets a small model do the work; this lever states which model to use, and when to step up.
+
+- **Evidence.**
+  - Haiku 5.5: 11/12 on the first ladder at a median $0.190 per run [L]; 10/12 on the baseline at $0.132 [B]; both
+    failures there are CHART only [B].
+  - Sonnet 5: 3/4 on the first ladder at a median $3.425 per run, **16–21× Haiku 5.5 per rung** [L]. Its one
+    failure claimed success on a rung-3 run whose counter ran on every trade [L]. More cost bought no measured
+    gain in pass rate, and one confident wrong answer.
+  - Haiku 4.5: 0/3 in the grid, every run failing the chart step (S5) [G]; Haiku 5.5's grid median cost was 24% of
+    Haiku 4.5's ($0.109 vs $0.459) [G]. The older small model is both dearer and worse here.
+  - The owner's working figure of ≈ 40× Haiku-to-Sonnet is a price-list ratio [S]; the measured per-run ratio is
+    16–21× [L]. The two differ because a run's cost depends on how many tokens each model spends, not on the
+    price list alone (Sonnet 5 made 426 requests in 4 runs, Haiku 5.5 542 in 12 [L, D]); the measured ratio is the
+    one to use.
+  - Opus-class models: **not measured** on the ladder. No claim is made.
+- **Change.** A *Model choice* section on the docs site (`docs/site/connect-an-llm.md`) and one line in the
+  canonical skills, giving per activity (design, run/export, diagnosis, chart) the recommended model, the evidence
+  folder it rests on, and the step-up rule. Proposed content from today's evidence:
+  - **Default for every activity: Haiku 5.5.**
+  - **Do not use Haiku 4.5 for the chart step.**
+  - **Step-up rule:** escalate one activity, not the session, and only on a failure class the ladder shows the
+    larger model fixes. Today no such class is measured — Sonnet 5 did not fix rung 3 — so the documented rule is
+    "re-run the failed activity with Haiku 5.5 in a fresh context seeded with the lowered facts (L4 (iii)) before
+    paying for a larger model".
+  - **Unmeasured models are listed as unmeasured**, not recommended.
+- **Why it is a token lever.** Price per token differs by model far more than any lever in §3 moves token count;
+  the wrong default undoes every other saving. Design and diagnosis being separate activities (§2) is what makes
+  per-activity choice possible.
+- **Driver.** Cost per run; the 5× Haiku 5.5 tier above 100k [S] interacts with L4: a model that needs larger
+  prompts is penalised twice.
+- **Saving.** Already realised by choosing Haiku 5.5 (16–21× per run against Sonnet 5 [L]); the lever's value is
+  keeping it — stopping a default drifting to a larger model without evidence.
+- **Acceptance.** A model is recommended for an activity only when the current baseline-style ladder shows it at
+  ≥ 2/3 on every rung that exercises that activity, with the oracle, VALID and CHART all counted. A step-up rule is
+  documented only when an interleaved ladder run shows the larger model passing a failure class the default fails,
+  outside the noise band (§3). Each recommendation cites its evidence folder.
+- **Regression check (rule 8).** A static test (`ModelChoiceEvidenceTest`) parses the *Model choice* table, opens
+  each cited evidence folder's `results/*/score.json`, and fails if a recommended model's pass count for a cited
+  rung is below 2/3, or if a row cites no evidence. Witness: change one cited score.json's `PASS` to false for two
+  runs of a rung — the test must go red. `CanonicalSkillsTest` asserts the skill line names the docs section rather
+  than restating the table, so the two cannot drift.
+- **Risks.** n = 3 per rung (Sonnet n = 1 per rung); a policy drawn from one task family (Spring/bundle authoring)
+  may not transfer; a model release can change the ranking overnight, which is why the test reads evidence, not a
+  hard-coded name.
+
 ---
 
 ## 4. Ranking and the first slice
@@ -320,9 +379,13 @@ the doubt.
 | 6 | **L4 (iii)** design/diagnosis split | High? | Low | Low | the biggest prompt cut, but the base is re-paid; model-dependent |
 | 7 | **L3** design receipt | Medium | Low | Medium–High | 26% of tool bytes, but uncorrelated with cost; upstream |
 | 8 | **L2** one comparison surface | Low | High | Medium | correctness and one reader, not tokens; owner decision open |
+| — | **L7** model selection | High (kept, not new) | Medium | Low | the 16–21× is already realised [L]; the lever stops it drifting; docs + one test |
 | — | **L6** compression / base64 | none | High | — | rejected [S] |
 
-**Recommended first slice:** L0, plus L4 (i)(ii) on the analyser bundle, plus the skill text of L1 pointing at
+L7 is not ranked against the others because its saving is already taken; it ships with the first slice because it
+is docs plus one test, and every later measurement assumes the default it states.
+
+**Recommended first slice:** L0, plus L7's *Model choice* section and test, plus L4 (i)(ii) on the analyser bundle, plus the skill text of L1 pointing at
 the existing `read {fields}`, `series` and `aggregate` (no new analyser code). Measure it on rungs 3 and 5 against
 an interleaved control. File UP-PG-06 at the same time. Build L1's table view only if L0 shows raw-log text is a
 material share of tool bytes.
