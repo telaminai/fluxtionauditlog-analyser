@@ -33,9 +33,13 @@ architecture, conventions). This file is only the rules that must never be skipp
    and then read every visible string — title bar, status bar, paths — before committing. **The same rule
    covers transcripts**: `docs/site/sample-conversations.md` is written by `tools/capture-conversations.py` from a
    real run under the same isolated home; a hand-typed transcript is a screenshot the sweep cannot read either.
-   **The sweep cannot see git metadata either.** **226** commits carry an employer-domain author
-   email into the public history — 132 on the third sweep term's domain, 94 on the fourth's. Rewriting
+   **The sweep cannot see git metadata either.** **230** commits carry an employer-domain author
+   email into the public history — 132 on the third sweep term's domain, 98 on the fourth's. Rewriting
    is ruled out by rule 3, so that history is accepted and recorded here.
+   **Counted again 2026-10-13** (1.33.1 release check): the fourth is 98. The four new ones are GitHub-made
+   merges — `607ea90d` (#81) and `a7d35335` (#86) on 2026-09-30, `a636959f` (#88) and `35c2f78d` (#108) on
+   2026-10-06 — so the account's commit email had reverted for web merges. Every merge since is local, under
+   the personal address; check a GitHub-made merge's author before trusting the button again.
    **Counted again 2026-09-27** (1.25.0 release check): the fourth is 94. The new one is `29a9ece4`, PR #24's
    merge made through GitHub on 2026-09-27, already inside 1.24.0; nothing since carries an employer domain.
    **Counted 2026-09-26:** the fourth rose from 82 to 93, and all eleven new commits are pull-request
