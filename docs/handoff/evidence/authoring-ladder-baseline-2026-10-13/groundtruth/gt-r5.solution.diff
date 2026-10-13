@@ -1,0 +1,85 @@
+diff -ruN fixture/config/server-config.yml gt/config/server-config.yml
+--- fixture/config/server-config.yml	2026-10-13 13:13:51
++++ gt/config/server-config.yml	2026-10-13 13:13:51
+@@ -32,6 +32,13 @@
+     broadcast: true
+     agentName: feeds-agent
+     valueMapper: !!com.example.myapp.mapper.CsvToPriceEvent {}
++  - name: fx
++    instance: !!com.telamin.mongoose.connector.file.FileEventSource
++      filename: data/fx.csv
++      readStrategy: EARLIEST
++    broadcast: true
++    agentName: feeds-agent
++    valueMapper: !!com.acme.fx.CsvToFxQuote {}
+ 
+ # Event sinks — outbound destinations processors publish to.
+ eventSinks:
+diff -ruN fixture/pom.xml gt/pom.xml
+--- fixture/pom.xml	2026-10-13 13:13:51
++++ gt/pom.xml	2026-10-13 13:13:51
+@@ -33,6 +33,11 @@
+     </dependencyManagement>
+ 
+     <dependencies>
++        <dependency>
++            <groupId>com.acme.fx</groupId>
++            <artifactId>acme-fx</artifactId>
++            <version>1.0.0</version>
++        </dependency>
+         <!-- Mongoose core — runtime container + built-in file/in-memory connectors,
+              admin command registry, server admin, performance monitoring. -->
+         <dependency>
+@@ -79,6 +84,10 @@
+     </dependencies>
+ 
+     <repositories>
++        <repository>
++            <id>acme-supplier</id>
++            <url>file://${project.basedir}/supplier-repo</url>
++        </repository>
+         <repository>
+             <id>central</id>
+             <url>https://repo.maven.apache.org/maven2</url>
+diff -ruN fixture/src/main/fluxtion/designer/application-context.xml gt/src/main/fluxtion/designer/application-context.xml
+--- fixture/src/main/fluxtion/designer/application-context.xml	2026-10-13 13:13:51
++++ gt/src/main/fluxtion/designer/application-context.xml	2026-10-13 13:13:51
+@@ -13,6 +13,8 @@
+         <constructor-arg ref="rootNode"/>
+     </bean>
+ 
++    <bean id="fxRateBook" class="com.acme.fx.FxRateBook"/>
++
+     <!-- Rows the feed's CSV mapper refused (typed CsvRejection): counted and audited here. A leaf,
+          so a rejected row never reaches a business node. -->
+     <bean id="csvRejections" class="com.example.myapp.node.CsvRejections"/>
+@@ -30,12 +32,14 @@
+                 <value>rootNode</value>
+                 <value>riskCheck</value>
+                 <value>csvRejections</value>
++                <value>fxRateBook</value>
+             </list>
+         </property>
+         <property name="eventTypes">
+             <list>
+                 <value>com.example.myapp.event.PriceEvent</value>
+                 <value>com.example.myapp.event.CsvRejection</value>
++                <value>com.acme.fx.FxQuote</value>
+             </list>
+         </property>
+         <property name="eventHandlers">
+@@ -53,6 +57,14 @@
+                     <property name="nodeBeans">
+                         <list>
+                             <value>csvRejections</value>
++                        </list>
++                    </property>
++                </bean>
++                <bean class="com.telamin.fluxtion.builder.extern.spring.FluxtionSpringConfig.EventHandlerBinding">
++                    <property name="event" value="com.acme.fx.FxQuote"/>
++                    <property name="nodeBeans">
++                        <list>
++                            <value>fxRateBook</value>
+                         </list>
+                     </property>
+                 </bean>

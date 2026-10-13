@@ -1,0 +1,1 @@
+{"base": "/private/tmp/fx-base13/gt-r4", "root": "/private/tmp/fx-base13/gt-r4/project", "VALID": true, "ORACLE": {"ok": true, "detail": {"tail": "PASS outputs=[Out[symbol=A, vwap=10.0], Out[symbol=A, vwap=15.0], Out[symbol=B, vwap=50.0], Out[symbol=A, vwap=22.5], Out[symbol=A, vwap=30.0], Out[symbol=A, vwap=60.0], Out[symbol=B, vwap=70.0]]\n"}}}

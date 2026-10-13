@@ -1,0 +1,12 @@
+{"run": "lad-r2-h55-1", "cache": "cold", "setupCalls": 2, "setupResultBytes": 13429}
+{"run": "lad-r2-h55-2", "cache": "cold", "setupCalls": 2, "setupResultBytes": 13404}
+{"run": "lad-r2-h55-3", "cache": "cold", "setupCalls": 2, "setupResultBytes": 15132}
+{"run": "lad-r3-h55-1", "cache": "cold", "setupCalls": 2, "setupResultBytes": 12825}
+{"run": "lad-r3-h55-2", "cache": "warm", "setupCalls": 4, "setupResultBytes": 17306}
+{"run": "lad-r3-h55-3", "cache": "warm", "setupCalls": 2, "setupResultBytes": 26459}
+{"run": "lad-r4-h55-1", "cache": "warm", "setupCalls": 2, "setupResultBytes": 6802}
+{"run": "lad-r4-h55-2", "cache": "warm", "setupCalls": 2, "setupResultBytes": 12922}
+{"run": "lad-r4-h55-3", "cache": "warm", "setupCalls": 2, "setupResultBytes": 12922}
+{"run": "lad-r5-h55-1", "cache": "warm", "setupCalls": 2, "setupResultBytes": 8077}
+{"run": "lad-r5-h55-2", "cache": "warm", "setupCalls": 2, "setupResultBytes": 5172}
+{"run": "lad-r5-h55-3", "cache": "warm", "setupCalls": 4, "setupResultBytes": 4175}
