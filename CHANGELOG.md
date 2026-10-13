@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+## [1.33.0] - 2026-10-13
+
 ### Added
 
 - The `add-a-node` skill shows how to **prove a change by comparing audit logs** (#126): capture the same input before and after, compare the business records — the keys nodes chose to log — separately from the framework records invocation tracing adds (`thread`, `method`, `annotation`, `forkedExecution`, `asyncMethod`), and conclude "the logged business entries changed / did not change, for this input" from the business comparison alone — an output no node logs is not compared. It ships `audit-compare.py` (Python 3, standard library only), which prints that split, exits 1 when business entries differ, 3 when a match depends on reading an ambiguous `annotation` as trace (`--annotations-are-trace` asserts it), and 2 when a log holds nothing comparable or is in a shape it refuses to guess at, and it says to verify behaviour from the audit log rather than from generated code. The `load-audit-log`, `run-mongoose-server` and `add-a-node` skills now say a bundle hosting several processors exports one file per processor, `logs/audit-<processor>.yaml`. The skills index re-pins them, and ships the script as a pinned supporting file.
