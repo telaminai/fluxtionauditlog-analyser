@@ -32,18 +32,44 @@ public final class AuditTrace {
     private static final String METHOD = "method";
 
     /**
-     * The keys the TEXT runtime's invocation tracing writes into a node's entry beside whatever the node
-     * logged itself: {@code thread} (when thread names are printed), {@code method}, and, from Fluxtion
-     * runtime 1.1.1, {@code annotation} — the simple name of the annotation that dispatched the callback,
-     * written after {@code method} ({@code - source: { thread: main, method: onTrigger, annotation: OnTrigger}}).
-     * They are framework data, not business data. Only {@code method} decides the traced regime: the
-     * others accompany it, and a lone one is a business key until a {@code method} says otherwise.
+     * The key SPELLINGS the TEXT runtime's invocation tracing writes into a node's entry: {@code thread}
+     * (when thread names are printed), {@code method} — or {@code forkedExecution} and {@code asyncMethod}
+     * for a forked node — and, from Fluxtion runtime 1.1.1, {@code annotation}, the simple name of the
+     * annotation that dispatched the callback. A spelling alone decides nothing: a node may log any of these
+     * keys itself. Which entries ARE trace is positional — {@link #traceEntryCount}.
      */
-    private static final Set<String> TRACE_KEYS = Set.of("thread", METHOD, "annotation");
+    private static final Set<String> TRACE_KEYS = Set.of("thread", METHOD, "annotation", "forkedExecution", "asyncMethod");
+    /** An annotation's simple name, the only value tracing writes for {@code annotation}. */
+    private static final java.util.regex.Pattern ANNOTATION_NAME = java.util.regex.Pattern.compile("[A-Z][A-Za-z0-9_]*");
 
-    /** True when invocation tracing writes this key in the TEXT record — framework data, not the node's own. */
+    /** True when invocation tracing can write this key in the TEXT record. Spelling only — see {@link #traceEntryCount}. */
     public static boolean isTraceKey(String key) {
         return key != null && TRACE_KEYS.contains(key);
+    }
+
+    /**
+     * How many of this entry's leading values invocation tracing wrote. Tracing writes first, in a fixed
+     * order ({@code EventLogManager.nodeInvoked}, and each invocation starts its own entry): an optional
+     * {@code thread} (accepted once, before or just after the method, as older logs wrote it), then {@code method} — or {@code forkedExecution} then {@code asyncMethod} — then an
+     * optional {@code annotation} whose value is an annotation's simple name. Only that leading run is trace;
+     * everything after it is the node's own, even when spelled like a trace key, and an entry that does not
+     * start with the run has no trace values at all (a lone {@code thread} or {@code annotation} is business).
+     *
+     * <p>One ambiguity remains, and the format specification states it: a node of a runtime before 1.1.1
+     * that logged its own {@code annotation} first, with a capitalised simple-name value, reads as trace.
+     */
+    public static int traceEntryCount(List<KV> entries) {
+        int n = entries == null ? 0 : entries.size(), i = 0;
+        boolean thread = i < n && "thread".equals(entries.get(i).key());
+        if (thread) i++;
+        if (i < n && METHOD.equals(entries.get(i).key())) i++;
+        else if (i + 1 < n && "forkedExecution".equals(entries.get(i).key())
+                && "asyncMethod".equals(entries.get(i + 1).key())) i += 2;
+        else return 0;
+        if (!thread && i < n && "thread".equals(entries.get(i).key())) i++;   // older logs: method, then thread
+        if (i < n && "annotation".equals(entries.get(i).key()) && entries.get(i).rawValue() != null
+                && ANNOTATION_NAME.matcher(entries.get(i).rawValue()).matches()) i++;
+        return i;
     }
 
     /**
@@ -72,6 +98,7 @@ public final class AuditTrace {
     }
 
     private static boolean hasMethodEntry(NodeLog node) {
+        if (traceEntryCount(node.entries()) > 0) return true;   // includes a forked node's asyncMethod
         for (KV kv : node.entries()) {
             if (METHOD.equals(kv.key())) return true;
         }

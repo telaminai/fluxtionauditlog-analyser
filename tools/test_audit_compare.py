@@ -159,5 +159,63 @@ class AuditCompareTest(unittest.TestCase):
         self.assertIn('before: 25 records', out)
 
 
+    # --- review of PR 127: each of these once returned "did not change" (or misread the log) ---
+
+    def test_a_business_key_spelled_like_a_trace_key_after_the_trace_run_is_the_nodes_own(self):
+        before = BEFORE.replace('- quoteDEMO: { thread: main, method: onTrigger}',
+                                '- quoteDEMO: { thread: main, method: onTrigger, annotation: OnTrigger, annotation: approved}')
+        after = before.replace('annotation: approved', 'annotation: rejected')
+        code, out = self.run_compare(before, after)
+        self.assertEqual(1, code, out)
+        for key in ('thread', 'method', 'asyncMethod'):
+            b = BEFORE.replace('spread: 0.5, decision: publish', f'spread: 0.5, decision: publish, {key}: a')
+            self.assertEqual(1, self.run_compare(b, b.replace(f'{key}: a', f'{key}: b'))[0], key)
+
+    def test_an_annotation_whose_value_is_not_an_annotation_name_is_business_even_in_a_traced_entry(self):
+        # a pre-1.1.1 node that logged its own `annotation` straight after tracing's method
+        before = BEFORE.replace('- quoteDEMO: { thread: main, method: onTrigger}',
+                                '- quoteDEMO: { thread: main, method: onTrigger, annotation: approved}')
+        self.assertEqual(1, self.run_compare(before, before.replace('annotation: approved', 'annotation: rejected'))[0])
+
+    def test_a_forked_entry_is_framework(self):
+        forked = BEFORE.replace('- quoteDEMO: { thread: main, method: onTrigger}',
+                                '- quoteDEMO: { thread: main, forkedExecution: true, asyncMethod: onTrigger, annotation: OnTrigger}')
+        code, out = self.run_compare(BEFORE, forked)
+        self.assertEqual(0, code, out)
+        self.assertIn('framework (reported, does not decide the verdict): DIFFERENT', out)
+
+    def test_records_run_together_without_a_separator_are_refused(self):
+        run_together = BEFORE.replace('---\neventLogRecord:\n  logTime: 2000', 'eventLogRecord:\n  logTime: 2000', 1)
+        self.assertNotEqual(BEFORE, run_together)
+        code, out = self.run_compare(run_together, run_together)
+        self.assertEqual(2, code, out)
+        self.assertIn('NOTHING TO COMPARE', out)
+
+    def test_a_list_shaped_log_is_refused_not_misread(self):
+        listed = 'eventLogRecords:\n  - eventLogRecord:\n      event: PriceEvent\n'
+        self.assertEqual(2, self.run_compare(listed, listed)[0])
+
+    def test_only_the_class_name_at_hash_shape_is_masked(self):
+        for before, after in (('ref: batch@20261013', 'ref: batch@20261014'), ('acct: ops@cafe01', 'acct: ops@beef02')):
+            b = BEFORE.replace('decision: hold', 'decision: hold, ' + before)
+            self.assertEqual(1, self.run_compare(b, BEFORE.replace('decision: hold', 'decision: hold, ' + after))[0], before)
+        b = BEFORE.replace('decision: hold', 'decision: com.acme.Order$Line@1a2b3c4d')
+        code, out = self.run_compare(b, BEFORE.replace('decision: hold', 'decision: com.acme.Order$Line@5e6f7a8b'))
+        self.assertEqual(0, code, out)
+        self.assertIn('masked: 2', out)
+
+    def test_a_lambda_address_and_its_hash_are_masked(self):
+        b = BEFORE.replace('decision: hold', 'sink: Svc$$Lambda/0x000000700136dfb0@7883e4ae')
+        a = BEFORE.replace('decision: hold', 'sink: Svc$$Lambda/0x000000700137aa10@11aa22bb')
+        self.assertEqual(0, self.run_compare(b, a)[0])
+        self.assertEqual(1, self.run_compare(b, a, '--keep-identity-hashes')[0])
+
+    def test_event_text_continued_onto_further_lines_is_compared_whole(self):
+        def exported(signature):
+            return BEFORE.replace('eventToString: PriceEvent[symbol=DEMO, price=99.0]',
+                                  'eventToString: @Override\n' + signature)
+        code, out = self.run_compare(exported('public void setLimit(int limit)'), exported('public void cancelAll()'))
+        self.assertEqual(1, code, out)
+
 if __name__ == '__main__':
     unittest.main()

@@ -171,12 +171,11 @@ public final class ReadService {
      * <ul>
      *   <li>{@code marked}: a wire TRACE marker said the node ran ({@link NodeLog#traced()}) and no
      *       contribution carries an entry — explicit provenance, any grammar.</li>
-     *   <li>{@code inferred}: legacy text grammar only, where invocation tracing writes {@code thread},
-     *       {@code method} and {@code annotation} ({@link telamin.fluxtion.audit.analyser.analyser.topology.AuditTrace#isTraceKey}):
-     *       every entry across the contributions is one of those keys AND a
-     *       {@code method} entry is present. A lone {@code thread} key is a business key until a
-     *       {@code method} says otherwise, matching the {@code AuditTrace} inference. This is an inference
-     *       from spelling, so it is reported under its own name.</li>
+     *   <li>{@code inferred}: legacy text grammar only: every contribution's entries are exactly the leading
+     *       run invocation tracing writes ({@link telamin.fluxtion.audit.analyser.analyser.topology.AuditTrace#traceEntryCount}:
+     *       {@code thread}?, {@code method} or the forked pair, {@code annotation}?) and at least one such run
+     *       is present. A key after the run, or a lone {@code thread}, is a business key. This is an inference
+     *       from position and spelling, so it is reported under its own name.</li>
      * </ul>
      * A binary log's business {@code method} property is a business property: nothing is inferred there.
      */
@@ -191,13 +190,11 @@ public final class ReadService {
         for (NodeLog nl : rec.nodeLogs()) {
             boolean[] f = byId.computeIfAbsent(nl.instanceId(), k -> new boolean[4]);
             if (nl.traced()) f[0] = true;
-            for (KV kv : nl.entries()) {
-                f[1] = true;
-                boolean traceKey = legacyText
-                        && telamin.fluxtion.audit.analyser.analyser.topology.AuditTrace.isTraceKey(kv.key());
-                if (!traceKey) f[2] = true;
-                if (legacyText && "method".equals(kv.key())) f[3] = true;
-            }
+            int run = legacyText
+                    ? telamin.fluxtion.audit.analyser.analyser.topology.AuditTrace.traceEntryCount(nl.entries()) : 0;
+            if (!nl.entries().isEmpty()) f[1] = true;
+            if (nl.entries().size() > run) f[2] = true;
+            if (run > 0) f[3] = true;
         }
         List<String> marked = new ArrayList<>();
         List<String> inferred = new ArrayList<>();

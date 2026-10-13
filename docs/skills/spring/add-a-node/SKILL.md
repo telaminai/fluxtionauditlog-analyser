@@ -85,7 +85,8 @@ already produced. Do not introduce a compound analyser verb for this workflow.
 ## Verify from the audit log, not from generated code
 
 The generated processor and GraphML show what the generator **wrote**; they cannot show what an event
-**did**. Do not read them. The compiler's messages say whether the declared graph compiled, and the audit
+**did**. Do not read the processor or the GraphML text: the GraphML is opened in the analyser (step 5),
+never read. The compiler's messages say whether the declared graph compiled, and the audit
 log answers every behavioural question. Reading generated source costs thousands of tokens and answers
 nothing those two do not. With invocation tracing on, a record lists every
 node invoked for its event, in dispatch order, each with its `method` (and, from Fluxtion runtime 1.1.1,

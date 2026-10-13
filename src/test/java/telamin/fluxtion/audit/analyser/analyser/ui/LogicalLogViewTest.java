@@ -148,6 +148,33 @@ class LogicalLogViewTest {
     }
 
     @Test
+    void onlyTheLeadingTraceRunIsMuted_aNodesOwnKeySpelledTheSameIsNot() {
+        // Review of PR 127: muting by spelling muted a node's own `annotation` (and a lone `thread`).
+        LogicalLogView.Layout layout = LogicalLogView.layout(parse("""
+                ---
+                eventLogRecord:
+                    logTime: 1
+                    event: E
+                    nodeLogs:
+                        - reviewer: { thread: main, method: onTrigger, annotation: OnTrigger, annotation: approved}
+                        - lone: { annotation: draft, thread: mine}
+                """));
+        String text = layout.text();
+        java.util.function.Function<String, Integer> line = l -> {
+            int at = text.indexOf("      " + l + "\n");
+            assertTrue(at >= 0, l + " in " + text);
+            return at;
+        };
+        assertTrue(layout.traceLines().contains(line.apply("thread: main")));
+        assertTrue(layout.traceLines().contains(line.apply("method: onTrigger")));
+        assertTrue(layout.traceLines().contains(line.apply("annotation: OnTrigger")));
+        assertFalse(layout.traceLines().contains(line.apply("annotation: approved")), "after the run: the node's own");
+        assertFalse(layout.traceLines().contains(line.apply("annotation: draft")), "a lone annotation is business");
+        assertFalse(layout.traceLines().contains(line.apply("thread: mine")), "a lone thread is business");
+        assertEquals(3, layout.traceLines().size());
+    }
+
+    @Test
     void aCycleWhereNothingLoggedSaysSoRatherThanRenderingBlank() {
         LogicalLogView.Layout layout = LogicalLogView.layout(parse("""
                 ---

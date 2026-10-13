@@ -17,3 +17,13 @@ eventLogRecord:
     - priceSource: { price: 102.0}
     - quoteDEMO: { annotation: aBusinessKeyThatHappensToBeCalledAnnotation}
 ---
+#00:00:00.000 [main] INFO DEMO
+eventLogRecord:
+  logTime: 1002
+  event: Tick
+  thread: main
+  nodeLogs:
+    - reviewer: { thread: main, method: onTrigger, annotation: OnTrigger, annotation: approved}
+    - auditor: { thread: main, method: onTrigger, annotation: approved}
+    - forker: { thread: main, forkedExecution: true, asyncMethod: onTrigger, annotation: OnTrigger}
+---

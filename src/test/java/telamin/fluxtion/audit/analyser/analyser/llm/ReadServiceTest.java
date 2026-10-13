@@ -301,6 +301,21 @@ class ReadServiceTest {
 
     @Test
     @SuppressWarnings("unchecked")
+    void aKeySpelledLikeATraceKeyAfterTheTraceRunIsBusiness_soOnlyTheForkedNodeIsTraceLike() throws IOException {
+        // Review of PR 127: by spelling, reviewer (a second `annotation: approved`) and auditor (a pre-1.1.1
+        // node's own `annotation: approved`) read as trace-only while `values` showed their business value.
+        HeapLogStore s = new HeapLogStore(Files.readString(
+                Path.of("src/test/resources/conformance/c33-trace-annotation.yaml"), StandardCharsets.UTF_8));
+        Map<String, Object> out = ReadService.read(s.index().snapshot(),
+                Map.of("recordIndex", 2, "after", 0, "fields", List.of("auditor.annotation")), s::rawText);
+        List<Map<String, Object>> recs = records(out);
+        assertEquals(List.of("forker"), recs.get(0).get("traceLikeOnly"),
+                "the forked node logged only its trace run; reviewer and auditor logged business values");
+        assertEquals("approved", ((Map<String, String>) recs.get(0).get("values")).get("auditor.annotation"));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
     void legacyTraceLikeOnly_isInferredPerInstanceOverEveryContribution() {
         HeapLogStore s = tracedStore();
         Map<String, Object> out = ReadService.read(s.index().snapshot(),

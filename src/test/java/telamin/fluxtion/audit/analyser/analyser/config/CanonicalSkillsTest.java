@@ -83,20 +83,62 @@ class CanonicalSkillsTest {
         // G14 grid 2026-10-12: an author verifying its change read the generated processor, the builder and the
         // scripts' source - about a fifth of all tool output - and none of it was needed; the skill told it to.
         // The author reads the Spring XML, the compiler's own messages and the audit log.
-        java.util.regex.Pattern instruction = java.util.regex.Pattern.compile(
-                "(?i)\\b(read|inspect|open|check)\\b[^.\\n]{0,60}\\b(re)?generated (processor|source|code)|"
-                        + "(?i)\\b(read|inspect)\\b[^.\\n]{0,40}\\bbuilder\\b");
+        // Review of PR 127: the first guard knew four verbs and exempted any sentence containing "not"; each of
+        // these evasions passed it. They are the witnesses the guard must catch.
+        for (String evasion : List.of(
+                "Look at the generated processor to confirm the order.",
+                "Review the generated Java before you run.",
+                "Examine the GraphML to see the edges.",
+                "Open target/generated-sources/fluxtion/Processor.java and find your node.",
+                "Confirm the dispatch order in the generated onEvent body.",
+                "Read the processor the generator wrote.",
+                "Read the generated processor if the receipt does not list your node.",
+                "cat the builder to see the wiring."))
+            assertTrue(tellsTheAuthorToReadGeneratedCode(evasion), "the guard must catch: " + evasion);
+        for (String allowed : List.of(
+                "Do not read the regenerated processor, its GraphML text or the builder to confirm the wiring.",
+                "Never read the generated processor.",
+                "Follow `load-audit-log` to open that export with the generated GraphML.",
+                "That is the evidence for dispatch order, not a reading of the generated `onEvent` body.",
+                "Check a source the builder reads."))
+            assertFalse(tellsTheAuthorToReadGeneratedCode(allowed), "a prohibition or an analyser step is allowed: " + allowed);
         try (var skills = Files.walk(ROOT)) {
             for (Path skill : skills.filter(f -> f.getFileName().toString().equals("SKILL.md")).toList()) {
                 for (String sentence : Files.readString(skill).split("(?<=[.:;])\\s+")) {
-                    if (instruction.matcher(sentence).find())
-                        assertTrue(sentence.matches("(?is).*\\b(do not|don't|never|not)\\b.*"),
-                                ROOT.relativize(skill) + " tells the author to read generated code: " + sentence.strip());
+                    assertFalse(tellsTheAuthorToReadGeneratedCode(sentence),
+                            ROOT.relativize(skill) + " tells the author to read generated code: " + sentence.strip());
                 }
             }
         }
         String addANode = Files.readString(ROOT.resolve("spring/add-a-node/SKILL.md"));
         assertTrue(addANode.contains("read only the compiler's own messages"), "the replacement instruction is present");
+    }
+
+    private static final String READ_VERB = "\\b(read|inspect|open|check|look at|review|examine|confirm|view|cat)\\b";
+    private static final java.util.regex.Pattern READ_GENERATED = java.util.regex.Pattern.compile(
+            "(?i)" + READ_VERB + "([^.\\n]{0,60}?)"
+                    + "(\\b(re)?generated[ -](processor|sources?|code|java|file|onEvent)|generated-sources"
+                    + "|\\bprocessor the generator wrote|\\bGraphML(?! *\\(| with| in the analyser))");
+    /** The builder only as the verb's direct object: "a source the builder reads" (fluxtion-builder, the tool) is not. */
+    private static final java.util.regex.Pattern READ_BUILDER = java.util.regex.Pattern.compile(
+            "(?i)" + READ_VERB + "\\s+((the|its|generated)\\s+)*builder\\b");
+    /** Negation that governs the matched verb: directly before it, at most two words between. */
+    private static final java.util.regex.Pattern NEGATED = java.util.regex.Pattern.compile(
+            "(?is).*\\b(do not|don't|never|nor|not)\\s+(\\w+\\s+){0,2}$");
+
+    /** True when the sentence instructs reading generated output: a reading verb that no negation governs. */
+    static boolean tellsTheAuthorToReadGeneratedCode(String sentence) {
+        for (var pattern : List.of(READ_GENERATED, READ_BUILDER)) {
+            var m = pattern.matcher(sentence);
+            while (m.find()) {
+                String verb = m.group(1).toLowerCase(java.util.Locale.ROOT);
+                boolean graphml = pattern == READ_GENERATED
+                        && m.group(3).toLowerCase(java.util.Locale.ROOT).startsWith("graphml");
+                if (graphml && (verb.equals("open") || verb.equals("view"))) continue;   // the analyser opens it
+                if (!NEGATED.matcher(sentence.substring(0, m.start())).matches()) return true;
+            }
+        }
+        return false;
     }
 
     @Test
