@@ -62,9 +62,15 @@ class Transcript:
             self.result(tid, result, is_error)
         return tid
 
-    def result(self, tid, body, is_error=False):
-        self._emit({'type': 'user', 'message': {'role': 'user', 'content': [
-            {'type': 'tool_result', 'tool_use_id': tid, 'content': body, 'is_error': is_error}]}})
+    def result(self, tid, body, is_error=False, tool_use_result=None):
+        event = {'type': 'user', 'message': {'role': 'user', 'content': [
+            {'type': 'tool_result', 'tool_use_id': tid, 'content': body, 'is_error': is_error}]}}
+        if tool_use_result is not None:
+            event['tool_use_result'] = tool_use_result
+        self._emit(event)
+
+    def system(self, subtype, **fields):
+        self.lines.append(json.dumps({'type': 'system', 'subtype': subtype, **fields}))
 
     def answer(self, prompt=30_000, text='done'):
         self.req += 1
@@ -321,6 +327,43 @@ class DelegationTest(unittest.TestCase):
         self.assertEqual(cat['kinds']['design']['carried'], 1000 * 4)
         # the subagent's context reply (request 5) is carried by the subagent's answer only
         self.assertEqual(cat['kinds']['analyser']['carried'], len('opened') * 2 + 300 * 1)
+
+    def _backgrounded(self, notify=True):
+        """The shape of lad-r3-s5-1 (CLI 2.1.296): the Agent call's result is a launch receipt, the main context
+        keeps working while the subagent runs, and the reply arrives as a task_notification, then a new init."""
+        t = Transcript()
+        t.system('init', tools=['Task', 'Bash'])
+        t.call('Bash', {'command': './generate.sh; echo "exit=$?"'}, 'exit=0', prompt=60_000)    # B (call 0)
+        t.call('Bash', {'command': './run-and-export.sh'}, 'exported', prompt=90_000)             # E (call 1)
+        tid = t.call('Agent', self.BRIEF, None, prompt=95_000)                                    # D (call 2)
+        t.result(tid, 'q' * 1142, tool_use_result={'isAsync': True, 'status': 'async_launched'})
+        t.system('task_started', tool_use_id=tid, is_backgrounded=True, task_type='local_agent')
+        t.parent, t.model = tid, MODEL
+        t.call('mcp__fluxtion-analyser__analyser_open', {'log': '/p/logs/audit-p.yaml'}, 'opened', prompt=21_000)
+        t.parent, t.model = None, MODEL
+        t.call('Bash', {'command': 'ls logs'}, 'audit-p.yaml', prompt=96_000)     # main, while the subagent runs
+        t.parent, t.model = tid, MODEL
+        t.answer(prompt=22_000, text='reply')
+        t.parent, t.model = None, MODEL
+        if notify:
+            t.system('task_notification', tool_use_id=tid, status='completed', summary='R' * 5000)
+            t.system('init', tools=['Task', 'Bash'])
+        t.answer(prompt=97_000)
+        return t
+
+    def test_a_backgrounded_reply_is_measured_from_its_notification(self):
+        b, cat, ph = ts.split(self._backgrounded().finish())
+        d = ph['delegation']
+        self.assertEqual((d['backgrounded'], d['delegateResultBytes'], d['receiptBytes'],
+                          d['mainRequestsWhileSubagentRan'], d['subagentRequests'], d['warnings']),
+                         (1, 5000, 1142, 1, 2, []))
+        self.assertEqual(cat['byRule']['delegate']['bytes'], 1142, 'toolResultBytes still counts the receipt')
+        self.assertEqual(sum(k['bytes'] for k in cat['kinds'].values()), cat['toolResultBytes'])
+
+    def test_a_backgrounded_subagent_that_never_reports_is_flagged(self):
+        _, _, ph = ts.split(self._backgrounded(notify=False).finish())
+        self.assertEqual(ph['delegation']['delegateResultBytes'], 0)
+        self.assertIn('never reported', ph['delegation']['warnings'][0])
 
     def test_a_delegation_with_no_visible_subagent_is_flagged(self):
         _, _, ph = ts.split(self._delegated(visible=False).finish())

@@ -355,7 +355,7 @@ rung; otherwise the item is reported as *no effect shown*, not as a saving.
 
 - **Mechanism: skill text only (option a), in `common/load-audit-log`.** When the build has succeeded and the run
   has written its export, the author hands diagnosis to a Claude Code subagent (`subagent_type:
-  "general-purpose"`, the same model and tools as the author), whose whole prompt is a filled-in **brief**. That is
+  "general-purpose"`, the same model and tools as the author, in the foreground), whose whole prompt is a filled-in **brief**. That is
   the only fresh context available inside one author session. No analyser verb, `context` section or bundle script
   is added, for three reasons:
   1. **What the brief must carry is the author's, not the analyser's**: the change made, the prediction and the
@@ -369,67 +369,137 @@ rung; otherwise the item is reported as *no effect shown*, not as a saving.
   3. **It can be measured**: the two arms differ by one skill section.
   Not chosen: (b) a generated brief, for reasons 1 and 2; (c) both, because (b) adds nothing to (a). The graph's
   nodes and edges are not copied into the brief either. The fresh context opens the GraphML in the analyser.
-- **The brief, exactly** (the fenced template in the skill): a first line saying it is the fresh context and must
-  not delegate, edit files or read the export as text; `project`; `logs`, one line per processor (name,
-  `logs/audit-<processor>.yaml`, its GraphML); `provenance`; `change` (each node or edge declared or changed: bean
-  id, class, from → to); `predicted` (the expected record facts); `question` (with any chart or report to leave on
-  the canvas); then three steps: load-audit-log steps 2–4, `context {sections: ["log", "pairing"]}`, and answers from
-  `read {fields}`, `series` and `aggregate` cited by `recordIndex`. The reply contract is the answer, each fact with
-  its `recordIndex`, the qualifications from step 2 (or "not stated"), what was left on the canvas, and what the log
-  cannot show. **Size bound**: the filled brief is at most 2,000 characters; the template is 1,028, and
-  `CanonicalSkillsTest` caps it at 1,200 so there is room to fill it. Against the ≈ 22k base the fresh context
-  re-pays [T], that is under 3%.
+- **When.** Step 1 routes only a diagnosis that needs more than one analyser read after opening: a chart, several
+  records or nodes, a before/after comparison, or several processors. A single check (does the pairing hold, did the
+  export open) stays in the design context, where a subagent's base prompt would cost more than the read.
+- **How it is called.** `subagent_type: "general-purpose"` and `run_in_background: false`. The author waits for the
+  reply and does nothing in the analyser meanwhile. CLI 2.1.296 ran a subagent in the background without being asked
+  (lad-r3-s5-1, below), and the main context kept working while it ran. Two contexts driving one analyser canvas
+  would interfere with each other, and the main context would pay for the same diagnosis twice.
+- **The brief, exactly** (the fenced template in the skill):
+  - a header: this is the fresh context; do not delegate (subagents can spawn subagents: the 2.1.296 binary
+    records a `spawn_depth` of N + 1 for a spawn from inside one), do not edit files, do not read an export as text.
+    Running `audit-compare.py` on a before/after pair, `add-a-node`'s proof, is allowed;
+  - `project`; `logs`, one line per processor (name, `logs/audit-<processor>.yaml`, its GraphML); `provenance`;
+    `change` (each node or edge declared or changed: bean id, class, from → to); `predicted` (the expected record
+    facts); `question` (with any chart or report to leave on the canvas);
+  - **for each log in turn**, because the analyser holds one open log: (1) open the project alone if it is not
+    active, then open the log with its GraphML and provenance; (2) `context {sections: ["log", "pairing"]}`, noting
+    `log.identity`, `graphPairing`, `timeOrder`, `producer`, `inFlight` and `dispatchOrder`; (3) answer that log's
+    part from `read {fields}`, `series` and `aggregate`, cited by `recordIndex`. Reading the qualifications once,
+    after every log was opened, would report only the last log's;
+  - the reply, per processor: the answer, each fact with its `recordIndex`, that log's qualifications (or "not
+    stated"), what was left on the canvas, and what the log cannot show.
+
+  The brief's steps name analyser calls only, never a file in the project, so the same section works in a template
+  that ships no skills (rungs 2 and 4, below).
+  **Size bound**: the filled brief is at most 2,000 characters. The template is 1,228, and `CanonicalSkillsTest`
+  caps it at 1,300 so there is room to fill it. Against the ≈ 22k base the fresh context re-pays [S] (median first
+  prompt 21.8k [T]), the brief is under 3%. The one observed subagent's first prompt was 14.2k (Sonnet 5, an
+  Explore subagent; [S]).
 - **So that no evidence is hidden** (§2.5): the brief carries pointers and the question, never evidence. The
-  qualifications are read in the fresh context and return in its reply. The author gives the person that reply with
-  its qualifications and does not repeat its reads. A defect the subagent reports is fixed in the design context,
-  the run is repeated, and a new brief is sent; the subagent never edits.
-- **Reach.** Rungs 3 and 5: the analyser bundle vendors the `common` skills. In 4 of the 6 baseline bundle runs the
-  author read `load-audit-log` [S, from the uncommitted transcripts]. Step 1 now routes a design conversation to
-  the section, and `add-a-node` already routes to `load-audit-log`. Rungs 2 and 4: the Spring starter ships no
-  `.claude/skills`; its authors read `RUNBOOK.md` and `runbooks/analyser.md` [S]. Productising it there is
-  **UP-PG-08**. For the measurement, the rung 2 and 4 treatment fixture carries the same section in
-  `runbooks/analyser.md` as a recorded fixture patch (FIXTURES.md), applied to that arm only.
-- **Harness, built with this design.** `tools/g14_runner.py --allow-subagent` grants the subagent tool (`Agent`, alias
-  `Task`; the default grant is unchanged) and records `subagentAllowed` in config.json. `tools/token_split.py`
-  assigns each request to a context by stream-json's `parent_tool_use_id`, carries a result only within its own
-  context, and starts D at the first analyser call **or delegation** after E. A run that delegated gets
-  `buckets.contexts` (per context: requests, over 100k, first and maximum prompt, cost, model) and
-  `phases.delegation` (delegations, brief characters, reply bytes, subagent and main-diagnosis requests and
-  over-100k counts, `warnings`). Re-split, the 28 L0 runs reproduce their committed tables exactly, apart from
-  phases.json's `definition` text [S, re-split from the uncommitted transcripts]. **Not yet seen in a real transcript**: that subagent messages reach
-  stream-json under `-p`, and whether `result.usage.output_tokens` includes their output. A run that delegated but
-  shows no subagent request is flagged, not silently scored.
+  qualifications are read in the fresh context, for each log while it is open, and return in its reply. The author
+  gives the person that reply with its qualifications and does not repeat its reads. A defect the subagent reports
+  is fixed in the design context, the run is repeated, and a new brief is sent; the subagent never edits.
+- **Reach.**
+  - **Rungs 3 and 5.** The analyser bundle vendors the `common` skills. In 4 of the 6 baseline bundle runs the
+    author read `load-audit-log` [S, from the uncommitted transcripts]. Step 1 routes to the section, and `add-a-node`
+    already routes to `load-audit-log`. The treatment replaces `.claude/skills/load-audit-log/SKILL.md` with this
+    revision's.
+  - **Rungs 2 and 4.** The Spring starter ships no `.claude/skills`; its authors read `RUNBOOK.md` and
+    `runbooks/analyser.md` [S]. The treatment fixture applies this patch, recorded in that arm's FIXTURES.md with
+    the patched files' digests:
+    1. Append the section to `runbooks/analyser.md`, from `## Diagnose in a fresh context` up to the next heading,
+       byte-identical to this revision's skill. The brief needs no change, because its steps name analyser calls only.
+    2. In `RUNBOOK.md` step 5, after "Then run ./run.sh.", insert this sentence: "If checking the change needs more
+       than one analyser read after opening the log, follow *Diagnose in a fresh context* in runbooks/analyser.md."
+       So the scenario step points to the section.
+  - Productising both is **UP-PG-08**.
+- **What gates the subagent tool** (review of PR #138, from the 2.1.296 binary and a transcript):
+  - The Agent tool's own permission check allows it, before any allow rule is consulted, in every permission mode
+    but one, so `dontAsk` does not deny it. The `--allowedTools` list therefore never gated it, and **every G14 and
+    ladder run so far could delegate.**
+  - The first ladder's VOID run lad-r3-s5-1 (Sonnet 5, 2026-10-12) did delegate, to an Explore subagent during
+    design.
+  - Only a deny rule removes the tool. `tools/g14_runner.py --no-subagent` passes `--disallowedTools Agent Task`,
+    and the runner records `subagent: available | denied` in config.json and `subagentOffered` (from the session's
+    init event) in meta.json.
+  - Both arms of this acceptance run with the default (available), so they differ in guidance alone, as every
+    earlier run did. `--no-subagent` is for an arm that must not delegate. A denied arm whose `subagentOffered` is
+    true is not that arm.
+- **Measurement** (`tools/token_split.py`):
+  - **Contexts.** Each request is assigned to a context by stream-json's `parent_tool_use_id`, and a result is
+    carried only within its own context.
+  - **Phases.** D starts at the first analyser call **or delegation** after E.
+  - **Tables.** A run that delegated gets two tables:
+    - `buckets.contexts`, per context: requests, over 100k, first and maximum prompt, cost and model;
+    - `phases.delegation`: delegations; `backgrounded`; the brief's characters; the reply's characters; the
+      receipt's bytes; the main-context requests made while a subagent ran; the subagent and main-diagnosis
+      request and over-100k counts; and `warnings`.
+  - **A background reply is measured from its notification.** When a subagent runs in the background, its tool
+    result is a 1,142-byte launch receipt (`tool_use_result.isAsync`). The reply arrives later as a
+    `system/task_notification` carrying the call's `tool_use_id` and the reply text in `summary`, and is measured
+    from there.
+  - **Seen in a real transcript** [S, lad-r3-s5-1, CLI 2.1.296]: its 9 subagent requests reach stream-json under
+    `-p` with `parent_tool_use_id` set; the last `result` event's `usage.output_tokens` includes their output, so the
+    recomputed cost is 1.000 of billed; and 3 main-context requests were made while the subagent ran.
+  - **Flags.** A delegation with no visible subagent request, a backgrounded subagent that never reports, and a
+    subagent on another model are flagged, not silently scored.
+  - **Unchanged for L0.** Re-split, the 28 L0 runs reproduce their committed tables exactly, apart from
+    phases.json's `definition` text [S, re-split from the uncommitted transcripts].
 - **Acceptance (interleaved; no run made yet; the runs need owner approval).**
-  - **Setup.** Haiku 5.5, rungs 2–5, n = 3 per arm per rung, arms alternating run by run in one session window.
-    Both arms run with `--allow-subagent` and the same pinned CLI binary. Control = the baseline fixtures. Treatment
-    = the same fixtures plus the section (the bundle's `.claude/skills/load-audit-log/SKILL.md` replaced by this
-    revision's; the starter's `runbooks/analyser.md` patched).
-  - **Metrics**, all from `token_split.py` tables: diagnosis-phase cost (main diagnosis plus subagent requests),
-    diagnosis-phase requests over 100k, and total run cost.
+  - **Setup.** Haiku 5.5, rungs 2–5, n = 3 per arm per rung, arms alternating run by run in one session window. Both
+    arms run with the same pinned CLI binary and the default tool grant. Control = the baseline fixtures. Treatment =
+    the same fixtures plus the section, as *Reach* states.
+  - **Metrics**, all from `token_split.py` tables:
+    - **diagnosis-phase cost**: every request in L0's diagnosis phase, in every context. Under L0's rule that phase
+      starts at the first analyser call or delegation after the **last** export, so after a fix-and-rerun loop it
+      holds the last brief's subagent and the main context's requests after the last export. An earlier subagent,
+      and the fix that follows it, fall in design or run because they precede the last export;
+    - diagnosis-phase requests over 100k;
+    - **total run cost**, which counts every subagent, including the ones before a rerun, so a loop cannot hide
+      cost outside the diagnosis phase;
+    - reported, not judged: the number of delegations and briefs and the per-context first prompts.
   - **Pass**, per rung:
     - the treatment's median diagnosis-phase cost is below the control's by more than the control's min–max
       spread on that rung;
     - its median diagnosis over-100k count is at most half the control's;
-    - its median total cost (both contexts) is not above the control's;
+    - its median total cost is not above the control's;
     - PASS, ORACLE and CHART are not below the control's.
+  - **Overall decision.**
+    1. Any rung where PASS, ORACLE or CHART falls below the control's rejects the section.
+    2. Otherwise the section is kept if the cost criteria pass on **both** bundle rungs (3 and 5, where the
+       canonical skill ships) and on at least three of the four rungs, and no rung's median total cost is above the
+       control's by more than the control's spread.
+    3. Otherwise the result is *no effect shown* and the section is deleted (P2: a measurement retires it; P3: it
+       costs turns).
+    4. UP-PG-08's starter half proceeds only if rungs 2 and 4 both pass.
   - **Reporting.**
     - Delegation is reported per run and the runs are scored as assigned: a treatment run that did not delegate
-      stays in its arm.
+      stays in its arm, and so does a control run that delegated on its own.
     - A run with a `delegation.warnings` entry is reported, and is excluded from the cost metrics only.
     - The out-of-sample check is L0's: cost recomputed within 2% of billed.
-  - **Otherwise** the result is *no effect shown* and the section is deleted (P2: a measurement retires it; P3: it
-    costs turns).
   - **The idea is wrong if** the subagent's first prompt and its extra turns cost more than the diagnosis saves
     (§5), or if CHART falls because the fresh context lost implicit context.
 - **Regression checks (rule 8).**
-  - `CanonicalSkillsTest.loadLogSkillDiagnosesInAFreshContextWithABriefThatCarriesNoEvidence` requires each of
-    these in the section: the subagent type; the size bound; no delegate, no edit and no raw-export read; the
-    `sections` call; every qualification key; `recordIndex`; the reply contract; "never the evidence"; and the
-    defect loop. It also requires step 1's routing and caps the template's length. Its witnesses remove each
-    requirement in turn, and each removal must turn the check red.
-  - `test_token_split.py`'s `DelegationTest` pins the contexts, the phase boundary and the warnings. Its witness:
-    carrying results across contexts, or not starting D at a delegation, fails it.
-  - `test_g14_runner.py` pins that the subagent grant is opt-in.
+  - **`CanonicalSkillsTest.loadLogSkillDiagnosesInAFreshContextWithABriefThatCarriesNoEvidence`** requires these in
+    the section:
+    - the subagent type and `run_in_background: false`;
+    - waiting for the reply;
+    - the size bound;
+    - no delegation, no edits and no export read as text, with `audit-compare.py` allowed;
+    - one log at a time, the `sections` call and every qualification key;
+    - `recordIndex` and the per-processor reply contract;
+    - "never the evidence", read for each log while it is open;
+    - the defect loop.
+
+    It also requires step 1's routing with its threshold ("A single check stays here.") and caps the template's
+    length. Its witnesses remove each requirement in turn, and each removal must turn the check red.
+  - **`test_token_split.py`'s `DelegationTest`** pins the contexts, the phase boundary, the background-reply shape
+    (receipt, then notification) and the warnings. Its witnesses each fail it: carrying results across contexts,
+    not starting D at a delegation, or measuring a background reply from its receipt.
+  - **`test_g14_runner.py`** pins two things: that `--no-subagent` denies `Agent` and `Task` by a deny rule while
+    the allow list never names them, and the init-event check behind `subagentOffered`.
 
 ### L5 — One-call diagnosis summary
 

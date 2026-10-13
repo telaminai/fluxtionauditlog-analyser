@@ -30,16 +30,22 @@ Measurement notes (each is a fact about stream-json, found while building this, 
   at the base tier with no cache, and kept out of the phases (it cannot be placed in time).
 * The `>100k` tier flag is prompt = input + cache-read + cache-write > 100,000, the definition score_ladder.py uses
   for `usage.over100k`.
-* A subagent (the `Agent` tool, alias `Task`, in Claude Code 2.1.282's binary) runs in its own context. stream-json
-  marks each of its messages with the delegating call's id in `parent_tool_use_id` (null for the main context; the
-  SDK message schema, read from the same binary, 2026-10-13). Each request is assigned to a CONTEXT by that field, a
-  tool result is carried only by later requests of its own context, and a run that delegated gets a `contexts`
-  table (buckets.json) and a `delegation` block (phases.json): M72 L4 (iii)'s acceptance reads them. A run with
-  one context and no delegating call writes neither: re-split, the 28 L0 runs reproduce their committed tables
-  exactly apart from phases.json's `definition` text, which now names the delegation rule. **Not yet seen in a
-  real transcript**: whether subagent messages reach stream-json under `-p`, and whether the `result` event's
-  `usage.output_tokens` includes their output. A run that delegated but shows no subagent request is flagged
+* A subagent (the `Agent` tool, alias `Task`) runs in its own context. stream-json marks each of its messages with
+  the delegating call's id in `parent_tool_use_id` (null for the main context). Each request is assigned to a
+  CONTEXT by that field, a tool result is carried only by later requests of its own context, and a run that
+  delegated gets a `contexts` table (buckets.json) and a `delegation` block (phases.json): M72 L4 (iii)'s
+  acceptance reads them. A run with one context and no delegating call writes neither: re-split, the 28 L0 runs
+  reproduce their committed tables exactly apart from phases.json's `definition` text.
+  **Seen in a real transcript** (the first ladder's VOID run lad-r3-s5-1, CLI 2.1.296, 2026-10-12, which delegated
+  to an Explore subagent under the default grant): 9 subagent requests reach stream-json under `-p` with
+  `parent_tool_use_id` set, and the last `result` event's `usage.output_tokens` includes their output — the
+  recomputed cost is 1.000 of billed. A run that delegated but shows no subagent request is still flagged
   (`delegation.warnings`); its subagent cost then sits in `sideCalls`, outside the phases.
+* **A subagent may run in the background** even when the call does not ask for it (the same run): the tool result is
+  then a ~1 kB launch receipt (`tool_use_result.isAsync`), and the reply arrives later as a `system/task_notification`
+  event carrying the delegating call's `tool_use_id` and the reply text in `summary`, after which the CLI starts a
+  new turn (a second `init`). The reply is therefore measured from the notification, not the receipt; the
+  delegation block counts `backgrounded` calls and the main-context requests made while a subagent was running.
 
 Pricing (PRICES below) was fitted to the CLI's own billed `total_cost_usd` and must be re-read from the provider's
 pricing page before it is relied on (CLAUDE.md rule 6). Fit, 2026-10-13: Sonnet 5 reproduces every first-ladder
@@ -247,6 +253,8 @@ def _token_span(text, start, end):
 # ---------------------------------------------------------------------------------------------------------------
 def parse(lines):
     requests, order, calls, by_id, result = {}, [], [], {}, None
+    notified = {}       # tool_use_id -> reply chars, from system/task_notification (a backgrounded subagent's reply)
+    async_ids = set()
     pending_thinking = 0
     for line in lines:
         try:
@@ -256,6 +264,8 @@ def parse(lines):
         t = d.get('type')
         if t == 'system' and d.get('subtype') == 'thinking_tokens':
             pending_thinking += d.get('estimated_tokens_delta') or 0
+        elif t == 'system' and d.get('subtype') == 'task_notification' and d.get('tool_use_id'):
+            notified[d['tool_use_id']] = {'chars': len(d.get('summary') or ''), 'afterRequest': len(order)}
         elif t == 'assistant':
             m = d.get('message') or {}
             mid = m.get('id') or f'anon-{len(order)}'
@@ -295,8 +305,14 @@ def parse(lines):
                         call['isError'] = c.get('is_error')
                         call['text'] = body[-4000:]      # held in memory for the success check; never written
                         call['auditEcho'] = call.get('auditEcho', False) or bool(AUDIT_ECHO.search(body))
+                        tur = d.get('tool_use_result')
+                        if isinstance(tur, dict) and tur.get('isAsync'):
+                            async_ids.add(c.get('tool_use_id'))
         elif t == 'result':
             result = d
+    for c in calls:
+        c['async'] = c['id'] in async_ids
+        c['notified'] = notified.get(c['id'])
     return [dict(requests[i], id=i) for i in order], calls, result
 
 
@@ -540,9 +556,28 @@ def _contexts(requests, rows, calls):
                             'change confounds the comparison')
     sub_costs = [t['costUsd'] for t in subs]
     main_diag = [row for row, r in zip(rows, requests) if r['parent'] is None and row['phase'] == 'diagnosis']
+    # The reply the main context receives: the tool result for a foreground subagent; for one that ran in the
+    # background, the notification's text (the tool result is only a launch receipt, counted in receiptBytes).
+    def reply(c):
+        if c['async']:
+            return c['notified']['chars'] if c['notified'] else 0
+        return c['bytes']
+    # main-context requests made while a backgrounded subagent ran: between its call and its notification
+    concurrent = 0
+    for c in delegates:
+        if c['async']:
+            end = c['notified']['afterRequest'] if c['notified'] else len(requests)
+            concurrent += sum(1 for k in range(c['request'] + 1, min(end, len(requests)))
+                              if requests[k]['parent'] is None)
+            if not c['notified']:
+                warnings.append('a backgrounded subagent never reported (no task_notification): its reply is not '
+                                'counted')
     delegation = {
         'delegations': len(delegates),
-        'delegateResultBytes': sum(c['bytes'] for c in delegates),     # what the main context carries back
+        'backgrounded': sum(1 for c in delegates if c['async']),
+        'delegateResultBytes': sum(reply(c) for c in delegates),       # the reply the main context carries back
+        'receiptBytes': sum(c['bytes'] for c in delegates if c['async']),
+        'mainRequestsWhileSubagentRan': concurrent,
         'delegateInputChars': sum(len(json.dumps(c['input'])) for c in delegates),   # the briefs, as sent
         'subagentContexts': len(subs),
         'subagentRequests': sum(t['requests'] for t in subs),
@@ -677,22 +712,23 @@ def _delegation_summary(rs):
     out = ['\n**Diagnosis contexts** (L4 iii; a run with no `delegation` block did not delegate)\n',
            '| run | delegations | subagent requests | subagent >100k | subagent first / max prompt | '
            'main diagnosis requests | main diagnosis >100k | main max prompt | subagent cost $ | diagnosis cost $ | '
-           'brief chars | reply bytes | warnings |',
-           '|---|---|---|---|---|---|---|---|---|---|---|---|---|']
+           'brief chars | reply chars | backgrounded / main requests meanwhile | warnings |',
+           '|---|---|---|---|---|---|---|---|---|---|---|---|---|---|']
     for r in rs:
         d = r['phases'].get('delegation')
         diag_cost = r['phases']['phases']['diagnosis']['costUsd']
         if d is None:
             diag = r['phases']['phases']['diagnosis']
             out.append(f"| {r['name']} | 0 | | | | {diag['requests']} | {diag['over100k']} | "
-                       f"{r['buckets']['totals']['maxPrompt']} | | {diag_cost} | | | |")
+                       f"{r['buckets']['totals']['maxPrompt']} | | {diag_cost} | | | | |")
             continue
         subs = [c for c in r['buckets']['contexts'] if c['context'] != 'main']
         first = max((c['firstPrompt'] for c in subs), default=0)
         out.append(f"| {r['name']} | {d['delegations']} | {d['subagentRequests']} | {d['subagentOver100k']} | "
                    f"{first} / {d['subagentMaxPrompt']} | {d['mainDiagnosisRequests']} | {d['mainDiagnosisOver100k']} | "
                    f"{d['mainMaxPrompt']} | {d['subagentCostUsd']} | {diag_cost} | {d['delegateInputChars']} | "
-                   f"{d['delegateResultBytes']} | {'; '.join(d['warnings']) or '—'} |")
+                   f"{d['delegateResultBytes']} | {d.get('backgrounded', 0)} / {d.get('mainRequestsWhileSubagentRan', 0)} | "
+                   f"{'; '.join(d['warnings']) or '—'} |")
     return out
 
 

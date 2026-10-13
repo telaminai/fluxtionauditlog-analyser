@@ -584,9 +584,12 @@ def stage_cli(base, claude_bin):
 # executed launch (2026-10-12) ended in 17 s with Bash and WebFetch refused. The sandbox profile, not the
 # permission mode, is the containment; this list only states what G14 already grants.
 SUBJECT_TOOLS = ('Bash', 'Read', 'Write', 'Edit', 'Glob', 'Grep', 'WebFetch', 'TodoWrite', 'mcp__fluxtion-analyser')
-# M72 L4 (iii): the subagent tool, granted only on request (--allow-subagent) and then to BOTH arms of a comparison,
-# so the arms differ in guidance alone. Claude Code names it `Agent`, with the older `Task` as an alias (read from the
-# 2.1.282 binary; 2.1.296's init event lists `Task`): both are granted, so either CLI resolves it.
+# M72 L4 (iii): the subagent tool is NOT gated by this list. Claude Code's Agent tool (older name `Task`, an alias)
+# allows itself in its own permission check, before any allow rule is consulted, in every mode but one (read from
+# the 2.1.296 binary, 2026-10-13), so under dontAsk it runs with no rule here: the first ladder's lad-r3-s5-1 (VOID)
+# delegated to an Explore subagent on 2026-10-12 with this exact list. Every G14 and ladder run so far could
+# therefore delegate. Only a deny rule removes it: --no-subagent passes --disallowedTools for an arm that must not
+# delegate, and the runner records whether the session's init event still offered the tool.
 SUBAGENT_TOOLS = ('Agent', 'Task')
 
 
@@ -683,18 +686,30 @@ def sweep_base_processes(base, grace=10.0):
     return {'swept': found, 'survivors': [f['pid'] for f in found if _running(f['pid'])]}
 
 
-def subject_command(policy, cli, model, mcp, prompt, allow_subagent=False):
-    tools = SUBJECT_TOOLS + (SUBAGENT_TOOLS if allow_subagent else ())
+def subject_command(policy, cli, model, mcp, prompt, deny_subagent=False):
+    deny = ['--disallowedTools', *SUBAGENT_TOOLS] if deny_subagent else []
     return ['/usr/bin/sandbox-exec', '-f', str(policy), str(cli),
             '-p', '--model', model, '--effort', 'medium', '--no-session-persistence',
             '--setting-sources', 'project,local', '--strict-mcp-config',
             '--mcp-config', json.dumps(mcp),
             # Built-in tools stay ON: the subject must download, unpack and build.
-            '--permission-mode', 'dontAsk', '--allowedTools', *tools, '--no-chrome',
+            '--permission-mode', 'dontAsk', '--allowedTools', *SUBJECT_TOOLS, *deny, '--no-chrome',
             '--output-format', 'stream-json', '--verbose', '--', prompt]
 
 
-def run_trial(run, model, base, input_file, cap, java_home, claude_bin=None, prestaged=None, allow_subagent=False):
+def subagent_offered(raw_lines):
+    """Whether the session's first init event offered the subagent tool: None when there is no init event."""
+    for line in raw_lines:
+        try:
+            event = json.loads(line)
+        except (ValueError, TypeError):
+            continue
+        if event.get('type') == 'system' and event.get('subtype') == 'init':
+            return any(t in SUBAGENT_TOOLS for t in event.get('tools') or [])
+    return None
+
+
+def run_trial(run, model, base, input_file, cap, java_home, claude_bin=None, prestaged=None, deny_subagent=False):
     base = Path(base)
     archive = base / run
 
@@ -741,14 +756,14 @@ def run_trial(run, model, base, input_file, cap, java_home, claude_bin=None, pre
                                                 'args': ['-Duser.home=' + home, '-jar', jar, '--mcp']}}}
     env = child_env(base, tmp, home, java_home)
     command = subject_command(archive / 'isolation.sb', cli, model, mcp, Path(input_file).read_text(),
-                              allow_subagent=allow_subagent)
+                              deny_subagent=deny_subagent)
     (archive / 'config.json').write_text(json.dumps({
         'run': run, 'model': model, 'base': str(base), 'port': port, 'capSeconds': cap,
         'jarSha256': sha256_file(jar), 'mcp': mcp, 'builtInTools': True,
         'keyGranted': True, 'gate': 'G14', 'javaHome': java_home,
         'claudeBin': str(cli), 'claudeBinSha256': cli_sha, 'claudeVersion': cli_version,
         'prestaged': str(prestaged) if prestaged else None,
-        'acceptanceEligible': not prestaged, 'subagentAllowed': bool(allow_subagent),
+        'acceptanceEligible': not prestaged, 'subagent': 'denied' if deny_subagent else 'available',
         'mavenRepoLocal': str(repo_local), 'mavenSettings': str(settings)}, indent=1) + '\n')
 
     # Written BEFORE launch, so an interrupted run is identifiable as one rather than as a fresh start.
@@ -811,6 +826,8 @@ def run_trial(run, model, base, input_file, cap, java_home, claude_bin=None, pre
 
     meta.update({'endedUtc': datetime.datetime.now(datetime.timezone.utc).isoformat(),
                  'clock': clock.sample()})
+    # the executable check of --no-subagent: a denied arm whose session still offered the tool is not that arm
+    meta['subagentOffered'] = subagent_offered((archive / 'raw.jsonl').read_text(errors='replace').splitlines())
     if cli_sha:  # the subject cannot write the copy; a changed digest would mean the sandbox did not hold
         meta['claudeBinUnchanged'] = sha256_file(cli) == cli_sha
 
@@ -851,8 +868,8 @@ def main():
                         'of project variants, never a G14 acceptance (recorded in config and meta)')
     parser.add_argument('--claude-bin', help='a Claude Code binary to copy into <base>/cli, read-only, '
                         f'instead of {CLAUDE_BIN} (for a model the installed CLI does not know)')
-    parser.add_argument('--allow-subagent', action='store_true', help='also grant the subagent tool (Agent/Task); '
-                        'give it to every arm of a comparison alike (M72 L4 iii), recorded in config.json')
+    parser.add_argument('--no-subagent', action='store_true', help='deny the subagent tool (Agent/Task), which is '
+                        'otherwise available under dontAsk; recorded in config.json, checked in meta.json')
     parser.add_argument('args', nargs='*', help='<run-name> <model> <base> <input-file>')
     ns = parser.parse_args()
     java_home = resolve_java_home(ns.java_home)
@@ -870,7 +887,7 @@ def main():
     if ns.prestaged and not Path(ns.prestaged).is_dir():
         return fail(f'--prestaged {ns.prestaged} is not a directory')
     return run_trial(ns.args[0], ns.args[1], ns.args[2], ns.args[3], ns.cap, java_home, ns.claude_bin,
-                     ns.prestaged, ns.allow_subagent)
+                     ns.prestaged, ns.no_subagent)
 
 
 if __name__ == '__main__':

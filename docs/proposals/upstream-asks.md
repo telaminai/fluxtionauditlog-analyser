@@ -2043,8 +2043,10 @@ starter ships no `.claude/skills`; its authors read `RUNBOOK.md` and `runbooks/a
 
 **The ask.** (1) Re-vendor the bundle's skills at the index revision that carries the section. (2) The Spring
 starter's `runbooks/analyser.md` carries the same section, *Diagnose in a fresh context*, copied from
-`docs/skills/common/load-audit-log/SKILL.md`. Only the brief's step 1 changes: it names the starter's own steps
-for opening a log with its graph. The `RUNBOOK.md` step that runs the scenario points to the section. (3) Keep
+`docs/skills/common/load-audit-log/SKILL.md`, byte-identical: the brief names analyser calls only, never a project
+file. `RUNBOOK.md` step 5 gains, after "Then run ./run.sh.", the sentence "If checking the change needs more than
+one analyser read after opening the log, follow *Diagnose in a fresh context* in runbooks/analyser.md." This is
+the patch the rung 2 and 4 treatment fixture applies. (3) Keep
 both until the L4 (iii) acceptance reports. If it shows no effect, the section is removed from the canonical skill,
 and the templates follow at their next re-vendor.
 
