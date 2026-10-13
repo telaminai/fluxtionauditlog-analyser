@@ -47,8 +47,14 @@ public final class TemplateLiveBench {
                         eachDefaults.group(), eachDefaults.basePackage()));
                 var eachInstalled = new TemplateArchive().install(eachZip,
                         work.resolve("drift-" + checks + "-" + eachDefaults.artifact()));
+                var marked = TemplateExecutablesTest.archiveMarkedRootExecutables(eachZip);
+                // Without marks there is nothing to compare: if the scaffold stopped writing unix modes, an empty
+                // set would pass every check below. Every catalogue template ships mvnw, so it must be marked.
+                check(marked.contains("mvnw"), each.file() + " archive marks its root scripts executable"
+                        + " (mvnw among them) — marked: " + marked);
+                checks++;
                 var notRunnable = new java.util.TreeSet<String>();
-                for (String script : TemplateExecutablesTest.archiveMarkedRootExecutables(eachZip)) {
+                for (String script : marked) {
                     if (!TemplateExecutablesTest.executable(eachInstalled.projectRoot().resolve(script))) {
                         notRunnable.add(script);
                     }

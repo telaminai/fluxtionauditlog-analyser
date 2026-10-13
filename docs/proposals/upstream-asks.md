@@ -2021,12 +2021,14 @@ only to a fixed list of root script names. The templates added `run-and-export.s
 `buildStarterZip(builtinTemplateSpec(id))`, lists the root entries it marks executable (`.cmd` excluded) and the
 `./<script>` commands its top-level Markdown names, and fails when that differs from a committed copy in the
 analyser's fixture format (`exec <id>: …` / `doc <id>: …`). A template change that adds a root script then
-updates that copy in the same PR, and the analyser copies it across. The analyser's optional live leg
-(`tools/bench/template-bench.py --live`) already compares every deployed template's marked root scripts with
-what the installer made executable, so drift that reaches production is caught there too.
+updates that copy in the same PR, and the analyser copies it across. Until then, the analyser's live leg
+(`tools/bench/template-bench.py --live`) compares every deployed template's marked root scripts with what the
+installer made executable. It is not run by CI: it runs by hand, as an item on the pre-release checklist
+(`docs/admin/release-process.md` §4.0), so drift that reaches production is caught at the next analyser release
+at the latest, not when the playground deploys.
 
 **Cost to us if unfixed.** The fixture is accurate only as of fluxtion-web `36d811a`; the next root script a
-template adds is installed non-executable until someone runs the live leg or reports it.
+template adds is installed non-executable until the next release's live leg, or a user, finds it.
 
 ## Spring authoring edit loop — 2026-09-25 intake
 

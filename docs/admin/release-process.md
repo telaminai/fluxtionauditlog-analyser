@@ -121,6 +121,11 @@ over the action socket with a hard per-call timeout, and exits non-zero on any f
       scenario completed (this line is met); a `WARNING: … image(s) NOT regenerated` on stderr means the terminal
       lacks macOS Screen Recording permission, so the images could not be captured — grant it and re-run before
       committing docs (`--require-images` makes that a failure, exit 3, for a machine that should have the grant).
+- [ ] `python3 tools/bench/template-bench.py --live` — downloads every deployed playground template and
+      fails if a root script its archive marks executable is installed without the bit (the 1.33.0
+      `run-and-export.sh` defect). The playground deploys on its own schedule, so this is the only check
+      that sees drift past the committed fixture (UP-PG-07). It needs the network; it is kept out of the
+      release workflow so a playground outage cannot block a release. Report a failure, do not skip it.
 - [ ] CLAUDE.md rule 1's two checks: `git config user.email` is the personal address, and
       `git log --format='%ae' | sort | uniq -c` shows no new employer-domain commits.
 - [ ] Apply the starter verification tiers: static checks on every commit, unattended preflight on

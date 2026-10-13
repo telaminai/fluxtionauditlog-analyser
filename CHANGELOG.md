@@ -12,7 +12,7 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ### Fixed
 
-- *Project ▸ New project from template…* installs every script a template ships at its root executable. The **Audit analyser bundle**'s `run-and-export.sh` — the one command its CLAUDE.md names — arrived without the execute bit, so `./run-and-export.sh` failed with "permission denied"; so did the Fluxtion and Spring starters' `run.sh`, and `setup-java.sh`. The installer still never takes execute permission from the downloaded archive: it grants it to a fixed list of root script names, now checked on every build against a record of what each playground template ships (`TemplateExecutablesTest`), including every `./` command a template's own guide tells you to run.
+- *Project ▸ New project from template…* installs every script a template ships at its root executable. The **Audit analyser bundle**'s `run-and-export.sh` — the one command its CLAUDE.md names — arrived without the execute bit, so `./run-and-export.sh` failed with "permission denied"; so did the Fluxtion and Spring starters' `run.sh`, and `setup-java.sh` / `runWasm.sh`, which some generator options emit. The installer still never takes execute permission from the downloaded archive: it grants it to a fixed list of root script names, now checked on every build against a record of what each playground template ships (`TemplateExecutablesTest`), including every `./` command a template's own guide tells you to run.
 
 ## [1.33.0] - 2026-10-13
 
