@@ -615,6 +615,15 @@ def operator_instance(command, base):
     return f'{base}/tmp/jar/analyser.jar' in command and '--rest' in command.split() and '--mcp' not in command.split()
 
 
+def in_base(command, cwd, base):
+    """True when a process lives in `base` as a PATH: its working directory is the base or under it, or its command
+    names a path under it. A sibling base sharing a prefix (`fx-g14-55-r1` vs `fx-g14-55-r1b`) is not inside."""
+    base = str(base).rstrip('/')
+    if cwd == base or cwd.startswith(base + '/'):
+        return True
+    return re.search(re.escape(base) + r'(?=/|\s|$|["\'])', command) is not None
+
+
 def sweep_base_processes(base, grace=10.0):
     """Kill every process whose command line or working directory lies inside `base`, and report them.
 
@@ -640,7 +649,7 @@ def sweep_base_processes(base, grace=10.0):
             continue
         if operator_instance(command, base):
             continue  # the operator's REST instance: started before the run, scored after it, stopped by the operator
-        if base in command or _cwd(pid).startswith(base):
+        if in_base(command, _cwd(pid), base):
             found.append({'pid': pid, 'command': command[:160]})
     for f in found:
         try:

@@ -534,6 +534,15 @@ class SweepBaseProcessesTest(unittest.TestCase):
         self.assertFalse(g14.operator_instance(mcp, base))
         self.assertFalse(g14.operator_instance(f'java -jar {base}/project/target/app.jar', base))
 
+    def test_a_sibling_base_that_shares_a_prefix_is_not_inside(self):
+        # review of PR 129: `base in command` and `cwd.startswith(base)` matched fx-g14-55-r1b for base fx-g14-55-r1
+        base = '/private/tmp/fx-g14-55-r1'
+        self.assertTrue(g14.in_base(f'java -jar {base}/project/target/app.jar', '/', base))
+        self.assertTrue(g14.in_base('sleep 300', base, base))
+        self.assertTrue(g14.in_base('sleep 300', base + '/project', base))
+        self.assertFalse(g14.in_base(f'java -jar {base}b/project/target/app.jar', '/', base))
+        self.assertFalse(g14.in_base('sleep 300', base + 'b/project', base))
+
     def test_control_a_process_outside_the_base_is_left_alone(self):
         with tempfile.TemporaryDirectory(dir='/private/tmp') as d, tempfile.TemporaryDirectory(dir='/private/tmp') as other:
             bystander = subprocess.Popen(['/bin/sleep', '300'], cwd=Path(other).resolve(), start_new_session=True)
