@@ -232,7 +232,7 @@ settings-save redraw, pinned (supersedes #78). [Release receipt](../handoff/rele
   [M48.16] ☐ goal → formal requirements. ▸ detail: *M48*.
 
 ### M72 · Authoring token lowering ([spec](spec-authoring-token-lowering.md)) — proposed 2026-10-13
-- [M72] ☐ Lower facts locally, send the residual (L0–L6); first slice L0 + capped bundle output vs an interleaved control (reference: PR #131); UP-PG-06.
+- [M72] ☐ Lower facts locally, send the residual (L0–L7); first slice L0 + L7 model choice + capped bundle output vs an interleaved control (reference: PR #131); UP-PG-06.
 
 ### Upstream template content — three drafts
 - [UC5] ◧ Idioms audited against the app that produced them.
