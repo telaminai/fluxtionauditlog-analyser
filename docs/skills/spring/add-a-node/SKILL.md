@@ -19,7 +19,7 @@ All three edits are in the designer XML that `fluxtion-authoring.json` names:
 
 1. **Declare the bean.** Its `<constructor-arg ref="…"/>` entries, one per parent, **are the graph
    edges** — this is how the compiler learns what depends on what.
-2. **Add the bean id to `fluxtionSpringConfig`'s `nodeBeans`.**
+2. **Add the bean id to `fluxtionSpringConfig`'s `nodeBeans`**, and any bean a binding names.
 3. **Bind its references and outputs** in `fluxtionSpringConfig`. A parent that must not trigger the node
    is a `ReferenceBinding` with `mode` `DATA`. With several trigger parents, `parentUpdateCallback` `true`
    on a `TRIGGER` binding adds an `@OnParentUpdate` callback naming the parent that changed. An output is

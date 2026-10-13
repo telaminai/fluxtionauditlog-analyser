@@ -148,6 +148,7 @@
     "installer-authoring-executables": 2.4,
     "installer-nested-script-not-executable": 1.7,
     "installer-template-executables-fixture": 6.0,
+    "installer-first-run-commands": 6.0,
     "integration-coverage-bound": 1.8,
     "integration-failed-identity": 1.7,
     "integration-failed-session": 8.3,
