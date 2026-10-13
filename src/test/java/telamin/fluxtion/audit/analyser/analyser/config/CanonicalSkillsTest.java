@@ -65,6 +65,27 @@ class CanonicalSkillsTest {
     }
 
     @Test
+    void springSkillAddsANodeXmlFirst_sinkAndReferencesDeclaredAndTheShellRegenerated() throws Exception {
+        // Owner cycle 5 (5.7, 5.8): an author hand-wrote the class and wired its sink with a hand-written
+        // @ServiceRegistered callback, so the design XML lost the sink, then extracted jars to find imports.
+        String text = Files.readString(ROOT.resolve("spring/add-a-node/SKILL.md"));
+        for (String route : List.of("FluxtionSpringConfig.SinkBinding", "<property name=\"sinks\">",
+                "FluxtionSpringConfig.ReferenceBinding", "<property name=\"mode\" value=\"DATA\"/>",
+                "<property name=\"parentUpdateCallback\" value=\"true\"/>"))
+            assertTrue(text.contains(route), "the XML route must be shown: " + route);
+        assertTrue(text.contains("Then **regenerate** — a graph change needs it"), "the regenerate step is pinned");
+        assertTrue(text.contains("**Regeneration writes the class shell**"));
+        assertTrue(text.contains("there are no imports to find"));
+        assertTrue(text.contains("**Do not write the class yourself, and do not wire a sink outside the XML**"));
+        assertTrue(text.contains("mark each DATA field `@NoTriggerReference`"));
+        assertTrue(text.contains("disagrees with the XML is refused\n(`SPRING_RECONCILE_CONFLICT`)"));
+        assertTrue(text.contains("is not declared in the design"));
+        for (String taskName : List.of("alertNode", "riskCheck", "csvRejections", "\"alerts\""))
+            assertFalse(text.contains(taskName), "the snippet must not carry a ladder task's own names: " + taskName);
+        assertFalse(text.contains("**Write the class.**"), "the hand-written-class step is gone");
+    }
+
+    @Test
     void springSkillProvesAChangeByComparingBusinessRecords_andNamesTheScriptItShips() throws Exception {
         String text = Files.readString(ROOT.resolve("spring/add-a-node/SKILL.md"));
         assertTrue(text.contains("## Prove a change by comparing audit logs"));
