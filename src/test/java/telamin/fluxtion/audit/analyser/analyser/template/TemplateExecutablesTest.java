@@ -133,6 +133,23 @@ class TemplateExecutablesTest {
         assertEquals(List.of(), failures, "post-install commands that are not the template's documented first run");
     }
 
+    /**
+     * PR #139 review: no catalogue template ships a .cmd run script, so on Windows the dialog offers none of them a
+     * first run and shows its README pointer instead (TemplateProjectDialog.NO_WINDOWS_FIRST_RUN). When a template
+     * starts shipping one, this fails: update the CHANGELOG/dialog wording that says "every catalogue template".
+     */
+    @Test
+    void noCatalogueTemplateHasAWindowsFirstRunToday() throws Exception {
+        Fixture fixture = Fixture.load();
+        for (var template : fixture.first.entrySet()) {
+            Set<String> shipped = new TreeSet<>(fixture.exec.get(template.getKey()));
+            shipped.add("mvnw.cmd"); // every catalogue template ships the Maven wrapper's Windows form
+            shipped.addAll(fixture.windows.getOrDefault(template.getKey(), Set.of()));
+            assertEquals(List.of(), TemplateArchive.commandsFor(installUnmarked(template.getKey(), shipped), true),
+                    template.getKey() + " now has a Windows first run");
+        }
+    }
+
     /** Windows: a sequence is offered only when every step has a .cmd form, never half of one. */
     @Test
     void windowsOffersAWholeSequenceOrNone() throws Exception {
@@ -251,13 +268,16 @@ class TemplateExecutablesTest {
 
     /**
      * The committed record of what the playground templates ship: {@code exec <id>: …} and {@code doc <id>: …}
-     * (sets), and {@code first <id>: …} (the documented first run, in order).
+     * (sets), {@code first <id>: …} (the documented first run, in order) and {@code cmd <id>: …} (the root
+     * {@code .cmd} files it ships besides {@code mvnw.cmd}).
      */
-    record Fixture(Map<String, Set<String>> exec, Map<String, Set<String>> doc, Map<String, List<String>> first) {
+    record Fixture(Map<String, Set<String>> exec, Map<String, Set<String>> doc, Map<String, List<String>> first,
+                   Map<String, Set<String>> windows) {
         static Fixture load() throws IOException {
             Map<String, Set<String>> exec = new LinkedHashMap<>();
             Map<String, Set<String>> doc = new LinkedHashMap<>();
             Map<String, List<String>> first = new LinkedHashMap<>();
+            Map<String, Set<String>> windows = new LinkedHashMap<>();
             try (InputStream in = TemplateExecutablesTest.class.getResourceAsStream(FIXTURE)) {
                 assertNotNull(in, FIXTURE);
                 for (String line : new String(in.readAllBytes(), StandardCharsets.UTF_8).split("\n")) {
@@ -273,11 +293,12 @@ class TemplateExecutablesTest {
                         case "exec" -> exec.put(id, names);
                         case "doc" -> doc.put(id, names);
                         case "first" -> first.put(id, List.copyOf(ordered));
+                        case "cmd" -> windows.put(id, names);
                         default -> throw new IllegalStateException("unknown fixture line: " + line);
                     }
                 }
             }
-            return new Fixture(exec, doc, first);
+            return new Fixture(exec, doc, first, windows);
         }
     }
 }

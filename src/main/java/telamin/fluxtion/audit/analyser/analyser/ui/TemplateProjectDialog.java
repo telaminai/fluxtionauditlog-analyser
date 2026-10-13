@@ -258,14 +258,15 @@ final class TemplateProjectDialog {
         }
     }
 
+    /** Shown when no first-run commands are offered on Windows: no catalogue template ships a .cmd run script. */
+    static final String NO_WINDOWS_FIRST_RUN = "# No Windows form of this template's first run. See its README.";
+    /** Shown when no first-run commands are offered elsewhere: the template ships no run script the analyser knows. */
+    static final String NO_KNOWN_FIRST_RUN = "# This template ships no first-run script the analyser recognises. See its README.";
+
     static void showCommands(Component owner, Path project, List<String> commands) {
-        StringBuilder text = new StringBuilder("cd ").append(shellQuote(project.toString())).append('\n');
-        if (commands == null || commands.isEmpty()) {
-            text.append("# This template declares no recognised lifecycle scripts. See its README.");
-        } else {
-            commands.forEach(command -> text.append(command).append('\n'));
-        }
-        JTextArea area = textArea(text.toString().strip(), Math.max(5, commands == null ? 5 : commands.size() + 2), 64);
+        String text = commandsText(project, commands,
+                System.getProperty("os.name", "").toLowerCase().contains("win"));
+        JTextArea area = textArea(text, Math.max(5, commands == null ? 5 : commands.size() + 2), 64);
         area.setEditable(false);
         JButton copy = new JButton("Copy commands");
         copy.addActionListener(e -> Toolkit.getDefaultToolkit().getSystemClipboard()
@@ -276,6 +277,17 @@ final class TemplateProjectDialog {
         panel.add(copy, BorderLayout.SOUTH);
         JOptionPane.showMessageDialog(owner, panel, "Project ready — commands are not executed",
                 JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    /** The dialog's text: render only, from the install result's commands (rule 9). */
+    static String commandsText(Path project, List<String> commands, boolean windows) {
+        StringBuilder text = new StringBuilder("cd ").append(shellQuote(project.toString())).append('\n');
+        if (commands == null || commands.isEmpty()) {
+            text.append(windows ? NO_WINDOWS_FIRST_RUN : NO_KNOWN_FIRST_RUN);
+        } else {
+            commands.forEach(command -> text.append(command).append('\n'));
+        }
+        return text.toString().strip();
     }
 
     private static void row(JPanel panel, GridBagConstraints c, int row, String label,

@@ -218,14 +218,17 @@ public final class TemplateArchive {
      *   <li>the analyser bundle ({@code run-and-export.sh}): {@code ./mvnw package} — its RUNBOOK's "First run",
      *       keyless on the shipped processor — then {@code ./run-and-export.sh}, the ONE command its CLAUDE.md
      *       names, which replaces run-server/export-audit/stop-server. {@code setup.sh} is for graph changes.</li>
-     *   <li>a Spring authoring starter ({@code setup.sh}, {@code validate.sh}, {@code generate.sh}): those three,
-     *       then its run script — its README's "follow RUNBOOK.md: setup.sh, validate.sh, generate.sh … Then
-     *       run".</li>
+     *   <li>a Spring authoring starter ({@code setup.sh}, {@code validate.sh}, {@code generate.sh}):
+     *       {@code ./check-fluxtion-key.sh}, those three, then its run script. It ships only an AOT shell
+     *       processor, so its default build is remote generation and needs the key its README's "Build &amp; run"
+     *       checks first; the three scripts are its README's "follow RUNBOOK.md: setup.sh, validate.sh,
+     *       generate.sh … Then run".</li>
      *   <li>any other starter: {@code ./check-fluxtion-key.sh} when shipped, then {@code ./run.sh} or
      *       {@code ./run-server.sh}, which build on first use — its README's "Build &amp; run".</li>
      * </ul>
      * On Windows a sequence is offered only when every step has a {@code .cmd} form; otherwise nothing is, and
-     * the dialog points to the README rather than listing half a sequence.
+     * the dialog points to the README rather than listing half a sequence. No catalogue template ships a
+     * {@code .cmd} form of its run script today, so on Windows every one of them gets the README pointer.
      */
     public static List<String> commandsFor(Path root) {
         return commandsFor(root, System.getProperty("os.name", "").toLowerCase().contains("win"));
@@ -237,14 +240,13 @@ public final class TemplateArchive {
         if (present(root, "run-and-export.sh")) {
             if (present(root, "mvnw")) steps.add("mvnw");
             steps.add("run-and-export.sh");
-        } else if (run != null && present(root, "setup.sh") && present(root, "validate.sh")
-                && present(root, "generate.sh")) {
-            // add(run) separately: POSIX_EXECUTABLES' text for these three names is a mutation anchor
-            // (installer-authoring-executables) and must occur once in this file
-            steps.addAll(List.of("setup.sh", "validate.sh", "generate.sh"));
-            steps.add(run);
         } else if (run != null) {
             if (present(root, "check-fluxtion-key.sh")) steps.add("check-fluxtion-key.sh");
+            if (present(root, "setup.sh") && present(root, "validate.sh") && present(root, "generate.sh")) {
+                // a separate add(run): POSIX_EXECUTABLES' text for these three names is a mutation anchor
+                // (installer-authoring-executables) and must occur once in this file
+                steps.addAll(List.of("setup.sh", "validate.sh", "generate.sh"));
+            }
             steps.add(run);
         } else if (present(root, "mvnw")) {
             steps.add("mvnw"); // a pre-M19 template with no run script: building is the one known step

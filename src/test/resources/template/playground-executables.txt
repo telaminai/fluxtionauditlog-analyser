@@ -9,13 +9,17 @@
 #               analyser-bundle  RUNBOOK.md/README.md "First run: ./mvnw package … needs no compilation key", then
 #                                CLAUDE.md "./run-and-export.sh   # ONE command" (it replaces run-server, export-audit
 #                                and stop-server); setup.sh is "For graph changes".
-#               fluxtion-spring, fluxtion-spring-mongoose  README.md "follow RUNBOOK.md: setup.sh, validate.sh,
-#                                generate.sh … Then run ./run.sh" (./run-server.sh); its API-key block "applies to
-#                                remote generation".
+#               fluxtion-spring, fluxtion-spring-mongoose  README.md "## Build & run" puts ./check-fluxtion-key.sh
+#                                first, and it is needed: only an AOT shell processor ships (none in -mongoose), so
+#                                the default build is remote generation. Then the README's "follow RUNBOOK.md:
+#                                setup.sh, validate.sh, generate.sh … Then run ./run.sh" (./run-server.sh). A local
+#                                provider, which needs no key, is the exception, not the default.
 #               every other      README.md "## Build & run" block (./run.sh / ./run-server.sh build on first use;
 #                                ./mvnw package is the "by hand" alternative). mongoose-dynamic-feed and
 #                                mongoose-dynamic-spring keep the key check out of that block but say the runtime
 #                                load needs a subscribed key, "verify with ./check-fluxtion-key.sh".
+#   cmd  <id>: root .cmd files the template ships besides mvnw.cmd (which every template ships); a template with no
+#               line ships none. None is a run script, so no template has a Windows first run.
 #   exec generator: root scripts the generator emits only for options no catalogue template uses
 #
 # Produced from fluxtion-web origin/main 36d811a (2026-10-13) by building every catalogue template with
@@ -26,6 +30,7 @@
 exec analyser-bundle: check-fluxtion-key.sh export-audit.sh generate.sh mvnw run-and-export.sh run-server.sh setup.sh stop-server.sh validate.sh
 doc  analyser-bundle: check-fluxtion-key.sh export-audit.sh generate.sh mvnw run-and-export.sh run-server.sh setup.sh stop-server.sh validate.sh
 first analyser-bundle: mvnw run-and-export.sh
+cmd  analyser-bundle: export-audit.cmd stop-server.cmd
 exec fluxtion-aot: check-fluxtion-key.sh mvnw run.sh
 doc  fluxtion-aot: check-fluxtion-key.sh mvnw run.sh
 first fluxtion-aot: check-fluxtion-key.sh run.sh
@@ -49,10 +54,10 @@ doc  fluxtion-service-export: check-fluxtion-key.sh mvnw run.sh
 first fluxtion-service-export: check-fluxtion-key.sh run.sh
 exec fluxtion-spring-mongoose: check-fluxtion-key.sh generate.sh mvnw run-server.sh setup.sh validate.sh
 doc  fluxtion-spring-mongoose: check-fluxtion-key.sh generate.sh run-server.sh setup.sh validate.sh
-first fluxtion-spring-mongoose: setup.sh validate.sh generate.sh run-server.sh
+first fluxtion-spring-mongoose: check-fluxtion-key.sh setup.sh validate.sh generate.sh run-server.sh
 exec fluxtion-spring: check-fluxtion-key.sh generate.sh mvnw run.sh setup.sh validate.sh
 doc  fluxtion-spring: check-fluxtion-key.sh generate.sh mvnw run.sh setup.sh validate.sh
-first fluxtion-spring: setup.sh validate.sh generate.sh run.sh
+first fluxtion-spring: check-fluxtion-key.sh setup.sh validate.sh generate.sh run.sh
 exec mongoose-dynamic-feed: check-fluxtion-key.sh mvnw run-server.sh
 doc  mongoose-dynamic-feed: check-fluxtion-key.sh run-server.sh
 first mongoose-dynamic-feed: check-fluxtion-key.sh run-server.sh
