@@ -30,6 +30,12 @@ class Transcript:
     def __init__(self, model=MODEL):
         self.model, self.lines, self.n, self.req = model, [], 0, 0
         self.usage = {'input': 0, 'cacheRead': 0, 'cacheWrite': 0}
+        self.parent = None          # parent_tool_use_id: the delegating call's id while a subagent is speaking
+        self.models = {}            # model -> usage, for modelUsage when a subagent runs on another model
+
+    def _emit(self, event):
+        event['parent_tool_use_id'] = self.parent    # every assistant/user message carries it; null in main
+        self.lines.append(json.dumps(event))
 
     def _usage(self, prompt):
         # a cache-read-heavy prompt, as real runs are: 2 input, 500 written, the rest read
@@ -47,20 +53,30 @@ class Transcript:
         self.n += 1
         u = self._usage(prompt)
         self.lines.append(json.dumps({'type': 'system', 'subtype': 'thinking_tokens', 'estimated_tokens_delta': 40}))
-        self.lines.append(json.dumps({'type': 'assistant', 'message': {
-            'id': mid, 'model': self.model, 'usage': u, 'content': [{'type': 'text', 'text': 'checking'}]}}))
-        self.lines.append(json.dumps({'type': 'assistant', 'message': {   # same id, same usage: de-duplicated
+        self._emit({'type': 'assistant', 'message': {
+            'id': mid, 'model': self.model, 'usage': u, 'content': [{'type': 'text', 'text': 'checking'}]}})
+        self._emit({'type': 'assistant', 'message': {   # same id, same usage: de-duplicated
             'id': mid, 'model': self.model, 'usage': u,
-            'content': [{'type': 'tool_use', 'id': tid, 'name': name, 'input': inp}]}}))
-        self.lines.append(json.dumps({'type': 'user', 'message': {'role': 'user', 'content': [
-            {'type': 'tool_result', 'tool_use_id': tid, 'content': result, 'is_error': is_error}]}}))
+            'content': [{'type': 'tool_use', 'id': tid, 'name': name, 'input': inp}]}})
+        if result is not None:      # None: the result comes later (a delegation's reply), via result()
+            self.result(tid, result, is_error)
         return tid
+
+    def result(self, tid, body, is_error=False, tool_use_result=None):
+        event = {'type': 'user', 'message': {'role': 'user', 'content': [
+            {'type': 'tool_result', 'tool_use_id': tid, 'content': body, 'is_error': is_error}]}}
+        if tool_use_result is not None:
+            event['tool_use_result'] = tool_use_result
+        self._emit(event)
+
+    def system(self, subtype, **fields):
+        self.lines.append(json.dumps({'type': 'system', 'subtype': subtype, **fields}))
 
     def answer(self, prompt=30_000, text='done'):
         self.req += 1
-        self.lines.append(json.dumps({'type': 'assistant', 'message': {
+        self._emit({'type': 'assistant', 'message': {
             'id': f'msg_{self.req}', 'model': self.model, 'usage': self._usage(prompt),
-            'content': [{'type': 'text', 'text': text}]}}))
+            'content': [{'type': 'text', 'text': text}]}})
 
     def finish(self, output_tokens=1000, cost=None, side=None):
         mu = {self.model: {'inputTokens': self.usage['input'], 'outputTokens': output_tokens,
@@ -261,6 +277,130 @@ class SummaryTest(unittest.TestCase):
                 os.chdir(cwd)
             self.assertIn('| r-1 | 40 = 40 yes', text)
             self.assertNotIn('r-2-VOID-x', text)                      # VOID runs are skipped
+
+
+class DelegationTest(unittest.TestCase):
+    """M72 L4 (iii): diagnosis delegated to a subagent runs in its own context, and the tables say so."""
+
+    BRIEF = {'subagent_type': 'general-purpose', 'description': 'diagnose run', 'prompt': f'project: /{SENTINEL}'}
+
+    def _delegated(self, sub_model=MODEL, visible=True):
+        t = Transcript()
+        t.call('Read', {'file_path': '/p/src/main/fluxtion/designer/application-context.xml'}, 'x' * 1000,
+               prompt=40_000)                                                            # design (call 0)
+        t.call('Bash', {'command': './generate.sh; echo "exit=$?"'}, 'exit=0', prompt=60_000)    # B (call 1)
+        t.call('Bash', {'command': './run-and-export.sh'}, 'exported', prompt=90_000)             # E (call 2)
+        tid = t.call('Agent', self.BRIEF, None, prompt=95_000)                                    # D (call 3)
+        if visible:
+            t.parent, t.model = tid, sub_model
+            t.call('mcp__fluxtion-analyser__analyser_open', {'log': '/p/logs/audit-p.yaml'}, 'opened', prompt=21_000)
+            t.call('mcp__fluxtion-analyser__analyser_context', {'sections': ['log', 'pairing']}, 'c' * 300,
+                   prompt=22_000)
+            t.answer(prompt=23_000, text='reply')
+            t.parent, t.model = None, MODEL
+        t.result(tid, 'r' * 200)
+        t.answer(prompt=96_000)
+        return t
+
+    def test_the_subagent_is_its_own_context(self):
+        b, cat, ph = ts.split(self._delegated().finish())
+        ctx = {c['context']: c for c in b['contexts']}
+        self.assertEqual(set(ctx), {'main', 'subagent-1'})
+        self.assertEqual((ctx['subagent-1']['requests'], ctx['subagent-1']['firstPrompt'],
+                          ctx['subagent-1']['maxPrompt'], ctx['subagent-1']['delegatedBy']), (3, 21_000, 23_000, 3))
+        self.assertEqual((ctx['main']['requests'], ctx['main']['maxPrompt']), (5, 96_000))
+        self.assertEqual(ph['boundaries']['diagnosisStartCall'], 3, 'the delegation starts the diagnosis')
+        self.assertEqual([c['phase'] for c in ph['calls']], ['design'] * 2 + ['run'] + ['diagnosis'] * 3)
+        d = ph['delegation']
+        self.assertEqual((d['delegations'], d['subagentRequests'], d['subagentMaxPrompt'], d['delegateResultBytes'],
+                          d['mainDiagnosisRequests'], d['warnings']), (1, 3, 23_000, 200, 2, []))
+        self.assertEqual(d['delegateInputChars'], len(json.dumps(self.BRIEF)))
+        self.assertEqual(sum(c['requests'] for c in b['contexts']), b['totals']['requests'])
+        self.assertAlmostEqual(sum(c['costUsd'] for c in b['contexts']),
+                               sum(r['costUsd'] for r in b['requests']), places=9)
+        self.assertEqual(cat['byRule']['delegate'], {'kind': 'other', 'calls': 1, 'bytes': 200})
+
+    def test_a_result_is_carried_only_by_its_own_context(self):
+        # The design read (call 0, request 0) is re-read by the 4 later MAIN requests, not by the subagent's 3.
+        # With one global context it would be 7: that is the regression this pins.
+        _, cat, _ = ts.split(self._delegated().finish())
+        self.assertEqual(cat['kinds']['design']['carried'], 1000 * 4)
+        # the subagent's context reply (request 5) is carried by the subagent's answer only
+        self.assertEqual(cat['kinds']['analyser']['carried'], len('opened') * 2 + 300 * 1)
+
+    def _backgrounded(self, notify=True):
+        """The shape of lad-r3-s5-1 (CLI 2.1.296): the Agent call's result is a launch receipt, the main context
+        keeps working while the subagent runs, and the reply arrives as a task_notification, then a new init."""
+        t = Transcript()
+        t.system('init', tools=['Task', 'Bash'])
+        t.call('Bash', {'command': './generate.sh; echo "exit=$?"'}, 'exit=0', prompt=60_000)    # B (call 0)
+        t.call('Bash', {'command': './run-and-export.sh'}, 'exported', prompt=90_000)             # E (call 1)
+        tid = t.call('Agent', self.BRIEF, None, prompt=95_000)                                    # D (call 2)
+        t.result(tid, 'q' * 1142, tool_use_result={'isAsync': True, 'status': 'async_launched'})
+        t.system('task_started', tool_use_id=tid, is_backgrounded=True, task_type='local_agent')
+        t.parent, t.model = tid, MODEL
+        t.call('mcp__fluxtion-analyser__analyser_open', {'log': '/p/logs/audit-p.yaml'}, 'opened', prompt=21_000)
+        t.parent, t.model = None, MODEL
+        t.call('Bash', {'command': 'ls logs'}, 'audit-p.yaml', prompt=96_000)     # main, while the subagent runs
+        t.parent, t.model = tid, MODEL
+        t.answer(prompt=22_000, text='reply')
+        t.parent, t.model = None, MODEL
+        if notify:
+            t.system('task_notification', tool_use_id=tid, status='completed', summary='R' * 5000)
+            t.system('init', tools=['Task', 'Bash'])
+        t.answer(prompt=97_000)
+        return t
+
+    def test_a_backgrounded_reply_is_measured_from_its_notification(self):
+        b, cat, ph = ts.split(self._backgrounded().finish())
+        d = ph['delegation']
+        self.assertEqual((d['backgrounded'], d['delegateResultBytes'], d['receiptBytes'],
+                          d['mainRequestsWhileSubagentRan'], d['subagentRequests'], d['warnings']),
+                         (1, 5000, 1142, 1, 2, []))
+        self.assertEqual(cat['byRule']['delegate']['bytes'], 1142, 'toolResultBytes still counts the receipt')
+        self.assertEqual(sum(k['bytes'] for k in cat['kinds'].values()), cat['toolResultBytes'])
+
+    def test_a_backgrounded_subagent_that_never_reports_is_flagged(self):
+        _, _, ph = ts.split(self._backgrounded(notify=False).finish())
+        self.assertEqual(ph['delegation']['delegateResultBytes'], 0)
+        self.assertIn('never reported', ph['delegation']['warnings'][0])
+
+    def test_a_delegation_with_no_visible_subagent_is_flagged(self):
+        _, _, ph = ts.split(self._delegated(visible=False).finish())
+        self.assertEqual(ph['delegation']['subagentRequests'], 0)
+        self.assertIn('no subagent request is visible', ph['delegation']['warnings'][0])
+
+    def test_a_subagent_on_another_model_is_flagged(self):
+        _, _, ph = ts.split(self._delegated(sub_model='claude-sonnet-5').finish())
+        self.assertIn('claude-sonnet-5', ph['delegation']['warnings'][0])
+
+    def test_a_single_context_run_writes_no_delegation_tables(self):
+        t = Transcript()
+        t.call('Bash', {'command': './generate.sh'}, 'ok')
+        t.call('Bash', {'command': './run.sh'}, 'ran')
+        t.call('mcp__fluxtion-analyser__analyser_open', {'log': '/p/logs/audit-p.yaml'}, 'opened')
+        b, _, ph = ts.split(t.finish())
+        self.assertNotIn('contexts', b)
+        self.assertNotIn('delegation', ph)
+
+    def test_tables_hold_no_brief_text(self):
+        for table in ts.split(self._delegated().finish(), run='r'):
+            self.assertNotIn(SENTINEL, json.dumps(table))
+
+    def test_summary_reports_diagnosis_contexts(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            results = Path(tmp) / 'evidence' / 'results'
+            for name, t in (('treat-1', self._delegated()), ('ctl-1', Transcript())):
+                if name == 'ctl-1':
+                    t.call('Bash', {'command': './run-and-export.sh'}, 'exported')
+                    t.call('mcp__fluxtion-analyser__analyser_open', {'log': '/p/logs/audit-p.yaml'}, 'opened')
+                raw = Path(tmp) / f'{name}.jsonl'
+                raw.write_text('\n'.join(t.finish(cost=0.001)) + '\n')
+                ts.write_tables(raw, results / name, run=name)
+            text = ts.summary([results])
+            self.assertIn('**Diagnosis contexts**', text)
+            self.assertIn('| treat-1 | 1 | 3 | 0 | 21000 / 23000 | 2 | 0 | 96000 |', text)
+            self.assertIn('| ctl-1 | 0 |', text)
 
 
 if __name__ == '__main__':

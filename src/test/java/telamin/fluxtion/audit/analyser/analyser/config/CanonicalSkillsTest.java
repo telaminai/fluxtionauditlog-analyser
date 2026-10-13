@@ -216,6 +216,64 @@ class CanonicalSkillsTest {
         assertTrue(text.contains("ignored"));
     }
 
+    /**
+     * M72 L4 (iii): diagnosis runs in a fresh context seeded with a brief. The brief may carry pointers and the
+     * question but never the evidence, so the qualifications that travel with audit facts (spec §2.5) must be
+     * read live by the fresh context and come back in its reply. Each requirement below is one way the brief
+     * could hide evidence or rot into a second diagnosis in the long context.
+     */
+    private static final List<String> DIAGNOSIS_BRIEF_REQUIRES = List.of(
+            "subagent_type: \"general-purpose\"",                 // same model and tools as the author: measurable
+            "run_in_background: false",                            // 2.1.296 backgrounded a subagent unasked
+            "Wait for its reply and do nothing in the analyser meanwhile",   // one canvas, one driver at a time
+            "at most 2,000 characters",                            // the size bound
+            "Do not delegate", "edit files", "read an export\nas text",
+            "audit-compare.py on a before/after pair is allowed",  // add-a-node's proof stays available
+            "For each log in turn (the analyser holds one open log)",        // review P2-3: per log, not once
+            "analyser_context {\"sections\": [\"log\", \"pairing\"]}",
+            "log.identity", "graphPairing", "timeOrder", "producer", "inFlight", "dispatchOrder",
+            "recordIndex", "Reply, per processor", "its step 2 qualifications", "what the log cannot show",
+            "never the evidence", "for each log while that log is open", "with those\nqualifications",
+            "send\na new brief");
+    private static final int DIAGNOSIS_BRIEF_TEMPLATE_MAX = 1_300;
+
+    /** Requirements the skill's fresh-context section does not meet; empty when it meets them all. */
+    static List<String> diagnosisBriefGaps(String skill) {
+        int start = skill.indexOf("## Diagnose in a fresh context");
+        if (start < 0) return List.of("section ## Diagnose in a fresh context");
+        int end = skill.indexOf("\n## ", start + 1);
+        String section = skill.substring(start, end < 0 ? skill.length() : end);
+        List<String> gaps = new java.util.ArrayList<>();
+        for (String required : DIAGNOSIS_BRIEF_REQUIRES)
+            if (!section.contains(required)) gaps.add(required);
+        int open = section.indexOf("```\n");
+        int close = open < 0 ? -1 : section.indexOf("```", open + 4);
+        if (close < 0) gaps.add("the brief template as a fenced block");
+        else if (close - open - 4 > DIAGNOSIS_BRIEF_TEMPLATE_MAX)
+            gaps.add("template within " + DIAGNOSIS_BRIEF_TEMPLATE_MAX + " characters, leaving room to fill it");
+        if (!skill.contains("stop after\n   this step and follow *Diagnose in a fresh context*"))
+            gaps.add("step 1 routes a design conversation to the section");
+        if (!skill.contains("needs more than one analyser\n   read after opening") || !skill.contains("A single check stays here."))
+            gaps.add("the routing says which diagnosis goes to a subagent and which stays");
+        return gaps;
+    }
+
+    @Test
+    void loadLogSkillDiagnosesInAFreshContextWithABriefThatCarriesNoEvidence() throws Exception {
+        String text = Files.readString(ROOT.resolve("common/load-audit-log/SKILL.md"));
+        assertEquals(List.of(), diagnosisBriefGaps(text));
+        // witnesses: dropping any one requirement, the routing line or the section must turn the check red
+        for (String required : DIAGNOSIS_BRIEF_REQUIRES)
+            assertTrue(diagnosisBriefGaps(text.replace(required, "")).contains(required),
+                    "the check must catch a brief that drops: " + required);
+        assertFalse(diagnosisBriefGaps(text.replace("stop after\n   this step", "")).isEmpty());
+        assertFalse(diagnosisBriefGaps(text.replace("A single check stays here.", "")).isEmpty(),
+                "routing every diagnosis, however small, to a subagent must fail");
+        assertFalse(diagnosisBriefGaps(text.replace("## Diagnose in a fresh context", "## Diagnose")).isEmpty());
+        String padded = text.replace("question: <", "question: <" + "x".repeat(DIAGNOSIS_BRIEF_TEMPLATE_MAX));
+        assertFalse(diagnosisBriefGaps(padded).isEmpty(), "an unbounded template must fail");
+    }
+
     @Test
     void embeddedTierCannotAccidentallyGraduateWithoutChangingItsExplicitGate() throws Exception {
         String text = Files.readString(ROOT.resolve("embedded/run-embedded/SKILL.md"));

@@ -234,6 +234,7 @@ settings-save redraw, pinned (supersedes #78). [Release receipt](../handoff/rele
 ### M72 · Authoring token lowering ([spec](spec-authoring-token-lowering.md)) — proposed 2026-10-13
 - [M72] ☐ Lower facts locally, send the residual (L0–L7); first slice L0 + L7 model choice + capped bundle output vs an interleaved control (reference: PR #131); UP-PG-06.
   - [M72.L0] ☑ `tools/token_split.py` + tables backfilled over both ladders ([TOKEN-SPLIT](../handoff/evidence/authoring-ladder-baseline-2026-10-13/TOKEN-SPLIT.md)); L1 table view deferred (audit log 8.8% of baseline tool bytes, classifier upper bound). L7 ☑ Model choice section + `ModelChoiceEvidenceTest`. L2 D-N3 decided (no verdict word). Open: interleaved pair, L4 (i)(ii) bundle, UP-PG-06.
+  - [M72.L4iii] ☐ Diagnosis in a fresh context: `load-audit-log` section + brief, `token_split.py` contexts, `g14_runner.py --no-subagent` (Agent was never gated by the allow list) (spec L4 *as designed*); open: the interleaved rungs 2–5 run, UP-PG-08.
 
 ### Upstream template content — three drafts
 - [UC5] ◧ Idioms audited against the app that produced them.

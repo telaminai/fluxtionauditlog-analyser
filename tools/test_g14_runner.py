@@ -570,6 +570,26 @@ class SubjectCommandTest(unittest.TestCase):
             self.assertIn(needed, tools, f'{needed} would be refused under dontAsk')
         self.assertEqual(cmd[cmd.index('--permission-mode') + 1], 'dontAsk')
 
+    def test_the_subagent_tool_is_denied_only_on_request(self):
+        # Agent allows itself under dontAsk, so an allow list cannot withhold it: only a deny rule can.
+        def cmd(**kw):
+            return g14.subject_command('/p.sb', '/cli', 'm', {}, 'the task', **kw)
+        self.assertNotIn('--disallowedTools', cmd(), 'the default must stay what G14 and both ladders ran with')
+        denied = cmd(deny_subagent=True)
+        deny = denied[denied.index('--disallowedTools') + 1:denied.index('--no-chrome')]
+        self.assertEqual(deny, ['Agent', 'Task'])
+        allow = denied[denied.index('--allowedTools') + 1:denied.index('--disallowedTools')]
+        self.assertEqual(allow, list(g14.SUBJECT_TOOLS))
+        for name in ('Agent', 'Task'):
+            self.assertNotIn(name, allow, 'naming it in the allow list would read as a grant it does not need')
+        self.assertEqual(denied[-2:], ['--', 'the task'])
+
+    def test_subagent_offered_reads_the_first_init_event(self):
+        init = lambda tools: json.dumps({'type': 'system', 'subtype': 'init', 'tools': tools})
+        self.assertTrue(g14.subagent_offered(['not json', init(['Task', 'Bash'])]))
+        self.assertFalse(g14.subagent_offered([init(['Bash', 'Read']), init(['Task'])]))
+        self.assertIsNone(g14.subagent_offered([json.dumps({'type': 'assistant'})]))
+
     def test_the_prompt_is_the_last_argument_after_a_separator(self):
         """A variadic --allowedTools would otherwise swallow the prompt as a tool name."""
         cmd = g14.subject_command('/p.sb', '/cli', 'm', {}, 'the task')
