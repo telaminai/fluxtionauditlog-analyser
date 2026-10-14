@@ -1,0 +1,8 @@
+r2 fixture offline setup=0 validate=1
+r2 fixture-t offline setup=0 validate=1
+r3 fixture offline setup=0 validate=0
+r3 fixture-t offline setup=0 validate=0
+r4 fixture offline setup=0 validate=0
+r4 fixture-t offline setup=0 validate=0
+r5 fixture offline setup=0 validate=0
+r5 fixture-t offline setup=0 validate=0

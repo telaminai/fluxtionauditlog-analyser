@@ -1,0 +1,1 @@
+{"contentReads": 1, "contentBytes": 24813, "byMarker": {"builderSource": 1}, "calls": [{"shape": "Bash: cat config/server-config.yml && head -20 data/input.txt && wc -l data/input.txt && cat src/main/java/com/example/myapp/builder/SpringAotBuil", "markers": ["builderSource"], "resultBytes": 24813, "partial": false}]}

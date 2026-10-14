@@ -1,0 +1,64 @@
+{
+ "run": "ab-r5-t-1",
+ "PASS": true,
+ "ORACLE": true,
+ "VALID": true,
+ "CHART": true,
+ "S6prime": true,
+ "costUsd": 0.053,
+ "turns": 31,
+ "wall": 182,
+ "over100k": 0,
+ "diagnosisCostUsd": 0.02130474,
+ "diagnosisOver100k": 0,
+ "subagentOffered": true,
+ "delegated": true,
+ "calls": [
+  {
+   "subagent_type": "general-purpose",
+   "run_in_background": false,
+   "briefChars": 1772,
+   "briefFields": [
+    "project:",
+    "logs:",
+    "provenance:",
+    "change:",
+    "predicted:",
+    "question:"
+   ],
+   "analyserCallsWhileWaiting": 0,
+   "analyserCallsAfterReply": 1,
+   "mainToolCallsAfterReply": 1,
+   "replyChars": 3061,
+   "replyQualifications": [
+    "pairing",
+    "dispatchOrder"
+   ],
+   "replyCitesRecordIndex": true
+  }
+ ],
+ "foreground": true,
+ "waited": true,
+ "analyserCallsWhileWaiting": 0,
+ "analyserCallsAfterReply": 1,
+ "delegationBlock": {
+  "delegations": 1,
+  "backgrounded": 0,
+  "mainRequestsWhileSubagentRan": 0,
+  "subagentRequests": 14,
+  "subagentOver100k": 0,
+  "subagentCostUsd": 0.01163839,
+  "delegateInputChars": 1905,
+  "delegateResultBytes": 3061,
+  "warnings": []
+ },
+ "subagentFirstPrompts": [
+  16473
+ ],
+ "keyscan": {
+  "clean": true,
+  "secretOccurrences": 0,
+  "tokenOccurrences": 0,
+  "keyPathReads": 0
+ }
+}

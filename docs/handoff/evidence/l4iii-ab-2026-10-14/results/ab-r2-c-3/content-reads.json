@@ -1,0 +1,1 @@
+{"contentReads": 1, "contentBytes": 15320, "byMarker": {"builderSource": 1}, "calls": [{"shape": "Bash: cat src/main/fluxtion/designer/application-context.xml && echo ---- && for f in src/main/java/com/example/myapp/node/*.java src/main/java/co", "markers": ["builderSource"], "resultBytes": 15320, "partial": false}]}

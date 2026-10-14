@@ -1,0 +1,51 @@
+--- r2/fixture/runbooks/analyser.md	2026-10-14 00:14:12
++++ r2/fixture-t/runbooks/analyser.md	2026-10-14 01:17:54
+@@ -7,3 +7,37 @@
+ Load matching graph/log evidence and compare measured values with predictions. Use reports for record-anchored evidence and spotlights for attributed explanation. A screenshot checks placement; an action echo alone cannot establish what the human sees.
+ 
+ When reopening the project, inspect loaded versus saved state and explicitly restore available evidence. Missing or changed inputs must be resolved before reusing old conclusions. The analyser does not build, deploy or run your application.
++
++## Diagnose in a fresh context
++
++Once the build has succeeded and the run has written its export, give the diagnosis to a subagent
++(`subagent_type: "general-purpose"`, `run_in_background: false`) instead of doing it here: this
++conversation still carries everything read while designing, and every further request pays for it again.
++Wait for its reply and do nothing in the analyser meanwhile, even if it runs in the background. The
++subagent's whole prompt is this brief, filled in from what you already know, at most 2,000 characters:
++
++```
++You are the fresh context for diagnosing a Fluxtion run. Do not delegate, edit files or read an export
++as text; running audit-compare.py on a before/after pair is allowed. Use the analyser MCP tools.
++project: <absolute project root>
++logs: <processor>  <logs/audit-<processor>.yaml>  <its GraphML>   (one line per processor)
++provenance: <which system and run>
++change: <each node or edge declared or changed: bean id, class, from -> to; or none>
++predicted: <the record facts you expect if the change works>
++question: <what the person asked, with any chart or report to leave on the canvas>
++For each log in turn (the analyser holds one open log):
++1. If analyser_context.project.active is not this project, analyser_open {"project"} alone first.
++   Then analyser_open {"log", "graphml", "provenance"} for this log.
++2. Read analyser_context {"sections": ["log", "pairing"]}: note log.identity, graphPairing, timeOrder,
++   producer, inFlight and dispatchOrder as stated, or "not stated".
++3. Answer this log's part from read {fields}, series and aggregate; cite each fact by recordIndex.
++Reply, per processor: the answer; each fact and its recordIndex; its step 2 qualifications; what you
++left on the canvas; what the log cannot show.
++```
++
++The brief carries pointers and the question, never the evidence: the subagent reads the identity verdict,
++pairing, time order, producer findings and in-flight state itself, for each log while that log is open,
++because a copy taken now is stale once the file is rewritten. Give the person its reply with those
++qualifications, without repeating its reads here. If it reports a defect, fix it here, run again and send
++a new brief.
++
+--- r2/fixture/RUNBOOK.md	2026-10-14 00:14:12
++++ r2/fixture-t/RUNBOOK.md	2026-10-14 01:17:54
+@@ -8,7 +8,7 @@
+ 2. Edit the Spring XML, then run ./validate.sh. This checks XML structure and declarations only; it does not load your classes. Read target/fluxtion-validation.json and repair ERROR findings.
+ 3. Run ./generate.sh. Reconciliation plans source edits before writing. A conflict leaves source and the authoring record unchanged; the change lists in target/fluxtion-reconciliation.json describe a plan, not edits applied. Implemented method bodies are kept.
+ 4. Read target/fluxtion-run.json before consuming diagnostics. validate or regenerate starts a new attempt and clears previous stage entries; preflight and build continue it. The stage options name effective paths and per-run reconciliation flags; these do not rewrite persisted policy. Compare each stage's outputs (or inputs when outputs are absent) with the present XML, source and record hashes. Error reports can be current too. Compiler diagnostics at target/classes/fluxtion-diagnostics.json belong to this attempt only when build.compilerRan is true and those hashes still match. Authoring builds request this file even for a clean compiler result, whose diagnostics array is empty. A javac failure before generation leaves compilerRan false.
+-5. Confirm the change from the Spring XML and the compiler's own messages: the validation report's node and edge counts, target/fluxtion-run.json and target/classes/fluxtion-diagnostics.json. Do not read the generated processor, its GraphML or the builder; they are outputs, and reading them costs many tokens and proves nothing those messages and the audit log do not. Then run ./run.sh. Check event dispatch, trigger ordering and service callbacks against your design from the audit log, which lists every node an event invoked, in dispatch order.
++5. Confirm the change from the Spring XML and the compiler's own messages: the validation report's node and edge counts, target/fluxtion-run.json and target/classes/fluxtion-diagnostics.json. Do not read the generated processor, its GraphML or the builder; they are outputs, and reading them costs many tokens and proves nothing those messages and the audit log do not. Then run ./run.sh. If checking the change needs more than one analyser read after opening the log, follow *Diagnose in a fresh context* in runbooks/analyser.md. Check event dispatch, trigger ordering and service callbacks against your design from the audit log, which lists every node an event invoked, in dispatch order.
+ 
+ The generated Maven command is package. The builder chooses local providers or HTTP; only the RapidAPI route probes its gateway. Custom HTTP authentication stays with the client. A local provider and all build dependencies must already be installed for air-gapped generation.
+ 

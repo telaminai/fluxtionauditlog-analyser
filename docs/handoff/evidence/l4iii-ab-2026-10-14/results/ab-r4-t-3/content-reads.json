@@ -1,0 +1,1 @@
+{"contentReads": 1, "contentBytes": 3331, "byMarker": {"builderSource": 1}, "calls": [{"shape": "Bash: tr ':' '\\n' < .fluxtion/classpath | grep -i fluxtion; echo ----; cat logs/setup.log 2>/dev/null | tail -5; echo ----; cat src/main/java/com/", "markers": ["builderSource"], "resultBytes": 3331, "partial": false}]}

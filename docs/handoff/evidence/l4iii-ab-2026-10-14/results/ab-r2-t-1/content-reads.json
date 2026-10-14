@@ -1,0 +1,1 @@
+{"contentReads": 1, "contentBytes": 12351, "byMarker": {"builderSource": 1}, "calls": [{"shape": "Bash: cat src/main/java/com/example/myapp/FluxtionMain.java && echo ---- && cat src/test/java/com/example/myapp/MyProcessorTest.java && echo ---- ", "markers": ["builderSource"], "resultBytes": 12351, "partial": false}]}

@@ -1,0 +1,27 @@
+--- docs/skills/common/load-audit-log/SKILL.md	2026-10-14 01:13:24
++++ r3/fixture-t/.claude/skills/load-audit-log/SKILL.md	2026-10-14 01:17:54
+@@ -15,7 +15,9 @@
+    YAML. The unopened path is not discoverable from the analyser, and asking it is the wrong move:
+ 
+    ```
+-   TODO(bundle): substitute the bundle's exact export command (where required), concrete YAML-export path and GraphML path here.
++   ./export-audit.sh                # produce the exports, one per processor (a fresh run has no YAML until this)
++   logs/audit-marketProcessor.yaml                       # MarketProcessor: the export's concrete path
++   src/main/resources/com/example/myapp/generated/MarketProcessor.graphml                       # MarketProcessor: its GraphML
+    ```
+ 
+    **One log per processor.** A bundle may host several processors, and each is captured and exported
+@@ -25,8 +27,11 @@
+    evidence of anything. If the bundle hosts several processors and the export produced fewer files,
+    the missing processors were not exported — say so rather than reading one log as the whole system.
+ 
+-   **Do not use `analyser_context` to find an unopened log**: `context.log` describes the log already
+-   open, and the profile stores no log path.
++   **Do not use `analyser_context` to find an unopened log** — an earlier version of this skill said to,
++   and it was false (review F3, 2026-08-29). `context.log` describes the log **already open**; on a fresh
++   project it is absent, and the profile stores no log path at all (`ProjectProfile` has no such
++   category). An agent following the old instruction on a fresh bundle would find nothing and conclude the
++   project was broken.
+ 
+    If this conversation designed or changed the graph and the question needs more than one analyser
+    read after opening (a chart, several records or nodes, before/after, several processors), stop after

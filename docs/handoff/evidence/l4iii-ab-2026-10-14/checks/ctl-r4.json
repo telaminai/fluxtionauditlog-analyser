@@ -1,0 +1,1 @@
+{"base": "/private/tmp/fx-ab14/ctl-r4", "root": "/private/tmp/fx-ab14/ctl-r4/project", "VALID": true, "ORACLE": {"ok": false, "detail": {"tail": "Exception in thread \"main\" java.lang.AssertionError: step 1: expected 1 outputs, got 0 []\n\tat R4Oracle.step(R4Oracle.java:39)\n\tat R4Oracle.main(R4Oracle.java:51)\n"}}}

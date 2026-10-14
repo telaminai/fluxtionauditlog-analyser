@@ -1,0 +1,87 @@
+{
+ "run": "ab-r4-t-1",
+ "PASS": true,
+ "ORACLE": true,
+ "VALID": true,
+ "CHART": true,
+ "S6prime": true,
+ "costUsd": 0.2418,
+ "turns": 54,
+ "wall": 425,
+ "over100k": 14,
+ "diagnosisCostUsd": 0.0448952,
+ "diagnosisOver100k": 2,
+ "subagentOffered": true,
+ "delegated": true,
+ "calls": [
+  {
+   "subagent_type": "general-purpose",
+   "run_in_background": false,
+   "briefChars": 1762,
+   "briefFields": [
+    "project:",
+    "logs:",
+    "provenance:",
+    "change:",
+    "predicted:",
+    "question:"
+   ],
+   "analyserCallsWhileWaiting": 0,
+   "analyserCallsAfterReply": 0,
+   "mainToolCallsAfterReply": 18,
+   "replyChars": 3645,
+   "replyQualifications": [
+    "pairing",
+    "producer"
+   ],
+   "replyCitesRecordIndex": true
+  },
+  {
+   "subagent_type": "general-purpose",
+   "run_in_background": false,
+   "briefChars": 1979,
+   "briefFields": [
+    "project:",
+    "logs:",
+    "provenance:",
+    "change:",
+    "predicted:",
+    "question:"
+   ],
+   "analyserCallsWhileWaiting": 0,
+   "analyserCallsAfterReply": 0,
+   "mainToolCallsAfterReply": 0,
+   "replyChars": 4575,
+   "replyQualifications": [
+    "pairing",
+    "dispatchOrder"
+   ],
+   "replyCitesRecordIndex": true
+  }
+ ],
+ "foreground": true,
+ "waited": true,
+ "analyserCallsWhileWaiting": 0,
+ "analyserCallsAfterReply": 0,
+ "delegationBlock": {
+  "delegations": 2,
+  "backgrounded": 0,
+  "mainRequestsWhileSubagentRan": 0,
+  "subagentRequests": 28,
+  "subagentOver100k": 0,
+  "subagentCostUsd": 0.02310087,
+  "delegateInputChars": 4052,
+  "delegateResultBytes": 8220,
+  "warnings": []
+ },
+ "subagentFirstPrompts": [
+  13665,
+  13748
+ ],
+ "keyscan": {
+  "clean": true,
+  "secretOccurrences": 0,
+  "tokenOccurrences": 0,
+  "keyPathReads": 0
+ }
+}

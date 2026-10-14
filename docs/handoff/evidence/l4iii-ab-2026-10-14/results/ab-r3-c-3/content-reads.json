@@ -1,0 +1,1 @@
+{"contentReads": 1, "contentBytes": 5698, "byMarker": {"builderSource": 1}, "calls": [{"shape": "Bash: cat fluxtion-authoring.json && ls config config/* data data/* && cat config/*/* 2>/dev/null | head -150 && cat src/main/java/com/example/mya", "markers": ["builderSource"], "resultBytes": 5698, "partial": false}]}

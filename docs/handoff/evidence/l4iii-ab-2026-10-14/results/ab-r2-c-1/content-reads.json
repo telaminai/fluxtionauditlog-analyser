@@ -1,0 +1,1 @@
+{"contentReads": 1, "contentBytes": 17318, "byMarker": {"builderSource": 1}, "calls": [{"shape": "Bash: find src -type f | sort && echo ---- && cat src/main/fluxtion/designer/application-context.xml && echo ---- && for f in $(find src -name '*.", "markers": ["builderSource"], "resultBytes": 17318, "partial": false}]}

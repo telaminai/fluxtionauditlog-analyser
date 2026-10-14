@@ -1,0 +1,1 @@
+{"contentReads": 1, "contentBytes": 12500, "byMarker": {"builderSource": 1}, "calls": [{"shape": "Bash: cat src/main/java/com/example/myapp/builder/MarketProcessorSupplier.java src/main/java/com/example/myapp/mapper/CsvToPriceEvent.java | head ", "markers": ["builderSource"], "resultBytes": 12500, "partial": false}]}

@@ -1,0 +1,39 @@
+{
+ "run": "ab-r2-c-3",
+ "PASS": true,
+ "ORACLE": true,
+ "VALID": true,
+ "CHART": true,
+ "S6prime": true,
+ "costUsd": 0.2192,
+ "turns": 71,
+ "wall": 262,
+ "over100k": 19,
+ "diagnosisCostUsd": 0.07317177,
+ "diagnosisOver100k": 7,
+ "subagentOffered": true,
+ "delegated": false,
+ "calls": [],
+ "foreground": null,
+ "waited": null,
+ "analyserCallsWhileWaiting": null,
+ "analyserCallsAfterReply": null,
+ "delegationBlock": {
+  "delegations": null,
+  "backgrounded": null,
+  "mainRequestsWhileSubagentRan": null,
+  "subagentRequests": null,
+  "subagentOver100k": null,
+  "subagentCostUsd": null,
+  "delegateInputChars": null,
+  "delegateResultBytes": null,
+  "warnings": null
+ },
+ "subagentFirstPrompts": [],
+ "keyscan": {
+  "clean": true,
+  "secretOccurrences": 0,
+  "tokenOccurrences": 0,
+  "keyPathReads": 0
+ }
+}
