@@ -1,0 +1,11 @@
+This directory holds a Fluxtion and Mongoose project, the analyser bundle starter, already unpacked. Its shipped documentation is README.md, RUNBOOK.md, CLAUDE.md, PROJECT.md and runbooks/. Never print, copy or modify the compilation key file; use the shipped generation script.
+
+A supplier has delivered an FX feed library, com.acme.fx:acme-fx:1.0.0, as a Maven repository in supplier-repo/ with integration notes in supplier-repo/SUPPLIER.md. Integrate it. This is an integration job: use the supplier's classes as delivered, and do not write or change any Java code yourself.
+
+- Add a second feed to the Mongoose server that reads data/fx.csv through the supplier's mapper.
+- Add the supplier's FxRateBook node to the processor so that it receives the feed's FxQuote events.
+- The existing price processing must behave exactly as before.
+
+The change has to be in the compiled processor, not only in the configuration. Run it on the sample data. Then use the Fluxtion analyser, which you have as an MCP server, to put a chart of the recorded EURUSD rate on the analyser canvas.
+
+Finish by telling me the latest rate for each currency pair, and what evidence shows the feed and node were integrated and the price processing is unchanged.

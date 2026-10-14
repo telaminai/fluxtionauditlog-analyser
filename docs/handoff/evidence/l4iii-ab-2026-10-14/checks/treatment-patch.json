@@ -1,0 +1,59 @@
+{
+ "canonical": {
+  "path": "analyser docs/skills/common/load-audit-log/SKILL.md",
+  "sha256": "c5b7d90867adfee693cfdf049bd3588d8618eb252981db08135d6c85fce59c62"
+ },
+ "r3": {
+  "vendoredSha256": "03394266e34618ca8bf023beda9f124c29e391c3df31150b58fc8cefb880f735",
+  "patchedSha256": "9d3901bbdc6b8fece2ad38c17c9e48ddf28dd45a3563c5c5364a810762b73dd3",
+  "vsVendored": {
+   "onlyInsertions": true,
+   "insertedEqualsRoutingPlusSection": true,
+   "insertedLines": 37
+  },
+  "vsCanonical": {
+   "hunks": 2,
+   "diff": "@@ -18 +18,3 @@\n-   TODO(bundle): substitute the bundle's exact export command (where required), concrete YAML-export path and GraphML path here.\n+   ./export-audit.sh                # produce the exports, one per processor (a fresh run has no YAML until this)\n+   logs/audit-marketProcessor.yaml                       # MarketProcessor: the export's concrete path\n+   src/main/resources/com/example/myapp/generated/MarketProcessor.graphml                       # MarketProcessor: its GraphML\n@@ -28,2 +30,5 @@\n-   **Do not use `analyser_context` to find an unopened log**: `context.log` describes the log already\n-   open, and the profile stores no log path.\n+   **Do not use `analyser_context` to find an unopened log** \u2014 an earlier version of this skill said to,\n+   and it was false (review F3, 2026-08-29). `context.log` describes the log **already open**; on a fresh\n+   project it is absent, and the profile stores no log path at all (`ProjectProfile` has no such\n+   category). An agent following the old instruction on a fresh bundle would find nothing and conclude the\n+   project was broken.\n"
+  }
+ },
+ "r5": {
+  "vendoredSha256": "03394266e34618ca8bf023beda9f124c29e391c3df31150b58fc8cefb880f735",
+  "patchedSha256": "9d3901bbdc6b8fece2ad38c17c9e48ddf28dd45a3563c5c5364a810762b73dd3",
+  "vsVendored": {
+   "onlyInsertions": true,
+   "insertedEqualsRoutingPlusSection": true,
+   "insertedLines": 37
+  },
+  "vsCanonical": {
+   "hunks": 2,
+   "diff": "@@ -18 +18,3 @@\n-   TODO(bundle): substitute the bundle's exact export command (where required), concrete YAML-export path and GraphML path here.\n+   ./export-audit.sh                # produce the exports, one per processor (a fresh run has no YAML until this)\n+   logs/audit-marketProcessor.yaml                       # MarketProcessor: the export's concrete path\n+   src/main/resources/com/example/myapp/generated/MarketProcessor.graphml                       # MarketProcessor: its GraphML\n@@ -28,2 +30,5 @@\n-   **Do not use `analyser_context` to find an unopened log**: `context.log` describes the log already\n-   open, and the profile stores no log path.\n+   **Do not use `analyser_context` to find an unopened log** \u2014 an earlier version of this skill said to,\n+   and it was false (review F3, 2026-08-29). `context.log` describes the log **already open**; on a fresh\n+   project it is absent, and the profile stores no log path at all (`ProjectProfile` has no such\n+   category). An agent following the old instruction on a fresh bundle would find nothing and conclude the\n+   project was broken.\n"
+  }
+ },
+ "r2": {
+  "analyserMdSha256": {
+   "before": "0805f60ded8d7ea4eeea2c3c333b817819175db729f548320e81f6e389818681",
+   "after": "e298fd890765e983b5bc1bf5f4fc3a24475b0b23dc6ebf9a1c114b244ab397f8"
+  },
+  "runbookSha256": {
+   "before": "6d180982faa414694202f4ac683443e59223cfbe91880260c6e33c0c1c0af375",
+   "after": "637a5502f231f0b8f81498c70958134f3d8a0aab36a3f1cd4967343084e19fc8"
+  },
+  "sectionByteIdentical": true,
+  "runbookSentenceInserted": true
+ },
+ "r4": {
+  "analyserMdSha256": {
+   "before": "0805f60ded8d7ea4eeea2c3c333b817819175db729f548320e81f6e389818681",
+   "after": "e298fd890765e983b5bc1bf5f4fc3a24475b0b23dc6ebf9a1c114b244ab397f8"
+  },
+  "runbookSha256": {
+   "before": "6d180982faa414694202f4ac683443e59223cfbe91880260c6e33c0c1c0af375",
+   "after": "637a5502f231f0b8f81498c70958134f3d8a0aab36a3f1cd4967343084e19fc8"
+  },
+  "sectionByteIdentical": true,
+  "runbookSentenceInserted": true
+ },
+ "sectionSha256": "0d47a95f00944d41037d9c05765ff7da894ecc694413278a92aae8830a8a758a",
+ "sectionChars": 2201,
+ "ok": true
+}
