@@ -1,0 +1,97 @@
+{
+ "run": "ab-r2-t-2",
+ "PASS": true,
+ "ORACLE": true,
+ "VALID": true,
+ "CHART": true,
+ "S6prime": true,
+ "costUsd": 0.3332,
+ "turns": 70,
+ "wall": 347,
+ "over100k": 27,
+ "diagnosisCostUsd": 0.06881241,
+ "diagnosisOver100k": 6,
+ "subagentOffered": true,
+ "delegated": true,
+ "calls": [
+  {
+   "subagent_type": "general-purpose",
+   "run_in_background": false,
+   "briefChars": 2125,
+   "briefFields": [
+    "project:",
+    "logs:",
+    "provenance:",
+    "change:",
+    "predicted:",
+    "question:"
+   ],
+   "analyserCallsWhileWaiting": 0,
+   "analyserCallsAfterReply": 4,
+   "mainToolCallsAfterReply": 10,
+   "replyChars": 3361,
+   "replyQualifications": [
+    "identity",
+    "pairing",
+    "timeOrder",
+    "producer",
+    "inFlight",
+    "dispatchOrder",
+    "notStated"
+   ],
+   "replyCitesRecordIndex": true
+  },
+  {
+   "subagent_type": "general-purpose",
+   "run_in_background": false,
+   "briefChars": 2300,
+   "briefFields": [
+    "project:",
+    "logs:",
+    "provenance:",
+    "change:",
+    "predicted:",
+    "question:"
+   ],
+   "analyserCallsWhileWaiting": 0,
+   "analyserCallsAfterReply": 3,
+   "mainToolCallsAfterReply": 5,
+   "replyChars": 2961,
+   "replyQualifications": [
+    "identity",
+    "pairing",
+    "timeOrder",
+    "producer",
+    "inFlight",
+    "dispatchOrder",
+    "notStated"
+   ],
+   "replyCitesRecordIndex": true
+  }
+ ],
+ "foreground": true,
+ "waited": true,
+ "analyserCallsWhileWaiting": 0,
+ "analyserCallsAfterReply": 7,
+ "delegationBlock": {
+  "delegations": 2,
+  "backgrounded": 0,
+  "mainRequestsWhileSubagentRan": 0,
+  "subagentRequests": 11,
+  "subagentOver100k": 0,
+  "subagentCostUsd": 0.00838971,
+  "delegateInputChars": 4776,
+  "delegateResultBytes": 6322,
+  "warnings": []
+ },
+ "subagentFirstPrompts": [
+  13796,
+  13835
+ ],
+ "keyscan": {
+  "clean": true,
+  "secretOccurrences": 0,
+  "tokenOccurrences": 0,
+  "keyPathReads": 0
+ }
+}

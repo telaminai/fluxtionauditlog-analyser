@@ -1,0 +1,417 @@
+{
+ "schema": "token-split/1",
+ "run": "ab-r2-t-2",
+ "definition": "Calls in transcript order. E (the export) = the last run call (rules runScript or javaRun) before the last analyser `open` that names a log; with no such open, the last run call. B (the build) = the last successful build call (generate.sh executed, mvn/mvnw, or javac; successful = not is_error and no failure marker in the result) before E, or the last one overall when there is no E. D = the first analyser call or subagent delegation (Agent/Task) after E (after B when there is no E). design = calls up to and including B (with no B: the calls before the first run call); diagnosis = D to the end; run = everything between. A request takes the phase of the first tool call it emits; a request that emits none takes the phase of the nearest earlier request that emitted one (design when there is none). CLI side calls (sideCalls) are not placed in a phase.",
+ "boundaries": {
+  "exportCall": 69,
+  "lastBuildCall": 49,
+  "diagnosisStartCall": 70,
+  "designEndCall": 49
+ },
+ "phases": {
+  "design": {
+   "toolCalls": 50,
+   "analyserCalls": 4,
+   "toolResultBytes": 118883,
+   "requests": 32,
+   "over100k": 13,
+   "input": 64,
+   "cacheRead": 2521362,
+   "cacheWrite": 109842,
+   "outputAllocated": 35972.599,
+   "costUsd": 0.17500712
+  },
+  "run": {
+   "toolCalls": 20,
+   "analyserCalls": 14,
+   "toolResultBytes": 22948,
+   "requests": 14,
+   "over100k": 8,
+   "input": 28,
+   "cacheRead": 1133049,
+   "cacheWrite": 39889,
+   "outputAllocated": 5838.265,
+   "costUsd": 0.07981287
+  },
+  "diagnosis": {
+   "toolCalls": 17,
+   "analyserCalls": 11,
+   "toolResultBytes": 19307,
+   "requests": 11,
+   "over100k": 6,
+   "input": 22,
+   "cacheRead": 915160,
+   "cacheWrite": 27114,
+   "outputAllocated": 6288.137,
+   "costUsd": 0.06881241
+  }
+ },
+ "sideCallsCostUsd": 0.00708275,
+ "calls": [
+  {
+   "n": 0,
+   "phase": "design"
+  },
+  {
+   "n": 1,
+   "phase": "design"
+  },
+  {
+   "n": 2,
+   "phase": "design"
+  },
+  {
+   "n": 3,
+   "phase": "design"
+  },
+  {
+   "n": 4,
+   "phase": "design"
+  },
+  {
+   "n": 5,
+   "phase": "design"
+  },
+  {
+   "n": 6,
+   "phase": "design"
+  },
+  {
+   "n": 7,
+   "phase": "design"
+  },
+  {
+   "n": 8,
+   "phase": "design"
+  },
+  {
+   "n": 9,
+   "phase": "design"
+  },
+  {
+   "n": 10,
+   "phase": "design"
+  },
+  {
+   "n": 11,
+   "phase": "design"
+  },
+  {
+   "n": 12,
+   "phase": "design"
+  },
+  {
+   "n": 13,
+   "phase": "design"
+  },
+  {
+   "n": 14,
+   "phase": "design"
+  },
+  {
+   "n": 15,
+   "phase": "design"
+  },
+  {
+   "n": 16,
+   "phase": "design"
+  },
+  {
+   "n": 17,
+   "phase": "design"
+  },
+  {
+   "n": 18,
+   "phase": "design"
+  },
+  {
+   "n": 19,
+   "phase": "design"
+  },
+  {
+   "n": 20,
+   "phase": "design"
+  },
+  {
+   "n": 21,
+   "phase": "design"
+  },
+  {
+   "n": 22,
+   "phase": "design"
+  },
+  {
+   "n": 23,
+   "phase": "design"
+  },
+  {
+   "n": 24,
+   "phase": "design"
+  },
+  {
+   "n": 25,
+   "phase": "design"
+  },
+  {
+   "n": 26,
+   "phase": "design"
+  },
+  {
+   "n": 27,
+   "phase": "design"
+  },
+  {
+   "n": 28,
+   "phase": "design"
+  },
+  {
+   "n": 29,
+   "phase": "design"
+  },
+  {
+   "n": 30,
+   "phase": "design"
+  },
+  {
+   "n": 31,
+   "phase": "design"
+  },
+  {
+   "n": 32,
+   "phase": "design"
+  },
+  {
+   "n": 33,
+   "phase": "design"
+  },
+  {
+   "n": 34,
+   "phase": "design"
+  },
+  {
+   "n": 35,
+   "phase": "design"
+  },
+  {
+   "n": 36,
+   "phase": "design"
+  },
+  {
+   "n": 37,
+   "phase": "design"
+  },
+  {
+   "n": 38,
+   "phase": "design"
+  },
+  {
+   "n": 39,
+   "phase": "design"
+  },
+  {
+   "n": 40,
+   "phase": "design"
+  },
+  {
+   "n": 41,
+   "phase": "design"
+  },
+  {
+   "n": 42,
+   "phase": "design"
+  },
+  {
+   "n": 43,
+   "phase": "design"
+  },
+  {
+   "n": 44,
+   "phase": "design"
+  },
+  {
+   "n": 45,
+   "phase": "design"
+  },
+  {
+   "n": 46,
+   "phase": "design"
+  },
+  {
+   "n": 47,
+   "phase": "design"
+  },
+  {
+   "n": 48,
+   "phase": "design"
+  },
+  {
+   "n": 49,
+   "phase": "design"
+  },
+  {
+   "n": 50,
+   "phase": "run"
+  },
+  {
+   "n": 51,
+   "phase": "run"
+  },
+  {
+   "n": 52,
+   "phase": "run"
+  },
+  {
+   "n": 53,
+   "phase": "run"
+  },
+  {
+   "n": 54,
+   "phase": "run"
+  },
+  {
+   "n": 55,
+   "phase": "run"
+  },
+  {
+   "n": 56,
+   "phase": "run"
+  },
+  {
+   "n": 57,
+   "phase": "run"
+  },
+  {
+   "n": 58,
+   "phase": "run"
+  },
+  {
+   "n": 59,
+   "phase": "run"
+  },
+  {
+   "n": 60,
+   "phase": "run"
+  },
+  {
+   "n": 61,
+   "phase": "run"
+  },
+  {
+   "n": 62,
+   "phase": "run"
+  },
+  {
+   "n": 63,
+   "phase": "run"
+  },
+  {
+   "n": 64,
+   "phase": "run"
+  },
+  {
+   "n": 65,
+   "phase": "run"
+  },
+  {
+   "n": 66,
+   "phase": "run"
+  },
+  {
+   "n": 67,
+   "phase": "run"
+  },
+  {
+   "n": 68,
+   "phase": "run"
+  },
+  {
+   "n": 69,
+   "phase": "run"
+  },
+  {
+   "n": 70,
+   "phase": "diagnosis"
+  },
+  {
+   "n": 71,
+   "phase": "diagnosis"
+  },
+  {
+   "n": 72,
+   "phase": "diagnosis"
+  },
+  {
+   "n": 73,
+   "phase": "diagnosis"
+  },
+  {
+   "n": 74,
+   "phase": "diagnosis"
+  },
+  {
+   "n": 75,
+   "phase": "diagnosis"
+  },
+  {
+   "n": 76,
+   "phase": "diagnosis"
+  },
+  {
+   "n": 77,
+   "phase": "diagnosis"
+  },
+  {
+   "n": 78,
+   "phase": "diagnosis"
+  },
+  {
+   "n": 79,
+   "phase": "diagnosis"
+  },
+  {
+   "n": 80,
+   "phase": "diagnosis"
+  },
+  {
+   "n": 81,
+   "phase": "diagnosis"
+  },
+  {
+   "n": 82,
+   "phase": "diagnosis"
+  },
+  {
+   "n": 83,
+   "phase": "diagnosis"
+  },
+  {
+   "n": 84,
+   "phase": "diagnosis"
+  },
+  {
+   "n": 85,
+   "phase": "diagnosis"
+  },
+  {
+   "n": 86,
+   "phase": "diagnosis"
+  }
+ ],
+ "delegation": {
+  "delegations": 2,
+  "backgrounded": 0,
+  "delegateResultBytes": 6322,
+  "receiptBytes": 0,
+  "mainRequestsWhileSubagentRan": 0,
+  "delegateInputChars": 4776,
+  "subagentContexts": 2,
+  "subagentRequests": 11,
+  "subagentOver100k": 0,
+  "subagentMaxPrompt": 29180,
+  "subagentCostUsd": 0.00838971,
+  "mainDiagnosisRequests": 6,
+  "mainDiagnosisOver100k": 6,
+  "mainMaxPrompt": 142532,
+  "warnings": []
+ }
+}

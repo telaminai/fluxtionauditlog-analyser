@@ -1,0 +1,1 @@
+{"contentReads": 1, "contentBytes": 8422, "byMarker": {"builderSource": 1}, "calls": [{"shape": "Bash: grep -n -i \"acme\\|supplier\\|<repositor\\|<url>\\|<dependency>\" pom.xml | head -60; echo ----; cat src/main/java/com/example/myapp/builder/Spri", "markers": ["builderSource"], "resultBytes": 8422, "partial": false}]}

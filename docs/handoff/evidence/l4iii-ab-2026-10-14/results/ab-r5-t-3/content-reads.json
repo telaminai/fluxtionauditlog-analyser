@@ -1,0 +1,1 @@
+{"contentReads": 1, "contentBytes": 11362, "byMarker": {"builderSource": 1}, "calls": [{"shape": "Bash: cat src/main/java/com/example/myapp/builder/MarketProcessorSupplier.java src/main/java/com/example/myapp/node/RootNode.java src/main/java/co", "markers": ["builderSource"], "resultBytes": 11362, "partial": false}]}

@@ -1,0 +1,33 @@
+{
+  "run": "ab-r5-c-1",
+  "requestedModel": "claude-haiku-5-5",
+  "gate": "G14-rig comparison (prestaged)",
+  "acceptanceEligible": false,
+  "startedUtc": "2026-10-14T01:47:54.276167+00:00",
+  "processGroupId": 30589,
+  "processGroupReaped": true,
+  "strayProcesses": {
+    "swept": [],
+    "survivors": []
+  },
+  "exit": 0,
+  "endedUtc": "2026-10-14T01:50:51.884902+00:00",
+  "clock": {
+    "utcNs": 1791942651884974000,
+    "awakeNs": 4177404039149791,
+    "continuousNs": 4302294786452416,
+    "elapsedSeconds": 177.60678275,
+    "awakeSeconds": 177.606763625,
+    "utcElapsedSeconds": 177.608814,
+    "suspendSeconds": 1.912499999434658e-05,
+    "utcDriftSeconds": 0.0020312499999874944
+  },
+  "subagentOffered": true,
+  "claudeBinUnchanged": true,
+  "acquired": [],
+  "mavenRepoLocal": {
+    "path": "/private/tmp/fx-ab-r5-c-1/tmp/m2",
+    "bytes": 80907584
+  },
+  "keyScanClean": true
+}

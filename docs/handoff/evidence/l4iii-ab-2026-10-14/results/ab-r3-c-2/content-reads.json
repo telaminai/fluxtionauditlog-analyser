@@ -1,0 +1,1 @@
+{"contentReads": 1, "contentBytes": 6603, "byMarker": {"builderSource": 1}, "calls": [{"shape": "Bash: sed -n 40,200p config/server-config.yml | head -150; echo ----MAIN; cat src/main/java/com/example/myapp/MongooseMain.java; echo ----BUILDER;", "markers": ["builderSource"], "resultBytes": 6603, "partial": false}]}

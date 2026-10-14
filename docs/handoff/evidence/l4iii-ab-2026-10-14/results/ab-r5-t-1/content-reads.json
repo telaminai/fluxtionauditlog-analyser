@@ -1,0 +1,1 @@
+{"contentReads": 1, "contentBytes": 14169, "byMarker": {"builderSource": 1}, "calls": [{"shape": "Bash: cat src/main/java/com/example/myapp/MongooseProgrammaticMain.java | head -150; echo ----; cat src/main/java/com/example/myapp/mapper/CsvToPr", "markers": ["builderSource"], "resultBytes": 14169, "partial": false}]}

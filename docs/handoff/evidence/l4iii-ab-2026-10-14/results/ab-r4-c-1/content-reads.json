@@ -1,0 +1,1 @@
+{"contentReads": 1, "contentBytes": 8386, "byMarker": {"builderSource": 1, "pathNamedRead": 1}, "calls": [{"shape": "Bash: cat src/main/java/com/example/myapp/node/TradeIntake.java && echo ---- && cat src/main/java/com/example/myapp/event/Trade.java && echo ---- ", "markers": ["builderSource", "pathNamedRead"], "resultBytes": 8386, "partial": false}]}
