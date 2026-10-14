@@ -1,0 +1,6 @@
+ab-r2-t-1 delegations 1 | analyser before 1st delegation 5 | after 1st reply 7 | after last reply 7
+ab-r2-t-2 delegations 2 | analyser before 1st delegation 12 | after 1st reply 4 | after last reply 3
+ab-r3-t-2 delegations 1 | analyser before 1st delegation 0 | after 1st reply 1 | after last reply 1
+ab-r4-t-1 delegations 2 | analyser before 1st delegation 0 | after 1st reply 0 | after last reply 0
+ab-r5-t-1 delegations 1 | analyser before 1st delegation 2 | after 1st reply 1 | after last reply 1
+ab-r5-t-3 delegations 1 | analyser before 1st delegation 0 | after 1st reply 0 | after last reply 0

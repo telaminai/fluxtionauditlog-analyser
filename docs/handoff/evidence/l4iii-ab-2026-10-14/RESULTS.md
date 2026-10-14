@@ -10,6 +10,15 @@ Acceptance), applied literally by `harness/decide.py` to the committed `results/
 - **Not KEEP:** the cost criteria pass on rung 4 only. KEEP needs both bundle rungs (3 and 5) and at least 3 of the
   4 rungs.
 - **Rule 3 applies:** the section is to be deleted (P2: a measurement retires it).
+- **But KEEP was impossible on this control data: the bundle half had no power.** Criterion (a) needs the
+  treatment's median diagnosis cost to sit below the control's by more than the control's min–max spread. On both
+  bundle rungs the control's spread exceeds its own median:
+  - rung 3: spread $0.0191, median $0.0147;
+  - rung 5: spread $0.0237, median $0.0194.
+
+  Even a treatment diagnosis cost of zero would fail (a) on both, and KEEP requires (a) on both. The deletion
+  follows from the rule as sealed, not from evidence that the section is harmful or useless on the bundle rungs.
+  (Added 2026-10-14 after review of PR #141; see `POST-SEAL-NOTES.md`.)
 - **UP-PG-08's starter half does not proceed** (rule 4): rung 4 passes, rung 2 does not.
 
 The runs were sealed before the first run at `3ca0bed4` (2026-10-14T00:25:18Z, pushed), ran from 00:25Z to 02:08Z,
@@ -29,10 +38,13 @@ never approached.
 - **Rung 2:** (a) failed: the treatment's diagnosis cost is lower ($0.069 against $0.127), but by $0.058, under the
   control's spread of $0.062. (b) failed: 7 over-100k requests against 13 is more than half. (c) failed: the
   treatment's median total cost is higher ($0.210 against $0.182).
-- **Rung 3:** the diagnosis costs are equal within noise ($0.017 against $0.015), so (a) and (c) fail.
+- **Rung 3:** (a) failed, and could not have passed: the treatment's median diagnosis cost is $0.017 against the
+  control's $0.015, and the control's spread ($0.019) exceeds its median. (c) failed: the treatment's total is $0.057
+  against $0.051.
 - **Rung 4:** passes all four criteria: diagnosis $0.034 against $0.068 (spread $0.023), over-100k 2 against 8,
   and total $0.104 against $0.212.
-- **Rung 5:** (a) failed: $0.018 against $0.019, within the spread.
+- **Rung 5:** (a) failed, and could not have passed: $0.018 against $0.019, with a control spread of $0.024, above
+  its median. (b) and (c) passed.
 
 ## Per run
 
@@ -92,20 +104,61 @@ and the token_split `phases.json` `delegation` block.
 - 3 replies (ab-r2-t-2 ×2, ab-r3-t-2) name all six qualification keys, or say "not stated" for them.
 - The other 5 name only the pairing, sometimes with `producer` or `dispatchOrder`.
 
-**After the reply.**
-- In ab-r2-t-1 and ab-r2-t-2 the author made **7 more analyser calls in the main context**. In ab-r2-t-1 these were
-  `open`, `graph`, 3 × `flag`, `spotlight` and `screenshot`: the canvas artefacts the brief's `question` was meant to
-  hand to the subagent. That kept their main-context diagnosis requests above 100k (14 and 6 over-100k diagnosis
-  requests).
-- The other 4 delegating runs made 0–1 analyser calls after the reply.
+**Main-context analyser calls around the delegations**, per run. These are distinct calls in event order (corrected
+2026-10-14: per-delegation sums double-counted the runs that delegated twice).
 
-**Delegation is not what lowered the treatment arm's medians (INFERRED).**
-- The treatment runs that delegated had a *higher* median diagnosis cost and total cost than those that did not:
-  $0.033 and $0.136, against $0.025 and $0.082.
-- Rung 4's pass comes mostly from its two non-delegating runs: ab-r4-t-2 cost $0.061 and ab-r4-t-3 $0.104, while
-  ab-r4-t-1, which delegated twice, cost $0.242.
-- At n = 3 the arm-level differences sit within run-to-run noise. The rule judges the arm as assigned, as the spec
-  requires.
+| run | delegations | analyser calls before the first delegation | after the first reply | after the last reply |
+|---|---|---|---|---|
+| ab-r2-t-1 | 1 | 5 | 7 | 7 |
+| ab-r2-t-2 | 2 | 12 | 4 | 3 |
+| ab-r3-t-2 | 1 | 0 | 1 | 1 |
+| ab-r4-t-1 | 2 | 0 | 0 | 0 |
+| ab-r5-t-1 | 1 | 2 | 1 | 1 |
+| ab-r5-t-3 | 1 | 0 | 0 | 0 |
+
+- **ab-r2-t-1.** After its reply the author made 7 calls: `open`, `graph`, 3 × `flag`, `spotlight` and
+  `screenshot`. These are the canvas artefacts the brief's `question` was meant to hand to the subagent. The run
+  had 14 over-100k diagnosis requests.
+- **ab-r2-t-2.** It had already diagnosed in the main context before delegating: 12 analyser calls, counted
+  distinct by call id (the review counted 11). After its first reply it made 4 more, and it had 6 over-100k
+  diagnosis requests.
+- **The other 4 delegating runs** made 0–1 analyser calls after their replies.
+
+**No evidence that delegation lowered cost, and the comparison is confounded by which runs chose to delegate
+(self-selection).**
+- The treatment runs that delegated had a higher median diagnosis cost and total cost than those that did not:
+  $0.033 and $0.136, against $0.025 and $0.082. The rung mix is balanced, with 3 delegating runs on each side of
+  the starter/bundle split.
+- **Self-selection.** The two most expensive delegators are fix-and-rerun loops: each edited and regenerated between
+  its two delegations.
+  - ab-r2-t-2, $0.333: 2 edits and 1 generate.
+  - ab-r4-t-1, $0.242: 8 edits and 3 generates.
+
+  A run that meets a defect is both more expensive and more likely to delegate twice, so the comparison cannot
+  isolate what delegation itself costs.
+- **Rung 4.** Its pass comes mostly from its two non-delegating runs: ab-r4-t-2 cost $0.061 and ab-r4-t-3 $0.104.
+- **At n = 3** the arm-level differences sit within run-to-run noise. The rule judges the arm as assigned, as the
+  spec requires.
+
+**Observation, not a claim: the control's bundle rungs left little headroom for this lever.**
+
+This control's bundle-rung costs are far below the release ladder's (`../authoring-ladder-release-2026-10-13/`).
+Between the two, the seeds, CLI, analyser jar, tasks, oracles and scorer were held fixed. The bundle scripts and
+CLAUDE.md changed (fluxtion-web #17).
+
+| Rung 3 / rung 5, median | Release ladder (2026-10-13) | This control (2026-10-14) |
+|---|---|---|
+| Total cost | $0.167 / $0.077 | $0.051 / $0.056 |
+| Diagnosis cost | $0.091 / $0.038 | $0.015 / $0.019 |
+| Diagnosis over-100k requests, per run | 6, 9, 10 / 18, 0, 3 | 0, 0, 3 / 0, 3, 0 |
+
+This is consistent with #17 having removed much of the diagnosis cost the lever targeted on the bundle rungs.
+Confounds:
+- a different session window;
+- n = 3;
+- the other bundle changes (scripts and CLAUDE.md, not #17 alone);
+- the release ladder's own rung-3 un-injected-service failures and its rung-5 run (rel-r5-h55-1) that failed CHART
+  after a `withdraw` and `--no-reconcile` loop, which inflated the release medians.
 
 ## Arm totals (from the committed tables)
 
@@ -140,17 +193,20 @@ The full split is in `TOKEN-SPLIT.md`.
 - **VOID: ab-r5-c-3, first attempt.** The disk filled (`No space left on device`) while the runner was copying the
   CLI into the run base. The runner exited with 1, no subject was launched, and nothing was billed.
   - It is kept as `results/ab-r5-c-3-VOID-enospc/`.
-  - The re-run happened in the same slot at 02:04Z, after freeing space: I removed 51 byte-identical read-only copies
-    of the recorded CLI binary from my own finished run bases, each checked against digest `c9b53416…` before
-    removal. No evidence was removed.
+  - The re-run happened in the same slot at 02:04Z, after freeing space: I removed the byte-identical read-only CLI
+    copies from 50 `cli/` directories of my own finished run bases, each checked against digest `c9b53416…` before
+    removal. The VOID cell's own partial copy (44 MB, truncated by the full disk) failed the digest check and was
+    left in place. No evidence was removed.
   - All 23 earlier cells were checked intact afterwards: their tables parse, and every transcript ends in its result
     event.
-  - The re-run happened after every other cell, so it is the only cell out of the interleaved order.
+  - **Order:** ab-r5-c-3 is the last cell in the sealed order, so its re-run took its own slot, and the interleaved
+    order is intact. (Corrected 2026-10-14: an earlier version said it was out of order.)
 - **Key scan.** ab-r5-c-3's re-run reads "not clean": 0 key values, 0 token occurrences, and 4 key-*path* pattern
   hits from one `test -f ~/.fluxtion/fluxtion.apiKeyFile`. `~` was the isolated home, with no `.fluxtion` in it.
   This is a path-reference false positive, and S6′ holds.
-- **The treatment patches the vendored skill rather than replacing it** (FIXTURES.md). This was agreed before
-  sealing.
+- **The treatment patches the vendored skill rather than replacing it** (FIXTURES.md). This deviation was agreed
+  before sealing by the **coordinating session** that commissioned the A/B, not by the owner; see
+  `POST-SEAL-NOTES.md`.
 - **Post-seal, reporting only:** `harness/early_t.py`'s "waited" measure first counted analyser calls up to the end
   of the run, not up to the reply. I fixed it to count by event position before any result was reported other than
   the early message. `harness/collect_ab.py` was written after the runs. The scorer, oracles, token_split and
