@@ -138,7 +138,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Requ
  * generation time           : Not available
  * api version               : 1.1.0
  * analyser version          : 1.0.76
- * target generator version  : 1.0.76
+ * target generator version  : 1.0.79
  * </pre>
  *
  * Event classes supported:
@@ -609,7 +609,7 @@ public class SessionProcessor
           new DescriptorSupport.Meta(
               null,
               "1.0.76",
-              "4208ae851b2f375e79140998142bdcc670052abbe14b751d1d9a98b998736f87",
+              "ea9564b8aa0260d4c928b54052f99d3ea0e465fda0c5eee9f79b2dfc7465320e",
               null));
 
   @Override
@@ -1634,7 +1634,24 @@ public class SessionProcessor
       auditInvocation(logEvidence, "logEvidence", "onOpenLogChanged", typedEvent);
       logEvidence.onOpenLogChanged();
     }
-    commonDispatchTail_1(typedEvent);
+    if (guardCheck_pairing()) {
+      auditInvocation(pairing, "pairing", "recomputeOnStateChange", typedEvent);
+      isDirty_pairing = pairing.recomputeOnStateChange();
+    }
+    if (guardCheck_coverageClaim()) {
+      auditInvocation(coverageClaim, "coverageClaim", "recomputeOnStateChange", typedEvent);
+      coverageClaim.recomputeOnStateChange();
+    }
+    if (guardCheck_pairingQualifier()) {
+      auditInvocation(pairingQualifier, "pairingQualifier", "onPairChanged", typedEvent);
+      pairingQualifier.onPairChanged();
+    }
+    auditInvocation(sessionBoundary, "sessionBoundary", "onEffectFailed", typedEvent);
+    sessionBoundary.onEffectFailed(typedEvent);
+    if (guardCheck_walkPlayback()) {
+      auditInvocation(walkPlayback, "walkPlayback", "onLogChanged", typedEvent);
+      walkPlayback.onLogChanged();
+    }
     afterEvent();
   }
 
@@ -2521,6 +2538,8 @@ public class SessionProcessor
       effectOutcomes.onEffectFailed(typedEvent);
       auditInvocation(assistantLoop, "assistantLoop", "onEffectFailed", typedEvent);
       isDirty_assistantLoop = assistantLoop.onEffectFailed(typedEvent);
+      auditInvocation(sessionBoundary, "sessionBoundary", "onEffectFailed", typedEvent);
+      sessionBoundary.onEffectFailed(typedEvent);
     } else if (event instanceof FollowSet) {
       FollowSet typedEvent = (FollowSet) event;
       auditEvent(typedEvent);

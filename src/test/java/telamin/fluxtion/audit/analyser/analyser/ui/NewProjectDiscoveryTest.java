@@ -46,7 +46,10 @@ class NewProjectDiscoveryTest {
                 offer.graphs().candidates().stream().map(c -> c.file().toAbsolutePath().normalize()).toList());
 
         AppConfig untouched = new AppConfig();
-        NewProjectDiscovery.apply(offer, NewProjectDiscovery.Selection.empty(), untouched);
+        var harness = new CreateHarness(untouched);
+        assertTrue(harness.create(root, new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CreateRequest(
+                CreateProjectObservation.facts(root, offer, untouched),
+                CreateProjectObservation.fromMenu(offer, NewProjectDiscovery.Selection.empty(), root)), true));
         assertTrue(untouched.sourceRoots.isEmpty(), "finding is not adding (D-AI5)");
         assertTrue(untouched.runbooks.isEmpty(), "finding is not declaring a runbook");
     }
@@ -77,10 +80,16 @@ class NewProjectDiscoveryTest {
         NewProjectDiscovery.Offer offer = NewProjectDiscovery.discover(root);
 
         AppConfig config = new AppConfig();
-        NewProjectDiscovery.apply(offer, new NewProjectDiscovery.Selection(
-                Set.of(source), Set.of(".claude/skills/replay/SKILL.md"), null), config);
+        var harness = new CreateHarness(config);
+        Path real = root.toRealPath();
+        NewProjectDiscovery.Offer realOffer = NewProjectDiscovery.discover(real);
+        assertTrue(harness.create(real, new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CreateRequest(
+                CreateProjectObservation.facts(real, realOffer, config),
+                CreateProjectObservation.fromMenu(realOffer, new NewProjectDiscovery.Selection(
+                        Set.of(real.resolve("src/main/java")), Set.of(".claude/skills/replay/SKILL.md"), null), real)),
+                true), () -> "" + harness.warning);
 
-        assertEquals(java.util.List.of(source.toAbsolutePath().normalize().toString()), config.sourceRoots);
+        assertEquals(java.util.List.of(real.resolve("src/main/java").toString()), config.sourceRoots);
         assertEquals(".claude/skills/replay/SKILL.md", config.runbooks.get("replay").path());
         assertEquals("Replay this example.", config.runbooks.get("replay").description());
     }

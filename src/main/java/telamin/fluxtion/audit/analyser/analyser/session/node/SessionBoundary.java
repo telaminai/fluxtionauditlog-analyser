@@ -99,10 +99,31 @@ public class SessionBoundary implements EventLogSource {
             effects.request(new SessionEffects.ShowStatusEffect(event.opId(), note));
             return true;
         }
+        SessionEvents.CreateApproved approved = null;
+        if (event.kind() == TransitionKind.CREATE) {
+            // M73 (spec-create-project.md §3.5, §4): every refusal of a create is decided HERE, from the facts the
+            // adapter observed. A refused create still superseded whatever was pending (D-73.8): the gate has
+            // already taken this request as the newest, as for any project request.
+            Refusal refusal = refuseCreate(event);
+            if (refusal != null) {
+                inFlightKind = null;
+                inFlightOpId = -1;
+                auditLog.info("decision", "refuseCreate")
+                        .info("kind", event.kind().name())
+                        .info("reason", refusal.code())
+                        .info("source", event.source())
+                        .info("opId", event.opId());
+                effects.request(refusal.openExisting()
+                        ? new SessionEffects.OfferOpenExistingEffect(event.opId(), event.profilePath())
+                        : new SessionEffects.ShowWarningEffect(event.opId(), refusal.text()));
+                return true;
+            }
+            approved = approve(event.create());
+        }
         inFlightKind = event.kind();
         inFlightOpId = event.opId();
         effects.request(event.kind() == TransitionKind.CREATE
-                ? new SessionEffects.CreateProfileEffect(event.opId(), event.profilePath())
+                ? new SessionEffects.CreateProfileEffect(event.opId(), event.profilePath(), approved)
                 : event.kind() == TransitionKind.OPEN_BUNDLE
                 ? new SessionEffects.PrepareBundleEffect(event.opId(), event.profilePath())
                 : new SessionEffects.LoadProfileEffect(event.opId(), event.profilePath()));
@@ -111,6 +132,133 @@ public class SessionBoundary implements EventLogSource {
                 .info("kind", event.kind().name())
                 .info("source", event.source())
                 .info("opId", event.opId());
+        return true;
+    }
+
+    /** A refused create: a stable code for the record, the sentence for the caller, and whether to offer the open. */
+    private record Refusal(String code, String text, boolean openExisting) {
+        Refusal(String code, String text) {
+            this(code, text, false);
+        }
+    }
+
+    /**
+     * The create's refusals, in the order a caller can act on them (spec §3.2, §3.5). Each names the next call.
+     * Path refusals beyond "exists" and "not a directory" are for ASSISTANT origin only — a person's menu
+     * behaviour is unchanged [R r2-1] — and so is the consent switch (D-73.7): a person is never gated.
+     */
+    private static Refusal refuseCreate(SessionEvents.OpenProjectRequested event) {
+        SessionEvents.CreateRequest create = event.create();
+        if (create == null || create.facts() == null) {
+            return new Refusal("noFacts", "a create must carry what was observed in the directory; nothing was created");
+        }
+        SessionEvents.CreateFacts facts = create.facts();
+        String dir = facts.dir();
+        if (!facts.absolute()) {
+            return new Refusal("relative", "the project directory must be an absolute path (a relative one would "
+                    + "resolve against the analyser's working directory): " + dir + " — nothing was created");
+        }
+        if (!facts.directory()) {
+            return new Refusal("notDirectory", dir + " is not an existing directory — create it first, then preview "
+                    + "with open {project: \"" + dir + "\", create: true}; nothing was created");
+        }
+        boolean person = event.audience() != null
+                && event.audience().origin() == SessionEvents.OperationOrigin.PERSON
+                && event.assistantOrigin() == null;
+        if (facts.profileExists()) {
+            return new Refusal("profileExists", dir + " already has a project (" + event.profilePath()
+                    + ") — open it with open {project: \"" + dir + "\"}; nothing was created or overwritten", person);
+        }
+        if (!person) {
+            if (!facts.createAllowed()) {
+                return new Refusal("consentOff", "the assistant may not create projects on this machine: Settings ▸ "
+                        + "Assistant ▸ Allow the assistant to create projects is off. Ask the person to turn it on, or "
+                        + "to create the project with Project ▸ New project…; nothing was created");
+            }
+            if (facts.analyserProblem() != null) {
+                return new Refusal("analyserDir", dir + "/.analyser " + facts.analyserProblem()
+                        + " — a create writes only into a real .analyser directory under the project; nothing was created");
+            }
+            if (facts.bundleWorkingCopy()) {
+                return new Refusal("bundleWorkingCopy", dir + " is inside an evidence bundle's working copy, which is "
+                        + "unpacked afresh on every open — open the bundle with open {bundle} instead; nothing was created");
+            }
+            if (facts.exchangeDir() != null) {
+                return new Refusal("exchangeDir", dir + " is inside the assistant's exchange directory ("
+                        + facts.exchangeDir() + ") — choose a project directory outside it; nothing was created");
+            }
+            if (facts.enclosingProject() != null) {
+                return new Refusal("nested", dir + " is inside the existing project " + facts.enclosingProject()
+                        + " — open that one with open {project}, or ask the person to create a nested project with "
+                        + "Project ▸ New project…; nothing was created");
+            }
+        }
+        SessionEvents.CreateSelection selection = create.selection();
+        SessionEvents.CreateOffer offer = facts.offer();
+        java.util.List<String> unoffered = new java.util.ArrayList<>();
+        for (String root : selection.sourceRoots()) {
+            SessionEvents.OfferedRoot offered = offer.sourceRoots().stream()
+                    .filter(r -> r.relative().equals(root)).findFirst().orElse(null);
+            if (offered == null) unoffered.add("sourceRoot '" + root + "'");
+            else if (offered.outside()) unoffered.add("sourceRoot '" + root + "' (it resolves outside " + dir + ")");
+        }
+        for (String skill : selection.skills()) {
+            if (offer.skills().stream().noneMatch(k -> k.path().equals(skill))) unoffered.add("skill '" + skill + "'");
+        }
+        if (selection.referenceGuide() && !"CAN_CREATE".equals(offer.referenceGuide())) {
+            unoffered.add("referenceGuide (the offer says " + offer.referenceGuide() + ")");
+        }
+        if (!unoffered.isEmpty()) {
+            return new Refusal("notOffered", "not in the offer: " + String.join(", ", unoffered)
+                    + " — preview with open {project: \"" + dir + "\", create: true} and choose from what it lists; "
+                    + "nothing was created");
+        }
+        if (selection.offerDigest() != null && !selection.offerDigest().equals(offer.digest())) {
+            return new Refusal("digestMismatch", "the offer changed since your preview — preview again with "
+                    + "open {project: \"" + dir + "\", create: true}; nothing was created");
+        }
+        return null;
+    }
+
+    /** The node-approved items, in OFFER order (G3) — never the selection's order, which is the caller's. */
+    private static SessionEvents.CreateApproved approve(SessionEvents.CreateRequest create) {
+        SessionEvents.CreateFacts facts = create.facts();
+        SessionEvents.CreateSelection selection = create.selection();
+        java.util.List<String> roots = new java.util.ArrayList<>();
+        for (SessionEvents.OfferedRoot r : facts.offer().sourceRoots()) {
+            if (!r.outside() && selection.sourceRoots().contains(r.relative())) roots.add(r.absolute());
+        }
+        java.util.List<SessionEvents.OfferedSkill> skills = new java.util.ArrayList<>();
+        for (SessionEvents.OfferedSkill k : facts.offer().skills()) {
+            if (selection.skills().contains(k.path())) skills.add(k);
+        }
+        return new SessionEvents.CreateApproved(facts.dir(), roots, skills, selection.referenceGuide(),
+                facts.offer().projectKind());
+    }
+
+    /**
+     * M73 G2 [R F1]: a create or a load that THREW. Before this arm the failure was recorded and nothing else
+     * happened, so the caller saw success and adopted into a config that was never written. Now it is a warning, and
+     * nothing is left waiting for a result that will not come.
+     */
+    @OnEventHandler
+    public boolean onEffectFailed(SessionEvents.EffectFailed event) {
+        if (!gate.accepted() || inFlightKind == null || event.opId() != inFlightOpId) return false;
+        boolean create = "createProfile".equals(event.effect());
+        if (!create && !"loadProfile".equals(event.effect())) return false;
+        TransitionKind kind = inFlightKind;
+        inFlightKind = null;
+        inFlightOpId = -1;
+        inFlightBundle = null;
+        auditLog.info("decision", "keep")
+                .info("closingLog", false)
+                .info("closingGraph", false)
+                .info("kind", kind.name())
+                .info("reason", create ? "createFailed" : "loadFailed")
+                .info("opId", event.opId());
+        effects.request(new SessionEffects.ShowWarningEffect(event.opId(),
+                (create ? "Could not create the project: " : "Could not open the project: ") + event.reason()
+                        + " — the settings in force before are unchanged"));
         return true;
     }
 
@@ -155,6 +303,10 @@ public class SessionBoundary implements EventLogSource {
         }
 
         String note = close(opId, kind, event.name());
+        if (kind == TransitionKind.CREATE && event.reason() != null && !event.reason().isBlank()) {
+            // what the adapter reports it adopted — a fact from the performer, composed into the one status line here
+            note = note + "  ·  " + event.reason();
+        }
         // Apply BEFORE the status line: the note describes settings that are in force by the time it
         // is read. The old code had the same order for the same reason.
         effects.request(new SessionEffects.ApplyProfileEffect(opId, event.profilePath(), event.name()));
@@ -210,6 +362,7 @@ public class SessionBoundary implements EventLogSource {
     private static String note(TransitionKind kind, String name, boolean closingLog, boolean closingGraph) {
         String head = kind == TransitionKind.CLOSE
                 ? "closed project " + (name == null ? "" : name) + " — back to your own settings"
+                : kind == TransitionKind.CREATE ? "created project " + name
                 : "opened project " + name;
         if (!closingLog && !closingGraph) {
             return head;

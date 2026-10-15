@@ -58,7 +58,20 @@ public sealed interface SessionEffects {
      * where a project already exists would be destruction. An adapter told to "load, and create if
      * missing" would have to decide which — and adapters do not decide.
      */
-    record CreateProfileEffect(long opId, String profilePath) implements SessionEffects {
+    record CreateProfileEffect(long opId, String profilePath, SessionEvents.CreateApproved approved)
+            implements SessionEffects {
+        /** An empty project: nothing adopted. */
+        public CreateProfileEffect(long opId, String profilePath) {
+            this(opId, profilePath, null);
+        }
+    }
+
+    /**
+     * M73: a PERSON asked to create a project where one already exists. Ask "Open it instead?" outside the dispatch
+     * ({@code invokeLater}, the {@link ShowProjectReopenEffect} pattern) and, on yes, submit a NEW
+     * {@code OpenProjectRequested(EXPLICIT_SWITCH)} from there — never a re-entrant submit.
+     */
+    record OfferOpenExistingEffect(long opId, String profilePath) implements SessionEffects {
     }
 
     /** Put the loaded profile's settings genuinely in force, then report. */

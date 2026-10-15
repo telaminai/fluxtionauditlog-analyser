@@ -81,6 +81,20 @@ log, and no file writes**. Two groups of verbs go further, honestly labelled:
 - **Scripting verbs — `open` and `source_root` — can change which log, event processor or source roots
   are open**, the same things you change through the UI. Still nothing outside the analyser: no shell,
   no arbitrary file reads, and your API key is never reachable.
+- **Creating a project — `open {project, create}` — is off by default for an assistant.** Enabling
+  *Allow the assistant to create projects* (Settings ▸ Assistant) lets an agent, over MCP/REST or the in-app
+  assistant, create a project in a directory it names; you using *Project ▸ New project…* are never gated by it.
+  The switch is **this machine's only**: it is never in a project profile, a shared settings file or an
+  evidence bundle, so a cloned repository or an imported share cannot turn it on. The **preview**,
+  `create: true`, writes nothing; it reads the chosen directory as *New project…* does — skills to depth 7,
+  GraphML to depth 12, each file at most 32 MB, all under the chosen directory. An **apply** writes exactly
+  these, and never over an existing project: (1) `<dir>/.analyser/` (only if absent) and
+  `<dir>/.analyser/project.fluxtion-settings`, created new; (2) `<dir>/CLAUDE.md`, only if the reference guide
+  was chosen and offered, never over an existing one; (3) the outgoing project's pending edits, to its own
+  profile, as any project switch does; (4) this machine's config — the active project and the recent-projects
+  list, so **the created project is the one activated at the next start**; (5) the session-recovery journal
+  entry for the new session. An assistant is also refused inside an evidence bundle's working copy, inside the
+  exchange directory, inside an existing project, and through a symbolic-link `.analyser`.
 - **`walk` edits the project's saved spotlight walks** — it can save one, replace one by name, rename one or
   move one to the recently-deleted list (restorable). It writes no file of its own and reads no log data
   beyond the records a walk points at; it is marked destructive to MCP clients because replacing a walk by

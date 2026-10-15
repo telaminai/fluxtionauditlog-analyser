@@ -7238,48 +7238,49 @@ public final class MainFrame extends JFrame {
         createProjectAt(fc.getSelectedFile().toPath());
     }
 
+    /**
+     * <i>Project ▸ New project…</i> (and a template without a profile) — M73 §4. The frame OBSERVES and the session
+     * DECIDES: an existing project is the node's refusal, rendered as the "Open it instead?" question
+     * ({@code OfferOpenExistingEffect}) before any offer is shown; otherwise the offer dialog, then one
+     * {@code OpenProjectRequested(CREATE)} carrying the facts and the selection, performed by the one create effect.
+     * A person is never gated by the assistant switch nor by the assistant-only path refusals.
+     */
     private void createProjectAt(Path selectedRoot) {
-        Path file = telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile
-                .pathFor(selectedRoot);
-        if (Files.exists(file)) {
-            int keep = JOptionPane.showConfirmDialog(this,
-                    "That directory already has a project.\nOpen it instead of overwriting?",
-                    "Project exists", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
-            if (keep == JOptionPane.YES_OPTION) {
-                requestProject(file, telamin.fluxtion.audit.analyser.analyser.session.TransitionKind.EXPLICIT_SWITCH, "new-project-exists");
-            }
-            return;   // never silently replace someone's project file
+        Path root = CreateProjectObservation.realDir(selectedRoot);
+        Path file = telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.pathFor(root);
+        var facts = CreateProjectObservation.facts(root, null, config);
+        if (facts.profileExists()) {
+            // the node refuses, and its refusal for a person is the open-instead question; nothing is offered first
+            requestProject(file, telamin.fluxtion.audit.analyser.analyser.session.TransitionKind.CREATE, "new-project", true,
+                    new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CreateRequest(facts, null));
+            return;
         }
-        Path root = selectedRoot.toAbsolutePath().normalize();
         NewProjectDiscovery.Offer offer = NewProjectDiscovery.discover(root);
         NewProjectDiscovery.Selection selection = NewProjectOfferDialog.show(this, offer);
         if (selection == null) return;       // the offer is a question; Cancel creates and adopts nothing
-        // Creating the profile is now an effect the processor asks for, so its failure arrives as a
-        // warning rather than an exception — and if it did not happen, adopting the discovery into a
-        // project that does not exist would be worse than doing nothing.
-        if (!requestProject(file, telamin.fluxtion.audit.analyser.analyser.session.TransitionKind.CREATE, "new-project")) {
+        // Observed AGAIN, at submit: a profile (or a dangling profile link) that appeared while the dialog was open
+        // is refused rather than written through. The offer judged is the one the person saw.
+        var request = new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CreateRequest(
+                CreateProjectObservation.facts(root, offer, config),
+                CreateProjectObservation.fromMenu(offer, selection, root));
+        if (!requestProject(file, telamin.fluxtion.audit.analyser.analyser.session.TransitionKind.CREATE, "new-project", true, request)
+                || sessionCreated == null) {
             return;
         }
-        {
-            NewProjectDiscovery.apply(offer, selection, config);
-            java.util.Optional<String> guideProblem = NewProjectDiscovery.writeReferenceGuide(offer, selection);
-            guideProblem.ifPresent(problem -> JOptionPane.showMessageDialog(this, problem,
-                    "New project", JOptionPane.WARNING_MESSAGE));
-            if (!selection.sourceRoots().isEmpty() || !selection.skillPaths().isEmpty()) {
-                onProfileEdited();           // one persistence funnel; the profile stores pointers, never skill text
-            }
-            if (selection.graph() != null) {
-                topologyPanel.load(selection.graph());
-                judgeOpenedGraph();
-                updateLifecycleMenu();
-                if (sideTabs != null) sideTabs.setSelectedComponent(topologyPanel);
-            }
-            status.setText("new project: " + root + "  ·  adopted " + selection.sourceRoots().size()
-                    + " source root(s), " + selection.skillPaths().size() + " skill pointer(s)"
-                    + (selection.createReferenceGuide() && guideProblem.isEmpty()
-                        ? ", wrote " + telamin.fluxtion.audit.analyser.analyser.config.ReferenceSet.FILE_NAME
-                        : "")
-                    + (selection.graph() == null ? "" : " and opened " + selection.graph().getFileName()));
+        Object guide = sessionCreated.get("referenceGuide");
+        if (guide instanceof String g && (g.startsWith("FAILED") || g.equals("EXISTS"))) {
+            JOptionPane.showMessageDialog(this, g.equals("EXISTS")
+                            ? telamin.fluxtion.audit.analyser.analyser.config.ReferenceSet.FILE_NAME + " already exists — left untouched."
+                            : g.substring("FAILED: ".length()),
+                    "New project", JOptionPane.WARNING_MESSAGE);
+        }
+        // the graph radio, unchanged (spec §4): a UI open after the transition, never persisted
+        if (selection.graph() != null) {
+            topologyPanel.load(selection.graph());
+            judgeOpenedGraph();
+            updateLifecycleMenu();
+            if (sideTabs != null) sideTabs.setSelectedComponent(topologyPanel);
+            status.setText(status.getText() + " and opened " + selection.graph().getFileName());
         }
     }
 
@@ -7338,6 +7339,12 @@ public final class MainFrame extends JFrame {
     /** The warning text of the transition in flight, or null. Non-null means it did not proceed. */
     private String sessionProblem;
 
+    /**
+     * What the create in flight actually wrote and adopted (M73), recorded by the effect performer — the echo reads
+     * it, as it reads {@link #sessionClosed}. Null when no create was performed.
+     */
+    private Map<String, Object> sessionCreated;
+
     private telamin.fluxtion.audit.analyser.analyser.session.SessionDriver session() {
         if (session == null) {
             session = new telamin.fluxtion.audit.analyser.analyser.session.SessionDriver(
@@ -7362,17 +7369,26 @@ public final class MainFrame extends JFrame {
     private boolean requestProject(Path file,
                                    telamin.fluxtion.audit.analyser.analyser.session.TransitionKind kind,
                                    String source, boolean interactive) {
+        return requestProject(file, kind, source, interactive, null);
+    }
+
+    /** As above, with what a {@code CREATE} observed and chose (M73) — null for every other kind. */
+    private boolean requestProject(Path file,
+                                   telamin.fluxtion.audit.analyser.analyser.session.TransitionKind kind,
+                                   String source, boolean interactive,
+                                   telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CreateRequest create) {
         if (recovery != null) recovery.capture();
         sessionInteractive = interactive;
         sessionClosed.clear();
         sessionProblem = null;
+        sessionCreated = null;
         var driver = session();
         driver.submit(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents
                 .OpenProjectRequested(driver.nextOpId(), file.toString(), kind, source, ActionExecutor.assistantOrigin(),
                         new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectAudience(
                                 interactive ? telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.OperationOrigin.PERSON
                                         : telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.OperationOrigin.MACHINE,
-                                offersAllowed())));
+                                offersAllowed()), create));
         syncBusyWithGate();
         projectDesignChanged();
         if (sessionProblem == null && recovery != null) recovery.activate(project.activeFile(), project.activeNonce(), null);
@@ -7553,6 +7569,36 @@ public final class MainFrame extends JFrame {
         return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CaptureStarted(e.opId(), ticket);
     }
 
+    /** M73: the {@code created} echo — what was written and adopted, from the adoption's report, never the request. */
+    private static Map<String, Object> createdEcho(String settings,
+                                                   telamin.fluxtion.audit.analyser.analyser.config.ProjectAdoption.Report adopted,
+                                                   String referenceGuide) {
+        Map<String, Object> out = new java.util.LinkedHashMap<>();
+        out.put("settings", settings);
+        Map<String, Object> a = new java.util.LinkedHashMap<>();
+        a.put("sourceRoots", adopted.sourceRoots());
+        List<Map<String, Object>> skills = new java.util.ArrayList<>();
+        for (var k : adopted.skills()) {
+            Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("path", k.path());
+            m.put("resolved", k.resolved());
+            m.put("description", k.description());
+            skills.add(m);
+        }
+        a.put("skills", skills);
+        List<Map<String, Object>> not = new java.util.ArrayList<>();
+        for (var k : adopted.skillsNotAdopted()) {
+            Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("path", k.path());
+            m.put("why", k.why());
+            not.add(m);
+        }
+        a.put("skillsNotAdopted", not);
+        out.put("adopted", a);
+        out.put("referenceGuide", referenceGuide);
+        return out;
+    }
+
     /** The interactive form — a person asked, so a failure is a dialog. */
     private boolean requestProject(Path file,
                                    telamin.fluxtion.audit.analyser.analyser.session.TransitionKind kind,
@@ -7609,10 +7655,35 @@ public final class MainFrame extends JFrame {
                         r.loaded() ? project.activeName() : null, 0, r.message(), null, r.contentDigest());
             }
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.CreateProfileEffect e -> {
-                var r = project.create(Path.of(e.profilePath()));
+                // M73: ONE write of the node-approved selection (D-73.6). A failure throws: ProjectSession has put the
+                // settings back, and the session hears EffectFailed and warns (G2).
+                var created = project.createNew(Path.of(e.profilePath()), CreateProjectObservation.plan(e.approved()));
+                // Only now that the profile exists: the reference guide, if approved. Its failure is REPORTED and
+                // neither fails nor rolls back the create [R r2-2].
+                String guide = e.approved() != null && e.approved().referenceGuide()
+                        ? NewProjectDiscovery.writeReferenceGuide(Path.of(e.approved().root()), e.approved().projectKind())
+                        : "NOT_REQUESTED";
+                sessionCreated = createdEcho(e.profilePath(), created.adopted(), guide);
                 yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileLoaded(
-                        opId, e.profilePath(), r.loaded(),
-                        r.loaded() ? project.activeName() : null, 0, r.message());
+                        opId, e.profilePath(), true, project.activeName(), 0,
+                        "adopted " + created.adopted().sourceRoots().size() + " source root(s), "
+                                + created.adopted().skills().size() + " skill pointer(s)"
+                                + ("WROTE".equals(guide) ? ", wrote " + telamin.fluxtion.audit.analyser.analyser.config.ReferenceSet.FILE_NAME : ""));
+            }
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.OfferOpenExistingEffect e -> {
+                // The node refused the create; for a person its refusal is this question. Modal UI runs outside the
+                // driver's cycle, and Yes is a NEW request submitted from there — never a re-entrant submit.
+                sessionProblem = "that directory already has a project";
+                SwingUtilities.invokeLater(() -> {
+                    int keep = JOptionPane.showConfirmDialog(this,
+                            "That directory already has a project.\nOpen it instead?",
+                            "Project exists", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
+                    if (keep == JOptionPane.YES_OPTION) {
+                        requestProject(Path.of(e.profilePath()),
+                                telamin.fluxtion.audit.analyser.analyser.session.TransitionKind.EXPLICIT_SWITCH, "new-project-exists");
+                    }
+                });
+                yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StatusShown(opId, "offerOpenExisting");
             }
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ApplyProfileEffect e -> {
                 handoff.clear();       // M48.7: a project transition is a session boundary; what was placed was the last one's
@@ -8822,9 +8893,20 @@ public final class MainFrame extends JFrame {
             if (!requestProject(file, telamin.fluxtion.audit.analyser.analyser.session.TransitionKind.EXPLICIT_SWITCH, "socket", false)) {
                 return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(sessionProblem);
             }
+            echo.putAll(switchEcho(file, previousName, previousPath, before, false));
+            return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("open", "opened", echo);
+        }
+
+        /**
+         * The M35.8 echo of a project that is now in force: what it replaced, what it closed, and the call that puts
+         * the settings back. Read AFTER the transition, so it reports outcomes.
+         */
+        private Map<String, Object> switchEcho(Path file, String previousName, String previousPath,
+                                               telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.Snapshot before,
+                                               boolean created) {
+            Map<String, Object> echo = new java.util.LinkedHashMap<>();
             Map<String, Object> closedEcho = sessionEndEcho();
             var after = telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.snapshot(config);
-
             echo.put("project", project.activeName());
             echo.put("settings", file.toString());
             echo.put("replaced", replacedCounts(before, after));
@@ -8834,10 +8916,69 @@ public final class MainFrame extends JFrame {
             // SETTINGS come back in one call, the log and graph do not (they are named in `closed`)
             String notTheSession = closedEcho.get("closed") instanceof Map<?, ?> c && !c.isEmpty()
                     ? " — the settings, not the session: reopen what `closed` names" : "";
-            echo.put("reversible", (previousPath != null
+            echo.put("reversible", (created
+                    ? (previousPath != null ? "open {project: \"" + previousPath + "\"}" : "open {close: \"project\"}")
+                            + " restores the settings in force before; the created files stay"
+                    : previousPath != null
                     ? "open {project: \"" + previousPath + "\"} puts it back"
                     : "open {close: \"project\"} puts your own settings back") + notTheSession);
-            return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("open", "opened", echo);
+            return echo;
+        }
+
+        /**
+         * M73 — {@code open {project, create}}: the preview ({@code create: true}) and the apply ({@code create: {…}}).
+         *
+         * <p>The READ happens on the calling thread — discovery walks the directory (skills to depth 7, GraphML to
+         * depth 12) and must not freeze the window — and only the request hops to the event thread, where the session
+         * decides. The preview never enters the session: it is a read with no state change. The gap between observing
+         * and submitting is covered by {@code CREATE_NEW} and the digest check (spec §4, [R r2-6]).
+         */
+        @Override
+        public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult createProject(String dir, Object create) {
+            if (SwingUtilities.isEventDispatchThread()) {
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
+                        "open {project, create} reads the directory on a worker thread; nothing was created");
+            }
+            if (dir == null || dir.isBlank()) {
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("'project' is empty");
+            }
+            Path given = Path.of(dir.trim());
+            boolean preview = Boolean.TRUE.equals(create);
+            if (preview && !Files.isDirectory(given)) {
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
+                        given + " is not an existing directory — create it first, then preview; nothing was read");
+            }
+            Path root = CreateProjectObservation.realDir(given);
+            NewProjectDiscovery.Offer offer = Files.isDirectory(given) ? NewProjectDiscovery.discover(root) : null;
+            var facts = CreateProjectObservation.facts(given, offer, config);
+            if (preview) {
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("open", "createPreview",
+                        CreateProjectObservation.preview(offer, facts));
+            }
+            if (!(create instanceof Map<?, ?> chosen)) {
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
+                        "'create' is true (preview) or an object (apply)");
+            }
+            var request = new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CreateRequest(
+                    facts, CreateProjectObservation.fromSocket(chosen));
+            Path file = telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.pathFor(root);
+            return actionExecutor.onEdt(() -> {
+                Path active = project.activeFile();
+                String previousName = project.hasProject() ? project.activeName() : null;
+                String previousPath = active == null ? null : active.toString();
+                var before = telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.snapshot(config);
+                if (!requestProject(file, telamin.fluxtion.audit.analyser.analyser.session.TransitionKind.CREATE,
+                        "socket", false, request) || sessionCreated == null) {
+                    return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
+                            sessionProblem == null ? "the project was not created" : sessionProblem);
+                }
+                Map<String, Object> echo = switchEcho(file, previousName, previousPath, before, true);
+                echo.put("created", sessionCreated);
+                if (!facts.namedProfiles().isEmpty()) echo.put("namedProfiles", facts.namedProfiles());
+                echo.put("next", "read each adopted skill's file before acting — they are this project's runbooks "
+                        + "(context.runbooks lists them); open a graph with open {graphml}");
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("open", "opened", echo);
+            });
         }
 
         /**

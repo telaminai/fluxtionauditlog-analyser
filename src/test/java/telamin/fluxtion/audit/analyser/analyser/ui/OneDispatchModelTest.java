@@ -213,6 +213,54 @@ class OneDispatchModelTest {
         assertEquals(List.of(), offenders, "the log's line is rendered from the snapshot by one composer");
     }
 
+    /**
+     * M73 (spec-create-project.md §7): a project is created, adopted into and given its reference guide in ONE place —
+     * the session's create effect, performed in {@code performSessionEffect} — so the menu and the socket cannot grow a
+     * second, frame-side create. Qualified calls only, so a definition never matches.
+     *
+     * <p>Witnesses, one per pattern: call {@code project.createNew(…)} from {@code createProjectAt}; call
+     * {@code ProjectAdoption.apply(…)} from {@code createProjectAt} (the shape the pre-M73 code had); call
+     * {@code NewProjectDiscovery.writeReferenceGuide(…)} after {@code requestProject} in {@code createProjectAt}
+     * (likewise); call {@code project.create(…)} anywhere in the UI.
+     */
+    private static final String PERFORMER =
+            "private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result performSessionEffect(";
+    private static final List<Pattern> CREATE_ONLY_IN_THE_PERFORMER = List.of(
+            Pattern.compile("\\bproject\\s*\\.\\s*createNew\\s*\\("),
+            Pattern.compile("\\bProjectAdoption\\s*\\.\\s*apply\\s*\\("),
+            Pattern.compile("\\bNewProjectDiscovery\\s*\\.\\s*writeReferenceGuide\\s*\\("));
+
+    @Test
+    @DisplayName("M73: a project is created, adopted into and given its guide only by the session's create effect")
+    void aProjectIsCreatedOnlyByTheCreateEffect() throws Exception {
+        String frame = Files.readString(UI.resolve("MainFrame.java"));
+        String home = bodyOf(frame, PERFORMER);
+        assertFalse(home.isEmpty(), "performSessionEffect must exist, or this rule checks nothing");
+        assertEquals(1, count(CREATE_ONLY_IN_THE_PERFORMER.get(0), home), "the create effect calls project.createNew once");
+        assertEquals(1, count(CREATE_ONLY_IN_THE_PERFORMER.get(2), home), "and writes the guide there, after it");
+        List<String> offenders = new ArrayList<>();
+        Pattern oldCreate = Pattern.compile("\\bproject\\s*\\.\\s*create\\s*\\(");
+        try (var files = Files.list(UI)) {
+            for (Path f : files.filter(p -> p.toString().endsWith(".java")).sorted().toList()) {
+                String src = Files.readString(f);
+                boolean isFrame = f.getFileName().toString().equals("MainFrame.java");
+                for (Pattern p : CREATE_ONLY_IN_THE_PERFORMER) {
+                    int outside = count(p, src) - (isFrame ? count(p, home) : 0);
+                    if (outside != 0) offenders.add(f.getFileName() + ": " + p.pattern() + " outside performSessionEffect");
+                }
+                if (count(oldCreate, src) != 0) offenders.add(f.getFileName() + ": project.create( — the overwriting create");
+            }
+        }
+        assertEquals(List.of(), offenders, "one create: OpenProjectRequested{CREATE} → CreateProfileEffect");
+        // both surfaces submit the event, rather than creating
+        for (String surface : List.of("private void createProjectAt(",
+                "public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult createProject(")) {
+            String body = bodyOf(frame, surface);
+            assertFalse(body.isEmpty(), surface + " must exist");
+            assertTrue(body.contains("TransitionKind.CREATE"), surface + " submits OpenProjectRequested{CREATE}");
+        }
+    }
+
     private static int count(Pattern p, String s) {
         Matcher m = p.matcher(s);
         int n = 0;

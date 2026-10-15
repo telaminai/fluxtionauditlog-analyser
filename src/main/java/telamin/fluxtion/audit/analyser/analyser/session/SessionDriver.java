@@ -297,6 +297,7 @@ public final class SessionDriver {
             case SessionEffects.OfferProjectReopenEffect ignored -> "offerProjectReopen";
             case SessionEffects.ShowProjectReopenEffect ignored -> "showProjectReopen";
             case SessionEffects.CreateProfileEffect ignored -> "createProfile";
+            case SessionEffects.OfferOpenExistingEffect ignored -> "offerOpenExisting";
             case SessionEffects.ApplyProfileEffect ignored -> "applyProfile";
             case SessionEffects.RestoreSettingsEffect ignored -> "restoreSettings";
             case SessionEffects.CloseLogEffect ignored -> "closeLog";
