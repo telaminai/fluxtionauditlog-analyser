@@ -71,7 +71,9 @@ public final class NewProjectDiscovery {
             Path resources = normalized.resolve("src/main/resources");
             if (Files.isDirectory(resources)) graphRoots.add(resources.toString());
         }
-        GraphmlDiscovery.Result graphs = GraphmlDiscovery.scan(graphRoots, Set.of());
+        // M73 review M1: confined to the chosen directory — a linked module or a linked src/main/resources is
+        // never walked, and a linked .graphml is never parsed, wherever it points
+        GraphmlDiscovery.Result graphs = GraphmlDiscovery.scan(graphRoots, Set.of(), -1, -1, normalized);
         return new Offer(normalized, sourceRoots, skills, graphs,
                 ReferenceSet.offer(normalized), detectKind(normalized));
     }

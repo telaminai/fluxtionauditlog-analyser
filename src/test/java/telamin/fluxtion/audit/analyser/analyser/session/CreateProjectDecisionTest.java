@@ -104,7 +104,16 @@ class CreateProjectDecisionTest {
 
     @Test
     void notADirectoryIsRefused() {
-        refused(PERSON, with(v -> { v[2] = false; return v; }), null, "is not an existing directory");
+        refused(MACHINE, with(v -> { v[2] = false; return v; }), null, "is not an existing directory");
+    }
+
+    /** Review m2. Witness (run 2026-10-15): drop the person branch of the notDirectory wording. */
+    @Test
+    void aPersonIsToldInTheirOwnWordsThatTheFolderDoesNotExist() {
+        var a = refused(PERSON, with(v -> { v[2] = false; return v; }), null, "New project… does not create one");
+        assertFalse(a.lastWarning.contains("create: true"), "no socket wording for a person: " + a.lastWarning);
+        var m = refused(MACHINE, with(v -> { v[2] = false; return v; }), null, "create: true");
+        assertFalse(m.lastWarning.contains("New project…"), m.lastWarning);
     }
 
     @Test

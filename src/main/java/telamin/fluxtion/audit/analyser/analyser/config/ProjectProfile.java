@@ -555,17 +555,33 @@ public final class ProjectProfile {
         }
         // The nonce is minted because nothing is at the path; write() reads no previous file to carry over.
         String text = write(c, share, file);
-        try {
-            Files.write(file, text.getBytes(java.nio.charset.StandardCharsets.UTF_8),
-                    java.nio.file.StandardOpenOption.CREATE_NEW, java.nio.file.StandardOpenOption.WRITE,
-                    java.nio.file.LinkOption.NOFOLLOW_LINKS);
-        } catch (IOException e) {
+        boolean madeFile = false;
+        try (var out = Files.newOutputStream(file, java.nio.file.StandardOpenOption.CREATE_NEW,
+                java.nio.file.StandardOpenOption.WRITE, java.nio.file.LinkOption.NOFOLLOW_LINKS)) {
+            madeFile = true;              // CREATE_NEW succeeded: from here the file is this call's
+            afterCreateNewOpen.opened(file);
+            out.write(text.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        } catch (IOException | RuntimeException e) {
+            // review m1: a write that failed AFTER the file was created must not leave a half-written profile behind,
+            // which the next create would then refuse as "exists". Only what this call made is removed — never a file
+            // that was already there (CREATE_NEW failing means nothing was made).
+            if (madeFile) {
+                try { Files.deleteIfExists(file); } catch (IOException ignored) { /* reported by the throw below */ }
+            }
             if (madeDir) {
                 try { Files.deleteIfExists(dir); } catch (IOException ignored) { /* not empty: leave it */ }
             }
             throw e;
         }
     }
+
+    /** A test's seam between creating the profile and writing it; a no-op in the product. */
+    @FunctionalInterface
+    interface CreateNewSeam {
+        void opened(Path file) throws IOException;
+    }
+
+    static volatile CreateNewSeam afterCreateNewOpen = file -> { };
 
     /** Most-recent-first, de-duplicated, capped — the recent-projects index (spec O2). */
     public static void addRecent(List<String> recents, String path) {

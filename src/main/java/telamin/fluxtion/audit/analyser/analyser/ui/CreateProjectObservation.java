@@ -99,20 +99,42 @@ public final class CreateProjectObservation {
                 }
             }
         }
+        Path parent = dir.getParent();
+        Path enclosing = parent == null ? null : ProjectProfile.findNear(parent);
+        var observed = new SessionEvents.CreateFacts(dir.toString(), absolute, directory, profileExists, analyserProblem,
+                telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.isWorkingCopy(dir), null,
+                enclosing == null ? null : enclosing.toString(), named, offer(offer, dir), false);
+        return config == null ? observed : withConfig(observed, config);
+    }
+
+    /**
+     * The facts that come from the live configuration — the exchange directory in force and the raw
+     * {@code assistant.createProjects} switch — over filesystem facts observed elsewhere. Review m3: the config is the
+     * event thread's, so a worker observes with {@code config == null} and this runs on the event thread just before
+     * the request is submitted.
+     */
+    public static SessionEvents.CreateFacts withConfig(SessionEvents.CreateFacts f, AppConfig config) {
         String exchange = null;
         if (config != null) {
             String ex = ExchangeDir.of(config).dir();
             if (ex != null && !ex.isBlank()) {
                 Path exDir = realDir(Path.of(ex));
-                if (dir.startsWith(exDir)) exchange = exDir.toString();
+                if (Path.of(f.dir()).startsWith(exDir)) exchange = exDir.toString();
             }
         }
-        Path parent = dir.getParent();
-        Path enclosing = parent == null ? null : ProjectProfile.findNear(parent);
-        return new SessionEvents.CreateFacts(dir.toString(), absolute, directory, profileExists, analyserProblem,
-                telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.isWorkingCopy(dir), exchange,
-                enclosing == null ? null : enclosing.toString(), named, offer(offer, dir),
+        return new SessionEvents.CreateFacts(f.dir(), f.absolute(), f.directory(), f.profileExists(), f.analyserProblem(),
+                f.bundleWorkingCopy(), exchange, f.enclosingProject(), f.namedProfiles(), f.offer(),
                 config != null && config.assistantCreateProjects);
+    }
+
+    /**
+     * Review item 5: adopted roots in the project-relative form the preview printed ({@code "."} for the directory
+     * itself) — the identity a caller named, not the absolute path the profile resolves.
+     */
+    public static List<String> relativeRoots(Path dir, List<String> absolute) {
+        List<String> out = new ArrayList<>();
+        for (String a : absolute) out.add(relative(dir, Path.of(a).toAbsolutePath().normalize()));
+        return out;
     }
 
     /** The preview of {@code open {project, create: true}}: writes nothing, selects nothing (D-73.2). */

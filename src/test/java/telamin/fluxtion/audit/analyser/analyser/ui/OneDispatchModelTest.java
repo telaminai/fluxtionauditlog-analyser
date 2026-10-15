@@ -240,15 +240,23 @@ class OneDispatchModelTest {
         assertEquals(1, count(CREATE_ONLY_IN_THE_PERFORMER.get(2), home), "and writes the guide there, after it");
         List<String> offenders = new ArrayList<>();
         Pattern oldCreate = Pattern.compile("\\bproject\\s*\\.\\s*create\\s*\\(");
-        try (var files = Files.list(UI)) {
+        // review n2: the whole main tree, not only ui/ — the one other home is ProjectSession.createNew, where the
+        // adoption runs inside the create (witness: call ProjectAdoption.apply( from any other main class)
+        Path session = Path.of("src/main/java/telamin/fluxtion/audit/analyser/analyser/config/ProjectSession.java");
+        String adoptionHome = bodyOf(Files.readString(session), "public Created createNew(");
+        assertEquals(1, count(CREATE_ONLY_IN_THE_PERFORMER.get(1), adoptionHome), "createNew adopts, once");
+        try (var files = Files.walk(Path.of("src/main/java"))) {
             for (Path f : files.filter(p -> p.toString().endsWith(".java")).sorted().toList()) {
                 String src = Files.readString(f);
-                boolean isFrame = f.getFileName().toString().equals("MainFrame.java");
+                boolean isFrame = f.equals(UI.resolve("MainFrame.java"));
+                boolean isSession = f.equals(session);
                 for (Pattern p : CREATE_ONLY_IN_THE_PERFORMER) {
-                    int outside = count(p, src) - (isFrame ? count(p, home) : 0);
-                    if (outside != 0) offenders.add(f.getFileName() + ": " + p.pattern() + " outside performSessionEffect");
+                    int outside = count(p, src) - (isFrame ? count(p, home) : 0) - (isSession ? count(p, adoptionHome) : 0);
+                    if (outside != 0) offenders.add(f.getFileName() + ": " + p.pattern() + " outside its home");
                 }
-                if (count(oldCreate, src) != 0) offenders.add(f.getFileName() + ": project.create( — the overwriting create");
+                if (f.startsWith(UI) && count(oldCreate, src) != 0) {
+                    offenders.add(f.getFileName() + ": project.create( — the overwriting create");
+                }
             }
         }
         assertEquals(List.of(), offenders, "one create: OpenProjectRequested{CREATE} → CreateProfileEffect");

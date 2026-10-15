@@ -231,6 +231,71 @@ class CreateProjectFlowTest {
         assertTrue(h.warning.contains("resolves outside"), h.warning);
     }
 
+    // ---- review M1: discovery reads only under the chosen directory ----------------------------------------------
+
+    /**
+     * Witness (run 2026-10-15): pass {@code null} instead of the directory as {@code within} in
+     * {@code NewProjectDiscovery.discover} and all three linked graphs are offered.
+     */
+    @Test
+    @DisplayName("M1: a .graphml reached through a link outside the directory is never read or offered")
+    void graphmlOutsideTheDirectoryIsNeverRead() throws Exception {
+        Path b = project(tmp.resolve("b"));
+        Path inside = b.resolve("app/src/main/java/inside.graphml");
+        Files.writeString(inside, GRAPHML);
+        // a linked module whose src/main/java holds a graph
+        Path mod = Files.createDirectories(tmp.resolve("outside-module/src/main/java"));
+        Files.writeString(mod.resolve("module.graphml"), GRAPHML);
+        Files.createSymbolicLink(b.resolve("linked"), tmp.resolve("outside-module"));
+        // a linked src/main/resources
+        Path res = Files.createDirectories(tmp.resolve("outside-resources"));
+        Files.writeString(res.resolve("resources.graphml"), GRAPHML);
+        Files.createDirectories(b.resolve("src/main"));
+        Files.createSymbolicLink(b.resolve("src/main/resources"), res);
+        // a linked .graphml file inside a real root
+        Path loose = tmp.resolve("loose.graphml");
+        Files.writeString(loose, GRAPHML);
+        Files.createSymbolicLink(b.resolve("app/src/main/java/loose.graphml"), loose);
+
+        var offer = NewProjectDiscovery.discover(b);
+        Map<String, Object> preview = CreateProjectObservation.preview(offer,
+                CreateProjectObservation.facts(b, offer, new AppConfig()));
+        String graphs = String.valueOf(preview.get("graphs"));
+        assertTrue(graphs.contains("inside.graphml"), "a graph inside the directory is still offered: " + graphs);
+        assertFalse(graphs.contains("module.graphml"), "a linked module's graph is not read: " + graphs);
+        assertFalse(graphs.contains("resources.graphml"), "a linked src/main/resources is not walked: " + graphs);
+        assertFalse(graphs.contains("loose.graphml"), "a linked .graphml file is not parsed: " + graphs);
+        assertEquals(1, offer.graphs().candidates().size());
+    }
+
+    private static final String GRAPHML = """
+            <?xml version="1.0" encoding="UTF-8"?>
+            <graphml xmlns="http://graphml.graphdrawing.org/xmlns" xmlns:jGraph="http://www.jgraph.com/">
+              <key id="vertex_label" for="node" attr.name="nodeData" attr.type="string"/>
+              <graph edgedefault="undirected">
+                <node id="risk"><data key="vertex_label"><jGraph:ShapeNode>
+                  <jGraph:label text="id:risk&#10;class:com.acme.demo.RiskNode"/>
+                  <jGraph:Style properties="NODE"/>
+                </jGraph:ShapeNode></data></node>
+              </graph>
+            </graphml>
+            """;
+
+    // ---- review item 5: the echo names roots as the preview did ------------------------------------------------
+
+    /** Witness (run 2026-10-15): put {@code adopted.sourceRoots()} back in {@code createdEcho} and the absolute paths return. */
+    @Test
+    @DisplayName("the created echo's adopted sourceRoots are project-relative, \".\" for the directory itself")
+    void theEchoNamesRootsAsThePreviewDid() throws Exception {
+        Path b = project(tmp.resolve("b"));
+        var h = new CreateHarness(allowed());
+        assertTrue(h.create(b, socketRequest(b, h.config, Map.of("sourceRoots", List.of("app/src/main/java", "."))), false),
+                () -> h.warning);
+        Map<String, Object> echo = MainFrame.createdEcho(ProjectProfile.pathFor(b).toString(), h.created.adopted(), h.guide);
+        @SuppressWarnings("unchecked") Map<String, Object> adopted = (Map<String, Object>) echo.get("adopted");
+        assertEquals(List.of(".", "app/src/main/java"), adopted.get("sourceRoots"));
+    }
+
     // ---- the preview ----------------------------------------------------------------------------------------
 
     @Test

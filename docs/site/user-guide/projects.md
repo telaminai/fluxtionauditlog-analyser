@@ -110,7 +110,8 @@ a project is open.
   there too, since it is the case where it helps most. It never inherits whatever you happened to have
   open, or "new project" would just be a slow way to copy one.
   If the directory already has a project you are asked straight away whether to open it instead, before any
-  offer is shown; and if the profile cannot be written — or one appears while the dialog is open — the
+  offer is shown, and a folder that does not exist is refused (make it first — *New project…* does not create
+  one); discovery reads only inside the folder you chose, never through a link to somewhere else; and if the profile cannot be written — or one appears while the dialog is open — the
   create is refused with a warning and the settings you had stay exactly as they were.
 - **Project ▸ Save project as…** — forks the current settings to another project, which becomes active.
 - **Project ▸ Close project** — returns to the settings you had **before you ever opened a project**.

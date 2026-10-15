@@ -158,13 +158,17 @@ public class SessionBoundary implements EventLogSource {
             return new Refusal("relative", "the project directory must be an absolute path (a relative one would "
                     + "resolve against the analyser's working directory): " + dir + " — nothing was created");
         }
-        if (!facts.directory()) {
-            return new Refusal("notDirectory", dir + " is not an existing directory — create it first, then preview "
-                    + "with open {project: \"" + dir + "\", create: true}; nothing was created");
-        }
         boolean person = event.audience() != null
                 && event.audience().origin() == SessionEvents.OperationOrigin.PERSON
                 && event.assistantOrigin() == null;
+        if (!facts.directory()) {
+            // review m2: a person gets their own wording — a create never makes the project folder itself
+            return new Refusal("notDirectory", person
+                    ? dir + " is not an existing folder. New project… does not create one: make the folder, then "
+                            + "choose it; nothing was created"
+                    : dir + " is not an existing directory — create it first, then preview "
+                            + "with open {project: \"" + dir + "\", create: true}; nothing was created");
+        }
         if (facts.profileExists()) {
             return new Refusal("profileExists", dir + " already has a project (" + event.profilePath()
                     + ") — open it with open {project: \"" + dir + "\"}; nothing was created or overwritten", person);

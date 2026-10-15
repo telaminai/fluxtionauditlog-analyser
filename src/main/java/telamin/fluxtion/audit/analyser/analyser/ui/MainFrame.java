@@ -7249,8 +7249,9 @@ public final class MainFrame extends JFrame {
         Path root = CreateProjectObservation.realDir(selectedRoot);
         Path file = telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.pathFor(root);
         var facts = CreateProjectObservation.facts(root, null, config);
-        if (facts.profileExists()) {
-            // the node refuses, and its refusal for a person is the open-instead question; nothing is offered first
+        if (facts.profileExists() || !facts.directory()) {
+            // the node refuses, before any offer is shown: for an existing project its refusal for a person is the
+            // open-instead question; for a folder that does not exist, a warning in the person's own words (review m2)
             requestProject(file, telamin.fluxtion.audit.analyser.analyser.session.TransitionKind.CREATE, "new-project", true,
                     new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CreateRequest(facts, null));
             return;
@@ -7570,13 +7571,14 @@ public final class MainFrame extends JFrame {
     }
 
     /** M73: the {@code created} echo — what was written and adopted, from the adoption's report, never the request. */
-    private static Map<String, Object> createdEcho(String settings,
+    static Map<String, Object> createdEcho(String settings,
                                                    telamin.fluxtion.audit.analyser.analyser.config.ProjectAdoption.Report adopted,
                                                    String referenceGuide) {
         Map<String, Object> out = new java.util.LinkedHashMap<>();
         out.put("settings", settings);
         Map<String, Object> a = new java.util.LinkedHashMap<>();
-        a.put("sourceRoots", adopted.sourceRoots());
+        Path root = telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.baseDirFor(Path.of(settings));
+        a.put("sourceRoots", CreateProjectObservation.relativeRoots(root, adopted.sourceRoots()));
         List<Map<String, Object>> skills = new java.util.ArrayList<>();
         for (var k : adopted.skills()) {
             Map<String, Object> m = new java.util.LinkedHashMap<>();
@@ -8950,8 +8952,10 @@ public final class MainFrame extends JFrame {
             }
             Path root = CreateProjectObservation.realDir(given);
             NewProjectDiscovery.Offer offer = Files.isDirectory(given) ? NewProjectDiscovery.discover(root) : null;
-            var facts = CreateProjectObservation.facts(given, offer, config);
+            // the filesystem only, on this thread; the config-derived facts are the event thread's (review m3)
+            var observed = CreateProjectObservation.facts(given, offer, null);
             if (preview) {
+                var facts = actionExecutor.onEdt(() -> CreateProjectObservation.withConfig(observed, config));
                 return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("open", "createPreview",
                         CreateProjectObservation.preview(offer, facts));
             }
@@ -8959,10 +8963,11 @@ public final class MainFrame extends JFrame {
                 return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
                         "'create' is true (preview) or an object (apply)");
             }
-            var request = new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CreateRequest(
-                    facts, CreateProjectObservation.fromSocket(chosen));
+            var selection = CreateProjectObservation.fromSocket(chosen);
             Path file = telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.pathFor(root);
             return actionExecutor.onEdt(() -> {
+                var facts = CreateProjectObservation.withConfig(observed, config);
+                var request = new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CreateRequest(facts, selection);
                 Path active = project.activeFile();
                 String previousName = project.hasProject() ? project.activeName() : null;
                 String previousPath = active == null ? null : active.toString();
