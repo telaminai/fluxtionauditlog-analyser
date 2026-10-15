@@ -109,6 +109,9 @@ a project is open.
   produces an ordinary empty offer and can still become an empty profile — the `CLAUDE.md` offer appears
   there too, since it is the case where it helps most. It never inherits whatever you happened to have
   open, or "new project" would just be a slow way to copy one.
+  If the directory already has a project you are asked straight away whether to open it instead, before any
+  offer is shown; and if the profile cannot be written — or one appears while the dialog is open — the
+  create is refused with a warning and the settings you had stay exactly as they were.
 - **Project ▸ Save project as…** — forks the current settings to another project, which becomes active.
 - **Project ▸ Close project** — returns to the settings you had **before you ever opened a project**.
 
@@ -238,6 +241,20 @@ its count before and after the switch, the log and graph it closed and where the
 switch is a session boundary, exactly as it is from the Project menu), the project that was active before,
 and the one call that undoes it. Your MCP client's own approval prompt on `open` is where a human says
 yes or no.
+
+An agent can also **create** a project, through the same discovery as *Project ▸ New project…* rather than
+by writing a profile by hand: `open {project: "<absolute dir>", create: true}` previews the offer and writes
+nothing, and `open {project: "<absolute dir>", create: {sourceRoots, skills, referenceGuide, offerDigest}}`
+creates it with only the items named from that offer. Opening a graph is a separate `open {graphml}`.
+See [the open verb](assistant.md#connect-an-mcp-client) for the full contract.
+
+!!! warning "An assistant creates a project only with your consent"
+
+    **Settings ▸ Assistant ▸ Allow the assistant to create projects** is off by default, and it is this
+    machine's setting alone: it is never stored in a project profile, a shared settings file or an evidence
+    bundle, so a repository you clone cannot turn it on. It gates an assistant — over MCP/REST or the in-app
+    assistant — and never you: *Project ▸ New project…* works whatever it says. A create never overwrites
+    an existing project; the project it creates becomes the one opened at the next start.
 
 ## Import: merge or open?
 

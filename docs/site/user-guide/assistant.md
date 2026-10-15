@@ -128,6 +128,13 @@ drive the same verbs:
   so an assistant can clear away the diagnostics it built along the way. See
   [Investigation reports](reports.md). Use `restore` alone: boolean `true` lists deleted reports;
   a string names the report to restore, including the name `"true"`.
+- **open {project, create}** — create a project in a directory, from what *Project ▸ New project…* would offer
+  there. `create: true` is a preview: it writes nothing and returns the source roots, skills, GraphML (to open
+  afterwards with `open {graphml}`), whether a `CLAUDE.md` can be offered, and an `offerDigest`.
+  `create: {sourceRoots, skills, referenceGuide, offerDigest}` creates it with only what is named from that
+  offer, makes it active, and closes the open log and graph (a project is a session boundary). It never
+  overwrites an existing project, and an assistant may do it only while **Settings ▸ Assistant ▸ Allow the
+  assistant to create projects** is on — off by default; see [the open verb](#connect-an-mcp-client) below.
 - **coverage** — which of the processor's nodes never wrote audit output in this run. Needs a log *and* a
   graphml, and answers the question nobody can answer by eye on a large graph: what did this run never
   exercise? A gap means "never logged", not proven "never ran" — a node with no `auditLog` call, or one
@@ -438,6 +445,30 @@ Three more on `open`, so an agent can manage what is loaded rather than only add
   project was active before, and the one call that puts it back. `open {close: "project"}` is that
   call when the answer was *your own settings*. Re-opening the project already in force changes
   nothing and says so. Your MCP client's per-call approval on `open` is the human gate.
+- `open {project: "<absolute dir>", create: true}` — **preview** creating a project there. It writes
+  nothing, selects nothing, and returns `createPreview`: the directory's real path, `profileExists`
+  (reported, not refused — a directory that already has a project is opened with `open {project}`), the
+  project kind, the project-relative `sourceRoots` (`"."` for the directory itself; a root that resolves
+  through a link outside the directory is listed with `outside: true` and can never be adopted), the
+  `skills` by path, the `graphs` (informational), `referenceGuide` (`CAN_CREATE`, `EXISTS` or
+  `NOTHING_AGREED`), `truncated` when a discovery cap was reached, the `offerDigest`, the raw value of the
+  switch below as `createProjectsSwitch`, and the `next` call.
+- `open {project: "<absolute dir>", create: {sourceRoots?, skills?, referenceGuide?, offerDigest?}}` —
+  **create** it, adopting only what you name from the offer (`create: {}` is an empty project). One write,
+  `.analyser/project.fluxtion-settings`, never over an existing file; the reference guide only when chosen
+  and offered, after the profile is written. A stale `offerDigest` is refused with "the offer changed since
+  your preview — preview again". The echo is the `open {project}` echo plus `created` — the settings
+  path, the source roots and skill pointers actually adopted (with each skill's resolved path),
+  `skillsNotAdopted` with the reason (a duplicate name, say) and the `referenceGuide` outcome (`WROTE`,
+  `EXISTS`, `NOT_REQUESTED` or `FAILED: …`). Opening a graph is not part of a create: call
+  `open {graphml}` next. Read each adopted skill's file before acting on the project — the analyser stores
+  pointers, not their text. **An assistant needs the person's consent**: *Settings ▸ Assistant ▸ Allow the
+  assistant to create projects*, off by default and kept on this machine only. With it on, an assistant
+  is still refused inside an evidence bundle's working copy, inside the exchange directory, inside an
+  existing project, and through a `.analyser` that is a symbolic link. `create` goes with `project`
+  alone; with `follow`, `posture`, `record`, `close`, `analysis`, `restore` or `bundle` the call is
+  refused whole, and an unknown key inside `create` is refused (`profile` is reserved: named profiles are
+  not created over the socket yet).
 - `open {log, provenance: "…"}` — say WHERE the log came from. A file name is not a system: an agent
   exporting three servers' logs to `/tmp` produces three artefacts nobody can tell apart. Provenance
   rides the status bar, `context`, report headers and PDFs, and lets the mismatch banner name a

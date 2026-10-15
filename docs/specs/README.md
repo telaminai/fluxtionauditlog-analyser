@@ -18,6 +18,7 @@ line, and update this index in the same change.
 | Spec | Status | Tracker |
 |---|---|---|
 | [spec-session-processor.md](spec-session-processor.md) | M44.4/M44.5 shipped; §13 acceptance and M44.6 open | M44 |
+| [spec-create-project.md](spec-create-project.md) | SETTLED r3; implemented, acceptance open | M73 |
 | [spec-tool-agreement.md](spec-tool-agreement.md) | TA-1…TA-8 shipped in 1.17.0; TA-5b, TA-5c, TA-9, TA-B open | Tool agreement |
 
 ## Evidence
