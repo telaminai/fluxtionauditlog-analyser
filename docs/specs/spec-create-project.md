@@ -244,10 +244,47 @@ or ambiguous, the closest sound option was taken and is recorded here.
 - **Regeneration.** `mvn -Pregen process-classes` added the `sessionBoundary.onEffectFailed` dispatch; the hosted
   generator stamped `target generator version 1.0.79` (builder 1.0.76 unchanged).
 - **Not done here:** the §6/§8 follow-up GitHub issue (*Save project as* overwrite and nonce, `openSampleProject`) is
-  to be filed when this lands; no socket run against the built jar yet.
+  to be filed when this lands.
 
 **Witnesses run (each starred test failed at its named assertion, then passed when restored):** parity — approve in
 selection order; G2 — no snapshot restore ("the config equals the snapshot"), and `onEffectFailed` returning early
 ("the caller sees an error"); race — `CREATE`+`TRUNCATE_EXISTING` for `CREATE_NEW`; switch — `ProjectProfile.load`
 reading `assistant.createProjects`; and `OneDispatchModelTest` once per pattern (`project.createNew(`,
 `ProjectAdoption.apply(`, `NewProjectDiscovery.writeReferenceGuide(`, `project.create(` in `createProjectAt`).
+
+### Review fixes (2026-10-16)
+
+An independent review returned "ready after fixes"; each fix has a regression test and a witness that was run.
+
+- **M1 — reads stay under the chosen directory.** `GraphmlDiscovery.scan` gained a `within` fence: a root, or a
+  `.graphml` file, whose real path is not under the directory's real path is never walked or parsed.
+  `NewProjectDiscovery.discover` passes the directory, so the fence applies to the socket preview **and** the menu's
+  offer (shared discovery; a CHANGELOG Fixed line says so). Test `CreateProjectFlowTest.graphmlOutsideTheDirectoryIsNeverRead`
+  (a linked module, a linked `src/main/resources`, a linked `.graphml` file); witness — passing `null` as the fence.
+- **m1 — a half-written profile is removed.** `ProjectProfile.createNew` writes through a stream opened `CREATE_NEW`;
+  if anything fails after that open, the file this call created is deleted, then an `.analyser/` it created. A file
+  that was already there is never touched. Test `ProjectProfileCreateNewTest` through a package-private seam
+  (`afterCreateNewOpen`); witness — removing the file delete.
+- **m2 — a missing folder, for a person.** Chosen: **refuse**, not create. The menu submits a folder that does not
+  exist to the node before discovery or the offer (as it does an existing project), and the node words the refusal
+  for a person ("New project… does not create one: make the folder, then choose it"). Before M73 the menu created
+  the folder as a side effect of `createDirectories`; the CHANGELOG says this no longer happens. Tests
+  `CreateProjectDecisionTest.aPersonIsToldInTheirOwnWordsThatTheFolderDoesNotExist` and
+  `CreateProjectFrameSourceTest.aMissingFolderIsRefusedBeforeTheOffer`; witnesses — dropping the person wording, and
+  dropping the pre-offer check.
+- **m3 — configuration is read on the event thread.** The worker observes the filesystem only
+  (`CreateProjectObservation.facts(given, offer, null)`); `withConfig` adds the exchange directory and the raw switch
+  inside the `onEdt` block, just before the preview is rendered or the request submitted. Test
+  `CreateProjectFrameSourceTest.configIsReadOnTheEventThread`; witness — passing `config` on the worker again.
+- **Echo roots.** `created.adopted.sourceRoots` is project-relative, `"."` for the directory itself, as §3.4 says.
+  Test `CreateProjectFlowTest.theEchoNamesRootsAsThePreviewDid`; witness — returning the absolute list.
+- **n2.** The `OneDispatchModelTest` create rule now scans the whole main tree; `ProjectSession.createNew` is the one
+  other home, for `ProjectAdoption.apply(`. Witness — a `ProjectAdoption.apply(` in another main class.
+
+### Acceptance evidence
+
+- **Socket run on the built jar (lead, 2026-10-16):** a preview, the relative-path refusal, the consent-off refusal, an
+  unoffered root, an unknown key, a real apply with `referenceGuide`, and the exists refusal all behaved as this spec
+  says.
+- **Still open:** the visual check of *Settings ▸ Assistant ▸ Allow the assistant to create projects* and of the
+  menu's "Open it instead?" dialog; the §6 follow-up issue.
