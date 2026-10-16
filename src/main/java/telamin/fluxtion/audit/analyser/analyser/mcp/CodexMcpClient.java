@@ -33,8 +33,6 @@ public final class CodexMcpClient {
     public static final String SERVER_NAME = "fluxtion-analyser";
     private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(10);
     private static final int OUTPUT_LIMIT = 8 * 1024;
-    private static final Pattern SECRET_VALUE = Pattern.compile(
-            "(?i)\\b(token|api[_-]?key|password|secret|authorization)\\b(\\s*[:=]\\s*|\\s+bearer\\s+)([^\\s,;]+)");
 
     public enum RegistrationStatus { PRESENT, ABSENT, INDETERMINATE }
 
@@ -162,7 +160,7 @@ public final class CodexMcpClient {
 
     static String redactForDisplay(String output) {
         if (output == null || output.isBlank()) return "";
-        return SECRET_VALUE.matcher(output).replaceAll("$1$2…");
+        return telamin.fluxtion.audit.analyser.analyser.core.Redaction.keyValues(output);
     }
 
     private List<String> command(String... parts) {

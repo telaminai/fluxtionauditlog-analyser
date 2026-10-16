@@ -197,6 +197,9 @@ class LocalAgentAdapterReplayTest {
         h.start();
         h.send("Reply with exactly: one");
         assertEquals("READY", h.state().phase());
+        // review S8: the fixture really did emit them, so the absences below are not vacuous
+        assertTrue(agent.last().emitted.stream().anyMatch(l -> l.contains(EMAIL)), "the CLI's answer carried the e-mail");
+        assertTrue(agent.last().emitted.stream().anyMatch(l -> l.contains(ORG)), "and the organisation");
         String[] places = {h.driver.snapshot().toString(), h.facts.toString(), h.store.dump(),
                 String.join("\n", h.driver.auditSink().records())};
         for (String place : places) {
@@ -399,6 +402,143 @@ class LocalAgentAdapterReplayTest {
         var again = LocalAgentLock.tryAcquire(LocalAgentLock.directory(home), session);
         assertTrue(again.isPresent(), "released on stop");
         again.get().close();
+    }
+
+    /**
+     * ★ Witness (review M3): remove the wait for our own previous run in the adapter's spawn — the restart fails LOCKED
+     * with "open in another analyser window".
+     */
+    @Test
+    @DisplayName("★ M3: a restart waits for this analyser's own stopping process to release the lock; never 'another window'")
+    void theLockIsHandedOverToOurOwnRestart() throws Exception {
+        FixtureAgent agent = new FixtureAgent("multiturn-partial-replay-midturn.jsonl");
+        agent.conformInit = true;
+        agent.exitOnKill = false;                                        // the tree takes a while to stop
+        Harness h = new Harness(agent, home);
+        h.start();
+        h.send("Reply with exactly: one");
+        assertTrue(h.state().resumable());
+        h.driver.post(new SessionEvents.AssistantModeChosen(telamin.fluxtion.audit.analyser.analyser.session.AssistantMode.IN_APP, "t"));
+        h.driver.post(new SessionEvents.AssistantModeChosen(telamin.fluxtion.audit.analyser.analyser.session.AssistantMode.LOCAL_AGENT, "t"));
+        FixtureAgent.Proc old = agent.last();
+        assertEquals(1, old.terminated, "asked to stop, still running");
+        Thread exiter = new Thread(() -> {
+            try {
+                Thread.sleep(300);
+            } catch (InterruptedException ignored) {
+                // exit at once
+            }
+            old.exit(143);
+        });
+        exiter.start();
+        h.start();                                                     // spawns while the old tree is still stopping
+        exiter.join();
+        h.drain();
+        assertEquals("READY", h.state().phase(), "the lock was handed over: " + h.state().reason());
+        assertEquals(2, agent.processes.size());
+        assertTrue(agent.commands.get(1).contains("--resume"), "the same conversation, resumed");
+
+        // and when it never stops in time, the words are about OUR process, not another window
+        FixtureAgent stuck = new FixtureAgent("multiturn-partial-replay-midturn.jsonl");
+        stuck.conformInit = true;
+        stuck.exitOnKill = false;
+        Harness x = new Harness(stuck, home.resolve("x"));
+        x.adapter.handoverWaitMs = 200;
+        x.start();
+        x.send("Reply with exactly: one");
+        x.driver.post(new SessionEvents.AssistantModeChosen(telamin.fluxtion.audit.analyser.analyser.session.AssistantMode.IN_APP, "t"));
+        x.driver.post(new SessionEvents.AssistantModeChosen(telamin.fluxtion.audit.analyser.analyser.session.AssistantMode.LOCAL_AGENT, "t"));
+        x.start();
+        assertEquals("PREVIOUS_STILL_STOPPING", x.state().verdict());
+        assertFalse(x.state().reason().contains("another analyser window"), x.state().reason());
+    }
+
+    /** ★ Witness (review S3): write to stdin inline in {@code LocalAgentAdapter.write} — Start and Send block. */
+    @Test
+    @DisplayName("★ S3: a stdin write never blocks the caller (the event thread), even when the child is not reading")
+    void writesNeverBlockTheCaller() throws Exception {
+        FixtureAgent agent = new FixtureAgent("multiturn-partial-replay-midturn.jsonl");
+        agent.conformInit = true;
+        java.util.concurrent.CountDownLatch pipe = new java.util.concurrent.CountDownLatch(1);
+        agent.blockNewWrites = pipe;
+        Harness h = new Harness(agent, home, LocalAgentAdapter::singleWriter);
+        // a watchdog unblocks the pipe after 3 s, so a write made on this thread shows as a slow call, not a hang
+        releaseAfter(pipe, 3_000);
+        long t0 = System.nanoTime();
+        h.start();
+        assertTrue(System.nanoTime() - t0 < 2_000_000_000L, "Start returned with stdin blocked");
+        pipe.countDown();
+        long deadline = System.nanoTime() + 10_000_000_000L;
+        while (!"READY".equals(h.state().phase()) && System.nanoTime() < deadline) {
+            h.drain();
+            Thread.sleep(10);
+        }
+        assertEquals("READY", h.state().phase(), h.state().reason());
+        java.util.concurrent.CountDownLatch again = new java.util.concurrent.CountDownLatch(1);
+        agent.last().blockWrites = again;
+        releaseAfter(again, 3_000);
+        long t1 = System.nanoTime();
+        h.send("Reply with exactly: one");
+        assertTrue(System.nanoTime() - t1 < 2_000_000_000L, "Send returned with stdin blocked");
+        again.countDown();
+        while (h.state().busy() && System.nanoTime() < deadline) {
+            h.drain();
+            Thread.sleep(10);
+        }
+        assertEquals(List.of("one"), h.answers(), "and the line was written, in order, once the pipe drained");
+    }
+
+    private static void releaseAfter(java.util.concurrent.CountDownLatch latch, long ms) {
+        Thread t = new Thread(() -> {
+            try {
+                Thread.sleep(ms);
+            } catch (InterruptedException ignored) {
+                // release now
+            }
+            latch.countDown();
+        });
+        t.setDaemon(true);
+        t.start();
+    }
+
+    /** ★ Witness (review S4): redact stderr with the shapes only (drop the exact known values) — the token survives. */
+    @Test
+    @DisplayName("★ S4: an exited process's stderr line is shown with the REST token, the hosted credential and their header redacted")
+    void stderrIsRedactedOfKnownSecrets() throws Exception {
+        Harness h = bound("multiturn-partial-replay-midturn.jsonl");
+        String hosted = new RestEndpointFile(h.agent.last().endpointFile).read().hosted();
+        h.agent.last().stderr = "bridge said shared-rest-token and " + hosted + " with X-Analyser-Hosted: " + hosted
+                + " and " + "ab".repeat(32);
+        h.agent.last().exit(1);
+        String shown = h.store.text(h.state().stderrRef());
+        assertFalse(shown.isBlank());
+        assertFalse(shown.contains("shared-rest-token"), shown);
+        assertFalse(shown.contains(hosted), shown);
+        assertFalse(shown.contains("ab".repeat(32)), shown);
+        assertTrue(shown.startsWith("bridge said"), shown);
+    }
+
+    /** ★ Witness (review S5): build the header's folder from anything but the launch cwd (e.g. null) — it fails. */
+    @Test
+    @DisplayName("★ S5: the header names the session's own launch folder")
+    void theHeaderNamesTheLaunchFolder() throws Exception {
+        Harness h = bound("multiturn-partial-replay-midturn.jsonl");
+        assertEquals(home.resolve("proj").toString(), h.store.header(h.state().headerRef()).folder());
+        h.send("Reply with exactly: one");
+        assertEquals(home.resolve("proj").toString(), h.store.header(h.state().headerRef()).folder(),
+                "still, after a turn's init updated the header");
+    }
+
+    /** ★ Witness (review S7): accept any model in {@code validModel} — the flag-shaped model reaches the command line. */
+    @Test
+    @DisplayName("★ S7: a model setting that is not a model name refuses Start; nothing is launched")
+    void aFlagShapedModelIsRefused() throws Exception {
+        FixtureAgent agent = new FixtureAgent("multiturn-partial-replay-midturn.jsonl");
+        Harness h = new Harness(agent, home);
+        h.model = "--dangerously-skip-permissions";
+        h.start();
+        assertEquals("INVALID_MODEL", h.state().verdict());
+        assertTrue(agent.processes.isEmpty(), "nothing launched");
     }
 
     @Test

@@ -81,13 +81,27 @@ public final class LocalAgentAdapter {
     private final HostedCredentials credentials;
     private final Environment env;
     private final Executor worker;
+    private final java.util.function.Supplier<Executor> writers;
     private final Clock clock;
+    /** Review M3: how long a spawn waits for this analyser's own previous process of the same conversation to stop. */
+    long handoverWaitMs = KILL_GRACE.toMillis() + 3_000;
     private final Map<Long, Run> runs = new ConcurrentHashMap<>();
     private volatile List<StreamJson.Command> lastCommands = List.of();
     private volatile int unknownEvents;
 
     public LocalAgentAdapter(LocalAgentProvider provider, AgentProcess.Launcher launcher, LocalAgentTranscript store,
                              HostedCredentials credentials, Environment env, Executor worker, Clock clock) {
+        this(provider, launcher, store, credentials, env, worker, clock, LocalAgentAdapter::singleWriter);
+    }
+
+    /**
+     * @param writers one stdin writer per process: a single thread, so lines keep their order and no write ever blocks
+     *                the event thread on a full pipe (review S3)
+     */
+    public LocalAgentAdapter(LocalAgentProvider provider, AgentProcess.Launcher launcher, LocalAgentTranscript store,
+                             HostedCredentials credentials, Environment env, Executor worker, Clock clock,
+                             java.util.function.Supplier<Executor> writers) {
+        this.writers = writers;
         this.provider = provider;
         this.launcher = launcher;
         this.store = store;
@@ -134,6 +148,14 @@ public final class LocalAgentAdapter {
         };
     }
 
+    static Executor singleWriter() {
+        return java.util.concurrent.Executors.newSingleThreadExecutor(r -> {
+            Thread t = new Thread(r, "analyser-local-agent-stdin");
+            t.setDaemon(true);
+            return t;
+        });
+    }
+
     private static SessionEvents.LocalAgentEffectStarted started(long opId, long generation, String what) {
         return new SessionEvents.LocalAgentEffectStarted(opId, generation, what);
     }
@@ -144,7 +166,7 @@ public final class LocalAgentAdapter {
         // captured NOW, on the session's thread, as immutable values: the worker never reads live configuration
         Spawn s = new Spawn(e, env.model(), env.workingDirectory(), env.restUrl(), env.restToken(), env.bridgeLauncher(),
                 Map.copyOf(env.environment()), env.userHome());
-        Run run = new Run(e.generation(), e.sessionId(), e.nonce());
+        Run run = new Run(e.generation(), e.sessionId(), e.nonce(), writers.get());
         runs.put(e.generation(), run);
         worker.execute(() -> spawn(run, s));
         return started(e.opId(), e.generation(), "start");
@@ -169,6 +191,26 @@ public final class LocalAgentAdapter {
             fail(run, SessionEvents.SpawnFailure.ENDPOINT_FAILED, 0);
             return;
         }
+        if (!ClaudeCodeProvider.validModel(s.model())) {
+            fail(run, SessionEvents.SpawnFailure.INVALID_MODEL, 0);
+            return;
+        }
+        run.restToken = s.restToken();
+        // review M3: our OWN previous process of this conversation may still hold the lock while its tree stops; wait
+        // (bounded) for it to be cleaned up, and never call that "another analyser window"
+        for (Run other : List.copyOf(runs.values())) {
+            if (other == run || !other.sessionId.equals(run.sessionId)) continue;
+            try {
+                other.cleaned.get(handoverWaitMs, java.util.concurrent.TimeUnit.MILLISECONDS);
+            } catch (InterruptedException ex) {
+                Thread.currentThread().interrupt();
+                fail(run, SessionEvents.SpawnFailure.PREVIOUS_STILL_STOPPING, 0);
+                return;
+            } catch (java.util.concurrent.ExecutionException | java.util.concurrent.TimeoutException ex) {
+                fail(run, SessionEvents.SpawnFailure.PREVIOUS_STILL_STOPPING, 0);
+                return;
+            }
+        }
         Path dir = LocalAgentLock.directory(s.home());
         try {
             Optional<LocalAgentLock> lock = LocalAgentLock.tryAcquire(dir, run.sessionId);
@@ -184,6 +226,7 @@ public final class LocalAgentAdapter {
         run.endpointFile = dir.resolve("endpoint-" + ProcessHandle.current().pid() + "-" + gen + ".json");
         try {
             String hosted = credentials.mint(gen);
+            run.hosted = hosted;
             new RestEndpointFile(run.endpointFile).writeHosted(s.restUrl(), s.restToken(), run.nonce, hosted);
         } catch (IOException | RuntimeException ex) {
             fail(run, SessionEvents.SpawnFailure.ENDPOINT_FAILED, 0);
@@ -192,6 +235,7 @@ public final class LocalAgentAdapter {
         List<String> command = provider.command(new LocalAgentProvider.LaunchSpec(found.executable(), run.sessionId,
                 s.effect().resume(), s.model(), s.cwd(), s.launcher().get(), run.endpointFile, s.effect().maxBudgetMicros()));
         run.startedAt = clock.nowMillis();
+        run.folder = s.cwd().toString();
         try {
             AgentProcess p = launcher.start(command, provider.environment(), s.cwd(), line -> onLine(run, line));
             synchronized (run) {
@@ -236,9 +280,9 @@ public final class LocalAgentAdapter {
             run.ticketByUuid.put(uuid, e.ticket());
             run.beginTurn(e.ticket());
         }
-        if (!write(run, StreamJson.userLine(uuid, store.text(e.draft())))) {
-            endTurn(run, e.ticket(), SessionEvents.TurnOutcome.PROCESS_EXIT);
-        }
+        long ticket = e.ticket();
+        write(run, StreamJson.userLine(uuid, store.text(e.draft())),
+                () -> endTurn(run, ticket, SessionEvents.TurnOutcome.PROCESS_EXIT));
         return started(e.opId(), e.generation(), "send");
     }
 
@@ -289,18 +333,29 @@ public final class LocalAgentAdapter {
         Runtime.getRuntime().addShutdownHook(new Thread(this::shutdown, "analyser-local-agent-shutdown"));
     }
 
-    private boolean write(Run run, String line) {
-        AgentProcess p;
-        synchronized (run) {
-            p = run.process;
-        }
-        if (p == null) return false;
-        try {
-            p.writeLine(line);
-            return true;
-        } catch (IOException ex) {
-            return false;
-        }
+    /** Queue one stdin line on the run's own writer: the caller (often the event thread) never waits for the pipe. */
+    private void write(Run run, String line) {
+        write(run, line, null);
+    }
+
+    /** As {@link #write(Run, String)}; {@code onFailure} runs on the writer when the line could not be written. */
+    private void write(Run run, String line, Runnable onFailure) {
+        run.writer.execute(() -> {
+            AgentProcess p;
+            synchronized (run) {
+                p = run.process;
+            }
+            boolean ok = false;
+            if (p != null) {
+                try {
+                    p.writeLine(line);
+                    ok = true;
+                } catch (IOException ex) {
+                    ok = false;
+                }
+            }
+            if (!ok && onFailure != null) onFailure.run();
+        });
     }
 
     // ---- reading the stream ---------------------------------------------------------------------------------------
@@ -317,8 +372,8 @@ public final class LocalAgentAdapter {
             case StreamJson.SystemInit i -> {
                 long headerRef;
                 synchronized (run) {
-                    run.header = (run.header == null ? new LocalAgentTranscript.Header(null, null, "", null, List.of())
-                            : run.header).withInit(i.model(), i.cliVersion());
+                    run.header = (run.header == null ? new LocalAgentTranscript.Header(null, null, "", null, List.of(),
+                            run.folder) : run.header).withInit(i.model(), i.cliVersion());
                     headerRef = store.putHeader(run.header);
                 }
                 env.post(new SessionEvents.LocalAgentInitObserved(gen, run.runningTicket,
@@ -388,7 +443,7 @@ public final class LocalAgentAdapter {
             long headerRef;
             synchronized (run) {
                 run.header = new LocalAgentTranscript.Header(null, null, billing, init.apiProvider(),
-                        ClaudeCodeProvider.unclassified(init.commands()));
+                        ClaudeCodeProvider.unclassified(init.commands()), run.folder);
                 headerRef = store.putHeader(run.header);
             }
             env.post(new SessionEvents.LocalAgentInitialized(gen, init.loggedIn(), init.permissionMode(), headerRef));
@@ -496,7 +551,8 @@ public final class LocalAgentAdapter {
         synchronized (run) {
             p = run.process;
         }
-        String tail = p == null ? "" : p.stderrTail();
+        // review S4: the exact secrets this run holds are redacted too, wherever the child echoed them
+        String tail = p == null ? "" : telamin.fluxtion.audit.analyser.analyser.core.Redaction.all(p.stderrTail(), run.restToken, run.hosted);
         long stderrRef = 0;
         String last = lastLine(tail);
         if (!last.isEmpty()) stderrRef = store.add(LocalAgentTranscript.Kind.STDERR, last);
@@ -528,6 +584,8 @@ public final class LocalAgentAdapter {
             }
         }
         runs.remove(run.generation, run);
+        if (run.writer instanceof java.util.concurrent.ExecutorService es) es.shutdown();
+        run.cleaned.complete(null);
     }
 
     // ---- one generation -----------------------------------------------------------------------------------------
@@ -540,6 +598,12 @@ public final class LocalAgentAdapter {
         final Map<String, Long> ticketByUuid = new ConcurrentHashMap<>();
         final Set<Long> ended = ConcurrentHashMap.newKeySet();
         final Set<Long> deniedNoted = ConcurrentHashMap.newKeySet();
+        final Executor writer;
+        /** Completes when this run's lock, credential and endpoint file have been released (review M3). */
+        final java.util.concurrent.CompletableFuture<Void> cleaned = new java.util.concurrent.CompletableFuture<>();
+        volatile String restToken;
+        volatile String hosted;
+        volatile String folder;
         AgentProcess process;
         LocalAgentLock lock;
         Path endpointFile;
@@ -561,7 +625,8 @@ public final class LocalAgentAdapter {
         final Set<String> finals = new HashSet<>();
         String localOutput;
 
-        Run(long generation, String sessionId, String nonce) {
+        Run(long generation, String sessionId, String nonce, Executor writer) {
+            this.writer = writer;
             this.generation = generation;
             this.sessionId = sessionId;
             this.nonce = nonce;

@@ -34,8 +34,25 @@ final class Harness {
     final LocalAgentAdapter adapter;
     final SessionDriver driver;
     private long requests;
+    final Thread owner = Thread.currentThread();
+    final java.util.concurrent.ConcurrentLinkedQueue<Object> offThread = new java.util.concurrent.ConcurrentLinkedQueue<>();
+    String model = "haiku";
+
+    /** Deliver facts that arrived on other threads, on this one. */
+    void drain() {
+        for (Object f; (f = offThread.poll()) != null; ) {
+            facts.add(f);
+            driver.post(f);
+        }
+    }
 
     Harness(FixtureAgent agent, Path home) throws IOException {
+        this(agent, home, () -> Runnable::run);
+    }
+
+    /** With {@code writers} the adapter's per-process stdin writers (the application's are single threads). */
+    Harness(FixtureAgent agent, Path home, java.util.function.Supplier<java.util.concurrent.Executor> writers)
+            throws IOException {
         this.agent = agent;
         this.home = home;
         Path bin = Files.createDirectories(home.resolve("bin"));
@@ -47,7 +64,7 @@ final class Harness {
         Files.createDirectories(home.resolve("proj"));
         SessionDriver[] d = new SessionDriver[1];
         LocalAgentAdapter.Environment env = new LocalAgentAdapter.Environment() {
-            @Override public String model() { return "haiku"; }
+            @Override public String model() { return model; }
             @Override public Path workingDirectory() { return home.resolve("proj"); }
             @Override public String restUrl() { return "http://127.0.0.1:1"; }
             @Override public String restToken() { return "shared-rest-token"; }
@@ -57,11 +74,16 @@ final class Harness {
             @Override public Map<String, String> environment() { return Map.of("PATH", bin.toString()); }
             @Override public Path userHome() { return home; }
             @Override public void post(Object fact) {
+                if (Thread.currentThread() != owner) {          // a process exit on another thread: marshal, as the app does
+                    offThread.add(fact);
+                    return;
+                }
                 facts.add(fact);
                 d[0].post(fact);
             }
         };
-        this.adapter = new LocalAgentAdapter(new ClaudeCodeProvider(), agent, store, credentials, env, Runnable::run, clock);
+        this.adapter = new LocalAgentAdapter(new ClaudeCodeProvider(), agent, store, credentials, env, Runnable::run, clock,
+                writers);
         this.driver = new SessionDriver(effect -> {
             if (LocalAgentAdapter.handles(effect)) return adapter.perform(effect);
             others.add(effect);

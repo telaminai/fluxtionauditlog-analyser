@@ -263,6 +263,13 @@ public final class ActionServer {
         } catch (RuntimeException e) {
             return null;                       // malformed: the dispatcher refuses it in its own words
         }
+        // review S1: defence in depth beside --disallowedTools — until P3 asks the person, a destructive verb is never
+        // run for the hosted bridge, whatever the CLI let through
+        if (root instanceof Map<?, ?> m0 && telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.destructiveVerbs()
+                .contains(String.valueOf(m0.get("action")))) {
+            return "`" + m0.get("action") + "` is not available to Claude Code in the analyser: it changes what is open or "
+                    + "writes files, and is the person's to run";
+        }
         if (root instanceof Map<?, ?> m && "graph".equals(String.valueOf(m.get("action")))
                 && m.get("params") instanceof Map<?, ?> params && truthy(params.get("delete"))) {
             return "graph {delete} is not available to Claude Code in the analyser: a chart's definition is deleted by "

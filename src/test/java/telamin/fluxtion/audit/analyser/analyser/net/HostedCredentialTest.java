@@ -91,6 +91,21 @@ class HostedCredentialTest {
         assertEquals(403, post(READ, "made-up").statusCode(), "an unknown credential");
     }
 
+    /** ★ Witness (review S1): drop the destructive-verb refusal in {@code hostedRefusal} — the hosted open is dispatched. */
+    @Test
+    @DisplayName("★ S1: every destructive verb is refused for the hosted bridge server-side; an external client is unaffected")
+    void destructiveVerbsAreRefusedForTheHostedBridge() throws Exception {
+        String token = credentials.mint(4);
+        admitted.set(4);
+        for (String verb : telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.destructiveVerbs()) {
+            String body = "{\"action\":\"" + verb + "\",\"params\":{}}";
+            HttpResponse<String> hostedCall = post(body, token);
+            assertEquals(403, hostedCall.statusCode(), verb);
+            assertTrue(hostedCall.body().contains("not available to Claude Code"), hostedCall.body());
+            assertEquals(400, post(body, null).statusCode(), verb + ": an external client reaches the dispatcher as before");
+        }
+    }
+
     @Test
     @DisplayName("a credential is minted per generation, maps to it only, and minting again replaces it")
     void mintingAndRevocation() {

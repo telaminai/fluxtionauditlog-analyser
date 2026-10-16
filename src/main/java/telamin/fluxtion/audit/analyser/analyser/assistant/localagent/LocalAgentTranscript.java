@@ -28,14 +28,16 @@ public final class LocalAgentTranscript {
      * The tab's header details (§5.2): the model, the CLI version, the subscription type or API-key source, the API
      * provider, and the built-in commands the slash table does not classify. Never an e-mail or an organisation.
      */
-    public record Header(String model, String cliVersion, String billing, String apiProvider, List<String> unclassified) {
+    public record Header(String model, String cliVersion, String billing, String apiProvider, List<String> unclassified,
+                         String folder) {
         public Header {
             unclassified = List.copyOf(unclassified == null ? List.of() : unclassified);
         }
 
+        /** {@code folder} is the session's OWN launch directory, as the person should read it (review S5). */
         public Header withInit(String model, String cliVersion) {
             return new Header(model == null ? this.model : model, cliVersion == null ? this.cliVersion : cliVersion,
-                    billing, apiProvider, unclassified);
+                    billing, apiProvider, unclassified, folder);
         }
     }
 

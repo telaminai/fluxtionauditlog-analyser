@@ -110,6 +110,19 @@ class ClaudeCodeProviderTest {
                 "a new verb is hidden from Claude until someone classifies it");
     }
 
+    /** ★ Witness (review S7): {@code validModel} returning true — the flag-shaped names pass. */
+    @Test
+    @DisplayName("★ S7: a model setting is a model name, never something the CLI could read as a flag")
+    void modelNames() {
+        for (String ok : List.of("sonnet", "opus[1m]", "claude-haiku-4-5", "claude-sonnet-5.1", "", "  "))
+            assertTrue(ClaudeCodeProvider.validModel(ok), ok);
+        for (String bad : List.of("-p", "--dangerously-skip-permissions", "sonnet --tools Bash", "a;b", "x$(y)", "a/b"))
+            assertFalse(ClaudeCodeProvider.validModel(bad), bad);
+        assertThrows(IllegalArgumentException.class, () -> new ClaudeCodeProvider().command(
+                new LocalAgentProvider.LaunchSpec(Path.of("/c"), "11111111-2222-4333-8444-555555555555", false, "-x",
+                        Path.of("/w"), List.of("/j"), Path.of("/e"), 1)));
+    }
+
     @Test
     @DisplayName("budgets are formatted as plain dollars; a spent budget is 0")
     void budgetFormat() {
@@ -169,6 +182,13 @@ class ClaudeCodeProviderTest {
                 new Case("summarise @/etc/hosts", SlashClass.SHORTCUT, null),
                 new Case("@CLAUDE.md what does it say", SlashClass.SHORTCUT, null),
                 new Case("what is a@b in this log", SlashClass.TEXT, null),
+                // review S2: Unicode blanks String.strip misses
+                new Case("\u00A0/config model=opus", SlashClass.BLOCK, "config"),
+                new Case("\uFEFF/clear", SlashClass.NEW_CHAT, "clear"),
+                new Case("\u2007!ls", SlashClass.SHORTCUT, null),
+                new Case("\u202F# remember", SlashClass.SHORTCUT, null),
+                new Case("\u200B/settings", SlashClass.BLOCK, "config"),
+                new Case("/mcp\u00A0disable x", SlashClass.BLOCK, "mcp"),
                 new Case("Why did node 3 not log?", SlashClass.TEXT, null))) {
             LocalAgentProvider.Slash s = ClaudeCodeProvider.classifyLine(c.typed(), commands);
             assertEquals(c.expected(), s.slash(), c.typed());

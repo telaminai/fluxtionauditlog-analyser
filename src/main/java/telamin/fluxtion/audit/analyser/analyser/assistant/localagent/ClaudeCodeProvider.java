@@ -52,6 +52,7 @@ public final class ClaudeCodeProvider implements LocalAgentProvider {
                 "--include-partial-messages", "--replay-user-messages"));
         c.add(spec.resume() ? "--resume" : "--session-id");
         c.add(spec.sessionId());
+        if (!validModel(spec.model())) throw new IllegalArgumentException("not a model name");
         c.add("--model");
         c.add(spec.model() == null || spec.model().isBlank() ? DEFAULT_MODEL : spec.model().trim());
         c.add("--tools");
@@ -76,6 +77,18 @@ public final class ClaudeCodeProvider implements LocalAgentProvider {
 
     /** The model when the setting is blank. */
     public static final String DEFAULT_MODEL = "sonnet";
+
+    private static final java.util.regex.Pattern MODEL = java.util.regex.Pattern.compile("[A-Za-z0-9._\\[\\]][A-Za-z0-9._\\[\\]-]*");
+
+    /**
+     * Review S7: a model setting is a model name or alias ({@code sonnet}, {@code opus[1m]}, {@code claude-haiku-4-5}),
+     * never something the CLI could read as a flag. Blank means the default.
+     */
+    public static boolean validModel(String model) {
+        if (model == null || model.isBlank()) return true;
+        String m = model.trim();
+        return m.length() <= 100 && !m.startsWith("-") && MODEL.matcher(m).matches();
+    }
 
     /** Each verb by explicit name, never a wildcard [P0-30]. */
     static String toolList(List<String> verbs) {
@@ -160,16 +173,16 @@ public final class ClaudeCodeProvider implements LocalAgentProvider {
      * CLI reads a line, refuse: {@code !} and {@code #} first, or an {@code @file} mention anywhere.
      */
     public static Slash classifyLine(String draft, List<StreamJson.Command> commands) {
-        String line = draft == null ? "" : draft.strip();
+        String line = stripBlank(draft == null ? "" : draft);
         if (line.isEmpty()) return new Slash(SlashClass.TEXT, null);
         char first = line.charAt(0);
         if (first == '!' || first == '#') return new Slash(SlashClass.SHORTCUT, null);
         if (FILE_MENTION.matcher(line).find()) return new Slash(SlashClass.SHORTCUT, null);
         if (first != '/') return new Slash(SlashClass.TEXT, null);
         int end = 1;
-        while (end < line.length() && !Character.isWhitespace(line.charAt(end))) end++;
+        while (end < line.length() && !blank(line.charAt(end))) end++;
         String typed = line.substring(1, end).toLowerCase(Locale.ROOT);
-        String argument = line.substring(end).strip();
+        String argument = stripBlank(line.substring(end));
         if (typed.isEmpty()) return new Slash(SlashClass.UNCLASSIFIED, null);
         String canonical = canonical(typed, commands);
         Rule rule = TABLE.get(canonical);
@@ -181,6 +194,22 @@ public final class ClaudeCodeProvider implements LocalAgentProvider {
             case BLOCK -> new Slash(SlashClass.BLOCK, canonical);
             case PASS_WITHOUT_ARGUMENT -> new Slash(argument.isEmpty() ? SlashClass.PASS : SlashClass.BLOCK, canonical);
         };
+    }
+
+    /**
+     * Review S2: what counts as blank before a command — whitespace, any Unicode space separator (U+00A0, U+2007,
+     * U+202F, …) and format characters (U+FEFF, U+200B, …), which {@link String#strip} does not remove.
+     */
+    static boolean blank(char c) {
+        return Character.isWhitespace(c) || Character.isSpaceChar(c) || Character.getType(c) == Character.FORMAT;
+    }
+
+    static String stripBlank(String s) {
+        int start = 0;
+        int end = s.length();
+        while (start < end && blank(s.charAt(start))) start++;
+        while (end > start && blank(s.charAt(end - 1))) end--;
+        return s.substring(start, end);
     }
 
     /** The canonical name of {@code typed}: itself, the table's alias, or the CLI's own alias. */

@@ -51,6 +51,8 @@ final class FixtureAgent implements AgentProcess.Launcher {
     UnaryOperator<String> statusVersion;
     /** Applied to every replayed line, for rewrites a test needs (an e-mail in the account, a dropped result). */
     UnaryOperator<String> rewrite = UnaryOperator.identity();
+    /** Given to every process started from now on: its stdin writes wait for this latch. */
+    java.util.concurrent.CountDownLatch blockNewWrites;
 
     FixtureAgent(String fixture) throws IOException {
         load(fixture);
@@ -120,6 +122,7 @@ final class FixtureAgent implements AgentProcess.Launcher {
         environments.add(extraEnvironment);
         workingDirs.add(workingDir);
         Proc p = new Proc(command, stdoutLine);
+        p.blockWrites = blockNewWrites;
         processes.add(p);
         return p;
     }
@@ -149,9 +152,16 @@ final class FixtureAgent implements AgentProcess.Launcher {
         }
 
         /** Emit a line exactly as the CLI would, after the session id and rewrites. */
+        final List<String> emitted = new java.util.concurrent.CopyOnWriteArrayList<>();
+        /** When set, every stdin write waits for it (a pipe the child is not reading). */
+        java.util.concurrent.CountDownLatch blockWrites;
+
         void emit(String line) {
             String l = rewrite.apply(line.replace(FIXTURE_SESSION, sessionId));
-            if (l != null) out.accept(l);
+            if (l != null) {
+                emitted.add(l);
+                out.accept(l);
+            }
         }
 
         List<String> userLines() {
@@ -160,6 +170,14 @@ final class FixtureAgent implements AgentProcess.Launcher {
 
         @Override
         public void writeLine(String line) throws IOException {
+            if (blockWrites != null) {
+                try {
+                    blockWrites.await();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new IOException("interrupted");
+                }
+            }
             if (exit.isDone()) throw new IOException("stdin closed");
             stdin.add(line);
             Map<?, ?> m = (Map<?, ?>) Json.parse(line);

@@ -27,10 +27,6 @@ public final class OsAgentLauncher implements AgentProcess.Launcher {
     /** How much of stderr is kept: the tail, for the "process exited" line. */
     static final int STDERR_TAIL = 8 * 1024;
 
-    /** The secret shapes {@code ClaudeMcpClient} redacts, applied to stderr before it is shown. */
-    private static final Pattern SECRET_VALUE = Pattern.compile(
-            "(?i)\\b(token|api[_-]?key|password|secret|authorization)\\b(\\s*[:=]\\s*|\\s+bearer\\s+)([^\\s,;]+)");
-    private static final Pattern KEY_SHAPE = Pattern.compile("sk-[A-Za-z0-9_-]{8,}");
 
     @Override
     public AgentProcess start(List<String> command, Map<String, String> extraEnvironment, Path workingDir,
@@ -49,21 +45,44 @@ public final class OsAgentLauncher implements AgentProcess.Launcher {
         return p;
     }
 
-    private static void readLines(InputStream in, Consumer<String> sink) {
+    /** Review S6: one stdout line is at most this long; a longer one is dropped whole, never buffered without bound. */
+    static final int MAX_LINE = 16 * 1024 * 1024;
+
+    static void readLines(InputStream in, Consumer<String> sink) {
+        readLines(in, sink, MAX_LINE);
+    }
+
+    static void readLines(InputStream in, Consumer<String> sink, int maxLine) {
         try (BufferedReader r = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
-            for (String line; (line = r.readLine()) != null; ) {
-                if (!line.isBlank()) sink.accept(line);
+            StringBuilder line = new StringBuilder();
+            boolean overlong = false;
+            char[] buf = new char[8192];
+            for (int n; (n = r.read(buf)) >= 0; ) {
+                for (int i = 0; i < n; i++) {
+                    char c = buf[i];
+                    if (c == '\n') {
+                        if (!overlong && !line.toString().isBlank()) sink.accept(line.toString().replace("\r", ""));
+                        else if (overlong) sink.accept("{\"type\":\"analyser_overlong_line\"}");
+                        line.setLength(0);
+                        overlong = false;
+                    } else if (!overlong) {
+                        line.append(c);
+                        if (line.length() > maxLine) {
+                            overlong = true;
+                            line.setLength(0);
+                        }
+                    }
+                }
             }
+            if (!overlong && !line.toString().isBlank()) sink.accept(line.toString());
         } catch (IOException ignored) {
             // the process ended; its exit is reported by onExit
         }
     }
 
-    /** Redact secret-shaped values: a key=value credential, a bearer token, an API key. */
+    /** Redact secret-shaped values with the shared rule (review S4). */
     public static String redact(String text) {
-        if (text == null || text.isEmpty()) return "";
-        String out = SECRET_VALUE.matcher(text).replaceAll("$1$2…");
-        return KEY_SHAPE.matcher(out).replaceAll("sk-…");
+        return telamin.fluxtion.audit.analyser.analyser.core.Redaction.all(text);
     }
 
     static final class OsProcess implements AgentProcess {
