@@ -34,6 +34,15 @@ public final class ActionServer {
     /** Package-visible so a test can assert the discovery reply names the real header. */
     static final String TOKEN_HEADER = "X-Analyser-Token";
 
+    /**
+     * M74 r6 §4.2: the hosted bridge's own credential, minted per generation and written only to the per-instance
+     * endpoint file. A request without it is an external client, whatever token it carries.
+     */
+    public static final String HOSTED_HEADER = "X-Analyser-Hosted";
+
+    /** Null until the local agent is installed: then every hosted credential is unknown and refused. */
+    private volatile HostedCredentials.Gate hostedGate;
+
     private final HttpServer server;
     private final ActionDispatcher dispatcher;
     private final String token;
@@ -78,6 +87,11 @@ public final class ActionServer {
     public void start() {
         server.start();
         republish();
+    }
+
+    /** M74: how a hosted credential maps to its generation, and whether the session admits that generation now. */
+    public void setHostedGate(HostedCredentials.Gate gate) {
+        this.hostedGate = gate;
     }
 
     /**
@@ -155,6 +169,14 @@ public final class ActionServer {
                 return;
             }
             String body = new String(ex.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+            String hosted = ex.getRequestHeaders().getFirst(HOSTED_HEADER);
+            if (hosted != null) {
+                String refused = hostedRefusal(hostedGate, hosted, body);
+                if (refused != null) {
+                    send(ex, 403, err(refused));
+                    return;
+                }
+            }
             ActionResult r = dispatcher.dispatch(body);
             send(ex, r.ok() ? 200 : 400, r.toJson());
         } catch (RuntimeException e) {
@@ -221,6 +243,39 @@ public final class ActionServer {
         } finally {
             ex.close();
         }
+    }
+
+    /**
+     * M74 §4.2 step 5 and §3: what the hosted bridge may not do, decided from its credential's generation and the
+     * session's published admission — never from the shared token. Null when the call may run.
+     */
+    static String hostedRefusal(HostedCredentials.Gate gate, String credential, String body) {
+        long generation = gate == null ? -1 : gate.generationOf(credential);
+        if (generation < 0) {
+            return "the hosted credential is not one this analyser issued, or it was revoked when its Claude Code session "
+                    + "stopped";
+        }
+        String why = gate.refusal(generation);
+        if (why != null) return why;
+        Object root;
+        try {
+            root = Json.parse(body);
+        } catch (RuntimeException e) {
+            return null;                       // malformed: the dispatcher refuses it in its own words
+        }
+        if (root instanceof Map<?, ?> m && "graph".equals(String.valueOf(m.get("action")))
+                && m.get("params") instanceof Map<?, ?> params && truthy(params.get("delete"))) {
+            return "graph {delete} is not available to Claude Code in the analyser: a chart's definition is deleted by "
+                    + "the person (Graph tab), never by the hosted session";
+        }
+        return null;
+    }
+
+    private static boolean truthy(Object v) {
+        if (v == null) return false;
+        if (v instanceof Boolean b) return b;
+        String s = v.toString().trim();
+        return !(s.isEmpty() || "false".equalsIgnoreCase(s) || "0".equals(s) || "0.0".equals(s));
     }
 
     private static String err(String msg) {

@@ -1,0 +1,107 @@
+package telamin.fluxtion.audit.analyser.analyser.assistant.localagent;
+
+import telamin.fluxtion.audit.analyser.analyser.net.HostedCredentials;
+import telamin.fluxtion.audit.analyser.analyser.session.AssistantMode;
+import telamin.fluxtion.audit.analyser.analyser.session.LocalAgentState;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionDriver;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEffects;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermissions;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+/**
+ * The REAL generated session processor, the REAL {@link LocalAgentAdapter} and {@link ClaudeCodeProvider}, and a FAKE
+ * process ({@link FixtureAgent}) replaying recorded fixtures. Everything runs on the test thread, with virtual time.
+ */
+final class Harness {
+
+    static final long BUDGET = 5_000_000;
+
+    final FixtureAgent agent;
+    final ManualClock clock = new ManualClock();
+    final LocalAgentTranscript store = new LocalAgentTranscript();
+    final HostedCredentials credentials = new HostedCredentials();
+    final List<Object> facts = new ArrayList<>();
+    final List<SessionEffects> others = new ArrayList<>();
+    final Path home;
+    final LocalAgentAdapter adapter;
+    final SessionDriver driver;
+    private long requests;
+
+    Harness(FixtureAgent agent, Path home) throws IOException {
+        this.agent = agent;
+        this.home = home;
+        Path bin = Files.createDirectories(home.resolve("bin"));
+        Path claude = bin.resolve("claude");
+        if (!Files.exists(claude)) {
+            Files.writeString(claude, "#!/bin/sh\nexit 0\n");
+            Files.setPosixFilePermissions(claude, PosixFilePermissions.fromString("rwx------"));
+        }
+        Files.createDirectories(home.resolve("proj"));
+        SessionDriver[] d = new SessionDriver[1];
+        LocalAgentAdapter.Environment env = new LocalAgentAdapter.Environment() {
+            @Override public String model() { return "haiku"; }
+            @Override public Path workingDirectory() { return home.resolve("proj"); }
+            @Override public String restUrl() { return "http://127.0.0.1:1"; }
+            @Override public String restToken() { return "shared-rest-token"; }
+            @Override public Optional<List<String>> bridgeLauncher() {
+                return Optional.of(List.of("/usr/bin/java", "-jar", "/opt/analyser/analyser.jar"));
+            }
+            @Override public Map<String, String> environment() { return Map.of("PATH", bin.toString()); }
+            @Override public Path userHome() { return home; }
+            @Override public void post(Object fact) {
+                facts.add(fact);
+                d[0].post(fact);
+            }
+        };
+        this.adapter = new LocalAgentAdapter(new ClaudeCodeProvider(), agent, store, credentials, env, Runnable::run, clock);
+        this.driver = new SessionDriver(effect -> {
+            if (LocalAgentAdapter.handles(effect)) return adapter.perform(effect);
+            others.add(effect);
+            return new SessionEvents.LocalAgentEffectStarted(effect.opId(), 0, "other");
+        });
+        d[0] = driver;
+        driver.post(new SessionEvents.AssistantModeChosen(AssistantMode.LOCAL_AGENT, "test"));
+    }
+
+    static SessionEvents.LocalAgentConsent consent() {
+        return new SessionEvents.LocalAgentConsent(true, true, false, true, "posture-a", BUDGET);
+    }
+
+    void start() {
+        driver.post(new SessionEvents.LocalAgentStartRequested(++requests, consent(), false));
+    }
+
+    /** Type {@code text} and press Send: the draft goes to the store, its classification to the node. */
+    void send(String text) {
+        long draft = store.add(LocalAgentTranscript.Kind.USER, text);
+        var slash = adapter.classify(text);
+        driver.post(new SessionEvents.LocalAgentSendRequested(++requests, draft, slash.slash(), slash.command(), consent()));
+    }
+
+    LocalAgentState state() {
+        return driver.snapshot().localAgent();
+    }
+
+    <T> List<T> facts(Class<T> type) {
+        return facts.stream().filter(type::isInstance).map(type::cast).toList();
+    }
+
+    /** The answer texts the tab would render, in order. */
+    List<String> answers() {
+        return state().entries().stream().filter(e -> LocalAgentState.ANSWER.equals(e.kind()))
+                .map(e -> store.text(e.id())).toList();
+    }
+
+    List<String> userTurns() {
+        return state().entries().stream().filter(e -> LocalAgentState.USER.equals(e.kind()))
+                .map(e -> store.text(e.id())).toList();
+    }
+}

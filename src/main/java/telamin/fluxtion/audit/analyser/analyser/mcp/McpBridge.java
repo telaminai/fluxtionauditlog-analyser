@@ -87,7 +87,18 @@ public final class McpBridge {
     /** An aggregate over a multi-GB log can take a while; a hung call must still eventually fail. */
     private static final Duration CALL_TIMEOUT = Duration.ofSeconds(60);
 
+    /**
+     * M74 §4.2: the argument naming a per-instance endpoint file. With it the bridge is the analyser's HOSTED bridge for
+     * one local-agent spawn: it reports {@code <version>+bind.<nonce>} as its {@code serverInfo.version} and sends the
+     * generation's hosted credential with every call. Without it, it is the ordinary bridge of the well-known file.
+     */
+    public static final String ENDPOINT_FILE_FLAG = "--endpoint-file";
+
+    /** The suffix that carries the binding nonce in {@code serverInfo.version}. */
+    public static final String BIND_MARK = "+bind.";
+
     private final RestEndpointFile endpointFile;
+    private final boolean hosted;
     private final HttpClient http;
 
     public McpBridge() {
@@ -95,8 +106,23 @@ public final class McpBridge {
     }
 
     McpBridge(RestEndpointFile endpointFile) {
+        this(endpointFile, false);
+    }
+
+    McpBridge(RestEndpointFile endpointFile, boolean hosted) {
         this.endpointFile = endpointFile;
+        this.hosted = hosted;
         this.http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
+    }
+
+    /** The bridge {@code args} ask for: hosted on the named per-instance file, else the well-known one. */
+    static McpBridge forArguments(String[] args) {
+        for (int i = 0; args != null && i + 1 < args.length; i++) {
+            if (ENDPOINT_FILE_FLAG.equals(args[i])) {
+                return new McpBridge(new RestEndpointFile(java.nio.file.Path.of(args[i + 1])), true);
+            }
+        }
+        return new McpBridge();
     }
 
     public static void main(String[] args) {
@@ -104,7 +130,7 @@ public final class McpBridge {
         // initialization can fail oddly there. Nothing on this path touches Swing/AWT regardless.
         System.setProperty("java.awt.headless", "true");
         try {
-            new McpBridge().run(System.in, System.out);
+            forArguments(args).run(System.in, System.out);
         } catch (IOException e) {
             System.err.println("[analyser-mcp] transport closed: " + e);
         }
@@ -261,12 +287,14 @@ public final class McpBridge {
         body.put("params", normalizeNumbers(arguments));
 
         try {
-            HttpRequest request = HttpRequest.newBuilder(URI.create(endpoint.url() + "/action"))
+            HttpRequest.Builder builder = HttpRequest.newBuilder(URI.create(endpoint.url() + "/action"))
                     .header("Content-Type", "application/json")
                     .header("X-Analyser-Token", endpoint.token())
                     .timeout(CALL_TIMEOUT)
-                    .POST(HttpRequest.BodyPublishers.ofString(Json.write(body), StandardCharsets.UTF_8))
-                    .build();
+                    .POST(HttpRequest.BodyPublishers.ofString(Json.write(body), StandardCharsets.UTF_8));
+            // M74 §4.2: the hosted bridge identifies itself by its generation's credential, never by the shared token
+            if (hosted && endpoint.hosted() != null) builder.header(HOSTED_HEADER, endpoint.hosted());
+            HttpRequest request = builder.build();
             HttpResponse<String> response = http.send(request, HttpResponse.BodyHandlers.ofString());
             return toolResult(id, response, modern);
         } catch (IOException e) {
@@ -322,11 +350,26 @@ public final class McpBridge {
         return v == null ? null : v.toString();
     }
 
-    private static Map<String, Object> serverInfo() {
+    /** The header the hosted credential travels in; the same name {@code ActionServer} reads. */
+    static final String HOSTED_HEADER = "X-Analyser-Hosted";
+
+    private Map<String, Object> serverInfo() {
         Map<String, Object> info = new LinkedHashMap<>();
         info.put("name", SERVER_NAME);
-        info.put("version", ReleaseNotes.version());   // manifest lookup only — no Swing/AWT on this path
+        info.put("version", version());
         return info;
+    }
+
+    /**
+     * The analyser's version — and, for the hosted bridge, {@code +bind.<nonce>} read from its per-instance endpoint
+     * file, the proof of WHICH spawn of WHICH analyser it is bound to (§4.2 step 3). The CLI strips extra
+     * {@code serverInfo} fields but passes the version byte-exact [P0-32, P0b-2].
+     */
+    String version() {
+        String v = ReleaseNotes.version();   // manifest lookup only — no Swing/AWT on this path
+        if (!hosted) return v;
+        RestEndpointFile.Endpoint e = endpointFile.read();
+        return e == null || e.nonce() == null ? v : v + BIND_MARK + e.nonce();
     }
 
     /** Strip the fields a legacy client has no schema for, so an old handshake sees an old-shaped result. */
