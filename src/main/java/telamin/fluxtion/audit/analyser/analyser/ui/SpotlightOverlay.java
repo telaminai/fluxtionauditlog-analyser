@@ -222,7 +222,8 @@ public final class SpotlightOverlay extends JComponent {
      * What each lit target asks callouts to keep clear of: things NOT lit that a reader compares with it (see
      * {@link SpotlightGeometry#layout(List, List, Dimension, List)}). Keyed like {@link #lit}, so an entry goes out with
      * its target; measured by the frame, in the same coordinates as the lit bounds. Painting applies the UNION to every
-     * callout: keep-clear only breaks ties, so a callout keeping clear of another target's neighbours costs nothing.
+     * callout. Keep-clear only breaks ties, so the union never places a callout over anything lit; it can only change
+     * which of several equally clear places wins.
      */
     private final java.util.Map<String, List<Rectangle>> keepClear = new java.util.LinkedHashMap<>();
     /** The callouts as last laid out, for tests; null slots are targets without a caption. */

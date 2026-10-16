@@ -211,7 +211,7 @@ public final class ProjectPanel extends JPanel {
         head.setOpaque(false);
         head.setAlignmentX(LEFT_ALIGNMENT);
         // C4/D-L8: draw the abbreviated form; the full value is the tooltip and what Copy copies
-        JLabel primary = new JLabel(r.primary() == null ? "?" : ProjectModel.abbreviate(r.primary()));
+        JLabel primary = new JLabel(r.drawn());
         primary.setMinimumSize(new Dimension(40, primary.getPreferredSize().height));   // let the row shrink; JLabel elides
         if (r.tone() == ProjectModel.Tone.MUTED) primary.setForeground(UiTheme.mutedForeground());
         if (r.tone() == ProjectModel.Tone.WARN) primary.setForeground(UiTheme.warnForeground());

@@ -28,11 +28,27 @@ public record ProjectModel(List<Section> sections) {
      * for every row whose target is a tab or a settings page rather than a thing.
      */
     public record Row(String primary, String secondary, String path, String provenance, Tone tone,
-                      Target target, String item) {
+                      Target target, String item, String label) {
 
         /** A row that names no addressable item — the shape every pre-35eeb320 caller uses. */
         public Row(String primary, String secondary, String path, String provenance, Tone tone, Target target) {
-            this(primary, secondary, path, provenance, tone, target, null);
+            this(primary, secondary, path, provenance, tone, target, null, null);
+        }
+
+        /** A row whose drawn text is {@link #abbreviate(String) primary, abbreviated} — every row but a source root. */
+        public Row(String primary, String secondary, String path, String provenance, Tone tone, Target target, String item) {
+            this(primary, secondary, path, provenance, tone, target, item, null);
+        }
+
+        /**
+         * What the panel DRAWS for this row. Normally {@code primary}, abbreviated (C4/D-L8). A row whose drawn text the
+         * model has already decided — a source root, whose label {@link #distinctRootLabels} made unique among its
+         * neighbours — carries it as {@code label}, drawn as it is: abbreviating it again cut a label lengthened past
+         * the panel's width back to the tail its neighbours share (PR #144 review).
+         */
+        public String drawn() {
+            if (label != null) return label;
+            return primary == null ? "?" : abbreviate(primary);
         }
     }
 
@@ -418,8 +434,9 @@ public record ProjectModel(List<Section> sections) {
                     + (notPortable ? " — this profile will not resolve it on a colleague's machine; "
                             + "declare a workspace anchor in Settings \u25b8 Source roots, or move it under "
                             + "the project" : "");
-            rows.add(new Row(rootLabel, detail, str(r.get("path")), tier,
-                    tier != null && tier.startsWith("demo") ? Tone.MUTED : notPortable ? Tone.WARN : Tone.NORMAL, Target.SETTINGS_SOURCE));
+            rows.add(new Row(str(r.get("path")), detail, str(r.get("path")), tier,
+                    tier != null && tier.startsWith("demo") ? Tone.MUTED : notPortable ? Tone.WARN : Tone.NORMAL,
+                    Target.SETTINGS_SOURCE, null, rootLabel));
         }
         if (source.get("workspaceRoot") != null) {
             rows.add(new Row("workspace anchor " + source.get("workspaceRoot"),
@@ -564,10 +581,6 @@ public record ProjectModel(List<Section> sections) {
 
     static String abbreviate(String path, String home, int max) {
         if (path == null) return null;
-        // Already abbreviated: no path starts with the ellipsis. The panel draws abbreviate(primary), and a root label
-        // distinctRootLabels has lengthened until it differs from its neighbours must not be cut back to the tail they
-        // share — "…/market-data-normaliser-alpha-component/src/main/java" was drawn as "…/…/main/java" (PR #144 review).
-        if (path.startsWith("\u2026")) return path;
         String p = path;
         if (home != null && !home.isBlank() && p.startsWith(home)) p = "~" + p.substring(home.length());
         if (p.length() <= max) return p;
@@ -608,6 +621,9 @@ public record ProjectModel(List<Section> sections) {
      * their tail until they differ. Six roots once all read {@code ~/…/main/java}, and nobody could tell them apart
      * (a cold-assistant test, 2026-10-16). Display only: the row's path — what Copy, Reveal and Remove use — is the
      * full path, unchanged.
+     *
+     * <p>The result is FINAL drawn text ({@link Row#drawn()} draws it as it is), so uniqueness is checked on exactly
+     * what appears. A label with nothing left to add is the whole path, and two roots have different paths.
      */
     static List<String> distinctRootLabels(List<String> paths, String projectRoot, String home, int max) {
         List<String> base = new ArrayList<>();

@@ -603,7 +603,7 @@ class ProjectModelTest {
         for (String p : paths) tiers.add(Map.of("path", p, "tier", "project", "form", "project-relative"));
         ctx.put("source", Map.of("rootTiers", tiers));
         List<ProjectModel.Row> rows = ProjectModel.from(ctx).section(ProjectModel.ROOTS).rows();
-        List<String> drawn = rows.stream().map(r -> ProjectModel.abbreviate(r.primary())).toList();
+        List<String> drawn = rows.stream().map(ProjectModel.Row::drawn).toList();
         assertEquals("src/main/java", drawn.get(0));
         assertEquals("reference/src/main/java", drawn.get(1));
         assertEquals("vendor/integrator/src/main/java", drawn.get(2));
@@ -611,6 +611,8 @@ class ProjectModelTest {
         assertTrue(drawn.get(3).contains("alpha-module") && drawn.get(4).contains("beta-module"), drawn.toString());
         for (int i = 0; i < paths.size(); i++)
             assertEquals(paths.get(i), rows.get(i).path(), "display only: the row's path is the full path");
+        for (int i = 0; i < paths.size(); i++)
+            assertEquals(paths.get(i), rows.get(i).primary(), "the row still states the root as the context does");
     }
 
     /**
@@ -644,8 +646,48 @@ class ProjectModelTest {
         for (String p : paths) tiers.add(Map.of("path", p, "tier", "own settings", "form", "absolute"));
         ctx.put("source", Map.of("rootTiers", tiers));
         List<String> drawn = ProjectModel.from(ctx).section(ProjectModel.ROOTS).rows().stream()
-                .limit(2).map(r -> ProjectModel.abbreviate(r.primary())).toList();
+                .limit(2).map(ProjectModel.Row::drawn).toList();
         assertNotEquals(drawn.get(0), drawn.get(1), "two roots read the same as drawn: " + drawn);
         assertTrue(drawn.get(0).contains("alpha-component") && drawn.get(1).contains("beta-component"), drawn.toString());
+    }
+
+    /**
+     * PR #144 review of 9c926132: a project and a worktree of it, both registered. The in-project labels ran out of
+     * segments and fell back to their whole path, which the panel then abbreviated again — rows 1 and 2 were both
+     * drawn {@code services/…/main/java}. The drawn text is now the model's, unabbreviated, and unique.
+     */
+    @Test
+    void aProjectAndItsWorktreeDrawEveryRootDifferently() {
+        Map<String, Object> ctx = full();
+        ctx.put("project", Map.of("active", true, "name", "Demo", "root", "/work/demo",
+                "settings", "/work/demo/.analyser/project.fluxtion-settings"));
+        List<String> paths = List.of("/work/demo/services/market-data-normaliser-alpha/src/main/java",
+                "/work/demo/services/market-data-normaliser-beta/src/main/java",
+                "/work/demo-wt/services/market-data-normaliser-alpha/src/main/java",
+                "/work/demo-wt/services/market-data-normaliser-beta/src/main/java");
+        List<Object> tiers = new java.util.ArrayList<>();
+        for (String p : paths) tiers.add(Map.of("path", p, "tier", "project", "form", "absolute"));
+        ctx.put("source", Map.of("rootTiers", tiers));
+        ProjectModel model = ProjectModel.from(ctx);
+        List<String> drawn = model.section(ProjectModel.ROOTS).rows().stream().limit(4).map(ProjectModel.Row::drawn).toList();
+        assertEquals(4, new java.util.HashSet<>(drawn).size(), "two roots are drawn the same: " + drawn);
+
+        ProjectPanel panel = new ProjectPanel(new ProjectPanel.Navigator() {   // built, never shown: headless-safe
+            public void showTab(String title) { }
+            public void openSettings(String page) { }
+            public void showReport(String name) { }
+            public void showGraph(String name) { }
+        });
+        panel.render(model);
+        List<String> onPanel = new java.util.ArrayList<>();
+        collectLabels(panel, onPanel);
+        for (String d : drawn) assertTrue(onPanel.contains(d), "the panel draws the model's label " + d + ": " + onPanel);
+    }
+
+    private static void collectLabels(java.awt.Container parent, List<String> out) {
+        for (java.awt.Component c : parent.getComponents()) {
+            if (c instanceof javax.swing.JLabel l) out.add(l.getText());
+            if (c instanceof java.awt.Container child) collectLabels(child, out);
+        }
     }
 }
