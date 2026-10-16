@@ -128,6 +128,9 @@ settings-save redraw, pinned (supersedes #78). [Release receipt](../handoff/rele
 ### M43 · The AI menu — follow-ups
 - ☐ **(owner)** the menu's name (shipped as `AI`). ☐ **(owner)** D-AI9 wording addendum. ▸ detail: *M43*.
 
+### M74 · Claude Code as the analyser's assistant ([spec](spec-claude-code-provider.md), r6)
+- [M74] ☑ P0, P0b protocol probes (2026-10-16). ◐ **P1a implemented** on `feature/claude-code-provider` (default posture, off by default; spec ▸ Implementation notes) — **acceptance open:** the authorised live CLI smoke and the real bridge's cold start against 35 s, Windows (§11), the stream-json probes of a leading-whitespace `/command` and the `#`, `!`, `@path` prefixes. ☐ P1b full posture · P2 evidence to Claude and onboarding (`propose`) · P3 in-analyser permission prompts · P4 managed policy · P5 conversation log.
+
 ## Session and dispatch
 
 ### M44 · Session transitions as a Fluxtion processor ([spec](spec-session-processor.md))

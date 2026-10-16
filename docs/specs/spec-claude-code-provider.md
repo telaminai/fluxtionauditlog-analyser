@@ -605,6 +605,94 @@ the analyser · a proposal item refused (the item and why).
   posture's prompts go "the same way"; P3 decides which. P3 also decides how the dialog renders the call's input,
   which is model-authored data and may quote record content.
 
+## Implementation notes (P1a, 2026-10-16)
+
+P1a is implemented on `feature/claude-code-provider` against r6; **acceptance is open** (the tracker's M74 line). No
+live `claude` ran: every adapter test drives the real session processor and the real `LocalAgentAdapter` with a fake
+process replaying the sanitised P0/P0b fixtures (`FixtureAgent`). Where the code made a detail impossible or
+ambiguous, the closest sound option was taken and is recorded here.
+
+- **Where things live.** `session/node/LocalAgentSession` (`localAgentSession`) and `session/node/AssistantModeChoice`
+  (`assistantMode`, upstream of `assistantLoop` and `localAgentSession`; `assistantLoop` takes it as a JavaBean parent
+  so its constructor did not change). Facts and effects are in `SessionEvents` / `SessionEffects`; the published state
+  is `session/LocalAgentState`; the posture as data is `session/LocalAgentPosture`, used by both the command line and
+  the assertion. The adapter side is `assistant/localagent/`: `LocalAgentProvider`, `ClaudeCodeProvider`, `StreamJson`,
+  `LocalAgentAdapter`, `OsAgentLauncher` (the one `ProcessBuilder`), `ProcessTree`, `LocalAgentLock`,
+  `LocalAgentTranscript`, `ClaudeResolver`. `net/HostedCredentials` mints, maps and revokes the hosted credential.
+  Regenerated with `mvn -Pregen process-classes`; the generated diff adds only the two nodes, their dispatch and the
+  `setAssistantMode` wiring.
+- **Verdicts are the node's, from observation facts (rule 9).** §4.1 names `LocalAgentHandshake{verdict}`,
+  `LocalAgentBound{verdict}` and `LocalAgentPostureObserved{verdict}`. Carrying a verdict would put the decision in the
+  adapter, so the adapter reports what the CLI said — `LocalAgentSpawned{failure}`, `LocalAgentInitialized{loggedIn,
+  permissionMode, headerRef}`, `LocalAgentStatusObserved{servers, hostedStatus, hostedNonceDigest, elapsedMs}`,
+  `LocalAgentInitObserved{…}` per turn — and the node decides and publishes `LocalAgentState.verdict`. Each poll is a
+  `PollLocalAgentStatusEffect{delayMs}` the node asks for; the 35 s bound and the Stop deadlines (5 s, 15 s) are facts
+  the adapter's clock reports (`LocalAgentStartDeadline`, `LocalAgentStopDeadline{ACK|END}`) and the node judges.
+- **Digests, not ids, in facts.** The session audit record records every fact, so the session id and the nonce reach
+  the node only as `LocalAgentPosture.digest` (sha-256, 16 hex). The node mints both (`StartLocalAgentEffect` carries
+  them raw: effects are not recorded) and compares digests. Pinned: the record and the snapshot hold neither.
+- **Tickets.** The ticket is the node's counter. The adapter mints a fresh uuid per ticket [P0-27] and maps
+  `command_lifecycle` and `result.user_message_uuid` back to it.
+- **Rendering.** Text comes from `assistant` events; a block's full event replaces its deltas (blocks are indexed by
+  their order within a message, which matches the delta indexes in every fixture). A **local command's output**
+  (`/add-dir isn't available…`, `/model`'s confirmation) arrives only in `result.result`, so it is shown only for a turn
+  that produced no assistant text; the budget fixture's empty `result` beside a real answer still shows the answer.
+  User events are never rendered (the person's turn is the analyser's own send record), and the parser keeps no user
+  text, so the compaction summary cannot become a person's turn.
+- **No `model_changed` event.** In CLI 2.1.282 `model_changed` occurs only as a prompt-cache diagnostics reason, not as
+  a stream event, so the header follows each turn's `system/init.model`. `initialize` reports no CLI version; the
+  header shows it from the first turn's `system/init`.
+- **Send with nothing running** starts (or resumes) the process and holds that one draft until `BOUND`; it is never
+  handed to the CLI's queue, and a second Send while starting is refused as busy.
+- **Folders.** The node asks with `ConfirmLocalAgentFolderEffect`; on *Yes* the frame records the real path in
+  `assistant.claudeCode.trusted.N` (machine tier) and submits a new Start. With no project the working directory is a
+  private, empty `0700` temporary folder made once per analyser run; it counts as confirmed (it holds nothing to trust).
+  `postureRef` digests the posture name, the real working directory, the system note, the pre-allow list and the full
+  switch — the §3 list; the model is not part of it (`/model` changes it within a session).
+- **Slash commands.** `!` and `#` first, an `@` word anywhere, and a bare `/` are refused until the P1a probes (§5.4).
+  A refusal names the command only when the table or `initialize.commands` knows it (CLI vocabulary); otherwise it
+  says "this command".
+- **Mode switches.** Switching the tab to the in-app assistant kills a running Claude Code; switching to Claude Code
+  ends an in-app turn in progress (`CANCELLED`). Both in the nodes.
+- **A `control_request` in P1a** (`can_use_tool`, which `dontAsk` never sends [P0b-3]) is answered with a deny, never an
+  allow or a permission update.
+- **The hosted bridge** lists every verb (`VerbSchemas.hosted()` is P2); the CLI hides the non-pre-allowed ones with
+  `--disallowedTools`, and the posture assertion checks the result. It is launched from the running jar; an IDE or
+  multi-entry classpath with no JBang install gives *the bridge launcher is unavailable*.
+- **Hygiene.** The full REST token is no longer printed to stdout. stderr keeps an 8 KB redacted tail; its last line is
+  shown when the process exits. A JVM shutdown hook and the exit sequence both kill every tree.
+- **Not in P1a, carried:** the project-switch *Move / Keep / Stop* offer (P2, §5.3) — in P1a a running session keeps
+  its folder when the project changes, and the next Start after it stops sees the posture change and offers New chat;
+  `LlmClient` refusing an unknown provider (§5.1); the header's non-default endpoint (no field observed); a REST restart
+  while a session runs leaves its endpoint file with the old token (restart the session); unknown stream kinds are
+  counted (`LocalAgentAdapter.unknownEvents()`) and the unclassified built-ins are kept in the header record, but the
+  tab does not yet render a diagnostics line for either; Windows inline JSON versus a 0700 temp file (§4.2) is decided
+  at Windows acceptance — inline is used everywhere today.
+- **Tests.** `LocalAgentSessionTest` (the node on the real processor), `LocalAgentAdapterReplayTest` (adapter + parser
+  + processor over the fixtures), `ClaudeCodeProviderTest` (the exact line, the verb lists, the slash table pinned to
+  `p0b-slash`), `LocalAgentProcessTest` (a real SIGTERM-ignoring tree, stderr above 64 KB, the lock across two JVMs,
+  the resolver with the GUI `PATH`), `HostedCredentialTest`, `McpBridgeBindingTest`, `LocalAgentConsentTest`,
+  `WarmStartTest`, three new `OneDispatchModelTest` rules, `FaqSecurityContractTest` and a graph-shape assertion. No
+  frame test was added; the existing frame suites that show the Assistant tab run in CI only.
+
+**Witnesses run (2026-10-16; each ★ test failed at its named assertion with the mutation, then passed restored):**
+consent — drop the switch check; not logged in — skip the `loggedIn` refusal; binding — accept any `connected`; fresh
+nonce — keep the previous nonce; admission — admit once bound, before the posture check; one handshake — a start
+effect per Send (node) and an `initialize` per Send (adapter); stale facts — drop the generation check in
+`onTurnEnded`, and in `onTextUpdated`; busy — drop the open-ticket refusal (the draft is held instead, and the BUSY
+assertion fails); Stop — KILL instead of INTERRUPT, ignore the acknowledgement on the ACK deadline, drop the adapter's
+5 s deadline; posture — TOOLS_MISMATCH interrupted first instead of killed, check only the first init, skip the tool-set
+comparison (the recorded `p0b-default-posture` init is then admitted); one mode — drop the in-app refusal under
+LOCAL_AGENT; budget — sum every cost instead of the last per session; posture change — drop the `postureRef`
+comparison; parser — drop the `command_lifecycle` case; rendering — show `result.result` (turn 3 of the budget fixture
+loses its answer) and append a final block to its deltas (text doubles); compaction — stop reporting
+`compact_boundary`; turn end — end only on `result`; account — read the whole `account` map into the header; login —
+`loggedIn()` always true; slash — a pass-all classifier, and a deny-list (unclassified → pass); command line — drop
+`--restricted`; verb lists — disallow only the destructive verbs; lock — skip the adapter's lock, and treat a failed
+`tryLock` as held (two JVMs); hosted — treat the shared token as hosted, drop the delete check, open the gate; consent
+tier — read `assistant.claudeCode` in `ProjectProfile.load`; warm start — a predicate true for any event; one home —
+a `ProcessBuilder` in the adapter, a warm Start from `revealAssistant()`; FAQ — remove a pinned claim.
+
 ## Revision history
 
 - **r1, r2** (2026-10-16): the long-running session design; two independent reviews (`[R …]`, `[R2-n]` tags).
