@@ -130,7 +130,11 @@ public final class AppConfig {
     public boolean claudeCodeWarmStart = false;
     /** The Claude Code model — its own setting, never {@link #llmModel}. */
     public String claudeCodeModel = "sonnet";
-    /** The session budget across this machine's Claude Code conversations, in US dollars (§4.6). */
+    /**
+     * The Claude Code budget, in US dollars (§4.6): the cap on what this analyser's Claude Code conversations may spend
+     * while it runs. The spend is counted in the session's memory, so it starts again from zero when the analyser
+     * restarts; it is not a lifetime or per-machine total.
+     */
     public double claudeCodeBudgetUsd = 5.0;
     /** Folders confirmed for Claude Code on this machine (OD-74.5), by real path. */
     public final List<String> claudeCodeTrustedFolders = new ArrayList<>();

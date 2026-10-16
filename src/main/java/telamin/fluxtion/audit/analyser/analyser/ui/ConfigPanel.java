@@ -859,7 +859,14 @@ public final class ConfigPanel extends JDialog {
         config.claudeCodeAllowed = claudeCodeToggle.isSelected();
         config.claudeCodeFull = false;                           // P1b: the switch exists, disabled
         config.claudeCodeWarmStart = claudeCodeWarmToggle.isSelected();
-        config.claudeCodeModel = claudeCodeModelField.getText().trim();
+        String model = claudeCodeModelField.getText().trim();
+        if (telamin.fluxtion.audit.analyser.analyser.assistant.localagent.ClaudeCodeProvider.validModel(model)) {
+            config.claudeCodeModel = model;
+        } else {   // review S7: never something Claude Code could read as a flag
+            JOptionPane.showMessageDialog(this, "\"" + model + "\" is not a Claude Code model name (letters, digits, "
+                    + ". _ - [ ], not starting with -). The model setting was not changed.", "Claude Code model",
+                    JOptionPane.WARNING_MESSAGE);
+        }
         config.claudeCodeBudgetUsd = ((Number) claudeCodeBudgetSpinner.getValue()).doubleValue();
         config.assistantExportDir = exportDirField.getText().trim();
         // #21: refuse at the door, with the reason — a stored value that can never be honoured is

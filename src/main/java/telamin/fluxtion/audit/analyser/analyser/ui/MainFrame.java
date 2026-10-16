@@ -4783,9 +4783,11 @@ public final class MainFrame extends JFrame {
                 + telamin.fluxtion.audit.analyser.analyser.assistant.localagent.ClaudeCodeProvider.SYSTEM_NOTE + "|"
                 + telamin.fluxtion.audit.analyser.analyser.session.LocalAgentPosture.preAllowedVerbs() + "|full="
                 + config.claudeCodeFull);
+        var folder = telamin.fluxtion.audit.analyser.analyser.assistant.localagent.LocalAgentFolders.check(dir,
+                Path.of(System.getProperty("user.home")));
         return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentConsent(config.claudeCodeAllowed,
-                confirmed, telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.isWorkingCopy(dir), actionServer != null,
-                posture, Math.round(config.claudeCodeBudgetUsd * 1_000_000d));
+                confirmed, dir != null && telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.isWorkingCopy(dir),
+                actionServer != null, posture, Math.round(config.claudeCodeBudgetUsd * 1_000_000d), folder);
     }
 
     /**
@@ -4813,6 +4815,13 @@ public final class MainFrame extends JFrame {
     private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result confirmLocalAgentFolderNow(
             telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ConfirmLocalAgentFolderEffect e) {
         Path dir = localAgentDirectory();
+        // review M4/S10: never ask to trust no folder, or one that exposes credentials (the node refuses those first)
+        if (dir == null || telamin.fluxtion.audit.analyser.analyser.assistant.localagent.LocalAgentFolders.check(dir,
+                Path.of(System.getProperty("user.home"))) != telamin.fluxtion.audit.analyser.analyser.session.SessionEvents
+                .FolderVerdict.OK) {
+            return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentEffectStarted(e.opId(), 0,
+                    "confirmFolder:refused");
+        }
         SwingUtilities.invokeLater(() -> {
             int answer = JOptionPane.showConfirmDialog(this,
                     "Claude Code will read this folder's CLAUDE.md as instructions.\n\nTrust " + dir
@@ -5020,8 +5029,7 @@ public final class MainFrame extends JFrame {
             localAgentDraftCleared = localAgentSendRequest;
             localAgentPanel.draftAccepted();
         }
-        Path dir = projectRoot();
-        localAgentPanel.render(agent, dir == null ? "no project (a private scratch folder)" : dir.toString());
+        localAgentPanel.render(agent);
     }
 
     /**

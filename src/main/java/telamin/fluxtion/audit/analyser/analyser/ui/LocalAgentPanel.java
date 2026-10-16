@@ -175,13 +175,11 @@ public final class LocalAgentPanel extends JPanel {
         return stop;
     }
 
-    /**
-     * Render the session's decision. {@code folder} is the working directory as the person should read it (display
-     * only). Unchanged input changes nothing on screen.
-     */
-    public void render(LocalAgentState s, String folder) {
-        LocalAgentTranscript.Header h = s.headerRef() == 0 ? null : store.header(s.headerRef());
-        String headerText = headerLine(h, folder, s);
+    /** Render the session's decision. Unchanged input changes nothing on screen. */
+    public void render(LocalAgentState s) {
+        // review S5: the header is the session's own — its launch folder, not the project open now — and it is shown
+        // only once the session is bound (READY or later), never from a handshake that may yet be refused
+        String headerText = headerLine(shownHeader(s, store), s);
         if (s.equals(rendered) && Objects.equals(headerText, renderedHeader)) return;
         header.setText(headerText);
         boolean running = s.running();
@@ -211,9 +209,17 @@ public final class LocalAgentPanel extends JPanel {
         renderedHeader = headerText;
     }
 
+    /** The header record the tab may show: only once the session is bound and checked (READY, BUSY or STOPPING). */
+    static LocalAgentTranscript.Header shownHeader(LocalAgentState s, LocalAgentTranscript store) {
+        boolean bound = "READY".equals(s.phase()) || "BUSY".equals(s.phase()) || "STOPPING".equals(s.phase());
+        return !bound || s.headerRef() == 0 ? null : store.header(s.headerRef());
+    }
+
     /** §5.2: model, posture, folder, CLI version, subscription type or API-key source, API provider; never an e-mail. */
-    static String headerLine(LocalAgentTranscript.Header h, String folder, LocalAgentState s) {
+    static String headerLine(LocalAgentTranscript.Header h, LocalAgentState s) {
         StringBuilder sb = new StringBuilder("Claude Code");
+        if (h == null) return sb.append(s.running() ? " · starting" : " · not running").toString();
+        String folder = h.folder();
         if (h != null && h.model() != null) sb.append(" · ").append(h.model());
         sb.append(" · analyser assistant (default posture)");
         if (folder != null && !folder.isBlank()) sb.append(" · ").append(folder);

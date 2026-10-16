@@ -325,6 +325,18 @@ class OneDispatchModelTest {
                 }
             }
         }
+        // review S8: the ProcessBuilder rule covers the whole main tree, not only the localagent package — every process the
+        // analyser can build is in a named home, so a second agent launcher anywhere fails here
+        java.util.Set<String> processHomes = java.util.Set.of("OsAgentLauncher.java", "S3Source.java", "CodexMcpClient.java",
+                "McpConnectionProbe.java", "ClaudeMcpClient.java");
+        Pattern newProcess = Pattern.compile("new\\s+ProcessBuilder\\s*\\(|Runtime\\.getRuntime\\(\\)\\s*\\.\\s*exec\\s*\\(");
+        try (var files = Files.walk(Path.of("src/main/java"))) {
+            for (Path f : files.filter(p -> p.toString().endsWith(".java")).sorted().toList()) {
+                if (count(newProcess, Files.readString(f)) != 0 && !processHomes.contains(f.getFileName().toString())) {
+                    offenders.add(f.getFileName() + " builds a process outside the named homes");
+                }
+            }
+        }
         assertEquals(List.of(), offenders, "one dispatch model for the local agent");
     }
 
