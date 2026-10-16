@@ -69,7 +69,9 @@ class LocalAgentSessionTest {
         int before = a.agentSends.size();
         d.post(new SessionEvents.LocalAgentSendRequested(draft, draft, SessionEvents.SlashClass.TEXT, null, consent()));
         assertEquals(before + 1, a.agentSends.size(), "the turn was written: " + state(d).reason());
-        return a.agentSends.get(a.agentSends.size() - 1);
+        var sent = a.agentSends.get(a.agentSends.size() - 1);
+        d.post(new SessionEvents.LocalAgentTurnStarted(sent.generation(), sent.ticket()));   // the CLI's lifecycle started
+        return sent;
     }
 
     static List<SessionEffects.StopLocalAgentEffect> kills(FakeSessionAdapter a) {
@@ -508,6 +510,81 @@ class LocalAgentSessionTest {
         assertTrue(state(d).reason().contains("budget"), state(d).reason());
     }
 
+    /** ★ Witness (review M1): {@code costBySession.put} instead of a monotone merge — the 0 resets the total. */
+    @Test
+    @DisplayName("★ M1: an interrupted turn's total_cost_usd of 0 does not reset the session total; the remainder stays right")
+    void anInterruptedTurnsZeroCostDoesNotResetTheTotal() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = driver(a);
+        startToReady(d, a);
+        var t1 = send(d, a, 10);
+        d.post(new SessionEvents.LocalAgentCostObserved(1, 250_000));
+        d.post(new SessionEvents.LocalAgentTurnEnded(1, t1.ticket(), SessionEvents.TurnOutcome.COMPLETED));
+        var t2 = send(d, a, 11);
+        d.post(new SessionEvents.LocalAgentCostObserved(1, 0));          // [P0-22]: an interrupted turn once reported 0
+        d.post(new SessionEvents.LocalAgentTurnEnded(1, t2.ticket(), SessionEvents.TurnOutcome.CANCELLED));
+        assertEquals(250_000, state(d).spentMicros(), "the total is monotone per session");
+        d.post(new SessionEvents.LocalAgentNewChatRequested("test"));
+        var next = startToReady(d, a);
+        assertEquals(BUDGET - 250_000, next.maxBudgetMicros(), "the next process is not given the spent money again");
+    }
+
+    /**
+     * ★ Witness (review M2): set {@code resumable = true} in {@code onSpawned} again — the restart after a refusal uses
+     * --resume on an id with no transcript, and a posture change refuses a conversation that never had a turn.
+     */
+    @Test
+    @DisplayName("★ M2: a conversation is resumable only after its first turn started; before that every start is fresh")
+    void resumeOnlyAfterATurnStarted() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = driver(a);
+        var first = startToReady(d, a);
+        assertFalse(state(d).resumable(), "bound, but no turn yet: nothing to resume");
+        d.post(new SessionEvents.LocalAgentStopRequested("Stop"));                         // nothing open: no-op
+        d.post(new SessionEvents.AssistantModeChosen(AssistantMode.IN_APP, "test"));        // kills it
+        d.post(new SessionEvents.AssistantModeChosen(AssistantMode.LOCAL_AGENT, "test"));
+        d.post(new SessionEvents.LocalAgentStartRequested(2, consent(true, true, false, true, "posture-b", BUDGET), false));
+        assertEquals(2, a.agentStarts.size(), "a turn-less conversation is never refused for a posture change");
+        var second = a.agentStarts.get(1);
+        assertFalse(second.resume(), "never --resume a conversation the CLI never started a turn of");
+        assertNotEquals(first.sessionId(), second.sessionId(), "and a fresh id, not --session-id on the old one");
+        assertEquals("posture-b", second.postureRef(), "under the posture in force now");
+
+        // NOT_LOGGED_IN, then logged in: still fresh
+        d.post(new SessionEvents.LocalAgentSpawned(2, SessionEvents.SpawnFailure.NONE, 0));
+        d.post(new SessionEvents.LocalAgentInitialized(2, false, "dontAsk", 3));
+        d.post(new SessionEvents.LocalAgentStartRequested(3, consent(true, true, false, true, "posture-b", BUDGET), false));
+        assertFalse(a.agentStarts.get(2).resume());
+
+        // after a turn has started, a restart resumes the same id
+        bind(d, a.agentStarts.get(2));
+        var t = send(d, a, 10);
+        assertTrue(state(d).resumable());
+        d.post(new SessionEvents.LocalAgentStopRequested("Stop"));
+        d.post(new SessionEvents.LocalAgentStopDeadline(3, t.ticket(), SessionEvents.StopDeadline.ACK));
+        d.post(new SessionEvents.LocalAgentStartRequested(4, consent(true, true, false, true, "posture-b", BUDGET), false));
+        var resumed = a.agentStarts.get(3);
+        assertTrue(resumed.resume());
+        assertEquals(a.agentStarts.get(2).sessionId(), resumed.sessionId());
+    }
+
+    /** ★ Witness (review M4, S10): drop the folder-verdict checks in {@code startRefusal} — Start asks or starts. */
+    @Test
+    @DisplayName("★ M4/S10: a folder exposing credentials, or no folder at all, refuses Start and asks no confirmation")
+    void unusableFoldersAreRefused() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = driver(a);
+        d.post(new SessionEvents.LocalAgentStartRequested(1, new SessionEvents.LocalAgentConsent(true, false, false, true,
+                "p", BUDGET, SessionEvents.FolderVerdict.EXPOSES_SECRETS), false));
+        assertEquals("FOLDER_EXPOSES_SECRETS", state(d).verdict());
+        assertTrue(state(d).reason().contains("home folder"), state(d).reason());
+        d.post(new SessionEvents.LocalAgentStartRequested(2, new SessionEvents.LocalAgentConsent(true, true, false, true,
+                "p", BUDGET, SessionEvents.FolderVerdict.UNAVAILABLE), false));
+        assertEquals("NO_FOLDER", state(d).verdict());
+        assertEquals(0, a.agentConfirms.size(), "never asked to trust such a folder");
+        assertEquals(0, a.agentStarts.size());
+    }
+
     @Test
     @DisplayName("a spent budget refuses Start")
     void aSpentBudgetRefusesStart() {
@@ -532,7 +609,8 @@ class LocalAgentSessionTest {
         FakeSessionAdapter a = new FakeSessionAdapter();
         SessionDriver d = driver(a);
         var first = startToReady(d, a);
-        d.post(new SessionEvents.LocalAgentStopRequested("Stop"));      // nothing open: no-op
+        var t = send(d, a, 10);                                         // the conversation has a turn: it is resumable
+        d.post(new SessionEvents.LocalAgentTurnEnded(1, t.ticket(), SessionEvents.TurnOutcome.COMPLETED));
         d.post(new SessionEvents.AssistantModeChosen(AssistantMode.IN_APP, "test"));
         d.post(new SessionEvents.AssistantModeChosen(AssistantMode.LOCAL_AGENT, "test"));
         d.post(new SessionEvents.LocalAgentStartRequested(2, consent(true, true, false, true, "posture-b", BUDGET), false));

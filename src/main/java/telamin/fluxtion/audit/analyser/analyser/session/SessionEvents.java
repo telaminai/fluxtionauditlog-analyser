@@ -740,10 +740,29 @@ public final class SessionEvents {
      * @param restOn            the REST transport is listening (the hosted bridge reaches the analyser through it)
      * @param postureRef        a digest of the posture (switches, mode, directory, pre-allow list, note) — an id
      * @param budgetMicros      the session budget setting, in millionths of a US dollar
+     * @param folder            whether the working directory may be used at all (review M4, S10)
      */
     public record LocalAgentConsent(boolean allowed, boolean folderConfirmed, boolean bundleWorkingCopy, boolean restOn,
-                                    String postureRef, long budgetMicros) {
+                                    String postureRef, long budgetMicros, FolderVerdict folder) {
+        /** A folder that has been checked and may be used. */
+        public LocalAgentConsent(boolean allowed, boolean folderConfirmed, boolean bundleWorkingCopy, boolean restOn,
+                                 String postureRef, long budgetMicros) {
+            this(allowed, folderConfirmed, bundleWorkingCopy, restOn, postureRef, budgetMicros, FolderVerdict.OK);
+        }
+
+        public LocalAgentConsent {
+            folder = folder == null ? FolderVerdict.UNAVAILABLE : folder;
+        }
     }
+
+    /**
+     * Whether a working directory may be given to the local agent at all, observed by the frame (review M4, S10).
+     * {@code EXPOSES_SECRETS}: it is, or contains, the home directory, {@code ~/.fluxtion-analyser} (the endpoint files
+     * with the REST token and the hosted credential) or {@code ~/.claude}, or lies inside one of the last two — Read and
+     * Grep confined to it would still reach credentials. {@code UNAVAILABLE}: there is no folder (the private scratch
+     * folder could not be made).
+     */
+    public enum FolderVerdict { OK, EXPOSES_SECRETS, UNAVAILABLE }
 
     /**
      * Start pressed ({@code warm} false), or the person's DIRECT selection of the Assistant tab with warm start on
@@ -789,7 +808,11 @@ public final class SessionEvents {
     }
 
     /** Why a spawn did not produce a process. */
-    public enum SpawnFailure { NONE, NOT_FOUND, LAUNCHER_UNAVAILABLE, LOCKED, ENDPOINT_FAILED, LAUNCH_FAILED }
+    public enum SpawnFailure { NONE, NOT_FOUND, LAUNCHER_UNAVAILABLE, LOCKED, ENDPOINT_FAILED, LAUNCH_FAILED,
+        /** This analyser's own previous process for the conversation had not finished stopping (review M3). */
+        PREVIOUS_STILL_STOPPING,
+        /** The Claude Code model setting is not a model name (review S7). */
+        INVALID_MODEL }
 
     /** The process for {@code generation} started ({@code failure} NONE), or did not; {@code detailRef} names the words. */
     public record LocalAgentSpawned(long generation, SpawnFailure failure, long detailRef) {

@@ -213,6 +213,10 @@ public class LocalAgentSession implements EventLogSource {
                 case LAUNCHER_UNAVAILABLE -> "the analyser bridge launcher is unavailable: run the analyser from its jar "
                         + "(java -jar) or install it with JBang — an IDE or multi-entry classpath cannot launch the bridge";
                 case LOCKED -> "This conversation is open in another analyser window.";
+                case PREVIOUS_STILL_STOPPING -> "the previous Claude Code process for this conversation is still "
+                        + "stopping; try again in a moment";
+                case INVALID_MODEL -> "the Claude Code model setting is not a model name (letters, digits, . _ - [ ]): "
+                        + "fix it in Settings ▸ Assistant";
                 case ENDPOINT_FAILED -> "the analyser could not write the bridge's endpoint file, so nothing was started";
                 default -> "Claude Code could not be started";
             };
@@ -221,7 +225,6 @@ public class LocalAgentSession implements EventLogSource {
             auditLog.info("localAgentSpawnFailed", verdict).info("generation", generation);
             return changed();
         }
-        resumable = true;
         phase = "HANDSHAKE";
         auditLog.info("localAgentSpawned", generation);
         return changed();
@@ -352,7 +355,11 @@ public class LocalAgentSession implements EventLogSource {
     public boolean onTurnStarted(SessionEvents.LocalAgentTurnStarted e) {
         if (stale(e.generation(), "LocalAgentTurnStarted") || staleTicket(e.ticket(), "LocalAgentTurnStarted")) return false;
         auditLog.info("localAgentTurnStarted", e.ticket());
-        return false;
+        // review M2: a conversation is resumable only once the CLI has started one of its turns — before that it has no
+        // transcript, and --resume on it would fail
+        if (resumable) return false;
+        resumable = true;
+        return changed();
     }
 
     @OnEventHandler
@@ -389,8 +396,9 @@ public class LocalAgentSession implements EventLogSource {
     @OnEventHandler
     public boolean onCostObserved(SessionEvents.LocalAgentCostObserved e) {
         if (stale(e.generation(), "LocalAgentCostObserved")) return false;
-        // total_cost_usd is already the SESSION's running total, and it survives resume: keep the last, never sum (§4.6)
-        costBySession.put(sessionRef, Math.max(0, e.totalCostMicros()));
+        // total_cost_usd is already the SESSION's running total, and it survives resume: never sum (§4.6). It is also
+        // MONOTONE per session — an interrupted turn can report 0 [P0-22], which must not reset the total (review M1)
+        costBySession.merge(sessionRef, Math.max(0, e.totalCostMicros()), Math::max);
         return changed();
     }
 
@@ -453,6 +461,15 @@ public class LocalAgentSession implements EventLogSource {
             return "SWITCHED_OFF: starting Claude Code is switched off — Settings ▸ Assistant ▸ Allow the analyser to start "
                     + "Claude Code";
         }
+        if (c.folder() == SessionEvents.FolderVerdict.UNAVAILABLE) {
+            return "NO_FOLDER: the analyser could not make its private scratch folder for Claude Code, so nothing was "
+                    + "started; open a project, or check the temporary folder is writable";
+        }
+        if (c.folder() == SessionEvents.FolderVerdict.EXPOSES_SECRETS) {
+            return "FOLDER_EXPOSES_SECRETS: Claude Code is not started in your home folder, a folder containing it, or the "
+                    + "analyser's or Claude Code's own settings folder — reading there would reach credentials. Open a "
+                    + "project in its own folder instead";
+        }
         if (c.bundleWorkingCopy()) {
             return "BUNDLE: Start is refused in an evidence-bundle working copy — the analyser does not run anything from a "
                     + "received bundle";
@@ -502,9 +519,11 @@ public class LocalAgentSession implements EventLogSource {
 
     private void spawn(SessionEvents.LocalAgentConsent c) {
         generation++;
-        if (sessionId == null) {
+        if (sessionId == null) sessionRef++;
+        if (sessionId == null || !resumable) {
+            // review M2: a conversation that never had a turn has nothing to resume, so it starts afresh — a new id
+            // (never --session-id on an id the CLI may already have recorded) and the posture in force now
             sessionId = java.util.UUID.randomUUID().toString();
-            sessionRef++;
             postureRef = c.postureRef();
             resumable = false;
         }
