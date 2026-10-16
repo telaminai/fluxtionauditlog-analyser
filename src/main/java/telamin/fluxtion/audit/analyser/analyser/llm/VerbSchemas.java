@@ -360,6 +360,15 @@ public final class VerbSchemas {
                                 + "from the answer you were given. This is how to ACCEPT the "
                                 + "projectOffer that context reports. Any other param in the same call "
                                 + "is ignored and named"),
+                        pAny("create", "M73: CREATE a project in the absolute directory 'project' names, with discovery's "
+                                + "offer — never a hand-written profile. create: true is the PREVIEW: it writes nothing, "
+                                + "selects nothing, and returns createPreview — source roots, skills, graphs (informational), "
+                                + "referenceGuide, profileExists, createProjectsSwitch and an offerDigest. create: {sourceRoots?, "
+                                + "skills?, referenceGuide?, offerDigest?} APPLIES: adopts only what you name from the offer, "
+                                + "writes .analyser/project.fluxtion-settings once and makes it active (a session boundary — "
+                                + "the open log and graph close). It never overwrites an existing profile; a stale "
+                                + "offerDigest is refused. An assistant's create needs the person's Settings ▸ Assistant ▸ "
+                                + "Allow the assistant to create projects. Goes with 'project' alone"),
                         p("analysis", string(), "M38.4: recall a SAVED ANALYSIS by name — the ones context.analyses "
                                 + "lists, each with its rationale and the parameters it declares. Its steps are "
                                 + "analyser verbs and run through this same surface in order, stopping at the "

@@ -109,6 +109,15 @@ public final class AppConfig {
     public String assistantExportDir = "";
 
     /**
+     * M73 D-73.7 — <i>Allow the assistant to create projects</i>: whether a request of ASSISTANT origin (MCP/REST or
+     * the in-app assistant) may create a project with {@code open {project, create}}. Off by default. MACHINE tier
+     * only, like {@link #assistantExports}: read and written by {@code ConfigStore}, never exported or imported by
+     * {@code SettingsShare}, never a project-profile key, never carried by a bundle — so a cloned repository or an
+     * imported share cannot turn it on. A person using <i>Project ▸ New project…</i> is never gated by it.
+     */
+    public boolean assistantCreateProjects = false;
+
+    /**
      * Where THIS PROJECT would like the exchange directory to be — project-relative, no {@code ..}
      * (#21). Project-tier, and it says WHERE, never WHETHER: {@link #assistantExports} stays machine
      * tier, so opening a project can widen no permission. See {@link ExchangeDir}.

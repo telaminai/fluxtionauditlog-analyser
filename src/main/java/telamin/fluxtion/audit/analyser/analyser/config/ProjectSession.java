@@ -226,24 +226,56 @@ public final class ProjectSession {
     }
 
     /**
-     * Start a new, empty project at {@code file} and make it active.
-     *
-     * <p>Empty means empty: a new project does not inherit the settings you happened to have open, or
-     * "new project" would be a slow way to copy one. {@link #saveAs} is how you fork.
+     * What {@link #createNew} did: the profile is active and these were adopted into it.
      */
-    public ProjectProfile.LoadResult create(Path file) throws IOException {
+    public record Created(ProjectProfile.LoadResult result, ProjectAdoption.Report adopted) {
+    }
+
+    /**
+     * M73 D-73.6 — start a new project at {@code file}, adopt {@code plan} into it, write it ONCE, and make it active.
+     *
+     * <p>Snapshot · clear · adopt · {@code CREATE_NEW} write ({@link ProjectProfile#createNew}). Empty means empty: a
+     * new project does not inherit the settings you happened to have open, or "new project" would be a slow way to
+     * copy one ({@link #saveAs} is how you fork). The selection is folded in here rather than adopted afterwards, so
+     * there is one write and no debounced adoption save.
+     *
+     * <p><b>On failure nothing has changed (G2):</b> the project-scoped settings are restored from the snapshot,
+     * {@link #activeFile()} is unchanged, and the failure is thrown so the session hears an {@code EffectFailed}.
+     * Before this, a failed write left the config cleared, the caller adopted into it anyway, and the next debounced
+     * save wrote that over the PREVIOUS project's profile — or over the person's own settings.
+     */
+    public Created createNew(Path file, ProjectAdoption.Plan plan) throws IOException {
         flush();
+        ProjectProfile.Snapshot defaultsBefore = noProjectDefaults;
         rememberDefaultsOnce();
-        ProjectProfile.clearProjectScoped(config);
-        config.mavenRepos.add(AppConfig.defaultMavenRepo());   // a usable starting point, not a blank
-        ProjectProfile.save(file, config, share);
+        ProjectProfile.Snapshot before = ProjectProfile.snapshot(config);
+        ProjectAdoption.Report adopted;
+        try {
+            ProjectProfile.clearProjectScoped(config);
+            config.mavenRepos.add(AppConfig.defaultMavenRepo());   // a usable starting point, not a blank
+            adopted = ProjectAdoption.apply(plan, config);
+            ProjectProfile.createNew(file, config, share);
+        } catch (IOException | RuntimeException e) {
+            ProjectProfile.restore(before, config);
+            noProjectDefaults = defaultsBefore;
+            throw e;
+        }
         writes++;
         activeFile = file;
         activeNonce = ProjectProfile.nonce(file).orElse(null);
         config.activeProjectPath = file.toString();
         ProjectProfile.addRecent(config.recentProjects, file.toString());
         dirty = false;
-        return new ProjectProfile.LoadResult(true, "new project: " + file, activeNonce);
+        return new Created(new ProjectProfile.LoadResult(true, "new project: " + file, activeNonce), adopted);
+    }
+
+    /**
+     * An empty new project at {@code file} — {@link #createNew} with nothing adopted. Never overwrites, and the
+     * project directory must already exist.
+     */
+    public ProjectProfile.LoadResult create(Path file) throws IOException {
+        Path dir = ProjectProfile.baseDirFor(file);
+        return createNew(file, ProjectAdoption.Plan.empty(dir)).result();
     }
 
     /** Fork the current settings to a new path, which becomes active. There is no plain "save". */

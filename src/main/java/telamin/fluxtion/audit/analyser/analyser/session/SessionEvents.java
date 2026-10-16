@@ -43,13 +43,116 @@ public final class SessionEvents {
      * @param source      which surface asked, for the record only — it must not drive a decision
      */
     public record OpenProjectRequested(long opId, String profilePath, TransitionKind kind, String source,
-                                       AssistantActionOrigin assistantOrigin, ProjectAudience audience) {
+                                       AssistantActionOrigin assistantOrigin, ProjectAudience audience,
+                                       CreateRequest create) {
+        /** Every kind but {@link TransitionKind#CREATE}: there is nothing observed to carry. */
+        public OpenProjectRequested(long opId, String profilePath, TransitionKind kind, String source,
+                                    AssistantActionOrigin assistantOrigin, ProjectAudience audience) {
+            this(opId, profilePath, kind, source, assistantOrigin, audience, null);
+        }
         public OpenProjectRequested(long opId, String profilePath, TransitionKind kind, String source,
                                     AssistantActionOrigin assistantOrigin) {
             this(opId, profilePath, kind, source, assistantOrigin, new ProjectAudience(OperationOrigin.MACHINE, false));
         }
         public OpenProjectRequested(long opId, String profilePath, TransitionKind kind, String source) {
             this(opId, profilePath, kind, source, null);
+        }
+    }
+
+    // ---- M73: creating a project (spec-create-project.md §4). Plain strings only: the offer is OBSERVED by the
+    // adapter and carried here, so the node can compute `selection - offer` without a ui type crossing into session/.
+
+    /**
+     * One source root the create offer observed.
+     *
+     * @param relative project-relative, forward slashes; the directory itself is {@code "."} — the identity a
+     *                 selection names
+     * @param absolute where it is, as the profile would store it
+     * @param outside  it resolves (through a link) outside the project directory, so it can never be adopted
+     */
+    public record OfferedRoot(String relative, String absolute, boolean outside) { }
+
+    /** One skill pointer the create offer observed; its identity is {@code path} (project-relative). */
+    public record OfferedSkill(String path, String name, String description, boolean declared) { }
+
+    /**
+     * What discovery offered in the directory, in offer order.
+     *
+     * @param referenceGuide a {@code ReferenceSet.Outcome} name: CAN_CREATE, EXISTS or NOTHING_AGREED
+     * @param projectKind    "spring", or null for a plain project
+     * @param digest         sha256 over the offered strings in offer order — what a preview's {@code offerDigest} must equal
+     */
+    public record CreateOffer(java.util.List<OfferedRoot> sourceRoots, java.util.List<OfferedSkill> skills,
+                              String referenceGuide, String projectKind, String digest) {
+        public CreateOffer {
+            sourceRoots = sourceRoots == null ? java.util.List.of() : java.util.List.copyOf(sourceRoots);
+            skills = skills == null ? java.util.List.of() : java.util.List.copyOf(skills);
+        }
+
+        public static CreateOffer empty() {
+            return new CreateOffer(java.util.List.of(), java.util.List.of(), "NOTHING_AGREED", null, null);
+        }
+    }
+
+    /**
+     * The filesystem as the adapter found it, just before the request — facts, never a decision.
+     *
+     * @param dir               the project directory (its real path when it exists)
+     * @param absolute          the path given was absolute
+     * @param directory         it is an existing directory
+     * @param profileExists     {@code <dir>/.analyser/project.fluxtion-settings} exists, links NOT followed (a dangling
+     *                          link counts as existing: writing through it is what a create must never do)
+     * @param analyserProblem   null when {@code <dir>/.analyser} is absent or a real directory under {@code <dir>};
+     *                          otherwise what is wrong with it (a link, or a file)
+     * @param bundleWorkingCopy the directory is inside an evidence bundle's working copy
+     * @param exchangeDir       the assistant exchange directory containing it, or null
+     * @param enclosingProject  the nearest enclosing project's profile ({@code findNear(dir.getParent())}), or null
+     * @param namedProfiles     {@code project.<x>.fluxtion-settings} files already in {@code .analyser/}: not the
+     *                          canonical file, so not "existing", but named in the echo
+     * @param offer             what discovery offered, observed now
+     * @param createAllowed     the RAW {@code assistant.createProjects} switch; the node combines it with the origin
+     */
+    public record CreateFacts(String dir, boolean absolute, boolean directory, boolean profileExists,
+                              String analyserProblem, boolean bundleWorkingCopy, String exchangeDir,
+                              String enclosingProject, java.util.List<String> namedProfiles, CreateOffer offer,
+                              boolean createAllowed) {
+        public CreateFacts {
+            namedProfiles = namedProfiles == null ? java.util.List.of() : java.util.List.copyOf(namedProfiles);
+            offer = offer == null ? CreateOffer.empty() : offer;
+        }
+    }
+
+    /** What the caller chose, by identity: relative root strings and skill paths. Nothing is chosen by default. */
+    public record CreateSelection(java.util.List<String> sourceRoots, java.util.List<String> skills,
+                                  boolean referenceGuide, String offerDigest) {
+        public CreateSelection {
+            sourceRoots = sourceRoots == null ? java.util.List.of() : java.util.List.copyOf(sourceRoots);
+            skills = skills == null ? java.util.List.of() : java.util.List.copyOf(skills);
+        }
+
+        public static CreateSelection empty() {
+            return new CreateSelection(java.util.List.of(), java.util.List.of(), false, null);
+        }
+    }
+
+    /** A create's payload on {@link OpenProjectRequested}: what was observed, and what was chosen from it. */
+    public record CreateRequest(CreateFacts facts, CreateSelection selection) {
+        public CreateRequest {
+            selection = selection == null ? CreateSelection.empty() : selection;
+        }
+    }
+
+    /**
+     * What {@code sessionBoundary} approved for adoption, in OFFER order (G3): the performer adopts exactly this and
+     * never re-discovers (D-73.4).
+     *
+     * @param sourceRoots absolute root strings
+     */
+    public record CreateApproved(String root, java.util.List<String> sourceRoots, java.util.List<OfferedSkill> skills,
+                                 boolean referenceGuide, String projectKind) {
+        public CreateApproved {
+            sourceRoots = sourceRoots == null ? java.util.List.of() : java.util.List.copyOf(sourceRoots);
+            skills = skills == null ? java.util.List.of() : java.util.List.copyOf(skills);
         }
     }
 

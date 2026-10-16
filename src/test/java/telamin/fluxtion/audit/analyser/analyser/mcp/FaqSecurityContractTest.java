@@ -34,6 +34,18 @@ class FaqSecurityContractTest {
                 "the FAQ security answer must state the plugin trust boundary in plain words");
         assertTrue(answer.contains("cannot add verbs"),
                 "…and that plugins can never widen the verb surface");
+        // M73 (spec-create-project.md §5): creating a project — the switch, every write, and the preview's read reach
+        assertTrue(answer.contains("Allow the assistant to create projects"),
+                "the FAQ security answer must name the switch that gates an assistant's create");
+        assertTrue(answer.contains("never in a project profile, a shared settings file or an evidence bundle"),
+                "…and that it is machine-only");
+        for (String write : new String[]{"<dir>/.analyser/project.fluxtion-settings", "<dir>/CLAUDE.md",
+                "pending edits", "recent-projects", "activated at the next start", "session-recovery journal"}) {
+            assertTrue(answer.contains(write), "the FAQ security answer must state every write a create causes: " + write);
+        }
+        assertTrue(answer.contains("skills to depth 7") && answer.contains("GraphML to depth 12")
+                        && answer.contains("32 MB"),
+                "…and the preview's read reach");
         for (String verb : McpTools.destructiveVerbs()) {
             assertTrue(answer.contains("`" + verb + "`"),
                     "destructive verb '" + verb + "' is not named in the FAQ's security answer — "

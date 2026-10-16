@@ -144,6 +144,16 @@ public interface AppControl {
     }
 
     /**
+     * M73 — {@code open {project: dir, create}}: {@code create} is {@code Boolean.TRUE} for the preview (writes
+     * nothing, returns the discovery offer with its digest) or a {@code Map} of what to adopt for the apply (creates
+     * the project and makes it active, never over an existing one). Called OFF the event thread: discovery walks the
+     * directory. Default: not supported, so an implementor written before M73 refuses rather than failing to compile.
+     */
+    default ActionResult createProject(String dir, Object create) {
+        return ActionResult.error("'create' is not enabled here; nothing was created");
+    }
+
+    /**
      * M48.7 — read or write the shared canvas's handoff section ({@link CanvasHandoff}): the session's
      * posture and the mode selector's record. The state is the frame's; this call attributes the write to
      * the action socket. Default: not offered.

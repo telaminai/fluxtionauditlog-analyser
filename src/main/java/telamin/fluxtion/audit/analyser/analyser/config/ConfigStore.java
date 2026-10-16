@@ -108,6 +108,8 @@ public final class ConfigStore {
         c.assistantActionsInProcess = parseBool(p.getProperty("assistant.inProcess"), c.assistantActionsInProcess);
         c.assistantActionsRest = parseBool(p.getProperty("assistant.rest"), c.assistantActionsRest);
         c.assistantExports = parseBool(p.getProperty("assistant.exports"), c.assistantExports);
+        // M73 D-73.7: machine tier only — this file is the one place it is read
+        c.assistantCreateProjects = parseBool(p.getProperty("assistant.createProjects"), c.assistantCreateProjects);
         c.assistantExportDir = p.getProperty("assistant.exportDir", c.assistantExportDir);
         c.eventTypesDivider = parseInt(p.getProperty("eventTypesDivider"), c.eventTypesDivider);
         readLastFocuses(p, c.lastFocusByProject);
@@ -203,6 +205,7 @@ public final class ConfigStore {
         put(p, "assistant.inProcess", Boolean.toString(c.assistantActionsInProcess));
         put(p, "assistant.rest", Boolean.toString(c.assistantActionsRest));
         put(p, "assistant.exports", Boolean.toString(c.assistantExports));
+        put(p, "assistant.createProjects", Boolean.toString(c.assistantCreateProjects));
         put(p, "assistant.exportDir", c.assistantExportDir);
         put(p, "eventTypesDivider", Integer.toString(c.eventTypesDivider));
         writeLastFocuses(p, c.lastFocusByProject);

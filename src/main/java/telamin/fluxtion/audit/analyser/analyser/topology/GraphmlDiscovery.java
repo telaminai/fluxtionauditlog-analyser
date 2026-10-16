@@ -188,6 +188,25 @@ public final class GraphmlDiscovery {
      * {@code -1} means the caller did not say, and the pairing then says "scope not recorded".
      */
     public static Result scan(List<String> roots, Set<String> loggedIds, int recordsScanned, int recordsTotal) {
+        return scan(roots, loggedIds, recordsScanned, recordsTotal, null);
+    }
+
+    /**
+     * M73 review M1: as above, CONFINED to {@code within} — a root, and a file, whose real path is not under
+     * {@code within}'s real path is never read. Discovery for a new project promises to read only under the chosen
+     * directory; a root reached through a link (a linked module, a linked {@code src/main/resources}) or a linked
+     * {@code .graphml} file would otherwise be walked and parsed wherever it points. Null means unconfined.
+     */
+    public static Result scan(List<String> roots, Set<String> loggedIds, int recordsScanned, int recordsTotal,
+                              Path within) {
+        Path fence = null;
+        if (within != null) {
+            try {
+                fence = within.toRealPath();
+            } catch (IOException | RuntimeException e) {
+                return new Result(List.of(), false, List.of("could not resolve '" + within + "': nothing scanned"));
+            }
+        }
         List<Candidate> out = new ArrayList<>();
         List<String> notes = new ArrayList<>();
         Set<Path> seen = new LinkedHashSet<>();
@@ -205,9 +224,15 @@ public final class GraphmlDiscovery {
                 notes.add("skipped '" + root + "': not a directory");
                 continue;
             }
+            if (fence != null && !inside(dir, fence)) {
+                notes.add("skipped '" + root + "': it resolves outside " + fence);
+                continue;
+            }
+            final Path confined = fence;
             try (Stream<Path> walk = Files.walk(dir, MAX_DEPTH)) {
                 for (Path p : walk.filter(Files::isRegularFile)
-                        .filter(f -> f.getFileName().toString().endsWith(".graphml")).toList()) {
+                        .filter(f -> f.getFileName().toString().endsWith(".graphml"))
+                        .filter(f -> confined == null || inside(f, confined)).toList()) {
                     if (!seen.add(p.toAbsolutePath().normalize())) continue;
                     if (out.size() >= MAX_CANDIDATES) {
                         truncated = true;
@@ -225,6 +250,14 @@ public final class GraphmlDiscovery {
         }
         out.sort(Candidate.RANK);
         return new Result(out, truncated, notes);
+    }
+
+    private static boolean inside(Path p, Path fence) {
+        try {
+            return p.toRealPath().startsWith(fence);
+        } catch (IOException | RuntimeException e) {
+            return false;
+        }
     }
 
     private static Candidate judge(Path file, Set<String> loggedIds, List<String> notes,

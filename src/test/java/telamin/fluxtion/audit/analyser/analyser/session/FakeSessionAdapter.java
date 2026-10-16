@@ -53,6 +53,12 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
 
     /** Set to have the very next load throw rather than return a failure result. */
     boolean loadThrows;
+    /** M73: set to have the very next create throw, as a failed CREATE_NEW write does (G2). */
+    boolean createThrows;
+    /** M73: what sessionBoundary asked to be created, with the approved selection. */
+    final List<SessionEffects.CreateProfileEffect> creates = new ArrayList<>();
+    /** M73: the "Open it instead?" offers sessionBoundary asked for. */
+    final List<SessionEffects.OfferOpenExistingEffect> openExistingOffers = new ArrayList<>();
     /**
      * Set to model a restore whose RENDER fails. project.close() has already happened, so the project IS
      * gone and SettingsRestored is still reported; only the window did not finish updating.
@@ -152,6 +158,11 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
                         ok ? null : "no such profile: " + e.profilePath(), null, e.expectedDigest());
             }
             case SessionEffects.CreateProfileEffect e -> {
+                creates.add(e);
+                if (createThrows) {
+                    createThrows = false;
+                    throw new java.io.IOException("DEMO the profile could not be written");
+                }
                 loadable.add(e.profilePath());
                 yield new SessionEvents.ProfileLoaded(e.opId(), e.profilePath(), true,
                         nameOf(e.profilePath()), 0, null);
@@ -192,6 +203,10 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
                 }
                 java.util.Set<String> ids = openable.getOrDefault(e.location(), java.util.Set.of());
                 yield new SessionEvents.LogOpened(e.opId(), e.location(), e.provenance(), ids, ids.size(), ids.size(), null);
+            }
+            case SessionEffects.OfferOpenExistingEffect e -> {
+                openExistingOffers.add(e);
+                yield new SessionEvents.StatusShown(e.opId(), "offerOpenExisting");
             }
             case SessionEffects.OfferProjectReopenEffect e -> {
                 reopenOffers.add(e);

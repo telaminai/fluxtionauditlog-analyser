@@ -140,6 +140,9 @@ settings-save redraw, pinned (supersedes #78). [Release receipt](../handoff/rele
 - ☐ _Proposed, not yet an item:_ make "this generation's store is installed" a session fact, removing
   `scanWhenInstalled`.
 
+### M73 · Create a project over the action socket ([spec](spec-create-project.md))
+- [M73] ☑ `open {project, create}` preview/apply, decided by `sessionBoundary`; `assistant.createProjects` consent; G1–G3 fixed — accepted 2026-10-16 (built-jar socket run; owner's visual check of the Settings checkbox and the "Open it instead?" dialog); ships with PR #142. Follow-up: #143 (*Save project as* overwrite and nonce inheritance; `openSampleProject` routing).
+
 ### Tool agreement ([spec](spec-tool-agreement.md)) — TA-1…TA-8 shipped in 1.17.0
 - [TA-5b] ☐ Implement and vendor the chosen route (owner named in TA-5a); open until shipped in a starter.
 - [TA-5c] ☐ One spot-check session, after TA-5a and TA-5b ship.

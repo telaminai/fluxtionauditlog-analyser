@@ -149,7 +149,8 @@ public final class ActionExecutor implements RenderExecutor {
     /** The policy, stated once and tested per verb: a view-changing verb that SUCCEEDED puts the spotlight out. */
     static boolean putsOutSpotlight(String action, Map<String, Object> params, ActionResult result) {
         boolean changesTheView = SpotlightTarget.VIEW_CHANGING_VERBS.contains(action)
-                && !("open".equals(action) && params != null && isCanvasWrite(params));
+                && !("open".equals(action) && params != null
+                     && (isCanvasWrite(params) || Boolean.TRUE.equals(params.get("create"))));   // M73: a preview is a read
         return changesTheView && result != null && result.ok();
     }
 
@@ -178,6 +179,8 @@ public final class ActionExecutor implements RenderExecutor {
                         : app.importFromBundle(path, chosen);
             }
             case "open" -> {
+                // M73 (spec §3.1): create is checked FIRST, before follow, the canvas, analysis, restore and bundle
+                if (params != null && params.containsKey("create")) return doCreateProject(params);
                 if (params.containsKey("follow")) {
                     if (params.size() != 1 || !(params.get("follow") instanceof Boolean))
                         return ActionResult.error("use open {follow: true|false} alone, after the log has finished opening");
@@ -1141,6 +1144,86 @@ public final class ActionExecutor implements RenderExecutor {
                 doGoto(s, reveal);
             }
         }
+    }
+
+    /** M73: what may never travel with {@code create} — each is its own act, so the call is refused WHOLE. */
+    private static final List<String> NOT_WITH_CREATE =
+            List.of("follow", "posture", "record", "close", "analysis", "restore", "bundle");
+
+    /** M73: the keys {@code create: {…}} takes. Anything else is refused, so later fields are additive (D-73.10). */
+    private static final List<String> CREATE_KEYS = List.of("sourceRoots", "skills", "referenceGuide", "offerDigest");
+
+    /**
+     * {@code open {project, create}} (M73). Only the parameter SHAPE is judged here; every session decision — the
+     * consent switch, the path refusals, {@code selection − offer}, the digest — is {@code sessionBoundary}'s.
+     * Not under {@code onEdt}: the preview and the apply's observation walk the directory, so the app reads on this
+     * thread and hops to the event thread only to submit.
+     */
+    private ActionResult doCreateProject(Map<String, Object> params) {
+        if (app == null) return ActionResult.error("'open' is not enabled here");
+        Object project = params.get("project");
+        if (!(project instanceof String dir) || dir.isBlank()) {
+            return ActionResult.error("open 'create' needs 'project': the absolute directory to create the project in; "
+                    + "preview with open {project: \"/abs/dir\", create: true}");
+        }
+        List<String> combined = new ArrayList<>();
+        for (String k : NOT_WITH_CREATE) if (params.get(k) != null) combined.add(k);
+        if (!combined.isEmpty()) {
+            return ActionResult.error("open 'create' goes with 'project' alone — this call also carried " + combined
+                    + ", each its own act. Nothing was created: send them as separate calls");
+        }
+        try {
+            if (!java.nio.file.Path.of(dir.trim()).isAbsolute()) {
+                return ActionResult.error("'project' must be an ABSOLUTE directory for a create (a relative one would "
+                        + "resolve against the analyser's working directory): " + dir + "; nothing was created");
+            }
+        } catch (java.nio.file.InvalidPathException e) {
+            return ActionResult.error("'project' is not a path: " + e.getMessage() + "; nothing was created");
+        }
+        Object create = params.get("create");
+        if (create instanceof Map<?, ?> chosen) {
+            if (chosen.containsKey("profile")) {
+                return ActionResult.error("'create.profile' is reserved: named profiles are not created over the socket "
+                        + "yet; nothing was created");
+            }
+            List<String> unknown = new ArrayList<>();
+            for (Object k : chosen.keySet()) if (!CREATE_KEYS.contains(String.valueOf(k))) unknown.add(String.valueOf(k));
+            if (!unknown.isEmpty()) {
+                return ActionResult.error("unknown 'create' key(s) " + unknown + ": it takes " + CREATE_KEYS
+                        + "; nothing was created");
+            }
+            String shape = createShapeError(chosen);
+            if (shape != null) return ActionResult.error(shape + "; nothing was created");
+        } else if (!Boolean.TRUE.equals(create)) {
+            return ActionResult.error("'create' is true (preview: writes nothing) or an object {sourceRoots?, skills?, "
+                    + "referenceGuide?, offerDigest?} (apply); nothing was created");
+        }
+        ActionResult r = app.createProject(dir.trim(), create);
+        var decision = onEdt(() -> openDecision(params));
+        if (r.ok() && decision != null && decision.anythingIgnored() && r.payload() != null) {
+            Map<String, Object> echo = new LinkedHashMap<>(r.payload());
+            echo.put("ignored", decision.ignored());
+            echo.put("ignoredWhy", decision.why());
+            return ActionResult.ok(r.action(), r.payloadKey(), echo);
+        }
+        return r;
+    }
+
+    private static String createShapeError(Map<?, ?> chosen) {
+        Object roots = chosen.get("sourceRoots");
+        if (roots != null && !(roots instanceof List<?> l && l.stream().allMatch(String.class::isInstance))) {
+            return "'create.sourceRoots' is a list of the preview's project-relative roots";
+        }
+        Object skills = chosen.get("skills");
+        if (skills != null && !(skills instanceof List<?> l && l.stream().allMatch(o -> o instanceof String
+                || (o instanceof Map<?, ?> m && m.get("path") instanceof String)))) {
+            return "'create.skills' is a list of the preview's skill paths";
+        }
+        Object guide = chosen.get("referenceGuide");
+        if (guide != null && !(guide instanceof Boolean)) return "'create.referenceGuide' is true or false";
+        Object digest = chosen.get("offerDigest");
+        if (digest != null && !(digest instanceof String)) return "'create.offerDigest' is the preview's offerDigest";
+        return null;
     }
 
     private ActionResult doOpenAnalysis(Map<String, Object> params) {

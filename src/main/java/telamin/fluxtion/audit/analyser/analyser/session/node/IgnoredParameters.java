@@ -44,6 +44,8 @@ public class IgnoredParameters implements EventLogSource {
      * analysis it belongs to is the thing being run.
      */
     private static final Map<String, List<String>> SUBORDINATES = Map.of(
+            // M73: `create` is part of the project act (preview or apply), never something it ignored
+            "project", List.of("create"),
             "analysis", List.of("bind"),
             "log", List.of("format", "provenance"),
             "logs", List.of("provenance"));

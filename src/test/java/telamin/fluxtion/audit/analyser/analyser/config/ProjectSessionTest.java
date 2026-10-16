@@ -107,6 +107,7 @@ class ProjectSessionTest {
 
         AppConfig c = configWith("/a/src");
         ProjectSession s = session(c);
+        Files.createDirectories(a.getParent().getParent());
         s.create(a);
         c.sourceRoots.add("/a/late-edit");
         s.requestSave();                       // pending, not yet written
@@ -125,6 +126,7 @@ class ProjectSessionTest {
         Path a = ProjectProfile.pathFor(dir);
         AppConfig c = configWith("/a/src");
         ProjectSession s = session(c);
+        Files.createDirectories(a.getParent().getParent());
         s.create(a);
         c.sourceRoots.add("/a/late");
         s.requestSave();
@@ -291,7 +293,7 @@ class ProjectSessionTest {
                 null, null, null, null, List.of(), List.of()));
         ProjectSession s = session(c);
 
-        s.create(ProjectProfile.pathFor(dir.resolve("fresh")));
+        s.create(ProjectProfile.pathFor(Files.createDirectories(dir.resolve("fresh"))));
 
         assertTrue(c.sourceRoots.isEmpty(), "a new project does not inherit the last one's roots");
         assertTrue(c.savedGraphs.isEmpty());
@@ -304,6 +306,7 @@ class ProjectSessionTest {
         Path b = ProjectProfile.pathFor(dir.resolve("b"));
         AppConfig c = configWith("/shared/src");
         ProjectSession s = session(c);
+        Files.createDirectories(a.getParent().getParent());
         s.create(a);
         c.sourceRoots.add("/shared/extra");
         s.saveAs(b);
@@ -350,6 +353,7 @@ class ProjectSessionTest {
         ProjectSession s = session(c);
         assertNull(s.activeNonce(), "no project, no nonce");
         Path a = ProjectProfile.pathFor(dir.resolve("a"));
+        Files.createDirectories(a.getParent().getParent());
         s.create(a);
         String nonceA = s.activeNonce();
         assertNotNull(nonceA, "a created project has a nonce");

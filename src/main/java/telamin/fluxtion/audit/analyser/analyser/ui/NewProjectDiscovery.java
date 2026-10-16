@@ -1,15 +1,12 @@
 package telamin.fluxtion.audit.analyser.analyser.ui;
 
-import telamin.fluxtion.audit.analyser.analyser.config.AppConfig;
 import telamin.fluxtion.audit.analyser.analyser.config.ReferenceSet;
-import telamin.fluxtion.audit.analyser.analyser.config.Runbooks;
 import telamin.fluxtion.audit.analyser.analyser.config.SkillDiscovery;
 import telamin.fluxtion.audit.analyser.analyser.topology.GraphmlDiscovery;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -20,7 +17,8 @@ import java.util.Set;
  *
  * <p>Discovery and adoption are separate types because that is the safety property. {@link #discover}
  * can walk and describe; it cannot mutate. A {@link Selection} begins empty and only the confirmation
- * dialog can populate it. {@link #apply} accepts that explicit selection and nothing else.
+ * dialog can populate it. Adoption is {@code config.ProjectAdoption}'s (M73 D-73.3), reached only through the
+ * session's create effect, so the menu and the socket share one adoption.
  */
 public final class NewProjectDiscovery {
 
@@ -73,16 +71,17 @@ public final class NewProjectDiscovery {
             Path resources = normalized.resolve("src/main/resources");
             if (Files.isDirectory(resources)) graphRoots.add(resources.toString());
         }
-        GraphmlDiscovery.Result graphs = GraphmlDiscovery.scan(graphRoots, Set.of());
+        // M73 review M1: confined to the chosen directory — a linked module or a linked src/main/resources is
+        // never walked, and a linked .graphml is never parsed, wherever it points
+        GraphmlDiscovery.Result graphs = GraphmlDiscovery.scan(graphRoots, Set.of(), -1, -1, normalized);
         return new Offer(normalized, sourceRoots, skills, graphs,
                 ReferenceSet.offer(normalized), detectKind(normalized));
     }
 
-    /** Apply only boxes a person checked. The graph remains a UI open, returned in the selection. */
     /**
      * D-AX1d — write the reference guide, and ONLY on an explicit selection.
      *
-     * <p>Separate from {@link #apply} on purpose: {@code apply} mutates configuration, this touches the
+     * <p>Separate from adoption on purpose: adoption mutates configuration, this touches the
      * user's repository, and the analyser has never written documentation there before. Keeping the two
      * apart means a caller cannot reach the filesystem by accident, and the failure is returned rather
      * than thrown into a dialog.
@@ -108,6 +107,24 @@ public final class NewProjectDiscovery {
     }
 
     /**
+     * M73 — the same write, for a create the session approved: called by the effect performer ONLY after the
+     * profile write succeeded, so a guide failure is reported and never rolls the create back [R r2-2].
+     *
+     * @return WROTE, EXISTS, or "FAILED: reason" — the echo's {@code referenceGuide} value
+     */
+    static String writeReferenceGuide(Path root, String projectKind) {
+        try {
+            return switch (ReferenceSet.create(root, projectKind)) {
+                case WROTE -> "WROTE";
+                case ALREADY_EXISTS -> "EXISTS";
+                case NOTHING_AGREED -> "FAILED: nothing to write: no reference resources are agreed yet";
+            };
+        } catch (java.io.IOException | RuntimeException e) {
+            return "FAILED: could not write " + ReferenceSet.FILE_NAME + ": " + e.getMessage();
+        }
+    }
+
+    /**
      * Which reference links apply. Conservative by design: when unsure, return null and ship only the
      * always-on set. An omitted link is a smaller harm than an irrelevant one in a file that costs every
      * turn, and the guide explicitly invites project-specific content below it.
@@ -121,25 +138,5 @@ public final class NewProjectDiscovery {
             if (java.nio.file.Files.isRegularFile(root.resolve(candidate))) return "spring";
         }
         return null;
-    }
-
-    public static void apply(Offer offer, Selection selection, AppConfig config) {
-        if (offer == null || selection == null || config == null) return;
-        Set<Path> offeredRoots = new LinkedHashSet<>(offer.sourceRoots());
-        for (Path selected : selection.sourceRoots()) {
-            Path normalized = selected.toAbsolutePath().normalize();
-            if (offeredRoots.contains(normalized) && !config.sourceRoots.contains(normalized.toString())) {
-                config.sourceRoots.add(normalized.toString());
-            }
-        }
-        for (SkillDiscovery.Candidate candidate : offer.skills().candidates()) {
-            if (!selection.skillPaths().contains(candidate.path())) continue;
-            if (candidate.declared()) continue;
-            if (Runbooks.refuse(candidate.name(), candidate.path()).isPresent()
-                    || Runbooks.refuseDescription(candidate.name(), candidate.description()).isPresent()) continue;
-            // Duplicate declared names are not silently replaced; the first explicit offered choice wins.
-            config.runbooks.putIfAbsent(candidate.name(),
-                    new Runbooks.Pointer(candidate.path(), candidate.description()));
-        }
     }
 }
