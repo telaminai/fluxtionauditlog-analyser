@@ -360,6 +360,47 @@ class SpotlightFrameTest {
         }
     }
 
+    /**
+     * PR #144 review, N1: the same property end to end, through the spotlight verb on the real frame. With measuring
+     * no longer scrolling, two Project-panel sections that cannot share the screen are REFUSED by the set resolver,
+     * naming the pair, rather than lit over whatever scrolled into their place.
+     */
+    @Test
+    void aProjectSectionSetThatCannotShareTheScreenIsRefusedByName(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        try (AsyncOpenInterleavingFrameTest.Frame f = new AsyncOpenInterleavingFrameTest.Frame(tmp)) {
+            onEdt(() -> {
+                f.frame.setSize(1300, 420);                          // far shorter than the panel rendered below
+                f.frame.setVisible(true);
+                f.frame.validate();
+            });
+            AtomicReference<ActionResult> answer = new AtomicReference<>();
+            onEdt(() -> {
+                ProjectPanel panel = (ProjectPanel) field(f.frame, "projectPanel");
+                java.util.Map<String, Object> ctx = new java.util.LinkedHashMap<>();
+                ctx.put("project", Map.of("active", true, "name", "Demo", "root", "/work/demo",
+                        "settings", "/work/demo/.analyser/project.fluxtion-settings"));
+                ctx.put("log", Map.of("path", "/work/demo/logs/demo-quote-audit.yaml", "records", 10, "openedBy", "you"));
+                java.util.List<Object> processors = new java.util.ArrayList<>();
+                for (int i = 0; i < 30; i++) processors.add(Map.of("class", "com.acme.demo.generated.Demo" + i + "Processor",
+                        "selected", i == 0, "source", "found", "from", "project"));
+                ctx.put("processors", processors);
+                java.util.List<Object> tiers = new java.util.ArrayList<>();
+                for (int i = 0; i < 8; i++) tiers.add(Map.of("path", "/work/demo/module" + i + "/src/main/java",
+                        "tier", "project", "form", "project-relative"));
+                ctx.put("source", Map.of("rootTiers", tiers));
+                panel.render(ProjectModel.from(ctx));
+                f.frame.validate();
+                answer.set(f.ex.render("spotlight", new java.util.LinkedHashMap<>(Map.of("targets", java.util.List.of(
+                        Map.of("target", "project:log", "caption", "the log"),
+                        Map.of("target", "project:roots", "caption", "the roots"))))));
+            });
+            String reply = answer.get().toMap().toString();
+            assertFalse(answer.get().ok(), "lit a pair that cannot share the screen: " + reply);
+            assertTrue(reply.contains("'project:log' and 'project:roots' cannot be on screen at the same time"), reply);
+        }
+    }
+
     private static boolean p_isEmpty(java.awt.Rectangle r) {
         return r == null || r.isEmpty();
     }

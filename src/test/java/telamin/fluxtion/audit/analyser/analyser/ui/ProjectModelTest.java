@@ -593,7 +593,7 @@ class ProjectModelTest {
     @Test
     void sourceRootsAreNamedSoThatNoTwoReadTheSame() {
         Map<String, Object> ctx = full();
-        String root = "/Users/demo/IdeaProjects/research/inferred-orchestration";
+        String root = "/work/demo/research";
         ctx.put("project", Map.of("active", true, "name", "Research", "root", root,
                 "settings", root + "/.analyser/project.fluxtion-settings"));
         List<String> paths = List.of(root + "/src/main/java", root + "/reference/src/main/java",
@@ -611,5 +611,41 @@ class ProjectModelTest {
         assertTrue(drawn.get(3).contains("alpha-module") && drawn.get(4).contains("beta-module"), drawn.toString());
         for (int i = 0; i < paths.size(); i++)
             assertEquals(paths.get(i), rows.get(i).path(), "display only: the row's path is the full path");
+    }
+
+    /**
+     * PR #144 review, B1: profiles require unique declaration NAMES, not unique classes, so two declarations may name
+     * one class. Folding by class kept neither name: one row, "project declaration · declared", and both names gone.
+     */
+    @Test
+    void declarationsSharingAClassKeepEveryNameOnTheOneRow() {
+        Map<String, Object> ctx = full();
+        String fqcn = "com.acme.demo.generated.DemoQuoteProcessor";
+        ctx.put("processorDeclarations", List.of(
+                Map.of("name", "Quote pricing EU", "kind", "declared", "fqcn", fqcn, "status", "s"),
+                Map.of("name", "Quote pricing US", "kind", "declared", "fqcn", fqcn, "status", "s")));
+        List<ProjectModel.Row> procs = ProjectModel.from(ctx).section(ProjectModel.PROCESSORS).rows();
+        assertEquals(List.of("DemoQuoteProcessor", "HedgeProcessor"), procs.stream().map(ProjectModel.Row::primary).toList(),
+                "one row for the one class");
+        assertEquals("project · project declaration \"Quote pricing EU\", \"Quote pricing US\" · declared",
+                procs.get(0).provenance(), "every declared name is still on the panel");
+    }
+
+    /**
+     * PR #144 review, B2: the panel draws {@code abbreviate(primary)}, so a label made distinct only past the panel's
+     * width was cut back to the tail its neighbours share — both of these were drawn {@code …/…/main/java}.
+     */
+    @Test
+    void rootLabelsStayDistinctAsDrawn_whenTheDifferenceIsALongSegment() {
+        Map<String, Object> ctx = full();
+        List<String> paths = List.of("/opt/shared/libraries/market-data-normaliser-alpha-component/src/main/java",
+                "/opt/shared/libraries/market-data-normaliser-beta-component/src/main/java");
+        List<Object> tiers = new java.util.ArrayList<>();
+        for (String p : paths) tiers.add(Map.of("path", p, "tier", "own settings", "form", "absolute"));
+        ctx.put("source", Map.of("rootTiers", tiers));
+        List<String> drawn = ProjectModel.from(ctx).section(ProjectModel.ROOTS).rows().stream()
+                .limit(2).map(r -> ProjectModel.abbreviate(r.primary())).toList();
+        assertNotEquals(drawn.get(0), drawn.get(1), "two roots read the same as drawn: " + drawn);
+        assertTrue(drawn.get(0).contains("alpha-component") && drawn.get(1).contains("beta-component"), drawn.toString());
     }
 }

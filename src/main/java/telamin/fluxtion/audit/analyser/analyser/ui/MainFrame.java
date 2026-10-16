@@ -4089,7 +4089,7 @@ public final class MainFrame extends JFrame {
             if (r.target().name().startsWith("source:design") && session().processor().designSession.document() != null)
                 designSpotlightRevisions.put(r.target().name(), session().processor().designSession.document().revision());
         }
-        refreshKeepClear();
+        // keep-clear is measured in relightSpotlight alone: litEcho below relights synchronously, before any paint
         SwingUtilities.invokeLater(this::relightSpotlight);     // once the layout the reveal queued has run
         Map<String, Object> echo = new java.util.LinkedHashMap<>();
         echo.put("lit", litEcho(true));

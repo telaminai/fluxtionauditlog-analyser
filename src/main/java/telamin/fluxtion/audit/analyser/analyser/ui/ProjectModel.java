@@ -331,15 +331,17 @@ public record ProjectModel(List<Section> sections) {
         // drawn twice — a "declared" row and a "source found" row with the same name — so a project declaring its 11
         // processors showed 22 rows and pushed the source roots off screen (a cold-assistant test, 2026-10-16). The
         // declaration folds into that processor's row as provenance. A declaration with no class (a runtime processor),
-        // or naming a class nothing reports, keeps its own row exactly as before.
-        java.util.Map<String, Map<String, Object>> declaredByClass = new java.util.LinkedHashMap<>();
+        // or naming a class nothing reports, keeps its own row exactly as before. Profiles require unique NAMES, not
+        // unique classes, so several declarations may name one class: every one is kept, and each name the row would
+        // not otherwise show is stated in the provenance (review of PR #144: folding by class lost the names).
+        java.util.Map<String, List<Map<String, Object>>> declaredByClass = new java.util.LinkedHashMap<>();
         java.util.Set<String> reportedClasses = new java.util.HashSet<>();
         for (Object o : list(ctx.get("processors"))) reportedClasses.add(str(map(o).get("class")));
         for (Object o : list(ctx.get("processorDeclarations"))) {
             Map<String, Object> declaration = map(o);
             String fqcn = str(declaration.get("fqcn"));
             if (fqcn != null && reportedClasses.contains(fqcn)) {
-                declaredByClass.put(fqcn, declaration);
+                declaredByClass.computeIfAbsent(fqcn, k -> new ArrayList<>()).add(declaration);
                 continue;
             }
             rows.add(new Row(str(declaration.get("name")), str(declaration.get("status")), null,
@@ -368,9 +370,9 @@ public record ProjectModel(List<Section> sections) {
             // the FQN rides as the row's ITEM. Without it every row's Open reached the same place --
             // "the Source tab" -- which showed whichever processor was selected, so a list of six had
             // one button repeated six times (found in use, 2026-09-30).
-            Map<String, Object> declared = declaredByClass.get(fqn);
+            List<Map<String, Object>> declared = declaredByClass.get(fqn);
             String from = declared == null ? str(p.get("from"))
-                    : (p.get("from") == null ? "" : str(p.get("from")) + " · ") + "project declaration · " + str(declared.get("kind"));
+                    : (p.get("from") == null ? "" : str(p.get("from")) + " · ") + declarationProvenance(declared, simple);
             rows.add(new Row(simple, detail, null, from,
                     // owner, 2026-08-27: no source → no "Go" (there is nowhere to go); "Add source" instead, which
                     // opens the Source roots page — the remedy is a root, not a processor setting
@@ -562,6 +564,10 @@ public record ProjectModel(List<Section> sections) {
 
     static String abbreviate(String path, String home, int max) {
         if (path == null) return null;
+        // Already abbreviated: no path starts with the ellipsis. The panel draws abbreviate(primary), and a root label
+        // distinctRootLabels has lengthened until it differs from its neighbours must not be cut back to the tail they
+        // share — "…/market-data-normaliser-alpha-component/src/main/java" was drawn as "…/…/main/java" (PR #144 review).
+        if (path.startsWith("\u2026")) return path;
         String p = path;
         if (home != null && !home.isBlank() && p.startsWith(home)) p = "~" + p.substring(home.length());
         if (p.length() <= max) return p;
@@ -572,6 +578,24 @@ public record ProjectModel(List<Section> sections) {
         String head = parts[0].isEmpty() ? sep : parts[0] + sep;
         if (head.length() + tail.length() + 1 > max) return "…" + p.substring(p.length() - (max - 1));
         return head + "…" + sep + tail;
+    }
+
+    /**
+     * The provenance a processor row carries for the declarations naming its class: {@code project declaration ·
+     * declared}, with each declared name the row does not already show, quoted —
+     * {@code project declaration "Quote pricing EU", "Quote pricing US" · declared}. A name equal to the class's
+     * simple name is the row's own primary text, so it is not repeated.
+     */
+    static String declarationProvenance(List<Map<String, Object>> declarations, String simpleName) {
+        List<String> names = new ArrayList<>();
+        java.util.LinkedHashSet<String> kinds = new java.util.LinkedHashSet<>();
+        for (Map<String, Object> d : declarations) {
+            String name = str(d.get("name"));
+            if (name != null && !name.equals(simpleName)) names.add("\"" + name + "\"");
+            kinds.add(str(d.get("kind")));
+        }
+        return "project declaration" + (names.isEmpty() ? "" : " " + String.join(", ", names))
+                + " · " + String.join(", ", kinds);
     }
 
     /** The longest root label the panel draws unabbreviated ({@link #abbreviate(String)}'s default width). */
