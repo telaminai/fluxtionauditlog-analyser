@@ -340,7 +340,7 @@ public final class LocalAgentAdapter {
 
     /** As {@link #write(Run, String)}; {@code onFailure} runs on the writer when the line could not be written. */
     private void write(Run run, String line, Runnable onFailure) {
-        run.writer.execute(() -> {
+        Runnable task = () -> {
             AgentProcess p;
             synchronized (run) {
                 p = run.process;
@@ -355,7 +355,13 @@ public final class LocalAgentAdapter {
                 }
             }
             if (!ok && onFailure != null) onFailure.run();
-        });
+        };
+        try {
+            run.writer.execute(task);
+        } catch (java.util.concurrent.RejectedExecutionException ex) {
+            // review R1: the run was cleaned up (its writer shut down) — a late write is a write to a gone process
+            if (onFailure != null) onFailure.run();
+        }
     }
 
     // ---- reading the stream ---------------------------------------------------------------------------------------

@@ -694,6 +694,12 @@ ambiguous, the closest sound option was taken and is recorded here.
   fixture's e-mail injection removed (the "really emitted" assertion fails), and a `ProcessBuilder` added in a class
   outside the named homes. The folder function's separate home rule is subsumed by the settings-folder check (a
   folder containing home contains `~/.claude`); it is kept for when neither path resolves, and witnessed as a whole.
+- **Delta review (R1–R4):** a write after a run's cleanup no longer throws `RejectedExecutionException` into the
+  reader or the caller (it is a failed write: a user line ends its turn `PROCESS_EXIT`); the hosted-header redaction
+  stays on its line and needs a separator, and `sk-` needs a word start, so the M42 registration output is unchanged;
+  the folder check also refuses `~/.ssh`, `~/.aws`, `~/.config`, `~/.gnupg` and anything inside them. Each with a
+  regression test and a witness (catch narrowed to `IllegalStateException`; the old `\s*[:=]?\s*` pattern; no `\b`;
+  the four folders dropped).
 - **Follow-ups (review S6, not done):** incremental rendering in the Claude Code panel (it re-renders the whole
   conversation per snapshot) and trimming the node's entries for a very long conversation (the store is bounded; the
   node's entry list is not).

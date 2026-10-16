@@ -41,6 +41,20 @@ class LocalAgentFoldersTest {
         assertEquals(FolderVerdict.UNAVAILABLE, LocalAgentFolders.check(null, home), "S10: no folder is refused");
     }
 
+    /** ★ Witness (review R4): drop .ssh/.aws/.config/.gnupg from the checked folders — those assertions fail. */
+    @Test
+    @DisplayName("★ R4: ~/.ssh, ~/.aws, ~/.config and ~/.gnupg, and anything inside them, expose credentials")
+    void credentialFolders() throws Exception {
+        Path home = Files.createDirectories(tmp.resolve("home/person"));
+        for (String d : List.of(".ssh", ".aws", ".config", ".gnupg")) {
+            Path dir = Files.createDirectories(home.resolve(d).resolve("inner"));
+            assertEquals(FolderVerdict.EXPOSES_SECRETS, LocalAgentFolders.check(dir.getParent(), home), d);
+            assertEquals(FolderVerdict.EXPOSES_SECRETS, LocalAgentFolders.check(dir, home), d + "/inner");
+        }
+        assertEquals(FolderVerdict.OK, LocalAgentFolders.check(Files.createDirectories(home.resolve("configs")), home),
+                "a similarly named project folder is fine");
+    }
+
     /** ★ Witness: drop the 64-hex rule from {@code Redaction.all} — the bare credential survives. */
     @Test
     @DisplayName("★ S4: one redaction — key=value shapes, the hosted header, bare 64-hex credentials and known exact values")
@@ -52,6 +66,18 @@ class LocalAgentFoldersTest {
             assertFalse(out.contains(secret), secret + " in " + out);
         }
         assertEquals("token=…", Redaction.keyValues("token=abc123"), "the registration clients' shape, unchanged");
+    }
+
+    /** ★ Witness (review R2): restore {@code \\s*[:=]?\\s*} in HOSTED_HEADER, or drop {@code \\b} from KEY_SHAPE. */
+    @Test
+    @DisplayName("★ R2: the header rule stays on its own line and needs a separator; sk- needs a word start")
+    void redactionDoesNotOverreach() {
+        assertEquals("rejected: bad X-Analyser-Token\nnext line intact",
+                Redaction.all("rejected: bad X-Analyser-Token\nnext line intact"), "never the next line's first word");
+        assertEquals("X-Analyser-Hosted: …", Redaction.all("X-Analyser-Hosted: abcdef"));
+        assertEquals("X-Analyser-Token=…", Redaction.all("X-Analyser-Token=abcdef"));
+        assertEquals("disk-usage-abcdefghij", Redaction.all("disk-usage-abcdefghij"), "not an API key");
+        assertEquals("key sk-…", Redaction.all("key sk-ant-ABCDEFGH12"));
     }
 
     /** ★ Witness: ignore {@code maxLine} in {@code readLines} — the overlong line is delivered. */

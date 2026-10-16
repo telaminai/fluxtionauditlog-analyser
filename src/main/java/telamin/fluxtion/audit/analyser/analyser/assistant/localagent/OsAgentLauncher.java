@@ -13,7 +13,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
-import java.util.regex.Pattern;
 
 /**
  * The ONE place the analyser builds an operating-system process for its local agent (spec §4.1; a one-home rule in

@@ -501,6 +501,28 @@ class LocalAgentAdapterReplayTest {
         t.start();
     }
 
+    /** ★ Witness (review R1): drop the RejectedExecutionException catch in {@code write} — the late write throws. */
+    @Test
+    @DisplayName("★ R1: a write after the run was cleaned up (a late control_request on the reader) never throws")
+    void aLateWriteAfterCleanupDoesNotThrow() throws Exception {
+        FixtureAgent agent = new FixtureAgent("multiturn-partial-replay-midturn.jsonl");
+        agent.conformInit = true;
+        Harness h = new Harness(agent, home, LocalAgentAdapter::singleWriter);
+        h.start();
+        long deadline = System.nanoTime() + 10_000_000_000L;
+        while (!"READY".equals(h.state().phase()) && System.nanoTime() < deadline) {
+            h.drain();
+            Thread.sleep(10);
+        }
+        assertEquals("READY", h.state().phase());
+        FixtureAgent.Proc p = agent.last();
+        p.exit(1);                                     // onExit → cleanup: the writer is shut down
+        h.drain();
+        assertEquals("OFF", h.state().phase());
+        assertDoesNotThrow(() -> p.emit("{\"type\":\"control_request\",\"request_id\":\"late\","
+                + "\"request\":{\"subtype\":\"can_use_tool\"}}"), "the reader thread is not killed by a late deny");
+    }
+
     /** ★ Witness (review S4): redact stderr with the shapes only (drop the exact known values) — the token survives. */
     @Test
     @DisplayName("★ S4: an exited process's stderr line is shown with the REST token, the hosted credential and their header redacted")
