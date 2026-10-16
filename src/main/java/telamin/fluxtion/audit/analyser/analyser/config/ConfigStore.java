@@ -110,6 +110,13 @@ public final class ConfigStore {
         c.assistantExports = parseBool(p.getProperty("assistant.exports"), c.assistantExports);
         // M73 D-73.7: machine tier only — this file is the one place it is read
         c.assistantCreateProjects = parseBool(p.getProperty("assistant.createProjects"), c.assistantCreateProjects);
+        // M74 §5.1: machine tier only — this file is the one place any of them is read
+        c.claudeCodeAllowed = parseBool(p.getProperty("assistant.claudeCode"), c.claudeCodeAllowed);
+        c.claudeCodeFull = parseBool(p.getProperty("assistant.claudeCode.full"), c.claudeCodeFull);
+        c.claudeCodeWarmStart = parseBool(p.getProperty("assistant.claudeCode.warmStart"), c.claudeCodeWarmStart);
+        c.claudeCodeModel = p.getProperty("assistant.claudeCode.model", c.claudeCodeModel);
+        c.claudeCodeBudgetUsd = parseDouble(p.getProperty("assistant.claudeCode.budgetUsd"), c.claudeCodeBudgetUsd);
+        readList(p, "assistant.claudeCode.trusted", c.claudeCodeTrustedFolders);
         c.assistantExportDir = p.getProperty("assistant.exportDir", c.assistantExportDir);
         c.eventTypesDivider = parseInt(p.getProperty("eventTypesDivider"), c.eventTypesDivider);
         readLastFocuses(p, c.lastFocusByProject);
@@ -206,6 +213,12 @@ public final class ConfigStore {
         put(p, "assistant.rest", Boolean.toString(c.assistantActionsRest));
         put(p, "assistant.exports", Boolean.toString(c.assistantExports));
         put(p, "assistant.createProjects", Boolean.toString(c.assistantCreateProjects));
+        put(p, "assistant.claudeCode", Boolean.toString(c.claudeCodeAllowed));
+        put(p, "assistant.claudeCode.full", Boolean.toString(c.claudeCodeFull));
+        put(p, "assistant.claudeCode.warmStart", Boolean.toString(c.claudeCodeWarmStart));
+        put(p, "assistant.claudeCode.model", c.claudeCodeModel);
+        put(p, "assistant.claudeCode.budgetUsd", Double.toString(c.claudeCodeBudgetUsd));
+        writeList(p, "assistant.claudeCode.trusted", c.claudeCodeTrustedFolders);
         put(p, "assistant.exportDir", c.assistantExportDir);
         put(p, "eventTypesDivider", Integer.toString(c.eventTypesDivider));
         writeLastFocuses(p, c.lastFocusByProject);

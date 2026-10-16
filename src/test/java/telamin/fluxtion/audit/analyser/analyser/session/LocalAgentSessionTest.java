@@ -152,7 +152,7 @@ class LocalAgentSessionTest {
         assertTrue(kills(a).isEmpty());
     }
 
-    /** ★ Witness: treat {@code tokenSource none} as logged in (post loggedIn=true from the adapter) — the verdict fails. */
+    /** ★ Witness: skip the {@code !e.loggedIn()} refusal in {@code onInitialized} — the verdict assertion fails. */
     @Test
     @DisplayName("★ not logged in at initialize: refused with the login words, the process stopped, no binding")
     void notLoggedInIsRefused() {
@@ -285,7 +285,10 @@ class LocalAgentSessionTest {
         assertEquals("READY", state(d).phase());
     }
 
-    /** ★ Witness: drop {@code stale(...)} from {@code onTurnEnded} — the old generation's end closes the new turn. */
+    /**
+     * ★ Witness: drop {@code stale(...)} from {@code onTurnEnded} — the old generation's end closes the new turn (the
+     * "late result" assertion fails); and from {@code onTextUpdated} — the killed process's text lands.
+     */
     @Test
     @DisplayName("★ a late line from a killed process (old generation) or an old ticket is refused")
     void staleFactsAreRefused() {
@@ -299,6 +302,7 @@ class LocalAgentSessionTest {
         assertEquals(2, second.generation());
         var t = send(d, a, 11);
         d.post(new SessionEvents.LocalAgentTurnEnded(1, 1, SessionEvents.TurnOutcome.COMPLETED));       // old generation
+        d.post(new SessionEvents.LocalAgentTurnEnded(1, t.ticket(), SessionEvents.TurnOutcome.COMPLETED)); // old gen, this ticket
         d.post(new SessionEvents.LocalAgentTextUpdated(1, t.ticket(), 99, 1));                           // old generation
         assertTrue(state(d).busy(), "a late result from the killed process does not close the new turn");
         assertTrue(state(d).entries().stream().noneMatch(e -> e.id() == 99), "nor does its text land");
@@ -311,7 +315,10 @@ class LocalAgentSessionTest {
                 "a second end signal for the same ticket is ignored");
     }
 
-    /** ★ Witness: remove the {@code openTicket != 0} test from {@code sendRefusal} — a second SendEffect is written. */
+    /**
+     * ★ Witness: remove the {@code openTicket != 0} test from {@code sendRefusal} — the second draft is silently held
+     * instead of refused, and the BUSY assertion fails.
+     */
     @Test
     @DisplayName("★ Send while a ticket is open is refused by the node, with the OD-74.7 words; nothing is written")
     void sendWhileBusyIsRefused() {

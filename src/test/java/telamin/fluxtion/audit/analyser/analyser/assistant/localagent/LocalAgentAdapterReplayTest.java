@@ -86,8 +86,8 @@ class LocalAgentAdapterReplayTest {
     // ---- ★ rendering ---------------------------------------------------------------------------------------------
 
     /**
-     * ★ Witness: render {@code result.result} instead of the assistant text — the budget fixture's turn 3 shows "" and
-     * fails; and append the final block to the deltas instead of replacing them — the text doubles.
+     * ★ Witnesses: render {@code result.result} whenever a result carries one — the budget fixture's turn 3 shows "";
+     * and append the final block to its deltas instead of replacing them — the streamed text doubles.
      */
     @Test
     @DisplayName("★ text from assistant events, never result; deltas replaced, not duplicated; local output only when no text")
@@ -124,7 +124,11 @@ class LocalAgentAdapterReplayTest {
         return out;
     }
 
-    /** ★ Witness: show a user event whose {@code isSynthetic} is set as the person's turn — the summary appears. */
+    /**
+     * ★ Witness: stop reporting {@code compact_boundary} as {@code COMPACTED} in the adapter — the status-line assertion
+     * fails. (The summary cannot become a person's turn by construction: user events are never rendered, and the
+     * parser keeps no user text; the assertions pin that too.)
+     */
     @Test
     @DisplayName("★ the compaction summary is never shown or recorded as the person's turn; a compaction is one status line")
     void compactionIsNotAPersonTurn() throws Exception {
@@ -170,12 +174,12 @@ class LocalAgentAdapterReplayTest {
 
     // ---- ★ personal data ------------------------------------------------------------------------------------------
 
-    static final String EMAIL = "person.sample@example.invalid";
+    static final String EMAIL = "person.sample" + (char) 64 + "example.invalid";   // built, so no address is committed
     static final String ORG = "Sample Organisation Ltd";
 
     /**
-     * ★ Witness: give {@code StreamJson.Initialize} a {@code Map account} component and copy the whole account into the
-     * header — the record-components and the store assertions fail.
+     * ★ Witness: read the whole {@code account} map into the header (its {@code toString} as the billing line) — the
+     * store and snapshot assertions fail; a component named for the account fails the first assertion.
      */
     @Test
     @DisplayName("★ no account e-mail or organisation anywhere: the parsed record has no such field")
@@ -271,8 +275,8 @@ class LocalAgentAdapterReplayTest {
     }
 
     /**
-     * ★ Witness: drop {@code --disallowedTools} from the posture's expected tool set (accept any superset) — the real
-     * P0b run without the disallow list is admitted.
+     * ★ Witness: skip the tool-set comparison in {@code LocalAgentPosture.check} — the real P0b run, whose tool list
+     * includes the stub's destructive {@code report} and {@code approve}, is admitted.
      */
     @Test
     @DisplayName("★ posture assertion on a real first-turn init: p0b-default-posture's tool set is refused and nothing admitted")
@@ -290,7 +294,10 @@ class LocalAgentAdapterReplayTest {
 
     // ---- ★ busy, slash, stop ---------------------------------------------------------------------------------------
 
-    /** ★ Witness: queue a second draft in the adapter while busy — the second user line reaches stdin. */
+    /**
+     * ★ Witness: classify every {@code /} line as ordinary text in {@code ClaudeCodeProvider.classifyLine} (a pass-all
+     * table) — {@code /config …} reaches stdin. (Send-while-busy has its node witness in LocalAgentSessionTest.)
+     */
     @Test
     @DisplayName("★ Send while a turn is open writes nothing to stdin; a blocked slash command is never written")
     void nothingIsQueuedOrSmuggled() throws Exception {
@@ -316,7 +323,7 @@ class LocalAgentAdapterReplayTest {
     }
 
     /**
-     * ★ Witness: in the fake, never acknowledge and never end; remove the ACK deadline from the adapter — the kill
+     * ★ Witness: remove the 5 s ACK deadline from the adapter's interrupt — with the fake never acknowledging, the kill
      * never happens. (The node half has its own witness.)
      */
     @Test
@@ -379,6 +386,7 @@ class LocalAgentAdapterReplayTest {
         assertFalse(Files.exists(file));
     }
 
+    /** ★ Witness: skip taking the lock in the adapter's spawn — the "held" assertion fails. */
     @Test
     @DisplayName("★ the lock: a second analyser cannot resume a session another holds; it is released on stop")
     void theLockRefusesASecondInstance() throws Exception {

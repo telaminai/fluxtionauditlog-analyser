@@ -52,7 +52,21 @@ public final class AssistantPanel extends JPanel {
         void showAnalyser();
 
         void askAboutEvidence();
+
+        /** M74: the person chose which assistant the tab drives; the session holds the mode. */
+        default void chooseMode(telamin.fluxtion.audit.analyser.analyser.session.AssistantMode mode) {
+        }
     }
+
+    /** M74: the in-app assistant's own surface, and the card the local agent's panel shares the tab with. */
+    private final JPanel inApp = new JPanel(new BorderLayout(4, 4));
+    private final java.awt.CardLayout cardLayout = new java.awt.CardLayout();
+    private final JPanel cards = new JPanel(cardLayout);
+    private final JRadioButton inAppMode = new JRadioButton("In-app assistant");
+    private final JRadioButton claudeMode = new JRadioButton("Claude Code");
+    private final JPanel modeBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
+    private telamin.fluxtion.audit.analyser.analyser.session.AssistantMode shownMode =
+            telamin.fluxtion.audit.analyser.analyser.session.AssistantMode.IN_APP;
 
     private final AssistantTranscript transcript;
     private Intents intents;
@@ -111,11 +125,11 @@ public final class AssistantPanel extends JPanel {
         header.add(titles, BorderLayout.NORTH);
         header.add(basis, BorderLayout.CENTER);
         header.add(status, BorderLayout.SOUTH);
-        add(header, BorderLayout.NORTH);
+        inApp.add(header, BorderLayout.NORTH);
 
         view.setEditable(false);
         view.getAccessibleContext().setAccessibleName("Conversation");
-        add(viewScroll, BorderLayout.CENTER);
+        inApp.add(viewScroll, BorderLayout.CENTER);
 
         draft.setLineWrap(true);
         draft.setWrapStyleWord(true);
@@ -142,8 +156,26 @@ public final class AssistantPanel extends JPanel {
         south.add(noProvider, BorderLayout.NORTH);
         south.add(composer, BorderLayout.CENTER);
         south.add(demoBar, BorderLayout.SOUTH);
-        add(south, BorderLayout.SOUTH);
+        inApp.add(south, BorderLayout.SOUTH);
         demoBar.setVisible(false);
+
+        // M74: one tab, two assistants, one mode at a time — the choice is reported, and the session's mode is rendered
+        ButtonGroup modes = new ButtonGroup();
+        modes.add(inAppMode);
+        modes.add(claudeMode);
+        inAppMode.setSelected(true);
+        modeBar.add(new JLabel("Assistant:"));
+        modeBar.add(inAppMode);
+        modeBar.add(claudeMode);
+        inAppMode.getAccessibleContext().setAccessibleName("Use the in-app assistant");
+        claudeMode.getAccessibleContext().setAccessibleName("Use Claude Code");
+        inAppMode.addActionListener(e -> { if (intents != null) intents.chooseMode(
+                telamin.fluxtion.audit.analyser.analyser.session.AssistantMode.IN_APP); });
+        claudeMode.addActionListener(e -> { if (intents != null) intents.chooseMode(
+                telamin.fluxtion.audit.analyser.analyser.session.AssistantMode.LOCAL_AGENT); });
+        cards.add(inApp, telamin.fluxtion.audit.analyser.analyser.session.AssistantMode.IN_APP.name());
+        add(modeBar, BorderLayout.NORTH);
+        add(cards, BorderLayout.CENTER);
         showAnalyser.setVisible(false);
 
         send.addActionListener(e -> onSend());
@@ -171,6 +203,25 @@ public final class AssistantPanel extends JPanel {
 
     public void setIntents(Intents intents) {
         this.intents = intents;
+    }
+
+    /** M74: the local agent's surface, shown in this tab when the session's mode is {@code LOCAL_AGENT}. */
+    public void setLocalAgentPanel(LocalAgentPanel panel) {
+        cards.add(panel, telamin.fluxtion.audit.analyser.analyser.session.AssistantMode.LOCAL_AGENT.name());
+    }
+
+    /** M74: render the session's mode — the selected button and the card. Deciding nothing. */
+    public void renderMode(telamin.fluxtion.audit.analyser.analyser.session.AssistantMode mode) {
+        if (mode == null) mode = telamin.fluxtion.audit.analyser.analyser.session.AssistantMode.IN_APP;
+        (mode == telamin.fluxtion.audit.analyser.analyser.session.AssistantMode.LOCAL_AGENT ? claudeMode : inAppMode)
+                .setSelected(true);
+        if (mode == shownMode) return;
+        shownMode = mode;
+        cardLayout.show(cards, mode.name());
+    }
+
+    JRadioButton claudeModeButton() {
+        return claudeMode;
     }
 
     /** Whether a usable provider is configured, read when rendering (it is configuration, not a session decision). */

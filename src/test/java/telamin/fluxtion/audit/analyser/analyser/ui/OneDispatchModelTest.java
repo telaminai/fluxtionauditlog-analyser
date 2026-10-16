@@ -269,6 +269,99 @@ class OneDispatchModelTest {
         }
     }
 
+    // ---- M74: the local agent (spec-claude-code-provider.md §4.1) ---------------------------------------------------
+
+    private static final Path LOCAL_AGENT = Path.of("src/main/java/telamin/fluxtion/audit/analyser/analyser/assistant/localagent");
+
+    /**
+     * One launcher, one performer. Witnesses: construct a {@code ProcessBuilder} in {@code LocalAgentAdapter}; add a
+     * second {@code localAgentAdapter.perform(} call outside {@code performLocalAgent}; build the command line anywhere but
+     * the adapter's spawn.
+     */
+    @Test
+    @DisplayName("M74: the agent's ProcessBuilder, its command line and the StartLocalAgentEffect performer each have one home")
+    void theLocalAgentHasOneLauncherAndOnePerformer() throws Exception {
+        Pattern processBuilder = Pattern.compile("\\bProcessBuilder\\b");
+        Pattern commandLine = Pattern.compile("\\.command\\(\\s*new\\s+LocalAgentProvider\\.LaunchSpec\\(");
+        List<String> offenders = new ArrayList<>();
+        try (var files = Files.list(LOCAL_AGENT)) {
+            for (Path f : files.filter(p -> p.toString().endsWith(".java")).sorted().toList()) {
+                String src = Files.readString(f);
+                String name = f.getFileName().toString();
+                if (!name.equals("OsAgentLauncher.java") && count(processBuilder, src) != 0) {
+                    offenders.add(name + " builds a process: only OsAgentLauncher may");
+                }
+                if (!name.equals("LocalAgentAdapter.java") && count(commandLine, src) != 0) {
+                    offenders.add(name + " builds the agent's command line: only the adapter's spawn may");
+                }
+                if (src.contains("import javax.swing") || src.contains("import java.awt") || src.contains("javax.swing.")
+                        || src.contains("SwingUtilities")) {
+                    offenders.add(name + " touches Swing: the adapter never writes to the UI (§4.1)");
+                }
+            }
+        }
+        String adapter = Files.readString(LOCAL_AGENT.resolve("LocalAgentAdapter.java"));
+        assertEquals(1, count(commandLine, bodyOf(adapter, "private void spawn(")), "the spawn builds the line, once");
+        assertEquals(1, count(Pattern.compile("new\\s+ProcessBuilder\\s*\\("),
+                Files.readString(LOCAL_AGENT.resolve("OsAgentLauncher.java"))), "OsAgentLauncher builds it, once");
+        // the one performer: MainFrame routes the effects to performLocalAgent, which is the only call of the adapter
+        String frame = Files.readString(UI.resolve("MainFrame.java"));
+        String performer = bodyOf(frame, "private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result performLocalAgent(");
+        Pattern perform = Pattern.compile("\\blocalAgentAdapter\\s*\\.\\s*perform\\s*\\(");
+        assertEquals(1, count(perform, performer), "performLocalAgent performs");
+        assertEquals(1, count(perform, frame), "and nothing else in the frame does");
+        Pattern startCase = Pattern.compile("case\\s+[\\w.]*StartLocalAgentEffect\\b");
+        assertEquals(1, count(startCase, bodyOf(frame, PERFORMER)), "performSessionEffect routes the start, once");
+        try (var files = Files.walk(Path.of("src/main/java"))) {
+            for (Path f : files.filter(p -> p.toString().endsWith(".java")).sorted().toList()) {
+                String src = Files.readString(f);
+                int n = count(startCase, src);
+                boolean home = f.equals(UI.resolve("MainFrame.java")) || f.equals(LOCAL_AGENT.resolve("LocalAgentAdapter.java"))
+                        || f.getFileName().toString().equals("SessionDriver.java");
+                if (n != 0 && !home) offenders.add(f.getFileName() + " performs StartLocalAgentEffect");
+                if (!f.startsWith(LOCAL_AGENT) && !f.equals(UI.resolve("MainFrame.java"))
+                        && src.contains("new telamin.fluxtion.audit.analyser.analyser.assistant.localagent.OsAgentLauncher(")) {
+                    offenders.add(f.getFileName() + " constructs the agent launcher");
+                }
+            }
+        }
+        assertEquals(List.of(), offenders, "one dispatch model for the local agent");
+    }
+
+    /**
+     * The tab renders and reports; it never decides or performs. Witness: call {@code localAgentAdapter} or post a
+     * session fact from {@code LocalAgentPanel}.
+     */
+    @Test
+    @DisplayName("M74: the Claude Code panel renders the snapshot and reports intents; it starts, posts and decides nothing")
+    void theLocalAgentPanelOnlyRenders() throws Exception {
+        String panel = Files.readString(UI.resolve("LocalAgentPanel.java"));
+        for (String forbidden : List.of("LocalAgentAdapter", "ClaudeCodeProvider", "ProcessBuilder", "OsAgentLauncher",
+                ".post(", "SessionDriver", "SessionEvents")) {
+            assertFalse(panel.contains(forbidden), "LocalAgentPanel must not use " + forbidden);
+        }
+    }
+
+    /**
+     * OD-74.1 amendment: warm start only on the person's direct selection. Witness: post the warm Start from
+     * {@code revealAssistant()}, or drop the {@code WarmStart.isDirectSelection} guard.
+     */
+    @Test
+    @DisplayName("M74: a warm start is posted in one place, behind the direct-selection check; revealAssistant starts nothing")
+    void warmStartHasOneGuardedHome() throws Exception {
+        String frame = Files.readString(UI.resolve("MainFrame.java"));
+        String home = bodyOf(frame, "private void onAssistantTabSelected(");
+        assertFalse(home.isEmpty(), "onAssistantTabSelected must exist");
+        assertTrue(home.contains("WarmStart.isDirectSelection(java.awt.EventQueue.getCurrentEvent(), sideTabs)"),
+                "the guard reads the event being dispatched");
+        Pattern warm = Pattern.compile("LocalAgentStartRequested\\([^;]*?,\\s*true\\)\\s*\\)", Pattern.DOTALL);
+        assertEquals(1, count(warm, frame), "one warm start in the frame");
+        assertEquals(1, count(warm, home), "and it is the guarded one");
+        assertFalse(bodyOf(frame, "private void revealAssistant(").contains("LocalAgentStartRequested"),
+                "a programmatic reveal never starts a process");
+        assertFalse(bodyOf(frame, "private void revealAssistant(").contains("onAssistantTabSelected"));
+    }
+
     private static int count(Pattern p, String s) {
         Matcher m = p.matcher(s);
         int n = 0;

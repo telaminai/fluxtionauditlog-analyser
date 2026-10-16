@@ -46,6 +46,15 @@ class FaqSecurityContractTest {
         assertTrue(answer.contains("skills to depth 7") && answer.contains("GraphML to depth 12")
                         && answer.contains("32 MB"),
                 "…and the preview's read reach");
+        // M74 P1a (spec-claude-code-provider.md §7): what Start does, the default posture's limits, and that the analyser
+        // runs the person's own CLI and never touches its credentials
+        for (String claim : new String[]{"Allow the analyser to start Claude Code", "your own installed `claude`",
+                "never reads or stores your Claude Code credentials", "before your first Send",
+                "no record content is sent until you press Send", "Read, Grep and Glob confined to the folder",
+                "no Bash", "none of your skills, hooks, settings or MCP servers", "destructive verbs hidden",
+                "never treated as Claude Code's", "cannot delete a chart", "a bundle's working copy is refused"}) {
+            assertTrue(answer.contains(claim), "the FAQ security answer must state, for Claude Code: " + claim);
+        }
         for (String verb : McpTools.destructiveVerbs()) {
             assertTrue(answer.contains("`" + verb + "`"),
                     "destructive verb '" + verb + "' is not named in the FAQ's security answer — "

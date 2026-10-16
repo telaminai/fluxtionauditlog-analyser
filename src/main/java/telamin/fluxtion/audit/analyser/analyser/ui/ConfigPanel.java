@@ -62,6 +62,12 @@ public final class ConfigPanel extends JDialog {
     // M73 D-73.7: machine tier, off by default; gates only requests of assistant origin — a person is never gated
     private final JCheckBox createProjectsToggle = new JCheckBox("Allow the assistant to create projects");
     private final JTextField exportDirField = new JTextField(28);
+    // M74 §5.1: machine tier, all off by default; the full posture arrives in P1b and is disabled until then
+    private final JCheckBox claudeCodeToggle = new JCheckBox("Allow the analyser to start Claude Code");
+    private final JCheckBox claudeCodeFullToggle = new JCheckBox("…with my full Claude Code permissions");
+    private final JCheckBox claudeCodeWarmToggle = new JCheckBox("Start Claude Code when I open the Assistant tab");
+    private final JTextField claudeCodeModelField = new JTextField(12);
+    private final JSpinner claudeCodeBudgetSpinner = new JSpinner(new SpinnerNumberModel(5.0, 0.5, 1000.0, 0.5));
     /** #20 — the project's workspace anchor, offered as the handful of depths PathForm accepts. */
     private final JComboBox<telamin.fluxtion.audit.analyser.analyser.config.WorkspaceAnchorChoices.Choice>
             anchorCombo = new JComboBox<>();
@@ -688,9 +694,41 @@ public final class ConfigPanel extends JDialog {
                 + "can make HTTP calls — its URL + token appear in the status bar (and console) when enabled. "
                 + "<b>File exports are off by default</b>: when allowed, the screenshot/report verbs may write "
                 + "<b>only inside the exchange directory</b> above; external-series reads are confined to the same directory (or files you pick in a chooser), and writes never overwrite an existing file."), c);
-        c.gridy = 10; c.weighty = 1; c.fill = GridBagConstraints.BOTH;
+        c.gridy = 10; c.insets = new Insets(14, 0, 4, 0);
+        p.add(buildClaudeCodeSection(), c);
+        c.gridy = 11; c.weighty = 1; c.fill = GridBagConstraints.BOTH;
         p.add(Box.createGlue(), c);
         return p;
+    }
+
+    /** M74 §5.1: the Claude Code switches, warm start, model and budget — this machine only. */
+    private JPanel buildClaudeCodeSection() {
+        JPanel box = new JPanel(new GridBagLayout());
+        box.setBorder(BorderFactory.createTitledBorder("Claude Code in the Assistant tab"));
+        GridBagConstraints g = new GridBagConstraints();
+        g.gridx = 0; g.gridwidth = 2; g.anchor = GridBagConstraints.LINE_START; g.insets = new Insets(2, 4, 2, 4);
+        claudeCodeToggle.setToolTipText("Lets the Assistant tab's Start button run YOUR installed claude, logged in as you, "
+                + "in the analyser-assistant posture: Read, Grep and Glob confined to the folder, the analyser's own "
+                + "non-destructive verbs, the folder's CLAUDE.md — no Bash, no edits, no web, none of your skills, hooks or "
+                + "MCP servers. Off by default; this machine only.");
+        claudeCodeFullToggle.setEnabled(false);
+        claudeCodeFullToggle.setToolTipText("Your full Claude Code — your settings, skills, hooks and MCP servers — "
+                + "arrives in a later release; it will need its own confirmation.");
+        claudeCodeWarmToggle.setToolTipText("Only when you click or key the Assistant tab yourself, and only in a folder you "
+                + "have already confirmed. It contacts Anthropic (sign-in check, MCP connect) before your first Send.");
+        g.gridy = 0; box.add(claudeCodeToggle, g);
+        g.gridy = 1; box.add(claudeCodeFullToggle, g);
+        g.gridy = 2; box.add(claudeCodeWarmToggle, g);
+        g.gridwidth = 1;
+        g.gridy = 3; g.gridx = 0; box.add(new JLabel("Claude Code model:"), g);
+        g.gridx = 1; box.add(claudeCodeModelField, g);
+        g.gridy = 4; g.gridx = 0; box.add(new JLabel("Session budget (US$):"), g);
+        g.gridx = 1; box.add(leftWrap(claudeCodeBudgetSpinner), g);
+        g.gridy = 5; g.gridx = 0; g.gridwidth = 2; g.fill = GridBagConstraints.HORIZONTAL; g.weightx = 1;
+        box.add(mutedNote("Start runs <b>your own</b> <code>claude</code> CLI; the analyser never reads or stores your "
+                + "Claude Code credentials. Start contacts Anthropic before your first Send; no record content is sent "
+                + "until you press Send. The model and budget are Claude Code's own (not the in-app provider's)."), g);
+        return box;
     }
 
     private JPanel buildHistoryTab() {
@@ -770,6 +808,11 @@ public final class ConfigPanel extends JDialog {
         actionsRest.setSelected(config.assistantActionsRest);
         exportsToggle.setSelected(config.assistantExports);
         createProjectsToggle.setSelected(config.assistantCreateProjects);
+        claudeCodeToggle.setSelected(config.claudeCodeAllowed);
+        claudeCodeFullToggle.setSelected(false);                 // P1b: never on in this release
+        claudeCodeWarmToggle.setSelected(config.claudeCodeWarmStart);
+        claudeCodeModelField.setText(config.claudeCodeModel == null ? "" : config.claudeCodeModel);
+        claudeCodeBudgetSpinner.setValue(Math.max(0.5, Math.min(1000.0, config.claudeCodeBudgetUsd)));
         exportDirField.setText(config.assistantExportDir == null ? "" : config.assistantExportDir);
         projectExchangeField.setText(config.projectExchangeDir == null ? "" : config.projectExchangeDir);
         maxRoundsSpinner.setValue(config.maxActionRounds);
@@ -813,6 +856,11 @@ public final class ConfigPanel extends JDialog {
         config.assistantActionsRest = actionsRest.isSelected();
         config.assistantExports = exportsToggle.isSelected();
         config.assistantCreateProjects = createProjectsToggle.isSelected();
+        config.claudeCodeAllowed = claudeCodeToggle.isSelected();
+        config.claudeCodeFull = false;                           // P1b: the switch exists, disabled
+        config.claudeCodeWarmStart = claudeCodeWarmToggle.isSelected();
+        config.claudeCodeModel = claudeCodeModelField.getText().trim();
+        config.claudeCodeBudgetUsd = ((Number) claudeCodeBudgetSpinner.getValue()).doubleValue();
         config.assistantExportDir = exportDirField.getText().trim();
         // #21: refuse at the door, with the reason — a stored value that can never be honoured is
         // worse than none, because nothing later says why the exports went elsewhere

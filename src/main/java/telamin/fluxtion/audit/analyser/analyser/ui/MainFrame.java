@@ -95,6 +95,23 @@ public final class MainFrame extends JFrame {
     private long assistantDraftCleared;
     /** The live REST endpoint, for Copy prompt's hand-off to an external client; null when the transport is off. */
     private String restUrl, restToken;
+    // M74 (spec-claude-code-provider.md): the local agent. localAgentSession decides; LocalAgentAdapter performs (it
+    // touches no Swing); this panel renders the snapshot. Its words live in the bounded store, never in the session.
+    private final telamin.fluxtion.audit.analyser.analyser.assistant.localagent.LocalAgentTranscript localAgentStore =
+            new telamin.fluxtion.audit.analyser.analyser.assistant.localagent.LocalAgentTranscript();
+    private final LocalAgentPanel localAgentPanel = new LocalAgentPanel(localAgentStore);
+    /** The hosted bridge's per-generation credentials; the action server maps them, the adapter mints and revokes. */
+    private final telamin.fluxtion.audit.analyser.analyser.net.HostedCredentials hostedCredentials =
+            new telamin.fluxtion.audit.analyser.analyser.net.HostedCredentials();
+    private telamin.fluxtion.audit.analyser.analyser.assistant.localagent.LocalAgentAdapter localAgentAdapter;
+    /** The process launcher. A test could replace it; the application uses the one OS launcher. */
+    telamin.fluxtion.audit.analyser.analyser.assistant.localagent.AgentProcess.Launcher localAgentLauncher =
+            new telamin.fluxtion.audit.analyser.analyser.assistant.localagent.OsAgentLauncher();
+    private long localAgentRequest;
+    private long localAgentSendRequest;
+    private long localAgentDraftCleared;
+    /** The analyser's own private, empty working directory for a session with no project (§4.3), made on first use. */
+    private Path localAgentScratch;
     private final GraphTabs graphTabs = new GraphTabs();
     private ReportsPanel reportsPanel;   // constructed in the ctor once its collaborators exist
     private final TopologyPanel topologyPanel = new TopologyPanel();
@@ -4466,6 +4483,7 @@ public final class MainFrame extends JFrame {
         sideTabs.addChangeListener(e -> {
             reportWalkViewChanged();
             sourceViewportChanged();
+            onAssistantTabSelected();       // M74: acts only on the person's direct click or key (WarmStart)
             // read now, restore after the tab change has re-laid out
             int location = center.getDividerLocation();
             SwingUtilities.invokeLater(() -> {
@@ -4641,7 +4659,175 @@ public final class MainFrame extends JFrame {
                 revealAssistant();                      // the fresh thread, ready for the person's own question
                 assistantPanel.primeDraft("");
             }
+            @Override public void chooseMode(telamin.fluxtion.audit.analyser.analyser.session.AssistantMode mode) {
+                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantModeChosen(mode,
+                        "assistant tab"));
+            }
         });
+        installLocalAgent();
+    }
+
+    // ---- M74: Claude Code as the local agent — the adapter performs, the panel reports and renders; localAgentSession
+    // decides. Nothing here starts a process: Start, Send and a warm start are facts, and the node decides. ----------
+
+    private void installLocalAgent() {
+        java.util.concurrent.ThreadFactory daemon = r -> {
+            Thread t = new Thread(r, "analyser-local-agent");
+            t.setDaemon(true);
+            return t;
+        };
+        java.util.concurrent.ExecutorService workers = java.util.concurrent.Executors.newCachedThreadPool(daemon);
+        java.util.concurrent.ScheduledExecutorService timers =
+                java.util.concurrent.Executors.newSingleThreadScheduledExecutor(daemon);
+        var clock = new telamin.fluxtion.audit.analyser.analyser.assistant.localagent.LocalAgentAdapter.Clock() {
+            @Override public long nowMillis() { return System.currentTimeMillis(); }
+            @Override public void schedule(long delayMs, Runnable task) {
+                if (delayMs <= 0) timers.execute(task);
+                else timers.schedule(task, delayMs, java.util.concurrent.TimeUnit.MILLISECONDS);
+            }
+        };
+        var env = new telamin.fluxtion.audit.analyser.analyser.assistant.localagent.LocalAgentAdapter.Environment() {
+            @Override public String model() { return config.claudeCodeModel; }
+            @Override public Path workingDirectory() { return localAgentDirectory(); }
+            @Override public String restUrl() { return restUrl; }
+            @Override public String restToken() { return restToken; }
+            @Override public java.util.Optional<java.util.List<String>> bridgeLauncher() { return localAgentBridgeLauncher(); }
+            @Override public java.util.Map<String, String> environment() { return System.getenv(); }
+            @Override public Path userHome() { return Path.of(System.getProperty("user.home")); }
+            @Override public void post(Object fact) {
+                SwingUtilities.invokeLater(() -> { if (session != null) session().post(fact); });
+            }
+        };
+        localAgentAdapter = new telamin.fluxtion.audit.analyser.analyser.assistant.localagent.LocalAgentAdapter(
+                new telamin.fluxtion.audit.analyser.analyser.assistant.localagent.ClaudeCodeProvider(), localAgentLauncher,
+                localAgentStore, hostedCredentials, env, workers, clock);
+        localAgentAdapter.installShutdownHook();
+        assistantPanel.setLocalAgentPanel(localAgentPanel);
+        localAgentPanel.setIntents(new LocalAgentPanel.Intents() {
+            @Override public void start() {
+                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentStartRequested(
+                        ++localAgentRequest, localAgentConsent(), false));
+            }
+            @Override public void stop() {
+                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentStopRequested("Stop pressed"));
+            }
+            @Override public void send(String draft) {
+                long entry = localAgentStore.add(
+                        telamin.fluxtion.audit.analyser.analyser.assistant.localagent.LocalAgentTranscript.Kind.USER, draft);
+                var slash = localAgentAdapter.classify(draft);
+                localAgentSendRequest = ++localAgentRequest;
+                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentSendRequested(
+                        localAgentSendRequest, entry, slash.slash(), slash.command(), localAgentConsent()));
+            }
+            @Override public void newChat() {
+                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentNewChatRequested("New chat"));
+            }
+            @Override public void turnOnRest() {             // a person's action, from the refusal that named it
+                config.assistantActionsRest = true;
+                saveConfigQuietly();
+                applyRestServer();
+            }
+            @Override public void openSettings() {
+                ConfigPanel.show(MainFrame.this, config, MainFrame.this::onConfigChanged, MainFrame.this::readerSummaries);
+            }
+        });
+    }
+
+    /** r6 §4.2: the hosted bridge is this running jar; JBang only when the running jar cannot be launched. */
+    private java.util.Optional<java.util.List<String>> localAgentBridgeLauncher() {
+        var launch = telamin.fluxtion.audit.analyser.analyser.mcp.McpLaunchCommand.runningJar()
+                .or(() -> telamin.fluxtion.audit.analyser.analyser.mcp.McpLaunchCommand.installedJbang(
+                        Path.of(System.getProperty("user.home"))));
+        return launch.map(telamin.fluxtion.audit.analyser.analyser.mcp.McpLaunchCommand::launcher);
+    }
+
+    /**
+     * §4.3: the session's working directory — the confirmed project root, or, with no project, the analyser's own
+     * private empty scratch directory (never the home directory, which holds credentials and the endpoint files).
+     */
+    private Path localAgentDirectory() {
+        Path root = projectRoot();
+        if (root != null) return root;
+        if (localAgentScratch == null) {
+            try {
+                localAgentScratch = java.nio.file.Files.createTempDirectory("analyser-claude-",
+                        java.nio.file.attribute.PosixFilePermissions.asFileAttribute(
+                                java.nio.file.attribute.PosixFilePermissions.fromString("rwx------")));
+            } catch (UnsupportedOperationException | java.io.IOException e) {
+                try {
+                    localAgentScratch = java.nio.file.Files.createTempDirectory("analyser-claude-");
+                } catch (java.io.IOException ex) {
+                    return null;
+                }
+            }
+        }
+        return localAgentScratch;
+    }
+
+    private static String realPathOf(Path p) {
+        if (p == null) return "";
+        try {
+            return p.toRealPath().toString();
+        } catch (java.io.IOException e) {
+            return p.toAbsolutePath().normalize().toString();
+        }
+    }
+
+    /** What this machine says about starting Claude Code now — observed here, decided by localAgentSession. */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentConsent localAgentConsent() {
+        Path dir = localAgentDirectory();
+        String real = realPathOf(dir);
+        boolean scratch = dir != null && dir.equals(localAgentScratch);
+        boolean confirmed = scratch || config.claudeCodeTrustedFolders.contains(real);
+        String posture = telamin.fluxtion.audit.analyser.analyser.session.LocalAgentPosture.digest("default|" + real + "|"
+                + telamin.fluxtion.audit.analyser.analyser.assistant.localagent.ClaudeCodeProvider.SYSTEM_NOTE + "|"
+                + telamin.fluxtion.audit.analyser.analyser.session.LocalAgentPosture.preAllowedVerbs() + "|full="
+                + config.claudeCodeFull);
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentConsent(config.claudeCodeAllowed,
+                confirmed, telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.isWorkingCopy(dir), actionServer != null,
+                posture, Math.round(config.claudeCodeBudgetUsd * 1_000_000d));
+    }
+
+    /**
+     * OD-74.1 (r5 amendment): warm start on the person's DIRECT selection of the Assistant tab only. The selection
+     * listener fires for revealAssistant(), journey handoffs and restore too; WarmStart reads the event being dispatched
+     * to tell the person's click or key on the tab strip from those.
+     */
+    private void onAssistantTabSelected() {
+        if (sideTabs == null || sideTabs.getSelectedComponent() != assistantDock) return;
+        if (!WarmStart.isDirectSelection(java.awt.EventQueue.getCurrentEvent(), sideTabs)) return;
+        if (!config.claudeCodeWarmStart || session == null) return;
+        session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentStartRequested(
+                ++localAgentRequest, localAgentConsent(), true));
+    }
+
+    /** M74 §4.2 step 5: the hosted bridge's calls run only for the generation the session has admitted. */
+    private String hostedRefusal(long generation) {
+        long admitted = sessionSnapshot().localAgent().admittedGeneration();
+        return admitted != 0 && admitted == generation ? null
+                : "the Claude Code session is not bound, or its posture is not yet checked, so the hosted bridge is "
+                + "refused (generation " + generation + ")";
+    }
+
+    /** OD-74.5: ask, outside the dispatch; on yes, remember the folder on this machine and submit a NEW Start request. */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result confirmLocalAgentFolderNow(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ConfirmLocalAgentFolderEffect e) {
+        Path dir = localAgentDirectory();
+        SwingUtilities.invokeLater(() -> {
+            int answer = JOptionPane.showConfirmDialog(this,
+                    "Claude Code will read this folder's CLAUDE.md as instructions.\n\nTrust " + dir
+                            + " for Claude Code in the analyser?\n\nRemembered on this machine only; never in a project, "
+                            + "a shared settings file or a bundle.",
+                    "Claude Code — confirm this folder", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
+            if (answer != JOptionPane.YES_OPTION || session == null) return;
+            String real = realPathOf(dir);
+            if (!config.claudeCodeTrustedFolders.contains(real)) config.claudeCodeTrustedFolders.add(real);
+            saveConfigQuietly();
+            session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentStartRequested(
+                    ++localAgentRequest, localAgentConsent(), false));
+        });
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentEffectStarted(e.opId(), 0,
+                "confirmFolder");
     }
 
     /** The route a Send is made by, captured now: provider, model, whether a key exists (never the key), the budgets. */
@@ -4826,6 +5012,16 @@ public final class MainFrame extends JFrame {
                 : "via " + config.llmProvider + (config.llmModel == null || config.llmModel.isBlank() ? "" : " · " + config.llmModel)
                         + " — your question and its context are sent there");
         assistantPanel.render(state, demoProjection(next.walkPlayback()));
+        // M74: the mode and the local agent, as the session decided them
+        var agent = next.localAgent();
+        assistantPanel.renderMode(agent.mode());
+        if (agent.answer().accepted() && agent.answer().request() == localAgentSendRequest
+                && localAgentDraftCleared != localAgentSendRequest) {
+            localAgentDraftCleared = localAgentSendRequest;
+            localAgentPanel.draftAccepted();
+        }
+        Path dir = projectRoot();
+        localAgentPanel.render(agent, dir == null ? "no project (a private scratch folder)" : dir.toString());
     }
 
     /**
@@ -4894,6 +5090,8 @@ public final class MainFrame extends JFrame {
                 // run's ephemeral port/token from a static config; removed again on stop/exit
                 actionServer = new telamin.fluxtion.audit.analyser.analyser.net.ActionServer(d, actionToken, config.maxActionsPerReply, 10.0,
                         telamin.fluxtion.audit.analyser.analyser.net.RestEndpointFile.wellKnown());
+                // M74 r6 §4.2: a hosted credential maps to its generation; the session decides whether it is admitted
+                actionServer.setHostedGate(hostedCredentials.gate(this::hostedRefusal));
                 actionServer.start();
                 restUrl = actionServer.url();
                 restToken = actionToken;
@@ -4901,9 +5099,9 @@ public final class MainFrame extends JFrame {
                 // the console and the copy-prompt seed where it's actually needed
                 String tokenHint = actionToken.substring(0, Math.min(8, actionToken.length())) + "…";
                 status.setText("Assistant REST transport listening on " + actionServer.url()
-                        + "  (token " + tokenHint + " — full token in console / Copy prompt)");
-                System.out.println("[analyser] assistant REST: " + actionServer.url()
-                        + "  X-Analyser-Token: " + actionToken);
+                        + "  (token " + tokenHint + " — the full token is in the endpoint file and Copy prompt)");
+                // M74 §4.7: the full token is no longer printed to stdout; the endpoint file (mode 600) carries it
+                System.out.println("[analyser] assistant REST: " + actionServer.url() + "  (token " + tokenHint + ")");
             } catch (Exception e) {
                 actionServer = null;
                 status.setText("Could not start the assistant REST transport: " + rootMessage(e));
@@ -10321,6 +10519,7 @@ public final class MainFrame extends JFrame {
             step(() -> { if (followTimer != null) followTimer.stop(); });
             step(() -> { if (designFollowTimer != null) designFollowTimer.stop(); });
             step(() -> { if (mcpIndicatorTimer != null) mcpIndicatorTimer.stop(); });
+            step(() -> { if (localAgentAdapter != null) localAgentAdapter.shutdown(); });   // M74 §4.7
             step(() -> { if (actionServer != null) actionServer.stop(); });
             // stop() already removes it; this also clears a file stranded by an earlier crash of ours, so a
             // clean quit never leaves a stale endpoint for an MCP client to find (M13.1)
@@ -10390,15 +10589,14 @@ public final class MainFrame extends JFrame {
         return config;
     }
 
-    /** M74: the local agent's adapter is installed in the next change; until then its effects are answered and do nothing. */
+    /** M74: the ONE performer of the local agent's process effects (OneDispatchModelTest pins it). */
     private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result performLocalAgent(
             telamin.fluxtion.audit.analyser.analyser.session.SessionEffects effect) {
-        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentEffectStarted(
-                effect.opId(), 0, "notInstalled");
+        return localAgentAdapter.perform(effect);
     }
 
     private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result confirmLocalAgentFolder(
             telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ConfirmLocalAgentFolderEffect e) {
-        return performLocalAgent(e);
+        return confirmLocalAgentFolderNow(e);
     }
 }
