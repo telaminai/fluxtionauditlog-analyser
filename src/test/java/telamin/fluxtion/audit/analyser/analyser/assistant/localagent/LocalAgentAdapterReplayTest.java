@@ -505,6 +505,29 @@ class LocalAgentAdapterReplayTest {
         t.start();
     }
 
+    /**
+     * ★ Witness (visual check, item 2): stop calling {@code run.toolUse} for a tool-use block (the old behaviour) — no
+     * tool line appears; or append the tool result's content — the result text appears.
+     */
+    @Test
+    @DisplayName("★ one compact line per tool call, marked ✓ or denied; a tool result's content is never shown")
+    void toolCallsAreShownAsLines() throws Exception {
+        Harness h = bound("mcp-allowedtools-explicit.jsonl");
+        h.send("call echo");
+        h.send("call add");
+        List<String> answers = h.answers();
+        assertTrue(answers.get(0).startsWith("▸ echo {\"text\":\"h1\"} — ✓\n\n"), answers.get(0));
+        assertTrue(answers.get(0).endsWith("The tool returned: `[fluxtion-analyser-hosted] h1`"), "the model's own words follow");
+        assertTrue(answers.get(1).startsWith("▸ add {\"a\":2.0,\"b\":3.0} — denied by the posture"), answers.get(1));
+        assertFalse(answers.get(1).contains("— refused"), "marked once: the denial, not again by its error result");
+        String all = String.join("\n", answers);
+        assertEquals(1, all.split("Permission to use mcp__fluxtion-analyser-hosted__add", -1).length - 1,
+                "the tool result's text appears only where the model itself quoted it, never as the result: " + all);
+        String longInput = StreamJson.shorten("{\"text\":\"" + "x".repeat(500) + "\"}");
+        assertEquals(StreamJson.TOOL_INPUT_SHOWN, longInput.length(), "a long input is shortened");
+        assertTrue(longInput.endsWith("…"));
+    }
+
     /** ★ Witness (review R1): drop the RejectedExecutionException catch in {@code write} — the late write throws. */
     @Test
     @DisplayName("★ R1: a write after the run was cleaned up (a late control_request on the reader) never throws")

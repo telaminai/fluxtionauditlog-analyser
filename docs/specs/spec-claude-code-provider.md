@@ -708,6 +708,13 @@ ambiguous, the closest sound option was taken and is recorded here.
   inlined nor readable (`--restricted` denies the Read). The owner then allowed `@path` and kept `!` and `#`
   refused (2026-10-16). **Two defects found and fixed:** a passed command with a leading blank was sent raw and
   so did nothing (it is now sent normalised); and a refused-while-busy reason outlived its turn.
+- **Visual check fixes (2026-10-16, owner-approved):** the header, posture line, lock warning and status line wrap to
+  the tab's width (`WrapLine`), and the folder has its own header line; one compact line per tool call (`▸ analyser_read
+  {…}`, the input shortened to 120 characters and shown as text) marked `✓`, `refused` or `denied by the posture`, and a
+  tool result's content is never shown; before the first turn the header says `model: <configured> (confirmed after
+  the first turn)`; the Start button reads Start / Resume / Starting… / Running…; a busy refusal is one sentence; and
+  Settings' *Max actions per reply* row is no longer clipped (`leftWrap` fixed a row's width at 110 px). Each with a
+  test and a witness.
 - **Delta review (R1–R4):** a write after a run's cleanup no longer throws `RejectedExecutionException` into the
   reader or the caller (it is a failed write: a user line ends its turn `PROCESS_EXIT`); the hosted-header redaction
   stays on its line and needs a separator, and `sk-` needs a word start, so the M42 registration output is unchanged;

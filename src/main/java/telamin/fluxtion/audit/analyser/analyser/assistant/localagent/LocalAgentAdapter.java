@@ -236,6 +236,7 @@ public final class LocalAgentAdapter {
                 s.effect().resume(), s.model(), s.cwd(), s.launcher().get(), run.endpointFile, s.effect().maxBudgetMicros()));
         run.startedAt = clock.nowMillis();
         run.folder = s.cwd().toString();
+        run.configuredModel = s.model() == null || s.model().isBlank() ? ClaudeCodeProvider.DEFAULT_MODEL : s.model().trim();
         try {
             AgentProcess p = launcher.start(command, provider.environment(), s.cwd(), line -> onLine(run, line));
             synchronized (run) {
@@ -379,7 +380,7 @@ public final class LocalAgentAdapter {
                 long headerRef;
                 synchronized (run) {
                     run.header = (run.header == null ? new LocalAgentTranscript.Header(null, null, "", null, List.of(),
-                            run.folder) : run.header).withInit(i.model(), i.cliVersion());
+                            run.folder, run.configuredModel) : run.header).withInit(i.model(), i.cliVersion());
                     headerRef = store.putHeader(run.header);
                 }
                 env.post(new SessionEvents.LocalAgentInitObserved(gen, run.runningTicket,
@@ -409,11 +410,12 @@ public final class LocalAgentAdapter {
                 textChanged(run);
             }
             case StreamJson.AssistantMessage a -> {
-                boolean text;
+                boolean changed;
                 synchronized (run) {
-                    text = run.block(a.messageId(), a.text());
+                    changed = a.toolUse() != null ? run.toolUse(a.messageId(), a.toolUse(), a.toolUseId(), a.toolInput())
+                            : run.block(a.messageId(), a.text());
                 }
-                if (text) textChanged(run);
+                if (changed) textChanged(run);
             }
             case StreamJson.CompactBoundary c -> env.post(new SessionEvents.LocalAgentNoted(gen, run.runningTicket,
                     SessionEvents.AgentNote.COMPACTED, 0));
@@ -424,6 +426,11 @@ public final class LocalAgentAdapter {
                 }
             }
             case StreamJson.PermissionDenied p -> {
+                boolean marked;
+                synchronized (run) {
+                    marked = run.toolOutcome(p.toolUseId(), "denied by the posture");
+                }
+                if (marked) textChanged(run);
                 if (run.deniedNoted.add(run.runningTicket)) {
                     env.post(new SessionEvents.LocalAgentNoted(gen, run.runningTicket,
                             SessionEvents.AgentNote.PERMISSION_DENIED, 0));
@@ -432,7 +439,15 @@ public final class LocalAgentAdapter {
             case StreamJson.Unknown u -> unknownEvents++;
             // a replay, a tool result or the compaction summary is never the person's turn: their words are the send
             // record, so a user event is shown as nothing at all (§4.5)
-            case StreamJson.UserMessage u -> { }
+            case StreamJson.UserMessage u -> {
+                boolean marked = false;
+                synchronized (run) {
+                    for (var r : u.toolResults().entrySet()) {
+                        marked |= run.toolOutcome(r.getKey(), r.getValue() ? "refused" : "✓");
+                    }
+                }
+                if (marked) textChanged(run);
+            }
             case StreamJson.ConversationReset c -> { }          // the next init's session id is what the node judges
             case StreamJson.Ignored i -> { }
         }
@@ -449,7 +464,7 @@ public final class LocalAgentAdapter {
             long headerRef;
             synchronized (run) {
                 run.header = new LocalAgentTranscript.Header(null, null, billing, init.apiProvider(),
-                        ClaudeCodeProvider.unclassified(init.commands()), run.folder);
+                        ClaudeCodeProvider.unclassified(init.commands()), run.folder, run.configuredModel);
                 headerRef = store.putHeader(run.header);
             }
             env.post(new SessionEvents.LocalAgentInitialized(gen, init.loggedIn(), init.permissionMode(), headerRef));
@@ -610,6 +625,7 @@ public final class LocalAgentAdapter {
         volatile String restToken;
         volatile String hosted;
         volatile String folder;
+        volatile String configuredModel;
         AgentProcess process;
         LocalAgentLock lock;
         Path endpointFile;
@@ -649,6 +665,8 @@ public final class LocalAgentAdapter {
             blocksSeen.clear();
             blocks.clear();
             finals.clear();
+            toolLines.clear();
+            toolKeys.clear();
             localOutput = null;
         }
 
@@ -677,15 +695,54 @@ public final class LocalAgentAdapter {
             return true;
         }
 
+        /** The tool lines of this turn, by tool-use id: the key of the line in {@link #blocks}. */
+        final Map<String, String> toolLines = new LinkedHashMap<>();
+        final Set<String> toolKeys = new HashSet<>();
+
+        /**
+         * One compact line per tool use: {@code ▸ analyser_read {"count":3}}. The name loses the hosted server's
+         * prefix; the input is already bounded by the parser. It is the model's data, shown as text and never run.
+         *
+         * @return true (the answer changed)
+         */
+        boolean toolUse(String messageId, String name, String id, String input) {
+            String msg = messageId == null ? "?" : messageId;
+            int index = blocksSeen.merge(msg, 1, Integer::sum) - 1;
+            String key = msg + "#" + index;
+            String shown = name.startsWith("mcp__" + LocalAgentPosture.HOSTED_SERVER + "__")
+                    ? name.substring(("mcp__" + LocalAgentPosture.HOSTED_SERVER + "__").length()) : name;
+            blocks.put(key, new StringBuilder("▸ " + shown + (input == null ? "" : " " + input)));
+            finals.add(key);
+            toolKeys.add(key);
+            if (id != null) toolLines.put(id, key);
+            return true;
+        }
+
+        /** Mark the line of tool use {@code id} with its outcome, once; false when there is no such line. */
+        boolean toolOutcome(String id, String outcome) {
+            String key = id == null ? null : toolLines.remove(id);
+            if (key == null || !blocks.containsKey(key)) return false;
+            blocks.get(key).append(" — ").append(outcome);
+            return true;
+        }
+
         void localOutput(String text) {
             localOutput = text;
         }
 
+        /** The answer: text blocks a paragraph apart, consecutive tool lines one line apart. */
         String compose() {
-            List<String> parts = new ArrayList<>();
-            for (StringBuilder b : blocks.values()) if (!b.isEmpty()) parts.add(b.toString());
-            if (parts.isEmpty() && localOutput != null) parts.add(localOutput);
-            return String.join("\n\n", parts);
+            StringBuilder out = new StringBuilder();
+            boolean previousTool = false;
+            for (var e : blocks.entrySet()) {
+                if (e.getValue().isEmpty()) continue;
+                boolean tool = toolKeys.contains(e.getKey());
+                if (!out.isEmpty()) out.append(tool && previousTool ? "\n" : "\n\n");
+                out.append(e.getValue());
+                previousTool = tool;
+            }
+            if (out.isEmpty() && localOutput != null) out.append(localOutput);
+            return out.toString();
         }
     }
 

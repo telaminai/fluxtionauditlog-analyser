@@ -55,10 +55,11 @@ public final class LocalAgentPanel extends JPanel {
     private final LocalAgentTranscript store;
     private Intents intents;
 
-    private final JLabel header = new JLabel(" ");
-    private final JLabel posture = new JLabel(DEFAULT_POSTURE_NOTE);
-    private final JLabel lockWarning = new JLabel(LOCK_WARNING);
-    private final JLabel status = new JLabel(" ");
+    // they WRAP to the tab's width: a header, a warning or a status that ends in "…" hides its most important part
+    private final WrapLine header = new WrapLine(" ").bold();
+    private final WrapLine posture = new WrapLine(DEFAULT_POSTURE_NOTE);
+    private final WrapLine lockWarning = new WrapLine(LOCK_WARNING);
+    private final WrapLine status = new WrapLine(" ");
     private final JTextArea detail = new JTextArea(2, 40);
     private final JTextPane view = new JTextPane();
     private final JScrollPane viewScroll = new JScrollPane(view);
@@ -77,7 +78,6 @@ public final class LocalAgentPanel extends JPanel {
         super(new BorderLayout(4, 4));
         this.store = store;
         getAccessibleContext().setAccessibleName("Claude Code");
-        header.setFont(header.getFont().deriveFont(Font.BOLD));
         header.getAccessibleContext().setAccessibleName("Claude Code session");
         status.getAccessibleContext().setAccessibleName("Claude Code status");
         detail.setEditable(false);
@@ -184,13 +184,14 @@ public final class LocalAgentPanel extends JPanel {
         header.setText(headerText);
         boolean running = s.running();
         start.setEnabled(!running);
-        start.setText(s.resumable() ? "Start Claude Code (resume)" : "Start Claude Code");
+        start.setText(startLabel(s));
         stop.setEnabled(s.busy() || s.starting() || s.pendingDraft() != 0);
         send.setEnabled(!s.busy() && !"STOPPING".equals(s.phase()));
         turnOnRest.setVisible("REST_OFF".equals(s.verdict()));
         settings.setVisible("SWITCHED_OFF".equals(s.verdict()) || "BUDGET_SPENT".equals(s.verdict()));
         newChat.setText(s.newChatOffered() ? "New chat (offered)" : "New chat");
         status.setText(phaseText(s));
+        revalidate();
         String words = s.detailRef() != 0 ? store.text(s.detailRef()) : s.stderrRef() != 0
                 ? "Claude Code's last error line: " + store.text(s.stderrRef()) : "";
         detail.setText(words);
@@ -220,17 +221,28 @@ public final class LocalAgentPanel extends JPanel {
         StringBuilder sb = new StringBuilder("Claude Code");
         if (h == null) return sb.append(s.running() ? " · starting" : " · not running").toString();
         String folder = h.folder();
-        if (h != null && h.model() != null) sb.append(" · ").append(h.model());
+        if (h.model() != null) sb.append(" · ").append(h.model());
+        else if (h.configuredModel() != null && !h.configuredModel().isBlank()) {
+            // initialize reports no model: say what was asked for until a turn's system/init confirms it
+            sb.append(" · model: ").append(h.configuredModel()).append(" (confirmed after the first turn)");
+        }
         sb.append(" · analyser assistant (default posture)");
-        if (folder != null && !folder.isBlank()) sb.append(" · ").append(folder);
-        if (h != null && h.cliVersion() != null) sb.append(" · CLI ").append(h.cliVersion());
+        if (h.cliVersion() != null) sb.append(" · CLI ").append(h.cliVersion());
         if (h != null && h.billing() != null && !h.billing().isBlank()) sb.append(" · ").append(h.billing());
         if (h != null && h.apiProvider() != null) sb.append(" · ").append(h.apiProvider());
         if (s.spentMicros() > 0 || s.budgetMicros() > 0) {
             sb.append(" · ").append(s.costUnderReported() ? "at least " : "").append("US$").append(usd(s.spentMicros()))
                     .append(" of US$").append(usd(s.budgetMicros()));
         }
+        if (folder != null && !folder.isBlank()) sb.append("\nFolder: ").append(folder);     // its own line
         return sb.toString();
+    }
+
+    /** The Start button says what pressing it would do, or that there is nothing to press. */
+    static String startLabel(LocalAgentState s) {
+        if (s.starting()) return "Starting…";
+        if (s.running()) return "Running…";
+        return s.resumable() ? "Resume Claude Code" : "Start Claude Code";
     }
 
     static String phaseText(LocalAgentState s) {
@@ -242,6 +254,8 @@ public final class LocalAgentPanel extends JPanel {
             case "STOPPING" -> "Stopping the turn…";
             default -> "Not running. " + CONTACTS_ANTHROPIC;
         };
+        // a Send refused as busy already says what is happening: one sentence, not the phase and then the refusal
+        if ("BUSY".equals(s.verdict()) && s.busy()) return s.reason();
         String why = s.reason().isBlank() ? "" : " — " + s.reason();
         return phase + why;
     }

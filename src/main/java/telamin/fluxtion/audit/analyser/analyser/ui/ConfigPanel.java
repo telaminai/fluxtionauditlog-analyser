@@ -614,10 +614,14 @@ public final class ConfigPanel extends JDialog {
                 "AWS region (optional):", awsRegionField);
     }
 
-    /** Wraps a fixed-size control so the form's horizontal fill doesn't stretch it full-width. */
-    private static JComponent leftWrap(JComponent inner) {
+    /**
+     * Wraps a control so the form's horizontal fill doesn't stretch it full-width. A single field (a spinner) is given
+     * a fixed 110 px; a ROW of controls keeps its natural width — forcing 110 px on a row clipped everything after its
+     * first control (the "per turn, across its rounds" spinner beside Max actions per reply).
+     */
+    static JComponent leftWrap(JComponent inner) {
         JPanel p = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
-        inner.setPreferredSize(new Dimension(110, inner.getPreferredSize().height));
+        if (!(inner instanceof JPanel)) inner.setPreferredSize(new Dimension(110, inner.getPreferredSize().height));
         p.add(inner);
         return p;
     }

@@ -29,15 +29,20 @@ public final class LocalAgentTranscript {
      * provider, and the built-in commands the slash table does not classify. Never an e-mail or an organisation.
      */
     public record Header(String model, String cliVersion, String billing, String apiProvider, List<String> unclassified,
-                         String folder) {
+                         String folder, String configuredModel) {
         public Header {
             unclassified = List.copyOf(unclassified == null ? List.of() : unclassified);
+        }
+
+        public Header(String model, String cliVersion, String billing, String apiProvider, List<String> unclassified,
+                      String folder) {
+            this(model, cliVersion, billing, apiProvider, unclassified, folder, null);
         }
 
         /** {@code folder} is the session's OWN launch directory, as the person should read it (review S5). */
         public Header withInit(String model, String cliVersion) {
             return new Header(model == null ? this.model : model, cliVersion == null ? this.cliVersion : cliVersion,
-                    billing, apiProvider, unclassified, folder);
+                    billing, apiProvider, unclassified, folder, configuredModel);
         }
     }
 

@@ -46,15 +46,33 @@ public final class StreamJson {
     public record TextDelta(int index, String text) implements Event {
     }
 
-    /** One complete block of an {@code assistant} message: its text (null for thinking or a tool use). */
-    public record AssistantMessage(String messageId, String model, String text, String toolUse) implements Event {
+    /**
+     * One complete block of an {@code assistant} message: its text (null for thinking or a tool use), or the tool it
+     * calls — its name, its id and its input as a BOUNDED one-line JSON string (model-authored data, never run).
+     */
+    public record AssistantMessage(String messageId, String model, String text, String toolUse, String toolUseId,
+                                   String toolInput) implements Event {
+        public AssistantMessage(String messageId, String model, String text, String toolUse) {
+            this(messageId, model, text, toolUse, null, null);
+        }
     }
+
+    /** How long a tool's input may be when it is shown (it is the model's data: shortened, never trusted). */
+    public static final int TOOL_INPUT_SHOWN = 120;
 
     /**
      * A {@code user} event: a replay of a sent line, a tool result, or a SYNTHETIC message — the compaction summary
      * [P0-12] — which is never the person's words.
      */
-    public record UserMessage(String uuid, boolean replay, boolean synthetic, boolean toolResult) implements Event {
+    public record UserMessage(String uuid, boolean replay, boolean synthetic, boolean toolResult,
+                              java.util.Map<String, Boolean> toolResults) implements Event {
+        public UserMessage(String uuid, boolean replay, boolean synthetic, boolean toolResult) {
+            this(uuid, replay, synthetic, toolResult, java.util.Map.of());
+        }
+
+        public UserMessage {
+            toolResults = java.util.Map.copyOf(toolResults == null ? java.util.Map.of() : toolResults);
+        }
     }
 
     /**
@@ -83,7 +101,10 @@ public final class StreamJson {
     }
 
     /** {@code system/permission_denied}: the posture denied a tool, without blocking [P0-21]. */
-    public record PermissionDenied(String toolName) implements Event {
+    public record PermissionDenied(String toolName, String toolUseId) implements Event {
+        public PermissionDenied(String toolName) {
+            this(toolName, null);
+        }
     }
 
     /** {@code conversation_reset}: {@code /clear} changed the session under the analyser [P0b-4]. */
@@ -189,7 +210,7 @@ public final class StreamJson {
                 Map<?, ?> meta = map(m.get("compact_metadata"));
                 yield new CompactBoundary(meta == null ? null : str(meta.get("trigger")));
             }
-            case "permission_denied" -> new PermissionDenied(str(m.get("tool_name")));
+            case "permission_denied" -> new PermissionDenied(str(m.get("tool_name")), str(m.get("tool_use_id")));
             case "status", "thinking_tokens", "hook_started", "hook_response", "background_tasks_changed",
                  "commands_changed" -> new Ignored("system/" + sub);
             default -> new Unknown("system/" + sub);
@@ -224,6 +245,8 @@ public final class StreamJson {
         if (msg == null) return new Unknown("assistant");
         String text = null;
         String tool = null;
+        String toolId = null;
+        String toolInput = null;
         StringBuilder joined = null;
         for (Object o : list(msg.get("content"))) {
             if (!(o instanceof Map<?, ?> block)) continue;
@@ -233,22 +256,32 @@ public final class StreamJson {
                 joined.append(str(block.get("text")) == null ? "" : str(block.get("text")));
             } else if ("tool_use".equals(bt)) {
                 tool = str(block.get("name"));
+                toolId = str(block.get("id"));
+                Object input = block.get("input");
+                if (input instanceof Map<?, ?> in && !in.isEmpty()) toolInput = shorten(Json.write(input));
             }
         }
         if (joined != null) text = joined.toString();
-        return new AssistantMessage(str(msg.get("id")), str(msg.get("model")), text, tool);
+        return new AssistantMessage(str(msg.get("id")), str(msg.get("model")), text, tool, toolId, toolInput);
     }
 
     private static Event user(Map<?, ?> m) {
         boolean toolResult = false;
+        Map<String, Boolean> results = new LinkedHashMap<>();
         Map<?, ?> msg = map(m.get("message"));
         if (msg != null) {
             for (Object o : list(msg.get("content"))) {
-                if (o instanceof Map<?, ?> block && "tool_result".equals(str(block.get("type")))) toolResult = true;
+                if (o instanceof Map<?, ?> block && "tool_result".equals(str(block.get("type")))) {
+                    toolResult = true;
+                    // only WHETHER it failed: a tool result's content is never kept
+                    if (str(block.get("tool_use_id")) != null) {
+                        results.put(str(block.get("tool_use_id")), Boolean.TRUE.equals(block.get("is_error")));
+                    }
+                }
             }
         }
         return new UserMessage(str(m.get("uuid")), Boolean.TRUE.equals(m.get("isReplay")),
-                Boolean.TRUE.equals(m.get("isSynthetic")), toolResult);
+                Boolean.TRUE.equals(m.get("isSynthetic")), toolResult, results);
     }
 
     private static Event result(Map<?, ?> m) {
@@ -307,6 +340,12 @@ public final class StreamJson {
         }
         return new Initialize(subscription, provider, keySource, tokenSource, str(body.get("current_permission_mode")),
                 commands);
+    }
+
+    /** One line, at most {@link #TOOL_INPUT_SHOWN} characters. */
+    static String shorten(String s) {
+        String one = s.replace('\n', ' ').replace('\r', ' ');
+        return one.length() <= TOOL_INPUT_SHOWN ? one : one.substring(0, TOOL_INPUT_SHOWN - 1) + "…";
     }
 
     // ---- writing ------------------------------------------------------------------------------------------------------
