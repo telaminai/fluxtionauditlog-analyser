@@ -74,7 +74,9 @@ starts from here:
 
 Then it drives the window. From analyser 1.14 it also **points**: before it talks about something it dims the
 window, lights that one thing, and says in a few words why to look there. The callout is tagged *assistant*
-because it is the assistant's words — what it points at is what tells you whether the claim is true.
+because it is the assistant's words — what it points at is what tells you whether the claim is true. Where
+there is room, a caption is placed off whatever is being compared with what is lit: the other nodes on the
+graph, and the lines either side of a lit source line.
 
 ![A spotlight during the tour: the window dimmed, one declared node that never logged cut out, and the assistant's caption pointing at it](assets/spotlight.png)
 

@@ -14,6 +14,15 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 - The analyser no longer prints the full REST token to its console when the REST transport starts; the token hint is shown, and the endpoint file (mode 600) and *Copy prompt* carry the token.
 
+## [1.35.1] - 2026-10-16
+
+### Fixed
+
+- A spotlight set of several Project-panel sections (`project:log`, `project:graph`, `project:processors`, `project:roots`) no longer draws its boxes over the wrong rows. Measuring a section used to scroll the panel to it, so each later member moved the rows under the boxes already measured for earlier ones while the verb reported ok. Measuring no longer scrolls; revealing does. A section that scrolled out of view to show another is refused by name, as every other such pair is, and one still partly in view is boxed where it shows.
+- The Project panel's **Event processors** list shows a processor the project declares once, not twice: the declaration now rides in that processor's provenance column instead of adding a second row with the same name, with each declared name the row does not already show (`project declaration "Quote pricing EU", "Quote pricing US" · declared`). A declaration that names no class (a runtime processor) keeps its own row.
+- **Source roots** inside the project are named by their path in the project, and roots that would read alike once shortened keep more of their path until they differ. Six roots used to read `~/…/main/java`. *Copy*, *Reveal* and *Remove* still act on the full path.
+- A spotlight's caption keeps clear of what it is being compared with, wherever there is room: the topology's other visible nodes for a node, and the source lines either side for a lit line. Placement among callouts and lit targets is unchanged; this only breaks ties in favour of a spot that hides neither.
+
 ## [1.35.0] - 2026-10-16
 
 ### Added

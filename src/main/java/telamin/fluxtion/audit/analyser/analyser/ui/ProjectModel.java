@@ -28,11 +28,27 @@ public record ProjectModel(List<Section> sections) {
      * for every row whose target is a tab or a settings page rather than a thing.
      */
     public record Row(String primary, String secondary, String path, String provenance, Tone tone,
-                      Target target, String item) {
+                      Target target, String item, String label) {
 
         /** A row that names no addressable item — the shape every pre-35eeb320 caller uses. */
         public Row(String primary, String secondary, String path, String provenance, Tone tone, Target target) {
-            this(primary, secondary, path, provenance, tone, target, null);
+            this(primary, secondary, path, provenance, tone, target, null, null);
+        }
+
+        /** A row whose drawn text is {@link #abbreviate(String) primary, abbreviated} — every row but a source root. */
+        public Row(String primary, String secondary, String path, String provenance, Tone tone, Target target, String item) {
+            this(primary, secondary, path, provenance, tone, target, item, null);
+        }
+
+        /**
+         * What the panel DRAWS for this row. Normally {@code primary}, abbreviated (C4/D-L8). A row whose drawn text the
+         * model has already decided — a source root, whose label {@link #distinctRootLabels} made unique among its
+         * neighbours — carries it as {@code label}, drawn as it is: abbreviating it again cut a label lengthened past
+         * the panel's width back to the tail its neighbours share (PR #144 review).
+         */
+        public String drawn() {
+            if (label != null) return label;
+            return primary == null ? "?" : abbreviate(primary);
         }
     }
 
@@ -327,8 +343,23 @@ public record ProjectModel(List<Section> sections) {
 
         // ---- processors ------------------------------------------------------------------------------
         rows = new ArrayList<>();
+        // A declaration that NAMES a class the processors list also reports is one processor, not two: it used to be
+        // drawn twice — a "declared" row and a "source found" row with the same name — so a project declaring its 11
+        // processors showed 22 rows and pushed the source roots off screen (a cold-assistant test, 2026-10-16). The
+        // declaration folds into that processor's row as provenance. A declaration with no class (a runtime processor),
+        // or naming a class nothing reports, keeps its own row exactly as before. Profiles require unique NAMES, not
+        // unique classes, so several declarations may name one class: every one is kept, and each name the row would
+        // not otherwise show is stated in the provenance (review of PR #144: folding by class lost the names).
+        java.util.Map<String, List<Map<String, Object>>> declaredByClass = new java.util.LinkedHashMap<>();
+        java.util.Set<String> reportedClasses = new java.util.HashSet<>();
+        for (Object o : list(ctx.get("processors"))) reportedClasses.add(str(map(o).get("class")));
         for (Object o : list(ctx.get("processorDeclarations"))) {
             Map<String, Object> declaration = map(o);
+            String fqcn = str(declaration.get("fqcn"));
+            if (fqcn != null && reportedClasses.contains(fqcn)) {
+                declaredByClass.computeIfAbsent(fqcn, k -> new ArrayList<>()).add(declaration);
+                continue;
+            }
             rows.add(new Row(str(declaration.get("name")), str(declaration.get("status")), null,
                     "project declaration · " + str(declaration.get("kind")), Tone.NORMAL, Target.NONE));
         }
@@ -355,7 +386,10 @@ public record ProjectModel(List<Section> sections) {
             // the FQN rides as the row's ITEM. Without it every row's Open reached the same place --
             // "the Source tab" -- which showed whichever processor was selected, so a list of six had
             // one button repeated six times (found in use, 2026-09-30).
-            rows.add(new Row(simple, detail, null, str(p.get("from")),
+            List<Map<String, Object>> declared = declaredByClass.get(fqn);
+            String from = declared == null ? str(p.get("from"))
+                    : (p.get("from") == null ? "" : str(p.get("from")) + " · ") + declarationProvenance(declared, simple);
+            rows.add(new Row(simple, detail, null, from,
                     // owner, 2026-08-27: no source → no "Go" (there is nowhere to go); "Add source" instead, which
                     // opens the Source roots page — the remedy is a root, not a processor setting
                     found ? (selected ? Tone.NORMAL : Tone.MUTED) : Tone.WARN,
@@ -379,7 +413,13 @@ public record ProjectModel(List<Section> sections) {
         rows = new ArrayList<>();
         Map<String, Object> source = map(ctx.get("source"));
         boolean inProject = Boolean.TRUE.equals(proj.get("active"));
+        List<String> rootPaths = new ArrayList<>();
+        for (Object o : list(source.get("rootTiers"))) rootPaths.add(str(map(o).get("path")));
+        List<String> rootLabels = distinctRootLabels(rootPaths, inProject ? str(proj.get("root")) : null,
+                System.getProperty("user.home"), ROOT_LABEL_MAX);
+        int rootIndex = 0;
         for (Object o : list(source.get("rootTiers"))) {
+            String rootLabel = rootLabels.get(rootIndex++);
             Map<String, Object> r = map(o);
             String tier = str(r.get("tier"));
             String form = str(r.get("form"));
@@ -395,7 +435,8 @@ public record ProjectModel(List<Section> sections) {
                             + "declare a workspace anchor in Settings \u25b8 Source roots, or move it under "
                             + "the project" : "");
             rows.add(new Row(str(r.get("path")), detail, str(r.get("path")), tier,
-                    tier != null && tier.startsWith("demo") ? Tone.MUTED : notPortable ? Tone.WARN : Tone.NORMAL, Target.SETTINGS_SOURCE));
+                    tier != null && tier.startsWith("demo") ? Tone.MUTED : notPortable ? Tone.WARN : Tone.NORMAL,
+                    Target.SETTINGS_SOURCE, null, rootLabel));
         }
         if (source.get("workspaceRoot") != null) {
             rows.add(new Row("workspace anchor " + source.get("workspaceRoot"),
@@ -550,6 +591,72 @@ public record ProjectModel(List<Section> sections) {
         String head = parts[0].isEmpty() ? sep : parts[0] + sep;
         if (head.length() + tail.length() + 1 > max) return "…" + p.substring(p.length() - (max - 1));
         return head + "…" + sep + tail;
+    }
+
+    /**
+     * The provenance a processor row carries for the declarations naming its class: {@code project declaration ·
+     * declared}, with each declared name the row does not already show, quoted —
+     * {@code project declaration "Quote pricing EU", "Quote pricing US" · declared}. A name equal to the class's
+     * simple name is the row's own primary text, so it is not repeated.
+     */
+    static String declarationProvenance(List<Map<String, Object>> declarations, String simpleName) {
+        List<String> names = new ArrayList<>();
+        java.util.LinkedHashSet<String> kinds = new java.util.LinkedHashSet<>();
+        for (Map<String, Object> d : declarations) {
+            String name = str(d.get("name"));
+            if (name != null && !name.equals(simpleName)) names.add("\"" + name + "\"");
+            kinds.add(str(d.get("kind")));
+        }
+        return "project declaration" + (names.isEmpty() ? "" : " " + String.join(", ", names))
+                + " · " + String.join(", ", kinds);
+    }
+
+    /** The longest root label the panel draws unabbreviated ({@link #abbreviate(String)}'s default width). */
+    static final int ROOT_LABEL_MAX = 44;
+
+    /**
+     * What each source root row DRAWS: a root under the project is named by its path within the project
+     * ({@code vendor/integrator/src/main/java}), which is how the profile stores it and how a person thinks of it;
+     * any other root is shown as before. Then labels that would still read the same once abbreviated keep more of
+     * their tail until they differ. Six roots once all read {@code ~/…/main/java}, and nobody could tell them apart
+     * (a cold-assistant test, 2026-10-16). Display only: the row's path — what Copy, Reveal and Remove use — is the
+     * full path, unchanged.
+     *
+     * <p>The result is FINAL drawn text ({@link Row#drawn()} draws it as it is), so uniqueness is checked on exactly
+     * what appears. A label with nothing left to add is the whole path, and two roots have different paths.
+     */
+    static List<String> distinctRootLabels(List<String> paths, String projectRoot, String home, int max) {
+        List<String> base = new ArrayList<>();
+        for (String p : paths) {
+            String label = p;
+            if (p != null && projectRoot != null && !projectRoot.isBlank()) {
+                String rootSlash = projectRoot.endsWith("/") ? projectRoot : projectRoot + "/";
+                if (p.equals(projectRoot)) label = ".";
+                else if (p.startsWith(rootSlash)) label = p.substring(rootSlash.length());
+            }
+            base.add(label);
+        }
+        List<String> shown = new ArrayList<>();
+        for (String b : base) shown.add(abbreviate(b, home, max));
+        for (int k = 3; ; k++) {
+            java.util.Map<String, Integer> seen = new java.util.HashMap<>();
+            for (String s : shown) if (s != null) seen.merge(s, 1, Integer::sum);
+            boolean clash = false, grew = false;
+            for (int i = 0; i < shown.size(); i++) {
+                String s = shown.get(i);
+                if (s == null || seen.get(s) < 2) continue;
+                clash = true;
+                String b = base.get(i);
+                String tilde = home != null && !home.isBlank() && b.startsWith(home) ? "~" + b.substring(home.length()) : b;
+                String sep = tilde.contains("/") ? "/" : "\\";
+                String[] parts = tilde.split(java.util.regex.Pattern.quote(sep));
+                if (k >= parts.length) { shown.set(i, tilde); continue; }      // nothing left to add: the whole path
+                String tail = String.join(sep, java.util.Arrays.copyOfRange(parts, parts.length - k, parts.length));
+                shown.set(i, "…" + sep + tail);
+                grew = true;
+            }
+            if (!clash || !grew) return shown;
+        }
     }
 
     static String fileName(String path) {
