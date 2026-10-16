@@ -552,6 +552,18 @@ public final class TopologyCanvas extends JPanel {
         return box == null ? null : toScreen(box.x(), box.y(), box.width(), box.height(), scale, offsetX, offsetY);
     }
 
+    /**
+     * Every node box in the current view, by id, in this canvas's coordinates (see {@link #screenBoundsOf}) — so a
+     * spotlight callout can keep clear of the nodes that are not lit.
+     */
+    public java.util.Map<String, java.awt.Rectangle> screenBoundsOfAll() {
+        java.util.Map<String, java.awt.Rectangle> out = new java.util.LinkedHashMap<>();
+        if (layout.isEmpty()) return out;
+        for (TopologyLayout.NodeBox box : layout.boxes())
+            out.put(box.id(), toScreen(box.x(), box.y(), box.width(), box.height(), scale, offsetX, offsetY));
+        return out;
+    }
+
     /** World → screen, as {@link #paintComponent} applies it. Static so the arithmetic is tested without a canvas. */
     static java.awt.Rectangle toScreen(double x, double y, double w, double h,
                                        double scale, double offsetX, double offsetY) {

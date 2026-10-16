@@ -218,9 +218,31 @@ public final class SpotlightOverlay extends JComponent {
         repaint();
     }
 
+    /**
+     * What each lit target's callout should keep clear of: things NOT lit that a reader compares with it (see
+     * {@link SpotlightGeometry#layout(List, List, Dimension, List)}). Keyed like {@link #lit}; goes out with its target.
+     * Measured by the frame, in the same coordinates as the lit bounds.
+     */
+    private final java.util.Map<String, List<Rectangle>> keepClear = new java.util.LinkedHashMap<>();
+    /** The callouts as last laid out, for tests; null slots are targets without a caption. */
+    private List<Rectangle> lastCallouts = List.of();
+
+    /** Set what {@code targetName}'s callout keeps clear of; an empty list clears it. Ignored for a target not lit. */
+    public void keepClear(String targetName, List<Rectangle> rects) {
+        if (lit.stream().noneMatch(l -> l.target().equalsIgnoreCase(targetName))) return;
+        if (rects == null || rects.isEmpty()) keepClear.remove(targetName.toLowerCase(java.util.Locale.ROOT));
+        else keepClear.put(targetName.toLowerCase(java.util.Locale.ROOT), List.copyOf(rects));
+        repaint();
+    }
+
+    List<Rectangle> lastCallouts() {
+        return lastCallouts;
+    }
+
     /** Light ONE thing, replacing whatever was lit. */
     public void light(String targetName, Rectangle bounds, String caption) {
         lit.clear();
+        keepClear.clear();
         nextNumber = 1;
         add(targetName, bounds, caption);
     }
@@ -251,6 +273,7 @@ public final class SpotlightOverlay extends JComponent {
     /** Put ONE out. True when it was lit. The others keep their numbers. */
     public boolean remove(String targetName) {
         boolean was = lit.removeIf(l -> l.target().equalsIgnoreCase(targetName));
+        keepClear.remove(targetName.toLowerCase(java.util.Locale.ROOT));
         if (lit.isEmpty()) wentDark();
         repaint();
         return was;
@@ -277,7 +300,11 @@ public final class SpotlightOverlay extends JComponent {
             Lit l = lit.get(i);
             java.util.Optional<Rectangle> at = whereIs.apply(l.target());
             if (at.isPresent() && !at.get().isEmpty()) lit.set(i, new Lit(l.n(), l.target(), new Rectangle(at.get()), l.caption()));
-            else out.add(0, lit.remove(i).target());
+            else {
+                String gone = lit.remove(i).target();
+                keepClear.remove(gone.toLowerCase(java.util.Locale.ROOT));
+                out.add(0, gone);
+            }
         }
         if (lit.isEmpty()) wentDark();
         repaint();
@@ -288,6 +315,7 @@ public final class SpotlightOverlay extends JComponent {
     public void clearSpotlight() {
         if (!isLit()) return;
         lit.clear();
+        keepClear.clear();
         wentDark();
         repaint();
     }
@@ -499,7 +527,10 @@ public final class SpotlightOverlay extends JComponent {
             wrapped.add(lines);
             boxes.add(new Dimension(textW + pad * 2 + 6, (lines.size() + 1) * fm.getHeight() + tagGap + pad * 2));
         }
-        List<Rectangle> callouts = SpotlightGeometry.layout(cuts, boxes, size);
+        List<Rectangle> keep = new ArrayList<>();
+        for (List<Rectangle> rects : keepClear.values()) keep.addAll(rects);
+        List<Rectangle> callouts = SpotlightGeometry.layout(cuts, boxes, size, keep);
+        lastCallouts = callouts;
 
         // arrows first, so a callout box is never crossed by another spotlight's arrow
         for (int i = 0; i < lit.size(); i++) {

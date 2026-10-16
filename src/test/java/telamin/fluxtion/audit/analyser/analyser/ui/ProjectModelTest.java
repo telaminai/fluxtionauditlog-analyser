@@ -561,4 +561,55 @@ class ProjectModelTest {
         assertEquals(ProjectModel.Tone.WARN, dest.tone());
         assertTrue(dest.secondary().contains("no directory at /work/demo/out"), dest.secondary());
     }
+
+    /**
+     * A cold-assistant test (2026-10-16): a project declaring its 11 processors showed 22 rows — each processor once as
+     * "project declaration" and once as "source found" — which pushed the source roots off the panel. A declaration
+     * naming a reported class is that processor; one with no class (a runtime processor) stays a row of its own.
+     */
+    @Test
+    void aDeclaredProcessorIsOneRow_notADeclarationRowPlusASourceRow() {
+        Map<String, Object> ctx = full();
+        ctx.put("processorDeclarations", List.of(
+                Map.of("name", "DemoQuoteProcessor", "kind", "declared", "fqcn", "com.acme.demo.generated.DemoQuoteProcessor",
+                        "status", "declared generated type; source and evidence availability are separate"),
+                Map.of("name", "Live graph", "kind", "runtime", "status", "runtime processor; no fixed generated type declared")));
+        List<ProjectModel.Row> procs = ProjectModel.from(ctx).section(ProjectModel.PROCESSORS).rows();
+        assertEquals(List.of("Live graph", "DemoQuoteProcessor", "HedgeProcessor"),
+                procs.stream().map(ProjectModel.Row::primary).toList(),
+                "the declared DemoQuoteProcessor appears ONCE; the runtime declaration keeps its row");
+        ProjectModel.Row demo = procs.get(1);
+        assertEquals("selected · source found · com.acme.demo.generated", demo.secondary(), "the processor row is unchanged");
+        assertEquals("project · project declaration · declared", demo.provenance(), "the declaration rides as provenance");
+        assertEquals(ProjectModel.Target.PROCESSOR, demo.target());
+        assertEquals("project", procs.get(2).provenance(), "an undeclared processor's row is exactly as before");
+    }
+
+    /**
+     * A cold-assistant test (2026-10-16): six source roots all read {@code ~/…/main/java}. A root under the project is
+     * named by its path in the project; labels that would still read alike keep more of their tail. The full path, which
+     * Copy, Reveal and Remove use, never changes.
+     */
+    @Test
+    void sourceRootsAreNamedSoThatNoTwoReadTheSame() {
+        Map<String, Object> ctx = full();
+        String root = "/Users/demo/IdeaProjects/research/inferred-orchestration";
+        ctx.put("project", Map.of("active", true, "name", "Research", "root", root,
+                "settings", root + "/.analyser/project.fluxtion-settings"));
+        List<String> paths = List.of(root + "/src/main/java", root + "/reference/src/main/java",
+                root + "/vendor/integrator/src/main/java", "/opt/shared/libraries/alpha-module/src/main/java",
+                "/opt/shared/libraries/beta-module/src/main/java");
+        List<Object> tiers = new java.util.ArrayList<>();
+        for (String p : paths) tiers.add(Map.of("path", p, "tier", "project", "form", "project-relative"));
+        ctx.put("source", Map.of("rootTiers", tiers));
+        List<ProjectModel.Row> rows = ProjectModel.from(ctx).section(ProjectModel.ROOTS).rows();
+        List<String> drawn = rows.stream().map(r -> ProjectModel.abbreviate(r.primary())).toList();
+        assertEquals("src/main/java", drawn.get(0));
+        assertEquals("reference/src/main/java", drawn.get(1));
+        assertEquals("vendor/integrator/src/main/java", drawn.get(2));
+        assertEquals(drawn.size(), new java.util.HashSet<>(drawn).size(), "every root reads differently: " + drawn);
+        assertTrue(drawn.get(3).contains("alpha-module") && drawn.get(4).contains("beta-module"), drawn.toString());
+        for (int i = 0; i < paths.size(); i++)
+            assertEquals(paths.get(i), rows.get(i).path(), "display only: the row's path is the full path");
+    }
 }

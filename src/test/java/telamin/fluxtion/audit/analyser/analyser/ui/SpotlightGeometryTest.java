@@ -234,4 +234,53 @@ class SpotlightGeometryTest {
         assertEquals(java.util.List.of(SpotlightGeometry.cutOut(big, FRAME), SpotlightGeometry.cutOut(inner, FRAME)), cuts(big, inner),
                 "overlapping targets merge into one hole as before");
     }
+
+    /**
+     * #42, from a cold-assistant test (2026-10-16): a node's callout was drawn over the sibling node its caption was
+     * contrasting it with. A keep-clear rectangle (an UNLIT thing being compared) is avoided when a free side exists.
+     */
+    @Test
+    void aCalloutKeepsClearOfAnUnlitNeighbour_whenAFreeSideExists() {
+        Rectangle node = new Rectangle(500, 300, 145, 53);
+        Rectangle sibling = new Rectangle(500, 380, 145, 53);               // right below: where "below" would land
+        java.util.List<Rectangle> cuts = java.util.List.of(SpotlightGeometry.cutOut(node, FRAME));
+        java.util.List<Dimension> sizes = java.util.List.of(CAPTION);
+        Rectangle usual = SpotlightGeometry.layout(cuts, sizes, FRAME).get(0);
+        assertTrue(usual.intersects(sibling), "precondition: the usual placement covers the sibling: " + usual);
+        Rectangle kept = SpotlightGeometry.layout(cuts, sizes, FRAME, java.util.List.of(sibling)).get(0);
+        assertFalse(kept.intersects(sibling), "the callout moved off the sibling: " + kept);
+        assertFalse(kept.intersects(cuts.get(0)), "and still covers nothing lit: " + kept);
+    }
+
+    /** Keep-clear is strictly secondary: with an empty list every placement is exactly what it was. */
+    @Test
+    void withNothingToKeepClearOf_everyPlacementIsUnchanged() {
+        java.util.Random random = new java.util.Random(42);
+        for (int trial = 0; trial < 200; trial++) {
+            int n = 1 + random.nextInt(5);
+            java.util.List<Rectangle> cuts = new java.util.ArrayList<>();
+            java.util.List<Dimension> sizes = new java.util.ArrayList<>();
+            for (int i = 0; i < n; i++) {
+                cuts.add(SpotlightGeometry.cutOut(new Rectangle(random.nextInt(1100), random.nextInt(760),
+                        20 + random.nextInt(300), 14 + random.nextInt(60)), FRAME));
+                sizes.add(random.nextInt(4) == 0 ? null : new Dimension(120 + random.nextInt(260), 40 + random.nextInt(40)));
+            }
+            assertEquals(SpotlightGeometry.layout(cuts, sizes, FRAME),
+                    SpotlightGeometry.layout(cuts, sizes, FRAME, java.util.List.of()), "trial " + trial);
+        }
+    }
+
+    /** And it never trades a lit thing for an unlit one: covering a cut-out still costs first. */
+    @Test
+    void keepClearNeverPushesACalloutOntoSomethingLit() {
+        Rectangle a = new Rectangle(500, 300, 145, 53);
+        Rectangle b = new Rectangle(500, 380, 145, 53);
+        java.util.List<Rectangle> cuts = java.util.List.of(SpotlightGeometry.cutOut(a, FRAME), SpotlightGeometry.cutOut(b, FRAME));
+        java.util.List<Dimension> sizes = java.util.List.of(CAPTION, CAPTION);
+        // keep-clear everywhere a callout could reasonably go: the lit cut-outs must still win
+        java.util.List<Rectangle> everywhere = java.util.List.of(new Rectangle(0, 0, FRAME.width, FRAME.height));
+        java.util.List<Rectangle> placed = SpotlightGeometry.layout(cuts, sizes, FRAME, everywhere);
+        for (Rectangle callout : placed)
+            for (Rectangle cut : cuts) assertFalse(callout.intersects(cut), callout + " covers lit " + cut);
+    }
 }
