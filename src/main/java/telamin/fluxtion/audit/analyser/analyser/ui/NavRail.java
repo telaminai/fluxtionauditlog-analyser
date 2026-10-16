@@ -76,7 +76,7 @@ public final class NavRail extends JPanel {
     }
 
     private static void style(AbstractButton button, String tooltip) {
-        button.setToolTipText(tooltip);
+        button.setToolTipText(UiText.tooltip(tooltip));
         button.setFocusable(false);
         button.setAlignmentX(Component.CENTER_ALIGNMENT);
         button.setMargin(new java.awt.Insets(0, 0, 0, 0));

@@ -42,7 +42,7 @@ public final class DetailPanel extends JPanel {
     private final JScrollPane scroll = new JScrollPane(text);
     private final YamlHighlighter highlighter = new YamlHighlighter();
     private final Map<String, String> methodByInstance = new LinkedHashMap<>();  // instanceId -> driving method
-    private final javax.swing.JLabel selectionInfo = new javax.swing.JLabel(" ");
+    private final javax.swing.JLabel selectionInfo = UiText.plain(new javax.swing.JLabel(" "));
     private String shownText = "";
     private boolean logical = true;                     // Logical is the default reading view; Text is the evidence
     private LogicalLogView.Layout layout = LogicalLogView.layout(List.of());
@@ -86,7 +86,7 @@ public final class DetailPanel extends JPanel {
     /** Show {@code note} above the record, or hide the banner for null. Call on the EDT. */
     public void setIdentityNote(String note) {
         identityBanner.setText(note == null ? "" : note);
-        identityBanner.setToolTipText(note);
+        identityBanner.setToolTipText(UiText.tooltip(note));
         identityBanner.setVisible(note != null);
         revalidate();
     }
@@ -98,6 +98,7 @@ public final class DetailPanel extends JPanel {
 
     public DetailPanel() {
         super(new BorderLayout());
+        UiText.plain(identityBanner);     // SF-2: a verdict's reason names files
         text.setEditable(false);
         text.setFont(UiTheme.mono(12));
         text.setBorder(BorderFactory.createEmptyBorder(6, 8, 6, 8));
@@ -389,7 +390,7 @@ public final class DetailPanel extends JPanel {
             } else if (!pairs.isEmpty()) {
                 javax.swing.JMenu addTo = new javax.swing.JMenu("Add to graph");
                 for (String[] pair : pairs) {
-                    JMenuItem it = new JMenuItem(pair[0] + "." + pair[1]);
+                    JMenuItem it = UiText.menuItem(pair[0] + "." + pair[1]);   // SF-2: node ids and keys are the log's
                     it.addActionListener(a -> graphTargets.addSeries(null, pair[0], pair[1]));   // → current graph
                     addTo.add(it);
                 }
@@ -401,7 +402,7 @@ public final class DetailPanel extends JPanel {
             if (declarationOpener != null) {
                 javax.swing.JMenu declarations = new javax.swing.JMenu("Show declaration (matched by name)");
                 for (String id : methodByInstance.keySet()) {
-                    JMenuItem item = new JMenuItem(id); item.addActionListener(a -> declarationOpener.accept(id)); declarations.add(item);
+                    JMenuItem item = UiText.menuItem(id); item.addActionListener(a -> declarationOpener.accept(id)); declarations.add(item);
                 }
                 menu.add(declarations);
             }
@@ -410,7 +411,7 @@ public final class DetailPanel extends JPanel {
             header.setEnabled(false);
             menu.add(header);
             for (Map.Entry<String, String> entry : methodByInstance.entrySet()) {
-                JMenuItem item = new JMenuItem(entry.getKey());
+                JMenuItem item = UiText.menuItem(entry.getKey());
                 item.addActionListener(a -> nodeSourceOpener.accept(entry.getKey(), entry.getValue()));
                 menu.add(item);
             }
@@ -496,16 +497,16 @@ public final class DetailPanel extends JPanel {
     /** The "Add instanceId.key to graph" submenu with current / named / new-graph targets. */
     private javax.swing.JMenu graphSubmenu(String instanceId, String key) {
         String display = instanceId + "." + key;
-        javax.swing.JMenu addTo = new javax.swing.JMenu("Add " + display + " to graph");
+        javax.swing.JMenu addTo = UiText.menu("Add " + display + " to graph");
         String current = graphTargets.currentName();
-        JMenuItem cur = new JMenuItem(current == null ? "Current graph" : "Current graph (" + current + ")");
+        JMenuItem cur = UiText.menuItem(current == null ? "Current graph" : "Current graph (" + current + ")");
         cur.addActionListener(a -> graphTargets.addSeries(null, instanceId, key));
         addTo.add(cur);
         List<String> names = graphTargets.names();
         if (!names.isEmpty()) {
             addTo.addSeparator();
             for (String n : names) {
-                JMenuItem item = new JMenuItem(n);
+                JMenuItem item = UiText.menuItem(n);      // a chart name
                 item.addActionListener(a -> graphTargets.addSeries(n, instanceId, key));
                 addTo.add(item);
             }

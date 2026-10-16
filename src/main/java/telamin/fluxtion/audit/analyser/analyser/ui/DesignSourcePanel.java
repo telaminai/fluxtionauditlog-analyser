@@ -12,7 +12,7 @@ final class DesignSourcePanel extends JPanel {
     final WrapTextPane text = new WrapTextPane(false);
     private final JTextArea status = new JTextArea("Open a design with open {design: path}.");
     private final DefaultListModel<Anchor> index = new DefaultListModel<>();
-    private final JList<Anchor> beans = new JList<>(index);
+    private final JList<Anchor> beans = UiText.plainCells(new JList<>(index));   // SF-2: bean ids are the XML's
     private final JCheckBox follow = new JCheckBox("Follow design", true);
     private DesignDocument document;
     private String file;

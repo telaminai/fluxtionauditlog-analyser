@@ -57,10 +57,11 @@ public final class AssistantPanel extends JPanel {
     private final AssistantTranscript transcript;
     private Intents intents;
 
-    private final JLabel mode = new JLabel("Live assistant");
-    private final JLabel route = new JLabel();
-    private final JLabel basis = new JLabel();
-    private final JLabel status = new JLabel(" ");
+    // SF-2: the route names a configured model, the basis a walk or record, the status a provider's error
+    private final JLabel mode = UiText.plain(new JLabel("Live assistant"));
+    private final JLabel route = UiText.plain(new JLabel());
+    private final JLabel basis = UiText.plain(new JLabel());
+    private final JLabel status = UiText.plain(new JLabel(" "));
     private final JTextPane view = new JTextPane();
     private final JScrollPane viewScroll = new JScrollPane(view);
     private final JTextArea draft = new JTextArea(3, 40);

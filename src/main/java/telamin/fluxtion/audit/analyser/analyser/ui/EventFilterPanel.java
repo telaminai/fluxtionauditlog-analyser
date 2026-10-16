@@ -113,7 +113,7 @@ public final class EventFilterPanel extends JPanel {
 
     private void addSection(String title, List<Map.Entry<String, Integer>> entries) {
         if (entries.isEmpty()) return;
-        JLabel hdr = new JLabel(title);
+        JLabel hdr = UiText.label(title);
         hdr.setFont(hdr.getFont().deriveFont(Font.BOLD));
         hdr.setForeground(UiTheme.mutedForeground());
         hdr.setBorder(BorderFactory.createEmptyBorder(4, 2, 2, 2));
@@ -121,7 +121,8 @@ public final class EventFilterPanel extends JPanel {
         checks.add(hdr);
         for (Map.Entry<String, Integer> e : entries) {
             String key = e.getKey();
-            JCheckBox cb = new JCheckBox((key.isEmpty() ? "(none)" : key) + "  (" + e.getValue() + ")", true);
+            // SF-2: an event type is the log's own text
+            JCheckBox cb = UiText.checkBox((key.isEmpty() ? "(none)" : key) + "  (" + e.getValue() + ")", true);
             cb.setAlignmentX(LEFT_ALIGNMENT);
             cb.addActionListener(ev -> onUserToggle());     // user clicks only (not setSelected)
             cb.setComponentPopupMenu(rowMenu(key));         // right-click → only this / add / remove

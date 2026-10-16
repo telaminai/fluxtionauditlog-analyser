@@ -146,7 +146,8 @@ export again after another run and reopen the resulting snapshot.
 
 Select one or more records and click **Explain**. With an LLM provider configured, the in-app assistant
 can read around the selection and render findings back into the analyser as filters, flags and graphs.
-Without a provider key, **Copy prompt** gives the same evidence and action protocol to another agent.
+Without a provider key, **Copy prompt** gives the same evidence to another agent — and the action protocol
+too when you tick **Include my local REST token** in its dialog.
 
 ![The AI menu with the local transport, client setup and project runbooks available](assets/ai-menu.png)
 

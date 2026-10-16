@@ -81,11 +81,12 @@ public final class McpSetupDialog extends JDialog {
     /** Persists a deliberate local setup choice and applies REST if its checkbox was explicitly enabled. */
     private final Runnable onConfigurationChanged;
     private final RestEndpointFile endpointFile = RestEndpointFile.wellKnown();
-    private final JLabel localStatus = new JLabel();
+    // SF-2: these state what a client CLI printed and where a launcher lives — not this code's words
+    private final JLabel localStatus = UiText.plain(new JLabel());
     /** A real field rather than a clipped label: absolute Java/jar paths are routinely wider than a dialog. */
     private final JTextArea commandStatus = commandBox();
-    private final JLabel bridgeStatus = new JLabel("Bridge: not checked in this session.");
-    private final JLabel clientStatus = new JLabel();
+    private final JLabel bridgeStatus = UiText.plain(new JLabel("Bridge: not checked in this session."));
+    private final JLabel clientStatus = UiText.plain(new JLabel());
     private final JPanel clientActions = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
     /** Generic JSON is shown as data the person can inspect/select, never placed in a hidden client configuration. */
     private final JTextArea genericConfiguration = configurationBox();
@@ -111,7 +112,7 @@ public final class McpSetupDialog extends JDialog {
         super(owner, "Connect an AI client", modality);
         this.config = config;
         this.onConfigurationChanged = onConfigurationChanged == null ? () -> { } : onConfigurationChanged;
-        this.target = new JComboBox<>(Target.values());
+        this.target = UiText.plainCells(new JComboBox<>(Target.values()));
         this.target.setSelectedItem(initial == null ? Target.GENERIC : initial);
         setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
         buildUi();
@@ -204,7 +205,7 @@ public final class McpSetupDialog extends JDialog {
     }
 
     private static JLabel title(String text) {
-        JLabel label = new JLabel(text);
+        JLabel label = UiText.label(text);
         label.setAlignmentX(LEFT_ALIGNMENT);
         label.setFont(label.getFont().deriveFont(label.getFont().getSize2D() + 3f));
         return label;
@@ -214,7 +215,7 @@ public final class McpSetupDialog extends JDialog {
         JPanel panel = new JPanel(new BorderLayout(8, 2));
         panel.setAlignmentX(LEFT_ALIGNMENT);
         panel.setOpaque(false);
-        JLabel label = new JLabel(heading);
+        JLabel label = UiText.label(heading);
         label.setFont(label.getFont().deriveFont(java.awt.Font.BOLD));
         panel.add(label, BorderLayout.NORTH);
         panel.add(value instanceof JLabel text ? noteLabel(text) : value, BorderLayout.CENTER);
@@ -358,7 +359,7 @@ public final class McpSetupDialog extends JDialog {
     }
 
     private static JButton action(String text, Runnable run) {
-        JButton button = new JButton(text);
+        JButton button = UiText.button(text);
         button.addActionListener(e -> run.run());
         return button;
     }
@@ -663,8 +664,8 @@ public final class McpSetupDialog extends JDialog {
         Path selected = chooser.getSelectedFile().toPath();
         if (Files.exists(selected)) {
             int replace = JOptionPane.showConfirmDialog(this,
-                    "Replace the selected file?\n\n" + selected.getFileName() + "\n\n"
-                            + "Only this generic MCP snippet will be written. No client configuration location is inferred.",
+                    UiText.inert("Replace the selected file?\n\n" + selected.getFileName() + "\n\n"
+                            + "Only this generic MCP snippet will be written. No client configuration location is inferred."),
                     "Replace snippet", JOptionPane.OK_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE);
             if (replace != JOptionPane.OK_OPTION) return;
         }
@@ -682,7 +683,7 @@ public final class McpSetupDialog extends JDialog {
      * vector legible; both Codex and Claude Code use this same disclosure.
      */
     private int showWideRegistrationConfirmation(String title, Object[] message) {
-        JOptionPane pane = new JOptionPane(message, JOptionPane.WARNING_MESSAGE, JOptionPane.OK_CANCEL_OPTION);
+        JOptionPane pane = new JOptionPane(UiText.inert(message), JOptionPane.WARNING_MESSAGE, JOptionPane.OK_CANCEL_OPTION);
         JDialog confirmation = pane.createDialog(this, title);
         int screenWidth = Toolkit.getDefaultToolkit().getScreenSize().width;
         int desiredWidth = Math.min(960, Math.max(640, screenWidth - 64));
