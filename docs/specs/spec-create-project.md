@@ -286,5 +286,8 @@ An independent review returned "ready after fixes"; each fix has a regression te
 - **Socket run on the built jar (lead, 2026-10-16):** a preview, the relative-path refusal, the consent-off refusal, an
   unoffered root, an unknown key, a real apply with `referenceGuide`, and the exists refusal all behaved as this spec
   says.
-- **Still open:** the visual check of *Settings ▸ Assistant ▸ Allow the assistant to create projects* and of the
-  menu's "Open it instead?" dialog; the §6 follow-up issue.
+- **Visual check on the built jar (owner, 2026-10-16), passed:** the *Settings ▸ Assistant ▸ Allow the assistant to
+  create projects* checkbox is present, off by default and persists; *New project…* on a folder with a project asks
+  "Open it instead?" before any offer (No changes nothing, Yes opens it); on a fresh folder the offer pre-selects nothing
+  and confirming creates and activates the project. Recorded on PR #142.
+- **Follow-up filed:** #143 — *Save project as* overwrite and nonce inheritance; `openSampleProject` routing (§6/§8).
