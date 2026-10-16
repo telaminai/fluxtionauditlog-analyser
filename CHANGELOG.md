@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+## [1.35.0] - 2026-10-16
+
 ### Added
 
 - An agent can create a project through the same discovery as *Project ▸ New project…* instead of hand-writing a profile: `open {project: "<absolute dir>", create: true}` previews the offer — source roots, skills, GraphML to open afterwards, whether a `CLAUDE.md` can be offered, and an `offerDigest` — and writes nothing; `open {project, create: {sourceRoots, skills, referenceGuide, offerDigest}}` creates the project with only the items named from that offer, makes it active and closes the open log and graph. It never overwrites an existing project, refuses a stale `offerDigest`, refuses unknown keys, and goes with `project` alone. The verb count stays 18.
