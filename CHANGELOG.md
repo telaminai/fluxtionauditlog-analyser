@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+## [1.35.1] - 2026-10-16
+
 ### Fixed
 
 - A spotlight set of several Project-panel sections (`project:log`, `project:graph`, `project:processors`, `project:roots`) no longer draws its boxes over the wrong rows. Measuring a section used to scroll the panel to it, so each later member moved the rows under the boxes already measured for earlier ones while the verb reported ok. Measuring no longer scrolls; revealing does. A section that scrolled out of view to show another is refused by name, as every other such pair is, and one still partly in view is boxed where it shows.
