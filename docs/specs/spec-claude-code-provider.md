@@ -1,12 +1,13 @@
 # M74 — Claude Code as the analyser's assistant: a long-running local session
 
-**Status:** DRAFT r7, 2026-10-16. Two protocol probes have run against the installed CLI (2.1.282): **P0**
+**Status:** DRAFT r8, 2026-10-16. Two protocol probes have run against the installed CLI (2.1.282): **P0**
 ([report](evidence/m74-p0/P0-report.md), 40 items, US$0.85) and **P0b**
 ([report](evidence/m74-p0/P0b-report.md): the exact default command, the binding nonce, the P3 permission contract,
 slash commands, account fields; US$0.19). P1a is implemented against r6 and passed its live smoke
 ([report](evidence/m74-p1a-smoke/SMOKE-report.md); see *Implementation notes*). **r7 specifies P1b, P2 and P3 in full**
 (owner direction 2026-10-16: P3 is full single-user utility; order P1b + P2, then P3) and resolves every item r6
-carried (§11). Each section below is current on its own; the phase-by-phase inventory (nodes, effects, facts, UI,
+carried (§11). **r8 folds in the independent review of the start-prompt material**
+([c7f2](../handoff/review_m74_r7_start_prompt_c7f2.md), 21 findings; dispositions in the revision history). Each section below is current on its own; the phase-by-phase inventory (nodes, effects, facts, UI,
 failure modes, probes, live smoke) is §8.1–§8.3 and the tests are §10. Decisions r7 needed that the owner has not yet
 taken are in §2 as *proposed, for owner acceptance*; nothing that depends on one is to be built before it is accepted.
 Citations `[P0-n]` and `[P0b-n]` point at report rows, `[S-n]` at the P1a smoke report.
@@ -59,7 +60,10 @@ utility P3 completes.
 | OD-74.17 | **An approval lifts the server-side refusal for exactly one call** (P3, §5.7). The person's *Allow* records a single-use grant bound to the generation, the turn ticket, the verb and a canonical digest of the input shown (and the `tool_use_id`, if probe P3-3 shows the bridge receives it). The bridge's call is admitted only by consuming a matching grant **on the session thread**; a grant expires at the end of its turn, on Stop, at the end of the generation, or 60 s after the *Allow*, whichever is first. A second request while a dialog is open is denied at once (one dialog at a time). An unanswered dialog denies after **120 s**. The keyboard default is **Deny**. | **proposed, for owner acceptance** |
 | OD-74.18 | **How the full posture is smoke-tested under rule 1's capture exception**, which requires `--strict-mcp-config` on every capture under the real login. The loading of the person's own servers, skills, plugins and hooks is checked at **zero cost under an isolated `CLAUDE_CONFIG_DIR`** with planted servers, skills and hooks (`initialize`, `mcp_status` and `SessionStart` need no login [P0-5, P0-28]); model turns under the real login use the full line **plus `--strict-mcp-config`** (the analyser's line otherwise unchanged), so none of the person's servers or connectors loads into a capture. The analyser itself never adds `--strict-mcp-config` to a full-posture session; only the smoke harness does. | **proposed, for owner acceptance** |
 | OD-74.19 | **The start-page prompt** (§5.8, P2): *"What would you like to do?"* on the start page, with a numbered list of example prompts drawn from the **same** `AskCatalogue` (a demo, set up a project from my code, open an evidence bundle, choose a starter template, explain a log I have, what this tool can do), a free-text box and **Send**. Choosing a number only fills the draft; nothing is sent until Send. It **works with no AI configured**: the demo plays a shipped journey with no model, and every other entry falls back to the existing guided flow or *Copy prompt*, never a dead end. Starting Claude Code stays the person's act (folder confirmation; the posture in force). Not on the AI menu (D-AI4 unaffected beyond OD-74.1). Declarative, additive and localisable. | **accepted 2026-10-16** (owner); detailed shape per this spec |
-| OD-74.20 | **Where the start-page list comes from** (§5.8; the owner's request 2026-10-16, this shape proposed). Three sources, resolved in order — the built-in entries, then the project profile's portable-context key `assistant.startPrompts` (inline entries or a project-relative pointer, gated like the M38.1 runbook pointer), then P4's managed policy (which may `lock` the list). Each source replaces, prepends or appends. Entries are data in the catalogue's shape (a built-in by id, a prompt, or a saved walk to play), at most 12, each label at most 60 characters and text 500; an invalid entry is refused with its cause named and the rest shown; an invalid source is ignored with its cause named; nothing left means the built-in list. Never carried by an evidence bundle. | **proposed, for owner acceptance** (configurability is the owner's request) |
+| OD-74.20 | **Where the start-page list comes from** (§5.8; the owner's request 2026-10-16, this shape proposed). Three sources, resolved in order — the built-in entries, then the project profile's portable-context key family `startPrompt` (r8: its own family, so shipped writers preserve it, and its own share category `START_PROMPTS`, off by default; inline entries or a project-relative pointer, gated like the M38.1 runbook pointer), then P4's managed policy (which may `lock` the list). Each source replaces, prepends or appends. Entries are data in the catalogue's shape (a built-in by id, a prompt, or a saved walk to play), at most 12, each label at most 60 characters and text 500; an invalid entry is refused with its cause named and the rest shown; an invalid source is ignored with its cause named; nothing left means the built-in list. Never carried by an evidence bundle. | **proposed, for owner acceptance** (configurability is the owner's request) |
+| OD-74.21 | **Where the start page's conversation and a project's list appear** (§5.8; review c7f2 F1, F6). *Recommended:* (1) with nothing open, the start page's button pops the Assistant out into its own window through the existing pop-out host (`showAssistantHost(false)`, as an effect), composer focused and Start armed visible; over an open workspace it returns there and reveals the docked tab. (2) A project's configured list shows on the project workspace's landing state (a project with no log) as well as on the start page, and through *Help ▸ Start page* once a log is open. *Rejected:* hosting the Assistant panel on the start page itself (a third host for one panel); a project's list reachable only through Help (the team preset would rarely be seen). | **proposed, for owner acceptance** |
+| OD-74.22 | **Amends OD-74.5: the folder for a project Claude Code is never started in** (§4.3; review c7f2 F2). When the active project's root is one the analyser owns and refuses — the sample project under `~/.fluxtion-analyser/demo`, or an evidence bundle's working copy under `~/.fluxtion-analyser/bundles` — the session works in the analyser's **private scratch folder** instead of refusing: Claude reads the evidence through the verbs, the working copy's `CLAUDE.md` is never loaded (the reason OD-74.5 refuses a bundle), and the header says *"working in a scratch folder: this project's folder is not one Claude Code is started in"*. Any other refused folder (home, a folder holding credentials) is still refused. | **proposed, for owner acceptance** |
+| OD-74.23 | **What "AI configured" means on the start page, and a remembered mode** (§5.8; review c7f2 F8). Claude Code can answer when its switch is on **and** the resolver finds `claude` (a file check; nothing is run). The mode the person last chose is remembered on this machine (`assistant.claudeCode.lastMode`, machine tier, never exported). When the mode in force cannot answer and the other can, the start page offers *Ask with Claude Code* / *Ask the in-app assistant*, which chooses that mode as the person's act. | **proposed, for owner acceptance** |
 
 ## 3. Posture: what Claude Code may do when the analyser starts it
 
@@ -204,7 +208,8 @@ claude -p --input-format stream-json --output-format stream-json --verbose
        --max-budget-usd <remaining session budget>
        --append-system-prompt "<the system note>"
 env:   the analyser's environment, plus CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD=1
-cwd:   the confirmed project root; for an unset project, the set-up directory the person chose (§5.6);
+cwd:   the confirmed project root; for an unset project, the set-up directory the person chose (§5.6); for the
+       sample project or a bundle's working copy, the scratch directory (OD-74.22);
        otherwise a private, empty scratch directory (never the home directory, which holds credentials and the
        analyser's own endpoint file) [R2-2]
 ```
@@ -429,8 +434,8 @@ here — the history would fork."* No further detection is attempted.
    > Trust <dir> for **full** Claude Code in the analyser? This is asked again if these files change.
 
    The names come from the files and are shown as plain text (never HTML); the commands are not shown. The
-   confirmation records the folder's real path and the digest of OD-74.12. Start is refused outright in a bundle
-   working copy.
+   confirmation records the folder's real path and the digest of OD-74.12. Start never runs in a bundle working copy:
+   from P2 a bundle project's session works in the scratch folder instead (OD-74.22); before that, Start is refused.
 2. **Header:** *Claude Code · <model> · <posture> · <dir> · CLI <version> · <subscription type | API key
    (<source>)> · <api provider>*. The header never shows an e-mail or organisation. The default posture adds *"analyser
    assistant — your skills and hooks are not loaded; enable full Claude Code for those"*; the full posture adds *"full
@@ -462,7 +467,8 @@ here — the history would fork."* No further detection is attempted.
 6. **An armed Start** (P2). Some flows leave Start *armed*: the button reads *Start — <why>* (*Start a new session in
    medmon*, *Start — ask about this evidence*) and a draft is ready. Pressing it is the person's act (OD-74.1); the
    draft is placed in the composer, highlighted, and is still not sent. New chat, a mode switch or another armed flow
-   replaces it. Nothing ever starts because Start is armed.
+   replaces it. Nothing ever starts because Start is armed. With warm start on, the person's direct click on the tab
+   while Start is armed is a Start (OD-74.1): the session starts and the armed draft is placed, still not sent (r8, F20).
 7. **The proposal banner** (P2, §5.6), **Set up a project with Claude…** (P2, §5.6) and **the permission dialog**
    (P3, §5.7).
 
@@ -536,13 +542,26 @@ the posture or the session's identity under the analyser. Whatever a passed comm
 ### 5.5 Evidence to Claude: the Ask catalogue (P2; OD-74.8, OD-74.14)
 
 **One registry.** `AskCatalogue` (in `assistant/`, pure data, no Swing) declares every question the analyser can
-draft. Each entry has an `id`; the **surfaces** it appears on; a **precondition** over the published snapshot (e.g.
-*exactly one record selected*); its **label** and **template** as keys into one resource bundle
-(`AskCatalogue.properties`, so the text is localisable and in one file); the **pointer kinds** its template may
-interpolate; and, for start-page entries, its **fallback** with no AI (§5.8). The records menu, the diff dialog, the
-topology and chart menus, the time-slider menu and the start page **build their items from the registry**, and the
-tests iterate it, so a new question is one entry and one bundle line. No question has a verb of its own: every one
-**only drafts** (no new verb is added for this; owner direction).
+draft. Each entry has an `id`; the **surfaces** it appears on; a **precondition** over an `AskContext` value (below;
+e.g. *exactly one record selected*); its **label** and **template** as keys into one resource bundle
+(`AskCatalogue.properties`, so the text is localisable and in one file; it is the application's first `ResourceBundle`,
+English only in P2, looked up for `Locale.getDefault()`); the **pointer kinds** its template may interpolate; and, for
+start-page entries, its **fallback** with no AI (§5.8). **Every** entrance builds its items from the registry: the
+records right-click menu and its copy on the *Audit log* menu bar, the toolbar's *Explain*, the detail panel's
+*Explain with LLM* button (whose tooltip, *"Send the selected record(s) to the LLM assistant"*, becomes the question's
+label), the diff dialog, the topology and chart menus, the time slider (whose right-click menu is **new**: it has none
+today) and the start page. The analyser's own drafts that are not questions (the journey handoff, Move's handoff, the
+onboarding set-up draft) live in the same bundle. A source rule scans every `ui/` file for `primeDraft(` calls and
+`"Explain` literals outside the registry's builder (r8, review c7f2 F12). The tests iterate the registry, so a new
+question is one entry and one bundle line. No question has a verb of its own: every one **only drafts** (no new verb
+is added for this; owner direction).
+
+**`AskContext`.** The selection, the flags and the current record are frame fields, not session state, so a
+precondition is evaluated over a small immutable `AskContext` the frame assembles when a menu opens (selected record
+indexes, the flagged subset, the current record, the open log's identity digest and generation, the topology node or
+chart point under the pointer). That is **rendering input** (which items to show), not a decision: whether a draft may
+be sent is decided by the nodes at Send, from the binding (§8.2). The toolbar's *Explain* with **no** selection is
+disabled, with the tooltip *"Select a record to ask about it"*.
 
 **Pointers, never record text.** A template interpolates only these, each through one sanitiser:
 
@@ -556,6 +575,14 @@ tests iterate it, so a new question is one entry and one bundle line. No questio
 | series expression | the chart's definition | single line, at most 120 characters, quoted |
 | time | the selection or the point | epoch milliseconds and its UTC rendering |
 | counts | the analyser's own computation | an integer |
+| bundle name | the chosen `.fexp`'s file **name** | identifier text, as the log name |
+| verification verdict | the bundle verifier | an enum word (`verified`) — only a verified bundle ever reaches a draft (§5.8 S3) |
+| project name, source and target project (Move) | the project folder's **name** | identifier text, as the log name |
+| walk | a saved walk | its **name** through the identifier sanitiser; a name that fails it (a sender's prose, in a bundle) is replaced by *"walk {n} of this project's walks"*. A walk's **title** never enters a draft |
+| template name | the template catalogue **as fetched at Send** (§5.8 S4; it comes from the playground origin, not shipped data) | identifier text, at most 80 characters each, at most 20 names |
+| docs URL | a compile-time constant (the docs site address) | — |
+
+A configured prompt (§5.8) that uses `{log}` or `{gen}` while no log is open is shown disabled, *"open a log first"*.
 
 **No value, no payload, no note text, no finding text and no model-written words** ever enters a draft: a chart
 note's label, a finding's prose and a value can carry text written to steer an AI, so the draft names *where* to look
@@ -569,7 +596,7 @@ value, note, finding and an ill-formed node id hold a marker string, and asserts
 | Q1 | **What happened here?** | records table ▸ right-click, exactly one row; it is also what *Explain selected with LLM* and the toolbar *Explain* do with one row | *"What happened in record #{index} of {log} (log generation {gen})? Read it with analyser_read {recordIndex: {index}} and the {before} records before and {after} after (#{from}–#{to}). Its cycle logged from these nodes: {nodeIds}. Say what the cycle did and why."* — `before`/`after` = 5 each, clamped to the log; `nodeIds` at most 12 |
 | Q2 | **Compare these rows** | records table ▸ right-click, two or more rows (at most 20 named); *Explain selected with LLM* with two or more rows; `RecordDiffDialog` ▸ **Ask Claude about this diff** | *"Compare records {indexes} of {log} (log generation {gen}). Read them with analyser_read. {diffKeys?}Say what differs and what caused it."* — from the diff dialog, `diffKeys` = *"They differ in: {keys}."* (key names only, at most 30), from the dialog's own context |
 | Q3 | **Why did this node fire / not fire?** | topology ▸ right-click a node, with a current record | *"In {graph}, node {nodeId} {logged} in record #{index} of {log} (log generation {gen}) — the analyser's coverage reading, and silence is not proof it did not run. Why did it {fire / not fire}? Use analyser_topology and analyser_read."* — `logged` is *logged* / *did not log*, the analyser's own verdict for that record |
-| Q4 | **Explain this point** | a chart ▸ right-click a note, or a point (point-snapped, M32) | *"On chart {chart}, series {expr} at {time} (nearest record #{index}, log generation {gen}){note?}: explain what the log shows around this point. Use analyser_series and analyser_read."* — `note?` = *", where there is note {noteNumber}"* (its number on the chart, never its words) |
+| Q4 | **Explain this point** (shown as *Ask Claude: explain this point* beside the chart's own *Add explanation…*, which is the person's words; the mode prefix keeps the two apart) | a chart ▸ right-click a note, or a point (point-snapped, M32) | *"On chart {chart}, series {expr} at {time} (nearest record #{index}, log generation {gen}){note?}: explain what the log shows around this point. Use analyser_series and analyser_read."* — `note?` = *", where there is note {noteNumber}"* (its number on the chart, never its words) |
 | Q5 | **Explain this finding** | records table ▸ right-click, one **flagged** row | *"Record #{index} of {log} (log generation {gen}) is flagged as a finding. Read the record with analyser_read and the finding through analyser_context, and explain whether the record supports it."* |
 | Q6 | **Summarise this window** | the time slider or a chart's range selection ▸ right-click, a time range with at least one record | *"Summarise {log} (log generation {gen}) between {fromTime} and {toTime} — records #{first}–#{last}, {count} records. Use analyser_aggregate and analyser_series over that window; read records only to illustrate."* |
 
@@ -586,8 +613,17 @@ value, note, finding and an ill-formed node id hold a marker string, and asserts
   (`RecordDiffDialog.show(parent, a, b, labelA, labelB, DiffContext{indexA, indexB, logIdentity, generation})`); its
   button composes Q2 from that context, never from the live selection, so the binding is the dialog's own [R F5].
 - Claude can verify the generation a draft names through `context` [R2-10].
+- **Pointer-only end to end, in both modes** (r8, review c7f2 F4). Today the in-app assistant's first turn attaches
+  `PromptBuilder.recordContext` — the raw text of the **live** selection, read when the message is prepared
+  (`AssistantAdapter.prepare`, `env.selection()`), which may be other records than a bound draft names. For a **bound**
+  draft, `PrepareAssistantContextEffect` carries `includeRecordContext = false`: the request holds the draft's words
+  and the in-process action manifest, and the assistant reads the named records through `read`. With in-process actions
+  off (`assistantActionsInProcess`), the in-app assistant cannot follow *"Read it with analyser_read"*, so the
+  catalogue's items are **disabled in the in-app mode** with the reason *"turn on Settings ▸ Assistant ▸ in-process
+  actions so the assistant can read the records it is asked about"*. An unbound in-app draft (typed by the person)
+  keeps today's behaviour, attaching the selection, as now.
 - **Journeys:** *Ask about this evidence* in the Claude Code mode ends the walk (as today, through the session) and
-  **arms** Start with the draft *"About the walk '<title>' on <log name> (log generation n): <the person's question
+  **arms** Start with the draft *"About the walk {walk} on {log} (log generation {gen}): <the person's question
   here>"*, the last part left for the person; if a process is already running, the draft is placed (not sent) instead.
   A journey handoff never starts a process (OD-74.1). `AssistantLoop` still ignores the handoff in this mode; the
   local-agent node handles it. In the in-app mode the handoff is unchanged.
@@ -769,88 +805,172 @@ no in-analyser permission prompts**, so P2 precedes P3 (§8).
 - Out-of-folder reads stay hard-denied by `--restricted` in the default posture and are never offered to the dialog
   [P0b-3].
 
-### 5.8 The start-page prompt (P2; OD-74.19, accepted 2026-10-16)
+### 5.8 The start-page prompt (P2; OD-74.19, accepted 2026-10-16; OD-74.20–74.23)
 
-At the top of the start page (shown with no project open, and from *Help ▸ Start page* at any time): **What would you
-like to do?**, the numbered entries `AskCatalogue` declares for the start page, a free-text box and **Send**. It is
+**The page.** The start page's hero question, today *"What would you like to work on?"*, becomes **What would you like
+to do?**, and under it: the list of entries `AskCatalogue` resolves for the start page, a line naming the **chosen
+entry**, a free-text box and one action button. The existing cards stay below, headed **Or choose directly**: they are
+the no-typing path M71 accepted. An entry that does what a card does (S1, S3, S4, S5) calls **the same
+`StartPanel.Actions` method** as its card, so there is one flow with two entrances, not a second flow. A configured
+list can lead with a journey but cannot hide the cards (stated: "present one journey" means *first*, not *only*). The
+recent projects and bundles stay in their own section, after the prompt, for a returning user as for a new one. It is
 not on the AI menu (D-AI4).
 
-- **Choosing a number only fills the box** with that entry's text (appended after anything the person typed, never
-  replacing it). Nothing is sent, opened or started until **Send**.
-- **Send** is the person's act on the start page. It never starts Claude Code: OD-74.1's acts are the tab's Start and
-  the person's tab selection, so in the Claude Code mode Send hands the draft to the Assistant tab and **arms** Start;
-  the person presses Start there (folder confirmation, the posture in force: the default posture unless they turned on
-  the full one in Settings; the start page changes no switch).
-- **"AI configured"** means: the Claude Code mode with *Allow the analyser to start Claude Code* on, or the in-app
-  mode with a provider that can answer (a key, or a local provider). Otherwise every entry takes its **no-AI** column.
-  No entry is ever a dead end: each offers an action.
-- The free-text box with no number chosen is an ordinary question: with an AI it goes to the active assistant as a
-  draft (placed, not sent); with none, the start page offers *Copy prompt* (the in-app tab's existing composer of a
-  prompt for any external assistant), *Settings ▸ Assistant* and *Connect an AI client…*.
+- **The list** is a `JList` with accessible names (*"Prompt 3 of 6: Open an evidence bundle someone sent me — from
+  this project"*); Up/Down move, Enter chooses; `Alt+1`…`Alt+9` choose the first nine (no mnemonic past 9). Every
+  label, tooltip and accessible name that shows configured or derived text sets `html.disable` (r8, F15). Colours come
+  through `UiTheme` and the page's `recolour` list.
+- **Choosing a flow entry** (S1, S2, S3, S4, S5, a configured journey) **selects** it: the chosen-entry line shows it
+  as a removable chip with one sentence of what the button will do (*"Open log…: choose an audit log, then draft a
+  question about it"*), and the button takes that entry's verb (*Play*, *Set up…*, *Open bundle…*, *Show templates*,
+  *Open log…*). The text box is not touched. Choosing another flow entry replaces the chip; removing the chip returns
+  the button to *Send*.
+- **Choosing a prompt entry** (S6, a configured prompt) **appends** its text to the box (never replacing what the
+  person typed). The box shows the whole text, wrapping, growing to six lines and then scrolling; nothing is hidden by
+  an ellipsis (r8, F18).
+- **Nothing is sent, opened, fetched or started until the button is pressed** (r8, F10): choosing posts no fact and
+  makes no request. The button is the person's act on the start page.
+- **The words of a flow entry are composed after its flow, by the node** (r8, F9): S3's bundle name, S5's log and
+  generation and S4's template names do not exist until the flow has run. Free text in the box with a flow entry chosen
+  is appended to the flow's draft after a blank line. With no entry chosen, the button is *Send* and the text is an
+  ordinary question.
+- **The button never starts Claude Code.** OD-74.1's acts are the tab's Start and the person's tab selection, so a
+  draft for Claude Code is placed and Start is **armed**; the person presses Start (the folder confirmation and the
+  posture in force: the default one unless they turned on the full one in Settings; the start page changes no switch).
+  **Start is armed only when it would be accepted** (r8, F2): the node checks the same consent it checks at Start
+  (switch, folder verdict, REST, budget); if Start would be refused, the draft is still placed and the refusal is shown
+  with its action (*Turn on REST*, *Open Settings*), never an armed Start that is known to fail.
 
-| # | Entry (label) | Claude Code mode | In-app mode | No AI configured |
-|---|---|---|---|---|
-| S1 | **Run me through a demo** | the same in every mode: opens the demo set that ships in the jar (M36) and plays its walk **with its conversation** (`WalkPlayRequested`, the existing path): no model, no key, no network, nothing sent. Its last step, *"Now ask your own question"*, arms the live path: Start armed with an empty draft | the last step reveals the in-app assistant with an empty draft | the last step offers *Settings ▸ Assistant*, *Connect an AI client…* and *Copy prompt* |
-| S2 | **Set up a project from my code** | the onboarding of §5.6: the set-up directory chooser, its confirmation, Start armed with the set-up draft; `propose`; the analyser's preview, Yes/No per item, apply and check | the in-app assistant cannot read a folder, so Send opens *Project ▸ New project…* (M73's discovery: it offers, the person chooses), saying so | *Project ▸ New project…* |
-| S3 | **Open an evidence bundle someone sent me** | Send runs the analyser's own flow first, in every mode: the person's chooser for a `.fexp`, the existing verification, then *"Open this bundle? It verified / did not verify: <why>"* **Yes / No**, then the existing open (a disposable copy, no replay). After it opens, the draft *"Explain what the evidence bundle {bundle} contains and what its verification checked (verified: {verdict}). Start with analyser_context."* is placed, not sent. Claude is never given a destructive verb for this | the same flow, then the same draft in the in-app composer | the same flow; the bundle opens; the *Evidence bundles* docs page is offered |
-| S4 | **Which starter template suits what I'm building?** | the draft *"Which starter template suits what I'm building: <describe it here>? The analyser offers these templates: {template names}."* — the names come from the template catalogue's **declarations** (shipped data, pointers); the answer is Claude's words, and the entry shows **New project from template…** beside it, which opens the existing flow; Claude opens nothing | the same draft and button | *New project from template…* directly |
-| S5 | **Explain an audit log I already have** | with no log open, Send first runs *Open log…* (the person's chooser and load); once it has loaded, the draft *"Explain this audit log: {log} (log generation {gen}) — what produced it, what happened, and anything unusual. Start with analyser_context."* is placed, bound to that generation | the same | the log opens on the Summary tab, and *Copy prompt* offers the same draft for an external assistant |
-| S6 | **What can this tool do?** | the draft *"What can the Fluxtion Audit Log Analyser do for me? Start with analyser_context; the user guide is at {docsUrl}."* — `docsUrl` is the shipped docs-site address (a pointer). In the default posture Claude has no web tool and answers from `context`, its tools' descriptions and the folder's `CLAUDE.md`; said in the answer's hint line | the same draft | *Help ▸ User guide* |
+**Where the conversation appears with nothing open (OD-74.21, r8 F1).** With no workspace the start card hides the menu
+bar, toolbar and status bar, and the Assistant dock lives inside the investigation card, so a docked panel cannot be
+revealed. The node therefore asks for `ShowAssistantHostEffect{docked: false}` — the existing pop-out path
+(`showAssistantHost(false)`, OA-2), which already carries the local-agent panel — and the pop-out window opens with
+the composer focused, the draft highlighted and an armed Start visible. When the start page was raised over an open
+workspace (*Help ▸ Start page*), the button returns to the workspace and reveals the docked tab, as today.
 
-**Where the list comes from (OD-74.20).** The entries are configurable, for an organisation or to present one
+**AI configured (OD-74.23, r8 F8)** is decided per assistant:
+- *Claude Code can answer*: *Allow the analyser to start Claude Code* is on **and** the resolver finds `claude` (a file
+  check only; nothing is run, OD-74.1).
+- *The in-app assistant can answer*: a provider with a key, or a local provider.
+
+The mode the person last chose is **remembered on this machine** (`assistant.claudeCode.lastMode`, machine tier,
+never exported, like the other `assistant.claudeCode*` keys), so a Claude Code user relaunching with no API key is not
+sent to the no-AI column. The route is: the mode in force if its assistant can answer; otherwise, if the other one can,
+the button reads *Ask with Claude Code* (or *Ask the in-app assistant*) and pressing it **chooses that mode** (the
+person's act, `AssistantModeChosen`, origin start page); otherwise the **No AI** column. With the switch on but no
+`claude` found, the No-AI column is shown with the resolver's line (*"Claude Code was not found; searched: …"*) and the
+install link.
+
+| # | Entry (label) | Kind | Claude Code can answer | In-app can answer | No AI configured |
+|---|---|---|---|---|---|
+| S1 | **Run me through a demo** | flow, *Play* | the same in every mode: opens the sample project and plays the **demo journey** (below) through the walk path: no model, no key, no network, nothing sent. Its last step **ends the walk** (as *Ask about this evidence* does) and then offers *Ask your own question*: a placed empty draft and an armed Start in the scratch folder (OD-74.22) | the walk ends; the in-app composer is revealed, empty | the walk ends; buttons *Assistant settings*, *Connect an AI client…*, *Copy prompt* (the start page's copy, below) |
+| S2 | **Set up a project from my code** | flow, *Set up…* | §5.6: the set-up directory chooser, its confirmation, the set-up draft placed and Start armed; `propose`; the analyser's preview, Yes/No per item, apply and check | the in-app assistant cannot read a folder, so the button opens *New project…* (M73's discovery: it offers, the person chooses) and says why | button *New project…* |
+| S3 | **Open an evidence bundle someone sent me** | flow, *Open bundle…* | the analyser's own flow, in every mode: the person's chooser for a `.fexp`, then the existing verification. **A bundle that does not verify is not opened** and nothing is written (`unpackOwned` returns no working copy): *"This bundle did not verify: <why>. It was not opened."* with **Close** only (r8, F3). A verified bundle opens through the existing path (a disposable copy, no replay), with no extra question. Then the draft *"Explain what the evidence bundle {bundle} contains and what its verification checked. Start with analyser_context."* is placed and Start armed in the scratch folder (OD-74.22). Claude is never given a destructive verb for this | the same flow, then the same draft in the in-app composer | the same flow; the bundle opens; button *Evidence bundles guide* |
+| S4 | **Which starter template suits what I'm building?** | flow, *Show templates* | at the button, the existing catalogue fetch runs inside `RunStartPageFlowEffect` (the playground origin; it is fetched, not shipped). Then the draft *"Which starter template suits what I'm building: <the person's text, or 'describe it here'>? The templates offered are: {template names}."* is placed; unreachable: *"(the template list could not be read)"*. Beside the draft, the button *New project from template…* opens the existing flow; Claude opens nothing | the same | button *New project from template…* (its own dialog fetches, as today) |
+| S5 | **Explain an audit log I already have** | flow, *Open log…* | with no log open, the person's *Open log…* chooser and load first; once loaded, the draft *"Explain this audit log: {log} (log generation {gen}) — what produced it, what happened, and anything unusual. Start with analyser_context."* is placed, bound to that generation, and Start armed | the same | the log opens on the Summary tab; button *Copy prompt* (the start page's copy) |
+| S6 | **What can this tool do?** | prompt | the draft *"What can the Fluxtion Audit Log Analyser do for me? Start with analyser_context; the user guide is at {docsUrl}."* (a constant). In the default posture Claude has no web tool and answers from `context`, its tools' descriptions and the folder's `CLAUDE.md`, said in the hint line | the same draft | button *User guide* |
+
+Every no-AI entry is a **button** that runs an existing `StartPanel.Actions` method (`newProject`, `openSettings`,
+`openMcpSetup`, `openTemplate`, the guide pages through a new `openUserGuide`); a menu path appears only in the
+button's tooltip, because the start page hides the menu bar (r8, F7).
+
+**The start page's *Copy prompt*** copies the composed draft only: its words, no record context, no glossary, and
+never the REST token (r8, F14). Its dialog says *"Copied: your question only. Paste it into any assistant."* The
+in-app tab's own *Copy prompt* is a shipped behaviour with its own fix (§11, SF-1).
+
+**The demo journey (r8, F13).** S1 plays the walk **"DEMO first breach"** — the journey *Find the first recorded
+breach*, scripted, shipped since 1.29.0 as a site bundle and pinned by `JourneyCatalogueTest` — now also **shipped in
+the jar** with the demo set, under its own name, so a returning user whose sample profile already holds the four-step
+`DemoTour` still gets it (`finishSampleWalk` saves it when absent under its name). Its conversation is **scripted** and
+labelled *Simulated conversation*; it is never presented as recorded or live. A recorded journey made later by
+`tools/capture-conversations.py` (rule 1) would replace it under the same name. The *Take a guided tour* card keeps
+playing `DemoTour`, unchanged, so M71's acceptance (`tools/test_start_workspace.py`) holds. A test pins that the jar's
+walk equals the site bundle's. Opening the sample project is an `EXPLICIT_SWITCH`, so with a Claude Code process
+running it follows §5.3's Move / Keep / Stop offer (no exemption: a running session is still working somewhere).
+
+**Where the list comes from (OD-74.20).** The entries are configurable, for an organisation or to lead with one
 journey. Three sources, resolved by the `StartPagePrompt` node in this order, each later one applied to the result of
 the earlier:
 
 1. **Built-in** — S1–S6, in that order, from `AskCatalogue`.
-2. **The project profile** — a portable-context key, `assistant.startPrompts`, read and gated like the runbook pointer
-   (M38.1): either **entries inline** (at most 12) or a **pointer** to a project-relative JSON file (inside the
-   project root after resolving links, at most 64 KB, read at profile load, never executed, nothing fetched). It applies
-   only while that project is open; the start page with no project shows the built-in list (and the managed one). It
-   travels in a project share as portable context does, labelled; **an evidence bundle never carries it** (a received
-   bundle's words are not the recipient's start page).
-3. **Managed** — from P4's administrator-owned policy file (`startPrompts`), read-only, which the person cannot change
-   in Settings. Until P4 ships there is no managed source.
+2. **The project profile** — its own key family, **`startPrompt`** (r8, F5: not `assistant.*`, which every shipped
+   writer owns and would delete on save, and which holds the machine-tier `assistant.claudeCode*` consent keys). P2
+   adds `startPrompt` to `KnownKeys.PROFILE_FAMILIES`; every earlier release treats it as unknown and preserves it
+   (M38.7). It is read and gated like the runbook pointer (M38.1): either entries inline or a pointer to a
+   project-relative JSON file (inside the project root after resolving links, at most 64 KB, read at profile load,
+   never executed, nothing fetched):
 
-Each source is `{mode: replace | prepend | append, lock?: true, entries: [...]}` (`replace` by default); `lock` is
-honoured only from the managed source and makes the project's source ignored, said in the list's footer (*"Your
-organisation set these prompts"*). An **entry** is one of:
+   ```
+   startPrompt.mode=prepend                       # replace | prepend | append; replace when absent
+   startPrompt.pointer=.analyser/start-prompts.json   # instead of inline entries; both present → the source is refused
+   startPrompt.1.builtin=S2
+   startPrompt.2.id=incident
+   startPrompt.2.label=Run our incident journey
+   startPrompt.2.walk=Incident 42
+   startPrompt.3.id=latency
+   startPrompt.3.label=Why is latency up?
+   startPrompt.3.label.de=Warum ist die Latenz gestiegen?
+   startPrompt.3.text=Look at {log} (log generation {gen}) and tell me where latency rises first.
+   ```
+
+   It has its own share category, **`START_PROMPTS`** (*"Start-page prompts — words placed in a person's draft, never
+   sent by themselves"*), in `ProjectProfile.PROJECT_SCOPED`, **off by default** in a share like RUNBOOKS (it is words,
+   not a location), and the import preview lists each label and text, not a count. It is **not** in
+   `BundleProfile.CATEGORIES`, so an evidence bundle never carries it (a received bundle's words are not the
+   recipient's start page).
+3. **Managed** — from P4's administrator-owned policy file (`startPrompts`, JSON, the same shape), read-only, which the
+   person cannot change in Settings. Until P4 ships there is no managed source; P2's tests of it are pure
+   `AskCatalogue.resolve` tests.
+
+Each source is `{mode: replace | prepend | append, lock?: true, entries: [...]}`; `lock` is honoured only from the
+managed source and makes the project's source ignored, said in the list's footer (*"Your organisation set these
+prompts"*). An **entry** is one of:
 - **a built-in by id** — `{"builtin": "S2"}`, to keep, reorder or drop the analyser's own entries (their flows and
   fallbacks stay the analyser's);
 - **a prompt** — `{"id": "…", "label": "…", "text": "…"}`: a label (at most 60 characters) and a draft (at most 500
-  characters), each optionally a locale map (`{"en": "…", "de": "…"}`, the current locale, then `en`, then the first);
-  the text may use only the pointer placeholders `{log}`, `{gen}` and `{project}`, through §5.5's sanitisers;
-- **a journey** — `{"id": "…", "label": "…", "walk": "<saved walk name>"}`: plays that walk of the open project (or of
-  the demo set) through the walk path, with no model, as S1 plays the demo.
+  characters), each optionally per locale (`label.<lang>`; `Locale.getDefault()`'s language, then the plain value);
+  the text may use only the pointer placeholders `{log}`, `{gen}` and `{project}`, through §5.5's sanitisers; with no
+  log open, an entry using `{log}` or `{gen}` is shown disabled, *"open a log first"*;
+- **a journey** — `{"id": "…", "label": "…", "walk": "<saved walk name>"}`: plays that walk **of the open project**
+  through the walk path, with no model, as S1 plays the demo (r8, F20: never a walk of another project, which would be
+  a project switch).
 
-**Entries are data, never instructions.** A configured prompt's text is only ever placed in the person's draft, under
-the same rule as every entry: nothing is sent, opened or started before **Send**; its origin is shown beside it
-(*from this project*, *from your organisation*); it has no flow of its own, so with no AI its fallback is *Copy
-prompt*. A configured entry cannot name a verb, a command line, a URL to open or a file to read; none of those exist in
-its shape. At most **12** entries are shown after resolution.
+**Entries are data, never instructions.** A configured prompt's text is only ever placed in the person's draft,
+shown in full, under the same rule as every entry: nothing is sent, opened or started before the button; its origin
+is shown beside it (*from this project*, *from your organisation*); it has no flow of its own, so with no AI its
+fallback is *Copy prompt*. A configured entry cannot name a verb, a command line, a URL to open or a file to read; none
+of those exist in its shape. At most **12** entries are shown after resolution. The project may thereby store prompt
+text, which changes D-C2's letter; §7 records it.
 
-**Invalid configuration** never breaks the start page. An invalid **entry** (an unknown key or `builtin` id, a field
-over its cap, an unknown placeholder, a duplicate id, a `walk` the project does not have, an entry beyond the 12th) is
-refused on its own, the others shown, and a muted line under the list names each cause (*"1 configured prompt was not
-shown: the project's entry 3 — its label is over 60 characters"*). An invalid **source** (not JSON, the wrong shape, a
-pointer outside the project or over 64 KB, unreadable) is ignored as a whole, the result of the sources before it is
-used, and the line names the source and why. If nothing remains, the built-in list is shown.
+**Invalid configuration** never breaks the start page (r8, F17: refuse what cannot be shown, ignore what is merely
+new). An entry is **refused** on its own when it has no known kind (no `builtin`, `text` or `walk`), an unknown
+`builtin` id, a field over its cap, an unknown placeholder, a duplicate id, a `walk` the open project does not have, or
+comes after the 12th; **unknown optional keys** (a later version's `icon`, `description`) are ignored and noted. A
+muted line under the list names the first three causes and counts the rest (*"2 configured prompts were not shown: the
+project's entry 3 — its label is over 60 characters; entry 5 — no walk 'Incident 9' in this project"*, *"…and 9
+more"*). An invalid **source** (not JSON, the wrong shape, both inline entries and a pointer, a pointer outside the
+project or over 64 KB, unreadable) is ignored as a whole, the result of the sources before it is used, and the line
+names the source and why. If nothing remains, the built-in list is shown.
 
-**The demo's conversation.** No walk with a conversation ships today: the start page's tour (`DemoTour`) is a walk
-without one. P2 adds one to the demo set, made by `tools/capture-conversations.py` from a real run under the isolated
-home (CLAUDE.md rule 1; for a Claude Code recording, the rule's recorded capture exception), labelled by its own kind
-(*Recorded conversation*). Until it is captured, the walk carries a scripted conversation, labelled *Simulated
-conversation*; neither is ever presented as live.
+**Where a project's list is seen (OD-74.21, r8 F6).** The start card appears only with nothing open, so a project's
+list would otherwise be reachable only through *Help ▸ Start page*. The project workspace's **landing state** (a
+project open with no log, where M71 sends a recent project) therefore shows the same resolved list, list and box and
+button, as a strip at the top of the empty records area. Once a log is open it is reachable through *Help ▸ Start
+page* only.
 
-**Rule 9.** Choosing a number is local to the start page's text box. **Send** posts
-`StartPagePromptSent{request, entryId, draftRef}`; the small node `StartPagePrompt` (parents `assistantMode`,
-`localAgentSession`) decides the route from the mode, the consent the fact carries and whether the in-app route can
-answer, and asks for one of: `PlayDemoJourneyEffect`, `RunStartPageFlowEffect{entryId}` (the chooser, verification and
-open of S3 and S5, or opening S2's and S4's existing dialogs), `PrimeLocalAgentDraftEffect` / `PrimeAssistantDraftEffect`
-(with Start armed in the Claude Code mode), or `ShowStartPageFallbackEffect{entryId}`. A flow's end is a fact
-(`StartPageFlowDone{request, outcome, logGeneration}`), after which the node places the draft. The list itself is the node's too: the profile
-loader and (from P4) the policy reader report each source as `StartPromptsObserved{source, entriesRef, readProblem}`,
-and the node resolves precedence and validity (`AskCatalogue.resolve`, pure) and publishes the entries, their origins
-and the refusals. The start page renders the node's state and composes no routing or list of its own.
+**Rule 9.** Choosing is local to the start page's list and box. The button posts
+`StartPagePromptSent{request, entryId (or NONE), draftRef, consent, inAppCanAnswer, claudeCodeFound}` (one shape, here
+and in §8.2). The node `StartPagePrompt` (parents `assistantMode`, `localAgentSession`, `openLog`, `activeProject`)
+decides the route and asks for one of: `PlayDemoJourneyEffect`, `RunStartPageFlowEffect{entryId}` (the chooser,
+verification and open of S3 and S5, the fetch of S4, or opening S2's and S4's existing dialogs),
+`PrimeLocalAgentDraftEffect` / `PrimeAssistantDraftEffect` (with Start armed only when it would be accepted, and
+`ShowAssistantHostEffect{docked: false}` with no workspace), or `ShowStartPageFallbackEffect{entryId}`. A flow's end
+is a fact (`StartPageFlowDone{request, outcome, logGeneration, bundleNameRef, templateNamesRef}`), after which the node
+composes and places the draft. The list is the node's too: the profile loader and (from P4) the policy reader report
+each source as `StartPromptsObserved{source, projectIdentity, entriesRef, readProblem}`; the node refuses a project
+source whose identity is not the active project's, retracts it when the project closes, and resolves precedence and
+validity (`AskCatalogue.resolve`, pure). The start page and the landing strip render the node's state and compose no
+routing or list of their own.
 
 ### 5.9 Transcript presentation (P2; owner direction 2026-10-16)
 
@@ -875,15 +995,29 @@ the store's words; it decides nothing (rule 9) and is a `JTextPane` over a `Styl
   levels), block quotes, inline code, and fenced code blocks in the monospace font. **Everything else is literal text**,
   and three things are refused by construction: **HTML** (a block or inline tag is shown as its characters; there is no
   HTML renderer to reach), **images** (`![alt](url)` is shown as the text *[image: alt]* and the URL, never fetched),
-  **scripts** (nothing is evaluated). Tables are shown as monospace text. Model text is untrusted data.
+  **scripts** (nothing is evaluated). Tables are shown as monospace text. Model text is untrusted data. The parser is
+  linear: a pathological input (64 KB of unclosed emphasis) renders within a bounded time, tested, because it runs
+  again on every streamed revision of the current block.
+- **What is seen is what is copied** (r8, F16). Terminal escape sequences (ESC `[31m` …) are **never interpreted**:
+  shown as `␛[31m` and counted in the diagnostics line. C0 and C1 control characters other than newline and tab,
+  bidirectional overrides and isolates (U+202A–U+202E, U+2066–U+2069), and zero-width and other format characters are
+  shown as visible marks (`⟨U+202E⟩`) in body text **and** code blocks. *Copy* copies the source exactly; when the
+  copied text holds any such character, the copy says so (*"copied; it contains 2 hidden characters, shown as marks"*),
+  so nothing pasted into a terminal differs from what was read.
 - **Code blocks** get light syntax tinting for Java, XML, YAML and JSON (keywords, strings, comments, numbers), by a
   bounded lexer: a block over 64 KB or 2,000 lines, or in another language, is shown untinted.
 - **Links** are shown as text (underlined) and **open only on a click, after a confirmation showing the full URL**
-  (*"Open https://example.org/a/b?c in your browser?"*, default No). Only `http` and `https` open; `file:`,
-  `javascript:`, `data:` and any other scheme are shown and never opened.
+  (*"Open https://example.org/a/b?c in your browser?"*, default No). The confirmation shows the scheme and **host** on a
+  line of their own, the host in its ASCII (punycode) form, and the URL with bidirectional and format characters as
+  marks, so a homograph or a reversed string cannot pass as another address. Only `http` and `https` open; `file:`,
+  `javascript:`, `data:` and any other scheme are shown and never opened. A bare `http(s)://` URL in the text is a link
+  in the same way (it autolinks); nothing else does.
 - **Analyser references as chips.** In Claude's words, a reference that **resolves in the current snapshot** becomes a
-  chip: `record #12` (an index inside the open log), a node id equal to one of the open graph's node ids (whole word,
-  at least three characters), a chart name equal to a session chart's name. Nothing else is guessed. A chip
+  chip: `record #12` (an index inside the open log), a node id equal to one of the open graph's node ids **written as
+  code** (`` `riskMonitor` ``) or after the word *node* (r8, F20: an ordinary word such as *map* or *risk* never becomes
+  a chip), a chart name equal to a session chart's name, written as code or quoted. Matching is a set lookup per
+  candidate token, bounded to 5,000 node ids and the first 200 candidates of an answer. Nothing else is guessed. A
+  chip's label and tooltip set `html.disable`, because a chart name or node id can come from a bundle (r8, F15). A chip
   **navigates and never mutates** (the D-L3 rule): it selects and reveals the record, selects and spotlights the node,
   or opens the chart's tab, through the same reveal calls the Project panel's buttons use. A chip in an answer written
   under an earlier log generation is shown muted, and its click says *"this answer was about generation 3; the log is
@@ -965,7 +1099,7 @@ The words used are "reviewed before sharing".
 | OA §4.3 "no shell, arbitrary URL fetch or producer execution is added"; FAQ "no shell access, ever" | **true in the default posture** (no Bash, no web, strict MCP, no hooks). **The full posture is the stated exception**: the person's own Claude Code, with their shell and web tools, under their own rules and the mode they chose, behind its own switch and warning. The REST socket's own "no shell access, ever" stays true: the socket never runs anything | P1b — FAQ security answer (the REST bullet unchanged; the Claude Code bullet gains a full-posture paragraph), assistant guide, `FaqSecurityContractTest` |
 | OA §4.2 "do not silently queue" | kept: Send while busy is refused (OD-74.7) | P1a |
 | "The analyser does not run downloaded code" (projects guide) | true: bundles refused, other folders only after confirmation. **In the full posture, a confirmed folder's hooks and `.mcp.json` servers run at Start**, and a changed hook file asks again (OD-74.12) | P1b — projects guide, project panel guide |
-| D-C2 (the analyser runs nothing; runbooks are pointers) | the analyser still runs nothing of a runbook. Claude may read one, as an external Claude would; an onboarding `runbook` item adds a pointer through the person's path | P2 — no change to the claim |
+| D-C2 (the analyser runs nothing; runbooks are pointers; *the analyser stores no instructions*) | the analyser still runs nothing of a runbook. Claude may read one, as an external Claude would; an onboarding `runbook` item adds a pointer through the person's path. **Changed in letter by the start-page prompts (r8, review c7f2 F18):** a project profile may store start-page prompt text (`startPrompt.N.text`, at most 500 characters). It is placed in a person's draft, shown in full with its origin before the button, and nothing runs it; in the full posture such a text can still ask Claude to do something, which is why it is shown whole and never sent by itself. The pointer form (`startPrompt.pointer`) keeps the profile itself free of the words | P2 — ONBOARDING's D-C2 row gains this sentence; projects guide |
 | D-AI5 (offers, never selects) | onboarding proposals are offers; every item starts at No and is applied only after the person's Yes, through the person's path (§5.6) | P2 — assistant guide |
 | Agent fixes arrive as evidence-linked PRs, never direct edits | true in the default posture (no Write, Edit or Bash). **In the full posture Claude may edit files as the person's own Claude Code does**, within their rules; stated | P1b — FAQ, assistant guide |
 | Agent-initiated server actions need per-action human approval | the default posture loads no other MCP servers. In the full posture the person's own server tools keep the person's own approval rules and, from P3, ask in the analyser when the CLI asks | P1b, P3 — FAQ |
@@ -998,7 +1132,7 @@ single-user utility (owner direction 2026-10-16).
 | **P0b — default command, binding, P3 contract, slash commands** ✓ 2026-10-16 | 5 items ([report](evidence/m74-p0/P0b-report.md)) | done; folded into r5 |
 | **P1a — default-posture session** ✓ implemented | see *Implementation notes*; live smoke passed [S]. **Open acceptance:** Windows (§11), the owner's visual check of the tab and Settings on the built jar, the frame suites in CI | r6 |
 | **P1b — full posture** | §8.1 | P1a accepted; OD-74.10–74.12 and OD-74.18 accepted; probes PB-1…PB-4 run |
-| **P2 — the start-page prompt, the Ask catalogue, onboarding, the transcript, carried items** | §8.2: the start-page prompt (§5.8, the headline of P2's onboarding), the Ask catalogue (§5.5), `propose` onboarding (§5.6), Move (§5.3), conversation v2 (§6), transcript presentation (§5.9), the carried items | P1a accepted; OD-74.13–74.15 accepted (OD-74.19 is) |
+| **P2 — the start-page prompt, the Ask catalogue, onboarding, the transcript, carried items** | §8.2: the start-page prompt (§5.8, the headline of P2's onboarding), the Ask catalogue (§5.5), `propose` onboarding (§5.6), Move (§5.3), conversation v2 (§6), transcript presentation (§5.9), the carried items | P1a accepted; OD-74.13–74.15 and OD-74.20–74.23 accepted (OD-74.19 is); the shipped-code fixes SF-1 and SF-2 (§11) in first |
 | **P3 — permission prompts in the analyser** | §8.3 | P1b and P2 accepted; OD-74.16–74.17 accepted; probes P3-0…P3-6 run |
 | **P4 — managed policy** | an administrator-owned, read-only policy file the person cannot change in Settings: allowed modes and postures (e.g. local agent only, default posture only), the external MCP/REST socket off, model, budget, endpoint, the terms list (§6), the start-page prompts (`startPrompts`, OD-74.20) | P1a accepted |
 | **P5 — conversation log** | an opt-in (or policy-required) local log of local-agent conversations, with location and retention settings. It holds words, not ids, so it is separate from the session audit record; from P3 it also records each permission request's tool, input shown and decision. Signing it is a later evidence item | P1a accepted |
@@ -1103,9 +1237,11 @@ other caller gets the unknown-verb error. `VerbSchemasTest` pins `all()` at its 
 | data | `AskCatalogue` + `AskCatalogue.properties` | the one registry of questions and start-page entries (§5.5, §5.8): ids, surfaces, preconditions, label and template keys, pointer kinds, fallbacks. Not a node: declarations the menus, the start page, the node and the tests read |
 | fact | `LocalAgentDraftComposed{draftRef, questionId, logIdentityDigest, logGeneration}` / `AssistantDraftComposed{…}` (in-app) | from the pop-up's Yes, a journey, a start-page entry or an armed flow; `questionId` an `AskCatalogue` id, or `JOURNEY`, `HANDOFF`, `SETUP` |
 | effect | `PrimeLocalAgentDraftEffect{draftRef, highlight, armedWhy}` / `PrimeAssistantDraftEffect{draftRef, highlight}` | the panel appends and highlights; `armedWhy` non-null arms Start |
-| node | `StartPagePrompt` (new; parents `assistantMode`, `localAgentSession`) | routes a start-page Send (§5.8): demo, the person's flow, a draft, or the no-AI fallback |
-| fact / effect | `StartPagePromptSent{request, entryId, draftRef, consent, inAppCanAnswer}` → `PlayDemoJourneyEffect` · `RunStartPageFlowEffect{entryId}` → `StartPageFlowDone{request, outcome, logGeneration}` · `ShowStartPageFallbackEffect{entryId}` | §5.8 |
-| fact | `StartPromptsObserved{source: PROJECT \| MANAGED, entriesRef, readProblem}` | each configured source as read (§5.8); the node resolves |
+| node | `StartPagePrompt` (new; parents `assistantMode`, `localAgentSession`, `openLog`, `activeProject`) | routes the start page's button (§5.8): demo, the person's flow, a draft, the pop-out host, or the no-AI fallback; arms Start only when it would be accepted; resolves the configured list |
+| fact / effect | `StartPagePromptSent{request, entryId, draftRef, consent, inAppCanAnswer, claudeCodeFound}` → `PlayDemoJourneyEffect` · `RunStartPageFlowEffect{entryId}` → `StartPageFlowDone{request, outcome, logGeneration, bundleNameRef, templateNamesRef}` · `ShowStartPageFallbackEffect{entryId}` · `ShowAssistantHostEffect{docked}` | §5.8 (one shape, as there) |
+| fact | `StartPromptsObserved{source: PROJECT \| MANAGED, projectIdentity, entriesRef, readProblem}` | each configured source as read (§5.8); the node refuses another project's, retracts on close, resolves |
+| config | `startPrompt.*` (profile family), `SettingsShare.Category.START_PROMPTS`, `assistant.claudeCode.lastMode` (machine tier) | §5.8, OD-74.23 |
+| data | `AskContext` | the frame's rendering input for preconditions (§5.5); never a decision |
 | node | `AssistantLoop` (extended) | refuses a bound in-app draft whose log moved, in its own handler, with the same words |
 | fact | `LocalAgentSendRequested` (extended) | gains `draftBinding` (the composed draft's ref, or 0); the node compares the binding with `openLog`'s identity and generation |
 | fact | `LocalAgentSetupDirectoryChosen{dirDigest, verdict}` | the chooser's result, the folder verdict computed as for Start |
@@ -1171,6 +1307,9 @@ the busy rule, `/model`), plus the analyser's own code.
 8. record the conversation into a walk: v2 written with `source`; open it in a build without P2 (the P1a jar):
    extras kept, `walk` verb refuses it;
 9. the REST transport off and on while a session runs: the next call works without a restart;
+9b. the start page with nothing open: S6 and the button pop the Assistant out with the draft placed and Start armed;
+    S3 with a tampered bundle shows Close only and creates nothing; S3 with a verified bundle ends in an accepted Start
+    in the scratch folder;
 10. the transcript (§5.9): ask for an answer with a heading, a list, a Java block, a link and a literal `<img
     src=…>`; the image tag shows as text, nothing is fetched (the loopback-only proxy sees no request), the link opens
     only after its confirmation, Copy on the code block copies the code exactly; in both themes.
@@ -1318,8 +1457,28 @@ code alone.
 | ★ each question's precondition: Q1 only with one row, Q2 with two or more (and the 20-row cap named), Q5 only on a flagged row, Q3 only with a current record, Q6 only on a non-empty range (witness: Q1 enabled for two rows) | a draft naming the wrong things |
 | ★ **draft-not-send for every question and entry, in both modes**: after Yes, nothing is written to the agent's stdin and no in-app request is made until Send (a recording fake for each route) (witness: sending on Yes) | a question sent without the person's Send |
 | ★ **refused when the generation moved**, for every question, in both modes: compose, reload the log, Send → refused with the words, in `LocalAgentSession` and in `AssistantLoop` (witness: the in-app route without the check) | a stale draft through the other assistant |
-| ★ the start-page prompt: choosing a number fills the box only (no fact posted); Send routes by mode and configuration as §5.8's table; with no AI each entry offers its named fallback and none is a dead end; Send never starts Claude Code (Start is armed); S3 and S5 run the person's own chooser before any draft; the demo plays with **zero processes and zero network** (witness: a Start effect on Send; a fallback that does nothing) | a dead end, a process the person did not start, a model call in the demo |
-| ★ **start-page list precedence**: built-in only; a project `replace`, `prepend` and `append`; a managed `replace` over a project; a managed `lock` ignoring the project's source with the footer shown; the 13th resolved entry dropped with its cause (witness: applying the project after the managed source) | an organisation's list overridden by a project |
+| ★ the start-page prompt: choosing posts no fact and makes no request; the button never starts Claude Code; S2, S3 and S5 run the person's own chooser before any draft; the demo plays with **zero processes and zero network** (witness: a Start effect on the button) | a process the person did not start, a model call in the demo |
+| ★ **no dead end in any column** (r8, F2, F21): for every entry × {Claude Code can answer, in-app can answer, no AI}, the path ends in an enabled action — a placed draft with an armed Start that the node **accepts** when pressed, an in-app composer, or a fallback button that runs an existing `StartPanel.Actions` method; in the Claude Code column S1 (the sample project) and S3 (a bundle working copy) end in an accepted Start in the scratch folder (witness: cwd = the project root, which `LocalAgentFolders` and the bundle rule refuse) | a dead end on the two entries most used first |
+| ★ **with nothing open, the button shows the conversation** (r8, F1; frame test): from the empty start page, S6 then the button leaves the popped-out Assistant window showing, the composer focused with the draft, and Start armed and visible (witness: `revealAssistant()`, which selects a tab in a hidden card) | a question sent to a composer nobody can see |
+| ★ **an unverified bundle is never offered Yes** (r8, F3): a tampered `.fexp` through S3 shows its reason with Close only, and no working copy is created under the bundles root (witness: a Yes that proceeds) | a load-bearing refusal weakened |
+| ★ **routing by what can answer** (r8, F8): a row per mode × switch × resolver found × key: the route of §5.8; the switch on with no `claude` found shows the No-AI column with the searched places; the remembered mode survives a relaunch and is never in a profile, share or bundle (witness: routing on the mode alone) | a Claude Code user sent to the no-AI column, an armed Start for a missing CLI |
+| ★ **the chosen entry and the text are separate** (r8, F9): choose S5 then S2: one chip (S2), the box untouched; delete the box text: the button still runs S2's flow; type text with S5 chosen: it is appended to S5's draft after the flow; the draft's placeholders are filled only after the flow (witness: an `entryId` read from the box's text) | the wrong flow run, an unfillable draft |
+| ★ **no fetch before the button** (r8, F10): choosing S4 makes no request (a recording `Fetcher`); at the button the fetch runs once and the names pass the template-name sanitiser; unreachable gives the stated words (witness: rendering S4's text on choose) | network contact before the person's act |
+| ★ **every placeholder has a sanitiser** (r8, F11): bundle, verdict, project, walk, template names and the docs URL; a walk whose name is sender prose becomes *walk n*; a configured `{log}` prompt with no log open is disabled (witness: interpolating a walk's title) | sender words in the analyser's draft |
+| ★ **no bound draft carries live record text, in either mode** (r8, F4): compose Q2 in the diff dialog, change the selection, Send in-app: the captured request holds no `rawText` of any record; with in-process actions off the catalogue items are disabled with the reason (witness: the current `env.selection()` path) | another record's text sent under a question about these |
+| ★ **the start page's Copy prompt** (r8, F14) copies the composed draft only: no record context, no glossary, no REST token, with REST on and a selection made (witness: reusing `copyAssistantPrompt`) | record text and the loopback token on the clipboard |
+| ★ **configured text is never Swing HTML** (r8, F15; frame test): a configured label `<html><img src='http://127.0.0.1:<port>/b'>`, a chart name and a node id of the same shape render as their characters in the list, the chip and their tooltips, and the loopback server sees no request on hover (witness: a plain `JButton` without `html.disable`) | a network contact from configuration |
+| ★ **the registry covers every Explain entrance** (r8, F12): the records menu, its menu-bar copy, the toolbar and the detail panel's button are built from `AskCatalogue`; the source rule finds no `primeDraft(` or `"Explain` literal elsewhere in `ui/`; the toolbar's Explain is disabled with no selection (witness: the detail panel's own button and tooltip) | a fourth entrance drifting from the registry |
+| ★ **the demo journey** (r8, F13): S1 plays "DEMO first breach" from the jar, equal to the site bundle's walk; a sample profile that already holds `DemoTour` still gets it; its last step ends the walk before offering the live path, so the composer and Copy prompt are enabled; with a process running the sample switch shows Move / Keep / Stop; `tools/test_start_workspace.py` still passes (witness: saving under `DemoTour.NAME`) | returning users on the old tour, a disabled fallback |
+| ★ **the profile key survives shipped writers** (r8, F5): a profile with `startPrompt.*` saved through a writer with `KnownKeys.PROFILE_FAMILIES` as shipped in the latest release keeps every key; `START_PROMPTS` is project-scoped, off by default in a share, its preview lists each label and text, and it is absent from `BundleProfile.CATEGORIES` (witness: the family `assistant`, which the shipped writer owns and drops) | a team's prompts deleted by a teammate's save |
+| ★ **the landing strip** (r8, F6; frame test): a project with a configured list and no log shows the list on its landing state; a log opened hides it; a stale `StartPromptsObserved` from the previous project is refused and a close retracts it (witness: rendering the start card's list only) | a team preset never seen |
+| ★ **lenient reading** (r8, F17): an entry with an unknown optional key is shown and the key noted; an entry with no known kind is refused; 200 bad entries give three causes and *"…and 197 more"* (witness: refusing on any unknown key) | newer profiles hidden by older builds |
+| ★ **the box shows the whole text** (r8, F18): a 500-character configured prompt is fully visible (scrollable, no ellipsis) with its origin label before the button (witness: a one-line field) | hidden words sent under a harmless label |
+| ★ **the page's keyboard and names** (r8, F19; frame test): Up/Down/Enter choose; `Alt+1`–`Alt+9`; each entry's accessible name; the button's label follows the chosen entry; an entry that duplicates a card calls the card's `StartPanel.Actions` method; start-page shots in both themes in `capture-docs.py` and `StartWorkspaceFrameTest` (witness: a typed digit choosing an entry) | an inaccessible or duplicated flow |
+| ★ **what is seen is what is copied** (r8, F16): an answer holding ESC `[31m`, U+202E and U+200B shows visible marks in body text and a code block; Copy equals the source and says it holds hidden characters; a link to a homograph host shows its punycode host in the confirmation (witness: plain `insertString` of the text) | paste-jacking, a disguised link |
+| ★ **chips need code formatting or *node*** (r8, F20): the prose word *risk* with a node `risk` in the graph is not a chip; `` `risk` `` and *node risk* are; matching stays within its bound on 5,000 nodes (witness: whole-word matching) | prose turned into navigation |
+| ★ the Markdown parser renders 64 KB of unclosed emphasis within a bounded time (r8, F21) | a streamed answer freezing the pane |
+| ★ **start-page list precedence**: built-in only; a project `replace`, `prepend` and `append`; a managed `replace` over a project; a managed `lock` ignoring the project's source with the footer shown; the 13th resolved entry dropped with its cause — a pure `AskCatalogue.resolve` test, since P2 has no managed producer (witness: applying the project after the managed source) | an organisation's list overridden by a project |
 | ★ **invalid configuration**: each invalid entry kind of §5.8 is refused on its own with its cause named and the others shown; an invalid source (bad JSON, a pointer outside the project, over 64 KB) is ignored whole with its cause and the earlier result used; nothing left → the built-in list (witness: one bad entry rejecting the whole source) | a start page broken or silently changed by configuration |
 | ★ configured entries are data: a prompt's text is placed in the draft only, with its origin label, and nothing is sent before Send; an unknown placeholder refuses the entry; a `walk` entry plays through the walk path with zero processes; a bundle never carries `assistant.startPrompts`, and a project share carries it labelled (witness: sending a configured prompt on choose) | configured text acting as an instruction, or arriving by bundle |
 | ★ the demo's conversation is labelled by its kind and played by the walk path; no simulated history enters a provider call afterwards (OA-A15) (witness: seeding the live thread with the demo's turns) | simulated words presented as live |
@@ -1339,7 +1498,7 @@ code alone.
 | ★ REST restart while a session runs rewrites that generation's endpoint file with the new URL and the same credential; REST off says so and stops nothing (witness: rewriting with a new credential) | a session cut off by a REST restart |
 | ★ the diagnostics line from a fixture with unknown events and an unclassified built-in; nothing shown when all counts are zero | silent protocol drift |
 | ★ incremental rendering: a streamed answer re-renders only its own entry (a document-change counter); the 501st entry trims the first with one note and evicts its words from the store (witness: re-render per snapshot) | the panel slowing with length, an unbounded node |
-| `OneDispatchModelTest` P2 rules (§8.2) | hand-placed dispatch in the new flows |
+| ★ `OneDispatchModelTest` P2 rules (§8.2) (r8, F21) | hand-placed dispatch in the new flows (witness: a `StartPanel` method that branches on `AssistantMode`, or a chip handler that calls a mutating `MainFrame` method) |
 
 **P3.**
 
@@ -1379,6 +1538,26 @@ code alone.
   ticket, verb and canonical input, single-use and short-lived, which is what makes "exactly this call" true.
 - **A full-posture live transcript is never captured with the person's own servers** (OD-74.18); their loading is
   verified only by the isolated zero-cost checks.
+
+**Defects in shipped code found by the r7 review (c7f2), fixed separately from M74** (r8). Each is a fix in its own
+right, with its own regression check, and **should go in ahead of P2**: both are small, independent of the local
+agent, and P2's start page and transcript would otherwise inherit them.
+- **SF-1 — the in-app tab's *Copy prompt* puts the REST token on the clipboard** (F14). `copyAssistantPrompt`
+  (`ui/MainFrame`) appends `PromptBuilder.restActionManifest(restUrl, restToken, …)` whenever REST is on, and prepends
+  the selection's raw record text and the glossary; its dialog says only that nothing was sent. **Fix:** the token is
+  included only when the person ticks *Include my local REST token (lets the pasted assistant drive this analyser)*,
+  off by default; the dialog names every part it copied (*"your question, the raw text of 2 records, the glossary"*).
+  **Check:** a headless test of the composed prompt with REST on and a selection: no token unless the box is ticked,
+  and the parts list matches (witness: the current unconditional append).
+- **SF-2 — Swing renders model-, log-, bundle- and profile-derived text as HTML** (F15). Nothing in `src/main` sets
+  `html.disable`, and Swing renders any label, button text or tooltip that begins with `<html>` as HTML, fetching an
+  `<img src=…>`. Today that reaches, at least, the start page's recent-project and bundle cards (names from the person's
+  configuration and folders) and any surface that shows a report or walk title, a chart name or a node id (which an
+  agent or a bundle can author). **Fix:** one helper, `UiText.plain(JComponent)`, sets `html.disable` and is applied
+  to every component that shows such text; a source rule lists those components and fails on a new one without it.
+  **Check:** a frame test in which a report title and a recent-project name `<html><img src='http://127.0.0.1:<port>/x'>`
+  render as their characters, with the loopback server seeing no request on hover (witness: one component without the
+  helper).
 
 **Untested, carried to acceptance unless noted:**
 - **Windows:** the launcher, inline-JSON quoting through `cmd.exe` versus a 0700 temp file, interrupt and tree kill
@@ -1585,3 +1764,20 @@ a `ProcessBuilder` in the adapter, a warm Start from `revealAssistant()`; FAQ �
   contradiction), the dialog's rendering of model-authored input, and single-use grants consumed on the session thread
   (OD-74.17); the full posture's smoke method (OD-74.18). Corrected: the P3 line carries `--permission-prompts host`
   as P0b ran it; `model_changed` is not a stream event. Proposed decisions OD-74.10–74.18 and OD-74.20 await the owner.
+- **r8** (2026-10-16): the independent review c7f2 of r7's start-prompt material, folded in place; each claim was
+  checked against the code first, and all 21 were confirmed. **F1** fixed: with nothing open the start page's button
+  pops the Assistant out (OD-74.21, proposed). **F2** fixed: the sample project and bundle working copies work in the
+  scratch folder (OD-74.22, amending OD-74.5, proposed), and Start is armed only when it would be accepted. **F3**
+  fixed: an unverified bundle gets Close only. **F4** fixed: a bound draft carries no record context in either mode,
+  and the catalogue is disabled in-app with in-process actions off. **F5** fixed: the `startPrompt` family and the
+  `START_PROMPTS` category. **F6** fixed: the project landing strip (OD-74.21). **F7** fixed: fallbacks are buttons.
+  **F8** fixed: "can answer" includes the resolver, and the mode is remembered (OD-74.23, proposed). **F9** fixed: the
+  chosen entry is a chip, kept apart from the text. **F10** fixed: S4 fetches only at the button. **F11** fixed:
+  sanitiser rows for every placeholder. **F12** fixed: the detail-panel and toolbar entrances, `AskContext`, a source
+  rule. **F13** fixed: S1 plays the shipped "DEMO first breach" walk from the jar, and its last step ends the walk.
+  **F14** and **F15** fixed on the start page and transcript, and recorded as the shipped-code defects SF-1 and SF-2
+  (§11), recommended ahead of P2. **F16** fixed: what is seen is what is copied, and the link host. **F17** fixed:
+  lenient reading. **F18** fixed: D-C2 is changed in letter and recorded (§7). **F19** fixed: the page layout,
+  keyboard and cards. **F20** fixed: node parents, the source's lifetime, own-project walks, the locale, the Q4
+  label, code-formatted chips; and with warm start on, a direct tab click while Start is armed starts the session and
+  places the armed draft, not sent. **F21** fixed: a starred §10 row with a witness for each finding.
