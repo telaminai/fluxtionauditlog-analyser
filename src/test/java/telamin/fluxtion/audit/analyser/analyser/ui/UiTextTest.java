@@ -122,9 +122,12 @@ class UiTextTest {
     void anOptionPaneMessageAndItsChoicesAreInert() throws Exception {
         try (LoopbackProbe probe = new LoopbackProbe()) {
             onEdt(() -> {
-                // BasicOptionPaneUI renders a message that merely CONTAINS <html>…</html> — a name quoted mid-sentence;
-                // it cuts that span out and drops the words before it
-                new JOptionPane("Delete the walk \"" + probe.payload("/witness-message") + "</html>\"?");
+                // a message that BEGINS with <html> is rendered as HTML on every JDK: the witness this test requires
+                new JOptionPane(probe.payload("/witness-message"));
+                // some JDK 21 updates (Corretto 21.0.9) also render a message that merely CONTAINS <html>…</html>, a name
+                // quoted mid-sentence, cutting that span out; newer Temurin updates do not. Observed, not required: the
+                // protected shape below must stay unfetched either way
+                new JOptionPane("Delete the walk \"" + probe.payload("/witness-mid-sentence") + "</html>\"?");
                 new JOptionPane(UiText.inert("Delete the walk \"" + probe.payload("/message") + "</html>\"?"));
                 // and each line of a multi-line message is its own label
                 new JOptionPane(UiText.inert("Delete the walk?\n" + probe.payload("/message-line")));
@@ -132,7 +135,7 @@ class UiTextTest {
                         UiText.inert(new Object[]{probe.payload("/option")}));
                 new JLabel(probe.payload("/witness-last"));
             });
-            assertTrue(probe.awaitHit("/witness-message", 5000), "witness: a quoted name in a message is rendered as HTML");
+            assertTrue(probe.awaitHit("/witness-message", 5000), "witness: an option-pane message is rendered as HTML");
             assertTrue(probe.awaitHit("/witness-last", 5000), "the last witness, built after every protected component");
             assertEquals(0, probe.hits("/message"));
             assertEquals(0, probe.hits("/message-line"));
