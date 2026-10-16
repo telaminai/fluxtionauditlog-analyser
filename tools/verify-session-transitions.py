@@ -50,6 +50,22 @@ RATE_LIMIT_PAUSE = 0.45          # the socket rate-limits at 10/s; stay under it
 STARTUP_TIMEOUT = 40
 
 
+def published_endpoint(home, proc, launched):
+    """The (url, token) this launch published to <home>/.fluxtion-analyser/rest-endpoint, else None.
+
+    The same rule as verify-m46-agent-api.py: since M74 P1a the console carries only a token hint."""
+    endpoint = os.path.join(home, ".fluxtion-analyser", "rest-endpoint")
+    try:
+        written = os.stat(endpoint).st_mtime
+        with open(endpoint) as f:
+            published = json.load(f)
+    except (OSError, ValueError):
+        return None
+    if published.get("pid") != proc.pid and written < launched:
+        return None
+    return published["url"], published["token"]
+
+
 class Analyser:
     """The built jar, running under an isolated home, talked to over its assistant socket."""
 
@@ -59,22 +75,19 @@ class Analyser:
         self.log_path = os.path.join(home, "analyser-stdout.log")
 
     def __enter__(self):
+        launched = time.time()
         with open(self.log_path, "w") as out:
             self.proc = subprocess.Popen(
                 ["java", "-Duser.home=" + self.home, "-jar", self.jar, "--rest"],
                 stdout=out, stderr=subprocess.STDOUT)
         deadline = time.time() + STARTUP_TIMEOUT
         while time.time() < deadline:
-            text = open(self.log_path).read()
-            if "X-Analyser-Token:" in text:
-                for line in text.splitlines():
-                    if "X-Analyser-Token:" in line:
-                        self.url = line.split("http://")[1].split()[0]
-                        self.url = "http://" + self.url
-                        self.token = line.split("X-Analyser-Token:")[1].strip()
+            published = published_endpoint(self.home, self.proc, launched)
+            if published:
+                self.url, self.token = published
                 return self
             if self.proc.poll() is not None:
-                raise SystemExit("the analyser exited during startup:\n" + text)
+                raise SystemExit("the analyser exited during startup:\n" + open(self.log_path).read())
             time.sleep(0.5)
         raise SystemExit("the analyser did not publish a REST endpoint within "
                          f"{STARTUP_TIMEOUT}s:\n" + open(self.log_path).read())

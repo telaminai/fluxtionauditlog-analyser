@@ -44,6 +44,24 @@ CALL_TIMEOUT = 15                # A2 presented as "every later verb returns not
 MIXED_ROUNDS = 12                # A2's second route followed MIXED coverage/topology calls
 
 
+def published_endpoint(home, proc, launched):
+    """The (url, token) this launch published to <home>/.fluxtion-analyser/rest-endpoint, else None.
+
+    Since M74 P1a the console carries only a token hint, so the endpoint file is the one place to read the
+    token. A file left by an earlier JVM under the same home is told apart by its pid, or, where a launcher
+    shim stands between Popen and the JVM, by being written before this launch."""
+    endpoint = os.path.join(home, ".fluxtion-analyser", "rest-endpoint")
+    try:
+        written = os.stat(endpoint).st_mtime
+        with open(endpoint) as f:
+            published = json.load(f)
+    except (OSError, ValueError):
+        return None
+    if published.get("pid") != proc.pid and written < launched:
+        return None
+    return published["url"], published["token"]
+
+
 class Analyser:
     def __init__(self, jar, home, tag):
         self.jar, self.home = jar, home
@@ -51,20 +69,19 @@ class Analyser:
         self.proc = self.url = self.token = None
 
     def __enter__(self):
+        launched = time.time()
         with open(self.out, "w") as out:
             self.proc = subprocess.Popen(
                 ["java", "-Duser.home=" + self.home, "-jar", self.jar, "--rest"],
                 stdout=out, stderr=subprocess.STDOUT)
         deadline = time.time() + STARTUP_TIMEOUT
         while time.time() < deadline:
-            text = open(self.out).read()
-            for line in text.splitlines():
-                if "X-Analyser-Token:" in line:
-                    self.url = "http://" + line.split("http://")[1].split()[0]
-                    self.token = line.split("X-Analyser-Token:")[1].strip()
-                    return self
+            published = published_endpoint(self.home, self.proc, launched)
+            if published:
+                self.url, self.token = published
+                return self
             if self.proc.poll() is not None:
-                raise SystemExit("the analyser exited during startup:\n" + text)
+                raise SystemExit("the analyser exited during startup:\n" + open(self.out).read())
             time.sleep(0.4)
         raise SystemExit("no REST endpoint within %ss:\n%s" % (STARTUP_TIMEOUT, open(self.out).read()))
 
