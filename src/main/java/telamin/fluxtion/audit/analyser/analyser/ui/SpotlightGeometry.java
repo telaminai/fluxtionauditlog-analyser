@@ -98,6 +98,22 @@ public final class SpotlightGeometry {
      */
     public static java.util.List<Rectangle> layout(java.util.List<Rectangle> cutOuts, java.util.List<Dimension> sizes,
                                                    Dimension frame) {
+        return layout(cutOuts, sizes, frame, java.util.List.of());
+    }
+
+    /**
+     * {@link #layout(java.util.List, java.util.List, Dimension)}, also keeping clear of {@code keepClear}: things NOT lit
+     * that a reader is comparing with what is — the topology's other visible nodes, the source lines either side of a
+     * lit line. A cold-assistant test (2026-10-16) watched callouts land on exactly those: the sibling node the
+     * caption was contrasting, and line 21 beside a lit line 20.
+     *
+     * <p>Strictly SECONDARY: among candidates, the one covering the least lit cut-out and placed callout still wins,
+     * exactly as before; covering a keep-clear rectangle only breaks ties between candidates equal on that. So an
+     * empty list, or a layout where every candidate already covers something lit, places callouts as they always were.
+     */
+    public static java.util.List<Rectangle> layout(java.util.List<Rectangle> cutOuts, java.util.List<Dimension> sizes,
+                                                   Dimension frame, java.util.List<Rectangle> keepClear) {
+        java.util.List<Rectangle> clear = keepClear == null ? java.util.List.of() : keepClear;
         java.util.List<Rectangle> placed = new java.util.ArrayList<>();
         for (int i = 0; i < cutOuts.size(); i++) {
             Dimension size = sizes.get(i);
@@ -106,16 +122,18 @@ public final class SpotlightGeometry {
                 continue;
             }
             Rectangle best = null;
-            long bestCost = Long.MAX_VALUE;
+            long bestCost = Long.MAX_VALUE, bestClear = Long.MAX_VALUE;
             for (Rectangle candidate : candidates(cutOuts.get(i), size, frame)) {
-                long cost = 0;
+                long cost = 0, covers = 0;
                 for (Rectangle cut : cutOuts) cost += overlap(candidate, cut);
                 for (Rectangle other : placed) if (other != null) cost += overlap(candidate, other);
-                if (cost < bestCost) {
+                for (Rectangle keep : clear) covers += overlap(candidate, keep);
+                if (cost < bestCost || (cost == bestCost && covers < bestClear)) {
                     best = candidate;
                     bestCost = cost;
+                    bestClear = covers;
                 }
-                if (cost == 0) break;
+                if (cost == 0 && covers == 0) break;
             }
             placed.add(best);
         }

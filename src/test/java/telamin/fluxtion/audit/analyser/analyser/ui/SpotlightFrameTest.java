@@ -280,4 +280,167 @@ class SpotlightFrameTest {
             onEdt(() -> assertNull(find(render(f.ex, "context", Map.of()), "spotlight")));
         }
     }
+
+    /**
+     * A cold-assistant test (2026-10-16) lit {@code project:log}, {@code project:graph}, {@code project:processors} and
+     * {@code project:roots} as one set on a Project panel too long to show at once. The verb said ok and drew four boxes
+     * over the wrong rows: measuring a section SCROLLED the panel to it, so each later member's measurement moved the
+     * rows under the rectangles already recorded for earlier ones. Measuring must not scroll; only revealing does.
+     */
+    @Test
+    void measuringAProjectSectionNeverScrolls_soAnEarlierSetMembersBoxStaysTrue() throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        java.util.concurrent.atomic.AtomicReference<javax.swing.JFrame> frame = new java.util.concurrent.atomic.AtomicReference<>();
+        java.util.concurrent.atomic.AtomicReference<ProjectPanel> panel = new java.util.concurrent.atomic.AtomicReference<>();
+        try {
+            onEdt(() -> {
+                ProjectPanel p = new ProjectPanel(new ProjectPanel.Navigator() {
+                    public void showTab(String title) { }
+                    public void openSettings(String page) { }
+                    public void showReport(String name) { }
+                    public void showGraph(String name) { }
+                });
+                java.util.Map<String, Object> ctx = new java.util.LinkedHashMap<>();
+                ctx.put("project", Map.of("active", true, "name", "Demo", "root", "/work/demo",
+                        "settings", "/work/demo/.analyser/project.fluxtion-settings"));
+                ctx.put("log", Map.of("path", "/work/demo/logs/demo-quote-audit.yaml", "records", 10, "openedBy", "you"));
+                java.util.List<Object> processors = new java.util.ArrayList<>();
+                for (int i = 0; i < 20; i++) processors.add(Map.of("class", "com.acme.demo.generated.Demo" + i + "Processor",
+                        "selected", i == 0, "source", "found", "from", "project"));
+                ctx.put("processors", processors);
+                java.util.List<Object> tiers = new java.util.ArrayList<>();
+                for (int i = 0; i < 8; i++) tiers.add(Map.of("path", "/work/demo/module" + i + "/src/main/java",
+                        "tier", "project", "form", "project-relative"));
+                ctx.put("source", Map.of("rootTiers", tiers));
+                p.render(ProjectModel.from(ctx));
+                javax.swing.JFrame f = new javax.swing.JFrame("project panel measure");
+                f.add(p);
+                f.setSize(420, 360);                                   // far shorter than the rendered sections
+                f.setVisible(true);
+                frame.set(f);
+                panel.set(p);
+            });
+            onEdt(() -> { });                                          // let the frame lay out and show
+            onEdt(() -> {
+                ProjectPanel p = panel.get();
+                assertTrue(p.revealSection(ProjectModel.LOG));
+                p.validate();
+            });
+            AtomicReference<java.awt.Rectangle> logBefore = new AtomicReference<>();
+            AtomicReference<java.awt.Rectangle> rootsMeasured = new AtomicReference<>();
+            AtomicReference<java.awt.Rectangle> logAfter = new AtomicReference<>();
+            onEdt(() -> {
+                ProjectPanel p = panel.get();
+                logBefore.set(p.sectionBounds(ProjectModel.LOG));
+                rootsMeasured.set(p.sectionBounds(ProjectModel.ROOTS));   // a pure measurement: must not move anything
+                logAfter.set(p.sectionBounds(ProjectModel.LOG));
+            });
+            assertNotNull(logBefore.get(), "the revealed log section is measurable");
+            assertNull(rootsMeasured.get(), "roots are below the fold, so measuring them answers null: not in view");
+            assertEquals(logBefore.get(), logAfter.get(),
+                    "measuring another section moved the log section: a set's earlier box would now point at the wrong row");
+            AtomicReference<java.awt.Rectangle> rootsRevealed = new AtomicReference<>();
+            AtomicReference<java.awt.Rectangle> logOnceRootsRevealed = new AtomicReference<>();
+            onEdt(() -> {
+                ProjectPanel p = panel.get();
+                assertTrue(p.revealSection(ProjectModel.ROOTS));
+                p.validate();
+            });
+            onEdt(() -> {
+                rootsRevealed.set(panel.get().sectionBounds(ProjectModel.ROOTS));
+                logOnceRootsRevealed.set(panel.get().sectionBounds(ProjectModel.LOG));
+            });
+            assertNotNull(rootsRevealed.get(), "revealing scrolls the roots into view");
+            assertNull(logOnceRootsRevealed.get(),
+                    "log and roots do not fit together here, so the log now measures as not in view — the set resolver "
+                            + "refuses the pair instead of drawing a stale box");
+            assertFalse(p_isEmpty(rootsRevealed.get()));
+        } finally {
+            onEdt(() -> { if (frame.get() != null) frame.get().dispose(); });
+        }
+    }
+
+    /**
+     * PR #144 review, N1: the same property end to end, through the spotlight verb on the real frame. With measuring
+     * no longer scrolling, two Project-panel sections that cannot share the screen are REFUSED by the set resolver,
+     * naming the pair, rather than lit over whatever scrolled into their place.
+     */
+    @Test
+    void aProjectSectionSetThatCannotShareTheScreenIsRefusedByName(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        try (AsyncOpenInterleavingFrameTest.Frame f = new AsyncOpenInterleavingFrameTest.Frame(tmp)) {
+            onEdt(() -> {
+                f.frame.setSize(1300, 420);                          // far shorter than the panel rendered below
+                f.frame.setVisible(true);
+                f.frame.validate();
+            });
+            AtomicReference<ActionResult> answer = new AtomicReference<>();
+            onEdt(() -> {
+                ProjectPanel panel = (ProjectPanel) field(f.frame, "projectPanel");
+                java.util.Map<String, Object> ctx = new java.util.LinkedHashMap<>();
+                ctx.put("project", Map.of("active", true, "name", "Demo", "root", "/work/demo",
+                        "settings", "/work/demo/.analyser/project.fluxtion-settings"));
+                ctx.put("log", Map.of("path", "/work/demo/logs/demo-quote-audit.yaml", "records", 10, "openedBy", "you"));
+                java.util.List<Object> processors = new java.util.ArrayList<>();
+                for (int i = 0; i < 30; i++) processors.add(Map.of("class", "com.acme.demo.generated.Demo" + i + "Processor",
+                        "selected", i == 0, "source", "found", "from", "project"));
+                ctx.put("processors", processors);
+                java.util.List<Object> tiers = new java.util.ArrayList<>();
+                for (int i = 0; i < 8; i++) tiers.add(Map.of("path", "/work/demo/module" + i + "/src/main/java",
+                        "tier", "project", "form", "project-relative"));
+                ctx.put("source", Map.of("rootTiers", tiers));
+                panel.render(ProjectModel.from(ctx));
+                f.frame.validate();
+                answer.set(f.ex.render("spotlight", new java.util.LinkedHashMap<>(Map.of("targets", java.util.List.of(
+                        Map.of("target", "project:log", "caption", "the log"),
+                        Map.of("target", "project:roots", "caption", "the roots"))))));
+            });
+            String reply = answer.get().toMap().toString();
+            assertFalse(answer.get().ok(), "lit a pair that cannot share the screen: " + reply);
+            assertTrue(reply.contains("'project:log' and 'project:roots' cannot be on screen at the same time"), reply);
+        }
+    }
+
+    private static boolean p_isEmpty(java.awt.Rectangle r) {
+        return r == null || r.isEmpty();
+    }
+
+    /**
+     * #42 on a real frame: lighting a topology node hands its callout the OTHER visible nodes to keep clear of, and
+     * the callout is laid out off them. A cold-assistant test (2026-10-16) watched a node's callout cover the very
+     * sibling its caption contrasted it with.
+     */
+    @Test
+    void aNodesCalloutKeepsClearOfTheOtherNodesOnScreen(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        try (AsyncOpenInterleavingFrameTest.Frame f = new AsyncOpenInterleavingFrameTest.Frame(tmp)) {
+            onEdt(() -> {
+                f.frame.setSize(1300, 850);
+                f.frame.setVisible(true);
+                f.frame.validate();
+            });
+            onEdt(() -> render(f.ex, "open", Map.of("graphml", Path.of(GRAPH).toAbsolutePath().toString())));
+            onEdt(() -> render(f.ex, "spotlight", Map.of("target", "tab:topology")));
+            onEdt(() -> render(f.ex, "spotlight", Map.of("clear", true)));
+            Thread.sleep(400);                                        // first fit-to-view
+            onEdt(() -> render(f.ex, "spotlight",
+                    Map.of("target", "topology:node:" + NODE, "caption", "this node receives every price first")));
+            Thread.sleep(300);                                        // the deferred re-measure, then a repaint
+            SpotlightOverlay overlay = (SpotlightOverlay) field(f.frame, "spotlight");
+            AtomicReference<java.util.List<java.awt.Rectangle>> keep = new AtomicReference<>();
+            AtomicReference<java.util.List<java.awt.Rectangle>> callouts = new AtomicReference<>();
+            onEdt(() -> {
+                @SuppressWarnings("unchecked")
+                var map = (java.util.Map<String, java.util.List<java.awt.Rectangle>>) field(overlay, "keepClear");
+                keep.set(map.getOrDefault(("topology:node:" + NODE).toLowerCase(java.util.Locale.ROOT), java.util.List.of()));
+                overlay.paintImmediately(0, 0, overlay.getWidth(), overlay.getHeight());
+                callouts.set(overlay.lastCallouts());
+            });
+            assertFalse(keep.get().isEmpty(), "the other visible nodes are handed to the callout to keep clear of");
+            java.awt.Rectangle callout = callouts.get().get(0);
+            assertNotNull(callout, "the caption was laid out");
+            for (java.awt.Rectangle other : keep.get())
+                assertFalse(callout.intersects(other), "the callout " + callout + " covers an unlit node at " + other);
+        }
+    }
 }

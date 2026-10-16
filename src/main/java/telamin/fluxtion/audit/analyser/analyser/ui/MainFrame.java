@@ -3520,7 +3520,45 @@ public final class MainFrame extends JFrame {
             return parsed.ok() ? spotlightSurface.bounds(parsed.target()) : java.util.Optional.empty();
         });
         javaSpotlightBindings.keySet().retainAll(spotlight.lit().stream().map(SpotlightOverlay.Lit::target).toList());
+        refreshKeepClear();
         return departed;
+    }
+
+    /**
+     * #42 — tell each lit target's callout what to keep clear of: the topology's other visible nodes for a node, the
+     * lines either side for a Java line. Measured like the targets themselves, so it is current after every relight.
+     */
+    private void refreshKeepClear() {
+        for (SpotlightOverlay.Lit l : spotlight.lit()) {
+            SpotlightTarget.Parsed parsed = SpotlightTarget.parse(l.target());
+            if (!parsed.ok()) continue;
+            SpotlightTarget t = parsed.target();
+            java.util.List<java.awt.Rectangle> keep = new java.util.ArrayList<>();
+            switch (t.family()) {
+                case TOPOLOGY_NODE -> {
+                    var canvas = topologyPanel.canvas();
+                    if (canvas.isShowing()) {
+                        java.awt.Rectangle view = canvas.getVisibleRect();
+                        canvas.screenBoundsOfAll().forEach((id, at) -> {
+                            if (!id.equals(t.argument()) && at.intersects(view))
+                                inOverlay(canvas, at.intersection(view)).ifPresent(keep::add);
+                        });
+                    }
+                }
+                case JAVA_LINE -> {
+                    JavaBinding binding = javaSpotlightBindings.get(t.name());
+                    if (binding != null && binding.line() != null && sourceService.isCurrent(binding.lookup())) {
+                        for (int line : new int[]{binding.line() - 1, binding.line() + 1}) {
+                            if (line < 1) continue;
+                            binding.viewer().javaBounds(binding.anchor(), line)
+                                    .flatMap(b -> inOverlay(binding.viewer(), b.bounds())).ifPresent(keep::add);
+                        }
+                    }
+                }
+                default -> { }
+            }
+            spotlight.keepClear(l.target(), keep);
+        }
     }
 
     /** The frame's answer to "where is this, and can you bring it on screen?" — Swing behind a pure interface. */
@@ -3547,7 +3585,10 @@ public final class MainFrame extends JFrame {
                         projectRailToggle.doClick();
                     validate();
                     if (projectPanel != null && t.family() == SpotlightTarget.Family.PROJECT_ROW) {
-                        var bounds = projectPanel.sectionBounds(projectSectionTitle(t.argument()));
+                        // reveal scrolls; measuring (bounds) never does — see ProjectPanel#sectionBounds
+                        String section = projectSectionTitle(t.argument());
+                        projectPanel.revealSection(section);
+                        var bounds = projectPanel.sectionBounds(section);
                         if (bounds != null) projectPanel.scrollRectToVisible(bounds);
                     }
                 }
@@ -4048,6 +4089,7 @@ public final class MainFrame extends JFrame {
             if (r.target().name().startsWith("source:design") && session().processor().designSession.document() != null)
                 designSpotlightRevisions.put(r.target().name(), session().processor().designSession.document().revision());
         }
+        // keep-clear is measured in relightSpotlight alone: litEcho below relights synchronously, before any paint
         SwingUtilities.invokeLater(this::relightSpotlight);     // once the layout the reveal queued has run
         Map<String, Object> echo = new java.util.LinkedHashMap<>();
         echo.put("lit", litEcho(true));

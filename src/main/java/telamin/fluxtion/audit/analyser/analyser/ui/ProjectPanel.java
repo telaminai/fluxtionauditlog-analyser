@@ -98,16 +98,33 @@ public final class ProjectPanel extends JPanel {
     private final java.util.Map<String, JComponent> sectionsByTitle = new java.util.LinkedHashMap<>();
 
     /**
-     * M64 — one section's block ({@link ProjectModel#LOG}, {@code GRAPH}, …), scrolled into view, in this
-     * panel's coordinates; null when the model has no such section. Reveal-only, like everything here:
-     * it scrolls and reports a rectangle, and changes nothing.
+     * M64 — the VISIBLE part of one section's block ({@link ProjectModel#LOG}, {@code GRAPH}, …), in this
+     * panel's coordinates; null when the model has no such section or none of it is in view.
+     *
+     * <p>A MEASUREMENT, with no side effect. It used to scroll the section into view as well, and a
+     * spotlight SET measures every member after every reveal: measuring {@code project:roots} scrolled
+     * the panel away from {@code project:log}, whose rectangle — already recorded — then pointed at
+     * whatever had scrolled into its place. Four boxes were drawn over the wrong rows and the verb said
+     * ok (a cold-assistant test, 2026-10-16). Scrolling is {@link #revealSection}'s job alone, so a set
+     * whose sections cannot be on screen together is refused by the set resolver, as it is everywhere else.
      */
     public java.awt.Rectangle sectionBounds(String title) {
         JComponent sec = sectionsByTitle.get(title);
         if (sec == null || !sec.isShowing()) return null;
-        sec.scrollRectToVisible(new java.awt.Rectangle(0, 0, sec.getWidth(), sec.getHeight()));
         java.awt.Rectangle visible = sec.getVisibleRect();
         return visible.isEmpty() ? null : SwingUtilities.convertRectangle(sec, visible, this);
+    }
+
+    /**
+     * Scroll one section into view — as little as needed, so revealing the next member of a set keeps
+     * the earlier ones on screen whenever they fit together. Reveal-only: it changes nothing but the
+     * scroll position. False when the model has no such section.
+     */
+    public boolean revealSection(String title) {
+        JComponent sec = sectionsByTitle.get(title);
+        if (sec == null) return false;
+        sec.scrollRectToVisible(new java.awt.Rectangle(0, 0, sec.getWidth(), sec.getHeight()));
+        return true;
     }
 
     /**
@@ -194,7 +211,7 @@ public final class ProjectPanel extends JPanel {
         head.setOpaque(false);
         head.setAlignmentX(LEFT_ALIGNMENT);
         // C4/D-L8: draw the abbreviated form; the full value is the tooltip and what Copy copies
-        JLabel primary = new JLabel(r.primary() == null ? "?" : ProjectModel.abbreviate(r.primary()));
+        JLabel primary = new JLabel(r.drawn());
         primary.setMinimumSize(new Dimension(40, primary.getPreferredSize().height));   // let the row shrink; JLabel elides
         if (r.tone() == ProjectModel.Tone.MUTED) primary.setForeground(UiTheme.mutedForeground());
         if (r.tone() == ProjectModel.Tone.WARN) primary.setForeground(UiTheme.warnForeground());

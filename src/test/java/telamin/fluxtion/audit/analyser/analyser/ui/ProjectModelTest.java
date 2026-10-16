@@ -561,4 +561,133 @@ class ProjectModelTest {
         assertEquals(ProjectModel.Tone.WARN, dest.tone());
         assertTrue(dest.secondary().contains("no directory at /work/demo/out"), dest.secondary());
     }
+
+    /**
+     * A cold-assistant test (2026-10-16): a project declaring its 11 processors showed 22 rows — each processor once as
+     * "project declaration" and once as "source found" — which pushed the source roots off the panel. A declaration
+     * naming a reported class is that processor; one with no class (a runtime processor) stays a row of its own.
+     */
+    @Test
+    void aDeclaredProcessorIsOneRow_notADeclarationRowPlusASourceRow() {
+        Map<String, Object> ctx = full();
+        ctx.put("processorDeclarations", List.of(
+                Map.of("name", "DemoQuoteProcessor", "kind", "declared", "fqcn", "com.acme.demo.generated.DemoQuoteProcessor",
+                        "status", "declared generated type; source and evidence availability are separate"),
+                Map.of("name", "Live graph", "kind", "runtime", "status", "runtime processor; no fixed generated type declared")));
+        List<ProjectModel.Row> procs = ProjectModel.from(ctx).section(ProjectModel.PROCESSORS).rows();
+        assertEquals(List.of("Live graph", "DemoQuoteProcessor", "HedgeProcessor"),
+                procs.stream().map(ProjectModel.Row::primary).toList(),
+                "the declared DemoQuoteProcessor appears ONCE; the runtime declaration keeps its row");
+        ProjectModel.Row demo = procs.get(1);
+        assertEquals("selected · source found · com.acme.demo.generated", demo.secondary(), "the processor row is unchanged");
+        assertEquals("project · project declaration · declared", demo.provenance(), "the declaration rides as provenance");
+        assertEquals(ProjectModel.Target.PROCESSOR, demo.target());
+        assertEquals("project", procs.get(2).provenance(), "an undeclared processor's row is exactly as before");
+    }
+
+    /**
+     * A cold-assistant test (2026-10-16): six source roots all read {@code ~/…/main/java}. A root under the project is
+     * named by its path in the project; labels that would still read alike keep more of their tail. The full path, which
+     * Copy, Reveal and Remove use, never changes.
+     */
+    @Test
+    void sourceRootsAreNamedSoThatNoTwoReadTheSame() {
+        Map<String, Object> ctx = full();
+        String root = "/work/demo/research";
+        ctx.put("project", Map.of("active", true, "name", "Research", "root", root,
+                "settings", root + "/.analyser/project.fluxtion-settings"));
+        List<String> paths = List.of(root + "/src/main/java", root + "/reference/src/main/java",
+                root + "/vendor/integrator/src/main/java", "/opt/shared/libraries/alpha-module/src/main/java",
+                "/opt/shared/libraries/beta-module/src/main/java");
+        List<Object> tiers = new java.util.ArrayList<>();
+        for (String p : paths) tiers.add(Map.of("path", p, "tier", "project", "form", "project-relative"));
+        ctx.put("source", Map.of("rootTiers", tiers));
+        List<ProjectModel.Row> rows = ProjectModel.from(ctx).section(ProjectModel.ROOTS).rows();
+        List<String> drawn = rows.stream().map(ProjectModel.Row::drawn).toList();
+        assertEquals("src/main/java", drawn.get(0));
+        assertEquals("reference/src/main/java", drawn.get(1));
+        assertEquals("vendor/integrator/src/main/java", drawn.get(2));
+        assertEquals(drawn.size(), new java.util.HashSet<>(drawn).size(), "every root reads differently: " + drawn);
+        assertTrue(drawn.get(3).contains("alpha-module") && drawn.get(4).contains("beta-module"), drawn.toString());
+        for (int i = 0; i < paths.size(); i++)
+            assertEquals(paths.get(i), rows.get(i).path(), "display only: the row's path is the full path");
+        for (int i = 0; i < paths.size(); i++)
+            assertEquals(paths.get(i), rows.get(i).primary(), "the row still states the root as the context does");
+    }
+
+    /**
+     * PR #144 review, B1: profiles require unique declaration NAMES, not unique classes, so two declarations may name
+     * one class. Folding by class kept neither name: one row, "project declaration · declared", and both names gone.
+     */
+    @Test
+    void declarationsSharingAClassKeepEveryNameOnTheOneRow() {
+        Map<String, Object> ctx = full();
+        String fqcn = "com.acme.demo.generated.DemoQuoteProcessor";
+        ctx.put("processorDeclarations", List.of(
+                Map.of("name", "Quote pricing EU", "kind", "declared", "fqcn", fqcn, "status", "s"),
+                Map.of("name", "Quote pricing US", "kind", "declared", "fqcn", fqcn, "status", "s")));
+        List<ProjectModel.Row> procs = ProjectModel.from(ctx).section(ProjectModel.PROCESSORS).rows();
+        assertEquals(List.of("DemoQuoteProcessor", "HedgeProcessor"), procs.stream().map(ProjectModel.Row::primary).toList(),
+                "one row for the one class");
+        assertEquals("project · project declaration \"Quote pricing EU\", \"Quote pricing US\" · declared",
+                procs.get(0).provenance(), "every declared name is still on the panel");
+    }
+
+    /**
+     * PR #144 review, B2: the panel draws {@code abbreviate(primary)}, so a label made distinct only past the panel's
+     * width was cut back to the tail its neighbours share — both of these were drawn {@code …/…/main/java}.
+     */
+    @Test
+    void rootLabelsStayDistinctAsDrawn_whenTheDifferenceIsALongSegment() {
+        Map<String, Object> ctx = full();
+        List<String> paths = List.of("/opt/shared/libraries/market-data-normaliser-alpha-component/src/main/java",
+                "/opt/shared/libraries/market-data-normaliser-beta-component/src/main/java");
+        List<Object> tiers = new java.util.ArrayList<>();
+        for (String p : paths) tiers.add(Map.of("path", p, "tier", "own settings", "form", "absolute"));
+        ctx.put("source", Map.of("rootTiers", tiers));
+        List<String> drawn = ProjectModel.from(ctx).section(ProjectModel.ROOTS).rows().stream()
+                .limit(2).map(ProjectModel.Row::drawn).toList();
+        assertNotEquals(drawn.get(0), drawn.get(1), "two roots read the same as drawn: " + drawn);
+        assertTrue(drawn.get(0).contains("alpha-component") && drawn.get(1).contains("beta-component"), drawn.toString());
+    }
+
+    /**
+     * PR #144 review of 9c926132: a project and a worktree of it, both registered. The in-project labels ran out of
+     * segments and fell back to their whole path, which the panel then abbreviated again — rows 1 and 2 were both
+     * drawn {@code services/…/main/java}. The drawn text is now the model's, unabbreviated, and unique.
+     */
+    @Test
+    void aProjectAndItsWorktreeDrawEveryRootDifferently() {
+        Map<String, Object> ctx = full();
+        ctx.put("project", Map.of("active", true, "name", "Demo", "root", "/work/demo",
+                "settings", "/work/demo/.analyser/project.fluxtion-settings"));
+        List<String> paths = List.of("/work/demo/services/market-data-normaliser-alpha/src/main/java",
+                "/work/demo/services/market-data-normaliser-beta/src/main/java",
+                "/work/demo-wt/services/market-data-normaliser-alpha/src/main/java",
+                "/work/demo-wt/services/market-data-normaliser-beta/src/main/java");
+        List<Object> tiers = new java.util.ArrayList<>();
+        for (String p : paths) tiers.add(Map.of("path", p, "tier", "project", "form", "absolute"));
+        ctx.put("source", Map.of("rootTiers", tiers));
+        ProjectModel model = ProjectModel.from(ctx);
+        List<String> drawn = model.section(ProjectModel.ROOTS).rows().stream().limit(4).map(ProjectModel.Row::drawn).toList();
+        assertEquals(4, new java.util.HashSet<>(drawn).size(), "two roots are drawn the same: " + drawn);
+
+        ProjectPanel panel = new ProjectPanel(new ProjectPanel.Navigator() {   // built, never shown: headless-safe
+            public void showTab(String title) { }
+            public void openSettings(String page) { }
+            public void showReport(String name) { }
+            public void showGraph(String name) { }
+        });
+        panel.render(model);
+        List<String> onPanel = new java.util.ArrayList<>();
+        collectLabels(panel, onPanel);
+        for (String d : drawn) assertTrue(onPanel.contains(d), "the panel draws the model's label " + d + ": " + onPanel);
+    }
+
+    private static void collectLabels(java.awt.Container parent, List<String> out) {
+        for (java.awt.Component c : parent.getComponents()) {
+            if (c instanceof javax.swing.JLabel l) out.add(l.getText());
+            if (c instanceof java.awt.Container child) collectLabels(child, out);
+        }
+    }
 }
