@@ -4,7 +4,8 @@
 ([report](evidence/m74-p0/P0-report.md), 40 items, US$0.85) and **P0b**
 ([report](evidence/m74-p0/P0b-report.md): the exact default command, the binding nonce, the P3 permission contract,
 slash commands, account fields; US$0.19). r5 is a clean rewrite: each section below is current on its own, and the
-history is at the end. Citations `[P0-n]` and `[P0b-n]` point at report rows. P1a starts after a short r5 review.
+history is at the end. The owner accepted OD-74.6's classified slash list, OD-74.9's `propose` verb and the phase
+order P1a → P1b + P2 → P3 → P4/P5 on 2026-10-16. Citations `[P0-n]` and `[P0b-n]` point at report rows. P1a starts after a short r5 review.
 
 **Tracker:** M74. **Builds on:** the onboard assistant ([`spec-onboard-assistant-journeys.md`](spec-onboard-assistant-journeys.md),
 "OA"), the MCP bridge ([`spec-assistant-actions-mcp.md`](spec-assistant-actions-mcp.md)), M42's Claude Code
@@ -34,10 +35,10 @@ hooks or settings. Getting those is the **full posture**, a separate opt-in.
 | OD-74.3 | **Carry context forward; don't keep the process.** On a project switch the tab offers **Move** (default), **Keep** or **Stop**, in the order §5.3 gives. *Move* drafts a handoff turn; the analyser stores the person-confirmed answer as a labelled narrative report in the target project; Start is then **armed**, never started. *Keep* leaves the session in the old directory, and the header says its context describes the previous workspace. The session's **own** project creation during onboarding is Keep plus an armed Start (§5.6). | accepted |
 | OD-74.4 | **Narrow default; full mode by explicit opt-in** (§3). | accepted |
 | OD-74.5 | **Folders:** Start is refused in an evidence-bundle working copy. Any other directory needs a one-time confirmation, remembered on this machine, **before Start**. In the full posture, Start itself runs the folder's hooks and connects its `.mcp.json` servers [P0-28], so the dialog names them. In the default posture it names `CLAUDE.md`, which is instructions from that folder. | accepted |
-| OD-74.6 | **Typed slash commands pass through** to Claude Code, as in a terminal, **except** those that would change the posture or the session's identity, or act outside this session. Those are blocked by the classification in §5.4, built from P0b. | accepted 2026-10-16; bounded by P0b, for r5 review |
+| OD-74.6 | **Typed slash commands pass through** to Claude Code, as in a terminal, **except** those that would change the posture or the session's identity, or act outside this session. Those are blocked by the classification in §5.4, built from P0b. | accepted 2026-10-16; the classified block-and-allow list (unclassified commands refused) accepted by the owner 2026-10-16 |
 | OD-74.7 | **Send while Claude is answering is refused**, never queued (OA §4.2: "do not silently queue"). The tab says *"Claude is still answering — Stop or wait."* | owner-accepted design |
 | OD-74.8 | **"Ask Claude this?" confirmation** (P2). Right-click (*Ask Claude about these records / this diff*, a topology node, a chart note) opens a small pop-up with the proposed question and **Yes / No**. *Yes* spotlights the Assistant tab's input with the exact draft lines highlighted; nothing is sent until the person presses Send there. Under a recorded tutorial (a walk with a conversation), *Yes* reveals the next recorded turn instead and contacts no model. | accepted |
-| OD-74.9 | **Onboarding: Claude proposes, the analyser applies** (§5.6). Claude returns a structured proposal through a new non-destructive verb. The analyser previews each item with its own checks. After the person's *Yes* it applies the item through the person's own code path. Claude is never granted a destructive verb for this, so onboarding does not depend on P3. | proposed in r5, for owner acceptance |
+| OD-74.9 | **Onboarding: Claude proposes, the analyser applies** (§5.6). Claude returns a structured proposal through a new non-destructive verb. The analyser previews each item with its own checks. After the person's *Yes* it applies the item through the person's own code path. Claude is never granted a destructive verb for this, so onboarding does not depend on P3. | accepted 2026-10-16 — the `propose` verb is a deliberate, recorded addition to the pinned verb set, confined to the hosted bridge |
 
 ## 3. Posture: what Claude Code may do when the analyser starts it
 
