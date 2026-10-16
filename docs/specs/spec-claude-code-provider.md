@@ -1,8 +1,8 @@
 # M74 — Claude Code as the analyser's assistant: a long-running local session
 
-**Status:** DRAFT r3, 2026-10-16. r1 reviewed (architecture right; posture, node placement and standing decisions
-reworked in r2); r2 re-reviewed (ready for P0 once its list is amended; ten fixes, folded here as [R2-n]). Phase **P0, a
-protocol probe, gates everything after it**; P1a needs a short r4 review once P0 reports.
+**Status:** DRAFT r4, 2026-10-16. r1 and r2 reviewed independently; **P0 ran 2026-10-16** (40 items, US$0.85,
+[report](evidence/m74-p0/P0-report.md)). r4 folds in P0's findings and the owner's latest answers in **§12, which is
+normative and supersedes earlier sections where they conflict.** P1a starts after a short r4 review.
 
 **Tracker:** M74. **Builds on:** the onboard assistant ([`spec-onboard-assistant-journeys.md`](spec-onboard-assistant-journeys.md)),
 the MCP bridge ([`spec-assistant-actions-mcp.md`](spec-assistant-actions-mcp.md)), M42's Claude Code registration
@@ -230,3 +230,100 @@ refused because its log changed.
 The embedded terminal (rejected: undocumented, no turn boundaries, native PTY, unrecordable). The Agent SDK (Python and
 TypeScript only). Codex as a provider (same interface, own probe, later). Hosting Claude for people who have not installed
 and logged in to it.
+
+## 12. r4 — P0 findings and owner answers (normative)
+
+Each item cites its P0 row ([P0-n], see the report). Where this section and an earlier one disagree, this one wins.
+
+### 12.1 Default posture, corrected [P0-24..28]
+
+- Command: `--tools "Read,Grep,Glob" --restricted --add-dir <project root>` with environment
+  `CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD=1`. P0 shows `--restricted` confines reads (outside reads denied even
+  against a `Read(//**)` allow rule, symlinks included) **and** drops `CLAUDE.md`, settings and user skills; the
+  `--add-dir` setting restores the project `CLAUDE.md` while still running **no hooks and no `.mcp.json`**. So in the
+  default posture Claude has the project's `CLAUDE.md`, the analyser's verbs and read-only file tools, and **not** the
+  person's skills or hooks. The tab says so ("analyser assistant — your skills and hooks are not loaded; enable full
+  Claude Code for those").
+- There is no Agent tool under this allow-list, so no subagents.
+
+### 12.2 Folders and Start [P0-28]
+
+- In the **full** posture, Start itself runs the folder's project hooks and connects its `.mcp.json` servers before any
+  Send. The folder confirmation (OD-74.5) is therefore **strictly before Start**, and §7's "network transmission starts
+  with the person's Send" row is amended: *Start contacts Anthropic and, in the full posture, runs the confirmed folder's
+  hooks; no record content is sent before Send.*
+- In the default posture the confirmation still applies, because the project `CLAUDE.md` it loads is instructions
+  from that folder.
+
+### 12.3 Bridge binding, provable [P0-31..33]
+
+- `system/init` cannot prove the binding (it reports only server name, status and source), and extra `serverInfo` fields
+  are dropped. The hosted bridge therefore reports a per-session **binding nonce in `serverInfo.version`**
+  (`<analyser version>+bind.<nonce>`); at Start the analyser sends the `mcp_status` control request, reads the hosted
+  server's `serverInfo`, and **refuses the session** unless the nonce matches. An older bridge (which ignores the new
+  endpoint-path argument and reports no nonce) is refused by name.
+- A `--mcp-config` server silently replaces a user registration of the same name [P0-31]; the hosted bridge is
+  `fluxtion-analyser-hosted`, and in the full posture the person's `fluxtion-analyser` is disallowed.
+
+### 12.4 The start handshake and the header [P0-4..6]
+
+- The header comes from the `initialize` control request at Start (free), not from `system/init`, which is emitted per
+  turn. `initialize` returns the account email and organisation: they are shown in the tab header only, and **never**
+  enter session facts, transcripts, conversation recordings or bundles (a test pins it).
+- "Billed via" is derived from `initialize`'s account information (subscription or API key), not `apiKeySource`, which
+  reports `none` for a subscription login.
+- `--resume` keeps the session's original system prompt [P0-17]: a change to the system note takes effect only in a new
+  session (New chat), and *Keep* on a project switch keeps the note it started with.
+
+### 12.5 Turns, interrupt, budget, lock [P0-9..11, 14, 20, 22, 27]
+
+- **Turn identity:** every user line is sent with a freshly minted `uuid` (a reused uuid is silently dropped — P0-27);
+  turn state follows the CLI's `command_lifecycle` events keyed by that uuid (queued → started → completed/cancelled),
+  with `--replay-user-messages`. A turn ends on lifecycle completed or cancelled even when no `result` arrives.
+- **Stop is an interrupt:** `{"type":"control_request","request":{"subtype":"interrupt"}}`. Because it stops whatever
+  turn is running — which may already be the next queued one — the node maps it through `command_lifecycle` and can
+  send `cancel_queued`. Killing the process is the fallback when the interrupt is not acknowledged.
+- **Budget:** `total_cost_usd` in `result` is already a running per-session total that survives resume; the node keeps the
+  last value per session and adds across sessions (New chat). On `error_max_budget_usd` the process refuses further
+  turns: the node stops it and says so. Interrupted turns may under-report cost; the header says "at least".
+- **Session lock:** two processes on one session fork its history [P0-20]. The analyser holds a lock for the session it
+  runs and refuses to resume a session it can see is open elsewhere; the header names the session so an external
+  `claude --resume` can be avoided while the analyser holds it.
+
+### 12.6 Process hygiene [P0-35, 36, 38]
+
+- Stdin EOF ends the process after the current turn; SIGTERM cleans up the MCP child; **SIGKILL orphans it**. Stop/exit
+  therefore snapshots `ProcessHandle.descendants()` first, sends SIGTERM to the tree, waits, then kills survivors.
+- **Finding `claude`:** a GUI-launched analyser gets a minimal `PATH` (P0: not found). The resolver also checks the
+  standard install locations — `~/.local/bin`, `/opt/homebrew/bin`, `/usr/local/bin`, the npm global bin — and the
+  failure message lists every place searched.
+- Not logged in: the CLI exits at once with `is_error` set (its `subtype` still reads `success`); the tab says "Claude
+  Code is not logged in — run `claude` once in a terminal to log in".
+- Capability detection by `initialize`/`system/init` `capabilities`, not version number [P0-40].
+
+### 12.7 Owner answers (2026-10-16)
+
+- **Slash commands typed in the tab are passed through** to Claude Code, as in a terminal (P0: `/compact` and skill
+  commands work over stream-json). The posture still bounds what they can do.
+- **"Ask Claude this?" confirmation** (P2): right-click (*Ask Claude about these records / this diff*, a topology node, a
+  chart note) opens a small pop-up with the proposed question and **Yes / No**. *Yes* spotlights the Assistant tab's
+  input with the exact draft lines highlighted; nothing is sent until the person presses Send there. Under a recorded
+  tutorial (a walk with a conversation), *Yes* reveals the next recorded turn instead and contacts no model.
+- **Warm start** (Settings, off by default): *Start Claude Code when I open the Assistant tab*. Opening the tab is the
+  person's act; the setting says it contacts Anthropic before the first Send.
+
+### 12.8 Onboarding: Claude sets the project up (P2 scenario, needs P3)
+
+The person asks "set this project up for this log". Claude investigates with read-only tools and analyser verbs (which
+processor class matches the log's node ids, which GraphML fits, which runbooks apply) and **proposes** each item; each is
+shown in the Yes/No pop-up and applied through the analyser's own verbs (`open {project, create}` from M73,
+`source_root`, `open {graphml}`) — destructive verbs, so this needs **P3**'s in-analyser approval. The analyser then checks
+the result itself (pairing verdict, graph–log fit, coverage). Claude's proposal is an offer; the person declares (D-AI5).
+Because a restrictive default without in-analyser approval feels broken the first time Claude cannot open a log, **P3 is
+moved before P2** in the delivery order.
+
+### 12.9 Still untested (carried to P1a acceptance)
+
+Windows (launcher, inline-JSON quoting through `cmd.exe` vs a 0700 temp file, interrupt and tree kill without SIGTERM,
+`--restricted` with drive/UNC/junction paths); managed settings; the interactive resume picker; a rate-limit rejection;
+older CLI versions; an older bridge run (established from source only).
