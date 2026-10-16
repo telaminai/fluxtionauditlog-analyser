@@ -79,30 +79,42 @@ public final class PromptBuilder {
      */
     public static String recordContext(List<LogRecord> records, String epFqn, SourceService source, LogFileInfo file,
                                        String vocabulary) {
-        return recordContext(records, epFqn, source, file, vocabulary, new java.util.ArrayList<>());
+        return recordContextParts(records, epFqn, source, file, vocabulary).text();
     }
 
-    /** As above, naming each part it wrote into {@code parts}, in order (SF-1: the copy dialog says what it copied). */
-    static String recordContext(List<LogRecord> records, String epFqn, SourceService source, LogFileInfo file,
-                                String vocabulary, List<String> parts) {
+    /**
+     * The record context and what is in it (SF-1): each part's name as the copy dialog says it, and whether the
+     * context was cut at {@link #MAX_CONTEXT_CHARS}. A part that started past the cut is not named — it was not
+     * copied — and the one the cut went through is marked "(cut)".
+     */
+    record Context(String text, List<String> parts, boolean cut) { }
+
+    /** One part of the context: its name and where it starts and ends in the text before any cut. */
+    private record Part(String name, int start, int end) { }
+
+    static Context recordContextParts(List<LogRecord> records, String epFqn, SourceService source, LogFileInfo file,
+                                      String vocabulary) {
         StringBuilder sb = new StringBuilder();
+        List<Part> written = new java.util.ArrayList<>();
         Map<String, String> nodeTypes = source == null ? Map.of() : nodeTypes(records, source);
         SessionFacts facts = SessionFacts.of(file, epFqn, source, nodeTypes);
         int mark = sb.length();
         appendVocabulary(sb, vocabulary);
-        if (sb.length() > mark) parts.add("the glossary");
+        if (sb.length() > mark) written.add(new Part("the glossary", mark, sb.length()));
         mark = sb.length();
         facts.appendLogFraming(sb);
-        if (sb.length() > mark) parts.add("the log file's path, size and framing");
+        if (sb.length() > mark) written.add(new Part("the log file's path, size and framing", mark, sb.length()));
         mark = sb.length();
         appendRecordAnchors(sb, file, records);
-        if (sb.length() > mark) parts.add("the byte offsets of the selected records");
+        if (sb.length() > mark) written.add(new Part("the byte offsets of the selected records", mark, sb.length()));
         if (epFqn != null) {
+            mark = sb.length();
             sb.append("EventProcessor: ").append(epFqn).append("\n\n");
-            parts.add("the event processor's class name");
+            written.add(new Part("the event processor's class name", mark, sb.length()));
         }
 
         // The last record is the one to explain; earlier selected records are prior context.
+        mark = sb.length();
         LogRecord primary = records.get(records.size() - 1);
         if (records.size() == 1) {
             sb.append("Record to explain:\n").append(primary.rawText());
@@ -113,24 +125,28 @@ public final class PromptBuilder {
                 sb.append("\n---\n").append(records.get(i).rawText());
             }
         }
-
-        parts.add("the raw text of " + count(records.size(), "record"));
+        written.add(new Part("the raw text of " + count(records.size(), "record"), mark, sb.length()));
 
         if (source != null) {
             mark = sb.length();
             facts.appendSourceFacts(sb);
-            if (sb.length() > mark) parts.add("the source roots and node types");
+            if (sb.length() > mark) written.add(new Part("the source roots and node types", mark, sb.length()));
+            mark = sb.length();
             int classes = appendSnippets(sb, epFqn, records, source, nodeTypes);
-            if (classes > 0) parts.add("source code from " + count(classes, "class"));
+            if (classes > 0) written.add(new Part("source code from " + count(classes, "class"), mark, sb.length()));
         }
 
-        if (sb.length() > MAX_CONTEXT_CHARS) {
+        boolean cut = sb.length() > MAX_CONTEXT_CHARS;
+        List<String> parts = new java.util.ArrayList<>();
+        for (Part part : written) {
+            if (part.start() >= MAX_CONTEXT_CHARS) break;                   // cut away whole: not copied, not named
+            parts.add(part.end() > MAX_CONTEXT_CHARS ? part.name() + " (cut)" : part.name());
+        }
+        if (cut) {
             sb.setLength(MAX_CONTEXT_CHARS);
             sb.append("\n… [context truncated to ").append(MAX_CONTEXT_CHARS).append(" chars]");
-            parts.add(String.format("(the context was cut at %,d characters, so the last of these is partial)",
-                    MAX_CONTEXT_CHARS));
         }
-        return sb.toString();
+        return new Context(sb.toString(), parts, cut);
     }
 
     private static String count(int n, String noun) {
@@ -356,7 +372,10 @@ public final class PromptBuilder {
     /** The question Copy prompt asks when the person has typed none. */
     public static final String DEFAULT_QUESTION = "Explain this record.";
 
-    /** The words the copy dialog's checkbox and its parts list use for the REST token, so they cannot drift apart. */
+    /** The copy dialog's checkbox: the only way the REST token reaches a copied prompt. */
+    public static final String TOKEN_BOX = "Include my local REST token (lets the pasted assistant drive this analyser)";
+
+    /** The parts list's name for the manifest and token, once the box is ticked. */
     public static final String TOKEN_PART = "your local REST endpoint and token (lets the pasted assistant drive this analyser)";
 
     /**
@@ -367,10 +386,20 @@ public final class PromptBuilder {
      *                     of 2 records", "the glossary", …)
      * @param tokenOffered true when a REST endpoint is live, so the dialog offers the token at all
      * @param carriesToken true only when the person ticked the box: the token is in {@code text}
+     * @param contextCut   true when the record context was cut at {@link #MAX_CONTEXT_CHARS}
      */
-    public record CopiedPrompt(String text, List<String> parts, boolean tokenOffered, boolean carriesToken) {
+    public record CopiedPrompt(String text, List<String> parts, boolean tokenOffered, boolean carriesToken,
+                               boolean contextCut) {
         public CopiedPrompt {
             parts = List.copyOf(parts);
+        }
+
+        /** What the dialog says: the parts, the cut as a sentence of its own, and the token when it was left out. */
+        public String sentence() {
+            return "Copied: " + partsSentence() + "."
+                    + (contextCut ? String.format(" The record context was cut at %,d characters: the part marked "
+                    + "(cut) is partial, and what followed it was left out.", MAX_CONTEXT_CHARS) : "")
+                    + (tokenOffered && !carriesToken ? " Not copied: your local REST token." : "");
         }
 
         /** The parts as one sentence: "the analyser's instructions, the glossary, …, and your question". */
@@ -397,8 +426,12 @@ public final class PromptBuilder {
         List<String> parts = new java.util.ArrayList<>();
         parts.add("the analyser's standing instructions");
         String context = "";
+        boolean cut = false;
         if (records != null && !records.isEmpty()) {
-            context = recordContext(records, epFqn, source, file, vocabulary, parts);
+            Context built = recordContextParts(records, epFqn, source, file, vocabulary);
+            context = built.text();
+            parts.addAll(built.parts());
+            cut = built.cut();
         }
         boolean asked = draft != null && !draft.isBlank();
         parts.add(asked ? "your question" : "the default question (\"" + DEFAULT_QUESTION + "\")");
@@ -409,7 +442,7 @@ public final class PromptBuilder {
             prompt = prompt + "\n\n" + restActionManifest(restUrl, restToken, maxActionsPerReply);
             parts.add(TOKEN_PART);
         }
-        return new CopiedPrompt(prompt, parts, offered, carries);
+        return new CopiedPrompt(prompt, parts, offered, carries, cut);
     }
 
     /** The full single-shot prompt for the no-key copy path (system + context + question). */

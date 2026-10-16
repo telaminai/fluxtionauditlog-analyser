@@ -482,6 +482,7 @@ public final class ConfigPanel extends JDialog {
         panel.setBorder(BorderFactory.createEmptyBorder(14, 16, 14, 16));
         epList.setVisibleRowCount(8);
         epList.setCellRenderer(UiText.plainRenderer(new DefaultListCellRenderer() {
+            { UiText.plain(this); }        // SF-2: a processor FQN is a profile value
             @Override public Component getListCellRendererComponent(JList<?> list, Object value, int index,
                                                                     boolean sel, boolean focus) {
                 super.getListCellRendererComponent(list, value, index, sel, focus);

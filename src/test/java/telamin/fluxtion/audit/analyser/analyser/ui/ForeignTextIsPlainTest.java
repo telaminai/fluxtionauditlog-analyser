@@ -96,7 +96,14 @@ class ForeignTextIsPlainTest {
             "(?<![\\w$])((?:[\\w$]+\\s*\\.\\s*)*)(setText|addTab|insertTab|setTitleAt)\\s*\\(");
     private static final Pattern TOOLTIP = Pattern.compile("(?<![\\w$])(setToolTipText|setToolTipTextAt)\\s*\\(");
     private static final Pattern OPTION_PANE = Pattern.compile(
-            "JOptionPane\\s*\\.\\s*(showMessageDialog|showConfirmDialog|showOptionDialog|showInputDialog)\\s*\\(");
+            "JOptionPane\\s*\\.\\s*(showMessageDialog|showConfirmDialog|showOptionDialog|showInputDialog)\\s*\\("
+                    + "|new\\s+(?:javax\\.swing\\.)?JOptionPane\\s*\\(");
+    /** An Action's name is a button's or menu item's text; its descriptions are tooltips. */
+    private static final Pattern ACTION = Pattern.compile("new\\s+(?:javax\\.swing\\.)?AbstractAction\\s*\\(");
+    private static final Pattern PUT_VALUE = Pattern.compile("putValue\\s*\\(\\s*(?:(?:javax\\.swing\\.)?Action\\s*\\.\\s*)?"
+            + "(?:NAME|SHORT_DESCRIPTION|LONG_DESCRIPTION)\\s*,");
+    private static final Pattern TOOLTIP_PROPERTY = Pattern.compile("putClientProperty\\s*\\(\\s*(?:(?:(?:javax\\.swing\\.)?"
+            + "JComponent\\s*\\.\\s*)?TOOL_TIP_TEXT_KEY|\"ToolTipText\")\\s*,");
     private static final Pattern TITLED = Pattern.compile("(?:createTitledBorder|new\\s+(?:javax\\.swing\\.border\\.)?TitledBorder"
             + "|UiTheme\\s*\\.\\s*section)\\s*\\(");
     private static final Pattern TOOLTIP_OVERRIDE = Pattern.compile("String\\s+getToolTipText\\s*\\([^)]*\\)");
@@ -171,6 +178,54 @@ class ForeignTextIsPlainTest {
         assertEquals(0, doors("X.java", "JTextArea area = new JTextArea(); area.setText(msg);").size());
     }
 
+    /** Review of 7f825492: each shape below returned no door before the fix, and must now return one. */
+    @Test
+    @DisplayName("SF-2 witness: names resolve where they are used, and every door the review found is scanned")
+    void theRuleSeesTheShapesTheReviewFound() {
+        // the live hole: a for-each String shadowing an earlier non-String of the same name (MainFrame.fillRecent)
+        String shadowed = "class X { javax.swing.Icon p; void f(List<String> paths) { for (String p : paths) {"
+                + " JMenuItem item = new JMenuItem(p); } } }";
+        assertEquals(1, doors("X.java", shadowed).size(), "for-each");
+        assertEquals(0, doors("X.java", shadowed.replace("new JMenuItem(p)", "UiText.menuItem(p)")).size());
+        assertEquals(1, doors("X.java", "class X { javax.swing.Icon p; void f() { paths.forEach(p -> menu.add(new JMenuItem(p))); } }")
+                .size(), "a lambda parameter");
+        assertEquals(1, doors("X.java", "class X { void f() { var label = new JLabel(); label.setText(name); } }").size(), "var");
+        assertEquals(0, doors("X.java", "class X { void f() { var label = UiText.label(\"\"); label.setText(name); } }").size());
+        // an anonymous class sees the locals of the method it is written in
+        assertEquals(1, doors("X.java", "class X { void f() { JLabel l = new JLabel(); menu.addMenuListener(new MenuListener() {"
+                + " public void menuSelected(MenuEvent e) { l.setText(name); } }); } }").size(), "a captured local");
+        // an option-pane message held in a var, an Object[] message, and a constructed JOptionPane
+        assertEquals(1, doors("X.java", "class X { void f() { var msg = \"Delete \" + name; JOptionPane.showMessageDialog(this, msg); } }").size());
+        assertEquals(0, doors("X.java", "class X { void f() { var msg = UiText.inert(\"Delete \" + name); JOptionPane.showMessageDialog(this, msg); } }").size());
+        assertEquals(1, doors("X.java", "class X { void f() { JOptionPane.showMessageDialog(this, new Object[]{\"Delete\", name}); } }").size());
+        assertEquals(0, doors("X.java", "class X { void f() { JOptionPane.showMessageDialog(this, new Object[]{\"Delete\", UiText.inert(name), new JPanel()}); } }").size());
+        assertEquals(1, doors("X.java", "class X { void f() { var n = new JOptionPane(\"Verified \" + id, 1); n.createDialog(this, \"t\"); } }").size());
+        assertEquals(0, doors("X.java", "class X { void f() { var n = new JOptionPane(UiText.inert(\"Verified \" + id), 1); } }").size());
+        // an Action's name is a button's text, its description a tooltip
+        assertEquals(1, doors("X.java", "class X { Action a = new AbstractAction(name) { }; }").size());
+        assertEquals(0, doors("X.java", "class X { Action a = new AbstractAction(\"Open\") { }; }").size());
+        assertEquals(1, doors("X.java", "class X { void f() { a.putValue(Action.NAME, name); } }").size());
+        assertEquals(1, doors("X.java", "class X { void f() { a.putValue(Action.SHORT_DESCRIPTION, path); } }").size());
+        assertEquals(0, doors("X.java", "class X { void f() { a.putValue(Action.SHORT_DESCRIPTION, UiText.tooltip(path)); } }").size());
+        // UiText.plain(label) in one method does not make another method's label plain
+        assertEquals(1, doors("X.java", "class X { void a() { JLabel label = new JLabel(); UiText.plain(label); }"
+                + " void b() { JLabel label = new JLabel(); label.setText(name); } }").size());
+        // UiText.plain(this) in one class does not cover another class's own text, nor a renderer it does not create
+        assertEquals(1, doors("X.java", "class A extends JLabel { A() { UiText.plain(this); } }"
+                + " class B extends JLabel { void f() { setText(name); } }").size());
+        assertEquals(1, doors("X.java", "class A extends JLabel { A() { UiText.plain(this); } }"
+                + " class B { void g() { list.setCellRenderer(new DefaultListCellRenderer()); } }").size());
+        assertEquals(0, doors("X.java", "class B { void g() { list.setCellRenderer(new DefaultListCellRenderer() {"
+                + " { UiText.plain(this); } }); } }").size());
+        // a tab's tooltip, and a tooltip set as a client property
+        assertEquals(1, doors("X.java", "class X { void f() { tabs.addTab(\"Walks\", null, panel, path); } }").size());
+        assertEquals(0, doors("X.java", "class X { void f() { tabs.addTab(\"Walks\", null, panel, UiText.tooltip(path)); } }").size());
+        assertEquals(1, doors("X.java", "class X { void f() { c.putClientProperty(JComponent.TOOL_TIP_TEXT_KEY, path); } }").size());
+        // a reviewed parameter door is only safe while every call passes a literal
+        assertEquals(1, doors("ConfigPanel.java", "class X { void f() { p.add(mutedNote(help)); } }").size());
+        assertEquals(0, doors("ConfigPanel.java", "class X { void f() { p.add(mutedNote(\"<b>help</b>\")); } }").size());
+    }
+
     @Test
     @DisplayName("SF-2: the factories set html.disable before the text, so the constructor never builds an HTML view")
     void factoriesArePlainBeforeTheirText() {
@@ -186,170 +241,220 @@ class ForeignTextIsPlainTest {
 
     // ---- the scanner -----------------------------------------------------------------------------------------------
 
+    /**
+     * Methods whose String parameter becomes a door inside them, so every CALL must pass a constant — the reviewed
+     * door inside the method is only safe while that holds. A call from inside another listed method may pass that
+     * method's own parameter on.
+     */
+    static final Map<String, List<String>> PARAMETER_DOORS = Map.of("ConfigPanel.java", List.of("mutedNote", "form"));
+
     /** Every unsafe door in {@code src}, as {@code "File.java: <door text>"}. */
     static List<String> doors(String file, String raw) {
-        String src = stripComments(raw);
+        Source src = new Source(stripComments(raw));
+        String s = src.text;
         List<String> out = new ArrayList<>();
-        boolean fileHasPlainThis = src.contains("UiText.plain(this)") || src.contains("UiText.plainCells(this)");
 
-        Matcher m = CONSTRUCT.matcher(src);
+        Matcher m = CONSTRUCT.matcher(s);
         while (m.find()) {
             int open = m.end() - 1;
-            List<String> args = args(src, open);
+            List<String> args = args(s, open);
             if (args.isEmpty()) continue;
             String text = args.get(0);
-            if (text.startsWith("new ") || isNonStringVariable(src, text, m.start())) continue;   // an Icon or Action
-            if (insideUiPlain(src, m.start())) {
-                // plain(new JLabel(constant)) is fine; plain(new JLabel(computed)) built the view first
-                if (!safeText(text)) out.add(file + ": " + door(src, m.start(), open));
-                continue;
-            }
-            if (!safeText(text)) out.add(file + ": " + door(src, m.start(), open));
+            if (text.startsWith("new ") || src.isNonStringVariable(text, m.start())) continue;   // an Icon or Action
+            if (!safeText(text) && !src.isInertVariable(text, m.start())) out.add(file + ": " + door(s, m.start(), open));
         }
 
-        m = RECEIVER_CALL.matcher(src);
+        m = ACTION.matcher(s);
+        while (m.find()) {
+            int open = m.end() - 1;
+            List<String> args = args(s, open);
+            if (!args.isEmpty() && !safeText(args.get(0)) && !src.isInertVariable(args.get(0), m.start())) {
+                out.add(file + ": " + door(s, m.start(), open));
+            }
+        }
+
+        m = PUT_VALUE.matcher(s);
+        while (m.find()) {
+            int open = s.indexOf('(', m.start());
+            List<String> args = args(s, open);
+            if (args.size() > 1 && !safe(args.get(1), "UiText.tooltip", "UiText.inert")) {
+                out.add(file + ": " + door(s, receiverStart(s, m.start()), open));
+            }
+        }
+
+        m = TOOLTIP_PROPERTY.matcher(s);
+        while (m.find()) {
+            int open = s.indexOf('(', m.start());
+            List<String> args = args(s, open);
+            if (args.size() > 1 && !safe(args.get(1), "UiText.tooltip", "UiText.inert")) {
+                out.add(file + ": " + door(s, receiverStart(s, m.start()), open));
+            }
+        }
+
+        m = RECEIVER_CALL.matcher(s);
         while (m.find()) {
             String chain = m.group(1).replaceAll("\\s", "");
             String call = m.group(2);
             int open = m.end() - 1;
-            if (isDeclaration(src, m.start(2))) continue;                       // `public void setText(String s)`
-            List<String> args = args(src, open);
+            if (isDeclaration(s, m.start(2))) continue;                       // `public void setText(String s)`
+            List<String> args = args(s, open);
+            int start = chain.isEmpty() ? m.start(2) : m.start(1);
+            // addTab(title, icon, component, tip) and insertTab(title, icon, component, tip, index): the tip is a tooltip
+            if ((call.equals("addTab") || call.equals("insertTab")) && args.size() >= 4
+                    && !safe(args.get(3), "UiText.tooltip", "UiText.inert")) {
+                out.add(file + ": " + door(s, start, open) + "   [tab tooltip]");
+            }
             String text = switch (call) {
                 case "setTitleAt" -> args.size() > 1 ? args.get(1) : "";
-                case "insertTab", "addTab" -> args.isEmpty() ? "" : args.get(0);
                 default -> args.isEmpty() ? "" : args.get(0);
             };
             if (safeText(text)) continue;
-            int start = m.start(1) < 0 ? m.start(2) : m.start(1);
             if (chain.isEmpty()) {
                 // `UiText.plain(x).setText(…)`, a receiver that is a call: look back past the closing paren
-                int dot = prevNonSpace(src, m.start(2) - 1);
-                if (dot >= 0 && src.charAt(dot) == '.') {
-                    int close = prevNonSpace(src, dot - 1);
-                    if (close >= 0 && src.charAt(close) == ')') {
-                        int openCall = matchingOpen(src, close);
-                        String before = src.substring(Math.max(0, openCall - 40), openCall).replaceAll("\\s", "");
-                        if (before.endsWith("UiText.plain")) continue;
-                        out.add(file + ": " + door(src, start, open));
+                int dot = prevNonSpace(s, m.start(2) - 1);
+                if (dot >= 0 && s.charAt(dot) == '.') {
+                    int close = prevNonSpace(s, dot - 1);
+                    if (close >= 0 && s.charAt(close) == ')') {
+                        int openCall = matchingOpen(s, close);
+                        String before = s.substring(Math.max(0, openCall - 40), openCall).replaceAll("\\s", "");
+                        if (!before.endsWith("UiText.plain")) out.add(file + ": " + door(s, start, open));
                         continue;
                     }
                 }
-                // receiver-less: a component subclass setting its own text (a renderer)
-                if (!fileHasPlainThis) out.add(file + ": " + door(src, start, open));
+                // receiver-less: a component subclass setting its own text — that CLASS must flag itself
+                if (!src.classPlainsItself(m.start())) out.add(file + ": " + door(s, start, open));
                 continue;
             }
             String receiver = chain.substring(0, chain.length() - 1);
             String last = receiver.substring(receiver.lastIndexOf('.') + 1);
             if (last.equals("this")) {
-                if (!fileHasPlainThis) out.add(file + ": " + door(src, start, open));
+                if (!src.classPlainsItself(m.start())) out.add(file + ": " + door(s, start, open));
                 continue;
             }
-            Declaration d = declaration(src, last, m.start());
+            Declaration d = receiver.contains(".") && !receiver.startsWith("this.") ? src.member(last) : src.declaration(last, m.start());
             if (d == null) {
-                out.add(file + ": " + door(src, start, open) + "   [receiver '" + last + "' not resolved]");
+                out.add(file + ": " + door(s, start, open) + "   [receiver '" + last + "' not resolved]");
                 continue;
             }
             if (!HTML_TYPES.contains(d.type)) continue;                          // a text component, a model, a filter
-            if (PLAIN_INIT.matcher(d.initializer).find()) continue;
-            if (Pattern.compile("UiText\\s*\\.\\s*plain(?:Cells)?\\s*\\(\\s*" + Pattern.quote(last) + "\\s*\\)").matcher(src).find()) continue;
-            out.add(file + ": " + door(src, start, open));
+            if (src.isPlain(last, d)) continue;
+            out.add(file + ": " + door(s, start, open));
         }
 
-        m = TOOLTIP.matcher(src);
+        m = TOOLTIP.matcher(s);
         while (m.find()) {
-            if (isDeclaration(src, m.start(1))) continue;
+            if (isDeclaration(s, m.start(1))) continue;
             int open = m.end() - 1;
-            List<String> args = args(src, open);
+            List<String> args = args(s, open);
             String text = m.group(1).equals("setToolTipTextAt") ? (args.size() > 1 ? args.get(1) : "")
                     : (args.isEmpty() ? "" : args.get(0));
-            if (!safe(text, "UiText.tooltip", "UiText.inert")) out.add(file + ": " + door(src, receiverStart(src, m.start()), open));
+            if (!safe(text, "UiText.tooltip", "UiText.inert") && !src.isInertVariable(text, m.start())) {
+                out.add(file + ": " + door(s, receiverStart(s, m.start()), open));
+            }
         }
 
-        m = OPTION_PANE.matcher(src);
+        // JOptionPane.show…(parent, message, …) and new JOptionPane(message, type, option, icon, options, initial)
+        m = OPTION_PANE.matcher(s);
         while (m.find()) {
             int open = m.end() - 1;
-            List<String> args = args(src, open);
-            if (args.size() < 2) continue;
-            String message = args.get(1);
-            if (!safe(message, "UiText.inert") && !isComponent(src, message, m.start())) {
-                out.add(file + ": " + door(src, m.start(), open));
+            List<String> args = args(s, open);
+            boolean constructed = m.group(1) == null;
+            int at = constructed ? 0 : 1;
+            if (args.size() <= at) continue;
+            if (!src.messageIsSafe(args.get(at), m.start())) {
+                out.add(file + ": " + door(s, m.start(), open));
                 continue;
             }
             // the options of showOptionDialog (7th) and the selection values of showInputDialog (6th) become buttons
-            // and combo-box cells; their initial values (8th / 7th) are shown too
+            // and combo-box cells; their initial values (8th / 7th) are shown too. new JOptionPane: 5th and 6th.
             List<String> shown = new ArrayList<>();
-            if (m.group(1).equals("showOptionDialog") && args.size() >= 7) shown.addAll(args.subList(6, Math.min(8, args.size())));
+            if (constructed && args.size() >= 5) shown.addAll(args.subList(4, Math.min(6, args.size())));
+            if ("showOptionDialog".equals(m.group(1)) && args.size() >= 7) shown.addAll(args.subList(6, Math.min(8, args.size())));
             // with no selection values the initial value is the text field's content, which is not HTML
-            if (m.group(1).equals("showInputDialog") && args.size() >= 6 && !args.get(5).equals("null")) {
+            if ("showInputDialog".equals(m.group(1)) && args.size() >= 6 && !args.get(5).equals("null")) {
                 shown.addAll(args.subList(5, Math.min(7, args.size())));
             }
-            for (String s : shown) {
-                if (!safe(s, "UiText.inert") && !isInertVariable(src, s, m.start())) {
-                    out.add(file + ": " + door(src, m.start(), open) + "   [options]");
+            for (String o : shown) {
+                if (!safe(o, "UiText.inert") && !src.isInertVariable(o, m.start())) {
+                    out.add(file + ": " + door(s, m.start(), open) + "   [options]");
                     break;
                 }
             }
         }
 
-        m = TITLED.matcher(src);
+        m = TITLED.matcher(s);
         while (m.find()) {
             int open = m.end() - 1;
-            List<String> args = args(src, open);
+            List<String> args = args(s, open);
             if (args.isEmpty()) continue;
             String title = args.size() == 1 ? args.get(0) : args.get(1);
             if (args.size() > 1 && m.group().startsWith("createTitledBorder") && !args.get(0).contains("Border")
                     && !args.get(0).equals("null")) title = args.get(0);
-            if (!safe(title, "UiText.inert")) out.add(file + ": " + door(src, m.start(), open));
+            if (!safe(title, "UiText.inert")) out.add(file + ": " + door(s, m.start(), open));
         }
 
         // an overridden getToolTipText is a tooltip door at each of its returns
-        m = TOOLTIP_OVERRIDE.matcher(src);
+        m = TOOLTIP_OVERRIDE.matcher(s);
         while (m.find()) {
-            int brace = src.indexOf('{', m.end());
-            int end = matchingBrace(src, brace);
+            int brace = s.indexOf('{', m.end());
+            int end = matchingBrace(s, brace);
             if (brace < 0 || end < 0) continue;
-            Matcher ret = Pattern.compile("\\breturn\\s+").matcher(src.substring(0, end));
+            Matcher ret = Pattern.compile("\\breturn\\s+").matcher(s.substring(0, end));
             ret.region(brace, end);
             while (ret.find()) {
-                int stop = statementEnd(src, ret.end());
-                String expr = src.substring(ret.end(), stop).trim();
+                int stop = statementEnd(s, ret.end());
+                String expr = s.substring(ret.end(), stop).trim();
                 if (expr.startsWith("super.getToolTipText(") || safe(expr, "UiText.tooltip", "UiText.inert")) continue;
                 out.add(file + ": getToolTipText returns " + expr.replaceAll("\\s+", " "));
             }
         }
 
         // a renderer replaces the one plainCells wrapped, so setting one is a door of its own
-        m = RENDERER.matcher(src);
+        m = RENDERER.matcher(s);
         while (m.find()) {
             int open = m.end() - 1;
-            List<String> args = args(src, open);
+            List<String> args = args(s, open);
             if (args.isEmpty()) continue;
             String r = args.get(args.size() - 1).trim();
             if (isCallOf(r, "UiText.plainRenderer") || isCallOf(r, "UiText.plain")) continue;
-            if (fileHasPlainThis) continue;                    // the renderer class flags itself
             if (r.matches("[\\w$]+")) {
-                Declaration d = declaration(src, r, m.start());
-                if (d != null && PLAIN_INIT.matcher(d.initializer).find()) continue;
-                if (Pattern.compile("UiText\\s*\\.\\s*plain\\s*\\(\\s*" + Pattern.quote(r) + "\\s*\\)").matcher(src).find()) continue;
+                Declaration d = src.declaration(r, m.start());
+                if (d != null && src.isPlain(r, d)) continue;
             }
+            Matcher created = Pattern.compile("^new\\s+(?:[\\w$]+\\.)*([\\w$]+)").matcher(r);
+            if (created.find() && src.createdClassPlainsItself(created.group(1), lastArgStart(s, open))) continue;
             String receiver = m.group(1);
             if (receiver != null && Pattern.compile("UiText\\s*\\.\\s*plainCells\\s*\\(\\s*" + Pattern.quote(receiver) + "\\s*\\)")
-                    .matcher(src.substring(open)).find()) continue;
-            out.add(file + ": " + door(src, m.start(), open));
+                    .matcher(s.substring(open)).find()) continue;
+            out.add(file + ": " + door(s, m.start(), open));
         }
 
-        m = CELLS.matcher(src);
+        m = CELLS.matcher(s);
         while (m.find()) {
             int open = m.end() - 1;
-            List<String> args = args(src, open);
+            List<String> args = args(s, open);
             if (!args.isEmpty() && args.stream().allMatch(ForeignTextIsPlainTest::constantArray)) continue;
-            if (insideUiPlainCells(src, m.start())) continue;
-            String var = assignedTo(src, m.start());
+            if (insideUiPlainCells(s, m.start())) continue;
+            String var = assignedTo(s, m.start());
             if (var != null && Pattern.compile("UiText\\s*\\.\\s*plainCells\\s*\\(\\s*" + Pattern.quote(var) + "\\s*\\)")
-                    .matcher(src).find()) continue;
+                    .matcher(s).find()) continue;
             if (var != null && Pattern.compile(Pattern.quote(var) + "\\s*\\.\\s*set(?:Cell)?Renderer\\s*\\(\\s*UiText\\s*\\.\\s*plainRenderer")
-                    .matcher(src).find()) continue;
-            out.add(file + ": " + door(src, m.start(), open));
+                    .matcher(s).find()) continue;
+            out.add(file + ": " + door(s, m.start(), open));
+        }
+
+        for (String method : PARAMETER_DOORS.getOrDefault(file, List.of())) {
+            m = Pattern.compile("(?<![\\w$.])" + Pattern.quote(method) + "\\s*\\(").matcher(s);
+            while (m.find()) {
+                if (src.isMethodHeader(m.start())) continue;
+                int open = m.end() - 1;
+                List<String> args = args(s, open);
+                if (args.isEmpty() || constant(args.get(0))) continue;
+                Method enclosing = src.enclosingMethod(m.start());
+                if (enclosing != null && PARAMETER_DOORS.get(file).contains(enclosing.name)
+                        && enclosing.parameters.contains(args.get(0).trim())) continue;
+                out.add(file + ": " + door(s, m.start(), open) + "   [parameter door: pass a literal]");
+            }
         }
         return out;
     }
@@ -442,78 +547,332 @@ class ForeignTextIsPlainTest {
         return t;
     }
 
-    // ---- declarations ----------------------------------------------------------------------------------------------
+    // ---- declarations, scoped ----------------------------------------------------------------------------------------
 
-    private record Declaration(String type, String initializer) { }
+    /** A declaration: its type ("?" when it cannot be told), initializer, position, and the range it is visible in. */
+    record Declaration(String type, String initializer, int at, int scopeOpen, int scopeClose) { }
 
-    /** The nearest declaration of {@code name} before {@code at}, else the first after it (a field declared below). */
-    private static Declaration declaration(String src, String name, int at) {
-        Pattern p = Pattern.compile("(?<![\\w$.])(?:final\\s+)?((?:[\\w$]+\\.)*([A-Z][\\w$]*))\\s*(?:<[^;=(){}]*>)?\\s*(?:\\[\\s*]\\s*)*\\s+"
-                + Pattern.quote(name) + "\\s*(=|;|,|\\))");
-        Matcher m = p.matcher(src);
-        Declaration before = null, after = null;
-        while (m.find()) {
-            String type = m.group(2);
-            if (type.equals("return") || type.equals("new")) continue;
-            String init = "";
-            if (m.group(3).equals("=")) {
-                int end = statementEnd(src, m.end());
-                init = src.substring(m.end(), end);
+    /** A brace block: a class body (named, anonymous, enum, record) or any other block. */
+    record Block(int open, int close, boolean isClass) {
+        boolean contains(int at) { return open < at && at < close; }
+    }
+
+    /** A method or lambda body directly inside a class, with its name and parameter names (empty for a lambda). */
+    record Method(String name, List<String> parameters, int headerStart, Block body) { }
+
+    /** One file's text and its block structure, so a name is resolved where it is used — not anywhere in the file. */
+    static final class Source {
+        final String text;
+        final List<Block> blocks = new ArrayList<>();
+
+        Source(String text) {
+            this.text = text;
+            java.util.ArrayDeque<Integer> stack = new java.util.ArrayDeque<>();
+            for (int i = 0; i < text.length(); i++) {
+                char c = text.charAt(i);
+                if (c == '"' || c == '\'') {
+                    int e = text.startsWith("\"\"\"", i) ? text.indexOf("\"\"\"", i + 3) + 2 : literalEndsAt(text, i);
+                    if (e < i) break;
+                    i = e;
+                } else if (c == '{') stack.push(i);
+                else if (c == '}' && !stack.isEmpty()) {
+                    int open = stack.pop();
+                    blocks.add(new Block(open, i, isClassHeader(header(open))));
+                }
             }
-            Declaration d = new Declaration(type, init);
-            if (m.start() < at) before = d;
-            else if (after == null) after = d;
+            blocks.sort(java.util.Comparator.comparingInt(Block::open));
         }
-        Matcher v = Pattern.compile("(?<![\\w$.])var\\s+" + Pattern.quote(name) + "\\s*=\\s*").matcher(src);
-        while (v.find()) {
-            if (v.start() > at) break;
-            int end = statementEnd(src, v.end());
-            String init = src.substring(v.end(), end);
-            Matcher t = Pattern.compile("new\\s+(?:[\\w$]+\\.)*([A-Z][\\w$]*)").matcher(init);
-            String type = PLAIN_INIT.matcher(init).find() ? "JLabel" : t.find() ? t.group(1) : "?";
-            before = new Declaration(type, init);
+
+        /** The text between the previous statement boundary and {@code open}. */
+        String header(int open) {
+            int from = open - 1;
+            int depth = 0;
+            while (from >= 0) {
+                char c = text.charAt(from);
+                if (c == ')') depth++;
+                else if (c == '(') depth--;
+                else if (depth == 0 && (c == ';' || c == '{' || c == '}')) break;
+                from--;
+            }
+            return text.substring(from + 1, open);
         }
-        return before != null ? before : after;
+
+        private static final Pattern CLASS_HEADER = Pattern.compile(
+                "(?s)(?:.*\\b(?:class|interface|enum)\\s+[\\w$]+[^{};]*|.*\\brecord\\s+[\\w$]+\\s*(?:<[^>]*>)?\\s*\\(.*"
+                        + "|.*\\bnew\\s+[\\w$.]+\\s*(?:<[^;{}]*>)?\\s*\\((?:[^()]|\\((?:[^()]|\\([^()]*\\))*\\))*\\)\\s*)$");
+
+        static boolean isClassHeader(String header) {
+            return CLASS_HEADER.matcher(header).matches();
+        }
+
+        Block innermost(int at) {
+            Block best = null;
+            for (Block b : blocks) if (b.contains(at) && (best == null || b.open > best.open)) best = b;
+            return best;
+        }
+
+        /** The innermost class body around {@code at}; a pseudo-block for the whole file when there is none. */
+        Block innermostClass(int at) {
+            Block best = null;
+            for (Block b : blocks) if (b.isClass && b.contains(at) && (best == null || b.open > best.open)) best = b;
+            return best != null ? best : new Block(-1, text.length(), true);
+        }
+
+        /** The method (or lambda) body directly inside the innermost class around {@code at}, or null at field level. */
+        Method enclosingMethod(int at) {
+            return enclosingMethodIn(innermostClass(at), at);
+        }
+
+        /** The outermost non-class block inside {@code cls} that holds {@code at}: a method, constructor or lambda. */
+        Method enclosingMethodIn(Block cls, int at) {
+            Block body = null;
+            for (Block b : blocks) {
+                if (b.isClass || !b.contains(at) || b.open <= cls.open || b.close >= cls.close) continue;
+                if (body == null || b.open < body.open) body = b;
+            }
+            if (body == null) return null;
+            String header = header(body.open);
+            int headerStart = body.open - header.length();
+            Matcher sig = Pattern.compile("(?s)([\\w$]+)\\s*\\(([^()]*(?:\\([^()]*\\)[^()]*)*)\\)\\s*(?:throws[^{]*)?$").matcher(header);
+            if (sig.find() && !List.of("if", "for", "while", "switch", "catch", "synchronized", "try").contains(sig.group(1))) {
+                List<String> params = new ArrayList<>();
+                for (String p : splitTop(sig.group(2), ',')) {
+                    String[] words = p.trim().split("\\s+");
+                    if (words.length > 0 && !words[words.length - 1].isEmpty()) params.add(words[words.length - 1]);
+                }
+                return new Method(sig.group(1), params, headerStart, body);
+            }
+            return new Method("", List.of(), headerStart, body);
+        }
+
+        Block outerClass(Block c) {
+            Block outer = null;
+            for (Block b : blocks) if (b.isClass && b.contains(c.open) && (outer == null || b.open > outer.open)) outer = b;
+            return outer != null ? outer : new Block(-1, text.length(), true);
+        }
+
+        boolean isMethodHeader(int nameAt) {
+            String before = text.substring(Math.max(0, nameAt - 60), nameAt);
+            return before.matches("(?s).*\\b(?:void|String|JLabel|JPanel|JComponent|[A-Z][\\w$<>?,\\s]*)\\s+$")
+                    && !before.matches("(?s).*\\b(?:return|new|=|\\()\\s*$");
+        }
+
+        /**
+         * The declaration of {@code name} visible at {@code at}: a local of the enclosing method (a typed or {@code var}
+         * local, a for-each variable, a lambda or method parameter), nearest first; else a field of an enclosing class.
+         */
+        Declaration declaration(String name, int at) {
+            // innermost class outward: a local of the method enclosing `at` in that class (an anonymous class sees the
+            // locals of the method it is written in), then that class's fields
+            for (Block c = innermostClass(at); ; c = outerClass(c)) {
+                Method method = enclosingMethodIn(c, at);
+                if (method != null) {
+                    Declaration local = null;
+                    for (Declaration d : candidates(name, method.headerStart, at)) {
+                        Block in = innermost(d.at);
+                        // a parameter (in the header) or a declaration whose block still holds `at`
+                        if (d.at < method.body.open || in == null || in.contains(at)) local = d;
+                    }
+                    if (local != null) {
+                        return new Declaration(local.type, local.initializer, local.at, method.headerStart, method.body.close);
+                    }
+                }
+                Declaration field = fieldOf(c, name);
+                if (field != null) return field;
+                if (c.open < 0) return null;
+            }
+        }
+
+        /** {@code name} declared at the class level of {@code c}, wherever in it. */
+        Declaration fieldOf(Block c, String name) {
+            for (Declaration d : candidates(name, c.open + 1, c.close)) {
+                if (innermostClass(d.at).equals(c) && enclosingMethodIn(c, d.at) == null) {
+                    return new Declaration(d.type, d.initializer, d.at, c.open, c.close);
+                }
+            }
+            return null;
+        }
+
+        /** {@code x.name}: a member, so any class of the file that declares a field {@code name}. */
+        Declaration member(String name) {
+            for (Block b : blocks) {
+                if (!b.isClass) continue;
+                Declaration d = fieldOf(b, name);
+                if (d != null) return d;
+            }
+            return fieldOf(new Block(-1, text.length(), true), name);
+        }
+
+        /** Every declaration shape of {@code name} in [from, to), in order. */
+        private List<Declaration> candidates(String name, int from, int to) {
+            List<Declaration> out = new ArrayList<>();
+            String region = text.substring(Math.max(0, from), Math.min(to, text.length()));
+            int base = Math.max(0, from);
+            Matcher typed = Pattern.compile("(?<![\\w$.])(?:final\\s+)?(?:[\\w$]+\\.)*([A-Z][\\w$]*)\\s*(?:<[^;=(){}]*>)?\\s*"
+                    + "((?:\\[\\s*]\\s*)*)\\s+" + Pattern.quote(name) + "\\s*(=|;|,|\\)|:(?!:))").matcher(region);
+            while (typed.find()) {
+                String type = typed.group(1) + (typed.group(2).isBlank() ? "" : "[]");
+                String init = typed.group(3).equals("=") ? text.substring(base + typed.end(), statementEnd(text, base + typed.end())) : "";
+                out.add(new Declaration(type, init, base + typed.start(), 0, 0));
+            }
+            Matcher var = Pattern.compile("(?<![\\w$.])var\\s+" + Pattern.quote(name) + "\\s*(=|:)").matcher(region);
+            while (var.find()) {
+                String init = var.group(1).equals("=") ? text.substring(base + var.end(), statementEnd(text, base + var.end())) : "";
+                out.add(new Declaration(var.group(1).equals("=") ? varType(init) : "?", init, base + var.start(), 0, 0));
+            }
+            // lambda parameters: `name ->` or `(a, name, …) ->` (typed or not)
+            Matcher arrow = Pattern.compile("->").matcher(region);
+            while (arrow.find()) {
+                int a = base + arrow.start();
+                int p = prevNonSpace(text, a - 1);
+                if (p < 0) continue;
+                if (text.charAt(p) == ')') {
+                    int o = matchingOpen(text, p);
+                    if (o < 0) continue;
+                    for (String param : splitTop(text.substring(o + 1, p), ',')) {
+                        String[] words = param.trim().split("\\s+");
+                        if (words[words.length - 1].equals(name)) {
+                            String type = words.length > 1 ? words[words.length - 2].replaceAll("<.*", "") : "?";
+                            out.add(new Declaration(type, "", o, 0, 0));
+                        }
+                    }
+                } else {
+                    int q = p;
+                    while (q >= 0 && Character.isJavaIdentifierPart(text.charAt(q))) q--;
+                    if (text.substring(q + 1, p + 1).equals(name)) out.add(new Declaration("?", "", q + 1, 0, 0));
+                }
+            }
+            out.sort(java.util.Comparator.comparingInt(Declaration::at));
+            return out;
+        }
+
+        /** {@code UiText.plain(name)} (or a factory initializer) within the range the declaration is visible in. */
+        boolean isPlain(String name, Declaration d) {
+            if (PLAIN_INIT.matcher(d.initializer).find()) return true;
+            Matcher m = Pattern.compile("UiText\\s*\\.\\s*plain(?:Cells)?\\s*\\(\\s*" + Pattern.quote(name) + "\\s*\\)").matcher(text);
+            while (m.find()) {
+                if (m.start() <= d.scopeOpen || m.start() >= d.scopeClose) continue;
+                Declaration seen = declaration(name, m.start());
+                if (seen != null && seen.at == d.at) return true;
+            }
+            return false;
+        }
+
+        /** {@code UiText.plain(this)} directly in the class whose body holds {@code at} (not in a nested class). */
+        boolean classPlainsItself(int at) {
+            Block cls = innermostClass(at);
+            Matcher m = Pattern.compile("UiText\\s*\\.\\s*plain(?:Cells)?\\s*\\(\\s*this\\s*\\)").matcher(text);
+            while (m.find()) if (innermostClass(m.start()).equals(cls)) return true;
+            return false;
+        }
+
+        /** {@code new X(…)} at {@code at}: an anonymous body or a class X in this file that flags itself. */
+        boolean createdClassPlainsItself(String type, int at) {
+            int open = at < 0 ? -1 : matchingClose(text, text.indexOf('(', at));
+            if (open > 0) {
+                int brace = prevNonSpaceForward(text, open + 1);
+                if (brace < text.length() && text.charAt(brace) == '{') return classPlainsItself(brace + 1);
+            }
+            Matcher named = Pattern.compile("\\bclass\\s+" + Pattern.quote(type) + "\\b[^{]*\\{").matcher(text);
+            return named.find() && classPlainsItself(named.end());
+        }
+
+        boolean isNonStringVariable(String expr, int at) {
+            String e = expr.trim();
+            if (!e.matches("[\\w$]+")) return false;
+            Declaration d = declaration(e, at);
+            return d != null && !d.type.equals("?") && !STRINGISH.contains(d.type);
+        }
+
+        /** A message Swing adds rather than parses (a form), or text that is constant, inert or our escaped markup. */
+        boolean messageIsSafe(String expr, int at) {
+            String e = unwrap(expr.trim());
+            if (safe(e, "UiText.inert")) return true;
+            // an Object[] message: each element is a label of its own
+            Matcher array = Pattern.compile("^(?:new\\s+(?:Object|String)\\s*\\[\\s*]\\s*)?\\{(.*)}$", Pattern.DOTALL).matcher(e);
+            if (array.find()) {
+                for (String element : splitTop(array.group(1), ',')) if (!messageIsSafe(element, at)) return false;
+                return true;
+            }
+            if (e.startsWith("new ")) return !e.matches("(?s)new\\s+(?:String|StringBuilder|Object)\\b.*");
+            if (!e.matches("[\\w$]+")) return false;
+            Declaration d = declaration(e, at);
+            if (d == null) return false;
+            if (isInertVariable(e, at)) return true;
+            if (d.type.endsWith("[]")) {
+                Matcher init = Pattern.compile("^(?:new\\s+\\w+\\s*\\[\\s*]\\s*)?\\{(.*)}$", Pattern.DOTALL).matcher(d.initializer.trim());
+                return init.find() && messageIsSafe("{" + init.group(1) + "}", d.at);
+            }
+            return !d.type.equals("?") && !STRINGISH.contains(d.type);
+        }
+
+        /** A variable built inert ({@code UiText.inert(…)}) or from the analyser's own literals. */
+        boolean isInertVariable(String expr, int at) {
+            String e = expr.trim();
+            Matcher index = Pattern.compile("^([\\w$]+)\\s*\\[.*]$").matcher(e);
+            if (index.find()) e = index.group(1);
+            if (!e.matches("[\\w$]+")) return false;
+            Declaration d = declaration(e, at);
+            if (d == null) return false;
+            String init = d.initializer.trim();
+            if (isCallOf(init, "UiText.inert") || isCallOf(init, "UiText.tooltip")) return true;
+            Matcher brace = Pattern.compile("^(?:new\\s+\\w+\\s*\\[\\s*]\\s*)?\\{(.*)}$", Pattern.DOTALL).matcher(init);
+            if (brace.find()) return splitTop(brace.group(1), ',').stream().allMatch(ForeignTextIsPlainTest::constant);
+            return !init.isEmpty() && safe(init, "UiText.inert", "UiText.tooltip") && STRINGISH.contains(d.type);
+        }
     }
 
-    private static boolean isNonStringVariable(String src, String expr, int at) {
-        String e = expr.trim();
-        if (!e.matches("[\\w$]+")) return false;
-        Declaration d = declaration(src, e, at);
-        return d != null && !d.type.equals("String") && !d.type.equals("Object") && !d.type.equals("CharSequence");
+    private static final Set<String> STRINGISH = Set.of("String", "Object", "CharSequence", "StringBuilder");
+
+    /** The type a {@code var} gets from its initializer, or "?" when that cannot be read off it. */
+    static String varType(String init) {
+        String t = init.trim();
+        Matcher factory = Pattern.compile("^UiText\\s*\\.\\s*(label|button|menuItem|menu|checkBox|radio|checkBoxMenuItem"
+                + "|radioMenuItem|plain|plainCells|inert|tooltip|escape)\\s*\\(").matcher(t);
+        if (factory.find()) {
+            return switch (factory.group(1)) {
+                case "label" -> "JLabel";
+                case "button" -> "JButton";
+                case "menuItem" -> "JMenuItem";
+                case "menu" -> "JMenu";
+                case "checkBox" -> "JCheckBox";
+                case "radio" -> "JRadioButton";
+                case "checkBoxMenuItem" -> "JCheckBoxMenuItem";
+                case "radioMenuItem" -> "JRadioButtonMenuItem";
+                case "inert", "tooltip", "escape" -> "String";
+                default -> varType(t.substring(t.indexOf('(') + 1, Math.max(t.indexOf('(') + 1, matchingClose(t, t.indexOf('(')))));
+            };
+        }
+        Matcher cast = Pattern.compile("^\\(\\s*(?:[\\w$]+\\.)*([A-Z][\\w$]*)\\s*\\)").matcher(t);
+        if (cast.find()) return cast.group(1);
+        Matcher created = Pattern.compile("^new\\s+(?:[\\w$]+\\.)*([A-Z][\\w$]*)\\s*(<[^>]*>)?\\s*(\\[)?").matcher(t);
+        if (created.find()) return created.group(1) + (created.group(3) != null ? "[]" : "");
+        if (t.startsWith("\"") || t.matches("(?s)String\\s*\\.\\s*(join|format|valueOf)\\s*\\(.*")) return "String";
+        for (String piece : splitTop(t, '+')) if (piece.trim().startsWith("\"")) return "String";
+        return "?";
     }
 
-    /** A message that is a Swing component (a form, a scroll pane): Swing adds it, it does not parse it. */
-    private static boolean isComponent(String src, String expr, int at) {
-        String e = unwrap(expr.trim());
-        if (e.startsWith("new ")) return !e.startsWith("new String");
-        if (!e.matches("[\\w$]+")) return false;
-        Declaration d = declaration(src, e, at);
-        return d != null && !d.type.equals("String") && !d.type.equals("Object") && !d.type.equals("CharSequence")
-                && !d.type.equals("StringBuilder");
+    /** Where the last top-level argument of the call whose '(' is at {@code open} begins. */
+    private static int lastArgStart(String s, int open) {
+        int close = matchingClose(s, open), depth = 0, start = open + 1;
+        for (int i = open + 1; i < close; i++) {
+            char c = s.charAt(i);
+            if (c == '"' || c == '\'') { int e = literalEndsAt(s, i); if (e < 0) break; i = e; continue; }
+            if (c == '(' || c == '[' || c == '{') depth++;
+            else if (c == ')' || c == ']' || c == '}') depth--;
+            else if (c == ',' && depth == 0) start = i + 1;
+        }
+        return prevNonSpaceForward(s, start);
     }
 
-    /** {@code Object[] shown = UiText.inert(…)}: the options were made inert where they were built. */
-    private static boolean isInertVariable(String src, String expr, int at) {
-        String e = expr.trim();
-        Matcher index = Pattern.compile("^([\\w$]+)\\s*\\[.*]$").matcher(e);
-        if (index.find()) e = index.group(1);
-        if (!e.matches("[\\w$]+")) return false;
-        Declaration d = declaration(src, e, at);
-        if (d == null) return false;
-        if (d.initializer.contains("UiText.inert(")) return true;
-        // Object[] options = {"Open", "Cancel"}: the analyser's own words
-        Matcher brace = Pattern.compile("^(?:new\\s+\\w+\\s*\\[\\s*]\\s*)?\\{(.*)}$", Pattern.DOTALL).matcher(d.initializer.trim());
-        return brace.find() && splitTop(brace.group(1), ',').stream().allMatch(ForeignTextIsPlainTest::constant);
+    private static int prevNonSpaceForward(String s, int i) {
+        while (i < s.length() && Character.isWhitespace(s.charAt(i))) i++;
+        return i;
     }
 
     private static boolean isDeclaration(String src, int nameAt) {
         String before = src.substring(Math.max(0, nameAt - 30), nameAt);
         return before.matches("(?s).*\\b(void|String)\\s+$");
-    }
-
-    private static boolean insideUiPlain(String src, int at) {
-        return src.substring(Math.max(0, at - 30), at).replaceAll("\\s", "").endsWith("UiText.plain(");
     }
 
     private static boolean insideUiPlainCells(String src, int at) {

@@ -106,11 +106,12 @@ class UiTextTest {
                 JLabel fixed = UiText.label("x");
                 fixed.setToolTipText(UiText.tooltip(probe.payload("/tooltip")));
                 tip(fixed);
+                new JLabel(probe.payload("/witness-last"));           // fetches are queued in order: this one is last
             });
             assertTrue(probe.awaitHit("/witness-label", 5000), "witness: an unprotected label fetches its <img>");
             assertTrue(probe.awaitHit("/witness-tooltip", 5000),
                     "witness: a tooltip on an html.disable owner still renders HTML — hence UiText.tooltip");
-            Thread.sleep(300);
+            assertTrue(probe.awaitHit("/witness-last", 5000), "the last witness, built after every protected component");
             for (String path : List.of("/label", "/button", "/menu-item", "/check-box", "/tooltip")) {
                 assertEquals(0, probe.hits(path), path + " was fetched");
             }
@@ -129,9 +130,10 @@ class UiTextTest {
                 new JOptionPane(UiText.inert("Delete the walk?\n" + probe.payload("/message-line")));
                 new JOptionPane("Restore which?", JOptionPane.QUESTION_MESSAGE, JOptionPane.DEFAULT_OPTION, null,
                         UiText.inert(new Object[]{probe.payload("/option")}));
+                new JLabel(probe.payload("/witness-last"));
             });
             assertTrue(probe.awaitHit("/witness-message", 5000), "witness: a quoted name in a message is rendered as HTML");
-            Thread.sleep(300);
+            assertTrue(probe.awaitHit("/witness-last", 5000), "the last witness, built after every protected component");
             assertEquals(0, probe.hits("/message"));
             assertEquals(0, probe.hits("/message-line"));
             assertEquals(0, probe.hits("/option"));
@@ -163,6 +165,32 @@ class UiTextTest {
                 assertEquals(0, probe.hits(path), path + " was fetched");
             }
         }
+    }
+
+    /** Review of 7f825492: the wrapper is not a Component, so a theme change must still reach the renderer it wraps. */
+    @Test
+    void aThemeChangeReachesTheWrappedRenderer() throws Exception {
+        onEdt(() -> {
+            try {
+                JComboBox<String> combo = UiText.plainCells(new JComboBox<>(new String[]{"a"}));
+                var wrapper = (UiText.PlainRenderer<?>) combo.getRenderer();
+                JComponent delegate = (JComponent) wrapper.delegate();
+                Object before = delegate.getUI();
+                UIManager.setLookAndFeel(new com.formdev.flatlaf.FlatDarkLaf());
+                SwingUtilities.updateComponentTreeUI(combo);                  // what the theme toggle does
+                combo.getRenderer().getListCellRendererComponent(new JList<>(), "a", 0, false, false);
+                assertNotSame(before, delegate.getUI(), "the wrapped renderer was updated for the new look and feel");
+                assertSame(wrapper, combo.getRenderer(), "and the wrap itself survived the change");
+            } catch (javax.swing.UnsupportedLookAndFeelException e) {
+                throw new AssertionError(e);
+            } finally {
+                try {
+                    UIManager.setLookAndFeel(new com.formdev.flatlaf.FlatLightLaf());
+                } catch (Exception ignored) {
+                    // restore() puts the original back after the class
+                }
+            }
+        });
     }
 
     // ---- the surfaces the spec names -------------------------------------------------------------------------------
@@ -247,7 +275,7 @@ class UiTextTest {
     void aNodeTooltipEscapesTheNodesWords() throws Exception {
         try (LoopbackProbe probe = new LoopbackProbe()) {
             onEdt(() -> {
-                String id = "<img src='http://127.0.0.1:" + port(probe) + "/node-id'>";
+                String id = "<img src='" + probe.url("/node-id") + "'>";
                 var node = new ProcessorTopology.Node(id, id, "com.acme." + id, ProcessorTopology.Kind.values()[0]);
                 String tip = TopologyCanvas.nodeTooltip(node, null, id);
                 assertFalse(tip.contains("<img"), tip);
@@ -284,11 +312,6 @@ class UiTextTest {
         onEdt(() -> new JLabel(probe.payload("/witness")));
         assertTrue(probe.awaitHit("/witness", 5000), "witness: fetches are visible from this test");
         Thread.sleep(300);
-    }
-
-    private static int port(LoopbackProbe probe) {
-        String p = probe.payload("/");
-        return Integer.parseInt(p.substring(p.indexOf("127.0.0.1:") + 10, p.indexOf("/'")));
     }
 
     static void onEdt(Runnable r) throws Exception {

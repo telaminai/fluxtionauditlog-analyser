@@ -235,6 +235,16 @@ public final class UiText {
 
         /** True when the delegate only shows {@code value.toString()}, so handing it an inert String is invisible. */
         private final boolean showsToString;
+        /**
+         * The look and feel the delegate's UI was last updated for. A list or combo updates its renderer's UI on a theme
+         * change only when the renderer IS a Component, which this wrapper is not — so it does it for the delegate.
+         */
+        private javax.swing.LookAndFeel updatedFor = javax.swing.UIManager.getLookAndFeel();
+
+        /** The wrapped renderer (tests). */
+        ListCellRenderer<? super E> delegate() {
+            return delegate;
+        }
 
         PlainRenderer(ListCellRenderer<? super E> delegate) {
             this.delegate = delegate != null ? delegate : plain(new javax.swing.DefaultListCellRenderer());
@@ -251,6 +261,11 @@ public final class UiText {
         @SuppressWarnings({"unchecked", "rawtypes"})
         public Component getListCellRendererComponent(JList<? extends E> list, E value, int index,
                                                       boolean isSelected, boolean cellHasFocus) {
+            javax.swing.LookAndFeel now = javax.swing.UIManager.getLookAndFeel();
+            if (now != updatedFor) {
+                updatedFor = now;
+                if (delegate instanceof Component c) javax.swing.SwingUtilities.updateComponentTreeUI(c);
+            }
             Object shown = value;
             if (showsToString && value != null && !(value instanceof Icon) && !(value instanceof Component)) {
                 String text = String.valueOf(value);

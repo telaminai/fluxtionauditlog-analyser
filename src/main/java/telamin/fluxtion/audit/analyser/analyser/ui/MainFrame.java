@@ -2285,7 +2285,8 @@ public final class MainFrame extends JFrame {
         JMenu menu = new JMenu("Theme");
         ButtonGroup group = new ButtonGroup();
         for (String t : ThemeManager.THEMES) {
-            JRadioButtonMenuItem item = new JRadioButtonMenuItem(t, t.equals(config.theme));
+            JRadioButtonMenuItem item = UiText.radioMenuItem(t);
+            item.setSelected(t.equals(config.theme));
             item.addActionListener(e -> applyTheme(t));
             group.add(item);
             menu.add(item);
@@ -4702,46 +4703,19 @@ public final class MainFrame extends JFrame {
      *
      * <p>SF-1: the dialog names every part it copied, and the REST token — a live credential for this analyser — is
      * copied only when the person ticks the box, off every time the dialog opens. What is copied is composed by
-     * {@link telamin.fluxtion.audit.analyser.analyser.llm.PromptBuilder#copyPrompt}; this method only renders it and
-     * re-copies when the box changes. The box is a choice about this one copy, not session state: nothing remembers it.
+     * {@link telamin.fluxtion.audit.analyser.analyser.llm.PromptBuilder#copyPrompt} and rendered by
+     * {@link CopyPromptDialog}. The box is a choice about this one copy, not session state: nothing remembers it.
      */
     private void copyAssistantPrompt(String draft) {
-        java.util.function.Function<Boolean, telamin.fluxtion.audit.analyser.analyser.llm.PromptBuilder.CopiedPrompt> compose =
+        JPanel body = CopyPromptDialog.body(
                 withToken -> telamin.fluxtion.audit.analyser.analyser.llm.PromptBuilder.copyPrompt(selectedRecords,
                         sourceService.selectedFqn(), sourceService, currentLogFileInfo(), vocabularyText(), draft,
-                        restUrl, restToken, config.maxActionsPerReply, withToken);
-        var copied = compose.apply(false);
-        JTextArea parts = new JTextArea(2, 70);
-        parts.setEditable(false);
-        parts.setLineWrap(true);
-        parts.setWrapStyleWord(true);
-        parts.setOpaque(false);
-        JTextArea shown = new JTextArea(18, 70);
-        shown.setEditable(false);
-        shown.setLineWrap(true);
-        java.util.function.Consumer<telamin.fluxtion.audit.analyser.analyser.llm.PromptBuilder.CopiedPrompt> show = c -> {
-            java.awt.Toolkit.getDefaultToolkit().getSystemClipboard().setContents(
-                    new java.awt.datatransfer.StringSelection(c.text()), null);
-            parts.setText("Copied: " + c.partsSentence() + "."
-                    + (c.tokenOffered() && !c.carriesToken() ? " Not copied: your local REST token." : ""));
-            shown.setText(c.text());
-            shown.setCaretPosition(0);
-        };
-        show.accept(copied);
-        JPanel body = new JPanel(new BorderLayout(0, 6));
-        body.add(parts, BorderLayout.NORTH);
-        body.add(new JScrollPane(shown), BorderLayout.CENTER);
-        if (copied.tokenOffered()) {
-            JCheckBox token = new JCheckBox(COPY_PROMPT_TOKEN_BOX, false);
-            token.addActionListener(e -> show.accept(compose.apply(token.isSelected())));
-            body.add(token, BorderLayout.SOUTH);
-        }
+                        restUrl, restToken, config.maxActionsPerReply, withToken),
+                text -> java.awt.Toolkit.getDefaultToolkit().getSystemClipboard().setContents(
+                        new java.awt.datatransfer.StringSelection(text), null));
         JOptionPane.showMessageDialog(SwingUtilities.getWindowAncestor(assistantPanel), body,
                 "Copied to your clipboard — NOT sent anywhere", JOptionPane.INFORMATION_MESSAGE);
     }
-
-    /** SF-1: the only way the REST token reaches a copied prompt. */
-    static final String COPY_PROMPT_TOKEN_BOX = "Include my local REST token (lets the pasted assistant drive this analyser)";
 
     /** Bring the assistant's active host forward: its tab when docked, its window otherwise (OA-2). */
     private void revealAssistant() {
@@ -4967,10 +4941,10 @@ public final class MainFrame extends JFrame {
                 restUrl = actionServer.url();
                 restToken = actionToken;
                 // status bar shows only a token prefix (screenshots/screen-shares); the full token goes to
-                // the console and the copy-prompt seed where it's actually needed
+                // the console, and into a copied prompt only when the person ticks the token box (SF-1)
                 String tokenHint = actionToken.substring(0, Math.min(8, actionToken.length())) + "…";
                 status.setText("Assistant REST transport listening on " + actionServer.url()
-                        + "  (token " + tokenHint + " — full token in console / Copy prompt)");
+                        + "  (token " + tokenHint + " — full token in console; Copy prompt includes it only if you tick \"Include my local REST token\")");
                 System.out.println("[analyser] assistant REST: " + actionServer.url()
                         + "  X-Analyser-Token: " + actionToken);
             } catch (Exception e) {
@@ -7846,9 +7820,9 @@ public final class MainFrame extends JFrame {
                 var pending = startLoad(opId, plan.logPath(), null, OpenRequest.HUMAN);
                 SwingUtilities.invokeLater(() -> {
                     if (session == null || session.processor().operationGate.expectedOpId() != opId) return;
-                    var notice = new JOptionPane("Verified bundle " + plan.identity() + "\n"
+                    var notice = new JOptionPane(UiText.inert("Verified bundle " + plan.identity() + "\n"
                             + "Working copy: " + plan.workingCopy()
-                            + "\nThe project is open; the audit log is loading.\n\n" + plan.limits(),
+                            + "\nThe project is open; the audit log is loading.\n\n" + plan.limits()),
                             JOptionPane.INFORMATION_MESSAGE);
                     var dialog = notice.createDialog(this, "Experiment verified");
                     dialog.setModal(false);
@@ -8354,7 +8328,7 @@ public final class MainFrame extends JFrame {
             return;
         }
         for (String p : paths) {
-            JMenuItem item = new JMenuItem(p);
+            JMenuItem item = UiText.menuItem(p);       // SF-2: a recent path — a folder or file name on disk
             item.addActionListener(e -> open.accept(p));
             menu.add(item);
         }

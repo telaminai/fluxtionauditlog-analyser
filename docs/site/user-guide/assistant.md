@@ -57,7 +57,8 @@ With no key the assistant sends nothing and says so, offering **Configure provid
 CLI assistant**. No key, or working in a different agent (Claude Code, Claude Desktop)? Hit **Copy prompt**. The copied
 prompt is a complete, self-contained brief: the selected records, the node-type map, the relevant
 source, **and** the log's file path, shape and per-record **byte offsets**. The dialog that opens names every
-part it copied ("your question, the glossary, the raw text of 2 records, …").
+part it copied, in the order they appear ("the analyser's standing instructions, the glossary, the raw text of 2
+records and your question"), and says so when a very large selection had to be cut.
 
 The analyser's **action protocol** (the localhost REST endpoint, its token and the verbs) is copied only when
 you tick **Include my local REST token (lets the pasted assistant drive this analyser)** — off every time the

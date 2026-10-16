@@ -1880,6 +1880,7 @@ public final class GraphPanel extends JPanel {
 
     private static DefaultListCellRenderer graphKeyRenderer() {
         return new DefaultListCellRenderer() {
+            { UiText.plain(this); }        // SF-2: a key is the log's node id
             @Override public Component getListCellRendererComponent(JList<?> l, Object v, int i, boolean s, boolean f) {
                 super.getListCellRendererComponent(l, v, i, s, f);
                 if (v instanceof GraphKey k) setText(k.display());

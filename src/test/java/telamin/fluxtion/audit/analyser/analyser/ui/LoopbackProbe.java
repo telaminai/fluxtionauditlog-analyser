@@ -29,9 +29,17 @@ final class LoopbackProbe implements AutoCloseable {
         server.start();
     }
 
+    /** {@code path} on this server, at the address it is actually bound to. */
+    String url(String path) {
+        InetSocketAddress bound = server.getAddress();
+        String host = bound.getAddress().getHostAddress();
+        if (host.contains(":")) host = "[" + host + "]";                  // an IPv6 loopback
+        return "http://" + host + ":" + bound.getPort() + path;
+    }
+
     /** The spec's payload: text that Swing would render as HTML, fetching {@code path} from this server. */
     String payload(String path) {
-        return "<html><img src='http://127.0.0.1:" + server.getAddress().getPort() + path + "'>";
+        return "<html><img src='" + url(path) + "'>";
     }
 
     int hits(String path) {

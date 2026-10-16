@@ -18,9 +18,8 @@ import static org.junit.jupiter.api.Assertions.*;
  * without it) is copied only when the person ticks the box, and the dialog's parts list is the function's own record
  * of what it wrote.
  *
- * <p>Witness: {@link #theShippedCompositionCopiedTheToken()} — the composition as it shipped (manifest appended
- * whenever a REST URL existed) carries the token, so the assertions below discriminate; and making
- * {@code copyPrompt} append the manifest unconditionally turns {@link #noTokenUnlessTheBoxIsTicked()} red.
+ * <p>Witness: making {@code copyPrompt} append the manifest whenever REST is on — the shipped behaviour — turns
+ * {@link #noTokenUnlessTheBoxIsTicked()} and {@link #thePartsListMatchesTheText()} red (run against this commit).
  */
 class CopyPromptTest {
 
@@ -90,23 +89,51 @@ class CopyPromptTest {
         assertEquals(List.of("the analyser's standing instructions", "your question"), none.parts());
     }
 
+    /**
+     * Review of 7f825492: after the cut at 60,000 characters the parts list still named the source that had been cut
+     * away, and the cut note sat inside the list. Now a part that starts past the cut is not named, the one the cut
+     * goes through is marked "(cut)", and the cut is a sentence of its own.
+     */
     @Test
-    @DisplayName("SF-1 witness: the shipped composition — manifest appended whenever REST was on — copied the token")
-    void theShippedCompositionCopiedTheToken() {
-        String context = PromptBuilder.recordContext(twoRecords(), EP, null, null, "DEMO");
-        String shipped = PromptBuilder.fullPrompt(context, "q") + "\n\n"
-                + PromptBuilder.restActionManifest(URL, TOKEN, 20);
-        assertTrue(shipped.contains(TOKEN), "the check above can tell the difference");
+    @DisplayName("SF-1: a context cut at 60,000 characters names only what was copied, and says so separately")
+    void aCutContextNamesOnlyWhatWasCopied(@org.junit.jupiter.api.io.TempDir Path root) throws Exception {
+        // oversized records: the sample log, many times over, all selected
+        String sample = Samples.sample();
+        StringBuilder log = new StringBuilder();
+        while (log.length() < 150_000) log.append(sample).append(sample.endsWith("\n") ? "" : "\n");
+        HeapLogStore store = new HeapLogStore(log.toString());
+        List<LogRecord> all = new java.util.ArrayList<>();
+        for (int i = 0; i < store.size(); i++) all.add(store.record(i));
+        // and a source that would follow them
+        Path dir = Files.createDirectories(root.resolve("com/acme/marketmaker/strategy"));
+        Files.writeString(dir.resolve("DemoMarketMakerStrategy.java"), "package com.acme.marketmaker.strategy;\n"
+                + "public class DemoMarketMakerStrategy { }\n");
+        var source = new telamin.fluxtion.audit.analyser.analyser.source.SourceService();
+        source.configure(List.of(root.toString()), EP);
+        // the same selection small enough to fit names the source — so its absence below is the cut, not the setup
+        var whole = PromptBuilder.copyPrompt(all.subList(0, 1), EP, source, null, null, "q", null, null, 20, false);
+        assertTrue(whole.parts().stream().anyMatch(p -> p.startsWith("source code from") || p.startsWith("the source roots")),
+                whole.parts().toString());
+        assertFalse(whole.contextCut());
+
+        var cut = PromptBuilder.copyPrompt(all, EP, source, null, null, "q", null, null, 20, false);
+        assertTrue(cut.contextCut());
+        assertEquals(List.of("the analyser's standing instructions", "the event processor's class name",
+                "the raw text of " + all.size() + " records (cut)", "your question"), cut.parts(),
+                "the source started past the cut, so it is not named; the records are marked as cut");
+        assertFalse(cut.text().contains("--- source: " + EP), "and indeed the source is not in the text");
+        assertFalse(cut.partsSentence().contains("characters"), "the cut is not one of the parts");
+        assertTrue(cut.sentence().contains("The record context was cut at 60,000 characters"), cut.sentence());
     }
 
     @Test
-    @DisplayName("SF-1: the frame composes Copy prompt only through copyPrompt, and offers the token behind the box")
+    @DisplayName("SF-1: the frame composes Copy prompt only through copyPrompt and CopyPromptDialog")
     void theFrameOnlyRendersTheComposition() throws Exception {
         String frame = Files.readString(Path.of(
                 "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java"));
         assertFalse(frame.contains("restActionManifest("),
                 "MainFrame must not append the REST manifest itself — that was the unconditional token leak");
         assertTrue(frame.contains("PromptBuilder.copyPrompt("), "the dialog renders the pure composition");
-        assertTrue(frame.contains("new JCheckBox(COPY_PROMPT_TOKEN_BOX, false)"), "the box starts unticked");
+        assertTrue(frame.contains("CopyPromptDialog.body("), "through the dialog body CopyPromptDialogTest checks");
     }
 }

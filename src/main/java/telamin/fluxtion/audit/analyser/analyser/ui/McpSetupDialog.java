@@ -683,7 +683,7 @@ public final class McpSetupDialog extends JDialog {
      * vector legible; both Codex and Claude Code use this same disclosure.
      */
     private int showWideRegistrationConfirmation(String title, Object[] message) {
-        JOptionPane pane = new JOptionPane(message, JOptionPane.WARNING_MESSAGE, JOptionPane.OK_CANCEL_OPTION);
+        JOptionPane pane = new JOptionPane(UiText.inert(message), JOptionPane.WARNING_MESSAGE, JOptionPane.OK_CANCEL_OPTION);
         JDialog confirmation = pane.createDialog(this, title);
         int screenWidth = Toolkit.getDefaultToolkit().getScreenSize().width;
         int desiredWidth = Math.min(960, Math.max(640, screenWidth - 64));

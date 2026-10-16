@@ -277,6 +277,7 @@ public final class LogTablePanel extends JPanel {
 
     private void installRenderers() {
         DefaultTableCellRenderer time = new DefaultTableCellRenderer() {
+            { UiText.plain(this); }
             @Override
             protected void setValue(Object value) {
                 setText(value instanceof Long l ? TimeFormat.utc(l) : "");
@@ -286,11 +287,10 @@ public final class LogTablePanel extends JPanel {
         setRenderer(LogTableModel.COL_LOG_TIME, time);
         setRenderer(LogTableModel.COL_END_TIME, time);
         setRenderer(LogTableModel.COL_NODE_LOGS, new NodeBarRenderer());
-        UiText.plain(time);
     }
 
-    private void setRenderer(int col, TableCellRenderer r) {
-        table.getColumnModel().getColumn(col).setCellRenderer(r);
+    private void setRenderer(int col, DefaultTableCellRenderer r) {
+        table.getColumnModel().getColumn(col).setCellRenderer(UiText.plain(r));
     }
 
     private void sizeColumns() {
