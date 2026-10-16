@@ -593,10 +593,10 @@ the analyser · a proposal item refused (the item and why).
 - a rate-limit rejection;
 - older CLI versions;
 - an older bridge run (established from source only);
-- the real bridge's cold start against the 35 s limit;
+- ~~the real bridge's cold start against the 35 s limit~~ — 1.0 s in the P1a live smoke;
 - `/mcp disable` and `reconnect` (blocked without being run);
-- how stream-json treats a `/command` with leading whitespace, and lines starting with `#`, `!` or `@path` (§5.4:
-  refused until probed);
+- ~~how stream-json treats a `/command` with leading whitespace, and lines starting with `#`, `!` or `@path`~~ —
+  probed in the P1a live smoke: all harmless in the default posture (see *Implementation notes*); still refused;
 - for P3: an unanswered `can_use_tool`, and an interrupt while one is pending.
 
 **Open for later phases (carried, not decided in r6):**
@@ -694,6 +694,17 @@ ambiguous, the closest sound option was taken and is recorded here.
   fixture's e-mail injection removed (the "really emitted" assertion fails), and a `ProcessBuilder` added in a class
   outside the named homes. The folder function's separate home rule is subsumed by the settings-folder check (a
   folder containing home contains `~/.claude`); it is kept for when neither path resolves, and witnessed as a whole.
+- **Live smoke (2026-10-16, [report](evidence/m74-p1a-smoke/SMOKE-report.md)), owner-authorised, US$0.07:** every item
+  passed against CLI 2.1.282 through the analyser's own Assistant-tab path — the handshake, `BOUND` 1.0 s after Start
+  (the real bridge's cold start; 0.6 s warm, far inside 35 s), the first-turn posture assertion, verbs over the hosted
+  bridge, a destructive verb hidden, local slash refusals, Send while busy, Stop by interrupt (149 ms) and the next Send
+  in the same session, a kill then `--resume` of the same id, M2 (a stop before the first Send — and one during the
+  handshake — gives a fresh `--session-id`), no process left after stop, and a second instance refused the live
+  session's lock. **The open §5.4 probes answered:** over stream-json a `/command` with leading whitespace is prose
+  (not run), `#` writes no memory, `!` runs no shell, an in-folder `@file` is inlined, and an outside `@file` is neither
+  inlined nor readable (`--restricted` denies the Read). P1a keeps those shapes refused; relaxing them is an owner
+  decision, not a safety need. **Two defects found and fixed:** a passed command with a leading blank was sent raw and
+  so did nothing (it is now sent normalised); and a refused-while-busy reason outlived its turn.
 - **Delta review (R1–R4):** a write after a run's cleanup no longer throws `RejectedExecutionException` into the
   reader or the caller (it is a failed write: a user line ends its turn `PROCESS_EXIT`); the hosted-header redaction
   stays on its line and needs a separator, and `sk-` needs a word start, so the M42 registration output is unchanged;

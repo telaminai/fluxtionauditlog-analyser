@@ -4712,9 +4712,11 @@ public final class MainFrame extends JFrame {
                 session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentStopRequested("Stop pressed"));
             }
             @Override public void send(String draft) {
-                long entry = localAgentStore.add(
-                        telamin.fluxtion.audit.analyser.analyser.assistant.localagent.LocalAgentTranscript.Kind.USER, draft);
                 var slash = localAgentAdapter.classify(draft);
+                // a passed command is sent as the CLI runs it (no leading blank); everything else as typed
+                long entry = localAgentStore.add(
+                        telamin.fluxtion.audit.analyser.analyser.assistant.localagent.LocalAgentTranscript.Kind.USER,
+                        slash.line(draft));
                 localAgentSendRequest = ++localAgentRequest;
                 session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentSendRequested(
                         localAgentSendRequest, entry, slash.slash(), slash.command(), localAgentConsent()));

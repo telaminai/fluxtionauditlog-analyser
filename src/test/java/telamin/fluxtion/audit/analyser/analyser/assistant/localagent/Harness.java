@@ -103,8 +103,8 @@ final class Harness {
 
     /** Type {@code text} and press Send: the draft goes to the store, its classification to the node. */
     void send(String text) {
-        long draft = store.add(LocalAgentTranscript.Kind.USER, text);
         var slash = adapter.classify(text);
+        long draft = store.add(LocalAgentTranscript.Kind.USER, slash.line(text));
         driver.post(new SessionEvents.LocalAgentSendRequested(++requests, draft, slash.slash(), slash.command(), consent()));
     }
 

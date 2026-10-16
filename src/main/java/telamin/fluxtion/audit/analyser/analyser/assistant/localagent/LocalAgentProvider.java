@@ -51,7 +51,19 @@ public interface LocalAgentProvider {
     /** How a draft reads as a command, against the CLI's own {@code initialize.commands}. */
     Slash classify(String draft, List<StreamJson.Command> commands);
 
-    /** A draft's classification and, when the CLI or the table knows it, the command's canonical name. */
-    record Slash(SessionEvents.SlashClass slash, String command) {
+    /**
+     * A draft's classification and, when the CLI or the table knows it, the command's canonical name. {@code send} is
+     * the line to write when it is sent: for a passed command its NORMALISED form ({@code /name args}), because the CLI
+     * reads a line with leading whitespace as prose and would not run it (P1a live smoke); otherwise null (the draft).
+     */
+    record Slash(SessionEvents.SlashClass slash, String command, String send) {
+        public Slash(SessionEvents.SlashClass slash, String command) {
+            this(slash, command, null);
+        }
+
+        /** The words to write for {@code draft}. */
+        public String line(String draft) {
+            return send == null ? draft : send;
+        }
     }
 }

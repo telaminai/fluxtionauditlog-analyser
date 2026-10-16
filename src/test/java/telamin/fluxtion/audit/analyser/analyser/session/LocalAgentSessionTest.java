@@ -336,6 +336,10 @@ class LocalAgentSessionTest {
         assertEquals(11, state(d).answer().request());
         d.post(new SessionEvents.LocalAgentSendRequested(12, 12, SessionEvents.SlashClass.PASS, "compact", consent()));
         assertEquals(1, a.agentSends.size(), "a typed command is a turn, refused the same way");
+        // P1a live smoke: the refusal does not outlive the turn it was about
+        d.post(new SessionEvents.LocalAgentTurnEnded(1, a.agentSends.get(0).ticket(), SessionEvents.TurnOutcome.COMPLETED));
+        assertEquals("", state(d).verdict(), "the BUSY refusal is cleared when the turn ends");
+        assertEquals("", state(d).reason());
     }
 
     @Test

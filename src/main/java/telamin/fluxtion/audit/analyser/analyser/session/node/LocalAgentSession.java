@@ -563,6 +563,12 @@ public class LocalAgentSession implements EventLogSource {
     private void endTurn(SessionEvents.TurnOutcome outcome) {
         long was = openTicket;
         openTicket = 0;
+        // a Send refused while this turn ran is answered by the turn ending: the refusal no longer describes anything
+        // (P1a live smoke: "Ready — Claude is still answering" stayed on the status line after Stop)
+        if ("BUSY".equals(verdict)) {
+            verdict = "";
+            reason = "";
+        }
         if (running() && !"OFF".equals(phase)) phase = "READY";
         for (int i = entries.size() - 1; i >= 0; i--) {
             LocalAgentState.Entry x = entries.get(i);

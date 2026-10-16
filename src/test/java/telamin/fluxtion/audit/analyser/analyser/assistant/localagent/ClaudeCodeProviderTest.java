@@ -194,6 +194,12 @@ class ClaudeCodeProviderTest {
             assertEquals(c.expected(), s.slash(), c.typed());
             assertEquals(c.name(), s.command(), c.typed());
         }
+        // P1a live smoke: the CLI reads a line with leading blanks as prose, so a passed command is SENT normalised
+        assertEquals("/usage", ClaudeCodeProvider.classifyLine("   /usage", commands).line("   /usage"));
+        assertEquals("/model sonnet", ClaudeCodeProvider.classifyLine("\u00A0/MODEL   sonnet", commands).line("x"));
+        assertEquals("/mcp", ClaudeCodeProvider.classifyLine(" /mcp ", commands).line(" /mcp "));
+        assertEquals("Why did node 3 not log?", ClaudeCodeProvider.classifyLine("Why did node 3 not log?", commands)
+                .line("Why did node 3 not log?"), "prose is sent as typed");
         // a built-in a newer CLI adds is unclassified, and named in the diagnostics line
         List<StreamJson.Command> newer = new ArrayList<>(commands);
         newer.add(new StreamJson.Command("teleport", List.of(), true));

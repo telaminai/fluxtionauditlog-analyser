@@ -189,10 +189,11 @@ public final class ClaudeCodeProvider implements LocalAgentProvider {
         String known = rule != null || knownToCli(canonical, commands) ? canonical : null;
         if (rule == null) return new Slash(SlashClass.UNCLASSIFIED, known);
         return switch (rule) {
-            case PASS -> new Slash(SlashClass.PASS, canonical);
+            case PASS -> new Slash(SlashClass.PASS, canonical, normalised(typed, argument));
             case NEW_CHAT -> new Slash(SlashClass.NEW_CHAT, canonical);
             case BLOCK -> new Slash(SlashClass.BLOCK, canonical);
-            case PASS_WITHOUT_ARGUMENT -> new Slash(argument.isEmpty() ? SlashClass.PASS : SlashClass.BLOCK, canonical);
+            case PASS_WITHOUT_ARGUMENT -> argument.isEmpty() ? new Slash(SlashClass.PASS, canonical, normalised(typed, ""))
+                    : new Slash(SlashClass.BLOCK, canonical);
         };
     }
 
@@ -210,6 +211,11 @@ public final class ClaudeCodeProvider implements LocalAgentProvider {
         while (start < end && blank(s.charAt(start))) start++;
         while (end > start && blank(s.charAt(end - 1))) end--;
         return s.substring(start, end);
+    }
+
+    /** {@code /name args}: the passed command as the CLI runs it — no leading blank, the name as typed in lower case. */
+    static String normalised(String typed, String argument) {
+        return "/" + typed + (argument.isEmpty() ? "" : " " + argument);
     }
 
     /** The canonical name of {@code typed}: itself, the table's alias, or the CLI's own alias. */
