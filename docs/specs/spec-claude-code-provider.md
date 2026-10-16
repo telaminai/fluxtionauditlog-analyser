@@ -505,7 +505,8 @@ Yes (§5.6) and needs no prompts, so **P2 precedes P3 again**.
 | **P1a — default-posture session** | Start/Stop (interrupt + fallback kill); the §4.4 handshake and posture assertion; the nonce binding (§4.2) with a two-instance test and the real bridge's cold-start measured against the 35 s limit; the parser rules (§4.5); refusing Send while busy; the slash classification (§5.4); the lock (§4.8); header, budget, folder confirmation, bundle refusal, REST prerequisite, process hygiene, the `claude` resolver; both switches (full disabled until P1b); warm start; the hosted credential (§4.2); the running-jar launcher. **Open
 acceptance (the lead's, not replayed fixtures):** the live CLI smoke; Windows (§11); and stream-json probes of a
 leading-whitespace `/command` and of the `#`, `!` and `@path` prefixes, which decide whether §5.4's refusals of those
-can be relaxed | r6 |
+can be relaxed. The live smoke includes **a stop before the first Send** (Start, Stop or switch mode, Start again):
+the second start must use a fresh `--session-id`, never `--resume` on an id with no transcript (review M2) | r6 |
 | **P1b — full posture** | the opt-in, its warning, `bypassPermissions` refused, the explicit mode, the folder dialog naming hooks and MCP servers, the child-`PATH` decision (§4.3), docs per §7 | P1a accepted |
 | **P2 — evidence to Claude** | the "Ask Claude this?" pop-up and Explain routing, *Ask Claude about this diff*, the journey handoff, OD-74.3 *Move* with the handoff report, conversation v2 recording, **onboarding** (§5.6: `propose`, `OnboardingProposal`, the analyser's preview and apply) | P1a accepted |
 | **P3 — permission prompts in the analyser** | destructive hosted verbs visible and asked through `--permission-prompt-tool stdio` (§5.7); full-posture prompts the same way; the two open probes of §5.7 run first | P1a accepted; contract known (P0b) |
@@ -668,6 +669,34 @@ ambiguous, the closest sound option was taken and is recorded here.
   counted (`LocalAgentAdapter.unknownEvents()`) and the unclassified built-ins are kept in the header record, but the
   tab does not yet render a diagnostics line for either; Windows inline JSON versus a 0700 temp file (§4.2) is decided
   at Windows acceptance — inline is used everywhere today.
+- **Review fixes (2026-10-16, "ready after fixes").** M1: the session cost is merged with `max` per session, so an
+  interrupted turn's `0` cannot reset it. M2: a conversation is resumable only after its first `LocalAgentTurnStarted`;
+  before that every start mints a fresh id under the posture in force, and `POSTURE_CHANGED` never refuses a turn-less
+  conversation. M3: a spawn waits (bounded, `KILL_GRACE` + 3 s) for this analyser's own previous run of the same
+  conversation to release its lock, and says *"the previous Claude Code process … is still stopping"* — never "another
+  analyser window" — if it does not. M4/S10: the consent fact carries a `FolderVerdict`; the home folder, a folder
+  containing it, and anything in `~/.fluxtion-analyser` or `~/.claude` (`EXPOSES_SECRETS`), and a missing scratch folder
+  (`UNAVAILABLE`), refuse Start and are never offered for trust. S1: `ActionServer` refuses every
+  `McpTools.destructiveVerbs()` call carrying a valid hosted credential (until P3), beside `graph {delete}`. S2: the
+  slash classifier treats Unicode space separators and format characters as blank. S3: each process has a
+  single-thread stdin writer; no write runs on the caller's thread. S4: one shared `core/Redaction` (the registration
+  clients use it too) also redacts the hosted header, bare 64-hex values and the exact REST token and credential.
+  S5: the header names the session's own launch folder and is shown only once bound. S6 (part): a stdout line over
+  16 MB is dropped whole and counted. S7: the model setting must match `[A-Za-z0-9._\[\]-]+` without a leading `-`.
+  S8: the e-mail test asserts the fixture really emitted the address; the `ProcessBuilder` one-home rule covers the
+  whole main tree. S9: the budget's javadoc says it resets on restart; ONBOARDING records the OD-74.1 exception.
+  **Witnesses for the fixes** (each failed at its named assertion, then passed restored): M1 `put` instead of `max`;
+  M2 `resumable = true` at spawn; M4 and S10 each folder check dropped in the node, and the folder function answering
+  OK; M3 the wait for our own run skipped (the restart then fails LOCKED, "another analyser window"); S1 the
+  destructive refusal dropped; S2 whitespace-only blanks (`U+00A0/config` then reads as text); S3 the write made on the
+  caller's thread (Start and Send then block); S4 known values not redacted, and the 64-hex rule dropped; S5 the launch
+  folder not recorded, and the header shown before BOUND; S6 the line cap ignored; S7 every model accepted; S8 the
+  fixture's e-mail injection removed (the "really emitted" assertion fails), and a `ProcessBuilder` added in a class
+  outside the named homes. The folder function's separate home rule is subsumed by the settings-folder check (a
+  folder containing home contains `~/.claude`); it is kept for when neither path resolves, and witnessed as a whole.
+- **Follow-ups (review S6, not done):** incremental rendering in the Claude Code panel (it re-renders the whole
+  conversation per snapshot) and trimming the node's entries for a very long conversation (the store is bounded; the
+  node's entry list is not).
 - **Tests.** `LocalAgentSessionTest` (the node on the real processor), `LocalAgentAdapterReplayTest` (adapter + parser
   + processor over the fixtures), `ClaudeCodeProviderTest` (the exact line, the verb lists, the slash table pinned to
   `p0b-slash`), `LocalAgentProcessTest` (a real SIGTERM-ignoring tree, stderr above 64 KB, the lock across two JVMs,
