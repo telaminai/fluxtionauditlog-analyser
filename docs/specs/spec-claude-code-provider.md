@@ -1,11 +1,13 @@
 # M74 — Claude Code as the analyser's assistant: a long-running local session
 
-**Status:** DRAFT r5, 2026-10-16. Two protocol probes have run against the installed CLI (2.1.282): **P0**
+**Status:** DRAFT r6, 2026-10-16. Two protocol probes have run against the installed CLI (2.1.282): **P0**
 ([report](evidence/m74-p0/P0-report.md), 40 items, US$0.85) and **P0b**
 ([report](evidence/m74-p0/P0b-report.md): the exact default command, the binding nonce, the P3 permission contract,
 slash commands, account fields; US$0.19). r5 is a clean rewrite: each section below is current on its own, and the
 history is at the end. The owner accepted OD-74.6's classified slash list, OD-74.9's `propose` verb and the phase
-order P1a → P1b + P2 → P3 → P4/P5 on 2026-10-16. Citations `[P0-n]` and `[P0b-n]` point at report rows. P1a starts after a short r5 review.
+order P1a → P1b + P2 → P3 → P4/P5 on 2026-10-16. Citations `[P0-n]` and `[P0b-n]` point at report rows. r6 folds the
+final r5 review's five fixes into the sections they change (§4.2, §4.3, §4.4, §5.1, §5.4, §8, §10, §11); P1a is
+implemented against r6 (see *Implementation notes*).
 
 **Tracker:** M74. **Builds on:** the onboard assistant ([`spec-onboard-assistant-journeys.md`](spec-onboard-assistant-journeys.md),
 "OA"), the MCP bridge ([`spec-assistant-actions-mcp.md`](spec-assistant-actions-mcp.md)), M42's Claude Code
@@ -51,7 +53,7 @@ hand it the person's shell. [R S1, S2]
 | What loads from the folder | **only `CLAUDE.md`** of the project root (`--restricted --add-dir <root>` + `CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD=1`). No hooks, no `.mcp.json`, no user, project or local settings, none of the person's skills or commands; the CLI's bundled built-ins remain [P0-26, P0-28, P0b-1] | everything the person's Claude Code loads, including the folder's hooks and `.mcp.json`, which run at Start [P0-28] |
 | MCP servers | **only the hosted bridge** (`--strict-mcp-config`) [P0-29] | the person's own plus the hosted bridge; the person's own `fluxtion-analyser` registration (M42) is disallowed (`--disallowedTools mcp__fluxtion-analyser`), because it is not bound to this instance [P0-30, P0-31] |
 | Built-in tools | an **allow-list**, `--tools "Read,Grep,Glob"`: no Bash, Write, Edit, Agent, Skill or web tools, so no subagents [P0-24]. Confined to the working directories by `--restricted`, symlinks included, even against an allow rule [P0-26]; an approval cannot widen that [P0b-3] | the person's settings |
-| Analyser verbs | **pre-allowed by explicit name** (no wildcard [P0-30]): `VerbSchemas.all()` minus `McpTools.destructiveVerbs()`. Today that is `read, aggregate, series, context, coverage, source, filter, goto, flag, graph, topology, spotlight`, plus `propose` from P2 (§5.6). The destructive verbs (`open, source_root, screenshot, report, walk, import`) are **removed from the model's tools** with `--disallowedTools` until P3; from P3 they are visible and each call is asked of the person (§5.7). The analyser also refuses `graph {delete}` from the hosted bridge, because `graph` is pre-allowed [R2-6] | same rule |
+| Analyser verbs | **pre-allowed by explicit name** (no wildcard [P0-30]): `VerbSchemas.all()` minus `McpTools.destructiveVerbs()`. Today that is `read, aggregate, series, context, coverage, source, filter, goto, flag, graph, topology, spotlight`, plus `propose` from P2 (§5.6). The destructive verbs (`open, source_root, screenshot, report, walk, import`) are **removed from the model's tools** with `--disallowedTools` until P3; from P3 they are visible and each call is asked of the person (§5.7). The analyser also refuses `graph {delete}` from the hosted bridge, because `graph` is pre-allowed [R2-6]; "from the hosted bridge" means a call carrying this generation's hosted credential (§4.2) | same rule |
 | Permission mode | P1a and P2: **always** `--permission-mode dontAsk --permission-prompts none`: anything not pre-allowed is denied without blocking [P0-21]. From P3: `--permission-mode default --permission-prompt-tool stdio`, so the analyser is asked [P0b-3]. Neither inherits the person's `defaultMode` [P0-34] | an **explicit** mode the person picks in Settings (`default`, `acceptEdits`, `auto`, `plan`; `bypassPermissions` is not offered), plus `--permission-prompts none` until P3. The analyser never parses the person's settings to detect a mode [R2-1] |
 | Slash commands | pass through, except the §5.4 block list | same, plus the person's own commands |
 | Budget | `--max-budget-usd` per process, **and** a session total the node keeps (§4.6) | same |
@@ -114,8 +116,8 @@ only**: never exported, never in a profile, share or bundle (the M73 rule, pinne
   1. **A binding nonce is minted for every spawn**: Start, every resume, and the restart after a fallback kill. It is
      never reused across generations.
   2. The analyser writes a **per-instance endpoint file** (mode 600, under `~/.fluxtion-analyser/`) holding the REST
-     URL, the token and the nonce. It passes the file's **path**, never the URL, token or nonce, as a new bridge
-     argument in the inline `--mcp-config` [R S4].
+     URL, the token, the nonce and a **hosted credential** (below). It passes the file's **path**, never the URL, token,
+     nonce or credential, as a new bridge argument in the inline `--mcp-config` [R S4].
   3. The bridge reads that file and reports `serverInfo.version = "<analyser version>+bind.<nonce>"` in its MCP
      `initialize`. Extra `serverInfo` fields are stripped by the CLI, and `system/init` reports only name, status and
      source [P0-32]; the version string arrives byte-exact [P0b-2].
@@ -123,15 +125,29 @@ only**: never exported, never in a profile, share or bundle (the M73 rule, pinne
      when `fluxtion-analyser-hosted` is `connected` with exactly that version. It records `FAILED` at once on
      `failed` (the CLI's own connect timeout is 30 s [P0b-2]), `NONCE_MISMATCH` on another nonce, `OLD_BRIDGE` on a
      version without `+bind.`, and `TIMEOUT` at **35 s**. The tab shows "connecting to the analyser bridge…" after
-     2 s. Any verdict but `BOUND` refuses the session and stops the process. An installed JBang `analyser` older than
-     this feature ignores the argument and binds to the well-known endpoint file, i.e. whichever analyser wrote it
+     2 s. Any verdict but `BOUND` refuses the session and stops the process. An installed JBang `analyser` (the fallback launcher,
+     below) older than this feature ignores the argument and binds to the well-known endpoint file, i.e. whichever analyser wrote it
      last [P0-33]; it reports no nonce and is refused by name: *"the installed analyser bridge is older than this
      analyser — update it"*.
   5. Until `BOUND` and a passing posture check (§4.4), the hosted bridge's calls are refused by the dispatcher for
      this generation.
+- **The hosted caller is identified by its own credential, never by the shared token.** A **hosted token** is minted
+  for every spawn (with the nonce, per generation) and written **only** to the per-instance endpoint file, beside the
+  REST URL, the shared token and the nonce. The hosted bridge sends it in its own header, `X-Analyser-Hosted`, on
+  every call. `ActionServer` maps a valid hosted token to `{hosted, generation}`; an unknown or revoked one is refused
+  outright. Everything that is decided "for the hosted bridge" checks that mapping: the step-5 refusal, the
+  `graph {delete}` refusal (§3) and, from P2, the `propose` verb (§5.6). The token is **revoked at stop**, at exit and
+  when a generation is replaced. **The shared REST token can never be treated as hosted**: a call with only
+  `X-Analyser-Token` is an ordinary external client, whatever it claims, so an external client that can read the
+  well-known endpoint file gains nothing reserved to the hosted session, and the hosted session's refusals cannot be
+  dodged by dropping the header (a hosted call without it is an external call, gated as one).
 - **The hosted server name is `fluxtion-analyser-hosted`.** A `--mcp-config` server with the same name as a user
   registration replaces it silently [P0-31], and a distinct name keeps the person's own rules for
   `mcp__fluxtion-analyser…` from applying to it [P0-30].
+- **The hosted bridge is launched from the running jar** (`McpLaunchCommand.runningJar()`), so its code is the code of
+  the analyser that started it. JBang (`McpLaunchCommand.installedJbang`) is used **only when the running jar cannot
+  be launched** (an IDE or multi-entry classpath), and then the version check of step 4 is what stands between Claude
+  and an older bridge. Neither available is the §9 failure *the bridge launcher is unavailable*.
 - The MCP config is passed **inline** to `--mcp-config` (it holds only the launcher and the endpoint-file path), so
   there is no file to swap. On Windows a `.cmd` shim would pass argv through `cmd.exe`, where `"`, `&`, `|`, `^`
   and `%` are reinterpreted; P1a decides between inline JSON and a private 0700 temp file there (§11).
@@ -214,8 +230,19 @@ which cost nothing. In order:
 
    The hosted bridge refuses calls until this passes (§4.2 step 5), so a mismatch is caught before an analyser verb
    runs. Built-in reads in that first turn are already confined to the folder.
-5. **Every later `system/init`** is checked again (`LocalAgentPostureObserved`). A changed mode, tool set, server set
-   or **session id** stops the session, interrupt first and kill as the fallback, with the field named.
+5. **Every later `system/init`** is checked again (`LocalAgentPostureObserved`). A changed server set or **session
+   id** stops the session, interrupt first and kill as the fallback, with the field named.
+6. **`TOOLS_MISMATCH` or `MODE_MISMATCH`, at the first turn or any later one, kills the process tree at once** (§4.7),
+   with no interrupt first: the session is already running with tools or a mode it was not started with, and an
+   interrupt would let it finish its current step. `CAPABILITY_MISSING` kills too, because the interrupt is one of the
+   missing capabilities.
+
+**The residual race, stated.** The built-in tool set can only be asserted at the first turn's `system/init`, which is
+emitted after the person's first line has been accepted; nothing earlier reports it [P0-4]. So between that line and
+the assertion, the CLI holds whatever tools it was started with. **`--tools "Read,Grep,Glob"` is the real control**;
+the assertion detects a CLI that ignored it and kills the session, and the hosted bridge refusing calls until it
+passes (§4.2 step 5) keeps an analyser verb out of that window. A built-in read in that window is still confined to
+the folder by `--restricted`.
 
 Refusals use the §9 wording, and the header (§5.2) is rendered from `headerRef` only after `OK` and `BOUND`.
 
@@ -289,7 +316,9 @@ here — the history would fork."* No further detection is attempted.
 - **Warm start** (off): *Start Claude Code when I open the Assistant tab*, with the note that it contacts Anthropic
   before the first Send. It fires **only** on the person's direct selection of the tab (a click or key on the tab),
   **never** on `revealAssistant()`, a journey handoff, or the tab being restored at launch, and only when the working
-  directory is already confirmed: it never raises the confirmation dialog (OD-74.1 amendment).
+  directory is already confirmed: it never raises the confirmation dialog (OD-74.1 amendment). **The warm-start
+  setting is machine-tier only**, like both switches and the folder-trust records: never in a project profile, a
+  settings share or a bundle, pinned by the consent test (§10).
 
 ### 5.2 The Assistant tab
 
@@ -330,7 +359,16 @@ here — the history would fork."* No further detection is attempted.
 ### 5.4 Slash commands (OD-74.6) [P0-13, P0b-4]
 
 Typed `/…` lines are sent as ordinary turns, and the CLI executes them [P0-13]. At Start the analyser classifies every
-name in `initialize.commands`, aliases included, against a table built from P0b:
+name in `initialize.commands`, aliases included, against a table built from P0b.
+
+**The line is normalised exactly as the CLI reads it before it is classified**, so that a variant the CLI would still
+execute cannot pass as prose: leading whitespace is ignored, the command name is matched without regard to case, and
+the **first token** (up to the first whitespace) is the name while the rest is its argument (which decides `mcp` and
+`output-style`). Where it is not yet known how the CLI reads a line, the classifier errs towards refusing: a line whose
+first non-blank character is `!` or `#` (the terminal's shell and memory shortcuts) and a word starting with `@` (a
+file mention, which could name a path outside the folder) are refused with *"… is not available in the analyser"*
+until the P1a acceptance probes (§8) show what stream-json does with them. A name in neither the table nor
+`initialize.commands` is unclassified and refused.
 
 | Class | Commands | What the tab does |
 |---|---|---|
@@ -464,7 +502,10 @@ Yes (§5.6) and needs no prompts, so **P2 precedes P3 again**.
 |---|---|---|
 | **P0 — protocol probe** ✓ 2026-10-16 | 40 items ([report](evidence/m74-p0/P0-report.md)) | done; owner read |
 | **P0b — default command, binding, P3 contract, slash commands** ✓ 2026-10-16 | 5 items ([report](evidence/m74-p0/P0b-report.md)) | done; folded into r5 |
-| **P1a — default-posture session** | Start/Stop (interrupt + fallback kill); the §4.4 handshake and posture assertion; the nonce binding (§4.2) with a two-instance test and the real bridge's cold-start measured against the 35 s limit; the parser rules (§4.5); refusing Send while busy; the slash classification (§5.4); the lock (§4.8); header, budget, folder confirmation, bundle refusal, REST prerequisite, process hygiene, the `claude` resolver; both switches (full disabled until P1b); warm start | r5 accepted |
+| **P1a — default-posture session** | Start/Stop (interrupt + fallback kill); the §4.4 handshake and posture assertion; the nonce binding (§4.2) with a two-instance test and the real bridge's cold-start measured against the 35 s limit; the parser rules (§4.5); refusing Send while busy; the slash classification (§5.4); the lock (§4.8); header, budget, folder confirmation, bundle refusal, REST prerequisite, process hygiene, the `claude` resolver; both switches (full disabled until P1b); warm start; the hosted credential (§4.2); the running-jar launcher. **Open
+acceptance (the lead's, not replayed fixtures):** the live CLI smoke; Windows (§11); and stream-json probes of a
+leading-whitespace `/command` and of the `#`, `!` and `@path` prefixes, which decide whether §5.4's refusals of those
+can be relaxed | r6 |
 | **P1b — full posture** | the opt-in, its warning, `bypassPermissions` refused, the explicit mode, the folder dialog naming hooks and MCP servers, the child-`PATH` decision (§4.3), docs per §7 | P1a accepted |
 | **P2 — evidence to Claude** | the "Ask Claude this?" pop-up and Explain routing, *Ask Claude about this diff*, the journey handoff, OD-74.3 *Move* with the handoff report, conversation v2 recording, **onboarding** (§5.6: `propose`, `OnboardingProposal`, the analyser's preview and apply) | P1a accepted |
 | **P3 — permission prompts in the analyser** | destructive hosted verbs visible and asked through `--permission-prompt-tool stdio` (§5.7); full-posture prompts the same way; the two open probes of §5.7 run first | P1a accepted; contract known (P0b) |
@@ -512,12 +553,12 @@ the analyser · a proposal item refused (the item and why).
 | ★ Stop sends one interrupt for the open ticket; the end is mapped through lifecycle `cancelled` for that uuid; no ack in 5 s or no end in 15 s → tree kill and a new generation (witness: a fixture whose interrupt is never acknowledged) | a Stop that does nothing, or kills the wrong turn |
 | ★ turn end on lifecycle `completed` without `result` (fixture `resume-reused-message-uuid-dropped`); on process exit; a second end signal ignored | a turn that never ends |
 | ★ rendering: text from `assistant`, never `result` (fixture `budget-exhausted-per-process`: answer shown although `result.result` is empty); deltas replaced, not duplicated; the compaction summary (`isSynthetic`) is never shown or recorded as the person's turn (fixture `autocompact-headless`) | doubled, missing or misattributed text |
-| ★ slash classification pinned against `p0b-slash`'s `initialize.commands`: `/config …`, `/settings`, `/mcp disable …` and `/add-dir` are never written to stdin; `/clear` offers New chat; `/compact` passes; a made-up built-in name is refused as unclassified (witness: a deny-list implementation passes the made-up name) | posture or identity changed by a typed command |
+| ★ slash classification pinned against `p0b-slash`'s `initialize.commands`: `/config …`, `/settings`, `/mcp disable …` and `/add-dir` are never written to stdin; `/clear` offers New chat; `/compact` passes; a made-up built-in name is refused as unclassified; `  /CONFIG x` (leading whitespace, upper case) is refused like `/config x`; `!`, `#` and `@path` lines are refused (witness: a deny-list implementation passes the made-up name) | posture or identity changed by a typed command |
 | ★ lock: a second analyser instance cannot resume a locked session id; the lock is released on stop, exit and crash | a forked history between instances |
 | ★ warm start fires on the person's tab selection with a confirmed folder only; `revealAssistant()`, a journey handoff, restore at launch and an unconfirmed folder start nothing (witness: a listener on tab-selection-changed, which fires for programmatic reveals, fails) | a process started without the person's act |
-| ★ consent: switches off → Start refused; a profile, share or bundle containing either key leaves it off; **folder-trust records** are machine-tier only and never exported | consent or trust smuggled in |
+| ★ consent: switches off → Start refused; a profile, share or bundle containing either switch, the **warm-start setting** or a **folder-trust record** leaves each off or absent; all of them are machine-tier only and never exported | consent or trust smuggled in |
 | ★ a posture change (switch, mode, cwd, note) never resumes the old session id; it offers New chat | a session silently resumed under another posture |
-| ★ `graph {delete}` from the hosted bridge refused | injected chart deletion |
+| ★ `graph {delete}` from the hosted bridge refused; the hosted credential maps to its generation only while that generation runs; a call with the shared token alone is never hosted (witness: treating a valid shared token as hosted) | injected chart deletion, a hosted refusal dodged |
 | ★ `AssistantMode` enforced in both nodes (in-app Send refused under `LOCAL_AGENT`, and the reverse) | a UI-only mode switch |
 | ★ session budget: last `total_cost_usd` per session, summed across New chat; `--max-budget-usd` = the remainder; `error_max_budget_usd` stops the process (witness: summing per-turn values over-counts a resumed session) | per-process cap reset, double counting |
 | ★ *Move*: no automatic start; the handoff report is stored by the analyser only after confirmation, labelled, redacted, and refused if the target changed | an injection channel into later sessions |
@@ -553,7 +594,16 @@ the analyser · a proposal item refused (the item and why).
 - an older bridge run (established from source only);
 - the real bridge's cold start against the 35 s limit;
 - `/mcp disable` and `reconnect` (blocked without being run);
+- how stream-json treats a `/command` with leading whitespace, and lines starting with `#`, `!` or `@path` (§5.4:
+  refused until probed);
 - for P3: an unanswered `can_use_tool`, and an interrupt while one is pending.
+
+**Open for later phases (carried, not decided in r6):**
+- **P2:** `VerbSchemas.hosted()`, the hosted bridge's own verb list, and `propose` on it (§5.6); `propose` is checked
+  against the hosted credential (§4.2).
+- **P3:** §5.7 denies every `can_use_tool` that is not a hosted destructive verb, while §8's P3 row says the full
+  posture's prompts go "the same way"; P3 decides which. P3 also decides how the dialog renders the call's input,
+  which is model-authored data and may quote record content.
 
 ## Revision history
 
@@ -578,3 +628,11 @@ the analyser · a proposal item refused (the item and why).
     precedes P3 again;
   - the capture method's deviation from rule 1 recorded;
   - §10 rewritten: the stale deny-list and "v1 reader refuses" rows removed.
+- **r6** (2026-10-16): the final r5 review's five fixes, folded in place: a per-generation **hosted credential**
+  (`X-Analyser-Hosted`) that every hosted-only decision checks, and the shared token never counts as hosted (§4.2, §3,
+  §10); `TOOLS_MISMATCH` / `MODE_MISMATCH` kill at once, with the residual first-turn race and `--tools` as the real
+  control stated (§4.4); warm start machine-tier only and in the consent test (§5.1, §10); the slash classifier
+  normalises the line as the CLI does, with the `#`, `!`, `@path` and leading-whitespace probes as open P1a acceptance
+  (§5.4, §8, §11); the hosted bridge launched from the running jar in preference to JBang (§4.2). Carried, not
+  decided: `VerbSchemas.hosted()` and `propose` (P2), the §5.7 / §8 P3 contradiction and the P3 dialog's data
+  rendering (P3).
