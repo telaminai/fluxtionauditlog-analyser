@@ -16,6 +16,13 @@ servers); every experiment that uses the real login passes --strict-mcp-config, 
 MCP servers and claude.ai connectors never load. Raw transcripts in <workdir>/raw are SENSITIVE
 (system/init lists the person's skills, plugins and paths; `initialize` returns the account email):
 only sanitised copies may be committed (--sanitise). Never pass bypassPermissions.
+
+P0b (the `b_*` experiments, 2026-10-16; P0b-report.md): the exact §12.1 default command against a stub
+`fluxtion-analyser-hosted` server, the binding nonce in serverInfo.version, the P3 permission contract
+(--permission-prompt-tool stdio vs an MCP prompt tool), slash commands, and initialize.account field names.
+`b_slash_config_iso` runs `/config key=value` and MUST stay on the isolated config: against the real login it
+would rewrite the person's own user settings.json. The sanitiser rejoins split streaming deltas (a path split
+across chunks escapes a line-wise pass).
 """
 import argparse, glob, json, os, queue, re, signal, subprocess, sys, tempfile, threading, time, uuid
 
@@ -145,6 +152,7 @@ class Proc:
         self.p = subprocess.Popen(["claude"] + args, cwd=cwd, env=env, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                   stderr=self.err, text=True, bufsize=1, start_new_session=True)
         self.q, self.lines, self.cost0, self.cost = queue.Queue(), [], None, 0.0
+        self.t0 = time.time()
         threading.Thread(target=self._pump, daemon=True).start()
 
     def _pump(self):
@@ -518,6 +526,399 @@ def _(P):
              minimal_gui_path=gui, version=ver)
 
 
+# ---------------------------------------------------------------- P0b (2026-10-16): the §12.1 default command, the
+# binding nonce, the P3 permission contract, slash commands under the default posture, account field names.
+HOSTED = "fluxtion-analyser-hosted"
+STUB_B = r'''#!/usr/bin/env python3
+import json, sys, os, time
+name, log, version = sys.argv[1], sys.argv[2], sys.argv[3]
+def note(s):
+    with open(log, "a") as f: f.write(f"{name} {s}\n")
+obj = lambda props, req: {"type": "object", "properties": props, "required": req}
+TOOLS = [{"name": "context", "description": "Analyser context (stub).", "inputSchema": obj({}, [])},
+         {"name": "echo", "description": "Echo text.", "inputSchema": obj({"text": {"type": "string"}}, ["text"])},
+         {"name": "report", "description": "Write a report (stands for a destructive verb).", "inputSchema": obj({"title": {"type": "string"}}, ["title"])},
+         {"name": "approve", "description": "Permission prompt handler.", "inputSchema": obj({"tool_name": {"type": "string"}, "input": {"type": "object"}, "tool_use_id": {"type": "string"}}, ["tool_name", "input"])}]
+note("start")
+if os.environ.get("STUB_DELAY"): time.sleep(float(os.environ["STUB_DELAY"]))
+for line in sys.stdin:
+    if not line.strip(): continue
+    m = json.loads(line); mid = m.get("id"); meth = m.get("method")
+    if meth == "initialize":
+        if os.environ.get("STUB_HANG"): note("hang"); time.sleep(3600)
+        res = {"protocolVersion": m["params"].get("protocolVersion", "2025-06-18"), "capabilities": {"tools": {}},
+               "serverInfo": {"name": name, "version": version}}
+    elif meth == "tools/list": res = {"tools": TOOLS}
+    elif meth == "tools/call":
+        p = m["params"]; a = p.get("arguments", {}); note("call " + p["name"] + " " + json.dumps(a, sort_keys=True))
+        if p["name"] == "approve":
+            d = os.environ.get("STUB_APPROVE", "deny")
+            t = json.dumps({"behavior": "allow", "updatedInput": a.get("input", {})} if d == "allow"
+                           else {"behavior": "deny", "message": "Denied by the stub approver"})
+        elif p["name"] == "context": t = json.dumps({"instance": "stub-instance", "binding": version})
+        elif p["name"] == "echo": t = f"[{name}] {a.get('text')}"
+        else: t = f"[{name}] report written: {a.get('title')}"
+        res = {"content": [{"type": "text", "text": t}]}
+    elif mid is None: continue
+    else:
+        print(json.dumps({"jsonrpc": "2.0", "id": mid, "error": {"code": -32601, "message": "no"}}), flush=True); continue
+    print(json.dumps({"jsonrpc": "2.0", "id": mid, "result": res}), flush=True)
+note("exit")
+'''
+
+
+def b_setup(P):
+    W = P.W
+    for d in ["b/proj/.claude", "b/outside", "b/markers"]:
+        os.makedirs(f"{W}/{d}", exist_ok=True)
+    open(f"{W}/stub_b.py", "w").write(STUB_B)
+    open(f"{W}/b/proj/inside.txt", "w").write("INSIDE-CANARY-17\n")
+    open(f"{W}/b/outside/harmless.txt", "w").write("OUTSIDE-CANARY-42\n")
+    open(f"{W}/b/proj/CLAUDE.md", "w").write("# Probe\nIf anyone asks for the codeword, it is PINEAPPLE-7.\n")
+    hook = lambda tag: {"hooks": [{"type": "command", "command": f"echo {tag} >> {W}/b/markers/hook.txt"}]}
+    json.dump({"hooks": {"SessionStart": [hook("sessionstart")], "UserPromptSubmit": [hook("promptsubmit")],
+                         "PreToolUse": [dict(matcher="*", **hook("pretooluse"))]}},
+              open(f"{W}/b/proj/.claude/settings.json", "w"))
+    json.dump({"mcpServers": {"projstub": b_server(P, "projstub", "projmcp.txt", "0.0.1")}}, open(f"{W}/b/proj/.mcp.json", "w"))
+
+
+def b_server(P, name, log, version, env=None):
+    s = {"command": sys.executable, "args": [f"{P.W}/stub_b.py", name, f"{P.W}/b/markers/{log}", version]}
+    if env:
+        s["env"] = env
+    return s
+
+
+def nonce():
+    return "1.35.0+bind." + uuid.uuid4().hex[:16]
+
+
+def b_markers(P):
+    return {os.path.basename(f): open(f).read().splitlines() for f in glob.glob(f"{P.W}/b/markers/*")}
+
+
+def b_clear(P):
+    for f in glob.glob(f"{P.W}/b/markers/*"):
+        os.remove(f)
+
+
+PRE_ALLOWED = ["context", "echo"]  # stand-ins for the read/render verbs; `report` stands for a destructive verb
+
+
+def b_default_args(P, version, extra_env=None, pre=PRE_ALLOWED, mode=("dontAsk", "none")):
+    """The §12.1 default command, exactly; everything but the stdio basics (added by spawn)."""
+    cfg = json.dumps({"mcpServers": {HOSTED: b_server(P, HOSTED, "calls.txt", version, extra_env)}})
+    root = f"{P.W}/b/proj"
+    return ["--tools", "Read,Grep,Glob", "--restricted", "--add-dir", root,
+            "--strict-mcp-config", "--mcp-config", cfg,
+            "--allowedTools", ",".join(f"mcp__{HOSTED}__{t}" for t in pre),
+            "--permission-mode", mode[0], "--permission-prompts", mode[1],
+            "--replay-user-messages", "--include-partial-messages"]
+
+
+B_ENV = {"CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD": "1"}
+
+
+def poll_status(p, name=HOSTED, interval=0.1, timeout=45):
+    """Poll mcp_status until `name` leaves `pending`; return the transitions (seconds since spawn) and serverInfo."""
+    seen, info, end = [], None, time.time() + timeout
+    while time.time() < end:
+        r = p.control({"subtype": "mcp_status"})
+        if not isinstance(r, dict):
+            seen.append((round(time.time() - p.t0, 2), f"no response: {r}")); break
+        srv = next((s for s in r["response"]["response"].get("mcpServers", []) if s.get("name") == name), None)
+        st = srv.get("status") if srv else "absent"
+        if not seen or seen[-1][1] != st:
+            seen.append((round(time.time() - p.t0, 2), st))
+        info = (srv or {}).get("serverInfo")
+        if st not in ("pending",):
+            break
+        time.sleep(interval)
+    return seen, info
+
+
+def turn(p, text, timeout=120):
+    p.send_user(text)  # fresh uuid every time; we use fresh uuids, so every turn ends in a result
+    return p.wait(lambda d: d.get("type") == "result", timeout)
+
+
+def last_init(p):
+    return next((d for d in reversed(p.lines) if d.get("subtype") == "init"), {})
+
+
+@exp("b_default_posture")
+def _(P):
+    """Items 1, 2, 5: the exact default command; MCP loads; allow/deny; CLAUDE.md; no hooks; no .mcp.json; confinement."""
+    b_setup(P); b_clear(P)
+    v = nonce(); sid = str(uuid.uuid4())
+    p = P.spawn("p0b-default-posture", b_default_args(P, v) + ["--session-id", sid], cwd="b/proj", env=B_ENV)
+    ini = p.control({"subtype": "initialize"})
+    r = ini["response"]["response"] if isinstance(ini, dict) else {}
+    status, info = poll_status(p)
+    time.sleep(1); hooks_before_turn = b_markers(P).get("hook.txt", [])
+    qs = ['Call mcp__fluxtion-analyser-hosted__context with no arguments, then mcp__fluxtion-analyser-hosted__echo with text "h1". Reply with both outputs verbatim.',
+          'Call mcp__fluxtion-analyser-hosted__report with title "x". Reply with its output or the exact error text.',
+          "What is the codeword? Reply with the codeword only, or NONE.",
+          f"Call the Read tool on {P.W}/b/outside/harmless.txt, then reply with the tool output or the exact error text.",
+          "Call the Read tool on inside.txt in the current directory and reply with its content only.",
+          "Call the Bash tool to run `echo hi`; if you have no Bash tool reply exactly NO-BASH."]
+    res = [turn(p, q) for q in qs]
+    status_after, info_after = poll_status(p)
+    i = last_init(p)
+    p.close()
+    m = b_markers(P)
+    P.record("b_default_posture", initialize_keys=sorted(r), account_keys=sorted(r.get("account", {})),
+             current_permission_mode=r.get("current_permission_mode"), commands=[c["name"] for c in r.get("commands", [])],
+             status=status, serverInfo=info, nonce_sent=v, nonce_ok=(info or {}).get("version") == v,
+             serverInfo_after_turns=info_after, nonce_unchanged=info_after == info,
+             init_tools=i.get("tools"), init_mode=i.get("permissionMode"), init_mcp=i.get("mcp_servers"),
+             init_skills=len(i.get("skills", [])), init_slash=i.get("slash_commands"), memory_paths=i.get("memory_paths"),
+             results=[brief(x) for x in res],
+             denials=[[d["tool_name"] for d in (x.get("permission_denials") or [])] if isinstance(x, dict) else x for x in res],
+             hosted_calls=[l for l in m.get("calls.txt", []) if " call " in f" {l} "],
+             hooks_before_turn=hooks_before_turn, hooks=m.get("hook.txt", []), projmcp_spawned=m.get("projmcp.txt", []))
+    P.b_sid = sid; open(f"{P.W}/b_sid.txt", "w").write(sid)
+
+
+@exp("b_disallow_destructive")
+def _(P):
+    """The posture assertion: with destructive verbs also disallowed, init.tools is exactly Read/Grep/Glob + pre-allowed."""
+    b_setup(P); b_clear(P)
+    args = b_default_args(P, nonce()) + ["--disallowedTools", f"mcp__{HOSTED}__report,mcp__{HOSTED}__approve"]
+    p = P.spawn("p0b-disallow-destructive", args, cwd="b/proj", env=B_ENV)
+    r = turn(p, 'Call mcp__fluxtion-analyser-hosted__report with title "x". Reply with its output or the exact error text.')
+    i = last_init(p); p.close()
+    P.record("b_disallow_destructive", init_tools=i.get("tools"), result=brief(r),
+             report_ran=any("call report" in l for l in b_markers(P).get("calls.txt", [])))
+
+
+@exp("b_nonce_timing")
+def _(P):
+    """Item 2: pending→connected timing over several spawns (no turn: free), a slow server, a hung server, resume."""
+    b_setup(P)
+    out = {"plain": [], "delay3s": None, "hang": None, "resume": None}
+    for k in range(5):
+        v = nonce(); p = P.spawn(f"p0b-nonce-{k}", b_default_args(P, v), cwd="b/proj", env=B_ENV)
+        s, info = poll_status(p, interval=0.05); p.close()
+        out["plain"].append({"status": s, "nonce_ok": (info or {}).get("version") == v})
+    v = nonce(); p = P.spawn("p0b-nonce-delay", b_default_args(P, v, {"STUB_DELAY": "3"}), cwd="b/proj", env=B_ENV)
+    s, info = poll_status(p); p.close(); out["delay3s"] = {"status": s, "nonce_ok": (info or {}).get("version") == v}
+    v = nonce(); p = P.spawn("p0b-nonce-hang", b_default_args(P, v, {"STUB_HANG": "1"}), cwd="b/proj", env=B_ENV)
+    s, info = poll_status(p, interval=0.5, timeout=70); p.close(); out["hang"] = {"status": s, "serverInfo": info}
+    sid = getattr(P, "b_sid", None) or (open(f"{P.W}/b_sid.txt").read().strip() if os.path.exists(f"{P.W}/b_sid.txt") else None)
+    if sid:
+        v = nonce(); p = P.spawn("p0b-nonce-resume", b_default_args(P, v) + ["--resume", sid], cwd="b/proj", env=B_ENV)
+        s, info = poll_status(p, interval=0.05); p.close()
+        out["resume"] = {"status": s, "nonce_ok": (info or {}).get("version") == v}
+    P.record("b_nonce_timing", **out)
+
+
+def answer_can_use_tool(p, decide, timeout=90):
+    """Wait for the CLI's permission control_request (or the turn's result); answer it with decide(request)."""
+    got = []
+    while True:
+        d = p.wait(lambda d: d.get("type") == "result" or d.get("type") == "control_request", timeout)
+        if not isinstance(d, dict) or d.get("type") == "result":
+            return got, d
+        req = d["request"]; got.append(d)
+        resp = decide(req)
+        p.send({"type": "control_response", "response": {"subtype": "success", "request_id": d["request_id"], "response": resp}})
+
+
+@exp("b_p3_host_prompts")
+def _(P):
+    """Item 3a: --permission-prompts host over stream-json: the can_use_tool request and the allow/deny response."""
+    b_setup(P); b_clear(P)
+    out = {}
+    allow = lambda req: {"behavior": "allow", "updatedInput": req.get("input", {})}
+    deny = lambda req: {"behavior": "deny", "message": "Denied by the person in the analyser"}
+    p = P.spawn("p0b-p3-host", b_default_args(P, nonce(), mode=("default", "host")), cwd="b/proj", env=B_ENV)
+    poll_status(p)
+    p.send_user('Call mcp__fluxtion-analyser-hosted__report with title "allowed-1". Reply with its output or the exact error text.')
+    reqs, r = answer_can_use_tool(p, allow)
+    out["allow"] = {"requests": [x["request"] for x in reqs], "result": brief(r)}
+    p.send_user('Call mcp__fluxtion-analyser-hosted__report with title "denied-2". Reply with its output or the exact error text.')
+    reqs, r = answer_can_use_tool(p, deny)
+    out["deny"] = {"requests": [x["request"] for x in reqs], "result": brief(r)}
+    p.send_user(f"Call the Read tool on {P.W}/b/outside/harmless.txt, then reply with the tool output or the exact error text.")
+    reqs, r = answer_can_use_tool(p, deny)
+    out["restricted_outside_read"] = {"requests": [x["request"] for x in reqs], "result": brief(r)}
+    out["init_tools"] = last_init(p).get("tools"); p.close()
+    out["report_calls"] = [l for l in b_markers(P).get("calls.txt", []) if "call report" in l]
+    # dontAsk with prompts=host: is the host asked at all?
+    p = P.spawn("p0b-p3-dontask-host", b_default_args(P, nonce(), mode=("dontAsk", "host")), cwd="b/proj", env=B_ENV)
+    poll_status(p)
+    p.send_user('Call mcp__fluxtion-analyser-hosted__report with title "dontask-3". Reply with its output or the exact error text.')
+    reqs, r = answer_can_use_tool(p, allow, timeout=90); p.close()
+    out["dontask_host"] = {"requests": [x["request"] for x in reqs], "result": brief(r)}
+    P.record("b_p3_host_prompts", **out)
+
+
+@exp("b_p3_prompt_tool")
+def _(P):
+    """Item 3b: --permission-prompt-tool on the hosted server: its contract, and whether the model sees or calls it."""
+    b_setup(P)
+    out = {}
+    tool = f"mcp__{HOSTED}__approve"
+    for name, extra in [("visible", []), ("disallowed", ["--disallowedTools", tool])]:
+        b_clear(P)
+        args = b_default_args(P, nonce(), {"STUB_APPROVE": "allow"}, mode=("default", "host")) + ["--permission-prompt-tool", tool] + extra
+        p = P.spawn("p0b-p3-prompttool-" + name, args, cwd="b/proj", env=B_ENV)
+        poll_status(p)
+        r1 = turn(p, 'Call mcp__fluxtion-analyser-hosted__report with title "via-tool". Reply with its output or the exact error text.')
+        r2 = turn(p, 'Call the tool mcp__fluxtion-analyser-hosted__approve directly with tool_name "Bash" and input {"command": "echo hi"}. '
+                     'Reply with its exact output or the exact error text. Do not call any other tool.')
+        host_reqs = [d["request"] for d in p.lines if d.get("type") == "control_request"]
+        i = last_init(p); p.close()
+        out[name] = {"init_tools": i.get("tools"), "report": brief(r1), "direct_call": brief(r2),
+                     "stub_calls": b_markers(P).get("calls.txt", []), "host_control_requests": host_reqs}
+    P.record("b_p3_prompt_tool", **out)
+
+
+@exp("b_p3_stdio")
+def _(P):
+    """Item 3a, second half: `--permission-prompt-tool stdio` (what the Agent SDK passes for canUseTool): the host
+    receives a can_use_tool control_request; allow and deny; does an out-of-directory Read under --restricted reach it?"""
+    b_setup(P); b_clear(P)
+    out = {}
+    allow = lambda req: {"behavior": "allow", "updatedInput": req.get("input", {})}
+    deny = lambda req: {"behavior": "deny", "message": "Denied by the person in the analyser"}
+    p = P.spawn("p0b-p3-stdio", b_default_args(P, nonce(), mode=("default", "host")) + ["--permission-prompt-tool", "stdio"],
+                cwd="b/proj", env=B_ENV)
+    poll_status(p)
+    for name, text, decide in [
+            ("allow", 'Call mcp__fluxtion-analyser-hosted__report with title "allowed-1". Reply with its output or the exact error text.', allow),
+            ("deny", 'Call mcp__fluxtion-analyser-hosted__report with title "denied-2". Reply with its output or the exact error text.', deny),
+            ("outside_read", f"Call the Read tool on {P.W}/b/outside/harmless.txt, then reply with the tool output or the exact error text.", allow),
+            ("approve_visible", 'Call the tool mcp__fluxtion-analyser-hosted__approve with tool_name "Bash" and input {"command": "echo hi"}. Reply with its exact output or error.', deny)]:
+        p.send_user(text)
+        reqs, r = answer_can_use_tool(p, decide)
+        out[name] = {"requests": [x["request"] for x in reqs], "result": brief(r)}
+    out["init_tools"] = last_init(p).get("tools"); p.close()
+    out["stub_calls"] = [l for l in b_markers(P).get("calls.txt", []) if " call " in l]
+    # the same, under dontAsk: is the stdio host asked at all?
+    p = P.spawn("p0b-p3-stdio-dontask", b_default_args(P, nonce(), mode=("dontAsk", "host")) + ["--permission-prompt-tool", "stdio"],
+                cwd="b/proj", env=B_ENV)
+    poll_status(p)
+    p.send_user('Call mcp__fluxtion-analyser-hosted__report with title "dontask-3". Reply with its output or the exact error text.')
+    reqs, r = answer_can_use_tool(p, allow); p.close()
+    out["dontask"] = {"requests": [x["request"] for x in reqs], "result": brief(r)}
+    P.record("b_p3_stdio", **out)
+
+
+@exp("b_p3_prompt_tool_deny")
+def _(P):
+    """Item 3b, deny path, and whether an out-of-directory Read under --restricted is offered to the prompt tool."""
+    b_setup(P); b_clear(P)
+    tool = f"mcp__{HOSTED}__approve"
+    args = b_default_args(P, nonce(), {"STUB_APPROVE": "deny"}, mode=("default", "host")) + ["--permission-prompt-tool", tool]
+    p = P.spawn("p0b-p3-prompttool-deny", args, cwd="b/proj", env=B_ENV)
+    poll_status(p)
+    r1 = turn(p, 'Call mcp__fluxtion-analyser-hosted__report with title "deny-me". Reply with its output or the exact error text.')
+    r2 = turn(p, f"Call the Read tool on {P.W}/b/outside/harmless.txt, then reply with the tool output or the exact error text.")
+    p.close()
+    P.record("b_p3_prompt_tool_deny", report=brief(r1), outside_read=brief(r2),
+             stub_calls=[l for l in b_markers(P).get("calls.txt", []) if " call " in l])
+
+
+SLASH = ["/add-dir {W}/b/outside", "/permissions", "/allowed-tools", "/config", "/mcp", "/mcp enable projstub",
+         "/effort high", "/fast", "/output-style", "/reload-plugins", "/model sonnet"]
+
+
+@exp("b_slash_commands")
+def _(P):
+    """Item 4: initialize.commands under the default posture; do posture-widening commands change anything?"""
+    b_setup(P); b_clear(P)
+    v = nonce()
+    p = P.spawn("p0b-slash", b_default_args(P, v), cwd="b/proj", env=B_ENV)
+    ini = p.control({"subtype": "initialize"})
+    names = [c["name"] for c in ini["response"]["response"].get("commands", [])] if isinstance(ini, dict) else ini
+    poll_status(p)
+    base = turn(p, "Reply exactly OK.")
+    i0 = last_init(p)
+    per = []
+    for c in SLASH:
+        c = c.format(W=P.W)
+        n0 = len(p.lines)
+        r = turn(p, c, timeout=60)
+        local = [d.get("message", {}).get("content") for d in p.lines[n0:]
+                 if d.get("type") == "user" and not d.get("isReplay") and "local-command" in json.dumps(d)]
+        per.append({"cmd": c, "result": brief(r), "local_output": [str(x)[:300] for x in local][:3]})
+    probe_read = turn(p, f"Call the Read tool on {P.W}/b/outside/harmless.txt, then reply with the tool output or the exact error text.")
+    i1 = last_init(p)
+    st, info = poll_status(p)
+    clr = turn(p, "/clear", timeout=60)
+    after_clear = turn(p, "Reply exactly OK.")
+    i2 = last_init(p)
+    ini2 = p.control({"subtype": "initialize"})
+    p.close()
+    diff = lambda a, b: {k: [a.get(k), b.get(k)] for k in ("tools", "permissionMode", "mcp_servers", "model", "cwd", "session_id")
+                          if a.get(k) != b.get(k)}
+    P.record("b_slash_commands", command_names=names, init_slash=i0.get("slash_commands"), baseline=brief(base), per_command=per,
+             outside_read_after=brief(probe_read), changed_after_commands=diff(i0, i1), mcp_after=st, serverInfo_after=info,
+             clear=brief(clr), changed_after_clear=diff(i1, i2),
+             second_initialize=(ini2.get("response", {}).get("subtype"), str(ini2.get("response", {}).get("error"))[:200]) if isinstance(ini2, dict) else ini2,
+             projmcp_spawned=b_markers(P).get("projmcp.txt", []))
+
+
+def tree_snapshot(d):
+    out = {}
+    for root, _, files in os.walk(d):
+        for f in files:
+            fp = os.path.join(root, f)
+            try:
+                out[os.path.relpath(fp, d)] = open(fp, errors="replace").read()
+            except OSError:
+                pass
+    return out
+
+
+@exp("b_slash_config_iso", iso=True)
+def _(P):
+    """Item 4, the settings-writing commands, under an ISOLATED config so nothing of the person's is touched (local
+    commands need no login): does `/config permissionMode=…` change the live mode, and does it persist to disk?"""
+    b_setup(P)
+    cfg = f"{P.W}/cfg-isolated"; os.makedirs(cfg, exist_ok=True)
+    before = tree_snapshot(cfg)
+    p = P.spawn("p0b-slash-config-iso", b_default_args(P, nonce()), cwd="b/proj", env=B_ENV, iso=True)
+    mode = lambda: (p.control({"subtype": "initialize"}) or {}).get("response", {}).get("response", {}).get("current_permission_mode")
+    steps = [("start", None, mode())]
+    for c in ["/config permissionMode=acceptEdits", "/config permissionMode=auto", "/config model=opus",
+              "/output-style Proactive", "/model haiku"]:
+        r = turn(p, c, timeout=40)
+        steps.append((c, brief(r)["result"][:160] if isinstance(r, dict) else r, mode()))
+    r = turn(p, "Reply exactly OK.", timeout=40)  # not logged in: errors, but system/init reports the mode in force
+    i = last_init(p); p.close()
+    after = tree_snapshot(cfg)
+    changed = {k: [l for l in after[k].splitlines() if any(w in l for w in ("ermission", "odel", "utputStyle", "efaultMode"))][:6]
+               for k in after if before.get(k) != after[k]}
+    # a fresh process with the explicit flag: does the persisted value win over --permission-mode dontAsk?
+    p2 = P.spawn("p0b-slash-config-iso-fresh", b_default_args(P, nonce()), cwd="b/proj", env=B_ENV, iso=True)
+    fresh = (p2.control({"subtype": "initialize"}) or {}).get("response", {}).get("response", {}).get("current_permission_mode")
+    p3 = P.spawn("p0b-slash-config-iso-noflag", ["--tools", "Read,Grep,Glob", "--strict-mcp-config"], cwd="b/proj", env=B_ENV, iso=True)
+    noflag = (p3.control({"subtype": "initialize"}) or {}).get("response", {}).get("response", {}).get("current_permission_mode")
+    p2.close(); p3.close()
+    P.record("b_slash_config_iso", steps=steps, init_permissionMode=i.get("permissionMode"), init_model=i.get("model"),
+             files_changed=changed, fresh_with_flag=fresh, fresh_without_flag=noflag)
+
+
+@exp("b_account_fields", iso=True)
+def _(P):
+    """Item 5 (not-logged-in half, free): initialize.account field NAMES under an isolated config."""
+    b_setup(P)
+    p = P.spawn("p0b-account-iso", b_default_args(P, nonce()), cwd="b/proj", env=B_ENV, iso=True)
+    r = p.control({"subtype": "initialize"}); p.close()
+    acct = r["response"]["response"].get("account", {}) if isinstance(r, dict) else {}
+    p = P.spawn("p0b-account-iso-apikey", b_default_args(P, nonce()), cwd="b/proj", iso=True,
+                env=dict(B_ENV, ANTHROPIC_API_KEY="probe-invalid-key"))
+    r2 = p.control({"subtype": "initialize"}); p.close()
+    acct2 = r2["response"]["response"].get("account", {}) if isinstance(r2, dict) else {}
+    P.record("b_account_fields", not_logged_in_account_keys=sorted(acct),
+             tokenSource=acct.get("tokenSource"), apiProvider=acct.get("apiProvider"),
+             api_key_env_account_keys=sorted(acct2),
+             api_key_env_values={k: acct2.get(k) for k in ("tokenSource", "apiProvider", "apiKeySource") if k in acct2})
+
+
 # ---------------------------------------------------------------- sanitiser
 BUILTIN = {"compact", "clear", "context", "init", "review", "security-review", "cost", "doctor", "color", "focus",
            "reload-plugins", "probe-skill", "claude", "Explore", "general-purpose", "Plan", "statusline-setup"}
@@ -592,12 +993,36 @@ def sanitiser(workdir, cwd):
     return walk, s
 
 
+def rejoin_deltas(rows, s):
+    """A path split across streaming chunks escapes a line-wise sanitiser (P0b found this). Per content block, join
+    the deltas, sanitise the whole, and if that changed anything put the sanitised text in the block's first delta
+    and empty the rest: the concatenation a renderer builds is preserved, the chunk boundaries are not."""
+    blocks, msg = {}, None
+    for d in rows:
+        if d.get("type") != "stream_event":
+            continue
+        e = d.get("event", {})
+        if e.get("type") == "message_start":
+            msg = e.get("message", {}).get("id")
+        elif e.get("type") == "content_block_delta":
+            dl = e.get("delta", {}); k = "text" if "text" in dl else "partial_json" if "partial_json" in dl else None
+            if k:
+                blocks.setdefault((msg, e.get("index")), []).append((dl, k))
+    for parts in blocks.values():
+        whole = "".join(dl[k] for dl, k in parts)
+        clean = s(whole)
+        if clean != whole:
+            for n, (dl, k) in enumerate(parts):
+                dl[k] = clean if n == 0 else ""
+
+
 def sanitise_file(src, dst, workdir, cwd):
     walk, s = sanitiser(workdir, cwd)
-    with open(src) as f, open(dst, "w") as g:
-        for line in f:
-            if line.strip():
-                g.write(json.dumps(walk(json.loads(line)), ensure_ascii=False) + "\n")
+    rows = [json.loads(line) for line in open(src) if line.strip()]
+    rejoin_deltas(rows, s)
+    with open(dst, "w") as g:
+        for d in rows:
+            g.write(json.dumps(walk(d), ensure_ascii=False) + "\n")
 
 
 def main():
