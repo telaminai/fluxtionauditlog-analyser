@@ -46,7 +46,7 @@ final class ExportSettingsDialog extends JDialog {
         cats.setBorder(UiTheme.section("Include"));
         Set<Category> defaults = Category.defaults();
         for (Category c : Category.values()) {
-            JCheckBox cb = new JCheckBox(c.label, defaults.contains(c));
+            JCheckBox cb = UiText.checkBox(c.label, defaults.contains(c));
             boxes.put(c, cb);
             cats.add(cb);
         }
@@ -173,11 +173,11 @@ final class ExportSettingsDialog extends JDialog {
     }
 
     private void info(String msg) {
-        JOptionPane.showMessageDialog(this, msg, "Export settings", JOptionPane.INFORMATION_MESSAGE);
+        JOptionPane.showMessageDialog(this, UiText.inert(msg), "Export settings", JOptionPane.INFORMATION_MESSAGE);
     }
 
     private void error(String msg) {
-        JOptionPane.showMessageDialog(this, msg, "Export settings", JOptionPane.WARNING_MESSAGE);
+        JOptionPane.showMessageDialog(this, UiText.inert(msg), "Export settings", JOptionPane.WARNING_MESSAGE);
     }
 
     private static String rootMessage(Throwable t) {

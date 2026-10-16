@@ -107,7 +107,7 @@ public final class MainFrame extends JFrame {
     private final List<JCheckBoxMenuItem> flaggedOnlyToggles = new ArrayList<>();
     private final JScrollBar windowScroll = new JScrollBar(JScrollBar.HORIZONTAL, 0, 1000, 0, 1000);
     private boolean syncingWindow;      // guards the combo/scrollbar ↔ slider feedback loop
-    private final HistoryComboBox searchField = new HistoryComboBox();
+    private final HistoryComboBox searchField = UiText.plainCells(new HistoryComboBox());   // SF-2: pasted search terms
     /**
      * A column's name, drawn above it.
      *
@@ -118,10 +118,10 @@ public final class MainFrame extends JFrame {
      * home for the state that belongs to it (owner, 2026-09-30).
      */
     private static JComponent columnHeading(String name, String what) {
-        JLabel label = new JLabel(name.toUpperCase(java.util.Locale.ROOT));
+        JLabel label = UiText.label(name.toUpperCase(java.util.Locale.ROOT));
         label.setFont(label.getFont().deriveFont(java.awt.Font.BOLD, label.getFont().getSize() - 1f));
         label.setForeground(UiTheme.mutedForeground());
-        label.setToolTipText(what);
+        label.setToolTipText(UiText.tooltip(what));
         label.setBorder(BorderFactory.createEmptyBorder(2, 6, 2, 6));
         return label;
     }
@@ -130,9 +130,10 @@ public final class MainFrame extends JFrame {
     private MachinePanel machinePanel;
     /** Event types, on the Records row beside Search — see {@link #showEventTypes}. */
     private final javax.swing.JToggleButton eventTypesToggle = new javax.swing.JToggleButton("Event types");
-    private final JLabel showingLabel = new JLabel();
+    private final JLabel showingLabel = UiText.plain(new JLabel());
     private final JProgressBar progress = new JProgressBar();
-    private final JLabel status = new JLabel("Open a log — Audit log ▸ Open log… (or the toolbar), drag a file in, or Audit log ▸ Open log from S3….");
+    // SF-2: the status line names files, nodes, charts, walks and errors that echo them — shown as characters
+    private final JLabel status = UiText.plain(new JLabel("Open a log — Audit log ▸ Open log… (or the toolbar), drag a file in, or Audit log ▸ Open log from S3…."));
     private final JMenu recentMenu = new JMenu("Open recent audit log");
     private final JMenu recentGraphmlMenu = new JMenu("Open recent GraphML");
     private final JMenu recentProjectsMenu = new JMenu("Open recent project");
@@ -612,7 +613,7 @@ public final class MainFrame extends JFrame {
      * THIS window? Not "is a client connected" — that is a different fact, needs a probe, and is true
      * only at the instant it is measured, so it lives in the setup dialog instead.
      */
-    private final JLabel mcpLight = new JLabel();
+    private final JLabel mcpLight = UiText.plain(new JLabel());
 
     private boolean blockedByOwnedModal(Window opposite) {
         boolean modal = false;
@@ -670,7 +671,7 @@ public final class MainFrame extends JFrame {
         }
         var view = telamin.fluxtion.audit.analyser.analyser.mcp.McpIndicator.of(readiness);
         mcpLight.setText("\u25cf " + view.label());
-        mcpLight.setToolTipText("<html><body style='width:320px'>" + view.detail() + "</body></html>");
+        mcpLight.setToolTipText("<html><body style='width:320px'>" + UiText.escape(view.detail()) + "</body></html>");
         mcpLight.setForeground(switch (view.level()) {
             case GOOD -> UiTheme.okForeground();
             case ATTENTION -> UiTheme.attentionForeground();   // amber, not red (D-AI9)
@@ -897,7 +898,8 @@ public final class MainFrame extends JFrame {
     private JMenu buildColumnsMenu() {
         JMenu view = new JMenu("Columns");
         for (String name : LogTableModel.columnNames()) {
-            JCheckBoxMenuItem item = new JCheckBoxMenuItem(name, !config.hiddenColumns.contains(name));
+            JCheckBoxMenuItem item = UiText.checkBoxMenuItem(name);
+            item.setSelected(!config.hiddenColumns.contains(name));
             item.addActionListener(e -> {
                 if (item.isSelected()) config.hiddenColumns.remove(name);
                 else if (!config.hiddenColumns.contains(name)) config.hiddenColumns.add(name);
@@ -1058,7 +1060,7 @@ public final class MainFrame extends JFrame {
         // The same eligibility as the file export: this copy claims to be re-loadable YAML, and for a
         // store whose reader declares a grammar it is not (review, round 8).
         if (store != null && RecordExporter.yamlRefusal(store) != null) {
-            JOptionPane.showMessageDialog(this, "Not copied: " + RecordExporter.yamlRefusal(store),
+            JOptionPane.showMessageDialog(this, UiText.inert("Not copied: " + RecordExporter.yamlRefusal(store)),
                     "Copy as YAML", JOptionPane.WARNING_MESSAGE);
             status.setText("Not copied as YAML: this log's reader declares a grammar the text cannot carry.");
             return;
@@ -1158,8 +1160,8 @@ public final class MainFrame extends JFrame {
         JPanel top = new JPanel(new java.awt.BorderLayout(0, 4));
         JComboBox<String> kind = new JComboBox<>(new String[]{"fault", "confirmation"});
         kind.setSelectedItem(existing == null ? "fault" : existing.kind());
-        JLabel noteLabel = new JLabel();
-        JLabel fixLabel = new JLabel();
+        JLabel noteLabel = UiText.plain(new JLabel());
+        JLabel fixLabel = UiText.plain(new JLabel());
         Runnable labels = () -> {
             var selected = new telamin.fluxtion.audit.analyser.analyser.report.Finding(row, "", null, (String)kind.getSelectedItem());
             noteLabel.setText(selected.noteLabel() + " — record " + row);
@@ -1285,7 +1287,7 @@ public final class MainFrame extends JFrame {
     private void openRecordFromReport(int row) {
         if (tablePanel.selectModelRow(row)) return;
         int choice = javax.swing.JOptionPane.showConfirmDialog(this,
-                "Record " + row + " is filtered out of the current view.\nWiden the filter to show it?",
+                UiText.inert("Record " + row + " is filtered out of the current view.\nWiden the filter to show it?"),
                 "Record hidden by the filter", javax.swing.JOptionPane.OK_CANCEL_OPTION);
         if (choice != javax.swing.JOptionPane.OK_OPTION || store == null) return;
         ActionExecutor.revealRecord(filter, store, row);
@@ -1396,7 +1398,7 @@ public final class MainFrame extends JFrame {
         Path root;
         try { root = DemoAssets.install(); }
         catch (java.io.UncheckedIOException ex) {
-            JOptionPane.showMessageDialog(this, "Could not open the sample files: " + ex.getMessage(),
+            JOptionPane.showMessageDialog(this, UiText.inert("Could not open the sample files: " + ex.getMessage()),
                     "Open sample project", JOptionPane.ERROR_MESSAGE);
             return;
         }
@@ -1408,7 +1410,7 @@ public final class MainFrame extends JFrame {
                 telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.save(profile, sample,
                         new telamin.fluxtion.audit.analyser.analyser.config.SettingsShare());
             } catch (java.io.IOException ex) {
-                JOptionPane.showMessageDialog(this, "Could not create the sample project: " + ex.getMessage(),
+                JOptionPane.showMessageDialog(this, UiText.inert("Could not create the sample project: " + ex.getMessage()),
                         "Open sample project", JOptionPane.ERROR_MESSAGE);
                 return;
             }
@@ -2053,7 +2055,7 @@ public final class MainFrame extends JFrame {
             status.setText("Wrote " + fc.getSelectedFile().getName()
                     + (warnings.isEmpty() ? "" : " — " + warnings.size() + " note(s), see the panel"));
         } catch (java.io.IOException e) {
-            javax.swing.JOptionPane.showMessageDialog(this, "Could not write: " + e.getMessage(),
+            javax.swing.JOptionPane.showMessageDialog(this, UiText.inert("Could not write: " + e.getMessage()),
                     "Export report", javax.swing.JOptionPane.ERROR_MESSAGE);
         }
     }
@@ -2073,7 +2075,7 @@ public final class MainFrame extends JFrame {
         if (result.ok()) {
             status.setText("Wrote " + fc.getSelectedFile().getName());
         } else {
-            JOptionPane.showMessageDialog(this, result.error(), "Export finding",
+            JOptionPane.showMessageDialog(this, UiText.inert(result.error()), "Export finding",
                     JOptionPane.ERROR_MESSAGE);
         }
     }
@@ -2254,7 +2256,7 @@ public final class MainFrame extends JFrame {
     private void exportRecords(boolean yaml) {
         if (store == null || filter == null) return;
         if (yaml && RecordExporter.yamlRefusal(store) != null) {
-            JOptionPane.showMessageDialog(this, "Not exported: " + RecordExporter.yamlRefusal(store),
+            JOptionPane.showMessageDialog(this, UiText.inert("Not exported: " + RecordExporter.yamlRefusal(store)),
                     "Export", JOptionPane.WARNING_MESSAGE);
             return;
         }
@@ -2274,8 +2276,8 @@ public final class MainFrame extends JFrame {
                     }
                     return out;
                 },
-                p -> JOptionPane.showMessageDialog(this, "Exported to " + p),
-                err -> JOptionPane.showMessageDialog(this, "Export failed: " + rootMessage(err),
+                p -> JOptionPane.showMessageDialog(this, UiText.inert("Exported to " + p)),
+                err -> JOptionPane.showMessageDialog(this, UiText.inert("Export failed: " + rootMessage(err)),
                         "Export", JOptionPane.ERROR_MESSAGE));
     }
 
@@ -2492,7 +2494,7 @@ public final class MainFrame extends JFrame {
         JMenu sources = new JMenu("Sources");
         JMenu audit = new JMenu("Audit log");
         for (String page : List.of("Source roots", "Event processor", "Maven repos")) {
-            JMenuItem item = new JMenuItem(page + "…");
+            JMenuItem item = UiText.menuItem(page + "…");
             item.addActionListener(e -> ConfigPanel.show(this, config, this::onConfigChanged,
                     this::readerSummaries, page));
             sources.add(item);
@@ -2631,8 +2633,8 @@ public final class MainFrame extends JFrame {
         help.add(releaseNotes);
         JMenuItem about = new JMenuItem("About");
         about.addActionListener(e -> JOptionPane.showMessageDialog(this,
-                "Fluxtion Audit Log Analyser\nVersion " + ReleaseNotes.version()
-                        + "\nReads machine-readable Fluxtion event-audit logs.",
+                UiText.inert("Fluxtion Audit Log Analyser\nVersion " + ReleaseNotes.version()
+                        + "\nReads machine-readable Fluxtion event-audit logs."),
                 "About", JOptionPane.INFORMATION_MESSAGE));
         help.add(about);
         bar.add(help);
@@ -2689,7 +2691,7 @@ public final class MainFrame extends JFrame {
         ai.addSeparator();
         JMenu postureMenu = new JMenu("Posture");
         postureMenu.setToolTipText("What this session is for — shared with an AI client through context.handoff");
-        JRadioButtonMenuItem postureDerived = new JRadioButtonMenuItem("Derived");
+        JRadioButtonMenuItem postureDerived = UiText.radioMenuItem("Derived");
         postureDerived.addActionListener(e -> applyHandoffFromMenu(Map.of("posture", "derived")));
         JRadioButtonMenuItem postureResearch = new JRadioButtonMenuItem("Research / support");
         postureResearch.addActionListener(e -> applyHandoffFromMenu(Map.of("posture", "research")));
@@ -2731,11 +2733,11 @@ public final class MainFrame extends JFrame {
                 AiMenuModel.Item pointers = AiMenuModel.pointers(project.hasProject());
                 for (JMenuItem item : new JMenuItem[]{runbooks, glossary}) {
                     item.setEnabled(pointers.enabled());
-                    item.setToolTipText(pointers.tooltip());
+                    item.setToolTipText(UiText.tooltip(pointers.tooltip()));
                 }
                 AiMenuModel.Item exchange = AiMenuModel.showExchange(config);
                 showExchange.setEnabled(exchange.enabled());
-                showExchange.setToolTipText(exchange.tooltip());
+                showExchange.setToolTipText(UiText.tooltip(exchange.tooltip()));
                 // M48.7: painted from the handoff state, never remembered here (D-AI2)
                 var set = handoff.posture();
                 var derived = telamin.fluxtion.audit.analyser.analyser.llm.CanvasHandoff.derive(project.hasProject());
@@ -2748,7 +2750,7 @@ public final class MainFrame extends JFrame {
                 clearRecord.setEnabled(handoff.record() != null);
                 clearRecord.setToolTipText(handoff.record() == null
                         ? "No record is on the canvas — AI ▸ Place mode-selector record… puts one there"
-                        : "Remove the record " + handoff.record().setBy().label() + " placed");
+                        : UiText.tooltip("Remove the record " + handoff.record().setBy().label() + " placed"));
             }
             @Override public void menuDeselected(javax.swing.event.MenuEvent e) { }
             @Override public void menuCanceled(javax.swing.event.MenuEvent e) { }
@@ -2945,7 +2947,7 @@ public final class MainFrame extends JFrame {
         menu.add(saveNew);
         javax.swing.JMenu addTo = new javax.swing.JMenu("Add to walk");
         for (var w : config.walks) {
-            javax.swing.JMenuItem item = new javax.swing.JMenuItem(w.displayTitle());
+            javax.swing.JMenuItem item = UiText.menuItem(w.displayTitle());   // SF-2: a walk's title
             item.addActionListener(a -> saveWalkFromSpotlight(w.name(), -1));
             addTo.add(item);
         }
@@ -2961,7 +2963,7 @@ public final class MainFrame extends JFrame {
         // OA-3 (§7): the save workflow offers dialogue — never preselected, and never the whole chat by default
         javax.swing.JMenu include = new javax.swing.JMenu("Include conversation…");
         for (var w : config.walks) {
-            javax.swing.JMenuItem item = new javax.swing.JMenuItem(w.displayTitle());
+            javax.swing.JMenuItem item = UiText.menuItem(w.displayTitle());
             item.addActionListener(a -> openConversationEditor(w.name()));
             include.add(item);
         }
@@ -3004,7 +3006,7 @@ public final class MainFrame extends JFrame {
      * modal input dialog, which cannot be driven from a test, as GraphTabs' delete confirmation already found.
      */
     java.util.function.Function<String, String> walkNamePrompt = note -> {
-        Object name = JOptionPane.showInputDialog(this, "Name for the new walk:" + note, "Save as new walk",
+        Object name = JOptionPane.showInputDialog(this, UiText.inert("Name for the new walk:" + note), "Save as new walk",
                 JOptionPane.PLAIN_MESSAGE, null, null, "");
         return name == null ? null : name.toString();
     };
@@ -3042,9 +3044,9 @@ public final class MainFrame extends JFrame {
             error = walkAuthoring.append(walk, capture);
         }
         if (error != null) {
-            JOptionPane.showMessageDialog(this, error, "Walk not saved", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, UiText.inert(error), "Walk not saved", JOptionPane.WARNING_MESSAGE);
         } else if (!note.isEmpty() && walk != null) {
-            JOptionPane.showMessageDialog(this, "Saved." + note, "Walk saved", JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(this, UiText.inert("Saved." + note), "Walk saved", JOptionPane.INFORMATION_MESSAGE);
         }
     }
 
@@ -3301,12 +3303,12 @@ public final class MainFrame extends JFrame {
                 status.setText("Wrote " + out.getFileName());
             } else {
                 status.setText("The reel was not recorded");
-                JOptionPane.showMessageDialog(this, result.error(), "Record reel", JOptionPane.WARNING_MESSAGE);
+                JOptionPane.showMessageDialog(this, UiText.inert(result.error()), "Record reel", JOptionPane.WARNING_MESSAGE);
             }
         });
         if (refused != null) {
             status.setText("The reel was not recorded");
-            JOptionPane.showMessageDialog(this, refused, "Record reel", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, UiText.inert(refused), "Record reel", JOptionPane.WARNING_MESSAGE);
         }
     }
 
@@ -4154,7 +4156,7 @@ public final class MainFrame extends JFrame {
         var refused = handoff.apply(params, telamin.fluxtion.audit.analyser.analyser.llm.CanvasHandoff.Author.HUMAN,
                 java.time.Instant.now());
         if (refused.isPresent()) {
-            JOptionPane.showMessageDialog(this, refused.get(), "Handoff not changed", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, UiText.inert(refused.get()), "Handoff not changed", JOptionPane.WARNING_MESSAGE);
             return;
         }
         refreshProjectPanel();
@@ -4175,7 +4177,7 @@ public final class MainFrame extends JFrame {
             if (Files.size(file) > 1_000_000) throw new java.io.IOException("larger than 1 MB — not a selector record");
             parsed = telamin.fluxtion.audit.analyser.analyser.llm.Json.parse(Files.readString(file));
         } catch (java.io.IOException | RuntimeException ex) {
-            JOptionPane.showMessageDialog(this, "Could not read a JSON record from that file: " + ex.getMessage(),
+            JOptionPane.showMessageDialog(this, UiText.inert("Could not read a JSON record from that file: " + ex.getMessage()),
                     "Handoff not changed", JOptionPane.WARNING_MESSAGE);
             return;
         }
@@ -4601,8 +4603,9 @@ public final class MainFrame extends JFrame {
     }
 
     private static JButton toolButton(String text, Icon icon, String tip, Runnable action) {
-        JButton b = new JButton(text, icon);
-        b.setToolTipText(tip);
+        JButton b = UiText.button(text);
+        b.setIcon(icon);
+        b.setToolTipText(UiText.tooltip(tip));
         b.setFocusable(false);
         b.setIconTextGap(6);           // icon left of the label
         b.addActionListener(e -> action.run());
@@ -4696,25 +4699,49 @@ public final class MainFrame extends JFrame {
     /**
      * Copy prompt (§4.1): an explicitly LOCAL clipboard action. It is not a conversation turn and nothing is sent; the
      * prompt is shown in a dialog saying so, never in the conversation, so it cannot be mistaken for a reply.
+     *
+     * <p>SF-1: the dialog names every part it copied, and the REST token — a live credential for this analyser — is
+     * copied only when the person ticks the box, off every time the dialog opens. What is copied is composed by
+     * {@link telamin.fluxtion.audit.analyser.analyser.llm.PromptBuilder#copyPrompt}; this method only renders it and
+     * re-copies when the box changes. The box is a choice about this one copy, not session state: nothing remembers it.
      */
     private void copyAssistantPrompt(String draft) {
-        String context = selectedRecords == null || selectedRecords.isEmpty() ? ""
-                : telamin.fluxtion.audit.analyser.analyser.llm.PromptBuilder.recordContext(selectedRecords,
-                        sourceService.selectedFqn(), sourceService, currentLogFileInfo(), vocabularyText());
-        String prompt = telamin.fluxtion.audit.analyser.analyser.llm.PromptBuilder.fullPrompt(context,
-                draft == null || draft.isBlank() ? "Explain this record." : draft);
-        if (restUrl != null) {   // hand an agentic external client the live endpoint it can drive
-            prompt = prompt + "\n\n" + telamin.fluxtion.audit.analyser.analyser.llm.PromptBuilder.restActionManifest(
-                    restUrl, restToken, config.maxActionsPerReply);
-        }
-        java.awt.Toolkit.getDefaultToolkit().getSystemClipboard().setContents(
-                new java.awt.datatransfer.StringSelection(prompt), null);
-        JTextArea shown = new JTextArea(prompt, 18, 70);
+        java.util.function.Function<Boolean, telamin.fluxtion.audit.analyser.analyser.llm.PromptBuilder.CopiedPrompt> compose =
+                withToken -> telamin.fluxtion.audit.analyser.analyser.llm.PromptBuilder.copyPrompt(selectedRecords,
+                        sourceService.selectedFqn(), sourceService, currentLogFileInfo(), vocabularyText(), draft,
+                        restUrl, restToken, config.maxActionsPerReply, withToken);
+        var copied = compose.apply(false);
+        JTextArea parts = new JTextArea(2, 70);
+        parts.setEditable(false);
+        parts.setLineWrap(true);
+        parts.setWrapStyleWord(true);
+        parts.setOpaque(false);
+        JTextArea shown = new JTextArea(18, 70);
         shown.setEditable(false);
         shown.setLineWrap(true);
-        JOptionPane.showMessageDialog(SwingUtilities.getWindowAncestor(assistantPanel), new JScrollPane(shown),
+        java.util.function.Consumer<telamin.fluxtion.audit.analyser.analyser.llm.PromptBuilder.CopiedPrompt> show = c -> {
+            java.awt.Toolkit.getDefaultToolkit().getSystemClipboard().setContents(
+                    new java.awt.datatransfer.StringSelection(c.text()), null);
+            parts.setText("Copied: " + c.partsSentence() + "."
+                    + (c.tokenOffered() && !c.carriesToken() ? " Not copied: your local REST token." : ""));
+            shown.setText(c.text());
+            shown.setCaretPosition(0);
+        };
+        show.accept(copied);
+        JPanel body = new JPanel(new BorderLayout(0, 6));
+        body.add(parts, BorderLayout.NORTH);
+        body.add(new JScrollPane(shown), BorderLayout.CENTER);
+        if (copied.tokenOffered()) {
+            JCheckBox token = new JCheckBox(COPY_PROMPT_TOKEN_BOX, false);
+            token.addActionListener(e -> show.accept(compose.apply(token.isSelected())));
+            body.add(token, BorderLayout.SOUTH);
+        }
+        JOptionPane.showMessageDialog(SwingUtilities.getWindowAncestor(assistantPanel), body,
                 "Copied to your clipboard — NOT sent anywhere", JOptionPane.INFORMATION_MESSAGE);
     }
+
+    /** SF-1: the only way the REST token reaches a copied prompt. */
+    static final String COPY_PROMPT_TOKEN_BOX = "Include my local REST token (lets the pasted assistant drive this analyser)";
 
     /** Bring the assistant's active host forward: its tab when docked, its window otherwise (OA-2). */
     private void revealAssistant() {
@@ -5183,14 +5210,14 @@ public final class MainFrame extends JFrame {
                             .splitCsv(h).toArray(String[]::new))
                     .orElse(new String[0]);
         } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "Could not read " + csv.getFileName() + ": " + ex.getMessage(),
+            JOptionPane.showMessageDialog(this, UiText.inert("Could not read " + csv.getFileName() + ": " + ex.getMessage()),
                     "External series", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
         JTextField label = new JTextField(csv.getFileName().toString().replaceFirst("\\.csv$", ""), 14);
-        JComboBox<String> timeCol = new JComboBox<>(header);
-        JComboBox<String> valueCol = new JComboBox<>(header);
+        JComboBox<String> timeCol = UiText.plainCells(new JComboBox<>(header));     // SF-2: a CSV's own header
+        JComboBox<String> valueCol = UiText.plainCells(new JComboBox<>(header));
         if (header.length > 1) valueCol.setSelectedIndex(1);
         JComboBox<String> format = new JComboBox<>(new String[]{"epochMillis", "epochSeconds", "iso8601"});
         format.setEditable(true);   // or a DateTimeFormatter pattern
@@ -5357,7 +5384,7 @@ public final class MainFrame extends JFrame {
                     else msg.append("   (no timed records — position by name)");
                     msg.append('\n');
                 }
-                int choice = JOptionPane.showConfirmDialog(this, msg.toString(),
+                int choice = JOptionPane.showConfirmDialog(this, UiText.inert(msg.toString()),
                         "Rolled log set found", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
                 if (choice == JOptionPane.YES_OPTION) {
                     requestOpenRolledSet(set, request);
@@ -5464,7 +5491,7 @@ public final class MainFrame extends JFrame {
         completeRecoveryLog(opId, "log load failed: " + rootMessage(err));
         status.setText("Failed to load " + location + ": " + rootMessage(err));
         if (!request.suppressDialogs()) {
-            JOptionPane.showMessageDialog(this, rootMessage(err), "Load failed", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, UiText.inert(rootMessage(err)), "Load failed", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -5998,28 +6025,28 @@ public final class MainFrame extends JFrame {
         var result = discoverGraphs0();
         if (result.candidates().isEmpty()) {
             JOptionPane.showMessageDialog(this,
-                    config.sourceRoots.isEmpty()
+                    UiText.inert(config.sourceRoots.isEmpty()
                             ? "No source roots are configured — add one in Settings, or use "
                                     + "Sources \u25b8 Open GraphML\u2026"
                             : "No .graphml found under the configured source roots."
                                     + (result.notes().isEmpty() ? ""
-                                            : "\n\n" + String.join("\n", result.notes())),
+                                            : "\n\n" + String.join("\n", result.notes()))),
                     "Find GraphML", JOptionPane.INFORMATION_MESSAGE);
             return;
         }
-        String[] options = result.candidates().stream()
+        Object[] options = UiText.inert(result.candidates().stream()      // SF-2: paths on disk, as a combo's cells
                 .map(telamin.fluxtion.audit.analyser.analyser.topology.GraphmlDiscovery.Candidate::describe)
-                .toArray(String[]::new);
+                .toArray(String[]::new));
         Object picked = JOptionPane.showInputDialog(this,
-                (store == null ? "No log is open, so these are unranked.\n\n"
+                UiText.inert((store == null ? "No log is open, so these are unranked.\n\n"
                         : "Ranked against the open log \u2014 best fit first.\n\n")
                         + String.join("\n", result.copyGroups().stream().map(g -> g.describe()).toList())
-                        + "\nPick a topology to open:",
+                        + "\nPick a topology to open:"),
                 "Find GraphML in source roots", JOptionPane.QUESTION_MESSAGE, null,
                 options, options[0]);
         if (picked == null) return;                       // offered, declined — nothing loaded
         for (var c : result.candidates()) {
-            if (c.describe().equals(picked)) {
+            if (UiText.inert(c.describe()).equals(picked)) {
                 topologyPanel.load(c.file());
                 judgeOpenedGraph();
                 updateLifecycleMenu();
@@ -6404,7 +6431,7 @@ public final class MainFrame extends JFrame {
             status.setText(line);
         }
         // the full sentence, where there is room for it — the status bar has none
-        status.setToolTipText(findings.isClean() ? null : String.join("\n\n", findings.messages()));
+        status.setToolTipText(findings.isClean() ? null : UiText.tooltip(String.join("\n\n", findings.messages())));
         boolean findingsMoved = renderedEvidence == null || renderedEvidence.producerFindings() != findings;
         renderedEvidence = next;
         if (findingsMoved && reportsPanel != null) reportsPanel.refresh();   // D-MA0c: the tab states THIS log's findings
@@ -6414,7 +6441,7 @@ public final class MainFrame extends JFrame {
             // who asked for this log. Queued, so the modal never runs inside the snapshot's publication.
             if (!order.isClean()) {
                 java.util.List<String> lines = order.summarise();
-                SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this, String.join("\n", lines),
+                SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this, UiText.inert(String.join("\n", lines)),
                         "Time-order report", JOptionPane.WARNING_MESSAGE));
             }
         }
@@ -6984,7 +7011,7 @@ public final class MainFrame extends JFrame {
         try {
             text = java.nio.file.Files.readString(file.toPath());
         } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "Could not read the file: " + rootMessage(ex),
+            JOptionPane.showMessageDialog(this, UiText.inert("Could not read the file: " + rootMessage(ex)),
                     "Import settings", JOptionPane.WARNING_MESSAGE);
             return;
         }
@@ -6998,10 +7025,10 @@ public final class MainFrame extends JFrame {
             plan = share.preview(text, config, telamin.fluxtion.audit.analyser.analyser.config
                     .ProjectProfile.baseDirFor(file.toPath()));
         } catch (telamin.fluxtion.audit.analyser.analyser.config.SettingsShare.IncompatibleVersionException ex) {
-            JOptionPane.showMessageDialog(this, ex.getMessage(), "Import settings", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, UiText.inert(ex.getMessage()), "Import settings", JOptionPane.WARNING_MESSAGE);
             return;
         } catch (RuntimeException ex) {
-            JOptionPane.showMessageDialog(this, "That doesn't look like a settings file: " + rootMessage(ex),
+            JOptionPane.showMessageDialog(this, UiText.inert("That doesn't look like a settings file: " + rootMessage(ex)),
                     "Import settings", JOptionPane.WARNING_MESSAGE);
             return;
         }
@@ -7035,7 +7062,7 @@ public final class MainFrame extends JFrame {
         try {
             share.apply(plan, selected, config);
         } catch (IllegalArgumentException ambiguous) {
-            JOptionPane.showMessageDialog(this, ambiguous.getMessage(), "Import settings", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, UiText.inert(ambiguous.getMessage()), "Import settings", JOptionPane.WARNING_MESSAGE);
             return;
         }
         applyImportedConfig();
@@ -7124,9 +7151,9 @@ public final class MainFrame extends JFrame {
         Path root = offer.getParent() == null ? offer : offer.getParent().getParent();
         String name = root == null ? offer.toString() : root.getFileName().toString();
         int answer = JOptionPane.showConfirmDialog(this,
-                "This log sits inside the project \"" + name + "\", which has analyser settings.\n\n"
+                UiText.inert("This log sits inside the project \"" + name + "\", which has analyser settings.\n\n"
                 + "Load them? Your source roots, Maven repos, event processors, graphs and hidden\n"
-                + "columns will be replaced by that project\u2019s.",
+                + "columns will be replaced by that project\u2019s."),
                 "Load this project?", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
         pendingProjectOffer = null;          // review F3: asked and answered either way — no longer an offer
         if (answer != JOptionPane.YES_OPTION) {
@@ -7249,7 +7276,7 @@ public final class MainFrame extends JFrame {
     private void showTemplateFailure(String title, Throwable error) {
         String message = rootMessage(error);
         status.setText(title + ": " + message);
-        JOptionPane.showMessageDialog(this, message, title, JOptionPane.ERROR_MESSAGE);
+        JOptionPane.showMessageDialog(this, UiText.inert(message), title, JOptionPane.ERROR_MESSAGE);
     }
 
     /** Pick a project directory rather than the profile file — the file name is always the same. */
@@ -7312,9 +7339,9 @@ public final class MainFrame extends JFrame {
         }
         Object guide = sessionCreated.get("referenceGuide");
         if (guide instanceof String g && (g.startsWith("FAILED") || g.equals("EXISTS"))) {
-            JOptionPane.showMessageDialog(this, g.equals("EXISTS")
+            JOptionPane.showMessageDialog(this, UiText.inert(g.equals("EXISTS")
                             ? telamin.fluxtion.audit.analyser.analyser.config.ReferenceSet.FILE_NAME + " already exists — left untouched."
-                            : g.substring("FAILED: ".length()),
+                            : g.substring("FAILED: ".length())),
                     "New project", JOptionPane.WARNING_MESSAGE);
         }
         // the graph radio, unchanged (spec §4): a UI open after the transition, never persisted
@@ -7341,7 +7368,7 @@ public final class MainFrame extends JFrame {
             // are now a different file's.
             requestProject(forked, telamin.fluxtion.audit.analyser.analyser.session.TransitionKind.FORK, "save-as");
         } catch (java.io.IOException ex) {
-            JOptionPane.showMessageDialog(this, "Could not write the project: " + ex.getMessage(),
+            JOptionPane.showMessageDialog(this, UiText.inert("Could not write the project: " + ex.getMessage()),
                     "Save project as", JOptionPane.ERROR_MESSAGE);
         }
     }
@@ -7909,7 +7936,7 @@ public final class MainFrame extends JFrame {
                 sessionProblem = e.text();
                 startPanel.showOperationFeedback(e.text());
                 if (sessionInteractive) {
-                    JOptionPane.showMessageDialog(this, e.text(), "Project", JOptionPane.WARNING_MESSAGE);
+                    JOptionPane.showMessageDialog(this, UiText.inert(e.text()), "Project", JOptionPane.WARNING_MESSAGE);
                 } else {
                     status.setText(e.text());      // review R2-B2: the warning still lands, where a socket caller can read it
                 }
@@ -8116,7 +8143,7 @@ public final class MainFrame extends JFrame {
             repaired = telamin.fluxtion.audit.analyser.analyser.config.DuplicateChartRepair
                     .apply(saved, choices, liveUnsaved);
         } catch (IllegalArgumentException refused) {
-            JOptionPane.showMessageDialog(this, refused.getMessage(), "Charts not repaired",
+            JOptionPane.showMessageDialog(this, UiText.inert(refused.getMessage()), "Charts not repaired",
                     JOptionPane.WARNING_MESSAGE);
             return;                                                 // still ambiguous, still all preserved
         }
@@ -8160,11 +8187,11 @@ public final class MainFrame extends JFrame {
         java.util.Map<Integer, JTextField> names = new java.util.LinkedHashMap<>();
         for (var duplicate : duplicates) {
             form.add(Box.createVerticalStrut(UiTheme.GAP));
-            form.add(new JLabel("\"" + duplicate.name() + "\""));
+            form.add(UiText.label("\"" + duplicate.name() + "\""));   // SF-2: a chart name
             for (int index : duplicate.indices()) {
                 JPanel row = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
                 // what is in it, so a person is not asked to destroy something unnamed
-                row.add(new JLabel(telamin.fluxtion.audit.analyser.analyser.config.DuplicateChartRepair
+                row.add(UiText.label(telamin.fluxtion.audit.analyser.analyser.config.DuplicateChartRepair
                         .describe(saved.get(index)) + " →"));
                 JComboBox<String> action = new JComboBox<>(new String[]{"Choose…", "Rename to", "Delete"});
                 JTextField field = new JTextField(duplicate.name(), 16);
@@ -8220,8 +8247,9 @@ public final class MainFrame extends JFrame {
         analysesMenu.setToolTipText(config.analyses.isEmpty()
                 ? "No saved analyses — declare them in the project profile (analysis.N.*); see the Portable context guide" : null);
         for (telamin.fluxtion.audit.analyser.analyser.config.AnalysisSpec a : config.analyses) {
-            JMenuItem item = new JMenuItem(a.name() + (a.parameters().isEmpty() ? "" : "…"));
-            item.setToolTipText(a.rationale().isBlank() ? a.steps().size() + " step(s)" : a.rationale());
+            // SF-2: an analysis is a profile value — its name, parameters and rationale are a project author's
+            JMenuItem item = UiText.menuItem(a.name() + (a.parameters().isEmpty() ? "" : "…"));
+            item.setToolTipText(UiText.tooltip(a.rationale().isBlank() ? a.steps().size() + " step(s)" : a.rationale()));
             item.addActionListener(e -> runAnalysisFromMenu(a));
             analysesMenu.add(item);
         }
@@ -8234,13 +8262,15 @@ public final class MainFrame extends JFrame {
             JPanel form = new JPanel(new java.awt.GridLayout(0, 2, 8, 4));
             Map<String, JTextField> fields = new java.util.LinkedHashMap<>();
             for (String p : a.parameters()) {
-                form.add(new JLabel(p + ":"));
+                form.add(UiText.label(p + ":"));
                 JTextField f = new JTextField(a.defaults().getOrDefault(p, ""), 32);
                 fields.put(p, f);
                 form.add(f);
             }
             JPanel box = new JPanel(new BorderLayout(0, 8));
-            JLabel why = new JLabel("<html><i>" + (a.rationale().isBlank() ? a.steps().size() + " steps" : a.rationale()) + "</i></html>");
+            // SF-2: the rationale was spliced into this markup raw — an <img> in a profile was fetched
+            String rationale = a.rationale().isBlank() ? a.steps().size() + " steps" : a.rationale();
+            JLabel why = new JLabel("<html><i>" + UiText.escape(rationale) + "</i></html>");
             box.add(why, BorderLayout.NORTH);
             box.add(form, BorderLayout.CENTER);
             int ok = JOptionPane.showConfirmDialog(this, box, "Run analysis: " + a.name(), JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
@@ -8459,7 +8489,7 @@ public final class MainFrame extends JFrame {
         sessionInteractive = true;      // R3-B1/R4-F2: the Recent-GraphML entrance — a person can answer a dialog
         java.nio.file.Path file = java.nio.file.Path.of(path);
         if (!java.nio.file.Files.isReadable(file)) {
-            JOptionPane.showMessageDialog(this, "Cannot read " + path,
+            JOptionPane.showMessageDialog(this, UiText.inert("Cannot read " + path),
                     "Open GraphML", JOptionPane.WARNING_MESSAGE);
             return;
         }

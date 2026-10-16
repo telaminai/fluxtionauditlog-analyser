@@ -54,7 +54,7 @@ public final class LogTablePanel extends JPanel {
      * log changed after it was read. The request verbs refuse or label; the table went on painting as though nothing
      * had. It holds no verdict: the frame sets it from the session snapshot's file identity.
      */
-    private final javax.swing.JLabel identityBanner = new javax.swing.JLabel();
+    private final javax.swing.JLabel identityBanner = UiText.plain(new javax.swing.JLabel());   // SF-2: a verdict's reason names files
 
     /**
      * What the table says for a file-identity verdict, or null for none. Only a CHANGE is stated: nothing observed, a
@@ -69,7 +69,7 @@ public final class LogTablePanel extends JPanel {
     /** Show {@code note} above the rows, or hide the banner for null. Call on the EDT. */
     public void setIdentityNote(String note) {
         identityBanner.setText(note == null ? "" : note);
-        identityBanner.setToolTipText(note);
+        identityBanner.setToolTipText(UiText.tooltip(note));
         identityBanner.setVisible(note != null);
         revalidate();
     }
@@ -99,7 +99,7 @@ public final class LogTablePanel extends JPanel {
                 int view = rowAtPoint(e.getPoint());
                 if (view >= 0) {
                     String note = noteProvider.apply(convertRowIndexToModel(view));
-                    if (note != null && !note.isBlank()) return note;
+                    if (note != null && !note.isBlank()) return UiText.tooltip(note);   // SF-2: an assistant's flag note
                 }
                 return super.getToolTipText(e);
             }
@@ -119,6 +119,7 @@ public final class LogTablePanel extends JPanel {
                 return c;
             }
         };
+        UiText.plainCells(table);    // SF-2: the cells are the log's own text (event types, node ids, values)
         table.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
         table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
         table.setFillsViewportHeight(true);
@@ -285,6 +286,7 @@ public final class LogTablePanel extends JPanel {
         setRenderer(LogTableModel.COL_LOG_TIME, time);
         setRenderer(LogTableModel.COL_END_TIME, time);
         setRenderer(LogTableModel.COL_NODE_LOGS, new NodeBarRenderer());
+        UiText.plain(time);
     }
 
     private void setRenderer(int col, TableCellRenderer r) {
@@ -340,6 +342,7 @@ public final class LogTablePanel extends JPanel {
         private double ratio;
 
         NodeBarRenderer() {
+            UiText.plain(this);
             setHorizontalAlignment(SwingConstants.RIGHT);
         }
 

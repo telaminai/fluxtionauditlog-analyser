@@ -27,18 +27,19 @@ public final class RecordDiffDialog {
         List<DiffRow> rows = DiffBuilder.diff(a, b);
         long diffs = rows.stream().filter(DiffRow::isDifference).count();
 
-        JTable table = new JTable(new DiffTableModel(rows, labelA, labelB));
+        // SF-2: the cells are two records' values and the column names their labels — the log's text
+        JTable table = UiText.plainCells(new JTable(new DiffTableModel(rows, labelA, labelB)));
         table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
         table.getColumnModel().getColumn(0).setPreferredWidth(320);
         table.getColumnModel().getColumn(1).setPreferredWidth(320);
         table.getColumnModel().getColumn(2).setPreferredWidth(320);
-        DiffRenderer r = new DiffRenderer(rows);
+        DiffRenderer r = UiText.plain(new DiffRenderer(rows));
         for (int c = 0; c < table.getColumnCount(); c++) table.getColumnModel().getColumn(c).setCellRenderer(r);
 
         JDialog dialog = new JDialog(SwingUtilities.getWindowAncestor(parent), "Record diff",
                 java.awt.Dialog.ModalityType.MODELESS);
         dialog.setLayout(new BorderLayout());
-        dialog.add(new JLabel("  " + diffs + " difference(s) — changed / removed / added highlighted"),
+        dialog.add(UiText.label("  " + diffs + " difference(s) — changed / removed / added highlighted"),
                 BorderLayout.NORTH);
         dialog.add(new JScrollPane(table), BorderLayout.CENTER);
 
@@ -61,7 +62,7 @@ public final class RecordDiffDialog {
 
     private static javax.swing.JButton exportButton(String label, java.util.function.Supplier<String> content,
                                                     String suggestedName, Component parent) {
-        javax.swing.JButton b = new javax.swing.JButton(label);
+        javax.swing.JButton b = UiText.button(label);
         b.addActionListener(e -> saveText(parent, suggestedName, content.get()));
         return b;
     }
@@ -72,7 +73,7 @@ public final class RecordDiffDialog {
         try {
             java.nio.file.Files.writeString(f.toPath(), content);
         } catch (Exception ex) {
-            javax.swing.JOptionPane.showMessageDialog(parent, "Could not save: " + ex.getMessage(),
+            javax.swing.JOptionPane.showMessageDialog(parent, UiText.inert("Could not save: " + ex.getMessage()),
                     "Export", javax.swing.JOptionPane.WARNING_MESSAGE);
         }
     }
@@ -83,7 +84,7 @@ public final class RecordDiffDialog {
         try {
             java.nio.file.Files.write(f.toPath(), content);
         } catch (Exception ex) {
-            javax.swing.JOptionPane.showMessageDialog(parent, "Could not save: " + ex.getMessage(),
+            javax.swing.JOptionPane.showMessageDialog(parent, UiText.inert("Could not save: " + ex.getMessage()),
                     "Export", javax.swing.JOptionPane.WARNING_MESSAGE);
         }
     }

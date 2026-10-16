@@ -45,7 +45,7 @@ public final class TopologyPanel extends JPanel {
     public void setDeclarationOpener(java.util.function.Consumer<String> opener) { declarationOpener = opener; }
 
     private final TopologyCanvas canvas = new TopologyCanvas();
-    private final JLabel status = new JLabel(" ");
+    private final JLabel status = UiText.plain(new JLabel(" "));   // SF-2: names nodes, focuses and files
     private final JButton orientationButton = new JButton("Left→right");
     private final JButton prevStep = new JButton("◀");
     private final JButton nextStep = new JButton("▶");
@@ -290,7 +290,7 @@ public final class TopologyPanel extends JPanel {
     private javax.swing.JSlider slider(int min, int max, int value, String tip,
                                        java.util.function.IntConsumer onChange) {
         javax.swing.JSlider s = new javax.swing.JSlider(min, max, value);
-        s.setToolTipText(tip);
+        s.setToolTipText(UiText.tooltip(tip));
         s.setPreferredSize(new java.awt.Dimension(90, s.getPreferredSize().height));
         s.setMaximumSize(new java.awt.Dimension(90, s.getPreferredSize().height));
         s.setFocusable(false);
@@ -525,8 +525,9 @@ public final class TopologyPanel extends JPanel {
         if (!list.isEmpty()) {
             menu.addSeparator();
             for (var f : list) {
-                javax.swing.JMenuItem item = new javax.swing.JMenuItem(f.name() + " (" + f.nodeIds().size() + ")");
-                item.setToolTipText(f.rationale().isBlank() ? null : f.rationale());
+                // SF-2: a focus's name and rationale are profile values — a cloned project's, possibly
+                javax.swing.JMenuItem item = UiText.menuItem(f.name() + " (" + f.nodeIds().size() + ")");
+                item.setToolTipText(f.rationale().isBlank() ? null : UiText.tooltip(f.rationale()));
                 item.addActionListener(e -> {
                     String err = recallFocus(f.name());
                     if (err != null) setStatus(err);
@@ -538,7 +539,7 @@ public final class TopologyPanel extends JPanel {
             javax.swing.JMenu asDefault = new javax.swing.JMenu("Set as project default");
             String current = defaultFocus.get();
             for (var f : list) {
-                javax.swing.JMenuItem item = new javax.swing.JMenuItem(
+                javax.swing.JMenuItem item = UiText.menuItem(
                         f.name().equals(current) ? f.name() + "  \u2713" : f.name());
                 item.setToolTipText("Written to this project's profile: where a colleague opening this "
                         + "topology starts");
@@ -560,7 +561,7 @@ public final class TopologyPanel extends JPanel {
             menu.add(asDefault);
             javax.swing.JMenu delete = new javax.swing.JMenu("Delete");
             for (var f : list) {
-                javax.swing.JMenuItem item = new javax.swing.JMenuItem(f.name());
+                javax.swing.JMenuItem item = UiText.menuItem(f.name());
                 item.addActionListener(e -> {
                     namedFocuses.get().removeIf(x -> x.name().equals(f.name()));
                     focusesChanged.run();
@@ -575,7 +576,7 @@ public final class TopologyPanel extends JPanel {
     }
 
     private javax.swing.JButton crumbButton(String text, int depth) {
-        javax.swing.JButton b = new javax.swing.JButton(text);
+        javax.swing.JButton b = UiText.button(text);     // SF-2: a context's label is a node id or a focus name
         b.setBorderPainted(false);
         b.setContentAreaFilled(false);
         b.setFocusable(false);
@@ -635,7 +636,7 @@ public final class TopologyPanel extends JPanel {
     }
 
     private JButton button(String text, Runnable action) {
-        JButton b = new JButton(text);
+        JButton b = UiText.button(text);
         b.addActionListener(e -> action.run());
         return b;
     }
@@ -1701,7 +1702,7 @@ public final class TopologyPanel extends JPanel {
         JMenu graph = new JMenu("Graph");
         graph.setEnabled(graphTargets != null && !graphable.isEmpty());
         for (KV kv : graphable) {
-            JMenuItem item = new JMenuItem(kv.key() + "  (" + kv.rawValue() + ")");
+            JMenuItem item = UiText.menuItem(kv.key() + "  (" + kv.rawValue() + ")");   // SF-2: the log's key and value
             item.addActionListener(e -> graphTargets.addSeries(null, instanceId, kv.key()));
             graph.add(item);
         }

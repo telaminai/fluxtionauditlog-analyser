@@ -44,10 +44,11 @@ public final class PointerDialog {
 
         DefaultListModel<String> model = new DefaultListModel<>();
         config.runbooks.keySet().forEach(model::addElement);
-        JList<String> list = new JList<>(model);
+        // SF-2: a runbook's name, path and description are the project profile's — a cloned repository's
+        JList<String> list = UiText.plainCells(new JList<>(model));
         list.setVisibleRowCount(8);
 
-        JLabel detail = new JLabel(" ");
+        JLabel detail = UiText.plain(new JLabel(" "));
         detail.setForeground(UiTheme.mutedForeground());
         list.addListSelectionListener(e -> {
             Runbooks.Pointer p = selected(list, config);
@@ -136,7 +137,7 @@ public final class PointerDialog {
         JTextField path = new JTextField(initialPath == null ? "" : initialPath, 30);
         JTextField description = new JTextField(initialDescription == null ? "" : initialDescription, 30);
         JLabel problem = problemLabel();
-        JLabel prefilled = new JLabel(" ");
+        JLabel prefilled = UiText.plain(new JLabel(" "));
         prefilled.setForeground(UiTheme.mutedForeground());
 
         JButton browse = new JButton("Choose file…");
@@ -222,11 +223,11 @@ public final class PointerDialog {
                 new DefaultListModel<>();
         found.candidates().forEach(model::addElement);
         JList<telamin.fluxtion.audit.analyser.analyser.config.SkillDiscovery.Candidate> list = new JList<>(model);
-        list.setCellRenderer((l, c, i, sel, foc) -> {
+        list.setCellRenderer(UiText.plainRenderer((l, c, i, sel, foc) -> {
             String text = c.declared()
                     ? c.name() + " — " + c.path() + "   (already a runbook)"
                     : c.name() + " — " + c.path();
-            JLabel label = new JLabel(text);
+            JLabel label = UiText.label(text);    // SF-2: a SKILL.md's own name
             label.setOpaque(true);
             if (sel) {
                 label.setBackground(l.getSelectionBackground());
@@ -236,7 +237,7 @@ public final class PointerDialog {
             }
             label.setBorder(BorderFactory.createEmptyBorder(2, 4, 2, 4));
             return label;
-        });
+        }));
 
         JPanel body = new JPanel(new BorderLayout(6, 6));
         body.add(note(found.truncated()
@@ -294,7 +295,7 @@ public final class PointerDialog {
             if (choice != JOptionPane.OK_OPTION) return false;
             Optional<String> bad = gate.get();
             if (bad.isEmpty()) return true;
-            problem.setText("<html><body style='width:380px'>" + escape(bad.get()) + "</body></html>");
+            problem.setText("<html><body style='width:380px'>" + UiText.escape(bad.get()) + "</body></html>");
         }
     }
 
@@ -340,7 +341,7 @@ public final class PointerDialog {
     }
 
     private static JLabel note(String text) {
-        JLabel l = new JLabel("<html><body style='width:420px'>" + escape(text) + "</body></html>");
+        JLabel l = new JLabel("<html><body style='width:420px'>" + UiText.escape(text) + "</body></html>");
         l.setForeground(UiTheme.mutedForeground());
         return l;
     }
@@ -354,7 +355,4 @@ public final class PointerDialog {
         return c;
     }
 
-    private static String escape(String s) {
-        return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
-    }
 }
