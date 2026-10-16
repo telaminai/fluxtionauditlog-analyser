@@ -126,9 +126,17 @@ public class SessionProcessorBuilder implements FluxtionGraphBuilder {
         cfg.addNode(logEvidence, "logEvidence");
         // M69: spotlight-walk playback — every transition and decision about a showing walk, in one place (owner)
         // OA-1 (spec-onboard-assistant-journeys.md §5): the onboard assistant's turns, tickets, budgets and basis, in one place
+        // M74 (spec-claude-code-provider.md §4.1): one assistant mode at a time, as a session fact, upstream of both
+        // assistants so each enforces it in its own handlers; the local agent's lifecycle is a sibling of assistantLoop.
+        telamin.fluxtion.audit.analyser.analyser.session.node.AssistantModeChoice assistantMode =
+                new telamin.fluxtion.audit.analyser.analyser.session.node.AssistantModeChoice();
+        cfg.addNode(assistantMode, "assistantMode");
         telamin.fluxtion.audit.analyser.analyser.session.node.AssistantLoop assistantLoop =
                 new telamin.fluxtion.audit.analyser.analyser.session.node.AssistantLoop(openLog, openGraph, activeProject, gate, effects);
+        assistantLoop.setAssistantMode(assistantMode);
         cfg.addNode(assistantLoop, "assistantLoop");
+        cfg.addNode(new telamin.fluxtion.audit.analyser.analyser.session.node.LocalAgentSession(assistantMode, effects),
+                "localAgentSession");
         cfg.addNode(new telamin.fluxtion.audit.analyser.analyser.session.node.WalkPlayback(openLog, assistantLoop, effects), "walkPlayback");
         // evidence bundle capture (convergence): the capture skill's decisions, in the session (rule 9)
         cfg.addNode(new telamin.fluxtion.audit.analyser.analyser.session.node.EvidenceCapture(openLog, gate, effects), "evidenceCapture");

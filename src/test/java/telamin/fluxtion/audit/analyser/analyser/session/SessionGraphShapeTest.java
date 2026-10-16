@@ -119,6 +119,19 @@ class SessionGraphShapeTest {
     }
 
     @Test
+    @DisplayName("M74: one assistant mode upstream of both assistants; the local agent's effects descend from its decision")
+    void theAssistantModeIsUpstreamOfBothAssistants() {
+        ProcessorTopology topology = topology();
+        assertTrue(hasEdge(topology, "assistantMode", "assistantLoop"),
+                "assistantLoop reads the mode in its own handlers, so the mode must be decided before it runs");
+        assertTrue(hasEdge(topology, "assistantMode", "localAgentSession"),
+                "and so must localAgentSession");
+        assertTrue(hasEdge(topology, "localAgentSession", "effectQueue"),
+                "the local agent's effects descend from its decision");
+        assertFalse(hasEdge(topology, "assistantMode", "effectQueue"), "the mode itself asks for nothing");
+    }
+
+    @Test
     @DisplayName("the processor can actually write an audit log — asked of the graph, as a user would")
     void auditIsInstalled() {
         AuditReadiness readiness = AuditReadiness.of(topology());

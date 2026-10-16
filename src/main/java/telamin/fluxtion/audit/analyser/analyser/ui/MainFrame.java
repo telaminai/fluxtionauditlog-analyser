@@ -7858,6 +7858,12 @@ public final class MainFrame extends JFrame {
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.RunAssistantActionEffect e -> assistantAdapter.perform(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.CancelAssistantTransportEffect e -> assistantAdapter.perform(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ShowAssistantHostEffect e -> assistantAdapter.perform(e);
+            // M74: the local agent's effects have ONE performer, the adapter (OneDispatchModelTest pins it)
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.StartLocalAgentEffect e -> performLocalAgent(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.PollLocalAgentStatusEffect e -> performLocalAgent(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.SendLocalAgentTurnEffect e -> performLocalAgent(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.StopLocalAgentEffect e -> performLocalAgent(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ConfirmLocalAgentFolderEffect e -> confirmLocalAgentFolder(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ShowStatusEffect e -> {
                 status.setText(e.text());
                 yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StatusShown(
@@ -10382,5 +10388,17 @@ public final class MainFrame extends JFrame {
 
     public AppConfig config() {
         return config;
+    }
+
+    /** M74: the local agent's adapter is installed in the next change; until then its effects are answered and do nothing. */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result performLocalAgent(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects effect) {
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentEffectStarted(
+                effect.opId(), 0, "notInstalled");
+    }
+
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result confirmLocalAgentFolder(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ConfirmLocalAgentFolderEffect e) {
+        return performLocalAgent(e);
     }
 }
