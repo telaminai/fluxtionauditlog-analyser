@@ -160,7 +160,6 @@ public final class ClaudeCodeProvider implements LocalAgentProvider {
         TABLE = Map.copyOf(t);
     }
 
-    private static final Pattern FILE_MENTION = Pattern.compile("(^|\\s)@\\S");
 
     @Override
     public Slash classify(String draft, List<StreamJson.Command> commands) {
@@ -170,14 +169,15 @@ public final class ClaudeCodeProvider implements LocalAgentProvider {
     /**
      * Normalise the line as the CLI reads it, then classify (r6 §5.4): leading whitespace ignored, the name matched
      * without regard to case, the first token is the name and the rest its argument. Where it is not yet known how the
-     * CLI reads a line, refuse: {@code !} and {@code #} first, or an {@code @file} mention anywhere.
+     * CLI reads a line, refuse: {@code !} and {@code #} first. An {@code @path} file mention is ALLOWED (owner decision,
+     * 2026-10-16): the P1a live smoke showed the CLI inlines only a file inside the folder, and {@code --restricted}
+     * denies an outside one.
      */
     public static Slash classifyLine(String draft, List<StreamJson.Command> commands) {
         String line = stripBlank(draft == null ? "" : draft);
         if (line.isEmpty()) return new Slash(SlashClass.TEXT, null);
         char first = line.charAt(0);
         if (first == '!' || first == '#') return new Slash(SlashClass.SHORTCUT, null);
-        if (FILE_MENTION.matcher(line).find()) return new Slash(SlashClass.SHORTCUT, null);
         if (first != '/') return new Slash(SlashClass.TEXT, null);
         int end = 1;
         while (end < line.length() && !blank(line.charAt(end))) end++;

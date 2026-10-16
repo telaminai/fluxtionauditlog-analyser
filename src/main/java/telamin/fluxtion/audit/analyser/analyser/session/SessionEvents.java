@@ -783,7 +783,7 @@ public final class SessionEvents {
         BLOCK,
         /** A command name the table does not classify: refused, as an unknown tool would be. */
         UNCLASSIFIED,
-        /** A terminal shortcut ({@code !}, {@code #}) or a file mention ({@code @path}): refused until probed. */
+        /** A terminal shortcut ({@code !} or {@code #} first): refused. An {@code @path} mention is not one (owner, 2026-10-16). */
         SHORTCUT
     }
 

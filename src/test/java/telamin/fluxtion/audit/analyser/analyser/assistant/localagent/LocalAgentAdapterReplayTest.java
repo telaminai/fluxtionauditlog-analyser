@@ -317,12 +317,16 @@ class LocalAgentAdapterReplayTest {
 
         Harness s = bound("p0b-slash.jsonl");
         for (String typed : List.of("/config permissionMode=auto", "/settings", "/mcp disable fluxtion-analyser-hosted",
-                "/add-dir /", "  /CONFIG model=opus", "/clear", "/brand-new-thing", "!ls", "# remember", "read @/etc/hosts")) {
+                "/add-dir /", "  /CONFIG model=opus", "/clear", "/brand-new-thing", "!ls", "# remember")) {
             s.send(typed);
         }
         assertEquals(0, s.agent.last().userLines().size(), "none of these was written to stdin");
         s.send("/compact");
         assertEquals(1, s.agent.last().userLines().size(), "/compact passes");
+        // owner decision 2026-10-16: an @path mention is sent; ! and # stay refused (above)
+        s.send("@note.txt what does it say?");
+        assertEquals(2, s.agent.last().userLines().size(), "an @path line is written to stdin");
+        assertTrue(s.agent.last().userLines().get(1).contains("@note.txt what does it say?"));
     }
 
     /**

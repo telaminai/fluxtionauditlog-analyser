@@ -179,8 +179,9 @@ class ClaudeCodeProviderTest {
                 // r6: refused until the P1a probes show what stream-json does with them
                 new Case("!ls -la", SlashClass.SHORTCUT, null),
                 new Case("  # remember this", SlashClass.SHORTCUT, null),
-                new Case("summarise @/etc/hosts", SlashClass.SHORTCUT, null),
-                new Case("@CLAUDE.md what does it say", SlashClass.SHORTCUT, null),
+                // owner decision 2026-10-16: an @path mention is sent (the CLI inlines only in-folder files)
+                new Case("summarise @/etc/hosts", SlashClass.TEXT, null),
+                new Case("@CLAUDE.md what does it say", SlashClass.TEXT, null),
                 new Case("what is a@b in this log", SlashClass.TEXT, null),
                 // review S2: Unicode blanks String.strip misses
                 new Case("\u00A0/config model=opus", SlashClass.BLOCK, "config"),

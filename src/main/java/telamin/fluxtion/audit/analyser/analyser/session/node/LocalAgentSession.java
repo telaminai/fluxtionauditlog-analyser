@@ -511,7 +511,7 @@ public class LocalAgentSession implements EventLogSource {
                     + "for that.";
             case UNCLASSIFIED -> "SLASH_UNCLASSIFIED: " + named + " is not available in the analyser — use Claude Code in a "
                     + "terminal for that. (Not classified for the analyser.)";
-            case SHORTCUT -> "SLASH_SHORTCUT: lines starting with ! or #, and @file mentions, are not available in the "
+            case SHORTCUT -> "SLASH_SHORTCUT: lines starting with ! or # are not available in the "
                     + "analyser — use Claude Code in a terminal for that.";
             default -> null;
         };

@@ -37,7 +37,7 @@ hooks or settings. Getting those is the **full posture**, a separate opt-in.
 | OD-74.3 | **Carry context forward; don't keep the process.** On a project switch the tab offers **Move** (default), **Keep** or **Stop**, in the order §5.3 gives. *Move* drafts a handoff turn; the analyser stores the person-confirmed answer as a labelled narrative report in the target project; Start is then **armed**, never started. *Keep* leaves the session in the old directory, and the header says its context describes the previous workspace. The session's **own** project creation during onboarding is Keep plus an armed Start (§5.6). | accepted |
 | OD-74.4 | **Narrow default; full mode by explicit opt-in** (§3). | accepted |
 | OD-74.5 | **Folders:** Start is refused in an evidence-bundle working copy. Any other directory needs a one-time confirmation, remembered on this machine, **before Start**. In the full posture, Start itself runs the folder's hooks and connects its `.mcp.json` servers [P0-28], so the dialog names them. In the default posture it names `CLAUDE.md`, which is instructions from that folder. | accepted |
-| OD-74.6 | **Typed slash commands pass through** to Claude Code, as in a terminal, **except** those that would change the posture or the session's identity, or act outside this session. Those are blocked by the classification in §5.4, built from P0b. | accepted 2026-10-16; the classified block-and-allow list (unclassified commands refused) accepted by the owner 2026-10-16 |
+| OD-74.6 | **Typed slash commands pass through** to Claude Code, as in a terminal, **except** those that would change the posture or the session's identity, or act outside this session. Those are blocked by the classification in §5.4, built from P0b. **`@path` file mentions are sent; lines starting with `!` or `#` stay refused** (§5.4). | accepted 2026-10-16; the classified block-and-allow list (unclassified commands refused) accepted by the owner 2026-10-16; **`@path` allowed, `!`/`#` kept refused: owner decision 2026-10-16**, on the P1a live smoke's probes |
 | OD-74.7 | **Send while Claude is answering is refused**, never queued (OA §4.2: "do not silently queue"). The tab says *"Claude is still answering — Stop or wait."* | owner-accepted design |
 | OD-74.8 | **"Ask Claude this?" confirmation** (P2). Right-click (*Ask Claude about these records / this diff*, a topology node, a chart note) opens a small pop-up with the proposed question and **Yes / No**. *Yes* spotlights the Assistant tab's input with the exact draft lines highlighted; nothing is sent until the person presses Send there. Under a recorded tutorial (a walk with a conversation), *Yes* reveals the next recorded turn instead and contacts no model. | accepted |
 | OD-74.9 | **Onboarding: Claude proposes, the analyser applies** (§5.6). Claude returns a structured proposal through a new non-destructive verb. The analyser previews each item with its own checks. After the person's *Yes* it applies the item through the person's own code path. Claude is never granted a destructive verb for this, so onboarding does not depend on P3. | accepted 2026-10-16 — the `propose` verb is a deliberate, recorded addition to the pinned verb set, confined to the hosted bridge |
@@ -364,11 +364,12 @@ name in `initialize.commands`, aliases included, against a table built from P0b.
 **The line is normalised exactly as the CLI reads it before it is classified**, so that a variant the CLI would still
 execute cannot pass as prose: leading whitespace is ignored, the command name is matched without regard to case, and
 the **first token** (up to the first whitespace) is the name while the rest is its argument (which decides `mcp` and
-`output-style`). Where it is not yet known how the CLI reads a line, the classifier errs towards refusing: a line whose
-first non-blank character is `!` or `#` (the terminal's shell and memory shortcuts) and a word starting with `@` (a
-file mention, which could name a path outside the folder) are refused with *"… is not available in the analyser"*
-until the P1a acceptance probes (§8) show what stream-json does with them. A name in neither the table nor
-`initialize.commands` is unclassified and refused.
+`output-style`). A line whose first non-blank character is `!` or `#` (the terminal's shell and memory shortcuts) is
+refused with *"… is not available in the analyser"*; the P1a live smoke showed neither does anything over stream-json,
+and the owner kept them refused (2026-10-16). **An `@path` file mention is sent** (owner decision, 2026-10-16): the
+smoke showed the CLI inlines a mentioned file only when it is inside the folder, and that `--restricted` denies the
+read of one outside it, so a mention cannot widen the folder. A name in neither the table nor `initialize.commands` is
+unclassified and refused.
 
 | Class | Commands | What the tab does |
 |---|---|---|
@@ -650,7 +651,9 @@ ambiguous, the closest sound option was taken and is recorded here.
   private, empty `0700` temporary folder made once per analyser run; it counts as confirmed (it holds nothing to trust).
   `postureRef` digests the posture name, the real working directory, the system note, the pre-allow list and the full
   switch — the §3 list; the model is not part of it (`/model` changes it within a session).
-- **Slash commands.** `!` and `#` first, an `@` word anywhere, and a bare `/` are refused until the P1a probes (§5.4).
+- **Slash commands.** `!` and `#` first, and a bare `/`, are refused; an `@path` mention is sent (owner decision
+  2026-10-16, after the live smoke; witnessed both ways: re-blocking `@` fails "an @path line is written to stdin",
+  allowing `!` fails "none of these was written to stdin").
   A refusal names the command only when the table or `initialize.commands` knows it (CLI vocabulary); otherwise it
   says "this command".
 - **Mode switches.** Switching the tab to the in-app assistant kills a running Claude Code; switching to Claude Code
@@ -702,8 +705,8 @@ ambiguous, the closest sound option was taken and is recorded here.
   handshake — gives a fresh `--session-id`), no process left after stop, and a second instance refused the live
   session's lock. **The open §5.4 probes answered:** over stream-json a `/command` with leading whitespace is prose
   (not run), `#` writes no memory, `!` runs no shell, an in-folder `@file` is inlined, and an outside `@file` is neither
-  inlined nor readable (`--restricted` denies the Read). P1a keeps those shapes refused; relaxing them is an owner
-  decision, not a safety need. **Two defects found and fixed:** a passed command with a leading blank was sent raw and
+  inlined nor readable (`--restricted` denies the Read). The owner then allowed `@path` and kept `!` and `#`
+  refused (2026-10-16). **Two defects found and fixed:** a passed command with a leading blank was sent raw and
   so did nothing (it is now sent normalised); and a refused-while-busy reason outlived its turn.
 - **Delta review (R1–R4):** a write after a run's cleanup no longer throws `RejectedExecutionException` into the
   reader or the caller (it is a failed write: a user line ends its turn `PROCESS_EXIT`); the hosted-header redaction

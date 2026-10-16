@@ -69,9 +69,8 @@ The bridge's arguments carry the endpoint file's path only, never the token, the
 | `@note.txt What is the codeword…` (inside the folder) | the CLI **inlined the file**: answered `MANGO-3` with no tool call | an in-folder mention reads like `Read` |
 | `@<SMOKE>/probe/outside/secret.txt …` (outside) | **not inlined**; the model tried `Read` and `--restricted` denied it (`permission_denied`); the outside codeword never appeared in the stream | an `@` mention does not widen the folder |
 
-So none of the four refused shapes does anything dangerous in the default posture. Relaxing the `#`, `!` and `@`
-refusals (and the leading-blank refusal of a blocked command, which is already harmless) is now an **owner decision**,
-not a safety requirement; P1a keeps them refused.
+So none of the four refused shapes does anything dangerous in the default posture. **Owner decision, 2026-10-16:**
+`@path` mentions are now sent; `!` and `#` stay refused.
 
 ## Defects found, and fixed in the same branch
 

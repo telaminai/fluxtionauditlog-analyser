@@ -110,8 +110,9 @@ answers as the model's words, and check them against what the analyser shows.
   except those that would change the posture or the conversation's identity, or act outside this session: `/config`,
   `/mcp` with an argument, `/add-dir`, `/permissions` and others are refused with *"… is not available in the analyser —
   use Claude Code in a terminal for that."*; `/clear` offers New chat instead. A command the analyser has not
-  classified (from a newer Claude Code) is refused the same way. Lines starting with `!` or `#`, and `@file` mentions,
-  are refused for now.
+  classified (from a newer Claude Code) is refused the same way. Lines starting with `!` or `#` (the terminal's shell and
+  memory shortcuts) are refused. An `@file` mention works as in a terminal for a file inside the folder; a file
+  outside it is not read.
 - **The header** shows the model, the posture, the folder, the Claude Code version, your subscription type or the
   API-key source, the API provider, and the session's spend against its **budget** (*Settings ▸ Assistant ▸ Session
   budget*, US$5 by default; Claude Code's own model setting is beside it). When the budget is reached the analyser stops
