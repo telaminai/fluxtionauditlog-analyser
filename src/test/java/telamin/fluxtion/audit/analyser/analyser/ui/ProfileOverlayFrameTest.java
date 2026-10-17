@@ -193,7 +193,7 @@ class ProfileOverlayFrameTest {
                                     && cb.getOutsideBorder() instanceof TitledBorder)
                             .map(c -> ((TitledBorder) ((javax.swing.border.CompoundBorder) c.getBorder()).getOutsideBorder())
                                     .getTitle()).toList();
-                    assertEquals(List.of("Safe analysis — Claude Code reads the evidence",
+                    assertEquals(List.of("Safe analysis — Claude Code reads your evidence",
                             "Full Claude Code — your own set-up, skills and tools", "In-app assistant — your API key",
                             "Every assistant — the bridge, files and projects"), titles, "grouped by profile");
                     JCheckBox allowed = (JCheckBox) field(p, "claudeCodeToggle");

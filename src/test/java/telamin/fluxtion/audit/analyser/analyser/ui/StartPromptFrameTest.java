@@ -122,7 +122,7 @@ class StartPromptFrameTest {
                 cfg.assistantActionsRest = true;
                 f.frame.claudeFoundForTest = true;
                 try {
-                    var rest = MainFrame.class.getDeclaredMethod("applyRestServer");
+                    var rest = MainFrame.class.getDeclaredMethod("reportRestSwitch");   // review B5: the switch is a fact; actionListener decides
                     rest.setAccessible(true);
                     rest.invoke(f.frame);
                 } catch (ReflectiveOperationException e) {
