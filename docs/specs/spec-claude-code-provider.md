@@ -1148,7 +1148,7 @@ single-user utility (owner direction 2026-10-16).
 | **P0 — protocol probe** ✓ 2026-10-16 | 40 items ([report](evidence/m74-p0/P0-report.md)) | done; owner read |
 | **P0b — default command, binding, P3 contract, slash commands** ✓ 2026-10-16 | 5 items ([report](evidence/m74-p0/P0b-report.md)) | done; folded into r5 |
 | **P1a — default-posture session** ✓ implemented | see *Implementation notes*; live smoke passed [S]. **Open acceptance:** Windows (§11), the owner's visual check of the tab and Settings on the built jar, the frame suites in CI | r6 |
-| **P1b — full posture** ✓ implemented | §8.1; probes PB-1…PB-4 run ([report](evidence/m74-p1b/PB-report.md)); see *Implementation notes (P1b)*. **Open acceptance:** the live smoke (§8.1) and the owner's visual check | P1a accepted; OD-74.10–74.12, OD-74.18 and OD-74.24 accepted |
+| **P1b — full posture** ✓ implemented | §8.1; probes PB-1…PB-4 run ([report](evidence/m74-p1b/PB-report.md)); see *Implementation notes (P1b)*. Live smoke run 2026-10-17 ([report](evidence/m74-p1b-smoke/SMOKE-report.md)): items 1–3, 6, 7 and Stop/resume pass; item 8 (warm start) not run live. **Open acceptance:** item 8 live, the owner's visual check, and the owner's decision on the host-session environment variables (smoke finding 1) | P1a accepted; OD-74.10–74.12, OD-74.18 and OD-74.24 accepted |
 | **P2 — the start-page prompt, the Ask catalogue, onboarding, the transcript, carried items** | §8.2: the start-page prompt (§5.8, the headline of P2's onboarding), the Ask catalogue (§5.5), `propose` onboarding (§5.6), Move (§5.3), conversation v2 (§6), transcript presentation (§5.9), the carried items | P1a accepted; OD-74.13–74.15 and OD-74.20–74.23 accepted (OD-74.19 is); the shipped-code fixes SF-1 and SF-2 (§11) in first |
 | **P3 — permission prompts in the analyser** | §8.3 | P1b and P2 accepted; OD-74.16–74.17 accepted; probes P3-0…P3-6 run |
 | **P4 — managed policy** | an administrator-owned, read-only policy file the person cannot change in Settings: allowed modes and postures (e.g. local agent only, default posture only), the external MCP/REST socket off, model, budget, endpoint, the terms list (§6), the start-page prompts (`startPrompts`, OD-74.20) | P1a accepted |
@@ -1232,7 +1232,9 @@ ran (isolated analyser `user.home`, the branch's jar, the harness pressing the t
    starts nothing; Yes starts; the hook's status line appears **before** the first Send;
 3. the header shows the full posture, the mode, the server count, the appended `PATH` directories, no e-mail;
 4. one turn per mode that tries Bash (`echo` of a codeword): `default` and `acceptEdits` deny it without blocking and
-   the tab says approvals are not available yet; `plan` does not run it; `auto` is recorded as observed;
+   the tab says approvals are not available yet; `plan` does not run it; `auto` is recorded as observed; *(r9, from the
+   smoke: a harmless `echo` is not asked at all in `default`/`acceptEdits` — the CLI's or the person's own allowance —
+   and runs; a command that would ask is denied without blocking, PB-1);*
 5. `analyser_context` and `analyser_read` work; a destructive verb is hidden; `graph {delete}` refused;
 6. changing the planted hook file: the next Start asks again;
 7. switching the full switch or the mode with a resumable conversation: Start offers New chat, never `--resume`;
@@ -1766,8 +1768,10 @@ a `ProcessBuilder` in the adapter, a warm Start from `revealAssistant()`; FAQ �
 
 ## Implementation notes (P1b, 2026-10-17)
 
-P1b is implemented on `feature/claude-code-p1b` (stacked on P1a, PR #145) against r9; **acceptance is open** (the §8.1
-live smoke and the owner's visual check). The probes ran first ([PB-report](evidence/m74-p1b/PB-report.md)); every
+P1b is implemented on `feature/claude-code-p1b` (stacked on P1a, PR #145) against r9; **acceptance is open**. The
+live smoke ran ([report](evidence/m74-p1b-smoke/SMOKE-report.md)) through the analyser's own Settings and Assistant
+tab; warm start (item 8) was not run live, and the smoke found that the analyser passes a host Claude Code session's
+`CLAUDE_*` variables to its child (P1a behaviour too; a fix is proposed there, not made). The probes ran first ([PB-report](evidence/m74-p1b/PB-report.md)); every
 adapter test drives the real session processor and the real adapter with the fake CLI replaying the sanitised P0, P0b
 and **PB** captures (`FixtureAgent`, now also reading `evidence/m74-p1b/fixtures`).
 
