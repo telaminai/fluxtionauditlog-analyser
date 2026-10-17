@@ -51,10 +51,13 @@ final class AssistantSurface {
     Runnable onNewChat = () -> { };
     Runnable onStart = () -> { };
 
-    /** The composed draft the composer holds (its appended range), the mode that placed it, and its highlight. */
-    private long boundDraft;
-    private AssistantMode boundMode;
-    private Object boundHighlight;
+    /**
+     * Every composed draft the composer holds — its id, the mode that placed it, its highlight over the appended range.
+     * Review S2 (P2, 2026-10-17): ALL of them, not only the newest: an earlier draft appended before a later one still
+     * names records, so each is checked at Send.
+     */
+    private record Bound(long draftRef, AssistantMode mode, Object highlight) { }
+    private final java.util.List<Bound> bound = new java.util.ArrayList<>();
 
     AssistantSurface() {
         draft.setLineWrap(true);
@@ -99,14 +102,27 @@ final class AssistantSurface {
         String sep = was.isBlank() ? "" : was.endsWith("\n\n") ? "" : was.endsWith("\n") ? "\n" : "\n\n";
         if (was.isBlank()) draft.setText("");
         int from = draft.getDocument().getLength() + sep.length();
+        // A Swing highlight ending at the document's end grows with every append; pin each earlier draft's range first,
+        // so a later draft never extends an earlier one's (review S2: every draft keeps its own range)
+        java.util.Map<Object, int[]> ranges = new java.util.HashMap<>();
+        for (Highlighter.Highlight h : draft.getHighlighter().getHighlights()) {
+            ranges.put(h, new int[]{h.getStartOffset(), h.getEndOffset()});
+        }
         draft.append(sep + text);
+        for (Bound b : bound) {
+            int[] r = ranges.get(b.highlight());
+            if (r == null) continue;
+            try {
+                draft.getHighlighter().changeHighlight(b.highlight(), r[0], r[1]);
+            } catch (BadLocationException e) {
+                throw new IllegalStateException(e);
+            }
+        }
         int to = draft.getDocument().getLength();
-        clearDraftMarks();
         try {
-            boundHighlight = draft.getHighlighter().addHighlight(from, to,
+            Object highlight = draft.getHighlighter().addHighlight(from, to,
                     new DefaultHighlighter.DefaultHighlightPainter(UiTheme.accentWash(0.28f)));
-            boundDraft = draftRef;
-            boundMode = mode;
+            bound.add(new Bound(draftRef, mode, highlight));
         } catch (BadLocationException e) {
             throw new IllegalStateException(e);
         }
@@ -117,13 +133,22 @@ final class AssistantSurface {
         return from;
     }
 
-    /** The composed draft's binding for {@code mode} while any of its appended text remains; 0 otherwise. */
-    long binding(AssistantMode mode) {
-        if (boundDraft == 0 || boundHighlight == null || boundMode != mode) return 0;
+    /**
+     * Every composed draft the composer still holds — any of its appended text remains — in the order placed; empty when
+     * none. Review S2: all of them, and a draft placed for the OTHER mode too — the node in force does not know that id,
+     * so it refuses it as unknown rather than send the other assistant's words unchecked. {@code mode} is kept for the
+     * callers' symmetry; a draft is never silently dropped because of it.
+     */
+    java.util.List<Long> bindings(AssistantMode mode) {
+        java.util.List<Long> out = new java.util.ArrayList<>();
+        java.util.List<Object> live = new java.util.ArrayList<>();
         for (Highlighter.Highlight h : draft.getHighlighter().getHighlights()) {
-            if (h == boundHighlight) return h.getEndOffset() > h.getStartOffset() ? boundDraft : 0;
+            if (h.getEndOffset() > h.getStartOffset()) live.add(h);
         }
-        return 0;
+        for (Bound b : bound) {
+            if (b.draftRef() != 0 && live.contains(b.highlight())) out.add(b.draftRef());
+        }
+        return out;
     }
 
     /** The node accepted the send: clear the composer. Nothing else clears it (a refused draft stays editable). */
@@ -133,10 +158,8 @@ final class AssistantSurface {
     }
 
     void clearDraftMarks() {
-        if (boundHighlight != null) draft.getHighlighter().removeHighlight(boundHighlight);
-        boundHighlight = null;
-        boundDraft = 0;
-        boundMode = null;
+        for (Bound b : bound) draft.getHighlighter().removeHighlight(b.highlight());
+        bound.clear();
         composerHint.setVisible(false);
     }
 

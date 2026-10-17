@@ -654,13 +654,26 @@ public final class SessionEvents {
 
     /**
      * Send pressed: the draft is transcript entry {@code draft}; {@code request} correlates the answer (0 = none).
-     * {@code draftBinding} (M74 P2, §8.2): the {@link AssistantDraftComposed} draft the composer still holds, or 0 — the
-     * node compares its binding with the open log, and a composed draft never carries the live selection's record text.
+     * {@code draftBindings} (M74 P2, §8.2; review S2): every {@link AssistantDraftComposed} draft the composer still holds,
+     * possibly none — the node compares each binding with the open log, refuses if any is stale or unknown, and a composed
+     * draft never carries the live selection's record text.
      */
-    public record AssistantSendRequested(long request, long draft, AssistantRoute route, long draftBinding) {
-        public AssistantSendRequested(long request, long draft, AssistantRoute route) {
-            this(request, draft, route, 0);
+    public record AssistantSendRequested(long request, long draft, AssistantRoute route, java.util.List<Long> draftBindings) {
+        public AssistantSendRequested {
+            draftBindings = bindings(draftBindings);
         }
+        public AssistantSendRequested(long request, long draft, AssistantRoute route, long draftBinding) {
+            this(request, draft, route, draftBinding == 0 ? java.util.List.of() : java.util.List.of(draftBinding));
+        }
+        public AssistantSendRequested(long request, long draft, AssistantRoute route) {
+            this(request, draft, route, java.util.List.of());
+        }
+    }
+
+    /** The composer's bindings as a fact: no nulls, no zero ids, immutable. */
+    static java.util.List<Long> bindings(java.util.List<Long> in) {
+        if (in == null) return java.util.List.of();
+        return in.stream().filter(java.util.Objects::nonNull).filter(b -> b != 0).toList();
     }
 
     /** Cancel pressed, or the application is exiting. */
@@ -854,11 +867,19 @@ public final class SessionEvents {
      * canonical name when the CLI or the table knows it, else null — CLI vocabulary, never the person's words.
      */
     public record LocalAgentSendRequested(long request, long draft, SlashClass slash, String command,
-                                          LocalAgentConsent consent, long draftBinding) {
-        /** M74 P2 (§8.2): {@code draftBinding} is the composed draft the composer still holds, or 0 (unbound). */
+                                          LocalAgentConsent consent, java.util.List<Long> draftBindings) {
+        /** M74 P2 (§8.2; review S2): {@code draftBindings} is every composed draft the composer still holds, possibly none. */
+        public LocalAgentSendRequested {
+            draftBindings = bindings(draftBindings);
+        }
+        public LocalAgentSendRequested(long request, long draft, SlashClass slash, String command,
+                                       LocalAgentConsent consent, long draftBinding) {
+            this(request, draft, slash, command, consent,
+                    draftBinding == 0 ? java.util.List.of() : java.util.List.of(draftBinding));
+        }
         public LocalAgentSendRequested(long request, long draft, SlashClass slash, String command,
                                        LocalAgentConsent consent) {
-            this(request, draft, slash, command, consent, 0);
+            this(request, draft, slash, command, consent, java.util.List.of());
         }
     }
 

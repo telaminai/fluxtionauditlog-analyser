@@ -205,6 +205,83 @@ class AskDraftSessionTest {
         assertTrue(b.assistantContexts.get(0).includeRecordContext(), "an unbound typed question keeps today's behaviour");
     }
 
+    /**
+     * ★ Review S2 (P2, 2026-10-17): two drafts in the composer; the EARLIER one is stale. Witness: check only the last
+     * binding in {@code LocalAgentSession.staleDraft} (the old one-binding surface) — the Send goes through.
+     */
+    @Test
+    @DisplayName("★ Claude Code: two drafts in the composer, the earlier stale — refused")
+    void anyStaleDraftRefuses() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = localAgent(a);
+        long gen = open(d, LOG);
+        LocalAgentSessionTest.startToReady(d, a);
+        d.post(new SessionEvents.LocalAgentDraftComposed(21, "Q1", identity(LOG), gen, LocalAgentSessionTest.consent(), "t"));
+        long reloaded = open(d, LOG);
+        d.post(new SessionEvents.LocalAgentDraftComposed(22, "Q2", identity(LOG), reloaded, LocalAgentSessionTest.consent(), "t"));
+        d.post(new SessionEvents.LocalAgentSendRequested(9, 30, SessionEvents.SlashClass.TEXT, null,
+                LocalAgentSessionTest.consent(), java.util.List.of(21L, 22L)));
+        assertEquals(0, a.agentSends.size(), "the earlier draft names a log that moved");
+        assertEquals("STALE_DRAFT", d.snapshot().localAgent().verdict());
+    }
+
+    /**
+     * ★ Review S2: a binding the node does not hold (evicted past its bound of 64) is unknown, and unknown is stale.
+     * Witness: {@code if (b == null) continue;} in {@code LocalAgentSession.staleDraft} — the evicted draft is sent.
+     */
+    @Test
+    @DisplayName("★ Claude Code: an evicted (unknown) binding is refused, never counted as fresh")
+    void anEvictedBindingIsRefused() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = localAgent(a);
+        long gen = open(d, LOG);
+        LocalAgentSessionTest.startToReady(d, a);
+        for (long ref = 100; ref < 100 + 65; ref++) {
+            d.post(new SessionEvents.LocalAgentDraftComposed(ref, "Q1", identity(LOG), gen, LocalAgentSessionTest.consent(), "t"));
+        }
+        d.post(new SessionEvents.LocalAgentSendRequested(9, 30, SessionEvents.SlashClass.TEXT, null,
+                LocalAgentSessionTest.consent(), 100));
+        assertEquals(0, a.agentSends.size(), "draft 100 was evicted: it cannot be checked, so it is not sent");
+        assertEquals("STALE_DRAFT", d.snapshot().localAgent().verdict());
+        assertTrue(d.snapshot().localAgent().reason().contains("cannot be checked"), d.snapshot().localAgent().reason());
+        d.post(new SessionEvents.LocalAgentSendRequested(10, 31, SessionEvents.SlashClass.TEXT, null,
+                LocalAgentSessionTest.consent(), 164));
+        assertEquals(1, a.agentSends.size(), "the newest draft is still known and fresh");
+    }
+
+    /**
+     * ★ Review S2 + r8 F4, in-app: an unknown binding is refused (never sent as "not composed" with the live selection's
+     * record text). Witness: {@code if (b == null) continue;} in {@code AssistantLoop.staleDraft} — the context is
+     * prepared.
+     */
+    @Test
+    @DisplayName("★ in-app: an unknown binding is refused; nothing is prepared and no record text is attached")
+    void inAppUnknownBindingIsRefused() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = new SessionDriver(a);
+        open(d, LOG);
+        d.post(new SessionEvents.AssistantSendRequested(3, 50, AssistantLoopTest.route(true, 3, 20), 999));
+        assertEquals(0, a.assistantContexts.size());
+        assertFalse(d.snapshot().assistant().answer().accepted());
+        assertTrue(d.snapshot().assistant().answer().reason().contains("cannot be checked"));
+    }
+
+    /** ★ Review S2, in-app: two drafts, the earlier stale. Witness: check only the last binding in AssistantLoop. */
+    @Test
+    @DisplayName("★ in-app: two drafts, the earlier stale — refused")
+    void inAppAnyStaleDraftRefuses() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = new SessionDriver(a);
+        long gen = open(d, LOG);
+        d.post(new SessionEvents.AssistantDraftComposed(41, "Q1", identity(LOG), gen, "t"));
+        long reloaded = open(d, LOG);
+        d.post(new SessionEvents.AssistantDraftComposed(42, "Q2", identity(LOG), reloaded, "t"));
+        d.post(new SessionEvents.AssistantSendRequested(3, 50, AssistantLoopTest.route(true, 3, 20),
+                java.util.List.of(41L, 42L)));
+        assertEquals(0, a.assistantContexts.size());
+        assertFalse(d.snapshot().assistant().answer().accepted());
+    }
+
     @Test
     @DisplayName("no draft text, record text or path reaches the session audit record")
     void theRecordHoldsNoWords() {

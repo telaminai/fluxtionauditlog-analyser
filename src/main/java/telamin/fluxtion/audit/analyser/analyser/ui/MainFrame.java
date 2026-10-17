@@ -4856,9 +4856,9 @@ public final class MainFrame extends JFrame {
         });
         assistantPanel.setIntents(new AssistantPanel.Intents() {
             @Override public void send(String draft) {
-                sendBound(draft, 0);
+                sendBound(draft, java.util.List.of());
             }
-            @Override public void sendBound(String draft, long binding) {
+            @Override public void sendBound(String draft, java.util.List<Long> binding) {
                 long entry = assistantTranscript.add(telamin.fluxtion.audit.analyser.analyser.assistant.AssistantTranscript.Kind.USER, draft);
                 assistantSendRequest++;
                 session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantSendRequested(
@@ -4972,7 +4972,7 @@ public final class MainFrame extends JFrame {
             @Override public void stop() {
                 session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentStopRequested("Stop pressed"));
             }
-            @Override public void send(String draft, long binding) {
+            @Override public void send(String draft, java.util.List<Long> binding) {
                 var slash = localAgentAdapter.classify(draft);
                 // a passed command is sent as the CLI runs it (no leading blank); everything else as typed
                 long entry = localAgentStore.add(

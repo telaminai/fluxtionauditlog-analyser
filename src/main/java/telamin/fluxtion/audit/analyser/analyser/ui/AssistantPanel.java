@@ -44,10 +44,10 @@ public final class AssistantPanel extends JPanel {
         void send(String draft);
 
         /**
-         * M74 P2: Send with the composed draft the composer still holds ({@code draftBinding}, 0 when none) — the node
-         * compares its binding with the open log, and a composed draft never carries the live selection's text.
+         * M74 P2: Send with every composed draft the composer still holds ({@code draftBindings}, empty when none) — the
+         * node compares each binding with the open log, and a composed draft never carries the live selection's text.
          */
-        default void sendBound(String draft, long draftBinding) {
+        default void sendBound(String draft, java.util.List<Long> draftBindings) {
             send(draft);
         }
 
@@ -412,8 +412,8 @@ public final class AssistantPanel extends JPanel {
     }
 
     /** The composed draft's binding while any of its appended text remains. */
-    long currentBinding() {
-        return surface.binding(AssistantMode.IN_APP);
+    java.util.List<Long> currentBinding() {
+        return surface.bindings(AssistantMode.IN_APP);
     }
 
     /** Focus the composer (the journey handoff's fresh thread), changing nothing in it. */

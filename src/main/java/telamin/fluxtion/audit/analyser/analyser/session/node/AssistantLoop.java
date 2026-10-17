@@ -147,7 +147,8 @@ public class AssistantLoop implements EventLogSource {
         manifestInFlight = includeManifest;
         // the record context rides on a conversation's first question — but never on a COMPOSED draft (r8 F4): its words name
         // the records to read, and the live selection's raw text may be other records than the draft names
-        boolean composed = e.draftBinding() != 0 && bindings.containsKey(e.draftBinding());
+        // review S2: ANY composed draft in the composer counts — known or not (an unknown one is refused before this)
+        boolean composed = !e.draftBindings().isEmpty();
         boolean includeRecordContext = history.isEmpty() && !composed;
         auditLog.info("assistantTurn", turn).info("ticket", ticket).info("manifest", includeManifest)
                 .info("recordContext", includeRecordContext);
@@ -163,7 +164,7 @@ public class AssistantLoop implements EventLogSource {
         }
         if (busy()) return "a turn is in progress: wait for it to finish, or Cancel it";
         if (e.draft() <= 0) return "there is no question to send";
-        String stale = staleDraft(e.draftBinding());
+        String stale = staleDraft(e.draftBindings());
         if (stale != null) return stale;
         if (e.route() == null || !e.route().hasKey()) {
             return "no provider is configured, so nothing was sent: Configure provider, Copy prompt, or Connect a CLI "
@@ -194,16 +195,23 @@ public class AssistantLoop implements EventLogSource {
         return changed();
     }
 
-    /** §5.5 Send, in this node's own handler: a bound draft whose log moved is refused with the same words. */
-    private String staleDraft(long draftBinding) {
-        if (draftBinding == 0) return null;
-        String[] b = bindings.get(draftBinding);
-        if (b == null || b[0] == null) return null;
-        long was = Long.parseLong(b[1]);
+    /**
+     * §5.5 Send, in this node's own handler: a bound draft whose log moved is refused with the same words. Review S2: every
+     * draft the composer holds is checked and ANY stale one refuses; a binding this node does not hold (evicted past the
+     * bound, or placed for the other assistant) is unknown and refused too — never counted as fresh.
+     */
+    private String staleDraft(java.util.List<Long> draftBindings) {
         boolean open = openLog.isOpen();
         String now = open ? telamin.fluxtion.audit.analyser.analyser.session.LocalAgentPosture.digest(openLog.logPath()) : null;
-        if (open && b[0].equals(now) && openLog.generation() == was) return null;
-        return LocalAgentSession.staleWords(was, open ? Long.toString(openLog.generation()) : "none open");
+        for (long draftBinding : draftBindings) {
+            String[] b = bindings.get(draftBinding);
+            if (b == null) return LocalAgentSession.UNKNOWN_DRAFT_WORDS;
+            if (b[0] == null) continue;
+            long was = Long.parseLong(b[1]);
+            if (open && b[0].equals(now) && openLog.generation() == was) continue;
+            return LocalAgentSession.staleWords(was, open ? Long.toString(openLog.generation()) : "none open");
+        }
+        return null;
     }
 
     @OnEventHandler

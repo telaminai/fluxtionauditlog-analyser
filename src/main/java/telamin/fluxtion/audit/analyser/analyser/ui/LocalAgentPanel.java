@@ -43,10 +43,10 @@ public final class LocalAgentPanel extends JPanel {
         void stop();
 
         /**
-         * Send: the composer's words, and {@code draftBinding} — the composed draft the composer still holds (its
-         * appended range not wholly deleted), or 0. The node compares the binding with the open log.
+         * Send: the composer's words, and {@code draftBindings} — every composed draft the composer still holds (its
+         * appended range not wholly deleted), possibly none. The node compares each binding with the open log.
          */
-        void send(String draft, long draftBinding);
+        void send(String draft, java.util.List<Long> draftBindings);
 
         void newChat();
 
@@ -298,8 +298,8 @@ public final class LocalAgentPanel extends JPanel {
     }
 
     /** The composed draft's binding while any of its appended text remains (deleting the whole draft drops it). */
-    long currentBinding() {
-        return surface.binding(telamin.fluxtion.audit.analyser.analyser.session.AssistantMode.LOCAL_AGENT);
+    java.util.List<Long> currentBinding() {
+        return surface.bindings(telamin.fluxtion.audit.analyser.analyser.session.AssistantMode.LOCAL_AGENT);
     }
 
     /** The node accepted the send: clear the composer. Nothing else clears it (a refused draft stays editable). */

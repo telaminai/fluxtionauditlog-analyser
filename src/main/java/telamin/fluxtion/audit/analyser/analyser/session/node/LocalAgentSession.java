@@ -940,16 +940,28 @@ public class LocalAgentSession implements EventLogSource {
      * unbound draft (0, or a draft that names no log) is not checked. Deleting the whole draft drops the binding: the
      * panel then reports 0.
      */
-    private String staleDraft(long draftBinding) {
-        if (draftBinding == 0) return null;
-        String[] b = bindings.get(draftBinding);
-        if (b == null || b[0] == null) return null;
-        long was = Long.parseLong(b[1]);
+    private String staleDraft(java.util.List<Long> draftBindings) {
+        // review S2: every draft the composer holds, ANY stale one refuses, and an unknown binding is stale
         boolean open = openLog != null && openLog.isOpen();
         String now = open ? LocalAgentPosture.digest(openLog.logPath()) : null;
-        if (open && b[0].equals(now) && openLog.generation() == was) return null;
-        return staleWords(was, open ? Long.toString(openLog.generation()) : "none open");
+        for (long draftBinding : draftBindings) {
+            String[] b = bindings.get(draftBinding);
+            if (b == null) return UNKNOWN_DRAFT_WORDS;
+            if (b[0] == null) continue;
+            long was = Long.parseLong(b[1]);
+            if (open && b[0].equals(now) && openLog.generation() == was) continue;
+            return staleWords(was, open ? Long.toString(openLog.generation()) : "none open");
+        }
+        return null;
     }
+
+    /**
+     * Review S2: a composed draft this assistant does not know — placed for the other assistant, or older than the bound
+     * the node keeps — cannot be checked, so it is refused rather than counted as fresh.
+     */
+    public static final String UNKNOWN_DRAFT_WORDS = "This message holds a drafted question that cannot be checked against "
+            + "the open log (it was drafted for the other assistant, or too many questions ago) — delete it, or ask again "
+            + "from the records";
 
     /** Record the posture a consent fact names (for the full-posture cue); true when it changed. */
     private boolean observeConsent(SessionEvents.LocalAgentConsent c) {
@@ -1021,7 +1033,7 @@ public class LocalAgentSession implements EventLogSource {
         if (openTicket != 0 || "STOPPING".equals(phase)) return "BUSY: " + BUSY_TEXT;
         if (e.draft() <= 0) return "EMPTY: there is nothing to send";
         if (pendingDraft != 0) return "BUSY: " + BUSY_TEXT;
-        String stale = staleDraft(e.draftBinding());
+        String stale = staleDraft(e.draftBindings());
         if (stale != null) return "STALE_DRAFT: " + stale;
         String named = e.command() == null ? "this command" : "/" + e.command();
         return switch (e.slash() == null ? SessionEvents.SlashClass.TEXT : e.slash()) {

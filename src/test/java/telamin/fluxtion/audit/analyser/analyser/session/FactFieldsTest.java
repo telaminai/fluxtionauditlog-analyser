@@ -78,7 +78,9 @@ class FactFieldsTest {
                 "ProposalApplyRequested.yes", "ProposalDismissed.proposalId", "ProposalItemApplied.proposalId",
                 "ProposalItemApplied.itemId", "ProposalChecked.proposalId", "ProposalEffectStarted.proposalId",
                 "LocalAgentPermissionRequested.inputDigest", "LocalAgentPermissionRequested.toolUseIdDigest",
-                "HostedCallPresented.inputDigest", "HostedCallPresented.toolUseIdDigest", "ExampleFetched.sha256")) {
+                "HostedCallPresented.inputDigest", "HostedCallPresented.toolUseIdDigest", "ExampleFetched.sha256",
+                // review S2: the composed drafts the composer holds, by opaque draft id
+                "LocalAgentSendRequested.draftBindings", "AssistantSendRequested.draftBindings")) {
             M74.put(c, Holds.DIGEST);
         }
         for (String c : List.of("ProposalPreviewDone.setupDirShown", "LocalAgentSetupDirectoryChosen.dirShown",
