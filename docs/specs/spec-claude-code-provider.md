@@ -1,28 +1,10 @@
 # M74 — Claude Code as the analyser's assistant: a long-running local session
 
-**Status:** DRAFT r13, 2026-10-17 — r13 records the owner's **UX unification** decisions of 2026-10-17 (§2 *r13*) and builds them on `feature/claude-code-p3`: one start-page surface, one assistant panel in two modes, the profile overlay, Settings ▸ Assistant grouped by profile, and four P3 leftovers (see *Implementation notes (UX)*). r12 runs the P3 probes P3-0…P3-6 on the real bridge
-([report](evidence/m74-p3/P3-report.md); amendments marked *r12* in place) and builds **P3**, permission prompts in the
-analyser, with the scorecard's fact requirements R1, R2, R5–R8 (see *Implementation notes (P3)*); with P3 built the
-*preview* labelling of OD-74.26 is removed. (r11 merged the P1b branch into P2, built **P2b** and added the owner's
-requests of 2026-10-17 (§2 *r11 owner decisions*; *Implementation notes (P2b)*).) (r8 accepted 2026-10-16; r9 folds in the P1b probes and the owner's optional budget,
-OD-74.24; r10 merges P1a's holistic-review fixes (P1a r7), adds H6 and the owner's two decisions of 2026-10-17:
-warm start cut, OD-74.25, and full Claude Code a preview until P3, OD-74.26). **P1b** is implemented against r9 ([probes](evidence/m74-p1b/PB-report.md), US$0.24; see *Implementation
-notes (P1b)*). Two protocol probes have run against the installed CLI (2.1.282): **P0**
-([report](evidence/m74-p0/P0-report.md), 40 items, US$0.85) and **P0b**
-([report](evidence/m74-p0/P0b-report.md): the exact default command, the binding nonce, the P3 permission contract,
-slash commands, account fields; US$0.19). P1a is implemented against r6 and passed its live smoke
-([report](evidence/m74-p1a-smoke/SMOKE-report.md); see *Implementation notes*). **r7 specifies P1b, P2 and P3 in full**
-(owner direction 2026-10-16: P3 is full single-user utility; order P1b + P2, then P3) and resolves every item r6
-carried (§11). **r8 folds in the independent review of the start-prompt material**
-([c7f2](../handoff/review_m74_r7_start_prompt_c7f2.md), 21 findings; dispositions in the revision history). Each section below is current on its own; the phase-by-phase inventory (nodes, effects, facts, UI,
-failure modes, probes, live smoke) is §8.1–§8.3 and the tests are §10. Decisions r7 needed that the owner has not yet
-taken are in §2 as *proposed, for owner acceptance*; nothing that depends on one is to be built before it is accepted.
-Citations `[P0-n]` and `[P0b-n]` point at report rows, `[S-n]` at the P1a smoke report.
-**r10 (2026-10-17):** P2's first half (**P2a** — the Ask catalogue, the start-page prompt, transcript presentation) is
-implemented on `feature/claude-code-p2`; see *Implementation notes (P2a)*. The owner's decisions of 2026-10-17 are folded
-in place (§2 *r10 owner decisions*): the "Ask Claude this?" pop-up is **cut**, the configurable start list is
-**deferred** until after P3, warm start is cut on the P1 branches, full Claude Code is labelled **preview** until P3, and
-two owner requests are added — the **full-posture cue** (OD-74.27, §5.9) and the dropped **prompt pack** (OD-74.28, §5.8).
+**Status:** DRAFT r14, 2026-10-17 — r14 fixes the findings of the three final reviews of M74 (P2, P3 + UX, holistic;
+`docs/handoff/review_m74_final_{p2,p3ux,holistic}_2026-10-17.md`, each with its disposition table) and the owner's
+start-page layout feedback; see *Implementation notes (r14 review fixes)*. Built on `feature/claude-code-p3`: P1a, P1b,
+P2a, P2b, P3 and the UX step. Earlier revisions, their probes and their live smokes are in the *Revision history*; the
+probe reports are under `docs/specs/evidence/m74-*` (P0, P0b, P1b, P3).
 
 **Tracker:** M74. **Builds on:** the onboard assistant ([`spec-onboard-assistant-journeys.md`](spec-onboard-assistant-journeys.md),
 "OA"), the MCP bridge ([`spec-assistant-actions-mcp.md`](spec-assistant-actions-mcp.md)), M42's Claude Code
@@ -98,7 +80,7 @@ utility P3 completes.
 |---|---|---|
 | r11-1 | **The simplified Move** (amends §5.3 and OD-74.15 for P2): a person's project switch while a Claude Code process runs offers **Stop, and get Start ready in the new project** / **Keep it running here** / **Cancel**. There is no handoff draft, turn, confirmation or report (deferred with r10-5 until after P3). The node decides; Stop arms Start (*Start a new session in this project*) and starts nothing. | accepted (owner) |
 | OD-74.29 | **Prompt-pack example entries** (owner request): `N. **Label** — example: <https URL of an archive of a PINNED commit>`. Shown with a download badge. Nothing is fetched on drop or on choosing; only the entry's own button fetches, after a confirmation showing the exact URL, the pinned commit and the target folder the person chooses. An archive over https from an allowed-host list (`github.com`, `codeload.github.com`, `gitlab.com`; a constant now, a P4 policy seam). No git binary, clone, hooks or submodules. Unpacked through the template archive machinery (its containment checks, caps; no links; no path escaping). A moving ref (a branch or tag) is refused: only a 40-hex commit. Then the M73 project offer opens the folder and the person confirms. Downloading never implies Claude Code folder trust. Rule 9: the node decides each step; fetch and unpack are effects with facts. | accepted (owner request) |
-| OD-74.30 | **Third-party publishers and integrity** (owner addition to OD-74.29): packs may point at public third-party repositories of Fluxtion-compatible libraries. The confirmation **leads with the publisher** — host / owner / repo @ short commit — and anything not from the Telamin GitHub organisation is marked **third-party**. An optional `sha256:<64-hex>` is verified after the download and before the unpack; a mismatch is refused with a named reason, and the analyser never silently accepts one. Nothing is built, run or installed on download. **No "validated" or "approved" badge**: that needs a Telamin-published catalogue — a later owner item (deferred; `ExampleSource.publisherVerdict()` is the seam). | accepted (owner request) |
+| OD-74.30 | **Third-party publishers and integrity** (owner addition to OD-74.29): packs may point at public third-party repositories of Fluxtion-compatible libraries. The confirmation **leads with the publisher** — host / owner / repo @ short commit — and anything not from the Telamin GitHub organisation is marked **third-party**. An optional `sha256:<64-hex>` is verified after the download and before the unpack; a mismatch is refused with a named reason, and the analyser never silently accepts one. Nothing is built, run or installed on download. **No "validated" or "approved" badge**: that needs a Telamin-published catalogue — a later owner item (deferred; `ExampleSource.publisherVerdict()` is the seam). *r14 (review P2-S6):* GitHub serves a commit of any repository in a fork network under the parent's address, so a `telaminai` address proves the ADDRESS, not who wrote the code: it is shown as *"a Telamin repository address (the code may come from a fork)"*, and a redirect is followed only within the same owner and repository. | accepted (owner request) |
 
 ### r12 (2026-10-17): P3, its probes, and the scorecard's fact requirements
 
@@ -204,14 +186,21 @@ analyser cannot narrow the full posture; it can only say so, which §5.1's warni
 ### 4.2 Prerequisites and binding [R F2, P0-31..33, P0b-2]
 
 - **Start does not require the external REST switch** (review H4). The switch is the person's choice about EXTERNAL
-  clients. The node asks for a listener as an effect (`ServeHostedBridgeEffect{generation}`) before the spawn, and the
-  adapter answers with a fact (`LocalAgentBridgeServed{generation, listening, hostedOnly}`): the REST server when the
-  switch is on, otherwise a **hosted-only** `ActionServer` that writes **no** well-known endpoint file and refuses
-  every request without a hosted credential (403), even one carrying the shared token. A listener that cannot be
-  started refuses the spawn (`BRIDGE_UNAVAILABLE`). When the process ends the node asks to release it
-  (`ReleaseHostedBridgeEffect`), and a hosted-only listener stops. Turning the switch on while a hosted-only listener
-  runs opens that same listener to external clients and publishes the well-known file; turning it off while a session
-  still needs it withdraws the file and refuses them again.
+  clients. *r14 (review B5):* the listener's whole lifecycle is the **`actionListener`** node's — never the frame's.
+  The REST switch is a fact (`RestSwitchObserved{on}`, at start-up and after a Settings change); `localAgentSession`
+  tells the node when a generation needs the hosted bridge and when it releases it (a push in the same dispatch, so
+  the listener is asked for BEFORE the process that connects to it). The rule: a listener is up while the switch is on
+  or a session needs the bridge; it serves external clients while the switch is on, unless the person closed it for
+  the session that runs now. Its effects are `ServeHostedBridgeEffect{generation, external}` (answered with
+  `LocalAgentBridgeServed{generation, listening, hostedOnly, endpoint}`), `ReleaseHostedBridgeEffect{generation,
+  keepListening, external}` and `ConfigureActionListenerEffect{listen, external}` (answered with
+  `ActionListenerConfigured{listening, external, endpoint, failure}`); the frame only makes the listener match, in one
+  method, and the node composes the status words. A hosted-only `ActionServer` writes **no** well-known endpoint file
+  and refuses every request without a hosted credential (403), even one carrying the shared token. A listener that
+  cannot be started refuses the spawn (`BRIDGE_UNAVAILABLE`). *r14 (review B2):* when a **full** session runs with
+  external access open, its own tools can drive the analyser as an external client (§11); the panel's limits line says
+  so and offers **Close external access while this session runs** (`ExternalAccessChosen{generation, close}`), decided
+  by the node; external access opens again when that session ends.
 - **The hosted bridge is bound to this analyser instance and proves it:**
   1. **A binding nonce is minted for every spawn**: Start, every resume, and the restart after a fallback kill. It is
      never reused across generations.
@@ -233,7 +222,11 @@ analyser cannot narrow the full posture; it can only say so, which §5.1's warni
      **The admission is decided on the session's thread, in its order** (review M6): each hosted call posts
      `LocalAgentCallAdmissionRequested{call, generation}` and waits (bounded, 5 s) for the node's verdict, an
      `AnswerHostedCallEffect{call, refusal}`. A posture kill the session processed first refuses the call; nothing on
-     the HTTP thread decides from a published snapshot.
+     the HTTP thread decides from a published snapshot. *r14 (review B4):* a call that gives up waiting posts
+     `HostedCallAbandoned{call, generation}`; if the session had admitted it — consuming the person's grant — the
+     record says ABANDONED, the grant is void (never restored, so a retry is refused as used), and the conversation
+     says the approved call did not run. *r14 (review L-a):* the hosted credential is checked before the hosted rate
+     bucket, so a made-up credential cannot spend it.
 - **The hosted caller is identified by its own credential, never by the shared token.** A **hosted token** is minted
   for every spawn (with the nonce, per generation) and written **only** to the per-instance endpoint file, beside the
   REST URL, the shared token and the nonce. The hosted bridge sends it in its own header, `X-Analyser-Hosted`, on
@@ -249,12 +242,10 @@ analyser cannot narrow the full posture; it can only say so, which §5.1's warni
   `ActionDispatcher.dispatch(request, Caller)`, `Caller` being `EXTERNAL`, `IN_PROCESS` or `HOSTED(generation)`; the
   existing one-argument `dispatch` means `EXTERNAL`, and the in-app assistant passes `IN_PROCESS`. Every hosted-only
   rule is then decided where the verbs run (on the session's thread, §5.6, §5.7), not on the HTTP thread.
-- **The REST endpoint can move under a running session.** The REST token is per analyser run, but a REST restart
-  binds a new port. From P2 a REST stop or start is a fact (`RestTransportObserved{on, epoch}`); while a generation
-  runs, the node asks for `RefreshHostedEndpointEffect{generation}` on a start, and the adapter rewrites that
-  generation's endpoint file with the new URL (same nonce, same credential; the bridge reads the file on every call).
-  On a stop the tab says *"REST is off: Claude Code cannot reach the analyser until it is on"*; the session is not
-  stopped.
+- **The endpoint never moves under a running session** (*r14*, review B9: the P2 text that planned
+  `RestTransportObserved` / `RefreshHostedEndpointEffect` described a design H4 made unnecessary, and was never built).
+  The listener a session uses is never restarted while that session needs it — the REST switch only opens or closes
+  the same listener to external clients — so the per-instance endpoint file stays right for the session's life.
 - **The hosted server name is `fluxtion-analyser-hosted`.** A `--mcp-config` server with the same name as a user
   registration replaces it silently [P0-31], and a distinct name keeps the person's own rules for
   `mcp__fluxtion-analyser…` from applying to it [P0-30].
@@ -1447,7 +1438,7 @@ other caller gets the unknown-verb error. `VerbSchemasTest` pins `all()` at its 
 | effect / fact | `OfferLocalAgentSwitchEffect{opId, targetDigest}` → `LocalAgentSwitchChosen{opId, choice: MOVE \| KEEP \| STOP \| CANCEL}` | §5.3 steps 1–2 |
 | effect / fact | `ConfirmHandoffEffect{opId, answerRef}` → `LocalAgentHandoffConfirmed{opId, textRef}` / `LocalAgentHandoffDiscarded{opId, why: DISCARD \| SKIP}` | §5.3 step 4; an edited text is a new store entry |
 | effect / fact | `StoreHandoffReport{targetProjectIdentity, textRef}` → `HandoffReportStored{outcome}` | §5.3 step 6, asked for on `ProfileLoaded` of the held target |
-| fact / effect | `RestTransportObserved{on, epoch}` → `RefreshHostedEndpointEffect{generation}` | §4.2 |
+| fact / effect | ~~`RestTransportObserved` → `RefreshHostedEndpointEffect`~~ — not built: the listener never moves under a session (H4); *r14* `RestSwitchObserved` → `actionListener` (review B5) | §4.2 |
 | fact | `LocalAgentDiagnostics{generation, unknownEvents, unclassifiedCommands, droppedLines}` | coalesced: posted at each turn end and at Start, only when a count changed |
 
 The pop-up itself, the review dialog's layout and the composer highlight are rendering: they read the snapshot and the
@@ -1614,7 +1605,7 @@ code alone.
 | ★ P0 and P0b fixtures replayed: every recorded event kind parses; unknown kinds are tolerated and counted | protocol drift |
 | ★ multi-turn over one process → one handshake, two `TurnEnded` | start/stop per turn |
 | ★ stale output: a line from a killed process (old generation) or an old ticket is refused | a late `result` closing the next turn |
-| ★ default command line equals §4.3 exactly: `--tools "Read,Grep,Glob"`, `--restricted`, `--add-dir`, the env flag, `--strict-mcp-config`, the explicit `--allowedTools` and `--disallowedTools` (no wildcard), `dontAsk`, `--permission-prompts none`, the budget, whatever the person's `defaultMode` (witness: settings with `bypassPermissions` / `auto` leave the line unchanged) | posture leak |
+| ★ default command line equals §4.3 exactly: `--tools "Read,Grep,Glob"`, `--restricted`, `--add-dir`, the env flag, `--strict-mcp-config`, the explicit `--allowedTools` and `--disallowedTools` (no wildcard), the budget, whatever the person's `defaultMode` (witness: settings with `bypassPermissions` / `auto` leave the line unchanged). *r14 (review B9):* the permission flags are P1a's (`dontAsk`, `--permission-prompts none`) only as P1a built it; **from P3 the default line is `--permission-mode default --permission-prompts host --permission-prompt-tool stdio`** (§4.3), and that is what `ClaudeCodeProviderTest` pins | posture leak |
 | ★ `--allowedTools` ∩ `McpTools.destructiveVerbs()` = ∅, and `--disallowedTools` = hosted verbs − pre-allowed (witness: a verb added to `VerbSchemas` lands in the disallow list) | destructive or new verbs auto-approved or visible |
 | ★ posture assertion: fixtures with `permissionMode` ≠ expected, an extra tool (e.g. `p0b-default-posture` without the disallow list, so `report` is visible), an extra server, or a missing capability → the right verdict, the session stopped, no verb run | a widened session accepted |
 | ★ per-turn re-check: a later `system/init` with a new `session_id` or mode stops the session | drift after Start (e.g. `/clear`) |
@@ -1809,7 +1800,16 @@ live smoke's item 1 met the exchange directory for real.
   external client is. The warning (§5.1) and the FAQ say so. Defence in depth: the per-instance hosted endpoint file
   no longer carries the shared token — only the URL, the nonce and the generation's hosted credential — and
   `ActionServer` authenticates a call carrying `X-Analyser-Hosted` by that credential alone (an unknown or revoked one
-  is refused, never treated as external).
+  is refused, never treated as external). *r14 (review B2):* the panel says this while a full session runs with
+  external access open, and offers to close external access for the session (§4.2).
+- **A confirmed folder's own `.mcp.json` server can act as HOSTED** (*r14*, review L-f). In the full posture a server
+  the folder's `.mcp.json` names runs as the person, so it can read the per-instance endpoint file under
+  `~/.fluxtion-analyser/` and present the generation's hosted credential: to the analyser it is then the hosted
+  bridge, with the hosted bridge's verbs and the person's grants. The trust dialog names every `.mcp.json` server it
+  found, which is the person's chance to refuse; the analyser cannot tell the two callers apart.
+- **What full-folder trust does not re-check** (*r14*, review B7): files a `CLAUDE.md` imports with `@path`,
+  `CLAUDE.md` files in the folders above the working folder, and the contents of the scripts a hook runs. The dialog
+  says so (`FullFolderTrust.NOT_RECHECKED`); the spawn checks the folder's whole trust digest again (`TRUST_CHANGED`).
 
 **Defects in shipped code found by the r7 review (c7f2), fixed separately from M74** (r8). Each is a fix in its own
 right, with its own regression check, and **should go in ahead of P2**: both are small, independent of the local
@@ -2406,6 +2406,56 @@ write; the Settings children's listener dropped; the start page's first use not 
 (which first SURVIVED: the strip clipped its last row inside the page — the test now also requires every chip inside its
 strip and its group).
 
+## Implementation notes (r14 review fixes, 2026-10-17)
+
+The three final reviews of M74 are filed with their disposition tables: [P2](../handoff/review_m74_final_p2_2026-10-17.md),
+[P3 + UX](../handoff/review_m74_final_p3ux_2026-10-17.md) and [holistic](../handoff/review_m74_final_holistic_2026-10-17.md);
+the P1a holistic review's unrecorded findings are recovered, as far as the record allows, in
+[a note](../handoff/review_m74_p1a_holistic_recovered_2026-10-17.md). Every fix has a test with a wrong-result witness
+(rule 8): each was mutated, seen red at its named assertion, and restored. In order:
+
+- **P2-S1** a held project switch supersedes nothing: `sessionBoundary` hands a held request back to `operationGate`
+  (`held`), which restores what was current, and makes it the newest on Stop or Keep (`released`). A log open during the
+  offer no longer strands the switch; Cancel leaves an in-flight open current.
+- **P2-S2** the composer keeps every composed draft's highlight (earlier ranges pinned: a Swing highlight at the
+  document's end grows with each append); the send facts carry all bindings (`draftBindings`); both nodes refuse if any
+  is stale or unknown (`LocalAgentSession.UNKNOWN_DRAFT_WORDS`).
+- **P2-S3/S4/N-d** `ProposalPreview.atApply` re-resolves an item against the set-up folder's real path at apply and
+  refuses OUTSIDE; the preview has its tests; the free-text rule is tested through the real parser and adapter; `fqnOf`
+  reads at most 64 KB.
+- **P2-S5/S6/N-e** an example line's label is checked like any entry's; a `telaminai` address is *"a Telamin repository
+  address (the code may come from a fork)"* (OD-74.30); a redirect stays within the owner and repository; `.`/`..` are
+  refused.
+- **P2-S7** a body-read watchdog (5 min), a confirmation performer that answers `CONFIRM_FAILED` when it throws, and a
+  deadline per fetch and unpack in `exampleDownload` (`StartExampleClockEffect` → `ExampleDeadlinePassed`).
+- **P2 nits** the onboarding check answers `PENDING` while a load is in flight and is asked again after it (N-a); dropped
+  walk bindings ride with the config that was read and `sessionBoundary` says them (N-b, rule 9); a dropped pack is read
+  off the EDT, only an ordinary file, `NOT_READABLE` for a failed read (N-c); honest sanitiser words (N-f); v2: an edit
+  clears `truncated`, a non-boolean one is refused, `source.model`/`cliVersion` bounded (N-g).
+- **P3-S1** a grant bound to a `tool_use_id` needs that id on the call. **P3-S2** `Json` refuses nesting past 512; a deep
+  `control_request` is named by a shallow scan and denied; the reader counts anything that throws and reads on.
+  **P3-S3** the untrue claims replaced and pinned in `FaqSecurityContractTest`. **P3-S4** `assistantProfile` asks for
+  `ChooseAssistantModeEffect`; `AssistantProfileApplied.ok` is the real save, a failed one restoring the settings.
+- **P3 nits** one switches-to-card mapping (`AssistantProfiles.storedFromSwitches`, N1); ExitPlanMode / EnterPlanMode
+  denied by policy with a note (N2); `FactFieldsTest` closes the STRUCTURE and VOCABULARY evasions (N3); a request while
+  STOPPING is denied (N4); look-alike spaces escaped, the `rawMember` comment corrected (N5); Allow is never default
+  capable (N6).
+- **Holistic** B2/B5 the `actionListener` node (§4.2); B4 `HostedCallAbandoned`; B6 Off is *"No assistant in the
+  analyser"*, the external-access line under the cards, the guide's *The in-app assistant*; B7 the spawn checks the full
+  trust digest (`TRUST_CHANGED`) and the dialog says what is not re-checked; B8 `ExternalRestWithHostedSessionFrameTest`
+  (adopted), `CiFrameListsTest`, HTML documents as SF-2 doors, a literal permission-policy table; B9 this revision's
+  §4.2, §10 and status edits; L-a credential before bucket; L-b/L-g CHANGELOG; L-c `spec.md`; L-d the ask labels'
+  dependence on the mode; L-e the fork warning only once a conversation exists; L-f §11.
+- **Owner UI feedback (2026-10-17)** the start page's *Or open directly* is five titled blocks in a responsive grid
+  (`StartPanel.BlockGrid`, `BlockColumn`; `UiTheme` spacing tokens and `TARGET_MIN_HEIGHT`), buttons at least 32 px
+  with a focus ring; `StartWorkspaceFrameTest` checks blocks and grid at both widths.
+- **Not done in this pass** (each recorded with its reason in the review files): B1 (the owner merges), B10
+  (`LocalAgentWiring`, proposed in the tracker), B11 (OD-74.2 and a one-page security model), B8's CLI-drift canary and
+  managed-settings probe (tracker), and the spec split (B9: proposed in the tracker, not done).
+- The processor was regenerated for each new handler (`ExampleDeadlinePassed`, `onLogOpened`/`onGraphOpened` of
+  `onboardingProposal`, `ProfileApplied` in `sessionBoundary`, `HostedCallAbandoned`, `actionListener`); the generated
+  header is unchanged.
+
 ## Revision history
 
 - **r1, r2** (2026-10-16): the long-running session design; two independent reviews (`[R …]`, `[R2-n]` tags).
@@ -2508,3 +2558,9 @@ strip and its group).
   modes, the profile overlay, Settings ▸ Assistant by profile, neutral naming until the later rename) and the four P3
   leftovers, built on `feature/claude-code-p3`; §5.1, §5.2, §5.8 and §5.9 annotated in place; *Implementation notes (UX)*
   added.
+- **r14** (2026-10-17): the three final reviews of M74 (P2, P3 + UX, holistic) filed with disposition tables, and their
+  findings fixed in place, marked *r14*: §4.2 (the `actionListener` node, review B5/B2; `HostedCallAbandoned`, B4; the
+  credential before the bucket, L-a; the dead `RestTransportObserved` / `RefreshHostedEndpointEffect` text deleted, B9),
+  §10's command-line row (B9), §11 (the `.mcp.json` server acting as hosted, L-f; what full trust does not re-check, B7),
+  OD-74.30 (a Telamin address, P2-S6) and the status block trimmed (B9); the owner's start-page layout feedback;
+  *Implementation notes (r14 review fixes)* added.
