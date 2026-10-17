@@ -159,7 +159,7 @@ class ConversationJourneyFrameTest {
             settled(f, 1);
             onEdt(() -> panel(f.frame).askAboutEvidenceButton().doClick());
             await("the demonstration ended", () -> !walk(f).showing());
-            assertEquals("Live assistant", mode(f));
+            assertEquals(" ", mode(f), "review M74 usability §6: live, the Assistant control names it; only a demo says its mode");
             onEdt(() -> assertEquals("", panel(f.frame).draftText(), "the fresh thread starts empty: nothing of the demo is carried"));
             provider.replies.add("Your own answer.");
             onEdt(() -> {

@@ -112,20 +112,28 @@ class StartPromptViewTest {
 
     /** ★ Witness: bind the plain digit keys to choose — a typed "3" in the box then chooses S3 and this fails. */
     @Test
-    @DisplayName("★ Up/Down/Enter choose; Alt+1–Alt+9 choose the first nine; a typed digit is a digit; each row is named")
+    @DisplayName("★ Up/Down/Enter choose; Alt+1–Alt+9 (⌘1–⌘9 on macOS) choose the first nine; a digit is a digit; rows named")
     void keyboardAndNames() throws Exception {
         onEdt(() -> {
             StartPromptView v = new StartPromptView(new Host());
             v.render(route(StartPageState.Route.IN_APP), LocalAgentState.IDLE);
             JList<StartPromptView.Row> list = v.promptList();
-            // the view's own ancestor binding: it fires for a key in the box or the list (wherever the focus is in it)
-            bind(v, KeyStroke.getKeyStroke(KeyEvent.VK_3, InputEvent.ALT_DOWN_MASK),
-                    JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT);
-            assertEquals("S3", v.chosen().id(), "Alt+3");
-            assertNull(v.getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT)
+            // review M74 usability #18: the page's window binding, with the platform's modifier (⌘ on macOS, where ⌥+digit
+            // TYPES a character into the focused box), so it fires wherever the focus is on the page
+            bind(v, KeyStroke.getKeyStroke(KeyEvent.VK_3, StartPromptView.chooserMask()), JComponent.WHEN_IN_FOCUSED_WINDOW);
+            assertEquals("S3", v.chosen().id(), "the platform's shortcut for 3");
+            assertNull(v.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW)
                     .get(KeyStroke.getKeyStroke(KeyEvent.VK_3, 0)), "a plain digit is not bound");
-            assertNull(v.getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT)
-                    .get(KeyStroke.getKeyStroke(KeyEvent.VK_0 + 10 % 10, InputEvent.ALT_DOWN_MASK)), "no mnemonic past 9");
+            assertNull(v.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW)
+                    .get(KeyStroke.getKeyStroke(KeyEvent.VK_0 + 10 % 10, StartPromptView.chooserMask())), "none past 9");
+            if (StartPromptView.mac()) {
+                assertEquals(InputEvent.META_DOWN_MASK, StartPromptView.chooserMask(), "⌘ on macOS, never ⌥");
+                assertNull(v.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).get(KeyStroke.getKeyStroke(KeyEvent.VK_3,
+                        InputEvent.ALT_DOWN_MASK)), "⌥3 types ¡ on a Mac: it is not a shortcut there");
+                assertEquals("⌘1", StartPromptView.shortcutText("1"));
+            } else {
+                assertEquals("Alt+1", StartPromptView.shortcutText("1"));
+            }
             v.box().replaceSelection("1");
             assertEquals("1", v.box().getText(), "typed into the box");
             assertEquals("S3", v.chosen().id(), "and chose nothing");
@@ -221,12 +229,85 @@ class StartPromptViewTest {
             assertFalse(v.fullBadge().isVisible(), "the default posture: no cue");
             v.render(route(StartPageState.Route.CLAUDE_CODE), fullOn(LocalAgentPosture.FullMode.ACCEPT_EDITS));
             assertTrue(v.fullBadge().isVisible());
-            assertTrue(v.fullBadge().getText().contains("Full Claude Code · acceptEdits: your tools and permissions"),
+            assertTrue(v.fullBadge().getText().contains("Full Claude Code (acceptEdits) — on: it runs at the next Start"),
                     v.fullBadge().getText());
             assertTrue(v.fullBadge().getText().startsWith("◆◆"), "acceptEdits is the strong cue: not colour alone");
             assertNotNull(v.fullBadge().getToolTipText());
             v.render(route(StartPageState.Route.IN_APP), fullOn(LocalAgentPosture.FullMode.ACCEPT_EDITS));
             assertFalse(v.fullBadge().isVisible(), "a question for the in-app assistant: no cue");
+            return null;
+        });
+    }
+
+    // ---- review M74 usability #9, #15, S4, S6 -----------------------------------------------------------------------
+
+    /**
+     * ★ #15: the start box and the composer agree — Enter sends, Shift+Enter is a newline — and the hint says so.
+     * Witness: drop the box's Enter binding (as before) — Enter inserts a newline and no press is reported.
+     */
+    @Test
+    @DisplayName("★ Enter in the start box sends, Shift+Enter is a newline — the composer's keys; the hint says so")
+    void enterSendsAsTheComposerDoes() throws Exception {
+        onEdt(() -> {
+            Host h = new Host();
+            StartPromptView v = new StartPromptView(h);
+            v.render(route(StartPageState.Route.IN_APP), LocalAgentState.IDLE);
+            v.box().setText("what does this log show?");
+            bind(v.box(), KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), JComponent.WHEN_FOCUSED);
+            assertEquals(List.of("NONE|what does this log show?"), h.presses, "Enter is the button");
+            assertEquals("insert-break", v.box().getInputMap(JComponent.WHEN_FOCUSED)
+                    .get(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, InputEvent.SHIFT_DOWN_MASK)), "Shift+Enter: a newline");
+            assertEquals("insert-break", new AssistantSurface().draft.getInputMap(JComponent.WHEN_FOCUSED)
+                    .get(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, InputEvent.SHIFT_DOWN_MASK)), "as in the composer");
+            assertEquals(StartPromptView.KEY_HINT, v.box().getAccessibleContext().getAccessibleDescription());
+            assertEquals(StartPromptView.PLACEHOLDER, v.box().getClientProperty("JTextField.placeholderText"));
+            return null;
+        });
+    }
+
+    /**
+     * ★ #9: the main action is the page's strongest control — accent-filled while it can be pressed, as tall as the box
+     * and at least 32 px, at the box's right edge. Witness: leave it the theme's plain 23 px button — the height assertion
+     * fails.
+     */
+    @Test
+    @DisplayName("★ the main action: accent fill, 32 px or more, beside the box at its right edge")
+    void theMainActionIsTheStrongest() throws Exception {
+        onEdt(() -> {
+            StartPromptView v = new StartPromptView(new Host());
+            v.render(route(StartPageState.Route.IN_APP), LocalAgentState.IDLE);
+            v.box().setText("a question");
+            JButton b = v.actionButton();
+            assertTrue(b.isEnabled());
+            assertTrue(b.getPreferredSize().height >= UiTheme.TARGET_MIN_HEIGHT, "height " + b.getPreferredSize().height);
+            assertEquals(UiTheme.accent(), b.getBackground(), "the accented primary");
+            assertEquals(UiTheme.onAccent(), b.getForeground());
+            assertSame(v.boxScroll().getParent(), b.getParent().getParent(), "in the box's own row");
+            assertEquals(java.awt.BorderLayout.EAST, ((java.awt.BorderLayout) b.getParent().getParent().getLayout())
+                    .getConstraints(b.getParent()), "at the box's right edge");
+            v.box().setText("");
+            assertFalse(b.isEnabled());
+            assertNotEquals(UiTheme.accent(), b.getBackground(), "an accent fill only while it can be pressed");
+            return null;
+        });
+    }
+
+    /** S4: a second click on the same prompt entry does not append its text again; S6: no label without buttons. */
+    @Test
+    @DisplayName("S4: choosing a prompt entry twice appends it once; S6: the no-AI label shows only with its buttons")
+    void noDuplicateAppendAndNoEmptyFallbackLabel() throws Exception {
+        onEdt(() -> {
+            StartPromptView v = new StartPromptView(new Host());
+            v.render(route(StartPageState.Route.IN_APP), LocalAgentState.IDLE);
+            int prompt = -1;
+            for (int i = 0; i < v.promptList().getModel().getSize(); i++) {
+                if (v.promptList().getModel().getElementAt(i).text() != null) { prompt = i; break; }
+            }
+            assertTrue(prompt >= 0, "control: a prompt entry exists");
+            v.choose(prompt);
+            String once = v.box().getText();
+            v.choose(prompt);
+            assertEquals(once, v.box().getText(), "the same entry twice: appended once");
             return null;
         });
     }

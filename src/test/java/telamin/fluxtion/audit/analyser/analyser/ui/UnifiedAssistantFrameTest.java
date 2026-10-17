@@ -98,18 +98,18 @@ class UnifiedAssistantFrameTest {
                 assertTrue(shown.contains("• nothing is open"), "a list is a list: " + shown);
                 assertEquals("In-app assistant", chips(a).get(0), "the header's chips: " + chips(a));
                 assertTrue(chips(a).contains("API key"), chips(a).toString());
-                assertEquals(AssistantPanel.MODE_IN_APP, a.modeSelector().getSelectedItem(), "the mode, as one selector");
+                assertTrue(a.profileButton().getText().startsWith("Assistant: "), "one control for how the assistant "
+                        + "works: " + a.profileButton().getText());
                 assertEquals(AssistantPanel.IN_APP_LIMITS, a.limitsLine().getText(), "what in-app cannot do, said");
                 assertTrue(((javax.swing.JButton) field(a, "copyPrompt")).isVisible());
                 assertFalse(a.surface().start.isVisible(), "in-app has no Start");
-                a.modeSelector().setSelectedIndex(0);                       // the person chooses Claude Code
+                a.chooseModeForTest(AssistantMode.LOCAL_AGENT);                       // the person chooses Claude Code
             });
             awaitMode(f.frame, AssistantMode.LOCAL_AGENT);
             onEdt(() -> {
                 AssistantPanel a = AssistantLiveFrameTest.panel(f.frame);
                 assertEquals(List.of(a.conversationView()), all(a, TranscriptView.class), "still one transcript");
                 assertEquals("Claude Code", chips(a).get(0), "the same chips row, Claude Code's: " + chips(a));
-                assertEquals(AssistantPanel.MODE_CLAUDE_CODE, a.modeSelector().getSelectedItem());
                 assertTrue(a.surface().start.isVisible(), "Start, in the one composer's row");
                 assertFalse(((javax.swing.JButton) field(a, "copyPrompt")).isVisible(), "Copy prompt is the in-app mode's");
                 assertEquals(LocalAgentPanel.OFF_LIMITS.equals(a.limitsLine().getText()) || LocalAgentPanel.SAFE_LIMITS
@@ -117,7 +117,7 @@ class UnifiedAssistantFrameTest {
                         + a.limitsLine().getText());
                 assertFalse(a.conversationView().getText().contains("What is open?"),
                         "Claude Code's conversation is its own: the in-app turns are not shown as Claude Code's");
-                a.modeSelector().setSelectedIndex(1);
+                a.chooseModeForTest(AssistantMode.IN_APP);
             });
             awaitMode(f.frame, AssistantMode.IN_APP);
             onEdt(() -> {
@@ -144,14 +144,16 @@ class UnifiedAssistantFrameTest {
                 AssistantPanel a = AssistantLiveFrameTest.panel(f.frame);
                 line.set(a.limitsLine());
                 assertEquals(AssistantPanel.IN_APP_NO_KEY, a.limitsLine().getText());
-                a.modeSelector().setSelectedIndex(0);
+                a.chooseModeForTest(AssistantMode.LOCAL_AGENT);
             });
             awaitMode(f.frame, AssistantMode.LOCAL_AGENT);
             onEdt(() -> {
                 AssistantPanel a = AssistantLiveFrameTest.panel(f.frame);
                 assertSame(line.get(), a.limitsLine(), "the same line");
                 assertNotEquals(AssistantPanel.IN_APP_NO_KEY, a.limitsLine().getText(), "Claude Code's own words there");
-                assertTrue(a.limitsLine().getText().contains("Profile…"), a.limitsLine().getText());
+                // review M74 usability A2: Safe analysis says what it does; it no longer presses toward Full on every view
+                assertTrue(a.limitsLine().getText().contains("Assistant ▾")
+                        || a.limitsLine().getText().equals(LocalAgentPanel.SAFE_LIMITS), a.limitsLine().getText());
             });
         }
     }

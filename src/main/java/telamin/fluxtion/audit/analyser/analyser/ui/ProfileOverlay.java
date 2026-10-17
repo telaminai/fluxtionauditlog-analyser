@@ -73,9 +73,9 @@ public final class ProfileOverlay extends JPanel {
     /** Review B6: the one line under the cards — the external loop, on or off, and where it is set. */
     static String externalLine(boolean externalOn) {
         return externalOn
-                ? "External MCP / REST access is ON: an MCP client or a REST caller on this machine can drive the analyser "
+                ? "External MCP/REST access is ON: an MCP client or a REST caller on this machine can drive the analyser "
                         + "— Settings ▸ Assistant turns it off."
-                : "External MCP / REST access is off — Settings ▸ Assistant turns it on for an MCP client or a REST caller.";
+                : "External MCP/REST access is off — Settings ▸ Assistant turns it on for an MCP client or a REST caller.";
     }
 
     static String cardLine(AssistantProfile p) {
@@ -422,7 +422,7 @@ public final class ProfileOverlay extends JPanel {
     }
 
     private void applyColours() {
-        refusal.setForeground(ThemeManager.isDark() ? new Color(0xFF7B72) : new Color(0xCF222E));
+        refusal.setForeground(UiTheme.errorForeground());
         why.setForeground(UiTheme.mutedForeground());
         recolour.forEach(Runnable::run);
     }
@@ -454,12 +454,26 @@ public final class ProfileOverlay extends JPanel {
             setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         }
 
+        /** Review M74 usability #1: the card is as tall as its text needs at its width — the line is never cut. */
         @Override
         public Dimension getPreferredSize() {
             Font f = UIManager.getFont("Label.font");
             if (f == null) f = getFont();
-            int lh = getFontMetrics(f).getHeight();
-            return new Dimension(220, 14 + lh + 4 + 2 * lh + 10);
+            FontMetrics big = getFontMetrics(f.deriveFont(Font.BOLD, f.getSize2D() + 0.5f));
+            FontMetrics sm = getFontMetrics(f.deriveFont(Font.PLAIN, f.getSize2D() - 1f));
+            int width = getWidth() > 0 ? getWidth() : 300;
+            int lines = Math.max(2, wrap(sm, cardLine(profile), width - 2 * TEXT_INSET, 0).size());
+            return new Dimension(220, 10 + big.getHeight() + 4 + lines * sm.getHeight() + 12);
+        }
+
+        @Override
+        public void setBounds(int x, int y, int w, int h) {
+            int was = getWidth();
+            super.setBounds(x, y, w, h);
+            // a new width can change how many lines the text needs: ask the grid again (it settles: the height follows)
+            if (was != w && getParent() != null) SwingUtilities.invokeLater(() -> {
+                if (getParent() != null && getPreferredSize().height != getHeight()) getParent().revalidate();
+            });
         }
 
         @Override
@@ -468,21 +482,31 @@ public final class ProfileOverlay extends JPanel {
             g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
             boolean on = isSelected();
-            boolean hot = getModel().isRollover() || isFocusOwner();
+            boolean focused = isFocusOwner();
+            boolean hot = getModel().isRollover() || focused;
             int w = getWidth(), h = getHeight();
-            RoundRectangle2D shape = new RoundRectangle2D.Float(1f, 1f, w - 2f, h - 2f, 10, 10);
+            // review §4.2 (WCAG 2.4.7, 1.4.11): the focus ring is OUTSIDE the card, 2 px of the accent, as ActionChip's
+            int in = 3;
+            RoundRectangle2D shape = new RoundRectangle2D.Float(in, in, w - 2f * in, h - 2f * in, UiTheme.CONTROL_RADIUS,
+                    UiTheme.CONTROL_RADIUS);
             g.setColor(on ? UiTheme.accentWash(0.20f) : hot ? UiTheme.accentWash(0.10f) : UiTheme.accentWash(0.04f));
             g.fill(shape);
-            g.setColor(on ? UiTheme.accent() : UiTheme.mix(UiTheme.surfaceEdge(), UiTheme.accent(), hot ? 0.6f : 0.3f));
+            g.setColor(on || hot ? UiTheme.accent() : UiTheme.controlBorder());
             g.setStroke(new BasicStroke(on ? 2f : 1f));
             g.draw(shape);
+            if (focused) {
+                g.setColor(UiTheme.accent());
+                g.setStroke(new BasicStroke(2f));
+                g.draw(new RoundRectangle2D.Float(1f, 1f, w - 2f, h - 2f, UiTheme.CONTROL_RADIUS + 3,
+                        UiTheme.CONTROL_RADIUS + 3));
+            }
             Font base = UIManager.getFont("Label.font");
             if (base == null) base = getFont();
             Font bold = base.deriveFont(Font.BOLD, base.getSize2D() + 0.5f);
             Font small = base.deriveFont(Font.PLAIN, base.getSize2D() - 1f);
             g.setFont(bold);
             FontMetrics fm = g.getFontMetrics();
-            int x = 12, y = 10 + fm.getAscent();
+            int x = TEXT_INSET, y = 10 + fm.getAscent();
             g.setColor(on ? UiTheme.accentText() : UIManager.getColor("Label.foreground"));
             String head = (on ? "✓ " : "") + profile.title() + (profile == AssistantProfile.SAFE ? "  · default" : "");
             g.drawString(head, x, y);
@@ -490,7 +514,10 @@ public final class ProfileOverlay extends JPanel {
             FontMetrics sm = g.getFontMetrics();
             g.setColor(UiTheme.mutedForeground());
             int yy = y + 4;
-            for (String l : wrap(sm, cardLine(profile), w - 24, 2)) {
+            // as many lines as the card has room for; if it is ever short of room the last line ends in "…" and the
+            // whole line is the tooltip and the accessible description — never dropped silently
+            int room = Math.max(1, (h - yy - 8) / sm.getHeight());
+            for (String l : wrap(sm, cardLine(profile), w - 2 * TEXT_INSET, room)) {
                 yy += sm.getHeight();
                 g.drawString(l, x, yy);
             }
@@ -498,27 +525,36 @@ public final class ProfileOverlay extends JPanel {
         }
     }
 
-    private static List<String> wrap(FontMetrics fm, String text, int width, int maxLines) {
+    /** The card's left and right text inset. */
+    static final int TEXT_INSET = 14;
+
+    /**
+     * Word-wrap {@code text} to {@code width}. With {@code maxLines > 0} and more text than fits, the last line ends in
+     * "…" — words are NEVER dropped silently (review M74 usability #1: the old loop broke at the limit and its ellipsis
+     * branch could never fire, so the Safe analysis card's promise stopped mid-sentence). {@code maxLines <= 0}: every line.
+     */
+    static List<String> wrap(FontMetrics fm, String text, int width, int maxLines) {
         java.util.List<String> out = new java.util.ArrayList<>();
         StringBuilder line = new StringBuilder();
         for (String word : text.split(" ")) {
+            if (word.isEmpty()) continue;
             String next = line.isEmpty() ? word : line + " " + word;
-            if (fm.stringWidth(next) <= width || line.isEmpty()) {
+            if (line.isEmpty() || fm.stringWidth(next) <= width) {
                 line.setLength(0);
                 line.append(next);
             } else {
                 out.add(line.toString());
                 line.setLength(0);
                 line.append(word);
-                if (out.size() == maxLines) break;
             }
         }
-        if (out.size() < maxLines && !line.isEmpty()) out.add(line.toString());
-        if (out.size() == maxLines && fm.stringWidth(out.get(maxLines - 1)) > width) {
-            String s = out.get(maxLines - 1);
-            while (s.length() > 1 && fm.stringWidth(s + "…") > width) s = s.substring(0, s.length() - 1);
-            out.set(maxLines - 1, s + "…");
-        }
-        return out;
+        if (!line.isEmpty()) out.add(line.toString());
+        if (maxLines <= 0 || out.size() <= maxLines) return out;
+        // more lines than room: keep maxLines, the last one ellipsised so the cut is visible
+        java.util.List<String> kept = new java.util.ArrayList<>(out.subList(0, maxLines));
+        String last = kept.get(maxLines - 1) + " " + out.get(maxLines);
+        while (last.length() > 1 && fm.stringWidth(last + "…") > width) last = last.substring(0, last.length() - 1);
+        kept.set(maxLines - 1, last.stripTrailing() + "…");
+        return kept;
     }
 }

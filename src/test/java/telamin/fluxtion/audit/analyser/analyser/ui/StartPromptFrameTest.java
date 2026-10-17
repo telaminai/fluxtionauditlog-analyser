@@ -160,7 +160,7 @@ class StartPromptFrameTest {
 
     /** ★ r8 F19: the page's keyboard on a real frame, in both themes; a typed digit in the box is a digit. */
     @Test
-    @DisplayName("★ Alt+2 chooses S2 and the button follows it, in light and in dark")
+    @DisplayName("★ Alt+2 (⌘2 on macOS) chooses S2 and the button follows it, in light and in dark")
     void keyboardInBothThemes(@TempDir Path tmp) throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless(), "a real display is required");
         javax.swing.LookAndFeel original = javax.swing.UIManager.getLookAndFeel();
@@ -174,10 +174,11 @@ class StartPromptFrameTest {
                     SwingUtilities.updateComponentTreeUI(f.frame);
                     StartPromptView prompt = startPanel(f.frame).prompt();
                     prompt.unchoose();
-                    KeyStroke ks = KeyStroke.getKeyStroke(KeyEvent.VK_2, InputEvent.ALT_DOWN_MASK);
-                    Object name = prompt.getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).get(ks);
+                    // review M74 usability #18: the platform's modifier (⌘ on macOS), bound for the window
+                    KeyStroke ks = KeyStroke.getKeyStroke(KeyEvent.VK_2, StartPromptView.chooserMask());
+                    Object name = prompt.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).get(ks);
                     KeyEvent e = new KeyEvent(prompt.box(), KeyEvent.KEY_PRESSED, System.currentTimeMillis(),
-                            InputEvent.ALT_DOWN_MASK, KeyEvent.VK_2, KeyEvent.CHAR_UNDEFINED);
+                            StartPromptView.chooserMask(), KeyEvent.VK_2, KeyEvent.CHAR_UNDEFINED);
                     assertTrue(SwingUtilities.notifyAction(prompt.getActionMap().get(name), ks, e, prompt.box(),
                             e.getModifiersEx()));
                     assertEquals("S2", prompt.chosen().id(), theme);

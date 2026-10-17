@@ -79,8 +79,8 @@ class StartWorkspaceFrameTest {
     /** M74 UX (owner, 2026-10-17): the strip's actions, by accessible name — the old cards' titles. */
     static final List<String> DIRECT = List.of("Take a guided tour", "Open sample project", "Open project",
             "Open evidence bundle", "Open audit log", "Open GraphML", "Create project profile", "Create from template",
-            "Connect Codex", "Connect Claude", "Generic MCP setup", "Source and assistant settings…",
-            "Fluxtion API key — not found");
+            "Connect Codex", "Connect Claude", "Other MCP client — set up", "Settings — source and assistant…",
+            "Fluxtion key — not found");
 
     /**
      * M74 UX: ONE start-page surface — the prompt leads, the old cards' actions follow as a compact strip (icon + short

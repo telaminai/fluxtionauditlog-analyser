@@ -14,10 +14,10 @@ class ProfileCardsWordsTest {
 
     /** ★ Witness: render the external line from a constant (always "off") — the ON assertion fails. */
     @Test
-    @DisplayName("★ under the cards: external MCP / REST access on or off, with where to change it; Off leaves it alone")
+    @DisplayName("★ under the cards: External MCP/REST access on or off, with where to change it; Off leaves it alone")
     void theExternalLoopIsSaid() throws Exception {
-        assertTrue(ProfileOverlay.externalLine(true).startsWith("External MCP / REST access is ON"));
-        assertTrue(ProfileOverlay.externalLine(false).startsWith("External MCP / REST access is off"));
+        assertTrue(ProfileOverlay.externalLine(true).startsWith("External MCP/REST access is ON"));
+        assertTrue(ProfileOverlay.externalLine(false).startsWith("External MCP/REST access is off"));
         assertTrue(ProfileOverlay.externalLine(true).contains("Settings ▸ Assistant"));
         assertTrue(ProfileOverlay.cardLine(AssistantProfile.OFF).startsWith("No assistant in the analyser"));
         assertTrue(ProfileOverlay.detailLines(AssistantProfile.OFF).stream().anyMatch(l -> l.contains("not affected")));
@@ -26,14 +26,14 @@ class ProfileCardsWordsTest {
                 "the cards' defaults carry the REST switch as it is");
     }
 
-    /** Review B6: one vocabulary — the guide's heading names the in-app assistant as the card and the selector do. */
+    /** Review B6: one vocabulary — the guide's heading names the in-app assistant as the card and the Assistant control do. */
     @Test
-    @DisplayName("the guide calls it the in-app assistant, as the card and the selector do")
+    @DisplayName("the guide calls it the in-app assistant, as the card and the Assistant control do")
     void oneVocabulary() throws Exception {
         String guide = Files.readString(Path.of("docs/site/user-guide/assistant.md"));
         assertTrue(guide.contains("\n## The in-app assistant\n"));
         assertFalse(guide.contains("## The onboard assistant"));
         assertEquals("In-app assistant", AssistantProfile.IN_APP.title());
-        assertEquals("In-app · API key", AssistantPanel.MODE_IN_APP);
+        assertEquals("Assistant: In-app assistant ▾", AssistantPanel.assistantControlText(AssistantProfile.IN_APP));
     }
 }

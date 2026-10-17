@@ -213,11 +213,11 @@ public final class StartPanel extends JPanel {
                         () -> actions.openMcpSetup(McpSetupDialog.Target.CODEX)),
                 chip("Connect Claude", "Claude", "Set up the local bridge for Claude.",
                         () -> actions.openMcpSetup(McpSetupDialog.Target.CLAUDE_CODE)),
-                chip("Generic MCP setup", "Other MCP client", "Prepare this analyser for another MCP client.",
+                chip("Other MCP client — set up", "Other MCP client", "Prepare this analyser for another MCP client.",
                         () -> actions.openMcpSetup(McpSetupDialog.Target.GENERIC))));
         directStrip.add(group("Settings",
                 "Source settings apply to the open project, or to global defaults when no project is open.",
-                chip("Source and assistant settings…", "Settings",
+                chip("Settings — source and assistant…", "Settings",
                         "Source settings apply to the open project, or to global defaults when no project is open.",
                         actions::openSettings),
                 fluxtionKeyCard));
@@ -478,7 +478,7 @@ public final class StartPanel extends JPanel {
     /** Refresh after the management dialog closes; the stored value never enters this component. */
     public void refreshFluxtionKeyStatus() {
         boolean present = actions.fluxtionKeyPresent();
-        fluxtionKeyCard.setCopy(present ? "Fluxtion API key — found" : "Fluxtion API key — not found",
+        fluxtionKeyCard.setCopy(present ? "Fluxtion key — found" : "Fluxtion key — not found",
                 present ? "Fluxtion key ✓" : "Fluxtion key",
                 present
                         ? "Available for a future processor regeneration; this analyser does not validate it."
@@ -951,6 +951,20 @@ public final class StartPanel extends JPanel {
         return out;
     }
 
+    /**
+     * Review M74 usability §4.4 (WCAG 2.5.3, label in name): a chip's accessible name CONTAINS its visible label, so a
+     * person who says "click Other MCP client" reaches it; a title that does not already contain the label is prefixed
+     * with it.
+     */
+    static String accessibleName(String title, String label) {
+        String shown = label == null ? "" : label.replace("✓", "").strip();
+        String t = title == null ? "" : title;
+        if (shown.isEmpty() || t.toLowerCase(java.util.Locale.ROOT).contains(shown.toLowerCase(java.util.Locale.ROOT))) {
+            return t;
+        }
+        return t.isEmpty() ? shown : shown + " — " + t;
+    }
+
     private ActionChip chip(String title, String label, String why, Runnable go) {
         ActionChip c = new ActionChip(title, label, why, go);
         recolour.add(c::repaint);
@@ -1043,7 +1057,7 @@ public final class StartPanel extends JPanel {
             this.label = label;
             this.why = why;
             setToolTipText(why == null || why.isBlank() ? null : UiText.tooltip(why));
-            getAccessibleContext().setAccessibleName(title);
+            getAccessibleContext().setAccessibleName(accessibleName(title, label));
             getAccessibleContext().setAccessibleDescription(why);
             revalidate();
             repaint();
@@ -1092,7 +1106,8 @@ public final class StartPanel extends JPanel {
             RoundRectangle2D shape = new RoundRectangle2D.Float(2.5f, 2.5f, w - 5f, h - 5f, arc, arc);
             g.setColor(hot ? UiTheme.accentWash(0.16f) : UiTheme.accentWash(0.06f));
             g.fill(shape);
-            g.setColor(hot || focused ? UiTheme.accent() : UiTheme.mix(UiTheme.surfaceEdge(), UiTheme.accent(), 0.35f));
+            // review §4.1: the outline at rest is a control's boundary — 3:1 on the surface (it was 2.06:1)
+            g.setColor(hot || focused ? UiTheme.accent() : UiTheme.controlBorder());
             g.draw(shape);
             if (focused) {
                 g.setStroke(new BasicStroke(2f));
@@ -1142,14 +1157,14 @@ public final class StartPanel extends JPanel {
                 icon.fillOval(1, 1, 5, 5);
                 icon.fillOval(11, 3, 5, 5);
                 icon.fillOval(5, 11, 5, 5);
-            } else if (t.startsWith("Connect") || t.startsWith("Generic MCP")) {
+            } else if (t.startsWith("Connect") || t.startsWith("Other MCP")) {
                 icon.drawRoundRect(0, 4, 6, 9, 2, 2);
                 icon.drawRoundRect(11, 4, 6, 9, 2, 2);
                 icon.drawLine(6, 8, 11, 8);
             } else if (t.startsWith("Open project")) {
                 icon.drawPolyline(new int[]{1, 1, 6, 8, 16, 16, 1},
                         new int[]{14, 3, 3, 5, 5, 14, 14}, 7);
-            } else if (t.startsWith("Source and assistant settings")) {
+            } else if (t.startsWith("Settings — source")) {
                 icon.drawOval(4, 4, 9, 9);
                 for (int k = 0; k < 8; k++) {
                     double a = k * Math.PI / 4;

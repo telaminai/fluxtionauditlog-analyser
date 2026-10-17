@@ -37,14 +37,14 @@ class LocalAgentPanelCueTest {
                 p.render(state("OFF", LocalAgentPosture.ANALYSER_ASSISTANT, LocalAgentPosture.full(m), null));
                 assertTrue(p.fullBadge().isVisible(), m.name());
                 assertEquals((m == LocalAgentPosture.FullMode.AUTO || m == LocalAgentPosture.FullMode.ACCEPT_EDITS ? "◆◆ " : "◆ ")
-                        + "Full Claude Code · " + m.cli() + ": your tools and permissions — on: it runs at the next "
-                        + "Start", p.fullBadge().getText());
+                        + "Full Claude Code (" + m.cli() + ") — on: it runs at the next Start · your tools and "
+                        + "permissions", p.fullBadge().getText());
                 assertEquals("Send to full Claude Code", p.sendButton().getText());
                 assertNotNull(p.fullBadge().getAccessibleContext().getAccessibleName());
                 assertInstanceOf(LineBorder.class, p.draftScroll().getBorder());
             }
             p.render(state("READY", LocalAgentPosture.full(LocalAgentPosture.FullMode.PLAN), null, null));
-            assertTrue(p.fullBadge().getText().endsWith("— running"), p.fullBadge().getText());
+            assertTrue(p.fullBadge().getText().contains("(plan) — running"), "the state first: " + p.fullBadge().getText());
             p.render(state("READY", LocalAgentPosture.ANALYSER_ASSISTANT, LocalAgentPosture.full(LocalAgentPosture.FullMode.PLAN),
                     null));
             assertFalse(p.fullBadge().isVisible(), "running in the DEFAULT posture: no cue, whatever the settings now say");

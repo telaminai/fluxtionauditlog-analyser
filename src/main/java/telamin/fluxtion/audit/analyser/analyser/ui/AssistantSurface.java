@@ -32,7 +32,14 @@ final class AssistantSurface {
 
     final TranscriptView view = new TranscriptView();
     final JScrollPane viewScroll = new JScrollPane(view);
-    final JTextArea draft = new JTextArea(3, 40);
+    final JTextArea draft = new JTextArea(3, 40) {
+        @Override protected void paintComponent(java.awt.Graphics g) {
+            super.paintComponent(g);
+            UiTheme.paintPlaceholder(this, g, COMPOSER_PLACEHOLDER);
+        }
+    };
+    /** Review M74 usability #15: the composer's keys, said where they apply while it is empty. */
+    static final String COMPOSER_PLACEHOLDER = "Your question — Enter sends, Shift+Enter starts a new line";
     final JScrollPane draftScroll = new JScrollPane(draft);
     /** The full-posture badge above the composer (owner request, OD-74.27). */
     final JLabel fullBadge = UiText.label(" ");
@@ -63,6 +70,9 @@ final class AssistantSurface {
         draft.setLineWrap(true);
         draft.setWrapStyleWord(true);
         draft.getAccessibleContext().setAccessibleName("Your message to the assistant");
+        // review M74 usability #15: the same keys as the start page's box, said where they apply
+        draft.getAccessibleContext().setAccessibleDescription(StartPromptView.KEY_HINT);
+
         draftBorder = draftScroll.getBorder();
         chips.setOpaque(false);
         chips.getAccessibleContext().setAccessibleName("Assistant session");
@@ -127,6 +137,7 @@ final class AssistantSurface {
             throw new IllegalStateException(e);
         }
         composerHint.setText(hint == null ? " " : hint);
+        composerHint.setForeground(UiTheme.noteForeground());      // review §2: a status note wears the note token
         composerHint.setVisible(hint != null && !hint.isBlank());
         draft.setCaretPosition(to);
         draft.requestFocusInWindow();

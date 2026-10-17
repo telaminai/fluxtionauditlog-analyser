@@ -1,5 +1,7 @@
 package telamin.fluxtion.audit.analyser.analyser.ui;
 
+import telamin.fluxtion.audit.analyser.analyser.session.AssistantMode;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -80,7 +82,9 @@ class LocalAgentPermissionFrameTest {
                 assertTrue(dialog.inputArea().getText().contains("<html><b>x</b>"), "markup shown as its characters");
                 assertTrue(dialog.inputArea().getText().contains("\\u202E"), "the override shown escaped");
                 assertFalse(dialog.inputArea().getText().contains(RLO));
-                assertTrue(labels(dialog).contains("Claude Code asks to run analyser_report"), labels(dialog).toString());
+                // review M74 usability #6: the title says what THIS call does (a report with a path writes a file)
+                assertTrue(labels(dialog).contains("Claude Code asks to write a finding to \u201Cfdp.\\u202Epdf\u201D"),
+                        labels(dialog).toString());
                 assertTrue(labels(dialog).contains(PermissionText.INPUT_HEADING));
                 assertTrue(labels(dialog).contains(PermissionText.ESCAPED_NOTE), "the dialog says it escaped them");
                 assertTrue(dialog.countdownLabel().getText().contains("120 s"), dialog.countdownLabel().getText());
@@ -179,21 +183,34 @@ class LocalAgentPermissionFrameTest {
             ActionExecutor ex = (ActionExecutor) field(f, "actionExecutor");
             onEdt(() -> { f.setSize(1200, 800); f.setVisible(true); });
             onEdt(() -> ((AppConfig) field(f, "config")).claudeCodeAllowed = true);
+            // the recorded report writes a PDF: file exchange is on, as in the P3 smoke — reported as a Settings save
+            // reports it (review M74 usability #10a: with it off, the call is refused without a dialog)
+            onEdt(() -> {
+                ((AppConfig) field(f, "config")).assistantExports = true;
+                try {
+                    var changed = MainFrame.class.getDeclaredMethod("onConfigChanged");
+                    changed.setAccessible(true);
+                    changed.invoke(f);
+                } catch (ReflectiveOperationException e) {
+                    throw new AssertionError(e);
+                }
+            });
             onEdt(() -> render(ex, "open", Map.of("project", profile.toString())));
             AssistantPanel assistant = (AssistantPanel) field(f, "assistantPanel");
             LocalAgentPanel panel = (LocalAgentPanel) field(f, "localAgentPanel");
-            onEdt(() -> assistant.modeSelector().setSelectedIndex(0));
+            onEdt(() -> assistant.chooseModeForTest(AssistantMode.LOCAL_AGENT));
             ClaudeCodeTabFrameTest.awaitState(f, s -> s.mode() == telamin.fluxtion.audit.analyser.analyser.session.AssistantMode.LOCAL_AGENT, "Claude Code");
             onEdt(() -> ((JButton) field(panel, "start")).doClick());
             JDialog folder = ClaudeCodeTabFrameTest.awaitDialog(ClaudeCodeTabFrameTest.DIALOG_TITLE);
-            onEdt(ClaudeCodeTabFrameTest.findButton(folder, "Yes")::doClick);
+            onEdt(ClaudeCodeTabFrameTest.findButton(folder, LocalAgentFolderDialog.SAFE_TRUST)::doClick);
             ClaudeCodeTabFrameTest.awaitState(f, s -> "READY".equals(s.phase()), "READY");
 
             // turn 1: Escape denies
             send(panel, "Write the DEMO report");
             LocalAgentPermissionDialog d1 = awaitPermission();
             onEdt(() -> {
-                assertTrue(labels(d1).contains("Claude Code asks to run analyser_report"), labels(d1).toString());
+                assertTrue(labels(d1).stream().anyMatch(l -> l.startsWith("Claude Code asks to ")
+                        && !l.contains("run analyser_report")), "this call's own sentence: " + labels(d1));
                 assertTrue(d1.inputArea().getText().contains("\"title\": \"p3-zero-deny\""), d1.inputArea().getText());
             });
             assertTrue(statusText(panel).startsWith("Claude Code is waiting for your answer"), statusText(panel));

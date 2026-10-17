@@ -73,9 +73,11 @@ public final class M74Smoke {
         edt(() -> {
             try {
                 switch (which) {
-                    // M74 UX (2026-10-17): the mode is one selector in the one assistant panel now
-                    case "claude" -> assistant().modeSelector().setSelectedIndex(0);
-                    case "inapp" -> assistant().modeSelector().setSelectedIndex(1);
+                    // review M74 usability #8 (2026-10-17): the profile chooses the mode; there is no selector
+                    case "claude" -> assistant().chooseModeForTest(
+                            telamin.fluxtion.audit.analyser.analyser.session.AssistantMode.LOCAL_AGENT);
+                    case "inapp" -> assistant().chooseModeForTest(
+                            telamin.fluxtion.audit.analyser.analyser.session.AssistantMode.IN_APP);
                     case "start" -> panel().startButton().doClick();
                     case "stop" -> panel().stopButton().doClick();
                     default -> throw new IllegalArgumentException(which);

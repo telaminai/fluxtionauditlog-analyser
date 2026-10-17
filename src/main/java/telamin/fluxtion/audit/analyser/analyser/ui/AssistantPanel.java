@@ -84,27 +84,34 @@ public final class AssistantPanel extends JPanel {
         }
     }
 
-    /** The mode selector's two entries (owner, 2026-10-17). */
-    static final String MODE_CLAUDE_CODE = "Claude Code · your plan";
-    static final String MODE_IN_APP = "In-app · API key";
+    /**
+     * Review M74 usability #8: ONE control for how the assistant works — it names the profile in force and opens the four
+     * cards. The mode selector it replaces chose the same thing a second way (the profile includes the mode), and its
+     * fixed "your plan" was wrong on API-key billing; the billing chip says which applies.
+     */
+    static String assistantControlText(AssistantProfile p) {
+        return "Assistant: " + (p == null ? AssistantProfile.NONE : p).title() + " ▾";
+    }
+
+    /** The control's accessible name: it STARTS with its visible label (WCAG 2.5.3) and says what pressing it does. */
+    static String assistantControlName(AssistantProfile p) {
+        return "Assistant: " + (p == null ? AssistantProfile.NONE : p).title() + " — choose how the assistant works";
+    }
 
     /** What the in-app mode cannot do, said where Claude Code's limits are said. */
     static final String IN_APP_LIMITS = "In-app cannot read your project folder, set up a project or use your own "
             + "tools — Claude Code can.";
     static final String IN_APP_NO_KEY = "No API key is configured, so nothing is sent from here — choose how the assistant "
-            + "works (Profile…), Copy prompt, or Connect a CLI assistant.";
+            + "works (Assistant ▾ above), Copy prompt, or Connect a CLI assistant.";
     static final String OFF_LIMITS = "The assistant is off on this machine: no question is sent anywhere. Everything else "
-            + "works — choose a profile (Profile…) to turn an assistant on.";
+            + "works — choose a profile (Assistant ▾ above) to turn an assistant on.";
 
     private final AssistantSurface surface = new AssistantSurface();
     private final AssistantTranscript transcript;
     private Intents intents;
     private LocalAgentPanel localAgent;
 
-    private final JComboBox<String> modeSelector = UiText.plainCells(new JComboBox<>(new String[]{MODE_CLAUDE_CODE,
-            MODE_IN_APP}));
-    private boolean renderingMode;
-    private final JButton profileButton = UiText.button("Profile…");
+    private final JButton profileButton = UiText.button(assistantControlText(AssistantProfile.NONE));
 
     // SF-2: the route names a configured model, the basis a walk or record, the status a provider's error
     private final JLabel mode = UiText.plain(new JLabel("Live assistant"));
@@ -166,15 +173,9 @@ public final class AssistantPanel extends JPanel {
         getAccessibleContext().setAccessibleName("Analyser assistant");
 
         // ---- the header: the mode selector, the chips, the panel's own actions -------------------------------------
-        modeSelector.getAccessibleContext().setAccessibleName("Assistant mode");
-        modeSelector.setToolTipText(UiText.tooltip("Which assistant this panel drives: your own Claude Code on your Claude "
-                + "plan, or the analyser's in-app assistant with an API key"));
-        modeSelector.addActionListener(e -> {
-            if (renderingMode || intents == null) return;
-            intents.chooseMode(modeSelector.getSelectedIndex() == 0 ? AssistantMode.LOCAL_AGENT : AssistantMode.IN_APP);
-        });
-        profileButton.getAccessibleContext().setAccessibleName("Choose how the assistant works");
-        profileButton.setToolTipText(UiText.tooltip("Safe analysis, Full Claude Code, In-app assistant or Off"));
+        profileButton.getAccessibleContext().setAccessibleName(assistantControlName(AssistantProfile.NONE));
+        profileButton.setToolTipText(UiText.tooltip("How the assistant works: Safe analysis, Full Claude Code, In-app "
+                + "assistant or Off"));
         profileButton.addActionListener(e -> { if (intents != null) intents.openProfiles(); });
         mode.setFont(mode.getFont().deriveFont(Font.BOLD));
         mode.getAccessibleContext().setAccessibleName("Assistant mode, in words");
@@ -188,11 +189,10 @@ public final class AssistantPanel extends JPanel {
         top.setLayout(new BoxLayout(top, BoxLayout.Y_AXIS));
         JPanel bar = new JPanel(new BorderLayout(6, 0));
         JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
-        left.add(modeSelector);
+        left.add(profileButton);
         left.add(mode);
         bar.add(left, BorderLayout.WEST);
         JPanel hostActions = new JPanel(new WrapLayout(FlowLayout.RIGHT, 4, 0));
-        hostActions.add(profileButton);
         hostActions.add(surface.newChat);
         hostActions.add(showAnalyser);
         hostActions.add(hostButton);
@@ -333,12 +333,6 @@ public final class AssistantPanel extends JPanel {
      */
     public void renderMode(AssistantMode mode, boolean demoShowing) {
         AssistantMode m = mode == null ? AssistantMode.IN_APP : mode;
-        renderingMode = true;
-        try {
-            modeSelector.setSelectedIndex(m == AssistantMode.LOCAL_AGENT ? 0 : 1);
-        } finally {
-            renderingMode = false;
-        }
         boolean changed = m != shownMode || demoShowing != this.demoShowing;
         shownMode = m;
         this.demoShowing = demoShowing;
@@ -359,13 +353,16 @@ public final class AssistantPanel extends JPanel {
         renderLimits();
     }
 
-    /** The selector, for the tests: the person's choice of mode is a selection here. */
-    JComboBox<String> modeSelector() {
-        return modeSelector;
-    }
-
     JButton profileButton() {
         return profileButton;
+    }
+
+    /**
+     * For the frame tests: the mode as the profile's Apply chooses it (review M74 usability #8 — there is no second
+     * control for it), reported through the same intent.
+     */
+    void chooseModeForTest(AssistantMode mode) {
+        if (intents != null) intents.chooseMode(mode);
     }
 
     WrapLine limitsLine() {
@@ -376,7 +373,8 @@ public final class AssistantPanel extends JPanel {
     public void renderProfiles(ProfileState s) {
         ProfileState st = s == null ? ProfileState.NONE : s;
         profile = st.profile();
-        profileButton.setText("Profile: " + profile.title() + "…");
+        profileButton.setText(assistantControlText(profile));
+        profileButton.getAccessibleContext().setAccessibleName(assistantControlName(profile));
         profiles.render(st);
         centerLayout.show(center, st.open() ? "PROFILES" : "TRANSCRIPT");
         renderLimits();
@@ -493,14 +491,16 @@ public final class AssistantPanel extends JPanel {
         hostButton.getAccessibleContext().setAccessibleName(docked ? "Pop out the assistant" : "Dock the assistant");
         showAnalyser.setVisible(!docked);
 
-        mode.setText(inDemo ? demo.mode() : "Live assistant");
+        // review M74 usability §6: a live session is named by the Assistant control; only a demonstration says its mode
+        mode.setText(inDemo ? demo.mode() : " ");
+        mode.setVisible(inDemo);
         mode.getAccessibleContext().setAccessibleDescription(mode.getText());
         route.setVisible(!inDemo);                    // a demonstration has no provider: nothing is sent from it
         basis.setText(inDemo ? demo.walkTitle() : (state.basis().isBlank() ? " " : "About: " + state.basis()));
         status.setText(inDemo ? demo.status() : phaseLine(state));
         composer.setVisible(!inDemo);
         demoBar.setVisible(inDemo);
-        modeSelector.setEnabled(!inDemo);
+        profileButton.setEnabled(!inDemo);
         boolean claude = claudeCodeShown();
         noProvider.setVisible(!inDemo && !claude && !configured && profile != AssistantProfile.OFF);
         renderLimits();

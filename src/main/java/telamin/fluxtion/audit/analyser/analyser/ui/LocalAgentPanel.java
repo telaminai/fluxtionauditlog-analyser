@@ -65,9 +65,11 @@ public final class LocalAgentPanel extends JPanel {
         default void setUpProject() { }
     }
 
-    /** The posture line of the default posture (§5.2). */
-    static final String DEFAULT_POSTURE_NOTE = "Safe analysis — your skills and hooks are not loaded; choose Full Claude "
-            + "Code (Profile…) for those";
+    /**
+     * Safe analysis's line under the header (§5.2). Review M74 usability A1/A2: it no longer repeats the limits line, and
+     * it states what Safe analysis does rather than pressing toward the riskier profile on every view.
+     */
+    static final String DEFAULT_POSTURE_NOTE = "Safe analysis — your own skills, hooks and MCP servers are not loaded";
     /** §4.8: an external terminal is invisible to the lock. */
     static final String LOCK_WARNING = "Don't resume this conversation in a terminal while it is open here — the history "
             + "would fork.";
@@ -196,7 +198,7 @@ public final class LocalAgentPanel extends JPanel {
         review.addActionListener(e -> { if (intents != null && proposal.exists()) intents.reviewProposal(proposal.id()); });
         notNow.addActionListener(e -> { if (intents != null && proposal.exists()) intents.dismissProposal(proposal.id()); });
         closeExternal.setVisible(false);
-        closeExternal.setToolTipText(UiText.tooltip("While this session runs, refuse external MCP and REST clients — "
+        closeExternal.setToolTipText(UiText.tooltip("While this session runs, refuse external MCP/REST clients — "
                 + "including this session's own tools, which could otherwise reach the analyser through the endpoint "
                 + "file. Claude Code keeps its own connection; external access opens again when the session ends."));
         closeExternal.addActionListener(e -> {
@@ -262,21 +264,20 @@ public final class LocalAgentPanel extends JPanel {
 
     /** M74 UX: what Claude Code here cannot do — said in the one panel's limits line, where the in-app limits are said. */
     public static final String SAFE_LIMITS = "Safe analysis reads your evidence; it changes what is open or writes a file only "
-            + "after you approve each call. No shell, no edits, no web, none of your own skills or servers — choose Full "
-            + "Claude Code (Profile…) for those. Copy prompt is for an external assistant.";
+            + "after you approve each call. No shell, no edits, no web.";
     static final String FULL_LIMITS = "Your own tools run under your permission rules: the analyser asks you only when "
-            + "Claude Code asks, and cannot confine the rest. Copy prompt is for an external assistant.";
+            + "Claude Code asks, and cannot confine the rest.";
     static final String OFF_LIMITS = "Claude Code is not set up on this machine — choose Safe analysis or Full Claude "
-            + "Code (Profile…), or switch to the in-app assistant.";
+            + "Code (Assistant ▾ above), or the in-app assistant.";
 
     static String limitsText(LocalAgentState s) {
         return limitsText(s, telamin.fluxtion.audit.analyser.analyser.session.ListenerState.NONE);
     }
 
     /** Review B2: a full session with external access open says its tools can drive the analyser as an external client. */
-    public static final String EXTERNAL_OPEN_TO_TOOLS = " External MCP / REST access is open: this session's own tools "
+    public static final String EXTERNAL_OPEN_TO_TOOLS = " External MCP/REST access is open: this session's own tools "
             + "can drive the analyser as an external client, through the endpoint file (~/.fluxtion-analyser/rest-endpoint).";
-    public static final String EXTERNAL_CLOSED_FOR_SESSION = " External MCP / REST access is closed while this session "
+    public static final String EXTERNAL_CLOSED_FOR_SESSION = " External MCP/REST access is closed while this session "
             + "runs.";
 
     public static String limitsText(LocalAgentState s, telamin.fluxtion.audit.analyser.analyser.session.ListenerState l) {
@@ -540,15 +541,40 @@ public final class LocalAgentPanel extends JPanel {
                             store.text(e.id()), e.status(), e.revision(), e.logGeneration(), "STREAMING".equals(e.status())));
                     String turn = "STREAMING".equals(e.status()) ? null : turnText(s, e.ticket());
                     if (turn != null) out.add(new TranscriptView.Item(key + ":turn", TranscriptStyle.Role.NOTE,
-                            "[turn] " + turn, "TURN", 0, 0, false));
+                            "Turn: " + turn, "TURN", 0, 0, false));
                 }
                 case LocalAgentState.NOTE -> out.add(new TranscriptView.Item(key, TranscriptStyle.Role.NOTE,
-                        "[" + e.status().toLowerCase(java.util.Locale.ROOT).replace('_', ' ') + "] " + e.detail(),
-                        e.status(), 0, 0, false));
+                        noteLabel(e.status()) + e.detail(), e.status(), 0, 0, false));
                 default -> { }
             }
         }
         return out;
+    }
+
+    /**
+     * Review M74 usability #4: a note's label in words — never its status code ("[posture changed]" read as the app's
+     * own vocabulary leaking). A code with no word here shows no label: the note's own sentence says what happened.
+     */
+    static String noteLabel(String code) {
+        String w = switch (code == null ? "" : code) {
+            case "DENIED" -> "Denied";
+            case "TIMED_OUT" -> "Not answered";
+            case "APPROVED" -> "Approved";
+            case "WITHDRAWN" -> "Withdrawn";
+            case "ABANDONED" -> "Did not run";
+            case "COMPACTED" -> "Compacted";
+            case "RATE_LIMITED" -> "Usage limit";
+            case "AUTH_FAILED" -> "Sign-in";
+            case "POSTURE_CHANGED" -> "Settings changed";
+            case "BUDGET" -> "Spend limit";
+            case "CANCELLED", "STOPPED" -> "Stopped";
+            case "EXITED", "PROCESS_EXIT" -> "Claude Code exited";
+            case "MCP_SERVER" -> "Your MCP server";
+            case "ERROR" -> "Error";
+            case "KEPT" -> "Kept";
+            default -> "";
+        };
+        return w.isEmpty() ? "" : w + ": ";
     }
 
     // ---- the header as chips (§5.9) -----------------------------------------------------------------------------------
@@ -582,7 +608,7 @@ public final class LocalAgentPanel extends JPanel {
         l.setOpaque(true);
         l.setBackground(UiTheme.accentWash(strong ? 0.22f : 0.10f));
         l.setForeground(strong ? UiTheme.accentText() : UIManager.getColor("Label.foreground"));
-        l.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(UiTheme.surfaceEdge(), 1, true),
+        l.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(UiTheme.controlBorder(), 1, true),
                 BorderFactory.createEmptyBorder(1, 6, 1, 6)));
         Font f = UIManager.getFont("Label.font");
         if (f != null) l.setFont(f.deriveFont(strong ? Font.BOLD : Font.PLAIN, f.getSize2D() - 1f));
@@ -663,8 +689,10 @@ public final class LocalAgentPanel extends JPanel {
         LocalAgentState.FullCue cue = s.fullCue();
         if (cue == LocalAgentState.FullCue.NONE) return null;
         String mode = s.cuePosture().fullMode().cli();
-        return "Full Claude Code · " + mode + ": your tools and permissions"
-                + (cue == LocalAgentState.FullCue.RUNNING ? " — running" : " — on: it runs at the next Start");
+        // review M74 usability A7: the state first, so a narrow tab's ellipsis never eats "running" or "on"
+        return "Full Claude Code (" + mode + ")"
+                + (cue == LocalAgentState.FullCue.RUNNING ? " — running" : " — on: it runs at the next Start")
+                + " · your tools and permissions";
     }
 
     /** The badge's tooltip: what the cue means. */
@@ -750,7 +778,7 @@ public final class LocalAgentPanel extends JPanel {
      * to the child's PATH (OD-74.11).
      */
     static String postureLine(LocalAgentTranscript.Header h, LocalAgentState s) {
-        if (!s.posture().isFull()) return DEFAULT_POSTURE_NOTE;
+        if (!s.posture().isFull()) return DEFAULT_POSTURE_NOTE;   // the limits line says what it does
         int n = s.personServers();
         String line = unbroken(s.posture().label()) + (n == 0
                 ? " — your settings, skills and hooks are loaded, and none of your MCP servers"

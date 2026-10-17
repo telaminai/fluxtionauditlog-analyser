@@ -97,6 +97,11 @@ public final class StartPromptView extends JPanel {
     private final JButton removeChip = UiText.button("×");
     private final JTextArea does = Fluid.text(" ");
     private final JTextArea box = new JTextArea(2, 40) {
+        @Override protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            UiTheme.paintPlaceholder(this, g, PLACEHOLDER);         // review #9: it reads as a box to type in
+        }
+
         @Override public Dimension getPreferredScrollableViewportSize() {
             // grows with its text up to six lines, then scrolls; the width is the layout's
             Dimension d = super.getPreferredSize();
@@ -109,6 +114,10 @@ public final class StartPromptView extends JPanel {
             ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
     private final JLabel fullBadge = UiText.label(" ");
     private final JButton action = UiText.button(AskCatalogue.text("start.send"));
+    /** Review M74 usability S3/#15: the box's keys, said under it — the composer's binding, the same in both. */
+    private final JLabel keyHint = UiText.label(KEY_HINT);
+    static final String KEY_HINT = "Enter sends · Shift+Enter starts a new line";
+    static final String PLACEHOLDER = "Ask about a log, or choose an entry above";
     private final JTextArea note = Fluid.text(" ");
     /** P2b: an example download's phase and the node's words (exampleDownload decides them). */
     private final JTextArea exampleNote = Fluid.text(" ");
@@ -155,16 +164,17 @@ public final class StartPromptView extends JPanel {
                 if (list.getSelectedIndex() >= 0) choose(list.getSelectedIndex());
             }
         });
-        // Alt+1 … Alt+9 choose the first nine (no mnemonic past 9), wherever the focus is in the view; a typed digit
-        // in the box is a digit (r8 F19)
+        // Alt+1 … Alt+9 (⌘1 … ⌘9 on macOS) choose the first nine (no shortcut past 9), wherever the focus is in the
+        // window while the page shows; a typed digit in the box is a digit (r8 F19). Review M74 usability #18: on macOS
+        // ⌥+digit TYPES a character (⌥1 is ¡) into the focused box as well as choosing, so the Mac takes ⌘.
         for (int n = 1; n <= 9; n++) {
             final int index = n - 1;
             String key = "start-choose-" + n;
-            getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT)
-                    .put(KeyStroke.getKeyStroke(KeyEvent.VK_0 + n, InputEvent.ALT_DOWN_MASK), key);
+            getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW)
+                    .put(KeyStroke.getKeyStroke(KeyEvent.VK_0 + n, chooserMask()), key);
             getActionMap().put(key, new AbstractAction() {
                 @Override public void actionPerformed(ActionEvent e) {
-                    if (index < model.size()) {
+                    if (index < model.size()) {          // Swing gives a window binding only to a showing view
                         list.setSelectedIndex(index);
                         choose(index);
                     }
@@ -178,9 +188,16 @@ public final class StartPromptView extends JPanel {
         packTitle.setAlignmentX(LEFT_ALIGNMENT);
         packDescription.setAlignmentX(LEFT_ALIGNMENT);
         returnButton.setAlignmentX(LEFT_ALIGNMENT);
-        returnButton.setMnemonic(KeyEvent.VK_R);
+        // review M74 usability #18: FlatLaf binds a mnemonic to Ctrl+⌥ on macOS, so "(Alt+R)" was wrong there — the
+        // shortcut is bound explicitly, with the platform's modifier, and the tooltip names the one that works
+        getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_R, chooserMask()), "start-return");
+        getActionMap().put("start-return", new AbstractAction() {
+            @Override public void actionPerformed(ActionEvent e) {
+                if (packHeader.isVisible()) returnButton.doClick();
+            }
+        });
         returnButton.getAccessibleContext().setAccessibleName("Return to main options");
-        returnButton.setToolTipText(UiText.tooltip("Back to the analyser's own list (Alt+R)"));
+        returnButton.setToolTipText(UiText.tooltip("Back to the analyser's own list (" + shortcutText("R") + ")"));
         returnButton.addActionListener(e -> host.returnToMainOptions());
         packHeader.add(returnButton);
         packHeader.add(packTitle);
@@ -214,6 +231,7 @@ public final class StartPromptView extends JPanel {
         removeChip.setToolTipText(UiText.tooltip(AskCatalogue.text("start.chip.remove")));
         removeChip.getAccessibleContext().setAccessibleName(AskCatalogue.text("start.chip.remove"));
         removeChip.setMargin(new Insets(0, 4, 0, 4));
+        TranscriptView.atLeastTarget(removeChip);               // review §4.3: 24×24 (WCAG 2.5.8)
         removeChip.addActionListener(e -> unchoose());
         chipRow.add(chip);
         chipRow.add(removeChip);
@@ -224,6 +242,23 @@ public final class StartPromptView extends JPanel {
         box.setLineWrap(true);
         box.setWrapStyleWord(true);
         box.getAccessibleContext().setAccessibleName(AskCatalogue.text("start.box"));
+        box.getAccessibleContext().setAccessibleDescription(KEY_HINT);
+        box.putClientProperty("JTextField.placeholderText", PLACEHOLDER);
+        // review M74 usability S3/#15: the composer's keys — Enter sends, Shift+Enter is a newline; while an input
+        // method is composing, Enter belongs to it
+        box.getInputMap(JComponent.WHEN_FOCUSED).put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), "start-send");
+        box.getInputMap(JComponent.WHEN_FOCUSED).put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, KeyEvent.SHIFT_DOWN_MASK),
+                "insert-break");
+        box.getActionMap().put("start-send", new AbstractAction() {
+            @Override public void actionPerformed(ActionEvent e) {
+                if (composing()) return;
+                if (action.isEnabled()) press();
+            }
+        });
+        box.addFocusListener(new java.awt.event.FocusAdapter() {
+            @Override public void focusGained(java.awt.event.FocusEvent e) { renderFullCue(); }
+            @Override public void focusLost(java.awt.event.FocusEvent e) { renderFullCue(); }
+        });
         boxScroll.setAlignmentX(LEFT_ALIGNMENT);
         boxBorder = boxScroll.getBorder();
         box.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
@@ -235,11 +270,20 @@ public final class StartPromptView extends JPanel {
         fullBadge.setVisible(false);
         fullBadge.setFont(fullBadge.getFont().deriveFont(Font.BOLD));
 
-        JPanel actions = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
+        // review M74 usability #9: the page's main action is its strongest control — the accented primary, as tall as
+        // the box (32 px or more), at the box's right edge; the keys are said under the box
+        JPanel actions = new JPanel(new BorderLayout(UiTheme.SPACE_SM, 0));
         actions.setOpaque(false);
         actions.setAlignmentX(LEFT_ALIGNMENT);
-        actions.add(action);
+        actions.add(boxScroll, BorderLayout.CENTER);
+        JPanel actionHolder = new JPanel(new BorderLayout());
+        actionHolder.setOpaque(false);
+        actionHolder.add(action, BorderLayout.NORTH);
+        actions.add(actionHolder, BorderLayout.EAST);
         action.addActionListener(e -> press());
+        action.putClientProperty("JButton.buttonType", null);
+        keyHint.setAlignmentX(LEFT_ALIGNMENT);
+        recolour.add(() -> keyHint.setForeground(UiTheme.mutedForeground()));
         fallbacks.setOpaque(false);
         fallbacks.setAlignmentX(LEFT_ALIGNMENT);
         fallbacks.setVisible(false);
@@ -257,9 +301,10 @@ public final class StartPromptView extends JPanel {
         add(does);
         add(Box.createVerticalStrut(4));
         add(fullBadge);
-        add(boxScroll);
-        add(Box.createVerticalStrut(6));
         add(actions);
+        add(Box.createVerticalStrut(UiTheme.SPACE_XS));
+        add(keyHint);
+        add(Box.createVerticalStrut(UiTheme.SPACE_XS));
         add(note);
         add(exampleNote);
         add(notFound);
@@ -267,6 +312,9 @@ public final class StartPromptView extends JPanel {
         recolour.add(() -> {
             chip.setBackground(UiTheme.accentWash(0.22f));
             chip.setForeground(UiTheme.accentText());
+            box.setBackground(UiTheme.surface());                // review #9: the box reads as a field on the band
+            renderPrimary();
+            renderFullCue();
         });
         recolour.forEach(Runnable::run);
     }
@@ -385,6 +433,43 @@ public final class StartPromptView extends JPanel {
         action.setText(label);
         action.getAccessibleContext().setAccessibleName(label);
         action.setEnabled(chosen != null || !box.getText().isBlank());
+        renderPrimary();
+    }
+
+    /**
+     * The main action's look: accent-filled while it can be pressed, the theme's own button while it cannot (an accent
+     * fill with disabled text would read neither as enabled nor as disabled); at least 32 px and as tall as the box.
+     */
+    private void renderPrimary() {
+        boolean on = action.isEnabled();
+        action.setBackground(on ? UiTheme.accent() : null);
+        action.setForeground(on ? UiTheme.onAccent() : null);
+        Font f = action.getFont();
+        if (f != null && f.isBold() != on) action.setFont(f.deriveFont(on ? Font.BOLD : Font.PLAIN));
+        action.setPreferredSize(null);
+        Dimension d = action.getPreferredSize();
+        int h = Math.max(UiTheme.TARGET_MIN_HEIGHT, boxScroll.getPreferredSize().height);
+        action.setPreferredSize(new Dimension(Math.max(d.width, 88), Math.min(h, 3 * UiTheme.TARGET_MIN_HEIGHT)));
+    }
+
+    /** An input method is mid-composition: the committed text is shorter than the document. */
+    private boolean composing() {
+        var requests = box.getInputMethodRequests();
+        return requests != null && requests.getCommittedTextLength() != box.getDocument().getLength();
+    }
+
+    static boolean mac() {
+        return System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("mac");
+    }
+
+    /** The modifier of the page's own shortcuts: ⌘ on macOS (⌥ types characters there), Alt elsewhere. */
+    static int chooserMask() {
+        return mac() ? InputEvent.META_DOWN_MASK : InputEvent.ALT_DOWN_MASK;
+    }
+
+    /** How a shortcut is written on this platform: "⌘1" on macOS, "Alt+1" elsewhere. */
+    static String shortcutText(String key) {
+        return (mac() ? "⌘" : "Alt+") + key;
     }
 
     private void boxChanged() {
@@ -409,7 +494,9 @@ public final class StartPromptView extends JPanel {
         if (fkey.equals(renderedFallbackKey)) return;
         renderedFallbackKey = fkey;
         fallbacks.removeAll();
-        if (!state.route().canAnswer()) {
+        boolean offerInstall = state.claudeCodeNotFound() && !state.route().canAnswer();
+        // review M74 usability S6: the label says what the buttons after it are — so with none, there is no label
+        if (!state.route().canAnswer() && (!shown.isEmpty() || offerInstall)) {
             JLabel why = UiText.label(AskCatalogue.text("start.noAi"));
             why.setForeground(UiTheme.mutedForeground());
             fallbacks.add(why);
@@ -446,7 +533,10 @@ public final class StartPromptView extends JPanel {
         String badge = toClaude ? LocalAgentPanel.fullBadgeText(agent) : null;
         if (badge == null) {
             fullBadge.setVisible(false);
-            boxScroll.setBorder(boxBorder);
+            // review #9: a field's edge at 3:1 on the band, the accent while it has the focus
+            boxScroll.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(box.isFocusOwner()
+                    ? UiTheme.accent() : UiTheme.controlBorder(), box.isFocusOwner() ? 2 : 1),
+                    BorderFactory.createEmptyBorder(box.isFocusOwner() ? 2 : 3, 4, box.isFocusOwner() ? 2 : 3, 4)));
             return;
         }
         Color c = TranscriptStyle.fullPosture(agent.strongCue(), ThemeManager.isDark());
@@ -469,6 +559,12 @@ public final class StartPromptView extends JPanel {
             renderChip();
         } else if (r.text() != null) {
             String was = box.getText();
+            // review M74 usability S4: a second click on the same entry does not append its text again
+            if (was.stripTrailing().endsWith(r.text().strip())) {
+                box.requestFocusInWindow();
+                renderAction();
+                return;
+            }
             String sep = was.isBlank() ? "" : was.endsWith("\n") ? "\n" : "\n\n";
             box.append(sep + r.text());                 // never replacing what the person typed
             box.setCaretPosition(box.getDocument().getLength());
@@ -569,9 +665,10 @@ public final class StartPromptView extends JPanel {
             Row r = (Row) value;
             String number = index < 9 ? (index + 1) + ".  " : "     ";
             setText(number + r.label());
-            setBorder(BorderFactory.createEmptyBorder(3, 6, 3, 6));
-            setToolTipText(UiText.tooltip(r.isExample() ? exampleDoes(r.example())
-                    : r.text() != null ? r.text() : AskCatalogue.text(r.id() + ".does")));   // plain
+            setBorder(BorderFactory.createEmptyBorder(4, 6, 4, 6));      // review §4.3: rows at least 24 px tall
+            String key = index < 9 ? " (" + shortcutText(Integer.toString(index + 1)) + ")" : "";
+            setToolTipText(UiText.tooltip((r.isExample() ? exampleDoes(r.example())
+                    : r.text() != null ? r.text() : AskCatalogue.text(r.id() + ".does")) + key));   // plain
             getAccessibleContext().setAccessibleName(accessibleName(index + 1, l.getModel().getSize(), r.label()));
             if (!selected) setForeground(UiTheme.accentText());
             setOpaque(selected);

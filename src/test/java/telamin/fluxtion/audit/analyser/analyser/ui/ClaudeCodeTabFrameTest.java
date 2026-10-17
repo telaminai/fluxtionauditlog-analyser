@@ -1,5 +1,7 @@
 package telamin.fluxtion.audit.analyser.analyser.ui;
 
+import telamin.fluxtion.audit.analyser.analyser.session.AssistantMode;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -91,7 +93,7 @@ class ClaudeCodeTabFrameTest {
             onEdt(() -> render(ex, "open", Map.of("project", profile.toString())));
             AssistantPanel assistant = (AssistantPanel) field(f, "assistantPanel");
             LocalAgentPanel panel = (LocalAgentPanel) field(f, "localAgentPanel");
-            onEdt(() -> assistant.modeSelector().setSelectedIndex(0));
+            onEdt(() -> assistant.chooseModeForTest(AssistantMode.LOCAL_AGENT));
             awaitState(f, s -> s.mode() == telamin.fluxtion.audit.analyser.analyser.session.AssistantMode.LOCAL_AGENT,
                     "Claude Code chosen");
 
@@ -99,7 +101,7 @@ class ClaudeCodeTabFrameTest {
             onEdt(() -> ((JButton) field(panel, "start")).doClick());
             JDialog dialog = awaitDialog(DIALOG_TITLE);
             assertEquals(0, agent.processes.size(), "nothing starts while the folder question is open");
-            AbstractButton yes = findButton(dialog, "Yes");
+            AbstractButton yes = findButton(dialog, LocalAgentFolderDialog.SAFE_TRUST);
             assertNotNull(yes, "the dialog offers Yes");
             onEdt(yes::doClick);
             LocalAgentState ready = awaitState(f, s -> "READY".equals(s.phase()), "READY after Yes");

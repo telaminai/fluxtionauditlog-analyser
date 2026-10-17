@@ -1,5 +1,7 @@
 package telamin.fluxtion.audit.analyser.analyser.ui;
 
+import telamin.fluxtion.audit.analyser.analyser.session.AssistantMode;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -95,11 +97,11 @@ class ExternalRestWithHostedSessionFrameTest {
 
             AssistantPanel assistant = (AssistantPanel) field(f, "assistantPanel");
             LocalAgentPanel panel = (LocalAgentPanel) field(f, "localAgentPanel");
-            onEdt(() -> assistant.modeSelector().setSelectedIndex(0));
+            onEdt(() -> assistant.chooseModeForTest(AssistantMode.LOCAL_AGENT));
             awaitState(f, s -> s.mode() == telamin.fluxtion.audit.analyser.analyser.session.AssistantMode.LOCAL_AGENT, "CC");
             onEdt(() -> ((JButton) field(panel, "start")).doClick());
             JDialog dialog = awaitDialog(DIALOG_TITLE);
-            onEdt(findButton(dialog, "Yes")::doClick);
+            onEdt(findButton(dialog, LocalAgentFolderDialog.SAFE_TRUST)::doClick);
             LocalAgentState ready = awaitState(f, s -> "READY".equals(s.phase()), "READY after Yes");
             assertEquals("BOUND", ready.verdict());
             assertSame(server0, onEdtGet(() -> field(f, "actionServer")), "the same server serves the hosted bridge");
