@@ -90,9 +90,31 @@ final class AssistantSurface {
         draft.getActionMap().put("assistant-send", new AbstractAction() {
             @Override public void actionPerformed(ActionEvent e) {
                 if (composing()) return;
+                if (enterHeldSinceFocus) return;          // final review #7: the start page's Enter, still held
                 if (send.isEnabled()) onSend.run();
             }
         });
+        // final review #7: an Enter whose press began before the composer had the focus (the start page's Enter that
+        // placed this draft, still held and auto-repeating) never sends; the composer's own next press does
+        HeldEnter.install();
+        draft.addFocusListener(new java.awt.event.FocusAdapter() {
+            @Override public void focusGained(java.awt.event.FocusEvent e) {
+                enterArrived(HeldEnter.down());
+            }
+        });
+        draft.addKeyListener(new java.awt.event.KeyAdapter() {
+            @Override public void keyReleased(KeyEvent e) {
+                if (e.getKeyCode() == KeyEvent.VK_ENTER) enterHeldSinceFocus = false;
+            }
+        });
+    }
+
+    /** Whether the Enter now held was pressed before the composer gained the focus (final review #7). */
+    private boolean enterHeldSinceFocus;
+
+    /** The composer gained the focus while Enter was {@code held} (or not). Package-private for the tests. */
+    void enterArrived(boolean held) {
+        enterHeldSinceFocus = held;
     }
 
     /** An input method is mid-composition: the committed text is shorter than the document. */
@@ -140,6 +162,7 @@ final class AssistantSurface {
         composerHint.setForeground(UiTheme.noteForeground());      // review §2: a status note wears the note token
         composerHint.setVisible(hint != null && !hint.isBlank());
         draft.setCaretPosition(to);
+        enterArrived(HeldEnter.down());       // final review #7: placed by a held Enter? (the focus may already be here)
         draft.requestFocusInWindow();
         return from;
     }

@@ -144,6 +144,7 @@ public final class StartPromptView extends JPanel {
 
     public StartPromptView(Host host) {
         this.host = host;
+        HeldEnter.install();                     // final review #7: the composer asks whether this page's Enter is held
         setOpaque(false);
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
         getAccessibleContext().setAccessibleName(AskCatalogue.text("start.title"));
@@ -173,6 +174,11 @@ public final class StartPromptView extends JPanel {
             getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW)
                     .put(KeyStroke.getKeyStroke(KeyEvent.VK_0 + n, chooserMask()), key);
             getActionMap().put(key, new AbstractAction() {
+                // final review #8: a window binding fires wherever the focus is — but not into another text field
+                @Override public boolean isEnabled() {
+                    return shortcutsApply();
+                }
+
                 @Override public void actionPerformed(ActionEvent e) {
                     if (index < model.size()) {          // Swing gives a window binding only to a showing view
                         list.setSelectedIndex(index);
@@ -192,6 +198,10 @@ public final class StartPromptView extends JPanel {
         // shortcut is bound explicitly, with the platform's modifier, and the tooltip names the one that works
         getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_R, chooserMask()), "start-return");
         getActionMap().put("start-return", new AbstractAction() {
+            @Override public boolean isEnabled() {
+                return shortcutsApply();                // final review #8
+            }
+
             @Override public void actionPerformed(ActionEvent e) {
                 if (packHeader.isVisible()) returnButton.doClick();
             }
@@ -419,6 +429,7 @@ public final class StartPromptView extends JPanel {
             action.setText(label);
             action.getAccessibleContext().setAccessibleName(label);
             action.setEnabled(!example.busy());                     // one download at a time (the node refuses too)
+            renderKeyHint(label);
             return;
         }
         if (chosen != null) {
@@ -433,7 +444,23 @@ public final class StartPromptView extends JPanel {
         action.setText(label);
         action.getAccessibleContext().setAccessibleName(label);
         action.setEnabled(chosen != null || !box.getText().isBlank());
+        renderKeyHint(chosen == null ? null : label);
         renderPrimary();
+    }
+
+    /**
+     * Final review #7: with an entry chosen, Enter runs THAT entry — the hint under the box (and what a screen reader
+     * hears for the box) says so, by the button's own words; with none, the composer's keys.
+     */
+    private void renderKeyHint(String chosenVerb) {
+        String hint = keyHintFor(chosenVerb);
+        keyHint.setText(hint);
+        box.getAccessibleContext().setAccessibleDescription(hint);
+    }
+
+    static String keyHintFor(String chosenVerb) {
+        return chosenVerb == null || chosenVerb.isBlank() ? KEY_HINT
+                : "Enter: " + chosenVerb + " · Shift+Enter starts a new line";
     }
 
     /**
@@ -450,6 +477,19 @@ public final class StartPromptView extends JPanel {
         Dimension d = action.getPreferredSize();
         int h = Math.max(UiTheme.TARGET_MIN_HEIGHT, boxScroll.getPreferredSize().height);
         action.setPreferredSize(new Dimension(Math.max(d.width, 88), Math.min(h, 3 * UiTheme.TARGET_MIN_HEIGHT)));
+    }
+
+    /** Who has the keyboard focus now (replaceable by the tests: a headless run has no focus owner). */
+    java.util.function.Supplier<java.awt.Component> focusOwner =
+            () -> java.awt.KeyboardFocusManager.getCurrentKeyboardFocusManager().getFocusOwner();
+
+    /**
+     * Final review #8: the page's window shortcuts (⌘/Alt+1…9, ⌘/Alt+R) apply unless the focus is in a text component
+     * other than the start box — there the keys belong to that field (a disabled action leaves the key unconsumed).
+     */
+    boolean shortcutsApply() {
+        java.awt.Component f = focusOwner.get();
+        return !(f instanceof javax.swing.text.JTextComponent) || f == box;
     }
 
     /** An input method is mid-composition: the committed text is shorter than the document. */
@@ -622,6 +662,10 @@ public final class StartPromptView extends JPanel {
 
     JButton actionButton() {
         return action;
+    }
+
+    JLabel keyHintLabel() {
+        return keyHint;
     }
 
     JLabel chipLabel() {
