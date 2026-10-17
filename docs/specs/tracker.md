@@ -138,6 +138,7 @@ settings-save redraw, pinned (supersedes #78). [Release receipt](../handoff/rele
 - [M74] ☐ **`LocalAgentWiring`** (review B10): `MainFrame`'s local-agent wiring (the adapter's environment, the panel's intents, the listener performers) into one class the frame constructs, so the frame stops growing with each phase.
 - [M74] ☐ **CLI-drift canary and managed-settings probe** (review B8): a scheduled zero-cost check that the installed `claude`'s stream shapes still match the fixtures, and a probe of what an administrator's managed settings do to the full posture.
 - [M74] ☐ **OD-74.2 terms check and a one-page security model** (review B11): before a customer release.
+- [DOCS-IA] ☐ **Docs site task-first restructure** — the owner approved the audit's nav (§5) on 2026-10-17 ([audit](../handoff/docs-audit-2026-10-17.md)); lands after M74 merges and before the Telamin Canvas rename; the M74 fix list (§4) is done on `feature/claude-code-p3`.
 
 ## Session and dispatch
 
