@@ -172,6 +172,38 @@ class PermissionTextTest {
                 "the exact input is still shown, unchanged");
     }
 
+    /**
+     * ★ Final review #2 (2026-10-17): the sentence is chosen with the EXECUTOR's predicates ({@code VerbOperations},
+     * {@code WalkVerb.choose}), so what the person approves is the call that runs. Witness: put back the dialog's own
+     * predicate for a report delete ({@code if (has(p, "delete")) return … "delete the report …"} first in the report
+     * case) — {@code delete: false} beside sections reads as a delete, while the executor builds and replaces it.
+     */
+    @org.junit.jupiter.params.ParameterizedTest(name = "{0} {1}")
+    @org.junit.jupiter.params.provider.CsvSource(delimiter = '|', textBlock = """
+            report     | {"name":"y","delete":false,"sections":[]}          | Claude Code asks to build the report “y”      | BUILD
+            report     | {"name":"y","delete":null,"rename":"z"}            | Claude Code asks to rename the report “y” to “z” | RENAME
+            report     | {"delete":true,"path":"f.pdf"}                     | Claude Code asks to write a finding to “f.pdf” | FINDING
+            report     | {"name":"y","rename":null}                         | Claude Code asks to build the report “y”      | BUILD
+            report     | {"restore":"y","name":"y"}                         | Claude Code asks to run analyser_report       | INVALID
+            walk       | {"name":"x","delete":false}                        | Claude Code asks to run analyser_walk         |
+            walk       | {"name":"x","play":true,"delete":true}             | Claude Code asks to run analyser_walk         |
+            open       | {"log":"a.yaml","close":"log"}                     | Claude Code asks to close the “log”           |
+            open       | {"project":"/p","create":true}                     | Claude Code asks to preview creating a project in “/p” |
+            open       | {"follow":true}                                    | Claude Code asks to follow the open log as it grows |
+            open       | {"bundle":"b.fexp","log":"a.yaml"}                 | Claude Code asks to open the evidence bundle “b.fexp” |
+            """)
+    @DisplayName("★ the sentence is the executor's choice: delete:false with sections is a build")
+    void theSentenceIsTheExecutorsChoice(String verb, String input, String title, String op) {
+        var c = hosted(verb.strip(), input.strip());
+        assertEquals(title.strip(), c.title());
+        if (op != null && !op.isBlank()) {
+            var p = (java.util.Map<?, ?>) telamin.fluxtion.audit.analyser.analyser.llm.Json.parse(input.strip());
+            assertEquals(telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.ReportOp.valueOf(op.strip()),
+                    telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.report(p).op(),
+                    "the executor runs the operation the sentence names");
+        }
+    }
+
     @Test
     @DisplayName("★ a delete reads as a delete and says it is restorable; a play says nothing saved changes")
     void deleteAndPlayAreDifferent() {

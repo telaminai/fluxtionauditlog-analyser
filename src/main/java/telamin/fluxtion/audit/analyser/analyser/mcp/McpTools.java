@@ -148,11 +148,11 @@ public final class McpTools {
                 if (Boolean.TRUE.equals(p.get("restore")) && keys(p).equals(Set.of("restore"))) return nonMutating();
             }
             case "report" -> {
-                if (Boolean.TRUE.equals(p.get("restore")) && keys(p).equals(Set.of("restore"))) return nonMutating();
+                // final review #2: the operation is VerbOperations.report's — the executor's and the dialog's choice
+                VerbOperations.ReportOp op = VerbOperations.report(p).op();
+                if (op == VerbOperations.ReportOp.LIST_DELETED) return nonMutating();
                 if (p.containsKey("bundle")) return writesFile();
-                boolean named = p.containsKey("sections") || p.containsKey("name") || p.containsKey("csv")
-                        || p.containsKey("restore");
-                if (!named || p.get("path") != null) return writesFile();
+                if (op == VerbOperations.ReportOp.FINDING || p.get("path") != null) return writesFile();
             }
             case "screenshot" -> {
                 return writesFile();

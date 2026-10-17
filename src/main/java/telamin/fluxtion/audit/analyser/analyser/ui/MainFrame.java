@@ -1879,10 +1879,15 @@ public final class MainFrame extends JFrame {
         // a profile only accumulated and an assistant could not clean up after itself. Both come FIRST:
         // they take 'name' and no sections, which the build path would otherwise read as "replace with
         // an empty report" — the destroy-on-replace trap.
+        // final review #2 (2026-10-17): the operation is VerbOperations.report's — the one the approval dialog described
+        var chosen = telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.report(params);
+        if (!chosen.ok()) return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(chosen.error());
+        var op = chosen.op();
         Object restore = params.get("restore");
-        if (restore != null) {
+        if (op == telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.ReportOp.LIST_DELETED
+                || op == telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.ReportOp.RESTORE) {
             // PR #33 review (owner, 2026-09-27): a delete is recoverable; `restore: true` lists, a name restores
-            if (Boolean.TRUE.equals(restore)) {
+            if (op == telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.ReportOp.LIST_DELETED) {
                 var echo = new java.util.LinkedHashMap<String, Object>();
                 echo.put("restorable", restorableReports());
                 return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("report", "restorable", echo);
@@ -1897,7 +1902,7 @@ public final class MainFrame extends JFrame {
             echo.put("reports", reportNames());
             return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("report", "restored", echo);
         }
-        if (Boolean.TRUE.equals(params.get("delete"))) {
+        if (op == telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.ReportOp.DELETE) {
             if (name == null) {
                 return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
                         "delete needs 'name' — reports: " + reportNames());
@@ -1921,7 +1926,7 @@ public final class MainFrame extends JFrame {
             return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("report", "deleted", echo);
         }
         Object renameTo = params.get("rename");
-        if (renameTo != null) {
+        if (op == telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.ReportOp.RENAME) {
             if (name == null) {
                 return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
                         "rename needs 'name' (the report to rename) — reports: " + reportNames());
@@ -1939,7 +1944,7 @@ public final class MainFrame extends JFrame {
 
         // ---- CSV export of one table section from an EXISTING report --------------------------------
         Object csv = params.get("csv");
-        if (csv != null) {
+        if (op == telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.ReportOp.CSV) {
             Integer sectionIdx = csv instanceof Number n ? n.intValue() : null;
             if (sectionIdx == null || name == null) {
                 return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(

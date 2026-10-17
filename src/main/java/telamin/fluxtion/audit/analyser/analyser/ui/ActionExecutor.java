@@ -179,17 +179,25 @@ public final class ActionExecutor implements RenderExecutor {
                         : app.importFromBundle(path, chosen);
             }
             case "open" -> {
-                // M73 (spec §3.1): create is checked FIRST, before follow, the canvas, analysis, restore and bundle
-                if (params != null && params.containsKey("create")) return doCreateProject(params);
-                if (params.containsKey("follow")) {
+                // M73 (spec §3.1): create is checked FIRST, before follow, the canvas, analysis, restore and bundle;
+                // final review #2: the order is VerbOperations.open's, which the approval dialog describes too
+                var openOp = telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.open(params);
+                if (openOp == telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.OpenOp.CREATE) {
+                    return doCreateProject(params);
+                }
+                if (openOp == telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.OpenOp.FOLLOW) {
                     if (params.size() != 1 || !(params.get("follow") instanceof Boolean))
                         return ActionResult.error("use open {follow: true|false} alone, after the log has finished opening");
                     return app == null ? ActionResult.error("Follow is not enabled here; not following")
                             : onEdt(() -> app.follow((Boolean) params.get("follow")));
                 }
-                if (isCanvasWrite(params)) return onEdt(() -> doOpenCanvas(params));   // M48.7: needs no log, opens no file
-                if (params.get("analysis") != null) return doOpenAnalysis(params);   // M38.4: off the EDT, see method
-                return doOpen(params);
+                if (openOp == telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.OpenOp.CANVAS) {
+                    return onEdt(() -> doOpenCanvas(params));   // M48.7: needs no log, opens no file
+                }
+                if (openOp == telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.OpenOp.ANALYSIS) {
+                    return doOpenAnalysis(params);   // M38.4: off the EDT, see method
+                }
+                return doOpen(params, openOp);
             }
             case "source_root" -> {
                 return onEdt(() -> doSourceRoot(params));
@@ -257,12 +265,14 @@ public final class ActionExecutor implements RenderExecutor {
                         : app.screenshot(out.path().toString(), str(params.get("scope"))));
             }
             case "report" -> {
+                // final review #2: the operation is chosen ONCE (VerbOperations.report) — the approval dialog
+                // describes the same choice, so the sentence the person approved is the call that runs
+                var chosen = telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.report(params);
+                if (!chosen.ok()) return ActionResult.error(chosen.error());
+                var op = chosen.op();
                 // evidence bundle capture (convergence): the investigation packed as one .fexp — the session decides
-                if (params.containsKey("bundle")) {
-                    if (params.size() != 1) return ActionResult.error("report 'bundle' must be used alone");
-                    if (!(params.get("bundle") instanceof Map<?, ?> b)) {
-                        return ActionResult.error("report 'bundle' is an object: {path, notes?, from?, to?, replay?}");
-                    }
+                if (op == telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.ReportOp.BUNDLE) {
+                    Map<?, ?> b = (Map<?, ?>) params.get("bundle");
                     var out = guardedPath(b.get("path"));      // B1: the same guard and directory as every verb write
                     if (!out.ok()) return ActionResult.error(out.error());
                     Object notes = b.get("notes");
@@ -280,17 +290,10 @@ public final class ActionExecutor implements RenderExecutor {
                             ? ActionResult.error("'report' is not enabled here")
                             : app.captureBundle(out.path().toString(), (String) notes, from, to, (String) replay));
                 }
-                if (params.containsKey("restore")) {
-                    if (params.size() != 1) return ActionResult.error("report 'restore' must be used alone");
-                    Object restore = params.get("restore");
-                    if (!Boolean.TRUE.equals(restore) && !(restore instanceof String name && !name.isBlank()))
-                        return ActionResult.error("report 'restore' needs true to list or a nonblank report name");
-                }
                 // M33.3: the sections form builds/replaces a NAMED report (path optional — render or
                 // CSV when given); the shipped single-record form stays below as sugar
                 // PR #33 review: 'restore' needs no name, and must not fall through to the single-record export
-                if (params.containsKey("sections") || params.containsKey("name")
-                        || params.containsKey("csv") || params.containsKey("restore")) {
+                if (op != telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.ReportOp.FINDING) {
                     String resolved = null;
                     if (params.get("path") != null) {
                         var out = guardedPath(params.get("path"));   // B1: same guard, same directory
@@ -1301,14 +1304,15 @@ public final class ActionExecutor implements RenderExecutor {
         return ActionResult.ok("open", "applied", echo);
     }
 
-    private ActionResult doOpen(Map<String, Object> params) {
+    private ActionResult doOpen(Map<String, Object> params,
+                                telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.OpenOp op) {
         if (app == null) return ActionResult.error("'open' is not enabled here");
-        if (params.containsKey("restore")) {
+        if (op == telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.OpenOp.RESTORE_SESSION) {
             if (params.size() != 1 || !("last".equals(params.get("restore")) || "dismiss".equals(params.get("restore"))))
                 return ActionResult.error("use open {restore: last|dismiss} alone to accept or decline the current session offer");
             return "dismiss".equals(params.get("restore")) ? onEdt(app::dismissSessionRestore) : onEdt(app::restoreSession);
         }
-        if (params.get("bundle") != null) {
+        if (op == telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.OpenOp.BUNDLE) {
             if (params.get("project") != null) {
                 return ActionResult.error("open 'bundle' and 'project' are two different projects: use one");
             }
@@ -1328,7 +1332,7 @@ public final class ActionExecutor implements RenderExecutor {
             }
             return opened;
         }
-        if (params.get("project") != null) {
+        if (op == telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.OpenOp.PROJECT) {
             // M35.8: the largest act on this verb goes first. A project switch is a session boundary
             // (M35.5) — the log and graph close with it — so "open a project and a log" in one call
             // has no coherent reading: whatever the log arrived into would be swept away by the switch.
@@ -1352,7 +1356,7 @@ public final class ActionExecutor implements RenderExecutor {
             // §E + M35.9: the declaration travels WITH the open — one call, nothing set beforehand
             return onEdt(() -> app.openLog(str(params.get("log")), str(params.get("format")), str(params.get("provenance"))));
         }
-        if (params.get("discover") != null) {
+        if (op == telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.OpenOp.DISCOVER) {
             ActionResult found = "diagnostics".equals(str(params.get("discover")))
                     ? onEdt(() -> app.discoverDiagnostics())
                     : onEdt(() -> app.discoverGraphs());   // lists, never opens — M35.4
@@ -1368,7 +1372,7 @@ public final class ActionExecutor implements RenderExecutor {
             echo.put("ignoredWhy", "discover lists candidates and opens nothing; send the open as its own call");
             return ActionResult.ok(found.action(), found.payloadKey(), echo);
         }
-        if (params.get("close") != null) {
+        if (op == telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.OpenOp.CLOSE) {
             // the counterpart of open, on the same verb: closing is a lifecycle act, not a new concept
             ActionResult r = onEdt(() -> app.close(str(params.get("close"))));
             // review R2 / M26.4: "open and close at once" is incoherent and the useful reading is the
