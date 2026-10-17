@@ -72,8 +72,7 @@ carries runbook *contents* imports the same way.
 ### Write it in the skill shape
 
 The analyser needs only the path, but write the runbook file the way an AI harness loads a **skill** —
-frontmatter `name` and `description`, then the steps (see *Working with AI ▸ Runbooks, glossary and saved
-analyses with an AI*). A pointer may target a skill file directly (`.claude/skills/deploy/SKILL.md`), so one
+frontmatter `name` and `description`, then the steps (see [Runbooks, glossary and posture](../ai-and-runbooks.md)). A pointer may target a skill file directly (`.claude/skills/deploy/SKILL.md`), so one
 file serves the team, Claude Code and the analyser; and the `description` is what a later slice (M38.8) will
 surface in `context` so a model can pick the right runbook without opening all of them.
 

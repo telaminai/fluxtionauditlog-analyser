@@ -1,117 +1,105 @@
 # Fluxtion Audit Log Analyser
 
-A fast desktop tool for **Fluxtion event-audit logs** — browse, filter, graph and explain the event
-history of a Mongoose/Fluxtion `EventProcessor`. Index-first, so it stays responsive on multi-GB logs.
+A desktop canvas for **Fluxtion audit evidence**. A Mongoose/Fluxtion `EventProcessor` writes down every cycle it runs:
+the event that arrived, each node that reacted, in order, and what each one computed. The analyser indexes that record,
+so multi-GB logs stay responsive. You, or an AI you connect, can then browse it, filter it, graph it, step through it
+on the processor's own topology, and report on it.
 
-The processor already writes down everything it does. The analyser is what makes that record **answer
-questions — in minutes, with evidence** — whether it's you asking or an AI.
+**You do not have to have written the system.** Nobody wrote the log up afterwards: the processor emitted it as it ran.
+So it answers a support engineer in their first week as readily as the person who built the graph, and an AI's
+conclusion arrives as something on screen you can check, not prose you have to trust.
 
-**You do not have to have written the system.** That is the point most easily missed: the log is not
-anyone's account of what happened, it is what the processor emitted as it ran. So it answers to a
-support engineer on their first week as readily as to the person who built the graph — which is why
-teams report questions that took hours being answered in minutes by people who were not there when it
-happened. See [Answering questions about a running system](support.md).
+![The analyser on a demo log: the records table, one cycle read out logically, and the processor's own graph with that
+cycle shaded](assets/screenshot-dark.png)
 
-![The analyser on a demo log: the records table, one cycle read out logically, and the processor's own graph with that cycle shaded](assets/screenshot-dark.png)
+## Choose your door
+
+<div class="grid cards" markdown>
+
+-   :material-lan-connect: **Diagnose an incident**
+
+    ---
+
+    Something went wrong in a running system. Point Claude Code, Codex or another MCP client at the analyser you
+    have open, ask in your own words, and watch the client filter, plot and flag the evidence on your screen. Or ask
+    the assistant built into the analyser.
+
+    [:octicons-arrow-right-24: With your AI client](diagnose/index.md) ·
+    [:octicons-arrow-right-24: In the analyser](inapp/index.md)
+
+-   :material-hammer-wrench: **Build with Claude**
+
+    ---
+
+    You state the intent and the acceptance criteria. The AI structures the components, Fluxtion writes the
+    mechanics, and the recorded evidence checks your criteria for the runs you recorded. It checks those runs; it
+    does not prove the whole of your intent.
+
+    [:octicons-arrow-right-24: Build with Claude](build/index.md)
+
+-   :material-rocket-launch-outline: **Get started**
+
+    ---
+
+    Install with one command, open the built-in DEMO in one click, and find the route that fits what you came to do.
+    No AI and no key are needed to begin.
+
+    [:octicons-arrow-right-24: Start here](start-here.md) ·
+    [:octicons-arrow-right-24: Install & run](install.md)
+
+-   :material-shield-lock-outline: **Administer and secure**
+
+    ---
+
+    What each assistant profile can do, how external access is opened and closed, what is stored on the machine, and
+    what leaves it.
+
+    [:octicons-arrow-right-24: Security model and limits](admin/security.md) ·
+    [:octicons-arrow-right-24: Assistant profiles](admin/profiles.md)
+
+</div>
 
 ## Run it now
 
-No build needed — just **JDK 21+**. **No log to hand is fine**: the analyser opens on a page whose
-first button loads a recorded run and its topology from inside the jar. With [JBang](https://jbang.dev):
+You need **Java 21 or later**. With [JBang](https://jbang.dev):
 
 ```bash
 jbang analyser@telaminai/fluxtionauditlog-analyser
 ```
 
-Or download the latest fatjar and run it:
+With no log to hand, the start page's **1. Run me through a demo** opens a recorded DEMO run and its topology from
+inside the jar. [Install & run](install.md) has the plain-jar download, building from source, and `--rest` for an
+agent.
 
-```bash
-curl -LO https://github.com/telaminai/fluxtionauditlog-analyser/releases/latest/download/fluxtion-auditlog-analyser.jar
-java -jar fluxtion-auditlog-analyser.jar
-```
+## One log, every view
 
-See [Install & run](install.md) for details.
-
-## What it does
-
-**Building a system with an LLM?** [The illustrated Spring authoring path](spring-authoring-getting-started.md) takes you from a design
-conversation to a Java project, then brings the run back into the analyser. The LLM renders evidence,
-charts and reports on a canvas you can both inspect and question.
-
-**One source of truth, a whole toolchain.** The analyser takes the **Fluxtion event-audit log** — a
-deterministic, replayable record of every propagation cycle — and feeds it through one connected
-toolchain to **explain, drill down, observe, graph, monitor, interrogate and fix**, in a fraction of the
-time that reading raw logs normally takes. Every feature below is a lens on that same log.
+The audit log is the single source of truth, and every feature reads the same records. Narrow the view once and the
+table, the charts and the topology all follow.
 
 --8<-- "assets/audit-loop.svg"
 
-- **Fast on big logs** — a compact columnar index keeps browse/filter/summarise responsive; files above
-  a threshold are memory-mapped rather than loaded into heap.
-- **Graph any node value** over time — stairs/line/points, booleans as ±1, zoom/pan, multiple graphs,
-  CSV/PNG export, and derived **formula series** (`f(x)`). See [Graphs](user-guide/graphs.md).
-- **Ask — and let the assistant _drive the analyser_.** Select a record, press **Ask**, and Claude Code, Claude or
-  OpenAI works out what happened; it can
-  **plot the offending series, flag the culprit records and filter the view** so you *see* the fault —
-  over the same data you can click into and verify. No key? It copies a prompt that lets any agent drive
-  the analyser too. See [Assistant](user-guide/assistant.md).
-- **Log → source navigation** — click a node line to open the exact class/method. See
-  [Source navigation](user-guide/source-navigation.md).
-- **Share your setup** — export/import roots, event processors and named graphs to a file. See
-  [Sharing setups](user-guide/sharing-setups.md).
+- **[Records, detail & filtering](user-guide/records-and-filtering.md).** A columnar index keeps browsing and filtering
+  fast; files over a size threshold are memory-mapped rather than loaded into the heap.
+- **[Graphs](user-guide/graphs.md).** Any top-level numeric or boolean node value over time, with formula series,
+  guides, bands and markers.
+- **[Topology & step-through](user-guide/topology.md).** The processor's own node graph, which nodes ran in a cycle,
+  and which never logged at all.
+- **[Source navigation](user-guide/source-navigation.md).** A node log line opens the class and method that wrote it.
+- **[Investigation reports](user-guide/reports.md)** and **[evidence bundles](evidence-bundles/index.md).** An
+  account of what you found, and a verifiable package for someone who was not watching.
 
 ## Why it matters
 
-- **Minutes to root cause, not hours.** A production incident in an event-driven system normally means
-  grepping a multi-GB log and reconstructing what fired, in what order, by hand. Here the log is indexed
-  in seconds, anomalies are pre-tinted, any value graphs over time, two cycles diff in a click, and any
-  log line opens the exact source method that wrote it. The answer comes **with evidence**, not a
-  plausible story.
-- **The audit log becomes an asset, not a storage cost.** You already produce and retain these logs.
-  With the analyser the same bytes are incident forensics (*what actually executed, with state*), a
-  compliance answer (*prove why this order was amended — replayable, per-cycle, traceable to source*),
-  and a shared team artifact — [export your setup](user-guide/sharing-setups.md) so everyone
-  investigates from the same roots, graphs and formulas.
-- **It answers to someone who did not build it.** Diagnosing an unfamiliar system normally means
-  finding the person who knows it, and waiting. Here the system explains itself: every cycle names the
-  nodes that ran, in order, with what each computed, and each one opens the source that wrote it. The
-  knowledge you would otherwise have to borrow from an author is in the record — which makes this as
-  much a **support** tool as a development one.
-- **Only possible here.** A Fluxtion processor is deterministic and its graph is generated from source —
-  so a record isn't just a log line, it's a **replayable trace with a code address**. That's what lets
-  the analyser (and the assistant) explain *why*, not just *what*.
+- **Minutes to root cause, with evidence.** An incident in an event-driven system usually means grepping a large log
+  and reconstructing by hand what fired, in what order. Here the log is indexed in seconds, any value plots over time,
+  two cycles diff in a click, and a log line opens the source method that wrote it.
+- **The audit log becomes an asset.** The bytes you already keep become incident forensics (what actually ran, with
+  its state), a compliance answer (why this order was amended, cycle by cycle, traceable to source) and a shared team
+  artefact.
+- **Only possible with Fluxtion.** A Fluxtion processor is deterministic and its graph is generated from source, so a
+  record is not just a log line: it is a trace of one cycle with an address in the code.
 
-## Agentic fault-finding — the assistant drives the tool
+## Elsewhere
 
-The feature to see first. Point the assistant at a suspicious window and it investigates *inside the
-analyser*: it reads the surrounding records, aggregates over the columnar index, then **renders its
-conclusion as a view you can interrogate** — a captioned graph of the offending series, the culprit
-records flagged, the table filtered down to them. Its answer is a chart and a set of records, not a wall
-of text you have to trust. The verification loop is built in: click a plotted point, jump to a flagged
-record, trace it to the exact source method.
-
-!!! tip "No API key needed — and it works with any agent"
-    Hit **Copy prompt** and the analyser hands you a self-contained brief of the evidence. Tick
-    **Include my local REST token** and it adds the **action protocol** (localhost endpoint, token, verbs), so
-    Claude Code, Claude Desktop or any agent can drive the analyser back: seek more records, aggregate, and
-    **plot the fault for you to see**.
-
-See the [Assistant guide](user-guide/assistant.md) for the full workflow.
-
-!!! tip "Connect your own AI client"
-    The Start page's *Connect an assistant* block has **Codex**, **Claude** and **Other MCP client** buttons (also
-    **AI ▸ Connect an AI client…**). They take you to the live-session setup screen, where you turn on External
-    MCP/REST access, test the exact bridge
-    command, and either explicitly register a supported CLI client or copy the generic no-token JSON.
-    See [Connecting an LLM to the analyser](connect-an-llm.md).
-
-## Get going
-
-- **[Getting started](getting-started.md)** — open a log, add source roots, pick your event processor,
-  configure the LLM, S3 and tailing — everything in Settings to get up and running.
-- **[From playground to analyser in 10 minutes](tutorial-playground.md)** — download a runnable
-  system, start it, and read the log it produces. A JDK, no API key, nothing else to install.
-- [Install & run](install.md)
-- [User guide](user-guide/index.md)
-- [Log format](log-format.md)
-- [FAQ](faq.md)
-- [Release notes](release-notes.md)
+[FAQ](faq.md) · [Log format](log-format.md) · [Release notes](release-notes.md) ·
+[Source on GitHub](https://github.com/telaminai/fluxtionauditlog-analyser)

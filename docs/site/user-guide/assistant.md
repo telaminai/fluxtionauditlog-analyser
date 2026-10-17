@@ -896,7 +896,7 @@ prompt and is served as `context.vocabulary.text`, so the assistant reads `live`
     full `context`. On the fixed test fixture the full response is 1709 bytes, `["menus"]` 541 and
     `["pairing"]` 817 — measured, not a promise about your session.
 
-`context` is also what the **Project panel** draws (*User guide ▸ The Project panel*): one payload, two
+`context` is also what the **Project panel** draws ([The Project panel](project-panel.md)): one payload, two
 readers. It reports the graph whether or not a log is open, `log.openedBy` (you, the action socket, the
 command line that started the app, or — for a log the app reopened by itself — *the previous session,
 restored at startup*: an agent should not treat that one as a log anybody chose),
@@ -913,8 +913,8 @@ the report summary, so disorder is announced rather than discovered through wron
 `reports[].createdAt`, and `source.workspaceDir` (where the declared `workspaceRoot` resolves on this machine —
 two facts, not one).
 
-The project's portable context (*User guide ▸ Portable context*; the AI-side manual is *Working with AI ▸ Runbooks,
-glossary and saved analyses with an AI*) rides the same payload: `runbooks[]` (pointers —
+The project's portable context ([Portable context](portable-context.md); the AI-side manual is
+[Runbooks, glossary and posture](../ai-and-runbooks.md)) rides the same payload: `runbooks[]` (pointers —
 read the file from the repository; the analyser never executes one), `vocabulary` (with the glossary's `text`),
 `environments[]` and `provenanceSource` (who supplied the log's provenance — *declared by the opener* always
 wins), `analyses[]` (the offer; recall with `open {analysis, bind}`), and `reportDestinations[]` (places the

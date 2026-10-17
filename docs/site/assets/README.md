@@ -20,7 +20,7 @@ thread, logger or account names** — use neutral placeholders (e.g. `DEMO`, `ma
 | File | Used on |
 |------|---------|
 | `screenshot-dark.png` | Home — hero (the tool photographs better dark: the canvas, source panes and plots all use a recessed dark surface, and light flattens all three) |
-| `screenshot-light.png` | User guide — index (the light theme) |
+| `screenshot-light.png` | not on a page since the 2026-10-17 restructure removed the user-guide index; still produced by `capture-docs.py` |
 | `projects-file-menu.png` | Getting started, Projects — current Project menu (legacy asset filename) |
 | `sources-menu.png` | Getting started — Sources menu |
 | `audit-log-menu.png` | Getting started — Audit log menu |
