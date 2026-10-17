@@ -28,17 +28,60 @@ PACKS = HERE.parent / 'docs/proposals/beta-testing/m74-onboarding'
 class PackGrammarTest(unittest.TestCase):
     def test_mirror_agrees_with_the_java_parser(self):
         cases = json.loads((FIX / 'pack-crosscheck.json').read_text())['cases']
-        self.assertGreaterEqual(len(cases), 30)
+        self.assertGreaterEqual(len(cases), 89)
         for name, c in cases.items():
             with self.subTest(name):
                 got = r.lint_pack(c['input'])
                 if 'cause' in c['java']:
                     self.assertEqual(got.get('refusal'), c['java'])
                 else:
-                    self.assertIn('pack', got)
-                    self.assertEqual(len(got['pack']['entries']), c['java']['entries'])
-                    third = any(e.get('example', {}).get('thirdParty') for e in got['pack']['entries'])
-                    self.assertEqual(third, c['java']['thirdParty'])
+                    self.assertIn('pack', got, got.get('refusal'))
+                    pack, java = got['pack'], c['java']
+                    self.assertEqual(len(pack['entries']), java['entries'])
+                    third = any(e.get('example', {}).get('thirdParty') for e in pack['entries'])
+                    self.assertEqual(third, java['thirdParty'])
+                    # the forgiving reader (69eb2fac): what it read, and each fix it made, kind by kind and line by line
+                    self.assertEqual(pack['title'], java['title'])
+                    self.assertEqual(pack['description'] or '', java['description'])
+                    self.assertEqual([e['label'] for e in pack['entries']], java['labels'])
+                    self.assertEqual([e.get('text') for e in pack['entries']], java['texts'])
+                    self.assertEqual(pack['normalised'], java['normalised'])
+
+    def test_the_crosscheck_covers_every_fix_and_every_refusal_that_stays(self):
+        """The forgiving reader (69eb2fac): each kind of fix, and each refusal it keeps, is in the Java-recorded set."""
+        cases = json.loads((FIX / 'pack-crosscheck.json').read_text())['cases']
+        fixes = {f for c in cases.values() for _, f in c['java'].get('normalised', [])}
+        self.assertEqual(fixes, set(r.FIXES))
+        causes = {c['java']['cause'] for c in cases.values() if 'cause' in c['java']}
+        for kept in ('HTML', 'IMAGE', 'HIDDEN_CHARACTER', 'TOO_MANY', 'LABEL_TOO_LONG', 'TEXT_TOO_LONG', 'TITLE_TOO_LONG',
+                     'DESCRIPTION_TOO_LONG', 'PLACEHOLDER', 'LINK', 'MISSING_LABEL', 'EMPTY_TEXT', 'EXAMPLE_MALFORMED'):
+            self.assertIn(kept, causes)
+        for name in ('fix-dash-hyphen', 'fix-dash-double-hyphen', 'fix-dash-en', 'fix-dash-colon', 'fix-colon-in-bold',
+                     'fix-plain-label-em', 'fix-bare-first-sentence', 'fix-bare-first-words-capped', 'fix-bullet-hyphen',
+                     'fix-bullet-star', 'fix-bullet-plus', 'fix-paren-number', 'fix-blank-lines',
+                     'fix-trailing-whitespace', 'fix-no-description', 'refuse-unclosed-bold', 'refuse-example-bullet',
+                     'refuse-example-hyphen-dash', 'refuse-example-plain-label', 'refuse-bullet-link'):
+            self.assertIn(name, cases)
+
+    def test_a_variation_reads_to_the_canonical_pack(self):
+        """Wrong-result control: the strict reader refused these as MISSING_LABEL / NOT_AN_ENTRY; now each reads to the
+        same entries as the canonical file and only the note differs."""
+        canonical = ('# Triage\nQuestions.\n\n1. **First breach** — Where first?\n'
+                     '2. **Quiet nodes** — Which never logged?\n')
+        want = r.lint_pack(canonical)['pack']
+        self.assertEqual(want['normalised'], [])
+        for variant, fix in ((canonical.replace('** — ', '** - '), 'DASH'),
+                             (canonical.replace('1. ', '- ').replace('2. ', '* '), 'BULLET'),
+                             (canonical.replace('2. **Quiet nodes** —', '2. Quiet nodes —'), 'LABEL_FROM_TEXT'),
+                             (canonical.replace('?\n', '?  \n'), 'TRAILING_WHITESPACE')):
+            with self.subTest(fix):
+                got = r.lint_pack(variant)['pack']
+                self.assertEqual(got['entries'], want['entries'])
+                self.assertEqual({f for _, f in got['normalised']}, {fix})
+        self.assertEqual(r.lint_pack('# T\n- **A — b\n')['refusal']['cause'], 'MISSING_LABEL', 'an unclosed ** is refused')
+        self.assertEqual(r._first_words('w' * 70, 60), 'w' * 60)
+        self.assertEqual(r.lint_pack('# T\n1. **a** — b\u00a0\n')['pack']['entries'][0]['text'], 'b\u00a0',
+                         "Java's strip keeps a no-break space; str.strip would not")
 
     def test_every_committed_pack_parses(self):
         packs = [PACKS / 'virgin-pack.md', *sorted((PACKS / 'packs').glob('*.md'))]

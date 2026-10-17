@@ -176,6 +176,14 @@ running the P2 build's classes (`tools/fixtures/m74-onboarding/pack-crosscheck.j
 and was `EXAMPLE_MOVING_REF` in the first mirror. Fixed, with a control. All seven committed packs parse in both.
 Re-record when `PromptPack` changes.
 
+**Re-recorded 2026-10-17 for the forgiving reader** (`69eb2fac`, `feature/claude-code-p3` at `031545cc`): 89 inputs,
+adding one for each normalisation (the four other dashes and `**Label:**`, a plain or missing label, `-`/`*`/`+` bullets
+and `1)`, blank lines, trailing whitespace, no description) and each refusal that stays (HTML, images, hidden
+characters, the caps, placeholders, links, an unclosed `**`, every loose shape of an example entry). Each verdict now
+carries the title, description, labels, texts and the reader's `normalised` fixes, and the mirror must match all of
+them. The verdicts are recorded, never typed: `python3 tools/m74_record_pack_crosscheck.py <checkout>` runs
+`tools/m74_record_pack_crosscheck/RecordPackVerdicts.java` against a checkout's compiled classes.
+
 ---
 
 ## 5. The tracks

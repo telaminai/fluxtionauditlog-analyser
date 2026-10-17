@@ -100,19 +100,38 @@ def fail(message):
 # The prompt-pack grammar: a mirror of assistant/PromptPack and ExampleSource on the M74 P2 branch (spec §5.8,
 # OD-74.28..30). The analyser's parser is the authority; this mirror exists so a pack is checked before a run without a
 # built analyser, and PROTOCOL §4.3 records the one cross-check against the Java parser.
+#
+# Since 69eb2fac (feature/claude-code-p3, the external utility review) the reader is FORGIVING about format and STRICT
+# about safety: a '-', '--', '–' or ':' for the em dash (and '**Label:**'), a missing bold label (a plain 'Label — text'
+# keeps it, otherwise the first words up to the first sentence, at most 60 characters), '-', '*' or '+' bullets and
+# '1)', extra blank lines, trailing whitespace and a missing description are read and listed in `normalised` (kind and
+# line, never the file's words). HTML, images, hidden characters, the caps, placeholders, links outside an example
+# entry, an unclosed '**' and any example entry not in its exact strict shape are still refused.
+#
+# The cross-check fixture (fixtures/m74-onboarding/pack-crosscheck.json) is RECORDED from the Java parser, never
+# written by hand: `python3 tools/m74_record_pack_crosscheck.py <analyser checkout with compiled classes>` runs
+# tools/m74_record_pack_crosscheck/RecordPackVerdicts.java over every case input and rewrites each `java` verdict.
 
 MAX_BYTES = 16 * 1024
 MAX_TITLE, MAX_DESCRIPTION, MAX_LABEL, MAX_TEXT, MAX_ENTRIES = 60, 140, 60, 500, 9
 ALLOWED_HOSTS = ('github.com', 'codeload.github.com', 'gitlab.com')
 TELAMIN_ORG = 'telaminai'
 
-_ENTRY = re.compile(r'^(\d{1,2})\. (.*)$')
+# Python's \s, \S and \d are Unicode-wide by default; Java's are ASCII. re.ASCII keeps the two the same.
+_LOOSE_ENTRY = re.compile(r'^(?:(\d{1,2})[.)]|([-*+]))[ \t]+(\S.*)$', re.ASCII)
 _BOLD_LABEL = re.compile(r'^\*\*([^*]+)\*\* — (.*)$')
-_HTML_TAG = re.compile(r'<\s*[/!?A-Za-z]')
+_LOOSE_BOLD_LABEL = re.compile(r'^\*\*([^*]+)\*\*[ \t]*(—|–|--|-|:)?[ \t]*(.*)$')
+_PLAIN_LABEL = re.compile(r'^([^*:—–]{1,60}?)[ \t]+(—|–|--|-)[ \t]+(\S.*)$|^([^*:—–\s][^*:—–]{0,59}):[ \t]+(\S.*)$',
+                          re.ASCII)
+_LOOSE_EXAMPLE = re.compile(r'^(?:\d{1,2}[.)]|[-*+])[ \t]+(?:\*\*[^*]*\*\*[ \t]*(?:—|–|--|-|:)?[ \t]*'
+                            r'|[^*]{0,60}?[ \t]+(?:—|–|--|-)[ \t]+|[^*:]{0,60}:[ \t]+)?example:[ \t]*<?https?://',
+                            re.ASCII | re.IGNORECASE)
+_HTML_TAG = re.compile(r'<\s*[/!?A-Za-z]', re.ASCII)
 _PLACEHOLDER = re.compile(r'\{[A-Za-z_][A-Za-z0-9_]*\}')
 _LINK = re.compile(r'\]\(|https?://|\bwww\.|<https?:', re.IGNORECASE)
-_EXAMPLE_LINE = re.compile(r'^\d{1,2}\. \*\*[^*]+\*\* — example:.*$')
-_EXAMPLE = re.compile(r'^example: (?:<(\S+)>|(\S+))(?: sha256:(\S+))?$')
+# Review S5: only the text AFTER `example:` is exempt from the link and HTML checks; the number and label are checked.
+_EXAMPLE_LINE = re.compile(r'^(\d{1,2}\. \*\*[^*]+\*\* — )example:.*$', re.ASCII)
+_EXAMPLE = re.compile(r'^example: (?:<(\S+)>|(\S+))(?: sha256:(\S+))?$', re.ASCII)
 _SEG = r'[A-Za-z0-9._-]{1,100}'
 _GITHUB = re.compile(rf'^/({_SEG})/({_SEG})/archive/(.+)\.zip$')
 _CODELOAD = re.compile(rf'^/({_SEG})/({_SEG})/zip/(.+)$')
@@ -178,8 +197,45 @@ _EXAMPLE_CAUSE = {'NOT_HTTPS': 'EXAMPLE_NOT_HTTPS', 'HOST_NOT_ALLOWED': 'EXAMPLE
                   'BAD_DIGEST': 'EXAMPLE_DIGEST'}
 
 
+# The forgiving reader's fixes, in PromptPack.Fix order (the gentle note groups them in this order).
+FIXES = ('DASH', 'LABEL_FROM_TEXT', 'BULLET', 'TRAILING_WHITESPACE')
+
+
+def _java_whitespace(c):
+    """Character.isWhitespace: Unicode space separators except the no-break ones, and the ASCII/Unicode separators."""
+    if c in '\t\n\x0b\x0c\r\x1c\x1d\x1e\x1f':
+        return True
+    return unicodedata.category(c) in ('Zs', 'Zl', 'Zp') and c not in '\xa0  '
+
+
+def _jstrip(t):
+    """String.strip(): Python's str.strip() also removes a no-break space, which Java keeps."""
+    a, b = 0, len(t)
+    while a < b and _java_whitespace(t[a]):
+        a += 1
+    while b > a and _java_whitespace(t[b - 1]):
+        b -= 1
+    return t[a:b]
+
+
+def _first_words(text, cap):
+    """PromptPack.firstWords: up to the first sentence's end, at most `cap` characters, cut at a word boundary."""
+    t = _jstrip(text)
+    stop = len(t)
+    for k, c in enumerate(t):
+        if c in '.?!' and (k + 1 == len(t) or t[k + 1] == ' '):
+            stop = k if c == '.' else k + 1
+            break
+    t = _jstrip(t[:stop])
+    if len(t) <= cap:
+        return t
+    space = t.rfind(' ', 0, cap + 1)          # Java's lastIndexOf(' ', cap): from index cap backwards, inclusive
+    return _jstrip(t[:space] if space > 0 else t[:cap])
+
+
 def lint_pack(data):
-    """A pack, or ONE refusal: {'pack': {...}} or {'refusal': {'line': n, 'cause': CODE}} — PromptPack.parse's shape."""
+    """A pack, or ONE refusal: {'pack': {...}} or {'refusal': {'line': n, 'cause': CODE}} — PromptPack.parse's shape.
+    A pack carries `normalised`: [[line, FIX], …] in the order the reader made them (PromptPack.Pack.normalised)."""
     def refuse(line, cause):
         return {'refusal': {'line': line, 'cause': cause}}
 
@@ -192,13 +248,24 @@ def lint_pack(data):
     except UnicodeDecodeError:
         return refuse(0, 'NOT_UTF8')
     lines = text.replace('\r\n', '\n').split('\n')
+    fixes = []
+    # hidden characters, HTML, images, links and placeholders are refused wherever they are, first by line
     for i, l in enumerate(lines, 1):
         if any(c != '\t' and _hidden(ord(c)) for c in l):
             return refuse(i, 'HIDDEN_CHARACTER')
+        trimmed = l.rstrip(' \t')               # ASCII spaces and tabs only, as stripTrailing there
+        if trimmed != l:
+            if trimmed:
+                fixes.append([i, 'TRAILING_WHITESPACE'])
+            lines[i - 1] = l = trimmed
         if '![' in l:
             return refuse(i, 'IMAGE')
-        if _EXAMPLE_LINE.match(l):
-            continue
+        ex = _EXAMPLE_LINE.fullmatch(l)
+        # an example entry is never normalised: one not exactly in the strict shape is refused by name
+        if ex:
+            l = ex.group(1)
+        elif _LOOSE_EXAMPLE.search(l):
+            return refuse(i, 'EXAMPLE_MALFORMED')
         if _HTML_TAG.search(l):
             return refuse(i, 'HTML')
         if _LINK.search(l):
@@ -206,41 +273,65 @@ def lint_pack(data):
         if _PLACEHOLDER.search(l):
             return refuse(i, 'PLACEHOLDER')
 
+    def blank(t):
+        return not _jstrip(t)
+
     def skip_blank(k):
-        while k < len(lines) and not lines[k].strip():
+        while k < len(lines) and blank(lines[k]):
             k += 1
         return k
 
     i = skip_blank(0)
-    if i >= len(lines) or not lines[i].startswith('# ') or not lines[i][2:].strip():
+    if i >= len(lines) or not lines[i].startswith('# ') or blank(lines[i][2:]):
         return refuse(i + 1, 'NO_TITLE')
-    title = lines[i][2:].strip()
+    title = _jstrip(lines[i][2:])
     if len(title) > MAX_TITLE:
         return refuse(i + 1, 'TITLE_TOO_LONG')
     i = skip_blank(i + 1)
     description = None
-    if i < len(lines) and not _ENTRY.match(lines[i]):
-        description = lines[i].strip()
+    if i < len(lines) and not _LOOSE_ENTRY.fullmatch(lines[i]):
+        description = _jstrip(lines[i])
         if len(description) > MAX_DESCRIPTION:
             return refuse(i + 1, 'DESCRIPTION_TOO_LONG')
         i = skip_blank(i + 1)
     entries = []
     while i < len(lines):
         l = lines[i]
-        if not l.strip():
+        if blank(l):
             i += 1
             continue
-        m = _ENTRY.match(l)
+        m = _LOOSE_ENTRY.fullmatch(l)
         if not m:
             return refuse(i + 1, 'NOT_AN_ENTRY' if not entries else 'EXTRA_CONTENT')
         if len(entries) == MAX_ENTRIES:
             return refuse(i + 1, 'TOO_MANY')
-        if int(m.group(1)) != len(entries) + 1:
-            return refuse(i + 1, 'OUT_OF_ORDER')
-        b = _BOLD_LABEL.match(m.group(2))
-        if not b:
-            return refuse(i + 1, 'MISSING_LABEL')
-        label, prompt = b.group(1).strip(), b.group(2).strip()
+        if m.group(1) is not None:
+            if int(m.group(1)) != len(entries) + 1:
+                return refuse(i + 1, 'OUT_OF_ORDER')
+        else:
+            fixes.append([i + 1, 'BULLET'])
+        body = m.group(3)
+        b = _BOLD_LABEL.fullmatch(body)
+        if b:
+            label, prompt = _jstrip(b.group(1)), _jstrip(b.group(2))
+        elif _LOOSE_BOLD_LABEL.fullmatch(body):
+            b = _LOOSE_BOLD_LABEL.fullmatch(body)
+            label = _jstrip(b.group(1))
+            if label.endswith(':'):             # "**Label:** text"
+                label = _jstrip(label[:-1])
+            prompt = _jstrip(b.group(3))
+            fixes.append([i + 1, 'DASH'])
+        elif body.startswith('**'):
+            return refuse(i + 1, 'MISSING_LABEL')    # an unclosed bold: refused, never guessed
+        elif _PLAIN_LABEL.fullmatch(body):
+            b = _PLAIN_LABEL.fullmatch(body)
+            plain = b.group(1) is not None
+            label = _jstrip(b.group(1) if plain else b.group(4))
+            prompt = _jstrip(b.group(3) if plain else b.group(5))
+            fixes.append([i + 1, 'LABEL_FROM_TEXT'])
+        else:
+            label, prompt = _first_words(body, MAX_LABEL), _jstrip(body)
+            fixes.append([i + 1, 'LABEL_FROM_TEXT'])
         if not label:
             return refuse(i + 1, 'MISSING_LABEL')
         if len(label) > MAX_LABEL:
@@ -250,7 +341,7 @@ def lint_pack(data):
         if len(prompt) > MAX_TEXT:
             return refuse(i + 1, 'TEXT_TOO_LONG')
         if prompt.startswith('example:'):
-            x = _EXAMPLE.match(prompt)
+            x = _EXAMPLE.fullmatch(prompt)
             if not x:
                 return refuse(i + 1, 'EXAMPLE_MALFORMED')
             source, why = parse_example(x.group(1) or x.group(2), x.group(3))
@@ -262,7 +353,7 @@ def lint_pack(data):
         i += 1
     if not entries:
         return refuse(len(lines), 'NO_ENTRIES')
-    return {'pack': {'title': title, 'description': description, 'entries': entries}}
+    return {'pack': {'title': title, 'description': description, 'entries': entries, 'normalised': fixes}}
 
 
 # ---------------------------------------------------------------------------------------------------------------------

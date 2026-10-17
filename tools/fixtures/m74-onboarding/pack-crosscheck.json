@@ -1,5 +1,5 @@
 {
- "_about": "Verdicts of the analyser's own assistant/PromptPack.parse on the M74 P2 branch build of 2026-10-17 (classes compiled after ba257e1c), recorded by running the Java parser over each input. tools/test_m74_onboarding_runner.py pins the Python mirror to them, so a divergence fails a test; re-record when PromptPack changes.",
+ "_about": "Verdicts of the analyser's own assistant/PromptPack.parse, on feature/claude-code-p3 at 031545cc (the forgiving reader of 69eb2fac), built 2026-10-17, recorded by tools/m74_record_pack_crosscheck.py running the Java parser over each input. tools/test_m74_onboarding_runner.py pins the Python mirror to them, so a divergence fails a test; re-record when PromptPack changes.",
  "cases": {
   "angle-placeholder": {
    "input": "# T\n1. **x** — example: https://github.com/example/demo/archive/<40-hex>.zip\n",
@@ -16,14 +16,14 @@
    }
   },
   "bidi": {
-   "input": "# T\n1. **a** — b‮c\n",
+   "input": "# T\n1. **a** — b\u202ec\n",
    "java": {
     "line": 2,
     "cause": "HIDDEN_CHARACTER"
    }
   },
   "bom": {
-   "input": "﻿# T\n1. **a** — b\n",
+   "input": "\ufeff# T\n1. **a** — b\n",
    "java": {
     "line": 1,
     "cause": "HIDDEN_CHARACTER"
@@ -43,6 +43,50 @@
     "cause": "DESCRIPTION_TOO_LONG"
    }
   },
+  "edge-crlf": {
+   "input": "# T\r\n1. **a** - b\r\n",
+   "java": {
+    "entries": 1,
+    "thirdParty": false,
+    "title": "T",
+    "description": "",
+    "labels": [
+     "a"
+    ],
+    "texts": [
+     "b"
+    ],
+    "normalised": [
+     [
+      2,
+      "DASH"
+     ]
+    ]
+   }
+  },
+  "edge-nbsp-kept": {
+   "input": "# T\n1. **a** — b \n",
+   "java": {
+    "entries": 1,
+    "thirdParty": false,
+    "title": "T",
+    "description": "",
+    "labels": [
+     "a"
+    ],
+    "texts": [
+     "b "
+    ],
+    "normalised": []
+   }
+  },
+  "edge-unicode-digit": {
+   "input": "# T\n１. **a** — b\n",
+   "java": {
+    "line": 3,
+    "cause": "NO_ENTRIES"
+   }
+  },
   "example-extra": {
    "input": "# T\n1. **x** — example: https://github.com/o/r/archive/0123456789abcdef0123456789abcdef01234567.zip and more\n",
    "java": {
@@ -55,6 +99,670 @@
    "java": {
     "line": 3,
     "cause": "EXTRA_CONTENT"
+   }
+  },
+  "fix-bare-first-sentence": {
+   "input": "# Triage\nQuestions to start with.\n\n1. **First breach** — Where did the application first log a breach?\n2. Which nodes never logged, and does the coverage explain why?\n",
+   "java": {
+    "entries": 2,
+    "thirdParty": false,
+    "title": "Triage",
+    "description": "Questions to start with.",
+    "labels": [
+     "First breach",
+     "Which nodes never logged, and does the coverage explain why?"
+    ],
+    "texts": [
+     "Where did the application first log a breach?",
+     "Which nodes never logged, and does the coverage explain why?"
+    ],
+    "normalised": [
+     [
+      5,
+      "LABEL_FROM_TEXT"
+     ]
+    ]
+   }
+  },
+  "fix-bare-first-words-capped": {
+   "input": "# T\n1. Read every record between the first quote and the first fill and tell me which node changed the spread and why it did so\n",
+   "java": {
+    "entries": 1,
+    "thirdParty": false,
+    "title": "T",
+    "description": "",
+    "labels": [
+     "Read every record between the first quote and the first fill"
+    ],
+    "texts": [
+     "Read every record between the first quote and the first fill and tell me which node changed the spread and why it did so"
+    ],
+    "normalised": [
+     [
+      2,
+      "LABEL_FROM_TEXT"
+     ]
+    ]
+   }
+  },
+  "fix-bare-one-long-word": {
+   "input": "# T\n1. wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww\n",
+   "java": {
+    "entries": 1,
+    "thirdParty": false,
+    "title": "T",
+    "description": "",
+    "labels": [
+     "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+    ],
+    "texts": [
+     "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+    ],
+    "normalised": [
+     [
+      2,
+      "LABEL_FROM_TEXT"
+     ]
+    ]
+   }
+  },
+  "fix-bare-question": {
+   "input": "# T\n1. Why? Because the spread moved. Tell me.\n",
+   "java": {
+    "entries": 1,
+    "thirdParty": false,
+    "title": "T",
+    "description": "",
+    "labels": [
+     "Why?"
+    ],
+    "texts": [
+     "Why? Because the spread moved. Tell me."
+    ],
+    "normalised": [
+     [
+      2,
+      "LABEL_FROM_TEXT"
+     ]
+    ]
+   }
+  },
+  "fix-bare-sentence-dot": {
+   "input": "# T\n1. Find the breach. Then explain it.\n",
+   "java": {
+    "entries": 1,
+    "thirdParty": false,
+    "title": "T",
+    "description": "",
+    "labels": [
+     "Find the breach"
+    ],
+    "texts": [
+     "Find the breach. Then explain it."
+    ],
+    "normalised": [
+     [
+      2,
+      "LABEL_FROM_TEXT"
+     ]
+    ]
+   }
+  },
+  "fix-blank-lines": {
+   "input": "\n\n# Triage\n\n\n\nQuestions to start with.\n\n\n1. **First breach** — a\n\n\n\n2. **Quiet** — b\n\n\n",
+   "java": {
+    "entries": 2,
+    "thirdParty": false,
+    "title": "Triage",
+    "description": "Questions to start with.",
+    "labels": [
+     "First breach",
+     "Quiet"
+    ],
+    "texts": [
+     "a",
+     "b"
+    ],
+    "normalised": []
+   }
+  },
+  "fix-bullet-after-number": {
+   "input": "# Triage\nQuestions to start with.\n\n1. **First breach** — Where did the application first log a breach?\n- **Quiet nodes** — Which nodes never logged, and does the coverage explain why?\n",
+   "java": {
+    "entries": 2,
+    "thirdParty": false,
+    "title": "Triage",
+    "description": "Questions to start with.",
+    "labels": [
+     "First breach",
+     "Quiet nodes"
+    ],
+    "texts": [
+     "Where did the application first log a breach?",
+     "Which nodes never logged, and does the coverage explain why?"
+    ],
+    "normalised": [
+     [
+      5,
+      "BULLET"
+     ]
+    ]
+   }
+  },
+  "fix-bullet-hyphen": {
+   "input": "# Triage\nQuestions to start with.\n\n- **First breach** — Where did the application first log a breach?\n- **Quiet nodes** — Which nodes never logged, and does the coverage explain why?\n",
+   "java": {
+    "entries": 2,
+    "thirdParty": false,
+    "title": "Triage",
+    "description": "Questions to start with.",
+    "labels": [
+     "First breach",
+     "Quiet nodes"
+    ],
+    "texts": [
+     "Where did the application first log a breach?",
+     "Which nodes never logged, and does the coverage explain why?"
+    ],
+    "normalised": [
+     [
+      4,
+      "BULLET"
+     ],
+     [
+      5,
+      "BULLET"
+     ]
+    ]
+   }
+  },
+  "fix-bullet-plus": {
+   "input": "# Triage\nQuestions to start with.\n\n+ **First breach** — Where did the application first log a breach?\n+ **Quiet nodes** — Which nodes never logged, and does the coverage explain why?\n",
+   "java": {
+    "entries": 2,
+    "thirdParty": false,
+    "title": "Triage",
+    "description": "Questions to start with.",
+    "labels": [
+     "First breach",
+     "Quiet nodes"
+    ],
+    "texts": [
+     "Where did the application first log a breach?",
+     "Which nodes never logged, and does the coverage explain why?"
+    ],
+    "normalised": [
+     [
+      4,
+      "BULLET"
+     ],
+     [
+      5,
+      "BULLET"
+     ]
+    ]
+   }
+  },
+  "fix-bullet-star": {
+   "input": "# Triage\nQuestions to start with.\n\n* **First breach** — Where did the application first log a breach?\n* **Quiet nodes** — Which nodes never logged, and does the coverage explain why?\n",
+   "java": {
+    "entries": 2,
+    "thirdParty": false,
+    "title": "Triage",
+    "description": "Questions to start with.",
+    "labels": [
+     "First breach",
+     "Quiet nodes"
+    ],
+    "texts": [
+     "Where did the application first log a breach?",
+     "Which nodes never logged, and does the coverage explain why?"
+    ],
+    "normalised": [
+     [
+      4,
+      "BULLET"
+     ],
+     [
+      5,
+      "BULLET"
+     ]
+    ]
+   }
+  },
+  "fix-bullet-wide": {
+   "input": "# Triage\nQuestions to start with.\n\n-   **First breach** — Where did the application first log a breach?\n-   **Quiet nodes** — Which nodes never logged, and does the coverage explain why?\n",
+   "java": {
+    "entries": 2,
+    "thirdParty": false,
+    "title": "Triage",
+    "description": "Questions to start with.",
+    "labels": [
+     "First breach",
+     "Quiet nodes"
+    ],
+    "texts": [
+     "Where did the application first log a breach?",
+     "Which nodes never logged, and does the coverage explain why?"
+    ],
+    "normalised": [
+     [
+      4,
+      "BULLET"
+     ],
+     [
+      5,
+      "BULLET"
+     ]
+    ]
+   }
+  },
+  "fix-canonical": {
+   "input": "# Triage\nQuestions to start with.\n\n1. **First breach** — Where did the application first log a breach?\n2. **Quiet nodes** — Which nodes never logged, and does the coverage explain why?\n",
+   "java": {
+    "entries": 2,
+    "thirdParty": false,
+    "title": "Triage",
+    "description": "Questions to start with.",
+    "labels": [
+     "First breach",
+     "Quiet nodes"
+    ],
+    "texts": [
+     "Where did the application first log a breach?",
+     "Which nodes never logged, and does the coverage explain why?"
+    ],
+    "normalised": []
+   }
+  },
+  "fix-colon-in-bold": {
+   "input": "# Triage\nQuestions to start with.\n\n1. **First breach:** Where did the application first log a breach?\n2. **Quiet nodes** — Which nodes never logged, and does the coverage explain why?\n",
+   "java": {
+    "entries": 2,
+    "thirdParty": false,
+    "title": "Triage",
+    "description": "Questions to start with.",
+    "labels": [
+     "First breach",
+     "Quiet nodes"
+    ],
+    "texts": [
+     "Where did the application first log a breach?",
+     "Which nodes never logged, and does the coverage explain why?"
+    ],
+    "normalised": [
+     [
+      4,
+      "DASH"
+     ]
+    ]
+   }
+  },
+  "fix-dash-colon": {
+   "input": "# Triage\nQuestions to start with.\n\n1. **First breach**: Where did the application first log a breach?\n2. **Quiet nodes**: Which nodes never logged, and does the coverage explain why?\n",
+   "java": {
+    "entries": 2,
+    "thirdParty": false,
+    "title": "Triage",
+    "description": "Questions to start with.",
+    "labels": [
+     "First breach",
+     "Quiet nodes"
+    ],
+    "texts": [
+     "Where did the application first log a breach?",
+     "Which nodes never logged, and does the coverage explain why?"
+    ],
+    "normalised": [
+     [
+      4,
+      "DASH"
+     ],
+     [
+      5,
+      "DASH"
+     ]
+    ]
+   }
+  },
+  "fix-dash-double-hyphen": {
+   "input": "# Triage\nQuestions to start with.\n\n1. **First breach** -- Where did the application first log a breach?\n2. **Quiet nodes** -- Which nodes never logged, and does the coverage explain why?\n",
+   "java": {
+    "entries": 2,
+    "thirdParty": false,
+    "title": "Triage",
+    "description": "Questions to start with.",
+    "labels": [
+     "First breach",
+     "Quiet nodes"
+    ],
+    "texts": [
+     "Where did the application first log a breach?",
+     "Which nodes never logged, and does the coverage explain why?"
+    ],
+    "normalised": [
+     [
+      4,
+      "DASH"
+     ],
+     [
+      5,
+      "DASH"
+     ]
+    ]
+   }
+  },
+  "fix-dash-en": {
+   "input": "# Triage\nQuestions to start with.\n\n1. **First breach** – Where did the application first log a breach?\n2. **Quiet nodes** – Which nodes never logged, and does the coverage explain why?\n",
+   "java": {
+    "entries": 2,
+    "thirdParty": false,
+    "title": "Triage",
+    "description": "Questions to start with.",
+    "labels": [
+     "First breach",
+     "Quiet nodes"
+    ],
+    "texts": [
+     "Where did the application first log a breach?",
+     "Which nodes never logged, and does the coverage explain why?"
+    ],
+    "normalised": [
+     [
+      4,
+      "DASH"
+     ],
+     [
+      5,
+      "DASH"
+     ]
+    ]
+   }
+  },
+  "fix-dash-hyphen": {
+   "input": "# Triage\nQuestions to start with.\n\n1. **First breach** - Where did the application first log a breach?\n2. **Quiet nodes** - Which nodes never logged, and does the coverage explain why?\n",
+   "java": {
+    "entries": 2,
+    "thirdParty": false,
+    "title": "Triage",
+    "description": "Questions to start with.",
+    "labels": [
+     "First breach",
+     "Quiet nodes"
+    ],
+    "texts": [
+     "Where did the application first log a breach?",
+     "Which nodes never logged, and does the coverage explain why?"
+    ],
+    "normalised": [
+     [
+      4,
+      "DASH"
+     ],
+     [
+      5,
+      "DASH"
+     ]
+    ]
+   }
+  },
+  "fix-dash-space-only": {
+   "input": "# Triage\nQuestions to start with.\n\n1. **First breach** Where did the application first log a breach?\n2. **Quiet nodes** Which nodes never logged, and does the coverage explain why?\n",
+   "java": {
+    "entries": 2,
+    "thirdParty": false,
+    "title": "Triage",
+    "description": "Questions to start with.",
+    "labels": [
+     "First breach",
+     "Quiet nodes"
+    ],
+    "texts": [
+     "Where did the application first log a breach?",
+     "Which nodes never logged, and does the coverage explain why?"
+    ],
+    "normalised": [
+     [
+      4,
+      "DASH"
+     ],
+     [
+      5,
+      "DASH"
+     ]
+    ]
+   }
+  },
+  "fix-dash-unspaced-em": {
+   "input": "# Triage\nQuestions to start with.\n\n1. **First breach**—Where did the application first log a breach?\n2. **Quiet nodes**—Which nodes never logged, and does the coverage explain why?\n",
+   "java": {
+    "entries": 2,
+    "thirdParty": false,
+    "title": "Triage",
+    "description": "Questions to start with.",
+    "labels": [
+     "First breach",
+     "Quiet nodes"
+    ],
+    "texts": [
+     "Where did the application first log a breach?",
+     "Which nodes never logged, and does the coverage explain why?"
+    ],
+    "normalised": [
+     [
+      4,
+      "DASH"
+     ],
+     [
+      5,
+      "DASH"
+     ]
+    ]
+   }
+  },
+  "fix-no-description": {
+   "input": "# Triage\n- First breach - a\n",
+   "java": {
+    "entries": 1,
+    "thirdParty": false,
+    "title": "Triage",
+    "description": "",
+    "labels": [
+     "First breach"
+    ],
+    "texts": [
+     "a"
+    ],
+    "normalised": [
+     [
+      2,
+      "BULLET"
+     ],
+     [
+      2,
+      "LABEL_FROM_TEXT"
+     ]
+    ]
+   }
+  },
+  "fix-paren-number": {
+   "input": "# Triage\nQuestions to start with.\n\n1) **First breach** — Where did the application first log a breach?\n2) **Quiet nodes** — Which nodes never logged, and does the coverage explain why?\n",
+   "java": {
+    "entries": 2,
+    "thirdParty": false,
+    "title": "Triage",
+    "description": "Questions to start with.",
+    "labels": [
+     "First breach",
+     "Quiet nodes"
+    ],
+    "texts": [
+     "Where did the application first log a breach?",
+     "Which nodes never logged, and does the coverage explain why?"
+    ],
+    "normalised": []
+   }
+  },
+  "fix-plain-label-colon": {
+   "input": "# T\n1. Quiet nodes: which never logged?\n",
+   "java": {
+    "entries": 1,
+    "thirdParty": false,
+    "title": "T",
+    "description": "",
+    "labels": [
+     "Quiet nodes"
+    ],
+    "texts": [
+     "which never logged?"
+    ],
+    "normalised": [
+     [
+      2,
+      "LABEL_FROM_TEXT"
+     ]
+    ]
+   }
+  },
+  "fix-plain-label-em": {
+   "input": "# Triage\nQuestions to start with.\n\n1. **First breach** — Where did the application first log a breach?\n2. Quiet nodes — Which nodes never logged, and does the coverage explain why?\n",
+   "java": {
+    "entries": 2,
+    "thirdParty": false,
+    "title": "Triage",
+    "description": "Questions to start with.",
+    "labels": [
+     "First breach",
+     "Quiet nodes"
+    ],
+    "texts": [
+     "Where did the application first log a breach?",
+     "Which nodes never logged, and does the coverage explain why?"
+    ],
+    "normalised": [
+     [
+      5,
+      "LABEL_FROM_TEXT"
+     ]
+    ]
+   }
+  },
+  "fix-plain-label-hyphen": {
+   "input": "# T\n1. Quiet nodes - which never logged?\n",
+   "java": {
+    "entries": 1,
+    "thirdParty": false,
+    "title": "T",
+    "description": "",
+    "labels": [
+     "Quiet nodes"
+    ],
+    "texts": [
+     "which never logged?"
+    ],
+    "normalised": [
+     [
+      2,
+      "LABEL_FROM_TEXT"
+     ]
+    ]
+   }
+  },
+  "fix-strict-example-after-bullets": {
+   "input": "# T\n- a - b\n2. **A** — example: https://github.com/telaminai/demo/archive/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.zip\n",
+   "java": {
+    "entries": 2,
+    "thirdParty": false,
+    "title": "T",
+    "description": "",
+    "labels": [
+     "a",
+     "A"
+    ],
+    "texts": [
+     "b",
+     null
+    ],
+    "normalised": [
+     [
+      2,
+      "BULLET"
+     ],
+     [
+      2,
+      "LABEL_FROM_TEXT"
+     ]
+    ]
+   }
+  },
+  "fix-the-note": {
+   "input": "# Triage \n- **First breach** - a\n- Quiet nodes: b\n",
+   "java": {
+    "entries": 2,
+    "thirdParty": false,
+    "title": "Triage",
+    "description": "",
+    "labels": [
+     "First breach",
+     "Quiet nodes"
+    ],
+    "texts": [
+     "a",
+     "b"
+    ],
+    "normalised": [
+     [
+      1,
+      "TRAILING_WHITESPACE"
+     ],
+     [
+      2,
+      "BULLET"
+     ],
+     [
+      2,
+      "DASH"
+     ],
+     [
+      3,
+      "BULLET"
+     ],
+     [
+      3,
+      "LABEL_FROM_TEXT"
+     ]
+    ]
+   }
+  },
+  "fix-trailing-whitespace": {
+   "input": "# Triage   \nQuestions.\t\n1. **First breach** — a  \n2. **Quiet** — b\n   \n",
+   "java": {
+    "entries": 2,
+    "thirdParty": false,
+    "title": "Triage",
+    "description": "Questions.",
+    "labels": [
+     "First breach",
+     "Quiet"
+    ],
+    "texts": [
+     "a",
+     "b"
+    ],
+    "normalised": [
+     [
+      1,
+      "TRAILING_WHITESPACE"
+     ],
+     [
+      2,
+      "TRAILING_WHITESPACE"
+     ],
+     [
+      3,
+      "TRAILING_WHITESPACE"
+     ]
+    ]
    }
   },
   "gitlab-name": {
@@ -116,8 +824,22 @@
   "missing-label": {
    "input": "# T\n1. a — b\n",
    "java": {
-    "line": 2,
-    "cause": "MISSING_LABEL"
+    "entries": 1,
+    "thirdParty": false,
+    "title": "T",
+    "description": "",
+    "labels": [
+     "a"
+    ],
+    "texts": [
+     "b"
+    ],
+    "normalised": [
+     [
+      2,
+      "LABEL_FROM_TEXT"
+     ]
+    ]
    }
   },
   "no-entries": {
@@ -138,49 +860,130 @@
    "input": "# T\n\n1. **x** — example: https://codeload.github.com/o/r/zip/0123456789abcdef0123456789abcdef01234567\n",
    "java": {
     "entries": 1,
-    "thirdParty": true
+    "thirdParty": true,
+    "title": "T",
+    "description": "",
+    "labels": [
+     "x"
+    ],
+    "texts": [
+     null
+    ],
+    "normalised": []
    }
   },
   "ok-description": {
    "input": "# T\nOne line.\n1. **a** — b\n2. **c** — d\n",
    "java": {
     "entries": 2,
-    "thirdParty": false
+    "thirdParty": false,
+    "title": "T",
+    "description": "One line.",
+    "labels": [
+     "a",
+     "c"
+    ],
+    "texts": [
+     "b",
+     "d"
+    ],
+    "normalised": []
    }
   },
   "ok-example-angle": {
    "input": "# T\n\n1. **x** — example: <https://github.com/example/demo/archive/0123456789abcdef0123456789abcdef01234567.zip>\n",
    "java": {
     "entries": 1,
-    "thirdParty": true
+    "thirdParty": true,
+    "title": "T",
+    "description": "",
+    "labels": [
+     "x"
+    ],
+    "texts": [
+     null
+    ],
+    "normalised": []
    }
   },
   "ok-example-sha": {
    "input": "# T\n\n1. **x** — example: https://github.com/example/demo/archive/0123456789abcdef0123456789abcdef01234567.zip sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n",
    "java": {
     "entries": 1,
-    "thirdParty": true
+    "thirdParty": true,
+    "title": "T",
+    "description": "",
+    "labels": [
+     "x"
+    ],
+    "texts": [
+     null
+    ],
+    "normalised": []
    }
   },
   "ok-example-telamin": {
    "input": "# T\n\n1. **x** — example: https://github.com/telaminai/demo/archive/0123456789abcdef0123456789abcdef01234567.zip\n",
    "java": {
     "entries": 1,
-    "thirdParty": false
+    "thirdParty": false,
+    "title": "T",
+    "description": "",
+    "labels": [
+     "x"
+    ],
+    "texts": [
+     null
+    ],
+    "normalised": []
    }
   },
   "ok-gitlab": {
    "input": "# T\n\n1. **x** — example: https://gitlab.com/g/r/-/archive/0123456789abcdef0123456789abcdef01234567/r-0123456789abcdef0123456789abcdef01234567.zip\n",
    "java": {
     "entries": 1,
-    "thirdParty": true
+    "thirdParty": true,
+    "title": "T",
+    "description": "",
+    "labels": [
+     "x"
+    ],
+    "texts": [
+     null
+    ],
+    "normalised": []
    }
   },
   "ok-minimal": {
    "input": "# T\n\n1. **a** — b\n",
    "java": {
     "entries": 1,
-    "thirdParty": false
+    "thirdParty": false,
+    "title": "T",
+    "description": "",
+    "labels": [
+     "a"
+    ],
+    "texts": [
+     "b"
+    ],
+    "normalised": []
+   }
+  },
+  "ok-strict-example-telamin-aaaa": {
+   "input": "# T\n1. **A** — example: https://github.com/telaminai/demo/archive/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.zip\n",
+   "java": {
+    "entries": 1,
+    "thirdParty": false,
+    "title": "T",
+    "description": "",
+    "labels": [
+     "A"
+    ],
+    "texts": [
+     null
+    ],
+    "normalised": []
    }
   },
   "out-of-order": {
@@ -211,6 +1014,153 @@
     "cause": "EXAMPLE_NOT_ARCHIVE"
    }
   },
+  "refuse-bullet-bidi": {
+   "input": "# T\n- A - see \u202ethis\n",
+   "java": {
+    "line": 2,
+    "cause": "HIDDEN_CHARACTER"
+   }
+  },
+  "refuse-bullet-html": {
+   "input": "# T\n- **A** - <script>x</script>\n",
+   "java": {
+    "line": 2,
+    "cause": "HTML"
+   }
+  },
+  "refuse-bullet-image": {
+   "input": "# T\n- A - ![x](a.png)\n",
+   "java": {
+    "line": 2,
+    "cause": "IMAGE"
+   }
+  },
+  "refuse-bullet-label-long": {
+   "input": "# T\n- **LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL** - b\n",
+   "java": {
+    "line": 2,
+    "cause": "LABEL_TOO_LONG"
+   }
+  },
+  "refuse-bullet-link": {
+   "input": "# T\n- A - read https://evil.example/ first\n",
+   "java": {
+    "line": 2,
+    "cause": "LINK"
+   }
+  },
+  "refuse-bullet-md-link-label": {
+   "input": "# T\n* [A](https://evil.example) - b\n",
+   "java": {
+    "line": 2,
+    "cause": "LINK"
+   }
+  },
+  "refuse-bullet-placeholder": {
+   "input": "# T\n- A - b {log}\n",
+   "java": {
+    "line": 2,
+    "cause": "PLACEHOLDER"
+   }
+  },
+  "refuse-bullet-text-long": {
+   "input": "# T\n- A - xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n",
+   "java": {
+    "line": 2,
+    "cause": "TEXT_TOO_LONG"
+   }
+  },
+  "refuse-empty-bold": {
+   "input": "# T\n1. **** — b\n",
+   "java": {
+    "line": 2,
+    "cause": "MISSING_LABEL"
+   }
+  },
+  "refuse-empty-text-after-dash": {
+   "input": "# T\n1. **a** —\n",
+   "java": {
+    "line": 2,
+    "cause": "EMPTY_TEXT"
+   }
+  },
+  "refuse-example-bare": {
+   "input": "# T\n1. example: https://github.com/telaminai/demo/archive/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.zip\n",
+   "java": {
+    "line": 2,
+    "cause": "EXAMPLE_MALFORMED"
+   }
+  },
+  "refuse-example-bullet": {
+   "input": "# T\n- **A** — example: https://github.com/telaminai/demo/archive/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.zip\n",
+   "java": {
+    "line": 2,
+    "cause": "EXAMPLE_MALFORMED"
+   }
+  },
+  "refuse-example-colon-label": {
+   "input": "# T\n1. A: example: https://github.com/telaminai/demo/archive/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.zip\n",
+   "java": {
+    "line": 2,
+    "cause": "EXAMPLE_MALFORMED"
+   }
+  },
+  "refuse-example-hyphen-dash": {
+   "input": "# T\n1. **A** - example: https://github.com/telaminai/demo/archive/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.zip\n",
+   "java": {
+    "line": 2,
+    "cause": "EXAMPLE_MALFORMED"
+   }
+  },
+  "refuse-example-label-html": {
+   "input": "# T\n1. **<b>a</b>** — example: https://github.com/telaminai/demo/archive/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.zip\n",
+   "java": {
+    "line": 2,
+    "cause": "HTML"
+   }
+  },
+  "refuse-example-label-link": {
+   "input": "# T\n1. **[a](b)** — example: https://github.com/telaminai/demo/archive/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.zip\n",
+   "java": {
+    "line": 2,
+    "cause": "LINK"
+   }
+  },
+  "refuse-example-label-placeholder": {
+   "input": "# T\n1. **{log}** — example: https://github.com/telaminai/demo/archive/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.zip\n",
+   "java": {
+    "line": 2,
+    "cause": "PLACEHOLDER"
+   }
+  },
+  "refuse-example-plain-label": {
+   "input": "# T\n1. A — example: https://github.com/telaminai/demo/archive/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.zip\n",
+   "java": {
+    "line": 2,
+    "cause": "EXAMPLE_MALFORMED"
+   }
+  },
+  "refuse-example-upper-case": {
+   "input": "# T\n1. **A** — EXAMPLE: https://github.com/telaminai/demo/archive/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.zip\n",
+   "java": {
+    "line": 2,
+    "cause": "EXAMPLE_MALFORMED"
+   }
+  },
+  "refuse-ten-bullets": {
+   "input": "# Ten\n- L1 - text\n- L2 - text\n- L3 - text\n- L4 - text\n- L5 - text\n- L6 - text\n- L7 - text\n- L8 - text\n- L9 - text\n- L10 - text\n",
+   "java": {
+    "line": 11,
+    "cause": "TOO_MANY"
+   }
+  },
+  "refuse-unclosed-bold": {
+   "input": "# T\n- **A - b\n",
+   "java": {
+    "line": 2,
+    "cause": "MISSING_LABEL"
+   }
+  },
   "short-sha": {
    "input": "# T\n1. **x** — example: https://github.com/o/r/archive/0123456.zip\n",
    "java": {
@@ -222,7 +1172,16 @@
    "input": "# T\n1. **a** — b\tc\n",
    "java": {
     "entries": 1,
-    "thirdParty": false
+    "thirdParty": false,
+    "title": "T",
+    "description": "",
+    "labels": [
+     "a"
+    ],
+    "texts": [
+     "b\tc"
+    ],
+    "normalised": []
    }
   },
   "tag": {
@@ -254,7 +1213,7 @@
    }
   },
   "zero-width": {
-   "input": "# T\n1. **a** — b​c\n",
+   "input": "# T\n1. **a** — b\u200bc\n",
    "java": {
     "line": 2,
     "cause": "HIDDEN_CHARACTER"
