@@ -78,6 +78,18 @@ public class LocalAgentPermission implements EventLogSource {
     public static final String ASK_QUESTION_NOTE = "Claude asked a question — answer it in the conversation";
     /** The built-in name of Claude Code's question tool. */
     public static final String ASK_USER_QUESTION = "AskUserQuestion";
+    /**
+     * Review P3 N2 (2026-10-17): Claude Code's plan-mode tools change the session's MODE (in a terminal, ExitPlanMode is
+     * the "approve this plan and start editing" question). The analyser starts a session in the mode the person chose and
+     * never changes it underneath them, so both are denied by policy, with words for the model and a note for the person.
+     */
+    public static final java.util.Set<String> PLAN_MODE_TOOLS = java.util.Set.of("ExitPlanMode", "EnterPlanMode");
+    public static final String DENIED_PLAN_MODE = "Denied: the analyser keeps the mode the person chose for this session — "
+            + "give the plan in your reply; the person changes the mode and starts a New chat to act on it";
+    public static final String PLAN_MODE_NOTE = "Claude asked to change its plan mode — the mode stays as you chose it; to "
+            + "act on a plan, change the mode (Profile…) and start a New chat";
+    /** Review P3 N4: a request that arrives while a Stop is in progress is denied without asking. */
+    public static final String DENIED_STOPPING = "Denied: the person stopped this turn";
 
     @PushReference
     private final LocalAgentSession localAgent;
@@ -120,6 +132,11 @@ public class LocalAgentPermission implements EventLogSource {
         if (e.generation() != localAgent.currentGeneration() || !localAgent.processRunning()
                 || e.ticket() == 0 || e.ticket() != localAgent.currentTicket()) {
             deny(e.generation(), e.requestRef(), e.ticket(), cls, e.name(), PermissionBy.POLICY, DENIED_STALE);
+            return changed();
+        }
+        if (localAgent.stopping()) {
+            // review P3 N4: the person pressed Stop; a dialog now would ask about a turn they already ended
+            deny(e.generation(), e.requestRef(), e.ticket(), cls, e.name(), PermissionBy.STOP, DENIED_STOPPING);
             return changed();
         }
         String refusal = policy(localAgent.currentPosture(), cls, e.name());
@@ -166,6 +183,7 @@ public class LocalAgentPermission implements EventLogSource {
      */
     static String policy(LocalAgentPosture posture, ToolClass cls, String name) {
         if (cls == ToolClass.BUILT_IN && ASK_USER_QUESTION.equals(name)) return DENIED_ASK_QUESTION;
+        if (cls == ToolClass.BUILT_IN && name != null && PLAN_MODE_TOOLS.contains(name)) return DENIED_PLAN_MODE; // review P3 N2
         LocalAgentPosture p = posture == null ? LocalAgentPosture.ANALYSER_ASSISTANT : posture;
         return switch (cls) {
             case HOSTED_DESTRUCTIVE -> p.asks() ? null : DENIED_HIDDEN;
@@ -400,6 +418,7 @@ public class LocalAgentPermission implements EventLogSource {
             case TOO_LARGE -> what + " was denied without asking you: the request was too large to show in full";
             case CANCELLED -> "Claude Code withdrew its request to use " + what;
             case POLICY -> DENIED_ASK_QUESTION.equals(message) ? ASK_QUESTION_NOTE
+                    : DENIED_PLAN_MODE.equals(message) ? PLAN_MODE_NOTE
                     : what + " was denied without asking you — " + lower(message);
         };
         // a request of an earlier generation belongs to a conversation entry nobody is reading: no note for it

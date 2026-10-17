@@ -65,17 +65,23 @@ class LocalAgentPermissionTest {
     @Test
     @DisplayName("★ the policy table for every posture × mode × tool class: only the listed classes reach the dialog")
     void thePolicyTable() {
-        List<LocalAgentPosture> postures = new ArrayList<>(List.of(LocalAgentPosture.ANALYSER_ASSISTANT));
-        for (FullMode m : FullMode.values()) postures.add(LocalAgentPosture.full(m));
-        for (LocalAgentPosture p : postures) {
-            for (ToolClass c : ToolClass.values()) {
-                boolean reaches = switch (c) {
-                    case HOSTED_DESTRUCTIVE -> p.asks();
-                    case BUILT_IN, OTHER_MCP -> p.isFull();
-                    case HOSTED_OTHER, PERSONS_ANALYSER_REGISTRATION, UNKNOWN -> false;
-                };
-                String refusal = policy(p, c);
-                assertEquals(reaches, refusal == null, p + " × " + c + ": " + refusal);
+        // review B8 (2026-10-17): a LITERAL table — §5.7 / OD-74.16 as written, never recomputed from asks() or isFull(),
+        // so a change to those predicates cannot move the oracle with it. Columns: HOSTED_DESTRUCTIVE, BUILT_IN,
+        // OTHER_MCP, HOSTED_OTHER, PERSONS_ANALYSER_REGISTRATION, UNKNOWN; true = reaches the person.
+        java.util.Map<LocalAgentPosture, boolean[]> table = new java.util.LinkedHashMap<>();
+        table.put(LocalAgentPosture.ANALYSER_ASSISTANT, new boolean[]{true, false, false, false, false, false});
+        table.put(LocalAgentPosture.full(FullMode.DEFAULT), new boolean[]{true, true, true, false, false, false});
+        table.put(LocalAgentPosture.full(FullMode.ACCEPT_EDITS), new boolean[]{true, true, true, false, false, false});
+        table.put(LocalAgentPosture.full(FullMode.AUTO), new boolean[]{false, true, true, false, false, false});
+        table.put(LocalAgentPosture.full(FullMode.PLAN), new boolean[]{false, true, true, false, false, false});
+        ToolClass[] cols = {ToolClass.HOSTED_DESTRUCTIVE, ToolClass.BUILT_IN, ToolClass.OTHER_MCP, ToolClass.HOSTED_OTHER,
+                ToolClass.PERSONS_ANALYSER_REGISTRATION, ToolClass.UNKNOWN};
+        assertEquals(java.util.Set.of(ToolClass.values()), java.util.Set.of(cols), "every class has a column");
+        assertEquals(FullMode.values().length + 1, table.size(), "every posture has a row");
+        for (var row : table.entrySet()) {
+            for (int i = 0; i < cols.length; i++) {
+                String refusal = policy(row.getKey(), cols[i]);
+                assertEquals(row.getValue()[i], refusal == null, row.getKey() + " × " + cols[i] + ": " + refusal);
             }
         }
         assertEquals(LocalAgentPermission.DENIED_DEFAULT_POSTURE, policy(LocalAgentPosture.ANALYSER_ASSISTANT, ToolClass.BUILT_IN));
@@ -162,6 +168,50 @@ class LocalAgentPermissionTest {
         // control: another built-in in the same posture still reaches the dialog
         d.post(of(start.generation(), t.ticket(), 62, ToolClass.BUILT_IN, "Bash"));
         assertEquals(1, a.permissionDialogs.size(), "control: Bash is still asked of the person");
+    }
+
+    /**
+     * ★ Review P3 N2 (2026-10-17): in full plan mode ExitPlanMode / EnterPlanMode would change the session's mode under
+     * the person; they are denied by policy without a dialog, with a note. Witness: drop the PLAN_MODE_TOOLS case from
+     * {@code policy} — ExitPlanMode reaches the dialog as a built-in.
+     */
+    @Test
+    @DisplayName("★ full plan mode: ExitPlanMode and EnterPlanMode are denied by policy, with a note; no dialog")
+    void planModeToolsAreDeniedWithANote() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = LocalAgentSessionTest.driver(a);
+        var start = LocalAgentFullPostureTest.startFull(d, a, FullMode.PLAN);
+        var t = LocalAgentSessionTest.send(d, a, 10, LocalAgentFullPostureTest.full(FullMode.PLAN));
+        d.post(LocalAgentFullPostureTest.fullInit(start, t.ticket(), "plan", List.of(), "connected"));
+        assertEquals(start.generation(), d.snapshot().localAgent().admittedGeneration());
+        for (String tool : List.of("ExitPlanMode", "EnterPlanMode")) {
+            d.post(of(start.generation(), t.ticket(), tool.length(), ToolClass.BUILT_IN, tool));
+            assertEquals(0, a.permissionDialogs.size(), tool + " is never an approval dialog");
+            assertEquals(PermissionBy.POLICY, lastAnswer(a).by());
+            assertEquals(LocalAgentPermission.DENIED_PLAN_MODE, lastAnswer(a).message());
+        }
+        assertTrue(d.snapshot().localAgent().entries().stream()
+                .anyMatch(e -> LocalAgentPermission.PLAN_MODE_NOTE.equals(e.detail())), "the person reads why");
+        d.post(of(start.generation(), t.ticket(), 99, ToolClass.BUILT_IN, "Read"));
+        assertEquals(1, a.permissionDialogs.size(), "control: another built-in is still asked");
+    }
+
+    /**
+     * ★ Review P3 N4: a request that arrives while the turn is STOPPING is denied without a dialog. Witness: drop the
+     * {@code stopping()} check in {@code onRequested} — the request opens a dialog after Stop.
+     */
+    @Test
+    @DisplayName("★ a request arriving while the turn is stopping is denied, never asked")
+    void aRequestWhileStoppingIsDenied() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = LocalAgentSessionTest.driver(a);
+        var start = ready(d, a);
+        d.post(new SessionEvents.LocalAgentStopRequested("Stop"));
+        assertTrue(d.snapshot().localAgent().phase().equals("STOPPING"), d.snapshot().localAgent().phase());
+        d.post(report(start.generation(), 1, 77));
+        assertEquals(0, a.permissionDialogs.size(), "no dialog after Stop");
+        assertFalse(lastAnswer(a).allow());
+        assertEquals(LocalAgentPermission.DENIED_STOPPING, lastAnswer(a).message());
     }
 
     // ---- ★ every way a request ends ---------------------------------------------------------------------------------

@@ -1334,6 +1334,11 @@ public class LocalAgentSession implements EventLogSource {
      * M74 UX: a turn is open, being stopped, or a question is held for it (read by assistantProfile, downstream: a profile
      * is never applied mid-turn — the rule a mode switch already follows, review M2).
      */
+    /** Review P3 N4: a Stop (or a kill) is in progress — a request arriving now is never asked of the person. */
+    public boolean stopping() {
+        return "STOPPING".equals(phase);
+    }
+
     public boolean turnInProgress() {
         return openTicket != 0 || "STOPPING".equals(phase) || pendingDraft != 0;
     }
