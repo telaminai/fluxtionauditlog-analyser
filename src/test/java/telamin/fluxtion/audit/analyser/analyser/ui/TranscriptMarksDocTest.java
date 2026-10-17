@@ -24,6 +24,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * {@code LocalAgentAdapter.markWords} plus the result marks the adapter appends ({@code ✓}, {@code refused}) for Claude
  * Code. Both directions: every mark the code can draw has a row, and every row is a mark the code can draw.
  *
+ * <p>The Claude Code side feeds every POLICY message {@code LocalAgentPermission} can send, found by reflection and a
+ * source scan, so a new denial message fails here until the page lists its mark (phase 7 review).
+ *
  * <p>Wrong-result witness: rename a mark in {@code markWords} (say "denied: Stop" to "denied: stopped"), or add a row the
  * code never draws; the assertion names the mark.
  */
@@ -49,6 +52,37 @@ class TranscriptMarksDocTest {
         return marks;
     }
 
+    static final Path PERMISSION = Path.of(
+            "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/LocalAgentPermission.java");
+
+    /**
+     * Every DENIED_* message the permission node can send with a POLICY decision: all of its DENIED_* constants except
+     * those it passes only with another decision (the person, a timeout, Stop, a waiting request, a request too large).
+     * Read by reflection and from the source, so a new constant is covered without editing this test.
+     */
+    static Set<String> policyMessages() throws Exception {
+        String source = Files.readString(PERMISSION);
+        Set<String> out = new LinkedHashSet<>();
+        for (java.lang.reflect.Field f : LocalAgentPermission.class.getFields()) {
+            if (!f.getName().startsWith("DENIED_") || f.getType() != String.class) continue;
+            boolean withPolicy = Pattern.compile("PermissionBy\\.POLICY,\\s*" + f.getName() + "\\b").matcher(source).find()
+                    || Pattern.compile("(return|->|[?:])\\s*" + f.getName() + "\\b").matcher(source).find();
+            boolean withOther = Pattern.compile("PermissionBy\\.(PERSON|TIMEOUT|STOP|BUSY|TOO_LARGE),\\s*" + f.getName()
+                    + "\\b").matcher(source).find();
+            if (withPolicy || !withOther) out.add((String) f.get(null));
+        }
+        return out;
+    }
+
+    /** Rule 8: the skip above rests on NON_MUTATING never being passed to a denial. */
+    @Test
+    void aChangesNothingDecisionIsNeverADenial() throws Exception {
+        String source = Files.readString(PERMISSION);
+        assertTrue(!Pattern.compile("deny[A-Za-z]*\\([^;]*PermissionBy\\.NON_MUTATING").matcher(source).find()
+                        && !Pattern.compile("resolvePending\\(\\s*PermissionBy\\.NON_MUTATING").matcher(source).find(),
+                "LocalAgentPermission denies with NON_MUTATING: markWords' deny branch for it is now drawn; document it");
+    }
+
     @Test
     void theInAppMarksAreTheOnesToolLineDraws() throws Exception {
         Set<String> drawn = new LinkedHashSet<>();
@@ -68,18 +102,18 @@ class TranscriptMarksDocTest {
         Set<String> drawn = new LinkedHashSet<>();
         drawn.add("✓");                               // the tool's own result, appended by toolOutcome
         drawn.add("refused");
-        String approved = (String) words.invoke(null, true, PermissionBy.PERSON, null);
-        drawn.add(approved + " · ✓");                 // TranscriptView joins the decision and the result with " · "
-        drawn.add((String) words.invoke(null, true, PermissionBy.NON_MUTATING, null));
+        // TranscriptView joins the decision and the tool's result with " · " (an allow is followed by the result)
+        drawn.add(words.invoke(null, true, PermissionBy.PERSON, null) + " · ✓");
+        drawn.add(words.invoke(null, true, PermissionBy.NON_MUTATING, null) + " · ✓");
+        Set<String> policy = policyMessages();
+        assertTrue(policy.size() >= 10, "the scan of LocalAgentPermission found too few policy denials: " + policy);
         for (PermissionBy by : PermissionBy.values()) {
-            // a NON_MUTATING decision is always an allow (McpTools.hostedCallKind); its deny branch is unreachable
-            if (by == PermissionBy.NON_MUTATING) continue;
+            // a NON_MUTATING decision is only ever an allow (LocalAgentPermission.allowWithoutAsking), and every POLICY
+            // denial carries a message (each one is fed below), so neither null-message branch is drawn
+            if (by == PermissionBy.NON_MUTATING || by == PermissionBy.POLICY) continue;
             drawn.add((String) words.invoke(null, false, by, null));
         }
-        for (String policy : List.of(LocalAgentPermission.DENIED_DEFAULT_POSTURE, LocalAgentPermission.DENIED_HIDDEN,
-                LocalAgentPermission.DENIED_ASK_QUESTION, LocalAgentPermission.DENIED_PLAN_MODE)) {
-            drawn.add((String) words.invoke(null, false, PermissionBy.POLICY, policy));
-        }
+        for (String message : policy) drawn.add((String) words.invoke(null, false, PermissionBy.POLICY, message));
         Set<String> documented = tableMarks(Files.readString(PAGE), "**Claude Code's marks:**");
         List<String> missing = new ArrayList<>(drawn);
         missing.removeAll(documented);

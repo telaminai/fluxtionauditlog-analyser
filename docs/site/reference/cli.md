@@ -13,8 +13,8 @@ The analyser is one program with a desktop mode and a few headless modes. An ins
 | `analyser --replay-compare <bundle.fexp> <replayed-audit.yaml>` | Verifies a bundle, then compares its log with a replayed one | no |
 | `analyser --help` (or `-h`) | Prints the usage | no |
 
-An option the analyser does not know is refused, with the usage and exit code 2, rather than being opened as a log
-file.
+The bundle options and `--help` must come first. An unknown option in first place (after any `--rest`) is refused,
+with the usage and exit code 2, rather than being opened as a log file; an argument after the log path is ignored.
 
 ## `analyser [log-file]`
 
@@ -29,7 +29,7 @@ machine that has never run it. No dialog opens first. The setting **persists**: 
 have it on, until you turn it off in *Settings ▸ Assistant* or the *AI* menu.
 
 The console prints the URL and only the token's **first 8 characters**: `[analyser] assistant REST:
-http://127.0.0.1:… (token 1a2b3c4d…)`, and on a first run, where the endpoint file is. The full token is never printed:
+http://127.0.0.1:…  (token 1a2b3c4d…)`, and on a first run, where the endpoint file is. The full token is never printed:
 a script reads it from `~/.fluxtion-analyser/rest-endpoint` and checks its `pid`
 ([Scripts and CI over REST](../diagnose/rest-automation.md), [External access](../admin/external-access.md)).
 
@@ -49,7 +49,7 @@ The recipient's side of an evidence bundle. They read only the file, so they nee
 
 | Command | Prints | Exit code |
 |---|---|---|
-| `--verify <bundle.fexp>` | `identity: sha256:…`, `verified: N members…`, an `excerpt:` line for an excerpt, a `replay:` line for a bundle with replay records, and one `limit:` line per stated limit | 0 verified · 1 refused, naming the member · 2 usage |
+| `--verify <bundle.fexp>` | `identity: sha256:…`, `verified: N members…`, an `excerpt:` line for an excerpt, a `replay:` line for a bundle with replay records, and one `limit:` line per stated limit | 0 verified · 1 refused (naming the member, or the reason the file could not be read) · 2 usage |
 | `--unpack <bundle.fexp> [--into <dir>]` | as `--verify`, then `working copy: <dir>`. Nothing is extracted if verification fails. Without `--into`, the copy goes under `~/.fluxtion-analyser/bundles/` | 0 · 1 refused · 2 usage |
 | `--replay-compare <bundle.fexp> <replayed-audit.yaml>` | `replay: AGREES, N of N records (endTime and thread excepted, …)` or `replay: DIVERGES at …`, naming the first difference, then the limits | 0 agrees · 1 diverges or refused · 2 usage |
 

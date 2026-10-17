@@ -19,7 +19,7 @@ The main window at a glance:
 ## The records table
 
 One row per **event cycle** (one propagation of the processor). Columns include the log time, the
-event, the callback, the thread and a node-count.
+event, the callback, the thread and a node-count. All times are shown in **UTC**.
 
 - **Sort** by clicking a column header; **show/hide** columns from the **Columns** menu.
 - **Select** a row to load it into the detail viewer; Shift/⌘-click to select several (the assistant
@@ -29,6 +29,9 @@ event, the callback, the thread and a node-count.
 - **Right-click** a row: *Diff selected two records*, the assistant's questions (*What happened here?*, *Compare these rows*, *Explain this finding* — see [Asking about what is on screen](../inapp/ask.md)), *Flag / unflag*.
 - **Flag** rows with **F** to bookmark findings; *Records ▸ Show flagged only* focuses on them;
   *Records ▸ Copy selected as YAML* copies them to the clipboard.
+- **Export** the records the filter shows with **Audit log ▸ Export records (CSV)…** or **Audit log ▸ Export records
+  (YAML)…**, to a file you choose. A YAML export opens in the analyser again. A log read through the binary reader
+  cannot be exported as YAML.
 
 ## Flagging & focus
 

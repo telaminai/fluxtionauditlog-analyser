@@ -71,6 +71,8 @@ def rows():
         for pattern, tool in COMPUTED.items():
             if re.search(pattern, name):
                 made = sorted(set(made) | {tool})
+        if not used and not name.endswith((".png", ".svg", ".jpg")) and made:
+            used = ["harness data (read by its producer)"]
         out.append((rel, used, made))
     return out
 

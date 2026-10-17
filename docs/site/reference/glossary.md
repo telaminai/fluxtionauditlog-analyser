@@ -4,19 +4,20 @@ Words these docs use with a fixed meaning.
 
 **Analyser verb**
 :   One action the analyser offers to an assistant or a script: `open`, `filter`, `graph`, `report` and so on. Every
-    way in uses the same verbs ([Verbs](verbs.md)). An MCP client sees each one as a tool named `analyser_<verb>`.
+    way in uses the same verbs, within its own limits ([Verbs](verbs.md)); `propose` is offered only to Claude Code in
+    the analyser. An MCP client sees each one as a tool named `analyser_<verb>`.
 
 **Approval**
 :   The dialog in which you allow or deny one call Claude Code in the analyser wants to make. *Allow once* covers
     exactly that call ([Approvals](../inapp/approvals.md)).
 
-**Audit log**
-:   The record a Fluxtion processor writes of each event it handled: one record per cycle, with an entry from each
-    node that logged ([Log format](../log-format.md)).
-
 **Audit level**
 :   How much a node logs. A node appears in a record only if it wrote audit output at the level in force, so a node
     that logged nothing may still have run.
+
+**Audit log**
+:   The record a Fluxtion processor writes of each event it handled: one record per cycle, with an entry from each
+    node that logged ([Log format](../log-format.md)).
 
 **Bridge (MCP bridge)**
 :   The small headless program (`analyser --mcp`) your MCP client launches. It forwards each tool call to the running
@@ -35,6 +36,10 @@ Words these docs use with a fixed meaning.
 :   Which of the graph's nodes logged in a run, which did not, and which are excluded and why
     ([Reading coverage results](../user-guide/topology.md#reading-coverage-results)).
 
+**Endpoint file**
+:   `~/.fluxtion-analyser/rest-endpoint`, readable only by you: the listener's address and per-run token, written while
+    External MCP/REST access is on ([External access](../admin/external-access.md#the-endpoint-file)).
+
 **Exchange folder**
 :   The one folder an assistant may write files into, and read external series from, once *Allow assistant file
     exchange* is on ([Settings reference](../admin/settings.md)).
@@ -52,9 +57,17 @@ Words these docs use with a fixed meaning.
 **Focus (named focus)**
 :   A saved set of topology nodes, with the reason it was saved.
 
+**Follow**
+:   Watching a local text log as another process writes it: new records are added as they complete
+    ([Open your own log ▸ Follow](../getting-started.md#watch-a-log-as-it-grows-follow)).
+
 **Full Claude Code**
 :   The assistant profile that runs your own Claude Code inside the analyser, with your settings, skills, hooks, MCP
     servers and tools, under your permission rules and the mode you choose ([Claude Code in the analyser](../inapp/claude-code.md)).
+
+**Glossary pointer**
+:   A project's pointer to its own domain glossary, a Markdown file in the repository whose text the analyser gives
+    to the assistant. Not this page ([Projects ▸ Vocabulary](../user-guide/projects.md#vocabulary-what-live-means-here)).
 
 **GraphML**
 :   The file the Fluxtion compiler writes beside a generated processor, describing its nodes and edges. The analyser
@@ -72,6 +85,10 @@ Words these docs use with a fixed meaning.
 
 **Pairing**
 :   Whether a graph fits a log: the analyser checks, and says so, rather than assuming.
+
+**Posture**
+:   The name `context` uses for the work mode (`context.handoff.posture`: `research` or `authoring`). See *Work
+    mode*.
 
 **Processor (event processor)**
 :   The Fluxtion `EventProcessor` class that produced a log. The active one maps each node in the log to its source.
@@ -109,6 +126,10 @@ Words these docs use with a fixed meaning.
 **Safe analysis**
 :   The default assistant profile: Claude Code that reads your evidence, with Read, Grep and Glob in the folder and no
     shell, edits or web; it changes what is open or writes a file only after you approve each call.
+
+**Saved analysis**
+:   A named sequence of analyser verbs, with its reason, kept in the project and run with *Project ▸ Run analysis*
+    ([Projects ▸ Repeatable analyses](../user-guide/projects.md#repeatable-analyses-the-one-we-run-every-time)).
 
 **Spotlight**
 :   A temporary highlight with a caption, lit by you or an assistant to show where to look. Not saved, and not

@@ -41,7 +41,7 @@ given (up to 4,000 characters on screen).
 |---|---|
 | `✓` | the call ran |
 | `refused: …` | the analyser refused it, and says why |
-| `denied: not run (…)` | it did not run, for example because the turn was stopped first |
+| `denied: not run (…)` | it did not run, for example because the turn was stopped first; the reason in brackets is shown when there is one |
 
 **Claude Code's marks:**
 
@@ -49,18 +49,24 @@ given (up to 4,000 characters on screen).
 |---|---|
 | `✓` | the call ran |
 | `refused` | the analyser refused it, and the line says why |
-| `approved by you · ✓` | you allowed it in the approval dialog, and it ran |
-| `allowed: it changes nothing` | a sub-action that changes nothing stored (playing a walk, say), allowed without asking |
+| `approved by you · ✓` | you allowed it in the approval dialog, and it ran (`approved by you · refused` if the analyser then refused it) |
+| `allowed: it changes nothing · ✓` | a sub-action that changes nothing stored (playing a walk, say), allowed without asking, and it ran |
 | `denied by you` | you denied it in the approval dialog |
 | `denied: not answered within 120 s` | the approval dialog timed out |
-| `denied: Stop` | you pressed Stop while it waited |
+| `denied: Stop` | you pressed Stop while it waited, or as it arrived |
 | `denied: another approval was waiting` | a second request arrived while one was open, and its turn ended first |
 | `denied: too large to show you in full` | the request could not be shown in full, so it was not asked |
 | `denied: not allowed in Safe analysis` | Safe analysis does not offer the tool |
 | `denied: not available in this Full Claude Code mode` | the mode in force hides the tool |
 | `denied: answer in the conversation instead` | Claude tried its own question tool; answer in the composer |
 | `denied: the mode stays as you chose it` | Claude tried to change the permission mode |
-| `denied by the analyser's settings` | a setting refused it (file exchange off, say) |
+| `denied: file exchange is off in the analyser (Settings ▸ Assistant ▸ Allow assistant file exchange), so this write would be refused — the person was not asked` | it writes a file and file exchange is off, so you were not asked |
+| `denied: the analyser's settings for Claude Code changed` | you changed a Claude Code setting while it waited |
+| `denied: the request belongs to an earlier turn or session` | the request arrived after its turn or session had ended |
+| `denied: the turn or session ended before the person answered` | the turn or session ended while it waited |
+| `denied: this analyser tool is pre-allowed, so an approval request for it is not expected` | an approval was asked for a verb that never needs one |
+| `denied: the person's own fluxtion-analyser registration is not this analyser` | Claude tried the tools of your own `fluxtion-analyser` registration, which is not bound to this window |
+| `denied: the analyser does not recognise this tool` | Full Claude Code asked about a tool the analyser does not know |
 | `withdrawn by Claude Code` | Claude Code withdrew the request before you answered |
 
 [Approvals](approvals.md) explains when a dialog is shown.

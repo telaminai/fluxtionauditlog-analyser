@@ -47,7 +47,7 @@ removing or moving an image. *Used on* names each page by its nav title; **unuse
 | `graph-series-light.png` | Playground to analyser in 10 minutes | `capture-docs.py` |
 | `graph-step-dark.png` | Graphs | `capture-docs.py` |
 | `java-source-spotlight.png` | Source navigation | no harness |
-| `journeys/find-the-first-recorded-breach.facts.json` | **unused** | `capture-journey.py` |
+| `journeys/find-the-first-recorded-breach.facts.json` | harness data (read by its producer) | `capture-journey.py` |
 | `journeys/find-the-first-recorded-breach.fexp` | Journey: find the first recorded breach | `capture-journey.py` |
 | `journeys/journey-assistant-step-1.png` | Journey: find the first recorded breach | `capture-journey.py` |
 | `journeys/journey-assistant-step-2.png` | Journey: find the first recorded breach | `capture-journey.py` |

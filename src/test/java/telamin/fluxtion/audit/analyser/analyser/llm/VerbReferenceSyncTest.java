@@ -30,7 +30,7 @@ class VerbReferenceSyncTest {
 
     @Test
     void theGeneratedArgumentTablesMatchVerbSchemas() throws Exception {
-        String page = Files.readString(PAGE);
+        String page = Files.readString(PAGE).replace("\r\n", "\n");
         int b = page.indexOf(BEGIN);
         int e = page.indexOf(END);
         assertTrue(b >= 0 && e > b, PAGE + " must hold the generated section between its markers");
@@ -44,12 +44,15 @@ class VerbReferenceSyncTest {
                 + "`mvn -o -q test -Dtest=VerbReferenceSyncTest -Dverbs.regenerate=true` and review the diff");
     }
 
+    /** Not vacuous: the page's generated headings are exactly the published verbs and propose, at least nineteen. */
     @Test
     void everyPublishedVerbAndProposeHaveATable() throws Exception {
-        String page = Files.readString(PAGE);
-        for (String verb : VerbSchemas.hosted().keySet()) {
-            assertTrue(page.contains("### `" + verb + "` arguments"), "no generated table for " + verb);
-        }
+        assertTrue(VerbSchemas.hosted().size() >= 19, "VerbSchemas.hosted() shrank: " + VerbSchemas.hosted().keySet());
+        java.util.Set<String> headed = new java.util.LinkedHashSet<>();
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("(?m)^### `([a-z_]+)` arguments$")
+                .matcher(Files.readString(PAGE));
+        while (m.find()) headed.add(m.group(1));
+        assertEquals(VerbSchemas.hosted().keySet(), headed, PAGE + "'s argument headings must be exactly the verbs");
     }
 
     /** The generated section: one heading, description and argument table per verb, in schema order, then propose. */
