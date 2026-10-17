@@ -2015,6 +2015,21 @@ onboarding (§5.6), Move (§5.3), conversation v2 (§6) and the carried items (h
     (`ByteOrderMarkSitesTest`), and a strict format gains nothing from tolerating one.
   - The finding dialog's title *Explain record N* became *Write a finding for record N*: the source rule (F12) forbids an
     `"Explain` literal outside the catalogue, and the title was the person's own explanation, not a question.
+- **The pinned spotlight name `toolbar:explain`** (M64 vocabulary) now finds the toolbar's catalogue **Ask** button, by a
+  client property, so no agent-facing name changed; caught by `SpotlightFrameTest` on the display.
+- **Witnesses run (2026-10-17):** 41 headless and 4 frame mutations, each failing its named ★ test and restored green:
+  binding by identity only; the in-app stale check dropped; record context on a composed draft; arming whatever the
+  consent; a draft that spawns; routing on the mode alone; never popping out (node and frame); composing before the
+  flow; no fallback for no AI; a Start effect from the demo; Return ignored; Q1 for two rows; the in-process check
+  dropped; a raw node id in Q3; a walk name as prose; a hand-built surface list; the pack's HTML and nine-entry checks
+  dropped; the cue never ON; the box's cue on the route alone; choosing that presses; a plain digit bound; a one-line
+  box; an HTML editor kit; marks off; opening on the click; whole-word chips; a stale chip navigating; a full re-render;
+  a chip as Swing HTML (the loopback server sees the fetch); a naive closer scan (the 64 KB bound exceeded); low-contrast
+  muted text; two marks with one word; the mode in a share; cwd = the project root; a no-op fallback; the start page
+  naming the mode; a chip that closes the log; the detail panel's own label; the token in the start page's copy; a
+  draft dropped into a non-blank composer; an armed draft that starts Claude Code; a pack persisted to the config; and
+  the journey saved under `DemoTour.NAME` (the load fails, needing a clean build: the name is an inlined constant). The
+  two repaired mutation controls were run the same way and each caught.
 - **Mutation controls repaired.** `oa4-handoff-carries-nothing` (its anchor was the removed `primeDraft("")`) and
   `oa-settings-save-redraws-assistant` (already broken at the P1b base: the block had gained the consent post) now
   anchor the current code; the latter drops the whole report, which now also redraws through the availability fact.

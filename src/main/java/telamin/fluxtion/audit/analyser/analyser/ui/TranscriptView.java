@@ -357,9 +357,10 @@ public final class TranscriptView extends JTextPane {
                         case BULLET -> prefix = "  ".repeat(b.level()) + (b.level() == 1 ? "• " : b.level() == 2 ? "◦ " : "▪ ");
                         case NUMBERED -> prefix = "  ".repeat(b.level()) + b.number() + ". ";
                         case QUOTE -> {
-                            prefix = "▌ ";
+                            // a plain bar and the muted colour: an italic run behind a block glyph lost its letters in
+                            // the system font (seen in the P2a screenshots)
+                            prefix = "| ";
                             StyleConstants.setForeground(a, p.muted());
-                            StyleConstants.setItalic(a, true);
                         }
                         default -> { }
                     }

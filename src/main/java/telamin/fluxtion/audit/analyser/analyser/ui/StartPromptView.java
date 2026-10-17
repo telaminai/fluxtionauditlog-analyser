@@ -98,7 +98,7 @@ public final class StartPromptView extends JPanel {
     private final JTextArea packRefusal = Fluid.text(" ");
     private final JButton seeFormat = UiText.button("See the format");
     private final JPanel packHeader = new JPanel();
-    private final JPanel refusalRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
+    private final JPanel refusalRow = new JPanel(new BorderLayout(8, 0));
     private final JPanel fallbacks = new JPanel(new WrapLayout(FlowLayout.LEFT, 6, 4));
     private final JTextArea notFound = Fluid.text(" ");
     private final Border boxBorder;
@@ -165,10 +165,13 @@ public final class StartPromptView extends JPanel {
         packHeader.setVisible(false);
         refusalRow.setOpaque(false);
         refusalRow.setAlignmentX(LEFT_ALIGNMENT);
-        refusalRow.add(packRefusal);
+        refusalRow.add(packRefusal, BorderLayout.CENTER);
         seeFormat.setToolTipText(UiText.tooltip("The prompt-pack format, in the user guide"));
         seeFormat.addActionListener(e -> host.seePackFormat());
-        refusalRow.add(seeFormat);
+        JPanel formatHolder = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        formatHolder.setOpaque(false);
+        formatHolder.add(seeFormat);
+        refusalRow.add(formatHolder, BorderLayout.EAST);
         refusalRow.setVisible(false);
         recolour.add(() -> {
             packDescription.setForeground(UiTheme.mutedForeground());

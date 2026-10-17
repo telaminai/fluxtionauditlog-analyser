@@ -3794,7 +3794,10 @@ public final class MainFrame extends JFrame {
                     JComponent button = null;
                     if (toolBar != null) {
                         for (java.awt.Component c : toolBar.getComponents()) {
-                            if (c instanceof AbstractButton b && t.argument().equalsIgnoreCase(b.getText())) button = b;
+                            if (c instanceof AbstractButton b && (t.argument().equalsIgnoreCase(b.getText())
+                                    || t.argument().equalsIgnoreCase(String.valueOf(b.getClientProperty("spotlight.name"))))) {
+                                button = b;
+                            }
                         }
                     }
                     yield visiblePart(button);
@@ -4716,7 +4719,9 @@ public final class MainFrame extends JFrame {
         askToolButton = toolButton(telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.text("surface.TOOLBAR.label"),
                 ToolIcons.chat(), telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.text("surface.TOOLBAR.none"),
                 () -> askSingle(telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.Surface.TOOLBAR));
-        askToolButton.setEnabled(false);          // §5.5: with no selection, disabled — "Select a record to ask about it"
+        askToolButton.setEnabled(false);
+        // the pinned spotlight vocabulary names this entrance toolbar:explain (M64); its word is now the catalogue's "Ask"
+        askToolButton.putClientProperty("spotlight.name", "explain");          // §5.5: with no selection, disabled — "Select a record to ask about it"
         tb.add(askToolButton);
         tb.add(toolButton("Export CSV", ToolIcons.download(), "Export the filtered records to CSV", () -> exportRecords(false)));
         tb.addSeparator();

@@ -163,6 +163,7 @@ class StartPromptFrameTest {
     @DisplayName("★ Alt+2 chooses S2 and the button follows it, in light and in dark")
     void keyboardInBothThemes(@TempDir Path tmp) throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless(), "a real display is required");
+        javax.swing.LookAndFeel original = javax.swing.UIManager.getLookAndFeel();
         try (var f = new AsyncOpenInterleavingFrameTest.Frame(tmp)) {
             onEdt(() -> { f.frame.setSize(1200, 800); f.frame.setVisible(true); });
             showStart(f.frame);
@@ -184,7 +185,15 @@ class StartPromptFrameTest {
                     assertTrue(prompt.isShowing(), theme + ": the prompt is on screen");
                 });
             }
-            onEdt(() -> ThemeManager.apply("Light"));
+        } finally {
+            // the next suite in this JVM must meet the look and feel it would have met (SpotlightFrameTest samples pixels)
+            onEdt(() -> {
+                try {
+                    javax.swing.UIManager.setLookAndFeel(original);
+                } catch (javax.swing.UnsupportedLookAndFeelException e) {
+                    throw new AssertionError(e);
+                }
+            });
         }
     }
 }
