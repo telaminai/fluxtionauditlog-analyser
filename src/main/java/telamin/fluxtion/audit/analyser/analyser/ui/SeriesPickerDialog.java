@@ -27,15 +27,16 @@ public final class SeriesPickerDialog {
         JTextField search = new JTextField();
         DefaultListModel<GraphKey> model = new DefaultListModel<>();
         all.forEach(model::addElement);
-        JList<GraphKey> list = new JList<>(model);
+        JList<GraphKey> list = new JList<>(model);   // SF-2: node ids and keys — the renderer below is plain
         list.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
-        list.setCellRenderer(new DefaultListCellRenderer() {
+        list.setCellRenderer(UiText.plainRenderer(new DefaultListCellRenderer() {
+            { UiText.plain(this); }
             @Override public Component getListCellRendererComponent(JList<?> l, Object v, int i, boolean s, boolean f) {
                 super.getListCellRendererComponent(l, v, i, s, f);
                 if (v instanceof GraphKey k) setText(k.display());
                 return this;
             }
-        });
+        }));
 
         search.getDocument().addDocumentListener(new DocumentListener() {
             @Override public void insertUpdate(DocumentEvent e) { refilter(); }

@@ -85,7 +85,7 @@ public final class SourcePanel extends JPanel {
     private String historyDestination;
     private java.util.function.Consumer<java.util.Map<String, Object>> fileNavigator = p -> { };
 
-    private final JComboBox<String> processorCombo = new JComboBox<>();
+    private final JComboBox<String> processorCombo = UiText.plainCells(new JComboBox<>());   // SF-2: profile FQNs
     private final JavaHighlighter highlighter = new JavaHighlighter();
 
     private final Pane processorPane = new Pane("EventProcessor");
@@ -116,7 +116,7 @@ public final class SourcePanel extends JPanel {
 
         JPanel top = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 2));
         backButton.setEnabled(false);
-        backButton.setToolTipText("Back to previous source (Alt+Left, or " + menuKeyName() + "+[)");
+        backButton.setToolTipText(UiText.tooltip("Back to previous source (Alt+Left, or " + menuKeyName() + "+[)"));
         backButton.addActionListener(e -> back());
         top.add(backButton);
         top.add(new JLabel("EventProcessor:"));
@@ -460,8 +460,8 @@ public final class SourcePanel extends JPanel {
         }
         if (document != null) {
             // disk freshness is not source/run identity: a fresh read still says so
-            pane.label.setToolTipText("Source/run: unverified · " + document.identity()
-                    + " · rendered-text-utf8 SHA-256 " + document.revision());
+            pane.label.setToolTipText(UiText.tooltip("Source/run: unverified · " + document.identity()
+                    + " · rendered-text-utf8 SHA-256 " + document.revision()));
         }
         if (Objects.equals(fqn, service.selectedFqn())) service.acceptModel(lookup, fqn, read.model());
     }
@@ -823,7 +823,7 @@ public final class SourcePanel extends JPanel {
         String disclosure = "Source/run: unverified\n" + fqn + "\nsource-viewer · first-match\n" + document.identity();
         pane.label.setRows(5);
         pane.label.setText(disclosure);
-        pane.label.setToolTipText(disclosure + " · rendered-text-utf8 SHA-256 " + document.revision());
+        pane.label.setToolTipText(UiText.tooltip(disclosure + " · rendered-text-utf8 SHA-256 " + document.revision()));
         revealPaneFor(pane);
         sourceViewChanged();
         return new JavaAnchor(pane, document, fqn);

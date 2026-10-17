@@ -29,8 +29,8 @@ import java.io.IOException;
 public final class FluxtionKeyDialog extends JDialog {
 
     private final FluxtionKeyStore store;
-    private final JLabel status = new JLabel();
-    private final JComboBox<String> profiles = new JComboBox<>();
+    private final JLabel status = UiText.plain(new JLabel());
+    private final JComboBox<String> profiles = UiText.plainCells(new JComboBox<>());   // SF-2: profile names are files'
     private final JTextField profileName = new JTextField(18);
     private final JPasswordField keyField = new JPasswordField(28);
     private boolean changed;
@@ -131,7 +131,7 @@ public final class FluxtionKeyDialog extends JDialog {
             refresh();
         } catch (IllegalArgumentException | IOException e) {
             keyField.setText("");
-            JOptionPane.showMessageDialog(this, e.getMessage(), "Fluxtion API key", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, UiText.inert(e.getMessage()), "Fluxtion API key", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -143,21 +143,21 @@ public final class FluxtionKeyDialog extends JDialog {
             changed = true;
             refresh();
         } catch (IllegalArgumentException | IOException e) {
-            JOptionPane.showMessageDialog(this, e.getMessage(), "Fluxtion API key", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, UiText.inert(e.getMessage()), "Fluxtion API key", JOptionPane.ERROR_MESSAGE);
         }
     }
 
     private void deleteProfile() {
         String name = (String) profiles.getSelectedItem();
         if (name == null) return;
-        int answer = JOptionPane.showConfirmDialog(this, "Delete local profile \"" + name + "\"?",
+        int answer = JOptionPane.showConfirmDialog(this, UiText.inert("Delete local profile \"" + name + "\"?"),
                 "Delete profile", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
         if (answer != JOptionPane.YES_OPTION) return;
         try {
             store.deleteProfile(name);
             refresh();
         } catch (IOException e) {
-            JOptionPane.showMessageDialog(this, e.getMessage(), "Fluxtion API key", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, UiText.inert(e.getMessage()), "Fluxtion API key", JOptionPane.ERROR_MESSAGE);
         }
     }
 }

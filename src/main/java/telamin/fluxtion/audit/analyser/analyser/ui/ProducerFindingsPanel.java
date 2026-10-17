@@ -83,7 +83,7 @@ final class ProducerFindingsPanel extends JPanel {
         Fluid.Panel card = card();
         Fluid.Panel header = column();
         header.setOpaque(false);
-        JLabel severity = new JLabel(finding.severity());
+        JLabel severity = UiText.label(finding.severity());   // SF-2: the producer's result file says this
         Color ink = switch (finding.severity().toUpperCase(java.util.Locale.ROOT)) {
             case "ERROR" -> UiTheme.warnForeground();
             case "WARNING", "WARN" -> UiTheme.attentionForeground();
@@ -118,7 +118,7 @@ final class ProducerFindingsPanel extends JPanel {
         JButton primary = new JButton(location.available()
                 ? location.approximate() ? "Show (approximate)" : "Show" : "Unavailable");
         primary.setEnabled(location.available());
-        primary.setToolTipText(location.reason());
+        primary.setToolTipText(UiText.tooltip(location.reason()));
         primary.addActionListener(e -> show.accept(location));
         primary.setAlignmentX(Component.LEFT_ALIGNMENT);
         primary.setMaximumSize(primary.getPreferredSize());
@@ -127,7 +127,7 @@ final class ProducerFindingsPanel extends JPanel {
         if (related.available()) {
             JButton secondary = new JButton(related.mode().equals("DESIGN")
                     ? "Show declaration" : "Show node source");
-            secondary.setToolTipText(related.reason());
+            secondary.setToolTipText(UiText.tooltip(related.reason()));
             secondary.addActionListener(e -> show.accept(related));
             secondary.setAlignmentX(Component.LEFT_ALIGNMENT);
             secondary.setMaximumSize(secondary.getPreferredSize());
@@ -172,7 +172,7 @@ final class ProducerFindingsPanel extends JPanel {
     }
 
     private static JLabel heading(String text, int size) {
-        JLabel label = new JLabel(text);
+        JLabel label = UiText.label(text);
         Font base = UIManager.getFont("Label.font");
         if (base != null) label.setFont(base.deriveFont(Font.BOLD, (float) size));
         label.setAlignmentX(Component.LEFT_ALIGNMENT);

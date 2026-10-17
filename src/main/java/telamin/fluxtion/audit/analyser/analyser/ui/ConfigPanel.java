@@ -41,12 +41,13 @@ public final class ConfigPanel extends JDialog {
     private final Runnable onSaved;
 
     private final DefaultListModel<String> rootsModel = new DefaultListModel<>();
-    private final JList<String> rootsList = new JList<>(rootsModel);
+    // SF-2: roots, processors and Maven repos are profile values — a cloned project's, possibly
+    private final JList<String> rootsList = UiText.plainCells(new JList<>(rootsModel));
     private final DefaultListModel<String> epModel = new DefaultListModel<>();
-    private final JList<String> epList = new JList<>(epModel);
+    private final JList<String> epList = UiText.plainCells(new JList<>(epModel));
     private String activeEp;   // the EventProcessor FQN in use (marked in the list)
     private final DefaultListModel<String> mavenModel = new DefaultListModel<>();
-    private final JList<String> mavenList = new JList<>(mavenModel);
+    private final JList<String> mavenList = UiText.plainCells(new JList<>(mavenModel));
     private final JCheckBox mavenDisabled = new JCheckBox("Don't search local Maven repositories");
     private final JComboBox<String> providerCombo = new JComboBox<>(new String[]{"anthropic", "openai"});
     private final JTextField modelField = new JTextField(22);
@@ -65,8 +66,8 @@ public final class ConfigPanel extends JDialog {
     // M74 §5.1: machine tier, all off by default; the full posture (P1b) is turned on only through its warning
     private final JCheckBox claudeCodeToggle = new JCheckBox("Allow the analyser to start Claude Code");
     private final JCheckBox claudeCodeFullToggle = new JCheckBox("…with my full Claude Code permissions");
-    private final JComboBox<String> claudeCodeModeCombo = new JComboBox<>(
-            telamin.fluxtion.audit.analyser.analyser.config.ConfigStore.FULL_MODES.toArray(new String[0]));
+    private final JComboBox<String> claudeCodeModeCombo = UiText.plainCells(new JComboBox<>(
+            telamin.fluxtion.audit.analyser.analyser.config.ConfigStore.FULL_MODES.toArray(new String[0])));
     private final JLabel claudeCodeModeLabel = new JLabel("Mode:");
     private final JTextArea claudeCodeModeNote = plainNote();
     private final JCheckBox claudeCodeWarmToggle = new JCheckBox("Start Claude Code when I open the Assistant tab");
@@ -118,7 +119,7 @@ public final class ConfigPanel extends JDialog {
     }
     /** #20 — the project's workspace anchor, offered as the handful of depths PathForm accepts. */
     private final JComboBox<telamin.fluxtion.audit.analyser.analyser.config.WorkspaceAnchorChoices.Choice>
-            anchorCombo = new JComboBox<>();
+            anchorCombo = UiText.plainCells(new JComboBox<>());
     /** #21 — the open PROJECT's preferred exchange directory, project-relative. */
     private final JTextField projectExchangeField = new JTextField(28);
     private final JSpinner maxRoundsSpinner = new JSpinner(new SpinnerNumberModel(3, 1, 20, 1));
@@ -280,7 +281,7 @@ public final class ConfigPanel extends JDialog {
         for (int i = 0; i + 1 < labelFieldPairs.length; i += 2) {
             c.gridx = 0; c.gridy = row; c.weightx = 0;
             c.fill = GridBagConstraints.NONE; c.anchor = GridBagConstraints.LINE_END;
-            p.add(new JLabel((String) labelFieldPairs[i]), c);
+            p.add(UiText.label((String) labelFieldPairs[i]), c);
 
             c.gridx = 1; c.weightx = 1;
             c.fill = GridBagConstraints.HORIZONTAL; c.anchor = GridBagConstraints.LINE_START;
@@ -339,7 +340,7 @@ public final class ConfigPanel extends JDialog {
         if (readerSummaries != null) {
             for (String line : readerSummaries.get()) model.addElement(line);
         }
-        JList<String> list = new JList<>(model);
+        JList<String> list = UiText.plainCells(new JList<>(model));   // a plugin's own summary line
         JScrollPane scroll = new JScrollPane(list);
         scroll.setBorder(BorderFactory.createTitledBorder("Installed readers"));
         panel.add(scroll, BorderLayout.CENTER);
@@ -356,7 +357,7 @@ public final class ConfigPanel extends JDialog {
         rootsList.setTransferHandler(new FolderDropHandler());
         rootsList.setDropMode(DropMode.INSERT);
         rootsList.setDragEnabled(false);
-        rootsList.setCellRenderer(new RootCellRenderer());
+        rootsList.setCellRenderer(UiText.plainRenderer(new RootCellRenderer()));
         panel.add(new JScrollPane(rootsList), BorderLayout.CENTER);
 
         JButton add = new JButton("Add…");
@@ -406,18 +407,18 @@ public final class ConfigPanel extends JDialog {
     private JPanel buildAnchorRow() {
         JPanel row = new JPanel(new BorderLayout(8, 0));
         JLabel label = new JLabel("Workspace anchor:");
-        anchorCombo.setRenderer(new DefaultListCellRenderer() {
+        anchorCombo.setRenderer(UiText.plainRenderer(new DefaultListCellRenderer() {
             @Override public java.awt.Component getListCellRendererComponent(JList<?> list, Object value,
                     int index, boolean selected, boolean focused) {
                 var c = (JLabel) super.getListCellRendererComponent(list, value, index, selected, focused);
                 if (value instanceof telamin.fluxtion.audit.analyser.analyser.config
                         .WorkspaceAnchorChoices.Choice choice) {
-                    c.setText(choice.label());
-                    c.setToolTipText(choice.dir() == null ? null : choice.dir().toString());
+                    UiText.plain(c).setText(choice.label());
+                    c.setToolTipText(choice.dir() == null ? null : UiText.tooltip(choice.dir().toString()));
                 }
                 return c;
             }
-        });
+        }));
         row.add(label, BorderLayout.WEST);
         row.add(anchorCombo, BorderLayout.CENTER);
         JLabel note = mutedNote("A root in a <b>sibling checkout</b> is outside this project, so it is stored as "
@@ -501,6 +502,10 @@ public final class ConfigPanel extends JDialog {
 
     /** Marks roots that don't look like Java source roots in red so mistakes are visible. */
     private static final class RootCellRenderer extends DefaultListCellRenderer {
+        RootCellRenderer() {
+            UiText.plain(this);        // SF-2: a root is a profile's path
+        }
+
         @Override
         public Component getListCellRendererComponent(JList<?> list, Object value, int index,
                                                       boolean sel, boolean focus) {
@@ -530,7 +535,8 @@ public final class ConfigPanel extends JDialog {
         JPanel panel = new JPanel(new BorderLayout(10, 8));
         panel.setBorder(BorderFactory.createEmptyBorder(14, 16, 14, 16));
         epList.setVisibleRowCount(8);
-        epList.setCellRenderer(new DefaultListCellRenderer() {
+        epList.setCellRenderer(UiText.plainRenderer(new DefaultListCellRenderer() {
+            { UiText.plain(this); }        // SF-2: a processor FQN is a profile value
             @Override public Component getListCellRendererComponent(JList<?> list, Object value, int index,
                                                                     boolean sel, boolean focus) {
                 super.getListCellRendererComponent(list, value, index, sel, focus);
@@ -540,7 +546,7 @@ public final class ConfigPanel extends JDialog {
                 }
                 return this;
             }
-        });
+        }));
         panel.add(new JScrollPane(epList), BorderLayout.CENTER);
 
         JButton add = new JButton("Add…");
@@ -823,7 +829,8 @@ public final class ConfigPanel extends JDialog {
     /** The confirmation itself: the warning in a plain-text area, [Turn on full Claude Code] [Cancel], Cancel default. */
     static boolean confirmFullPosture(java.awt.Component parent) {
         Object[] options = {FULL_POSTURE_TURN_ON, "Cancel"};
-        int answer = JOptionPane.showOptionDialog(parent, fullPostureWarningArea(), "Full Claude Code — read this first",
+        JTextArea warning = fullPostureWarningArea();
+        int answer = JOptionPane.showOptionDialog(parent, warning, "Full Claude Code — read this first",
                 JOptionPane.DEFAULT_OPTION, JOptionPane.WARNING_MESSAGE, null, options, options[1]);
         return answer == 0;
     }
@@ -877,7 +884,7 @@ public final class ConfigPanel extends JDialog {
     }
 
     private JButton clearButton(String text, Runnable action) {
-        JButton b = new JButton(text);
+        JButton b = UiText.button(text);
         b.setPreferredSize(new Dimension(210, b.getPreferredSize().height));
         b.addActionListener(e -> {
             action.run();
@@ -948,7 +955,7 @@ public final class ConfigPanel extends JDialog {
             var refused = telamin.fluxtion.audit.analyser.analyser.config.PathForm
                     .refuseWorkspaceRoot(chosen.anchor());
             if (refused.isPresent()) {
-                JOptionPane.showMessageDialog(this, refused.get(), "Workspace anchor",
+                JOptionPane.showMessageDialog(this, UiText.inert(refused.get()), "Workspace anchor",
                         JOptionPane.WARNING_MESSAGE);
             } else {
                 config.workspaceRoot = chosen.isNone() ? "" : chosen.anchor();
@@ -982,8 +989,8 @@ public final class ConfigPanel extends JDialog {
         if (telamin.fluxtion.audit.analyser.analyser.assistant.localagent.ClaudeCodeProvider.validModel(model)) {
             config.claudeCodeModel = model;
         } else {   // review S7: never something Claude Code could read as a flag
-            JOptionPane.showMessageDialog(this, "\"" + model + "\" is not a Claude Code model name (letters, digits, "
-                    + ". _ - [ ], not starting with -). The model setting was not changed.", "Claude Code model",
+            JOptionPane.showMessageDialog(this, UiText.inert("\"" + model + "\" is not a Claude Code model name (letters, digits, "
+                    + ". _ - [ ], not starting with -). The model setting was not changed."), "Claude Code model",
                     JOptionPane.WARNING_MESSAGE);
         }
         config.claudeCodeBudgetUsd = claudeCodeBudgetToggle.isSelected()
@@ -998,7 +1005,7 @@ public final class ConfigPanel extends JDialog {
             var refused = telamin.fluxtion.audit.analyser.analyser.config.Runbooks
                     .refusePointer("assistant.exchangeDir", wantedExchange);
             if (refused.isPresent()) {
-                javax.swing.JOptionPane.showMessageDialog(this, refused.get(),
+                javax.swing.JOptionPane.showMessageDialog(this, UiText.inert(refused.get()),
                         "Exchange directory", javax.swing.JOptionPane.WARNING_MESSAGE);
             } else {
                 config.projectExchangeDir = wantedExchange;

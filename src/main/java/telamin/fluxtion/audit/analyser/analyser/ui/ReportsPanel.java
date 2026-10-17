@@ -170,12 +170,14 @@ public final class ReportsPanel extends JPanel {
         detail.setLayout(new BoxLayout(detail, BoxLayout.Y_AXIS));
         detail.setBorder(BorderFactory.createEmptyBorder(18, 20, 18, 20));
         list.setCellRenderer((source, value, index, selected, focus) -> {
+            // SF-2: the name reaches the fresh renderer inert, and the title/name inside the panel's own markup are
+            // escaped — a report is authored by whoever called the report verb
             JLabel label = (JLabel) new javax.swing.DefaultListCellRenderer()
-                    .getListCellRendererComponent(source, value, index, selected, focus);
+                    .getListCellRendererComponent(source, UiText.inert(value), index, selected, focus);
             ReportSpec spec = reportNamed(value);
             if (spec != null) {
-                label.setText("<html>" + html(spec.title()) + "<br><small>" + html(spec.name()) + "</small></html>");
-                label.setToolTipText(spec.name());
+                label.setText("<html>" + UiText.escape(spec.title()) + "<br><small>" + UiText.escape(spec.name()) + "</small></html>");
+                label.setToolTipText(UiText.tooltip(spec.name()));
                 label.setBorder(BorderFactory.createEmptyBorder(4, 6, 4, 6));
             }
             return label;
@@ -290,11 +292,6 @@ public final class ReportsPanel extends JPanel {
         return null;
     }
 
-    private static String html(String text) {
-        return text == null ? "" : text.replace("&", "&amp;").replace("<", "&lt;")
-                .replace(">", "&gt;").replace("\"", "&quot;");
-    }
-
     private void restoreDeleted() {
         List<String> names = restorable.get();
         if (names.isEmpty()) {
@@ -302,13 +299,14 @@ public final class ReportsPanel extends JPanel {
                     "Restore deleted report", javax.swing.JOptionPane.INFORMATION_MESSAGE);
             return;
         }
+        Object[] shown = UiText.inert(names.toArray());   // SF-2: the choices are a combo box's cells
         Object choice = javax.swing.JOptionPane.showInputDialog(this, "Restore which report?",
-                "Restore deleted report", javax.swing.JOptionPane.QUESTION_MESSAGE, null,
-                names.toArray(), names.get(0));
-        if (choice == null) return;
-        String refused = restoreReport.apply(choice.toString());
+                "Restore deleted report", javax.swing.JOptionPane.QUESTION_MESSAGE, null, shown, shown[0]);
+        int picked = java.util.Arrays.asList(shown).indexOf(choice);
+        if (picked < 0) return;
+        String refused = restoreReport.apply(names.get(picked));
         if (refused != null) {
-            javax.swing.JOptionPane.showMessageDialog(this, refused, "Restore deleted report",
+            javax.swing.JOptionPane.showMessageDialog(this, UiText.inert(refused), "Restore deleted report",
                     javax.swing.JOptionPane.WARNING_MESSAGE);
         }
     }
@@ -330,7 +328,7 @@ public final class ReportsPanel extends JPanel {
     private void deleteSelected() {
         ReportSpec spec = selectedSpec();
         if (spec == null) return;
-        int choice = javax.swing.JOptionPane.showConfirmDialog(this, deleteWarning(spec),
+        int choice = javax.swing.JOptionPane.showConfirmDialog(this, UiText.inert(deleteWarning(spec)),
                 "Delete report", javax.swing.JOptionPane.OK_CANCEL_OPTION,
                 javax.swing.JOptionPane.WARNING_MESSAGE);
         if (choice == javax.swing.JOptionPane.OK_OPTION) deleteReport.accept(spec.name());
@@ -340,12 +338,12 @@ public final class ReportsPanel extends JPanel {
         ReportSpec spec = selectedSpec();
         if (spec == null) return;
         Object typed = javax.swing.JOptionPane.showInputDialog(this,
-                "Rename the report \"" + spec.name() + "\" to:", "Rename report",
+                UiText.inert("Rename the report \"" + spec.name() + "\" to:"), "Rename report",
                 javax.swing.JOptionPane.PLAIN_MESSAGE, null, null, spec.name());
         if (typed == null) return;
         String refused = renameReport.apply(spec.name(), typed.toString());
         if (refused != null) {
-            javax.swing.JOptionPane.showMessageDialog(this, refused, "Rename report",
+            javax.swing.JOptionPane.showMessageDialog(this, UiText.inert(refused), "Rename report",
                     javax.swing.JOptionPane.WARNING_MESSAGE);
             return;
         }
@@ -489,6 +487,7 @@ public final class ReportsPanel extends JPanel {
                 return c;
             }
         });
+        UiText.plainCells(t);          // SF-2: cells and column names come from the report's author
         List<Integer> rowRecords = a.rowRecords();
         if (!rowRecords.isEmpty()) {
             t.addMouseListener(new java.awt.event.MouseAdapter() {
@@ -539,7 +538,7 @@ public final class ReportsPanel extends JPanel {
         box.add(h);
         box.add(wrapped(body));
         if (actionLabel != null) {
-            JButton b = new JButton(actionLabel);
+            JButton b = UiText.button(actionLabel);
             b.addActionListener(e -> action.run());
             b.setAlignmentX(Component.LEFT_ALIGNMENT);
             box.add(b);
@@ -613,7 +612,7 @@ public final class ReportsPanel extends JPanel {
     }
 
     private JButton link(String label, Runnable go) {
-        JButton b = new JButton(label);
+        JButton b = UiText.button(label);          // SF-2: carries a chart name or focus name
         b.addActionListener(e -> go.run());
         b.setAlignmentX(Component.LEFT_ALIGNMENT);
         return b;

@@ -94,7 +94,7 @@ final class MachinePanel extends JPanel {
     }
 
     private void note(String text) {
-        JLabel label = new JLabel(text);
+        JLabel label = UiText.label(text);
         label.setFont(label.getFont().deriveFont(Font.ITALIC, label.getFont().getSize() - 1f));
         label.setForeground(UiTheme.mutedForeground());
         label.setAlignmentX(LEFT_ALIGNMENT);
@@ -106,10 +106,10 @@ final class MachinePanel extends JPanel {
         JPanel row = new JPanel(new BorderLayout(6, 0));
         row.setOpaque(false);
         row.setAlignmentX(LEFT_ALIGNMENT);
-        JLabel label = new JLabel(name);
+        JLabel label = UiText.label(name);
         label.setForeground(UiTheme.mutedForeground());
-        JLabel text = new JLabel(ProjectModel.abbreviate(value));
-        text.setToolTipText(value);
+        JLabel text = UiText.label(ProjectModel.abbreviate(value));   // SF-2: a machine path or setting
+        text.setToolTipText(UiText.tooltip(value));
         row.add(label, BorderLayout.WEST);
         row.add(text, BorderLayout.EAST);
         row.setMaximumSize(new Dimension(Integer.MAX_VALUE, row.getPreferredSize().height));

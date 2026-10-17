@@ -89,9 +89,10 @@ of text you have to trust. The verification loop is built in: click a plotted po
 record, trace it to the exact source method.
 
 !!! tip "No API key needed — and it works with any agent"
-    Hit **Copy prompt** and the analyser hands you a self-contained brief — the evidence plus its
-    **action protocol** (localhost endpoint, token, verbs). Claude Code, Claude Desktop or any agent can
-    then drive the analyser back: seek more records, aggregate, and **plot the fault for you to see**.
+    Hit **Copy prompt** and the analyser hands you a self-contained brief of the evidence. Tick
+    **Include my local REST token** and it adds the **action protocol** (localhost endpoint, token, verbs), so
+    Claude Code, Claude Desktop or any agent can drive the analyser back: seek more records, aggregate, and
+    **plot the fault for you to see**.
 
 See the [Assistant guide](user-guide/assistant.md) for the full workflow.
 

@@ -92,7 +92,7 @@ public final class GraphTabs extends JPanel {
     /** Show {@code note} above the charts, or hide the banner for null. Call on the EDT. */
     public void setIdentityNote(String note) {
         identityBanner.setText(note == null ? "" : note);
-        identityBanner.setToolTipText(note);
+        identityBanner.setToolTipText(UiText.tooltip(note));
         identityBanner.setVisible(note != null);
         revalidate();
     }
@@ -174,6 +174,10 @@ public final class GraphTabs extends JPanel {
 
     public GraphTabs() {
         super(new BorderLayout());
+        // SF-2: tab titles and the banner carry chart names and a verdict's reason, which are not this code's markup.
+        // The tab strip is hidden, but BasicTabbedPaneUI still builds an HTML view for an HTML title.
+        UiText.plain(tabs);
+        UiText.plain(identityBanner);
         JPanel bar = new JPanel(new BorderLayout(4, 0));
         JButton add = new JButton("New graph");
         editingButtons.add(deleteItem);   // only Delete is withheld while definitions are ambiguous
@@ -203,7 +207,7 @@ public final class GraphTabs extends JPanel {
         graphSelector.setRenderer((ListCellRenderer<? super GraphPanel>) (list, value, index, selected, focus) -> {
             JLabel label = (JLabel) new javax.swing.DefaultListCellRenderer()
                     .getListCellRendererComponent(list, value, index, selected, focus);
-            label.setText(value == null ? "No open graph" : displayTitle(value));
+            UiText.plain(label).setText(value == null ? "No open graph" : displayTitle(value));   // SF-2: a chart name
             return label;
         });
         graphSelector.addActionListener(e -> {
@@ -495,7 +499,7 @@ public final class GraphTabs extends JPanel {
         // name refused by the address grammar
         String problem = name == null || name.isBlank() ? null : SpotlightTarget.chartNameProblem(name);
         if (problem != null) {
-            JOptionPane.showMessageDialog(this, "Not renamed: " + problem, "Graph name", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, UiText.inert("Not renamed: " + problem), "Graph name", JOptionPane.WARNING_MESSAGE);
             return;
         }
         if (name != null && !name.isBlank() && !rename(gp, name)) {
@@ -750,10 +754,10 @@ public final class GraphTabs extends JPanel {
 
     private boolean askWhetherToDelete(String name) {
         return JOptionPane.showConfirmDialog(this,
-                "Delete the chart \"" + name + "\"?\n\n"
+                UiText.inert("Delete the chart \"" + name + "\"?\n\n"
                         + "This removes its definition from the project — series, formulas, notes and the\n"
                         + "explanation written on it. It cannot be undone.\n\n"
-                        + "To put it away without losing it, use Close graph instead.",
+                        + "To put it away without losing it, use Close graph instead."),
                 "Delete chart", JOptionPane.OK_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE)
                 == JOptionPane.OK_OPTION;
     }

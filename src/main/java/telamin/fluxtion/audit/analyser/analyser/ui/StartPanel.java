@@ -210,7 +210,7 @@ public final class StartPanel extends JPanel {
     }
 
     private static void addAction(JPanel into, String label, Runnable action) {
-        JButton button = new JButton(label);
+        JButton button = UiText.button(label);
         button.addActionListener(e -> action.run());
         into.add(button);
     }
@@ -264,9 +264,10 @@ public final class StartPanel extends JPanel {
                 }
                 String title = parent == null || parent.getFileName() == null
                         ? path : parent.getFileName().toString();
-                JButton button = new JButton(title + " / " + file.getFileName() + "  —  " + path);
+                // SF-2: a folder name and a configured path are not the analyser's words — shown as characters
+                JButton button = UiText.button(title + " / " + file.getFileName() + "  —  " + path);
                 button.setHorizontalAlignment(SwingConstants.LEFT);
-                button.setToolTipText(path);
+                button.setToolTipText(UiText.tooltip(path));
                 button.setAlignmentX(LEFT_ALIGNMENT);
                 button.setMaximumSize(new Dimension(Integer.MAX_VALUE, button.getPreferredSize().height));
                 button.addActionListener(e -> actions.openRecentProject(path));
@@ -303,9 +304,10 @@ public final class StartPanel extends JPanel {
                 String label = names.get(i)
                         + (b.notes().isEmpty() ? "" : "  —  " + b.notes())
                         + (present ? "" : "   (file not found)");
-                JButton button = new JButton(label);
+                // SF-2: the note is the bundle SENDER's sentence and the name is a file on disk
+                JButton button = UiText.button(label);
                 button.setHorizontalAlignment(SwingConstants.LEFT);
-                button.setToolTipText(b.path() + (b.identity().isEmpty() ? "" : "\n" + b.identity()));
+                button.setToolTipText(UiText.tooltip(b.path() + (b.identity().isEmpty() ? "" : "\n" + b.identity())));
                 button.setAlignmentX(LEFT_ALIGNMENT);
                 button.setMaximumSize(new Dimension(Integer.MAX_VALUE, button.getPreferredSize().height));
                 button.setEnabled(present);
@@ -484,7 +486,7 @@ public final class StartPanel extends JPanel {
 
     /** A text-weight action: the affordance without the visual claim a button makes. */
     private JButton link(String text, Runnable go) {
-        JButton b = new JButton(text);
+        JButton b = UiText.button(text);
         b.setBorderPainted(false);
         b.setContentAreaFilled(false);
         b.setFocusPainted(true);
@@ -759,7 +761,7 @@ public final class StartPanel extends JPanel {
             setBorderPainted(false);
             setFocusPainted(false);
             setOpaque(false);
-            setToolTipText(why);
+            setToolTipText(UiText.tooltip(why));
             getAccessibleContext().setAccessibleName(title);
             getAccessibleContext().setAccessibleDescription(why);
             setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -769,7 +771,7 @@ public final class StartPanel extends JPanel {
         void setCopy(String title, String why) {
             this.title = title;
             this.why = why;
-            setToolTipText(why);
+            setToolTipText(UiText.tooltip(why));
             getAccessibleContext().setAccessibleName(title);
             getAccessibleContext().setAccessibleDescription(why);
             repaint();

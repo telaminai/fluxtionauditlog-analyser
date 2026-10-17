@@ -66,7 +66,7 @@ final class ProjectReopenDialog {
 
         JPanel north = new JPanel();
         north.setLayout(new BoxLayout(north, BoxLayout.Y_AXIS));
-        JLabel title = new JLabel("Open a log or topology — " + projectLabel);
+        JLabel title = UiText.label("Open a log or topology — " + projectLabel);   // SF-2: a project's name
         title.setFont(title.getFont().deriveFont(Font.BOLD, 18f));
         title.setAlignmentX(Component.LEFT_ALIGNMENT);
         north.add(title);
@@ -130,32 +130,32 @@ final class ProjectReopenDialog {
         java.util.List<String> rows = new java.util.ArrayList<>();
         rows.add(NONE);
         rows.addAll(paths);
-        JList<String> list = new JList<>(rows.toArray(String[]::new));
+        JList<String> list = new JList<>(rows.toArray(String[]::new));   // SF-2: paths — the renderer below is plain
         list.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         list.setFixedCellHeight(30);
         list.setBorder(BorderFactory.createEmptyBorder(4, 4, 4, 4));
-        list.setCellRenderer(new DefaultListCellRenderer() {
+        list.setCellRenderer(UiText.plainRenderer(new DefaultListCellRenderer() {
             @Override
             public Component getListCellRendererComponent(JList<?> component, Object value, int index,
                                                           boolean selected, boolean focus) {
-                JLabel label = (JLabel) super.getListCellRendererComponent(component, value, index, selected, focus);
+                JLabel label = UiText.plain((JLabel) super.getListCellRendererComponent(component, value, index, selected, focus));
                 if (NONE.equals(value)) {
                     label.setText(noneLabel);
                     label.setFont(label.getFont().deriveFont(Font.ITALIC));
                 } else if (value != null) {
                     Path file = Path.of(String.valueOf(value));
                     label.setText(String.valueOf(file.getFileName()));
-                    label.setToolTipText(String.valueOf(value));
+                    label.setToolTipText(UiText.tooltip(String.valueOf(value)));
                 }
                 return label;
             }
-        });
+        }));
         return list;
     }
 
     private static JPanel titled(String heading, JList<String> list) {
         JPanel panel = new JPanel(new BorderLayout(0, 6));
-        JLabel label = new JLabel(heading);
+        JLabel label = UiText.label(heading);
         label.setFont(label.getFont().deriveFont(Font.BOLD, 13f));
         panel.add(label, BorderLayout.NORTH);
         JScrollPane scroll = new JScrollPane(list);

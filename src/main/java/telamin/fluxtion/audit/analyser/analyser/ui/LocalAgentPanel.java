@@ -189,7 +189,7 @@ public final class LocalAgentPanel extends JPanel {
         posture.setText(postureLine(shownHeader(s, store), s));
         boolean running = s.running();
         start.setEnabled(!running);
-        start.setText(startLabel(s));
+        start.setText(UiText.inert(startLabel(s)));
         stop.setEnabled(s.busy() || s.starting() || s.pendingDraft() != 0);
         send.setEnabled(!s.busy() && !"STOPPING".equals(s.phase()));
         turnOnRest.setVisible("REST_OFF".equals(s.verdict()));

@@ -41,7 +41,8 @@ public final class LocalAgentFolderDialog {
     /** Ask; true only on the person's explicit {@link #TRUST}. Closing the dialog, or Enter on the default, is No. */
     static boolean confirmFull(Component parent, Path dir, FullFolderTrust.Scan scan) {
         Object[] options = {TRUST, DONT};
-        int answer = JOptionPane.showOptionDialog(parent, content(dir, scan), "Full Claude Code — confirm this folder",
+        JComponent message = content(dir, scan);
+        int answer = JOptionPane.showOptionDialog(parent, message, "Full Claude Code — confirm this folder",
                 JOptionPane.DEFAULT_OPTION, JOptionPane.WARNING_MESSAGE, null, options, options[1]);
         return answer == 0;
     }

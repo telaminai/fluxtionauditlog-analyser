@@ -31,7 +31,8 @@ public final class GraphPanel extends JPanel {
 
     private static final int DISCOVER_LIMIT = 2000;
 
-    private final JComboBox<GraphKey> keyCombo = new JComboBox<>();
+    // SF-2: keys are the log's node ids, labels and notes are a chart author's — every text below is shown as characters
+    private final JComboBox<GraphKey> keyCombo = UiText.plainCells(new JComboBox<>());
     private final ChartPanel chart = new ChartPanel();
     private final JComboBox<String> styleCombo = new JComboBox<>(new String[]{"Stairs", "Line", "Points"});
     private final JTextField exprField = new JTextField(26);       // f(x): a formula over instanceId.key
@@ -46,7 +47,7 @@ public final class GraphPanel extends JPanel {
 
     // the Series side panel (toggled by "Series…"): a list of every series + add / remove / edit-formula
     private final DefaultListModel<SeriesRow> seriesListModel = new DefaultListModel<>();
-    private final JList<SeriesRow> seriesList = new JList<>(seriesListModel);
+    private final JList<SeriesRow> seriesList = UiText.plainCells(new JList<>(seriesListModel));
     private final JToggleButton editSeriesButton = new JToggleButton("Edit series");
     private final JButton addFxButton = new JButton("Add f(x)");
     private final JPanel centerHolder = new JPanel(new BorderLayout());
@@ -100,8 +101,8 @@ public final class GraphPanel extends JPanel {
     private void mutated() {
         onMutation.run();
     }
-    private final JLabel captionLabel = new JLabel();   // shows the caption under the plot (when set)
-    private final JLabel scopeLabel = new JLabel();
+    private final JLabel captionLabel = UiText.plain(new JLabel());   // shows the caption under the plot (when set)
+    private final JLabel scopeLabel = UiText.plain(new JLabel());
     private boolean extractionFailed;
 
     private Long pinnedFrom, pinnedTo;     // non-null → pinned to this window; null → follows the filter
@@ -129,7 +130,7 @@ public final class GraphPanel extends JPanel {
             }
         });
 
-        keyCombo.setRenderer(graphKeyRenderer());
+        keyCombo.setRenderer(UiText.plainRenderer(graphKeyRenderer()));
 
         // top toolbar: VIEW controls only — series authoring lives in the "Series…" side panel (declutter).
         // The "Series…" toggle itself lives on the plot overlay, above the series key it manages.
@@ -395,15 +396,15 @@ public final class GraphPanel extends JPanel {
     private JComponent markerLegendRow(telamin.fluxtion.audit.analyser.analyser.graph.MarkerSeries ms,
                                        int markerIndex) {
         String text = markerLegendText(ms);
-        JLabel l = new JLabel(text, glyphSwatch(ms.glyph(), ChartPanel.markerPaletteColor(markerIndex)),
-                SwingConstants.LEFT);
+        JLabel l = UiText.label(text, SwingConstants.LEFT);
+        l.setIcon(glyphSwatch(ms.glyph(), ChartPanel.markerPaletteColor(markerIndex)));
         l.setIconTextGap(6);
         l.setAlignmentX(Component.RIGHT_ALIGNMENT);
         l.setBorder(BorderFactory.createEmptyBorder(1, 2, 1, 2));
         String note = ms.note();
         l.setToolTipText(note == null || note.isBlank()
                 ? "marker series — right-click to remove"
-                : note);                       // a dangling pin says so where the reader is looking
+                : UiText.tooltip(note));       // a dangling pin says so where the reader is looking
         JPopupMenu menu = new JPopupMenu();
         JMenuItem rm = new JMenuItem("Remove");
         rm.addActionListener(e -> removeMarkerByLabel(ms.label()));
@@ -513,7 +514,8 @@ public final class GraphPanel extends JPanel {
 
     /** One overlay row: a plot-colour swatch + the full label, with a right-click "Remove". */
     private JComponent legendRow(String label, int paletteIndex) {
-        JLabel l = new JLabel(label, swatch(ChartPanel.paletteColor(paletteIndex)), SwingConstants.LEFT);
+        JLabel l = UiText.label(label, SwingConstants.LEFT);
+        l.setIcon(swatch(ChartPanel.paletteColor(paletteIndex)));
         l.setIconTextGap(6);
         l.setAlignmentX(Component.RIGHT_ALIGNMENT);
         l.setBorder(BorderFactory.createEmptyBorder(1, 2, 1, 2));
@@ -530,7 +532,7 @@ public final class GraphPanel extends JPanel {
 
     private void buildSeriesPanel() {
         seriesList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        seriesList.setCellRenderer(new SeriesRowRenderer());
+        seriesList.setCellRenderer(UiText.plainRenderer(new SeriesRowRenderer()));
         seriesList.addListSelectionListener(e -> { if (!e.getValueIsAdjusting()) onSeriesSelected(); });
         JScrollPane listScroll = new JScrollPane(seriesList);
         listScroll.setBorder(UiTheme.section("Series"));
@@ -763,6 +765,10 @@ public final class GraphPanel extends JPanel {
 
     /** Series list cell: a colour swatch matching the plot, the label, and an ƒ marker for formulas. */
     private final class SeriesRowRenderer extends DefaultListCellRenderer {
+        SeriesRowRenderer() {
+            UiText.plain(this);        // SF-2: a series label is a chart author's
+        }
+
         @Override
         public Component getListCellRendererComponent(JList<?> list, Object value, int index,
                                                       boolean sel, boolean foc) {
@@ -1019,7 +1025,7 @@ public final class GraphPanel extends JPanel {
     public void setCaption(String note) {
         this.caption = note == null ? "" : note;
         captionLabel.setText(caption.isBlank() ? "" : "ⓘ " + caption);
-        captionLabel.setToolTipText(caption.isBlank() ? null : caption);
+        captionLabel.setToolTipText(caption.isBlank() ? null : UiText.tooltip(caption));
         captionLabel.setVisible(!caption.isBlank());
         mutated();
     }
@@ -1050,7 +1056,7 @@ public final class GraphPanel extends JPanel {
         String summary = window + " · " + (filter == null ? "DIMENSION" : filter.groupMode().name()) + ": " + events + " · text: " + text;
         if (extracting || pendingReason != null || dirty) summary += " · extraction pending";
         else if (extractionFailed) summary += " · extraction failed; plotted data may be old";
-        scopeLabel.setText(summary); scopeLabel.setToolTipText(summary);
+        scopeLabel.setText(summary); scopeLabel.setToolTipText(UiText.tooltip(summary));
     }
 
     String scopeText() { return scopeLabel.getText(); }
@@ -1387,7 +1393,7 @@ public final class GraphPanel extends JPanel {
             // a ref that doesn't exist just plots empty)
             Expr.parse(expandFormulaRefs(exprText, others, new java.util.HashSet<>(lastKeyDisplays)));
         } catch (RuntimeException ex) {
-            JOptionPane.showMessageDialog(this, ex.getMessage(), "Formula error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, UiText.inert(ex.getMessage()), "Formula error", JOptionPane.ERROR_MESSAGE);
             return;
         }
         if (replacesLabel != null && !replacesLabel.equals(label)) {
@@ -1488,7 +1494,7 @@ public final class GraphPanel extends JPanel {
     private final class ExprCompletion {
         private final JTextField field;
         private final DefaultListModel<String> model = new DefaultListModel<>();
-        private final JList<String> list = new JList<>(model);
+        private final JList<String> list = UiText.plainCells(new JList<>(model));
         private Popup popup;
         private boolean showing;
         private int tokenStart;      // doc offset where the current token begins (after any opening `)
@@ -1852,8 +1858,8 @@ public final class GraphPanel extends JPanel {
                     }
                     return out;
                 },
-                path -> JOptionPane.showMessageDialog(this, "Exported to " + path),
-                err -> JOptionPane.showMessageDialog(this, "Export failed: " + err.getMessage(),
+                path -> JOptionPane.showMessageDialog(this, UiText.inert("Exported to " + path)),
+                err -> JOptionPane.showMessageDialog(this, UiText.inert("Export failed: " + err.getMessage()),
                         "Export", JOptionPane.ERROR_MESSAGE));
     }
 
@@ -1866,14 +1872,15 @@ public final class GraphPanel extends JPanel {
             String fmt = file.getName().toLowerCase().endsWith(".jpg") || file.getName().toLowerCase().endsWith(".jpeg")
                     ? "jpg" : "png";
             javax.imageio.ImageIO.write(chartImage(0, 0), fmt, file);
-            JOptionPane.showMessageDialog(this, "Saved " + file);
+            JOptionPane.showMessageDialog(this, UiText.inert("Saved " + file));
         } catch (IOException ex) {
-            JOptionPane.showMessageDialog(this, "Export failed: " + ex.getMessage(), "Export", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, UiText.inert("Export failed: " + ex.getMessage()), "Export", JOptionPane.ERROR_MESSAGE);
         }
     }
 
     private static DefaultListCellRenderer graphKeyRenderer() {
         return new DefaultListCellRenderer() {
+            { UiText.plain(this); }        // SF-2: a key is the log's node id
             @Override public Component getListCellRendererComponent(JList<?> l, Object v, int i, boolean s, boolean f) {
                 super.getListCellRendererComponent(l, v, i, s, f);
                 if (v instanceof GraphKey k) setText(k.display());

@@ -36,9 +36,9 @@ final class ConversationEditor extends JDialog {
     private final WalkSpec walk;
     private final ConversationDraft draft;
     private final BiFunction<WalkSpec.Conversation, List<String>, String> save;
-    private final JLabel kind = new JLabel();
+    private final JLabel kind = UiText.plain(new JLabel());
     private final TurnsModel turns = new TurnsModel();
-    private final JTable turnsTable = new JTable(turns);
+    private final JTable turnsTable = UiText.plainCells(new JTable(turns));   // SF-2: the turns are model output
     private final JPanel bindings = new JPanel(new GridLayout(0, 1, 2, 2));
     private final List<JComboBox<String>> revealCombos = new ArrayList<>();
     /** For tests: the last refusal shown, or null. */
@@ -68,7 +68,7 @@ final class ConversationEditor extends JDialog {
         // the current chat's completed turns, offered — none selected
         DefaultListModel<Candidate> offered = new DefaultListModel<>();
         candidates.forEach(offered::addElement);
-        JList<Candidate> offer = new JList<>(offered);
+        JList<Candidate> offer = UiText.plainCells(new JList<>(offered));
         offer.getAccessibleContext().setAccessibleName("Completed turns of the current chat");
         JButton addCaptured = new JButton("Add selected turns");
         addCaptured.addActionListener(e -> {
@@ -129,7 +129,7 @@ final class ConversationEditor extends JDialog {
             String refused = save.apply(draft.conversation(), draft.through());
             lastRefusal = refused;
             if (refused != null) {
-                JOptionPane.showMessageDialog(this, refused, "Dialogue not saved", JOptionPane.WARNING_MESSAGE);
+                JOptionPane.showMessageDialog(this, UiText.inert(refused), "Dialogue not saved", JOptionPane.WARNING_MESSAGE);
             } else {
                 dispose();
             }
@@ -182,7 +182,7 @@ final class ConversationEditor extends JDialog {
         revealCombos.clear();
         List<String> through = draft.through();
         for (int i = 0; i < walk.steps().size(); i++) {
-            JComboBox<String> box = new JComboBox<>();
+            JComboBox<String> box = UiText.plainCells(new JComboBox<>());
             box.addItem("(nothing yet)");
             for (int t = 0; t < draft.lines().size(); t++) box.addItem("t" + (t + 1));
             String at = through.get(i);
@@ -192,7 +192,7 @@ final class ConversationEditor extends JDialog {
             box.getAccessibleContext().setAccessibleName("Step " + (i + 1) + " reveals up to");
             JPanel row = new JPanel(new BorderLayout(4, 0));
             String caption = walk.steps().get(i).caption();
-            row.add(new JLabel("Step " + (i + 1) + (caption.isBlank() ? "" : ": " + (caption.length() > 30
+            row.add(UiText.label("Step " + (i + 1) + (caption.isBlank() ? "" : ": " + (caption.length() > 30
                     ? caption.substring(0, 30) + "…" : caption))), BorderLayout.CENTER);
             row.add(box, BorderLayout.EAST);
             bindings.add(row);

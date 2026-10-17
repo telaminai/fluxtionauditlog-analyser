@@ -37,28 +37,31 @@ final class WalksPanel extends JPanel {
     private final Function<Map<String, Object>, ActionResult> walk;
     private final Supplier<List<String>> restorable;
     private final DefaultListModel<String> names = new DefaultListModel<>();
-    private final JList<String> list = new JList<>(names);
+    // SF-2: walk names and step captions are authored by whoever called the walk verb — cells shown as characters
+    private final JList<String> list = UiText.plainCells(new JList<>(names));
     private final DefaultListModel<String> stepLabels = new DefaultListModel<>();
-    private final JList<String> steps = new JList<>(stepLabels);
+    private final JList<String> steps = UiText.plainCells(new JList<>(stepLabels));
     private final JTextArea detail = new JTextArea();
     private final JSplitPane split;
     /** Asks for a new name, or null. */
     Function<WalkSpec, String> renamePrompt = w -> {
-        Object typed = JOptionPane.showInputDialog(this, "Rename the walk \"" + w.name() + "\" to:", "Rename walk",
+        Object typed = JOptionPane.showInputDialog(this, UiText.inert("Rename the walk \"" + w.name() + "\" to:"), "Rename walk",
                 JOptionPane.PLAIN_MESSAGE, null, null, w.name());
         return typed == null ? null : typed.toString();
     };
     /** Confirms a delete. */
-    Function<WalkSpec, Boolean> confirmDelete = w -> JOptionPane.showConfirmDialog(this, deleteWarning(w), "Delete walk",
+    Function<WalkSpec, Boolean> confirmDelete = w -> JOptionPane.showConfirmDialog(this, UiText.inert(deleteWarning(w)), "Delete walk",
             JOptionPane.OK_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE) == JOptionPane.OK_OPTION;
     /** Chooses a deleted walk to restore, or null. */
     Function<List<String>, String> restoreChooser = names -> {
+        Object[] shown = UiText.inert(names.toArray());
         Object choice = JOptionPane.showInputDialog(this, "Restore which walk?", "Restore deleted walk",
-                JOptionPane.QUESTION_MESSAGE, null, names.toArray(), names.get(0));
-        return choice == null ? null : choice.toString();
+                JOptionPane.QUESTION_MESSAGE, null, shown, shown[0]);
+        int picked = java.util.Arrays.asList(shown).indexOf(choice);
+        return picked < 0 ? null : names.get(picked);
     };
     /** Says why something was refused. */
-    java.util.function.Consumer<String> warn = message -> JOptionPane.showMessageDialog(this, message, "Spotlight walk",
+    java.util.function.Consumer<String> warn = message -> JOptionPane.showMessageDialog(this, UiText.inert(message), "Spotlight walk",
             JOptionPane.WARNING_MESSAGE);
 
     final JButton play = new JButton("Play");
