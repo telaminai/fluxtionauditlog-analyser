@@ -1,7 +1,10 @@
 # M74 — Claude Code as the analyser's assistant: a long-running local session
 
-**Status:** DRAFT r11, 2026-10-17 — r11 merges the P1b branch into P2, builds **P2b** and adds the owner's requests of
-2026-10-17 (§2 *r11 owner decisions*; *Implementation notes (P2b)*). (r8 accepted 2026-10-16; r9 folds in the P1b probes and the owner's optional budget,
+**Status:** DRAFT r12, 2026-10-17 — r12 runs the P3 probes P3-0…P3-6 on the real bridge
+([report](evidence/m74-p3/P3-report.md); amendments marked *r12* in place) and builds **P3**, permission prompts in the
+analyser, with the scorecard's fact requirements R1, R2, R5–R8 (see *Implementation notes (P3)*); with P3 built the
+*preview* labelling of OD-74.26 is removed. (r11 merged the P1b branch into P2, built **P2b** and added the owner's
+requests of 2026-10-17 (§2 *r11 owner decisions*; *Implementation notes (P2b)*).) (r8 accepted 2026-10-16; r9 folds in the P1b probes and the owner's optional budget,
 OD-74.24; r10 merges P1a's holistic-review fixes (P1a r7), adds H6 and the owner's two decisions of 2026-10-17:
 warm start cut, OD-74.25, and full Claude Code a preview until P3, OD-74.26). **P1b** is implemented against r9 ([probes](evidence/m74-p1b/PB-report.md), US$0.24; see *Implementation
 notes (P1b)*). Two protocol probes have run against the installed CLI (2.1.282): **P0**
@@ -66,7 +69,7 @@ utility P3 completes.
 | OD-74.14 | **One Ask catalogue** (§5.5; the owner's request 2026-10-16, this shape proposed). Every "Ask Claude" question — the right-click record actions (*Explain selected with LLM*, *Diff selected two records*' Ask button), a topology node, a chart note or point, a flagged record, a time range, and the start-page prompts (OD-74.19) — is declared in **one registry**, `AskCatalogue`, which the menus, the start page and the tests read, so a new question is one entry. A question **only drafts**: no new verb, pointers (indexes, ids, names, times) and never record text, each draft bound to the log's identity and generation. The pop-up (OD-74.8) precedes every draft **in both assistant modes**; under a recorded tutorial *Yes* reveals the next recorded turn. Yes **never overwrites** the composer: a draft is appended after the person's own text, and only the appended lines are highlighted. | **accepted 2026-10-16** (owner) (the catalogue itself is the owner's request) |
 | OD-74.15 | **Move's order** (§5.3). The handoff report is stored **after** the switch lands, in the now-active target project, refused unless that project's identity is the one the person chose: reports live in the project profile, and the target's profile is not loaded before the switch. *Move* is offered only while a Claude Code process runs; with none running the switch applies as today. *Skip handoff* and *Discard* still switch, with no report. | **accepted 2026-10-16** (owner) |
 | OD-74.16 | **Which permission requests reach the person** (P3, §5.7). Default posture: **only the hosted destructive verbs**; anything else is denied without a dialog. Full posture: the hosted destructive verbs **and the person's own tools** (Bash, Edit, Write, web tools, the tools of the person's MCP servers), because that is what the person's own Claude Code would ask them in a terminal. The person's `fluxtion-analyser` registration and any pre-allowed hosted verb are never asked (denied). In the full posture the hosted destructive verbs are visible only in the modes that ask (`default`, `acceptEdits`); under `auto` and `plan` they stay hidden. | **accepted 2026-10-16** (owner) |
-| OD-74.17 | **An approval lifts the server-side refusal for exactly one call** (P3, §5.7). The person's *Allow* records a single-use grant bound to the generation, the turn ticket, the verb and a canonical digest of the input shown (and the `tool_use_id`, if probe P3-3 shows the bridge receives it). The bridge's call is admitted only by consuming a matching grant **on the session thread**; a grant expires at the end of its turn, on Stop, at the end of the generation, or 60 s after the *Allow*, whichever is first. A second request while a dialog is open is denied at once (one dialog at a time). An unanswered dialog denies after **120 s**. The keyboard default is **Deny**. | **accepted 2026-10-16** (owner) |
+| OD-74.17 | **An approval lifts the server-side refusal for exactly one call** (P3, §5.7). The person's *Allow* records a single-use grant bound to the generation, the turn ticket, the verb and a canonical digest of the input shown (and the `tool_use_id`, if probe P3-3 shows the bridge receives it — *r12: it does*, as `_meta["claudecode/toolUseId"]`, and the bridge forwards it as `X-Analyser-Tool-Use`, so the grant binds it). The bridge's call is admitted only by consuming a matching grant **on the session thread**; a grant expires at the end of its turn, on Stop, at the end of the generation, or 60 s after the *Allow*, whichever is first. A second request while a dialog is open is denied at once (one dialog at a time). An unanswered dialog denies after **120 s**. The keyboard default is **Deny**. | **accepted 2026-10-16** (owner) |
 | OD-74.18 | **How the full posture is smoke-tested under rule 1's capture exception**, which requires `--strict-mcp-config` on every capture under the real login. The loading of the person's own servers, skills, plugins and hooks is checked at **zero cost under an isolated `CLAUDE_CONFIG_DIR`** with planted servers, skills and hooks (`initialize`, `mcp_status` and `SessionStart` need no login [P0-5, P0-28]); model turns under the real login use the full line **plus `--strict-mcp-config`** (the analyser's line otherwise unchanged), so none of the person's servers or connectors loads into a capture. The analyser itself never adds `--strict-mcp-config` to a full-posture session; only the smoke harness does. | **accepted 2026-10-16** (owner) |
 | OD-74.19 | **The start-page prompt** (§5.8, P2): *"What would you like to do?"* on the start page, with a numbered list of example prompts drawn from the **same** `AskCatalogue` (a demo, set up a project from my code, open an evidence bundle, choose a starter template, explain a log I have, what this tool can do), a free-text box and **Send**. Choosing a number only fills the draft; nothing is sent until Send. It **works with no AI configured**: the demo plays a shipped journey with no model, and every other entry falls back to the existing guided flow or *Copy prompt*, never a dead end. Starting Claude Code stays the person's act (folder confirmation; the posture in force). Not on the AI menu (D-AI4 unaffected beyond OD-74.1). Declarative, additive and localisable. | **accepted 2026-10-16** (owner); detailed shape per this spec |
 | OD-74.20 | **DEFERRED by the owner until after P3 (2026-10-17, r10)**: P2 ships the built-in list only; no `startPrompt.*` key, no `START_PROMPTS` category and no managed-policy seam are built (parts written before the decision were removed, not left as dead code). The r9 text follows for the record. **Where the start-page list comes from** (§5.8; the owner's request 2026-10-16, this shape proposed). Three sources, resolved in order — the built-in entries, then the project profile's portable-context key family `startPrompt` (r8: its own family, so shipped writers preserve it, and its own share category `START_PROMPTS`, off by default; inline entries or a project-relative pointer, gated like the M38.1 runbook pointer), then P4's managed policy (which may `lock` the list). Each source replaces, prepends or appends. Entries are data in the catalogue's shape (a built-in by id, a prompt, or a saved walk to play), at most 12, each label at most 60 characters and text 500; an invalid entry is refused with its cause named and the rest shown; an invalid source is ignored with its cause named; nothing left means the built-in list. Never carried by an evidence bundle. | **accepted 2026-10-16** (owner) (configurability is the owner's request) |
@@ -75,7 +78,7 @@ utility P3 completes.
 | OD-74.24 | **The spend limit is optional and off by default** (owner direction 2026-10-17: the in-analyser Claude Code runs on the person's own Claude account, whose plan has its own limits). *Settings ▸ Assistant ▸ Limit spend per session* is a checkbox and an amount, unticked by default, for API-key billing. `assistant.claudeCode.budgetUsd` blank or absent is **no limit**; with none set the command line carries **no** `--max-budget-usd` and the node enforces nothing (§4.6). The header shows a dollar figure only where it means something: with an API key, what was used (and the limit, when set); on a Claude plan none, only *"usage counts against your Claude plan"*. Billing is an enum on `LocalAgentInitialized` (`SUBSCRIPTION`, `API_KEY`, `UNKNOWN`), read at the parse boundary from `initialize.account` — never the plan's or the key source's value. A config written by P1a (unreleased) always carried `budgetUsd=5.0`, its default: without P1b's `budgetFormat=2` marker, `5.0` reads as no limit and any other positive value is kept as the person's limit | **accepted 2026-10-17** (owner) |
 | OD-74.23 | **What "AI configured" means on the start page, and a remembered mode** (§5.8; review c7f2 F8). Claude Code can answer when its switch is on **and** the resolver finds `claude` (a file check; nothing is run). The mode the person last chose is remembered on this machine (`assistant.claudeCode.lastMode`, machine tier, never exported). When the mode in force cannot answer and the other can, the start page offers *Ask with Claude Code* / *Ask the in-app assistant*, which chooses that mode as the person's act. | **accepted 2026-10-16** (owner) |
 | OD-74.25 | **Warm start: cut by the owner, 2026-10-17** (holistic review). There is no *Start Claude Code when I open the Assistant tab* setting, no tab-selection path (`WarmStart`, its `Tracker`) and no warm path in the node, in either posture: Start is always the explicit button. A stored `assistant.claudeCode.warmStart` key is ignored on read and dropped on the next write. (P1a's r7 recorded this as OD-74.10 before the P1b numbering was merged in.) | owner decision 2026-10-17 |
-| OD-74.26 | **Full Claude Code is a PREVIEW until P3** (owner, 2026-10-17). The Settings checkbox reads *…with my full Claude Code permissions (preview)*; the warning, the guide and the FAQ say it is for internal and demo use and **not for customer release until approvals in the analyser (P3) ship**; the header's posture text reads *full Claude Code (preview, <mode>)*. | owner decision 2026-10-17 |
+| OD-74.26 | **Full Claude Code is a PREVIEW until P3** (owner, 2026-10-17). The Settings checkbox reads *…with my full Claude Code permissions (preview)*; the warning, the guide and the FAQ say it is for internal and demo use and **not for customer release until approvals in the analyser (P3) ship**; the header's posture text reads *full Claude Code (preview, <mode>)*. *r12: P3 is built, so the labels, the PREVIEW banner of the warning and the docs' preview text are removed (the evidence gave no reason to keep them); the stated limits of §11 stay, in the warning and the FAQ.* | owner decision 2026-10-17; preview removed with P3 (r12) |
 
 ### r10 owner decisions (2026-10-17)
 
@@ -96,6 +99,14 @@ utility P3 completes.
 | r11-1 | **The simplified Move** (amends §5.3 and OD-74.15 for P2): a person's project switch while a Claude Code process runs offers **Stop, and get Start ready in the new project** / **Keep it running here** / **Cancel**. There is no handoff draft, turn, confirmation or report (deferred with r10-5 until after P3). The node decides; Stop arms Start (*Start a new session in this project*) and starts nothing. | accepted (owner) |
 | OD-74.29 | **Prompt-pack example entries** (owner request): `N. **Label** — example: <https URL of an archive of a PINNED commit>`. Shown with a download badge. Nothing is fetched on drop or on choosing; only the entry's own button fetches, after a confirmation showing the exact URL, the pinned commit and the target folder the person chooses. An archive over https from an allowed-host list (`github.com`, `codeload.github.com`, `gitlab.com`; a constant now, a P4 policy seam). No git binary, clone, hooks or submodules. Unpacked through the template archive machinery (its containment checks, caps; no links; no path escaping). A moving ref (a branch or tag) is refused: only a 40-hex commit. Then the M73 project offer opens the folder and the person confirms. Downloading never implies Claude Code folder trust. Rule 9: the node decides each step; fetch and unpack are effects with facts. | accepted (owner request) |
 | OD-74.30 | **Third-party publishers and integrity** (owner addition to OD-74.29): packs may point at public third-party repositories of Fluxtion-compatible libraries. The confirmation **leads with the publisher** — host / owner / repo @ short commit — and anything not from the Telamin GitHub organisation is marked **third-party**. An optional `sha256:<64-hex>` is verified after the download and before the unpack; a mismatch is refused with a named reason, and the analyser never silently accepts one. Nothing is built, run or installed on download. **No "validated" or "approved" badge**: that needs a Telamin-published catalogue — a later owner item (deferred; `ExampleSource.publisherVerdict()` is the seam). | accepted (owner request) |
+
+### r12 (2026-10-17): P3, its probes, and the scorecard's fact requirements
+
+| # | Decision or request | Status |
+|---|---|---|
+| r12-1 | **P3 is built** against r11 after the probes P3-0…P3-6 ([report](evidence/m74-p3/P3-report.md)); the probe findings are folded in place, marked *r12*. P3 makes the full posture usable for authoring: in `default` and `acceptEdits` a request that needs the person's approval is asked in the analyser instead of denied (owner, 2026-10-17). | built; the owner's local UI test, then agent reviews, follow |
+| r12-2 | **No budget cap** for P3's runs (owner, 2026-10-17): Claude Code runs on the person's own Claude plan; the optional limit of OD-74.24 is unchanged. The probes and the smoke used a runaway guard only. | owner direction |
+| r12-3 | **The scorecard's fact requirements** (the virgin-LLM onboarding scorecard, §7, coordinated 2026-10-17) are met in P3 through the session processor: **R1** the admission fact names the verb and the node records the ticket, and the server's own refusals are facts; **R2** a denial note names the tool from a fixed vocabulary; **R5** each review row's answer, Yes and No, is a fact (`ProposalItemAnswered`, as §8.2 listed); **R6** no fact carries a model's words or an absolute path (§4.1, with a rule); **R7** the init fact records the skills and plugins loaded, by name; **R8** the approval facts are first-class (`LocalAgentPermissionRequested`, and `LocalAgentPermissionAnswered` as the answer's own result). | built (requested by the coordinator) |
 
 **On GitHub archive byte-stability (OD-74.30, checked 2026-10-17 against GitHub's documentation, "Downloading source
 code archives"):** an archive of a commit always has the same *file contents*, but *"the exact compression settings
@@ -161,6 +172,13 @@ analyser cannot narrow the full posture; it can only say so, which §5.1's warni
   transcript store and reach facts only as references (`…Ref`). So no question, answer, tool input or account detail
   reaches the session audit record, and streaming is **coalesced**, so the 2,000-record ring is not flooded.
   **`apiKeySource` is not a fact field**: billing is a header detail derived from `initialize.account` (§4.4).
+  *r12 (scorecard R6):* this held for P1 but not for P2b, whose `ProposalReceived` carried Claude's summary, reasons,
+  paths and class names, and whose set-up, example-target and unpacked-root facts carried absolute paths — all of it
+  into the session record, which records every fact. From P3 those words and folders live in the frame's `FactRefs`
+  (bounded, memory only, not trimmed by a long conversation) and reach facts as references, with digests to compare by
+  and `…/name` (`FactWords.shown`) to show; an analyser-written reason passes `FactWords.withoutPaths`. The rule is
+  `FactFieldsTest`: an inventory of every non-numeric component of every fact record (the M74 ones each with what it
+  holds), so a field added later fails until it is classified, and an M74 component typed `Path` fails outright.
 - **No account e-mail or organisation anywhere.** The adapter's parsed `initialize` record has **no field** for
   `email` or `organization`: they are dropped at the parse boundary, not filtered later. The header shows only the
   subscription type or API-key source and the API provider [P0b-5]. A test pins their absence from the snapshot, the
@@ -267,7 +285,8 @@ cwd:   the confirmed project root; for an unset project, the set-up directory th
 ```
 
 `--disallowedTools` is computed as *the hosted verbs not on the explicit pre-allow list* (review H5) (in P3, the default posture hides
-none, so the flag is omitted). A verb added to `VerbSchemas` is therefore hidden from Claude until it is classified,
+none, so the flag is omitted — *r12:* computed as the hosted verbs neither pre-allowed nor asked, so a verb added later
+is still hidden; P3-0 recorded `init.tools` as exactly `Glob, Grep, Read` and all nineteen hosted verbs). A verb added to `VerbSchemas` is therefore hidden from Claude until it is classified,
 and `--allowedTools` approves without hiding [P0b-1]. `--verbose` is required by stream-json [P0-7]. P0b ran the
 P1a line verbatim, with a stub server [P0b-1], and ran the P3 prompt flags exactly as above [P0b-3]; probe P3-0
 confirms the whole P3 line on the real bridge before P3 is built (§8.3).
@@ -816,7 +835,9 @@ no in-analyser permission prompts**, so P2 precedes P3 (§8).
   the default posture; in the full posture the chosen mode with the same two prompt flags. `--permission-prompts host`
   alone never reaches a stdio host, and `dontAsk` never asks anyone [P0b-3].
 - **The request.** The CLI sends `control_request{request_id, request:{subtype:"can_use_tool", tool_name,
-  mcp_server{name, source}, display_name, input, tool_use_id, permission_suggestions}}` [P0b-3]. The adapter stores the
+  mcp_server{name, source}, display_name, input, tool_use_id, permission_suggestions}}` [P0b-3]. *r12 (P3-0, P3-5):* a
+  built-in's request has `mcp_server: null` and may also carry `blocked_path` and `description` (Bash, Edit), which the
+  analyser does not read; the suggestions include `addRules`, `addDirectories` and `setMode`, none ever applied. The adapter stores the
   request's words (tool name, server name, display name, the input as received) in the bounded store, never in a fact,
   and reports `LocalAgentPermissionRequested` (§8.3) with what the node needs to decide: the request's store
   reference, the tool's **class** (`HOSTED_DESTRUCTIVE` with its verb, `HOSTED_OTHER`, `PERSONS_ANALYSER_REGISTRATION`,
@@ -850,22 +871,38 @@ no in-analyser permission prompts**, so P2 precedes P3 (§8).
   - **Buttons:** **Deny** (the default button; Enter and Escape both deny), **Allow once** (no mnemonic; enabled
     500 ms after the dialog appears, so a keystroke meant for the composer cannot approve). There is **no** *Always
     allow*: `permission_suggestions` are never shown and never applied, and `updatedPermissions` is never sent.
-  - **A countdown**: the dialog closes as *Deny* after **120 s** (*"Not answered in the analyser within 120 s"*).
+  - **A countdown**: the dialog closes as *Deny* after **120 s** (*"Not answered in the analyser within 120 s"*). *r12
+    (P3-1):* the CLI never ends an unanswered request itself (nothing for 200 s, then a late answer accepted), so this
+    deadline — the node's, from the adapter's clock — is the only one.
   - **One dialog at a time**: a further request while one is shown is denied at once (*"Denied: another approval is
-    waiting for the person — ask again after it"*). The model may ask again.
+    waiting for the person — ask again after it"*). The model may ask again. *r12 (P3-6):* the CLI itself asks one at a
+    time — two tool uses in one message are asked one after the other, the second only after the first is answered —
+    so this is a guard, tested with a synthetic second request.
+  - *r12:* **Stop Claude Code** is a button of the dialog too: the modal covers the tab's Stop, and Stop must be
+    available while a dialog is open (§8.3 UI). It reports the same Stop fact.
 - **The answer.** *Allow once* → `control_response{subtype:"success", request_id, response:{behavior:"allow",
   updatedInput:<the stored input, byte-for-byte as received and shown>}}`. Deny →
   `{behavior:"deny", message:"Denied by the person in the analyser"}` (or the timeout, Stop or policy message). The
   adapter writes exactly the stored input; a test pins that `updatedInput` equals the request's `input`.
 - **Denied too, on:** dialog close, Stop (the pending request is answered deny **before** the interrupt is sent), the
   end of the turn or of the generation, a mode switch, and any request whose generation or ticket is not current.
+  *r12 (P3-2):* an interrupt with a request pending makes the CLI withdraw it itself — `control_cancel_request
+  {request_id}`, before the interrupt's own answer — and an answer after that does nothing. The analyser keeps the
+  deny-first order (it does not depend on the CLI); the cancel is a fact (`LocalAgentPermissionCancelled`) that closes
+  the dialog. "A mode switch" is a Settings change of the posture (`LocalAgentConsentChanged`): the assistant mode
+  cannot switch while a turn is open.
 - **The server-side lift (OD-74.17).** `--disallowedTools` no longer hides the hosted destructive verbs, so the
   server-side refusal (P1a review S1) is what stands between a model and those verbs, and **an approval lifts it for
   exactly one call**:
   1. *Allow once* on a `HOSTED_DESTRUCTIVE` request records a **grant** in `LocalAgentPermission`: `{grantId,
      generation, ticket, verb, inputDigest, toolUseIdDigest?, issuedAt}`.
-  2. When the bridge's call arrives, `ActionServer` maps the credential to `HOSTED(generation)` and the dispatcher,
-     on the session thread where the render verbs run, presents it: `HostedCallPresented{request, generation, verb,
+  2. *r12 (P3-3):* the CLI's `tools/call` carries `_meta["claudecode/toolUseId"]` equal to the request's `tool_use_id`,
+     and its `arguments` are the host's `updatedInput`; the hosted bridge forwards the id as `X-Analyser-Tool-Use` (a
+     plain token, at most 128 characters). *As built,* the presentation is made by `ActionServer` through the same
+     correlator as M6's admission (`HostedAdmission.present`), not by the dispatcher: it posts `HostedCallPresented` to
+     the session's thread and waits for the node's verdict, so the decision is still the node's, on the session thread,
+     before the dispatcher runs. When the bridge's call arrives, `ActionServer` maps the credential to
+     `HOSTED(generation)` and presents it: `HostedCallPresented{request, generation, verb,
      inputDigest, toolUseIdDigest?}` (the arguments canonicalised the same way). The node **consumes** the one
      unconsumed grant that matches generation, the open ticket, verb, input digest (and `tool_use_id` when both sides
      have one) and is under 60 s old, and answers admitted; otherwise it answers refused, *"`<verb>` needs your approval
@@ -1259,7 +1296,7 @@ single-user utility (owner direction 2026-10-16).
 | **P1a — default-posture session** ✓ implemented | see *Implementation notes*; live smoke passed [S]. **Open acceptance:** Windows (§11), the owner's visual check of the tab and Settings on the built jar, the frame suites in CI | r6 |
 | **P1b — full posture** ✓ implemented | §8.1; probes PB-1…PB-4 run ([report](evidence/m74-p1b/PB-report.md)); see *Implementation notes (P1b)*. Live smoke and re-smoke 2026-10-17 ([report](evidence/m74-p1b-smoke/SMOKE-report.md)): every §8.1 item passes, item 8 after a warm-start fix. **Open acceptance:** the owner's visual check | P1a accepted; OD-74.10–74.12, OD-74.18 and OD-74.24 accepted |
 | **P2 — the start-page prompt, the Ask catalogue, onboarding, the transcript, carried items** | §8.2: the start-page prompt (§5.8, the headline of P2's onboarding), the Ask catalogue (§5.5), `propose` onboarding (§5.6), Move (§5.3), conversation v2 (§6), transcript presentation (§5.9), the carried items | P1a accepted; OD-74.13–74.15 and OD-74.20–74.23 accepted (OD-74.19 is); the shipped-code fixes SF-1 and SF-2 (§11) in first |
-| **P3 — permission prompts in the analyser** | §8.3 | P1b and P2 accepted; OD-74.16–74.17 accepted; probes P3-0…P3-6 run |
+| **P3 — permission prompts in the analyser** ◐ implemented (r12) | §8.3; probes P3-0…P3-6 run ([report](evidence/m74-p3/P3-report.md)); live smoke passed ([report](evidence/m74-p3-smoke/SMOKE-report.md)); see *Implementation notes (P3)*. **Open acceptance:** the owner's local UI test, then agent reviews | P1b and P2 accepted; OD-74.16–74.17 accepted; probes P3-0…P3-6 run |
 | **P4 — managed policy** | an administrator-owned, read-only policy file the person cannot change in Settings: allowed modes and postures (e.g. local agent only, default posture only), the external MCP/REST socket off, model, budget, endpoint, the terms list (§6), the start-page prompts (`startPrompts`, OD-74.20) | P1a accepted |
 | **P5 — conversation log** | an opt-in (or policy-required) local log of local-agent conversations, with location and retention settings. It holds words, not ids, so it is separate from the session audit record; from P3 it also records each permission request's tool, input shown and decision. Signing it is a later evidence item | P1a accepted |
 
@@ -1514,7 +1551,21 @@ create switch).
 | P3-5 | full posture: Bash and Edit asks reach stdio under `default` and `acceptEdits`; a planted `PreToolUse` hook returning allow, and a planted settings allow rule for a hosted destructive verb, each **bypass** `can_use_tool` (confirming why the grant is server-side) | ≈ US$0.10 (OD-74.18 method) |
 | P3-6 | **parallel** tool calls: two `can_use_tool` requests in one assistant message; denying the second while the first is open leaves the first answerable | ≈ US$0.03 |
 
-**Live smoke (P3), after the owner sets the cap:**
+**r12: the probes ran** ([report](evidence/m74-p3/P3-report.md); the analyser's own `--mcp` bridge behind a tee, a fake
+REST endpoint, the real login on the person's plan with `--strict-mcp-config` on every run; ledger US$0.24). **P3-0**
+CONFIRMED: the default P3 line reports `default`, binds, lists `Glob, Grep, Read` and all nineteen hosted verbs; a
+`can_use_tool` arrives for `report`; deny reaches the model and the bridge sees no call; allow runs it. **P3-1**: an
+unanswered request blocks with no CLI timeout (200 s), and a late answer is accepted. **P3-2**: an interrupt makes the CLI
+withdraw the request (`control_cancel_request`), the turn ends `error_during_execution` then lifecycle `cancelled`, and a
+late answer does nothing. **P3-3**: `tools/call` carries `_meta["claudecode/toolUseId"]` and the host's `updatedInput`.
+**P3-4**: nothing but an MCP tool asks under `--restricted`. **P3-5**: Bash and Edit ask under `default`, Bash only under
+`acceptEdits`; a planted `PreToolUse` hook and an allow rule each bypass `can_use_tool` (for the hosted verbs and Bash).
+**P3-6**: the CLI asks one at a time. Each finding is folded into §5.7 in place.
+
+**Live smoke (P3)** (*r12:* the owner set no cap — the person's own Claude plan, OD-74.24 — and the harness's bounded
+waits were the runaway guard; run 2026-10-17, [report](evidence/m74-p3-smoke/SMOKE-report.md): items 1–4 and 6–8 pass;
+item 5 was not provoked live because the model refused to write a bidirectional override into a file name, and is
+covered by the frame and replay tests):
 1. default posture: ask Claude to write a report to the exchange directory: the dialog shows `analyser_report` and
    its exact input; Deny → the model is told, no file; ask again, Allow once → the file is written, once;
 2. the same call repeated by the model without a new approval: refused (grant used);
@@ -1700,6 +1751,18 @@ loopback request) and by `ForeignTextIsPlainTest` for every new door. Added rows
 | ★ no MCP permission tool exists on the bridge in any mode (the tool list never contains an approval-shaped tool) | an approval the model can call |
 | `FaqSecurityContractTest`: the P3 claims of §7 | docs behind the behaviour |
 
+**r12, as built** (each ★ row's witness was run; the list is in *Implementation notes (P3)*): the command lines —
+`ClaudeCodeProviderTest`; the policy table, every way a request ends, the grants and the audit — `LocalAgentPermissionTest`
+on the real processor; the answer's bytes, the deadline, Stop's order and the record over the P3 captures —
+`LocalAgentPermissionReplayTest` through the real adapter; the grant on the real `ActionServer` with the session on its
+own thread — `HostedGrantServerTest` (no grant refused, exactly one call per approval, a burst admits one, the
+`tool_use_id` binds, `graph {delete}` and the dispatcher's own gates still apply); the dialog — `PermissionTextTest`
+(headless) and the frame test `LocalAgentPermissionFrameTest` (in both CI frame lists); no approval-shaped tool —
+`LocalAgentScorecardFactsTest`; `OneDispatchModelTest#thePermissionDialogOnlyReports`; `FaqSecurityContractTest`. The
+row *an admitted call still meets its own gate* is tested at the dispatcher (a granted call reaches it and gets its own
+refusal); the exchange-directory and create-switch gates themselves are the existing caller-independent ones, and the
+live smoke's item 1 met the exchange directory for real.
+
 ## 11. Out of scope, limits and still untested
 
 **Out of scope:**
@@ -1717,8 +1780,12 @@ loopback request) and by `ForeignTextIsPlainTest` for every new door. Added rows
   hooks and the `auto` classifier approve calls without `can_use_tool`. For the analyser's own destructive verbs the
   server-side grant (OD-74.17) still requires the person's approval; for the person's own tools nothing in the
   analyser can, and the warning says so.
-- **Binding an approval to the `tool_use_id`** depends on probe P3-3; without it the grant binds to the generation,
-  ticket, verb and canonical input, single-use and short-lived, which is what makes "exactly this call" true.
+- ~~**Binding an approval to the `tool_use_id`** depends on probe P3-3~~ — *r12:* resolved; the CLI sends it in
+  `tools/call`'s `_meta` and the bridge forwards it, so a grant binds it. A call without one (an older CLI or bridge) is
+  still bound to the generation, ticket, verb and canonical input, single-use and short-lived.
+- **The analyser's dialog asks only when the CLI asks** (*r12*, P3-5): a hosted destructive call a person's rule, hook or
+  the `auto` classifier approved never shows a dialog — and is refused, having no grant. The model is then told the
+  analyser's refusal; it may ask again, but nothing in the analyser can make the CLI ask.
 - **A full-posture live transcript is never captured with the person's own servers** (OD-74.18); their loading is
   verified only by the isolated zero-cost checks.
 - **The full posture cannot keep the person's own tools from the analyser's shared REST token** (review finding 6,
@@ -1762,7 +1829,9 @@ agent, and P2's start page and transcript would otherwise inherit them.
 - the full posture: PB-1…PB-4 ran (§8.1); still untested there: plugins' own skills and hooks under the full line, per-turn
   hook events (`UserPromptSubmit`, `PreToolUse`) under a login, `$NPM_CONFIG_PREFIX/bin` and `~/.npm-global/bin`
   (absent on the probe machine), a `uvx` server, and the full posture's live smoke (§8.1) through the Assistant tab;
-- P3: P3-0…P3-6 (§8.3).
+- P3: P3-0…P3-6 ran (r12, §8.3); still untested: `AskUserQuestion` (a built-in the full posture lists, which reaches the
+  dialog like any built-in; *Allow once* returns its input unchanged, so it gets no answers — deny it and answer in the
+  conversation), a person's MCP server's request under a login (shown from the recorded shape), and Windows.
 
 **Resolved in r7 (were carried in r6):** `VerbSchemas.hosted()` and `propose` against the hosted credential (§5.6,
 §8.2); the §5.7 / §8 contradiction (OD-74.16: the default posture asks only about hosted destructive verbs, the full
@@ -2187,6 +2256,76 @@ decision: each is the analyser's own, on the real processor; the live smoke is r
 - **Not built in P2b:** the handoff report (deferred, r11-1); a frame test of the review dialog's modal (its content
   and the banner are tested headless, the apply on the real processor); the in-app transcript adopting `TranscriptView`.
 
+## Implementation notes (P3, 2026-10-17)
+
+P3 is built on `feature/claude-code-p3` (from `feature/claude-code-p2` with P1a, P1b, SF-1/SF-2, P2a and P2b in) against
+r11 and the probes ([report](evidence/m74-p3/P3-report.md)). Every adapter test drives the real session processor and
+the real `LocalAgentAdapter` with the fake CLI replaying the **P3 captures** (the real bridge, the real login,
+sanitised), which now pause a recorded turn at its `can_use_tool` until the adapter answers, as the CLI does.
+
+- **Where things live.** `session/node/LocalAgentPermission` (`localAgentPermission`; it **pushes into
+  `localAgentSession`**, as that node pushes into `assistantMode`, so for a fact both handle it runs first — Stop's deny
+  is written before the interrupt is asked for — and it reads that node's generation, ticket, posture and admission),
+  `session/PermissionState` (in the snapshot), `session/FactRefs` and `session/FactWords` (R6); the adapter side
+  `assistant/localagent/ToolVocabulary` and `llm/CanonicalJson`; UI `ui/LocalAgentPermissionDialog` and
+  `ui/PermissionText`. Regenerated with `mvn -Pregen process-classes`; the generated header is as committed.
+- **Facts and effects, as built.** In: `LocalAgentPermissionRequested{generation, ticket, requestRef, toolClass, name,
+  inputDigest, toolUseIdDigest, showable}` (the adapter; §8.3's `requestIdRef` stays in the adapter's run, by store
+  reference), `LocalAgentPermissionChosen{requestRef, allow}` (the dialog's buttons), `LocalAgentPermissionDeadline`
+  (the adapter's clock, started by the node's `StartPermissionClockEffect`), `LocalAgentPermissionCancelled` (P3-2),
+  `LocalAgentGrantExpired` (60 s after an allow), `HostedCallPresented{call, generation, verb, inputDigest,
+  toolUseIdDigest}` (the server, through `HostedAdmission.present`). Out: `ShowPermissionDialogEffect`,
+  `ClosePermissionDialogEffect` (the frame), `AnswerPermissionEffect` (the adapter), `AnswerHostedCallEffect` (the
+  correlator). **`LocalAgentPermissionAnswered` is the answer effect's own result** — the fact the adapter returns when it
+  has written the answer (`written` false: the process was gone) — so the session record holds every answer as a fact
+  with its class, name, decision and `by` (R8), rather than a fact a node posts, which nodes cannot.
+- **The input, byte for byte.** `StreamJson` slices the request's `input` from the line as raw JSON text (a scanner
+  that builds no value), and the allow splices exactly that text in as `updatedInput`; the input digest is
+  `CanonicalJson` (sorted keys, an integral number written as an integer whichever side parsed it as a double — the
+  bridge narrows them), the same function on the server for the presented call's `params`. The judge (64 KB canonical,
+  32 levels, JSON) decides `showable`.
+- **The policy** is `LocalAgentPermission.policy(posture, class)` — §5.7's table; `LocalAgentPosture.asks()` says which
+  modes ask, and the hidden list is the hosted verbs neither pre-allowed nor asked (H5 holds).
+- **Decisions where the spec left room.**
+  - **Stop in the dialog**: the modal covers the tab's Stop, so the dialog has *Stop Claude Code*, which posts the same
+    Stop fact (§8.3 UI: Stop available while a dialog is open).
+  - **The presentation of a hosted destructive call** is made by `ActionServer` through `HostedAdmission` (the M6
+    correlator), not by the dispatcher (§5.7 step 2, r12 note): the verdict is still the node's, on the session's thread,
+    before the dispatcher runs; every gate after it is unchanged.
+  - **The grant's "used" words** apply within its turn; after the turn the grant has been dropped, so a repeated call
+    reads *"none was given"* (the smoke's finding 2).
+  - **The transcript note** for each decision is the permission node's, added to `localAgentSession`'s entries through
+    its push reference (`permissionNoted`); the tool line's mark is the adapter's, written before the answer (a tool
+    result can follow at once), and the transcript now shows every step of a line (`approved by you · ✓`).
+  - **The deny words** to the model are fixed vocabulary: *Denied by the person in the analyser*, *Not answered in the
+    analyser within 120 s*, *Denied: the person pressed Stop in the analyser*, and the policy's reasons.
+- **The scorecard's requirements** (§2 r12-3): R1 (`LocalAgentCallAdmissionRequested.verb`; the node logs the ticket;
+  `HostedCallRefusedByServer` for the server's own refusals), R2 (`LocalAgentNoted.tool`), R5 (`ProposalItemAnswered`,
+  posted per row by the frame from the review's answers, and honoured by `onboardingProposal`), R6 (above, §4.1), R7
+  (`LocalAgentInitObserved.skills/plugins`), R8 (above).
+- **The preview labelling** (OD-74.26) is removed: the checkbox, the warning's banner, the header's posture label, the
+  badge, the guide, the FAQ and the CHANGELOG; the stated limits stay (the warning gained one sentence: a call the
+  person's own rules, hooks or the `auto` classifier approve is never asked in the analyser).
+- **Tests.** `LocalAgentPermissionTest`, `LocalAgentPermissionReplayTest`, `HostedGrantServerTest`,
+  `LocalAgentScorecardFactsTest`, `FactFieldsTest`, `PermissionTextTest`, `OnboardingProposalTest#eachRowsAnswerIsAFact`,
+  `P2bSurfacesTest#theReview` (R5's rows), `OneDispatchModelTest#thePermissionDialogOnlyReports`,
+  `FaqSecurityContractTest` (§7's P3 claims), `ClaudeCodeProviderTest` (the P3 lines), and the frame test
+  `LocalAgentPermissionFrameTest` (registered in both CI frame lists). P1–P2's tests were moved to P3's line where it
+  changed (the mode `default`, the default posture's tool set, the `dontAsk` captures replayed under `default`).
+
+**Witnesses run (2026-10-17; each mutation turned its named test red, then the source was restored green — 32 in
+all):** the policy showing every request; the grant checked without being consumed (node and real server); consumption
+ignoring the input digest, the `tool_use_id`, the expiry, the admitted generation; a close answering allow; Stop leaving
+the request open (and the deny after the interrupt); the turn's end leaving it open; a second request replacing the
+first; an unshowable input shown (node and adapter); a stale request shown; a settings change ignored; the allow
+re-serialising the input; the deadline never scheduled; the request's input put in the fact; a destructive verb admitted
+without presenting it (two tests); the forwarded `tool_use_id` ignored; `graph {delete}` lifted; the tool line showing
+only its last step; a U+202E shown as itself; R2's note without its tool; R7's init without skills and plugins; R6's
+fact gaining a free-text field; R5's No ignored by the node, and the review's rows dropped; the P3 line naming an MCP
+prompt tool; P2's hidden destructive verbs in P3's default posture; and, on the display, the dialog's default button
+Allow, Allow active at once, Escape allowing, and the frame never closing the dialog. The FAQ pin was witnessed by
+weakening one claim.
+
 ## Revision history
 
 - **r1, r2** (2026-10-16): the long-running session design; two independent reviews (`[R …]`, `[R2-n]` tags).
@@ -2273,6 +2412,13 @@ decision: each is the analyser's own, on the real processor; the live smoke is r
   full-posture trust digest covers the instruction files, bounded, and the dialog names what changed. **Owner
   decisions:** warm start cut in both postures (OD-74.25; P1a's r7 called it OD-74.10); full Claude Code a preview
   until P3 (OD-74.26).
+- **r12** (2026-10-17): the P3 probes P3-0…P3-6 ran on the real bridge ([report](evidence/m74-p3/P3-report.md)) and
+  their findings are folded in place, marked *r12*: the bridge's `tools/call` carries `_meta["claudecode/toolUseId"]`
+  and the host's `updatedInput` (P3-3: the grant binds the id; §11's limit removed), an unanswered request never ends on
+  its own (P3-1), an interrupt withdraws a pending request with `control_cancel_request` (P3-2), the CLI asks one at a
+  time (P3-6), only MCP tools ask in the default posture (P3-4), and a hook or an allow rule bypasses the host (P3-5).
+  **P3 built** (*Implementation notes (P3)*), with the scorecard's fact requirements R1, R2, R5–R8 (§2 r12-3; §4.1's R6
+  rule), and the preview labelling of OD-74.26 removed; live smoke ([report](evidence/m74-p3-smoke/SMOKE-report.md)).
 - **r11** (2026-10-17): the P1b branch merged into P2 (the colliding OD numbers renumbered: OD-74.27 the full-posture
   cue, OD-74.28 the prompt pack; old numbers noted at their rows); **P2b built** — `propose` onboarding (§5.6), the
   simplified Move (r11-1), conversation v2 (§6), the carried items, per-turn time and cost; owner requests OD-74.29

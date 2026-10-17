@@ -45,7 +45,7 @@ project…*, *New project from template…*, *Evidence bundles guide*, *User gui
 switched on but not found, the page lists every place it looked and offers *Install Claude Code*.
 
 When your **full Claude Code** is in force (the preview opt-in in *Settings ▸ Assistant*), the box carries the same
-marker as the Assistant tab's composer: a coloured border and the badge *◆ Full Claude Code (preview) · \<mode\>: your
+marker as the Assistant tab's composer: a coloured border and the badge *◆ Full Claude Code · \<mode\>: your
 tools and permissions* (◆◆ for `acceptEdits` and `auto`, which ask about fewer actions).
 
 ## Prompt packs

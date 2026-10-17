@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -51,21 +52,30 @@ class FaqSecurityContractTest {
         for (String claim : new String[]{"Allow the analyser to start Claude Code", "your own installed `claude`",
                 "never reads or stores your Claude Code credentials", "before your first Send",
                 "no record content is sent until you press Send", "Read, Grep and Glob confined to the folder",
-                "no Bash", "none of your skills, hooks, settings or MCP servers", "destructive verbs hidden",
+                "no Bash", "none of your skills, hooks, settings or MCP servers",
                 "never treated as Claude Code's", "cannot delete a chart", "a bundle's working copy is refused"}) {
             assertTrue(answer.contains(claim), "the FAQ security answer must state, for Claude Code: " + claim);
         }
         // M74 P1b (spec-claude-code-provider.md §7): the full posture is a separate switch, and the FAQ says what it runs,
-        // what it may use, that the analyser does not confine it, that bypassPermissions is never offered, that only the
-        // Start button starts it (warm start cut, OD-74.25), and that it is a preview until P3 (OD-74.26)
+        // what it may use, that the analyser does not confine it, that bypassPermissions is never offered and that only the
+        // Start button starts it (warm start cut, OD-74.25); the preview label went with P3 (OD-74.26, r12)
         for (String claim : new String[]{"Full Claude Code is a separate switch with its own warning",
                 "your settings, skills, hooks and MCP servers", "the folder's hooks and MCP servers run when you press Start",
                 "asks again if those files change", "your own tools, including Bash",
                 "as far as your permission rules and the mode you chose allow",
                 "the analyser does not confine it to the folder", "bypassPermissions is never offered",
-                "Start button starts full Claude Code",
-                "not for customer release until approvals in the analyser (P3)"}) {
+                "Start button starts full Claude Code"}) {
             assertTrue(answer.contains(claim), "the FAQ security answer must state, for full Claude Code: " + claim);
+        }
+        assertFalse(answer.contains("(preview)") || answer.contains("not for customer release"),
+                "P3 shipped: the full posture is no longer called a preview (OD-74.26, r12)");
+        // M74 P3 (§7): the analyser asks before Claude Code runs a verb that changes what is open or writes files, an
+        // approval covers one call, Deny is the default, and a call the person's own rules or hooks approve is not asked
+        for (String claim : new String[]{"before Claude Code runs any of these verbs the analyser asks you",
+                "an approval covers one call", "Deny is the default",
+                "a call your own rules or hooks approve is not asked in the analyser"}) {
+            assertTrue(answer.toLowerCase(java.util.Locale.ROOT).contains(claim.toLowerCase(java.util.Locale.ROOT)),
+                    "the FAQ security answer must state, for approvals in the analyser: " + claim);
         }
         for (String verb : McpTools.destructiveVerbs()) {
             assertTrue(answer.contains("`" + verb + "`"),

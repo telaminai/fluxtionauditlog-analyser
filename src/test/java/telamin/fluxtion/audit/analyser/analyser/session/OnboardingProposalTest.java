@@ -191,6 +191,30 @@ class OnboardingProposalTest {
         assertEquals("UNKNOWN", p.pairing());
     }
 
+    /**
+     * ★ Scorecard R5. Witness: ignore the per-row answers in onApplyRequested — the row answered No is applied; drop
+     * the {@code onItemAnswered} record — the record holds no No.
+     */
+    @Test
+    @DisplayName("★ R5: each row's answer is a fact, Yes and No; a row answered No is never applied, whatever the apply's list")
+    void eachRowsAnswerIsAFact() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = LocalAgentSessionTest.driver(a);
+        var start = admitted(d, a);
+        d.post(new SessionEvents.ProposalReceived(1, start.generation(), REFS.put(""), List.of(item("sourceRoot", "src"),
+                item("graphml", "DEMO.graphml"))));
+        previewAll(d, a, true);
+        d.post(new SessionEvents.ProposalItemAnswered("p-1", "p-1.1", false));
+        d.post(new SessionEvents.ProposalItemAnswered("p-1", "p-1.2", true));
+        d.post(new SessionEvents.ProposalApplyRequested("p-1", List.of("p-1.1", "p-1.2"), false));
+        assertEquals(List.of("p-1.2"), a.proposalApplies.stream().map(x -> x.item().itemId()).toList(),
+                "the row the person answered No is not applied");
+        assertEquals(ProposalState.ItemState.DECLINED, proposal(d).items().get(0).state());
+        String record = String.join("\n", d.auditSink().records());
+        assertTrue(record.contains("ProposalItemAnswered") && record.contains("p-1.1") && record.contains("yes=false"),
+                "the No is in the record");
+    }
+
     /** ★ Witness: never disable the project-needing items (drop needsProject in onApplyRequested) — one is applied. */
     @Test
     @DisplayName("★ an item that needs a project is not applied when no project exists and Create was not chosen")

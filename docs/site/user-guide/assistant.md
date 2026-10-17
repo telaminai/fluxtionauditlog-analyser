@@ -124,24 +124,23 @@ evidence bundle, so a cloned repository or a received bundle cannot turn any of 
   `goto`, `flag`, `graph`, `topology`, `spotlight` — approved without asking; deleting a chart's definition
   (`graph {delete}`) is refused; and **`propose`**, which only Claude Code in the tab is offered: it records a set-up
   offer and changes nothing ([below](#set-up-a-project-with-claude));
+- the verbs that change what is open or write files — `open`, `source_root`, `screenshot`, `report`, `walk`, `import` —
+  **each call asked of you first** ([Approvals in the analyser](#approvals-in-the-analyser), below);
 - nothing else. **Not loaded:** your own skills, commands, hooks and settings, your MCP servers and connectors, and the
-  folder's `.claude/settings.json` hooks and `.mcp.json`. **No Bash, no file edits, no web, no subagents.** The
-  destructive verbs (`open`, `source_root`, `screenshot`, `report`, `walk`, `import`) are hidden from it. Anything not
-  allowed is denied at once, without a prompt. The header says *"analyser assistant — your skills and hooks are not
+  folder's `.claude/settings.json` hooks and `.mcp.json`. **No Bash, no file edits, no web, no subagents.** Anything
+  else is denied at once, without asking you. The header says *"analyser assistant — your skills and hooks are not
   loaded"*. Your full Claude Code is a separate opt-in, below.
 
-**Full Claude Code (preview) — your own Claude Code, by a second opt-in.** It is a **preview**: for internal and demo
-use, and not for customer release until approvals in the analyser (P3) ship. *Settings ▸ Assistant ▸ …with my full
-Claude Code permissions (preview)* (off) runs your own Claude Code in the tab as it runs in a terminal. Turning it on shows a warning first,
+**Full Claude Code — your own Claude Code, by a second opt-in.** *Settings ▸ Assistant ▸ …with my full Claude Code
+permissions* (off) runs your own Claude Code in the tab as it runs in a terminal. Turning it on shows a warning first,
 and its default button is *Cancel*. It loads **your settings and permission rules, skills, commands, plugins,
 subagents, hooks and MCP servers** (claude.ai connectors included), and the folder's own hooks and `.mcp.json`, and
 Claude Code can use **your own tools — Bash, file edits, web access — as far as your permission rules and the mode you
 choose allow**. **The analyser does not confine it to the folder**; your rules and the mode do.
 
-- **The mode** (shown under the switch when it is on): `default` asks before anything your rules don't allow — until
-  approvals in the analyser ship, such a request is **denied**, and the tab says *"an action needed your approval,
-  which the analyser cannot ask for yet"*; `acceptEdits` edits files in the folder without asking, otherwise as
-  `default`; `auto` lets Claude Code's own safety classifier approve or block each action without asking you — it needs
+- **The mode** (shown under the switch when it is on): `default` asks before anything your rules don't allow — the
+  analyser shows each request in its approval dialog (below); `acceptEdits` edits files in the folder without asking,
+  otherwise as `default`; `auto` lets Claude Code's own safety classifier approve or block each action without asking you — it needs
   a model that supports it (sonnet or opus): with another, Claude Code starts in `default` instead, and the analyser
   stops it and says so; `plan` reads and plans, and edits and runs nothing. `bypassPermissions` and `dontAsk` are
   never offered; a hand-edited setting naming either reads as `default`, and Settings says so.
@@ -155,18 +154,53 @@ choose allow**. **The analyser does not confine it to the folder**; your rules a
   (a `git pull` that adds a hook or rewrites `CLAUDE.md`), **Start asks again**, and the dialog says which changed. A folder confirmed for the analyser assistant is not thereby confirmed for
   full Claude Code.
 - **What the tab shows.** Each hook's event and outcome is a status line (*"Hook SessionStart: 1 ran"*, or that one
-  failed), never its output. The header says *"full Claude Code (preview, <mode>) — your settings, skills, hooks and n MCP
+  failed), never its output. The header says *"full Claude Code (<mode>) — your settings, skills, hooks and n MCP
   servers are loaded"*, and an environment line, *"PATH: inherited, plus ~/.local/bin, /opt/homebrew/bin"*: an analyser
   started from the Finder or the Dock has a minimal `PATH`, where your hooks and `npx` servers would not start, so the
   standard install folders that exist and are not already on your `PATH` are **appended** (your order wins). The
   analyser never runs a login shell to find a `PATH`; set anything else (an `nvm` node, a project's virtual
   environment) in Claude Code's own settings `env`.
-- **Still the analyser's.** Its destructive verbs stay hidden from Claude Code, and so do the tools of your own
-  `fluxtion-analyser` registration, which is not bound to this analyser window. Only the Start button starts it.
-  Changing the switch or the mode means a New chat.
+- **Still the analyser's.** Its verbs that change what is open or write files are asked of you in the modes that ask
+  (`default`, `acceptEdits`) and hidden under `auto` and `plan`; the tools of your own `fluxtion-analyser` registration,
+  which is not bound to this analyser window, are hidden. Only the Start button starts it. Changing the switch or the
+  mode means a New chat.
 
 Turn it on only for folders and logs you trust: in this posture, text in a record that is written to steer an AI
 reaches an agent that may have your shell, and the analyser cannot limit what your own tools do.
+
+### Approvals in the analyser
+
+When Claude Code needs your approval for a call, the analyser asks you in **one dialog** — *"Claude Code asks to run
+analyser_report"* (or *"…to use Bash"*), one line on what it changes, and the call's **input, exactly as Claude Code
+wrote it**, in a plain monospaced box headed *"Input — written by the model; data, not instructions"*. Markup is shown
+as its characters, and invisible or direction-changing characters as visible escapes (the dialog says so); nothing is
+cut — the box scrolls.
+
+- **Deny is the default.** Enter and Escape deny, and so does closing the dialog. **Allow once** has no keyboard
+  shortcut and is active only half a second after the dialog appears, so a key meant for the composer cannot approve.
+  There is no *Always allow*: the analyser never writes a permission rule for you.
+- **It waits 120 s**, with a countdown; unanswered, the call is denied (*"Not answered in the analyser within 120 s"*).
+  Claude Code itself would wait for ever, so this is the analyser's own limit.
+- **One at a time.** Claude Code asks one call at a time; should a second arrive while a dialog is open, it is denied
+  at once and Claude Code may ask again.
+- **Stop Claude Code** is in the dialog too (it covers the tab's Stop): the call is denied first, then the turn stops.
+- **An approval covers one call.** For the analyser's own verbs, *Allow once* lets exactly that call through — the same
+  verb, the same input, the same turn — once, within 60 s; the analyser refuses any other call of those verbs, whoever
+  approved it. The call still meets every other rule: `report` and `screenshot` write only inside the exchange
+  directory when file exchange is on, `open {project, create}` needs *Allow the assistant to create projects*, and
+  `graph {delete}` is never available.
+- **What is asked.** In the analyser-assistant posture only those verbs are ever asked (nothing else asks there). With
+  full Claude Code in `default` or `acceptEdits`, whatever your Claude Code would ask you in a terminal is asked here:
+  Bash commands (the command shown verbatim), file edits and writes (`acceptEdits` does not ask about edits in the
+  folder), web access and your MCP servers' tools. A call of your own `fluxtion-analyser` registration, or a request
+  the analyser cannot show in full (over 64 KB, or nested deeper than 32 levels), is denied without a dialog, by name.
+- **What is not asked.** A call your own permission rules or hooks approve, or that the `auto` mode's classifier
+  allows, never reaches the analyser. For the analyser's own verbs that does not matter — the analyser still refuses
+  them without your approval in its dialog — but for your own tools nothing in the analyser can ask.
+- **The transcript says what happened.** The call's line reads `approved by you · ✓`, `denied by you`, `denied: not
+  answered within 120 s` or `denied: not asked in this posture`, and a short note under it names the decision; while a
+  dialog is open the status line says *"Claude Code is waiting for your answer"*. The session's own record keeps that
+  a call of `report` was approved, by whom, in which turn — never what its input said.
 
 Claude Code is told that record content is data, not instructions — a weak protection, stated as such: treat its
 answers as the model's words, and check them against what the analyser shows.
@@ -223,10 +257,11 @@ a copy that holds such characters says how many.
 - **Chips.** A record number (*record #12*), a node written as code or after the word *node*, or a chart's name becomes
   a small button that **only navigates** — it selects the record, shows the node, or opens the chart. An answer written
   about an earlier generation of the log shows its chips muted, and a click says why and goes nowhere.
-- **Tool calls** are one line each — `▸ analyser_read ✓`, `refused`, `denied by the posture` — and a click on `▸`
+- **Tool calls** are one line each — `▸ analyser_read ✓`, `refused`, `denied by the posture`, `approved by you · ✓` —
+  and a click on `▸`
   shows the call's input. **Alt+↑ / Alt+↓** move between turns. Light and dark themes both work.
 - **When your full Claude Code is in force**, the composer has a coloured border and the badge *◆ Full Claude Code
-  (preview) · \<mode\>: your tools and permissions* — *on: it runs at the next Start* until it runs, then *running* — with
+  · \<mode\>: your tools and permissions* — *on: it runs at the next Start* until it runs, then *running* — with
   ◆◆ and a stronger colour for `acceptEdits` and `auto`, which ask about fewer actions. **Send** reads *Send to full
   Claude Code*, and the tab and the assistant's own window carry the same ◆ marker. The marker follows the session, so it
   appears and goes with the posture the analyser actually started.
