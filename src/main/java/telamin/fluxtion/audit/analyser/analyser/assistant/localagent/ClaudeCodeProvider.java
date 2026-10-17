@@ -46,6 +46,14 @@ public final class ClaudeCodeProvider implements LocalAgentProvider {
 
     @Override
     public List<String> command(LaunchSpec spec) {
+        return command(spec, telamin.fluxtion.audit.analyser.analyser.llm.VerbSchemas.all().keySet());
+    }
+
+    /**
+     * The line for a given schema list. Review H5: the allow and disallow lists come from the explicit pre-allow list
+     * ({@link LocalAgentPosture#PRE_ALLOWED}) applied to the schema, so a verb the schema gains is hidden until listed.
+     */
+    public List<String> command(LaunchSpec spec, java.util.Collection<String> schemaVerbs) {
         List<String> c = new ArrayList<>();
         c.add(spec.executable().toString());
         c.addAll(List.of("-p", "--input-format", "stream-json", "--output-format", "stream-json", "--verbose",
@@ -64,15 +72,35 @@ public final class ClaudeCodeProvider implements LocalAgentProvider {
         c.add("--mcp-config");
         c.add(mcpConfig(spec.bridgeLauncher(), spec.endpointFile()));
         c.add("--allowedTools");
-        c.add(toolList(LocalAgentPosture.preAllowedVerbs()));
+        c.add(toolList(LocalAgentPosture.preAllowedVerbs(schemaVerbs)));
         c.add("--disallowedTools");
-        c.add(toolList(LocalAgentPosture.disallowedVerbs()));
+        c.add(toolList(LocalAgentPosture.disallowedVerbs(schemaVerbs)));
         c.addAll(List.of("--permission-mode", LocalAgentPosture.PERMISSION_MODE, "--permission-prompts", "none"));
         c.add("--max-budget-usd");
         c.add(usd(spec.maxBudgetMicros()));
         c.add("--append-system-prompt");
         c.add(SYSTEM_NOTE);
         return List.copyOf(c);
+    }
+
+    /**
+     * The posture digest for a working directory (§3: the posture name, the REAL directory, the system note, the
+     * pre-allow list and the full switch). ONE function, used where the consent is observed and again by the adapter
+     * just before it spawns (review M7), so a spawn in any folder but the decided one is refused.
+     */
+    public static String postureRef(Path workingDirectory, boolean full) {
+        return LocalAgentPosture.digest("default|" + realPath(workingDirectory) + "|" + SYSTEM_NOTE + "|"
+                + LocalAgentPosture.preAllowedVerbs() + "|full=" + full);
+    }
+
+    /** The real path of {@code p} (symlinks resolved), or its normalised absolute path when it cannot be resolved. */
+    public static String realPath(Path p) {
+        if (p == null) return "";
+        try {
+            return p.toRealPath().toString();
+        } catch (java.io.IOException e) {
+            return p.toAbsolutePath().normalize().toString();
+        }
     }
 
     /** The model when the setting is blank. */

@@ -106,6 +106,84 @@ class HostedCredentialTest {
         }
     }
 
+    /**
+     * ★ Review H5. Witness: refuse only {@code McpTools.destructiveVerbs()} in {@code hostedRefusal} (the old deny-list)
+     * — the unlisted verb reaches the dispatcher (400, not 403) and the first assertion fails.
+     */
+    @Test
+    @DisplayName("★ H5: a verb not on the pre-allow list is refused for the hosted credential; an external client is unaffected")
+    void anUnlistedVerbIsRefusedForTheHostedBridge() throws Exception {
+        String token = credentials.mint(8);
+        admitted.set(8);
+        String body = "{\"action\":\"brand_new_verb\",\"params\":{}}";
+        HttpResponse<String> hostedCall = post(body, token);
+        assertEquals(403, hostedCall.statusCode(), "an unlisted verb never reaches the dispatcher for the hosted bridge");
+        assertTrue(hostedCall.body().contains("not available to Claude Code"), hostedCall.body());
+        HttpResponse<String> external = post(body, null);
+        assertEquals(400, external.statusCode(), "an external client reaches the dispatcher, which says it is unknown");
+        assertTrue(external.body().contains("unknown verb"), external.body());
+        assertEquals(403, post("{not json", token).statusCode(), "a body naming no listed verb is refused too");
+    }
+
+    /**
+     * ★ Review L2. Witness: use one bucket for both callers in {@code handleAction} — the hosted call after the external
+     * client spent the bucket is 429 and the named assertion fails.
+     */
+    @Test
+    @DisplayName("★ L2: the hosted credential has its own rate bucket — an external client cannot starve it, nor the reverse")
+    void theHostedBridgeHasItsOwnRateBucket() throws Exception {
+        server.stop();
+        server = new ActionServer(new ActionDispatcher(false, null, () -> null, null), "shared", 20, 1.0);
+        server.setHostedGate(credentials.gate(g -> g == admitted.get() ? null : "not admitted"));
+        server.start();
+        String token = credentials.mint(9);
+        admitted.set(9);
+        int externalLimited = 0;
+        for (int i = 0; i < 5; i++) if (post(READ, null).statusCode() == 429) externalLimited++;
+        assertTrue(externalLimited > 0, "the external bucket (1/s) is spent");
+        assertEquals(400, post(READ, token).statusCode(), "the hosted call still runs: its own bucket");
+        int hostedLimited = 0;
+        for (int i = 0; i < 5; i++) if (post(READ, token).statusCode() == 429) hostedLimited++;
+        assertTrue(hostedLimited > 0, "the hosted bucket is limited as well");
+    }
+
+    /**
+     * ★ Review H4. Witness: let {@code refusedAsExternal} admit the shared token (return false), or publish in
+     * {@code republish} regardless of the mode — the external call is dispatched (400) or the well-known file appears,
+     * and the named assertion fails.
+     */
+    @Test
+    @DisplayName("★ H4: a hosted-only server refuses the shared token (403), writes no well-known file, and serves the hosted bridge")
+    void aHostedOnlyServerRefusesExternalClients(@org.junit.jupiter.api.io.TempDir java.nio.file.Path dir) throws Exception {
+        server.stop();
+        RestEndpointFile wellKnown = new RestEndpointFile(dir.resolve("rest-endpoint"));
+        server = ActionServer.hostedOnly(new ActionDispatcher(false, null, () -> null, null), "shared", 20, 1000.0,
+                wellKnown);
+        server.setHostedGate(credentials.gate(g -> g == admitted.get() ? null : "not admitted"));
+        server.start();
+        assertFalse(java.nio.file.Files.exists(wellKnown.path()), "hosted-only publishes no well-known endpoint file");
+        assertFalse(server.republish(), "and republishing publishes nothing");
+        assertFalse(java.nio.file.Files.exists(wellKnown.path()));
+        HttpResponse<String> external = post(READ, null);
+        assertEquals(403, external.statusCode(), "the shared token alone is refused: external REST is off");
+        assertTrue(external.body().contains("for external clients is off"), external.body());
+        HttpResponse<String> manifest = http.send(HttpRequest.newBuilder(URI.create(server.url() + "/manifest")).GET()
+                .build(), HttpResponse.BodyHandlers.ofString());
+        assertEquals(403, manifest.statusCode(), "nor does it answer an external manifest request");
+        String token = credentials.mint(11);
+        admitted.set(11);
+        assertEquals(400, post(READ, token).statusCode(), "the hosted bridge is served (the dispatcher answers)");
+
+        // the REST switch turned on while the session runs: the same listener opens to external clients and publishes
+        server.setExternalAllowed(true);
+        assertTrue(java.nio.file.Files.exists(wellKnown.path()), "published once external clients are allowed");
+        assertEquals(400, post(READ, null).statusCode(), "an external client is served now");
+        server.setExternalAllowed(false);
+        assertFalse(java.nio.file.Files.exists(wellKnown.path()), "withdrawn again when the switch goes off");
+        assertEquals(403, post(READ, null).statusCode());
+        assertEquals(400, post(READ, token).statusCode(), "while the hosted bridge keeps its listener");
+    }
+
     @Test
     @DisplayName("a credential is minted per generation, maps to it only, and minting again replaces it")
     void mintingAndRevocation() {

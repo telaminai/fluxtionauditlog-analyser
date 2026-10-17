@@ -85,11 +85,12 @@ class ClaudeCodeProviderTest {
     }
 
     /**
-     * ★ Witness: compute the disallow list as {@code McpTools.destructiveVerbs()} instead of "all − pre-allowed" — a
-     * verb added to VerbSchemas stays visible and the second assertion fails.
+     * ★ Review H5. Witness: compute the pre-allow list as "every verb minus {@code McpTools.destructiveVerbs()}" (the old
+     * deny-list) in {@code LocalAgentPosture.preAllowedVerbs(Collection)} — the verb added to the REAL schema list below
+     * lands in {@code --allowedTools} and in the expected tool set, and the named assertions fail.
      */
     @Test
-    @DisplayName("★ --allowedTools ∩ destructive = ∅, and --disallowedTools = every verb − the pre-allowed ones")
+    @DisplayName("★ H5: the pre-allow list is explicit — a verb added to the schema is hidden, unexpected and refused until listed")
     void theVerbLists() {
         List<String> pre = LocalAgentPosture.preAllowedVerbs();
         Set<String> overlap = new HashSet<>(pre);
@@ -102,12 +103,25 @@ class ClaudeCodeProviderTest {
         assertEquals(List.of("read", "aggregate", "series", "context", "coverage", "source", "filter", "goto", "flag",
                         "graph", "topology", "spotlight").stream().sorted().toList(), pre.stream().sorted().toList(),
                 "today's pre-allowed set (§3)");
-        // a verb added to VerbSchemas but not classified lands in the disallow list
-        List<String> withNew = new ArrayList<>(all);
-        withNew.add("brand_new_verb");
-        List<String> classifiedPre = LocalAgentPosture.preAllowedVerbs(all, McpTools.destructiveVerbs());
-        assertTrue(LocalAgentPosture.disallowedVerbs(withNew, classifiedPre).contains("brand_new_verb"),
-                "a new verb is hidden from Claude until someone classifies it");
+        assertTrue(all.containsAll(LocalAgentPosture.PRE_ALLOWED), "every listed verb is a real verb");
+
+        // the REAL inputs, with one verb more: the schema list the command line and the posture check are built from
+        List<String> schemaWithNew = new ArrayList<>(all);
+        schemaWithNew.add("brand_new_verb");
+        String newTool = LocalAgentPosture.toolName("brand_new_verb");
+        List<String> line = new ClaudeCodeProvider().command(spec(false), schemaWithNew);
+        String allowedArg = line.get(line.indexOf("--allowedTools") + 1);
+        String disallowedArg = line.get(line.indexOf("--disallowedTools") + 1);
+        assertFalse(List.of(allowedArg.split(",")).contains(newTool), "an unlisted verb is never auto-approved");
+        assertTrue(List.of(disallowedArg.split(",")).contains(newTool), "it is hidden from Claude until listed");
+        assertFalse(LocalAgentPosture.expectedTools(schemaWithNew).contains(newTool),
+                "and a CLI that offered it fails the posture check");
+        List<String> toolsWithNew = new ArrayList<>(LocalAgentPosture.expectedTools(schemaWithNew));
+        toolsWithNew.add(newTool);
+        assertEquals(LocalAgentPosture.Verdict.TOOLS_MISMATCH, LocalAgentPosture.check(schemaWithNew, "s", "dontAsk",
+                toolsWithNew, List.of(LocalAgentPosture.HOSTED_SERVER + ":connected"),
+                LocalAgentPosture.REQUIRED_CAPABILITIES, LocalAgentPosture.digest("s")));
+        assertFalse(LocalAgentPosture.preAllowed("brand_new_verb"), "the server-side admission refuses it too");
     }
 
     /** ★ Witness (review S7): {@code validModel} returning true — the flag-shaped names pass. */
