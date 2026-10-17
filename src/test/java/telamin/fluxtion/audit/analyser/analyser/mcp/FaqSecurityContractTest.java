@@ -104,6 +104,8 @@ class FaqSecurityContractTest {
         assertTrue(answer.contains("Claude Code does not need External MCP/REST access on"));
         String whole = faq.replaceAll("\\s+", " ");
         assertFalse(whole.contains("local transport") || whole.contains("Assistant / LLM"), "the FAQ's old switch and tab names");
+        assertFalse(whole.contains("Profile…") || whole.contains("REST transport that lets"),
+                "the slimmed FAQ must not bring back the old control or switch names (phase 6 review)");
         int offline = whole.indexOf("## Does it work offline?");
         String offlineAnswer = whole.substring(offline, whole.indexOf(" ## ", offline + 1));
         assertTrue(offlineAnswer.contains("Claude Code") && offlineAnswer.contains("contacts Anthropic"),

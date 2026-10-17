@@ -24,11 +24,11 @@ flowchart LR
 | Boundary | What guards it |
 |---|---|
 | **The loopback listener**, for outside clients and scripts | **Off by default** (*External MCP/REST access*). When on, it is bound to `127.0.0.1` only, so it is not reachable from the network. Every request needs a **per-run** token, minted afresh at each launch and written only to `~/.fluxtion-analyser/rest-endpoint` (mode 600, readable only by you); the console shows its first 8 characters. A request carrying an `Origin` header is rejected, so a web page in your browser cannot drive it. Calls are rate-limited to 10 a second after a burst of 10 ([External access](external-access.md)) |
-| **Claude Code's private bridge** | Its own **per-session credential**: a call carrying only the REST token is never treated as Claude Code's. It is served only the verbs on an explicit list, so a verb added in a later release stays refused until it is listed. It has its own rate limit. With external access off, its listener serves only that session, refuses every outside client and publishes no endpoint file |
+| **Claude Code's private bridge** | Its own **per-session credential**: a call carrying only the REST token is never treated as Claude Code's, and the per-session file the bridge reads carries only that session's credential, not the REST token. It is served only the verbs on an explicit list, so a verb added in a later release stays refused until it is listed. It has its own rate limit. With external access off, its listener serves only that session, refuses every outside client and publishes no endpoint file |
 | **Folder trust**, for Claude Code in the analyser | Each folder is confirmed once on this machine before Start. Full Claude Code confirms the folder separately, because Start runs the folder's hooks and connects its MCP servers ([Approvals and their limits](#approvals-and-their-limits)) |
 | **The model provider** | Only the assistant you choose sends anything, and only what you ask and the evidence it reads ([Not local-only](#not-local-only)) |
-| **Files you are sent** | An evidence bundle is verified before it is opened, and opens as a disposable working copy; Claude Code is refused in it. A project profile carries pointers, never instructions. No assistant switch is read from a project or a bundle ([one exception](#what-is-stored-where)) |
-| **Log-source plugins** | A plugin is a jar you install yourself: **installing a jar is arbitrary code execution**. Nothing is bundled or downloaded, and without plugins this application is byte-identical to a plain build. A plugin can only ever be a log *reader*: it **cannot add verbs** to the action socket, so the verb list below stays complete with or without plugins |
+| **Files you are sent** | An evidence bundle is verified before it is opened, and opens as a disposable working copy. Claude Code is never started in that folder: with a bundle open it works in an empty scratch folder and reads the evidence only through the verbs. A project profile carries pointers, never instructions. No assistant switch is read from a project or a bundle ([one exception](#what-is-stored-where)) |
+| **Log-source plugins** | A plugin is a jar you install yourself: **installing a jar is arbitrary code execution**. Nothing is bundled or downloaded. With no plugin installed, no third-party code runs; without plugins this application is byte-identical to a plain build. A plugin can only ever be a log *reader*: it **cannot add verbs** to the action socket, so the verb list below stays complete with or without plugins |
 
 ## What each profile can and cannot do
 
@@ -38,10 +38,10 @@ An outside client is separate: it depends only on *External MCP/REST access*.
 | | Runs on this machine | Reads | Changes in the analyser | Writes files through the analyser |
 |---|---|---|---|---|
 | **Safe analysis** (the default) | your own installed `claude`, with Read, Grep and Glob confined to the folder | the folder, and the evidence through the analyser's verbs | views at once; what is open only after you approve each call | only after you approve each call, and only with file exchange on |
-| **Full Claude Code** | your own Claude Code, with **your tools, including Bash**, under your rules and the mode you chose | what your tools can read | the same verbs, asked in the modes that ask | the same, plus whatever your own tools write |
+| **Full Claude Code** | your own Claude Code, with **your tools, including Bash**, under your rules and the mode you chose | what your tools can read | the same verbs: asked in `default` and `acceptEdits`, hidden under `auto` and `plan` | the same, plus whatever your own tools write |
 | **In-app assistant** | nothing: it is a chat with your provider | the evidence through the analyser's verbs | views and what is open, without asking, while *Let the in-app assistant change the views as it answers* is on | only with file exchange on |
 | **Off** | nothing | nothing | nothing | nothing |
-| **An outside client** | what that client runs itself, under its own rules | the evidence through the analyser's verbs | every verb; your client asks first only if its settings say so | only with file exchange on |
+| **An outside client** | what that client runs itself, under its own rules | the evidence through the analyser's verbs | every verb except `propose`; your client asks first only if its settings say so | only with file exchange on |
 
 ## What an assistant can do through the analyser
 
@@ -99,7 +99,7 @@ The six verbs that replace what is loaded or write files, `open`, `source_root`,
 (Settings ▸ Assistant) lets the tab's **Start** button run **your own installed `claude`**, logged in as you; the
 analyser never reads or stores your Claude Code credentials. Start contacts Anthropic (the sign-in check and the
 bridge connection) **before your first Send**; no record content is sent until you press Send. Start is always the
-explicit button: opening the tab starts nothing, and a bundle's working copy is refused. Claude Code does not need External
+explicit button: opening the tab starts nothing, and a bundle's working copy is refused as Claude Code's folder (with a bundle open, Claude Code works in an empty scratch folder instead). Claude Code does not need External
 MCP/REST access on: with it off, its private listener refuses every external client, even one holding the REST token.
 
 **Safe analysis** gives Claude Code the folder's `CLAUDE.md`, **Read, Grep and Glob confined to the folder**, and the
@@ -120,7 +120,7 @@ your own Claude Code as in a terminal, with **your settings, skills, hooks and M
 and MCP servers run when you press Start**, before you send anything. So the folder is confirmed for full Claude Code
 separately, naming the hooks and servers found, and the analyser **asks again if those files change**
 (`.claude/settings.json`, `.claude/settings.local.json`, `.mcp.json`, and the instruction files `CLAUDE.md`,
-`.claude/CLAUDE.md`, `.claude/commands`, `.claude/skills`, `.claude/agents`). Claude Code can then use **your own
+`CLAUDE.local.md`, `.claude/CLAUDE.md`, `.claude/commands`, `.claude/skills`, `.claude/agents`). Claude Code can then use **your own
 tools, including Bash**, file edits and web access, **as far as your permission rules and the mode you chose allow**
 (`default`, `acceptEdits`, `auto` or `plan`; **bypassPermissions is never offered**, nor `dontAsk`), and the analyser
 does not confine it to the folder. Only the Start button starts full Claude Code.
@@ -169,7 +169,7 @@ leaves](data.md) lists every file.
 **There is no central administrator lock yet.** An organisation cannot today forbid Full Claude Code for everyone from
 one place. A managed policy that can is planned and not built ([Managed policy](managed-policy.md)).
 
-## The closed-world limit
+## The closed-world limit: what the analyser cannot see
 
 Every guarantee on this page is about the analyser's own surface: its verbs, its listener, its bridge and the files it
 writes. Outside that surface the analyser sees nothing and controls nothing:
@@ -178,7 +178,7 @@ writes. Outside that surface the analyser sees nothing and controls nothing:
 - what a **model provider** does with what it is sent;
 - what your own Claude Code **permission rules, hooks and settings** allow;
 - what a **plugin** jar does once installed;
-- anything the **audit log does not record**: the analyser reports what the log says, and a node that wrote nothing is
-  never reported as not having run.
+- anything the **audit log does not record**: silence in the log is reported as silence, never as proof that a node
+  did not run.
 
 A boundary the analyser does not own is stated as such, so that a guarantee is not read as wider than it is.

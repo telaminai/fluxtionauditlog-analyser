@@ -24,10 +24,22 @@ class ShareDisclosureContractTest {
 
     private static final Path DOC = Path.of("docs/site/user-guide/projects.md");
 
+    /**
+     * Only the page's sharing section counts: projects.md is long, and "provenance" or "focus" elsewhere on it (the
+     * environments section, say) must not satisfy a disclosure the category table has to make (phase 6 review).
+     */
+    static String sharingSection() throws java.io.IOException {
+        String page = Files.readString(DOC);
+        int at = page.indexOf("## Sharing settings with a file");
+        assertTrue(at >= 0, DOC + " lost its '## Sharing settings with a file' section");
+        int end = page.indexOf("\n## ", at + 1);
+        return end < 0 ? page.substring(at) : page.substring(at, end);
+    }
+
     /** Every checkbox label appears in the docs table — a renamed or new category must update the page. */
     @Test
     void theSharingGuideNamesEveryCategoryByItsDialogLabel() throws Exception {
-        String doc = Files.readString(DOC);
+        String doc = sharingSection();
         for (SettingsShare.Category c : SettingsShare.Category.values()) {
             // labels carry dialog-side phrasing after the name ("View (hidden columns)", "LLM
             // provider/model/…"); the table restates that in its Contents column. The contract here
@@ -48,7 +60,7 @@ class ShareDisclosureContractTest {
                 "GRAPHS exports named graphs AND named focuses; the checkbox said '"
                         + SettingsShare.Category.GRAPHS.label + "' — a user ticking it must be told both");
 
-        String doc = Files.readString(DOC).toLowerCase(java.util.Locale.ROOT);
+        String doc = sharingSection().toLowerCase(java.util.Locale.ROOT);
         assertTrue(doc.contains("focus"),
                 DOC + " never mentions focuses, but the Graphs category exports them — "
                         + "disclose an artifact in the same change that makes it shareable");
@@ -63,7 +75,7 @@ class ShareDisclosureContractTest {
      */
     @Test
     void theReportsRowDisclosesProvenance() throws Exception {
-        String doc = Files.readString(DOC).toLowerCase(java.util.Locale.ROOT);
+        String doc = sharingSection().toLowerCase(java.util.Locale.ROOT);
         assertTrue(doc.contains("provenance"),
                 DOC + " never mentions provenance, but a shared report's fingerprint carries it — "
                         + "and it names internal systems, which a recipient's checkbox must warn about");
@@ -98,7 +110,7 @@ class ShareDisclosureContractTest {
     /** The one promise stronger than disclosure: the key never travels, and the page must keep saying so. */
     @Test
     void theApiKeyPromiseStaysOnThePage() throws Exception {
-        String doc = Files.readString(DOC);
+        String doc = sharingSection();
         assertTrue(doc.contains("never the API key"),
                 DOC + " must keep stating that the API key is never exported");
     }

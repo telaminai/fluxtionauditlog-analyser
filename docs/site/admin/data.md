@@ -7,16 +7,18 @@ what a project holds, and sends nothing anywhere unless you choose an assistant 
 
 | Where | What | Written when |
 |---|---|---|
-| `~/.fluxtion-analyser/config` | Your machine settings, in **cleartext**: the in-app assistant's provider, model and **API key**; Claude Code's switches, mode, model, spend limit and the folders you confirmed; External MCP/REST access, file exchange, project creation and the exchange folder; theme, window, recent files and search history; your no-project settings; session-recovery candidates, including the flags of the session they describe | whenever a setting changes |
+| `~/.fluxtion-analyser/config` | Your machine settings, in **cleartext**: the in-app assistant's provider, model and **API key**; Claude Code's switches, mode, model, spend limit and the folders you confirmed; External MCP/REST access, file exchange, project creation and the exchange folder; theme, window, recent files and search history; your no-project settings | whenever a setting changes |
+| `~/.fluxtion-analyser/sessions/` | Session-recovery snapshots, one file per project: the paths of what was open and their SHA-256, and the view, including filters and flags | when you close a project or quit |
 | `~/.fluxtion-analyser/rest-endpoint` | The listener's URL, its per-run token, the process id and start time. Mode 600 | while *External MCP/REST access* is on; removed when the window closes |
 | `~/.fluxtion-analyser/demo/` | The DEMO log, graph and source, unpacked from the jar, and the sample project's profile | the first time you open the sample project, the tour or the demo |
 | `~/.fluxtion-analyser/bundles/` | Disposable working copies of the evidence bundles you open | when you open a bundle |
 | `~/.fluxtion-analyser/plugins/` | Log-reader plugin jars, which you put there yourself | never by the analyser |
 | `~/.fluxtion-analyser/local-agent/` | A lock per Claude Code session, so two analysers cannot run one session | while a Claude Code session runs |
-| your temporary folder | A private, empty scratch folder for Claude Code when no project folder applies (no project, the sample project, a bundle) | when Claude Code starts there |
+| your temporary folder | A copy of a log opened from S3 (`fluxtion-s3-*.log`), deleted when the analyser exits; and a private, empty scratch folder for Claude Code when no project folder applies (no project, the sample project, a bundle) | when Claude Code starts there |
 | `~/.fluxtion/fluxtion.apiKeyFile` | The Fluxtion build key, for regenerating a processor; the analyser writes it and reports only whether it is present | when you use **AI ▸ Fluxtion API key…** |
 | `<project>/.analyser/project.fluxtion-settings` | The project's settings and context: source roots, processors, saved charts, reports, walks, runbook and glossary pointers, environments, analyses, report destinations ([Projects, profiles and sharing](../user-guide/projects.md#what-is-kept-where)). No key, ever | as you edit the project |
 | `<project>/CLAUDE.md` | Links to the Fluxtion authoring docs, only if you tick that option when creating a project, and never over an existing file | once, on creation |
+| your MCP client's own configuration | The registration **Connect an AI client…** adds, by running `claude mcp add` or `codex mcp add` after you confirm; for any other client, nothing (you copy or save the record yourself) | when you register a client |
 | the exchange folder you choose | Screenshots, report PDFs and CSVs, reels and evidence bundles an assistant writes, never over an existing file | only with *Allow assistant file exchange* on |
 
 Claude Code keeps its own conversation history and settings in its own folders, as it does in a terminal; the
@@ -46,7 +48,7 @@ Nothing the analyser does on its own sends your evidence anywhere. What does, an
 machine, not where your words go ([Security model ▸ Not local-only](security.md#not-local-only)).
 
 **Does it work offline?** Yes, everything except the assistant and the buttons above. With the assistant *Off* and
-External MCP/REST access off, nothing in the analyser goes on the network.
+External MCP/REST access off, nothing in the analyser goes on the network unless you press one of those buttons.
 
 ## What you send yourself
 
