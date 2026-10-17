@@ -68,6 +68,16 @@ public class LocalAgentPermission implements EventLogSource {
     public static final String DENIED_STALE = "Denied: the request belongs to an earlier turn or session";
     public static final String DENIED_ENDED = "Denied: the turn or session ended before the person answered";
     public static final String DENIED_SETTINGS = "Denied: the analyser's settings for Claude Code changed";
+    /**
+     * M74 UX (P3 leftover a): Claude Code's {@code AskUserQuestion} opens a question dialog in a terminal; the analyser has
+     * none, so the request is denied by policy, with words that tell the model to ask in its reply instead.
+     */
+    public static final String DENIED_ASK_QUESTION = "Denied: the analyser shows no question dialog — ask the question in "
+            + "your reply, and the person will answer it in the conversation";
+    /** The transcript's note for that denial: what the person reads, in the conversation. */
+    public static final String ASK_QUESTION_NOTE = "Claude asked a question — answer it in the conversation";
+    /** The built-in name of Claude Code's question tool. */
+    public static final String ASK_USER_QUESTION = "AskUserQuestion";
 
     @PushReference
     private final LocalAgentSession localAgent;
@@ -112,7 +122,7 @@ public class LocalAgentPermission implements EventLogSource {
             deny(e.generation(), e.requestRef(), e.ticket(), cls, e.name(), PermissionBy.POLICY, DENIED_STALE);
             return changed();
         }
-        String refusal = policy(localAgent.currentPosture(), cls);
+        String refusal = policy(localAgent.currentPosture(), cls, e.name());
         if (refusal != null) {
             deny(e.generation(), e.requestRef(), e.ticket(), cls, e.name(), PermissionBy.POLICY, refusal);
             return changed();
@@ -146,6 +156,16 @@ public class LocalAgentPermission implements EventLogSource {
      * posture also about the person's own tools, and about the hosted destructive verbs only where they are visible.
      */
     static String policy(LocalAgentPosture posture, ToolClass cls) {
+        return policy(posture, cls, null);
+    }
+
+    /**
+     * As {@link #policy(LocalAgentPosture, ToolClass)}, and {@code AskUserQuestion} is denied in every posture (M74 UX,
+     * P3 leftover a): the analyser has no question dialog, so the model is told to ask in its reply and the person is told
+     * to answer in the conversation — never an approval dialog for a question.
+     */
+    static String policy(LocalAgentPosture posture, ToolClass cls, String name) {
+        if (cls == ToolClass.BUILT_IN && ASK_USER_QUESTION.equals(name)) return DENIED_ASK_QUESTION;
         LocalAgentPosture p = posture == null ? LocalAgentPosture.ANALYSER_ASSISTANT : posture;
         return switch (cls) {
             case HOSTED_DESTRUCTIVE -> p.asks() ? null : DENIED_HIDDEN;
@@ -377,7 +397,8 @@ public class LocalAgentPermission implements EventLogSource {
             case BUSY -> what + " was denied: another approval was waiting for you";
             case TOO_LARGE -> what + " was denied without asking you: the request was too large to show in full";
             case CANCELLED -> "Claude Code withdrew its request to use " + what;
-            case POLICY -> what + " was denied without asking you — " + lower(message);
+            case POLICY -> DENIED_ASK_QUESTION.equals(message) ? ASK_QUESTION_NOTE
+                    : what + " was denied without asking you — " + lower(message);
         };
         // a request of an earlier generation belongs to a conversation entry nobody is reading: no note for it
         if (generation == localAgent.currentGeneration()) {

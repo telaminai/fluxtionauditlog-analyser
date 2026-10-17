@@ -137,6 +137,33 @@ class LocalAgentPermissionTest {
         assertEquals(2, a.permissionDialogs.size(), "a tool of the person's own MCP server is asked too");
     }
 
+    /**
+     * ★ M74 UX (P3 leftover a): in the full posture Claude Code's {@code AskUserQuestion} would ask the person through a
+     * terminal dialog the analyser does not have. The policy denies it without a dialog; the model is told to ask in its
+     * reply and the transcript tells the person to answer in the conversation. Witness: drop the AskUserQuestion case
+     * from {@code policy} — the request reaches the approval dialog as a built-in, and the dialog count fails.
+     */
+    @Test
+    @DisplayName("★ full posture: AskUserQuestion is denied without a dialog — 'Claude asked a question — answer it in the conversation'")
+    void askUserQuestionIsAnsweredInTheConversation() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = LocalAgentSessionTest.driver(a);
+        var start = LocalAgentFullPostureTest.startFull(d, a, FullMode.DEFAULT);
+        var t = LocalAgentSessionTest.send(d, a, 10, LocalAgentFullPostureTest.full(FullMode.DEFAULT));
+        d.post(LocalAgentFullPostureTest.fullInit(start, t.ticket(), "default", List.of(), "connected"));
+        d.post(of(start.generation(), t.ticket(), 61, ToolClass.BUILT_IN, LocalAgentPermission.ASK_USER_QUESTION));
+        assertEquals(0, a.permissionDialogs.size(), "a question is never an approval dialog");
+        assertFalse(lastAnswer(a).allow());
+        assertEquals(PermissionBy.POLICY, lastAnswer(a).by());
+        assertEquals(LocalAgentPermission.DENIED_ASK_QUESTION, lastAnswer(a).message(), "the model is told to ask in its reply");
+        assertTrue(d.snapshot().localAgent().entries().stream()
+                        .anyMatch(e -> LocalAgentPermission.ASK_QUESTION_NOTE.equals(e.detail())),
+                "the person reads where to answer: " + d.snapshot().localAgent().entries());
+        // control: another built-in in the same posture still reaches the dialog
+        d.post(of(start.generation(), t.ticket(), 62, ToolClass.BUILT_IN, "Bash"));
+        assertEquals(1, a.permissionDialogs.size(), "control: Bash is still asked of the person");
+    }
+
     // ---- ★ every way a request ends ---------------------------------------------------------------------------------
 
     /**

@@ -67,7 +67,7 @@ In the excerpts `<SMOKE>` is the run's scratch folder and `<subscription>` the a
 ## Re-smoke after the review fixes (2026-10-17)
 
 The same isolation, wrapper and cleanup, with [`harness/M74P1bFixSmoke.java`](harness/M74P1bFixSmoke.java) and
-[`harness/M74P1bWarmSmoke.java`](harness/M74P1bWarmSmoke.java), on `feature/claude-code-p1b` after the 14 review fixes.
+`harness/M74P1bWarmSmoke.java` (removed 2026-10-17, see the harness note below), on `feature/claude-code-p1b` after the 14 review fixes.
 No project was opened, so Claude Code worked in the analyser's scratch folder. **Spend:** the session total reported
 was US$0.094 (four haiku turns, on the Claude plan); the warm-start runs sent no turn.
 
@@ -101,3 +101,14 @@ above, put a `claude` wrapper that appends `--strict-mcp-config` first on the `P
 from the environment, and run `java -Duser.home=<SMOKE>/home -Djava.io.tmpdir=<SMOKE>/tmp -cp smoke.jar
 telamin.fluxtion.audit.analyser.analyser.ui.M74P1bSmoke <SMOKE>` under `/tmp/fluxtion-analyser-display.lock`. Delete
 `<SMOKE>` and `~/.claude/projects/*scratchpad-m74-p1b-smoke*` afterwards.
+
+## Harness note (2026-10-17, the M74 UX step)
+
+Warm start was cut by the owner after these smokes ran (OD-74.25), and with it the `claudeCodeWarmStart` setting and the
+`WarmStart` class the harness used, so the harness no longer compiled. It was trimmed rather than left broken:
+`M74P1bWarmSmoke.java`, which tested only warm start, was removed, and the warm-start steps of `M74P1bSmoke.java` (item 8)
+and `M74P1bFixSmoke.java` were replaced by a comment. The results recorded above are unchanged; they describe the P1b
+branch as it was. The harness drives the Assistant tab by field names of that time, so re-running it against a later
+analyser needs those names checked first. `M74HarnessesCompileTest` now holds every M74 harness to compiling, so the
+next cut setting fails a test instead of a later reader.
+

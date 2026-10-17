@@ -560,43 +560,12 @@ public final class TranscriptView extends JTextPane {
         }
     }
 
-    /** A tool call's input, pretty-printed when it is JSON; as data, never run. */
+    /**
+     * A tool call's input, re-indented as the permission dialog shows it: token by token, every token kept as the line
+     * carried it (M74 UX, P3 leftover c: re-parsing wrote an integer 3 as 3.0). As data, never run.
+     */
     static String pretty(String input) {
-        try {
-            Object parsed = telamin.fluxtion.audit.analyser.analyser.llm.Json.parse(input);
-            StringBuilder sb = new StringBuilder();
-            prettyInto(sb, parsed, 0);
-            return sb.toString();
-        } catch (RuntimeException e) {
-            return input;
-        }
-    }
-
-    private static void prettyInto(StringBuilder sb, Object v, int depth) {
-        String pad = "  ".repeat(depth + 1);
-        if (v instanceof java.util.Map<?, ?> m) {
-            if (m.isEmpty()) { sb.append("{}"); return; }
-            sb.append("{\n");
-            int i = 0;
-            for (var e : m.entrySet()) {
-                sb.append(pad).append(telamin.fluxtion.audit.analyser.analyser.llm.Json.write(String.valueOf(e.getKey())))
-                        .append(": ");
-                prettyInto(sb, e.getValue(), depth + 1);
-                sb.append(++i < m.size() ? ",\n" : "\n");
-            }
-            sb.append("  ".repeat(depth)).append('}');
-        } else if (v instanceof List<?> l) {
-            if (l.isEmpty()) { sb.append("[]"); return; }
-            sb.append("[\n");
-            for (int i = 0; i < l.size(); i++) {
-                sb.append(pad);
-                prettyInto(sb, l.get(i), depth + 1);
-                sb.append(i + 1 < l.size() ? ",\n" : "\n");
-            }
-            sb.append("  ".repeat(depth)).append(']');
-        } else {
-            sb.append(telamin.fluxtion.audit.analyser.analyser.llm.Json.write(v));
-        }
+        return PermissionText.pretty(input);
     }
 
     private void renderCode(StyledDocument doc, String code, String language, Item item, boolean dark)

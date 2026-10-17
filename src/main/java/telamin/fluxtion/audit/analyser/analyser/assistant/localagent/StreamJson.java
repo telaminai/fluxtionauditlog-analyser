@@ -271,7 +271,7 @@ public final class StreamJson {
             case "system" -> system(m);
             case "command_lifecycle" -> new Lifecycle(str(m.get("command_uuid")), str(m.get("state")));
             case "stream_event" -> streamEvent(m);
-            case "assistant" -> assistant(m);
+            case "assistant" -> assistant(m, line);
             case "user" -> user(m);
             case "result" -> result(m);
             case "rate_limit_event" -> rateLimit(m);
@@ -349,7 +349,7 @@ public final class StreamJson {
         };
     }
 
-    private static Event assistant(Map<?, ?> m) {
+    private static Event assistant(Map<?, ?> m, String line) {
         Map<?, ?> msg = map(m.get("message"));
         if (msg == null) return new Unknown("assistant");
         String text = null;
@@ -357,7 +357,9 @@ public final class StreamJson {
         String toolId = null;
         String toolInput = null;
         StringBuilder joined = null;
+        int index = -1;
         for (Object o : list(msg.get("content"))) {
+            index++;
             if (!(o instanceof Map<?, ?> block)) continue;
             String bt = str(block.get("type"));
             if ("text".equals(bt)) {
@@ -367,7 +369,12 @@ public final class StreamJson {
                 tool = str(block.get("name"));
                 toolId = str(block.get("id"));
                 Object input = block.get("input");
-                if (input instanceof Map<?, ?> in && !in.isEmpty()) toolInput = shorten(Json.write(input));
+                if (input instanceof Map<?, ?> in && !in.isEmpty()) {
+                    // M74 UX (P3 leftover c): the input AS THE LINE CARRIED IT, as the permission dialog shows it — a
+                    // re-serialisation of the parsed value wrote an integer 3 as 3.0
+                    String raw = rawContentInput(line, index);
+                    toolInput = shorten(raw != null ? raw : Json.write(input));
+                }
             }
         }
         if (joined != null) text = joined.toString();
@@ -531,6 +538,24 @@ public final class StreamJson {
             pos[0] = start;
         }
         return end < 0 ? null : json.substring(start, end);
+    }
+
+    /**
+     * The exact JSON text of {@code message.content[index].input} in an {@code assistant} line, or null — the same
+     * byte-for-byte slice {@link #rawMember} takes, through one array index.
+     */
+    static String rawContentInput(String line, int index) {
+        String content = rawMember(line, "message", "content");
+        if (content == null || content.isEmpty() || content.charAt(0) != '[') return null;
+        int i = skipWs(content, 1);
+        for (int at = 0; i < content.length() && content.charAt(i) != ']'; at++) {
+            int end = skipValue(content, i);
+            if (end < 0) return null;
+            if (at == index) return rawMember(content.substring(i, end), "input");
+            i = skipWs(content, end);
+            if (i < content.length() && content.charAt(i) == ',') i = skipWs(content, i + 1);
+        }
+        return null;
     }
 
     /** Within the object starting at {@code open}, the [start, end) of the value of {@code key}; null when absent. */

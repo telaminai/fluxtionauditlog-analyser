@@ -159,19 +159,9 @@ public final class M74P1bFixSmoke {
         Files.delete(scratch.resolve(".claude/settings.json"));
         Files.delete(scratch.resolve(".claude"));
 
-        // ---- §8.1 item 8: warm start with the full switch on starts nothing -------------------------------------------
-        dismissStrayDialogs();
-        config().claudeCodeWarmStart = true;
-        boolean full = warmClick();
-        ev("WARM full posture: started=" + full + " " + (!full ? "PASS" : "FAIL"));
-        config().claudeCodeFull = false;            // control: the default posture in the confirmed scratch folder
-        applySettings("full switch off (control)");
-        click("newchat");
-        dismissStrayDialogs();
-        boolean def = warmClick();
-        ev("WARM control, default posture: started=" + def + " — the click " + (def ? "is" : "was NOT") + " the person's "
-                + "direct selection");
-        waitFor("control ready", 60_000, x -> "READY".equals(x.phase()) || "OFF".equals(x.phase()));
+        // ---- §8.1 item 8: warm start — CUT by the owner on 2026-10-17 (OD-74.25), after this re-smoke ran. The steps that
+        // set the removed claudeCodeWarmStart switch were trimmed (M74 UX step) so this harness still compiles; the
+        // recorded results are in SMOKE-report.md.
         stopAll();
         Thread.sleep(3000);
         dumpTree("after the final stop");

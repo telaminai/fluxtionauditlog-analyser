@@ -41,14 +41,27 @@ public final class PermissionText {
                         : "one of your own Claude Code's tools";
             };
         }
+        Visible in = visible(pretty(p == null ? null : p.inputRaw()));
+        return new Content(title, changes, serverLine(p, cls), in.text(), in.escaped());
+    }
+
+    /** The secondary line for a built-in tool: it belongs to Claude Code itself, so no server is claimed. */
+    public static final String BUILT_IN_LINE = "built-in tool";
+
+    /**
+     * M74 UX (P3 leftover b): who names the tool. A built-in (its request carries {@code mcp_server: null}) is Claude
+     * Code's own tool — it has no server, so the line says {@code built-in tool} and never "named by the server"; an MCP
+     * tool keeps its server and the name its server gave it.
+     */
+    static String serverLine(LocalAgentTranscript.Permission p, ToolClass cls) {
+        if (cls == ToolClass.BUILT_IN) return BUILT_IN_LINE;
         StringBuilder server = new StringBuilder();
         if (p != null && p.serverName() != null) server.append("server: ").append(visible(p.serverName()).text());
         if (p != null && p.displayName() != null) {
             if (!server.isEmpty()) server.append(" · ");
             server.append("named by the server: ").append(visible(p.displayName()).text());
         }
-        Visible in = visible(pretty(p == null ? null : p.inputRaw()));
-        return new Content(title, changes, server.toString(), in.text(), in.escaped());
+        return server.toString();
     }
 
     /** {@code raw} re-indented, two spaces a level; strings and every other token kept exactly as written. */

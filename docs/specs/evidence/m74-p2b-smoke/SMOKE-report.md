@@ -49,3 +49,10 @@ In the excerpts `<SMOKE>` is the run's scratch folder; the set-up folder was a c
    question (it would be a new exception to M35.5).
 3. One of Claude's `Read` calls was denied by the posture (the analyser assistant's folder confinement), as designed;
    the tool line said *"denied by a permission rule"* and the note named the posture.
+
+## Harness note (2026-10-17, the M74 UX step)
+
+P3's fact rule R6 replaced the proposal items' paths and the set-up folder in the snapshot with store references, so
+`M74P2bSmoke.java` no longer compiled. Its two print lines now print the references (`path#n`, `class#n`) instead of the
+words; nothing else changed, and the results above are as recorded. It compiles together with the P1b harness, whose
+helpers it uses (`M74HarnessesCompileTest` holds every M74 harness to compiling).

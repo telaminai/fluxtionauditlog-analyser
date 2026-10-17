@@ -73,7 +73,7 @@ public final class M74P2bSmoke {
         StringBuilder sb = new StringBuilder("PROPOSAL id=" + p.id() + " previewed=" + p.previewed() + " create=" + p.create()
                 + " awaiting=" + p.awaitingPerson() + " applying=" + p.applying() + " pairing=" + p.pairing());
         for (var i : p.items()) {
-            sb.append("\n      ").append(i.id()).append(' ').append(i.kind()).append(' ').append(i.path() == null ? i.className() : i.path())
+            sb.append("\n      ").append(i.id()).append(' ').append(i.kind()).append(' ').append(i.pathRef() == 0 ? "class#" + i.classNameRef() : "path#" + i.pathRef())   // R6 (P3): refs, not words
                     .append(" → ").append(i.state()).append(" [").append(i.verdict()).append("] ").append(i.why());
         }
         return sb.toString();
@@ -107,7 +107,7 @@ public final class M74P2bSmoke {
         invoke("pressStartPrompt", new Class<?>[]{String.class, String.class}, "S2", "");
         chooseFolder("Set up a project with Claude", smoke.resolve("setup-proj"));
         waitFor("armed", 10_000, x -> x.armedWhy() != null);
-        ev("ARMED armedWhy=" + st().armedWhy() + " setupDir=" + (st().extra().setupDir() == null ? null : "<SMOKE>/setup-proj")
+        ev("ARMED armedWhy=" + st().armedWhy() + " setupDir=" + (st().extra().setupDirRef() == 0 ? null : "<SMOKE>/setup-proj")
                 + " start=\"" + panel().startButton().getText() + "\" composer=\"" + panel().composerArea().getText() + "\" processes="
                 + tree().size());
         click("start");

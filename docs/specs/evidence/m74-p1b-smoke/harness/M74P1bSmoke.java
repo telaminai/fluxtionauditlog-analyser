@@ -471,21 +471,9 @@ public final class M74P1bSmoke {
         waitFor("turn after resume", 150_000, M74P1bSmoke::idle);
         dumpEntries("after resume");
 
-        // ---- (8) warm start with the full switch on: a direct tab click starts nothing ------------------------------
-        click("inapp");
-        waitFor("OFF", 20_000, x -> "OFF".equals(x.phase()));
-        Thread.sleep(2500);
-        click("claude");
-        config().claudeCodeWarmStart = true;
-        boolean startedFull = warmClick();
-        ev("WARM full posture: started=" + startedFull + " " + (!startedFull ? "PASS" : "FAIL"));
-        // control: the same click with the full switch off (and the folder trusted for the default posture) starts
-        config().claudeCodeFull = false;
-        config().claudeCodeTrustedFolders.add(proj.toRealPath().toString());
-        click("newchat");
-        boolean startedDefault = warmClick();
-        ev("WARM control, default posture: started=" + startedDefault + " (the click is a direct selection: "
-                + (startedDefault ? "yes" : "NOT DEMONSTRATED") + ")");
+        // ---- (8) warm start: CUT by the owner on 2026-10-17 (OD-74.25), after this smoke ran. The steps that set the
+        // removed claudeCodeWarmStart switch and clicked the tab were trimmed (M74 UX step, 2026-10-17) so this harness
+        // still compiles against the current analyser; its recorded results are in SMOKE-report.md.
         click("inapp");
         waitFor("OFF", 20_000, x -> "OFF".equals(x.phase()));
         Thread.sleep(4000);

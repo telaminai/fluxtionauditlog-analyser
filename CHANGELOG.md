@@ -33,6 +33,12 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 - An unknown `llmProvider` is refused, and the in-app assistant says *"the configured provider '…' is not one the analyser knows — choose one in Settings ▸ Assistant"*; it used to be sent to Anthropic with the stored key.
 - *Explain selected with LLM* and the toolbar's and record detail's *Explain* are replaced by the assistant's questions above; the toolbar's **Ask** is disabled, saying *Select a record to ask about it*, until a record is selected. The finding dialog is titled *Write a finding for record N*.
 
+### Fixed
+
+- **Claude Code's question tool no longer opens an approval dialog.** In full Claude Code, when Claude tries to ask you something through its own question tool (`AskUserQuestion`), the analyser denies it without a dialog and the conversation says *Claude asked a question — answer it in the conversation*; Claude is told to ask in its reply instead.
+- **The permission dialog no longer says a built-in tool was "named by the server".** For Claude Code's own tools (Bash, Edit, …) the secondary line reads *built-in tool*; a tool of an MCP server still shows its server and the name the server gave it.
+- **A transcript tool line shows the input as Claude Code sent it**, as the permission dialog does: an integer reads `3`, not `3.0`, collapsed and expanded.
+
 ### Security
 
 - **An approval in the analyser covers exactly one call.** The analyser itself refuses a call of one of its verbs that change what is open or write files from Claude Code in the tab unless your *Allow once* for exactly that call — the same verb, input, tool use and turn — is waiting; it is used once, and expires after 60 s, at the end of the turn, on Stop and when Settings change. So a call approved by a permission rule or hook of your own, without you seeing it, is still refused for those verbs; every other rule (the exchange directory, *Allow the assistant to create projects*, `graph {delete}`) still applies.

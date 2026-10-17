@@ -74,7 +74,6 @@ class PermissionTextTest {
         assertEquals("Claude Code asks to use Bash", bash.title());
         assertTrue(bash.changes().contains("runs a command on your computer"));
         assertTrue(bash.input().contains("\"command\": \"rm -rf ./build && echo done\""), bash.input());
-        assertEquals("named by the server: Bash", bash.serverLine());
         var mcp = PermissionText.of(new LocalAgentTranscript.Permission("mcp__db-tools__drop", "db-tools", "Drop", "{}"),
                 ToolClass.OTHER_MCP, null);
         assertEquals("Claude Code asks to use mcp__db-tools__drop", mcp.title());
@@ -82,5 +81,25 @@ class PermissionTextTest {
         assertEquals("Denied automatically in 120 s if not answered", LocalAgentPermissionDialog.countdownText(120_000));
         assertEquals("Denied automatically in 1 s if not answered", LocalAgentPermissionDialog.countdownText(10));
         assertEquals("Not answered — it is being denied", LocalAgentPermissionDialog.countdownText(-5));
+    }
+
+    /**
+     * ★ M74 UX (P3 leftover b): a built-in tool belongs to Claude Code itself — it must not claim a server. The dialog
+     * read "named by the server: Bash" for Bash, whose request carries {@code mcp_server: null}. Witness: return the
+     * server line for built-ins as before — the first assertion reads "named by the server: Bash".
+     */
+    @Test
+    @DisplayName("★ a built-in says 'built-in tool', never 'named by the server'; an MCP tool keeps its server line")
+    void aBuiltInClaimsNoServer() {
+        var bash = PermissionText.of(new LocalAgentTranscript.Permission("Bash", null, "Bash", "{\"command\":\"ls\"}"),
+                ToolClass.BUILT_IN, "Bash");
+        assertEquals(PermissionText.BUILT_IN_LINE, bash.serverLine());
+        assertFalse(bash.serverLine().contains("server"), bash.serverLine());
+        var mcp = PermissionText.of(new LocalAgentTranscript.Permission("mcp__db-tools__drop", "db-tools", "Drop", "{}"),
+                ToolClass.OTHER_MCP, null);
+        assertEquals("server: db-tools · named by the server: Drop", mcp.serverLine(), "the MCP tool keeps its server");
+        var hosted = PermissionText.of(new LocalAgentTranscript.Permission("mcp__fluxtion-analyser-hosted__analyser_open",
+                "fluxtion-analyser-hosted", null, "{}"), ToolClass.HOSTED_DESTRUCTIVE, "open");
+        assertEquals("server: fluxtion-analyser-hosted", hosted.serverLine());
     }
 }
