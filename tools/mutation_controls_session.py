@@ -2109,6 +2109,12 @@ CONTROLS = [
      '        if (!fromTransition && session != null) {\n'
      '            session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents\n'
      '                    .SourceRootsObserved(List.copyOf(config.sourceRoots)));\n'
+     '            // M74 review finding 4: report what the machine now says about Claude Code; localAgentSession decides\n'
+     '            // whether a running session still has the consent and posture it was started under\n'
+     '            if (localAgentAdapter != null) {\n'
+     '                session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentConsentChanged(\n'
+     '                        localAgentConsent()));\n'
+     '            }\n'
      '        }\n',
      '',
      'AssistantLiveFrameTest#savingProviderSettingsRefreshesAssistant'),
