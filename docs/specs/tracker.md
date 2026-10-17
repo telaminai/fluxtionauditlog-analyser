@@ -34,32 +34,29 @@ rule (#113); PR #88 bundle import off the event thread and working-copy reaping 
 #85); PR #107 MG-1 mutation-gate iteration; PR #105 EDT-fault and native-input test guards; PR #123 the assistant's
 settings-save redraw, pinned (supersedes #78). [Release receipt](../handoff/release_analyser_1_32_0_2026_10_06.md).
 
-1. **Assurance debt on shipped work.**
-   - **PR #70**: the whole-feature review of M70 replay, most of which reached `main` unreviewed.
-   - **#119** (from PR #88, released in 1.32.0): no bundle opens on a filesystem without `fcntl` locks, where opens
-     worked before — a capability regression in shipped work.
-2. **Owner decisions — they unblock the most.**
-   - **M70 vs Mongoose replay:** whether bundles and `--replay-compare` accept mongoose 1.0.31's dispatch-time
-     recording (▸ M70).
-   - **G14:** accept its three residual risks, then run it once, supervised; on demand, not a release gate.
-   - **Branch protection** requiring `mutation-gate`; **M44.6**; **BETA-B3**; **M39**'s four questions; **M34.5**'s
-     field name; **AF-8/AF-9** together and **OD-5**; **O2** (graph-content identity); **#74** (is a bundle bound to a
-     project or standalone?).
-3. **Upstream adoption follow-ups.** UPS-1 and UPS-2 shipped in 1.31.0. The start-page DEMO refresh remains
-   the separate UPS-2b owner decision; upstream quoting remains UPS-1a.
-4. **Finish M44** — §13's remaining acceptance, the "store installed" fact, M44.6 once decided.
-5. **Small correctness items, ready now:** N2; OBL-1, OBL-2; the restart checker's path aliases; feedback 36 and 42's
-   MCP series remove/replace; the open evidence-bundle items listed below (resolved issues are marked separately).
-6. **The onboard assistant's acceptance (OA-1…OA-6)** — an authorised live-provider run, native input and IME, the
-   journey's native screenshots, a cross-machine recipient.
-7. **The beta** — B3 (item 2), B4's binary publication, BETA-8's A3 scoring gap.
-8. **The tool agreement** — TA-5b then TA-5c; TA-9 (producer-blocked); TA-B.
-9. **SG-2's hosted half**, **M67** (M67.3–.5 are ready), **M33.6**, then **M39** once answered.
-10. **The Mongoose audit format, phases 2–3** (cross-repo writer half) and the **bootstrap artefacts**.
-11. **M34.4/.5**, **M19**'s remnants, the small schedulable remnants (M64.13, M65.5, M48.17, M40.2c, M20.5, M29.5,
-    M13.5, M21, M22, M33.5, ND-1), and the cross-repo asks in [upstream-asks.md](../proposals/upstream-asks.md).
-12. **Not analyser-session work:** M50's determinism spine (compiler), M52.6 (mongoose), M57.4 (generator-http), M51
-    (starter template).
+_Refreshed 2026-10-17 for M74 (owner)._ The 2026-10-06 order above is superseded by this one.
+
+1. **Finish M74** — the owner's hands-on UI test, a final fix round, then the stacked merge #146 → #145 → #147 →
+   P2 → P3 (owner-run), and the release with the "full token no longer on the console" note for external clients.
+2. **[DOCS-IA]** the task-first docs restructure, then the **Telamin Canvas / Telamin AI rename** as one PR.
+3. **M74 follow-ups (owner-approved):** the spec split; `LocalAgentWiring`; the CLI-drift canary and managed-settings
+   probe; the Anthropic terms check (OD-74.2) and a one-page security model, both gating any customer-facing Claude
+   Code release; Windows (#148).
+4. **Virgin-LLM cycles through the M74 onboarding** (protocol on branch `docs/m74-virgin-onboarding-pack`)
+   — T4 authoring first, T5 as the external-loop regression gate.
+5. **M75** document renderer (spec r2 on branch `docs/m75-document-renderer`) once its owner decisions are answered.
+6. **Assurance debt on shipped work:** PR #70 (M70 replay's whole-feature review) and #119 (bundles on filesystems
+   without `fcntl` locks).
+7. **Owner decisions that unblock the most:** M70 vs Mongoose replay; branch protection requiring `mutation-gate`;
+   M44.6; #74; BETA-B3; M39; M34.5; AF-8/AF-9 and OD-5; O2.
+8. **Raised by M74:** M48.17 (the canvas thesis is now the product thesis — read it before the docs' *Build with
+   Claude* section); M72 (authoring token cost); M46.1 (coded diagnostics, also needed by compiler#106).
+9. **Small correctness items, ready now:** N2; OBL-1, OBL-2; #143; #149; the restart checker's path aliases; feedback
+   36 and 42; the open evidence-bundle items below.
+10. **Then the rest of the earlier order:** OA acceptance; the beta (B4, BETA-8); the tool agreement (TA-5b, TA-5c,
+    TA-9, TA-B); SG-2's hosted half, M67 (re-scope against packs first), M33.6; the Mongoose audit format phases 2–3;
+    M34.4/.5 and the small remnants; the C++ target's compiler issues (compiler#106–#109) — not analyser work, but
+    they gate a public C++ preview; and the cross-repo asks.
 
 ---
 
@@ -69,7 +66,7 @@ settings-save redraw, pinned (supersedes #78). [Release receipt](../handoff/rele
   (no export escaping) still splits on a `---` inside a value, which is MA-7's framing fault.
 - [UPS-2a] ☐ Review of PR #104, follow-ups: N2 (the source/GraphML test checks seven names, not generation identity) and
   `tools/gen-fqn.py`'s glob-chosen runtime jar; one header policy for generated source (M19.22).
-- [UPS-2b] ☐ **(owner) Refresh the start-page DEMO set** — deliberately unchanged by PR #104; includes dependent screenshots
+- [UPS-2b] ☐ **(owner) Refresh the start-page DEMO set** (screenshots: folded into [DOCS-IA] and the M74 capture harness) — deliberately unchanged by PR #104; includes dependent screenshots
   and journey bundles. Test-fixture adoption is complete and does not settle this presentation decision.
 - [UPS-3] ☐ **Mongoose replay at dispatch** (mongoose#47, 1.0.31) — input to the M70 owner decision; see ▸ M70.
 - [UPS-4] ☐ **Failure-mode follow-ups** fluxtion#35 / compiler#98 (a throwing node no longer wedges the processor) are
@@ -126,7 +123,7 @@ settings-save redraw, pinned (supersedes #78). [Release receipt](../handoff/rele
 - [M13.5] ☐ _(later)_ Resources/prompts (`analyser://…`) and/or option B. ▸ detail: *M13*.
 
 ### M43 · The AI menu — follow-ups
-- ☐ **(owner)** the menu's name (shipped as `AI`). ☐ **(owner)** D-AI9 wording addendum. ▸ detail: *M43*.
+- ☑ ~~**(owner)** the menu's name (shipped as `AI`)~~ — superseded by the Telamin AI rename (owner, 2026-10-17). ☐ **(owner)** D-AI9 wording addendum. ▸ detail: *M43*.
 
 ### M74 · Claude Code as the analyser's assistant ([spec](spec-claude-code-provider.md), r15)
 - [M74] ☑ P0, P0b protocol probes (2026-10-16). ◐ **P1a implemented** on `feature/claude-code-provider` (default posture, off by default; spec ▸ Implementation notes); two independent reviews closed; **live smoke passed** 2026-10-16 ([report](evidence/m74-p1a-smoke/SMOKE-report.md): bridge bound in 1.0 s, the §5.4 probes answered, two defects fixed) — **acceptance open:** Windows (§11), the owner's visual check of the tab and Settings on the built jar, the frame suites in CI. Owner decision 2026-10-16: `@path` mentions allowed, `!`/`#` kept refused. ◐ **P1b implemented** on `feature/claude-code-p1b` (full posture behind its own switch and warning; optional spend limit, off by default, OD-74.24); probes PB-1…4 run 2026-10-17 ([report](evidence/m74-p1b/PB-report.md), US$0.24: `auto` is model-dependent) live smoke 2026-10-17 ([report](evidence/m74-p1b-smoke/SMOKE-report.md)) and re-smoke after the review's 14 fixes (warm start fixed and passing live) — **acceptance open:** the owner's visual check. ◐ **P2a implemented** on `feature/claude-code-p2` (r10: the start-page prompt with the built-in list and dropped prompt packs, the Ask catalogue with no pop-up, transcript presentation, the full-posture cue; spec ▸ Implementation notes (P2a)); the configurable list is deferred by the owner until after P3. ◐ **P2b implemented** on `feature/claude-code-p2` after merging P1b (r11: `propose` onboarding, the simplified Move, conversation v2, the carried items, prompt-pack example entries OD-74.29/.30; spec ▸ Implementation notes (P2b)) — **acceptance open:** review, the owner's visual check; the handoff report and a Telamin example catalogue are deferred ◐ **P3 implemented** on `feature/claude-code-p3` (r12: probes P3-0…6 run on the real bridge, [report](evidence/m74-p3/P3-report.md); the permission dialog, single-use server-side grants, the scorecard's R1/R2/R5–R8; the preview labels removed; live smoke passed, [report](evidence/m74-p3-smoke/SMOKE-report.md)) — **acceptance open:** the owner's local UI test, then agent reviews.
@@ -210,7 +207,7 @@ settings-save redraw, pinned (supersedes #78). [Release receipt](../handoff/rele
 
 ### Spring-side work block — one piece of work
 - ☐ **G14** — the acceptance run from a real download; the owner accepts three residual risks, then one supervised run.
-- ☐ **G14-W** — warm cache is the default for LLM runs; a README-faithful first-run check runs occasionally ([PROTOCOL ▸ Cache state](../proposals/beta-testing/g14/PROTOCOL.md)). Next: the runner flag `--seed-m2`, with its provenance check, tests and control.
+- ☐ **G14-W** — warm cache is the default for LLM runs; a README-faithful first-run check runs occasionally ([PROTOCOL ▸ Cache state](../proposals/beta-testing/g14/PROTOCOL.md)). Next: the runner flag `--seed-m2`, with its provenance check, tests and control. The M74 onboarding runner (branch `docs/m74-virgin-onboarding-pack`) already has the provenance check and seeding, importable by `g14_runner`.
 - [SG-2] ◧ Provisioning closed; **changed-graph generation and run on the hosted ZIP** open.
 - ☐ **The jars**, built once for BETA-B4 and M67.1.
 - ☐ Reconciler follow-ups **G12, G5, F5/G13/F10, G7, F9** and the non-blocking P1, NF1, G22, G23 (compiler-owned).
@@ -240,7 +237,7 @@ settings-save redraw, pinned (supersedes #78). [Release receipt](../handoff/rele
 - [M47.1] ☐ Do the onboarding templates remove the four round-16 blockers structurally? ▸ detail: *M47*.
 
 ### M48 · Authoring modes ([spec](spec-authoring-modes.md)) — .1–.4, .7, .11 shipped
-- [M48.17] ☐ **(owner)** The shared-evidence-canvas thesis has had no independent read.
+- [M48.17] ☐ **(owner)** The shared-evidence-canvas thesis has had no independent read — now the Telamin Canvas product thesis; raised by M74.
 - [M48.5] ☐ mode-1 selection asset · [M48.6] ☐ `generate-sources` rebind · [M48.8] ☐ cache accounting ·
   [M48.9] ☐ modes 2/3 · [M48.10] ☐ the dev harness loop · [M48.12] ☐ header fingerprint carrier · [M48.13] ☐
   compiler-generated manifests · [M48.14] ☐ resolver productisation · [M48.15] ☐ one-command reproduction ·
@@ -262,7 +259,7 @@ settings-save redraw, pinned (supersedes #78). [Release receipt](../handoff/rele
 - [M19.1] ◧ Released bundle; a refreshed final evidence artefact remains.
 - [M19.1a] ◧ Mongoose starter conformance bench (waits on D-02).
 - [M19.3] ◧ Tutorial screenshots (need a connected browser).
-- [M19.15] ☐ The seeding prompt for step 2.
+- [M19.15] ☑ ~~The seeding prompt for step 2~~ — superseded by M74's start-page prompt and prompt packs.
 - [M19.19] ◧ Guided start — the person-watching check.
 - [M19.22] ◐ The generated header claims confidentiality — fluxtion#24.
 - [M19.23] ◧ UP-PG-02 landed; producer default-on not deployed. ▸ detail: *M19*.
@@ -278,14 +275,14 @@ settings-save redraw, pinned (supersedes #78). [Release receipt](../handoff/rele
 ### Beta ([proposal](../proposals/beta-testing/README.md))
 - [BETA-6] ◧ Sixth draft; one review round before any approach.
 - [BETA-B1] ◧ A2 needs a generation key; the customer key journey is untested (acquisition is a future item).
-- [BETA-B3] ☐ **(owner)** Template decision, then a dry run of A1–A2 by someone other than the author.
+- [BETA-B3] ☐ **(owner)** Template decision, then a dry run of A1–A2 by someone other than the author — the LLM half is covered by the M74 virgin protocol; the human dry run remains.
 - [BETA-B4] ☐ Jar A, jar B and the spec-derived check — publication and integration open.
 - [BETA-8] ◧ The journey on Haiku — A3's scoring gap. ▸ detail: *Beta*.
 
 ## Views and investigation
 
 ### M64 · Spotlight — shipped ([spec](completed/spec-spotlight.md))
-- [M64.13] ☐ Menu-target follow-ups from the M64.11 review.
+- [M64.13] ☐ Menu-target follow-ups from the M64.11 review — M74 made Ask labels depend on the assistant in force (documented; stable ids not given).
 
 ### M65 · Follow refreshes open graphs — shipped ([spec](completed/spec-follow-refreshes-graphs.md))
 - [M65.5] ☐ D-F5 measurement: extraction time per follow tick, demo and ~100k-record logs.
@@ -296,7 +293,7 @@ settings-save redraw, pinned (supersedes #78). [Release receipt](../handoff/rele
 - [M69.F5] ☐ The two project-transition report sites carry no control.
 
 ### M71 · Workspace Start — shipped ([spec](completed/spec-workspace-start.md))
-- [M71.F1] ☐ Optional: the tour's instructional sequence, reading width, the template dialog's hierarchy.
+- [M71.F1] ☑ ~~Optional: the tour's instructional sequence, reading width, the template dialog's hierarchy~~ — superseded by M74's unified start page and packs.
 
 ### Project / Sources / Audit log menus — remaining follow-ups
 - ☐ Display stability (the second-menu spotlight flake) · ☐ optional menu guard refinements ·
@@ -312,7 +309,7 @@ settings-save redraw, pinned (supersedes #78). [Release receipt](../handoff/rele
   [M22.20] ☐ a DataFlow `.push()` target renders as an orphan. ▸ detail: *M22*.
 
 ### M20 · M29 · M33 · M40 — follow-ups
-- [M20.5] ☐ Project artifact pointers — offer, never act.
+- [M20.5] ☑ ~~Project artifact pointers — offer, never act~~ — superseded by M74's `propose` onboarding (offer, checked, applied by the person).
 - [M29.5] ☐ **(owner, optional)** `embed: true` for small external series.
 - [M33.5] ☐ Fold M12.1's fix-brief onto the model (gated) · [M33.6] ☐ **YES — build it** (owner, 2026-08-27).
 - [M40.2c] ☐ _(optional)_ follow the supertype chain.
@@ -330,12 +327,12 @@ settings-save redraw, pinned (supersedes #78). [Release receipt](../handoff/rele
 ## Vision and later
 
 ### Product discovery — the notebook for event-driven applications
-- [ND-1] ☐ Iteration — the cycle is a redeploy · [ND-2] ☐ the document · [ND-3] ☐ re-execute the document.
+- [ND-1] ☐ Iteration — the cycle is a redeploy · [ND-2] ☐ the document (first step: M75's document model) · [ND-3] ☐ re-execute the document.
   ▸ detail: *Product discovery*.
 
 ### M12 · Diagnose → fix → prove ([spec](spec-closed-loop.md)) — design
 - [M12.1] ☐ `export_finding` · [M12.2] ☐ `export_test_fixture` · [M12.3] ☐ `DiffBuilder` additive-vs-value ·
-  [M12.4] ☐ "Fix with agent…" launcher.
+  [M12.4] ☑ ~~"Fix with agent…" launcher~~ — superseded by M74 (Claude Code in the analyser). M12.1/M12.2 move to M75 as document sources and the intent ledger.
 
 ### M11 · Research → monitoring promotion (Grafana) — vision
 - [M11.1] ☐ `export_promotion` · [M11.2] ☐ a Telamin-side tap plugin (not analyser) · [M11.3] ☐ the closed loop.
