@@ -72,3 +72,15 @@ as handed over (numbering kept; items not handed over — B3 — are not in this
 **Also, from the owner during this pass (2026-10-17):** the start page's *Or open directly* as titled blocks in a
 responsive grid — `a984df85`, ★ `StartWorkspaceFrameTest#startChoicesGroupByActivityAndStackOnANarrowWindow` (witness:
 the squashed FlowLayout strip → "a grid of at least 3 columns: 2"); screenshots in the scratchpad's `m74-ux-visual`.
+
+## Owner decisions on the fix pass (2026-10-17)
+
+The owner accepted all four:
+1. The recovery note for the first P1a holistic review is final. Findings with no record stay "unknown".
+2. B7: full-posture folder trust **discloses** files that CLAUDE.md `@path`-imports, ancestor CLAUDE.md files and hook script contents, and does not digest them.
+3. B4: a hosted call that gave up waiting **voids** its grant. A retry needs a fresh approval.
+4. The four tracker proposals are approved for after the merge:
+   - the spec split;
+   - the `LocalAgentWiring` extraction;
+   - the CLI-drift canary and managed-settings probe;
+   - the OD-74.2 terms check with a one-page security model.
