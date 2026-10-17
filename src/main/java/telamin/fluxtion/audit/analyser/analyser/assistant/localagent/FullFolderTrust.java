@@ -41,14 +41,41 @@ public final class FullFolderTrust {
     /** How a file was found. */
     public enum State { ABSENT, READ, TOO_LARGE, NOT_JSON, UNREADABLE }
 
-    /** One file's names: hook events with their counts (settings files), server names ({@code .mcp.json}). */
-    public record FileScan(String file, State state, Map<String, Integer> hooks, List<String> servers) {
+    /**
+     * One file's names: hook events with their counts and the plugins, marketplaces and command-valued keys of a settings
+     * file, the server names of {@code .mcp.json}, and every top-level key the analyser does not interpret (review
+     * finding 5: those may run other commands, and the dialog says so rather than "nothing runs").
+     */
+    public record FileScan(String file, State state, Map<String, Integer> hooks, List<String> servers,
+                           List<String> plugins, List<String> marketplaces, List<String> commands, List<String> unknown) {
         public FileScan {
             // the file's own order, as the person would read it there
             hooks = java.util.Collections.unmodifiableMap(new LinkedHashMap<>(hooks == null ? Map.of() : hooks));
             servers = List.copyOf(servers == null ? List.of() : servers);
+            plugins = List.copyOf(plugins == null ? List.of() : plugins);
+            marketplaces = List.copyOf(marketplaces == null ? List.of() : marketplaces);
+            commands = List.copyOf(commands == null ? List.of() : commands);
+            unknown = List.copyOf(unknown == null ? List.of() : unknown);
+        }
+
+        FileScan(String file, State state) {
+            this(file, state, Map.of(), List.of(), List.of(), List.of(), List.of(), List.of());
+        }
+
+        boolean runsSomething() {
+            return !hooks.isEmpty() || !servers.isEmpty() || !plugins.isEmpty() || !marketplaces.isEmpty()
+                    || !commands.isEmpty() || !unknown.isEmpty();
         }
     }
+
+    /** Settings keys whose value is a command Claude Code runs (review finding 5). */
+    static final List<String> COMMAND_KEYS = List.of("apiKeyHelper", "awsAuthRefresh", "awsCredentialExport",
+            "otelHeadersHelper", "statusLine");
+
+    /** Settings keys the analyser understands to run nothing by themselves; anything else is named as "may run". */
+    static final java.util.Set<String> INERT_SETTINGS = java.util.Set.of("$schema", "permissions", "model", "outputStyle",
+            "includeCoAuthoredBy", "cleanupPeriodDays", "theme", "enableAllProjectMcpServers", "enabledMcpjsonServers",
+            "disabledMcpjsonServers", "spinnerTipsEnabled");
 
     /** The folder's three files, scanned, and their digest. */
     public record Scan(List<FileScan> files, String digest) {
@@ -57,7 +84,13 @@ public final class FullFolderTrust {
         }
 
         public boolean nothingRuns() {
-            for (FileScan f : files) if (!f.hooks().isEmpty() || !f.servers().isEmpty()) return false;
+            for (FileScan f : files) if (f.runsSomething() || f.state() != State.ABSENT && f.state() != State.READ) return false;
+            return true;
+        }
+
+        /** None of the three files exists (the scratch folder's trust, review finding 3). */
+        public boolean allAbsent() {
+            for (FileScan f : files) if (f.state() != State.ABSENT) return false;
             return true;
         }
 
@@ -86,13 +119,27 @@ public final class FullFolderTrust {
                 Path f = dir.resolve(name);
                 all.update(name.getBytes(StandardCharsets.UTF_8));
                 all.update((byte) 0);
-                if (!Files.isRegularFile(f)) {
+                if (!Files.exists(f, java.nio.file.LinkOption.NOFOLLOW_LINKS) && !Files.exists(f)) {
                     all.update("absent".getBytes(StandardCharsets.UTF_8));
+                } else if (!Files.isRegularFile(f)) {
+                    // review finding 13: present but not a regular file — UNREADABLE in the scan, never "absent" here
+                    all.update("unreadable".getBytes(StandardCharsets.UTF_8));
                 } else {
+                    // bounded (review finding 13): at most MAX_BYTES are read; a larger file is told apart by its size
+                    // and modification time as well as its first MAX_BYTES (the scan already calls it unreadable)
                     MessageDigest one = MessageDigest.getInstance("SHA-256");
                     try (InputStream in = Files.newInputStream(f)) {
+                        long size = Files.size(f);
+                        if (size > MAX_BYTES) {
+                            one.update(("large:" + size + ":" + Files.getLastModifiedTime(f).toMillis())
+                                    .getBytes(StandardCharsets.UTF_8));
+                        }
                         byte[] buf = new byte[8192];
-                        for (int n; (n = in.read(buf)) > 0; ) one.update(buf, 0, n);
+                        long left = MAX_BYTES;
+                        for (int n; left > 0 && (n = in.read(buf, 0, (int) Math.min(buf.length, left))) > 0; ) {
+                            one.update(buf, 0, n);
+                            left -= n;
+                        }
                     } catch (IOException e) {
                         one.update("unreadable".getBytes(StandardCharsets.UTF_8));
                     }
@@ -107,22 +154,25 @@ public final class FullFolderTrust {
     }
 
     private static FileScan scanFile(Path f, String name) {
-        if (!Files.exists(f)) return new FileScan(name, State.ABSENT, Map.of(), List.of());
+        // the same rule as the digest: absent only when neither the name nor a link of that name exists
+        if (!Files.exists(f, java.nio.file.LinkOption.NOFOLLOW_LINKS) && !Files.exists(f)) {
+            return new FileScan(name, State.ABSENT);
+        }
         String text;
         try {
-            if (!Files.isRegularFile(f)) return new FileScan(name, State.UNREADABLE, Map.of(), List.of());
-            if (Files.size(f) > MAX_BYTES) return new FileScan(name, State.TOO_LARGE, Map.of(), List.of());
+            if (!Files.isRegularFile(f)) return new FileScan(name, State.UNREADABLE);
+            if (Files.size(f) > MAX_BYTES) return new FileScan(name, State.TOO_LARGE);
             text = Files.readString(f, StandardCharsets.UTF_8);
         } catch (IOException | RuntimeException e) {
-            return new FileScan(name, State.UNREADABLE, Map.of(), List.of());
+            return new FileScan(name, State.UNREADABLE);
         }
         Object root;
         try {
             root = Json.parse(text);
         } catch (RuntimeException e) {
-            return new FileScan(name, State.NOT_JSON, Map.of(), List.of());
+            return new FileScan(name, State.NOT_JSON);
         }
-        if (!(root instanceof Map<?, ?> m)) return new FileScan(name, State.NOT_JSON, Map.of(), List.of());
+        if (!(root instanceof Map<?, ?> m)) return new FileScan(name, State.NOT_JSON);
         Map<String, Integer> hooks = new LinkedHashMap<>();
         List<String> servers = new ArrayList<>();
         if (m.get("hooks") instanceof Map<?, ?> h) {
@@ -138,7 +188,35 @@ public final class FullFolderTrust {
             }
         }
         if (m.get("mcpServers") instanceof Map<?, ?> s) for (Object k : s.keySet()) servers.add(String.valueOf(k));
-        return new FileScan(name, State.READ, hooks, servers);
+        List<String> plugins = new ArrayList<>();
+        List<String> marketplaces = new ArrayList<>();
+        List<String> commands = new ArrayList<>();
+        List<String> unknown = new ArrayList<>();
+        boolean mcpFile = name.equals(".mcp.json");
+        for (Object k : m.keySet()) {
+            String key = String.valueOf(k);
+            Object v = m.get(k);
+            if (key.equals("hooks") && !mcpFile || key.equals("mcpServers")) continue;
+            if (mcpFile) {
+                unknown.add(key);
+            } else if (key.equals("enabledPlugins")) {
+                if (v instanceof Map<?, ?> pm) {
+                    for (var e : pm.entrySet()) if (!Boolean.FALSE.equals(e.getValue())) plugins.add(String.valueOf(e.getKey()));
+                } else if (v instanceof List<?> pl) {
+                    for (Object x : pl) plugins.add(String.valueOf(x));
+                } else {
+                    unknown.add(key);
+                }
+            } else if (key.equals("extraKnownMarketplaces")) {
+                if (v instanceof Map<?, ?> mm) for (Object x : mm.keySet()) marketplaces.add(String.valueOf(x));
+                else unknown.add(key);
+            } else if (COMMAND_KEYS.contains(key)) {
+                commands.add(key);
+            } else if (!INERT_SETTINGS.contains(key)) {
+                unknown.add(key);
+            }
+        }
+        return new FileScan(name, State.READ, hooks, servers, plugins, marketplaces, commands, unknown);
     }
 
     /**
@@ -148,7 +226,9 @@ public final class FullFolderTrust {
     public static String plain(String name) {
         StringBuilder sb = new StringBuilder();
         name.codePoints().limit(80).forEach(cp -> {
-            if (Character.isISOControl(cp) || Character.getType(cp) == Character.FORMAT) {
+            int t = Character.getType(cp);
+            if (Character.isISOControl(cp) || t == Character.FORMAT || t == Character.LINE_SEPARATOR
+                    || t == Character.PARAGRAPH_SEPARATOR) {
                 sb.append(String.format("\\u%04X", cp));
             } else {
                 sb.appendCodePoint(cp);
@@ -156,6 +236,12 @@ public final class FullFolderTrust {
         });
         if (name.codePointCount(0, name.length()) > 80) sb.append('…');
         return sb.toString();
+    }
+
+    private static String names(List<String> names) {
+        List<String> parts = new ArrayList<>();
+        for (String n : names) parts.add(plain(n));
+        return String.join(", ", parts);
     }
 
     /** §5.2's full-posture dialog, in words: what will run, from which file, and the question. */
@@ -189,10 +275,28 @@ public final class FullFolderTrust {
                     }
                     if (!f.servers().isEmpty()) {
                         any = true;
-                        List<String> parts = new ArrayList<>();
-                        for (String s : f.servers()) parts.add(plain(s));
-                        sb.append("MCP servers in this folder: ").append(String.join(", ", parts)).append(" — from ")
+                        sb.append("MCP servers in this folder: ").append(names(f.servers())).append(" — from ")
                                 .append(f.file()).append('\n');
+                    }
+                    if (!f.plugins().isEmpty()) {
+                        any = true;
+                        sb.append("Plugins enabled in this folder: ").append(names(f.plugins())).append(" — from ")
+                                .append(f.file()).append(" (their hooks, servers and commands run too)\n");
+                    }
+                    if (!f.marketplaces().isEmpty()) {
+                        any = true;
+                        sb.append("Plugin marketplaces added by this folder: ").append(names(f.marketplaces()))
+                                .append(" — from ").append(f.file()).append('\n');
+                    }
+                    if (!f.commands().isEmpty()) {
+                        any = true;
+                        sb.append("Commands this folder's settings run: ").append(names(f.commands())).append(" — from ")
+                                .append(f.file()).append('\n');
+                    }
+                    if (!f.unknown().isEmpty()) {
+                        any = true;
+                        sb.append("Settings the analyser does not interpret: ").append(names(f.unknown()))
+                                .append(" — from ").append(f.file()).append("; they may run other commands\n");
                     }
                 }
             }

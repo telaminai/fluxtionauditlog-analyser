@@ -66,8 +66,14 @@ class LocalAgentSessionTest {
     }
 
     static SessionEffects.SendLocalAgentTurnEffect send(SessionDriver d, FakeSessionAdapter a, long draft) {
+        return send(d, a, draft, consent());
+    }
+
+    /** Send under {@code c}: a Send re-checks the consent the running session was started under (review finding 4). */
+    static SessionEffects.SendLocalAgentTurnEffect send(SessionDriver d, FakeSessionAdapter a, long draft,
+                                                        SessionEvents.LocalAgentConsent c) {
         int before = a.agentSends.size();
-        d.post(new SessionEvents.LocalAgentSendRequested(draft, draft, SessionEvents.SlashClass.TEXT, null, consent()));
+        d.post(new SessionEvents.LocalAgentSendRequested(draft, draft, SessionEvents.SlashClass.TEXT, null, c));
         assertEquals(before + 1, a.agentSends.size(), "the turn was written: " + state(d).reason());
         var sent = a.agentSends.get(a.agentSends.size() - 1);
         d.post(new SessionEvents.LocalAgentTurnStarted(sent.generation(), sent.ticket()));   // the CLI's lifecycle started
@@ -562,7 +568,7 @@ class LocalAgentSessionTest {
 
         // after a turn has started, a restart resumes the same id
         bind(d, a.agentStarts.get(2));
-        var t = send(d, a, 10);
+        var t = send(d, a, 10, consent(true, true, false, true, "posture-b", BUDGET));
         assertTrue(state(d).resumable());
         d.post(new SessionEvents.LocalAgentStopRequested("Stop"));
         d.post(new SessionEvents.LocalAgentStopDeadline(3, t.ticket(), SessionEvents.StopDeadline.ACK));

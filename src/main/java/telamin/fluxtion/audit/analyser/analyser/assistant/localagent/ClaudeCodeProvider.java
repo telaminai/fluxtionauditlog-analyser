@@ -144,12 +144,12 @@ public final class ClaudeCodeProvider implements LocalAgentProvider {
     }
 
     @Override
-    public Map<String, String> environment(LocalAgentPosture posture, Map<String, String> inherited, Path userHome) {
+    public Map<String, String> environment(LocalAgentPosture posture, ChildPath.Extension path) {
         if (posture == null || !posture.isFull()) return Map.of(CLAUDE_MD_ENV, "1");
-        // full: no CLAUDE.md flag (CLAUDE.md loads through the project setting source, as in a terminal — PB-4); PATH
-        // extended per OD-74.11, never by a shell
-        ChildPath.Extension x = ChildPath.extend(inherited, userHome);
-        return x.appended().isEmpty() ? Map.of() : Map.of("PATH", x.path());
+        // full: no CLAUDE.md flag (CLAUDE.md loads through the project setting source, as in a terminal — PB-4; an
+        // inherited one is removed, ChildEnvironment); PATH extended per OD-74.11, never by a shell, written back under
+        // the key the analyser's own environment uses (Windows: "Path")
+        return path == null || !path.changed() ? Map.of() : Map.of(path.key(), path.path());
     }
 
     @Override

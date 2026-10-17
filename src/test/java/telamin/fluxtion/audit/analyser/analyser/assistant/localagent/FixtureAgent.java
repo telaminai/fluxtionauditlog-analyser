@@ -39,6 +39,8 @@ final class FixtureAgent implements AgentProcess.Launcher {
 
     final List<List<String>> commands = new ArrayList<>();
     final List<Map<String, String>> environments = new ArrayList<>();
+    /** The names the adapter asked to be removed from the child's environment, per start. */
+    final List<java.util.Set<String>> removedEnvironments = new ArrayList<>();
     final List<Path> workingDirs = new ArrayList<>();
     final List<Proc> processes = new ArrayList<>();
 
@@ -140,10 +142,11 @@ final class FixtureAgent implements AgentProcess.Launcher {
     }
 
     @Override
-    public AgentProcess start(List<String> command, Map<String, String> extraEnvironment, Path workingDir,
-                              Consumer<String> stdoutLine) {
+    public AgentProcess start(List<String> command, Map<String, String> extraEnvironment,
+                              java.util.Set<String> removedEnvironment, Path workingDir, Consumer<String> stdoutLine) {
         commands.add(command);
         environments.add(extraEnvironment);
+        removedEnvironments.add(removedEnvironment);
         workingDirs.add(workingDir);
         Proc p = new Proc(command, stdoutLine);
         p.blockWrites = blockNewWrites;

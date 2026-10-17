@@ -29,11 +29,31 @@ public final class ChildPath {
     private ChildPath() {
     }
 
-    /** The extended value and exactly what was appended, in order (the header's environment line names them). */
-    public record Extension(String path, List<String> appended) {
+    /**
+     * The extended value, the environment key it belongs under (the inherited one's spelling: {@code Path} on Windows),
+     * and exactly what was appended, in order (the header's environment line names them).
+     */
+    public record Extension(String key, String path, List<String> appended) {
         public Extension {
             appended = List.copyOf(appended);
+            key = key == null ? "PATH" : key;
         }
+
+        /** Whether the child's PATH differs from the analyser's own. */
+        public boolean changed() {
+            return !appended.isEmpty();
+        }
+    }
+
+    /** What a process gets with no PATH at all (review finding 7): the OS's own default, never "nothing". */
+    static String osDefault(boolean windows) {
+        return windows ? "C:\\Windows\\system32;C:\\Windows" : "/usr/bin:/bin:/usr/sbin:/sbin";
+    }
+
+    /** The environment's PATH key as spelled there, looked up without regard to case (Windows has {@code Path}). */
+    static String pathKey(Map<String, String> env) {
+        if (env != null) for (String k : env.keySet()) if (k.equalsIgnoreCase("PATH")) return k;
+        return "PATH";
     }
 
     public static Extension extend(Map<String, String> inherited, Path home) {
@@ -46,7 +66,9 @@ public final class ChildPath {
      */
     static Extension extend(Map<String, String> inherited, Path home, boolean windows, String separator,
                             Predicate<Path> isDirectory) {
-        String path = inherited == null ? null : inherited.get("PATH");
+        String key = pathKey(inherited);
+        String path = inherited == null ? null : inherited.get(key);
+        if (path == null || path.isEmpty()) path = osDefault(windows);
         Set<String> present = new LinkedHashSet<>();
         if (path != null && !path.isEmpty()) {
             for (String entry : path.split(Pattern.quote(separator))) {
@@ -67,12 +89,12 @@ public final class ChildPath {
             present.add(normal(c));
             appended.add(c);
         }
-        StringBuilder out = new StringBuilder(path == null ? "" : path);
+        StringBuilder out = new StringBuilder(path);
         for (String a : appended) {
             if (!out.isEmpty()) out.append(separator);
             out.append(a);
         }
-        return new Extension(out.toString(), appended);
+        return new Extension(key, out.toString(), appended);
     }
 
     /**
@@ -90,7 +112,8 @@ public final class ChildPath {
         out.add(Path.of("/opt/homebrew/bin"));
         out.add(Path.of("/usr/local/bin"));
         String npmPrefix = env == null ? null : env.get("NPM_CONFIG_PREFIX");
-        if (npmPrefix != null && !npmPrefix.isBlank()) out.add(Path.of(npmPrefix).resolve("bin"));
+        // review finding 13: only an absolute prefix; a relative one would resolve against the child's working folder
+        if (npmPrefix != null && !npmPrefix.isBlank() && npmPrefix.startsWith("/")) out.add(Path.of(npmPrefix).resolve("bin"));
         if (home != null) out.add(home.resolve(".npm-global").resolve("bin"));
         return out;
     }

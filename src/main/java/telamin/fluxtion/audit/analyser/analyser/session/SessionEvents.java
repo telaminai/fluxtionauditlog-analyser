@@ -821,6 +821,13 @@ public final class SessionEvents {
                                           LocalAgentConsent consent) {
     }
 
+    /**
+     * Settings were applied by the person (review finding 4): what the machine now says about starting Claude Code.
+     * The node decides whether the running session still has the consent and the posture it was started under.
+     */
+    public record LocalAgentConsentChanged(LocalAgentConsent consent) {
+    }
+
     /** Stop pressed: interrupt the one open turn. */
     public record LocalAgentStopRequested(String origin) {
     }
@@ -952,6 +959,13 @@ public final class SessionEvents {
      * turn it ran in, 0 for {@code SessionStart} at spawn.
      */
     public record LocalAgentHookObserved(long generation, long ticket, HookEvent event, HookOutcome outcome) {
+    }
+
+    /**
+     * {@code system/status} reported {@code permissionMode} in the middle of a session (review finding 2): a mode change
+     * between turns' {@code system/init}s. The node checks it against the posture and kills at once on a mismatch.
+     */
+    public record LocalAgentModeObserved(long generation, long ticket, String permissionMode) {
     }
 
     /** The interrupt for {@code ticket} was acknowledged by a {@code control_response}. */

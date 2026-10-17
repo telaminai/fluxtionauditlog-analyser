@@ -70,6 +70,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FollowTogg
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphCleared;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphClosed;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphOpened;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentConsentChanged;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentCostObserved;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentEffectStarted;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentExited;
@@ -77,6 +78,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgent
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentInitObserved;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentInitialized;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentInterruptAcked;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentModeObserved;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentNewChatRequested;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentNoted;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentSendRequested;
@@ -200,6 +202,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Requ
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphCleared
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphClosed
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphOpened
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentConsentChanged
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentCostObserved
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentEffectStarted
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentExited
@@ -207,6 +210,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Requ
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentInitObserved
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentInitialized
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentInterruptAcked
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentModeObserved
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentNewChatRequested
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentNoted
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentSendRequested
@@ -503,6 +507,10 @@ public class SessionProcessor
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphOpened",
                 false),
             new ProcessorDescriptor.Input(
+                "LocalAgentConsentChanged",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentConsentChanged",
+                false),
+            new ProcessorDescriptor.Input(
                 "LocalAgentCostObserved",
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentCostObserved",
                 false),
@@ -529,6 +537,10 @@ public class SessionProcessor
             new ProcessorDescriptor.Input(
                 "LocalAgentInterruptAcked",
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentInterruptAcked",
+                false),
+            new ProcessorDescriptor.Input(
+                "LocalAgentModeObserved",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentModeObserved",
                 false),
             new ProcessorDescriptor.Input(
                 "LocalAgentNewChatRequested",
@@ -736,7 +748,7 @@ public class SessionProcessor
           new DescriptorSupport.Meta(
               null,
               "1.0.76",
-              "c96bd665f860ebdd4667357b34a60f5d3e7f67021673d2396b3fb70e1fc866a5",
+              "8398f2da4742ecc5fc5bf42e3ea0907d8f950e3b0cecd7c6870d733c1f7d1388",
               null));
 
   @Override
@@ -991,6 +1003,9 @@ public class SessionProcessor
     } else if (event instanceof GraphOpened) {
       GraphOpened typedEvent = (GraphOpened) event;
       handleEvent(typedEvent);
+    } else if (event instanceof LocalAgentConsentChanged) {
+      LocalAgentConsentChanged typedEvent = (LocalAgentConsentChanged) event;
+      handleEvent(typedEvent);
     } else if (event instanceof LocalAgentCostObserved) {
       LocalAgentCostObserved typedEvent = (LocalAgentCostObserved) event;
       handleEvent(typedEvent);
@@ -1011,6 +1026,9 @@ public class SessionProcessor
       handleEvent(typedEvent);
     } else if (event instanceof LocalAgentInterruptAcked) {
       LocalAgentInterruptAcked typedEvent = (LocalAgentInterruptAcked) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof LocalAgentModeObserved) {
+      LocalAgentModeObserved typedEvent = (LocalAgentModeObserved) event;
       handleEvent(typedEvent);
     } else if (event instanceof LocalAgentNewChatRequested) {
       LocalAgentNewChatRequested typedEvent = (LocalAgentNewChatRequested) event;
@@ -1338,6 +1356,11 @@ public class SessionProcessor
   }
 
   @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(LocalAgentConsentChanged event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
   public void onEvent(LocalAgentCostObserved event) {
     processEvent(event);
   }
@@ -1369,6 +1392,11 @@ public class SessionProcessor
 
   @OnEventHandler(failBuildIfMissingBooleanReturn = false)
   public void onEvent(LocalAgentInterruptAcked event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(LocalAgentModeObserved event) {
     processEvent(event);
   }
 
@@ -2062,6 +2090,14 @@ public class SessionProcessor
     afterEvent();
   }
 
+  public void handleEvent(LocalAgentConsentChanged typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(localAgentSession, "localAgentSession", "onConsentChanged", typedEvent);
+    localAgentSession.onConsentChanged(typedEvent);
+    afterEvent();
+  }
+
   public void handleEvent(LocalAgentCostObserved typedEvent) {
     auditEvent(typedEvent);
     //Default, no filter methods
@@ -2115,6 +2151,14 @@ public class SessionProcessor
     //Default, no filter methods
     auditInvocation(localAgentSession, "localAgentSession", "onInterruptAcked", typedEvent);
     localAgentSession.onInterruptAcked(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(LocalAgentModeObserved typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(localAgentSession, "localAgentSession", "onModeObserved", typedEvent);
+    localAgentSession.onModeObserved(typedEvent);
     afterEvent();
   }
 
@@ -3046,6 +3090,11 @@ public class SessionProcessor
       isDirty_assistantLoop = assistantLoop.onGraphOpened(typedEvent);
       auditInvocation(projectReopenOffer, "projectReopenOffer", "onGraphOpened", typedEvent);
       projectReopenOffer.onGraphOpened(typedEvent);
+    } else if (event instanceof LocalAgentConsentChanged) {
+      LocalAgentConsentChanged typedEvent = (LocalAgentConsentChanged) event;
+      auditEvent(typedEvent);
+      auditInvocation(localAgentSession, "localAgentSession", "onConsentChanged", typedEvent);
+      localAgentSession.onConsentChanged(typedEvent);
     } else if (event instanceof LocalAgentCostObserved) {
       LocalAgentCostObserved typedEvent = (LocalAgentCostObserved) event;
       auditEvent(typedEvent);
@@ -3081,6 +3130,11 @@ public class SessionProcessor
       auditEvent(typedEvent);
       auditInvocation(localAgentSession, "localAgentSession", "onInterruptAcked", typedEvent);
       localAgentSession.onInterruptAcked(typedEvent);
+    } else if (event instanceof LocalAgentModeObserved) {
+      LocalAgentModeObserved typedEvent = (LocalAgentModeObserved) event;
+      auditEvent(typedEvent);
+      auditInvocation(localAgentSession, "localAgentSession", "onModeObserved", typedEvent);
+      localAgentSession.onModeObserved(typedEvent);
     } else if (event instanceof LocalAgentNewChatRequested) {
       LocalAgentNewChatRequested typedEvent = (LocalAgentNewChatRequested) event;
       auditEvent(typedEvent);

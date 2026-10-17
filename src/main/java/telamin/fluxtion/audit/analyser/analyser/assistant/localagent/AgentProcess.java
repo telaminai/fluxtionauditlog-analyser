@@ -35,7 +35,17 @@ public interface AgentProcess {
         /**
          * @param stdoutLine called on a reader thread for every stdout line, in order
          */
-        AgentProcess start(List<String> command, Map<String, String> extraEnvironment, Path workingDir,
+        default AgentProcess start(List<String> command, Map<String, String> extraEnvironment, Path workingDir,
+                                   Consumer<String> stdoutLine) throws IOException {
+            return start(command, extraEnvironment, java.util.Set.of(), workingDir, stdoutLine);
+        }
+
+        /**
+         * @param removedEnvironment names of the analyser's own environment the child must not inherit
+         *                           ({@link ChildEnvironment#removed}): a host Claude Code session's variables
+         */
+        AgentProcess start(List<String> command, Map<String, String> extraEnvironment,
+                           java.util.Set<String> removedEnvironment, Path workingDir,
                            Consumer<String> stdoutLine) throws IOException;
     }
 }

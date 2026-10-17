@@ -310,6 +310,120 @@ class LocalAgentFullPostureTest {
         assertEquals("BUDGET_SPENT", state(e).verdict());
     }
 
+    // ---- review fixes ----------------------------------------------------------------------------------------------------
+
+    /**
+     * ★ Review finding 2: a mid-session mode change. Witness: parse {@code system/status} as {@code Ignored} again, or
+     * drop the node's check (return false) — the acceptEdits change is not refused and the first assertion fails.
+     */
+    @Test
+    @DisplayName("★ a mode change reported mid-session (system/status) that the posture does not expect is killed at once")
+    void aModeChangeMidSessionIsKilled() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = driver(a);
+        var start = startFull(d, a, FullMode.DEFAULT);
+        d.post(fullInit(start, 0, "default", List.of(), "connected"));
+        d.post(new SessionEvents.LocalAgentModeObserved(start.generation(), 0, "default"));
+        assertEquals(0, kills(a).size(), "the expected mode: nothing happens");
+        d.post(new SessionEvents.LocalAgentModeObserved(start.generation(), 0, "acceptEdits"));
+        assertEquals("MODE_MISMATCH", state(d).verdict());
+        assertTrue(state(d).reason().contains("changed its permission mode to acceptEdits"), state(d).reason());
+        assertEquals(1, kills(a).size(), "killed at once, no interrupt first");
+        assertEquals(0, state(d).admittedGeneration());
+
+        FakeSessionAdapter b = new FakeSessionAdapter();
+        SessionDriver e = driver(b);
+        var s2 = startToReady(e, b);
+        e.post(new SessionEvents.LocalAgentModeObserved(s2.generation(), 0, LocalAgentPosture.BYPASS));
+        assertEquals("MODE_MISMATCH", state(e).verdict(), "bypassPermissions in the default posture too");
+    }
+
+    /**
+     * ★ Review finding 4. Witnesses: return false from {@code onConsentChanged} — the withdrawn consent leaves the
+     * session running; drop the Send re-check — a Send under a changed posture is written to the old process.
+     */
+    @Test
+    @DisplayName("★ Settings applied while running: withdrawn ends it now; a changed posture after the turn (or now when idle); a Send re-checks")
+    void settingsAppliedWhileRunning() {
+        // withdrawn: at once, even mid-turn
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = driver(a);
+        var start = startFull(d, a, FullMode.DEFAULT);
+        d.post(fullInit(start, 0, "default", List.of(), "connected"));
+        d.post(new SessionEvents.LocalAgentSendRequested(10, 10, SessionEvents.SlashClass.TEXT, null, full(FullMode.DEFAULT)));
+        assertTrue(state(d).busy());
+        var off = new SessionEvents.LocalAgentConsent(false, true, false, true, full(FullMode.DEFAULT).postureRef(), BUDGET,
+                SessionEvents.FolderVerdict.OK, true, FullMode.DEFAULT, true);
+        d.post(new SessionEvents.LocalAgentConsentChanged(off));
+        assertEquals(1, kills(a).size(), "switched off: stopped at once");
+        assertEquals("SWITCHED_OFF", state(d).verdict());
+
+        // a changed mode mid-turn: after the turn
+        FakeSessionAdapter b = new FakeSessionAdapter();
+        SessionDriver e = driver(b);
+        var s2 = startFull(e, b, FullMode.DEFAULT);
+        e.post(fullInit(s2, 0, "default", List.of(), "connected"));
+        e.post(new SessionEvents.LocalAgentSendRequested(10, 10, SessionEvents.SlashClass.TEXT, null, full(FullMode.DEFAULT)));
+        var sent = b.agentSends.get(0);
+        e.post(new SessionEvents.LocalAgentConsentChanged(full(FullMode.PLAN)));
+        assertEquals(0, kills(b).size(), "the turn in progress finishes first");
+        assertEquals("POSTURE_CHANGED", state(e).verdict());
+        e.post(new SessionEvents.LocalAgentTurnEnded(s2.generation(), sent.ticket(), SessionEvents.TurnOutcome.COMPLETED));
+        assertEquals(1, kills(b).size(), "then the session ends");
+        assertTrue(state(e).newChatOffered());
+
+        // unchanged settings change nothing; a changed posture while idle ends it now
+        FakeSessionAdapter c = new FakeSessionAdapter();
+        SessionDriver f = driver(c);
+        startFull(f, c, FullMode.DEFAULT);
+        f.post(new SessionEvents.LocalAgentConsentChanged(full(FullMode.DEFAULT)));
+        assertEquals(0, kills(c).size(), "the same posture: the session goes on");
+        f.post(new SessionEvents.LocalAgentConsentChanged(consent()));          // the full switch turned off
+        assertEquals(1, kills(c).size(), "another kind of posture, idle: ended now");
+
+        // a Send under changed settings is refused and ends the session; nothing is written
+        FakeSessionAdapter g = new FakeSessionAdapter();
+        SessionDriver h = driver(g);
+        startFull(h, g, FullMode.DEFAULT);
+        h.post(new SessionEvents.LocalAgentSendRequested(11, 11, SessionEvents.SlashClass.TEXT, null, full(FullMode.AUTO)));
+        assertEquals(0, g.agentSends.size(), "not written to a process started under other settings");
+        assertFalse(state(h).answer().accepted());
+        assertEquals(1, kills(g).size());
+    }
+
+    /** ★ Review finding 12. Witness: key the note on the event alone — the second turn's hook joins the first's note. */
+    @Test
+    @DisplayName("★ hook notes are coalesced per event and per turn")
+    void hookNotesPerTurn() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = driver(a);
+        d.post(new SessionEvents.LocalAgentStartRequested(1, full(FullMode.DEFAULT), false));
+        long g = a.agentStarts.get(0).generation();
+        d.post(new SessionEvents.LocalAgentHookObserved(g, 1, SessionEvents.HookEvent.UserPromptSubmit, SessionEvents.HookOutcome.OK));
+        d.post(new SessionEvents.LocalAgentHookObserved(g, 1, SessionEvents.HookEvent.UserPromptSubmit, SessionEvents.HookOutcome.OK));
+        d.post(new SessionEvents.LocalAgentHookObserved(g, 2, SessionEvents.HookEvent.UserPromptSubmit, SessionEvents.HookOutcome.OK));
+        var hooks = state(d).entries().stream().filter(e -> e.status().startsWith("HOOK")).toList();
+        assertEquals(2, hooks.size(), hooks.toString());
+        assertEquals("Hook UserPromptSubmit: 2 ran", hooks.get(0).detail());
+        assertEquals("Hook UserPromptSubmit: 1 ran", hooks.get(1).detail());
+    }
+
+    @Test
+    @DisplayName("review finding 13: a person's server name with control or bidi characters is shown escaped")
+    void serverNamesAreEscaped() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = driver(a);
+        var start = startFull(d, a, FullMode.DEFAULT);
+        var init = fullInit(start, 0, "default", List.of(), "connected");
+        List<String> servers = new ArrayList<>(init.servers());
+        servers.add("evil\u202Ename\u2028x:failed");
+        d.post(new SessionEvents.LocalAgentInitObserved(init.generation(), 0, init.sessionDigest(), "default",
+                init.tools(), servers, init.capabilities(), 0));
+        String note = notes(d).stream().filter(n -> n.contains("failed to connect")).findFirst().orElseThrow();
+        assertTrue(note.contains("evil\\u202Ename\\u2028x"), note);
+        assertFalse(note.contains("\u202E") || note.contains("\u2028"), "no raw bidi or line separator: " + note);
+    }
+
     static List<String> notes(SessionDriver d) {
         return state(d).entries().stream().filter(e -> LocalAgentState.NOTE.equals(e.kind()))
                 .map(LocalAgentState.Entry::detail).toList();

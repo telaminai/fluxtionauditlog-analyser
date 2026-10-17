@@ -151,4 +151,48 @@ class LocalAgentFullReplayTest {
         assertTrue(agent.commands.get(0).contains("--restricted"));
         assertEquals(LocalAgentPosture.ANALYSER_ASSISTANT, h.state().posture());
     }
+
+    /**
+     * ★ Review finding 2, over the REAL parser and adapter, from a capture: a {@code set_permission_mode} control request
+     * under an isolated config made the CLI emit {@code system/status{permissionMode:"acceptEdits"}} (no login, no
+     * spend). Replayed into a bound default-posture session, it is refused at once. Witness: parse {@code status} as
+     * {@code Ignored} (P1b) — the session stays admitted.
+     */
+    @Test
+    @DisplayName("★ the recorded system/status mode change mid-session is MODE_MISMATCH and kills the process")
+    void aRecordedModeChangeIsRefused() throws Exception {
+        FixtureAgent agent = new FixtureAgent(FixtureAgent.PB_FIXTURES, "pb-status-mode-iso.jsonl");
+        Harness h = new Harness(agent, home);
+        h.start();
+        assertEquals("READY", h.state().phase(), h.state().reason());
+        h.send("hello");                          // the fixture's two status lines are this turn's
+        assertEquals("MODE_MISMATCH", h.state().verdict(), h.state().reason());
+        assertTrue(h.state().reason().contains("changed its permission mode to acceptEdits"), h.state().reason());
+        assertEquals(1, agent.last().terminated, "killed at once");
+        assertEquals(2, h.facts(SessionEvents.LocalAgentModeObserved.class).size(), "both lines are reported");
+        assertEquals(1, agent.last().terminated, "the second, from a process already stopped, changes nothing");
+    }
+
+    @Test
+    @DisplayName("review finding 11: apiKeySource \"none\" is no key; an API key beside a subscription is what is billed")
+    void billingShapes() throws Exception {
+        var none = (StreamJson.ControlResponse) StreamJson.parse("{\"type\":\"control_response\",\"response\":{\"subtype\":"
+                + "\"success\",\"request_id\":\"i\",\"response\":{\"account\":{\"apiKeySource\":\"none\",\"tokenSource\":"
+                + "\"none\"},\"commands\":[]}}}");
+        assertNull(none.initialize().apiKeySource());
+        assertFalse(none.initialize().loggedIn(), "\"none\" is not a key: not logged in");
+        var both = (StreamJson.ControlResponse) StreamJson.parse("{\"type\":\"control_response\",\"response\":{\"subtype\":"
+                + "\"success\",\"request_id\":\"i\",\"response\":{\"account\":{\"apiKeySource\":\"ANTHROPIC_API_KEY\","
+                + "\"subscriptionType\":\"<subscription>\"},\"commands\":[]}}}");
+        assertEquals("ANTHROPIC_API_KEY", both.initialize().apiKeySource());
+
+        // through the adapter: a subscription with an API key in force is billed as the API key
+        FixtureAgent agent = new FixtureAgent("multiturn-partial-replay-midturn.jsonl");
+        agent.rewrite = l -> l.replace("\"subscriptionType\": \"<subscription>\"",
+                "\"subscriptionType\": \"<subscription>\", \"apiKeySource\": \"ANTHROPIC_API_KEY\"");
+        Harness h = new Harness(agent, home.resolve("both"));
+        h.start();
+        assertEquals(SessionEvents.Billing.API_KEY, h.state().billing());
+        assertEquals("API key (ANTHROPIC_API_KEY)", h.store.header(h.state().headerRef()).billing());
+    }
 }

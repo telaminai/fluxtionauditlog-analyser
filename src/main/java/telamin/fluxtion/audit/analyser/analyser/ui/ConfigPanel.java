@@ -84,8 +84,10 @@ public final class ConfigPanel extends JDialog {
             + "far as your permission rules and the mode below allow; the analyser does not confine it to the folder.\n\n"
             + "Audit-log records are data from the system you are investigating and can contain text written to steer an "
             + "AI; in this posture that text reaches an agent that may have your shell. The analyser still never lets "
-            + "Claude Code change what is open or write a file without asking you in the analyser, but it cannot limit "
-            + "what your own tools do. Turn this on only for folders and logs you trust.";
+            + "Claude Code change what is open or write a file through its own connection without asking you in the "
+            + "analyser, but it cannot limit what your own tools do — they can read files in your home folder, including "
+            + "the analyser's local REST token, and use it to drive the analyser as any external client can. Turn this on "
+            + "only for folders and logs you trust.";
     static final String FULL_POSTURE_TURN_ON = "Turn on full Claude Code";
 
     /** §5.1: what each mode does, as the Settings note under the mode says it. */

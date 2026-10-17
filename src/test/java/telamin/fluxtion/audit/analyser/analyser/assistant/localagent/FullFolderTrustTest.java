@@ -97,4 +97,58 @@ class FullFolderTrustTest {
         assertEquals("a\\u202Eb\\u000Ac", FullFolderTrust.plain("a‮b\nc"));
         assertTrue(FullFolderTrust.plain("x".repeat(200)).endsWith("…"));
     }
+
+    /**
+     * ★ Review finding 5. Witness: the P1b scan, which read only {@code hooks} and {@code mcpServers} — the plugin,
+     * command and unknown-key assertions fail and the dialog says "Nothing … runs".
+     */
+    @Test
+    @DisplayName("★ plugins, marketplaces and command-valued keys are named; a key the analyser does not interpret may run other commands")
+    void everythingThatMayRunIsNamed() throws Exception {
+        Files.createDirectories(dir.resolve(".claude"));
+        Files.writeString(dir.resolve(".claude/settings.json"), "{\"enabledPlugins\":{\"formatter@team\":true,"
+                + "\"off@team\":false},\"extraKnownMarketplaces\":{\"team\":{}},\"apiKeyHelper\":\"./key.sh\","
+                + "\"statusLine\":{\"type\":\"command\",\"command\":\"x\"},\"env\":{\"NODE_OPTIONS\":\"--require x\"},"
+                + "\"permissions\":{\"allow\":[]}}");
+        var scan = FullFolderTrust.scan(dir);
+        String text = FullFolderTrust.dialogText(dir, scan);
+        assertTrue(text.contains("Plugins enabled in this folder: formatter@team — from .claude/settings.json"), text);
+        assertFalse(text.contains("off@team"), "a plugin set to false is not enabled");
+        assertTrue(text.contains("Plugin marketplaces added by this folder: team"), text);
+        assertTrue(text.contains("Commands this folder's settings run: apiKeyHelper, statusLine"), text);
+        assertTrue(text.contains("Settings the analyser does not interpret: env — from .claude/settings.json; they may run "
+                + "other commands"), text);
+        assertFalse(text.contains("permissions"), "a key known to run nothing is not listed");
+        assertFalse(text.contains("Nothing in this folder"), text);
+        assertFalse(text.contains("./key.sh") || text.contains("NODE_OPTIONS"), "values are never shown");
+        assertFalse(scan.nothingRuns());
+
+        Files.writeString(dir.resolve(".claude/settings.json"), "{\"permissions\":{\"allow\":[]},\"model\":\"x\"}");
+        assertTrue(FullFolderTrust.dialogText(dir, FullFolderTrust.scan(dir)).contains("Nothing in this folder"),
+                "only keys known to run nothing: nothing runs");
+        Files.writeString(dir.resolve(".mcp.json"), "{\"mcpServers\":{},\"somethingNew\":1}");
+        assertTrue(FullFolderTrust.dialogText(dir, FullFolderTrust.scan(dir))
+                .contains("does not interpret: somethingNew — from .mcp.json"));
+    }
+
+    /** ★ Review finding 13. Witness: the digest's {@code !isRegularFile → absent} — the directory reads as absent. */
+    @Test
+    @DisplayName("★ a .mcp.json that is not a regular file is unreadable in the scan and in the digest alike; the digest is bounded")
+    void nonRegularAndLargeFiles() throws Exception {
+        String absent = FullFolderTrust.digest(dir);
+        Files.createDirectories(dir.resolve(".mcp.json"));
+        var scan = FullFolderTrust.scan(dir);
+        assertEquals(FullFolderTrust.State.UNREADABLE, scan.files().get(2).state());
+        assertNotEquals(absent, scan.digest(), "a directory named .mcp.json is not 'absent'");
+        assertFalse(scan.allAbsent());
+        assertFalse(scan.nothingRuns(), "an unreadable file is never 'nothing runs'");
+        Files.delete(dir.resolve(".mcp.json"));
+
+        Path big = dir.resolve(".mcp.json");
+        Files.writeString(big, "{}" + " ".repeat(FullFolderTrust.MAX_BYTES * 2));
+        String d1 = FullFolderTrust.digest(dir);
+        Files.writeString(big, "{}" + " ".repeat(FullFolderTrust.MAX_BYTES * 2 + 1));
+        assertNotEquals(d1, FullFolderTrust.digest(dir), "a change past the read bound still changes the digest (size)");
+        assertTrue(FullFolderTrust.plain("a\u2028b\u2029c").contains("\\u2028"), "line separators made visible");
+    }
 }

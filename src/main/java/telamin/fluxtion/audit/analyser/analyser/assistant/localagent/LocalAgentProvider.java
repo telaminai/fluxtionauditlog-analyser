@@ -62,8 +62,14 @@ public interface LocalAgentProvider {
      * Variables added to (or replacing in) the analyser's own environment for the child of {@code posture}: in the
      * full posture, {@code PATH} extended per OD-74.11 from {@code inherited} — computed, never by running a shell.
      */
+    default Map<String, String> environment(telamin.fluxtion.audit.analyser.analyser.session.LocalAgentPosture posture,
+                                            Map<String, String> inherited, Path userHome) {
+        return environment(posture, posture != null && posture.isFull() ? ChildPath.extend(inherited, userHome) : null);
+    }
+
+    /** As above, with the full posture's PATH extension already computed (once, for the environment and the header). */
     Map<String, String> environment(telamin.fluxtion.audit.analyser.analyser.session.LocalAgentPosture posture,
-                                    Map<String, String> inherited, Path userHome);
+                                    ChildPath.Extension path);
 
     /** Parse one stdout line. */
     StreamJson.Event parse(String line);

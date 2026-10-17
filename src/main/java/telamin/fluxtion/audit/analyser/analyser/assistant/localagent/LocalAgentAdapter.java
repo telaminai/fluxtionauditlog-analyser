@@ -167,7 +167,6 @@ public final class LocalAgentAdapter {
         Spawn s = new Spawn(e, env.model(), env.workingDirectory(), env.restUrl(), env.restToken(), env.bridgeLauncher(),
                 Map.copyOf(env.environment()), env.userHome());
         Run run = new Run(e.generation(), e.sessionId(), e.nonce(), writers.get());
-        run.full = e.posture().isFull();
         runs.put(e.generation(), run);
         worker.execute(() -> spawn(run, s));
         return started(e.opId(), e.generation(), "start");
@@ -228,7 +227,8 @@ public final class LocalAgentAdapter {
         try {
             String hosted = credentials.mint(gen);
             run.hosted = hosted;
-            new RestEndpointFile(run.endpointFile).writeHosted(s.restUrl(), s.restToken(), run.nonce, hosted);
+            // review finding 6: the hosted file carries no shared REST token; the bridge sends its credential alone
+            new RestEndpointFile(run.endpointFile).writeHosted(s.restUrl(), null, run.nonce, hosted);
         } catch (IOException | RuntimeException ex) {
             fail(run, SessionEvents.SpawnFailure.ENDPOINT_FAILED, 0);
             return;
@@ -237,18 +237,22 @@ public final class LocalAgentAdapter {
         List<String> command = provider.command(new LocalAgentProvider.LaunchSpec(found.executable(), run.sessionId,
                 s.effect().resume(), s.model(), s.cwd(), s.launcher().get(), run.endpointFile, s.effect().maxBudgetMicros(),
                 posture));
-        // OD-74.11: computed from the analyser's own environment, never by a shell; the default posture's is unchanged
-        Map<String, String> childEnv = provider.environment(posture, s.environment(), s.home());
-        if (posture.isFull()) {
+        // OD-74.11: computed once from the analyser's own environment, never by a shell, and used for both the child's
+        // environment and the header; the default posture's environment is unchanged
+        ChildPath.Extension path = posture.isFull() ? ChildPath.extend(s.environment(), s.home()) : null;
+        Map<String, String> childEnv = provider.environment(posture, path);
+        // review finding 1: a host Claude Code session's variables never reach the child, in either posture
+        java.util.Set<String> removedEnv = ChildEnvironment.removed(s.environment(), posture);
+        if (path != null) {
             List<String> shown = new ArrayList<>();
-            for (String d : ChildPath.extend(s.environment(), s.home()).appended()) shown.add(ChildPath.shown(d, s.home()));
+            for (String d : path.appended()) shown.add(ChildPath.shown(d, s.home()));
             run.pathAdded = List.copyOf(shown);
         }
         run.startedAt = clock.nowMillis();
         run.folder = s.cwd().toString();
         run.configuredModel = s.model() == null || s.model().isBlank() ? ClaudeCodeProvider.DEFAULT_MODEL : s.model().trim();
         try {
-            AgentProcess p = launcher.start(command, childEnv, s.cwd(), line -> onLine(run, line));
+            AgentProcess p = launcher.start(command, childEnv, removedEnv, s.cwd(), line -> onLine(run, line));
             synchronized (run) {
                 run.process = p;
             }
@@ -436,9 +440,8 @@ public final class LocalAgentAdapter {
                 }
             }
             case StreamJson.PermissionDenied p -> {
-                // the words of the tool line are what the CLI's reason type says happened (PB-1); the node decides the note
-                String outcome = p.approvalUnavailable() ? "denied — needs your approval (not available in the analyser yet)"
-                        : run.full ? "denied by your rules or the mode" : "denied by the posture";
+                // the tool line's mark follows the CLI's own reason (an enum, review finding 10); the node decides the note
+                String outcome = p.reason().words();
                 boolean marked;
                 synchronized (run) {
                     marked = run.toolOutcome(p.toolUseId(), outcome);
@@ -450,6 +453,9 @@ public final class LocalAgentAdapter {
                     env.post(new SessionEvents.LocalAgentNoted(gen, run.runningTicket, note, 0));
                 }
             }
+            // the mode the CLI now reports, mid-session: the node judges it against the posture (review finding 2)
+            case StreamJson.ModeStatus m -> env.post(new SessionEvents.LocalAgentModeObserved(gen, run.runningTicket,
+                    m.permissionMode()));
             // a hook's event and outcome only: its output never left the parser (§4.4 step 1)
             case StreamJson.Hook h -> env.post(new SessionEvents.LocalAgentHookObserved(gen, run.runningTicket,
                     SessionEvents.HookEvent.of(h.event()), h.started() ? SessionEvents.HookOutcome.STARTED
@@ -477,8 +483,9 @@ public final class LocalAgentAdapter {
         if (id.equals("init-" + gen) && r.initialize() != null) {
             StreamJson.Initialize init = r.initialize();
             lastCommands = init.commands();
-            String billing = init.subscriptionType() != null ? init.subscriptionType()
-                    : init.apiKeySource() != null ? "API key (" + init.apiKeySource() + ")" : "";
+            // review finding 11: an API key in force is what is billed, even beside a subscription
+            String billing = init.apiKeySource() != null ? "API key (" + init.apiKeySource() + ")"
+                    : init.subscriptionType() != null ? init.subscriptionType() : "";
             long headerRef;
             synchronized (run) {
                 run.header = new LocalAgentTranscript.Header(null, null, billing, init.apiProvider(),
@@ -486,8 +493,8 @@ public final class LocalAgentAdapter {
                 headerRef = store.putHeader(run.header);
             }
             // how it is paid for, as an enum: a Claude plan, or an API key — never the plan's or the source's value
-            SessionEvents.Billing paid = init.subscriptionType() != null ? SessionEvents.Billing.SUBSCRIPTION
-                    : init.apiKeySource() != null ? SessionEvents.Billing.API_KEY : SessionEvents.Billing.UNKNOWN;
+            SessionEvents.Billing paid = init.apiKeySource() != null ? SessionEvents.Billing.API_KEY
+                    : init.subscriptionType() != null ? SessionEvents.Billing.SUBSCRIPTION : SessionEvents.Billing.UNKNOWN;
             env.post(new SessionEvents.LocalAgentInitialized(gen, init.loggedIn(), init.permissionMode(), headerRef, paid));
         } else if (id.startsWith("status-" + gen + "-") && r.status() != null) {
             List<String> names = new ArrayList<>();
@@ -648,8 +655,6 @@ public final class LocalAgentAdapter {
         volatile String hosted;
         volatile String folder;
         volatile String configuredModel;
-        /** Started in the full posture: the tool line names the person's rules, not the analyser's posture. */
-        volatile boolean full;
         /** The directories appended to the child's PATH, as the header shows them (OD-74.11). */
         volatile List<String> pathAdded = List.of();
         AgentProcess process;

@@ -129,6 +129,8 @@ class LocalAgentConsentTest {
         assertEquals(5.0, ConfigStore.budget("5.0", "2"), "a limit of 5.0 chosen in P1b is kept");
         assertNull(ConfigStore.budget("-1", "2"));
         assertNull(ConfigStore.budget("x", "2"));
+        assertEquals(ConfigStore.MIN_BUDGET_USD, ConfigStore.budget("0.0000001", "2"),
+                "review finding 14: a tiny limit is clamped, never rounded to 0 micro-dollars (= no limit)");
 
         Path dir = Files.createDirectories(tmp.resolve("budget"));
         ConfigStore store = new ConfigStore(dir.resolve("config"));

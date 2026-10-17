@@ -94,8 +94,8 @@ public class LocalAgentSession implements EventLogSource {
     private int personServers;
     /** How the session is paid for, from {@code initialize.account} at the parse boundary: decides whether a cost is shown. */
     private SessionEvents.Billing billing = SessionEvents.Billing.UNKNOWN;
-    /** One coalesced note per hook event of this generation: its entry index and counts (started, ok, failed). */
-    private Map<SessionEvents.HookEvent, long[]> hookNotes = new LinkedHashMap<>();
+    /** One coalesced note per hook event and turn (review finding 12): its entry index and counts (started, ok, failed). */
+    private Map<String, long[]> hookNotes = new LinkedHashMap<>();
     private List<LocalAgentState.Entry> entries = new ArrayList<>();
     private LocalAgentState.Answer answer = LocalAgentState.Answer.NONE;
     private LocalAgentState published = LocalAgentState.IDLE;
@@ -142,8 +142,53 @@ public class LocalAgentSession implements EventLogSource {
         return changed();
     }
 
+    /**
+     * Review finding 4: Settings applied while a session runs. Consent withdrawn ends it at once; a changed posture (the
+     * full switch, its mode, the note, the pre-allow list) ends it after the turn in progress, or at once when none is.
+     * The next Start then sees the change and offers New chat; a session is never left running under settings it was
+     * not started with.
+     */
+    @OnEventHandler
+    public boolean onConsentChanged(SessionEvents.LocalAgentConsentChanged e) {
+        if (!running()) return false;                     // the next Start decides with the new consent
+        if (!endForConsent(e.consent())) return false;
+        return changed();
+    }
+
+    /** Whether {@code c} no longer covers the running session; if so, the session is ended (now or after its turn). */
+    private boolean endForConsent(SessionEvents.LocalAgentConsent c) {
+        if (c == null || !c.allowed()) {
+            auditLog.info("localAgentConsent", "WITHDRAWN");
+            verdict = "SWITCHED_OFF";
+            kill("starting Claude Code was switched off in Settings, so the running session was stopped");
+            return true;
+        }
+        boolean kindChanged = c.full() != posture.isFull();
+        boolean refChanged = postureRef != null && !postureRef.equals(c.postureRef());
+        if (!kindChanged && !refChanged) return false;
+        auditLog.info("localAgentConsent", "POSTURE_CHANGED");
+        String why = "Settings changed the posture (a switch, the full posture's mode, the folder or the system note) "
+                + "since this session started, so it was stopped" + (openTicket != 0 ? " after the turn in progress" : "")
+                + "; Start begins a New chat";
+        verdict = "POSTURE_CHANGED";
+        newChatOffered = true;
+        if (openTicket != 0) {
+            reason = why;
+            endAfterTurn = true;
+            note("POSTURE_CHANGED", why);
+        } else {
+            kill(why);
+        }
+        return true;
+    }
+
     @OnEventHandler
     public boolean onSendRequested(SessionEvents.LocalAgentSendRequested e) {
+        // review finding 4: a Send re-checks the consent the running session was started under
+        if (running() && openTicket == 0 && !"STOPPING".equals(phase) && endForConsent(e.consent())) {
+            answer(e.request(), false, reason);
+            return changed();
+        }
         String refusal = sendRefusal(e);
         if (refusal != null) {
             refuse(e.request(), refusal);
@@ -431,6 +476,21 @@ public class LocalAgentSession implements EventLogSource {
     }
 
     /**
+     * Review finding 2: the CLI reported a mode mid-session. A mode the posture does not expect (including
+     * {@code bypassPermissions}) is a session running with powers it was not started with: killed at once, no interrupt.
+     */
+    @OnEventHandler
+    public boolean onModeObserved(SessionEvents.LocalAgentModeObserved e) {
+        if (stale(e.generation(), "LocalAgentModeObserved") || !running()) return false;
+        auditLog.info("localAgentMode", posture.modeMatches(e.permissionMode()) ? "OK" : "MODE_MISMATCH");
+        if (posture.modeMatches(e.permissionMode())) return false;
+        refuseSession("MODE_MISMATCH", "the posture check failed — Claude Code changed its permission mode to "
+                + safe(e.permissionMode()) + " during the session, where the analyser started it in "
+                + posture.permissionMode() + " — so the session was stopped", true);
+        return changed();
+    }
+
+    /**
      * P1b §8.1: a hook ran. One note per event per generation, updated in place as hooks start and answer (coalesced),
      * naming the event and the outcome — never the hook's output, which never reaches a fact.
      */
@@ -438,10 +498,11 @@ public class LocalAgentSession implements EventLogSource {
     public boolean onHookObserved(SessionEvents.LocalAgentHookObserved e) {
         if (stale(e.generation(), "LocalAgentHookObserved") || !running()) return false;
         SessionEvents.HookEvent event = e.event() == null ? SessionEvents.HookEvent.OTHER : e.event();
-        long[] n = hookNotes.get(event);
+        String key = event.name() + ":" + e.ticket();
+        long[] n = hookNotes.get(key);
         if (n == null) {
             n = new long[]{entries.size(), 0, 0, 0};
-            hookNotes.put(event, n);
+            hookNotes.put(key, n);
             entries.add(new LocalAgentState.Entry(0, LocalAgentState.NOTE, e.ticket(), "HOOK", "", 0));
         }
         switch (e.outcome() == null ? SessionEvents.HookOutcome.STARTED : e.outcome()) {
@@ -815,9 +876,20 @@ public class LocalAgentSession implements EventLogSource {
         return java.math.BigDecimal.valueOf(micros, 6).setScale(2, java.math.RoundingMode.HALF_UP).toPlainString();
     }
 
-    private static String safe(String s) {
+    /** CLI- or person-supplied text in the node's words: control, format and line-separator characters escaped. */
+    static String safe(String s) {
         if (s == null) return "(none)";
-        return s.length() > 40 ? s.substring(0, 40) + "…" : s;
+        StringBuilder sb = new StringBuilder();
+        s.codePoints().limit(40).forEach(cp -> {
+            int t = Character.getType(cp);
+            if (Character.isISOControl(cp) || t == Character.FORMAT || t == Character.LINE_SEPARATOR
+                    || t == Character.PARAGRAPH_SEPARATOR) {
+                sb.append(String.format("\\u%04X", cp));
+            } else {
+                sb.appendCodePoint(cp);
+            }
+        });
+        return s.codePointCount(0, s.length()) > 40 ? sb + "…" : sb.toString();
     }
 
     private boolean changed() {

@@ -289,11 +289,12 @@ public final class McpBridge {
         try {
             HttpRequest.Builder builder = HttpRequest.newBuilder(URI.create(endpoint.url() + "/action"))
                     .header("Content-Type", "application/json")
-                    .header("X-Analyser-Token", endpoint.token())
                     .timeout(CALL_TIMEOUT)
                     .POST(HttpRequest.BodyPublishers.ofString(Json.write(body), StandardCharsets.UTF_8));
             // M74 §4.2: the hosted bridge identifies itself by its generation's credential, never by the shared token
             if (hosted && endpoint.hosted() != null) builder.header(HOSTED_HEADER, endpoint.hosted());
+            // the shared token only when the file has one: the hosted per-instance file does not (review finding 6)
+            if (endpoint.token() != null) builder.header("X-Analyser-Token", endpoint.token());
             HttpRequest request = builder.build();
             HttpResponse<String> response = http.send(request, HttpResponse.BodyHandlers.ofString());
             return toolResult(id, response, modern);

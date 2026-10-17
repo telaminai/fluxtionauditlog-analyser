@@ -37,6 +37,7 @@ class ChildPathTest {
         assertEquals(List.of("/home/someone/.local/bin", "/opt/homebrew/bin", "/npm/prefix/bin",
                 "/home/someone/.npm-global/bin"), x.appended(), "OD-74.11's order; /usr/local/bin is missing so is not added");
         assertTrue(x.path().startsWith(GUI + ":"), "the analyser's own PATH first, untouched: " + x.path());
+        assertEquals("PATH", x.key());
         assertEquals(GUI + ":/home/someone/.local/bin:/opt/homebrew/bin:/npm/prefix/bin:/home/someone/.npm-global/bin",
                 x.path());
 
@@ -50,9 +51,24 @@ class ChildPathTest {
         assertEquals(List.of(), z.appended());
         assertEquals(GUI, z.path());
 
-        // no PATH at all: just the appended directories
+        // review finding 7: no PATH at all: the OS default first, never appended to nothing
         var w = ChildPath.extend(Map.of(), HOME, false, ":", exist::contains);
-        assertEquals(String.join(":", w.appended()), w.path());
+        assertEquals(GUI + ":" + String.join(":", w.appended()), w.path());
+        // review finding 13: a relative NPM_CONFIG_PREFIX is never used
+        var r = ChildPath.extend(Map.of("PATH", GUI, "NPM_CONFIG_PREFIX", "relative/prefix"), HOME, false, ":", p -> true);
+        assertTrue(r.appended().stream().noneMatch(d -> d.contains("relative")), r.appended().toString());
+    }
+
+    /** ★ Review finding 7. Witness: look up "PATH" exactly — the Windows "Path" is not found and C:\\Windows is lost. */
+    @Test
+    @DisplayName("★ Windows spells it Path: found without regard to case and written back under that key")
+    void windowsPathKey() {
+        var x = ChildPath.extend(Map.of("Path", "C:\\Windows", "APPDATA", "C:\\Users\\u\\AppData\\Roaming"),
+                Path.of("C:\\Users\\u"), true, ";", p -> true);
+        assertEquals("Path", x.key());
+        assertTrue(x.path().startsWith("C:\\Windows;"), x.path());
+        var env = new ClaudeCodeProvider().environment(LocalAgentPosture.full(LocalAgentPosture.FullMode.DEFAULT), x);
+        assertEquals(java.util.Set.of("Path"), env.keySet(), "never a second, upper-case PATH beside the person's Path");
     }
 
     @Test

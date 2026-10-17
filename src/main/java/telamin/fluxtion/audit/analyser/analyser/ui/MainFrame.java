@@ -4823,28 +4823,14 @@ public final class MainFrame extends JFrame {
      * digest of its settings and .mcp.json now (OD-74.12) — an observation; the node decides what it means.
      */
     private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentConsent localAgentConsent() {
-        Path dir = localAgentDirectory();
-        String real = realPathOf(dir);
-        boolean scratch = dir != null && dir.equals(localAgentScratch);
-        boolean confirmed = scratch || config.claudeCodeTrustedFolders.contains(real);
-        var mode = telamin.fluxtion.audit.analyser.analyser.session.LocalAgentPosture.FullMode.parse(config.claudeCodeFullMode)
-                .orElse(telamin.fluxtion.audit.analyser.analyser.session.LocalAgentPosture.FullMode.DEFAULT);
-        var posture = config.claudeCodeFull
-                ? telamin.fluxtion.audit.analyser.analyser.session.LocalAgentPosture.full(mode)
-                : telamin.fluxtion.audit.analyser.analyser.session.LocalAgentPosture.ANALYSER_ASSISTANT;
-        boolean fullConfirmed = config.claudeCodeFull && dir != null && (scratch
-                || telamin.fluxtion.audit.analyser.analyser.assistant.localagent.FullFolderTrust.confirms(
-                        config.claudeCodeTrustedFullFolders, real,
-                        telamin.fluxtion.audit.analyser.analyser.assistant.localagent.FullFolderTrust.digest(dir)));
-        String postureRef = posture.ref(real,
-                telamin.fluxtion.audit.analyser.analyser.assistant.localagent.ClaudeCodeProvider.systemNote(posture));
-        var folder = telamin.fluxtion.audit.analyser.analyser.assistant.localagent.LocalAgentFolders.check(dir,
-                Path.of(System.getProperty("user.home")));
-        long budget = config.claudeCodeBudgetUsd == null ? 0 : Math.round(config.claudeCodeBudgetUsd * 1_000_000d);
-        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentConsent(config.claudeCodeAllowed,
-                confirmed, dir != null && telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.isWorkingCopy(dir),
-                actionServer != null, postureRef, budget, folder, config.claudeCodeFull, mode, fullConfirmed);
+        return telamin.fluxtion.audit.analyser.analyser.assistant.localagent.LocalAgentConsents.of(localAgentDirectory(),
+                localAgentScratch, Path.of(System.getProperty("user.home")),
+                new telamin.fluxtion.audit.analyser.analyser.assistant.localagent.LocalAgentConsents.Settings(
+                        config.claudeCodeAllowed, config.claudeCodeFull, config.claudeCodeFullMode,
+                        config.claudeCodeTrustedFolders, config.claudeCodeTrustedFullFolders, config.claudeCodeBudgetUsd),
+                actionServer != null, telamin.fluxtion.audit.analyser.bundle.EvidenceBundle::isWorkingCopy);
     }
+
 
     /**
      * OD-74.1 (r5 amendment): warm start on the person's DIRECT selection of the Assistant tab only. The selection
@@ -7181,6 +7167,12 @@ public final class MainFrame extends JFrame {
         if (!fromTransition && session != null) {
             session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents
                     .SourceRootsObserved(List.copyOf(config.sourceRoots)));
+            // M74 review finding 4: report what the machine now says about Claude Code; localAgentSession decides
+            // whether a running session still has the consent and posture it was started under
+            if (localAgentAdapter != null) {
+                session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentConsentChanged(
+                        localAgentConsent()));
+            }
         }
         sourceService.configure(effectiveSourceRoots(), config.selectedEventProcessor,
                 config.mavenRepos, config.searchMavenRepos);

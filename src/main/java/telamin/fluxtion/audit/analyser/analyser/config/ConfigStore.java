@@ -1208,6 +1208,9 @@ public final class ConfigStore {
         return "default";
     }
 
+    /** The smallest limit Settings offers. */
+    public static final double MIN_BUDGET_USD = 0.5;
+
     /** Written beside the budget from P1b on: the stored value then means exactly what it says (blank = no limit). */
     static final String BUDGET_FORMAT = "2";
 
@@ -1226,7 +1229,9 @@ public final class ConfigStore {
         }
         if (!(v > 0) || Double.isInfinite(v)) return null;
         if (!BUDGET_FORMAT.equals(format == null ? null : format.trim()) && v == 5.0) return null;
-        return v;
+        // review finding 14: a hand-edited limit below the smallest Settings offers (US$0.50) is clamped to it — a limit
+        // stays a limit, and never rounds to 0 micro-dollars, which would read as "no limit"
+        return Math.max(MIN_BUDGET_USD, v);
     }
 
     static void writeList(Properties p, String prefix, List<String> values) {

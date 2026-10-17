@@ -159,17 +159,22 @@ public final class ActionServer {
     private void handleAction(HttpExchange ex) throws IOException {
         try {
             if (refusedByCommonGuards(ex, "/action", "POST")) return;
-            String provided = ex.getRequestHeaders().getFirst(TOKEN_HEADER);
-            if (provided == null || !provided.equals(token)) {
-                send(ex, 401, err("missing or bad " + TOKEN_HEADER));
-                return;
+            String hosted = ex.getRequestHeaders().getFirst(HOSTED_HEADER);
+            // M74 review finding 6: the hosted bridge authenticates with its own per-generation credential alone (its
+            // endpoint file no longer carries the shared token); every other caller needs the shared token. A presented
+            // hosted credential that is not live is refused below, never treated as an external call.
+            if (hosted == null) {
+                String provided = ex.getRequestHeaders().getFirst(TOKEN_HEADER);
+                if (provided == null || !provided.equals(token)) {
+                    send(ex, 401, err("missing or bad " + TOKEN_HEADER));
+                    return;
+                }
             }
             if (!limiter.tryAcquire()) {
                 send(ex, 429, err("rate limited (" + ratePerSec + "/s)"));
                 return;
             }
             String body = new String(ex.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
-            String hosted = ex.getRequestHeaders().getFirst(HOSTED_HEADER);
             if (hosted != null) {
                 String refused = hostedRefusal(hostedGate, hosted, body);
                 if (refused != null) {

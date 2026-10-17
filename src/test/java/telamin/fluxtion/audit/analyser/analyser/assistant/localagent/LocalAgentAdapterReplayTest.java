@@ -381,7 +381,8 @@ class LocalAgentAdapterReplayTest {
         assertTrue(file.startsWith(home.resolve(".fluxtion-analyser")), file.toString());
         assertEquals("rw-------", PosixFilePermissions.toString(Files.getPosixFilePermissions(file)));
         RestEndpointFile.Endpoint e = new RestEndpointFile(file).read();
-        assertEquals("shared-rest-token", e.token());
+        assertNull(e.token(), "review finding 6: the hosted file never carries the shared REST token");
+        assertFalse(Files.readString(file).contains("shared-rest-token"));
         assertNotNull(e.nonce());
         assertNotNull(e.hosted());
         assertEquals(1, h.credentials.generationOf(e.hosted()), "the credential maps to its generation");

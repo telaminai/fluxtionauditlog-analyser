@@ -72,7 +72,9 @@ public final class RestEndpointFile {
     public void writeHosted(String url, String token, String nonce, String hosted) throws IOException {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("url", url);
-        m.put("token", token);
+        // M74 review finding 6: the per-instance hosted file carries only what the hosted bridge needs — the URL, the
+        // nonce and its own credential — never the shared REST token (null here), which is worth more to anyone reading it
+        if (token != null) m.put("token", token);
         if (nonce != null) m.put("nonce", nonce);
         if (hosted != null) m.put("hosted", hosted);
         m.put("pid", ProcessHandle.current().pid());
@@ -106,12 +108,13 @@ public final class RestEndpointFile {
             if (!(Json.parse(Files.readString(path, StandardCharsets.UTF_8)) instanceof Map<?, ?> m)) return null;
             Object url = m.get("url");
             Object token = m.get("token");
-            if (url == null || token == null) return null;
+            Object hostedCredential = m.get("hosted");
+            if (url == null || (token == null && hostedCredential == null)) return null;
             long pid = m.get("pid") instanceof Number n ? n.longValue() : -1;
             Object startedAt = m.get("startedAt");
             Object nonce = m.get("nonce");
             Object hosted = m.get("hosted");
-            return new Endpoint(url.toString(), token.toString(), pid,
+            return new Endpoint(url.toString(), token == null ? null : token.toString(), pid,
                     startedAt == null ? null : startedAt.toString(), nonce == null ? null : nonce.toString(),
                     hosted == null ? null : hosted.toString());
         } catch (IOException | RuntimeException e) {
