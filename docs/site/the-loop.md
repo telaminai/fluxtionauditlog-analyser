@@ -86,7 +86,7 @@ surface both of you work on — a **shared research canvas**, with the human in 
     not. Support and on-call arrive cold at **④ Prove** — an unfamiliar system, someone else's graph, a
     log from a night they were not working — and the same canvas answers, because the evidence was
     emitted by the processor rather than written by whoever built it. That path has its own guide:
-    [Answering questions about a running system](support.md).
+    [Diagnose an incident](diagnose/index.md).
 
 ```mermaid
 flowchart LR
@@ -103,7 +103,7 @@ flowchart LR
   does not: open a log, filter, flag, chart, step the topology, write a report. Every one of them is a
   render into the canvas, and every one is reversible. The analyser's Start page and Assistant settings
   make this connection explicit: they can register Codex or Claude Code after confirmation, or supply
-  a generic no-token record for another client. See [Connecting an LLM to the analyser](connect-an-llm.md).
+  a generic no-token record for another client. See [Connect your client](connect-an-llm.md).
 - **The AI connects to the deployed app on Mongoose** to fetch what the canvas needs — the audit log
   and the processor's graph — and, on a development server, to act on what was found (turn audit
   detail up, restart after a fix). Today that is an export the agent fetches and opens; it arrives as

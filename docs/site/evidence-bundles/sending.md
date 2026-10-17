@@ -6,7 +6,7 @@ made. So capture is one operation on the analyser, not a procedure anyone follow
 
 ## Ask for it
 
-From an AI assistant connected to the analyser ([Connecting an LLM](../connect-an-llm.md)), or any client of the
+From an AI assistant connected to the analyser ([Connect your client](../connect-an-llm.md)), or any client of the
 action socket:
 
 ```

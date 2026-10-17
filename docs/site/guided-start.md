@@ -120,7 +120,7 @@ analyser
 On the Start page, **Guided tour** (under *Or open directly ▸ Explore DEMO*) opens the bundled DEMO project and plays a four-step saved spotlight
 walk through records, topology, record detail and Reports. It needs no assistant, server or key, and you can
 replay the walk from Reports later. The longer assistant-led tour above asks and answers questions about the
-run while driving the same demo set. See [Install](install.md) and [Connecting an LLM to the analyser](connect-an-llm.md).
+run while driving the same demo set. See [Install](install.md) and [Connect your client](connect-an-llm.md).
 
 ## Next: the same tour on a real project
 

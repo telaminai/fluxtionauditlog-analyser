@@ -195,7 +195,7 @@ connection** to prove the local bridge reaches this live window.
 The screen can explicitly register Codex or user-scoped Claude Code when their CLIs are available. For
 Claude Desktop and any other client, **Generic MCP setup** supplies the exact no-token stdio JSON for you
 to copy or save to a file you choose; it never guesses or edits a client configuration location. See
-[Connecting an LLM to the analyser](connect-an-llm.md) for the full sequence.
+[Connect your client](connect-an-llm.md) for the full sequence.
 
 ## How do I check for updates?
 

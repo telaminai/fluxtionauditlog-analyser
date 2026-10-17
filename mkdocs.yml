@@ -88,6 +88,7 @@ plugins:
   - redirects:
       redirect_maps:
         'user-guide/index.md': 'inapp/index.md'
+        'support.md': 'diagnose/index.md'
 
 extra:
   social:
@@ -114,7 +115,6 @@ nav:
       - Sample conversations: sample-conversations.md
       - 'Journey: find the first recorded breach': journeys/find-the-first-recorded-breach.md
       - Runbooks, glossary and posture: ai-and-runbooks.md
-      - Answering questions about a running system: support.md
   - Diagnose in the analyser:
       - inapp/index.md
       - The assistant panel: inapp/assistant-panel.md

@@ -83,7 +83,7 @@ and **No graph**. A declared processor and a source shell are not proof of a suc
 
 Open your LLM client in the same project directory. In the analyser, use
 **AI ▸ Connect an AI client…** and follow the instructions for that client.
-See [Connecting an LLM](connect-an-llm.md). The download does not contain a machine-specific MCP
+See [Connect your client](connect-an-llm.md). The download does not contain a machine-specific MCP
 endpoint: configure the actual running analyser, then have the client call `analyser_context`.
 
 ### Model choice

@@ -59,7 +59,7 @@ Now [filter](user-guide/records-and-filtering.md#the-shared-filter), [graph](use
 
 ---
 
-Working with an AI? [Connecting an LLM to the analyser](connect-an-llm.md) is the third step — the
+Working with an AI? [Connect your client](connect-an-llm.md) is the third step — the
 agent drives this same window through MCP, and you review what it renders.
 
 ## Finding the right menu

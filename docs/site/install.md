@@ -54,7 +54,7 @@ configuration yet, where the endpoint file is. The full token is never printed. 
 token from `~/.fluxtion-analyser/rest-endpoint`** — mode 600, `{url, token, pid, startedAt}`, rewritten with
 a fresh token on every launch — and checks that `pid` is a live process before trusting it (a crashed
 analyser can leave a stale file). An MCP client needs none of this: its bridge reads the file itself. See
-[Connecting an LLM ▸ The token, for scripts](connect-an-llm.md#the-token-for-scripts).
+[Scripts and CI over REST](diagnose/rest-automation.md).
 
 ## Plain download
 

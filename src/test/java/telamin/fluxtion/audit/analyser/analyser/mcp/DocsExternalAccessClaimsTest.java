@@ -81,7 +81,7 @@ class DocsExternalAccessClaimsTest {
     void theToolsAreTheVerbs() throws Exception {
         Set<String> verbs = VerbSchemas.all().keySet();
         assertFalse(verbs.contains(VerbSchemas.PROPOSE), "propose is hosted-only");
-        for (Path page : List.of(SITE.resolve("connect-an-llm.md"), SITE.resolve("user-guide/assistant.md"))) {
+        for (Path page : List.of(SITE.resolve("connect-an-llm.md"))) {   // the one /mcp listing (docs restructure, phase 2)
             String text = read(page);
             Matcher m = Pattern.compile("connected · (\\d+) tools\\n((?:\\s+analyser_[^\\n]*\\n)+)").matcher(text);
             assertTrue(m.find(), page + ": the /mcp listing");
@@ -119,7 +119,7 @@ class DocsExternalAccessClaimsTest {
     @Test
     @DisplayName("★ the bridge's not-running message is quoted exactly as McpBridge says it")
     void theBridgeErrorIsQuotedVerbatim() throws Exception {
-        for (String page : List.of("connect-an-llm.md", "user-guide/assistant.md")) {
+        for (String page : List.of("diagnose/troubleshooting.md")) {   // quoted in full once; elsewhere abridged
             assertTrue(flat(read(SITE.resolve(page))).contains(McpBridge.NOT_RUNNING), page + " must quote: "
                     + McpBridge.NOT_RUNNING);
         }
@@ -135,7 +135,7 @@ class DocsExternalAccessClaimsTest {
         String frame = read(SRC.resolve("ui/MainFrame.java"));
         assertTrue(frame.contains("actionToken.substring(0, Math.min(8, actionToken.length()))"), "the console's hint is 8 characters");
         assertTrue(read(SRC.resolve("net/RestEndpointFile.java")).contains("m.put(\"pid\""));
-        for (String page : List.of("install.md", "connect-an-llm.md")) {
+        for (String page : List.of("install.md", "connect-an-llm.md", "diagnose/rest-automation.md")) {
             String text = flat(read(SITE.resolve(page)));
             assertTrue(text.contains("~/.fluxtion-analyser/rest-endpoint"), page);
             assertTrue(text.contains("first 8 characters"), page + ": the console shows a hint, not the token");
@@ -149,14 +149,20 @@ class DocsExternalAccessClaimsTest {
     @DisplayName("★ external access while Claude Code runs in the tab: the refusals are quoted and the choice named")
     void externalAccessWhileClaudeCodeRuns() throws Exception {
         String connect = flat(read(SITE.resolve("connect-an-llm.md")));
+        // the refusals are quoted where a person looks them up, the troubleshooting page (docs restructure, phase 2)
+        String trouble = flat(read(SITE.resolve("diagnose/troubleshooting.md")));
         Class<?> server = Class.forName("telamin.fluxtion.audit.analyser.analyser.net.ActionServer");
         for (String name : List.of("EXTERNAL_OFF", "EXTERNAL_CLOSED_FOR_SESSION")) {
             var f = server.getDeclaredField(name);
             f.setAccessible(true);
             String words = (String) f.get(null);
-            assertTrue(connect.contains(words), "connect-an-llm must quote ActionServer." + name + ": " + words);
+            assertTrue(trouble.contains(words), "diagnose/troubleshooting must quote ActionServer." + name + ": " + words);
         }
-        assertTrue(connect.contains(telamin.fluxtion.audit.analyser.analyser.session.node.ActionListener.CLOSED_FOR_SESSION));
+        assertTrue(trouble.contains(telamin.fluxtion.audit.analyser.analyser.session.node.ActionListener.CLOSED_FOR_SESSION));
+        assertTrue(trouble.contains(telamin.fluxtion.audit.analyser.analyser.session.node.ActionListener.HOSTED_ONLY));
+        assertTrue(trouble.contains("## While Claude Code runs in the analyser"));
+        assertTrue(connect.contains("(diagnose/troubleshooting.md#while-claude-code-runs-in-the-analyser)"),
+                "the connect page points at the quotes");
         assertTrue(connect.contains("Close external access while this session runs"));
         assertTrue(connect.contains("## While Claude Code runs in the analyser"));
         assertTrue(connect.contains("[While Claude Code runs in the analyser](#while-claude-code-runs-in-the-analyser)"),
@@ -168,7 +174,7 @@ class DocsExternalAccessClaimsTest {
     void whereConnectLives() throws Exception {
         assertTrue(read(SRC.resolve("ui/ConfigPanel.java")).contains("group(\"Every assistant — the bridge, files and projects\")"));
         assertTrue(read(SRC.resolve("ui/ConfigPanel.java")).contains("new JButton(\"Connect an AI client…\")"));
-        for (String page : List.of("connect-an-llm.md", "faq.md", "user-guide/assistant.md")) {
+        for (String page : List.of("connect-an-llm.md", "faq.md")) {
             String text = flat(read(SITE.resolve(page)));
             assertTrue(text.contains("AI ▸ Connect an AI client…"), page);
             assertTrue(text.contains("Settings ▸ Assistant ▸ Every assistant ▸ Connect an AI client…"), page);

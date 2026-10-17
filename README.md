@@ -46,7 +46,7 @@ to the exact source, and hand to an LLM for a plain-English, code-grounded expla
   installed CLIs, or render the exact no-token JSON for Claude Desktop and any other MCP client. The
   bridge exposes the assistant's verbs as native **MCP tools**, so an AI can query the running analyser,
   plot a series and flag culprit records without a copied port or token. See
-  [Connect an MCP client](https://telaminai.github.io/fluxtionauditlog-analyser/user-guide/assistant/#connect-an-mcp-client).
+  [Connect your client](https://telaminai.github.io/fluxtionauditlog-analyser/connect-an-llm/).
 - **Triage aids** — anomaly row tints (parse-error / breach / NaN) with **jump-to-next-anomaly**
   (F3 / Shift+F3), a node-count bar, bookmarks/flags, and a two-record **diff** (menu or table right-click).
 - **Follow / tail mode** — poll a growing local log and append newly-completed records live (auto-scroll),
@@ -73,7 +73,7 @@ jbang app install analyser@telaminai/fluxtionauditlog-analyser   # installs an `
 
 The JBang alias and installed executable are deliberately named **`analyser`**. MCP clients use the
 separate registration label **`fluxtion-analyser`** and launch that executable with `--mcp`; no rename
-is required. See [Connect an MCP client](https://telaminai.github.io/fluxtionauditlog-analyser/user-guide/assistant/#connect-an-mcp-client).
+is required. See [Connect your client](https://telaminai.github.io/fluxtionauditlog-analyser/connect-an-llm/).
 
 Or download the latest fatjar and run it:
 

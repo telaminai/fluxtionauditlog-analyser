@@ -186,7 +186,7 @@ administrator lock yet ([For administrators](#for-administrators)).
   serves only this Claude Code session — it refuses every external client, even one holding the REST token, and
   publishes no endpoint file for other tools to find — and closes it when the session stops. With it on, the session
   shares that listener, and external clients are served as before — unless you choose **Close external access while
-  this session runs** ([Connecting an LLM ▸ While Claude Code runs in the analyser](../connect-an-llm.md#while-claude-code-runs-in-the-analyser)).
+  this session runs** ([Connect your client ▸ While Claude Code runs in the analyser](../connect-an-llm.md#while-claude-code-runs-in-the-analyser)).
 - Start **contacts Anthropic** (the sign-in check and connecting the analyser's bridge) **before your first Send**. No
   record content is sent until you press Send.
 - The analyser checks that the session it started is the one it asked for: the bridge proves it belongs to this
@@ -736,14 +736,11 @@ have to show rather than tell, record it as a **reel**: one self-contained HTML 
 
 ## Connect an MCP client
 
-!!! tip "Step-by-step, with a working check"
-    [Connecting an LLM to the analyser](../connect-an-llm.md) walks the connection through in order and
-    shows how to confirm each link works before relying on it. This section is the reference.
-
-If your agent speaks **MCP** (Model Context Protocol), it can drive the analyser with **no prompting and
-no copied token**. The application supplies the local bridge command, ending in `--mcp`, through
-**Connect an AI client**; it is an installed JBang launcher or the exact Java-and-jar vector for this
-machine, not a command you need to reconstruct.
+!!! tip "Setting up a client is in *Diagnose an incident*"
+    [Connect your client](../connect-an-llm.md) sets the connection up and checks each link of it;
+    [Your first diagnosis session](../diagnose/first-session.md), [Hand the diagnosis on](../diagnose/hand-off.md),
+    [Scripts and CI over REST](../diagnose/rest-automation.md) and
+    [Troubleshooting the connection](../diagnose/troubleshooting.md) follow it. This section is the verb reference.
 
 The client discovers one tool per verb — `analyser_aggregate`, `analyser_read`, `analyser_series`,
 `analyser_filter`, `analyser_graph`, `analyser_goto`, `analyser_flag`, `analyser_coverage`,
@@ -958,267 +955,29 @@ Read and export paths also resolve symbolic links beneath that directory; a symb
 it. These checks use the filesystem as it stands when the request is resolved. They do not lock
 directories against a concurrent local process changing them during an operation.
 
-### Does my client launch the analyser?
+### Reading coverage results
 
-**No — you start the analyser yourself, and leave it open.** Your MCP client launches a small *bridge*
-process (the `--mcp` command shown in **Connect an AI client**); the bridge then talks to the analyser
-you already have running.
+The denominator counts only what **could** log. Event classes and exported service interfaces appear in
+a graph because the processor handles them, not because they run, so counting them as "never logged"
+reports a category error as a low score — on the demo that alone read 50% where the honest figure is
+100% of what can log. Anything left out is named in `excludedFromDenominator` with its reason, and
+summarised in `excludedNote`: a denominator that quietly shrinks is the same dishonesty as one that
+quietly includes.
 
-It works this way because the point is to drive **your live session** — the log you have loaded, the
-graphs you have open, the flags you have set. All of that lives in the running desktop app. A freshly
-spawned subprocess would have none of it, so the bridge forwards to the app instead of trying to be one.
+With source roots configured, a node whose class **cannot reach an audit logger at all** is left out
+too — but read that exclusion carefully, because it is not reassurance. Such a node is not observable
+in *any* audit log, so the ratio is silent about whether it ran rather than vouching for it, and
+`excludedNote` says so by name. Exclusion requires proof: a node whose source is missing, or whose
+supertype the analyser does not recognise, stays counted. Assuming silence is the one error you cannot
+spot from the output.
 
-So the working setup is:
+When nodes *are* uncovered, the answer also carries `auditLevels` / `auditLevelFinest` /
+`auditLevelNote`. A gap can be the **level** rather than a silence: if the log was captured at INFO,
+any `debug()` or `trace()` call wrote nothing, so a missing node may have run and logged below the
+threshold. The note states the levels present and what they would have discarded, and stops there — the
+log cannot distinguish "the threshold excluded them" from "nothing called `debug()`", so neither does
+the analyser.
 
-1. **You** open the analyser and load a log, as usual.
-2. **You** turn on *Settings ▸ Assistant ▸ **External MCP/REST access*** (or *AI ▸ External MCP/REST access*; off by
-   default) — once; it's remembered.
-3. **Your client** starts the bridge on its own, whenever it needs a tool.
-
-If you skip step 1 or 2, the tools still appear in your client, but calling one answers *"analyser not
-running, or External MCP/REST access is off — turn it on in Settings ▸ Assistant, or start the app with `java -jar
-fluxtion-auditlog-analyser.jar --rest` (External MCP/REST access on, no first-run dialog; the setting persists)"*. That flag turns
-External MCP/REST access on (persistently), so an agent can bring the analyser up on a fresh machine without a
-human at the keyboard. The console then shows the URL and the token's first 8 characters only — and the endpoint
-file's path on a first run; a script reads the token from `~/.fluxtion-analyser/rest-endpoint` and checks its `pid`
-([The token, for scripts](../connect-an-llm.md#the-token-for-scripts)).
-
-### Set up an MCP client in the app
-
-Open **Connect an AI client** from **AI ▸ Connect an AI client…**, the Start page's *Connect an assistant* block
-(**Codex**, **Claude**, **Other MCP client**), or *Settings ▸ Assistant ▸ Every assistant ▸ Connect an AI client…*. Opening the
-screen only inspects this analyser; it does not change a client configuration. Its **Bridge command** is
-the exact local launcher this installation can use — the installed JBang launcher or the current packaged
-application, including an absolute Java path where one is required. Do not shorten, split or substitute
-that command.
-
-First turn on **External MCP/REST access** for this already-open analyser (the screen's *Turn on External MCP/REST
-access…* button), then choose **Check connection**. The
-check launches that same bridge and makes one read-only `analyser_context` call. A successful check proves
-the analyser → bridge chain for this window; it cannot prove that a foreign client has imported the setup
-or made a model call.
-
-Choose the client you use:
-
-| Choice | What the analyser can do | What remains yours |
-|---|---|---|
-| **Codex** | After an explicit confirmation, run the installed Codex CLI to add, replace or remove the `fluxtion-analyser` registration. It also offers a copyable command if the CLI is unavailable. | Approve the change and confirm it in Codex. |
-| **Claude Code** | After an explicit confirmation, register a **user-scoped** `fluxtion-analyser` server with the installed Claude Code CLI. A project-scoped command is copy-only. | Run the project command from the intended project root, if that is the scope you want. |
-| **Claude Desktop** | Explain the supported fallback and take you to Generic MCP setup. The analyser does not claim to ship or install a Desktop extension. | Use Claude Desktop's own supported configuration/installation flow. |
-| **another MCP client** | Render the complete standard `mcpServers` JSON record from the exact bridge argument vector; copy it, or save it to a file you choose. | Put that record in the configuration location and approval flow your client documents. |
-
-The generic JSON contains only the local stdio launcher and its separate arguments. It never contains the
-running analyser's endpoint, per-run token, loaded log, or an approval choice. The bridge discovers its
-fresh endpoint and token when the client starts it, so a registration survives analyser restarts without
-being rewritten.
-
-These names intentionally identify different layers, not separate servers:
-
-| Layer | Name | Where you see it |
-|---|---|---|
-| JBang executable | **`analyser`** | `jbang analyser@telaminai/fluxtionauditlog-analyser` and normally `~/.jbang/bin/analyser` after installation |
-| MCP client registration | **`fluxtion-analyser`** | Codex, Claude Code, or a generic `mcpServers` entry |
-| MCP bridge protocol | **`fluxtion-audit-log-analyser`** | the bridge's `serverInfo.name` response |
-
-The setup screen resolves the installed executable and registers it under the MCP client label, so none
-of the three names needs to be manually renamed. Codex may need a larger tool timeout for an aggregate
-over a very large log.
-
-### Your first session
-
-Start your CLI client anywhere — the analyser tools aren't tied to a project directory. First check the
-server actually connected, then say what you want:
-
-```text
-$ claude
-
-> /mcp
-  ⎿ fluxtion-analyser   ✔ connected · 18 tools
-       analyser_aggregate · analyser_series · analyser_read
-       analyser_filter · analyser_graph · analyser_goto
-       analyser_flag · analyser_coverage · analyser_report
-       analyser_context · analyser_topology · analyser_screenshot
-       analyser_import · analyser_open · analyser_source
-       analyser_source_root · analyser_spotlight · analyser_walk
-
-> I have a Fluxtion audit log open in the analyser. Use the fluxtion-analyser
-  tools to work out why the hedge stopped quoting.
-```
-
-That first message is the whole handshake on your side. You mention the server by name once so the agent
-reaches for these tools rather than, say, grepping your filesystem; after that it just uses them. There's
-no path to give it and no token to paste — it's already pointed at whatever log you have open.
-
-If `/mcp` shows nothing, the client never started the bridge: re-check the registration from **AI ▸ Connect an AI client…** above.
-If it shows *connected* but a call comes back **"analyser not running"**, the bridge is fine and the
-**app** is the missing half — open it and turn on *External MCP/REST access*.
-
-From there the agent works, and you watch it work:
-
-```text
-⏺ analyser_aggregate(metric: "count", groupBy: "dimension")
-  ⎿ total 21 records
-     orderUpdate 10 · ScheduledTriggerNode 3 · orderVenueConnected 2
-     onMultilevelMarketData 2 · registerService 2 · LifecycleEvent 1
-     marketDataVenueConnected 1
-
-⏺ analyser_read(recordIndex: 1, count: 3)
-  ⎿ hedgeConnectionMonitor: { orderVenueConnected: …, status: CLOSED, hedgeQuantity: NaN }
-     hedgePositionMonitor:  { hedgePositionBreach: false, hedgeStatus: CLOSED }
-
-⏺ analyser_graph(name: "hedge quantity",
-                series: ["hedgeConnectionMonitor.hedgeQuantity"],
-                rationale: "hedgeQuantity goes NaN when the venue drops")
-  ⎿ {"ok":true,"applied":{"name":"hedge quantity",
-      "resolved":["hedgeConnectionMonitor.hedgeQuantity"],"unresolved":[]}}
-
-⏺ analyser_flag(recordIndexes: [1, 2], note: "hedge went NaN here")
-  ⎿ {"ok":true,"applied":{"flagged":2}}
-
-  The hedge monitor reports status CLOSED with hedgeQuantity NaN from the venue-connect
-  event onward, so the quote calculator had nothing to size against. I've plotted
-  hedgeQuantity as "hedge quantity" and flagged the two records where it flips.
-```
-
-**Watch the analyser while this runs.** A *hedge quantity* tab appears, captioned with the agent's
-`rationale`; two rows pick up flags. The findings land **in your instrument**, as things you can click,
-zoom and trace to source — not as prose you have to take on trust. That's the whole point of the round
-trip: you verify the claim against the same data it was made from.
-
-Note what the agent *didn't* need: no file path, no token, no pasted records. It read the log through
-`analyser_read` over the socket.
-
-## Hand the diagnosis on
-
-A plot answers *"this trend is wrong"*. To answer *"**this cycle** is wrong, and here's why"*, compose
-the verbs you already have with `report`:
-
-```text
-⏺ analyser_flag(recordIndexes: [40],
-               note: "quotePublisher republished before riskMonitor re-evaluated the limit,
-                      so the quote on the wire was priced against stale risk state.",
-               fix: "riskMonitor must be upstream of quotePublisher — check the @OnTrigger ordering")
-
-⏺ analyser_goto(recordIndex: 40, reveal: true)
-
-⏺ analyser_topology(select: "quotePublisher", scope: "routes", focus: true)
-  ⎿ {"ok":true,"topology":{"visibleNodes":7,"totalNodes":20,"callout":true,
-      "finding":{"note":"quotePublisher republished before …","fix":"riskMonitor must be …"}}}
-
-⏺ analyser_report(path: "finding-40.pdf", title: "Stale risk state at record 40",
-                 graph: "Mid price")
-  ⎿ {"ok":true,"wrote":{"path":"…/finding-40.pdf","recordIndex":40,
-      "hasExplanation":true,"hasFix":true,"topology":true,"graph":"Mid price"}}
-```
-
-`topology` echoes back the finding it is showing, so an agent can confirm the graph is displaying its
-diagnosis rather than assume it. The PDF is the artefact you send to someone who wasn't watching: the
-explanation next to the event, the node log, the graph and the plot it rests on.
-
-The `topology` verb's `callout` field is a **visibility** switch and nothing more — the text always comes
-from the record's flag. One place to write, several to read.
-
-**`scope: "routes"` on a sink comes back bounded, and says so.** Every route into a node that everything
-feeds *is* the graph, so on a large graph where all routes would cover more than half of it the answer
-stops at three hops each way. The echo is explicit rather than quietly returning less than the scope's
-name promises:
-
-```json
-{"scope": "routes", "routeBound": true, "scopeBounded": 3,
- "scopeNote": "'routes' was bounded to 3 hops because all routes would cover 198 of 309 nodes …"}
-```
-
-Pass `routeBound: false` for every route, however many — the same switch as the **≤3 hops** checkbox in
-the toolbar, so the screen and the socket never disagree about what is being shown.
-
-### Let your agent set it up
-
-An agent can help with an explicit client-CLI registration, but the analyser is the source of the
-launch command: install it with JBang, open the app, then use **Connect an AI client**. It presents the
-exact bridge vector for this machine and asks before it invokes either supported client CLI. For an
-unknown client, copy or save the Generic MCP record and apply it only where that client's documentation
-says. An MCP client must still ask for approval for its own tools; the analyser cannot grant that approval
-on its behalf.
-
-!!! note "Reading coverage results"
-    The denominator counts only what **could** log. Event classes and exported service interfaces appear in
-    a graph because the processor handles them, not because they run, so counting them as "never logged"
-    reports a category error as a low score — on the demo that alone read 50% where the honest figure is
-    100% of what can log. Anything left out is named in `excludedFromDenominator` with its reason, and
-    summarised in `excludedNote`: a denominator that quietly shrinks is the same dishonesty as one that
-    quietly includes.
-
-    With source roots configured, a node whose class **cannot reach an audit logger at all** is left out
-    too — but read that exclusion carefully, because it is not reassurance. Such a node is not observable
-    in *any* audit log, so the ratio is silent about whether it ran rather than vouching for it, and
-    `excludedNote` says so by name. Exclusion requires proof: a node whose source is missing, or whose
-    supertype the analyser does not recognise, stays counted. Assuming silence is the one error you cannot
-    spot from the output.
-
-    When nodes *are* uncovered, the answer also carries `auditLevels` / `auditLevelFinest` /
-    `auditLevelNote`. A gap can be the **level** rather than a silence: if the log was captured at INFO,
-    any `debug()` or `trace()` call wrote nothing, so a missing node may have run and logged below the
-    threshold. The note states the levels present and what they would have discarded, and stops there — the
-    log cannot distinguish "the threshold excluded them" from "nothing called `debug()`", so neither does
-    the analyser.
-
-Setup notes:
-- **Edit the config only while the analyser is closed.** The running app holds settings in memory and
-  writes the file on exit, so an edit made while it's open is overwritten. Toggling it in
-  Settings ▸ Assistant is always safe.
-- **jbang caches jars.** If `--mcp` isn't recognised you're on an older cached build — `jbang cache clear`,
-  or run once with `--fresh`.
-- **Launching needs a desktop session**; the app is a GUI, so it will not work over a headless SSH shell.
-
-!!! note "Setup is shell work, not an MCP tool"
-
-    Installing, configuring and launching are deliberately **not** exposed as MCP tools. The Connect
-    screen is a human UI that can invoke a supported client CLI only after confirmation; generic and
-    Claude Desktop configuration remain yours to apply. It would be circular for an MCP tool to install
-    the bridge it needs, and the analyser's MCP surface is deliberately limited to log verbs.
-
-### How it finds your running analyser
-
-REST picks a fresh port and mints a fresh token every launch, so there is nothing stable to hard-code.
-Instead, while External MCP/REST access is on the app writes its live endpoint to
-`~/.fluxtion-analyser/rest-endpoint` (owner-readable only), and the bridge reads it **on every call**.
-
-Two things follow, both useful:
-
-- **Configure once.** No token in your client config, and nothing to update after a restart — the bridge
-  picks up the new port and token by itself.
-- **Connecting doesn't need the app.** Your client can start and list the tools with the analyser closed;
-  only the *calls* need it running.
-
-### If it isn't working
-
-- **"analyser not running, or External MCP/REST access is off — turn it on in Settings ▸ Assistant, or start the
-  app with `java -jar fluxtion-auditlog-analyser.jar --rest` …"** — exactly what it says: either the app isn't open,
-  or *External MCP/REST access* is off in Settings ▸ Assistant. It also appears while
-  Claude Code runs in the analyser's Assistant tab with external access off or closed for that session
-  ([While Claude Code runs in the analyser](../connect-an-llm.md#while-claude-code-runs-in-the-analyser)). The same message appears if the app was
-  killed, because the bridge checks the recorded process is still alive before trying to connect.
-- **The server won't start at all** — reopen **Connect an AI client** and use the exact bridge command
-  it resolves for this installation. It should sit and wait for input rather than exit when run from a
-  terminal.
-- **Claude Desktop**: per-server logs are at `~/Library/Logs/Claude/mcp-server-fluxtion-analyser.log`
-  (macOS). The bridge writes all diagnostics to stderr, so they land there.
-- **Rate limiting** — a burst of calls gets a "rate limited" tool error rather than a broken connection.
-  It's retryable; the agent should pace itself.
-
-### What it can and can't do
-
-The MCP door opens the **same verbs** as the other transports and nothing more — one tool per verb,
-discovered live, so the list you see in your client is the truth. An agent can read the loaded log,
-change what the app displays, and (via `open` / `source_root`) switch which log, processor or source
-roots are open — the same things you change through the UI. **File writes are off by default**: the
-`screenshot` / `report` verbs work only after you enable *Allow assistant file exchange* (Settings ▸ Assistant),
-write **only inside the exchange directory you configure**, and never overwrite (`walk {reel}` writes its HTML page
-there too). It **cannot** touch your API key, run anything, or read files outside the log, the source roots you
-configured (`source` rereads XML and Java beneath them) and the exchange directory. Server control is
-deliberately not an assistant capability. The channel is loopback-only and the endpoint file is
-owner-readable. (The [FAQ's security answer](../faq.md#is-the-assistants-action-socket-safe-to-enable)
-is the canonical statement of this boundary.)
 
 ### Saved charts before opening a log
 
