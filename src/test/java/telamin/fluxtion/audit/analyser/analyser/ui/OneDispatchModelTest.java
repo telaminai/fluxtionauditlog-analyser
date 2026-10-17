@@ -638,6 +638,15 @@ class OneDispatchModelTest {
                 "Assistant REST transport stopped")) {
             assertFalse(frame.contains(words), "the node composes the status words, not the frame: " + words);
         }
+        // final review #6 (2026-10-17): whether external access is closed for a session is the node's, carried on its
+        // effects; the frame never picks the value itself. Witness: setClosedForSession(false) in releaseHostedBridge.
+        assertEquals(0, count(Pattern.compile("setClosedForSession\\(\\s*(true|false)\\s*\\)"), frame),
+                "setClosedForSession only with the value the node's effect carries");
+        Pattern closed = Pattern.compile("setClosedForSession\\(");
+        assertEquals(count(closed, frame), count(Pattern.compile("setClosedForSession\\(e\\.closedForSession\\(\\)\\)"), frame),
+                "every call passes the effect's closedForSession");
+        assertTrue(bodyOf(frame, "private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result releaseHostedBridge(")
+                .contains("setClosedForSession(e.closedForSession())"), "the release's performer carries the node's choice");
         String report = bodyOf(frame, "private void reportRestSwitch(");
         assertTrue(report.contains("RestSwitchObserved("), "the switch is a fact");
         // the session is built lazily: the start-up report must build it, or --rest never listens (found by

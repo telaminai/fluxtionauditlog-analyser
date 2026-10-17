@@ -385,12 +385,14 @@ public sealed interface SessionEffects {
     /**
      * Review H4: no Claude Code process needs the bridge any more. Review B5: whether the listener stays up
      * ({@code keepListening}: the REST switch is on) and serves external clients is actionListener's decision; the
-     * performer only makes the listener match.
+     * performer only makes the listener match. {@code closedForSession} (final review #6, rule 9): whether external
+     * access stays closed for a session — actionListener's choice too (false: the session that closed it has ended), so
+     * the performer sets no value of its own.
      */
-    record ReleaseHostedBridgeEffect(long opId, long generation, boolean keepListening, boolean external)
-            implements SessionEffects {
+    record ReleaseHostedBridgeEffect(long opId, long generation, boolean keepListening, boolean external,
+                                     boolean closedForSession) implements SessionEffects {
         public ReleaseHostedBridgeEffect(long opId, long generation) {
-            this(opId, generation, false, false);
+            this(opId, generation, false, false, false);
         }
     }
 

@@ -94,6 +94,7 @@ class ActionListenerTest {
         d.post(new SessionEvents.LocalAgentExited(start.generation(), 0, 0));
         var release = a.agentReleases.get(a.agentReleases.size() - 1);
         assertTrue(release.keepListening() && release.external(), "the session ended: external access opens again");
+        assertFalse(release.closedForSession(), "final review #6: the node chose to reopen it; the performer sets nothing");
         assertFalse(d.snapshot().listener().closedForSession());
 
         FakeSessionAdapter b = new FakeSessionAdapter();

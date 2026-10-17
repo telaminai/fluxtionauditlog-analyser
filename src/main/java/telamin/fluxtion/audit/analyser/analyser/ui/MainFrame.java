@@ -5184,7 +5184,7 @@ public final class MainFrame extends JFrame {
     private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result releaseHostedBridge(
             telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ReleaseHostedBridgeEffect e) {
         String failure = matchActionListener(e.keepListening(), e.external());
-        if (actionServer != null) actionServer.setClosedForSession(false);     // the session's end reopens it
+        if (actionServer != null) actionServer.setClosedForSession(e.closedForSession());   // final review #6: the node's
         return configured(e.opId(), failure);
     }
 
