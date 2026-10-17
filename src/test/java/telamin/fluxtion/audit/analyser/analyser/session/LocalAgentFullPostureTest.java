@@ -411,4 +411,31 @@ class LocalAgentFullPostureTest {
         return state(d).entries().stream().filter(e -> LocalAgentState.NOTE.equals(e.kind()))
                 .map(LocalAgentState.Entry::detail).toList();
     }
+
+    /**
+     * ★ Review M8/H6 in the full posture. Witness: drop the {@code contentUnchanged} refusal in {@code onFolderAnswered}
+     * — a yes given while a hook or instruction file changed starts a process and the named assertion fails.
+     */
+    @Test
+    @DisplayName("★ M8/H6: a full-posture yes starts only when the files the dialog named are unchanged; it asks for the trust record")
+    void aFullPostureYesIsBoundToWhatTheDialogShowed() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = driver(a);
+        d.post(new SessionEvents.LocalAgentStartRequested(3, full(FullMode.DEFAULT, true, false, BUDGET)));
+        assertTrue(a.agentConfirms.get(0).full());
+        d.post(new SessionEvents.LocalAgentFolderAnswered(3, true, false, full(FullMode.DEFAULT, true, false, BUDGET)));
+        assertEquals("FOLDER_CHANGED", state(d).verdict(), state(d).reason());
+        assertTrue(state(d).reason().contains("instruction files changed while the confirmation was open"), state(d).reason());
+        assertEquals(0, a.agentStarts.size(), "never started on files nobody was shown");
+        assertEquals(0, a.agentTrusts.size(), "nor trusted");
+
+        d.post(new SessionEvents.LocalAgentStartRequested(4, full(FullMode.DEFAULT, true, false, BUDGET)));
+        d.post(new SessionEvents.LocalAgentFolderAnswered(4, true, true, full(FullMode.DEFAULT, true, false, BUDGET)));
+        assertEquals(1, a.agentTrusts.size(), "the full-posture trust record is asked for");
+        assertEquals(1, a.agentStarts.size(), "and the start, in the full posture");
+        assertTrue(a.agentStarts.get(0).posture().isFull());
+        // review H4 carried through: the full posture's bridge also reaches a listener asked for first (hosted-only when
+        // the REST switch is off), never a refusal for REST being off
+        assertEquals(List.of("confirmFolder", "confirmFolder", "trustFolder", "serveBridge", "start"), a.agentOrder);
+    }
 }

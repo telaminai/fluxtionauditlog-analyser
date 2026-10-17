@@ -26,6 +26,15 @@ import java.util.Map;
  * <p>What is read for the dialog is bounded: each file at most {@link #MAX_BYTES}, JSON only, and only NAMES — the hook
  * events (with how many hooks each) and the server names; never a command. A file that is too large or not JSON is
  * said to be unreadable, never hidden. The digest covers every byte. Pure: the frame performs, the session decides.
+ *
+ * <p><b>Review H6: instruction files are trusted content too.</b> Full Claude Code reads the folder's {@code CLAUDE.md},
+ * {@code CLAUDE.local.md}, {@code .claude/CLAUDE.md} as instructions and loads {@code .claude/commands},
+ * {@code .claude/skills} and {@code .claude/agents} — a {@code git pull} that rewrites one changes what the agent does as
+ * surely as a new hook. So the digest is {@code <settings digest>.<instruction digest>}: the instruction part covers
+ * those files in a stable (sorted) order, bounded ({@link #MAX_INSTRUCTION_FILES} files, {@link #MAX_INSTRUCTION_BYTES}
+ * read in all, each file at most {@link #MAX_BYTES}; past a bound a file counts by its size and modification time), and
+ * a symbolic link is never followed out of the folder (its target's NAME is digested, and the dialog says so). When the
+ * dialog asks again it says which part changed ({@link #changeNote}).
  */
 public final class FullFolderTrust {
 
@@ -37,6 +46,34 @@ public final class FullFolderTrust {
 
     /** The three files, in the digest's order. */
     public static final List<String> FILES = List.of(".claude/settings.json", ".claude/settings.local.json", ".mcp.json");
+
+    /** The instruction files Claude Code reads from the folder (review H6). */
+    public static final List<String> INSTRUCTION_FILES = List.of("CLAUDE.md", "CLAUDE.local.md", ".claude/CLAUDE.md");
+
+    /** The instruction trees Claude Code loads from the folder (review H6). */
+    public static final List<String> INSTRUCTION_TREES = List.of(".claude/commands", ".claude/skills", ".claude/agents");
+
+    /** Bounds on the instruction scan. */
+    public static final int MAX_INSTRUCTION_FILES = 1_000;
+    public static final long MAX_INSTRUCTION_BYTES = 8L * 1024 * 1024;
+    static final int MAX_DEPTH = 12;
+
+    /**
+     * What the instruction scan found (review H6): which top-level instruction files exist, how many files each tree
+     * holds, the links pointing out of the folder (named, never followed), whether a bound was reached, and the digest.
+     */
+    public record InstructionScan(List<String> files, Map<String, Integer> trees, List<String> linksOutside,
+                                  boolean truncated, String digest) {
+        public InstructionScan {
+            files = List.copyOf(files);
+            trees = java.util.Collections.unmodifiableMap(new LinkedHashMap<>(trees));
+            linksOutside = List.copyOf(linksOutside);
+        }
+
+        public boolean none() {
+            return files.isEmpty() && trees.isEmpty() && linksOutside.isEmpty();
+        }
+    }
 
     /** How a file was found. */
     public enum State { ABSENT, READ, TOO_LARGE, NOT_JSON, UNREADABLE }
@@ -77,8 +114,8 @@ public final class FullFolderTrust {
             "includeCoAuthoredBy", "cleanupPeriodDays", "theme", "enableAllProjectMcpServers", "enabledMcpjsonServers",
             "disabledMcpjsonServers", "spinnerTipsEnabled");
 
-    /** The folder's three files, scanned, and their digest. */
-    public record Scan(List<FileScan> files, String digest) {
+    /** The folder's three settings files, scanned, its instruction files, and the combined digest. */
+    public record Scan(List<FileScan> files, InstructionScan instructions, String digest) {
         public Scan {
             files = List.copyOf(files);
         }
@@ -88,10 +125,10 @@ public final class FullFolderTrust {
             return true;
         }
 
-        /** None of the three files exists (the scratch folder's trust, review finding 3). */
+        /** None of the three files, and no instruction file, exists (the scratch folder's trust, review finding 3). */
         public boolean allAbsent() {
             for (FileScan f : files) if (f.state() != State.ABSENT) return false;
-            return true;
+            return instructions == null || instructions.none();
         }
 
         public boolean anyUnreadable() {
@@ -105,14 +142,20 @@ public final class FullFolderTrust {
     public static Scan scan(Path dir) {
         List<FileScan> out = new ArrayList<>();
         for (String name : FILES) out.add(scanFile(dir.resolve(name), name));
-        return new Scan(out, digest(dir));
+        InstructionScan instructions = instructions(dir);
+        return new Scan(out, instructions, settingsDigest(dir) + "." + instructions.digest());
+    }
+
+    /** The trust digest: {@code <settings digest>.<instruction digest>} (review H6). */
+    public static String digest(Path dir) {
+        return settingsDigest(dir) + "." + instructions(dir).digest();
     }
 
     /**
-     * The digest of the three files: each file's name and either {@code absent} or the SHA-256 of all its bytes.
-     * A changed, added or removed file changes it.
+     * The digest of the three settings files: each file's name and either {@code absent} or the SHA-256 of all its
+     * bytes. A changed, added or removed file changes it.
      */
-    public static String digest(Path dir) {
+    public static String settingsDigest(Path dir) {
         try {
             MessageDigest all = MessageDigest.getInstance("SHA-256");
             for (String name : FILES) {
@@ -150,6 +193,124 @@ public final class FullFolderTrust {
             return HexFormat.of().formatHex(all.digest(), 0, 16);
         } catch (NoSuchAlgorithmException e) {
             throw new IllegalStateException(e);
+        }
+    }
+
+    /**
+     * Review H6: the folder's instruction files, digested in a stable order and bounded. A symbolic link is followed
+     * only to a regular file inside the folder; otherwise its target's name is digested and, when it points out of the
+     * folder, it is named.
+     */
+    public static InstructionScan instructions(Path dir) {
+        java.util.TreeMap<String, byte[]> entries = new java.util.TreeMap<>();
+        List<String> present = new ArrayList<>();
+        Map<String, Integer> trees = new LinkedHashMap<>();
+        List<String> outside = new ArrayList<>();
+        boolean[] truncated = {false};
+        long[] budget = {MAX_INSTRUCTION_BYTES};
+        Path root = realOrNull(dir);
+        for (String name : INSTRUCTION_FILES) {
+            Path f = dir.resolve(name);
+            if (!Files.exists(f, java.nio.file.LinkOption.NOFOLLOW_LINKS)) continue;
+            present.add(name);
+            entries.put(name, entry(f, name, root, outside, budget));
+        }
+        for (String tree : INSTRUCTION_TREES) {
+            Path t = dir.resolve(tree);
+            if (!Files.exists(t, java.nio.file.LinkOption.NOFOLLOW_LINKS)) continue;
+            if (Files.isSymbolicLink(t) || !Files.isDirectory(t, java.nio.file.LinkOption.NOFOLLOW_LINKS)) {
+                trees.put(tree, 1);
+                entries.put(tree, entry(t, tree, root, outside, budget));
+                continue;
+            }
+            int[] count = {0};
+            try {
+                Files.walkFileTree(t, java.util.EnumSet.noneOf(java.nio.file.FileVisitOption.class), MAX_DEPTH,
+                        new java.nio.file.SimpleFileVisitor<>() {
+                            @Override
+                            public java.nio.file.FileVisitResult visitFile(Path file,
+                                                                           java.nio.file.attribute.BasicFileAttributes a) {
+                                if (entries.size() >= MAX_INSTRUCTION_FILES) {
+                                    truncated[0] = true;
+                                    return java.nio.file.FileVisitResult.TERMINATE;
+                                }
+                                String rel = dir.relativize(file).toString().replace('\\', '/');
+                                entries.put(rel, entry(file, rel, root, outside, budget));
+                                count[0]++;
+                                return java.nio.file.FileVisitResult.CONTINUE;
+                            }
+
+                            @Override
+                            public java.nio.file.FileVisitResult visitFileFailed(Path file, IOException e) {
+                                String rel = dir.relativize(file).toString().replace('\\', '/');
+                                entries.put(rel, "unreadable".getBytes(StandardCharsets.UTF_8));
+                                count[0]++;
+                                return java.nio.file.FileVisitResult.CONTINUE;
+                            }
+                        });
+            } catch (IOException e) {
+                entries.put(tree, "unreadable".getBytes(StandardCharsets.UTF_8));
+            }
+            trees.put(tree, count[0]);
+        }
+        if (budget[0] < 0) truncated[0] = true;
+        try {
+            MessageDigest all = MessageDigest.getInstance("SHA-256");
+            for (var e : entries.entrySet()) {
+                all.update(e.getKey().getBytes(StandardCharsets.UTF_8));
+                all.update((byte) 0);
+                all.update(e.getValue());
+                all.update((byte) 0);
+            }
+            if (truncated[0]) all.update("truncated".getBytes(StandardCharsets.UTF_8));
+            return new InstructionScan(present, trees, outside, truncated[0], HexFormat.of().formatHex(all.digest(), 0, 16));
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    private static Path realOrNull(Path p) {
+        try {
+            return p.toRealPath();
+        } catch (IOException e) {
+            return null;
+        }
+    }
+
+    /** One instruction file's digest bytes: its content (bounded), or for a link not followed, its target's name. */
+    private static byte[] entry(Path f, String rel, Path root, List<String> outside, long[] budget) {
+        try {
+            Path read = f;
+            if (Files.isSymbolicLink(f)) {
+                String target = String.valueOf(Files.readSymbolicLink(f));
+                Path real = realOrNull(f);
+                boolean inside = real != null && root != null && real.startsWith(root);
+                if (!inside) outside.add(rel);
+                if (!inside || !Files.isRegularFile(real)) {
+                    return ("link:" + target).getBytes(StandardCharsets.UTF_8);
+                }
+                read = real;
+            }
+            if (!Files.isRegularFile(read, java.nio.file.LinkOption.NOFOLLOW_LINKS)) {
+                return "not-a-file".getBytes(StandardCharsets.UTF_8);
+            }
+            long size = Files.size(read);
+            MessageDigest one = MessageDigest.getInstance("SHA-256");
+            one.update(("size:" + size).getBytes(StandardCharsets.UTF_8));
+            if (size > MAX_BYTES || budget[0] - size < 0) {
+                // past a bound: told apart by its size and modification time, never by its unread content
+                one.update((":mtime:" + Files.getLastModifiedTime(read).toMillis()).getBytes(StandardCharsets.UTF_8));
+                if (budget[0] - size < 0) budget[0] = -1;
+            } else {
+                budget[0] -= size;
+                try (InputStream in = Files.newInputStream(read)) {
+                    byte[] buf = new byte[8192];
+                    for (int n; (n = in.read(buf)) > 0; ) one.update(buf, 0, n);
+                }
+            }
+            return one.digest();
+        } catch (IOException | NoSuchAlgorithmException | RuntimeException e) {
+            return "unreadable".getBytes(StandardCharsets.UTF_8);
         }
     }
 
@@ -248,7 +409,8 @@ public final class FullFolderTrust {
     public static String dialogText(Path dir, Scan scan) {
         StringBuilder sb = new StringBuilder();
         sb.append("Full Claude Code will run this folder's hooks and connect its MCP servers when it starts, and load its ")
-                .append("settings and CLAUDE.md. Your own user-level hooks and servers run too.\n\n");
+                .append("settings and its instruction files (CLAUDE.md, commands, skills, agents). Your own user-level hooks ")
+                .append("and servers run too.\n\n");
         boolean any = false;
         for (FileScan f : scan.files()) {
             switch (f.state()) {
@@ -302,9 +464,69 @@ public final class FullFolderTrust {
             }
         }
         if (!any) sb.append("Nothing in this folder's settings or .mcp.json runs.\n");
+        InstructionScan ins = scan.instructions();
+        if (ins != null && !ins.none()) {
+            List<String> parts = new ArrayList<>(ins.files());
+            for (var t : ins.trees().entrySet()) {
+                parts.add(t.getKey() + " (" + t.getValue() + (t.getValue() == 1 ? " file)" : " files)"));
+            }
+            sb.append("Instruction files Claude Code reads from this folder: ").append(names(parts)).append('\n');
+            if (!ins.linksOutside().isEmpty()) {
+                sb.append("Links pointing out of this folder, not read by the analyser: ").append(names(ins.linksOutside()))
+                        .append('\n');
+            }
+            if (ins.truncated()) {
+                sb.append("There are more instruction files than the analyser reads (over ").append(MAX_INSTRUCTION_FILES)
+                        .append(" files or 8 MB); the rest are checked by size and date only\n");
+            }
+        }
         sb.append("\nTrust ").append(dir).append(" for full Claude Code in the analyser? This is asked again if these files ")
                 .append("change.\n\nRemembered on this machine only; never in a project, a shared settings file or a bundle.");
         return sb.toString();
+    }
+
+    /** §5.2's dialog with the reason it asks again, when this folder was trusted before (review H6). */
+    public static String dialogText(Path dir, Scan scan, List<String> records, String realPath) {
+        String note = changeNote(records, realPath, scan.digest());
+        return note == null ? dialogText(dir, scan) : note + "\n\n" + dialogText(dir, scan);
+    }
+
+    /**
+     * Why a folder trusted before is asked about again, or null when it was not trusted before (review H6): its
+     * instruction files changed, its settings or {@code .mcp.json} changed, both, or it was trusted before instruction
+     * files were part of the trust.
+     */
+    public static String changeNote(List<String> records, String realPath, String digest) {
+        String previous = previousDigest(records, realPath);
+        if (previous == null || digest == null || previous.equals(digest)) return null;
+        int pd = previous.indexOf('.');
+        int nd = digest.indexOf('.');
+        if (pd < 0 || nd < 0) {
+            return "You trusted this folder before the analyser covered its instruction files (CLAUDE.md, .claude/commands, "
+                    + ".claude/skills, .claude/agents); it asks again so you see them.";
+        }
+        boolean settings = !previous.substring(0, pd).equals(digest.substring(0, nd));
+        boolean instructions = !previous.substring(pd + 1).equals(digest.substring(nd + 1));
+        if (settings && instructions) {
+            return "Since you trusted this folder, its settings or .mcp.json AND its instruction files (CLAUDE.md, "
+                    + ".claude/commands, .claude/skills, .claude/agents) changed.";
+        }
+        if (instructions) {
+            return "Since you trusted this folder, its instruction files changed (CLAUDE.md, .claude/CLAUDE.md, "
+                    + ".claude/commands, .claude/skills or .claude/agents): Claude Code would read different instructions.";
+        }
+        return "Since you trusted this folder, its hooks or MCP servers changed (.claude/settings.json, "
+                + ".claude/settings.local.json or .mcp.json).";
+    }
+
+    /** The digest a trust record holds for {@code realPath}, or null. */
+    public static String previousDigest(List<String> records, String realPath) {
+        if (records == null || realPath == null) return null;
+        for (String r : records) {
+            int bar = r.lastIndexOf('|');
+            if (bar >= 0 && r.substring(0, bar).equals(realPath)) return r.substring(bar + 1);
+        }
+        return null;
     }
 
     /** The trust record's value: {@code <real path>|<digest>} ({@code assistant.claudeCode.trustedFull.N}). */

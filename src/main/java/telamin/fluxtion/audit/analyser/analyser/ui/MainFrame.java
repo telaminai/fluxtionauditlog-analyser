@@ -4856,7 +4856,8 @@ public final class MainFrame extends JFrame {
             // trust to exactly the content that was shown — the answer says whether it still matches when given
             var scan = telamin.fluxtion.audit.analyser.analyser.assistant.localagent.FullFolderTrust.scan(dir);
             SwingUtilities.invokeLater(() -> {
-                boolean yes = LocalAgentFolderDialog.confirmFull(this, dir, scan);
+                boolean yes = LocalAgentFolderDialog.confirmFull(this, dir, scan,
+                        java.util.List.copyOf(config.claudeCodeTrustedFullFolders), realPathOf(dir));
                 if (session == null) return;
                 boolean unchanged = scan.digest().equals(
                         telamin.fluxtion.audit.analyser.analyser.assistant.localagent.FullFolderTrust.scan(dir).digest());

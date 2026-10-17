@@ -1938,6 +1938,28 @@ confirmation — decide on the default posture's trust; postureRef — the mode 
 events parsed as `Ignored` again; billing — `UNKNOWN` for every `initialize`; the dollar figure on a plan; the default
 posture's note for the full posture; FAQ — a pinned claim removed.
 
+**r10 additions (2026-10-17, after merging P1a's review fixes).**
+
+- **H6, instruction files.** `FullFolderTrust.digest` is now `<settings digest>.<instruction digest>`. The instruction
+  part covers `CLAUDE.md`, `CLAUDE.local.md`, `.claude/CLAUDE.md` and every file under `.claude/commands`,
+  `.claude/skills` and `.claude/agents`, sorted by path, at most 1,000 files and 8 MB read (each file at most 256 KB;
+  past a bound a file counts by its size and modification time, and the dialog says the bound was reached). A symbolic
+  link is followed only to a regular file inside the folder; otherwise its target's name is digested and, when it
+  points out of the folder, the dialog names it. The dialog lists the instruction files by name (never their text), and
+  a re-ask leads with what changed (`FullFolderTrust.changeNote`: the instruction files, the settings or `.mcp.json`,
+  both, or a record made before instruction files were covered). Old records (no `.` in the digest) therefore re-ask.
+- **M8 in the full posture.** The full dialog binds the trust to the digest it showed; `LocalAgentFolderAnswered`
+  carries `contentUnchanged` (the files read again when the answer is given), and the node refuses `FOLDER_CHANGED`
+  on a yes whose files moved while the dialog was open. `TrustLocalAgentFolderEffect` records the full-posture record
+  with the digest that was shown.
+- **H4 in the full posture.** The full posture spawns through the same `ServeHostedBridgeEffect`, so with the REST
+  switch off its bridge reaches the hosted-only listener; P1b's credential-only hosted authentication is kept.
+- **Warm start** removed in both postures (OD-74.25), with `WarmStart.Tracker`, the `WARM_FULL` refusal and their tests;
+  **preview** labels (OD-74.26) on the Settings checkbox, the warning, the header and the docs.
+- **Witnesses** (each failed at its named assertion, then passed restored): H6 — the settings files only ("a rewritten
+  CLAUDE.md asks again"), and a link followed out of the folder (the outside change altered the digest); full M8 — the
+  `contentUnchanged` refusal dropped (a process started).
+
 ## Revision history
 
 - **r1, r2** (2026-10-16): the long-running session design; two independent reviews (`[R …]`, `[R2-n]` tags).
