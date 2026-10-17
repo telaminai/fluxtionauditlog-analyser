@@ -86,10 +86,9 @@ EXPORT_DIR = pathlib.Path(tempfile.gettempdir()) / "analyser-doc-capture"
 # prints the profile's full path, and rule 1 exists because a screenshot carries strings grep cannot see.
 DEMO_PROJECT = CAPTURE_ROOT / "demo-quote-project"
 _capture_process = None
-# The window's top edge. A menu shot is a REGION capture (the popup is its own window), and `screencapture -R` refuses a
-# rect that leaves the screen ("could not create image from rect"): at y=60 a 1050-high window overruns a 1080-line
-# display, and every menu shot failed on one (2026-10-17). Just under the macOS menu bar keeps the whole window on a
-# 1080p screen; a window-id capture is unaffected either way.
+# The window's top edge. Menu shots were once REGION captures, and `screencapture -R` refuses a rect that leaves the
+# screen: at y=60 a 1050-high window overruns a 1080-line display (2026-10-17). Every shot is now taken by window id,
+# which does not care; just under the macOS menu bar still keeps the whole window on a 1080p screen.
 WINDOW_Y = "28"
 
 
@@ -173,19 +172,18 @@ def menu_capture(ep, menu, name):
     # scratch path, not the asset — see capture(): aiming at an existing asset makes exists() a
     # test of the PREVIOUS run, so a failed shutter reports success and leaves the old image
     shot = EXPORT_DIR / f"native-menu-{menu}.png"
-    # A menu shot MUST stay a region capture (H3): the popup is a separate window and `-l` takes one id,
-    # so a window-id shot of the frame would show the frame with the menu missing. The overlap risk is
-    # therefore still live for this one shot — raise_window() above is the mitigation, and READ THE IMAGE.
-    subprocess.run(["screencapture", "-x", "-R",
-                    f"{b['x']},{b['y']},{b['width']},{b['height']}", str(shot)], check=False)
-    if not (shot.exists() and shot.stat().st_size > 0):
-        composite_capture(ep.get("pid", -1), shot)      # -R refused: each of the app's windows by id, composited
+    # The popup is a separate window and `-l` takes one id, so a single window-id shot of the frame would show the
+    # frame with the menu missing. So the frame and its popups are each taken BY WINDOW ID and composited — never a
+    # region of the screen: a region shot photographs whatever overlaps the window (H3), and a screen grab without the
+    # recording grant photographs the desktop while reporting success (2026-10-17). No region fallback: a menu shot
+    # that cannot be taken by window id is reported as not captured.
+    composite_capture(ep.get("pid", -1), shot)
     act(ep, "screenshot", {"path": f"menu-{menu}-close.png", "scope": "menu:close"})
     if shot.exists() and shot.stat().st_size > 0:
         shutil.copy(shot, target)
-        print(f"  ✓ {name}  ({target.stat().st_size // 1024} KB)")
+        print(f"  ✓ {name}  ({target.stat().st_size // 1024} KB, window-id composite)")
         return True
-    print(f"  ! {name} skipped — a menu shot needs a native capture (Screen Recording permission)")
+    print(f"  ! {name} skipped — a menu shot needs window-id captures (Screen Recording permission)")
     _failed.append(name)
     return False
 
@@ -373,7 +371,7 @@ def windows_of(pid):
 
 
 def composite_capture(pid, shot):
-    """A menu shot where `screencapture -R` is refused: the frame and its popups, each by window id, composited.
+    """A menu shot: the frame and its popups, each by window id, composited — never a region of the screen.
 
     Only the analyser's OWN windows are photographed (`-l <id>`), so nothing else on the screen can reach the image —
     stricter than the region capture it replaces. tools/CompositeShot.java draws each popup at its screen offset.
@@ -404,16 +402,18 @@ def composite_capture(pid, shot):
 
 
 def native_capture(ep, bounds, shot):
-    """Capture the analyser window to `shot`: by window id when we can get one, by region otherwise."""
+    """Capture the analyser window to `shot` by window id — never a region of the screen.
+
+    A region shot photographs whatever overlaps the window (H3), and without the recording grant a screen grab returns
+    the desktop while reporting success (2026-10-17). With no window id, nothing is written and the caller reports
+    the shot as not regenerated."""
     wid = window_id(ep.get("pid", -1))
     if wid is not None:
-        # -o omits the window shadow so the image is the window's own bounds, as the region shot was
+        # -o omits the window shadow so the image is the window's own bounds
         subprocess.run(["screencapture", "-x", "-o", "-l", str(wid), str(shot)], check=False)
         return "window"
-    print("  ! no window id found — falling back to a REGION capture; check the image for overlaps (H3)")
-    subprocess.run(["screencapture", "-x", "-R",
-                    f"{bounds['x']},{bounds['y']},{bounds['width']},{bounds['height']}", str(shot)], check=False)
-    return "region"
+    print("  ! no window id found — not captured (a region capture is never used)")
+    return "none"
 
 
 def raise_window(pid):

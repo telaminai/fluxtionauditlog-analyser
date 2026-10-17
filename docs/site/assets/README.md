@@ -101,8 +101,9 @@ This display is 1920×1080 at 1x, so these images are 1680×1050 (dialogs at the
 Retina 2x. Every image was opened and its visible strings read: only DEMO, `com.acme`, `/tmp/analyser-docs/…`,
 `~/.fluxtion-analyser`, the demo file names and placeholder plan names appear.
 
-Three capture-path fixes came with it. Menu shots fall back to compositing the frame and its popup windows, each by
-window id (`tools/CompositeShot.java`), where `screencapture -R` is refused; the window's top edge is 28 so the whole
+Three capture-path fixes came with it. Menu shots composite the frame and its popup windows, each taken by window id
+(`tools/CompositeShot.java`) — since the M74 final-review integration there is no region capture at all, for menus or
+windows: a shot that cannot be taken by window id is reported as not captured; the window's top edge is 28 so the whole
 window fits a 1080-line screen. Dialog captures moved from `java.awt.Robot` to the window-id protocol of
 `tools/DocShot.java` for the M74 and MCP classes, because Robot without the screen-recording grant photographs the DESKTOP and the
 harness reported it as success. `tutorial-new-project-menu.png` is no longer ringed on the previous run's image when this
