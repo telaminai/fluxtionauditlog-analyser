@@ -234,7 +234,7 @@ file, and a temp directory isn't a project.
 
 ## From an agent
 
-An assistant working over the [action socket](../inapp/index.md) sees the same offer as data —
+An assistant working over the [action socket](../reference/verbs.md) sees the same offer as data —
 `context` reports `projectOffer` with the settings path — and accepts it with
 `open {project: "<that path>"}`; the same call opens any project by directory. It also reads which
 project is in force (`context.project`) and leaves one with `open {close: "project"}`.
@@ -250,7 +250,7 @@ An agent can also **create** a project, through the same discovery as *Project �
 by writing a profile by hand: `open {project: "<absolute dir>", create: true}` previews the offer and writes
 nothing, and `open {project: "<absolute dir>", create: {sourceRoots, skills, referenceGuide, offerDigest}}`
 creates it with only the items named from that offer. Opening a graph is a separate `open {graphml}`.
-See [the open verb](../reference/verbs.md#the-tools-an-mcp-client-sees) for the full contract.
+See [the open verb](../reference/verbs.md#open) for the full contract.
 
 !!! warning "An assistant creates a project only with your consent"
 
@@ -307,7 +307,8 @@ unpin that chart explicitly to follow the current data.
 is not proof that the files loaded: wait for the final state and inspect the outcome. Neither action runs
 the project, its build scripts or its runbooks. If a newer open supersedes recovery, its state returns
 to `offered`; wait for that open to finish before accepting again, or dismiss the offer. Buttons retain
-the generation of the offer they displayed, so a stale button cannot accept another project's offer.
+the generation of the offer they displayed, so a stale button cannot accept another project's offer. An MCP request
+addresses whichever offer is current when it is handled.
 
 Candidates are keyed by canonical project-profile location, with a separate no-project bucket. They are
 not shared in profiles or exported ZIPs. A moved or missing project never inherits another project's

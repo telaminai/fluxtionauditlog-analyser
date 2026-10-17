@@ -64,7 +64,7 @@ drive the same verbs:
   `create: {sourceRoots, skills, referenceGuide, offerDigest}` creates it with only what is named from that
   offer, makes it active, and closes the open log and graph (a project is a session boundary). It never
   overwrites an existing project, and an assistant may do it only while **Settings ▸ Assistant ▸ Allow the
-  assistant to create projects** is on — off by default; see [the `open` verb](#the-tools-an-mcp-client-sees) below.
+  assistant to create projects** is on — off by default; see [the `open` verb](#open) below.
 - **coverage** — which of the processor's nodes never wrote audit output in this run. Needs a log *and* a
   graphml, and answers the question nobody can answer by eye on a large graph: what did this run never
   exercise? A gap means "never logged", not proven "never ran" — a node with no `auditLog` call, or one
@@ -87,6 +87,8 @@ The client discovers one tool per verb — `analyser_aggregate`, `analyser_read`
 `analyser_topology`, `analyser_report`, `analyser_context`, `analyser_screenshot`, `analyser_open`,
 `analyser_source_root`, `analyser_source`, `analyser_spotlight`, `analyser_walk` and `analyser_import` — with full parameter schemas, so
 there's nothing to paste into a prompt.
+
+### spotlight
 
 `spotlight` lets an AI client **point** ([Ask it to show you](../teach/spotlights-walks-reels.md#ask-it-to-show-you) has the pictures and
 what to say). `spotlight {target, caption}` lights one thing; `spotlight {targets: [{target, caption}, …]}`
@@ -121,11 +123,15 @@ reason**, never lit on nothing. `screenshot` and `context` leave a spotlight lit
 checks it lit what it meant — `context.spotlight.lit` lists what is lit, and a screenshot shows it exactly as
 you see it.
 
+### source
+
 `source` is a read-only file glance: `{file}`, `{file,line}`, `{line}`, `{bean}`, `{file,bean}`, `{fqn}` or
 `{fqn,method}`. It re-reads the local XML/Java file under authorised roots. `open {design}` declares the
 session design; `open {diagnostics}` explicitly replaces its producer findings and clears them on refusal.
 Both work without a log. See [Source navigation](../user-guide/source-navigation.md#spring-design-and-file-glances).
 The source-root grant now covers Java, XML designs and producer JSON; project membership alone is not a grant.
+
+### open
 
 `open` also writes to the **shared canvas** — state you and the AI client both see and either of you can
 set — because `open` is the verb that already means *put this in force*. Two things live there. **The work mode**: whether this session is for *investigating* or
@@ -212,6 +218,8 @@ Three more on `open`, so an agent can manage what is loaded rather than only add
     `context` (and `topology`) once the load lands, and none of them is ever a dialog on this path. This is
     one pattern, not four exceptions — if you need any of them, call `context` after opening.
 
+### context
+
 When the project points at a glossary (*Portable context ▸ Vocabulary*), its text leads every *Ask*
 prompt and is served as `context.vocabulary.text`, so the assistant reads `live` the way this system means it.
 
@@ -269,6 +277,8 @@ suspicious number. It also reports `projectOffer` when the log sits inside a pro
 human would see as a dialog, which an agent gets as data instead, because a dialog nobody can answer
 would simply stall the session.
 
+### Read-only, reversible and destructive
+
 `aggregate`, `read`, `series`, `context`, `coverage` and `source` are marked read-only (`source` rereads XML or Java
 under your source roots, and moves the transient source view). The verbs that only change what the app shows are
 reversible and marked accordingly. Six are marked **destructive**, so a client can prompt before running them: `open`
@@ -277,7 +287,7 @@ and `report` write files, `walk` can replace a saved walk by name (and `walk {re
 merges a bundle's saved state into your project. A further verb, `propose`, is offered **only** to Claude Code in the
 Assistant tab ([Set up a project with Claude](../build/set-up-with-claude.md)), never to an external client.
 
-Those last two are **off by default**. Turning on *Allow assistant file exchange* (Settings ▸ Assistant) lets them
+`screenshot` and `report`'s file outputs are **off by default**. Turning on *Allow assistant file exchange* (Settings ▸ Assistant) lets them
 write **only inside the exchange directory you choose**, and they never overwrite an existing file — so a
 second export under the same name is refused rather than silently replacing the first. Exports you drive
 yourself, through a menu chooser, are unaffected: picking a location in a dialog *is* the

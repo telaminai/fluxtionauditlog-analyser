@@ -1,7 +1,7 @@
 # Set up a project with Claude
 
 **Set up a project with Claude…** (in the assistant panel in its Claude Code mode, and the start page's *Set up a project from my code*) asks
-you for **your code's folder** — the same folder checks as Start: not your home folder, a credential folder or a
+you for **your code's folder** — the same folder checks as [Start](../inapp/claude-code.md#start): not your home folder, a credential folder or a
 bundle's working copy. That folder becomes the session's working folder for this run (it is not remembered, and is not
 a project), and Start is armed with a set-up question. Claude reads the folder with its read-only tools and the
 analyser's verbs, then calls **`propose`** with up to ten items — a source root, the processor, a GraphML, a runbook,

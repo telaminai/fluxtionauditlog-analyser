@@ -99,7 +99,7 @@ A log file can be cut short. A server killed mid-write, a partial copy, a transf
 file still opens, and the records in it are still real. What changes is whether you can treat *absence*
 as evidence.
 
-`context` reports this under `log.streamEnd`, and it has five answers:
+`context` reports this under `log.streamEnd`, and it has six answers:
 
 | state | what it means |
 |---|---|

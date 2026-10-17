@@ -24,11 +24,6 @@ and what the guidance it is given asks of it.)
 
 One thing lit — here, the demo's one real finding, a node the graph declares that never wrote audit output:
 
-Design-line and bean targets are measured after scrolling settles and must fit inside the XML
-text viewport. A set that cannot fit together is refused. With `add: true`, targets scrolled
-away appear in `wentOut`, and surviving highlights retain their numbers. Successful bounds
-refer to the painted cut-outs in the default screenshot, with positive dimensions.
-
 ![A spotlight in the light theme: the window dimmed, one topology node cut out, and the assistant's caption pointing at it](../assets/spotlight.png)
 
 ![The same spotlight in the dark theme](../assets/spotlight-dark.png)
@@ -58,18 +53,12 @@ Four things worth knowing before you rely on it:
   built-in assistant, a copied prompt, an MCP client) — but only where you would otherwise have to hunt. If it
   explains something without pointing, *"show me"* is all you need to say.
 
+**Source targets.** Design-line and bean targets are measured after scrolling settles and must fit inside the XML
+text viewport. A set that cannot fit together is refused. With `add: true`, targets scrolled
+away appear in `wentOut`, and surviving highlights retain their numbers. Successful bounds
+refer to the painted cut-outs in the default screenshot, with positive dimensions.
+
 ## Save it as a walk
-
-Java targets resolve the saved class name and line against the roots currently in force. **CURRENT does not
-certify the source revision against the saved caption.** The callout says “saved source revision not compared”,
-and the target reason in `context.walks` states the same limitation. A caption about `return 0.004` can therefore
-appear beside `return 999`, but not without that disclosure. “Source/run: unverified” answers a different question:
-whether source is paired with the log.
-
-While Java is being read, the strip remains **Preparing**, and the accepted dialogue prefix does not advance.
-Only the matching lighting result settles it. Reads are bounded and off the UI thread; a failure or expiry
-settles as not shown. Switching tabs, including with the native keyboard action, ends incompatible pending walk
-work. The walk's own view changes retain their operation ticket and do not cancel themselves.
 
 An explanation worth giving twice is worth keeping. A **spotlight walk** is a named sequence of spotlight steps,
 saved in the project like a report, that you — or a colleague who opens the same project — step through on the
@@ -106,6 +95,17 @@ analyser itself, with no assistant connected.
   another run is refused, rather than silently moving those charts to this run.
 - **Walks travel with the project.** Settings export shares them with the reports, and a walk made of tabs,
   panels and graph nodes — no records — plays with no log open at all.
+
+**Java source targets.** Java targets resolve the saved class name and line against the roots currently in force. **CURRENT does not
+certify the source revision against the saved caption.** The callout says “saved source revision not compared”,
+and the target reason in `context.walks` states the same limitation. A caption about `return 0.004` can therefore
+appear beside `return 999`, but not without that disclosure. “Source/run: unverified” answers a different question:
+whether source is paired with the log.
+
+While Java is being read, the strip remains **Preparing**, and the accepted dialogue prefix does not advance.
+Only the matching lighting result settles it. Reads are bounded and off the UI thread; a failure or expiry
+settles as not shown. Switching tabs, including with the native keyboard action, ends incompatible pending walk
+work. The walk's own view changes retain their operation ticket and do not cancel themselves.
 
 ## Walks with a conversation
 

@@ -1,7 +1,8 @@
 # Reading the transcript
 
 The assistant panel draws one conversation the same way, whichever assistant answers: your turns as you typed them,
-the assistant's words as safe Markdown, and every action as one compact tool line.
+the assistant's words as safe Markdown, and every action as one compact tool line. Claude Code's answers are marked
+*Claude Code*, and the in-app assistant's *Assistant*; the description below names Claude Code, and holds for both.
 
 ## How the conversation is drawn
 
@@ -28,24 +29,41 @@ a copy that holds such characters says how many.
   **Send** reads *Send to full Claude Code*, and the tab and the assistant's own window carry the same ◆ marker. The
   marker follows the session, so it appears and goes with what the analyser actually started.
 
-
 ## Tool lines and their marks
 
-Each action the assistant takes is one line, `▸` and the tool's name, then a mark. Click `▸` to open it: Claude Code's
-lines show the call's input as it was sent; the in-app assistant's show what came back.
+Each action the assistant takes is one line, `▸` and the tool's name, then a mark. Click `▸` to open it: a Claude Code
+line shows the call's input as it was sent; an in-app line shows the analyser's result, the same result the model was
+given (up to 4,000 characters on screen).
+
+**The in-app assistant's marks:**
+
+| Mark | Means |
+|---|---|
+| `✓` | the call ran |
+| `refused: …` | the analyser refused it, and says why |
+| `denied: not run (…)` | it did not run, for example because the turn was stopped first |
+
+**Claude Code's marks:**
 
 | Mark | Means |
 |---|---|
 | `✓` | the call ran |
 | `refused` | the analyser refused it, and the line says why |
 | `approved by you · ✓` | you allowed it in the approval dialog, and it ran |
+| `allowed: it changes nothing` | a sub-action that changes nothing stored (playing a walk, say), allowed without asking |
 | `denied by you` | you denied it in the approval dialog |
 | `denied: not answered within 120 s` | the approval dialog timed out |
+| `denied: Stop` | you pressed Stop while it waited |
+| `denied: another approval was waiting` | a second request arrived while one was open, and its turn ended first |
+| `denied: too large to show you in full` | the request could not be shown in full, so it was not asked |
 | `denied: not allowed in Safe analysis` | Safe analysis does not offer the tool |
-| `allowed: it changes nothing` | a sub-action that changes nothing stored (playing a walk, say), allowed without asking |
+| `denied: not available in this Full Claude Code mode` | the mode in force hides the tool |
+| `denied: answer in the conversation instead` | Claude tried its own question tool; answer in the composer |
+| `denied: the mode stays as you chose it` | Claude tried to change the permission mode |
+| `denied by the analyser's settings` | a setting refused it (file exchange off, say) |
+| `withdrawn by Claude Code` | Claude Code withdrew the request before you answered |
 
-The in-app assistant labels each result under its request as *result*, *REFUSED* or *NOT RUN*: the analyser's actual
-result, which also goes back to the model. [Approvals](approvals.md) explains when a dialog is shown.
+[Approvals](approvals.md) explains when a dialog is shown.
 
 A chip by the composer, such as *this log · opened 14:05*, says which log a drafted question is about
 ([Ask the assistant](ask.md)).

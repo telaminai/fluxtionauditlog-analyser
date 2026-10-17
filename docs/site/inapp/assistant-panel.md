@@ -46,8 +46,8 @@ the line under it says what it is doing: *Requesting*, *Running action n*, *Comp
 
 - **Ask, follow up, cancel.** **Send** (or Enter; Shift+Enter is a new line) sends your question with the selected
   records' context. The assistant can answer and run the same verbs an external client does — each result appears
-  under its request as the analyser's **actual** result, labelled *result*, *REFUSED* or *NOT RUN*, and goes back to
-  the model, so an answer can rest on what really happened rather than on the model saying it did. **Stop** ends
+  as a tool line marked `✓`, `refused: …` or `denied: not run (…)`, and opening the line shows the analyser's
+  **actual** result, which also goes back to the model, so an answer can rest on what really happened rather than on the model saying it did. **Stop** ends
   the turn at once: a reply or result that arrives afterwards is not shown and runs nothing. Actions that had already
   completed are not undone, and the note says how many. **New chat** starts again.
 - **Budgets.** A turn stops at the per-reply action cap, the round limit, or its own per-turn action budget (Settings ▸
@@ -67,6 +67,20 @@ the line under it says what it is doing: *Requesting*, *Running action n*, *Comp
 
 Nothing is sent until you press Send: not when you open the tab, open a bundle, or play a journey. Claude Code
 starts only when you press its **Start** button.
+
+## When the panel refuses
+
+The panel says why it will not do something, in these words:
+
+| You see | Because | Do |
+|---|---|---|
+| *No API key is configured, so nothing is sent from here — choose how the assistant works (Assistant ▾ above), Copy prompt, or Connect a CLI assistant.* | the in-app assistant has no key | choose a profile with **Assistant: … ▾**, or use *Copy prompt* |
+| *The assistant is off on this machine: no question is sent anywhere. Everything else works — choose a profile (Assistant ▾ above) to turn an assistant on.* | the profile is *Off* | choose another profile, if you want one |
+| *Claude is still answering — Stop or wait, then change how the assistant works.* (or *The in-app assistant is still answering — …*) | you changed the profile while an answer was in progress | press **Stop**, or wait for the answer |
+| *Claude is still answering — Stop or wait.* | you pressed Send during an answer; your draft stays, and nothing is queued | wait, or press **Stop** |
+| *an earlier log · Send will refuse it — ask again* (the chip by the composer) | the log was reloaded after the question was drafted | ask again from the records ([Ask the assistant](ask.md)) |
+| *Claude asked a question — answer it in the conversation* | Claude tried its own question tool, which the analyser does not show as a dialog | answer in the composer |
+| `denied: the mode stays as you chose it` on a tool line | Claude tried to change Full Claude Code's permission mode | nothing: the mode you chose stays |
 
 ## No API key? Copy-prompt mode
 

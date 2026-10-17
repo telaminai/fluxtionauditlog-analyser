@@ -38,9 +38,9 @@ chooses how it works on this machine ([Assistant profiles](../admin/profiles.md)
 
 **No profile is local-only.** What you ask, and the evidence the assistant reads, is sent to its model provider:
 Anthropic for Claude Code (on your Claude plan or an API key), or the provider you chose for the in-app assistant.
-**What it costs:** on a Claude plan, usage counts against your plan and no dollar figure is shown; with an API key,
-each finished answer shows its cost, and *Settings ▸ Assistant ▸ Limit spend per session* (off by default) can cap a
-Claude Code session.
+**What it costs:** for Claude Code on a Claude plan, usage counts against your plan and no dollar figure is shown;
+for Claude Code on an API key, each finished answer shows its cost, and *Settings ▸ Assistant ▸ Limit spend per
+session* (off by default) can cap a session. The in-app assistant shows no cost: your provider bills your key.
 
 Prefer to work from your own terminal or IDE client? That is [Diagnose an incident](../diagnose/index.md): the same
 verbs, driven from outside.
@@ -68,9 +68,9 @@ Every assistant renders onto the same views you use yourself:
 - [Investigation reports](../user-guide/reports.md)
 - [The Project panel](../user-guide/project-panel.md)
 
-The rest of the old user guide lives in other sections: [The start page](../user-guide/start-page.md) and the
+Related pages in other sections: [The start page](../user-guide/start-page.md) and the
 [sample prompt pack](../user-guide/sample-prompt-pack.md) under *Get started*;
-[Working across projects](../user-guide/projects.md), [Portable context](../user-guide/portable-context.md),
+[Projects, profiles and sharing](../user-guide/projects.md), [Portable context](../user-guide/portable-context.md),
 [Sharing setups](../user-guide/sharing-setups.md) and [Log-source plugins](../user-guide/plugins.md) under
 *Administer and secure*.
 

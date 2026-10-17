@@ -195,8 +195,9 @@ class FaqSecurityContractTest {
                 "Settings ▸ Assistant says it for Claude Code and for the in-app assistant");
         for (String untrue : new String[]{"local-only analysis", "nothing leaves this machine", "stays on your machine",
                 "never leaves your machine"}) {
-            for (String f : new String[]{"docs/site/faq.md", "docs/site/admin/profiles.md", "docs/site/inapp/assistant-panel.md",
-                    "docs/site/inapp/claude-code.md",
+            for (String f : new String[]{"docs/site/faq.md", "docs/site/admin/profiles.md", "docs/site/admin/managed-policy.md",
+                    "docs/site/inapp/index.md", "docs/site/inapp/assistant-panel.md", "docs/site/inapp/claude-code.md",
+                    "docs/site/inapp/ask.md", "docs/site/inapp/transcript.md", "docs/site/inapp/approvals.md",
                     "docs/site/user-guide/start-page.md", "docs/site/getting-started.md"}) {
                 assertFalse(Files.readString(Path.of(f)).replaceAll("\\s+", " ").toLowerCase(java.util.Locale.ROOT)
                         .contains(untrue), f + " claims \"" + untrue + "\"");

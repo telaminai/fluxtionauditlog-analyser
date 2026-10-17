@@ -4,8 +4,10 @@ When Claude Code in the analyser wants to run a call that needs your approval, t
 What is asked depends on the profile:
 
 - **Safe analysis** asks about each call of the analyser's verbs that change what is open or write a file: `open`,
-  `source_root`, `screenshot`, `report`, `walk` and `import`. Nothing else is ever asked in Safe analysis: everything
-  else is either allowed (the verbs that only read or change the view) or denied at once.
+  `source_root`, `screenshot`, `report`, `walk` and `import`. Two exceptions are never asked: a sub-action that changes
+  nothing stored (playing a walk, say) is allowed, and a call your settings already refuse (a file write with file
+  exchange off) is refused. Nothing else is ever asked in Safe analysis: everything else is either allowed (the verbs
+  that only read or change the view) or denied at once.
 - **Full Claude Code** in its `default` or `acceptEdits` mode asks whatever your Claude Code would ask you in a
   terminal, plus those same analyser verbs. In `auto` and `plan`, those analyser verbs are hidden.
 
@@ -16,7 +18,7 @@ approval settings.
 it, the call's input as plain text, the 120 s deadline, Allow once alone at the left, Stop Claude Code and Deny, the
 default](../assets/permission-dialog.png)
 
-When Claude Code needs your approval for a call, the analyser asks you in **one dialog** that says what **this call**
+The dialog says what **this call**
 does, from its own input — *"Claude Code asks to delete the saved walk “DEMO first breach”"*, *"…to play the walk
 “…”"*, *"…to build the report “…” and write it to “incident.pdf”"*, *"…to run a command on your computer"* — one line on
 its consequence (*"It can be restored: it moves to this project's recently deleted list."*), who the tool belongs to

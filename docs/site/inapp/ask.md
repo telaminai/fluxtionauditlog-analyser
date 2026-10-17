@@ -10,7 +10,7 @@ in the Claude Code mode, *Ask the assistant: …* in the in-app one:
 | **Did this node run, and what does the evidence establish?** | right-click a node in the topology, with a record selected |
 | **Explain this point** | right-click a chart point or note (*Ask Claude: explain this point*, beside the chart's own *Add explanation…*, which is your words) |
 | **Explain this finding** | right-click one flagged record |
-| **Summarise this window** | right-click the time slider (its menu is new), or a chart's visible window |
+| **Summarise this window** | right-click the time slider, or a chart's visible window |
 
 ![The records' right-click menu in the in-app mode: Ask the assistant: What happened here? enabled for one record; Compare
 these rows and Explain this finding disabled, each until its condition holds](../assets/ask-menu.png)
@@ -33,7 +33,6 @@ these rows and Explain this finding disabled, each until its condition holds](..
 - **During a walk with a conversation** (a journey), an ask does not go to any model: it shows the **next recorded
   turn** by playing the step that reveals it. When there is none, the status line says *"The recorded conversation has
   no further turn — end the walk to ask yourself"*.
-
 
 The start page asks too: its numbered entries and its box place a question for the assistant in force
 ([The start page](../user-guide/start-page.md#which-assistant-answers)).

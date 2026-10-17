@@ -42,7 +42,7 @@ everything you (or the assistant) marked as relevant, while the counts and time 
 
 ![Flagged records are tinted in the table, and carry the note you filed them with](../assets/flagged-only.png)
 
-Because flagging is also one of the assistant's [actions](../inapp/index.md), an agent's findings land here
+Because flagging is also one of the assistant's [actions](../reference/verbs.md#actions-the-assistant-can-take), an agent's findings land here
 as flags too — with a note attached — so its conclusions become a reviewable set in your own view, not
 just text in a chat.
 
