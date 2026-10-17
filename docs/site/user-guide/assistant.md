@@ -122,7 +122,8 @@ evidence bundle, so a cloned repository or a received bundle cannot turn any of 
   is refused too);
 - the analyser's **non-destructive verbs** — `read`, `aggregate`, `series`, `context`, `coverage`, `source`, `filter`,
   `goto`, `flag`, `graph`, `topology`, `spotlight` — approved without asking; deleting a chart's definition
-  (`graph {delete}`) is refused;
+  (`graph {delete}`) is refused; and **`propose`**, which only Claude Code in the tab is offered: it records a set-up
+  offer and changes nothing ([below](#set-up-a-project-with-claude));
 - nothing else. **Not loaded:** your own skills, commands, hooks and settings, your MCP servers and connectors, and the
   folder's `.claude/settings.json` hooks and `.mcp.json`. **No Bash, no file edits, no web, no subagents.** The
   destructive verbs (`open`, `source_root`, `screenshot`, `report`, `walk`, `import`) are hidden from it. Anything not
@@ -187,12 +188,25 @@ answers as the model's words, and check them against what the analyser shows.
   classified (from a newer Claude Code) is refused the same way. Lines starting with `!` or `#` (the terminal's shell and
   memory shortcuts) are refused. An `@file` mention works as in a terminal for a file inside the folder; a file
   outside it is not read.
-- **The header** shows the model, the posture, the folder, the Claude Code version, your subscription type or the
-  API-key source, and the API provider. It never shows your e-mail address or organisation. **Cost:** on a Claude plan
+- **The header** shows the model, the posture, the folder (shortened; the full path is its tooltip), the Claude Code
+  version, your subscription type or the API-key source, and the API provider when it is not Anthropic's own. It never
+  shows your e-mail address or organisation. When the environment the analyser passes to Claude Code sets
+  `ANTHROPIC_BASE_URL`, a line says *"requests go to https://proxy.example:8443"* — the scheme, host and port only,
+  never a path, query or credentials; with full Claude Code it adds that your own settings may set another endpoint,
+  which the analyser does not read. A **diagnostics** line appears only when something needs it — *"Diagnostics: 3
+  unknown stream events · 1 command not classified for the analyser (/foo)"*. Each finished answer shows its **time**,
+  and with an API key its **cost** (the difference of the session's running totals); on a Claude plan no dollar figure
+  is shown. A long conversation keeps its last 500 entries, with one line saying how many earlier ones are not shown. **Cost:** on a Claude plan
   it shows no dollar figure — *"usage counts against your Claude plan"*, whose own usage limits apply. With an API key
   it shows what the session has used, and, if you set one, the limit: *Settings ▸ Assistant ▸ Limit spend per session*
   is **off by default** and is meant for API-key billing; when the limit is reached the analyser stops Claude Code and
   says so.
+- **Switching projects while Claude Code runs.** Opening, creating or closing a project from the menus while a session
+  runs asks first: **Stop, and get Start ready in the new project** (the session ends; nothing starts until you press
+  *Start a new session in this project*, and the new folder is confirmed then), **Keep it running here** (the switch
+  happens; the session keeps working in its own folder, and its context describes the previous project), or
+  **Cancel**. An assistant's `open {project}` is never held this way. (A handoff report from the old session to the new
+  one is planned for later.)
 - **Don't resume this conversation in a terminal while it is open here** — the history would fork. A second analyser
   window cannot open it either: *"This conversation is open in another analyser window."*
 
@@ -473,6 +487,34 @@ analyser itself, with no assistant connected.
 - **Walks travel with the project.** Settings export shares them with the reports, and a walk made of tabs,
   panels and graph nodes — no records — plays with no log open at all.
 
+### Set up a project with Claude
+
+**Set up a project with Claude…** (on the Claude Code tab, and the start page's *Set up a project from my code*) asks
+you for **your code's folder** — the same folder checks as Start: not your home folder, a credential folder or a
+bundle's working copy. That folder becomes the session's working folder for this run (it is not remembered, and is not
+a project), and Start is armed with a set-up question. Claude reads the folder with its read-only tools and the
+analyser's verbs, then calls **`propose`** with up to ten items — a source root, the processor, a GraphML, a runbook,
+a log to open — each with its reason.
+
+- **Nothing is applied by Claude.** A banner appears on the tab — *"Claude Code proposes 4 changes to set up …/medmon.
+  Nothing has been applied — review each one."* — with **Review…** and **Not now**. A model never opens a dialog: the
+  review opens when you click.
+- **The analyser checks every item itself** before the banner shows (read-only): the folder exists and how many `.java`
+  files it holds, the processor's class is found in the sources, the GraphML and log are readable files, the runbook is
+  Markdown. The review shows, per item, the kind, the path, **the analyser's check**, and Claude's reason in its own box,
+  labelled *Claude's reason — unverified*. An item **outside the set-up folder** (after following links) is shown and
+  can never be applied; an item that does not exist, or is the wrong kind of file, is refused with why.
+- **Every answer starts at No.** When the folder has no project, the first row is the analyser's own **Create a project
+  here** (an empty one, through *New project…*'s path); the items that need a project wait for it. **Apply chosen**
+  applies your Yes items one at a time, in a fixed order — create, source roots, processor, runbooks, GraphML, log —
+  each through the same path you would use yourself, and then shows the analyser's pairing check. Creating the project
+  is never treated as a project switch: the session keeps running, and New chat starts one in the project.
+- **One proposal at a time.** A second `propose` while one waits for you is refused (*"a proposal is already waiting
+  for the person; call context to see its outcome"*). Claude sees each item's outcome in `analyser_context`
+  (`proposals`: ids, kinds, states and the analyser's checks — never its own reasons back). A "proposal" written in an
+  answer's text does nothing: only the verb counts. An external MCP client calling `propose` is told it is an unknown
+  verb.
+
 ### Walks with a conversation
 
 A walk can carry a **conversation** shown beside it as it plays — a *conversation journey*. Try the DEMO one:
@@ -491,6 +533,14 @@ A walk can carry a **conversation** shown beside it as it plays — a *conversat
 - **Ask your own.** **Ask about this evidence** ends the journey and starts a fresh live chat — none of the journey's
   words go with it — or **Connect your CLI assistant**. A journey waits for a live turn in progress to finish; a live
   question ends a journey.
+- **Recording a Claude Code conversation.** With Claude Code in force, the editor offers **the Claude Code
+  conversation** instead: only your sent turns and Claude's finished answers — never a tool line, a status note or a
+  refusal. The walk then records its source — *claude-code*, the model and the Claude Code version, and nothing else
+  (no session id, path, account, cost or budget) — as conversation **version 2**; every other walk stays version 1. A
+  turn over 16 KB is offered cut at 16 KB and marked *[truncated by the analyser]*; past 200 turns or 512 KB the most
+  recent turns are offered, and the editor says how many earlier ones were left out. An analyser from before version 2
+  keeps such a walk's conversation when it saves, and this one drops (and names) a step's reveal that no longer matches
+  a turn, rather than playing it.
 - **Sharing.** The conversation travels with the walk: projects, Settings export, the bin and evidence bundles. A
   machine path in a turn is removed when a bundle is written, and named. An analyser from before conversation journeys
   plays the walk without its conversation, and keeps the conversation if it saves the project.

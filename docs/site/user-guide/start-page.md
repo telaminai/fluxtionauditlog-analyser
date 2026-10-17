@@ -9,7 +9,7 @@ and keeps the familiar cards below it, under **Or choose directly**.
 | # | Entry | The button | What it does |
 |---|---|---|---|
 | 1 | **Run me through a demo** | *Play* | Opens the sample project and plays the DEMO journey *Find the first recorded breach* — no AI, no key, no network, nothing sent. Its conversation is scripted and labelled *Simulated conversation*. |
-| 2 | **Set up a project from my code** | *Set up…* | Opens *New project…*, which looks at your code's folder, offers what it finds, and lets you choose. |
+| 2 | **Set up a project from my code** | *Set up…* | Toward **Claude Code**: your folder chooser, then a set-up question is placed and Start armed — Claude looks at the folder and **proposes** the set-up, you answer each item, and the analyser applies the ones you accept ([onboarding](assistant.md#set-up-a-project-with-claude)). Toward the in-app assistant (which cannot read a folder): *New project…*, which offers what it finds and lets you choose. |
 | 3 | **Open an evidence bundle someone sent me** | *Open bundle…* | Your file chooser, then the bundle's verification. A bundle that does not verify is **not opened** and nothing is written: you see why, with *Close*. A verified one opens as a disposable copy, and then a question about it is drafted. |
 | 4 | **Which starter template suits what I'm building?** | *Show templates* | Reads the starter catalogue **when you press the button** (never before), then drafts a question naming its templates. *New project from template…* is beside it. |
 | 5 | **Explain an audit log I already have** | *Open log…* | With no log open, your file chooser and the load first; then a question about that log is drafted, naming it and its generation. |
@@ -23,8 +23,8 @@ and keeps the familiar cards below it, under **Or choose directly**.
   sentence). With no entry chosen, the button is **Send** and the box is your question.
 - **The button never starts Claude Code.** A draft for Claude Code is placed in its composer and **Start is armed**
   (*Start — ask your question*); you press Start, and the folder confirmation and the posture in force apply. Start is
-  armed only when it would be accepted: with the REST transport off, for example, the draft is still placed and the tab
-  offers *Turn on the REST transport* instead.
+  armed only when it would be accepted: in an evidence bundle's working copy, for example, the draft is still placed and
+  the tab says why Start is refused.
 - **With nothing open**, the assistant opens in its own window with the draft in its composer, so you can see where
   your question went. Over an open workspace it returns there and shows the docked tab.
 - **The sample project and a bundle's working copy** are folders the analyser owns, so a Claude Code session for them
@@ -75,8 +75,36 @@ A file that breaks the format is **refused with one named cause and its line** (
 5 — an entry needs a bold label"*), with **See the format**, and the list in force stays. The
 [sample prompt pack](sample-prompt-pack.md) is a valid pack you can save and drop.
 
+### Example entries
+
+An entry can instead point at an **example project to download** — an archive of one pinned commit:
+
+```text
+5. **Label** — example: https://github.com/OWNER/REPO/archive/<40-character commit>.zip
+5. **Label** — example: https://github.com/OWNER/REPO/archive/<commit>.zip sha256:<64 hex characters>
+```
+
+- It shows with a download badge (**⤓**). **Nothing is fetched** when the pack is dropped or the entry chosen; only the
+  entry's own **Download example…** button fetches, after a confirmation that **leads with the publisher** — *host /
+  owner / repo @ short commit* — marked **third-party** unless it is the Telamin GitHub organisation, then the exact
+  address, the full commit, the integrity digest (or that there is none) and the folder you choose (a new or empty one).
+- Only `https` from **github.com**, **codeload.github.com** and **gitlab.com**, and only an archive of a **40-character
+  commit**: a branch or tag can change under you, so `…/archive/main.zip` or `…/archive/v1.0.zip` is refused. No git,
+  clone, hooks or submodules are used.
+- With `sha256:`, the archive's digest is checked **before anything is unpacked**, and a mismatch is refused, by name.
+  GitHub does not guarantee that the bytes of its generated `/archive/<commit>.zip` stay the same — only the files
+  inside them — so a digest on such an address may stop matching one day; the analyser then refuses rather than
+  accepting it silently. A digest is most useful on an archive whose bytes are published once and kept (a release
+  asset); this build accepts only commit-pinned addresses, so the commit is what pins a GitHub archive.
+- The archive is unpacked through the same contained installer as the starter templates (no paths outside the folder,
+  no links, size caps), with **no file made executable**. **Nothing is built, run or installed.** You are then offered to
+  open the folder as a project (*New project…*'s offer, which you confirm). Downloading never trusts the folder for
+  Claude Code: that is Start's own question, asked there.
+- There is no *validated* or *approved* mark: an example is the publisher's, and the analyser says only whose it is.
+
 ## Or choose directly
 
 The cards — the guided tour, the sample project, *Open project*, *Open evidence bundle*, *Open audit log*, *Open
 GraphML*, *Create project profile*, *Create from template*, and the assistant settings — work exactly as before. You can
-also drop an `.fexp` bundle, an audit log, a GraphML file or a Spring XML design anywhere on the page.
+also drop an `.fexp` bundle, an audit log, a GraphML file, a Spring XML design or a prompt pack (`.md`) anywhere on the
+page.

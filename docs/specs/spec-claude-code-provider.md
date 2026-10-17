@@ -1,6 +1,7 @@
 # M74 — Claude Code as the analyser's assistant: a long-running local session
 
-**Status:** DRAFT r10, 2026-10-17 (r8 accepted 2026-10-16; r9 folds in the P1b probes and the owner's optional budget,
+**Status:** DRAFT r11, 2026-10-17 — r11 merges the P1b branch into P2, builds **P2b** and adds the owner's requests of
+2026-10-17 (§2 *r11 owner decisions*; *Implementation notes (P2b)*). (r8 accepted 2026-10-16; r9 folds in the P1b probes and the owner's optional budget,
 OD-74.24; r10 merges P1a's holistic-review fixes (P1a r7), adds H6 and the owner's two decisions of 2026-10-17:
 warm start cut, OD-74.25, and full Claude Code a preview until P3, OD-74.26). **P1b** is implemented against r9 ([probes](evidence/m74-p1b/PB-report.md), US$0.24; see *Implementation
 notes (P1b)*). Two protocol probes have run against the installed CLI (2.1.282): **P0**
@@ -87,6 +88,23 @@ utility P3 completes.
 | r10-5 | Move's handoff report (§5.3, P2b) is deferred; it was not in P2a. | accepted (owner) |
 | OD-74.27 | **The full-posture cue** *(numbered OD-74.25 in r10 before the P1b merge; renumbered because P1b's OD-74.25 is the warm-start cut)* (owner request, §5.9): the composer and the start-page box carry a theme-aware accent border and a persistent badge, Send names the full posture, and the Assistant tab and the pop-out window carry a ◆ marker, whenever the person's full Claude Code is in force — following the snapshot (rule 9), *on* (switched on, not running) apart from *running*, and stronger (◆◆, another token, a thicker border) for `acceptEdits` and `auto`, which ask about fewer actions. Colour is never the only cue. | **accepted 2026-10-17** (owner request) |
 | OD-74.28 | **A dropped prompt pack** *(numbered OD-74.26 in r10 before the P1b merge; P1b's OD-74.26 is the preview label)* (owner request, §5.8): the start page's drop target accepts one Markdown file whose strict format replaces the numbered list for the session, with *← Return to main options*; session-only, never persisted, shared or bundled; refused with one named cause and its line otherwise. It is the person's explicit drop act, not the deferred configurable list. | **accepted 2026-10-17** (owner request) |
+
+### r11 owner decisions and requests (2026-10-17)
+
+| # | Decision | Status |
+|---|---|---|
+| r11-1 | **The simplified Move** (amends §5.3 and OD-74.15 for P2): a person's project switch while a Claude Code process runs offers **Stop, and get Start ready in the new project** / **Keep it running here** / **Cancel**. There is no handoff draft, turn, confirmation or report (deferred with r10-5 until after P3). The node decides; Stop arms Start (*Start a new session in this project*) and starts nothing. | accepted (owner) |
+| OD-74.29 | **Prompt-pack example entries** (owner request): `N. **Label** — example: <https URL of an archive of a PINNED commit>`. Shown with a download badge. Nothing is fetched on drop or on choosing; only the entry's own button fetches, after a confirmation showing the exact URL, the pinned commit and the target folder the person chooses. An archive over https from an allowed-host list (`github.com`, `codeload.github.com`, `gitlab.com`; a constant now, a P4 policy seam). No git binary, clone, hooks or submodules. Unpacked through the template archive machinery (its containment checks, caps; no links; no path escaping). A moving ref (a branch or tag) is refused: only a 40-hex commit. Then the M73 project offer opens the folder and the person confirms. Downloading never implies Claude Code folder trust. Rule 9: the node decides each step; fetch and unpack are effects with facts. | accepted (owner request) |
+| OD-74.30 | **Third-party publishers and integrity** (owner addition to OD-74.29): packs may point at public third-party repositories of Fluxtion-compatible libraries. The confirmation **leads with the publisher** — host / owner / repo @ short commit — and anything not from the Telamin GitHub organisation is marked **third-party**. An optional `sha256:<64-hex>` is verified after the download and before the unpack; a mismatch is refused with a named reason, and the analyser never silently accepts one. Nothing is built, run or installed on download. **No "validated" or "approved" badge**: that needs a Telamin-published catalogue — a later owner item (deferred; `ExampleSource.publisherVerdict()` is the seam). | accepted (owner request) |
+
+**On GitHub archive byte-stability (OD-74.30, checked 2026-10-17 against GitHub's documentation, "Downloading source
+code archives"):** an archive of a commit always has the same *file contents*, but *"the exact compression settings
+used to generate a zipball or tarball may change over time … the outer compressed archive may have a different byte
+layout"*. A `sha256` on a generated `/archive/<commit>.zip` is therefore not guaranteed to keep matching. The docs
+recommend a digest for archives whose bytes are published once (release assets); this build accepts only commit-pinned
+archive URLs, so for a generated archive the pinned commit is the identity, and a digest that stops matching is refused,
+by name — never accepted. Accepting a release-asset URL (a tag in its path) pinned by its digest is a later owner
+decision.
 
 ## 3. Posture: what Claude Code may do when the analyser starts it
 
@@ -529,6 +547,11 @@ here — the history would fork."* No further detection is attempted.
    (P3, §5.7).
 
 ### 5.3 *Move* on a project switch, in order (OD-74.3, OD-74.15, rule 9)
+
+> **r11 (owner, 2026-10-17, r11-1): P2 builds the simplified Move only** — the offer is *Stop, and get Start ready in the
+> new project* / *Keep it running here* / *Cancel*, decided in `sessionBoundary` (the hold) and `localAgentSession`
+> (stop and arm); steps 3–7 below (the handoff draft, its turn, the confirmation and the report) are **deferred until
+> after P3**. Steps 1 and 2 and *Keep* apply as written, with *Stop* arming Start.
 
 1. The person asks to switch projects (any `EXPLICIT_SWITCH` of person origin: *Open project…*, *Open recent project*,
    *Close project*, *New project…*) while a Claude Code process runs. `SessionBoundary` holds the request instead of
@@ -2110,6 +2133,60 @@ onboarding (§5.6), Move (§5.3), conversation v2 (§6) and the carried items (h
   `ForeignTextIsPlainTest` (every new door); frame suites `StartPromptFrameTest` and `PromptPackFrameTest` (registered
   in CI), and `AssistantLiveFrameTest#aDraftIsAppendedNotSent` replacing the P1 Explain test.
 
+## Implementation notes (P2b, 2026-10-17)
+
+P2b is built on `feature/claude-code-p2` after merging P1b (PR #147, with #145). No live `claude` was needed for any
+decision: each is the analyser's own, on the real processor; the live smoke is reported separately.
+
+- **The merge (r11).** `SessionProcessor` regenerated, never hand-merged. P1b's mode switch (refused mid-turn) keeps
+  P2a's "a switch replaces an armed Start"; P2a's `acceptable()` lost `REST_OFF` as Start's refusals did (H4). The two
+  r10 owner requests were renumbered: the full-posture cue **OD-74.27** (was P2a's OD-74.25) and the prompt pack
+  **OD-74.28** (was P2a's OD-74.26); P1b's OD-74.25 (warm start cut) and OD-74.26 (preview) keep their numbers.
+- **Where things live.** `llm/ProposeShape` (the whole-call shape), `VerbSchemas.hosted()`/`PROPOSE`,
+  `McpTools.hostedList()`/`hostedVerbFor()`, `ActionDispatcher.dispatchHosted` and its `Proposer`;
+  `session/node/OnboardingProposal` (`onboardingProposal`; parent `localAgentSession`), `session/ProposalState`;
+  `session/node/ExampleDownload` (`exampleDownload`), `session/ExampleDownloadState`; `SessionBoundary` gains
+  `localAgentSession` and `onboardingProposal` as JavaBean parents (the hold); `LocalAgentState.Extra` (set-up folder,
+  diagnostics, per-turn cost and time, trimmed count). `assistant/ExampleSource`, `ExampleArchiveClient`,
+  `localagent/EndpointLine`; `TemplateArchive.forExamples()`. UI: `ProposalPreview`, `ProposalReviewDialog`,
+  `LocalAgentSwitchDialog`, `ExampleDownloadDialog`, the banner and *Set up a project with Claude…* on
+  `LocalAgentPanel`, the example row on `StartPromptView`.
+- **Decisions where the spec left room.**
+  - **The set-up folder** is chosen through the start page's S2 flow (`RunStartPageFlowEffect{S2.setup}`); the panel's
+    button presses S2 the same way. The frame reads the chosen folder from `LocalAgentState.extra().setupDir()` for the
+    next spawn (it renders the node's state); the folder checks are `LocalAgentConsents.setupVerdict`.
+  - **The verb's reply** is `{"ok":true,"action":"propose","proposal":{proposalId, items, next}}` — the dispatcher's
+    usual envelope, so the §5.6 keys sit under `proposal`.
+  - **Item verdicts** are words (`DIRECTORY (12 .java files)`, `RESOLVES (pairing UNKNOWN)`, `READABLE (fit UNKNOWN
+    until opened)`, `MARKDOWN`): the pairing and graph–log fit are computed by the analyser's own check after the
+    last item (`ProposalChecked`, the pairing's audit label), not per item before it — never "probably".
+  - **After the session's own create** the process keeps running (Keep) and New chat is offered with *"this session
+    started before the project existed"*; with no process, Start is armed (`armed.SETUP`).
+  - **A runbook** is added through `PointerDialog.addRunbookPointer` — the Add dialog's checks with the file's
+    frontmatter name and description — since the dialog itself is a person's typing step.
+  - **The switch offer's stale answer**: the node keys the release on the offer's id; `localAgentSession` acts on any
+    answer, which only the modal offer itself can send.
+  - **Conversation v2's re-validation on load** applies to v2 walks only: a v1 walk with a bad binding is still refused
+    whole where it always was (a share's preview, the `walk` verb).
+  - **The endpoint line** shows the provider only when it is not `firstParty` (owner fix: the CLI's internal word is not
+    shown); the REST endpoint refresh of §4.2 is met by H4: the listener a session uses is never restarted under it
+    (REST off withdraws external clients; the listener stays).
+  - **Per-turn cost** is the difference of successive `total_cost_usd`, shown only with an API key (OD-74.24); the time
+    is the `result`'s `duration_ms`.
+  - **Trimming** keeps 500 entries plus one note; the transcript store bounds its own words (no eviction effect).
+  - **Example entries:** the action button is the entry's own button once the row is chosen (a chip, like a flow);
+    examples unpack with **no executable bit** on any file (a starter keeps its fixed list); the default target is
+    `~/<repo>-<short commit>`; a redirect is followed only to an allowed https host naming the same commit (GitHub's
+    `/archive/` → codeload), at most three.
+- **Live smoke (2026-10-17, [report](evidence/m74-p2b-smoke/SMOKE-report.md)):** items 4, 5, 6, 7, 9 and 10 passed on
+  the person's Claude plan (haiku, no spend limit, the harness's bounded waits as the runaway guard,
+  `--strict-mcp-config` on the line). Two findings: the SETUP draft armed Start with the generic words (fixed:
+  `armed.SETUP`); and **the analyser's own create closes the open log**, as every project create does (M35.5) — a
+  `logToOpen` item reopens it; keeping the log across the session's own create would be a new exception, **for the
+  owner**.
+- **Not built in P2b:** the handoff report (deferred, r11-1); a frame test of the review dialog's modal (its content
+  and the banner are tested headless, the apply on the real processor); the in-app transcript adopting `TranscriptView`.
+
 ## Revision history
 
 - **r1, r2** (2026-10-16): the long-running session design; two independent reviews (`[R …]`, `[R2-n]` tags).
@@ -2196,3 +2273,8 @@ onboarding (§5.6), Move (§5.3), conversation v2 (§6) and the carried items (h
   full-posture trust digest covers the instruction files, bounded, and the dialog names what changed. **Owner
   decisions:** warm start cut in both postures (OD-74.25; P1a's r7 called it OD-74.10); full Claude Code a preview
   until P3 (OD-74.26).
+- **r11** (2026-10-17): the P1b branch merged into P2 (the colliding OD numbers renumbered: OD-74.27 the full-posture
+  cue, OD-74.28 the prompt pack; old numbers noted at their rows); **P2b built** — `propose` onboarding (§5.6), the
+  simplified Move (r11-1), conversation v2 (§6), the carried items, per-turn time and cost; owner requests OD-74.29
+  (prompt-pack example entries) and OD-74.30 (third-party publishers, the optional sha256, no "validated" badge,
+  deferred catalogue); the GitHub archive byte-stability finding; *Implementation notes (P2b)* added.
