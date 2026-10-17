@@ -1,17 +1,18 @@
 # Start here
 
 The analyser is a **desktop canvas for Fluxtion audit evidence**. A Mongoose/Fluxtion processor records every cycle it
-runs: the event that arrived, each node that reacted, in order, and what each one computed. The analyser opens that
-record, and you, or an AI you connect, read it, filter it, chart it, step through it and report on it. What an AI finds
-appears on the canvas as something you can click and check. The analyser does not run your application. Claude Code
-can run commands on your computer only if you turn on *Full Claude Code*, and then only as your own Claude Code rules
-allow.
+runs: the event that arrived, and each node that logged, in order, with what it wrote at the audit level it was
+given. The analyser opens that record, and you, or an AI you connect, read it, filter it, chart it, step through it and
+report on it. What an AI finds appears on the canvas as something you can click and check. The analyser does not run
+your application. The Claude Code the analyser starts in its own panel can run commands on your computer only if you
+turn on *Full Claude Code*, and then only as your own Claude Code rules allow. A client you run yourself, such as Claude
+Code in a terminal, works under its own rules, as it always does.
 
 ## Pick your door
 
 <div class="grid cards" markdown>
 
--   :material-lan-connect: **I have an incident, and I use Claude Code or Codex**
+-   :material-lan-connect: **I have an incident, and I use Claude Code, Codex or another MCP client**
 
     ---
 
@@ -46,7 +47,8 @@ allow.
     ---
 
     1. [Install and run the analyser](install.md)
-    2. Press **1. Run me through a demo** on the [start page](user-guide/start-page.md). It needs no AI and no key.
+    2. On the [start page](user-guide/start-page.md), choose **1. Run me through a demo**, then press **Play**. It
+       needs no AI and no key.
     3. [Running a demo](teach/index.md)
 
     [:octicons-arrow-right-24: Demo and teach](teach/index.md)
@@ -65,7 +67,8 @@ allow.
   installed and logged in; Codex or another MCP client; or an API key for Anthropic or OpenAI.
 
 Every AI is **off by default**. With the assistant *Off* the analyser is still the whole tool: every view, chart,
-report, walk and evidence bundle works, and nothing in the analyser sends your evidence anywhere.
+report, walk and evidence bundle works. With the assistant *Off* and *External MCP/REST access* off, nothing in the
+analyser sends your evidence anywhere.
 
 ## The start page in one picture
 
@@ -86,19 +89,22 @@ Choosing an entry sends nothing and opens nothing. Only the button does that.
 
 ## Three things that are always true
 
-- **Nothing you open goes to a model until you choose an assistant and press Send.** Choosing an entry, opening a log
-  or a bundle, and playing a demo send nothing. Claude Code's **Start** contacts Anthropic to check you are signed in
-  before your first Send, but sends no record content. Once you do ask, no profile is local-only: what you ask, and the
-  evidence the assistant reads, go to that assistant's model provider. A client you connect from outside (Claude Code,
-  Codex) sends what it reads to its own provider.
+- **Nothing you open goes to a model until you ask.** Choosing an entry, opening a log or a bundle, and playing a demo
+  send nothing. You ask by pressing Send in the analyser, or by prompting a client you connected with *External
+  MCP/REST access* on. Once you ask, no profile is local-only: what you ask, and the evidence the assistant reads, go to
+  that assistant's model provider; a client you connected sends what it reads to its own provider. Claude Code's
+  **Start** in the analyser contacts Anthropic to check you are signed in before your first Send, but sends no record
+  content. In *Full Claude Code*, Start also runs your and the folder's hooks and connects your MCP servers.
 - **What an AI changes on the canvas, you can see.** Filters, charts, flags, selections and highlights happen in the
-  window in front of you, and you can undo them. The calls that replace what is open, write a file or merge saved state
-  are marked *destructive*, so your MCP client can ask you first. In *Safe analysis*, the analyser itself asks you
+  window in front of you, and you can reverse them: widen the filter, close the chart, clear the flag. One is not
+  reversible: deleting a saved chart's definition. The calls that replace what is open, write a file or merge saved
+  state are marked *destructive*, so your MCP client can ask you first. In *Safe analysis*, the analyser itself asks you
   about each of those calls.
-- **An assistant writes a file only where you allowed it.** Screenshots, reports, reels and bundles are written only
-  with *Allow assistant file exchange* on (off by default), only inside the exchange folder you chose, and never over an
-  existing file. *Full Claude Code* is the one exception, by design: its own tools (shell, edits) follow your Claude
-  Code rules, not the analyser's.
+- **A file an assistant names through the analyser is written only where you allowed it.** A screenshot, a report's
+  PDF or CSV, a reel or a bundle is written only with *Allow assistant file exchange* on (off by default), only inside
+  the exchange folder you chose, and never over an existing file. Saved reports, walks and charts are kept in the
+  project, as yours are. *Full Claude Code*, and any client you connect from outside, also have tools of their own
+  (shell, edits), which follow their own rules, not the analyser's.
 
 ## Where help lives
 

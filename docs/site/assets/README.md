@@ -35,8 +35,8 @@ thread, logger or account names** — use neutral placeholders (e.g. `DEMO`, `ma
 | `graph-series-light.png` | spare — the same plot on the light theme, if a page needs to match |
 | `spotlight-walk.png` | Working with AI — a saved walk playing in the light theme |
 | `spotlight-walk-dark.png` | spare — the same walk in the dark theme |
-| `mcp-generic-setup.png` | Working with AI ▸ Connecting an LLM — Generic MCP record, copy/save boundary |
-| `mcp-claude-code-confirm.png` | Working with AI ▸ Connecting an LLM — explicit Claude Code registration confirmation |
+| `mcp-generic-setup.png` | Diagnose an incident ▸ Connect your client — Generic MCP record, copy/save boundary |
+| `mcp-claude-code-confirm.png` | Diagnose an incident ▸ Connect your client — explicit Claude Code registration confirmation |
 | `sample-audit-log.yaml` | Downloadable sample (Home, Getting started, Install, Log format) |
 
 ### Withdrawn — need recapturing

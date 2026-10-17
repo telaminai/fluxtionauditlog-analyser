@@ -1,7 +1,7 @@
 # Fluxtion Audit Log Analyser
 
 A desktop canvas for **Fluxtion audit evidence**. A Mongoose/Fluxtion `EventProcessor` writes down every cycle it runs:
-the event that arrived, each node that reacted, in order, and what each one computed. The analyser indexes that record,
+the event that arrived, and each node that logged, in order, with what it wrote. The analyser indexes that record,
 so multi-GB logs stay responsive. You, or an AI you connect, can then browse it, filter it, graph it, step through it
 on the processor's own topology, and report on it.
 
@@ -41,7 +41,8 @@ cycle shaded](assets/screenshot-dark.png)
 
     ---
 
-    Install with one command, open the built-in DEMO in one click, and find the route that fits what you came to do.
+    Install with one command, open the built-in DEMO (*Explore DEMO ▸ Guided tour* on the start page), and find the
+    route that fits what you came to do.
     No AI and no key are needed to begin.
 
     [:octicons-arrow-right-24: Start here](start-here.md) ·
@@ -67,8 +68,8 @@ You need **Java 21 or later**. With [JBang](https://jbang.dev):
 jbang analyser@telaminai/fluxtionauditlog-analyser
 ```
 
-With no log to hand, the start page's **1. Run me through a demo** opens a recorded DEMO run and its topology from
-inside the jar. [Install & run](install.md) has the plain-jar download, building from source, and `--rest` for an
+With no log to hand, choose **1. Run me through a demo** on the start page and press **Play**: it opens a recorded
+DEMO run and its topology from inside the jar. [Install & run](install.md) has the plain-jar download, building from source, and `--rest` for an
 agent.
 
 ## One log, every view

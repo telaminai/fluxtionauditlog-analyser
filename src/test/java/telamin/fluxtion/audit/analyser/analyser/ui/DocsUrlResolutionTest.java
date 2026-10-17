@@ -36,20 +36,89 @@ class DocsUrlResolutionTest {
             Pattern.compile("openUserGuide\\(\\s*\"([^\"]*)\"\\s*\\)"),
             Pattern.compile(Pattern.quote(BASE) + "([^\"\\s<>)']*)"));
 
-    /** Docs-relative targets ("" is the site root) the application can open, with where each was found. */
+    /** Any call of the two docs openers, literal or not, so a non-literal argument cannot slip past the scan. */
+    private static final Pattern ANY_CALL = Pattern.compile("\\b(openDocsPage|openUserGuide)\\(([^)]*)\\)");
+    /**
+     * The non-literal call sites the scan knows, each reviewed: the two declarations and MainFrame's forwarder, which
+     * passes on a page that was itself a literal at an openUserGuide call. A new non-literal call fails the test until
+     * it is listed here, with the targets it can open checked by hand.
+     */
+    static final Set<String> NON_LITERAL_ALLOWED = Set.of("openUserGuide(String page)", "openDocsPage(String page)",
+            "openDocsPage(page)");
+
+    /**
+     * Docs-relative targets ("" is the site root) the application can open, with where each was found. An
+     * openUserGuide("") opens the in-app help, not the site, so it is not a target.
+     */
     static Map<String, String> targetsInMain() throws IOException {
         Map<String, String> found = new LinkedHashMap<>();
-        try (Stream<Path> files = Files.walk(Path.of("src/main"))) {
-            for (Path f : files.filter(Files::isRegularFile)
-                    .filter(p -> p.toString().matches(".*\\.(java|properties|html|md|txt|json)$")).toList()) {
-                String text = Files.readString(f);
-                for (Pattern p : CALLS) {
-                    Matcher m = p.matcher(text);
-                    while (m.find()) found.putIfAbsent(m.group(1), f.toString());
+        for (Path f : mainSources()) {
+            String text = Files.readString(f);
+            for (Pattern p : CALLS) {
+                Matcher m = p.matcher(text);
+                while (m.find()) {
+                    if (p.pattern().startsWith("openUserGuide") && m.group(1).isEmpty()) continue;
+                    found.putIfAbsent(m.group(1), f.toString());
                 }
             }
         }
         return found;
+    }
+
+    static List<Path> mainSources() throws IOException {
+        try (Stream<Path> files = Files.walk(Path.of("src/main"))) {
+            return files.filter(Files::isRegularFile)
+                    .filter(p -> p.toString().matches(".*\\.(java|properties|html|md|txt|json)$")).sorted().toList();
+        }
+    }
+
+    /** Every call of the docs openers whose argument is neither a string literal nor a reviewed exception. */
+    static List<String> unreviewedCalls() throws IOException {
+        List<String> out = new ArrayList<>();
+        for (Path f : mainSources()) {
+            Matcher m = ANY_CALL.matcher(Files.readString(f));
+            while (m.find()) {
+                String arg = m.group(2).trim();
+                String call = m.group(1) + "(" + arg + ")";
+                if (arg.matches("\"[^\"]*\"") || NON_LITERAL_ALLOWED.contains(call)) continue;
+                out.add(f + ": " + call);
+            }
+        }
+        return out;
+    }
+
+    /**
+     * The pages the site is built from: tracked by git (a page on disk that git ignores is not published — the
+     * restructure's build/ folder was, for one commit), minus mkdocs.yml's exclude_docs.
+     */
+    static Set<Path> builtPages() throws IOException {
+        Set<Path> pages = new LinkedHashSet<>();
+        Process git;
+        try {
+            git = new ProcessBuilder("git", "ls-files", "--", SITE.toString()).redirectErrorStream(true).start();
+            String out = new String(git.getInputStream().readAllBytes());
+            if (git.waitFor() != 0) throw new IOException("git ls-files failed: " + out);
+            for (String line : out.split("\\R")) if (line.endsWith(".md")) pages.add(Path.of(line).normalize());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IOException(e);
+        }
+        boolean in = false;
+        for (String line : Files.readAllLines(MKDOCS)) {
+            if (line.startsWith("exclude_docs:")) { in = true; continue; }
+            if (in) {
+                if (!line.startsWith(" ")) break;
+                if (!line.isBlank()) pages.remove(SITE.resolve(line.trim()).normalize());
+            }
+        }
+        return pages;
+    }
+
+    private static Set<Path> built;
+
+    static boolean isPage(Path p) throws IOException {
+        if (built == null) built = builtPages();
+        return built.contains(p.normalize());
     }
 
     /** {@code redirect_maps} of the redirects plugin in mkdocs.yml: source page → target page. */
@@ -70,13 +139,13 @@ class DocsUrlResolutionTest {
     }
 
     /** The source page a docs-relative URL path ("", "a/", "a/b/") is built from, if the site has one. */
-    static Path page(String path) {
+    static Path page(String path) throws IOException {
         String p = path.endsWith("/") ? path.substring(0, path.length() - 1) : path;
         if (p.isEmpty()) return SITE.resolve("index.md");
         Path direct = SITE.resolve(p + ".md");
-        if (Files.isRegularFile(direct)) return direct;
+        if (isPage(direct)) return direct;
         Path index = SITE.resolve(p).resolve("index.md");
-        if (Files.isRegularFile(index)) return index;
+        if (isPage(index)) return index;
         return null;
     }
 
@@ -123,7 +192,7 @@ class DocsUrlResolutionTest {
                 if (target == null) continue;
                 String tPage = target.contains("#") ? target.substring(0, target.indexOf('#')) : target;
                 Path t = SITE.resolve(tPage);
-                if (!Files.isRegularFile(t)) return "redirect " + key + " → " + target + " names no page";
+                if (!isPage(t)) return "redirect " + key + " → " + target + " names no page";
                 landed = t;
                 break;
             }
@@ -137,7 +206,7 @@ class DocsUrlResolutionTest {
     @Test
     void everyDocsUrlTheAppOpensResolves() throws IOException {
         Map<String, String> targets = targetsInMain();
-        // Not vacuous: the three pages the app is known to open, and the site root, are found by the scan.
+        // Not vacuous: the three pages the app is known to open, and the site root (AskPointers.DOCS_URL), are found.
         for (String known : List.of("ai-and-runbooks/", "user-guide/start-page/#prompt-packs", "evidence-bundles/opening/", ""))
             assertTrue(targets.containsKey(known), "the scan no longer finds '" + known + "' in src/main: " + targets.keySet());
         Map<String, String> redirects = redirects();
@@ -145,6 +214,23 @@ class DocsUrlResolutionTest {
         for (var e : targets.entrySet()) {
             String p = problem(e.getKey(), redirects);
             if (p != null) problems.add(e.getValue() + ": " + p);
+        }
+        assertEquals(List.of(), problems);
+        assertEquals(List.of(), unreviewedCalls(), "a docs opener called with a non-literal page: check the pages it "
+                + "can open, then list it in NON_LITERAL_ALLOWED");
+    }
+
+    @Test
+    void everyNavPageIsPublished() throws IOException {
+        // The page the nav names must be one git tracks: a gitignored page builds locally and 404s once deployed.
+        List<String> problems = new ArrayList<>();
+        boolean nav = false;
+        for (String line : Files.readAllLines(MKDOCS)) {
+            if (line.startsWith("nav:")) { nav = true; continue; }
+            if (!nav) continue;
+            if (!line.startsWith(" ") && !line.isBlank()) break;
+            Matcher m = Pattern.compile("([\\w./-]+\\.md)\\s*$").matcher(line);
+            if (m.find() && !isPage(SITE.resolve(m.group(1)))) problems.add(m.group(1) + " is in the nav but not published");
         }
         assertEquals(List.of(), problems);
     }
@@ -155,11 +241,11 @@ class DocsUrlResolutionTest {
         assertFalse(redirects.isEmpty(), "mkdocs.yml has no redirect_maps — moved pages would 404");
         List<String> problems = new ArrayList<>();
         for (var e : redirects.entrySet()) {
-            if (Files.isRegularFile(SITE.resolve(e.getKey())))
+            if (isPage(SITE.resolve(e.getKey())))
                 problems.add(e.getKey() + " is both a page and a redirect source");
             String target = e.getValue().contains("#") ? e.getValue().substring(0, e.getValue().indexOf('#')) : e.getValue();
             if (target.startsWith("http")) continue;
-            if (!Files.isRegularFile(SITE.resolve(target))) problems.add(e.getKey() + " → " + e.getValue() + ": no such page");
+            if (!isPage(SITE.resolve(target))) problems.add(e.getKey() + " → " + e.getValue() + ": no such page");
             else if (e.getValue().contains("#")) {
                 String a = e.getValue().substring(e.getValue().indexOf('#') + 1);
                 if (!anchors(SITE.resolve(target)).contains(a)) problems.add(e.getKey() + " → " + e.getValue() + ": no such heading");
@@ -175,6 +261,8 @@ class DocsUrlResolutionTest {
         assertNotNull(problem("user-guide/start-page/#no-such-heading", Map.of()));
         assertNull(problem("user-guide/start-page/#prompt-packs", Map.of()));
         assertNull(problem("moved/", Map.of("moved.md", "index.md")));
+        assertFalse(isPage(SITE.resolve("assets/README.md")), "exclude_docs is honoured");
+        assertTrue(isPage(SITE.resolve("index.md")));
         assertNotNull(problem("moved/", Map.of("moved.md", "nowhere.md")));
         assertEquals("prompt-packs", slug("Prompt packs"));
         assertEquals("is-the-assistants-action-socket-safe-to-enable", slug("Is the assistant's action socket safe to enable?"));
