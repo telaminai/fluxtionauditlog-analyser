@@ -1,175 +1,90 @@
-# Getting started
+# Open your own log, step by step
 
-Two minutes to something worth looking at, and **nothing to configure first**. The analyser ships with
-a recorded run and its topology inside the jar, so you can see what the tool does before you have a log
-of your own.
+You have an audit log from your own processor and want to read it. This page takes you from opening the file to a
+log whose lines lead to their source. Only the first step is needed; each later one adds a view.
 
-## Two minutes, no setup
+You need the analyser running ([Install & run](install.md)) and a log your processor wrote
+([Producing an audit log](producing-a-log.md)). To look around first with nothing of your own, use the
+[guided tour or the sample project](start/tour-and-sample.md).
 
-1. **Run it** — `jbang analyser@telaminai/fluxtionauditlog-analyser`, or download the jar and
-   `java -jar …`. See [Install & run](install.md). You need **JDK 21+** and nothing else.
-2. **Choose *Run me through a demo*** on the page the analyser opens on, and press **Play** — or, under *Or open
-   directly ▸ Explore DEMO*, **Guided tour** or **Sample project**.
+## 1. Open the log
 
-That is the whole path. No log to find, no source roots, no server, no API key. You get a real
-investigation — 10 events, the processor's graph, the cycle shaded onto it — opened through exactly the
-same door your own log will use.
+- **Local file**: **Audit log ▸ Open log…**, drag the file onto the window, or pass its path as the first command-line
+  argument (`analyser my-log.yaml`, or `java -jar … my-log.yaml`).
+- **A recent one**: **Audit log ▸ Open recent audit log**.
+- **From S3**: **Audit log ▸ Open log from S3…** with an `s3://bucket/key` address. It streams the object with your
+  local **`aws`** command-line tool and its credentials (profiles, SSO); no AWS SDK is needed. A non-default profile or
+  region goes in **Settings ▸ Performance & S3**.
+- **Text or binary**: a text log (`---`-separated records) and a Fluxtion binary (`FLXA`) log both open the same way.
 
-![The start page: What would you like to do? with its numbered entries, a box and Send; Or open directly with the
-Explore DEMO, Open, Create, Connect an assistant and Settings blocks; and Recent](assets/start-page.png)
+Large files open too: a file above the memory threshold (500 MB by default, in **Settings ▸ Performance & S3**) is
+memory-mapped instead of loaded into memory, so multi-gigabyte logs open.
 
-The page is a **state, not a splash**: opening a log replaces it, **Audit log ▸ Close log** brings it back,
-and **Help ▸ Start page** recalls it without closing what you are working on. Choosing an entry sends, opens and
-starts nothing; only its button does. [The start page](user-guide/start-page.md) describes every entry and block.
+You can read, filter, search and chart the records now ([Records, detail & filtering](user-guide/records-and-filtering.md),
+[Graphs](user-guide/graphs.md)). The status line and the Project panel say what the log claims about itself, for example
+whether it says it is whole ([Is the log whole?](log-format.md#is-the-log-whole)).
 
-## Next: a system you actually run
+## 2. Add the processor's graph
 
-The demo log is a recording. When you want to see the loop close — a running server producing a log
-that the analyser then explains — download a prepared project and run it:
-**[From playground to analyser in 10 minutes](tutorial-playground.md)**. It needs a JDK and no API
-key, and it is the same door your own system will use, one rung before you point the analyser at
-something of yours.
+**Sources ▸ Open GraphML…** opens the graph the Fluxtion compiler wrote beside your processor. **Sources ▸ Find GraphML
+in source roots…** lists the graphs it finds, ranked by how well each fits the log you have open.
 
-## Then: your own log
+With the graph, the Topology tab shows which nodes logged and which did not, and steps through a cycle node by node
+([Topology & step-through](user-guide/topology.md)). The analyser says whether the graph fits the log; it does not
+assume it.
 
-When you have a log from your own processor — see [Producing an audit log](producing-a-log.md) — open it
-with **Audit log ▸ Open log…** or by dragging it onto the window. Everything below is optional and none of it
-blocks you from reading records:
+## 3. Add the source
 
-1. **Source roots** — **Sources ▸ Source roots…** → *Add* the source folders for your processor
-   and its node classes. This is what turns a log line into a click through to its code, and what
-   grounds the assistant's explanations in real source.
-2. **Your event processor** — **Settings ▸ Event processor** → its fully-qualified class name, marked
-   active. The analyser uses it to map each `instanceId` in the log to a source file.
-3. **The topology** — **Sources ▸ Open GraphML…**, or **Sources ▸ Find GraphML in source roots…** to see which
-   of your compiled graphs actually fits the log you have open, ranked.
-4. **An LLM key (optional)** — **Settings ▸ LLM** for in-app explanations. No key? Skip it and use
-   **Copy prompt** with any agent (see [Diagnose in the analyser](inapp/index.md)).
+1. **Source roots**: **Sources ▸ Source roots…**, then *Add* the source folders for your processor and its node
+   classes. A log line or a node then leads to the method that wrote it ([Source navigation](user-guide/source-navigation.md)).
+2. **Your event processor**: **Settings ▸ Event processor**, its fully qualified class name, marked active. The
+   analyser uses it to map each `instanceId` in the log to a source file. It is usually inferred when the log opens.
 
-If you later **regenerate a Fluxtion processor**, that build uses a different key. Open
-**AI ▸ Fluxtion API key…** (also offered on the Start page) to write the established
-`~/.fluxtion/fluxtion.apiKeyFile`; named local profiles let one machine switch between, for example,
-a work and evaluation key. The analyser reports presence only and does not validate or redisplay the
-stored value. A `-Dfluxtion.apiKey` passed to the build overrides the file, while
-`FLUXTION_API_KEY` is not read by the builder. Existing generated processors and the bundled demo run
-without this key.
+These belong to the project when one is open. To keep them for next time, make a project for this application:
+**Project ▸ New project…** ([Projects, profiles and sharing](user-guide/projects.md)), or let Claude Code propose the
+set-up ([Set up a project with Claude](build/set-up-with-claude.md)).
 
-Now [filter](user-guide/records-and-filtering.md#the-shared-filter), [graph](user-guide/graphs.md), and
-[explain](inapp/index.md).
+## 4. Ask about it (optional)
 
----
+Select a record and press **Ask** on the toolbar. The question is drafted in the assistant's composer and sent only when
+you press Send ([Ask the assistant](inapp/ask.md)). Which assistant answers, if any, is your choice
+([Assistant profiles](admin/profiles.md)). No assistant set up? **Copy prompt** gives the question to any assistant you
+use. To drive this window from Claude Code, Codex or another client in your terminal, see
+[Connect your client](connect-an-llm.md).
 
-Working with an AI? [Connect your client](connect-an-llm.md) is the third step — the
-agent drives this same window through MCP, and you review what it renders.
+If you later **regenerate a Fluxtion processor**, that build needs a different key: the Fluxtion build key, not an
+assistant's. **AI ▸ Fluxtion API key…** (also on the start page) writes the usual `~/.fluxtion/fluxtion.apiKeyFile`;
+named local profiles let one machine switch between, for example, a work and an evaluation key. The analyser reports
+only whether a key is present; it does not check it or show it again. A `-Dfluxtion.apiKey` passed to the build
+overrides the file, and the builder does not read `FLUXTION_API_KEY`. Existing generated processors and the bundled
+demo run without this key.
+
+## Watch a log as it grows (Follow)
+
+Turn on **Follow** (the toolbar toggle, or **Audit log ▸ Follow (tail)**) to watch a local text log that another
+process is still writing. It polls the file, adds each newly completed record and scrolls to the newest, keeping your
+flags, filters and selection. Open charts re-extract as records arrive. A chart showing the whole log grows with it;
+one at the live edge slides; one zoomed into the middle stays put. While following, the status line keeps what it said
+at load (the log's provenance, its record count and its warnings, including a time-order problem in the new records)
+and says so on the same line if a read fails.
+
+Follow is not available for an S3 log, a memory-mapped file or a binary log. An exported snapshot does not grow:
+export again and reopen it instead.
 
 ## Finding the right menu
 
 | Menu | What it changes |
 |---|---|
-| **Project** | Open, create, save or close a project; run saved analyses; import/export settings. |
-| **Sources** | Configure source roots, event processors and Maven repositories; open topology, design or diagnostics. |
+| **Project** | Open, create, save or close a project; run saved analyses; import or export settings. |
+| **Sources** | Source roots, event processors and Maven repositories; open a topology, a design or producer diagnostics. |
 | **Audit log** | Open a local or S3 log, follow new records, add external CSV series or export records. |
 
-**Records** still holds flags and selected-record actions; **Theme**, **AI** and **Help** stay separate.
-The toolbar shortcuts continue to use the same actions. Closing a log keeps the project and its saved
-chart definitions. **Project ▸ Close log and topology** closes the log and the topology while retaining the project.
+**Records** holds flags and the selected records' actions; **Theme**, **AI** and **Help** are separate. Closing a log
+keeps the project and its saved chart definitions. **Project ▸ Close log and topology** closes both and keeps the
+project. **Help ▸ Start page** brings the start page back over what you have open.
 
 ![Project menu](assets/projects-file-menu.png)
 ![Sources menu](assets/sources-menu.png)
 ![Audit log menu](assets/audit-log-menu.png)
 
-## Opening logs
-
-- **Local file** — **Audit log ▸ Open log…**, drag a file onto the window, or pass a path as the first
-  command-line argument (`java -jar … my-log.yaml`).
-- **Recent** — **Audit log ▸ Open recent audit log**.
-- **Big files** — files above the memory threshold are memory-mapped instead of loaded into heap, so
-  multi-GB logs open fine (see *Performance & S3* below).
-
-### From S3
-
-**Audit log ▸ Open log from S3…** and give an `s3://bucket/key` URL. It streams the object using your local
-**`aws` CLI** credentials (profiles / SSO) — **no AWS SDK required**. Set a non-default profile or region
-under **Settings ▸ Performance & S3**.
-
----
-
-## Settings — everything to get running
-
-Open **Project ▸ Settings…**. The dialog is tabbed — Source roots, Maven repos, Event processor, LLM,
-Performance & S3, Assistant and History:
-
-### Source roots
-The source folders for your processor and node classes. With these set, clicking a nodeLog line opens
-the exact class/method, and the assistant explains against real code. A root that can't be found shows
-**red**. See [Source navigation](user-guide/source-navigation.md).
-
-### Maven repos
-Local Maven repositories (default `~/.m2/repository`) are searched for `*-sources.jar` when a class isn't
-under a source root — so third-party node sources resolve too. Tick *Don't search local Maven
-repositories* to opt out.
-
-### Event processor
-Add the fully-qualified class name(s) of your `EventProcessor`(s) and mark one **active**. Its node-field
-declarations are how the analyser turns an `instanceId` into a source file, and how a selected record
-scrolls the Source view to the handler that ran.
-
-### LLM (embed your own model)
-Configure in-app explanations:
-
-- **Provider** — `anthropic` (Claude) or `openai`.
-- **Model** — the model id.
-- **API key** — stored locally in cleartext (a single-user desktop tool) and sent to the configured
-  provider endpoint to authenticate requests. It is **never** included in an exported settings file.
-- **Base URL (optional)** — point at a proxy or compatible endpoint.
-
-!!! tip "No key is fine"
-    Leave the key blank and the assistant runs in **copy-prompt mode** — it builds a ready-to-paste
-    prompt (the evidence, and the analyser's action protocol only when you tick *Include my local REST token*)
-    for Claude Code, Claude Desktop or any agent.
-
-This LLM-provider key is not the Fluxtion build key managed under **AI ▸ Fluxtion API key…**. They have
-different homes and purposes.
-
-### Performance & S3
-- **Memory threshold (MB)** — logs at/below it load into heap; larger ones are memory-mapped
-  (`0` = always memory-map). Applies to the next file opened.
-- **AWS profile / region (optional)** — used by *Open from S3*.
-
-### Assistant
-Grouped by profile: **Safe analysis** (*Allow the analyser to start Claude Code*, its model), **Full Claude Code**
-(*…with my full Claude Code permissions*, its mode and the optional spend limit), **In-app assistant** (*Let the
-in-app assistant change the views as it answers*, **max action rounds** and **max actions per reply**), and **Every
-assistant**: *Connect an AI client…*, **External MCP/REST access (for an AI client on this machine)** (off by
-default), *Allow assistant file exchange* with its exchange folder, and *Allow the assistant to create projects*.
-
-![Settings ▸ Assistant, grouped by profile: Safe analysis, Full Claude Code, In-app assistant and Every assistant, with
-Connect an AI client…, External MCP/REST access and the exchange folders](assets/settings-assistant.png)
-
-### History
-Clear remembered **searches**, **saved graphs** and **recent files**.
-
-!!! note "Themes"
-    Switch **Light / Dark / IntelliJ / Darcula** any time from the **Theme** menu — the tables, source
-    and charts recolour to match.
-
----
-
-## Tailing a live log (Follow)
-
-To watch a log as it grows, turn on **Follow** (the toolbar toggle or **Audit log ▸ Follow (tail)**). It polls
-the open **local, heap-loaded** file, appends newly-completed records and auto-scrolls to the newest —
-preserving your flags, filters and selection. Open graphs re-extract as records arrive, and the view moves only
-to reveal a point that would otherwise be hidden: a chart showing the whole log grows with it, one at the live
-edge slides, one zoomed into the middle holds. While following, the status line says what it said at load — the
-log's provenance, its record count and its warnings, including a time-order violation that arrives with the new
-records — and if a read fails it says so on the same line. (Follow isn't available for S3 or memory-mapped files.)
-
----
-
-## Where next
-
-- [Graphs](user-guide/graphs.md) — plot node values and formulas over time
-- [Diagnose in the analyser](inapp/index.md) — ask about records, and let the assistant drive the analyser
-- [Source navigation](user-guide/source-navigation.md) — jump from a log line to the code
-- [Sharing setups](user-guide/sharing-setups.md) — export/import your whole configuration
+Every Settings tab is described in the [Settings reference](admin/settings.md).

@@ -1,6 +1,6 @@
 # From playground to analyser in 10 minutes
 
-> The recorded screenshots may show an earlier menu layout. Current navigation uses **Project**, **Sources** and **Audit log**; see [Getting started](getting-started.md#finding-the-right-menu).
+> Some screenshots here show an earlier start page or menu layout. Current navigation uses **Project**, **Sources** and **Audit log**; see [Finding the right menu](getting-started.md#finding-the-right-menu).
 
 Download a runnable event-processing system, inspect its graph, run it, and let the analyser show
 what the compiled processor actually did — on your machine, with code you can edit.
@@ -38,7 +38,7 @@ window and tags its callouts *assistant*; it covers the main window, not menus o
 
 The analyser **does not run downloaded code**: when the project is ready it shows the build, run, export and
 stop commands for you to copy, and you decide whether to paste them into a terminal. Either route gives you the
-same directory; [Projects ▸ Start from a playground template](user-guide/projects.md#start-from-a-playground-template)
+same directory; [Starter templates and examples](start/templates-and-examples.md#what-the-download-will-and-will-not-do)
 has the details of what the download will and will not do.
 
 This is a complete Maven project, not a prebuilt application you cannot inspect:
@@ -174,16 +174,18 @@ Give me the guided tour of this project in the analyser.
 You do not need to tell it how. The project's profile points at `.claude/skills/guided-start/SKILL.md`, the
 analyser lists it among the project's runbooks in `context`, and the assistant reads it from your checkout — the
 analyser stores no instructions and runs nothing. The tour drives the window while you watch: what ran and in
-what order, which declared nodes never logged, and one question answered and bookmarked. Its one rule is that it
+what order, which declared nodes never logged, and one question answered and flagged. Its one rule is that it
 **points rather than tells** — every figure is one you read off the screen yourself — and with analyser 1.14 or
 later it points literally, dimming the window and lighting the thing it is about to talk about.
 
-This is the one step that **needs an AI client connected to the analyser** (the dialog above). Without one,
-nothing is lost: steps 2–4 are the same tour by hand, and the Start page's own actions open the demo set.
+This is the one step that **needs an AI client connected to the analyser** (the dialog above), or Claude Code
+running inside it ([Claude Code in the analyser](inapp/claude-code.md)). Without either, nothing is lost: steps 2–4
+are the same tour by hand, and the Start page's own actions open the demo set.
 
-The useful division of labour is strict: the analyser reads evidence and changes its own views; your IDE
-agent edits code. After any explanation, click the plotted point or flagged record and follow it back to
-the audit cycle and source.
+Keep the division of labour clear: the analyser reads evidence and changes its own views; code is edited by an
+assistant with its own tools — your IDE agent, or Full Claude Code in the analyser with your permission rules — or by
+you. After any explanation, click the plotted point or flagged record and follow it back to the audit cycle and
+source.
 
 ## 6. Change the processor
 
@@ -205,7 +207,9 @@ Put the key in `~/.fluxtion/fluxtion.apiKeyFile` as `apiKey=…`, or pass
 that variable alone cannot satisfy regeneration. The ordinary build and run remain keyless.
 
 Reopen the exported YAML and examine the new cycles. The analyser has one active log at a time; it does
-not yet compare two complete runs side by side, so this tutorial does not promise that future diff tool.
+not compare two complete runs side by side. A report whose tables and charts you made on the first run re-runs
+against the new log when you open it, which is one way to compare
+([Check your criteria against the evidence](build/validate-intent.md)).
 
 ## Do this on your own system
 

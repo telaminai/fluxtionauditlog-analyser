@@ -52,7 +52,7 @@ Below the table, the selected record's **`nodeLogs`** in colourised YAML — the
 node that ran in that cycle and the values it logged.
 
 - **Click a nodeLog line** to open that node's source at the method that ran (needs
-  [source roots](../getting-started.md#source-roots)).
+  [source roots](../admin/settings.md#source-roots-project)).
 - **Click the event / `eventToString`** line to jump the Source view to the processor's handler for the
   cycle.
 - **Right-click anywhere on a node line** to add any of its values to a graph — current, named, or new.

@@ -91,6 +91,7 @@ plugins:
         'support.md': 'diagnose/index.md'
         'user-guide/assistant.md': 'inapp/index.md'
         'the-loop.md': 'build/index.md'
+        'evidence-bundles/demo.md': 'evidence-bundles/index.md'
 
 extra:
   social:
@@ -148,7 +149,7 @@ nav:
       - Starter templates and examples: start/templates-and-examples.md
       - Prompt packs: start/prompt-packs.md
       - Sample prompt pack: user-guide/sample-prompt-pack.md
-      - Your own log, step by step: getting-started.md
+      - Open your own log, step by step: getting-started.md
       - Guided start with an external assistant: guided-start.md
       - Playground to analyser in 10 minutes: tutorial-playground.md
   - Demo and teach:
@@ -158,7 +159,6 @@ nav:
           - evidence-bundles/index.md
           - Sending an investigation: evidence-bundles/sending.md
           - Opening a bundle you were sent: evidence-bundles/opening.md
-          - Try it with the demo: evidence-bundles/demo.md
   - Administer and secure:
       - Assistant profiles: admin/profiles.md
       - Security model and limits: admin/security.md

@@ -42,52 +42,10 @@ With **no project open**, the analyser behaves exactly as it always has. Project
 
 ## Start from a playground template
 
-Choose **Project ▸ New project from template…** to start inside the analyser instead of visiting the
-playground first, or choose **From template** (*Or open directly ▸ Create*) on the start page. The analyser lists the whole
-versioned catalogue. Entries tagged for onboarding are marked **Recommended starting points**, without
-hiding the others. A recommendation is advice, not a promise of a walkthrough or keyless generation.
-
-Read the selected template's build/regeneration key requirements and agent entry files before downloading.
-These are catalogue declarations, never guesses from AOT mode or project type. Missing means **not declared**;
-an empty bootstrap list means **explicitly none**. Unknown future key values are labelled unrecognised.
-The declarations describe the default download; verify its actual files before following its runbook.
-
-1. Select a template and read its catalogue description.
-2. Confirm or change its artifact, group and base-package defaults.
-3. Choose a new or empty project directory.
-4. Select **Download and open**. If the download contains a profile, it becomes the active project.
-   Legacy or support-disabled downloads instead offer discovery with no choices preselected. They are not
-   silently opted back into support. Creating the optional pointers-only reference guide requires its own
-   unchecked-by-default checkbox; an existing project guide is never overwritten.
-
-The [earlier picker capture](../assets/template-picker.png) records the former recommendation-only
-list. Analyser 1.16.0 shows the whole catalogue. For a new Spring project, follow the
-[illustrated authoring path](../spring-authoring-getting-started.md).
-
-The archive boundary is deliberately strict: only the configured playground HTTPS origin is contacted;
-absolute and parent-traversing ZIP entries are refused; entry count and expanded sizes are capped; a
-non-empty destination is never merged or overwritten; and extraction is staged beside the destination
-then moved into place atomically. Archive mode bits are ignored—only the fixed root lifecycle allowlist
-(`mvnw`, run, export, stop and key-check shell wrappers) receives executable bits.
-
-A template's own project settings may only point their source folders inside the project being installed.
-Before the move, every settings file in the archive is checked — the main profile, a named one beside it, or a
-nested module's, each against its own folder: a folder outside the project (including one that leaves and
-comes back in through the archive's own folder name), the whole project, a `~`, absolute or Windows-style path
-(a backslash or a drive letter, refused on every OS because the project may later be opened on Windows), a
-path through a file, or a workspace anchor refuses the installation and nothing is installed. Only source
-folders are checked: external CSV files named by a template's saved charts are not. A folder that does not exist
-yet, such as a future `target/` directory, is allowed when it would sit inside the project. Maven repositories
-are not subject to this rule. Projects you set up yourself may still name folders outside the project on
-purpose, such as a neighbouring module.
-
-The analyser **does not run downloaded code**. When the project is ready it shows fixed, copyable build,
-run, export and stop commands selected from recognised filenames. You decide whether to paste them into
-a terminal. The one exception is your own opt-in: with **full Claude Code** on (Settings ▸ Assistant), pressing
-Start in the Assistant tab runs your own Claude Code, which **runs a confirmed folder's hooks and connects its
-`.mcp.json` servers** — the confirmation names them, and is asked again whenever those files change (see
-[the assistant guide](../inapp/claude-code.md)). If the catalogue is unreachable, the error gives the manual template-gallery route instead
-of leaving an empty picker.
+*Project ▸ New project from template…*, or **From template** on the start page, downloads a starter project from the
+playground's catalogue into a new or empty folder and makes it the active project. It builds and runs nothing.
+[Starter templates and examples](../start/templates-and-examples.md) has the steps and what the download will and
+will not do.
 
 ## Opening and switching
 

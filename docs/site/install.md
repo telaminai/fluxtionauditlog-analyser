@@ -84,5 +84,5 @@ java -jar target/fluxtion-auditlog-analyser-*.jar [optional-log-file]
 ships in the jar, so you can be looking at real records in one click, and its *Connect an assistant* buttons set up
 the local bridge when you want an LLM driving the analyser. Point it at your own source roots and event processor
 whenever you like, from **Project ▸ Settings** or a project profile — see
-[Getting started](getting-started.md). No log yet? Grab the
+[Open your own log, step by step](getting-started.md). No log yet? Grab the
 [sample audit log](assets/sample-audit-log.yaml).

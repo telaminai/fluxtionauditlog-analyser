@@ -21,11 +21,6 @@ directly with the Explore DEMO, Open, Create, Connect an assistant and Settings 
 | 7 | **Explain an audit log I already have** | *Open log…* | With no log open, your file chooser and the load first; then a question about that log is drafted, naming it. |
 | 8 | **What can this tool do?** | — | Puts a question in the box. |
 
-Entries 2 and 3 are the start of the authoring and learning pathways, routed today to the starter templates, the
-new-project dialogs and the sample project. In Safe analysis Claude Code reads and advises but writes no file, so
-generating an application needs a template, *New project…* or Full Claude Code. A fuller journey — a runnable
-application, an editable scenario and a comparison of runs — is planned next (M76).
-
 - **Choosing does nothing yet.** Click a row, use **↑ / ↓** and **Enter**, or press **Alt+1** … **Alt+9** (**⌘1** … **⌘9**
   on macOS, where ⌥ and a digit types a character; each row's tooltip names its shortcut). A flow
   entry (1–7) becomes the chip above the box and gives the button its verb; a prompt entry (8) **adds** its words to the
@@ -46,6 +41,25 @@ application, an editable scenario and a comparison of runs — is planned next (
 - **The sample project and a bundle's working copy** are folders the analyser owns, so a Claude Code session for them
   works in the analyser's private scratch folder, and the session header says so. Claude reads the evidence through the
   analyser's verbs.
+
+## The Build and Teach pathways
+
+Entries 2 and 3 lead into building and learning.
+
+- **Build a new application with me** starts the build path: the request it drafts asks the assistant to help you
+  choose components, generate the application, run sample events and show you the evidence. Generating and running
+  need an assistant that can edit files and run commands, such as Full Claude Code; in Safe analysis Claude Code reads
+  and advises but writes no file. Without one, start from a template (*New project from template…*) and build it
+  yourself. [Build with Claude](../build/index.md) is the path in full, and
+  [Check your criteria against the evidence](../build/validate-intent.md) the last step.
+- **Teach me by building an example** starts the learning path in the sample DEMO project, where every concept the
+  assistant explains can be pointed at in a real record. With no AI it plays the guided tour
+  ([Guided tour and sample project](../start/tour-and-sample.md)). To run a session for others, see
+  [Running a demo](../teach/index.md).
+
+Today both pathways draft a request and open what already exists. A fuller authoring journey, from a description to a
+runnable application with an editable input scenario and a check of your criteria before and after a change, is
+planned and not built.
 
 ## Which assistant answers
 
@@ -77,74 +91,14 @@ actions).
 
 ## Prompt packs
 
-You can replace the numbered list for this session by **dropping one Markdown file** (`.md`) on the start page: a
-*prompt pack*. Its entries behave exactly as entry 8 does — choosing one adds its words to the box, and nothing is sent
-until you press the button. **← Return to main options** (Alt+R; ⌘R on macOS) brings the analyser's own list back. A pack is never
-saved: not in your settings, a project profile, a shared settings file or an evidence bundle — dropping it is your act,
-for this window.
+You can replace the numbered list for this window by **dropping one Markdown file** (`.md`) on the start page: a
+*prompt pack*. Its entries behave as entry 8 does: choosing one adds its words to the box, and nothing is sent until
+you press the button. **← Return to main options** (Alt+R; ⌘R on macOS) brings the analyser's own list back. A pack is
+never saved.
 
-A pack is written like this:
-
-```text
-# Title                                   ← one line, at most 60 characters
-An optional one-line description.         ← at most 140 characters
-                                          ← blank lines may separate any two lines
-1. **Label** — the prompt's words.        ← 1 to 9 entries, numbered 1, 2, 3 … in order
-2. **Another label** — more words.           label at most 60 characters, words at most 500, on one line
-```
-
-The reader is **forgiving about format**. It reads, and tidies, the variations Markdown writers use:
-
-- `-`, `--`, `–` or `:` instead of the em dash `—` (and `**Label:** words`);
-- an entry with **no bold label** — `1. Label — words` keeps *Label*; otherwise the entry's first words (up to its first
-  sentence, at most 60 characters) become the label, and the whole line is the prompt;
-- `-` or `*` **bullets** instead of numbers (read as 1, 2, 3 …);
-- extra blank lines, trailing spaces, and no description line.
-
-When it changed anything, a quiet note under the pack's title says what — *"Read with small fixes: a "-" or "*" bullet
-read as the next number (lines 3, 4); trailing spaces removed (line 1)."* — and the pack is used; nothing waits on it.
-
-What is unsafe or out of bounds is still **refused**:
-
-- More than 16 KB, or not UTF-8; more than 9 entries; a title, description, label or prompt over its length.
-- HTML, images, links (outside an example entry), `{placeholders}`, and control, format or bidirectional characters (a
-  byte-order mark counts as one).
-- An example entry that is not exactly its strict shape (below) — an example is never tidied.
-- Any other line after the entries, or an unclosed `**`.
-
-A refused file names **one cause and its line** (*"This prompt pack was not used: line 5 — HTML is not allowed"*), with
-**See the format**, and the list in force stays. The [sample prompt pack](sample-prompt-pack.md) is a valid pack you can
-save and drop.
-
-### Example entries
-
-An entry can instead point at an **example project to download** — an archive of one pinned commit. Example entries
-stay **strict**: numbered, a bold label, the em dash and `example:`, exactly as here:
-
-```text
-5. **Label** — example: https://github.com/OWNER/REPO/archive/<40-character commit>.zip
-5. **Label** — example: https://github.com/OWNER/REPO/archive/<commit>.zip sha256:<64 hex characters>
-```
-
-- It shows with a download badge (**⤓**). **Nothing is fetched** when the pack is dropped or the entry chosen; only the
-  entry's own **Download example…** button fetches, after a confirmation that **leads with the publisher** — *host /
-  owner / repo @ short commit* — marked **third-party** unless the address is in the Telamin GitHub organisation. An
-  address is all that is proven: GitHub serves a commit from any fork of a repository under the parent's address, so a
-  Telamin address is shown as *a Telamin repository address (the code may come from a fork)*. Then come the exact
-  address, the full commit, the integrity digest (or that there is none) and the folder you choose (a new or empty one).
-- Only `https` from **github.com**, **codeload.github.com** and **gitlab.com**, and only an archive of a **40-character
-  commit**: a branch or tag can change under you, so `…/archive/main.zip` or `…/archive/v1.0.zip` is refused. No git,
-  clone, hooks or submodules are used.
-- With `sha256:`, the archive's digest is checked **before anything is unpacked**, and a mismatch is refused, by name.
-  GitHub does not guarantee that the bytes of its generated `/archive/<commit>.zip` stay the same — only the files
-  inside them — so a digest on such an address may stop matching one day; the analyser then refuses rather than
-  accepting it silently. A digest is most useful on an archive whose bytes are published once and kept (a release
-  asset); this build accepts only commit-pinned addresses, so the commit is what pins a GitHub archive.
-- The archive is unpacked through the same contained installer as the starter templates (no paths outside the folder,
-  no links, size caps), with **no file made executable**. **Nothing is built, run or installed.** You are then offered to
-  open the folder as a project (*New project…*'s offer, which you confirm). Downloading never trusts the folder for
-  Claude Code: that is Start's own question, asked there.
-- There is no *validated* or *approved* mark: an example is the publisher's, and the analyser says only whose it is.
+[Prompt packs](../start/prompt-packs.md) has the format, what the reader tidies and what it refuses, and a sample pack
+to try. An entry can also point at an example project to download, pinned to one commit:
+[Starter templates and examples ▸ Example entries](../start/templates-and-examples.md#example-entries).
 
 ## Or open directly
 
