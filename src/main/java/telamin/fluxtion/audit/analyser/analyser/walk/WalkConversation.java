@@ -29,6 +29,9 @@ public final class WalkConversation {
     static final Set<String> FIELDS_V2 = Set.of("version", "kind", "author", "turns", "source");
     static final Set<String> TURN_FIELDS_V2 = Set.of("id", "role", "text", "truncated");
     static final Set<String> SOURCE_FIELDS = Set.of("kind", "model", "cliVersion");
+    /** Review P2 N-g: a source's model and CLI version are short names — the models of a recording joined by ", ". */
+    static final int MAX_SOURCE_CHARS = 200;
+    static final java.util.regex.Pattern SOURCE_TEXT = java.util.regex.Pattern.compile("[A-Za-z0-9 .,_:\\[\\]-]*");
     /** What a truncated turn ends with (§6). */
     public static final String TRUNCATED_MARK = "[truncated by the analyser]";
     static final Set<String> ROLES = Set.of("user", "assistant");
@@ -91,8 +94,12 @@ public final class WalkConversation {
                             + (v2 ? ", truncated" : "") + " (and nothing that runs)");
                 }
             }
+            Object truncated = t.get("truncated");
+            if (truncated != null && !(truncated instanceof Boolean)) {
+                return refuse(at + "'truncated' is true or false — " + truncated + " was given");   // review P2 N-g
+            }
             turns.add(new WalkSpec.Turn(str(t.get("id")), str(t.get("role")), str(t.get("text")),
-                    Boolean.TRUE.equals(t.get("truncated"))));
+                    Boolean.TRUE.equals(truncated)));
         }
         WalkSpec.Conversation c = new WalkSpec.Conversation(n.intValue(), kind,
                 m.get("author") == null ? "" : String.valueOf(m.get("author")), turns, source);
@@ -108,6 +115,14 @@ public final class WalkConversation {
         if (c.version() == WalkSpec.CONVERSATION_V2) {
             if (c.source() == null || !WalkSpec.CLAUDE_CODE_SOURCE.equals(c.source().kind())) {
                 return "a version 2 conversation's source kind is '" + WalkSpec.CLAUDE_CODE_SOURCE + "'";
+            }
+            // review P2 N-g: what a source may say is bounded — names, not prose — on every path in (verb, file, share)
+            for (String[] f : new String[][]{{"model", c.source().model()}, {"cliVersion", c.source().cliVersion()}}) {
+                String v = f[1] == null ? "" : f[1];
+                if (v.length() > MAX_SOURCE_CHARS || !SOURCE_TEXT.matcher(v).matches()) {
+                    return "'source." + f[0] + "' is at most " + MAX_SOURCE_CHARS + " letters, digits, spaces, '.', ',', "
+                            + "'_', ':', '[', ']' or '-'";
+                }
             }
         } else if (c.source() != null) {
             return "a version 1 conversation has no source; a recorded source is version 2";

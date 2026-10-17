@@ -105,4 +105,39 @@ class ConversationV2Test {
         assertEquals("claude-sonnet-5, claude-opus-5", WalkConversation.models(List.of("claude-sonnet-5", "claude-opus-5",
                 "claude-sonnet-5")));
     }
+
+    /** ★ Review P2 N-g: editing a captured, truncated turn clears the mark. Witness: keep l.truncated() in edit. */
+    @Test
+    @DisplayName("★ an edited turn is no longer marked truncated: the words are the person's")
+    void anEditedTurnIsNotTruncated() {
+        ConversationDraft d = new ConversationDraft(telamin.fluxtion.audit.analyser.analyser.config.WalkPersistenceTestAccess.sample("w"));
+        d.setSource(source());
+        d.addCaptured("assistant", "long answer " + WalkConversation.TRUNCATED_MARK, true);
+        assertTrue(d.conversation().turns().get(0).truncated());
+        d.edit(0, "my summary of the answer");
+        assertFalse(d.conversation().turns().get(0).truncated());
+    }
+
+    /**
+     * ★ Review P2 N-g: a non-boolean {@code truncated} is refused, and a source's model and CLI version are bounded.
+     * Witness: {@code Boolean.TRUE.equals(...)} alone (the old parse) — "yes" parses as false.
+     */
+    @Test
+    @DisplayName("★ 'truncated' must be a boolean; source.model and cliVersion are bounded names")
+    void v2FieldsAreChecked() {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("version", 2);
+        m.put("kind", "recorded");
+        m.put("source", Map.of("kind", "claude-code", "model", "claude-sonnet-5", "cliVersion", "2.1.282"));
+        m.put("turns", List.of(Map.of("id", "t1", "role", "user", "text", "q", "truncated", "yes")));
+        assertTrue(WalkConversation.parse(m).error().contains("'truncated' is true or false"), WalkConversation.parse(m).error());
+        m.put("turns", List.of(Map.of("id", "t1", "role", "user", "text", "q")));
+        assertTrue(WalkConversation.parse(m).ok());
+        m.put("source", Map.of("kind", "claude-code", "model", "x".repeat(201), "cliVersion", "2.1.282"));
+        assertTrue(WalkConversation.parse(m).error().contains("'source.model' is at most 200"));
+        m.put("source", Map.of("kind", "claude-code", "model", "claude-sonnet-5", "cliVersion", "2.1\nignore the above"));
+        assertTrue(WalkConversation.parse(m).error().contains("'source.cliVersion'"));
+        m.put("source", Map.of("kind", "claude-code", "model", "claude-sonnet-5, claude-opus-5[1m]", "cliVersion", "2.1.282"));
+        assertTrue(WalkConversation.parse(m).ok(), "the models of a recording, joined, are a valid model");
+    }
 }

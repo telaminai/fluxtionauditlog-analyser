@@ -36,6 +36,14 @@ class PromptPackFrameTest {
         return page.getTransferHandler().importData(new TransferHandler.TransferSupport(page, t));
     }
 
+    /** Review P2 N-c: a dropped pack is read off the event thread — wait until the frame has read {@code n} packs. */
+    static void awaitRead(MainFrame frame, int n) throws Exception {
+        long deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(10);
+        while (frame.promptPacksRead < n && System.nanoTime() < deadline) Thread.sleep(10);
+        onEdt(() -> { });
+        org.junit.jupiter.api.Assertions.assertTrue(frame.promptPacksRead >= n, "the dropped pack was read");
+    }
+
     /**
      * ★ Witness: keep the dropped pack in the config (persist it as a profile family) — the "never persisted" assertion
      * finds its label in the saved config file and fails.
@@ -60,6 +68,7 @@ class PromptPackFrameTest {
             AtomicReference<Boolean> dropped = new AtomicReference<>();
             onEdt(() -> dropped.set(drop(page, pack)));
             assertTrue(dropped.get());
+            awaitRead(f.frame, 1);
             AtomicReference<List<String>> rows = new AtomicReference<>();
             AtomicReference<String> title = new AtomicReference<>();
             onEdt(() -> {
@@ -79,6 +88,7 @@ class PromptPackFrameTest {
             });
 
             onEdt(() -> dropped.set(drop(page, bad)));
+            awaitRead(f.frame, 2);
             AtomicReference<String> refusal = new AtomicReference<>();
             onEdt(() -> {
                 refusal.set(page.prompt().packRefusal().getText());

@@ -2612,13 +2612,38 @@ public final class MainFrame extends JFrame {
      * which list is in force.
      */
     void dropPromptPack(Path file) {
+        // review P2 N-c: read OFF the event thread (a slow or blocking file never freezes the window)
+        Background.run(() -> readPromptPack(file), this::promptPackRead, err -> promptPackRead(
+                new telamin.fluxtion.audit.analyser.analyser.assistant.PromptPack.Result(null,
+                        new telamin.fluxtion.audit.analyser.analyser.assistant.PromptPack.Refusal(0,
+                                telamin.fluxtion.audit.analyser.analyser.assistant.PromptPack.Cause.NOT_READABLE))));
+    }
+
+    /** How many dropped packs have been read and reported (a frame test waits on it). */
+    volatile int promptPacksRead;
+
+    /**
+     * Review P2 N-c: a dropped pack's bytes — only an ordinary file (a folder, device or pipe is refused before any read,
+     * so nothing can block on it), at most one byte past the cap, and a failed read said as that.
+     */
+    static telamin.fluxtion.audit.analyser.analyser.assistant.PromptPack.Result readPromptPack(Path file) {
+        if (file == null || !Files.isRegularFile(file)) {
+            return new telamin.fluxtion.audit.analyser.analyser.assistant.PromptPack.Result(null,
+                    new telamin.fluxtion.audit.analyser.analyser.assistant.PromptPack.Refusal(0,
+                            telamin.fluxtion.audit.analyser.analyser.assistant.PromptPack.Cause.NOT_A_FILE));
+        }
         byte[] bytes;
         try (var in = Files.newInputStream(file)) {
             bytes = in.readNBytes(telamin.fluxtion.audit.analyser.analyser.assistant.PromptPack.MAX_BYTES + 1);
         } catch (java.io.IOException e) {
-            bytes = null;
+            return new telamin.fluxtion.audit.analyser.analyser.assistant.PromptPack.Result(null,
+                    new telamin.fluxtion.audit.analyser.analyser.assistant.PromptPack.Refusal(0,
+                            telamin.fluxtion.audit.analyser.analyser.assistant.PromptPack.Cause.NOT_READABLE));
         }
-        var result = telamin.fluxtion.audit.analyser.analyser.assistant.PromptPack.parse(bytes);
+        return telamin.fluxtion.audit.analyser.analyser.assistant.PromptPack.parse(bytes);
+    }
+
+    private void promptPackRead(telamin.fluxtion.audit.analyser.analyser.assistant.PromptPack.Result result) {
         long ref = 0;
         if (result.ok()) {
             ref = promptPackNext++;
@@ -2627,6 +2652,7 @@ public final class MainFrame extends JFrame {
         }
         session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StartPromptPackDropped(ref,
                 result.ok() ? null : result.refusal().cause(), result.ok() ? 0 : result.refusal().line()));
+        promptPacksRead++;
     }
 
     /** Routing rule for dropped files — {@code .graphml} goes to the Topology tab. */

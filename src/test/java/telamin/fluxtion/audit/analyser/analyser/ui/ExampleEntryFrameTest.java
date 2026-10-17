@@ -84,6 +84,7 @@ class ExampleEntryFrameTest {
             AtomicReference<Boolean> dropped = new AtomicReference<>();
             onEdt(() -> dropped.set(PromptPackFrameTest.drop(page, pack)));
             assertTrue(dropped.get());
+            PromptPackFrameTest.awaitRead(f.frame, 1);
             AtomicReference<String> label = new AtomicReference<>();
             onEdt(() -> label.set(page.prompt().promptList().getModel().getElementAt(1).label()));
             assertEquals(StartPromptView.DOWNLOAD_BADGE + " DEMO example", label.get(), "the download badge");

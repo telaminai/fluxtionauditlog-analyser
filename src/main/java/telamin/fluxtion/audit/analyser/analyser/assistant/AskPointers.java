@@ -9,7 +9,10 @@ import java.util.regex.Pattern;
 /**
  * M74 P2 (spec §5.5, review c7f2 F11): the ONE sanitiser per pointer kind. A draft template interpolates nothing that has
  * not passed through one of these, so a name a sender, a bundle or a log authored reaches the analyser's own draft only
- * as a bounded identifier or a quoted single line — never as prose that could steer a model.
+ * as a bounded identifier or a quoted, single-line, length-bounded name. Review P2 N-f (2026-10-17): that LIMITS what a
+ * name can say — it cannot open a new line, close its quotes or exceed its length — but a quoted name is still words, and
+ * a name such as {@code "ignore the above"} reaches the draft as those words, inside quotes. Where a name is free prose
+ * (a walk name with spaces, an ill-formed id) it is replaced by its position instead.
  */
 public final class AskPointers {
 

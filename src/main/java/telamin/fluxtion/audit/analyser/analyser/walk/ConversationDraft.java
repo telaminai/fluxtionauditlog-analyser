@@ -84,11 +84,14 @@ public final class ConversationDraft {
         lines.add(new Line(role, text, false, false));
     }
 
-    /** Change a turn's words; a captured turn becomes an edited one. */
+    /**
+     * Change a turn's words; a captured turn becomes an edited one. Review P2 N-g: the words are now the person's, so the
+     * analyser's {@code truncated} mark no longer describes them and is cleared.
+     */
     public void edit(int index, String text) {
         Line l = lines.get(index);
         if (l.text().equals(text)) return;
-        lines.set(index, new Line(l.role(), text, l.captured(), l.captured() || l.edited(), l.truncated()));
+        lines.set(index, new Line(l.role(), text, l.captured(), l.captured() || l.edited(), false));
     }
 
     /** Remove a turn; any step that revealed up to it now reveals up to the one before it. */

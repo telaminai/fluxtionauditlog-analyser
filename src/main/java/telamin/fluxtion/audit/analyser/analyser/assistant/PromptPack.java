@@ -69,6 +69,10 @@ public final class PromptPack {
     /** Why a file was refused: its line (0 for the file as a whole) and one cause. */
     public enum Cause {
         TOO_LARGE("the file is over 16 KB"),
+        /** Review P2 N-c: a folder, a device or a pipe is never read as a pack. */
+        NOT_A_FILE("only an ordinary file can be a prompt pack"),
+        /** Review P2 N-c: the read failed — said as that, never as "too large". */
+        NOT_READABLE("the file could not be read"),
         NOT_UTF8("the file is not UTF-8 text"),
         NO_TITLE("the first line must be a title: \"# Title\""),
         TITLE_TOO_LONG("the title is over 60 characters"),
