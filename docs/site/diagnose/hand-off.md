@@ -5,7 +5,7 @@ why, and here is how you can check"*. There are three ways to hand a diagnosis o
 
 | You want them to | Hand on | They need |
 |---|---|---|
-| see the finding next time anyone opens the log in this project | a **flag** with a note and a fix | the same log, in the analyser |
+| see the finding now, in this analyser | a **flag** with a note and a fix | your session: a flag does not survive opening another log |
 | read the account, with the evidence beside it | a **report**, rendered to PDF | a PDF reader |
 | reopen the whole investigation and check it themselves | an **evidence bundle** (`.fexp`) | the analyser |
 
@@ -21,8 +21,9 @@ topology for that record, and in every report that cites it.
   fix cannot wipe the explanation it is a fix for. Use `kind: "confirmation"` for behaviour that is correct; a report
   then labels it *Observation / Assessment* rather than as a fault.
 
-Flags belong to the loaded log: opening another log clears them, and they do not travel in an evidence bundle. A
-finding that must travel goes into a report, or into a walk step's caption.
+Flags belong to the session: opening another log clears them, and they do not travel in an evidence bundle. A
+finding that must travel goes into the PDF you render now, or into a walk step's caption. A saved report re-reads the
+flags each time it opens, so it shows the finding only while the flag exists.
 
 ## Write it up: a report
 
@@ -92,6 +93,5 @@ anyone who opens the project, or the bundle, replays on the analyser itself. A *
 that opens anywhere, for a reader who does not have the analyser
 ([Save it as a walk](../user-guide/assistant.md#save-it-as-a-walk), [Send it as a reel](../user-guide/assistant.md#send-it-as-a-reel)).
 
-!!! warning "Reports and bundles about a live system contain real names"
-    They are evidence about your production estate: hosts, services, instruments, accounts. Treat them like any other
-    production artefact, and never paste one into a public issue tracker or repository.
+Treat a report or a bundle about a live system as a production artefact: see the warning on
+[Diagnose an incident](index.md#what-your-client-can-do-to-your-machine).

@@ -58,7 +58,8 @@ You can do every step below yourself in the window. Your client can do each one 
   it over the file name.
 - **Add the topology if you have it**: **Sources ▸ Open GraphML…**, or **Sources ▸ Find GraphML in source roots…** to
   see which of the available graphs fits this log, ranked. The Topology tab then says whether the graph matches the
-  log. If it says it does not, take it seriously: the graph and the log disagree about which nodes exist.
+  log. If it says it does not, take it seriously: the graph and the log disagree about which nodes exist, and the
+  analyser does not say which one is right.
 
 !!! danger "Check which system the log came from, before you answer about it"
     Two environments running the same build produce logs that look the same, often with the same file name. The
@@ -80,7 +81,7 @@ what it finds in the status bar. Hover it for the full sentence, which names the
   narration did not.
 - **Only `EventLogControlEvent`.** The log holds the audit configuration and none of the run.
 - **A value broke its record.** A value was written unquoted with a line break in it, so the record is read only up
-  to the break; the message names the record and the line.
+  to the break and none of its node logs are read; the message names the record and the line.
 
 These are faults in how the log was *produced*, not in what the system did. Send the message back to whoever owns the
 export ([Producing an audit log](../producing-a-log.md)). If you were handed "the log is empty" and no log at all, open
@@ -97,10 +98,10 @@ Ask in your own words. Four questions come up again and again.
 
 | You ask | What answers it |
 |---|---|
-| **"Did *X* happen at all?"** | A search or filter, then the count. The filter is shared: the table, the charts and the topology all follow it, so a count you see in one place is the same population everywhere. An empty result means *nothing was logged*, which is not the same as *nothing ran*. |
+| **"Did *X* happen at all?"** | A search or filter, then the count. The filter is shared: the table, the charts and the topology all follow it, so a count you see in one place is the same population everywhere ([Records, detail & filtering](../user-guide/records-and-filtering.md)). An empty result means *nothing was logged*, which is not the same as *nothing ran*: a node can run, decide nothing changed, and say nothing. |
 | **"The check never fired — is that true?"** | **Coverage**: the nodes that never wrote audit output in this run. A gap means *never logged*, not *never ran*. Against a graph inferred from the run itself, coverage refuses to answer rather than report a comfortable 100%; you then need the real `.graphml` from the build. |
-| **"Why is this number what it is?"** | The record's **detail**: the event, each node that reacted and what each one computed. Then **step through** the cycle on the Topology tab, in the order it ran. For a value over time, plot it as a series ([Graphs](../user-guide/graphs.md)). |
-| **"Is it still happening?"** | **Follow** (toolbar, or **Audit log ▸ Follow (tail)**) on a local log appends new records as they are written, keeping your flags, filters and selection. |
+| **"Why is this number what it is?"** | The record's **detail**: the event, and each node that logged, with what it wrote. Then **step through** the cycle on the Topology tab, in the order it ran. For a value over time, plot it as a series ([Graphs](../user-guide/graphs.md)). |
+| **"Is it still happening?"** | **Follow** (toolbar, or **Audit log ▸ Follow (tail)**) on a local log appends new records as they are written, keeping your flags, filters and selection. For two fixed exports, open each in turn: a saved report's log fingerprint says when you have reopened a different log from the one it was written against. |
 
 ### 4. Check what it shows
 
@@ -134,14 +135,16 @@ so the list your client shows is the truth.
 
 - **Read**: the loaded log, the source roots you configured (`source` rereads XML and Java under them) and the
   exchange directory.
-- **Change what the window shows**: filters, charts, the selection, flags, topology focus and highlights. You can
-  reverse each of these, except one: `graph {delete}` removes a saved chart's definition for good, and it is not
-  marked destructive.
+- **Change what the window shows**: filters, charts, the selection, flags, topology focus and highlights. Most of
+  these can be reversed. Two cannot: `graph {delete}` removes a saved chart's definition for good, and it is not
+  marked destructive; and a new `note` or `fix` on a flag replaces the old text.
 - **Replace or write**, marked *destructive* so your client can ask you first: `open` replaces what is loaded (and the
-  session's flags with it), `source_root` changes your saved source roots, `screenshot` and `report` write files,
+  session's flags with it), `source_root` changes your saved source roots, `screenshot` writes a file, `report` writes a
+  PDF, CSV or bundle (or saves a named report in the project),
   `walk` can replace a saved walk (and `walk {reel}` writes an HTML page), and `import` merges a bundle's saved state
   into your project.
-- **Write files only where you allowed it.** `screenshot`, `report` and `walk {reel}` work only after you turn on
+- **Write files only where you allowed it.** `screenshot`, `report {path}`, `report {bundle}` and `walk {reel}` work
+  only after you turn on
   *Allow assistant file exchange* (*Settings ▸ Assistant*), write only inside the exchange directory you chose, and
   never overwrite an existing file.
 - **It cannot** read your API key, run a program, or start or control a server. The listener is loopback-only, and

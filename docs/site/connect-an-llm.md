@@ -37,9 +37,8 @@ The client sees **one tool per verb**, `analyser_open`, `analyser_context`, `ana
 `analyser_topology`, `analyser_flag`, `analyser_report` and so on, eighteen in all, each with its parameter schema, so
 there is nothing to teach the model. The read-only tools are marked read-only. The six that replace what is loaded or
 write files (`open`, `source_root`, `screenshot`, `report`, `walk`, `import`) are marked destructive, so your client can
-ask you first. A nineteenth verb, `propose`, is offered **only** to Claude Code running inside the analyser's own
-assistant panel: it is never on `/manifest`, never served to an outside client and never given to the in-app
-assistant. [Analyser assistant ▸ Actions the assistant can take](user-guide/assistant.md#actions-the-assistant-can-take)
+ask you first. The analyser's own Claude Code session has one extra verb, `propose`; outside clients never see it,
+and it is not on `/manifest`. [Analyser assistant ▸ Actions the assistant can take](user-guide/assistant.md#actions-the-assistant-can-take)
 has every verb's arguments.
 
 Three names, three jobs, so none of them needs renaming:
@@ -63,7 +62,7 @@ java -jar fluxtion-auditlog-analyser.jar --rest
 # or: jbang analyser@telaminai/fluxtionauditlog-analyser --rest
 ```
 
-The status bar reads *External MCP/REST access is on: listening on http://127.0.0.1:… for external clients*, and the
+The status bar reads *External MCP/REST access is on: listening on http://127.0.0.1:… for external clients — …*, and the
 light beside it reads **MCP ready**. The console prints the URL and only the **first 8 characters of the token**
 (`[analyser] assistant REST: http://127.0.0.1:…  (token 1a2b3c4d…)`); the full token is only in the endpoint file. A
 script that calls the endpoint itself reads the token from that file and checks its `pid` first:
@@ -111,8 +110,7 @@ runs](assets/mcp-claude-code-confirm.png)
 
 A successful confirmation says the client's command completed, not that the client is signed in, connected, or
 approved to call a tool. Restart or reload your client if it needs that to pick up a new server. Codex may need a
-larger tool timeout for an aggregate over a very large log. Which model to run the client with, for Spring and bundle
-authoring, is measured in [Model choice](spring-authoring-getting-started.md#model-choice).
+larger tool timeout for an aggregate over a very large log.
 
 ### 3. Open a log
 
@@ -138,9 +136,12 @@ cat ~/.fluxtion-analyser/rest-endpoint
 # {"url":"http://127.0.0.1:52041","token":"…","pid":12684,"startedAt":"…"}
 ```
 
-No file means access is off: tick **AI ▸ External MCP/REST access**, or restart with `--rest`.
+No file means the analyser is not running, *External MCP/REST access* is off, or access is closed while an in-app
+Claude Code session runs ([below](#while-claude-code-runs-in-the-analyser)). Usually it is the switch: tick
+**AI ▸ External MCP/REST access**, or restart with `--rest`.
 
-**Does your client see the tools?** In Claude Code, `/mcp` should show the server connected with **18 tools**:
+**Does your client see the tools?** In Claude Code, `/mcp` should show the server connected with **18 tools**. In
+Codex, `codex mcp get fluxtion-analyser` shows the registration; then ask it to call `analyser_context` (below).
 
 ```text
 > /mcp
@@ -153,7 +154,8 @@ No file means access is off: tick **AI ▸ External MCP/REST access**, or restar
        analyser_source_root · analyser_spotlight · analyser_walk
 ```
 
-`analyser_propose` is not in the list, and never will be for an outside client. If the server is missing, the client
+`analyser_propose` is not in the list: it is only for the analyser's own Claude Code session. If the server is missing,
+the client
 did not launch the bridge: reopen the setup screen, use the exact registration or record it shows, then restart or
 reload the client.
 

@@ -28,7 +28,8 @@ The analyser can run Claude Code in its own assistant panel
 own private bridge, and it changes what an outside client can reach.
 
 **External MCP/REST access is off.** Claude Code in the panel still works: the analyser opens a private listener that
-serves only that session, and publishes no endpoint file. So your client's bridge says *analyser not running*. A
+serves only that session, and publishes no endpoint file your client can use. So your client's bridge says *analyser
+not running*. A
 script that still holds an old URL and token is refused with:
 
 > External MCP/REST access is off in this analyser (Settings ▸ Assistant); this listener serves only the analyser's own Claude Code session
@@ -39,7 +40,8 @@ is off)"*. **Fix:** tick **AI ▸ External MCP/REST access**, then call again.
 **External MCP/REST access is on, and someone chose *Close external access while this session runs*.** With *Full
 Claude Code* in the panel and access on, the panel offers that button, because the session's own tools could drive the
 analyser as an outside client through the endpoint file. Once chosen, the endpoint file is withdrawn until the session
-ends, so your bridge says *analyser not running* even though Settings shows the switch on. A script still holding the
+ends, so your bridge says *analyser not running* even though Settings shows the switch on, and the status bar's
+light reads **MCP starting**. A script still holding the
 URL and token is refused with:
 
 > external access is closed while an in-app Claude Code session runs (the person chose "Close external access while this session runs"); it reopens when that session ends — the External MCP/REST access setting is still on
@@ -56,12 +58,13 @@ The status bar's light says whether **this** window is the one your client reach
 | Light | Means | Do |
 |---|---|---|
 | **MCP ready** | This window is serving: a client pointed here reaches *this* log. | Nothing. *Ready* is not *connected*: whether a client is talking to it is a separate fact. |
-| **MCP elsewhere** | Another analyser window owns the endpoint. A client is reading **that** window's log. | Close the other window, or ask in that one. When the owner closes, a window with access on takes the endpoint over within a few seconds. |
-| **MCP starting** | Access is on, but no live endpoint is published yet. | Wait a moment. |
+| **MCP elsewhere** | Another analyser window owns the endpoint. A client is reading **that** window's log. The analyser started last takes the endpoint, so the earlier window shows this. | Close the other window, or ask in that one. When the owner closes, a window with access on takes the endpoint back within a few seconds. |
+| **MCP starting** | Access is on, but this window has published no live endpoint. | Wait a moment. If it stays: access may be closed while an in-app Claude Code session runs ([above](#while-claude-code-runs-in-the-analyser)), when the light reads **MCP starting** for the whole session; or the listener failed to start, and the status line says *Could not start the assistant REST transport: …* with the reason. |
 | **MCP off** | *External MCP/REST access* is off. Nothing is wrong. | Tick **AI ▸ External MCP/REST access** when you want a client. |
 
-A live owner is never displaced, so two windows cannot fight over the endpoint. **MCP elsewhere** is the state that
-quietly wastes time: two analysers open, and the answers are about the other one.
+A window never takes the endpoint back from a live owner, only when that owner closes, so two windows do not take it
+in turns. **MCP elsewhere** is the state that quietly wastes time: two analysers open, and the answers are about the
+other one.
 
 ## Everything else
 

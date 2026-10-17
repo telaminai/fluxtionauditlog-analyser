@@ -1,7 +1,7 @@
 # Your first diagnosis session
 
 One session, start to finish, with Claude Code as the client. Codex and other MCP clients work the same way; only the
-command that lists the tools differs.
+way you check the registration differs (in Codex, `codex mcp get fluxtion-analyser`).
 
 **Before you start:** the analyser is open, *External MCP/REST access* is on, and your client is registered
 ([Connect your client](../connect-an-llm.md)). The status bar's light reads **MCP ready**.
