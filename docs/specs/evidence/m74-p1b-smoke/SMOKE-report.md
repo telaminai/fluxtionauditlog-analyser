@@ -41,7 +41,7 @@ In the excerpts `<SMOKE>` is the run's scratch folder and `<subscription>` the a
 | 5 | `analyser_context` and `analyser_read` work; a destructive verb hidden; `graph {delete}` refused | **PASS / inconclusive** | *"The open log has 21 records"* (true); `analyser_open`: *"does not exist among the available fluxtion-analyser tools"*; `graph {delete}`: the model sent unparseable input and each call was `refused`, so the refusal's reason was not this rule's (it stays covered by `HostedCredentialTest`) |
 | 6 | a changed hook file: the next Start asks again | **PASS** | after adding a `UserPromptSubmit` hook the dialog reappeared naming *"UserPromptSubmit (1), SessionStart (1)"*; the next Start with the file unchanged asked nothing |
 | 7 | the mode changed with a resumable conversation: Start offers New chat, never `--resume` | **PASS** | for `acceptEdits`, `plan` and `auto` in turn: `POSTURE_CHANGED`, New chat offered; after New chat a fresh `--session-id` each time |
-| 8 | warm start with the full switch on: a direct tab click starts nothing | **NOT RUN** | the harness failed before it (an evidence message dialog was open over the frame and the tab's bounds were null); covered by `LocalAgentFullPostureTest.warmStartNeverFiresInTheFullPosture` and its witness only |
+| 8 | warm start with the full switch on: a direct tab click starts nothing | **NOT RUN here; PASS in the re-smoke below** | the harness failed before it (an evidence message dialog was open over the frame and the tab's bounds were null); covered by `LocalAgentFullPostureTest.warmStartNeverFiresInTheFullPosture` and its witness only |
 | 9 | Stop, a kill and resume, and the tree empty | **PASS (Stop, resume) / partial (tree)** | Stop ended the turn `CANCELLED` 151 ms after the press; after a kill Start launched `--resume <id>` of the same id and answered *"after-resume"*; every mode switch above left the phase `OFF` before the next Start; the final Stop did not run (item 8's failure), and after the JVM was stopped no `claude`, bridge or child process remained |
 
 ## Findings
@@ -54,7 +54,7 @@ In the excerpts `<SMOKE>` is the run's scratch folder and `<subscription>` the a
    a terminal Claude Code session would hand a child those variables. **Proposed, for the owner:** the adapter removes
    the host-session variables (`CLAUDECODE`, `CLAUDE_CODE_SESSION_ID`, `CLAUDE_CODE_ENTRYPOINT`,
    `CLAUDE_CODE_MESSAGING_*`, `CLAUDE_CODE_SSE_PORT`, `CLAUDE_CODE_BRIDGE_SESSION_ID`, `CLAUDE_CODE_CHILD_SESSION`,
-   `CLAUDE_PID`) from the child's environment while keeping the person's configuration variables. Not changed here.
+   `CLAUDE_PID`) from the child's environment while keeping the person's configuration variables. **Fixed afterwards** (review finding 1, `ChildEnvironment`).
 2. **In `default` and `acceptEdits`, a harmless `echo` through Bash ran without being asked.** PB-1's `touch` of a file
    outside the folder was denied (`asyncAgent`, *"no approval surface"*); `echo` was not asked at all — the CLI's own
    allowance for read-only commands or the person's allow rules, which is exactly what §3 says the full posture is
@@ -63,6 +63,27 @@ In the excerpts `<SMOKE>` is the run's scratch folder and `<subscription>` the a
 3. **The model may mention the person's own paths.** In `plan` the answer named the CLI's plan file under the person's
    home folder (no file was created). The full posture's answers are the person's own Claude Code's; nothing in the
    analyser records them beyond the bounded store.
+
+## Re-smoke after the review fixes (2026-10-17)
+
+The same isolation, wrapper and cleanup, with [`harness/M74P1bFixSmoke.java`](harness/M74P1bFixSmoke.java) and
+[`harness/M74P1bWarmSmoke.java`](harness/M74P1bWarmSmoke.java), on `feature/claude-code-p1b` after the 14 review fixes.
+No project was opened, so Claude Code worked in the analyser's scratch folder. **Spend:** the session total reported
+was US$0.094 (four haiku turns, on the Claude plan); the warm-start runs sent no turn.
+
+| Item (finding) | Verdict | Evidence |
+|---|---|---|
+| the hosted bridge on its credential alone (6) | **PASS** | the per-instance file's keys were `url, nonce, hosted, pid, startedAt` — no `token`; `analyser_context` and `analyser_read` then worked over it (*"The open log has 21 records"*) |
+| Settings applied while idle (4) | **PASS** | mode `default` → `plan` applied through the frame's own Settings path: `POSTURE_CHANGED`, the process stopped at once, the note *"Settings changed the posture … so it was stopped; Start begins a New chat"* |
+| Settings applied mid-turn (4) | **PASS** | mode `plan` → `default` while counting: the turn ran to `COMPLETED`, then the session stopped, with the note *"… after the turn in progress"* |
+| consent withdrawn mid-turn (4) | **PASS** | *Allow the analyser to start Claude Code* off: `SWITCHED_OFF`, stopped at once, no process left |
+| a hook planted in the scratch folder (3) | **PASS** | Start raised the full dialog naming *"SessionStart (1) — from .claude/settings.json"*; after *Don't trust* nothing started and the hook's marker file was never written |
+| §8.1 item 8: warm start with the full switch on | **PASS, after a fix** | first attempt: the Assistant tab's click selected the tab but **did not count as the person's in either posture** — with the Aqua tab UI the selection is made inside the `MOUSE_RELEASED` dispatch while `EventQueue.getCurrentEvent()` reads as a `HierarchyEvent` left by a nested dispatch, so P1a's `WarmStart` never recognised a click (P1a defect). Fixed (`WarmStart.Tracker`: the tab strip's own input, held while the queue's most recent input time is still its own) and re-run: full posture — the click selected the tab and **started nothing**; control, the same click with the full switch off — **started Claude Code** (`--session-id …`, `READY`) |
+| process tree after the final stop | **PASS** | 0 live descendants |
+
+A mid-session **mode change through the CLI** (`system/status`, finding 2) was not provoked live: it is captured
+(`../m74-p1b/fixtures/pb-status-mode-iso.jsonl`) and replayed through the real adapter in
+`LocalAgentFullReplayTest.aRecordedModeChangeIsRefused`.
 
 ## Reproduce
 

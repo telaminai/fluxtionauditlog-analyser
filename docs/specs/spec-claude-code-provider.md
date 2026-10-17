@@ -1158,7 +1158,7 @@ single-user utility (owner direction 2026-10-16).
 | **P0 — protocol probe** ✓ 2026-10-16 | 40 items ([report](evidence/m74-p0/P0-report.md)) | done; owner read |
 | **P0b — default command, binding, P3 contract, slash commands** ✓ 2026-10-16 | 5 items ([report](evidence/m74-p0/P0b-report.md)) | done; folded into r5 |
 | **P1a — default-posture session** ✓ implemented | see *Implementation notes*; live smoke passed [S]. **Open acceptance:** Windows (§11), the owner's visual check of the tab and Settings on the built jar, the frame suites in CI | r6 |
-| **P1b — full posture** ✓ implemented | §8.1; probes PB-1…PB-4 run ([report](evidence/m74-p1b/PB-report.md)); see *Implementation notes (P1b)*. Live smoke run 2026-10-17 ([report](evidence/m74-p1b-smoke/SMOKE-report.md)): items 1–3, 6, 7 and Stop/resume pass; item 8 (warm start) not run live. **Open acceptance:** item 8 live, the owner's visual check, and the owner's decision on the host-session environment variables (smoke finding 1) | P1a accepted; OD-74.10–74.12, OD-74.18 and OD-74.24 accepted |
+| **P1b — full posture** ✓ implemented | §8.1; probes PB-1…PB-4 run ([report](evidence/m74-p1b/PB-report.md)); see *Implementation notes (P1b)*. Live smoke and re-smoke 2026-10-17 ([report](evidence/m74-p1b-smoke/SMOKE-report.md)): every §8.1 item passes, item 8 after a warm-start fix. **Open acceptance:** the owner's visual check | P1a accepted; OD-74.10–74.12, OD-74.18 and OD-74.24 accepted |
 | **P2 — the start-page prompt, the Ask catalogue, onboarding, the transcript, carried items** | §8.2: the start-page prompt (§5.8, the headline of P2's onboarding), the Ask catalogue (§5.5), `propose` onboarding (§5.6), Move (§5.3), conversation v2 (§6), transcript presentation (§5.9), the carried items | P1a accepted; OD-74.13–74.15 and OD-74.20–74.23 accepted (OD-74.19 is); the shipped-code fixes SF-1 and SF-2 (§11) in first |
 | **P3 — permission prompts in the analyser** | §8.3 | P1b and P2 accepted; OD-74.16–74.17 accepted; probes P3-0…P3-6 run |
 | **P4 — managed policy** | an administrator-owned, read-only policy file the person cannot change in Settings: allowed modes and postures (e.g. local agent only, default posture only), the external MCP/REST socket off, model, budget, endpoint, the terms list (§6), the start-page prompts (`startPrompts`, OD-74.20) | P1a accepted |
@@ -1787,8 +1787,8 @@ a `ProcessBuilder` in the adapter, a warm Start from `revealAssistant()`; FAQ �
 
 P1b is implemented on `feature/claude-code-p1b` (stacked on P1a, PR #145) against r9; **acceptance is open**. The
 live smoke ran ([report](evidence/m74-p1b-smoke/SMOKE-report.md)) through the analyser's own Settings and Assistant
-tab; warm start (item 8) was not run live, and the smoke found that the analyser passes a host Claude Code session's
-`CLAUDE_*` variables to its child (P1a behaviour too; a fix is proposed there, not made). The probes ran first ([PB-report](evidence/m74-p1b/PB-report.md)); every
+tab; it found that the analyser passed a host Claude Code session's `CLAUDE_*` variables to its child (P1a behaviour
+too), fixed with the review's finding 1, and the re-smoke ran warm start (item 8) after fixing a P1a defect there. The probes ran first ([PB-report](evidence/m74-p1b/PB-report.md)); every
 adapter test drives the real session processor and the real adapter with the fake CLI replaying the sanitised P0, P0b
 and **PB** captures (`FixtureAgent`, now also reading `evidence/m74-p1b/fixtures`).
 
@@ -1864,7 +1864,13 @@ and **PB** captures (`FixtureAgent`, now also reading `evidence/m74-p1b/fixtures
   256 KB of each file (a larger one adds its size and modification time) and treats a non-regular file as unreadable,
   as the scan does; `plain()` and the node's `safe()` escape control, format and line-separator characters. The digest is
   still read on the event thread, at Start and Send, now bounded at 768 KB in all. (14) A stored limit below US$0.50 is
-  clamped to it. Witnesses: each new ★ test failed under its finding's mutation (the host markers passed through;
+  clamped to it. **Re-smoke (2026-10-17):** the touched items passed live, and §8.1 item 8 (warm start) found a P1a
+  defect: with the Aqua tab UI `EventQueue.getCurrentEvent()` reads as a nested `HierarchyEvent` while the person's
+  click selects the tab, so warm start never fired in either posture. `WarmStart.Tracker` (an `AWTEventListener` on the
+  tab strip's mouse and key input) now supplies the held click, accepted only while the queue's most recent input time
+  is still its own; live, the full posture then starts nothing and the default posture's control starts. Witnesses:
+  `getCurrentEvent()` alone (the overwritten case fails), and the held input without the time check (a later reveal
+  passes). Witnesses: each new ★ test failed under its finding's mutation (the host markers passed through;
   `status` ignored, in the parser and in the node; the scratch folder confirmed unconditionally; the consent change
   ignored, and the Send not re-checked; the P1b scan; the shared token required first; an exact `PATH` key;
   `fullConfirmed = confirmed`, another folder's digest, the default posture's ref; hook notes keyed on the event alone;
