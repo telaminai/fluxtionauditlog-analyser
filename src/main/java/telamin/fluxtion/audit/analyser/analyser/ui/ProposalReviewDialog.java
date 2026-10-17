@@ -155,7 +155,11 @@ public final class ProposalReviewDialog {
         JTextArea lede = Fluid.text("Claude Code proposes these changes. Nothing has been applied. The analyser checked each "
                 + "one itself; Claude's reasons are its own words. Every answer starts at No.");
         c.panel.add(lede, BorderLayout.NORTH);
-        c.panel.add(new JScrollPane(rows), BorderLayout.CENTER);
+        JScrollPane rowScroll = new JScrollPane(rows);
+        // every row in view (at most 10 items and the create row), so nothing is hidden below the fold
+        int rowsShown = Math.min(11, p.items().size() + ("PENDING".equals(p.create()) ? 1 : 0) + 1);
+        rowScroll.setPreferredSize(new Dimension(820, 12 + rowsShown * 26));
+        c.panel.add(rowScroll, BorderLayout.CENTER);
         c.panel.add(reasonBox, BorderLayout.SOUTH);
         return c;
     }

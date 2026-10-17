@@ -134,7 +134,7 @@ public final class LocalAgentPanel extends JPanel {
 
         JPanel top = new JPanel();
         top.setLayout(new BoxLayout(top, BoxLayout.Y_AXIS));
-        JPanel actions = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
+        JPanel actions = new JPanel(new WrapLayout(FlowLayout.LEFT, 4, 2));   // P2b: wraps in a narrow tab
         actions.add(start);
         actions.add(stop);
         actions.add(newChat);
@@ -364,8 +364,8 @@ public final class LocalAgentPanel extends JPanel {
         long shown = p.items().size() - pending;
         String dir = p.setupDir() == null ? "this folder" : shortFolder(p.setupDir());
         return "Claude Code proposes " + n + " change" + (n == 1 ? "" : "s") + " to set up " + dir
-                + (shown > 0 ? " (" + shown + " more shown, which cannot be applied)" : "")
-                + " — nothing has been applied; review each one";
+                + (shown > 0 ? ", and " + shown + " that cannot be applied" : "")
+                + ". Nothing has been applied — review each one.";
     }
 
     /** Render the session's decision. Unchanged input changes nothing on screen. */

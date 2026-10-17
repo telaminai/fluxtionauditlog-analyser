@@ -21,10 +21,14 @@ public final class ExampleDownloadDialog {
     private ExampleDownloadDialog() {
     }
 
-    /** The words above the folder field, in order (a test reads them). */
+    /** The line the confirmation leads with: the publisher, and whose it is. */
+    static String publisherLine(ExampleSource s, boolean thirdParty) {
+        return s.publisher() + (thirdParty ? "   — third-party: not published by Telamin" : "   — Telamin");
+    }
+
+    /** The words under the publisher line, in order (a test reads them). */
     static String words(ExampleSource s, boolean thirdParty) {
-        return s.publisher() + (thirdParty ? "   — third-party: not published by Telamin" : "   — Telamin") + "\n\n"
-                + "Address:  " + s.url() + "\n"
+        return "Address:  " + s.url() + "\n"
                 + "Commit:   " + s.commit() + " (pinned: this exact version)\n"
                 + "Integrity: " + (s.sha256() == null
                 ? "no sha256 in the pack — the archive is identified by its pinned commit only"
@@ -48,13 +52,21 @@ public final class ExampleDownloadDialog {
         }
     }
 
-    /** Ask; the chosen folder on Download, null on Cancel. */
-    public static Path ask(Component parent, ExampleSource s, boolean thirdParty, Path suggested) {
+    /** The confirmation's body: the words, then the folder field and its chooser. */
+    record Body(JPanel panel, JTextField folder) {
+    }
+
+    static Body body(Component parent, ExampleSource s, boolean thirdParty, Path suggested) {
         JPanel body = new JPanel(new BorderLayout(6, 8));
+        JLabel lead = UiText.label(publisherLine(s, thirdParty));
+        lead.setFont(lead.getFont().deriveFont(Font.BOLD));
+        if (thirdParty) lead.setForeground(UiTheme.warnForeground());
         JTextArea text = Fluid.text(words(s, thirdParty));
         text.setColumns(72);
-        if (thirdParty) text.setForeground(UiTheme.warnForeground());
-        body.add(text, BorderLayout.NORTH);
+        JPanel top = new JPanel(new BorderLayout(4, 8));
+        top.add(lead, BorderLayout.NORTH);
+        top.add(text, BorderLayout.CENTER);
+        body.add(top, BorderLayout.NORTH);
         JPanel folder = new JPanel(new BorderLayout(6, 0));
         folder.add(UiText.label("Unpack into (a new or empty folder):"), BorderLayout.WEST);
         JTextField field = new JTextField(suggested == null ? "" : suggested.toString(), 36);
@@ -69,12 +81,20 @@ public final class ExampleDownloadDialog {
         });
         folder.add(choose, BorderLayout.EAST);
         body.add(folder, BorderLayout.SOUTH);
-        Object[] options = {"Download", "Cancel"};
-        JComponent message = body;
-        int answer = JOptionPane.showOptionDialog(parent, message, "Download this example?",
+        return new Body(body, field);
+    }
+
+    static final Object[] OPTIONS = {"Download", "Cancel"};
+    static final String TITLE = "Download this example?";
+
+    /** Ask; the chosen folder on Download, null on Cancel. */
+    public static Path ask(Component parent, ExampleSource s, boolean thirdParty, Path suggested) {
+        Body b = body(parent, s, thirdParty, suggested);
+        JComponent message = b.panel();
+        int answer = JOptionPane.showOptionDialog(parent, message, TITLE,
                 JOptionPane.DEFAULT_OPTION, thirdParty ? JOptionPane.WARNING_MESSAGE : JOptionPane.QUESTION_MESSAGE, null,
-                options, options[1]);
-        if (answer != 0 || field.getText().isBlank()) return null;
-        return Path.of(field.getText().strip());
+                OPTIONS, OPTIONS[1]);
+        if (answer != 0 || b.folder().getText().isBlank()) return null;
+        return Path.of(b.folder().getText().strip());
     }
 }

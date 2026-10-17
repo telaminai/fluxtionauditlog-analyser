@@ -499,8 +499,8 @@ public final class StartPanel extends JPanel {
         // to truncate
         JTextArea title = wrapping(telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.text("start.title"));
         // M74 P2b visual fix: the title's size and weight are re-derived on every theme application, as its colour is.
-        // A JTextArea's updateUI resets its font to the look and feel's TextArea.font, so a title styled once at
-        // construction came out small and plain whenever FlatLaf was applied after the page was built (one P2a capture).
+        // Styled once at construction, it kept the size of whatever theme was in force then, so a page built before (or
+        // across) a theme application showed it inconsistently (two P2a captures differed).
         Runnable titleFont = () -> title.setFont(heroTitleFont(title.getFont()));
         titleFont.run();
         recolour.add(titleFont);

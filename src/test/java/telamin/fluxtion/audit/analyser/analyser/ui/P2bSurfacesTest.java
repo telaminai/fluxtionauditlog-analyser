@@ -71,7 +71,7 @@ class P2bSurfacesTest {
             assertTrue(panel.proposalBanner().isVisible());
             String words = panel.proposalText().getText();
             assertTrue(words.startsWith("Claude Code proposes 1 change to set up …/medmon"), words);
-            assertTrue(words.contains("1 more shown, which cannot be applied") && words.contains("nothing has been applied"), words);
+            assertTrue(words.contains("and 1 that cannot be applied") && words.contains("Nothing has been applied"), words);
             panel.renderProposal(proposal(true, item("p-1.1", "sourceRoot", ProposalState.ItemState.APPLIED)));
             assertFalse(panel.proposalBanner().isVisible(), "answered: no banner");
             panel.renderProposal(ProposalState.NONE);
@@ -148,6 +148,8 @@ class P2bSurfacesTest {
     @DisplayName("★ the hero title is bold and 5 pt larger in every theme, including after the look and feel is applied")
     void heroTitleIsConsistent() throws Exception {
         StartPanel[] holder = new StartPanel[1];
+        Font before = UIManager.getFont("Label.font");
+        try {
         StartPromptViewTest.onEdt(() -> {
             holder[0] = new StartPanel(new StartPanel.Actions() {
                 public void openDemo(java.nio.file.Path p, boolean graph) { }
@@ -159,7 +161,9 @@ class P2bSurfacesTest {
                 public boolean fluxtionKeyPresent() { return false; }
                 public void backToRecords() { }
             }, s -> { });
-            javax.swing.SwingUtilities.updateComponentTreeUI(holder[0]);   // what applying FlatLaf after construction does
+            // what applying a theme after construction does: a new base font, then the tree updated
+            UIManager.put("Label.font", new javax.swing.plaf.FontUIResource(before.getName(), Font.PLAIN, before.getSize() + 7));
+            javax.swing.SwingUtilities.updateComponentTreeUI(holder[0]);
             return null;
         });
         StartPromptViewTest.onEdt(() -> null);                     // the queued recolour
@@ -167,9 +171,12 @@ class P2bSurfacesTest {
             Font f = holder[0].heroTitle().getFont();
             Font label = UIManager.getFont("Label.font");
             assertTrue(f.isBold(), "bold: " + f);
-            assertEquals(label.getSize2D() + 5f, f.getSize2D(), 0.01f, "5 pt larger than the label font");
+            assertEquals(label.getSize2D() + 5f, f.getSize2D(), 0.01f, "5 pt larger than the theme's label font now");
             return null;
         });
+        } finally {
+            UIManager.put("Label.font", before);
+        }
         assertTrue(StartPanelTextHolder.dropLine().contains("a prompt pack (.md)"));
     }
 

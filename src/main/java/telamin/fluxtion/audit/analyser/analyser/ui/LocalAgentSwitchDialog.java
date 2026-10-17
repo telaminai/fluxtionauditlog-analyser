@@ -23,10 +23,10 @@ public final class LocalAgentSwitchDialog {
         String here = current == null || current.isBlank() ? "your own settings" : current;
         String there = target == null || target.isBlank() ? "your own settings (no project)" : target;
         return "Claude Code is running in " + here + ". You asked to switch to " + there + ".\n\n"
-                + "• Stop, and get Start ready in the new project — the session ends; nothing starts until you press "
-                + "Start there, and the new folder is confirmed then.\n"
-                + "• Keep it running here — the switch happens; this session keeps working in its own folder, and its "
-                + "context describes " + here + ".\n"
+                + "• Stop, and get Start ready in the new project — the session ends. Nothing starts until\n"
+                + "   you press Start there, and the new folder is confirmed then.\n"
+                + "• Keep it running here — the switch happens. This session keeps working in its own folder,\n"
+                + "   and its context describes " + here + ".\n"
                 + "• Cancel — no switch.";
     }
 
@@ -40,7 +40,7 @@ public final class LocalAgentSwitchDialog {
 
     public static SessionEvents.SwitchChoice ask(Component parent, String current, String target) {
         JTextArea body = Fluid.text(message(current, target));
-        body.setColumns(56);
+        body.setLineWrap(false);                           // the lines are broken by hand: every one shows
         JComponent message = body;                         // a component: its text is never HTML
         int answer = JOptionPane.showOptionDialog(parent, message, "Claude Code is running",
                 JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE, null, OPTIONS, OPTIONS[2]);
