@@ -734,16 +734,31 @@ public final class SessionEvents {
      * What the person's machine says about starting Claude Code now, observed by the frame when Start or Send is
      * asked for. The node combines these; the frame decides none of them.
      *
-     * @param allowed           the raw {@code assistant.claudeCode} switch (machine tier)
-     * @param folderConfirmed   the working directory is confirmed on this machine (or is the analyser's own scratch)
-     * @param bundleWorkingCopy the working directory lies in an evidence-bundle working copy
-     * @param postureRef        a digest of the posture (switches, mode, directory, pre-allow list, note) — an id
-     * @param budgetMicros      the session budget setting, in millionths of a US dollar
-     * @param folder            whether the working directory may be used at all (review M4, S10)
+     * @param allowed             the raw {@code assistant.claudeCode} switch (machine tier)
+     * @param folderConfirmed     the working directory is confirmed on this machine for the DEFAULT posture (or is the
+     *                            analyser's own scratch)
+     * @param bundleWorkingCopy   the working directory lies in an evidence-bundle working copy
+     * @param postureRef          a digest of the posture (kind, mode, directory, note, pre-allow list) — an id
+     * @param budgetMicros        the session spend limit, in millionths of a US dollar; 0 when none is set (owner,
+     *                            2026-10-17: optional, off by default)
+     * @param folder              whether the working directory may be used at all (review M4, S10)
+     * @param full                the raw {@code assistant.claudeCode.full} switch (machine tier, P1b)
+     * @param fullMode            the full posture's mode, already normalised by {@code ConfigStore} (never bypass, never
+     *                            dontAsk)
+     * @param fullFolderConfirmed a FULL-posture trust record exists for the folder AND its digest equals the digest of
+     *                            the folder's files Start would load (OD-74.12, review H6); the scratch folder counts,
+     *                            holding nothing to run
      */
     public record LocalAgentConsent(boolean allowed, boolean folderConfirmed, boolean bundleWorkingCopy,
-                                    String postureRef, long budgetMicros, FolderVerdict folder) {
-        /** A folder that has been checked and may be used. */
+                                    String postureRef, long budgetMicros, FolderVerdict folder, boolean full,
+                                    LocalAgentPosture.FullMode fullMode, boolean fullFolderConfirmed) {
+        /** The default posture, with a folder verdict. */
+        public LocalAgentConsent(boolean allowed, boolean folderConfirmed, boolean bundleWorkingCopy,
+                                 String postureRef, long budgetMicros, FolderVerdict folder) {
+            this(allowed, folderConfirmed, bundleWorkingCopy, postureRef, budgetMicros, folder, false, null, false);
+        }
+
+        /** A folder that has been checked and may be used, in the default posture. */
         public LocalAgentConsent(boolean allowed, boolean folderConfirmed, boolean bundleWorkingCopy,
                                  String postureRef, long budgetMicros) {
             this(allowed, folderConfirmed, bundleWorkingCopy, postureRef, budgetMicros, FolderVerdict.OK);
@@ -751,6 +766,17 @@ public final class SessionEvents {
 
         public LocalAgentConsent {
             folder = folder == null ? FolderVerdict.UNAVAILABLE : folder;
+            fullMode = fullMode == null ? LocalAgentPosture.FullMode.DEFAULT : fullMode;
+        }
+
+        /** The posture a start under this consent runs in. */
+        public LocalAgentPosture posture() {
+            return full ? LocalAgentPosture.full(fullMode) : LocalAgentPosture.ANALYSER_ASSISTANT;
+        }
+
+        /** Whether the folder is confirmed for the posture in force (the two trusts are separate, OD-74.12). */
+        public boolean confirmedForPosture() {
+            return full ? fullFolderConfirmed : folderConfirmed;
         }
     }
 
@@ -791,6 +817,13 @@ public final class SessionEvents {
                                           LocalAgentConsent consent) {
     }
 
+    /**
+     * Settings were applied by the person (review finding 4): what the machine now says about starting Claude Code.
+     * The node decides whether the running session still has the consent and the posture it was started under.
+     */
+    public record LocalAgentConsentChanged(LocalAgentConsent consent) {
+    }
+
     /** Stop pressed: interrupt the one open turn. */
     public record LocalAgentStopRequested(String origin) {
     }
@@ -802,9 +835,11 @@ public final class SessionEvents {
     /**
      * Review M8: the person answered the folder confirmation the node asked for with
      * {@code ConfirmLocalAgentFolderEffect{request}}. {@code consent} is what the machine says NOW (observed after the
-     * answer); the node decides whether the answer still applies, and asks for the trust record and the start.
+     * answer); {@code contentUnchanged} says whether the files the full-posture dialog named still read as they did
+     * when it was shown (always true for the default posture). The node decides whether the answer still applies, and
+     * asks for the trust record and the start.
      */
-    public record LocalAgentFolderAnswered(long request, boolean yes, LocalAgentConsent consent) {
+    public record LocalAgentFolderAnswered(long request, boolean yes, boolean contentUnchanged, LocalAgentConsent consent) {
     }
 
     /**
@@ -845,8 +880,24 @@ public final class SessionEvents {
      * — the account's e-mail and organisation are never read), the permission mode it reports, and the header's
      * reference.
      */
-    public record LocalAgentInitialized(long generation, boolean loggedIn, String permissionMode, long headerRef) {
+    public record LocalAgentInitialized(long generation, boolean loggedIn, String permissionMode, long headerRef,
+                                        Billing billing) {
+        public LocalAgentInitialized {
+            billing = billing == null ? Billing.UNKNOWN : billing;
+        }
+
+        public LocalAgentInitialized(long generation, boolean loggedIn, String permissionMode, long headerRef) {
+            this(generation, loggedIn, permissionMode, headerRef, Billing.UNKNOWN);
+        }
     }
+
+    /**
+     * How a local-agent session is paid for, as an enum read from {@code initialize.account} at the parse boundary
+     * ({@code subscriptionType} present: a Claude plan; {@code apiKeySource}: an API key). Never the source's or the
+     * plan's value: those are header words in the store. It decides only whether a dollar figure means anything (owner,
+     * 2026-10-17).
+     */
+    public enum Billing { SUBSCRIPTION, API_KEY, UNKNOWN }
 
     /**
      * One {@code mcp_status} answer. {@code servers} are the configured server names; {@code hostedStatus} is the
@@ -900,10 +951,44 @@ public final class SessionEvents {
     }
 
     /** Something the stream said that the person should see as a status line. */
-    public enum AgentNote { COMPACTED, RATE_LIMITED, AUTH_FAILED, PERMISSION_DENIED }
+    public enum AgentNote { COMPACTED, RATE_LIMITED, AUTH_FAILED, PERMISSION_DENIED,
+        /**
+         * A request the mode would ASK the person about, denied because nobody can be asked: {@code --permission-prompts
+         * none} (P1b, P2) reports it as {@code decision_reason_type:"asyncAgent"} (PB-1).
+         */
+        APPROVAL_UNAVAILABLE }
 
     /** {@code note} happened in {@code ticket}; {@code epochSeconds} is a rate limit's reset time, else 0. */
     public record LocalAgentNoted(long generation, long ticket, AgentNote note, long epochSeconds) {
+    }
+
+    /** The CLI's hook vocabulary, as {@code system/hook_*} names it; anything else is {@link #OTHER}. */
+    public enum HookEvent { SessionStart, SessionEnd, UserPromptSubmit, PreToolUse, PostToolUse, Notification, Stop,
+        SubagentStop, PreCompact, OTHER;
+
+        /** The event a {@code hook_event} name reports, never the name itself when it is not in the vocabulary. */
+        public static HookEvent of(String name) {
+            if (name != null) for (HookEvent e : values()) if (e != OTHER && e.name().equals(name)) return e;
+            return OTHER;
+        }
+    }
+
+    /** A hook's progress: {@code hook_started}, or {@code hook_response} with {@code outcome} success or not. */
+    public enum HookOutcome { STARTED, OK, FAILED }
+
+    /**
+     * A hook ran (P1b §8.1). Only its event and outcome: the hook's output, stdout and stderr are never read at the
+     * parse boundary (PB hook shapes), so they cannot reach a fact, the store or the snapshot. {@code ticket} is the
+     * turn it ran in, 0 for {@code SessionStart} at spawn.
+     */
+    public record LocalAgentHookObserved(long generation, long ticket, HookEvent event, HookOutcome outcome) {
+    }
+
+    /**
+     * {@code system/status} reported {@code permissionMode} in the middle of a session (review finding 2): a mode change
+     * between turns' {@code system/init}s. The node checks it against the posture and kills at once on a mismatch.
+     */
+    public record LocalAgentModeObserved(long generation, long ticket, String permissionMode) {
     }
 
     /** The interrupt for {@code ticket} was acknowledged by a {@code control_response}. */

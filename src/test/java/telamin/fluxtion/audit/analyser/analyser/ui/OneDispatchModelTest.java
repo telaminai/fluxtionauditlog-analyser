@@ -387,10 +387,13 @@ class OneDispatchModelTest {
         assertFalse(confirm.contains("LocalAgentFolders"), "and never re-checks the folder: the node already decided");
         assertFalse(confirm.contains("claudeCodeTrustedFolders"), "nor records trust before the node accepts the answer");
         assertTrue(confirm.contains("LocalAgentFolderAnswered("), "the answer is a fact");
-        assertEquals(1, count(Pattern.compile("LocalAgentFolders\\s*\\.\\s*check\\("), frame),
-                "one folder check in the frame: the consent observation");
+        // P1b: the consent observation lives in LocalAgentConsents.of, the frame's localAgentConsent() calls it
+        assertEquals(0, count(Pattern.compile("LocalAgentFolders\\s*\\.\\s*check\\("), frame),
+                "no folder check in the frame: the consent observation is LocalAgentConsents'");
+        assertEquals(1, count(Pattern.compile("LocalAgentFolders\\s*\\.\\s*check\\("),
+                Files.readString(LOCAL_AGENT.resolve("LocalAgentConsents.java"))), "and it is checked there, once");
         assertTrue(bodyOf(frame, "private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentConsent localAgentConsent(")
-                .contains("LocalAgentFolders.check("), "and it is the consent's");
+                .contains("LocalAgentConsents.of("), "the frame's consent is that observation");
         assertEquals(1, count(Pattern.compile("claudeCodeTrustedFolders\\s*\\.\\s*add\\("), frame),
                 "the trust record has one writer");
         assertTrue(bodyOf(frame, "private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result trustLocalAgentFolder(")

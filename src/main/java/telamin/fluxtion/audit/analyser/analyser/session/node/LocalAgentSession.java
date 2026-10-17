@@ -44,6 +44,14 @@ public class LocalAgentSession implements EventLogSource {
     public static final String BUSY_TEXT = "Claude is still answering — Stop or wait.";
     public static final String NOT_LOGGED_IN_TEXT = "Claude Code is not logged in — run `claude` once in a terminal to log in.";
     public static final String OLD_BRIDGE_TEXT = "the installed analyser bridge is older than this analyser — update it";
+    /** PB-3: with a model that does not support it, the CLI starts in {@code default} instead of {@code auto}, silently. */
+    public static final String AUTO_UNAVAILABLE_TEXT = "Claude Code started in default mode instead of auto: auto mode is "
+            + "not available for the configured Claude Code model — choose a model that supports it (sonnet or opus) or "
+            + "another mode in Settings ▸ Assistant; it was stopped";
+    /** P1b and P2: the full posture's {@code default} and {@code acceptEdits} ask, and nobody can be asked yet (PB-1). */
+    public static final String APPROVAL_UNAVAILABLE_TEXT = "an action needed your approval, which the analyser cannot ask "
+            + "for yet (approvals in the analyser come in a later release), so it was denied — allow it with your own "
+            + "Claude Code permission rules, or choose another mode in Settings ▸ Assistant";
 
     /**
      * Pushed into, not read from upstream (review M2): this node decides FIRST whether the person may leave Claude Code
@@ -88,6 +96,15 @@ public class LocalAgentSession implements EventLogSource {
     private boolean costUnderReported;
     private boolean newChatOffered;
     private Map<Long, Long> costBySession = new LinkedHashMap<>();
+    /** The posture the current process was started in: what the handshake and every init are checked against. */
+    private LocalAgentPosture posture = LocalAgentPosture.ANALYSER_ASSISTANT;
+    /** Full posture: the person's servers' {@code name:status} at the last init, for the diagnostics line. */
+    private List<String> personServerStates = new ArrayList<>();
+    private int personServers;
+    /** How the session is paid for, from {@code initialize.account} at the parse boundary: decides whether a cost is shown. */
+    private SessionEvents.Billing billing = SessionEvents.Billing.UNKNOWN;
+    /** One coalesced note per hook event and turn (review finding 12): its entry index and counts (started, ok, failed). */
+    private Map<String, long[]> hookNotes = new LinkedHashMap<>();
     private List<LocalAgentState.Entry> entries = new ArrayList<>();
     private LocalAgentState.Answer answer = LocalAgentState.Answer.NONE;
     private LocalAgentState published = LocalAgentState.IDLE;
@@ -155,9 +172,18 @@ public class LocalAgentSession implements EventLogSource {
                     + "started — press Start again");
             return changed();
         }
+        if (c.full() && !e.contentUnchanged()) {
+            // review H6/M8: the trust is bound to what the dialog showed; a hook, server or instruction file changed
+            // while it was open is asked about again, never started on
+            refuse(e.request(), "FOLDER_CHANGED: the folder's hooks, MCP servers or instruction files changed while the "
+                    + "confirmation was open, so nothing was started — press Start again");
+            return changed();
+        }
         effects.request(new SessionEffects.TrustLocalAgentFolderEffect(0L, e.request()));
-        start(e.request(), new SessionEvents.LocalAgentConsent(c.allowed(), true, c.bundleWorkingCopy(), c.postureRef(),
-                c.budgetMicros(), c.folder()));
+        // the person's yes confirms the folder for the posture it was asked for (the full posture's trust is separate)
+        start(e.request(), new SessionEvents.LocalAgentConsent(c.allowed(), c.full() ? c.folderConfirmed() : true,
+                c.bundleWorkingCopy(), c.postureRef(), c.budgetMicros(), c.folder(), c.full(), c.fullMode(),
+                c.full() || c.fullFolderConfirmed()));
         return changed();
     }
 
@@ -204,8 +230,53 @@ public class LocalAgentSession implements EventLogSource {
         return changed();
     }
 
+    /**
+     * Review finding 4: Settings applied while a session runs. Consent withdrawn ends it at once; a changed posture (the
+     * full switch, its mode, the note, the pre-allow list) ends it after the turn in progress, or at once when none is.
+     * The next Start then sees the change and offers New chat; a session is never left running under settings it was
+     * not started with.
+     */
+    @OnEventHandler
+    public boolean onConsentChanged(SessionEvents.LocalAgentConsentChanged e) {
+        if (!running()) return false;                     // the next Start decides with the new consent
+        if (!endForConsent(e.consent())) return false;
+        return changed();
+    }
+
+    /** Whether {@code c} no longer covers the running session; if so, the session is ended (now or after its turn). */
+    private boolean endForConsent(SessionEvents.LocalAgentConsent c) {
+        if (c == null || !c.allowed()) {
+            auditLog.info("localAgentConsent", "WITHDRAWN");
+            verdict = "SWITCHED_OFF";
+            kill("starting Claude Code was switched off in Settings, so the running session was stopped");
+            return true;
+        }
+        boolean kindChanged = c.full() != posture.isFull();
+        boolean refChanged = postureRef != null && !postureRef.equals(c.postureRef());
+        if (!kindChanged && !refChanged) return false;
+        auditLog.info("localAgentConsent", "POSTURE_CHANGED");
+        String why = "Settings changed the posture (a switch, the full posture's mode, the folder or the system note) "
+                + "since this session started, so it was stopped" + (openTicket != 0 ? " after the turn in progress" : "")
+                + "; Start begins a New chat";
+        verdict = "POSTURE_CHANGED";
+        newChatOffered = true;
+        if (openTicket != 0) {
+            reason = why;
+            endAfterTurn = true;
+            note("POSTURE_CHANGED", why);
+        } else {
+            kill(why);
+        }
+        return true;
+    }
+
     @OnEventHandler
     public boolean onSendRequested(SessionEvents.LocalAgentSendRequested e) {
+        // review finding 4: a Send re-checks the consent the running session was started under
+        if (running() && openTicket == 0 && !"STOPPING".equals(phase) && endForConsent(e.consent())) {
+            answer(e.request(), false, reason);
+            return changed();
+        }
         String refusal = sendRefusal(e);
         if (refusal != null) {
             refuse(e.request(), refusal);
@@ -317,13 +388,13 @@ public class LocalAgentSession implements EventLogSource {
         if (stale(e.generation(), "LocalAgentInitialized") || !"HANDSHAKE".equals(phase)) return false;
         headerRef = e.headerRef();
         headerRevision++;
+        billing = e.billing();
         if (!e.loggedIn()) {
             refuseSession("NOT_LOGGED_IN", NOT_LOGGED_IN_TEXT, true);
             return changed();
         }
-        if (!LocalAgentPosture.PERMISSION_MODE.equals(e.permissionMode())) {
-            refuseSession("MODE_MISMATCH", "Claude Code reported permission mode " + safe(e.permissionMode())
-                    + " where the analyser started it in " + LocalAgentPosture.PERMISSION_MODE + "; it was stopped", true);
+        if (!posture.modeMatches(e.permissionMode())) {
+            refuseSession("MODE_MISMATCH", modeMismatchText(e.permissionMode()), true);
             return changed();
         }
         phase = "BINDING";
@@ -336,7 +407,15 @@ public class LocalAgentSession implements EventLogSource {
     public boolean onStatusObserved(SessionEvents.LocalAgentStatusObserved e) {
         if (stale(e.generation(), "LocalAgentStatusObserved") || !"BINDING".equals(phase)) return false;
         bindingElapsedMs = e.elapsedMs();
-        if (e.servers().size() != 1 || !LocalAgentPosture.HOSTED_SERVER.equals(e.servers().get(0))) {
+        if (posture.isFull()) {
+            // the person's own servers may be there, in any state; only the hosted bridge is the analyser's (§4.4 step 3)
+            if (!e.servers().contains(LocalAgentPosture.HOSTED_SERVER)) {
+                refuseSession("SERVERS_MISMATCH", "Claude Code did not report the analyser's hosted bridge among its MCP "
+                        + "servers, so the session was refused", true);
+                return changed();
+            }
+            personServers = LocalAgentPosture.personsServers(e.servers()).size();
+        } else if (e.servers().size() != 1 || !LocalAgentPosture.HOSTED_SERVER.equals(e.servers().get(0))) {
             refuseSession("SERVERS_MISMATCH", "Claude Code reported MCP servers other than the analyser's hosted bridge, "
                     + "so the session was refused", true);
             return changed();
@@ -391,21 +470,28 @@ public class LocalAgentSession implements EventLogSource {
             headerRef = e.headerRef();
             headerRevision++;
         }
-        LocalAgentPosture.Verdict v = LocalAgentPosture.check(sessionId, e.permissionMode(), e.tools(), e.servers(),
+        LocalAgentPosture.Verdict v = posture.verdict(sessionId, e.permissionMode(), e.tools(), e.servers(),
                 e.capabilities(), e.sessionDigest());
         auditLog.info("localAgentPosture", v.name()).info("ticket", e.ticket()).info("first", !postureChecked);
         if (v == LocalAgentPosture.Verdict.OK) {
-            if (!postureChecked) {
+            boolean first = !postureChecked;
+            if (first) {
                 postureChecked = true;
                 verdict = "OK";
             }
+            if (posture.isFull()) personServersObserved(e.servers(), first);
             return changed();
         }
         String why = switch (v) {
-            case MODE_MISMATCH -> "the permission mode changed to " + safe(e.permissionMode());
-            case TOOLS_MISMATCH -> "the tool set is not the analyser assistant's (Read, Grep, Glob and the pre-allowed "
-                    + "analyser verbs)";
-            case SERVERS_MISMATCH -> "the MCP servers changed";
+            case MODE_MISMATCH -> LocalAgentPosture.BYPASS.equals(e.permissionMode())
+                    ? "Claude Code reported bypassPermissions, which the analyser never runs"
+                    : "the permission mode changed to " + safe(e.permissionMode());
+            case TOOLS_MISMATCH -> posture.isFull()
+                    ? "the analyser's own tools are not the expected set (the pre-allowed analyser verbs, and never the "
+                    + "tools of your own fluxtion-analyser registration)"
+                    : "the tool set is not the analyser assistant's (Read, Grep, Glob and the pre-allowed analyser verbs)";
+            case SERVERS_MISMATCH -> posture.isFull() ? "the analyser's hosted bridge is no longer connected"
+                    : "the MCP servers changed";
             case CAPABILITY_MISSING -> "this Claude Code lacks a required capability (interrupt_receipt_v1, "
                     + "msg_lifecycle_v1); update it";
             case SESSION_CHANGED -> "the conversation's session id changed under the analyser";
@@ -469,10 +555,79 @@ public class LocalAgentSession implements EventLogSource {
                     + (e.epochSeconds() > 0 ? "; it resets at " + java.time.Instant.ofEpochSecond(e.epochSeconds()) : ""));
             case AUTH_FAILED -> note("AUTH_FAILED", "Claude Code could not authenticate (an invalid inherited API key, "
                     + "or a login that expired): run `claude` in a terminal to log in again");
-            case PERMISSION_DENIED -> note("DENIED", "an action was denied by the analyser assistant's posture "
-                    + "(only Read, Grep, Glob in this folder and the pre-allowed analyser verbs are available)");
+            case PERMISSION_DENIED -> note("DENIED", posture.isFull()
+                    ? "an action was denied by your Claude Code permission rules or the mode in force ("
+                    + posture.fullMode().cli() + ")"
+                    : "an action was denied by the analyser assistant's posture (only Read, Grep, Glob in this folder and "
+                    + "the pre-allowed analyser verbs are available)");
+            case APPROVAL_UNAVAILABLE -> note("DENIED", posture.isFull() ? APPROVAL_UNAVAILABLE_TEXT
+                    : "an action was denied: it needed an approval, which the analyser assistant never asks for");
         }
         return changed();
+    }
+
+    /**
+     * Review finding 2: the CLI reported a mode mid-session. A mode the posture does not expect (including
+     * {@code bypassPermissions}) is a session running with powers it was not started with: killed at once, no interrupt.
+     */
+    @OnEventHandler
+    public boolean onModeObserved(SessionEvents.LocalAgentModeObserved e) {
+        if (stale(e.generation(), "LocalAgentModeObserved") || !running()) return false;
+        auditLog.info("localAgentMode", posture.modeMatches(e.permissionMode()) ? "OK" : "MODE_MISMATCH");
+        if (posture.modeMatches(e.permissionMode())) return false;
+        refuseSession("MODE_MISMATCH", "the posture check failed — Claude Code changed its permission mode to "
+                + safe(e.permissionMode()) + " during the session, where the analyser started it in "
+                + posture.permissionMode() + " — so the session was stopped", true);
+        return changed();
+    }
+
+    /**
+     * P1b §8.1: a hook ran. One note per event per generation, updated in place as hooks start and answer (coalesced),
+     * naming the event and the outcome — never the hook's output, which never reaches a fact.
+     */
+    @OnEventHandler
+    public boolean onHookObserved(SessionEvents.LocalAgentHookObserved e) {
+        if (stale(e.generation(), "LocalAgentHookObserved") || !running()) return false;
+        SessionEvents.HookEvent event = e.event() == null ? SessionEvents.HookEvent.OTHER : e.event();
+        String key = event.name() + ":" + e.ticket();
+        long[] n = hookNotes.get(key);
+        if (n == null) {
+            n = new long[]{entries.size(), 0, 0, 0};
+            hookNotes.put(key, n);
+            entries.add(new LocalAgentState.Entry(0, LocalAgentState.NOTE, e.ticket(), "HOOK", "", 0));
+        }
+        switch (e.outcome() == null ? SessionEvents.HookOutcome.STARTED : e.outcome()) {
+            case STARTED -> n[1]++;
+            case OK -> n[2]++;
+            case FAILED -> n[3]++;
+        }
+        int at = (int) n[0];
+        if (at < entries.size() && "HOOK".equals(entries.get(at).status())) {
+            LocalAgentState.Entry was = entries.get(at);
+            entries.set(at, new LocalAgentState.Entry(0, LocalAgentState.NOTE, was.ticket(), n[3] > 0 ? "HOOK_FAILED" : "HOOK",
+                    hookText(event, n[1], n[2], n[3]), 0));
+        } else if (at < entries.size() && "HOOK_FAILED".equals(entries.get(at).status())) {
+            LocalAgentState.Entry was = entries.get(at);
+            entries.set(at, new LocalAgentState.Entry(0, LocalAgentState.NOTE, was.ticket(), "HOOK_FAILED",
+                    hookText(event, n[1], n[2], n[3]), 0));
+        }
+        auditLog.info("localAgentHook", event.name()).info("outcome", String.valueOf(e.outcome()));
+        return changed();
+    }
+
+    /** The words of a hook note: the event and the outcome, by count. */
+    static String hookText(SessionEvents.HookEvent event, long started, long ok, long failed) {
+        String name = event == SessionEvents.HookEvent.OTHER ? "a hook event" : event.name();
+        long running = Math.max(0, started - ok - failed);
+        StringBuilder sb = new StringBuilder(name).append(": ");
+        List<String> parts = new ArrayList<>();
+        if (ok > 0) parts.add(ok + " ran");
+        if (failed > 0) parts.add(failed + " failed");
+        if (running > 0) parts.add(running + " running");
+        if (parts.isEmpty()) parts.add("reported");
+        sb.append(String.join(", ", parts));
+        if (failed > 0) sb.append(" — the hook is yours or the folder's: check it in Claude Code's own hook settings");
+        return sb.toString();
     }
 
     @OnEventHandler
@@ -559,21 +714,28 @@ public class LocalAgentSession implements EventLogSource {
         }
         // review H4: no REST_OFF refusal — the external REST switch is the person's choice about EXTERNAL clients;
         // spawn() asks for a hosted-only listener when it is off
-        if (!c.folderConfirmed()) {
+        if (!c.confirmedForPosture()) {
             confirmRequest = request;
             confirmPosture = c.postureRef();
-            effects.request(new SessionEffects.ConfirmLocalAgentFolderEffect(0L, request));
-            return "CONFIRM_FOLDER: confirm this folder for Claude Code first; nothing was started";
+            effects.request(new SessionEffects.ConfirmLocalAgentFolderEffect(0L, request, c.full()));
+            return c.full()
+                    ? "CONFIRM_FOLDER: confirm this folder for full Claude Code first — its hooks, MCP servers and "
+                    + "instruction files load at Start, and a folder trusted before is asked again when they change; "
+                    + "nothing was started"
+                    : "CONFIRM_FOLDER: confirm this folder for Claude Code first; nothing was started";
         }
+        // owner, 2026-10-17: the budget is OPTIONAL and off by default — a session on the person's own Claude plan has
+        // that plan's limits; only a set limit (budgetMicros > 0) is enforced here
         long remaining = c.budgetMicros() - spent();
-        if (remaining <= 0) {
+        if (c.budgetMicros() > 0 && remaining <= 0) {
             return "BUDGET_SPENT: the Claude Code session budget is spent (at least US$" + usd(spent())
                     + "); raise it in Settings ▸ Assistant";
         }
         if (sessionId != null && resumable && postureRef != null && !postureRef.equals(c.postureRef())) {
             newChatOffered = true;
-            return "POSTURE_CHANGED: the posture (a switch, the folder or the system note) changed since this conversation "
-                    + "started; a conversation is never resumed under another posture — start a New chat";
+            return "POSTURE_CHANGED: the posture (a switch, the full posture's mode, the folder or the system note) changed "
+                    + "since this conversation started; a conversation is never resumed under another posture — start a New "
+                    + "chat";
         }
         return null;
     }
@@ -612,6 +774,10 @@ public class LocalAgentSession implements EventLogSource {
         }
         nonce = java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 16);
         budgetMicros = c.budgetMicros();
+        posture = c.posture();
+        personServerStates = new ArrayList<>();
+        personServers = 0;
+        hookNotes = new LinkedHashMap<>();
         phase = "SPAWNING";
         bound = false;
         postureChecked = false;
@@ -624,12 +790,14 @@ public class LocalAgentSession implements EventLogSource {
         verdict = "";
         reason = "";
         newChatOffered = false;
-        long remaining = Math.max(0, c.budgetMicros() - spent());
-        auditLog.info("localAgentSpawn", generation).info("resume", resumable).info("session", sessionRef);
+        // no limit set: 0, and the command line carries no --max-budget-usd at all
+        long remaining = c.budgetMicros() > 0 ? Math.max(1, c.budgetMicros() - spent()) : 0;
+        auditLog.info("localAgentSpawn", generation).info("resume", resumable).info("session", sessionRef)
+                .info("posture", posture.toString());
         // review H4: the listener first (hosted-only when external REST is off), then the process that connects to it
         effects.request(new SessionEffects.ServeHostedBridgeEffect(0L, generation));
         effects.request(new SessionEffects.StartLocalAgentEffect(0L, generation, sessionId, resumable, nonce, remaining,
-                c.postureRef()));
+                c.postureRef(), posture));
     }
 
     private void sendTurn(long draft, long request) {
@@ -681,6 +849,39 @@ public class LocalAgentSession implements EventLogSource {
             String why = reason;
             kill(why.isBlank() ? "the posture check failed, so the session was stopped" : why);
         }
+    }
+
+    private String modeMismatchText(String reported) {
+        if (LocalAgentPosture.BYPASS.equals(reported)) {
+            return "Claude Code reported bypassPermissions, which the analyser never runs; it was stopped";
+        }
+        if (posture.isFull() && posture.fullMode() == LocalAgentPosture.FullMode.AUTO
+                && LocalAgentPosture.FullMode.DEFAULT.cli().equals(reported)) {
+            return AUTO_UNAVAILABLE_TEXT;
+        }
+        return "Claude Code reported permission mode " + safe(reported) + " where the analyser started it in "
+                + posture.permissionMode() + "; it was stopped";
+    }
+
+    /**
+     * Full posture: the person's own servers are theirs, so a change among them is a diagnostics line, never a stop
+     * (§4.4 step 5). At the first init, each that failed to connect is said once.
+     */
+    private void personServersObserved(List<String> servers, boolean first) {
+        List<String> now = LocalAgentPosture.personsServers(servers);
+        personServers = now.size();
+        if (first) {
+            for (String s : now) {
+                if (s.endsWith(":failed")) {
+                    note("MCP_SERVER", "your MCP server " + safe(s.substring(0, s.lastIndexOf(':')))
+                            + " failed to connect; Claude Code runs without it");
+                }
+            }
+        } else if (!new java.util.TreeSet<>(now).equals(new java.util.TreeSet<>(personServerStates))) {
+            note("DIAGNOSTICS", "your own MCP servers changed during the session (" + now.size() + " now reported); "
+                    + "the analyser's hosted bridge is unaffected");
+        }
+        personServerStates = new ArrayList<>(now);
     }
 
     /** End this generation's process and refuse the session, saying why. */
@@ -768,9 +969,20 @@ public class LocalAgentSession implements EventLogSource {
         return java.math.BigDecimal.valueOf(micros, 6).setScale(2, java.math.RoundingMode.HALF_UP).toPlainString();
     }
 
-    private static String safe(String s) {
+    /** CLI- or person-supplied text in the node's words: control, format and line-separator characters escaped. */
+    static String safe(String s) {
         if (s == null) return "(none)";
-        return s.length() > 40 ? s.substring(0, 40) + "…" : s;
+        StringBuilder sb = new StringBuilder();
+        s.codePoints().limit(40).forEach(cp -> {
+            int t = Character.getType(cp);
+            if (Character.isISOControl(cp) || t == Character.FORMAT || t == Character.LINE_SEPARATOR
+                    || t == Character.PARAGRAPH_SEPARATOR) {
+                sb.append(String.format("\\u%04X", cp));
+            } else {
+                sb.appendCodePoint(cp);
+            }
+        });
+        return s.codePointCount(0, s.length()) > 40 ? sb + "…" : sb.toString();
     }
 
     private boolean changed() {
@@ -789,7 +1001,7 @@ public class LocalAgentSession implements EventLogSource {
             published = new LocalAgentState(mode.mode(), conversation, generation, phase, verdict, reason, openTicket,
                     admittedGeneration(), headerRef, headerRevision, detailRef, stderrRef, bindingElapsedMs, spent(),
                     budgetMicros, costUnderReported, newChatOffered, resumable && sessionId != null, pendingDraft,
-                    entries, answer);
+                    entries, answer, posture, personServers, billing);
             dirty = false;
         }
         return published;

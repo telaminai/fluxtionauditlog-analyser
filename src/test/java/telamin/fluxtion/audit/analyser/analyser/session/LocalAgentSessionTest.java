@@ -66,8 +66,14 @@ class LocalAgentSessionTest {
     }
 
     static SessionEffects.SendLocalAgentTurnEffect send(SessionDriver d, FakeSessionAdapter a, long draft) {
+        return send(d, a, draft, consent());
+    }
+
+    /** Send under {@code c}: a Send re-checks the consent the running session was started under (review finding 4). */
+    static SessionEffects.SendLocalAgentTurnEffect send(SessionDriver d, FakeSessionAdapter a, long draft,
+                                                        SessionEvents.LocalAgentConsent c) {
         int before = a.agentSends.size();
-        d.post(new SessionEvents.LocalAgentSendRequested(draft, draft, SessionEvents.SlashClass.TEXT, null, consent()));
+        d.post(new SessionEvents.LocalAgentSendRequested(draft, draft, SessionEvents.SlashClass.TEXT, null, c));
         assertEquals(before + 1, a.agentSends.size(), "the turn was written: " + state(d).reason());
         var sent = a.agentSends.get(a.agentSends.size() - 1);
         d.post(new SessionEvents.LocalAgentTurnStarted(sent.generation(), sent.ticket()));   // the CLI's lifecycle started
@@ -558,7 +564,7 @@ class LocalAgentSessionTest {
 
         // after a turn has started, a restart resumes the same id
         bind(d, a.agentStarts.get(2));
-        var t = send(d, a, 10);
+        var t = send(d, a, 10, consent(true, true, false, "posture-b", BUDGET));
         assertTrue(state(d).resumable());
         d.post(new SessionEvents.LocalAgentStopRequested("Stop"));
         d.post(new SessionEvents.LocalAgentStopDeadline(3, t.ticket(), SessionEvents.StopDeadline.ACK));
@@ -713,23 +719,23 @@ class LocalAgentSessionTest {
         assertEquals(1, a.agentConfirms.size());
         assertEquals(0, a.agentStarts.size());
         // an answer to a question the node did not ask is refused
-        d.post(new SessionEvents.LocalAgentFolderAnswered(99, true, consent(true, false, false, "p", BUDGET)));
+        d.post(new SessionEvents.LocalAgentFolderAnswered(99, true, true, consent(true, false, false, "p", BUDGET)));
         assertEquals(0, a.agentStarts.size(), "a stale answer starts nothing");
         assertEquals(0, a.agentTrusts.size());
         // yes: the trust record, then the listener and the process
-        d.post(new SessionEvents.LocalAgentFolderAnswered(5, true, consent(true, false, false, "p", BUDGET)));
+        d.post(new SessionEvents.LocalAgentFolderAnswered(5, true, true, consent(true, false, false, "p", BUDGET)));
         assertEquals(List.of("confirmFolder", "trustFolder", "serveBridge", "start"), a.agentOrder);
         assertEquals(5, a.agentTrusts.get(0).request());
         assertEquals("p", a.agentStarts.get(0).postureRef());
         // the same answer again is stale: the question is closed
-        d.post(new SessionEvents.LocalAgentFolderAnswered(5, true, consent(true, false, false, "p", BUDGET)));
+        d.post(new SessionEvents.LocalAgentFolderAnswered(5, true, true, consent(true, false, false, "p", BUDGET)));
         assertEquals(1, a.agentTrusts.size());
 
         // no: nothing is recorded or started, and the tab says why
         FakeSessionAdapter b = new FakeSessionAdapter();
         SessionDriver e = driver(b);
         e.post(new SessionEvents.LocalAgentStartRequested(6, consent(true, false, false, "p", BUDGET)));
-        e.post(new SessionEvents.LocalAgentFolderAnswered(6, false, consent(true, false, false, "p", BUDGET)));
+        e.post(new SessionEvents.LocalAgentFolderAnswered(6, false, true, consent(true, false, false, "p", BUDGET)));
         assertEquals("FOLDER_NOT_CONFIRMED", state(e).verdict());
         assertEquals(0, b.agentStarts.size());
         assertEquals(0, b.agentTrusts.size());
@@ -738,7 +744,7 @@ class LocalAgentSessionTest {
         FakeSessionAdapter c = new FakeSessionAdapter();
         SessionDriver f = driver(c);
         f.post(new SessionEvents.LocalAgentStartRequested(7, consent(true, false, false, "folder-a", BUDGET)));
-        f.post(new SessionEvents.LocalAgentFolderAnswered(7, true, consent(true, false, false, "folder-b", BUDGET)));
+        f.post(new SessionEvents.LocalAgentFolderAnswered(7, true, true, consent(true, false, false, "folder-b", BUDGET)));
         assertEquals("FOLDER_CHANGED", state(f).verdict());
         assertEquals(0, c.agentStarts.size(), "a folder nobody was asked about is never started in");
         assertEquals(0, c.agentTrusts.size(), "nor recorded as trusted");
@@ -747,7 +753,7 @@ class LocalAgentSessionTest {
         FakeSessionAdapter g = new FakeSessionAdapter();
         SessionDriver h = driver(g);
         h.post(new SessionEvents.LocalAgentStartRequested(8, consent(true, false, false, "p", BUDGET)));
-        h.post(new SessionEvents.LocalAgentFolderAnswered(8, true, consent(false, false, false, "p", BUDGET)));
+        h.post(new SessionEvents.LocalAgentFolderAnswered(8, true, true, consent(false, false, false, "p", BUDGET)));
         assertEquals("SWITCHED_OFF", state(h).verdict());
         assertEquals(0, g.agentStarts.size());
     }

@@ -71,6 +71,105 @@ class ClaudeCodeProviderTest {
         }
     }
 
+    // ---- P1b: the full posture (OD-74.10) -----------------------------------------------------------------------------
+
+    private LocalAgentProvider.LaunchSpec fullSpec(LocalAgentPosture.FullMode mode, long budget) {
+        return new LocalAgentProvider.LaunchSpec(Path.of("/opt/claude/bin/claude"), "11111111-2222-4333-8444-555555555555",
+                false, "sonnet", Path.of("/work/proj"), List.of("/usr/bin/java", "-jar", "/opt/analyser/analyser.jar"),
+                Path.of("/home/u/.fluxtion-analyser/local-agent/endpoint-1-1.json"), budget, LocalAgentPosture.full(mode));
+    }
+
+    /** OD-74.10: none of the flags that confine may appear on a full-posture line. */
+    static void assertNothingConfines(List<String> line) {
+        for (String flag : List.of("--restricted", "--strict-mcp-config", "--tools", "--add-dir", "--setting-sources",
+                "--settings", "--safe-mode")) {
+            assertFalse(line.contains(flag), "the full posture never carries " + flag + ": " + line);
+        }
+        String disallowed = line.get(line.indexOf("--disallowedTools") + 1);
+        assertTrue(List.of(disallowed.split(",")).contains("mcp__fluxtion-analyser"),
+                "the person's own registration is hidden at server level: " + disallowed);
+    }
+
+    /**
+     * ★ Witnesses: build the full line with the default posture's flags (keep {@code --restricted} and the rest) — the
+     * exact-line and "nothing confines" assertions fail; drop {@code mcp__fluxtion-analyser} from the disallow list —
+     * the server-level assertion fails. Both are also checked in place below, against the lines that would be wrong.
+     */
+    @Test
+    @DisplayName("★ the full command line is exactly §4.3 for each of the four modes: nothing confines, the registration hidden")
+    void theFullCommandLine() {
+        String allowed = String.join(",", LocalAgentPosture.preAllowedVerbs().stream().map(LocalAgentPosture::toolName).toList());
+        String hidden = String.join(",", LocalAgentPosture.disallowedVerbs().stream().map(LocalAgentPosture::toolName).toList());
+        for (LocalAgentPosture.FullMode mode : LocalAgentPosture.FullMode.values()) {
+            List<String> c = new ClaudeCodeProvider().command(fullSpec(mode, 0));
+            List<String> expected = List.of("/opt/claude/bin/claude", "-p", "--input-format", "stream-json",
+                    "--output-format", "stream-json", "--verbose", "--include-partial-messages", "--replay-user-messages",
+                    "--session-id", "11111111-2222-4333-8444-555555555555", "--model", "sonnet",
+                    "--mcp-config", c.get(c.indexOf("--mcp-config") + 1),
+                    "--allowedTools", allowed, "--disallowedTools", "mcp__fluxtion-analyser," + hidden,
+                    "--permission-mode", mode.cli(), "--permission-prompts", "none",
+                    "--append-system-prompt", ClaudeCodeProvider.FULL_SYSTEM_NOTE);
+            assertEquals(expected, c, "full " + mode);
+            assertNothingConfines(c);
+            Map<?, ?> servers = (Map<?, ?>) ((Map<?, ?>) Json.parse(c.get(c.indexOf("--mcp-config") + 1))).get("mcpServers");
+            assertEquals(Set.of(LocalAgentPosture.HOSTED_SERVER), servers.keySet(), "the analyser adds only its own bridge");
+        }
+        // the witnesses, in place: the default posture's line and a line without the registration both fail the rule
+        List<String> confined = new ClaudeCodeProvider().command(spec(false));
+        assertThrows(org.opentest4j.AssertionFailedError.class, () -> assertNothingConfines(confined));
+        List<String> unhidden = new ArrayList<>(new ClaudeCodeProvider().command(fullSpec(LocalAgentPosture.FullMode.DEFAULT, 0)));
+        int k = unhidden.indexOf("--disallowedTools") + 1;
+        unhidden.set(k, unhidden.get(k).replace("mcp__fluxtion-analyser,", ""));
+        assertThrows(org.opentest4j.AssertionFailedError.class, () -> assertNothingConfines(unhidden));
+    }
+
+    @Test
+    @DisplayName("the full posture's environment: no CLAUDE.md flag; the default posture's is unchanged and has no PATH")
+    void theFullEnvironment() {
+        ClaudeCodeProvider p = new ClaudeCodeProvider();
+        Map<String, String> gui = Map.of("PATH", "/usr/bin:/bin:/usr/sbin:/sbin");
+        assertEquals(Map.of(ClaudeCodeProvider.CLAUDE_MD_ENV, "1"),
+                p.environment(LocalAgentPosture.ANALYSER_ASSISTANT, gui, tmp), "the default posture is unchanged");
+        Map<String, String> full = p.environment(LocalAgentPosture.full(LocalAgentPosture.FullMode.DEFAULT), gui, tmp);
+        assertFalse(full.containsKey(ClaudeCodeProvider.CLAUDE_MD_ENV),
+                "CLAUDE.md loads through the project setting source in the full posture (PB-4)");
+    }
+
+    /**
+     * ★ owner, 2026-10-17: the budget is optional. Witness: always add {@code --max-budget-usd} (P1a) — the unset line
+     * carries {@code --max-budget-usd 0} and the first assertion fails.
+     */
+    @Test
+    @DisplayName("★ --max-budget-usd only when a limit is set, in both postures")
+    void theBudgetFlagIsOptional() {
+        for (LocalAgentProvider.LaunchSpec unset : List.of(fullSpec(LocalAgentPosture.FullMode.DEFAULT, 0),
+                new LocalAgentProvider.LaunchSpec(Path.of("/c"), "s", false, "haiku", Path.of("/w"), List.of("/j"),
+                        Path.of("/e"), 0))) {
+            assertFalse(new ClaudeCodeProvider().command(unset).contains("--max-budget-usd"), "no limit set: no flag");
+        }
+        List<String> set = new ClaudeCodeProvider().command(fullSpec(LocalAgentPosture.FullMode.PLAN, 2_500_000));
+        assertEquals("2.5", set.get(set.indexOf("--max-budget-usd") + 1), "a limit set: its remainder");
+    }
+
+    /**
+     * ★ §5.1: bypassPermissions and dontAsk can never be a full-posture mode. Witness: let {@code FullMode.parse} pass
+     * an unknown stored string through (or add a BYPASS constant) — the enum assertion fails.
+     */
+    @Test
+    @DisplayName("★ the full posture's mode is one of exactly four; bypassPermissions and dontAsk cannot be built")
+    void onlyTheFourModes() {
+        assertEquals(List.of("default", "acceptEdits", "auto", "plan"),
+                java.util.Arrays.stream(LocalAgentPosture.FullMode.values()).map(LocalAgentPosture.FullMode::cli).toList());
+        for (String never : List.of("bypassPermissions", "dontAsk", "manual", "BYPASSPERMISSIONS", "", "auto ;rm")) {
+            assertTrue(LocalAgentPosture.FullMode.parse(never).isEmpty(), never + " is not a mode the analyser offers");
+        }
+        for (LocalAgentPosture.FullMode m : LocalAgentPosture.FullMode.values()) {
+            List<String> c = new ClaudeCodeProvider().command(fullSpec(m, 0));
+            String passed = c.get(c.indexOf("--permission-mode") + 1);
+            assertFalse(passed.equals("bypassPermissions") || passed.equals("dontAsk"), passed);
+        }
+    }
+
     @Test
     @DisplayName("the inline --mcp-config names only the hosted bridge, its launcher, --mcp and the endpoint file's path")
     void theInlineMcpConfig() {

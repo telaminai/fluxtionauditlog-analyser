@@ -55,7 +55,8 @@ public final class ClaudeResolver {
 
     public static Resolution resolve(Map<String, String> env, Path home) {
         boolean windows = System.getProperty("os.name", "").toLowerCase(java.util.Locale.ROOT).contains("win");
-        return resolve(env == null ? null : env.get("PATH"), java.io.File.pathSeparator, windows, home, env);
+        // review finding 7: Windows spells it "Path"; the key is found without regard to case
+        return resolve(env == null ? null : env.get(ChildPath.pathKey(env)), java.io.File.pathSeparator, windows, home, env);
     }
 
     static Resolution resolve(String pathValue, String separator, boolean windows, Path home, Map<String, String> env) {

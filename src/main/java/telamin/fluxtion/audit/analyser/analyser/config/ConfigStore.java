@@ -115,9 +115,15 @@ public final class ConfigStore {
         c.claudeCodeFull = parseBool(p.getProperty("assistant.claudeCode.full"), c.claudeCodeFull);
         // assistant.claudeCode.warmStart: warm start was cut (owner, 2026-10-17). A stored key is ignored here, and
         // dropped on the next write (the assistant family is owned, so it is not carried over)
+        String storedMode = p.getProperty("assistant.claudeCode.full.mode");
+        c.claudeCodeFullMode = fullMode(storedMode);
+        c.claudeCodeFullModeReadAsDefault = storedMode != null && !storedMode.isBlank()
+                && !storedMode.trim().equalsIgnoreCase(c.claudeCodeFullMode);
         c.claudeCodeModel = p.getProperty("assistant.claudeCode.model", c.claudeCodeModel);
-        c.claudeCodeBudgetUsd = parseDouble(p.getProperty("assistant.claudeCode.budgetUsd"), c.claudeCodeBudgetUsd);
+        c.claudeCodeBudgetUsd = budget(p.getProperty("assistant.claudeCode.budgetUsd"),
+                p.getProperty("assistant.claudeCode.budgetFormat"));
         readList(p, "assistant.claudeCode.trusted", c.claudeCodeTrustedFolders);
+        readList(p, "assistant.claudeCode.trustedFull", c.claudeCodeTrustedFullFolders);
         c.assistantExportDir = p.getProperty("assistant.exportDir", c.assistantExportDir);
         c.eventTypesDivider = parseInt(p.getProperty("eventTypesDivider"), c.eventTypesDivider);
         readLastFocuses(p, c.lastFocusByProject);
@@ -216,9 +222,13 @@ public final class ConfigStore {
         put(p, "assistant.createProjects", Boolean.toString(c.assistantCreateProjects));
         put(p, "assistant.claudeCode", Boolean.toString(c.claudeCodeAllowed));
         put(p, "assistant.claudeCode.full", Boolean.toString(c.claudeCodeFull));
+        put(p, "assistant.claudeCode.full.mode", fullMode(c.claudeCodeFullMode));
         put(p, "assistant.claudeCode.model", c.claudeCodeModel);
-        put(p, "assistant.claudeCode.budgetUsd", Double.toString(c.claudeCodeBudgetUsd));
+        put(p, "assistant.claudeCode.budgetUsd", c.claudeCodeBudgetUsd == null || !(c.claudeCodeBudgetUsd > 0) ? ""
+                : Double.toString(c.claudeCodeBudgetUsd));
+        put(p, "assistant.claudeCode.budgetFormat", BUDGET_FORMAT);
         writeList(p, "assistant.claudeCode.trusted", c.claudeCodeTrustedFolders);
+        writeList(p, "assistant.claudeCode.trustedFull", c.claudeCodeTrustedFullFolders);
         put(p, "assistant.exportDir", c.assistantExportDir);
         put(p, "eventTypesDivider", Integer.toString(c.eventTypesDivider));
         writeLastFocuses(p, c.lastFocusByProject);
@@ -1184,6 +1194,44 @@ public final class ConfigStore {
                     .ifPresentOrElse(refused::add, () -> out.put(name, new Runbooks.Pointer(path, description)));
         }
         return refused;
+    }
+
+    /** The four modes the full posture offers (§5.1), as the CLI names them; bypassPermissions and dontAsk are not. */
+    public static final List<String> FULL_MODES = List.of("default", "acceptEdits", "auto", "plan");
+
+    /**
+     * §5.1: a stored full-posture mode, read as one of {@link #FULL_MODES} — anything else (bypassPermissions, dontAsk,
+     * a hand-edited typo) as {@code default}. Never passed through.
+     */
+    public static String fullMode(String stored) {
+        if (stored != null) for (String m : FULL_MODES) if (m.equalsIgnoreCase(stored.trim())) return m;
+        return "default";
+    }
+
+    /** The smallest limit Settings offers. */
+    public static final double MIN_BUDGET_USD = 0.5;
+
+    /** Written beside the budget from P1b on: the stored value then means exactly what it says (blank = no limit). */
+    static final String BUDGET_FORMAT = "2";
+
+    /**
+     * The optional spend limit (owner, 2026-10-17): blank or absent is no limit. A config written by P1a (no
+     * {@code budgetFormat}) always carried {@code 5.0}, its unreleased default, so without the format marker 5.0 reads as
+     * no limit; any other positive value there is honoured as the person's limit.
+     */
+    static Double budget(String stored, String format) {
+        if (stored == null || stored.isBlank()) return null;
+        double v;
+        try {
+            v = Double.parseDouble(stored.trim());
+        } catch (NumberFormatException e) {
+            return null;
+        }
+        if (!(v > 0) || Double.isInfinite(v)) return null;
+        if (!BUDGET_FORMAT.equals(format == null ? null : format.trim()) && v == 5.0) return null;
+        // review finding 14: a hand-edited limit below the smallest Settings offers (US$0.50) is clamped to it — a limit
+        // stays a limit, and never rounds to 0 micro-dollars, which would read as "no limit"
+        return Math.max(MIN_BUDGET_USD, v);
     }
 
     static void writeList(Properties p, String prefix, List<String> values) {

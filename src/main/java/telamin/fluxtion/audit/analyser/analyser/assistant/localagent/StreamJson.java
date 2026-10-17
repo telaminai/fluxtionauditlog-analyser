@@ -26,7 +26,7 @@ public final class StreamJson {
     /** One line of the CLI's stdout, typed. */
     public sealed interface Event permits SystemInit, Lifecycle, MessageStart, TextDelta, AssistantMessage, UserMessage,
             Result, CompactBoundary, RateLimit, PermissionDenied, ConversationReset, ControlResponse, ControlRequest,
-            Ignored, Unknown {
+            Hook, ModeStatus, Ignored, Unknown {
     }
 
     /** {@code system/init}, emitted at the start of every turn [P0-4]. {@code servers} are {@code name:status}. */
@@ -100,11 +100,65 @@ public final class StreamJson {
     public record RateLimit(String status, long resetsAt) implements Event {
     }
 
-    /** {@code system/permission_denied}: the posture denied a tool, without blocking [P0-21]. */
-    public record PermissionDenied(String toolName, String toolUseId) implements Event {
+    /**
+     * {@code system/permission_denied}: a tool was denied, without blocking [P0-21]. {@code reasonType} is the CLI's
+     * {@code decision_reason_type}: {@code mode} under {@code dontAsk} [P0b-1], {@code asyncAgent} when the mode would
+     * have asked and {@code --permission-prompts none} let nobody answer (PB-1). The decision's prose is not kept.
+     */
+    public record PermissionDenied(String toolName, String toolUseId, String reasonType) implements Event {
         public PermissionDenied(String toolName) {
-            this(toolName, null);
+            this(toolName, null, null);
         }
+
+        public PermissionDenied(String toolName, String toolUseId) {
+            this(toolName, toolUseId, null);
+        }
+
+        /** The request needed an approval nobody could give (PB-1). */
+        public boolean approvalUnavailable() {
+            return reason() == DenialReason.APPROVAL_UNAVAILABLE;
+        }
+
+        /** The CLI's reason, as an enum (review finding 10): what the denial's words follow — never the posture. */
+        public DenialReason reason() {
+            if ("asyncAgent".equals(reasonType)) return DenialReason.APPROVAL_UNAVAILABLE;
+            if (reasonType == null || "mode".equals(reasonType)) return DenialReason.MODE;
+            return DenialReason.RULE;
+        }
+    }
+
+    /** Why the CLI denied a tool: its permission mode, an approval nobody could give, or a rule or hook of the person's. */
+    public enum DenialReason {
+        MODE("denied by the posture"),
+        APPROVAL_UNAVAILABLE("denied — needs your approval (not available in the analyser yet)"),
+        RULE("denied by a permission rule");
+
+        private final String words;
+
+        DenialReason(String words) {
+            this.words = words;
+        }
+
+        /** The tool line's outcome mark. */
+        public String words() {
+            return words;
+        }
+    }
+
+    /**
+     * {@code system/hook_started} ({@code started}) or {@code system/hook_response}: a hook's EVENT and whether it
+     * succeeded — and nothing else. The response also carries the hook's {@code output}, {@code stdout} and
+     * {@code stderr} (PB hook shapes); this record has no field for them, so they stop at the parse boundary.
+     */
+    public record Hook(String event, boolean started, boolean succeeded) implements Event {
+    }
+
+    /**
+     * {@code system/status} carrying {@code permissionMode}: the CLI's mode changed in the middle of a session (review
+     * finding 2; captured at no cost with a {@code set_permission_mode} control request, fixture
+     * {@code pb-status-mode-iso.jsonl}). A {@code status} without the field stays {@link Ignored}.
+     */
+    public record ModeStatus(String permissionMode) implements Event {
     }
 
     /** {@code conversation_reset}: {@code /clear} changed the session under the analyser [P0b-4]. */
@@ -210,9 +264,13 @@ public final class StreamJson {
                 Map<?, ?> meta = map(m.get("compact_metadata"));
                 yield new CompactBoundary(meta == null ? null : str(meta.get("trigger")));
             }
-            case "permission_denied" -> new PermissionDenied(str(m.get("tool_name")), str(m.get("tool_use_id")));
-            case "status", "thinking_tokens", "hook_started", "hook_response", "background_tasks_changed",
-                 "commands_changed" -> new Ignored("system/" + sub);
+            case "permission_denied" -> new PermissionDenied(str(m.get("tool_name")), str(m.get("tool_use_id")),
+                    str(m.get("decision_reason_type")));
+            case "hook_started" -> new Hook(str(m.get("hook_event")), true, false);
+            case "hook_response" -> new Hook(str(m.get("hook_event")), false, "success".equals(str(m.get("outcome"))));
+            case "status" -> m.containsKey("permissionMode") ? new ModeStatus(str(m.get("permissionMode")))
+                    : new Ignored("system/status");
+            case "thinking_tokens", "background_tasks_changed", "commands_changed" -> new Ignored("system/" + sub);
             default -> new Unknown("system/" + sub);
         };
     }
@@ -331,6 +389,7 @@ public final class StreamJson {
         String subscription = account == null ? null : str(account.get("subscriptionType"));
         String provider = account == null ? null : str(account.get("apiProvider"));
         String keySource = account == null ? null : str(account.get("apiKeySource"));
+        if ("none".equals(keySource)) keySource = null;          // review finding 11: "none" is no key at all
         String tokenSource = account == null ? null : str(account.get("tokenSource"));
         List<Command> commands = new ArrayList<>();
         for (Object o : list(body.get("commands"))) {

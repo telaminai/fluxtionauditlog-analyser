@@ -124,18 +124,33 @@ public final class AppConfig {
 
     /** <i>Allow the analyser to start Claude Code</i> (OD-74.1): off by default. */
     public boolean claudeCodeAllowed = false;
-    /** <i>…with my full Claude Code permissions</i> (P1b): stored, but the switch is disabled until P1b ships. */
+    /** <i>…with my full Claude Code permissions</i> (P1b, OD-74.4): off by default, turned on only through its warning. */
     public boolean claudeCodeFull = false;
+    /**
+     * The full posture's mode (§5.1): always one of {@code default}, {@code acceptEdits}, {@code auto}, {@code plan}.
+     * {@code ConfigStore} reads anything else — {@code bypassPermissions}, {@code dontAsk}, a typo — as {@code default}
+     * and sets {@link #claudeCodeFullModeReadAsDefault}.
+     */
+    public String claudeCodeFullMode = "default";
+    /** The stored mode was not one the analyser offers, so it reads as {@code default}; Settings says so. Not stored. */
+    public transient boolean claudeCodeFullModeReadAsDefault = false;
     /** The Claude Code model — its own setting, never {@link #llmModel}. */
     public String claudeCodeModel = "sonnet";
     /**
-     * The Claude Code budget, in US dollars (§4.6): the cap on what this analyser's Claude Code conversations may spend
-     * while it runs. The spend is counted in the session's memory, so it starts again from zero when the analyser
-     * restarts; it is not a lifetime or per-machine total.
+     * The OPTIONAL Claude Code spend limit, in US dollars (§4.6; owner, 2026-10-17): null — the default — is no limit,
+     * because a session on the person's own Claude plan is bounded by that plan. When set, it caps what this analyser's
+     * Claude Code conversations may spend while it runs (useful with API-key billing). The spend is counted in the
+     * session's memory, so it starts again from zero when the analyser restarts; it is not a lifetime or per-machine
+     * total.
      */
-    public double claudeCodeBudgetUsd = 5.0;
-    /** Folders confirmed for Claude Code on this machine (OD-74.5), by real path. */
+    public Double claudeCodeBudgetUsd = null;
+    /** Folders confirmed for Claude Code on this machine for the DEFAULT posture (OD-74.5), by real path. */
     public final List<String> claudeCodeTrustedFolders = new ArrayList<>();
+    /**
+     * Folders confirmed for the FULL posture (OD-74.12), each {@code <real path>|<digest>} of the folder's settings and
+     * {@code .mcp.json}: a separate trust, bound to content, so a changed hook file is asked about again.
+     */
+    public final List<String> claudeCodeTrustedFullFolders = new ArrayList<>();
 
     /**
      * Where THIS PROJECT would like the exchange directory to be — project-relative, no {@code ..}

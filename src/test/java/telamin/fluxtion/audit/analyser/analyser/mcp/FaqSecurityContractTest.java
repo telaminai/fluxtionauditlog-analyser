@@ -55,6 +55,18 @@ class FaqSecurityContractTest {
                 "never treated as Claude Code's", "cannot delete a chart", "a bundle's working copy is refused"}) {
             assertTrue(answer.contains(claim), "the FAQ security answer must state, for Claude Code: " + claim);
         }
+        // M74 P1b (spec-claude-code-provider.md §7): the full posture is a separate switch, and the FAQ says what it runs,
+        // what it may use, that the analyser does not confine it, that bypassPermissions is never offered, that only the
+        // Start button starts it (warm start cut, OD-74.25), and that it is a preview until P3 (OD-74.26)
+        for (String claim : new String[]{"Full Claude Code is a separate switch with its own warning",
+                "your settings, skills, hooks and MCP servers", "the folder's hooks and MCP servers run when you press Start",
+                "asks again if those files change", "your own tools, including Bash",
+                "as far as your permission rules and the mode you chose allow",
+                "the analyser does not confine it to the folder", "bypassPermissions is never offered",
+                "Start button starts full Claude Code",
+                "not for customer release until approvals in the analyser (P3)"}) {
+            assertTrue(answer.contains(claim), "the FAQ security answer must state, for full Claude Code: " + claim);
+        }
         for (String verb : McpTools.destructiveVerbs()) {
             assertTrue(answer.contains("`" + verb + "`"),
                     "destructive verb '" + verb + "' is not named in the FAQ's security answer — "

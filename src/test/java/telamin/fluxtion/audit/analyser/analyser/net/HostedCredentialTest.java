@@ -48,6 +48,30 @@ class HostedCredentialTest {
         return http.send(b.build(), HttpResponse.BodyHandlers.ofString());
     }
 
+    /** A request with the hosted header and NO shared token, as the hosted bridge now sends (review finding 6). */
+    private HttpResponse<String> postHostedOnly(String body, String hosted) throws Exception {
+        HttpRequest.Builder b = HttpRequest.newBuilder(URI.create(server.url() + "/action"))
+                .POST(HttpRequest.BodyPublishers.ofString(body));
+        if (hosted != null) b.header(ActionServer.HOSTED_HEADER, hosted);
+        return http.send(b.build(), HttpResponse.BodyHandlers.ofString());
+    }
+
+    /**
+     * ★ Review finding 6: the hosted bridge authenticates with its credential alone, so its endpoint file needs no shared
+     * token. Witness: keep requiring the shared token first (the P1a order) — the admitted hosted call is 401 and the
+     * first assertion fails; or accept any hosted header — the made-up one is dispatched.
+     */
+    @Test
+    @DisplayName("★ the hosted credential alone authenticates the hosted bridge; an unknown one, or neither header, is refused")
+    void theHostedCredentialAloneAuthenticates() throws Exception {
+        String token = credentials.mint(9);
+        admitted.set(9);
+        assertEquals(400, postHostedOnly(READ, token).statusCode(), "reached the dispatcher (400: no log open)");
+        assertEquals(403, postHostedOnly(DELETE, token).statusCode(), "and every hosted refusal still applies");
+        assertEquals(403, postHostedOnly(READ, "made-up").statusCode(), "an unknown credential is never external");
+        assertEquals(401, postHostedOnly(READ, null).statusCode(), "no credential and no token: refused");
+    }
+
     static final String DELETE = "{\"action\":\"graph\",\"params\":{\"name\":\"Chart 1\",\"delete\":true}}";
     static final String READ = "{\"action\":\"aggregate\",\"params\":{\"metric\":\"count\"}}";
 

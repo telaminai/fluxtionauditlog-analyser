@@ -28,11 +28,15 @@ public final class OsAgentLauncher implements AgentProcess.Launcher {
 
 
     @Override
-    public AgentProcess start(List<String> command, Map<String, String> extraEnvironment, Path workingDir,
+    public AgentProcess start(List<String> command, Map<String, String> extraEnvironment,
+                              java.util.Set<String> removedEnvironment, Path workingDir,
                               Consumer<String> stdoutLine) throws IOException {
         ProcessBuilder pb = new ProcessBuilder(command);
         pb.directory(workingDir.toFile());
-        pb.environment().putAll(extraEnvironment);
+        Map<String, String> env = pb.environment();
+        Map<String, String> composed = ChildEnvironment.compose(env, removedEnvironment, extraEnvironment);
+        env.clear();
+        env.putAll(composed);
         Process process = pb.start();
         OsProcess p = new OsProcess(process);
         Thread out = new Thread(() -> readLines(process.getInputStream(), stdoutLine), "analyser-local-agent-stdout");

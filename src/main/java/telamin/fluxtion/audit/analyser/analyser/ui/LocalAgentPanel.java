@@ -16,6 +16,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -48,7 +49,10 @@ public final class LocalAgentPanel extends JPanel {
     static final String LOCK_WARNING = "Don't resume this conversation in a terminal while it is open here — the history "
             + "would fork.";
     static final String CONTACTS_ANTHROPIC = "Start contacts Anthropic (sign-in check, MCP connect) before your first Send; "
-            + "no record content is sent until you press Send.";
+            + "no record content is sent until you press Send. In full Claude Code, Start also runs your and the folder's "
+            + "hooks and connects your MCP servers.";
+    /** On a Claude plan a dollar figure means nothing to the person (owner, 2026-10-17). */
+    static final String PLAN_USAGE = "usage counts against your Claude plan";
 
     private final LocalAgentTranscript store;
     private Intents intents;
@@ -128,6 +132,20 @@ public final class LocalAgentPanel extends JPanel {
         stop.setEnabled(false);
     }
 
+    /**
+     * A theme switch re-renders the conversation (M74 visual check): its colours are set when an entry is drawn, so
+     * without this a note kept the previous theme's colour until the next snapshot changed something.
+     */
+    @Override
+    public void updateUI() {
+        super.updateUI();
+        LocalAgentState last = rendered;
+        if (last != null && store != null) {
+            rendered = null;
+            SwingUtilities.invokeLater(() -> render(last));
+        }
+    }
+
     public void setIntents(Intents intents) {
         this.intents = intents;
     }
@@ -176,6 +194,7 @@ public final class LocalAgentPanel extends JPanel {
         String headerText = headerLine(shownHeader(s, store), s);
         if (s.equals(rendered) && Objects.equals(headerText, renderedHeader)) return;
         header.setText(headerText);
+        posture.setText(postureLine(shownHeader(s, store), s));
         boolean running = s.running();
         start.setEnabled(!running);
         start.setText(startLabel(s));
@@ -219,16 +238,48 @@ public final class LocalAgentPanel extends JPanel {
             // initialize reports no model: say what was asked for until a turn's system/init confirms it
             sb.append(" · model: ").append(h.configuredModel()).append(" (confirmed after the first turn)");
         }
-        sb.append(" · analyser assistant (default posture)");
+        sb.append(" · ").append(unbroken(s.posture().label()));
         if (h.cliVersion() != null) sb.append(" · CLI ").append(h.cliVersion());
         if (h != null && h.billing() != null && !h.billing().isBlank()) sb.append(" · ").append(h.billing());
         if (h != null && h.apiProvider() != null) sb.append(" · ").append(h.apiProvider());
-        if (s.spentMicros() > 0 || s.budgetMicros() > 0) {
-            sb.append(" · ").append(s.costUnderReported() ? "at least " : "").append("US$").append(usd(s.spentMicros()))
-                    .append(" of US$").append(usd(s.budgetMicros()));
-        }
+        String cost = costText(s);
+        if (!cost.isEmpty()) sb.append(" · ").append(cost);
         if (folder != null && !folder.isBlank()) sb.append("\nFolder: ").append(folder);     // its own line
         return sb.toString();
+    }
+
+    /**
+     * The cost, only where it means something (owner, 2026-10-17): with an API key, what was used — of the limit when
+     * one is set; on a Claude plan no dollar figure at all, only that usage counts against the plan; with neither known,
+     * the limit's figure when a limit is set, else nothing.
+     */
+    static String costText(LocalAgentState s) {
+        String used = (s.costUnderReported() ? "at least " : "") + "US$" + usd(s.spentMicros());
+        return switch (s.billing()) {
+            case SUBSCRIPTION -> PLAN_USAGE;
+            case API_KEY -> s.budgetLimited() ? used + " of US$" + usd(s.budgetMicros()) : used + " used";
+            case UNKNOWN -> s.budgetLimited() ? used + " of US$" + usd(s.budgetMicros()) : "";
+        };
+    }
+
+    /**
+     * §5.2: what the posture loads. Default: the analyser assistant's note. Full: the mode, that the person's own
+     * settings, skills, hooks and n MCP servers are loaded, and the environment line naming exactly what was appended
+     * to the child's PATH (OD-74.11).
+     */
+    static String postureLine(LocalAgentTranscript.Header h, LocalAgentState s) {
+        if (!s.posture().isFull()) return DEFAULT_POSTURE_NOTE;
+        int n = s.personServers();
+        String line = unbroken(s.posture().label()) + (n == 0
+                ? " — your settings, skills and hooks are loaded, and none of your MCP servers"
+                : " — your settings, skills, hooks and " + n + " MCP server" + (n == 1 ? "" : "s") + " are loaded");
+        List<String> added = h == null ? List.of() : h.pathAdded();
+        return line + "\nPATH: inherited" + (added.isEmpty() ? "" : ", plus " + String.join(", ", added));
+    }
+
+    /** A name the wrapped header must not break inside: its spaces become no-break spaces (M74 visual check). */
+    static String unbroken(String s) {
+        return s == null ? "" : s.replace(' ', '\u00A0');
     }
 
     /** The Start button says what pressing it would do, or that there is nothing to press. */
@@ -292,7 +343,7 @@ public final class LocalAgentPanel extends JPanel {
     private static SimpleAttributeSet warning() {
         SimpleAttributeSet a = new SimpleAttributeSet();
         StyleConstants.setBold(a, true);
-        StyleConstants.setForeground(a, new Color(0xB0, 0x5A, 0x00));
+        StyleConstants.setForeground(a, UiTheme.noteForeground());   // theme-aware (M74 visual check)
         return a;
     }
 }

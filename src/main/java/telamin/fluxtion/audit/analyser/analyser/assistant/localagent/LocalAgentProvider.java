@@ -30,20 +30,46 @@ public interface LocalAgentProvider {
      * @param workingDir      the confirmed working directory: {@code --add-dir} and the process's cwd
      * @param bridgeLauncher  the hosted bridge's launcher, before {@code --mcp}
      * @param endpointFile    the per-instance endpoint file the bridge reads; its PATH is all the command line carries
-     * @param maxBudgetMicros the remaining session budget
+     * @param maxBudgetMicros the remaining session budget; 0 when no limit is set (no {@code --max-budget-usd})
+     * @param posture         the posture the line is computed from (§4.3): the analyser assistant or the full posture
      */
     record LaunchSpec(Path executable, String sessionId, boolean resume, String model, Path workingDir,
-                      List<String> bridgeLauncher, Path endpointFile, long maxBudgetMicros) {
+                      List<String> bridgeLauncher, Path endpointFile, long maxBudgetMicros,
+                      telamin.fluxtion.audit.analyser.analyser.session.LocalAgentPosture posture) {
         public LaunchSpec {
             bridgeLauncher = List.copyOf(bridgeLauncher);
+            posture = posture == null
+                    ? telamin.fluxtion.audit.analyser.analyser.session.LocalAgentPosture.ANALYSER_ASSISTANT : posture;
+        }
+
+        /** The default posture. */
+        public LaunchSpec(Path executable, String sessionId, boolean resume, String model, Path workingDir,
+                          List<String> bridgeLauncher, Path endpointFile, long maxBudgetMicros) {
+            this(executable, sessionId, resume, model, workingDir, bridgeLauncher, endpointFile, maxBudgetMicros, null);
         }
     }
 
-    /** The full argument vector of the default posture (§4.3), executable first. */
+    /** The full argument vector of the spec's posture (§4.3), executable first. */
     List<String> command(LaunchSpec spec);
 
-    /** Variables added to the analyser's own environment for the child. */
-    Map<String, String> environment();
+    /** Variables added to the analyser's own environment for the child, in the default posture. */
+    default Map<String, String> environment() {
+        return environment(telamin.fluxtion.audit.analyser.analyser.session.LocalAgentPosture.ANALYSER_ASSISTANT,
+                Map.of(), null);
+    }
+
+    /**
+     * Variables added to (or replacing in) the analyser's own environment for the child of {@code posture}: in the
+     * full posture, {@code PATH} extended per OD-74.11 from {@code inherited} — computed, never by running a shell.
+     */
+    default Map<String, String> environment(telamin.fluxtion.audit.analyser.analyser.session.LocalAgentPosture posture,
+                                            Map<String, String> inherited, Path userHome) {
+        return environment(posture, posture != null && posture.isFull() ? ChildPath.extend(inherited, userHome) : null);
+    }
+
+    /** As above, with the full posture's PATH extension already computed (once, for the environment and the header). */
+    Map<String, String> environment(telamin.fluxtion.audit.analyser.analyser.session.LocalAgentPosture posture,
+                                    ChildPath.Extension path);
 
     /** Parse one stdout line. */
     StreamJson.Event parse(String line);

@@ -27,11 +27,19 @@ public final class LocalAgentTranscript {
     /**
      * The tab's header details (§5.2): the model, the CLI version, the subscription type or API-key source, the API
      * provider, and the built-in commands the slash table does not classify. Never an e-mail or an organisation.
+     * {@code pathAdded}: in the full posture, the directories appended to the child's {@code PATH} (OD-74.11), as shown
+     * ({@code ~/.local/bin}); empty in the default posture.
      */
     public record Header(String model, String cliVersion, String billing, String apiProvider, List<String> unclassified,
-                         String folder, String configuredModel) {
+                         String folder, String configuredModel, List<String> pathAdded) {
         public Header {
             unclassified = List.copyOf(unclassified == null ? List.of() : unclassified);
+            pathAdded = List.copyOf(pathAdded == null ? List.of() : pathAdded);
+        }
+
+        public Header(String model, String cliVersion, String billing, String apiProvider, List<String> unclassified,
+                      String folder, String configuredModel) {
+            this(model, cliVersion, billing, apiProvider, unclassified, folder, configuredModel, List.of());
         }
 
         public Header(String model, String cliVersion, String billing, String apiProvider, List<String> unclassified,
@@ -42,7 +50,7 @@ public final class LocalAgentTranscript {
         /** {@code folder} is the session's OWN launch directory, as the person should read it (review S5). */
         public Header withInit(String model, String cliVersion) {
             return new Header(model == null ? this.model : model, cliVersion == null ? this.cliVersion : cliVersion,
-                    billing, apiProvider, unclassified, folder, configuredModel);
+                    billing, apiProvider, unclassified, folder, configuredModel, pathAdded);
         }
     }
 
