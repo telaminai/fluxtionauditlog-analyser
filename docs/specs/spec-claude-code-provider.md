@@ -1864,9 +1864,11 @@ and **PB** captures (`FixtureAgent`, now also reading `evidence/m74-p1b/fixtures
   256 KB of each file (a larger one adds its size and modification time) and treats a non-regular file as unreadable,
   as the scan does; `plain()` and the node's `safe()` escape control, format and line-separator characters. The digest is
   still read on the event thread, at Start and Send, now bounded at 768 KB in all. (14) A stored limit below US$0.50 is
-  clamped to it. **Re-smoke (2026-10-17):** the touched items passed live, and §8.1 item 8 (warm start) found a P1a
-  defect: with the Aqua tab UI `EventQueue.getCurrentEvent()` reads as a nested `HierarchyEvent` while the person's
-  click selects the tab, so warm start never fired in either posture. `WarmStart.Tracker` (an `AWTEventListener` on the
+  clamped to it. **Re-smoke (2026-10-17):** the touched items passed live. §8.1 item 8 (warm start) at first did not
+  fire in either posture, but that run was in the macOS Aqua look (the harness skipped the theme `Main` applies):
+  there `EventQueue.getCurrentEvent()` reads as a nested `HierarchyEvent` while the click selects the tab. **Under
+  FlatLaf, which the application always uses, P1a's predicate recognises the click unaided** (verified live; the
+  correction is in the smoke report), so this was not a P1a defect. `WarmStart.Tracker` (an `AWTEventListener` on the
   tab strip's mouse and key input) now supplies the held click, accepted only while the queue's most recent input time
   is still its own; live, the full posture then starts nothing and the default posture's control starts. Witnesses:
   `getCurrentEvent()` alone (the overwritten case fails), and the held input without the time check (a later reveal
