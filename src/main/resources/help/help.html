@@ -3,283 +3,103 @@
 <style>
   body { font-family: sans-serif; font-size: 12px; color: #1f2328; margin: 12px 16px; }
   h1 { font-size: 18px; }
-  h2 { font-size: 14px; margin-top: 18px; border-bottom: 1px solid #d0d7de; padding-bottom: 2px; }
-  code, .k { font-family: monospace; color: #0550ae; }
-  .muted { color: #57606a; }
-  table { border-collapse: collapse; margin: 6px 0; }
-  td, th { border: 1px solid #d0d7de; padding: 3px 8px; text-align: left; vertical-align: top; }
-  th { background: #f6f8fa; }
-  .tag { font-family: monospace; background:#f6f8fa; padding:0 3px; }
+  h2 { font-size: 14px; margin-top: 16px; border-bottom: 1px solid #d0d7de; padding-bottom: 2px; }
+  code { font-family: monospace; color: #0550ae; }
+  .url { font-family: monospace; color: #57606a; font-size: 11px; }
+  ul { margin-top: 4px; }
+  li { margin-bottom: 3px; }
 </style>
 </head>
 <body>
 
-<h1>Fluxtion Audit Log Analyser — Help</h1>
-<p>This tool reads <b>Fluxtion event-audit logs</b>: machine-readable records emitted by a
-Mongoose/Fluxtion <code>EventProcessor</code>. It lets you browse, filter, summarise, graph, view the
-source behind a node, and ask an assistant about records.</p>
-<p>Full documentation online:
-<a href="https://telaminai.github.io/fluxtionauditlog-analyser/">telaminai.github.io/fluxtionauditlog-analyser</a>.</p>
-<p>The <b>toolbar</b> across the top gives one-click access to the common actions: Open, Open S3,
-Flag, Flagged-only, Next / Prev anomaly, <b>Ask</b> (draft a question about the selection for the assistant; nothing
-is sent until you press Send), Export CSV and Follow. The event-type
-checklist is the <b>left rail</b>; the right-hand tabs are the outputs (Summary / Source / Graph /
-Analyser&nbsp;assistant).</p>
+<!-- Help ▸ User guide. The docs site is the one source of truth; this page is its door (docs audit §5.5). Every link
+     below is checked by DocsUrlResolutionTest.helpPageLinksResolve: a page moved without a redirect fails the build. -->
 
-<h2>What a Fluxtion audit log is</h2>
-<p>A Fluxtion <code>EventProcessor</code> is a compiled graph of nodes. When an event (or a timer, or
-an exported service call) enters the processor it propagates through the graph, and each node that
-runs appends its state to that cycle's audit record. <b>One record = one propagation cycle.</b>
-Records are separated by a <code>---</code> line and aim to be YAML, but node values are raw Java
-<code>toString()</code>s (e.g. <span class="tag">NaN</span>,
-<span class="tag">MutableOrder(clOrdId=1, price=19.9)</span>), so the parser is deliberately lenient.</p>
-
-<h2>Reading the table</h2>
-<table>
-<tr><th>Column</th><th>Meaning</th></tr>
-<tr><td>eventTime</td><td>Epoch millis of the triggering event, shown in <b>UTC</b>. Blank when
-    <code>-1</code> (not event-driven — a scheduled trigger or exported call).</td></tr>
-<tr><td>logTime / endTime</td><td>When the record was logged / finished (UTC). <span class="muted">Records
-    are not strictly ordered by logTime.</span></td></tr>
-<tr><td>groupingId</td><td>Optional grouping id (usually blank).</td></tr>
-<tr><td>event</td><td>The event/trigger type. <b>Blank</b> for <code>ExportFunctionAuditEvent</code>
-    (the callback carries the meaning).</td></tr>
-<tr><td>callback</td><td>For an exported method, the callback name (e.g. <code>orderVenueConnected</code>).</td></tr>
-<tr><td>eventToString</td><td>For an exported callback, the short <code>DeclaringClass.callback</code>;
-    otherwise the event's string (may be empty).</td></tr>
-<tr><td>thread</td><td>The agent thread that ran the cycle.</td></tr>
-<tr><td>nodeLogs</td><td>How many nodes logged in this cycle. Full content shows in the detail viewer.</td></tr>
-</table>
-<p>Rows are tinted for anomalies: <span style="background:#ffe0e0">parse error</span>,
-<span style="background:#ffe9cc">breach</span>, <span style="background:#fff7cc">NaN</span> (tints adapt to the theme).
-Jump between them with <b>⚠ Next / ⚠ Prev</b> on the toolbar, or <b>F3</b> / <b>Shift+F3</b> — the
-search wraps around and respects the current filter/sort. The
-<b>nodeLogs</b> cell shows a bar sized by node count (relative to the busiest cycle) so heavy fan-out
-stands out. Use the <b>Columns</b> menu to show/hide columns — your choice is remembered (eventTime,
-groupingId, eventToString and endTime are hidden by default).</p>
-
-<h2>Record detail &amp; nodeLogs</h2>
-<p>Select a row to see the full record (colourised) in the detail panel. Each <code>nodeLogs</code>
-entry is <code>instanceId: { key: value, ... }</code>, where <b>instanceId is a node's field name in
-the EventProcessor graph</b>. The same instanceId may appear more than once in a cycle. A graph key is
-therefore <code>instanceId.key</code> (e.g. <code>hedgeToOrdersNode.hedgeQuantity</code>).</p>
-<p><b>Navigation:</b> <b>click a node-log line</b> to open that node's class scrolled to the method it
-ran (the line's first key, e.g. <code>orderVenueConnected</code>); <b>right-click</b> for a menu of the
-record's nodes. Selecting a record also scrolls the <b>Source</b> tab's EventProcessor to the
-<b>dispatch method</b> for that record's callback. In the Source view, <b>Ctrl-click</b> (⌘-click on
-macOS) a <code>receiver.method()</code> to jump to that node's method, a field to open its type, or a
-type name to open its source. Use <b>Back</b> (Alt+Left, or Cmd/Ctrl+[) to return to the previous
-source file. The node-log viewer has a <b>Wrap</b> toggle (off → horizontal scroll for long lines).
-Select <b>two</b> records and use <b>Records → Diff selected two records</b> — or <b>right-click</b>
-the records table (Diff, the assistant's questions such as <i>What happened here?</i>, Flag) — for a side-by-side that highlights what changed between
-the two cycles (changed / only-A / only-B). The diff can be <b>exported as CSV, JSON or PDF</b>.</p>
-
-<h2>Filtering &amp; search</h2>
+<h1>Fluxtion Audit Log Analyser — User guide</h1>
+<p>The user guide is the documentation site,
+<a href="https://telaminai.github.io/fluxtionauditlog-analyser/">telaminai.github.io/fluxtionauditlog-analyser</a>. Each link below opens a page of it in your browser;
+the address is shown beside it.</p>
+<h2>Start here</h2>
 <ul>
-<li><b>Event types</b> (left rail): tick the dimensions to include (an OR). The list is split into
-    <b>Event types</b> and <b>Callbacks</b>; use <b>Select all / Select none</b>, or right-click an
-    entry for <i>Only this / Add / Remove</i>.</li>
-<li><b>Time range</b> (top slider): drag the two thumbs to bound <code>logTime</code>; drag the
-    <b>middle</b> of the selection to move it, keeping its width; double-click to reset. When the log
-    spans hours but the moment of interest is minutes, shrink the visible window with the
-    <b>Window</b> control (All / week / day / hours / minutes) and <b>pan</b> it across the whole log
-    with the bar beneath the slider — the selection thumbs then work at that finer resolution.</li>
-<li><b>Search</b> (top box): case-insensitive; matches <code>eventToString</code>, <code>thread</code>
-    <b>and nodeLogs</b>. It combines with the other filters and stays applied as you change them.</li>
+<li><a href="https://telaminai.github.io/fluxtionauditlog-analyser/start-here/">Start here: pick your door</a> <span class="url">telaminai.github.io/fluxtionauditlog-analyser/start-here/</span></li>
+<li><a href="https://telaminai.github.io/fluxtionauditlog-analyser/install/">Install &amp; run</a> <span class="url">telaminai.github.io/fluxtionauditlog-analyser/install/</span></li>
+<li><a href="https://telaminai.github.io/fluxtionauditlog-analyser/user-guide/start-page/">The start page</a> <span class="url">telaminai.github.io/fluxtionauditlog-analyser/user-guide/start-page/</span></li>
+<li><a href="https://telaminai.github.io/fluxtionauditlog-analyser/start/tour-and-sample/">Guided tour and sample project</a> <span class="url">telaminai.github.io/fluxtionauditlog-analyser/start/tour-and-sample/</span></li>
+<li><a href="https://telaminai.github.io/fluxtionauditlog-analyser/start/templates-and-examples/">Starter templates and examples</a> <span class="url">telaminai.github.io/fluxtionauditlog-analyser/start/templates-and-examples/</span></li>
+<li><a href="https://telaminai.github.io/fluxtionauditlog-analyser/start/prompt-packs/">Prompt packs</a> <span class="url">telaminai.github.io/fluxtionauditlog-analyser/start/prompt-packs/</span></li>
+<li><a href="https://telaminai.github.io/fluxtionauditlog-analyser/getting-started/">Open your own log, step by step</a> <span class="url">telaminai.github.io/fluxtionauditlog-analyser/getting-started/</span></li>
 </ul>
-<p>All views (table, summary, graph) share one filter, so they always agree.</p>
-
-<h2>Summary</h2>
-<p>The <b>Summary</b> tab groups the filtered records by event dimension with count, first/last time,
-span and rate. Click a row to cross-filter the whole app to that dimension.</p>
-
-<h2>Graphing</h2>
-<p>The <b>Graph</b> tab plots a numeric <code>instanceId.key</code> over time. Pick a key, click
-<i>Add</i> for one or more series. The default style is <b>Stairs</b> (values hold until the next
-update — the right reading for event-log state); <b>Line</b> and <b>Points</b> are also available.
-Booleans plot as <code>+1</code> (true) / <code>-1</code> (false) so flips are obvious;
-non-numeric points are skipped, and <code>NaN</code> means "no data point" (omitted, not a gap). Zoom
-with the mouse wheel (<b>Shift</b> = X-only, <b>Ctrl</b> = Y-only), drag to pan, double-click to fit —
-or use the <b>+ / − / Fit</b> buttons (handy on a trackpad / Magic Mouse). Remove one series by
-clicking its legend entry, or open several graphs (<b>New graph</b>) for side-by-side comparisons.
-<b>Name a graph</b> with the <b>Rename…</b> button or by double-clicking its tab — names persist in your
-profile. <b>Click anywhere on the plot</b> to select the record nearest that time and scroll the table to
-it. By default a graph follows the shared filter's time window; the <b>📌</b> button <b>pins</b> it to a
-fixed window (the tab shows 📌) so an evidence chart keeps its picture even after you move the filter on —
-click 📌 again to unpin. Add <b>derived (formula) series</b> in the <b>f(x)</b> field — a formula over node-log keys, e.g. a quoted
-spread <code>askMakerOrder.price − bidMakerOrder.price</code> (operators <code>+ − × ÷</code>, parentheses,
-<code>abs/min/max</code>; <i>locf</i> carries each key's last value so cross-node formulas plot). The
-assistant can add these too. The <b>f(x)</b> field <b>autocompletes</b> from the discovered keys and your
-existing formula labels — and a formula can <b>reference another formula by its label</b> (backtick labels
-containing spaces: <code>`quoted spread` / 2</code>). The <b>formulas</b> combo next to the field lists the
-graph's derived series with <b>Edit</b> (loads it back into the fields; Add applies the change) and
-<b>Remove</b>. Derived series appear in the legend under their label; click a legend entry to
-remove any series. You can also <b>right-click an attribute</b> in the record-detail viewer and choose
-<i>Add instanceId.key to graph</i> — to the current graph, any named graph, or a new one. The graph
-exports to CSV/PNG.</p>
-
-<h2>Menus</h2>
+<h2>Diagnose an incident with your AI client</h2>
 <ul>
-<li><b>Project</b>: profiles, saved analyses, settings and settings import/export.</li>
-<li><b>Sources</b>: source roots, event processor, Maven repositories, topology, design and diagnostics.</li>
-<li><b>Audit log</b>: open local/S3 logs, follow new records, add external CSV series and export records.</li>
+<li><a href="https://telaminai.github.io/fluxtionauditlog-analyser/diagnose/">The incident path</a> <span class="url">telaminai.github.io/fluxtionauditlog-analyser/diagnose/</span></li>
+<li><a href="https://telaminai.github.io/fluxtionauditlog-analyser/connect-an-llm/">Connect your client (Claude Code, Codex, any MCP client)</a> <span class="url">telaminai.github.io/fluxtionauditlog-analyser/connect-an-llm/</span></li>
+<li><a href="https://telaminai.github.io/fluxtionauditlog-analyser/diagnose/first-session/">Your first diagnosis session</a> <span class="url">telaminai.github.io/fluxtionauditlog-analyser/diagnose/first-session/</span></li>
+<li><a href="https://telaminai.github.io/fluxtionauditlog-analyser/diagnose/hand-off/">Hand the diagnosis on</a> <span class="url">telaminai.github.io/fluxtionauditlog-analyser/diagnose/hand-off/</span></li>
+<li><a href="https://telaminai.github.io/fluxtionauditlog-analyser/diagnose/rest-automation/">Scripts and CI over REST</a> <span class="url">telaminai.github.io/fluxtionauditlog-analyser/diagnose/rest-automation/</span></li>
+<li><a href="https://telaminai.github.io/fluxtionauditlog-analyser/diagnose/troubleshooting/">Troubleshooting the connection</a> <span class="url">telaminai.github.io/fluxtionauditlog-analyser/diagnose/troubleshooting/</span></li>
 </ul>
-<p><b>Records</b>, <b>Theme</b>, <b>AI</b> and <b>Help</b> remain separate. The toolbar's <b>Ask</b> and the record
-detail's <b>Ask about this</b> replace the former <i>Explain</i> buttons.</p>
-
-<h2>Source navigation</h2>
-<p>Set your <b>source roots</b> in <i>Sources &rarr; Source roots&hellip;</i> (drag folders in, or Add…). The tool
-resolves a node's instanceId to its declaring class through the selected <b>EventProcessor</b>. On
-load it <b>infers</b> the processor by matching the log's instanceIds to each candidate's fields; you
-can override the FQN in Settings. When a class isn't under any source root, the local <b>Maven repos</b>
-from Settings (default <code>~/.m2/repository</code>) are searched for its <code>*-sources.jar</code> —
-disable with the "don't search" checkbox. The <b>Source</b> tab shows the code read-only with Java
-colouring.</p>
-
-<h2>Topology &amp; step-through</h2>
-<p>The <b>Topology</b> tab draws the processor's node graph and shows what a cycle did to it. Open a
-processor's <code>.graphml</code> with <i>Sources &rarr; Open GraphML&hellip;</i>, from <i>Open recent
-GraphML</i>, or by dragging it onto the window. Whatever was open when you quit &mdash; and the zoom, pan,
-orientation, spacing and label size &mdash; comes back next time.</p>
-
-<p><b>A node missing from <code>nodeLogs</code> did not necessarily fail to run.</b> Audit output is
-opt-in per node, so the tab never colours a node "didn't run". It shows four different claims:</p>
+<h2>Diagnose in the analyser</h2>
 <ul>
-<li><b>green ring + number</b> &mdash; <b>logged</b>: it wrote audit output, and the number is its
-dispatch position. The only thing directly observed.</li>
-<li><b>solid outline</b> &mdash; <b>ran, logged nothing</b>: it is the only way into something that ran,
-so dispatch had no other route in. Certain.</li>
-<li><b>dashed outline</b> &mdash; <b>may have run</b>: connected to something that logged, but the log
-cannot say whether dispatch reached it. A genuine unknown.</li>
-<li><b>faded</b> &mdash; <b>not on this path</b>: nothing that logged is connected to it.</li>
+<li><a href="https://telaminai.github.io/fluxtionauditlog-analyser/inapp/">Overview</a> <span class="url">telaminai.github.io/fluxtionauditlog-analyser/inapp/</span></li>
+<li><a href="https://telaminai.github.io/fluxtionauditlog-analyser/inapp/assistant-panel/">The assistant panel</a> <span class="url">telaminai.github.io/fluxtionauditlog-analyser/inapp/assistant-panel/</span></li>
+<li><a href="https://telaminai.github.io/fluxtionauditlog-analyser/inapp/ask/">Ask the assistant</a> <span class="url">telaminai.github.io/fluxtionauditlog-analyser/inapp/ask/</span></li>
+<li><a href="https://telaminai.github.io/fluxtionauditlog-analyser/inapp/claude-code/">Claude Code in the analyser</a> <span class="url">telaminai.github.io/fluxtionauditlog-analyser/inapp/claude-code/</span></li>
+<li><a href="https://telaminai.github.io/fluxtionauditlog-analyser/inapp/transcript/">Reading the transcript</a> <span class="url">telaminai.github.io/fluxtionauditlog-analyser/inapp/transcript/</span></li>
+<li><a href="https://telaminai.github.io/fluxtionauditlog-analyser/inapp/approvals/">Approvals</a> <span class="url">telaminai.github.io/fluxtionauditlog-analyser/inapp/approvals/</span></li>
+<li><a href="https://telaminai.github.io/fluxtionauditlog-analyser/user-guide/records-and-filtering/">Records, detail &amp; filtering</a> <span class="url">telaminai.github.io/fluxtionauditlog-analyser/user-guide/records-and-filtering/</span></li>
+<li><a href="https://telaminai.github.io/fluxtionauditlog-analyser/user-guide/graphs/">Graphs</a> <span class="url">telaminai.github.io/fluxtionauditlog-analyser/user-guide/graphs/</span></li>
+<li><a href="https://telaminai.github.io/fluxtionauditlog-analyser/user-guide/topology/">Topology &amp; step-through</a> <span class="url">telaminai.github.io/fluxtionauditlog-analyser/user-guide/topology/</span></li>
+<li><a href="https://telaminai.github.io/fluxtionauditlog-analyser/user-guide/source-navigation/">Source navigation</a> <span class="url">telaminai.github.io/fluxtionauditlog-analyser/user-guide/source-navigation/</span></li>
+<li><a href="https://telaminai.github.io/fluxtionauditlog-analyser/user-guide/reports/">Investigation reports</a> <span class="url">telaminai.github.io/fluxtionauditlog-analyser/user-guide/reports/</span></li>
+<li><a href="https://telaminai.github.io/fluxtionauditlog-analyser/user-guide/project-panel/">The Project panel</a> <span class="url">telaminai.github.io/fluxtionauditlog-analyser/user-guide/project-panel/</span></li>
 </ul>
-<p>Build the processor with <code>cfg.addEventAudit(LogLevel.TRACE)</code> and every node that runs logs
-a <code>method</code> entry. The analyser detects such a record and stops hedging: absence becomes proof
-a node did not run, and the legend says so.</p>
-
-<p><b>Stepping.</b> Select a record and the tab shows that cycle. <b>&darr;</b> steps forward and
-<b>&uarr;</b> back, through this record's <code>nodeLogs</code> rows and on into the next record;
-<b>&#9664;&#9664; &#9654;&#9654;</b> skip a whole record and <b>Play</b> runs to the end of the log. The
-status line reads <code>event 8 / 10 &middot; step 2 / 5</code>. A node that logs twice gets two steps.
-Only edges whose <i>both</i> ends ran are highlighted &mdash; a highlighted arrow is an assertion.</p>
-
-<p><b>Finding your way round a big graph.</b> Fluxtion's own scaffolding (context, clock, dispatcher,
-audit and service plumbing) is hidden by default &mdash; the <b>Scaffolding</b> box shows it, and the
-status line always says how many nodes are being kept back. Clicking a node scopes the view to it;
-clicking again widens: <i>node &rarr; + neighbours &rarr; + all routes &rarr; whole graph</i>.
-Cmd/Ctrl-click adds to the selection. The scope is <i>dimmed</i> rather than hidden, because a node you
-cannot see reads as a node that is not there; press <b>F</b> or <b>Focus</b> when you do want the rest
-gone, and <b>Show all</b> (or a click on empty canvas) to return to the plain graph. The collapsible
-<b>Index</b> at the bottom-left lists Nodes, Events and Services from the whole graph &mdash; so it also
-reaches what the filters are hiding &mdash; and clicking an entry scrolls that node into view.</p>
-
-<p><b>From a node.</b> Right-click for source, graphing a logged value, filtering the records to that
-node, or copying its id. <b>Enter</b> on a selected node opens its source <i>beside</i> the graph, in a
-pane with a draggable divider, so the code and the picture stay on screen together. Hovering shows the
-node's kind, what the log claims about it, and the first line of its Javadoc when the class is under a
-source root.</p>
-
-<p>A topology that does not match the log renders perfectly and misleads silently, so the status line
-reports how well the graph matches the log: which node ids the log writes that the graph does not declare.
-A mismatch says the two disagree about which nodes exist. It does not say which one is right, and matching
-names do not prove the two came from the same build either — decide that from what else you know.</p>
-
-<h2>Analyser assistant</h2>
-<p>The <b>Analyser assistant</b> tab answers questions about records. Its header control,
-<b>Assistant: &hellip; &#9662;</b>, chooses how it works: <i>Safe analysis</i> or <i>Full Claude Code</i> (your own
-installed Claude Code), the <i>In-app assistant</i> (a provider, model and API key, also in
-<i>Settings &rarr; LLM</i>) or <i>Off</i>. Select record(s) and press <b>Ask</b>, or type a question, and
-<i>Send</i>; nothing is sent before that. <b>No profile is local-only:</b> with Claude Code, what you ask, and
-the evidence Claude reads through the analyser, is sent to the model provider (Anthropic, on your Claude plan or API
-key), as in any Claude Code session; with the in-app assistant it is sent to the model provider you chose. For the in-app assistant: The context sent is: the
-selected record(s), the EventProcessor FQN, and source snippets for the referenced node classes, plus
-a system prompt describing the audit format. <i>Reset</i> clears the conversation.</p>
-<p><b>Whole-log access (agentic).</b> The prompt is also <b>seeded</b> with the audit log's file path,
-its shape (size, record count, UTC time span) and framing, and each selected record's <b>byte offset</b>.
-A model that can read files then treats the selection as a <i>starting point</i>, not the whole story: it
-can grep/seek the file to read <b>behind</b> an anchor (what led up to a record) or <b>ahead</b> of it,
-and to count how often something occurs — so follow-ups like "how often does the validator fire?" or
-"show me the fill that caused this position" become searches it runs itself. For S3 logs the path points
-at the fetched local temp file. For a model that can't read files the block is simply inert text.</p>
-<p><b>Two-way actions (beta).</b> The assistant can also drive the app: <b>compute over the index</b>
-(e.g. "how often does <code>failedValidation</code> fire per hour?" — the app runs the aggregation and
-feeds the numbers back), and <b>build curation</b> — narrow the <b>filter</b>, open/refine a named
-<b>graph</b>, <b>jump</b> to a cited record, or <b>flag</b> records (with a note, shown on hover) so its
-findings become reviewable, reversible artifacts in the table. It runs in a short bounded loop (a few
-rounds, with a <b>Cancel</b> button); you see each computed result in the transcript. On by default, no
-network required.</p>
-<p><b>Ask it to show you.</b> An assistant driving the app can <b>point</b>: say <i>"show me"</i>,
-<i>"highlight it"</i> or <i>"walk me through this cycle and highlight each step"</i>, and it dims the window,
-cuts out the things it is talking about &mdash; up to six at once &mdash; and gives each a short numbered
-callout, so its sentence ("1 feeds 2, and 2 never logged") finds its place on your screen. A callout is
-tagged <i>assistant</i> because it is the assistant's words, not something the analyser established: it
-shows <b>where</b> to look, and the thing it points at tells you whether the claim is true. Highlights are
-temporary &mdash; any click, <b>Escape</b>, or change of view puts them out, and none is ever saved. A
-finding you want to keep is a <b>flag</b>, a chart note or a report.</p>
-<p><b>What this session is for &mdash; AI &#9656; Work mode.</b> An assistant works differently when you are
-<i>investigating</i> a system than when you are <i>building</i> one, and that intent changes before any file
-does ("let's build something new"). <b>Work mode</b> says which: <i>Investigate</i> or <i>Build</i>. Left on
-<i>Guess from what is open</i>, the analyser guesses &mdash; a project open reads as Build, otherwise
-Investigate &mdash; and says it is only a guess. Pick one to set it; a connected assistant
-can set it too. Either way it shows in the <b>Project</b> panel, which names who set it and, when the two
-disagree, what the guess would have been; the assistant reads the same thing in <code>context.handoff</code>.</p>
-<p><b>AI &#9656; Place mode-selector record&hellip;</b> The <i>authoring mode selector</i> is a small tool, run
-<b>outside</b> the analyser before any authoring starts, that decides whether the components you need already
-exist in a catalogue or must be written, and which authoring mode applies to each output &mdash; which in turn
-decides the wiring rules and skills an assistant should load. Its <code>--json</code> output is a
-<b>record</b>: the branch, the modes in force, the figures the catalogue already resolved, and what is left
-to author. This item reads that file and puts the record where you and the assistant both see it: a row in
-the <b>Project</b> panel, and <code>context.handoff</code>. The analyser <b>never runs the selector and does
-not check the record</b> &mdash; it carries it, attributed to whoever placed it. A malformed file is refused
-whole, with the reason. <i>Clear mode-selector record</i> removes it.</p>
-<p>Both belong to the <b>session</b>: a project switch clears them, and nothing is written to the project
-profile. If you are not authoring a processor with an assistant, you can ignore both.</p>
-<p><b>No API key?</b> Use <i>Copy prompt</i> (or Send) to copy the full prompt to the clipboard and
-paste it into any LLM.</p>
-
- <h2>Sharing your setup</h2>
+<h2>Build with Claude</h2>
 <ul>
-<li><b>Project → Export settings…</b> writes a shareable <code>.fluxtion-settings</code> file (or
-    <b>Copy to clipboard</b> / <b>Email…</b>). Tick what to include: source roots, Maven repos, event
-    processors, <b>named graphs</b> (formulas and pinned windows included), hidden columns and assistant
-    preferences. The LLM provider/model/base-URL is opt-in and off by default.</li>
-<li><b>Never shared</b>: your API key, AWS profile/region, recent files, search history and
-    window/theme — the whitelist is enforced on the way out <i>and</i> the way in, so an imported file
-    can never plant or overwrite a secret.</li>
-<li>Paths under your home are written <code>~</code>-relative so they survive a move to another machine;
-    a root that doesn't exist on import simply shows red in Settings.</li>
-<li><b>Project → Import settings…</b> shows a per-category <b>summary</b> (what's new, what would be
-    replaced) before anything changes; deselect any category you don't want. Lists <b>merge</b> (nothing
-    local is deleted); a graph whose name matches an incoming one is <b>replaced</b>, new names are added.</li>
-<li>To share into Slack/WhatsApp, <b>Copy to clipboard</b> and paste, or <b>Save file…</b> then drag the
-    file into the chat.</li>
+<li><a href="https://telaminai.github.io/fluxtionauditlog-analyser/build/">Build with Claude</a> <span class="url">telaminai.github.io/fluxtionauditlog-analyser/build/</span></li>
+<li><a href="https://telaminai.github.io/fluxtionauditlog-analyser/build/set-up-with-claude/">Set up a project with Claude</a> <span class="url">telaminai.github.io/fluxtionauditlog-analyser/build/set-up-with-claude/</span></li>
+<li><a href="https://telaminai.github.io/fluxtionauditlog-analyser/build/validate-intent/">Check your criteria against the evidence</a> <span class="url">telaminai.github.io/fluxtionauditlog-analyser/build/validate-intent/</span></li>
+<li><a href="https://telaminai.github.io/fluxtionauditlog-analyser/spring-authoring/">Spring authoring</a> <span class="url">telaminai.github.io/fluxtionauditlog-analyser/spring-authoring/</span></li>
+<li><a href="https://telaminai.github.io/fluxtionauditlog-analyser/producing-a-log/">Producing an audit log</a> <span class="url">telaminai.github.io/fluxtionauditlog-analyser/producing-a-log/</span></li>
+</ul>
+<h2>Demo and teach</h2>
+<ul>
+<li><a href="https://telaminai.github.io/fluxtionauditlog-analyser/teach/">Running a demo</a> <span class="url">telaminai.github.io/fluxtionauditlog-analyser/teach/</span></li>
+<li><a href="https://telaminai.github.io/fluxtionauditlog-analyser/teach/spotlights-walks-reels/">Spotlights, walks and reels</a> <span class="url">telaminai.github.io/fluxtionauditlog-analyser/teach/spotlights-walks-reels/</span></li>
+<li><a href="https://telaminai.github.io/fluxtionauditlog-analyser/evidence-bundles/">Evidence bundles</a> <span class="url">telaminai.github.io/fluxtionauditlog-analyser/evidence-bundles/</span></li>
+<li><a href="https://telaminai.github.io/fluxtionauditlog-analyser/evidence-bundles/opening/">Opening a bundle you were sent</a> <span class="url">telaminai.github.io/fluxtionauditlog-analyser/evidence-bundles/opening/</span></li>
+</ul>
+<h2>Administer and secure</h2>
+<ul>
+<li><a href="https://telaminai.github.io/fluxtionauditlog-analyser/admin/profiles/">Assistant profiles</a> <span class="url">telaminai.github.io/fluxtionauditlog-analyser/admin/profiles/</span></li>
+<li><a href="https://telaminai.github.io/fluxtionauditlog-analyser/admin/security/">Security model and limits</a> <span class="url">telaminai.github.io/fluxtionauditlog-analyser/admin/security/</span></li>
+<li><a href="https://telaminai.github.io/fluxtionauditlog-analyser/admin/external-access/">External access (MCP / REST)</a> <span class="url">telaminai.github.io/fluxtionauditlog-analyser/admin/external-access/</span></li>
+<li><a href="https://telaminai.github.io/fluxtionauditlog-analyser/admin/settings/">Settings reference</a> <span class="url">telaminai.github.io/fluxtionauditlog-analyser/admin/settings/</span></li>
+<li><a href="https://telaminai.github.io/fluxtionauditlog-analyser/admin/data/">What is stored where, what leaves</a> <span class="url">telaminai.github.io/fluxtionauditlog-analyser/admin/data/</span></li>
+<li><a href="https://telaminai.github.io/fluxtionauditlog-analyser/user-guide/projects/">Projects, profiles and sharing</a> <span class="url">telaminai.github.io/fluxtionauditlog-analyser/user-guide/projects/</span></li>
+<li><a href="https://telaminai.github.io/fluxtionauditlog-analyser/user-guide/plugins/">Log-source plugins</a> <span class="url">telaminai.github.io/fluxtionauditlog-analyser/user-guide/plugins/</span></li>
+</ul>
+<h2>Reference</h2>
+<ul>
+<li><a href="https://telaminai.github.io/fluxtionauditlog-analyser/reference/verbs/">Verbs</a> <span class="url">telaminai.github.io/fluxtionauditlog-analyser/reference/verbs/</span></li>
+<li><a href="https://telaminai.github.io/fluxtionauditlog-analyser/reference/cli/">Command line</a> <span class="url">telaminai.github.io/fluxtionauditlog-analyser/reference/cli/</span></li>
+<li><a href="https://telaminai.github.io/fluxtionauditlog-analyser/log-format/">Log format</a> <span class="url">telaminai.github.io/fluxtionauditlog-analyser/log-format/</span></li>
+<li><a href="https://telaminai.github.io/fluxtionauditlog-analyser/log-format/#is-the-log-whole">Is the log whole?</a> <span class="url">telaminai.github.io/fluxtionauditlog-analyser/log-format/#is-the-log-whole</span></li>
+<li><a href="https://telaminai.github.io/fluxtionauditlog-analyser/evidence-bundles/reference/">Evidence bundle format</a> <span class="url">telaminai.github.io/fluxtionauditlog-analyser/evidence-bundles/reference/</span></li>
+<li><a href="https://telaminai.github.io/fluxtionauditlog-analyser/reference/glossary/">Glossary</a> <span class="url">telaminai.github.io/fluxtionauditlog-analyser/reference/glossary/</span></li>
+<li><a href="https://telaminai.github.io/fluxtionauditlog-analyser/faq/">FAQ</a> <span class="url">telaminai.github.io/fluxtionauditlog-analyser/faq/</span></li>
+<li><a href="https://telaminai.github.io/fluxtionauditlog-analyser/release-notes/">Release notes</a> <span class="url">telaminai.github.io/fluxtionauditlog-analyser/release-notes/</span></li>
 </ul>
 
-<h2>Config &amp; performance</h2>
+<h2>If you are offline</h2>
 <ul>
-<li>Settings persist to <code>~/.fluxtion-analyser/config</code> (cleartext; local single-user tool).</li>
-<li>All date/times are shown in <b>UTC</b>.</li>
-<li><b>Follow (tail)</b>: Audit log → "Follow (tail)" or the toolbar <b>Follow</b> toggle polls the open
-    <b>local</b> file (~1&nbsp;s) and appends newly-<i>completed</i> records live, auto-scrolling to the
-    newest; flags, filters and selection are preserved, and open graphs re-extract — the view moves only to reveal
-    a point that would otherwise be hidden (a chart showing the whole log grows with it, one at the live edge
-    slides, one zoomed into the middle or already showing the point holds). A record still being written isn't shown until its
-    closing <code>---</code> arrives; a shrunk/rotated file triggers a reload. Available for heap-loaded
-    files (at/below the <b>memory threshold</b>); not for S3.</li>
-<li><b>Memory threshold</b> (Settings → <i>Performance &amp; S3</i>): files at/below it load into heap,
-    larger ones are memory-mapped (<code>0</code> = always mapped). Applies to the next file opened.</li>
-<li><b>Drag &amp; drop</b> a log file onto the window to open it; drag folders into Settings to add roots.</li>
-<li>Open logs straight from <b>S3</b> via <b>Audit log → Open log from S3…</b> (<code>s3://bucket/key</code>) —
-    uses your local <code>aws</code> CLI credentials (profile/region in Settings); no AWS SDK required.</li>
-<li><b>Theme</b> menu: Light / Dark / IntelliJ / Darcula (FlatLaf) — text, code and chart colouring
-    adapt automatically. Persisted.</li>
-<li><b>Export</b>: <b>Audit log → Export records (CSV)…</b> or <b>Audit log → Export records (YAML)…</b> writes the filtered set (YAML re-loads here);
-    graphs export to CSV and PNG.</li>
-<li><b>Bookmarks</b>: press <b>F</b> to flag selected rows; Records → "Show flagged only" to focus on
-    them. <b>Search</b> remembers terms (dropdown + inline autocomplete). Settings → History clears
-    search history / saved graphs / recent files.</li>
-<li>Browsing/filtering/summarising run off a compact in-memory <b>index</b> — node-logs are parsed only
-    for the detail view and graphing, so it stays fast. Very large files switch to a memory-mapped mode.</li>
+<li><b>An audit log</b> is the record a Fluxtion <code>EventProcessor</code> writes: one record per event it handled,
+with an entry from each node that logged. A node that logged nothing may still have run.</li>
+<li><b>Open a log</b> with <i>Audit log ▸ Open log…</i>, or drop it on the window. The toolbar's <b>Ask</b> drafts a
+question about the selected records for the assistant; nothing is sent until you press Send.</li>
+<li><b>Settings</b> are under <i>Project ▸ Settings…</i>; how the assistant works is the <b>Assistant: … ▾</b> control at
+the top of the assistant panel. <b>No profile is local-only:</b> with an assistant chosen, what you ask and the evidence
+it reads go to its model provider.</li>
+<li><b>Release notes</b> are under <i>Help ▸ Release notes</i>.</li>
 </ul>
 
 </body>

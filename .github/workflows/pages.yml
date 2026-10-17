@@ -30,7 +30,8 @@ jobs:
       - name: Inject changelog as the release-notes page body
         run: |
           printf -- '---\ntitle: Release notes\n---\n\n# Release notes\n\n' > docs/site/release-notes.md
-          cat CHANGELOG.md >> docs/site/release-notes.md
+          # the page has its own H1 above; drop CHANGELOG.md's "# Changelog" so the page has one (docs audit §1.6)
+          sed '1{/^# /d;}' CHANGELOG.md >> docs/site/release-notes.md
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'

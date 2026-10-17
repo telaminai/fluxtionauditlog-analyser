@@ -220,6 +220,34 @@ class DocsUrlResolutionTest {
                 + "can open, then list it in NON_LITERAL_ALLOWED");
     }
 
+    /**
+     * Docs restructure, phase 7: Help ▸ User guide is a page of deep links into the site (help.html), not a second copy of
+     * it. Every link must be an address on the site, and must resolve — page, redirect and anchor — as the app's own
+     * targets do. Witness: rename a heading a help link anchors to, or delete a page it links without a redirect; the
+     * assertion names the link.
+     */
+    @Test
+    void helpPageLinksResolve() throws IOException {
+        String help = Files.readString(Path.of("src/main/resources/help/help.html"));
+        Matcher m = Pattern.compile("href=\"([^\"]*)\"").matcher(help);
+        Map<String, String> redirects = redirects();
+        List<String> problems = new ArrayList<>();
+        Set<String> linked = new LinkedHashSet<>();
+        while (m.find()) {
+            String href = m.group(1);
+            if (!href.startsWith(BASE)) { problems.add(href + " is not an address on the docs site"); continue; }
+            String rel = href.substring(BASE.length());
+            linked.add(rel);
+            String p = problem(rel, redirects);
+            if (p != null) problems.add(p);
+        }
+        assertTrue(linked.size() >= 40, "the help page should link the site's pages, found " + linked.size());
+        for (String door : List.of("start-here/", "diagnose/", "inapp/", "build/", "teach/", "admin/security/",
+                "reference/verbs/", "faq/"))
+            assertTrue(linked.contains(door), "the help page must link the section page " + door);
+        assertEquals(List.of(), problems);
+    }
+
     @Test
     void everyNavPageIsPublished() throws IOException {
         // The page the nav names must be one git tracks: a gitignored page builds locally and 404s once deployed.
