@@ -7614,7 +7614,8 @@ public final class MainFrame extends JFrame {
         }
 
         if (plan.present().isEmpty()) {
-            JOptionPane.showMessageDialog(this, "The file contains no shareable settings.",
+            JOptionPane.showMessageDialog(this, UiText.inert(("The file contains no shareable settings. "
+                            + ImportSettingsDialog.machineOnlyText(plan)).trim()),
                     "Import settings", JOptionPane.INFORMATION_MESSAGE);
             return;
         }
@@ -9326,6 +9327,7 @@ public final class MainFrame extends JFrame {
                 Map<String, Object> offered = new java.util.LinkedHashMap<>();
                 plan.summary().forEach((cat, text) -> offered.put(cat.name(), text));
                 echo.put("offers", offered);
+                if (!plan.machineOnly().isEmpty()) echo.put("ignored", plan.machineOnly());   // P3: never applied
                 if (categories == null) {
                     echo.put("applied", false);
                     echo.put("note", "PREVIEW — your settings were not changed, and the scratch copy this "
