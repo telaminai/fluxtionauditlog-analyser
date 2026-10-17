@@ -96,4 +96,29 @@ class StartPageCarryTest {
         assertEquals(0, c.startComposes.size(), "Claude Code cannot answer: not placed");
         assertTrue(f.snapshot().startPage().note().contains("claude was not found"), f.snapshot().startPage().note());
     }
+    /**
+     * ★ Final review #10 (2026-10-17): the carried question waits for APPLY, not for any report of the profile. While the
+     * cards are open the frame may report the profile in force again (a settings report, a theme change re-reading the
+     * config); that report must neither place the question nor drop it. Witness (the review's M10): compose on any
+     * {@code AssistantProfileObserved} — drop {@code || !carriedAwaitingObservation} in {@code onProfileObserved} — the
+     * early report drops the question as "off" and nothing is placed after Apply.
+     */
+    @Test
+    @DisplayName("★ a profile report BEFORE Apply neither places nor drops the carried question; Apply then places it")
+    void onlyApplyReleasesTheCarriedQuestion() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = unchosen(a);
+        d.post(StartPagePromptTest.press(1, "NONE", 7, false, true, false, false));
+        assertTrue(d.snapshot().profiles().open());
+        d.post(new SessionEvents.AssistantProfileObserved(AssistantProfile.NONE));        // a report while the cards are open
+        d.post(new SessionEvents.StartPageAvailability(false, true, false, true));
+        d.post(new SessionEvents.AssistantProfileObserved(AssistantProfile.NONE));
+        assertEquals(0, a.startComposes.size(), "nothing is placed before Apply");
+        assertEquals(StartPagePrompt.CARRIED_NOTE, d.snapshot().startPage().note(), "and the question still waits");
+
+        d.post(new SessionEvents.AssistantProfileChosen(1, AssistantProfile.SAFE));
+        reportedAfterApply(d, AssistantProfile.SAFE, true, false);
+        assertEquals(1, a.startComposes.size(), "Apply places it, once");
+        assertEquals(7, a.startComposes.get(0).textRef());
+    }
 }
