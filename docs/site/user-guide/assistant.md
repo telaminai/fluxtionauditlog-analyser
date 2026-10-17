@@ -49,9 +49,8 @@ doing: *Requesting*, *Running action n*, *Complete*, *Cancelled*, *Superseded*, 
   in either place, and moving it never sends again. The tab says where it went. Scrolling or copying in the docked
   assistant does not end a showing walk.
 
-Nothing is sent until you press Send: not when you open the tab, open a bundle, or play a journey. (With Claude Code's
-*warm start* on, below, clicking the tab yourself starts Claude Code, which signs in with Anthropic before your first
-Send; no record content goes with it.)
+Nothing is sent until you press Send: not when you open the tab, open a bundle, or play a journey. Claude Code (below)
+starts only when you press its **Start** button.
 
 ## Claude Code in the Assistant tab
 
@@ -61,7 +60,8 @@ the analyser through the same verbs an external client uses. It is **off by defa
 
 **Turn it on.** *Settings ▸ Assistant ▸ Claude Code in the Assistant tab ▸ Allow the analyser to start Claude Code.*
 Then choose **Claude Code** at the top of the Assistant tab (beside *In-app assistant*). One assistant drives the tab
-at a time; switching back stops Claude Code. These settings — both switches, warm start, the model, the budget and the
+at a time; switching back stops an idle Claude Code, and is refused while Claude is answering (*"Claude is still
+answering — Stop or wait, then switch to the in-app assistant."*). These settings — both switches, the model, the budget and the
 folders you have confirmed — are **this machine's only**: never in a project profile, a shared settings file or an
 evidence bundle, so a cloned repository or a received bundle cannot turn any of them on.
 
@@ -74,8 +74,10 @@ evidence bundle, so a cloned repository or a received bundle cannot turn any of 
 - The first time in a folder, it asks: *"Claude Code will read this folder's CLAUDE.md as instructions. Trust <folder>
   for Claude Code in the analyser?"* Your answer is remembered on this machine. With no project open, Claude Code works
   in a private, empty scratch folder instead. Start is refused outright in an evidence bundle's working copy.
-- Claude Code reaches the analyser through the **REST transport**; if it is off, the tab says so and offers to turn it
-  on.
+- Claude Code does **not** need the REST transport turned on. With it off, the analyser opens a private listener that
+  serves only this Claude Code session — it refuses every external client, even one holding the REST token, and
+  publishes no endpoint file for other tools to find — and closes it when the session stops. With it on, the session
+  shares the REST transport's listener, and external clients are served as before.
 - Start **contacts Anthropic** (the sign-in check and connecting the analyser's bridge) **before your first Send**. No
   record content is sent until you press Send.
 - The analyser checks that the session it started is the one it asked for: the bridge proves it belongs to this
@@ -119,10 +121,6 @@ answers as the model's words, and check them against what the analyser shows.
   Claude Code and says so. It never shows your e-mail address or organisation.
 - **Don't resume this conversation in a terminal while it is open here** — the history would fork. A second analyser
   window cannot open it either: *"This conversation is open in another analyser window."*
-
-**Warm start** (*Start Claude Code when I open the Assistant tab*, off) starts Claude Code when **you** click or key the
-Assistant tab — never when the analyser reveals the tab itself, a journey hands over, or the tab is restored at launch —
-and only in a folder you have already confirmed; it never asks the folder question.
 
 ## No API key? Copy-prompt mode
 
