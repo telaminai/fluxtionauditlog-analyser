@@ -12,6 +12,9 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class ExampleDownloadTest {
 
+    /** R6: the folders a fact names live here, by reference, as they do in the frame. */
+    static final FactRefs REFS = new FactRefs();
+
     static final String C = "0123456789abcdef0123456789abcdef01234567";
     static final String DIGEST = "c".repeat(64);
 
@@ -34,7 +37,7 @@ class ExampleDownloadTest {
         assertTrue(a.exampleConfirms.get(0).thirdParty(), "example/demo is not Telamin's");
         assertTrue(a.exampleFetches.isEmpty());
         assertEquals("CONFIRMING", state(d).phase());
-        d.post(new SessionEvents.ExampleDownloadConfirmed(1, false, null, null));
+        d.post(new SessionEvents.ExampleDownloadConfirmed(1, false, 0, null, null));
         assertEquals("CANCELLED", state(d).phase());
         assertTrue(a.exampleFetches.isEmpty(), "No: nothing is fetched");
     }
@@ -45,7 +48,7 @@ class ExampleDownloadTest {
         FakeSessionAdapter a = new FakeSessionAdapter();
         SessionDriver d = new SessionDriver(a);
         d.post(new SessionEvents.ExampleDownloadRequested(1, 5, 1, source(null)));
-        d.post(new SessionEvents.ExampleDownloadConfirmed(1, true, "/work/demo", "EXISTS_NOT_EMPTY"));
+        d.post(new SessionEvents.ExampleDownloadConfirmed(1, true, REFS.put("/work/demo"), FactWords.shown("/work/demo"), "EXISTS_NOT_EMPTY"));
         assertEquals("REFUSED", state(d).phase());
         assertTrue(state(d).note().contains("not empty"), state(d).note());
         assertTrue(a.exampleFetches.isEmpty());
@@ -58,7 +61,7 @@ class ExampleDownloadTest {
         FakeSessionAdapter a = new FakeSessionAdapter();
         SessionDriver d = new SessionDriver(a);
         d.post(new SessionEvents.ExampleDownloadRequested(1, 5, 1, source(DIGEST)));
-        d.post(new SessionEvents.ExampleDownloadConfirmed(1, true, "/work/demo", null));
+        d.post(new SessionEvents.ExampleDownloadConfirmed(1, true, REFS.put("/work/demo"), FactWords.shown("/work/demo"), null));
         assertEquals(1, a.exampleFetches.size());
         d.post(new SessionEvents.ExampleFetched(1, true, 9, "d".repeat(64), 100, null));
         assertEquals("REFUSED", state(d).phase());
@@ -74,14 +77,14 @@ class ExampleDownloadTest {
         FakeSessionAdapter a = new FakeSessionAdapter();
         SessionDriver d = new SessionDriver(a);
         d.post(new SessionEvents.ExampleDownloadRequested(1, 5, 1, source(DIGEST)));
-        d.post(new SessionEvents.ExampleDownloadConfirmed(1, true, "/work/demo", null));
+        d.post(new SessionEvents.ExampleDownloadConfirmed(1, true, REFS.put("/work/demo"), FactWords.shown("/work/demo"), null));
         d.post(new SessionEvents.ExampleFetched(1, true, 9, DIGEST.toUpperCase(), 100, null));
         assertEquals(1, a.exampleUnpacks.size());
-        assertEquals("/work/demo", a.exampleUnpacks.get(0).targetDir());
-        d.post(new SessionEvents.ExampleUnpacked(1, true, "/work/demo", null));
+        assertEquals("/work/demo", REFS.get(a.exampleUnpacks.get(0).targetRef()));
+        d.post(new SessionEvents.ExampleUnpacked(1, true, REFS.put("/work/demo"), FactWords.shown("/work/demo"), null));
         assertEquals("DONE", state(d).phase());
         assertEquals(1, a.exampleOffers.size());
-        assertEquals("/work/demo", a.exampleOffers.get(0).root());
+        assertEquals("/work/demo", REFS.get(a.exampleOffers.get(0).rootRef()));
         assertTrue(state(d).note().contains("nothing was built or run"));
         assertTrue(a.agentConfirms.isEmpty(), "a download never asks — or implies — Claude Code folder trust");
         assertTrue(a.agentTrusts.isEmpty());
@@ -95,7 +98,7 @@ class ExampleDownloadTest {
         d.post(new SessionEvents.ExampleDownloadRequested(1, 5, 1, source(null)));
         d.post(new SessionEvents.ExampleFetched(1, true, 9, "e".repeat(64), 100, null));
         assertTrue(a.exampleUnpacks.isEmpty(), "a fetch before the confirmation is stale");
-        d.post(new SessionEvents.ExampleDownloadConfirmed(1, true, "/work/demo", null));
+        d.post(new SessionEvents.ExampleDownloadConfirmed(1, true, REFS.put("/work/demo"), FactWords.shown("/work/demo"), null));
         d.post(new SessionEvents.ExampleFetched(1, true, 9, "e".repeat(64), 100, null));
         assertEquals(1, a.exampleUnpacks.size());
         // a second press while busy is refused

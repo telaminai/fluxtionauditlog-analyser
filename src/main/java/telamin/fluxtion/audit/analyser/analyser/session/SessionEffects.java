@@ -397,7 +397,7 @@ public sealed interface SessionEffects {
     // ---- M74 P2b: propose onboarding (spec §5.6) ------------------------------------------------------------------------
 
     /** One item to preview or apply: the node's id and what Claude named. */
-    record ProposalItemRef(String itemId, String kind, String path, String className) {
+    record ProposalItemRef(String itemId, String kind, long pathRef, long classNameRef) {
     }
 
     /**
@@ -415,7 +415,7 @@ public sealed interface SessionEffects {
      * is the analyser's own row: an empty project in {@code setupDir} through M73's person path. Answered with
      * {@link SessionEvents.ProposalItemApplied}; the next is asked for only after it.
      */
-    record ApplyProposalItemEffect(long opId, String proposalId, ProposalItemRef item, String setupDir)
+    record ApplyProposalItemEffect(long opId, String proposalId, ProposalItemRef item, long setupDirRef)
             implements SessionEffects {
     }
 
@@ -450,7 +450,7 @@ public sealed interface SessionEffects {
     }
 
     /** Unpack {@code bytesRef} into {@code targetDir} through TemplateArchive, no executable bits; then {@link SessionEvents.ExampleUnpacked}. */
-    record UnpackExampleEffect(long opId, long request, long bytesRef, String targetDir) implements SessionEffects {
+    record UnpackExampleEffect(long opId, long request, long bytesRef, long targetRef) implements SessionEffects {
     }
 
     /** Drop the fetched bytes (refused digest, cancelled, or after the unpack). */
@@ -458,6 +458,6 @@ public sealed interface SessionEffects {
     }
 
     /** Open the M73 project offer for {@code root} (the person's New project… path); the person confirms. */
-    record OfferExampleProjectEffect(long opId, long request, String root) implements SessionEffects {
+    record OfferExampleProjectEffect(long opId, long request, long rootRef) implements SessionEffects {
     }
 }

@@ -85,14 +85,19 @@ class LocalAgentCarriedItemsTest {
     void setupDirectory() {
         FakeSessionAdapter a = new FakeSessionAdapter();
         SessionDriver d = LocalAgentSessionTest.driver(a);
-        d.post(new SessionEvents.LocalAgentSetupDirectoryChosen(1, "/home/DEMO", SessionEvents.FolderVerdict.EXPOSES_SECRETS));
-        assertNull(d.snapshot().localAgent().extra().setupDir());
+        FactRefs refs = new FactRefs();
+        d.post(new SessionEvents.LocalAgentSetupDirectoryChosen(1, refs.put("/home/DEMO"), "…/DEMO",
+                SessionEvents.FolderVerdict.EXPOSES_SECRETS));
+        assertEquals(0, d.snapshot().localAgent().extra().setupDirRef());
         assertEquals("FOLDER_EXPOSES_SECRETS", d.snapshot().localAgent().verdict());
-        d.post(new SessionEvents.LocalAgentSetupDirectoryChosen(2, "/work/medmon", SessionEvents.FolderVerdict.OK));
-        assertEquals("/work/medmon", d.snapshot().localAgent().extra().setupDir());
+        d.post(new SessionEvents.LocalAgentSetupDirectoryChosen(2, refs.put("/work/medmon"), "…/medmon",
+                SessionEvents.FolderVerdict.OK));
+        assertEquals("/work/medmon", refs.get(d.snapshot().localAgent().extra().setupDirRef()));
+        assertEquals("…/medmon", d.snapshot().localAgent().extra().setupDirShown());
         // with a process running it is a posture change: New chat is offered
         LocalAgentSessionTest.startToReady(d, a);
-        d.post(new SessionEvents.LocalAgentSetupDirectoryChosen(3, "/work/other", SessionEvents.FolderVerdict.OK));
+        d.post(new SessionEvents.LocalAgentSetupDirectoryChosen(3, refs.put("/work/other"), "…/other",
+                SessionEvents.FolderVerdict.OK));
         assertTrue(d.snapshot().localAgent().newChatOffered());
         assertEquals("SETUP_DIRECTORY", d.snapshot().localAgent().verdict());
     }

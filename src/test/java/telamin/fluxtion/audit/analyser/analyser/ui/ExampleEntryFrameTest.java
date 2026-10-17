@@ -107,7 +107,7 @@ class ExampleEntryFrameTest {
             AtomicReference<String> note = new AtomicReference<>();
             onEdt(() -> note.set(page.prompt().exampleNote().getText()));
             assertTrue(note.get().contains("nothing was built or run"), note.get());
-            assertTrue(session.snapshot().localAgent().extra().setupDir() == null, "no folder trust or set-up implied");
+            assertTrue(session.snapshot().localAgent().extra().setupDirRef() == 0, "no folder trust or set-up implied");
         }
     }
 }

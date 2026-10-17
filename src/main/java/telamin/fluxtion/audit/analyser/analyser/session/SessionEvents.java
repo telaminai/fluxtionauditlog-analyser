@@ -1138,11 +1138,24 @@ public final class SessionEvents {
     // ---- M74 P2b: propose onboarding (spec §5.6, OD-74.13) ------------------------------------------------------------
 
     /**
-     * One proposed item as the dispatcher received it: Claude's kind, path, class name and reason, and what was observed
-     * about its fields' lengths and the class name's form. The node decides every item-level refusal from these.
+     * One proposed item as the dispatcher received it: Claude's KIND, and its path, class name and reason by REFERENCE
+     * into the transcript store (0 = absent) with digests to compare them by — never the words themselves, which the
+     * session record would otherwise carry (spec §4.1; scorecard R6). Also what was observed about the fields' lengths and
+     * the class name's form. The node decides every item-level refusal from these.
      */
-    public record ProposalItemFact(String kind, String path, String className, String reason, boolean tooLong,
-                                   boolean classNameMalformed) {
+    public record ProposalItemFact(String kind, long pathRef, String pathDigest, long classNameRef, String classNameDigest,
+                                   long reasonRef, boolean tooLong, boolean classNameMalformed) {
+        public boolean hasPath() {
+            return pathRef != 0;
+        }
+
+        public boolean hasClassName() {
+            return classNameRef != 0;
+        }
+
+        public boolean hasReason() {
+            return reasonRef != 0;
+        }
     }
 
     /**
@@ -1150,7 +1163,7 @@ public final class SessionEvents {
      * {@code propose} case for the admitted {@code generation}. The node records the offer and answers in
      * {@code ProposalState.answer(request)}; it changes NOTHING but the preview it asks for.
      */
-    public record ProposalReceived(long request, long generation, String summary, java.util.List<ProposalItemFact> items) {
+    public record ProposalReceived(long request, long generation, long summaryRef, java.util.List<ProposalItemFact> items) {
         public ProposalReceived {
             items = java.util.List.copyOf(items == null ? java.util.List.of() : items);
         }
@@ -1164,8 +1177,11 @@ public final class SessionEvents {
     public record ProposalItemPreviewed(String proposalId, String itemId, String verdict, boolean outside, String refusal) {
     }
 
-    /** Every item was checked: the set-up directory as the session uses it, and whether it already holds a project. */
-    public record ProposalPreviewDone(String proposalId, String setupDir, boolean projectExists) {
+    /**
+     * Every item was checked: the set-up directory as the session uses it — by reference ({@code setupDirRef}, the frame
+     * resolves it) and shown as {@code …/name} — and whether it already holds a project.
+     */
+    public record ProposalPreviewDone(String proposalId, long setupDirRef, String setupDirShown, boolean projectExists) {
     }
 
     /**
@@ -1204,10 +1220,14 @@ public final class SessionEvents {
     }
 
     /**
-     * The person chose (or cancelled) the set-up directory (§5.6 step 1): its real path, or null when cancelled, and the
-     * folder verdict computed as for Start. Held for this analyser run only; it is not a project.
+     * The person chose (or cancelled) the set-up directory (§5.6 step 1): its real path by reference ({@code dirRef}; 0
+     * when cancelled) and shown as {@code …/name}, and the folder verdict computed as for Start. Held for this analyser
+     * run only; it is not a project. (R6: no absolute path in a fact.)
      */
-    public record LocalAgentSetupDirectoryChosen(long request, String dir, FolderVerdict verdict) {
+    public record LocalAgentSetupDirectoryChosen(long request, long dirRef, String dirShown, FolderVerdict verdict) {
+        public boolean cancelled() {
+            return dirRef == 0;
+        }
     }
 
     // ---- M74 P2b: a project switch while Claude Code runs (the simplified Move, owner 2026-10-17) ---------------------
@@ -1313,7 +1333,8 @@ public final class SessionEvents {
      * folder: {@code yes}, the folder chosen ({@code targetDir}, real path) and what was observed about it
      * ({@code targetProblem}: null, {@code EXISTS_NOT_EMPTY}, {@code NOT_A_DIRECTORY}, {@code NO_PARENT}).
      */
-    public record ExampleDownloadConfirmed(long request, boolean yes, String targetDir, String targetProblem) {
+    public record ExampleDownloadConfirmed(long request, boolean yes, long targetRef, String targetShown,
+                                           String targetProblem) {
     }
 
     /**
@@ -1324,7 +1345,7 @@ public final class SessionEvents {
     }
 
     /** The unpack through the template archive machinery: the project root it made, or why not. */
-    public record ExampleUnpacked(long request, boolean ok, String root, String failure) {
+    public record ExampleUnpacked(long request, boolean ok, long rootRef, String rootShown, String failure) {
     }
 
     /** Answered at once by each example effect. */

@@ -379,7 +379,7 @@ public final class LocalAgentPanel extends JPanel {
         long pending = p.count(telamin.fluxtion.audit.analyser.analyser.session.ProposalState.ItemState.PENDING);
         long n = pending + ("PENDING".equals(p.create()) ? 1 : 0);
         long shown = p.items().size() - pending;
-        String dir = p.setupDir() == null ? "this folder" : shortFolder(p.setupDir());
+        String dir = p.setupDirShown() == null ? "this folder" : p.setupDirShown();
         return "Claude Code proposes " + n + " change" + (n == 1 ? "" : "s") + " to set up " + dir
                 + (shown > 0 ? ", and " + shown + " that cannot be applied" : "")
                 + ". Nothing has been applied — review each one.";

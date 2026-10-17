@@ -122,7 +122,8 @@ public class LocalAgentSession implements EventLogSource {
     /** P2 (owner request 2026-10-17): the posture the last consent fact named, for the full-posture cue; null when off. */
     private LocalAgentPosture consentPosture;
     /** P2b (§5.6 step 1): the set-up directory the person chose, held for this run; null for none. */
-    private String setupDir;
+    private long setupDirRef;
+    private String setupDirShown;
     /** P2b (§5.2): the diagnostics counts the adapter last reported for this generation. */
     private int unknownEvents;
     private int unclassifiedCommands;
@@ -760,7 +761,7 @@ public class LocalAgentSession implements EventLogSource {
      */
     @OnEventHandler
     public boolean onSetupDirectoryChosen(SessionEvents.LocalAgentSetupDirectoryChosen e) {
-        if (e.dir() == null) {
+        if (e.cancelled()) {
             auditLog.info("localAgentSetupDir", "CANCELLED");
             return false;
         }
@@ -773,7 +774,8 @@ public class LocalAgentSession implements EventLogSource {
             auditLog.info("localAgentSetupDir", verdict);
             return changed();
         }
-        setupDir = e.dir();
+        setupDirRef = e.dirRef();
+        setupDirShown = e.dirShown();
         auditLog.info("localAgentSetupDir", "CHOSEN").info("running", running());
         if (running()) {
             newChatOffered = true;
@@ -849,8 +851,8 @@ public class LocalAgentSession implements EventLogSource {
     }
 
     /** The set-up directory, for the frame's working-directory read (it renders this; it decides nothing). */
-    public String setupDirectory() {
-        return setupDir;
+    public long setupDirectory() {
+        return setupDirRef;
     }
 
     /** Whether a Claude Code process runs now — what a held project switch is decided on. */
@@ -1347,7 +1349,7 @@ public class LocalAgentSession implements EventLogSource {
                     admittedGeneration(), headerRef, headerRevision, detailRef, stderrRef, bindingElapsedMs, spent(),
                     budgetMicros, costUnderReported, newChatOffered, resumable && sessionId != null, pendingDraft,
                     entries, answer, posture, personServers, billing, armedWhy, consentPosture,
-                    new LocalAgentState.Extra(setupDir, unknownEvents, unclassifiedCommands, droppedLines, turns, trimmed));
+                    new LocalAgentState.Extra(setupDirRef, setupDirShown, unknownEvents, unclassifiedCommands, droppedLines, turns, trimmed));
             dirty = false;
         }
         return published;

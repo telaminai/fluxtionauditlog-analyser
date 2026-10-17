@@ -43,8 +43,9 @@ public class OnboardingProposal implements EventLogSource {
     // node-local state (not final: a final field is constructor-mapped by the generator)
     private int counter;
     private String id;
-    private String summary = "";
-    private String setupDir;
+    private long summaryRef;
+    private long setupDirRef;
+    private String setupDirShown;
     private boolean projectExists;
     private boolean previewed;
     private List<ProposalState.Item> items = new ArrayList<>();
@@ -96,8 +97,9 @@ public class OnboardingProposal implements EventLogSource {
         counter++;
         id = "p-" + counter;
         itemAnswers = new LinkedHashMap<>();
-        summary = e.summary() == null ? "" : e.summary();
-        setupDir = null;
+        summaryRef = e.summaryRef();
+        setupDirRef = 0;
+        setupDirShown = null;
         projectExists = false;
         previewed = false;
         create = "NONE";
@@ -118,11 +120,11 @@ public class OnboardingProposal implements EventLogSource {
             if (why == null) {
                 if ("processor".equals(f.kind())) processor = true;
                 if ("logToOpen".equals(f.kind())) log = true;
-                seen.add(f.kind() + "\u0000" + (f.path() == null ? f.className() : f.path()));
-                toPreview.add(new SessionEffects.ProposalItemRef(itemId, f.kind(), f.path(), f.className()));
+                seen.add(key(f));
+                toPreview.add(new SessionEffects.ProposalItemRef(itemId, f.kind(), f.pathRef(), f.classNameRef()));
             }
-            items.add(new ProposalState.Item(itemId, KINDS.contains(f.kind()) ? f.kind() : "unknown", f.path(),
-                    f.className(), f.reason(), why == null ? ProposalState.ItemState.CHECKING
+            items.add(new ProposalState.Item(itemId, KINDS.contains(f.kind()) ? f.kind() : "unknown", f.pathRef(),
+                    f.classNameRef(), f.reasonRef(), why == null ? ProposalState.ItemState.CHECKING
                     : ProposalState.ItemState.REFUSED, why == null ? "" : "REFUSED", why));
         }
         // nothing is ever applied on receipt: CHECKING until the analyser's own preview answers
@@ -149,19 +151,22 @@ public class OnboardingProposal implements EventLogSource {
             return "unknown kind '" + (f.kind() == null ? "" : f.kind()) + "'";
         }
         if (f.tooLong()) return "a field is over its length (path 1024, className 300, reason 500)";
-        if (f.reason() == null) return "the item has no reason";
+        if (!f.hasReason()) return "the item has no reason";
         if ("processor".equals(f.kind())) {
-            if (f.className() == null && f.path() == null) return "a processor item needs className or path";
-            if (f.className() != null && f.classNameMalformed()) return "className is not a Java qualified name";
+            if (!f.hasClassName() && !f.hasPath()) return "a processor item needs className or path";
+            if (f.hasClassName() && f.classNameMalformed()) return "className is not a Java qualified name";
             if (processorTaken) return "a second processor item (one processor per proposal)";
-        } else if (f.path() == null) {
+        } else if (!f.hasPath()) {
             return "a " + f.kind() + " item needs a path";
         }
         if ("logToOpen".equals(f.kind()) && logTaken) return "a second logToOpen item (one log per proposal)";
-        if (seen.contains(f.kind() + "\u0000" + (f.path() == null ? f.className() : f.path()))) {
-            return "a duplicate of an earlier item";
-        }
+        if (seen.contains(key(f))) return "a duplicate of an earlier item";
         return null;
+    }
+
+    /** What makes two items the same: the kind, and the path's digest (else the class name's) — never the words. */
+    private static String key(SessionEvents.ProposalItemFact f) {
+        return f.kind() + "\u0000" + (f.hasPath() ? f.pathDigest() : f.classNameDigest());
     }
 
     // ---- the preview ----------------------------------------------------------------------------------------------------
@@ -190,7 +195,8 @@ public class OnboardingProposal implements EventLogSource {
             } else {
                 s = ProposalState.ItemState.PENDING;
             }
-            items.set(i, new ProposalState.Item(x.id(), x.kind(), x.path(), x.className(), x.reason(), s, e.verdict(), why));
+            items.set(i, new ProposalState.Item(x.id(), x.kind(), x.pathRef(), x.classNameRef(), x.reasonRef(), s,
+                    e.verdict(), why));
             return changed();
         }
         return false;
@@ -203,12 +209,13 @@ public class OnboardingProposal implements EventLogSource {
         for (int i = 0; i < items.size(); i++) {
             ProposalState.Item x = items.get(i);
             if (x.state() == ProposalState.ItemState.CHECKING) {
-                items.set(i, new ProposalState.Item(x.id(), x.kind(), x.path(), x.className(), x.reason(),
+                items.set(i, new ProposalState.Item(x.id(), x.kind(), x.pathRef(), x.classNameRef(), x.reasonRef(),
                         ProposalState.ItemState.REFUSED, "UNKNOWN", "the analyser could not check it"));
             }
         }
         previewed = true;
-        setupDir = e.setupDir();
+        setupDirRef = e.setupDirRef();
+        setupDirShown = e.setupDirShown();
         projectExists = e.projectExists();
         create = e.projectExists() ? "NONE" : "PENDING";
         auditLog.info("proposalPreviewed", id).info("pending", count(ProposalState.ItemState.PENDING))
@@ -349,9 +356,9 @@ public class OnboardingProposal implements EventLogSource {
         }
         String q = queue.get(0);
         SessionEffects.ProposalItemRef ref = "create".equals(q)
-                ? new SessionEffects.ProposalItemRef("create", "createProject", setupDir, null)
+                ? new SessionEffects.ProposalItemRef("create", "createProject", 0, 0)
                 : toRef(item(q));
-        effects.request(new SessionEffects.ApplyProposalItemEffect(0L, id, ref, setupDir));
+        effects.request(new SessionEffects.ApplyProposalItemEffect(0L, id, ref, setupDirRef));
     }
 
     /** True while the analyser's OWN create is being applied — never a switch the person must be asked about (§5.6 step 7). */
@@ -360,7 +367,7 @@ public class OnboardingProposal implements EventLogSource {
     }
 
     private static SessionEffects.ProposalItemRef toRef(ProposalState.Item x) {
-        return new SessionEffects.ProposalItemRef(x.id(), x.kind(), x.path(), x.className());
+        return new SessionEffects.ProposalItemRef(x.id(), x.kind(), x.pathRef(), x.classNameRef());
     }
 
     private ProposalState.Item item(String itemId) {
@@ -375,7 +382,7 @@ public class OnboardingProposal implements EventLogSource {
     }
 
     private static ProposalState.Item with(ProposalState.Item x, ProposalState.ItemState s, String why) {
-        return new ProposalState.Item(x.id(), x.kind(), x.path(), x.className(), x.reason(), s, x.verdict(), why);
+        return new ProposalState.Item(x.id(), x.kind(), x.pathRef(), x.classNameRef(), x.reasonRef(), s, x.verdict(), why);
     }
 
     private long count(ProposalState.ItemState s) {
@@ -394,8 +401,8 @@ public class OnboardingProposal implements EventLogSource {
 
     public ProposalState state() {
         if (dirty) {
-            published = new ProposalState(id, summary, setupDir, projectExists, previewed, items, create, applying,
-                    pairing, fit, answers);
+            published = new ProposalState(id, summaryRef, setupDirRef, setupDirShown, projectExists, previewed, items,
+                    create, applying, pairing, fit, answers);
             dirty = false;
         }
         return published;

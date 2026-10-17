@@ -125,6 +125,9 @@ public final class MainFrame extends JFrame {
             return null;
         }
     };
+    /** M74 (R6): the words and folders facts name by reference — resolved here when an effect is performed or rendered. */
+    private final telamin.fluxtion.audit.analyser.analyser.session.FactRefs factRefs =
+            new telamin.fluxtion.audit.analyser.analyser.session.FactRefs();
     /** The hosted bridge's per-generation credentials; the action server maps them, the adapter mints and revokes. */
     private final telamin.fluxtion.audit.analyser.analyser.net.HostedCredentials hostedCredentials =
             new telamin.fluxtion.audit.analyser.analyser.net.HostedCredentials();
@@ -4987,7 +4990,7 @@ public final class MainFrame extends JFrame {
     private Path localAgentDirectory() {
         // M74 P2b (§5.6 step 1): the set-up folder the person chose, held by localAgentSession for this run — rendered
         // from its state, never decided here
-        String setup = session == null ? null : sessionSnapshot().localAgent().extra().setupDir();
+        String setup = session == null ? null : factRefs.get(sessionSnapshot().localAgent().extra().setupDirRef());
         if (setup != null) return Path.of(setup);
         // OD-74.22: the sample project and a bundle's working copy are the analyser's own folders, never one Claude Code
         // is started in — the session works in the scratch folder instead and reads the evidence through the verbs
@@ -8439,8 +8442,9 @@ public final class MainFrame extends JFrame {
                 yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExampleEffectStarted(e.opId(), e.request(), "discard");
             }
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.OfferExampleProjectEffect e -> {
-                Path root = Path.of(e.root());
-                SwingUtilities.invokeLater(() -> exampleProjectOffer.accept(root));   // M73's offer: the person confirms
+                String rootText = factRefs.get(e.rootRef());
+                Path root = rootText == null ? null : Path.of(rootText);
+                if (root != null) SwingUtilities.invokeLater(() -> exampleProjectOffer.accept(root));   // M73's offer
                 yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExampleEffectStarted(e.opId(), e.request(), "offer");
             }
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ShowStatusEffect e -> {
@@ -11466,14 +11470,7 @@ public final class MainFrame extends JFrame {
                 return;
             }
             long request = ++proposalRequest;
-            java.util.List<telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProposalItemFact> items =
-                    new java.util.ArrayList<>();
-            for (var i : call.items()) {
-                items.add(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProposalItemFact(i.kind(),
-                        i.path(), i.className(), i.reason(), i.tooLong(), i.classNameMalformed()));
-            }
-            session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProposalReceived(request,
-                    generation, call.summary(), items));
+            session().post(proposalFact(request, generation, call, factRefs));
             out.set(proposeAnswer(sessionSnapshot().proposal(), request));
         };
         try {
@@ -11483,6 +11480,23 @@ public final class MainFrame extends JFrame {
             return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("propose failed: " + rootMessage(e));
         }
         return out.get();
+    }
+
+    /**
+     * R6 (spec §4.1): the propose call as a FACT — Claude's kind per item, and its words (the summary, each item's path,
+     * class name and reason) by reference into {@code refs}, with digests to compare them by. The session record then
+     * holds no model words and no path; the node keeps the references, the review dialog resolves them.
+     */
+    public static telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProposalReceived proposalFact(long request, long generation,
+            telamin.fluxtion.audit.analyser.analyser.llm.ProposeShape.Call call, telamin.fluxtion.audit.analyser.analyser.session.FactRefs refs) {
+        java.util.List<telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProposalItemFact> items = new java.util.ArrayList<>();
+        for (var i : call.items()) {
+            items.add(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProposalItemFact(i.kind(), refs.put(i.path()),
+                    telamin.fluxtion.audit.analyser.analyser.session.LocalAgentPosture.digest(i.path()), refs.put(i.className()),
+                    telamin.fluxtion.audit.analyser.analyser.session.LocalAgentPosture.digest(i.className()), refs.put(i.reason()), i.tooLong(),
+                    i.classNameMalformed()));
+        }
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProposalReceived(request, generation, refs.put(call.summary()), items);
     }
 
     /** The verb's reply from the node's answer: the offer's id and each item's state, and that nothing was applied. */
@@ -11513,16 +11527,23 @@ public final class MainFrame extends JFrame {
     private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result previewProposal(
             telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.PreviewProposalEffect e) {
         Path dir = localAgentDirectory();
-        Background.run(() -> ProposalPreview.check(dir, e.items(), fqn -> sourceService.sourceForFqn(fqn).isPresent()),
+        // R6: the effect names Claude's words by reference; they are resolved here, where the analyser checks them
+        java.util.List<ProposalPreview.Item> items = new java.util.ArrayList<>();
+        for (var i : e.items()) {
+            items.add(new ProposalPreview.Item(i.itemId(), i.kind(), factRefs.get(i.pathRef()), factRefs.get(i.classNameRef())));
+        }
+        long dirRef = dir == null ? 0 : factRefs.put(dir.toString());
+        String dirShown = dir == null ? null : telamin.fluxtion.audit.analyser.analyser.session.FactWords.shown(dir.toString());
+        Background.run(() -> ProposalPreview.check(dir, items, fqn -> sourceService.sourceForFqn(fqn).isPresent()),
                 checked -> {
                     for (var c : checked) session().post(c.withProposal(e.proposalId()));
                     boolean exists = dir != null && Files.exists(
                             telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.pathFor(dir));
                     session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProposalPreviewDone(
-                            e.proposalId(), dir == null ? null : dir.toString(), exists));
+                            e.proposalId(), dirRef, dirShown, exists));
                 },
                 err -> session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProposalPreviewDone(
-                        e.proposalId(), dir == null ? null : dir.toString(), false)));
+                        e.proposalId(), dirRef, dirShown, false)));
         return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProposalEffectStarted(e.opId(),
                 e.proposalId(), "preview");
     }
@@ -11534,9 +11555,11 @@ public final class MainFrame extends JFrame {
     private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result applyProposalItem(
             telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ApplyProposalItemEffect e) {
         SwingUtilities.invokeLater(() -> {
-            String[] outcome = applyProposalItemNow(e.item(), e.setupDir());
+            String[] outcome = applyProposalItemNow(e.item(), factRefs.get(e.setupDirRef()));
+            // R6: the analyser's own words, with any absolute path it named shown as …/name
             session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProposalItemApplied(0L,
-                    e.proposalId(), e.item().itemId(), outcome[0], outcome[1]));
+                    e.proposalId(), e.item().itemId(), outcome[0],
+                    telamin.fluxtion.audit.analyser.analyser.session.FactWords.withoutPaths(outcome[1])));
         });
         return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProposalEffectStarted(e.opId(),
                 e.proposalId(), "apply:" + e.item().itemId());
@@ -11547,7 +11570,9 @@ public final class MainFrame extends JFrame {
                                           String setupDir) {
         try {
             Path base = setupDir == null ? null : Path.of(setupDir);
-            Path at = item.path() == null || base == null ? null : base.resolve(item.path()).normalize();
+            String itemPath = factRefs.get(item.pathRef());
+            String itemClass = factRefs.get(item.classNameRef());
+            Path at = itemPath == null || base == null ? null : base.resolve(itemPath).normalize();
             switch (item.kind()) {
                 case "createProject" -> {
                     // M73's person path: an EMPTY project in the set-up folder — one write, never overwriting
@@ -11572,7 +11597,7 @@ public final class MainFrame extends JFrame {
                     return new String[]{"APPLIED", ""};
                 }
                 case "processor" -> {
-                    String fqn = item.className() != null ? item.className() : ProposalPreview.fqnOf(at);
+                    String fqn = itemClass != null ? itemClass : ProposalPreview.fqnOf(at);
                     if (fqn == null) return new String[]{"REFUSED", "the processor's class name could not be read"};
                     var r = actionControl.selectProcessor(fqn);      // the Project panel's own processor choice
                     refreshProjectPanel();
@@ -11618,8 +11643,13 @@ public final class MainFrame extends JFrame {
     private void reviewProposal(String proposalId) {
         var p = sessionSnapshot().proposal();
         if (!proposalId.equals(p.id())) return;
-        var answer = ProposalReviewDialog.show(SwingUtilities.getWindowAncestor(localAgentPanel), p);
+        var answer = ProposalReviewDialog.show(SwingUtilities.getWindowAncestor(localAgentPanel), p, factRefs::get);
         if (answer == null) return;                 // closed: nothing answered, the banner stays
+        // scorecard R5: every row's answer, Yes and No, as its own fact — then Apply chosen
+        for (var row : answer.rows().entrySet()) {
+            session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProposalItemAnswered(
+                    proposalId, row.getKey(), row.getValue()));
+        }
         session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProposalApplyRequested(
                 proposalId, answer.yes(), answer.createProject()));
     }
@@ -11634,7 +11664,7 @@ public final class MainFrame extends JFrame {
         fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
         if (fc.showOpenDialog(this) != JFileChooser.APPROVE_OPTION) {
             session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentSetupDirectoryChosen(
-                    request, null, null));
+                    request, 0, null, null));
             session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StartPageFlowDone(request,
                     telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FlowOutcome.CANCELLED, 0, 0, 0));
             return;
@@ -11644,8 +11674,9 @@ public final class MainFrame extends JFrame {
         var verdict = telamin.fluxtion.audit.analyser.analyser.assistant.localagent.LocalAgentConsents.setupVerdict(
                 Path.of(real), Path.of(System.getProperty("user.home")),
                 telamin.fluxtion.audit.analyser.bundle.EvidenceBundle::isWorkingCopy);
+        // R6: the folder by reference and as …/name — no absolute path in the session record
         session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentSetupDirectoryChosen(
-                request, real, verdict));
+                request, factRefs.put(real), telamin.fluxtion.audit.analyser.analyser.session.FactWords.shown(real), verdict));
         session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StartPageFlowDone(request,
                 verdict == telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FolderVerdict.OK
                         ? telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FlowOutcome.DONE
@@ -11694,12 +11725,14 @@ public final class MainFrame extends JFrame {
             Path target = exampleConfirm.ask(e.source(), e.thirdParty(), suggested);
             if (target == null) {
                 session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExampleDownloadConfirmed(
-                        e.request(), false, null, null));
+                        e.request(), false, 0, null, null));
                 return;
             }
             Path abs = target.toAbsolutePath().normalize();
             session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExampleDownloadConfirmed(
-                    e.request(), true, abs.toString(), ExampleDownloadDialog.targetProblem(abs)));
+                    e.request(), true, factRefs.put(abs.toString()),
+                    telamin.fluxtion.audit.analyser.analyser.session.FactWords.shown(abs.toString()),
+                    ExampleDownloadDialog.targetProblem(abs)));
         });
         return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExampleEffectStarted(e.opId(), e.request(), "confirm");
     }
@@ -11717,10 +11750,12 @@ public final class MainFrame extends JFrame {
                         e.request(), true, ref, fetched.sha256(), fetched.bytes().length, null));
             } else {
                 session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExampleFetched(
-                        e.request(), false, 0, null, 0, fetched.failure()));
+                        e.request(), false, 0, null, 0,
+                        telamin.fluxtion.audit.analyser.analyser.session.FactWords.withoutPaths(fetched.failure())));
             }
         }, err -> session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExampleFetched(
-                e.request(), false, 0, null, 0, rootMessage(err))));
+                e.request(), false, 0, null, 0,
+                telamin.fluxtion.audit.analyser.analyser.session.FactWords.withoutPaths(rootMessage(err)))));
         return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExampleEffectStarted(e.opId(), e.request(), "fetch");
     }
 
@@ -11728,18 +11763,22 @@ public final class MainFrame extends JFrame {
     private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result unpackExample(
             telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.UnpackExampleEffect e) {
         byte[] bytes = exampleBytes.get(e.bytesRef());
-        Path target = Path.of(e.targetDir());
+        String targetText = factRefs.get(e.targetRef());
+        Path target = targetText == null ? null : Path.of(targetText);
         Background.run(() -> {
             if (bytes == null) throw new IllegalStateException("the downloaded archive is no longer held");
+            if (target == null) throw new IllegalStateException("the chosen folder is no longer held");
             try {
                 return telamin.fluxtion.audit.analyser.analyser.template.TemplateArchive.forExamples().install(bytes, target);
             } catch (java.io.IOException ex) {
                 throw new java.io.UncheckedIOException(ex);
             }
         }, installed -> session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExampleUnpacked(
-                e.request(), true, installed.projectRoot().toString(), null)),
+                e.request(), true, factRefs.put(installed.projectRoot().toString()),
+                telamin.fluxtion.audit.analyser.analyser.session.FactWords.shown(installed.projectRoot().toString()), null)),
                 err -> session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExampleUnpacked(
-                        e.request(), false, null, rootMessage(err))));
+                        e.request(), false, 0, null,
+                        telamin.fluxtion.audit.analyser.analyser.session.FactWords.withoutPaths(rootMessage(err)))));
         return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExampleEffectStarted(e.opId(), e.request(), "unpack");
     }
 

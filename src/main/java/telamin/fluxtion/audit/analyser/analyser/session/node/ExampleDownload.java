@@ -37,6 +37,9 @@ public class ExampleDownload implements EventLogSource {
     private long request;
     private ExampleSource source;
     private String target;
+    /** R6: the chosen folder and the unpacked root by reference (the frame resolves them); facts carry no path. */
+    private long targetRef;
+    private long rootRef;
     private long bytesRef;
     private String note = "";
     private String root;
@@ -61,6 +64,8 @@ public class ExampleDownload implements EventLogSource {
         }
         request = e.request();
         root = null;
+        rootRef = 0;
+        targetRef = 0;
         bytesRef = 0;
         target = null;
         ExampleSource s = e.source();
@@ -91,13 +96,14 @@ public class ExampleDownload implements EventLogSource {
             auditLog.info("example", "CANCELLED");
             return changed();
         }
-        if (e.targetDir() == null || e.targetProblem() != null) {
+        if (e.targetRef() == 0 || e.targetProblem() != null) {
             phase = "REFUSED";
             note = "Nothing was downloaded: " + targetWords(e.targetProblem()) + ".";
             auditLog.info("exampleRefused", String.valueOf(e.targetProblem()));
             return changed();
         }
-        target = e.targetDir();
+        target = e.targetShown();
+        targetRef = e.targetRef();
         phase = "FETCHING";
         note = "Downloading " + source.publisher() + "…";
         auditLog.info("example", "FETCHING");
@@ -127,7 +133,7 @@ public class ExampleDownload implements EventLogSource {
         phase = "UNPACKING";
         note = "Unpacking into " + target + "…";
         auditLog.info("example", "UNPACKING").info("verified", source.sha256() != null);
-        effects.request(new SessionEffects.UnpackExampleEffect(0L, request, bytesRef, target));
+        effects.request(new SessionEffects.UnpackExampleEffect(0L, request, bytesRef, targetRef));
         return changed();
     }
 
@@ -143,10 +149,11 @@ public class ExampleDownload implements EventLogSource {
             return changed();
         }
         phase = "DONE";
-        root = e.root();
+        root = e.rootShown();
+        rootRef = e.rootRef();
         note = "Unpacked " + source.publisher() + " — nothing was built or run. Confirm the project to open it.";
         auditLog.info("example", "DONE");
-        effects.request(new SessionEffects.OfferExampleProjectEffect(0L, request, root));
+        effects.request(new SessionEffects.OfferExampleProjectEffect(0L, request, rootRef));
         return changed();
     }
 

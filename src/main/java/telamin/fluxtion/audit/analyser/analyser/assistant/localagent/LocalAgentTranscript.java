@@ -22,9 +22,7 @@ public final class LocalAgentTranscript {
     public static final int MAX_CHARS = 2_000_000;
     public static final String TRIMMED = "[trimmed: the conversation store is bounded]";
 
-    public enum Kind { USER, ANSWER, DETAIL, STDERR,
-        /** P2b's proposal words (Claude's summary, an item's reason, path or class name) and a chosen folder (R6). */
-        PROPOSAL, PATH }
+    public enum Kind { USER, ANSWER, DETAIL, STDERR }
 
     /**
      * P3 (§5.7): one {@code can_use_tool} request's words, for the dialog — the tool's name as the CLI sent it, its MCP

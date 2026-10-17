@@ -15,12 +15,22 @@ class OnboardingProposalTest {
 
     static final String SETUP = "/work/medmon";
 
+    /** R6: Claude's words reach a fact only by reference; the test keeps them as the frame would. */
+    static final FactRefs REFS = new FactRefs();
+
+    /** An item as the frame makes its fact (MainFrame.proposalFact): words by reference, digests to compare by. */
+    static SessionEvents.ProposalItemFact fact(String kind, String path, String className, String reason, boolean tooLong,
+                                               boolean malformed) {
+        return new SessionEvents.ProposalItemFact(kind, REFS.put(path), LocalAgentPosture.digest(path), REFS.put(className),
+                LocalAgentPosture.digest(className), REFS.put(reason), tooLong, malformed);
+    }
+
     static SessionEvents.ProposalItemFact item(String kind, String path) {
-        return new SessionEvents.ProposalItemFact(kind, path, null, "because DEMO", false, false);
+        return fact(kind, path, null, "because DEMO", false, false);
     }
 
     static SessionEvents.ProposalItemFact processor(String className) {
-        return new SessionEvents.ProposalItemFact("processor", null, className, "the DEMO processor", false, false);
+        return fact("processor", null, className, "the DEMO processor", false, false);
     }
 
     /** A bound, posture-checked session: its generation is admitted, so a hosted propose of it is taken. */
@@ -42,7 +52,7 @@ class OnboardingProposalTest {
         for (var i : preview.items()) {
             d.post(new SessionEvents.ProposalItemPreviewed(preview.proposalId(), i.itemId(), "READABLE", false, null));
         }
-        d.post(new SessionEvents.ProposalPreviewDone(preview.proposalId(), SETUP, projectExists));
+        d.post(new SessionEvents.ProposalPreviewDone(preview.proposalId(), REFS.put(SETUP), FactWords.shown(SETUP), projectExists));
     }
 
     /**
@@ -56,7 +66,7 @@ class OnboardingProposalTest {
         SessionDriver d = LocalAgentSessionTest.driver(a);
         var start = admitted(d, a);
         int before = a.performed.size();
-        d.post(new SessionEvents.ProposalReceived(1, start.generation(), "DEMO set-up",
+        d.post(new SessionEvents.ProposalReceived(1, start.generation(), REFS.put("DEMO set-up"),
                 List.of(item("sourceRoot", "src/main/java"), item("graphml", "DEMO.graphml"))));
         var effects = a.performed.subList(before, a.performed.size());
         assertEquals(1, effects.size(), "only the preview: " + effects);
@@ -79,11 +89,11 @@ class OnboardingProposalTest {
         FakeSessionAdapter a = new FakeSessionAdapter();
         SessionDriver d = LocalAgentSessionTest.driver(a);
         var start = admitted(d, a);
-        d.post(new SessionEvents.ProposalReceived(1, start.generation(), "", List.of(
+        d.post(new SessionEvents.ProposalReceived(1, start.generation(), REFS.put(""), List.of(
                 item("bogus", "x"),                                                                  // 1 unknown kind
                 item("graphml", null),                                                               // 2 no path
-                new SessionEvents.ProposalItemFact("runbook", "r.md", null, "r", true, false),       // 3 too long
-                new SessionEvents.ProposalItemFact("processor", null, "not a name!", "r", false, true), // 4 malformed
+                fact("runbook", "r.md", null, "r", true, false),       // 3 too long
+                fact("processor", null, "not a name!", "r", false, true), // 4 malformed
                 processor("com.acme.DemoProcessor"),                                                  // 5 ok
                 processor("com.acme.Other"),                                                          // 6 second processor
                 item("sourceRoot", "src"),                                                            // 7 ok
@@ -108,7 +118,7 @@ class OnboardingProposalTest {
         d.post(new SessionEvents.ProposalItemPreviewed("p-1", "p-1.5", "RESOLVES", false, null));
         d.post(new SessionEvents.ProposalItemPreviewed("p-1", "p-1.7", "OUTSIDE", true, null));
         d.post(new SessionEvents.ProposalItemPreviewed("p-1", "p-1.9", "NOT_FOUND", false, "NOT_FOUND"));
-        d.post(new SessionEvents.ProposalPreviewDone("p-1", SETUP, true));
+        d.post(new SessionEvents.ProposalPreviewDone("p-1", REFS.put(SETUP), FactWords.shown(SETUP), true));
         items = proposal(d).items();
         assertEquals(ProposalState.ItemState.OUTSIDE, items.get(6).state());
         assertFalse(items.get(6).applicable(), "an outside item is never applicable");
@@ -126,8 +136,8 @@ class OnboardingProposalTest {
         FakeSessionAdapter a = new FakeSessionAdapter();
         SessionDriver d = LocalAgentSessionTest.driver(a);
         var start = admitted(d, a);
-        d.post(new SessionEvents.ProposalReceived(1, start.generation(), "", List.of(item("sourceRoot", "src"))));
-        d.post(new SessionEvents.ProposalReceived(2, start.generation(), "", List.of(item("graphml", "g.graphml"))));
+        d.post(new SessionEvents.ProposalReceived(1, start.generation(), REFS.put(""), List.of(item("sourceRoot", "src"))));
+        d.post(new SessionEvents.ProposalReceived(2, start.generation(), REFS.put(""), List.of(item("graphml", "g.graphml"))));
         var second = proposal(d).answers().get(2L);
         assertFalse(second.accepted());
         assertTrue(second.refusal().contains("already waiting"), second.refusal());
@@ -145,7 +155,7 @@ class OnboardingProposalTest {
         FakeSessionAdapter a = new FakeSessionAdapter();
         SessionDriver d = LocalAgentSessionTest.driver(a);
         var start = admitted(d, a);
-        d.post(new SessionEvents.ProposalReceived(1, start.generation() + 7, "", List.of(item("sourceRoot", "src"))));
+        d.post(new SessionEvents.ProposalReceived(1, start.generation() + 7, REFS.put(""), List.of(item("sourceRoot", "src"))));
         assertFalse(proposal(d).answers().get(1L).accepted());
         assertFalse(proposal(d).exists());
         assertTrue(a.proposalPreviews.isEmpty());
@@ -162,7 +172,7 @@ class OnboardingProposalTest {
         FakeSessionAdapter a = new FakeSessionAdapter();
         SessionDriver d = LocalAgentSessionTest.driver(a);
         var start = admitted(d, a);
-        d.post(new SessionEvents.ProposalReceived(1, start.generation(), "", List.of(
+        d.post(new SessionEvents.ProposalReceived(1, start.generation(), REFS.put(""), List.of(
                 item("logToOpen", "logs/demo.log"), item("graphml", "DEMO.graphml"), item("runbook", "RUNBOOK.md"),
                 processor("com.acme.DemoProcessor"), item("sourceRoot", "src/main/java"), item("sourceRoot", "lib"))));
         previewAll(d, a, false);
@@ -172,7 +182,7 @@ class OnboardingProposalTest {
         assertEquals(List.of("create", "p-1.5", "p-1.4", "p-1.3", "p-1.2", "p-1.1"),
                 a.proposalApplies.stream().map(x -> x.item().itemId()).toList(),
                 "create, source roots, processor, runbooks, GraphML, log");
-        assertEquals(SETUP, a.proposalApplies.get(0).setupDir());
+        assertEquals(SETUP, REFS.get(a.proposalApplies.get(0).setupDirRef()));
         var p = proposal(d);
         assertEquals("APPLIED", p.create());
         assertEquals(ProposalState.ItemState.DECLINED, p.items().get(5).state(), "the item left at No");
@@ -188,7 +198,7 @@ class OnboardingProposalTest {
         FakeSessionAdapter a = new FakeSessionAdapter();
         SessionDriver d = LocalAgentSessionTest.driver(a);
         var start = admitted(d, a);
-        d.post(new SessionEvents.ProposalReceived(1, start.generation(), "", List.of(item("sourceRoot", "src"),
+        d.post(new SessionEvents.ProposalReceived(1, start.generation(), REFS.put(""), List.of(item("sourceRoot", "src"),
                 item("graphml", "DEMO.graphml"))));
         previewAll(d, a, false);
         d.post(new SessionEvents.ProposalApplyRequested("p-1", List.of("p-1.1", "p-1.2"), false));
@@ -205,8 +215,8 @@ class OnboardingProposalTest {
         FakeSessionAdapter a = new FakeSessionAdapter();
         SessionDriver d = LocalAgentSessionTest.driver(a);
         var start = admitted(d, a);
-        d.post(new SessionEvents.ProposalReceived(1, start.generation(), "SUMMARY-MARKER", List.of(
-                new SessionEvents.ProposalItemFact("sourceRoot", "PATH-MARKER", null, "REASON-MARKER", false, false))));
+        d.post(new SessionEvents.ProposalReceived(1, start.generation(), REFS.put("SUMMARY-MARKER"), List.of(
+                fact("sourceRoot", "PATH-MARKER", null, "REASON-MARKER", false, false))));
         previewAll(d, a, true);
         String rows = proposal(d).contextRows().toString();
         assertTrue(rows.contains("p-1.1") && rows.contains("sourceRoot") && rows.contains("pending") && rows.contains("READABLE"), rows);
@@ -225,7 +235,7 @@ class OnboardingProposalTest {
         FakeSessionAdapter a = new FakeSessionAdapter();
         SessionDriver d = LocalAgentSessionTest.driver(a);
         var start = admitted(d, a);
-        d.post(new SessionEvents.ProposalReceived(1, start.generation(), "", List.of(item("sourceRoot", "src"),
+        d.post(new SessionEvents.ProposalReceived(1, start.generation(), REFS.put(""), List.of(item("sourceRoot", "src"),
                 item("graphml", "DEMO.graphml"))));
         previewAll(d, a, false);
         // the apply's create effect is answered by the performer's real path: a person's CREATE request
@@ -235,7 +245,7 @@ class OnboardingProposalTest {
         var b = new FakeSessionAdapter();
         SessionDriver e = LocalAgentSessionTest.driver(b);
         var s2 = admitted(e, b);
-        e.post(new SessionEvents.ProposalReceived(1, s2.generation(), "", List.of(item("sourceRoot", "src"))));
+        e.post(new SessionEvents.ProposalReceived(1, s2.generation(), REFS.put(""), List.of(item("sourceRoot", "src"))));
         previewAll(e, b, false);
         b.holdApplies = true;
         e.post(new SessionEvents.ProposalApplyRequested("p-1", List.of("p-1.1"), true));

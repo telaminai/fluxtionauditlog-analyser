@@ -22,8 +22,18 @@ public final class ProposalReviewDialog {
     private ProposalReviewDialog() {
     }
 
-    /** The person's answers: the item ids answered Yes, and the create row. */
-    public record Answer(List<String> yes, boolean createProject) {
+    /**
+     * The person's answers: the item ids answered Yes, the create row, and (scorecard R5) EVERY row's answer — Yes or No,
+     * by item id, {@code create} for the create row — so each is posted as its own fact.
+     */
+    public record Answer(List<String> yes, boolean createProject, Map<String, Boolean> rows) {
+        public Answer(List<String> yes, boolean createProject) {
+            this(yes, createProject, Map.of());
+        }
+
+        public Answer {
+            rows = Map.copyOf(rows == null ? Map.of() : rows);
+        }
     }
 
     /** The review's content, separable from the dialog for the tests. */
@@ -37,8 +47,14 @@ public final class ProposalReviewDialog {
 
         Answer answer() {
             List<String> ids = new ArrayList<>();
-            for (var e : yes.entrySet()) if (e.getValue().isSelected() && e.getValue().isEnabled()) ids.add(e.getKey());
-            return new Answer(ids, createYes != null && createYes.isSelected());
+            Map<String, Boolean> rows = new LinkedHashMap<>();
+            if (createYes != null) rows.put("create", createYes.isSelected());
+            for (var e : yes.entrySet()) {
+                boolean y = e.getValue().isSelected() && e.getValue().isEnabled();
+                if (y) ids.add(e.getKey());
+                rows.put(e.getKey(), y);
+            }
+            return new Answer(ids, createYes != null && createYes.isSelected(), rows);
         }
     }
 
@@ -46,7 +62,8 @@ public final class ProposalReviewDialog {
         return !"logToOpen".equals(kind) && !"graphml".equals(kind);
     }
 
-    static Content content(ProposalState p) {
+    /** {@code words} resolves Claude's words by reference (the transcript store): the summary, a path, a reason (R6). */
+    static Content content(java.util.function.LongFunction<String> words, ProposalState p) {
         Content c = new Content();
         JPanel rows = new JPanel(new GridBagLayout());
         GridBagConstraints g = new GridBagConstraints();
@@ -68,7 +85,7 @@ public final class ProposalReviewDialog {
             g.gridx = 1;
             rows.add(UiText.label("create a project"), g);
             g.gridx = 2;
-            rows.add(UiText.label(p.setupDir() == null ? "" : LocalAgentPanel.shortFolder(p.setupDir())), g);
+            rows.add(UiText.label(p.setupDirShown() == null ? "" : p.setupDirShown()), g);
             g.gridx = 3;
             rows.add(UiText.label("the analyser's own offer: an empty project here (New project…)"), g);
             g.gridx = 4;
@@ -94,7 +111,8 @@ public final class ProposalReviewDialog {
             g.gridx = 1;
             rows.add(UiText.label(i.kind()), g);
             g.gridx = 2;
-            String where = i.path() != null ? i.path() : i.className() != null ? i.className() : "";
+            String where = i.pathRef() != 0 ? words.apply(i.pathRef()) : i.classNameRef() != 0
+                    ? words.apply(i.classNameRef()) : "";
             JLabel path = UiText.label(where.length() > 60 ? "…" + where.substring(where.length() - 59) : where);
             path.setToolTipText(UiText.tooltip(where));
             rows.add(path, g);
@@ -122,7 +140,7 @@ public final class ProposalReviewDialog {
                 c.yes.put(i.id(), y);
                 c.no.put(i.id(), no);
                 if (!p.projectExists() && needsProject(i.kind())) needing.add(y);
-                final String reason = i.reason() == null ? "" : i.reason();
+                final String reason = i.reasonRef() == 0 ? "" : words.apply(i.reasonRef());
                 y.addActionListener(e -> c.reason.setText(reason));
                 no.addActionListener(e -> c.reason.setText(reason));
             } else {
@@ -165,8 +183,8 @@ public final class ProposalReviewDialog {
     }
 
     /** Show the review, modal for the person's own click; null when closed without applying. */
-    public static Answer show(Window owner, ProposalState p) {
-        Content c = content(p);
+    public static Answer show(Window owner, ProposalState p, java.util.function.LongFunction<String> words) {
+        Content c = content(words, p);
         JDialog d = new JDialog(owner, "Review Claude Code's set-up proposal", Dialog.ModalityType.APPLICATION_MODAL);
         JButton close = UiText.button("Close");
         Answer[] result = new Answer[1];

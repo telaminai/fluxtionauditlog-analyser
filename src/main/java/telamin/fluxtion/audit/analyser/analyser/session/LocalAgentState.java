@@ -56,20 +56,22 @@ public record LocalAgentState(AssistantMode mode, long conversation, long genera
     /**
      * M74 P2b's additions, in one component so the earlier shapes keep their constructors.
      *
-     * @param setupDir           the set-up directory chosen for onboarding (§5.6 step 1), held for this run; null for none
+     * @param setupDirRef        the set-up directory chosen for onboarding (§5.6 step 1), held for this run, by reference
+     *                           into the frame's store (R6: no path in a fact or the node); 0 for none
+     * @param setupDirShown      that directory as {@code …/name}, or null
      * @param unknownEvents      §5.2's diagnostics line: stream events of a kind this analyser does not know
      * @param unclassifiedCommands built-in commands the slash table does not classify
      * @param droppedLines       stdout lines over the size cap, dropped
      * @param turns              per answered turn (by ticket): its cost (micro-USD, -1 unknown) and time (ms, -1 unknown)
      * @param trimmed            entries trimmed from the start of this conversation (the node keeps 500)
      */
-    public record Extra(String setupDir, int unknownEvents, int unclassifiedCommands, int droppedLines,
+    public record Extra(long setupDirRef, String setupDirShown, int unknownEvents, int unclassifiedCommands, int droppedLines,
                         java.util.Map<Long, Turn> turns, int trimmed) {
         public Extra {
             turns = java.util.Map.copyOf(turns == null ? java.util.Map.of() : turns);
         }
 
-        public static final Extra NONE = new Extra(null, 0, 0, 0, java.util.Map.of(), 0);
+        public static final Extra NONE = new Extra(0, null, 0, 0, 0, java.util.Map.of(), 0);
 
         /** Whether the diagnostics line shows (only when a count is non-zero). */
         public boolean diagnostics() {

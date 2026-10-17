@@ -26,13 +26,17 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class P2bSurfacesTest {
 
+    /** R6: Claude's words by reference, resolved by the dialog as the frame's store does. */
+    static final telamin.fluxtion.audit.analyser.analyser.session.FactRefs REFS =
+            new telamin.fluxtion.audit.analyser.analyser.session.FactRefs();
+
     static ProposalState proposal(boolean projectExists, ProposalState.Item... items) {
-        return new ProposalState("p-1", "s", "/work/medmon", projectExists, true, List.of(items),
-                projectExists ? "NONE" : "PENDING", false, "", "", Map.of());
+        return new ProposalState("p-1", REFS.put("s"), REFS.put("/work/medmon"), "…/medmon", projectExists, true,
+                List.of(items), projectExists ? "NONE" : "PENDING", false, "", "", Map.of());
     }
 
     static ProposalState.Item item(String id, String kind, ProposalState.ItemState s) {
-        return new ProposalState.Item(id, kind, "path/" + id, null, "REASON " + id, s, "READABLE", "");
+        return new ProposalState.Item(id, kind, REFS.put("path/" + id), 0, REFS.put("REASON " + id), s, "READABLE", "");
     }
 
     /** ★ Witness: a review that starts an item at Yes ({@code new JRadioButton("Yes", true)}) — the all-No assertion fails. */
@@ -40,7 +44,7 @@ class P2bSurfacesTest {
     @DisplayName("★ the review: every answer starts at No; outside or refused items have no Yes; project items wait for Create")
     void theReview() throws Exception {
         StartPromptViewTest.onEdt(() -> {
-            var c = ProposalReviewDialog.content(proposal(false,
+            var c = ProposalReviewDialog.content(REFS::get, proposal(false,
                     item("p-1.1", "sourceRoot", ProposalState.ItemState.PENDING),
                     item("p-1.2", "graphml", ProposalState.ItemState.PENDING),
                     item("p-1.3", "runbook", ProposalState.ItemState.OUTSIDE),
@@ -53,7 +57,9 @@ class P2bSurfacesTest {
             c.createYes.setSelected(true);
             assertTrue(c.yes.get("p-1.1").isEnabled());
             c.yes.get("p-1.1").setSelected(true);
-            assertEquals(new ProposalReviewDialog.Answer(List.of("p-1.1"), true), c.answer());
+            // scorecard R5: every row the person could answer is in the answer, Yes AND No — each becomes its own fact
+            assertEquals(new ProposalReviewDialog.Answer(List.of("p-1.1"), true,
+                    Map.of("create", true, "p-1.1", true, "p-1.2", false)), c.answer());
             c.yes.get("p-1.1").doClick();
             assertEquals("REASON p-1.1", c.reason.getText(), "Claude's reason, in its own labelled box");
             return null;
@@ -89,7 +95,7 @@ class P2bSurfacesTest {
     @Test
     @DisplayName("★ per turn: the time always, the cost only with an API key — never a dollar figure on a Claude plan")
     void perTurnText() {
-        var x = new LocalAgentState.Extra(null, 0, 0, 0, Map.of(4L, new LocalAgentState.Turn(30_000, 4_250)), 0);
+        var x = new LocalAgentState.Extra(0, null, 0, 0, 0, Map.of(4L, new LocalAgentState.Turn(30_000, 4_250)), 0);
         assertEquals("4.3 s · US$0.03", LocalAgentPanel.turnText(withExtra(SessionEvents.Billing.API_KEY, x), 4));
         assertEquals("4.3 s", LocalAgentPanel.turnText(withExtra(SessionEvents.Billing.SUBSCRIPTION, x), 4));
         assertNull(LocalAgentPanel.turnText(withExtra(SessionEvents.Billing.API_KEY, x), 5));
@@ -102,7 +108,7 @@ class P2bSurfacesTest {
         var h = new LocalAgentTranscript.Header("m", "2.1", "", "firstParty", List.of("foo"), "/w", null, List.of(), false,
                 "https://proxy.example:8443");
         String d = LocalAgentPanel.diagnosticsText(withExtra(SessionEvents.Billing.UNKNOWN,
-                new LocalAgentState.Extra(null, 3, 1, 1, Map.of(), 0)), h);
+                new LocalAgentState.Extra(0, null, 3, 1, 1, Map.of(), 0)), h);
         assertEquals("Diagnostics: 3 unknown stream events · 1 command not classified for the analyser (/foo) · 1 line "
                 + "over 16 MB dropped", d);
         assertEquals("requests go to https://proxy.example:8443",

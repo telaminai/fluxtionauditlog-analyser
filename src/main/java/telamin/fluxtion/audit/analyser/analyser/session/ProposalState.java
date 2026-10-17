@@ -8,13 +8,15 @@ import java.util.Map;
  * M74 P2b (spec §5.6): Claude Code's set-up proposal as the {@code onboardingProposal} node decided it. The banner, the
  * review dialog and {@code context.proposals} RENDER this and decide nothing.
  *
- * <p>{@link Item#reason()} is CLAUDE's words, kept for the review dialog's box labelled <i>"Claude's reason —
- * unverified"</i>; {@link #contextRows()} — what an assistant reads — carries ids, kinds, states and the analyser's own
- * verdict words only, never a reason.
+ * <p>Claude's words — the summary, an item's reason, path and class name — are REFERENCES into the transcript store
+ * (R6: no model words in a fact, so none in the node), which the review dialog resolves for its box labelled
+ * <i>"Claude's reason — unverified"</i>; {@link #contextRows()} — what an assistant reads — carries ids, kinds, states
+ * and the analyser's own verdict words only, never a reason.
  *
  * @param id             {@code p-n}, or null when there has been no proposal
- * @param summary        Claude's one-sentence summary (its words), or ""
- * @param setupDir       the set-up directory the items are relative to, once the preview reported it
+ * @param summaryRef     Claude's one-sentence summary, by reference into the transcript store (0 for none)
+ * @param setupDirRef    the set-up directory the items are relative to, by reference, once the preview reported it
+ * @param setupDirShown  that directory as {@code …/name}, or null
  * @param projectExists  the set-up directory already holds a project: no create row
  * @param previewed      every item was checked: the banner may show
  * @param items          the items, in Claude's order
@@ -25,14 +27,18 @@ import java.util.Map;
  * @param fit            the graph–log fit after the last item, or ""
  * @param answers        the node's answer per {@code propose} request (for the verb's reply), the last few
  */
-public record ProposalState(String id, String summary, String setupDir, boolean projectExists, boolean previewed,
+public record ProposalState(String id, long summaryRef, long setupDirRef, String setupDirShown, boolean projectExists,
+                            boolean previewed,
                             List<Item> items, String create, boolean applying, String pairing, String fit,
                             Map<Long, Answer> answers) {
 
     public enum ItemState { CHECKING, PENDING, APPLYING, APPLIED, DECLINED, REFUSED, OUTSIDE, FAILED }
 
-    /** One item: the node's id, what Claude named, its state and the analyser's verdict, and why (refused, failed). */
-    public record Item(String id, String kind, String path, String className, String reason, ItemState state,
+    /**
+     * One item: the node's id, what Claude named (its path, class name and reason by reference; 0 = none), its state and
+     * the analyser's verdict, and why (refused, failed).
+     */
+    public record Item(String id, String kind, long pathRef, long classNameRef, long reasonRef, ItemState state,
                        String verdict, String why) {
         public Item {
             verdict = verdict == null ? "" : verdict;
@@ -50,7 +56,6 @@ public record ProposalState(String id, String summary, String setupDir, boolean 
     }
 
     public ProposalState {
-        summary = summary == null ? "" : summary;
         items = List.copyOf(items == null ? List.of() : items);
         create = create == null ? "NONE" : create;
         pairing = pairing == null ? "" : pairing;
@@ -58,7 +63,7 @@ public record ProposalState(String id, String summary, String setupDir, boolean 
         answers = Map.copyOf(answers == null ? Map.of() : answers);
     }
 
-    public static final ProposalState NONE = new ProposalState(null, "", null, false, false, List.of(), "NONE", false,
+    public static final ProposalState NONE = new ProposalState(null, 0, 0, null, false, false, List.of(), "NONE", false,
             "", "", Map.of());
 
     public boolean exists() {

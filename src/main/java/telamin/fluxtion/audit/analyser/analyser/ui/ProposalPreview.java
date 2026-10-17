@@ -1,6 +1,5 @@
 package telamin.fluxtion.audit.analyser.analyser.ui;
 
-import telamin.fluxtion.audit.analyser.analyser.session.SessionEffects;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents;
 
 import java.io.IOException;
@@ -26,6 +25,10 @@ public final class ProposalPreview {
     private ProposalPreview() {
     }
 
+    /** One item to check, its words resolved from the store by the frame (the effect carries references, R6). */
+    public record Item(String itemId, String kind, String path, String className) {
+    }
+
     /** One checked item, before the proposal id is attached. */
     public record Checked(String itemId, String verdict, boolean outside, String refusal) {
         SessionEvents.ProposalItemPreviewed withProposal(String proposalId) {
@@ -35,14 +38,14 @@ public final class ProposalPreview {
 
     private static final int MAX_COUNT = 10_000;
 
-    public static List<Checked> check(Path setupDir, List<SessionEffects.ProposalItemRef> items, Predicate<String> resolves) {
+    public static List<Checked> check(Path setupDir, List<Item> items, Predicate<String> resolves) {
         List<Checked> out = new ArrayList<>();
         Path base = real(setupDir);
-        for (SessionEffects.ProposalItemRef i : items) out.add(one(base, i, resolves));
+        for (Item i : items) out.add(one(base, i, resolves));
         return out;
     }
 
-    static Checked one(Path base, SessionEffects.ProposalItemRef i, Predicate<String> resolves) {
+    static Checked one(Path base, Item i, Predicate<String> resolves) {
         if ("processor".equals(i.kind()) && i.path() == null) {
             boolean found = i.className() != null && resolves != null && resolves.test(i.className());
             return new Checked(i.itemId(), found ? "RESOLVES (pairing UNKNOWN)" : "NOT_IN_SOURCES", false,

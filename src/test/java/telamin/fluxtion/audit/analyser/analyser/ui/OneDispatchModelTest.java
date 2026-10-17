@@ -495,7 +495,8 @@ class OneDispatchModelTest {
                 "runbooks.put", "addRunbookPointer(")) {
             assertFalse(proposer.contains(forbidden), "the proposer must not call " + forbidden);
         }
-        assertTrue(proposer.contains("ProposalReceived("), "the offer is a fact");
+        assertTrue(proposer.contains("proposalFact("), "the offer is a fact (built by proposalFact, R6)");
+        assertTrue(bodyOf(frame, "proposalFact(long request").contains("ProposalReceived("), "…a ProposalReceived");
         // the person paths are reached from ONE performer: the apply effect's (besides the menus that are their homes)
         assertEquals(1, count(Pattern.compile("PointerDialog\\s*\\.\\s*addRunbookPointer\\("), frame),
                 "the runbook pointer path is called only by the apply performer");
