@@ -52,14 +52,25 @@ flowchart LR
   class E,A evidence;
 ```
 
-The LLM uses its own filesystem and shell tools to work on the project. With an
-[AI client connected](connect-an-llm.md), it uses the analyser's tools to select and
-present evidence in the same window you are viewing. The analyser renders that
-evidence; it does not edit Java, execute runbooks, build a project or deploy a server.
+The LLM uses its own filesystem and shell tools to work on the project, and the
+analyser's tools to select and present evidence in the same window you are viewing.
+The analyser itself renders that evidence: it does not edit Java, execute runbooks,
+build a project or deploy a server.
 
-An AI client with access to both the checkout and analyser can support the whole
-conversation. Connecting a client to the analyser alone gives it the investigation
-surface; building still requires access to the project and build tools.
+Which LLM can do which part:
+
+- **Full Claude Code in the analyser** edits and builds the project with your own Claude Code
+  tools, as far as your permission rules and its mode allow, and the analyser asks you
+  about each request your rules would ask about
+  ([Claude Code in the analyser](inapp/claude-code.md#full-claude-code-your-own-claude-code-by-a-second-opt-in)).
+- **A client in your terminal or IDE** (Claude Code, Codex and similar) edits and builds with its
+  own tools and drives the analyser over MCP ([Connect your client](connect-an-llm.md)).
+- **Safe analysis** in the analyser reads the evidence and the project's files, and can propose the
+  analyser's set-up for the project ([Set up a project with Claude](build/set-up-with-claude.md)).
+  It cannot edit a file or run a command, so it cannot build.
+
+A client connected to the analyser alone has the investigation surface; building still
+needs access to the project and its build tools.
 
 ## Why deterministic execution helps answer “what if?”
 
@@ -202,7 +213,7 @@ The analyser is the LLM's **render engine for the investigation**. The LLM can
 filter and select records, build charts, flag findings, use spotlights to direct
 attention, and assemble [investigation reports](user-guide/reports.md). You can
 click the same points, read the underlying records, follow source links and
-challenge the explanation. See [the shared research canvas](the-loop.md#the-shared-research-canvas).
+challenge the explanation. See [the shared research canvas](build/index.md#the-shared-research-canvas).
 
 A missing node log is not proof that its method did not execute. Nodes must write
 audit output at the active level to appear in the log. Use the analyser's stated

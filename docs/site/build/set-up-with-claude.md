@@ -21,8 +21,9 @@ unverified](../assets/proposal-review.png)
   analyser's check**, wrapped in its own column; Claude's reason is in its own box, labelled *Claude's reason —
   unverified*. An item **outside the set-up folder** (after following links) is shown and
   can never be applied; an item that does not exist, or is the wrong kind of file, is refused with why.
-- **Every answer starts at No.** When the folder has no project, the first row is the analyser's own **Create a project
-  here** (an empty one, through *New project…*'s path); the items that need a project wait for it. **Apply chosen**
+- **Every answer starts at No.** When the folder has no project, the first row is the analyser's own: **create a
+  project**, checked as *"the analyser's own offer: an empty project here (New project…)"*. The items that need a
+  project wait for it. **Apply chosen**
   applies your Yes items one at a time, in a fixed order — create, source roots, processor, runbooks, GraphML, log —
   each through the same path you would use yourself, and then shows the analyser's pairing check. Creating the project
   is never treated as a project switch: the session keeps running, and New chat starts one in the project.
@@ -31,3 +32,14 @@ unverified](../assets/proposal-review.png)
   (`proposals`: ids, kinds, states and the analyser's checks — never its own reasons back). A "proposal" written in an
   answer's text does nothing: only the verb counts. An external MCP client calling `propose` is told it is an unknown
   verb.
+
+## After the set-up
+
+The project now names its source roots, processor and graph, so the analyser can pair a log with its graph and lead
+a log line to its source. Two next steps:
+
+- Record a run and open its log. Ask Claude what it shows, or check your acceptance criteria against it
+  ([Check your criteria against the evidence](validate-intent.md)).
+- Building or changing the code needs an assistant that can edit files and run commands: Full Claude Code, or a client
+  in your terminal ([Build with Claude ▸ Who does what](index.md#who-does-what)). In Safe analysis Claude can
+  propose the set-up, but can do neither.

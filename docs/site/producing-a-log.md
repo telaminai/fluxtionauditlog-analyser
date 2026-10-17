@@ -172,14 +172,27 @@ sink; that file is the one you open here.
 - **Log level** — raise it (e.g. `DEBUG`) while diagnosing to capture more per-node detail; lower it
   (`INFO`) in steady state.
 - **File sink** — the server writes records to a `---`-separated text file. Open it locally, or copy it
-  to S3 and open `s3://bucket/key`. **This is the sink the analyser reads.**
+  to S3 and open `s3://bucket/key`.
+- **Binary file** — a Fluxtion binary audit log (`FLXA`) opens in the analyser like a text one. It is recognised by
+  its first four bytes, not its file name.
 
-!!! note "The audit writer is pluggable — use the file sink for the analyser"
+!!! note "Which audit sinks the analyser reads"
     `EventLogManager` takes a `LogRecordListener`, so a processor can write its audit stream to any
-    back-end sink — a text file, or **Chronicle**, kafka, jdbc, etc. for higher throughput. The analyser
-    reads the **text file sink**. If your production system logs to Chronicle (or another binary sink)
-    for performance, add a text file sink alongside it to feed the analyser. (A file sink and a
-    high-performance sink can run side by side on the same processor.)
+    back-end sink: a text file, the binary `FLXA` file, **Chronicle**, Kafka, JDBC and so on. The analyser reads
+    the **text file** and the **binary file**. For any other sink, export to one of those, or run a file sink
+    alongside it: a file sink and a high-performance sink can run side by side on the same processor.
+
+    A binary log differs from a text one in four ways:
+
+    - It does not carry `groupingId` or `thread`, so the analyser shows neither, rather than inventing them.
+    - It cannot be followed while it is still being written: open it again to see new records.
+    - Its header must declare the time unit. A file whose header declares none is refused; declare the unit into
+      the file with the runtime's `AuditLogTool --declare-unit`.
+    - A cut-off tail is reported, not refused: the records before it open, and the analyser says how many bytes
+      at the end formed no whole record.
+
+    The analyser's [format specification](format-spec.md) is the text format's; the binary format's own
+    specification is published with the Fluxtion runtime.
 
 In an **embedded processor** the three pieces above are the whole configuration. In a **Mongoose
 server** the level and the sink are server configuration rather than code — see the Mongoose server

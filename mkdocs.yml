@@ -90,6 +90,7 @@ plugins:
         'user-guide/index.md': 'inapp/index.md'
         'support.md': 'diagnose/index.md'
         'user-guide/assistant.md': 'inapp/index.md'
+        'the-loop.md': 'build/index.md'
 
 extra:
   social:
@@ -132,9 +133,8 @@ nav:
           - The Project panel: user-guide/project-panel.md
   - Build with Claude:
       - build/index.md
-      - The build-with-AI loop: the-loop.md
       - Set up a project with Claude: build/set-up-with-claude.md
-      - Validate the intent with evidence: build/validate-intent.md
+      - Check your criteria against the evidence: build/validate-intent.md
       - Spring authoring: spring-authoring.md
       - Spring authoring step by step: spring-authoring-getting-started.md
       - Design and "what if?" conversations: spring-authoring-conversations.md

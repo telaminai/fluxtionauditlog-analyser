@@ -81,10 +81,15 @@ Start the [released analyser](install.md). If you downloaded outside the analyse
 **Checkpoint:** the project name and runbooks appear, while the page honestly says **No log loaded**
 and **No graph**. A declared processor and a source shell are not proof of a successful build.
 
-Open your LLM client in the same project directory. In the analyser, use
-**AI ▸ Connect an AI client…** and follow the instructions for that client.
-See [Connect your client](connect-an-llm.md). The download does not contain a machine-specific MCP
-endpoint: configure the actual running analyser, then have the client call `analyser_context`.
+Choose where your LLM runs:
+
+- **In your terminal or IDE.** Open your LLM client in the same project directory. In the analyser, use
+  **AI ▸ Connect an AI client…** and follow the instructions for that client.
+  See [Connect your client](connect-an-llm.md). The download does not contain a machine-specific MCP
+  endpoint: configure the actual running analyser, then have the client call `analyser_context`.
+- **In the analyser.** Claude Code can run in the assistant panel, working in the open project's folder. Building
+  needs **Full Claude Code**, because Safe analysis cannot edit files or run commands
+  ([Claude Code in the analyser](inapp/claude-code.md)).
 
 ### Model choice
 
@@ -108,7 +113,7 @@ figures below are taken from the same runs but are not checked by that test.
 - **When a step fails**, re-run that step with the default before paying for a larger model. This is advice,
   not a measured result: no failure has yet been re-run with a larger model under the same conditions.
 - This choice is for **your own LLM client** (Claude Code, Codex and similar). It does not cover the analyser's
-  in-app assistant, whose provider and model are set under **Settings ▸ Assistant**; nothing there was measured.
+  in-app assistant, whose provider and model are set on the **Settings ▸ LLM** tab; nothing there was measured.
 
 Paste this prompt once the client can access the project and analyser:
 
