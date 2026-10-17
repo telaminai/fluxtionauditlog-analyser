@@ -125,4 +125,62 @@ class ExampleDownloadTest {
         assertTrue(state(d).note().contains("host"), state(d).note());
         assertTrue(a.exampleConfirms.isEmpty());
     }
+
+    /**
+     * ★ Review S7 (P2, 2026-10-17): a fetch that never answers is FAILED at its deadline, and a late answer is ignored
+     * with its bytes discarded. Witness: drop the StartExampleClockEffect request in onConfirmed — no clock, and the
+     * phase stays FETCHING for ever.
+     */
+    @Test
+    @DisplayName("★ a stalled fetch fails at its deadline; its late answer is ignored and its bytes discarded")
+    void aStalledFetchFailsAtItsDeadline() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = new SessionDriver(a);
+        d.post(new SessionEvents.ExampleDownloadRequested(1, 5, 1, source(null)));
+        d.post(new SessionEvents.ExampleDownloadConfirmed(1, true, REFS.put("/work/demo"), FactWords.shown("/work/demo"), null));
+        assertEquals("FETCHING", state(d).phase());
+        assertEquals(1, a.exampleClocks.size(), "a deadline is started with the fetch");
+        assertEquals("FETCHING", a.exampleClocks.get(0).phase());
+        d.post(new SessionEvents.ExampleDeadlinePassed(1, "FETCHING"));
+        assertEquals("FAILED", state(d).phase());
+        assertTrue(state(d).note().contains("did not arrive in time"), state(d).note());
+        d.post(new SessionEvents.ExampleFetched(1, true, 77, DIGEST, 10, null));
+        assertEquals("FAILED", state(d).phase(), "the late answer is stale");
+        assertTrue(a.exampleUnpacks.isEmpty(), "nothing is unpacked");
+        assertEquals(77, a.exampleDiscards.get(a.exampleDiscards.size() - 1).bytesRef(), "its bytes are not kept");
+        d.post(new SessionEvents.ExampleDownloadRequested(2, 5, 1, source(null)));
+        assertEquals("CONFIRMING", state(d).phase(), "the entry is not left busy");
+    }
+
+    /** ★ Review S7: a deadline for a phase already left is ignored. Witness: drop the stale check in onDeadline. */
+    @Test
+    @DisplayName("★ a deadline that arrives after the fetch answered changes nothing")
+    void aLateDeadlineIsIgnored() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = new SessionDriver(a);
+        d.post(new SessionEvents.ExampleDownloadRequested(1, 5, 1, source(null)));
+        d.post(new SessionEvents.ExampleDownloadConfirmed(1, true, REFS.put("/work/demo"), FactWords.shown("/work/demo"), null));
+        d.post(new SessionEvents.ExampleFetched(1, true, 77, DIGEST, 10, null));
+        assertEquals("UNPACKING", state(d).phase());
+        d.post(new SessionEvents.ExampleDeadlinePassed(1, "FETCHING"));
+        assertEquals("UNPACKING", state(d).phase());
+        d.post(new SessionEvents.ExampleDeadlinePassed(1, "UNPACKING"));
+        assertEquals("FAILED", state(d).phase(), "the unpack's own deadline does fail it");
+        assertTrue(state(d).note().contains("did not finish in time"), state(d).note());
+    }
+
+    /**
+     * ★ Review S7: the confirmation performer that throws answers CONFIRM_FAILED, and the node leaves CONFIRMING with
+     * its words. Witness: drop the CONFIRM_FAILED case in targetWords — the note names a raw code.
+     */
+    @Test
+    @DisplayName("★ a confirmation that could not be shown is refused by name, never left CONFIRMING")
+    void aFailedConfirmationIsRefused() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = new SessionDriver(a);
+        d.post(new SessionEvents.ExampleDownloadRequested(1, 5, 1, source(null)));
+        d.post(new SessionEvents.ExampleDownloadConfirmed(1, true, 0, null, "CONFIRM_FAILED"));
+        assertEquals("REFUSED", state(d).phase());
+        assertEquals("Nothing was downloaded: the confirmation could not be shown.", state(d).note());
+    }
 }

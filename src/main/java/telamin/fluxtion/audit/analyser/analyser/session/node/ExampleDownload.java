@@ -108,12 +108,17 @@ public class ExampleDownload implements EventLogSource {
         note = "Downloading " + source.publisher() + "…";
         auditLog.info("example", "FETCHING");
         effects.request(new SessionEffects.FetchExampleEffect(0L, request, source.url(), ExampleSource.MAX_ARCHIVE_BYTES));
+        effects.request(new SessionEffects.StartExampleClockEffect(0L, request, phase, FETCH_DEADLINE_MS));
         return changed();
     }
 
     @OnEventHandler
     public boolean onFetched(SessionEvents.ExampleFetched e) {
-        if (stale(e.request(), "FETCHING", "ExampleFetched")) return false;
+        if (stale(e.request(), "FETCHING", "ExampleFetched")) {
+            // review S7: a fetch that lands after its deadline is not used, and its bytes are not kept either
+            if (e.ok() && e.bytesRef() != 0) effects.request(new SessionEffects.DiscardExampleBytesEffect(0L, e.request(), e.bytesRef()));
+            return false;
+        }
         if (!e.ok()) {
             phase = "FAILED";
             note = "The example could not be downloaded: " + safe(e.failure()) + ".";
@@ -134,6 +139,7 @@ public class ExampleDownload implements EventLogSource {
         note = "Unpacking into " + target + "…";
         auditLog.info("example", "UNPACKING").info("verified", source.sha256() != null);
         effects.request(new SessionEffects.UnpackExampleEffect(0L, request, bytesRef, targetRef));
+        effects.request(new SessionEffects.StartExampleClockEffect(0L, request, phase, UNPACK_DEADLINE_MS));
         return changed();
     }
 
@@ -157,6 +163,29 @@ public class ExampleDownload implements EventLogSource {
         return changed();
     }
 
+    /**
+     * Review S7 (P2, 2026-10-17): a fetch or an unpack that has not answered by its deadline is FAILED, so the entry is
+     * never left busy for ever (a stalled body, a performer that died). Its late answer then arrives stale and is ignored.
+     */
+    @OnEventHandler
+    public boolean onDeadline(SessionEvents.ExampleDeadlinePassed e) {
+        if (stale(e.request(), String.valueOf(e.phase()), "ExampleDeadlinePassed")) return false;
+        boolean fetching = "FETCHING".equals(phase);
+        phase = "FAILED";
+        note = fetching ? "The example could not be downloaded: it did not arrive in time (nothing was unpacked)."
+                : "The example was not unpacked: unpacking did not finish in time.";
+        auditLog.info("example", "FAILED").info("at", fetching ? "fetchDeadline" : "unpackDeadline");
+        if (bytesRef != 0) {
+            effects.request(new SessionEffects.DiscardExampleBytesEffect(0L, request, bytesRef));
+            bytesRef = 0;
+        }
+        return changed();
+    }
+
+    /** The deadlines (review S7): above the transport's own body deadline, so the transport normally answers first. */
+    public static final long FETCH_DEADLINE_MS = 6 * 60_000L;
+    public static final long UNPACK_DEADLINE_MS = 2 * 60_000L;
+
     @OnEventHandler(propagate = false)
     public boolean onEffectStarted(SessionEvents.ExampleEffectStarted e) {
         auditLog.info("exampleEffect", e.what()).info("request", e.request());
@@ -179,6 +208,7 @@ public class ExampleDownload implements EventLogSource {
             case "EXISTS_NOT_EMPTY" -> "the chosen folder is not empty — choose a new or empty folder";
             case "NOT_A_DIRECTORY" -> "the chosen location is not a folder";
             case "NO_PARENT" -> "the chosen folder's parent does not exist";
+            case "CONFIRM_FAILED" -> "the confirmation could not be shown";
             default -> "the chosen folder cannot be used (" + problem + ")";
         };
     }

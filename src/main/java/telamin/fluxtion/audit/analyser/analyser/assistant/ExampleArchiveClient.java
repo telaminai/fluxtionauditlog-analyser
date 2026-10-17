@@ -22,6 +22,12 @@ public final class ExampleArchiveClient {
 
     public static final int MAX_REDIRECTS = 3;
 
+    /**
+     * Review S7 (P2, 2026-10-17): the longest a response BODY may take. The request's timeout covers only the headers; a
+     * server that stops sending mid-body would otherwise hold the read for ever. Past the deadline the stream is closed.
+     */
+    public static final Duration BODY_DEADLINE = Duration.ofMinutes(5);
+
     /** One HTTP GET with no redirect followed: the status, a Location header, and the body up to the cap. */
     @FunctionalInterface
     public interface Transport {
@@ -55,7 +61,7 @@ public final class ExampleArchiveClient {
             String location = r.headers().firstValue("Location").orElse(null);
             try (InputStream in = r.body()) {
                 if (r.statusCode() / 100 != 2) return new Reply(r.statusCode(), location, new byte[0]);
-                return new Reply(r.statusCode(), location, readCapped(in, max));
+                return new Reply(r.statusCode(), location, readCapped(in, max, BODY_DEADLINE));
             }
         });
     }
@@ -87,6 +93,8 @@ public final class ExampleArchiveClient {
             return new Fetched(null, null, "more than " + MAX_REDIRECTS + " redirects");
         } catch (TooLarge e) {
             return new Fetched(null, null, "the archive is over " + (maxBytes / (1024 * 1024)) + " MB");
+        } catch (TimedOut e) {
+            return new Fetched(null, null, "the download stalled and was stopped after " + e.after.toSeconds() + " s");
         } catch (IOException e) {
             return new Fetched(null, null, e.getClass().getSimpleName() + (e.getMessage() == null ? "" : ": " + e.getMessage()));
         } catch (InterruptedException e) {
@@ -108,6 +116,51 @@ public final class ExampleArchiveClient {
     public static final class TooLarge extends IOException {
         public TooLarge() {
             super("over the size cap");
+        }
+    }
+
+    /** Thrown by {@link #readCapped(InputStream, long, Duration)} when the body did not arrive in time. */
+    public static final class TimedOut extends IOException {
+        final Duration after;
+
+        public TimedOut(Duration after) {
+            super("the body did not arrive within " + after.toSeconds() + " s");
+            this.after = after;
+        }
+    }
+
+    private static final java.util.concurrent.ScheduledExecutorService WATCHDOG =
+            java.util.concurrent.Executors.newSingleThreadScheduledExecutor(r -> {
+                Thread t = new Thread(r, "analyser-example-watchdog");
+                t.setDaemon(true);
+                return t;
+            });
+
+    /**
+     * {@link #readCapped(InputStream, long)} with a deadline: a watchdog closes the stream when it passes, which ends a
+     * blocked read, and the read reports {@link TimedOut} rather than whatever the closed stream threw.
+     */
+    public static byte[] readCapped(InputStream in, long max, Duration deadline) throws IOException {
+        java.util.concurrent.atomic.AtomicBoolean fired = new java.util.concurrent.atomic.AtomicBoolean();
+        var watchdog = WATCHDOG.schedule(() -> {
+            fired.set(true);
+            try {
+                in.close();
+            } catch (IOException ignored) {
+                // closing is the whole point; a failure to close leaves nothing more to do
+            }
+        }, deadline.toMillis(), java.util.concurrent.TimeUnit.MILLISECONDS);
+        try {
+            byte[] read = readCapped(in, max);
+            if (fired.get()) throw new TimedOut(deadline);
+            return read;
+        } catch (TooLarge e) {
+            throw e;
+        } catch (IOException e) {
+            if (fired.get()) throw new TimedOut(deadline);
+            throw e;
+        } finally {
+            watchdog.cancel(false);
         }
     }
 

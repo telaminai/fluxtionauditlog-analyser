@@ -73,6 +73,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CaptureSta
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CloseRequested;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.DraftPlaced;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.EffectFailed;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExampleDeadlinePassed;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExampleDownloadConfirmed;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExampleDownloadRequested;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExampleEffectStarted;
@@ -253,6 +254,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Requ
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CloseRequested
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.DraftPlaced
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.EffectFailed
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExampleDeadlinePassed
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExampleDownloadConfirmed
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExampleDownloadRequested
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExampleEffectStarted
@@ -622,6 +624,10 @@ public class SessionProcessor
             new ProcessorDescriptor.Input(
                 "EffectFailed",
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.EffectFailed",
+                false),
+            new ProcessorDescriptor.Input(
+                "ExampleDeadlinePassed",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExampleDeadlinePassed",
                 false),
             new ProcessorDescriptor.Input(
                 "ExampleDownloadConfirmed",
@@ -1029,7 +1035,7 @@ public class SessionProcessor
           new DescriptorSupport.Meta(
               null,
               "1.0.76",
-              "c00daae7cd8ac5011cf7b973945b0be7d2e51fecc6ceb9780ce2d0ea6ace3b04",
+              "628ef00ff04d3eda5806b0d5295d45e9bd3b336ae3cc15bbbe2a11dbab2f1ce1",
               null));
 
   @Override
@@ -1296,6 +1302,9 @@ public class SessionProcessor
       handleEvent(typedEvent);
     } else if (event instanceof EffectFailed) {
       EffectFailed typedEvent = (EffectFailed) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof ExampleDeadlinePassed) {
+      ExampleDeadlinePassed typedEvent = (ExampleDeadlinePassed) event;
       handleEvent(typedEvent);
     } else if (event instanceof ExampleDownloadConfirmed) {
       ExampleDownloadConfirmed typedEvent = (ExampleDownloadConfirmed) event;
@@ -1781,6 +1790,11 @@ public class SessionProcessor
 
   @OnEventHandler(failBuildIfMissingBooleanReturn = false)
   public void onEvent(EffectFailed event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(ExampleDeadlinePassed event) {
     processEvent(event);
   }
 
@@ -2685,6 +2699,14 @@ public class SessionProcessor
       auditInvocation(walkPlayback, "walkPlayback", "onLogChanged", typedEvent);
       walkPlayback.onLogChanged();
     }
+    afterEvent();
+  }
+
+  public void handleEvent(ExampleDeadlinePassed typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(exampleDownload, "exampleDownload", "onDeadline", typedEvent);
+    exampleDownload.onDeadline(typedEvent);
     afterEvent();
   }
 
@@ -4222,6 +4244,11 @@ public class SessionProcessor
       isDirty_assistantLoop = assistantLoop.onEffectFailed(typedEvent);
       auditInvocation(sessionBoundary, "sessionBoundary", "onEffectFailed", typedEvent);
       sessionBoundary.onEffectFailed(typedEvent);
+    } else if (event instanceof ExampleDeadlinePassed) {
+      ExampleDeadlinePassed typedEvent = (ExampleDeadlinePassed) event;
+      auditEvent(typedEvent);
+      auditInvocation(exampleDownload, "exampleDownload", "onDeadline", typedEvent);
+      exampleDownload.onDeadline(typedEvent);
     } else if (event instanceof ExampleDownloadConfirmed) {
       ExampleDownloadConfirmed typedEvent = (ExampleDownloadConfirmed) event;
       auditEvent(typedEvent);

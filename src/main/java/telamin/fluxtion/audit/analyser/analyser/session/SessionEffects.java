@@ -473,6 +473,13 @@ public sealed interface SessionEffects {
     record DiscardExampleBytesEffect(long opId, long request, long bytesRef) implements SessionEffects {
     }
 
+    /**
+     * Review S7 (P2, 2026-10-17): start the deadline for {@code phase} (FETCHING, UNPACKING) of download {@code request};
+     * when it passes, {@link SessionEvents.ExampleDeadlinePassed} — the node decides whether it still matters.
+     */
+    record StartExampleClockEffect(long opId, long request, String phase, long deadlineMs) implements SessionEffects {
+    }
+
     /** Open the M73 project offer for {@code root} (the person's New project… path); the person confirms. */
     record OfferExampleProjectEffect(long opId, long request, long rootRef) implements SessionEffects {
     }

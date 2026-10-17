@@ -1405,4 +1405,8 @@ public final class SessionEvents {
     /** Answered at once by each example effect. */
     public record ExampleEffectStarted(long opId, long request, String what) implements Result {
     }
+
+    /** Review S7: the deadline a {@link SessionEffects.StartExampleClockEffect} started has passed. */
+    public record ExampleDeadlinePassed(long request, String phase) {
+    }
 }

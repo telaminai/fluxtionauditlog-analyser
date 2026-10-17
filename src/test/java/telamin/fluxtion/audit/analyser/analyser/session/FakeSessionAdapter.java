@@ -68,6 +68,8 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
     final List<SessionEffects.FetchExampleEffect> exampleFetches = new ArrayList<>();
     final List<SessionEffects.UnpackExampleEffect> exampleUnpacks = new ArrayList<>();
     final List<SessionEffects.DiscardExampleBytesEffect> exampleDiscards = new ArrayList<>();
+    /** Review S7: the deadlines exampleDownload started. */
+    final List<SessionEffects.StartExampleClockEffect> exampleClocks = new ArrayList<>();
     final List<SessionEffects.OfferExampleProjectEffect> exampleOffers = new ArrayList<>();
     final List<SessionEffects.TrustLocalAgentFolderEffect> agentTrusts = new ArrayList<>();
     final List<SessionEffects.ServeHostedBridgeEffect> agentServes = new ArrayList<>();
@@ -316,6 +318,10 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
             case SessionEffects.DiscardExampleBytesEffect e -> {
                 exampleDiscards.add(e);
                 yield new SessionEvents.ExampleEffectStarted(e.opId(), e.request(), "discard");
+            }
+            case SessionEffects.StartExampleClockEffect e -> {
+                exampleClocks.add(e);
+                yield new SessionEvents.ExampleEffectStarted(e.opId(), e.request(), "clock:" + e.phase());
             }
             case SessionEffects.OfferExampleProjectEffect e -> {
                 exampleOffers.add(e);

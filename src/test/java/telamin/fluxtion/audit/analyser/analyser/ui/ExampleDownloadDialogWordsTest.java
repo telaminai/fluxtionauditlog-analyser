@@ -23,4 +23,16 @@ class ExampleDownloadDialogWordsTest {
         assertTrue(ExampleDownloadDialog.publisherLine(x, x.thirdParty()).endsWith("third-party: not published by Telamin"));
         assertTrue(StartPromptView.exampleDoes(t).contains("may come from a fork"), StartPromptView.exampleDoes(t));
     }
+
+    /** ★ Review S7, the static half: the confirmation performer answers even when it throws (witness: remove the catch). */
+    @Test
+    @DisplayName("★ the confirmation performer catches and answers CONFIRM_FAILED")
+    void theConfirmPerformerAlwaysAnswers() throws Exception {
+        String src = java.nio.file.Files.readString(java.nio.file.Path.of(
+                "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java"));
+        int at = src.indexOf("private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result confirmExample(");
+        assertTrue(at > 0);
+        String body = src.substring(at, src.indexOf("/** FetchExampleEffect", at));
+        assertTrue(body.contains("catch (RuntimeException ex)") && body.contains("\"CONFIRM_FAILED\""), body);
+    }
 }

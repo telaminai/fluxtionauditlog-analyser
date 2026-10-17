@@ -8469,6 +8469,7 @@ public final class MainFrame extends JFrame {
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ConfirmExampleDownloadEffect e -> confirmExample(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.FetchExampleEffect e -> fetchExample(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.UnpackExampleEffect e -> unpackExample(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.StartExampleClockEffect e -> startExampleClock(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.DiscardExampleBytesEffect e -> {
                 exampleBytes.remove(e.bytesRef());
                 yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExampleEffectStarted(e.opId(), e.request(), "discard");
@@ -11808,8 +11809,16 @@ public final class MainFrame extends JFrame {
     private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result confirmExample(
             telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ConfirmExampleDownloadEffect e) {
         SwingUtilities.invokeLater(() -> {
-            Path suggested = Path.of(System.getProperty("user.home"), e.source().repo() + "-" + e.source().shortCommit());
-            Path target = exampleConfirm.ask(e.source(), e.thirdParty(), suggested);
+            Path target;
+            try {
+                Path suggested = Path.of(System.getProperty("user.home"), e.source().repo() + "-" + e.source().shortCommit());
+                target = exampleConfirm.ask(e.source(), e.thirdParty(), suggested);
+            } catch (RuntimeException ex) {
+                // review S7: a confirmation that throws still answers, or the node would wait in CONFIRMING for ever
+                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExampleDownloadConfirmed(
+                        e.request(), true, 0, null, "CONFIRM_FAILED"));
+                return;
+            }
             if (target == null) {
                 session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExampleDownloadConfirmed(
                         e.request(), false, 0, null, null));
@@ -11844,6 +11853,18 @@ public final class MainFrame extends JFrame {
                 e.request(), false, 0, null, 0,
                 telamin.fluxtion.audit.analyser.analyser.session.FactWords.withoutPaths(rootMessage(err)))));
         return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExampleEffectStarted(e.opId(), e.request(), "fetch");
+    }
+
+    /** StartExampleClockEffect (review S7): a timer, nothing more — the node decides whether the deadline still matters. */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result startExampleClock(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.StartExampleClockEffect e) {
+        javax.swing.Timer t = new javax.swing.Timer((int) Math.min(Integer.MAX_VALUE, e.deadlineMs()), ev ->
+                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExampleDeadlinePassed(
+                        e.request(), e.phase())));
+        t.setRepeats(false);
+        t.start();
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExampleEffectStarted(e.opId(),
+                e.request(), "clock:" + e.phase());
     }
 
     /** UnpackExampleEffect: TemplateArchive's containment checks and caps, no executable bits — nothing built or run. */
