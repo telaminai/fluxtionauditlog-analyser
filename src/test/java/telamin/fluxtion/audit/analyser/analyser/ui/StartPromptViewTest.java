@@ -187,6 +187,7 @@ class StartPromptViewTest {
             buttons.get(2).doClick();
             assertEquals(List.of("COPY_PROMPT|S1"), host.fallbacks);
             // the authoring and learning pathways work with no AI (owner priority, 2026-10-17)
+            assertEquals(8, v.promptList().getVisibleRowCount(), "every built-in entry in view, no scroll bar");
             v.choose(1);                                         // S7, Build
             assertEquals(List.of("New project from template…", "New project…", "Copy prompt"),
                     buttons(v.fallbacksPanel()).stream().map(JButton::getText).toList(), "Build: the existing dialogs");

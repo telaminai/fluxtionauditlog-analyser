@@ -369,6 +369,8 @@ public final class StartPromptView extends JPanel {
         refusalRow.setVisible(state.packRefusal() != null);
         if (!rows.equals(renderedRows)) {
             renderedRows = rows;
+            // every entry in view, never a scroll bar over the eighth (at most nine: Alt+1–9)
+            list.setVisibleRowCount(Math.max(1, Math.min(9, rows.size())));
             String chosenId = chosen == null ? null : chosen.id();
             model.clear();
             for (Row r : rows) model.addElement(r);
