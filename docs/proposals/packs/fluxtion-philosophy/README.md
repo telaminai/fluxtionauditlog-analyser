@@ -117,13 +117,16 @@ Where no authoritative public source states something, the prompt asks rather th
    features the C++ target supports. The public material (FLXA format page, performance pages, the compiler config's
    `targetId`, this repo's latency-kit README) says only that a C++ generator and header-only runtime exist, that the
    C++ audit writer is held to Java by parity tests rather than the conformance corpus, and that several items are
-   "deferred to the C++ round". **A public "C++ target: what works today" page is now drafted, pending owner
-   approval.** It is not committed anywhere. Each statement in it is tagged with its source, and those taken from
-   the compiler's private docs are flagged for the owner to confirm they may be public. Until it is published,
-   07/3 stays a question.
+   "deferred to the C++ round". **A public "C++ target: what works today" page is now open for review as
+   [telaminai/fluxtion#44](https://github.com/telaminai/fluxtion/pull/44)** (`docs/reference/cpp-target.md`, under
+   *Reference guide*). It describes compiler 1.0.79, and every statement in it was checked against that release's
+   source and C++ test suite. Until it merges, 07/3 stays a question. Once it merges, 07/3 can cite it.
 3. **C++ availability (07/7).** The public README builds against a locally installed `fluxtion-generator-cpp`. On
    2026-10-17 neither it nor `fluxtion-serialiser-cpp` resolves from the public Repsy repository or from Maven
-   Central. Whether it is published, and to whom, is not stated (the draft page asks the owner).
+   Central, because the compiler release deploys them to the private repository. The page in #44 states what
+   follows from that. Local C++ generation is not public. The remote route needs only the public `fluxtion-builder`
+   and `targetId` `"cpp"`, but it returns only the processor source, not the header-only runtime. Whether the hosted
+   service answers `"cpp"`, and how a public user gets the runtime headers, are owner-to-confirm items in the PR.
 4. **The plugins reference still disagrees with itself on versions (08/6).** `telaminai/mongoose-plugins`' parent
    `pom.xml` builds `1.0.46-SNAPSHOT` against Mongoose `1.0.29` and the Fluxtion BOM `1.0.67`, while its root
    README says `0.2.8-SNAPSHOT`, Mongoose `1.0.8` and Fluxtion `0.9.33`. Several module READMEs link sources under
