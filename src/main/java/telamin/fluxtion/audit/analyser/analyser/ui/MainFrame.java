@@ -400,7 +400,13 @@ public final class MainFrame extends JFrame {
             System.out.println("[analyser] --rest: REST transport enabled and saved (Settings ▸ Assistant ▸ "
                     + "localhost REST); turn it off there if this machine should not offer it");
         }
-        // review B5: the REST switch is reported with the start-up facts (postStartupFacts); actionListener decides
+        // review B5: the REST switch is a fact; actionListener decides. The session is built lazily, so the start-up
+        // report is made once construction has finished — building it (postStartupFacts) reports the switch, and the
+        // explicit report covers a session that already existed (the node ignores a repeat)
+        SwingUtilities.invokeLater(() -> {
+            session();
+            reportRestSwitch();
+        });
         detailPanel.setInstanceSourceOpener(this::openNodeSource);
         detailPanel.setEventHandlerOpener(rec -> {
             sourcePanel.showDispatchFor(rec);              // scroll the EP to the record's handler method

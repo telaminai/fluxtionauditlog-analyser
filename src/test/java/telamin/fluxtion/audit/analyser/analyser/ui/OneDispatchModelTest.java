@@ -640,6 +640,10 @@ class OneDispatchModelTest {
         }
         String report = bodyOf(frame, "private void reportRestSwitch(");
         assertTrue(report.contains("RestSwitchObserved("), "the switch is a fact");
+        // the session is built lazily: the start-up report must build it, or --rest never listens (found by
+        // tools/verify-m46-agent-api.py on the built jar, 2026-10-17)
+        assertTrue(frame.replaceAll("\\s+", " ").contains("SwingUtilities.invokeLater(() -> { session(); reportRestSwitch(); });"),
+                "the switch is reported at start-up, building the session");
     }
 
     private static int count(Pattern p, String s) {
