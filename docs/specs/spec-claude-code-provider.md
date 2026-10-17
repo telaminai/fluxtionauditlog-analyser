@@ -1,8 +1,10 @@
 # M74 — Claude Code as the analyser's assistant: a long-running local session
 
-**Status:** DRAFT r14, 2026-10-17 — r14 fixes the findings of the three final reviews of M74 (P2, P3 + UX, holistic;
-`docs/handoff/review_m74_final_{p2,p3ux,holistic}_2026-10-17.md`, each with its disposition table) and the owner's
-start-page layout feedback; see *Implementation notes (r14 review fixes)*. Built on `feature/claude-code-p3`: P1a, P1b,
+**Status:** DRAFT r15, 2026-10-17 — r15 fixes the findings of the independent usability review of M74
+(`docs/handoff/review_m74_usability_2026-10-17.md`, with its disposition table) and the owner's spotlight-caption
+decision, and refines OD-74.16 and OD-74.17 (marked *r15*); see *Implementation notes (r15 usability fixes)*. r14 fixed
+the three final reviews (`docs/handoff/review_m74_final_{p2,p3ux,holistic}_2026-10-17.md`) and the owner's start-page
+layout feedback. Built on `feature/claude-code-p3`: P1a, P1b,
 P2a, P2b, P3 and the UX step. Earlier revisions, their probes and their live smokes are in the *Revision history*; the
 probe reports are under `docs/specs/evidence/m74-*` (P0, P0b, P1b, P3).
 
@@ -50,8 +52,8 @@ utility P3 completes.
 | OD-74.13 | **The shape of an onboarding proposal** (§5.6). `propose` items are `sourceRoot`, `processor`, `graphml`, `runbook` and `logToOpen`. **Creating the project is the analyser's own offer**, never Claude's item: the set-up directory is the one the person chose, so Claude names no directory. An item whose path resolves outside the set-up directory is shown, marked *outside*, and **cannot be applied from the proposal**. At most one proposal is under review at a time. A proposal surfaces as a **banner** in the tab; the review dialog opens only on the person's click (a model call never raises a modal). Every item starts as **No**. | **accepted 2026-10-16** (owner) |
 | OD-74.14 | **One Ask catalogue** (§5.5; the owner's request 2026-10-16, this shape proposed). Every "Ask Claude" question — the right-click record actions (*Explain selected with LLM*, *Diff selected two records*' Ask button), a topology node, a chart note or point, a flagged record, a time range, and the start-page prompts (OD-74.19) — is declared in **one registry**, `AskCatalogue`, which the menus, the start page and the tests read, so a new question is one entry. A question **only drafts**: no new verb, pointers (indexes, ids, names, times) and never record text, each draft bound to the log's identity and generation. The pop-up (OD-74.8) precedes every draft **in both assistant modes**; under a recorded tutorial *Yes* reveals the next recorded turn. Yes **never overwrites** the composer: a draft is appended after the person's own text, and only the appended lines are highlighted. | **accepted 2026-10-16** (owner) (the catalogue itself is the owner's request) |
 | OD-74.15 | **Move's order** (§5.3). The handoff report is stored **after** the switch lands, in the now-active target project, refused unless that project's identity is the one the person chose: reports live in the project profile, and the target's profile is not loaded before the switch. *Move* is offered only while a Claude Code process runs; with none running the switch applies as today. *Skip handoff* and *Discard* still switch, with no report. | **accepted 2026-10-16** (owner) |
-| OD-74.16 | **Which permission requests reach the person** (P3, §5.7). Default posture: **only the hosted destructive verbs**; anything else is denied without a dialog. Full posture: the hosted destructive verbs **and the person's own tools** (Bash, Edit, Write, web tools, the tools of the person's MCP servers), because that is what the person's own Claude Code would ask them in a terminal. The person's `fluxtion-analyser` registration and any pre-allowed hosted verb are never asked (denied). In the full posture the hosted destructive verbs are visible only in the modes that ask (`default`, `acceptEdits`); under `auto` and `plan` they stay hidden. | **accepted 2026-10-16** (owner) |
-| OD-74.17 | **An approval lifts the server-side refusal for exactly one call** (P3, §5.7). The person's *Allow* records a single-use grant bound to the generation, the turn ticket, the verb and a canonical digest of the input shown (and the `tool_use_id`, if probe P3-3 shows the bridge receives it — *r12: it does*, as `_meta["claudecode/toolUseId"]`, and the bridge forwards it as `X-Analyser-Tool-Use`, so the grant binds it). The bridge's call is admitted only by consuming a matching grant **on the session thread**; a grant expires at the end of its turn, on Stop, at the end of the generation, or 60 s after the *Allow*, whichever is first. A second request while a dialog is open is denied at once (one dialog at a time). An unanswered dialog denies after **120 s**. The keyboard default is **Deny**. | **accepted 2026-10-16** (owner) |
+| OD-74.16 | **Which permission requests reach the person** (P3, §5.7). Default posture: **only the hosted destructive verbs**; anything else is denied without a dialog. Full posture: the hosted destructive verbs **and the person's own tools** (Bash, Edit, Write, web tools, the tools of the person's MCP servers), because that is what the person's own Claude Code would ask them in a terminal. The person's `fluxtion-analyser` registration and any pre-allowed hosted verb are never asked (denied). In the full posture the hosted destructive verbs are visible only in the modes that ask (`default`, `acceptEdits`); under `auto` and `plan` they stay hidden. *r15 refinement (usability review #10a/b, 2026-10-17):* within the hosted destructive verbs, a call of a **sub-action that changes nothing stored** — exactly `walk {name, play: true, step?}`, `walk {end: true}`, `walk {restore: true}` and `report {restore: true}`, with no other field — is allowed without a dialog (`PermissionBy.NON_MUTATING`, recorded) and admitted by the server without a grant, both judging the call's own input through ONE classification (`McpTools.hostedCallKind`); every other sub-action is still asked. Verified from the code: `WalkVerb.play`/`end` post a request and persist nothing, the two `restore: true` forms list a bin. `import {bundle}` alone (a preview) and `source_root {}` (a listing) also change nothing, but read a file the model names or show machine paths, so they stay asked. And a call that **writes a file** (`McpTools.hostedCallKind` = `WRITES_FILE`: every `screenshot`, `walk {reel}`, `report {bundle}`, a report with a `path`, the single-record report) while file exchange is off is denied without a dialog, with the reason (`DENIED_FILE_EXCHANGE`): the server would refuse it after the person's Allow. | **accepted 2026-10-16** (owner); *r15 refinement* |
+| OD-74.17 | **An approval lifts the server-side refusal for exactly one call** (P3, §5.7). The person's *Allow* records a single-use grant bound to the generation, the turn ticket, the verb and a canonical digest of the input shown (and the `tool_use_id`, if probe P3-3 shows the bridge receives it — *r12: it does*, as `_meta["claudecode/toolUseId"]`, and the bridge forwards it as `X-Analyser-Tool-Use`, so the grant binds it). The bridge's call is admitted only by consuming a matching grant **on the session thread**; a grant expires at the end of its turn, on Stop, at the end of the generation, or 60 s after the *Allow*, whichever is first. ~~A second request while a dialog is open is denied at once~~ *r15 amendment (usability review #10c, 2026-10-17):* one dialog at a time, and a second request arriving while one is open **waits** (up to `MAX_QUEUED` = 8; one more is denied as busy) and is shown when the first is answered; a waiting request is denied if its turn ends, the session exits, on Stop, New chat or a settings change, before it is shown. The dialog says how many wait. There is still no bulk "allow for this turn" (an owner decision, pending). An unanswered dialog denies after **120 s**. The keyboard default is **Deny**, at the right end of the row, *Allow once* alone at the left (r15, the shared consent-dialog rule, `SafeChoice`). | **accepted 2026-10-16** (owner); *r15 amendment* |
 | OD-74.18 | **How the full posture is smoke-tested under rule 1's capture exception**, which requires `--strict-mcp-config` on every capture under the real login. The loading of the person's own servers, skills, plugins and hooks is checked at **zero cost under an isolated `CLAUDE_CONFIG_DIR`** with planted servers, skills and hooks (`initialize`, `mcp_status` and `SessionStart` need no login [P0-5, P0-28]); model turns under the real login use the full line **plus `--strict-mcp-config`** (the analyser's line otherwise unchanged), so none of the person's servers or connectors loads into a capture. The analyser itself never adds `--strict-mcp-config` to a full-posture session; only the smoke harness does. | **accepted 2026-10-16** (owner) |
 | OD-74.19 | **The start-page prompt** (§5.8, P2): *"What would you like to do?"* on the start page, with a numbered list of example prompts drawn from the **same** `AskCatalogue` (a demo, set up a project from my code, open an evidence bundle, choose a starter template, explain a log I have, what this tool can do), a free-text box and **Send**. Choosing a number only fills the draft; nothing is sent until Send. It **works with no AI configured**: the demo plays a shipped journey with no model, and every other entry falls back to the existing guided flow or *Copy prompt*, never a dead end. Starting Claude Code stays the person's act (folder confirmation; the posture in force). Not on the AI menu (D-AI4 unaffected beyond OD-74.1). Declarative, additive and localisable. | **accepted 2026-10-16** (owner); detailed shape per this spec |
 | OD-74.20 | **DEFERRED by the owner until after P3 (2026-10-17, r10)**: P2 ships the built-in list only; no `startPrompt.*` key, no `START_PROMPTS` category and no managed-policy seam are built (parts written before the decision were removed, not left as dead code). The r9 text follows for the record. **Where the start-page list comes from** (§5.8; the owner's request 2026-10-16, this shape proposed). Three sources, resolved in order — the built-in entries, then the project profile's portable-context key family `startPrompt` (r8: its own family, so shipped writers preserve it, and its own share category `START_PROMPTS`, off by default; inline entries or a project-relative pointer, gated like the M38.1 runbook pointer), then P4's managed policy (which may `lock` the list). Each source replaces, prepends or appends. Entries are data in the catalogue's shape (a built-in by id, a prompt, or a saved walk to play), at most 12, each label at most 60 characters and text 500; an invalid entry is refused with its cause named and the rest shown; an invalid source is ignored with its cause named; nothing left means the built-in list. Never carried by an evidence bundle. | **accepted 2026-10-16** (owner) (configurability is the owner's request) |
@@ -857,12 +859,21 @@ no in-analyser permission prompts**, so P2 precedes P3 (§8).
   | full, `auto` | as above, if the CLI asks at all (its classifier decides first) | as above; the hosted destructive verbs are hidden in this mode |
   | full, `plan` | nothing is expected; anything that asks is shown as above | as above; hidden as above |
 
-  Every denial without a dialog uses a message naming the reason (*"Denied: <tool> is not asked in the analyser
-  assistant's posture"*, *"Denied: the person's own fluxtion-analyser registration is not this analyser"*).
+  Every denial without a dialog uses a message naming the reason (*r15:* *"Denied: this tool is not allowed in Safe
+  analysis"*, *"Denied: the person's own fluxtion-analyser registration is not this analyser"*, *"Denied: file exchange
+  is off in the analyser …"*). *r15:* the tool line's mark — and what a screen reader speaks for it — names who
+  decided: *denied by you*, *denied: not answered within 120 s*, *denied: not allowed in Safe analysis*, *allowed: it
+  changes nothing* (`LocalAgentAdapter.markWords`, `TranscriptStyle.spoken`).
 - **The dialog** (one modal, owned by the analyser window):
   - Title *"Claude Code asks to use <tool name>"*; for a hosted verb, *"…to run analyser_<verb>"* and one line on what
     the verb changes, in the analyser's words (from `McpTools`' destructive rationale: *"open replaces the loaded log or
-    project"*, *"report writes a file in the exchange directory"*).
+    project"*, *"report writes a file in the exchange directory"*). *r15 (usability review #6):* the title says what
+    **this call** does, from its input's sub-action — *"Claude Code asks to delete the saved walk “x”"*, *"…to play the
+    walk “x”"*, *"…to build the report “y” and write it to “y.pdf”"*, *"…to run a command on your computer"* — with its
+    consequence as the second line (*"It can be restored: …"*); a quoted value is escaped as the input is and cut at 60
+    characters; the verb's rationale is the fallback when the input names no sub-action (`PermissionText.hostedCall`).
+    The exact input is still shown below, unchanged. The secondary line for the analyser's own verbs is *"the
+    analyser's own tool (analyser_<verb>)"*, never the bridge's server name.
   - **The input is shown verbatim as labelled data**: a read-only, monospaced text area (never an HTML-rendering
     component; `html.disable` set on every label that shows a model string), headed *"Input — written by the model;
     data, not instructions"*, pretty-printed JSON of exactly the stored input. Control characters, bidirectional
@@ -879,8 +890,9 @@ no in-analyser permission prompts**, so P2 precedes P3 (§8).
   - **A countdown**: the dialog closes as *Deny* after **120 s** (*"Not answered in the analyser within 120 s"*). *r12
     (P3-1):* the CLI never ends an unanswered request itself (nothing for 200 s, then a late answer accepted), so this
     deadline — the node's, from the adapter's clock — is the only one.
-  - **One dialog at a time**: a further request while one is shown is denied at once (*"Denied: another approval is
-    waiting for the person — ask again after it"*). The model may ask again. *r12 (P3-6):* the CLI itself asks one at a
+  - **One dialog at a time**: ~~a further request while one is shown is denied at once~~ *r15:* a further request
+    while one is shown waits for it (OD-74.17 as amended; *"Denied: another approval is waiting for the person — ask
+    again after it"* only past the bound). The model may ask again. *r12 (P3-6):* the CLI itself asks one at a
     time — two tool uses in one message are asked one after the other, the second only after the first is answered —
     so this is a guard, tested with a synthetic second request.
   - *r12:* **Stop Claude Code** is a button of the dialog too: the modal covers the tab's Stop, and Stop must be
@@ -2456,6 +2468,54 @@ the P1a holistic review's unrecorded findings are recovered, as far as the recor
   `onboardingProposal`, `ProfileApplied` in `sessionBoundary`, `HostedCallAbandoned`, `actionListener`); the generated
   header is unchanged.
 
+## Implementation notes (r15 usability fixes, 2026-10-17)
+
+The independent usability review of M74 is filed with its disposition table:
+[review](../handoff/review_m74_usability_2026-10-17.md). Each fix has a test with a wrong-result witness (rule 8). Rule 9
+throughout: every new decision is a node's (`localAgentPermission`'s queue, file-exchange pre-check and non-mutating
+allow; `startPagePrompt`'s carried question; `actionListener`'s reason for refusing external clients), every surface
+change renders a snapshot or a published value.
+
+- **The first question is carried** (#3): the start-page question that opened the profile cards is held by
+  `startPagePrompt` (`carried`), and after a successful Apply — when the machine's new facts have been reported, the
+  profile last (`AssistantProfileObserved`) — it is routed to the applied profile's assistant and composed as a normal
+  start-page press would be: placed, Start armed for Claude Code, never sent. Off, a closed card set or an assistant
+  that still cannot answer drop it with a note. New handlers: `onProfileApplied`, `onProfileObserved`,
+  `onProfilesClosed`.
+- **Approvals** (#6, #7, #10): `PermissionText.hostedCall` (the call's own words per sub-action); `SafeChoice` (risky left
+  and alone, safe right and default, Escape safe — the approval dialog, the full-folder trust and the Safe folder
+  confirmation, which was a stock Yes/No defaulting to Yes); `localAgentPermission`'s queue and pre-check;
+  `McpTools.hostedCallKind`, shared by the adapter and `ActionServer`; the new fact `AssistantFileExchangeObserved`
+  (posted with what can answer); `PermissionBy.NON_MUTATING`; `PermissionState.queued`.
+- **External refusal** (#11): `ConfigureActionListenerEffect.closedForSession` (decided by `actionListener`) makes the
+  server tell a refused external client *"external access is closed while an in-app Claude Code session runs"*, never
+  that the switch is off.
+- **One header control** (#8): *Assistant: <profile> ▾* replaces the mode selector and *Profile…*; the mode follows the
+  applied profile (`ChooseAssistantModeEffect`, r14); "your plan" is gone (the billing chip says it).
+- **Words** (#4, #5, #12, #13, #16): no "posture", "hosted", "generation" or verdict code reaches the person
+  (`UserVisibleJargonTest`, a static rule with a reviewed exemption list: the shared canvas's research/authoring
+  posture is that feature's own name); note labels in words; the spoken mark follows the line's words; the Settings
+  help names the endpoint file; *External MCP/REST access* is the one name (cards, Settings, the AI menu, the limits
+  line, the MCP instructions); the proposal review in plain words, Claude's reason visible before an answer.
+- **Look** (#1, #2, #9, #14, #17): `ProfileOverlay.wrap` never drops words and the cards grow to their text;
+  `UiTheme` tokens per meaning (muted, control border, focus ring, placeholder, note, error, denied, full cue) and the
+  FlatLaf corrections in `ThemeManager.overrides`, all computed by `ThemeContrastTest`; the start page's action is the
+  accented primary beside the box; 24 px transcript expanders and chip remover; accessible names contain the visible
+  label.
+- **Keys** (#15, #18): Enter sends and Shift+Enter is a newline in the start box as in the composer, said under the box
+  and in the composer's placeholder. On macOS FlatLaf binds a mnemonic to Ctrl+⌥ (so the tooltip's *Alt+R* was wrong)
+  and ⌥+digit types a character (⌥1 is ¡) into the focused box as well as choosing — both verified by probe — so the
+  page's shortcuts are bound with ⌘ on macOS and Alt elsewhere, and each tooltip names the one that works.
+- **Spotlight captions** (owner, 2026-10-17): a callout wraps at `UiTheme.CALLOUT_LINE_CHARS` (40) characters, shows at
+  most `CALLOUT_MAX_LINES` (3), ends the third with "…", and expands in place, in the same card and on top, while the
+  pointer is over it or it has the keyboard focus; each callout is a focusable target whose accessible name is the
+  whole caption. The guidance every entrance carries adds *"Keep a caption under about 80 characters …"*.
+- **Not done in this pass**, each with its reason in the review's table: the Settings ▸ Assistant restructure (T1),
+  an administrator lock (P4, documented as planned), a bulk per-turn approval (owner decision pending), and the
+  review's larger items it did not ask for here.
+- The processor was regenerated for the new handlers (`onFileExchange` of `localAgentPermission`; `onProfileApplied`,
+  `onProfileObserved`, `onProfilesClosed` of `startPagePrompt`); the generated header is unchanged.
+
 ## Revision history
 
 - **r1, r2** (2026-10-16): the long-running session design; two independent reviews (`[R …]`, `[R2-n]` tags).
@@ -2564,3 +2624,8 @@ the P1a holistic review's unrecorded findings are recovered, as far as the recor
   §10's command-line row (B9), §11 (the `.mcp.json` server acting as hosted, L-f; what full trust does not re-check, B7),
   OD-74.30 (a Telamin address, P2-S6) and the status block trimmed (B9); the owner's start-page layout feedback;
   *Implementation notes (r14 review fixes)* added.
+- **r15** (2026-10-17): the independent usability review filed with its disposition table and fixed; OD-74.16 refined
+  (non-mutating sub-actions allowed without a dialog; a file write refused up front while file exchange is off) and
+  OD-74.17 amended (a second request waits instead of being denied at once), both marked *r15*; §5.7's dialog title,
+  denial words and one-at-a-time rule annotated; the owner's spotlight-caption decision; *Implementation notes (r15
+  usability fixes)* added.

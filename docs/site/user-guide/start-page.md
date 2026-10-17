@@ -16,14 +16,19 @@ projects and evidence bundles under **Recent**.
 | 5 | **Explain an audit log I already have** | *Open log…* | With no log open, your file chooser and the load first; then a question about that log is drafted, naming it and its generation. |
 | 6 | **What can this tool do?** | — | Puts a question in the box. |
 
-- **Choosing does nothing yet.** Click a row, use **↑ / ↓** and **Enter**, or press **Alt+1** … **Alt+9**. A flow
+- **Choosing does nothing yet.** Click a row, use **↑ / ↓** and **Enter**, or press **Alt+1** … **Alt+9** (**⌘1** … **⌘9**
+  on macOS, where ⌥ and a digit types a character; each row's tooltip names its shortcut). A flow
   entry (1–5) becomes the chip above the box and gives the button its verb; a prompt entry (6) **adds** its words to the
   box after anything you have typed. Typing a digit in the box types a digit. Nothing is sent, opened, fetched or started
   until you press the button.
 - **Your own words** in the box are added to the chosen entry's draft after a blank line (entry 4 puts them in the
-  sentence). With no entry chosen, the button is **Send** and the box is your question.
+  sentence). With no entry chosen, the button is **Send** and the box is your question. Choosing the same prompt entry
+  again does not add its words twice.
+- **Enter presses the button; Shift+Enter starts a new line** — the same keys as the assistant's composer, and the line
+  under the box says so. The button is the page's main action: accent-coloured while it can be pressed, at the box's
+  right edge.
 - **The button never starts Claude Code.** A draft for Claude Code is placed in its composer and **Start is armed**
-  (*Start — ask your question*); you press Start, and the folder confirmation and the posture in force apply. Start is
+  (*Start — ask your question*); you press Start, and the folder confirmation and the profile in force apply. Start is
   armed only when it would be accepted: in an evidence bundle's working copy, for example, the draft is still placed and
   the tab says why Start is refused.
 - **With nothing open**, the assistant opens in its own window with the draft in its composer, so you can see where
@@ -41,9 +46,12 @@ reads **Ask with Claude Code** (or **Ask the in-app assistant**) and pressing it
 
 **The first question with nothing set up** — no assistant chosen on this machine and none able to answer — opens the
 [four cards](assistant.md#choose-how-the-assistant-works) (*Safe analysis*, *Full Claude Code*, *In-app assistant*,
-*Off*) in the assistant's own window instead of an answer, and the start page says *Choose how the assistant works
-first — then ask again*. Your words stay in the box. This happens once: after a card is chosen, or if you close the
-cards without choosing, the page never opens them by itself again. The flows (the demo, set-up, a bundle, the
+*Off*) in the assistant's own window instead of an answer, and the start page says *Choose how the assistant works —
+your question waits, and is placed for the assistant you choose when you press Apply.* After **Apply** your question
+is placed for that assistant — in Claude Code's composer with **Start** armed, or in the in-app composer — **without
+pressing the button again**; nothing is sent until you press Start or Send, and Claude Code still asks about the folder
+when it applies. Choose *Off*, or close the cards, and your words stay in the box. This happens once: after a card is
+chosen, or if you close the cards without choosing, the page never opens them by itself again. The flows (the demo, set-up, a bundle, the
 templates, a log) never open them: they work with no AI.
 
 With **no AI configured**, every entry still ends somewhere: the demo plays, a bundle or log still opens, and each entry
@@ -53,14 +61,15 @@ project…*, *New project from template…*, *Evidence bundles guide*, *User gui
 switched on but not found, the page lists every place it looked and offers *Install Claude Code*.
 
 When your **full Claude Code** is in force (the *Full Claude Code* card, or its switch in *Settings ▸ Assistant*), the
-box carries the same marker as the assistant's composer: a coloured border and the badge *◆ Full Claude Code · \<mode\>: your
-tools and permissions* (◆◆ for `acceptEdits` and `auto`, which ask about fewer actions).
+box carries the same marker as the assistant's composer: a coloured border and the badge *◆ Full Claude Code (\<mode\>)
+— on: it runs at the next Start · your tools and permissions* (◆◆ for `acceptEdits` and `auto`, which ask about fewer
+actions).
 
 ## Prompt packs
 
 You can replace the numbered list for this session by **dropping one Markdown file** (`.md`) on the start page: a
 *prompt pack*. Its entries behave exactly as entry 6 does — choosing one adds its words to the box, and nothing is sent
-until you press the button. **← Return to main options** (Alt+R) brings the analyser's own list back. A pack is never
+until you press the button. **← Return to main options** (Alt+R; ⌘R on macOS) brings the analyser's own list back. A pack is never
 saved: not in your settings, a project profile, a shared settings file or an evidence bundle — dropping it is your act,
 for this window.
 

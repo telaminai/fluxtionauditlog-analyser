@@ -39,7 +39,7 @@ the registration does not require an executable rename.
 
 ## Connect, step by step
 
-1. **Start the analyser and turn the transport on.** Tick *AI ▸ Local MCP / REST enabled* (it is
+1. **Start the analyser and turn the transport on.** Tick *AI ▸ External MCP/REST access* (it is
    remembered, and it is the same setting as *Settings ▸ Assistant ▸ localhost REST transport*), or start
    the app with the flag that does the same and says so on the console:
 
@@ -56,7 +56,7 @@ the registration does not require an executable rename.
 
 2. **Set up the bridge from the analyser.** **AI ▸ Connect an AI client…** — reachable at any time,
    including with a log open, which is usually when the thought occurs. The same screen is on the Start
-   page (**Connect Codex**, **Connect Claude**, **Generic MCP setup**) and at *Settings ▸ Assistant / LLM*.
+   page (**Codex**, **Claude**, **Other MCP client**) and at *Settings ▸ Assistant / LLM*.
    It shows the *resolved*, absolute bridge command for this installation rather than a command you have
    to reconstruct.
 
@@ -112,7 +112,7 @@ Do these in order; each one isolates a different part of the chain.
 | **MCP ready** | this window is serving; a client pointed here reaches *this* log |
 | **MCP elsewhere** | **another analyser window owns the endpoint** — a client is reading that window's log, not this one |
 | **MCP starting** | enabled, but no live endpoint published yet |
-| **MCP off** | the transport is off — tick *AI ▸ Local MCP / REST enabled* |
+| **MCP off** | the transport is off — tick *AI ▸ External MCP/REST access* |
 
 If the window that owns the endpoint **closes**, a window whose transport is on takes the endpoint back within a few
 seconds and its light returns to **MCP ready** — a live owner is never displaced, so two windows cannot fight over it.
@@ -132,7 +132,7 @@ cat ~/.fluxtion-analyser/rest-endpoint
 # {"url":"http://127.0.0.1:52041","token":"…","pid":12684,"startedAt":"…"}
 ```
 
-No file means the transport is off — tick *AI ▸ Local MCP / REST enabled*, or restart with `--rest`.
+No file means the transport is off — tick *AI ▸ External MCP/REST access*, or restart with `--rest`.
 
 **Does your client see the tools?** In Claude Code, `/mcp` should show the server connected with
 **17 tools**:
@@ -180,7 +180,7 @@ same call the bridge does.
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| Tools listed, every call says *not running* | app closed, or REST transport off | start the app; *AI ▸ Local MCP / REST enabled*, or `--rest` |
+| Tools listed, every call says *not running* | app closed, or REST transport off | start the app; *AI ▸ External MCP/REST access*, or `--rest` |
 | Server never appears in the client | stale launcher or client not reloaded | reopen **AI ▸ Connect an AI client…**, use its resolved registration/JSON, then restart or reload the client if required |
 | Calls time out on a very large log | an `aggregate` over millions of records | raise the client's tool timeout (Codex: `tool_timeout_sec`) |
 | `screenshot` / `report` refused | file exchange is opt-in | Settings ▸ Assistant ▸ *Allow assistant file exchange*, and pick the directory |

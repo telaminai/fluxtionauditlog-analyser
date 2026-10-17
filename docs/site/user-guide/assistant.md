@@ -26,10 +26,12 @@ venue disconnected here", it can plot that series and flag those cycles, and you
 
 ## One assistant, two modes
 
-The **Analyser assistant** tab is one panel, whichever assistant answers in it. At its top, one selector chooses the
-mode — **Claude Code · your plan** (your own installed Claude Code, [below](#claude-code-in-the-assistant-tab)) or
-**In-app · API key** (the analyser's own assistant, with a provider you configure) — and beside it **Profile…** opens
-the [four cards](#choose-how-the-assistant-works). Both modes share:
+The **Analyser assistant** tab is one panel, whichever assistant answers in it. At its top, **one control** names how
+the assistant works on this machine — **Assistant: Safe analysis ▾**, *Full Claude Code*, *In-app assistant*, *Off* or
+*Not chosen* — and opens the [four cards](#choose-how-the-assistant-works); the card you apply also chooses who answers:
+your own installed Claude Code ([below](#claude-code-in-the-assistant-tab)) for *Safe analysis* and *Full Claude Code*,
+or the analyser's own assistant with a provider you configure. How it is paid for is a chip in the header (your Claude
+plan, or an API key). Both share:
 
 - **one conversation**, drawn the same way: your turns as you typed them; the assistant's words as safe Markdown
   (headings, lists, code blocks with light colouring, links that open only after asking you); record numbers, node ids
@@ -37,18 +39,19 @@ the [four cards](#choose-how-the-assistant-works). Both modes share:
   and its mark: `✓`, `refused`, `denied`, `approved by you` — that opens to show what was sent (Claude Code) or what came
   back (the in-app assistant);
 - **one composer**, with **Send**, **Stop** and **New chat** doing what the mode in force does with them (Claude Code
-  adds **Start**; the in-app assistant adds **Copy prompt**);
-- **one row of header chips** — who answers, the model, the posture or the provider, how it is paid for;
+  adds **Start**; the in-app assistant adds **Copy prompt**); **Enter sends and Shift+Enter starts a new line**, as in
+  the start page's box;
+- **one row of header chips** — who answers, the model, the profile or the provider, how it is paid for;
 - **one line under the header that says what this mode cannot do** — the in-app assistant cannot read your project
   folder or use your own tools; Safe analysis has no shell, edits or web; full Claude Code's own tools are not confined
   by the analyser; with no key, or with the assistant *Off*, it says so there.
 
-Each mode keeps its own rules: the in-app assistant's actions, its per-reply cap and round limit; Claude Code's posture,
-permissions and approvals. Switching modes is refused while an answer is in progress.
+Each keeps its own rules: the in-app assistant's actions, its per-reply cap and round limit; Claude Code's profile,
+permissions and approvals. Changing how the assistant works is refused while an answer is in progress.
 
 ## Choose how the assistant works
 
-**Profile…** in the assistant's header shows four cards in the panel — not a chain of dialogs:
+**Assistant ▾** in the assistant's header shows four cards in the panel — not a chain of dialogs:
 
 | Card | What it sets up |
 |---|---|
@@ -57,24 +60,28 @@ permissions and approvals. Switching modes is refused while an answer is in prog
 | **In-app assistant** | The analyser's own assistant: a **provider**, a **model** and an **API key** (left blank, a key already stored is kept). |
 | **Off** | **No assistant in the analyser.** No question is sent anywhere from the analyser; every view, chart, report and walk still works. A stored key is kept, unused. An external MCP or REST client you connected is **not** affected. |
 
-Under the cards, one line says whether **external MCP / REST access** is on or off, with a pointer to *Settings ▸
-Assistant*, where it is changed: the cards choose the assistant *in* the analyser, never the external loop.
+Under the cards, one line says whether **External MCP/REST access** is on or off, with a pointer to *Settings ▸
+Assistant ▸ External MCP/REST access*, where it is changed: the cards choose the assistant *in* the analyser, never the
+external loop. Each card's line is shown in full — the card grows to fit it.
 
 - **Choosing a card shows only its two or three details; nothing changes until Apply.** Apply writes the same settings
   *Settings ▸ Assistant* holds — on this machine only, never in a project, a shared settings file or a bundle — and puts
   the tab in that card's mode. *Settings ▸ Assistant* still has every option, grouped the same way.
 - **The cards open by themselves once**: the first time you press **Start** or ask a question — in the panel or on the
-  [start page](start-page.md#which-assistant-answers) — while nothing is set up on this machine. Your question stays
-  where you typed it. After a card is chosen (or if you close them), they open only from **Profile…**. A machine that was
-  already set up (Claude Code allowed, or an API key) counts as chosen and is never asked.
+  [start page](start-page.md#which-assistant-answers) — while nothing is set up on this machine. A question asked on the
+  start page **waits for you**: after **Apply** it is placed in the composer of the assistant you chose, with **Start**
+  ready for Claude Code — you do not press the button again, and nothing is sent until you press Start or Send. Close the
+  cards instead and the question stays in the box. After a card is chosen (or if you close them), they open only from
+  **Assistant ▾**. A machine that was already set up (Claude Code allowed, or an API key) counts as chosen and is never
+  asked.
 - **A change while an answer is in progress is refused**, by name — *"Claude is still answering — Stop or wait, then
   change how the assistant works."* — as a mode switch is.
 
 ## The in-app assistant
 
-In the **In-app · API key** mode the panel is a live chat with the provider you configure. Its header says what it is —
-**Live assistant**, the provider and model it sends to, and the workspace it is about — and the line under it says what
-it is doing: *Requesting*, *Running action n*, *Complete*, *Cancelled*, *Superseded*, *Limit reached* or *Failed*.
+With the **In-app assistant** card applied, the panel is a live chat with the provider you configure. Its header says
+what it is — **Assistant: In-app assistant ▾**, the provider and model it sends to, and the workspace it is about — and
+the line under it says what it is doing: *Requesting*, *Running action n*, *Complete*, *Cancelled*, *Superseded*, *Limit reached* or *Failed*.
 
 - **Ask, follow up, cancel.** **Send** (or Enter; Shift+Enter is a new line) sends your question with the selected
   records' context. The assistant can answer and run the same verbs an external client does — each result appears
@@ -119,12 +126,12 @@ in the Claude Code mode, *Ask the assistant: …* in the in-app one:
   Nothing is sent until you press **Send**. In the Claude Code mode with no session running, **Start is armed**
   (*Start — ask about this*); nothing starts until you press it.
 - **It names where to look, never what is there.** A question names record numbers, the log's file name and its
-  *generation*, node ids, a chart's name and a time — never a value, a note's words or a finding's text, because those
+  *load* (how many times it has been opened or reloaded), node ids, a chart's name and a time — never a value, a note's words or a finding's text, because those
   can carry text written to steer an AI. The assistant reads the records itself (`analyser_read`), so in the in-app mode
-  the questions need *Settings ▸ Assistant ▸ in-process actions*; with them off, the items say so and are disabled. A
+  the questions need *Settings ▸ Assistant ▸ Let the in-app assistant change the views as it answers*; with them off, the items say so and are disabled. A
   question's draft never carries the raw text of your current selection.
 - **If the log changes before you Send** — you reopen or reload it — a question that names its records is refused,
-  *"This question names records of a log that has changed since it was drafted (generation 3 → 4) — ask again from the
+  *"This question names records of a log that has been reloaded since it was drafted (load 3 → 4) — ask again from the
   records"*, and stays editable. Deleting the whole question from the box drops that check.
 - **During a walk with a conversation** (a journey), an ask does not go to any model: it shows the **next recorded
   turn** by playing the step that reveals it. When there is none, the status line says *"The recorded conversation has
@@ -136,12 +143,13 @@ If you have [Claude Code](https://docs.claude.com/en/docs/claude-code/setup) ins
 can host **one long-running Claude Code session** instead of the in-app assistant: you type into it here, and it drives
 the analyser through the same verbs an external client uses. It is **off by default**.
 
-**Turn it on.** Choose the **Safe analysis** card (**Profile…** in the assistant's header), or *Settings ▸ Assistant ▸
-Safe analysis ▸ Allow the analyser to start Claude Code* and then **Claude Code · your plan** in the mode selector at
-the top of the panel. One assistant drives the tab at a time; switching back stops an idle Claude Code, and is refused while Claude is answering (*"Claude is still
-answering — Stop or wait, then switch to the in-app assistant."*). These settings — both switches, the full posture's
-mode, the model, the spend limit and the folders you have confirmed — are **this machine's only**: never in a project profile, a shared settings file or an
-evidence bundle, so a cloned repository or a received bundle cannot turn any of them on.
+**Turn it on.** Choose the **Safe analysis** card (**Assistant ▾** in the assistant's header), or *Settings ▸ Assistant
+▸ Safe analysis ▸ Allow the analyser to start Claude Code*. One assistant drives the tab at a time; switching back stops
+an idle Claude Code, and is refused while Claude is answering (*"Claude is still answering — Stop or wait, then change
+how the assistant works."*). These settings — both switches, Full Claude Code's mode, the model, the spend limit and the
+folders you have confirmed — are **this machine's and this user's only**: never in a project profile, a shared settings
+file or an evidence bundle, so a cloned repository or a received bundle cannot turn any of them on. There is no central
+administrator lock yet ([For administrators](#for-administrators)).
 
 **Start.** Press **Start Claude Code**. What happens:
 
@@ -150,8 +158,10 @@ evidence bundle, so a cloned repository or a received bundle cannot turn any of 
   terminal to log in."* If `claude` cannot be found — common when the analyser was started from the Finder or the
   Dock — the tab lists every place it looked.
 - The first time in a folder, it asks: *"Claude Code will read this folder's CLAUDE.md as instructions. Trust <folder>
-  for Claude Code in the analyser?"* Your answer is remembered on this machine. With no project open, Claude Code works
-  in a private, empty scratch folder instead. Start is refused outright in an evidence bundle's working copy.
+  for Claude Code in the analyser?"* — **Trust this folder** or **Don't trust** (the default, at the right, as in every
+  consent dialog here). Your answer is remembered on this machine. With no project open — or with the sample project or
+  a bundle open — Claude Code works in a private, empty scratch folder instead, and the question says so in words before
+  its path. Start is refused outright in an evidence bundle's working copy.
 - Claude Code does **not** need the REST transport turned on. With it off, the analyser opens a private listener that
   serves only this Claude Code session — it refuses every external client, even one holding the REST token, and
   publishes no endpoint file for other tools to find — and closes it when the session stops. With it on, the session
@@ -159,10 +169,10 @@ evidence bundle, so a cloned repository or a received bundle cannot turn any of 
 - Start **contacts Anthropic** (the sign-in check and connecting the analyser's bridge) **before your first Send**. No
   record content is sent until you press Send.
 - The analyser checks that the session it started is the one it asked for: the bridge proves it belongs to this
-  analyser window, and Claude Code's tools, permission mode and servers must be exactly the posture below, or the
-  session is stopped and the tab names what differed. An older installed analyser bridge is refused by name.
+  analyser window, and Claude Code's tools, permission mode and servers must be exactly what Safe analysis (or Full
+  Claude Code) sets up, or the session is stopped and the tab names what differed. An older installed analyser bridge is refused by name.
 
-**What it can do — the analyser-assistant posture.** Claude Code here has:
+**What it can do — Safe analysis.** Claude Code here has:
 
 - the folder's **`CLAUDE.md`**, and **Read, Grep and Glob confined to the folder** (a symbolic link pointing outside it
   is refused too);
@@ -171,12 +181,12 @@ evidence bundle, so a cloned repository or a received bundle cannot turn any of 
   (`graph {delete}`) is refused; and **`propose`**, which only Claude Code in the tab is offered: it records a set-up
   offer and changes nothing ([below](#set-up-a-project-with-claude));
 - the verbs that change what is open or write files — `open`, `source_root`, `screenshot`, `report`, `walk`, `import` —
-  **each call asked of you first** ([Approvals in the analyser](#approvals-in-the-analyser), below);
+  **each call asked of you first** ([Approvals in the analyser](#approvals-in-the-analyser), below), except the few
+  sub-actions of them that change nothing stored (playing or ending a walk, listing the deleted reports or walks);
 - nothing else. **Not loaded:** your own skills, commands, hooks and settings, your MCP servers and connectors, and the
   folder's `.claude/settings.json` hooks and `.mcp.json`. **No Bash, no file edits, no web, no subagents.** Anything
-  else is denied at once, without asking you. The header names the posture *Safe analysis (default posture)* and says
-  *"Safe analysis — your skills and hooks are not loaded; choose Full Claude Code (Profile…) for those"*. Your full
-  Claude Code is a separate opt-in, below.
+  else is denied at once, without asking you. The header names it *Safe analysis* and says *"Safe analysis — your own
+  skills, hooks and MCP servers are not loaded"*. Your full Claude Code is a separate opt-in, below.
 
 **Full Claude Code — your own Claude Code, by a second opt-in.** The **Full Claude Code** card, or *Settings ▸
 Assistant ▸ Full Claude Code ▸ …with my full Claude Code permissions* (off, and only available while Claude Code is
@@ -206,7 +216,7 @@ choose allow**. **The analyser does not confine it to the folder**; your rules a
   dialog says so. A folder confirmed for the analyser assistant is not thereby confirmed for full Claude Code.
 - **What the tab shows.** Each hook's event and outcome is a status line (*"Hook SessionStart: 1 ran"*, or that one
   failed), never its output. The header says *"Full Claude Code (<mode>) — your settings, skills, hooks and n MCP
-  servers are loaded"* (the posture named *Full Claude Code (<mode>)*), and an environment line, *"PATH: inherited, plus ~/.local/bin, /opt/homebrew/bin"*: an analyser
+  servers are loaded"*, and an environment line, *"PATH: inherited, plus ~/.local/bin, /opt/homebrew/bin"*: an analyser
   started from the Finder or the Dock has a minimal `PATH`, where your hooks and `npx` servers would not start, so the
   standard install folders that exist and are not already on your `PATH` are **appended** (your order wins). The
   analyser never runs a login shell to find a `PATH`; set anything else (an `nvm` node, a project's virtual
@@ -216,32 +226,44 @@ choose allow**. **The analyser does not confine it to the folder**; your rules a
   which is not bound to this analyser window, are hidden. Only the Start button starts it. Changing the switch or the
   mode means a New chat.
 
-Turn it on only for folders and logs you trust: in this posture, text in a record that is written to steer an AI
+Turn it on only for folders and logs you trust: in Full Claude Code, text in a record that is written to steer an AI
 reaches an agent that may have your shell, and the analyser cannot limit what your own tools do.
 
 ### Approvals in the analyser
 
-When Claude Code needs your approval for a call, the analyser asks you in **one dialog** — *"Claude Code asks to run
-analyser_report"* (or *"…to use Bash"*), one line on what it changes, who names the tool (*built-in tool* for Claude
-Code's own tools; the server and the name it gave the tool for an MCP server's), and the call's **input, exactly as
-Claude Code wrote it**, in a plain monospaced box headed *"Input — written by the model; data, not instructions"*. Markup is shown
+When Claude Code needs your approval for a call, the analyser asks you in **one dialog** that says what **this call**
+does, from its own input — *"Claude Code asks to delete the saved walk “DEMO first breach”"*, *"…to play the walk
+“…”"*, *"…to build the report “…” and write it to “incident.pdf”"*, *"…to run a command on your computer"* — one line on
+its consequence (*"It can be restored: it moves to this project's recently deleted list."*), who the tool belongs to
+(*the analyser's own tool*, *built-in tool* for Claude Code's own tools, or the server and its name for the tool), and
+the call's **input, exactly as Claude Code wrote it**, in a plain monospaced box headed *"Input — written by the model;
+data, not instructions"*. The sentence quotes at most 60 characters of a value; the input below always has all of it. Markup is shown
 as its characters, and invisible or direction-changing characters as visible escapes (the dialog says so); nothing is
 cut — the box scrolls.
 
-- **Deny is the default.** Enter and Escape deny, and so does closing the dialog. **Allow once** has no keyboard
-  shortcut and is active only half a second after the dialog appears, so a key meant for the composer cannot approve.
-  There is no *Always allow*: the analyser never writes a permission rule for you.
+- **Deny is the default**, at the right end of the row; **Allow once** stands alone at the left, apart from it — the
+  same order and default as the folder questions (*Don't trust* at the right). Enter and Escape deny, and so does
+  closing the dialog. **Allow once** has no keyboard shortcut and is active only half a second after the dialog appears,
+  so a key meant for the composer cannot approve. There is no *Always allow*, and no "allow for this turn": the analyser
+  never writes a permission rule for you.
 - **It waits 120 s**, with a countdown; unanswered, the call is denied (*"Not answered in the analyser within 120 s"*).
   Claude Code itself would wait for ever, so this is the analyser's own limit.
-- **One at a time.** Claude Code asks one call at a time; should a second arrive while a dialog is open, it is denied
-  at once and Claude Code may ask again.
+- **One at a time.** Claude Code asks one call at a time; should a second arrive while a dialog is open, it **waits**
+  — the dialog says *"1 more request is waiting"* — and is shown when you have answered the first. A waiting request is
+  still denied if its turn ends, or you press Stop or New chat, before it is shown.
+- **Never a question the settings would refuse.** A screenshot, a report's PDF or CSV, a bundle or a walk's page is a
+  file in the exchange folder: with *Allow assistant file exchange* off it is refused at once, with the reason and where
+  to turn it on — never asked and then refused.
+- **Nothing asked for what changes nothing.** Playing or ending a walk, and listing the deleted reports or walks, change
+  nothing stored, so they are allowed without a dialog (the line reads `allowed: it changes nothing`); the analyser
+  checks the call's own input, and every other call of `walk` and `report` is still asked.
 - **Stop Claude Code** is in the dialog too (it covers the tab's Stop): the call is denied first, then the turn stops.
 - **An approval covers one call.** For the analyser's own verbs, *Allow once* lets exactly that call through — the same
   verb, the same input, the same turn — once, within 60 s; the analyser refuses any other call of those verbs, whoever
   approved it. The call still meets every other rule: `report` and `screenshot` write only inside the exchange
-  directory when file exchange is on, `open {project, create}` needs *Allow the assistant to create projects*, and
+  folder when file exchange is on, `open {project, create}` needs *Allow the assistant to create projects*, and
   `graph {delete}` is never available.
-- **What is asked.** In the analyser-assistant posture only those verbs are ever asked (nothing else asks there). With
+- **What is asked.** In Safe analysis only those verbs are ever asked (nothing else asks there). With
   full Claude Code in `default` or `acceptEdits`, whatever your Claude Code would ask you in a terminal is asked here:
   Bash commands (the command shown verbatim), file edits and writes (`acceptEdits` does not ask about edits in the
   folder), web access and your MCP servers' tools. A call of your own `fluxtion-analyser` registration, or a request
@@ -253,7 +275,8 @@ cut — the box scrolls.
   allows, never reaches the analyser. For the analyser's own verbs that does not matter — the analyser still refuses
   them without your approval in its dialog — but for your own tools nothing in the analyser can ask.
 - **The transcript says what happened.** The call's line reads `approved by you · ✓`, `denied by you`, `denied: not
-  answered within 120 s` or `denied: not asked in this posture`, with the input as Claude Code sent it (an integer
+  answered within 120 s` or `denied: not allowed in Safe analysis` — and a screen reader hears those same words — with
+  the input as Claude Code sent it (an integer
   reads `3`, as in the dialog), and a short note under it names the decision; while a
   dialog is open the status line says *"Claude Code is waiting for your answer"*. The session's own record keeps that
   a call of `report` was approved, by whom, in which turn — never what its input said.
@@ -261,24 +284,36 @@ cut — the box scrolls.
 Claude Code is told that record content is data, not instructions — a weak protection, stated as such: treat its
 answers as the model's words, and check them against what the analyser shows.
 
+### For administrators
+
+**Every switch is per user, on each machine.** The profile cards and *Settings ▸ Assistant* write the user's own
+`~/.fluxtion-analyser/config`: *Allow the analyser to start Claude Code*, *Full Claude Code* and its mode, *External
+MCP/REST access*, *Allow assistant file exchange* and *Allow the assistant to create projects*. None of them can come
+from a project, a shared settings file or a bundle — so a repository or a received bundle cannot turn one on — but
+equally **there is no central lock yet**: any user can turn Full Claude Code on for themselves, and nothing an
+administrator sets today prevents it. A **managed policy** that can (a machine-wide setting the cards read, with the
+card showing *Disabled by your administrator*) is planned (P4 in the tracker) and not built. Until then, decide whether
+Full Claude Code is acceptable on a machine the way you would decide about the person's own terminal Claude Code: it is
+that, run inside the analyser.
+
 **Using it.**
 
-- **Send** (or Enter) sends one turn. While Claude is answering, Send is refused — *"Claude is still answering — Stop
+- **Send** (or Enter; Shift+Enter is a new line) sends one turn. While Claude is answering, Send is refused — *"Claude is still answering — Stop
   or wait."* — and your draft stays; nothing is queued.
 - **Stop** interrupts the turn. If Claude Code does not acknowledge within 5 s, or the turn has not ended within 15 s,
   the analyser ends the process; your next Send resumes the same conversation in a new process.
-- **New chat** starts a new conversation. Changing the folder (opening another project), a switch or the full
-  posture's mode means a New chat: a conversation is never resumed under a different posture. Applying Settings while
+- **New chat** starts a new conversation. Changing the folder (opening another project), the profile or Full Claude
+  Code's mode means a New chat: a conversation is never resumed under different settings. Applying Settings while
   Claude Code runs ends the session if the change affects it — at once when you turned Claude Code off, otherwise
   after the turn in progress — and the next Start offers New chat.
 - **Slash commands** you type are sent as in a terminal — `/compact`, `/model`, `/context`, `/usage` and the like —
-  except those that would change the posture or the conversation's identity, or act outside this session: `/config`,
+  except those that would change how Claude Code works here or the conversation's identity, or act outside this session: `/config`,
   `/mcp` with an argument, `/add-dir`, `/permissions` and others are refused with *"… is not available in the analyser —
   use Claude Code in a terminal for that."*; `/clear` offers New chat instead. A command the analyser has not
   classified (from a newer Claude Code) is refused the same way. Lines starting with `!` or `#` (the terminal's shell and
   memory shortcuts) are refused. An `@file` mention works as in a terminal for a file inside the folder; a file
   outside it is not read.
-- **The header** shows the model, the posture, the folder (shortened; the full path is its tooltip), the Claude Code
+- **The header** shows the model, the profile (*Safe analysis*, *Full Claude Code (<mode>)*), the folder (shortened; the full path is its tooltip), the Claude Code
   version, your subscription type or the API-key source, and the API provider when it is not Anthropic's own. It never
   shows your e-mail address or organisation. When the environment the analyser passes to Claude Code sets
   `ANTHROPIC_BASE_URL`, a line says *"requests go to https://proxy.example:8443"* — the scheme, host and port only,
@@ -312,15 +347,16 @@ a copy that holds such characters says how many.
   in its plain ASCII (punycode) form — so a look-alike address cannot pass — and only for `http` and `https`.
 - **Chips.** A record number (*record #12*), a node written as code or after the word *node*, or a chart's name becomes
   a small button that **only navigates** — it selects the record, shows the node, or opens the chart. An answer written
-  about an earlier generation of the log shows its chips muted, and a click says why and goes nowhere.
-- **Tool calls** are one line each — `▸ analyser_read ✓`, `refused`, `denied by the posture`, `approved by you · ✓` —
-  and a click on `▸`
-  shows the call's input. **Alt+↑ / Alt+↓** move between turns. Light and dark themes both work.
+  about an earlier load of the log (before it was reloaded) shows its chips muted, and a click says why and goes
+  nowhere.
+- **Tool calls** are one line each — `▸ analyser_read ✓`, `refused`, `denied by you`, `approved by you · ✓` — and a
+  click on `▸` (a 24-pixel target) shows the call's input. A screen reader hears the line's own words. **Alt+↑ / Alt+↓** move between turns. Light and dark themes both work.
 - **When your full Claude Code is in force**, the composer has a coloured border and the badge *◆ Full Claude Code
-  · \<mode\>: your tools and permissions* — *on: it runs at the next Start* until it runs, then *running* — with
-  ◆◆ and a stronger colour for `acceptEdits` and `auto`, which ask about fewer actions. **Send** reads *Send to full
-  Claude Code*, and the tab and the assistant's own window carry the same ◆ marker. The marker follows the session, so it
-  appears and goes with the posture the analyser actually started.
+  (\<mode\>) — on: it runs at the next Start · your tools and permissions* (then *— running*): the state first, so a
+  narrow tab never hides it — with ◆◆ and a stronger colour for `acceptEdits` and `auto`, which ask about fewer actions.
+  That colour is full Claude Code's alone: a denied call is a neutral ink with its words, a status note its own colour.
+  **Send** reads *Send to full Claude Code*, and the tab and the assistant's own window carry the same ◆ marker. The
+  marker follows the session, so it appears and goes with what the analyser actually started.
 
 ## No API key? Copy-prompt mode
 
@@ -340,7 +376,7 @@ left out entirely: every action call needs it. The box appears only while the RE
 
 ## Setup
 
-The **In-app assistant** card (**Profile…**) sets the provider, model and key in one step. Or open
+The **In-app assistant** card (**Assistant ▾**) sets the provider, model and key in one step. Or open
 **Settings ▸ Assistant / LLM**:
 
 - **Provider / model** — Anthropic (Claude) or OpenAI, and a model id.
@@ -871,7 +907,7 @@ authorisation.
 
 **A project may say where that directory is — never whether.** A repository knows something your machine
 does not: that its exports belong in `src/report/shared` beside the evidence they are about. So a profile
-can carry *This project's directory* (Settings ▸ Assistant), a path **relative to the project root** with
+can carry *Exchange folder (this project)* (Settings ▸ Assistant), a path **relative to the project root** with
 no `..`, and the assistant writes there instead. The permission is untouched: it is yours, it stays in
 your own settings, and opening someone's project can never turn the exchange on. A value that is
 absolute, home-relative, escapes the project, or names a directory that is not there is **refused with

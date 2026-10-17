@@ -106,19 +106,24 @@ log, and no file writes**. Two groups of verbs go further, honestly labelled:
   roots and Maven repos are removed at capture, so it can never point your analyser somewhere new.
   Reports carry prose the sender wrote about their data, so they are applied only when named explicitly.
   It is marked destructive to MCP clients because it merges someone else's work into your project.
-- **Claude Code in the Assistant tab is off by default.** The assistant header's **Profile…** cards turn it on in
-  one step — **Safe analysis** for the posture below, **Full Claude Code** for yours — and write the same switches.
+- **Claude Code in the Assistant tab is off by default.** The assistant header's **Assistant ▾** cards turn it on in
+  one step — **Safe analysis** for what is described below, **Full Claude Code** for yours — and write the same switches.
   *Allow the analyser to start Claude Code* (Settings ▸ Assistant) lets the tab's **Start** button run **your own installed `claude`**, logged in as you; the
   analyser never reads or stores your Claude Code credentials. Start contacts Anthropic (the sign-in check and the
   bridge connection) **before your first Send**; no record content is sent until you press Send. By default Claude
-  Code runs in the **analyser-assistant posture**: the folder's `CLAUDE.md`, **Read, Grep and Glob confined to the
+  Code runs as **Safe analysis**: the folder's `CLAUDE.md`, **Read, Grep and Glob confined to the
   folder**, and the verbs above; **no Bash**, no file edits, no web, none of your skills, hooks, settings or MCP
   servers — so "no shell access" stays true there. The verbs that change what is open or write files (`open`,
   `source_root`, `screenshot`, `report`, `walk`, `import`) are visible to it, but **before Claude Code runs any of these
-  verbs the analyser asks you**, in a dialog that shows the exact call and what it changes. **Deny is the default**
-  (Enter, Escape and closing the dialog deny; unanswered for 120 s, it is denied), and **an approval covers one call**:
-  the analyser itself refuses the call unless your *Allow once* for exactly that call — that verb, that input, that turn —
-  is waiting, used at most once within 60 s. Each folder is
+  verbs the analyser asks you**, in a dialog that says what this call does and shows its exact input. **Deny is the
+  default** (Enter, Escape and closing the dialog deny; unanswered for 120 s, it is denied), and **an approval covers one
+  call**: the analyser itself refuses the call unless your *Allow once* for exactly that call — that verb, that input,
+  that turn — is waiting, used at most once within 60 s. Three refinements keep the questions to the ones that matter,
+  without weakening that: a call that **changes nothing stored** — playing or ending a walk, listing the deleted reports
+  or walks — is allowed without a dialog, the analyser judging the call's own input, and every other call of those verbs
+  is still asked; a file write the settings would refuse (file exchange off) is **refused at once with the reason**,
+  never asked and then refused; and a second request arriving while a dialog is open **waits** for it, and is denied if
+  its turn ends or you press Stop first. There is no "allow for this turn". Each folder is
   confirmed once before Start, a bundle's working copy is refused, and its bridge carries its own per-session
   credential: a call with only the REST token is never treated as Claude Code's, Claude Code cannot delete a chart, and
   only the verbs listed above are served to it — a verb added in a later release stays refused until it is listed.
@@ -126,6 +131,12 @@ log, and no file writes**. Two groups of verbs go further, honestly labelled:
   even one holding the REST token, and publishes no endpoint file. Start is always the explicit button; opening the
   Assistant tab starts nothing. The switches and the confirmed folders are this machine's only — never in a project profile, a shared
   settings file or an evidence bundle.
+
+  **Every switch is per user.** *Allow the analyser to start Claude Code*, Full Claude Code, External MCP/REST access,
+  file exchange and project creation live in each user's own `~/.fluxtion-analyser/config`, and any user can turn them
+  on for themselves. **There is no central administrator lock yet**: an organisation cannot today forbid Full Claude
+  Code for everyone from one place. A managed policy that can (a machine-wide file the cards read, showing *Disabled by
+  your administrator*) is planned — P4 in the tracker — and not built.
 
   **Full Claude Code is a separate switch with its own warning** (*…with my full Claude Code permissions*, off; the
   **Full Claude Code** card shows the warning in full and its button reads *Turn on full Claude Code*). It
@@ -146,7 +157,7 @@ log, and no file writes**. Two groups of verbs go further, honestly labelled:
   still refuses it without your approval in its dialog, but for your own tools nothing in the analyser can. Your own
   `fluxtion-analyser` registration is hidden, and only the Start button starts full Claude Code. This is the stated exception to "no shell
   access": record text that steers an AI reaches an agent with your shell, under your rules, so turn it on only for
-  folders and logs you trust. **The full posture cannot stop your own tools reading the analyser's REST token**
+  folders and logs you trust. **Full Claude Code cannot stop your own tools reading the analyser's REST token**
   (it lives in a file in your home folder, as for any external client); with it, Claude Code could drive the analyser
   as an external client, including the destructive verbs above. The per-session file Claude Code's own bridge reads
   carries only that session's credential, not the token. Agent edits then happen as your own Claude Code makes them, within your rules.
