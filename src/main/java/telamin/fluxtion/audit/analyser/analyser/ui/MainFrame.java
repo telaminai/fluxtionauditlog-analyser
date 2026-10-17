@@ -4707,6 +4707,7 @@ public final class MainFrame extends JFrame {
             }
         });
         installLocalAgent();
+        installWarmStartTracker();
     }
 
     // ---- M74: Claude Code as the local agent — the adapter performs, the panel reports and renders; localAgentSession
@@ -4837,9 +4838,20 @@ public final class MainFrame extends JFrame {
      * listener fires for revealAssistant(), journey handoffs and restore too; WarmStart reads the event being dispatched
      * to tell the person's click or key on the tab strip from those.
      */
+    /** The tab strip's own input, for warm start (the P1b smoke's finding: the current event can be overwritten). */
+    private WarmStart.Tracker warmStartTracker;
+
+    private void installWarmStartTracker() {
+        if (sideTabs == null || warmStartTracker != null) return;
+        warmStartTracker = new WarmStart.Tracker(sideTabs);
+        java.awt.Toolkit.getDefaultToolkit().addAWTEventListener(warmStartTracker, WarmStart.Tracker.MASK);
+    }
+
     private void onAssistantTabSelected() {
         if (sideTabs == null || sideTabs.getSelectedComponent() != assistantDock) return;
-        if (!WarmStart.isDirectSelection(java.awt.EventQueue.getCurrentEvent(), sideTabs)) return;
+        if (!WarmStart.isDirectSelection(java.awt.EventQueue.getCurrentEvent(),
+                warmStartTracker == null ? null : warmStartTracker.held(),
+                java.awt.EventQueue.getMostRecentEventTime(), sideTabs)) return;
         if (!config.claudeCodeWarmStart || session == null) return;
         session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentStartRequested(
                 ++localAgentRequest, localAgentConsent(), true));

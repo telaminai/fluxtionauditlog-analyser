@@ -364,8 +364,11 @@ class OneDispatchModelTest {
         String frame = Files.readString(UI.resolve("MainFrame.java"));
         String home = bodyOf(frame, "private void onAssistantTabSelected(");
         assertFalse(home.isEmpty(), "onAssistantTabSelected must exist");
-        assertTrue(home.contains("WarmStart.isDirectSelection(java.awt.EventQueue.getCurrentEvent(), sideTabs)"),
-                "the guard reads the event being dispatched");
+        // P1b smoke finding: the event being dispatched, and the tab strip's own held input against the queue's
+        // most recent input time (the current event can be overwritten by a nested dispatch)
+        assertTrue(home.contains("WarmStart.isDirectSelection(java.awt.EventQueue.getCurrentEvent(),")
+                        && home.contains("warmStartTracker.held()") && home.contains("getMostRecentEventTime()"),
+                "the guard reads the event being dispatched and the tab strip's held input");
         Pattern warm = Pattern.compile("LocalAgentStartRequested\\([^;]*?,\\s*true\\)\\s*\\)", Pattern.DOTALL);
         assertEquals(1, count(warm, frame), "one warm start in the frame");
         assertEquals(1, count(warm, home), "and it is the guarded one");
