@@ -44,7 +44,7 @@ public record SessionSnapshot(boolean logOpen, String logPath, long logGeneratio
                               WalkPlaybackState walkPlayback, CaptureState capture, AssistantState assistant,
                               BundleProvenance bundle, LocalAgentState localAgent, StartPageState startPage,
                               ProposalState proposal, ExampleDownloadState example, PermissionState permission,
-                              ProfileState profiles, ListenerState listener) {
+                              ProfileState profiles, ListenerState listener, long logOpenedAt) {
 
     /**
      * Independent review R4: immutable in fact, not only by the reference that publishes it. A volatile field cannot make
@@ -72,7 +72,7 @@ public record SessionSnapshot(boolean logOpen, String logPath, long logGeneratio
                     null, null, null, null, false, null, null, false, WalkPlaybackState.IDLE, CaptureState.IDLE,
                     AssistantState.IDLE, BundleProvenance.NONE, LocalAgentState.IDLE, StartPageState.IDLE,
                     ProposalState.NONE, ExampleDownloadState.IDLE, PermissionState.NONE, ProfileState.NONE,
-                    ListenerState.NONE);
+                    ListenerState.NONE, 0);
 
     static SessionSnapshot of(SessionProcessor p) {
         return new SessionSnapshot(p.openLog.isOpen(), p.openLog.logPath(), p.openLog.generation(),
@@ -97,7 +97,8 @@ public record SessionSnapshot(boolean logOpen, String logPath, long logGeneratio
                 p.exampleDownload.state(),          // M74 P2b: an example's download, as exampleDownload decided it
                 p.localAgentPermission.state(),     // M74 P3: the permission prompt, as localAgentPermission decided it
                 p.assistantProfile.state(),         // M74 UX: the assistant profile and its overlay, as assistantProfile decided
-                p.actionListener.state());          // review B5: the action listener, as actionListener decided it
+                p.actionListener.state(),           // review B5: the action listener, as actionListener decided it
+                p.openLog.openedAtMillis());        // final review #12: when the open log was opened (the binding chip)
     }
 
     /** The verdict a surface may state as CURRENT: none while a log open is pending. */

@@ -341,7 +341,9 @@ public final class LocalAgentAdapter {
             run.beginTurn(e.ticket());
         }
         long ticket = e.ticket();
-        write(run, StreamJson.userLine(uuid, store.text(e.draft())),
+        // final review #12: the binding goes to the model on the line it reads; the transcript keeps the person's words
+        write(run, StreamJson.userLine(uuid, store.text(e.draft())
+                        + telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.modelBinding(e.logGeneration())),
                 () -> endTurn(run, ticket, SessionEvents.TurnOutcome.PROCESS_EXIT));
         return started(e.opId(), e.generation(), "send");
     }

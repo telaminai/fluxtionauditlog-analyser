@@ -252,9 +252,20 @@ public final class SessionEvents {
      */
     public record LogOpened(long opId, String logPath, String provenance, java.util.Set<String> loggedNodeIds,
                             int sampled, int total, String mostVerboseLevel, String provenanceSource,
-                            boolean followable, int nodeLogsWithheld) implements Result {
+                            boolean followable, int nodeLogsWithheld, long openedAtMillis) implements Result {
         public LogOpened {
             loggedNodeIds = loggedNodeIds == null ? java.util.Set.of() : java.util.Set.copyOf(loggedNodeIds);
+        }
+
+        /**
+         * Final review #12: {@code openedAtMillis} — when the adapter opened it (epoch millis; 0 unknown) — is what the
+         * composer's binding chip says in place of the log generation ("this log · opened HH:MM").
+         */
+        public LogOpened(long opId, String logPath, String provenance, java.util.Set<String> loggedNodeIds,
+                         int sampled, int total, String mostVerboseLevel, String provenanceSource, boolean followable,
+                         int nodeLogsWithheld) {
+            this(opId, logPath, provenance, loggedNodeIds, sampled, total, mostVerboseLevel, provenanceSource, followable,
+                    nodeLogsWithheld, 0);
         }
 
         /** UPS-1: no sampled record withheld its node logs (the count is drawn by the same sample as the ids). */

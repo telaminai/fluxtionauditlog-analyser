@@ -47,6 +47,7 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 - **Colours**: secondary text, control borders, the focus ring and placeholders meet WCAG AA in light and dark (secondary text was the disabled grey); full Claude Code's colour is its own — a denied call is a neutral ink with its words, a status note its own colour. Transcript expanders are 24-pixel targets.
 - **The words of two refusals an external client sees changed; their status codes did not.** A hosted-only listener (Claude Code in the Assistant tab with external access off) answers an external MCP/REST call 403 with *"External MCP/REST access is off in this analyser (Settings ▸ Assistant); this listener serves only the analyser's own Claude Code session"*, and the `fluxtion-analyser` MCP bridge's unreachable error (-32001) reads *"analyser not running, or External MCP/REST access is off — turn it on in Settings ▸ Assistant, …"* (it said *REST transport disabled*). A client should key on the status or error code, never on the text.
 - *Settings ▸ Assistant* names the header control as it reads (*Assistant: Safe analysis ▾*, for example), not *Assistant ▾*.
+- **A drafted question no longer says *(log generation N)*.** A small muted chip by the composer says which log the drafted questions are about — *this log · opened 14:05* (or *an earlier log · Send will refuse it* after a reload) — and the analyser tells the model the binding with the message it sends. Send still checks every drafted question against the open log.
 
 ### Fixed
 

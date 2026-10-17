@@ -202,6 +202,28 @@ class LocalAgentPermissionReplayTest {
         assertTrue(answers(h).isEmpty(), "no control_response for the withdrawn request_id: " + answers(h));
     }
 
+    /**
+     * ★ Final review #12 (owner decision): the model is told the binding on the user line it reads; the person's words in
+     * the transcript stay as they were placed, without the generation. Witness: write {@code store.text(e.draft())} alone
+     * in {@code LocalAgentAdapter.send} — the line carries no binding.
+     */
+    @Test
+    @DisplayName("★ the user line tells the model the drafts' log generation; the transcript keeps the person's words")
+    void theModelIsToldTheBinding() throws Exception {
+        Harness h = bound("p3-1-unanswered-real.jsonl");
+        long draft = h.store.add(LocalAgentTranscript.Kind.USER, "What happened in record #2 of \"demo.yaml\"?");
+        h.adapter.perform(new SessionEffects.SendLocalAgentTurnEffect(0L, h.state().generation(), 7, draft, 3));
+        List<String> users = h.agent.last().userLines();
+        String line = users.get(users.size() - 1);
+        assertTrue(line.contains("What happened in record #2"), line);
+        assertTrue(line.contains("log generation 3"), "the model reads the binding: " + line);
+        assertEquals("What happened in record #2 of \"demo.yaml\"?", h.store.text(draft), "the person's words, unchanged");
+        long plain = h.store.add(LocalAgentTranscript.Kind.USER, "hello");
+        h.adapter.perform(new SessionEffects.SendLocalAgentTurnEffect(0L, h.state().generation(), 8, plain, 0));
+        users = h.agent.last().userLines();
+        assertFalse(users.get(users.size() - 1).contains("generation"), "an unbound message carries nothing more");
+    }
+
     // ---- ★ what is recorded --------------------------------------------------------------------------------------
 
     /**

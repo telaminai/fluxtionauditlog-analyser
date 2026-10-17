@@ -5405,6 +5405,7 @@ public final class MainFrame extends JFrame {
         var agent = next.localAgent();
         assistantPanel.renderMode(agent.mode(), demo != null);
         assistantPanel.renderProfiles(next.profiles());
+        assistantPanel.renderOpenLog(next.logOpen(), next.logGeneration(), next.logOpenedAt());   // final review #12
         assistantPanel.render(state, demo);
         if (agent.answer().accepted() && agent.answer().request() == localAgentSendRequest
                 && localAgentDraftCleared != localAgentSendRequest) {
@@ -6354,7 +6355,7 @@ public final class MainFrame extends JFrame {
         boolean followable = !S3Source.isS3(location) && loaded.supportsFollow();
         driver.submit(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogOpened(opId, location, provenance,
                 arrival.ids(), arrival.scanned(), arrival.total(), level == null ? null : level.toString(),
-                provenanceSource, followable, arrival.withheld()));
+                provenanceSource, followable, arrival.withheld(), System.currentTimeMillis()));
         if (driver.processor().operationGate.accepted()) sessionLogGeneration = driver.snapshot().logGeneration();
         if (!driver.processor().operationGate.accepted()) {
             supersedeRecoveryLog(opId);
@@ -11342,7 +11343,8 @@ public final class MainFrame extends JFrame {
         String text = localAgentStore.text(e.draftRef());
         revealAssistant();
         localAgentPanel.appendDraft(e.draftRef(), text,
-                telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.text("composer.hint.CLAUDE_CODE"));
+                telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.text("composer.hint.CLAUDE_CODE"),
+                e.logGeneration());
         return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.DraftPlaced(e.opId(), e.draftRef(), true, "");
     }
 
@@ -11352,7 +11354,8 @@ public final class MainFrame extends JFrame {
         String text = assistantTranscript.text(e.draftRef());
         revealAssistant();
         assistantPanel.appendDraft(e.draftRef(), text,
-                telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.text("composer.hint.IN_APP"));
+                telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.text("composer.hint.IN_APP"),
+                e.logGeneration());
         return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.DraftPlaced(e.opId(), e.draftRef(), true, "");
     }
 

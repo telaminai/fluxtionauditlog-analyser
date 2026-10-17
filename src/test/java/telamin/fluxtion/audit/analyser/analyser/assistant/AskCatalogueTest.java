@@ -143,7 +143,7 @@ class AskCatalogueTest {
         var ids = java.util.stream.IntStream.range(0, 14).mapToObj(i -> "node" + i).toList();
         var d = AskCatalogue.compose(q1, AskCatalogue.Surface.RECORDS_MENU,
                 log(AskContext.Mode.CLAUDE_CODE).selected(List.of(2)).cycleNodeIds(ids).build());
-        assertEquals("What happened in record #2 of \"demo-quote-audit.yaml\" (log generation 3)? Read it with "
+        assertEquals("What happened in record #2 of \"demo-quote-audit.yaml\"? Read it with "
                 + "analyser_read {recordIndex: 2} and the 2 records before and 5 after (#0–#7). Its cycle logged from "
                 + "these nodes: node0, node1, node2, node3, node4, node5, node6, node7, node8, node9, node10, node11 and 2 "
                 + "more. Say what the cycle did and why.", d.text());
@@ -217,7 +217,7 @@ class AskCatalogueTest {
         assertTrue(q3.contains("Why did it not fire?"), q3);
         String q4 = AskCatalogue.compose(AskCatalogue.byId("Q4").orElseThrow(), AskCatalogue.Surface.CHART_POINT,
                 log(AskContext.Mode.CLAUDE_CODE).chartPoint("spread", "quote.spread", 0L, 5, 2).build()).text();
-        assertTrue(q4.contains("(nearest record #5, log generation 3), where there is note 2:"), q4);
+        assertTrue(q4.contains("(nearest record #5), where there is note 2:"), q4);
         String q6 = AskCatalogue.compose(AskCatalogue.byId("Q6").orElseThrow(), AskCatalogue.Surface.TIME_SLIDER,
                 log(AskContext.Mode.CLAUDE_CODE).range(0L, 1000L, 3, 9, 7).build()).text();
         assertTrue(q6.contains("records #3–#9, 7 records"), q6);
@@ -266,9 +266,43 @@ class AskCatalogueTest {
     void s5() {
         var d = AskCatalogue.composeStart("S5", new AskCatalogue.StartFacts("run.yaml", "id-9", 6, null, false, null, null,
                 "Focus on the breaches."));
-        assertTrue(d.text().startsWith("Explain this audit log: \"run.yaml\" (log generation 6)"));
+        assertTrue(d.text().startsWith("Explain this audit log: \"run.yaml\" — what produced it"), d.text());
         assertTrue(d.text().endsWith("\n\nFocus on the breaches."));
         assertEquals("id-9", d.logIdentity());
         assertEquals(6, d.generation());
+    }
+    /**
+     * ★ Final review #12 (owner decision, 2026-10-17): the person-visible draft never carries the log generation — a
+     * number the person cannot use. The binding is still the draft's (its generation, checked at Send) and the model is
+     * told it with the turn ({@link AskCatalogue#modelBinding}). Witness: put "(log generation {gen})" back in any
+     * template (Q1's, as before) — its draft names the generation and this fails.
+     */
+    @Test
+    @DisplayName("★ no drafted question shows the person a log generation; the binding is the draft's and the model's")
+    void noDraftShowsTheGeneration() {
+        var c = log(AskContext.Mode.CLAUDE_CODE).selected(List.of(2)).diffKeys(List.of("k")).build();
+        java.util.List<AskCatalogue.Draft> drafts = new java.util.ArrayList<>();
+        drafts.add(AskCatalogue.compose(AskCatalogue.byId("Q1").orElseThrow(), AskCatalogue.Surface.RECORDS_MENU, c));
+        drafts.add(AskCatalogue.compose(AskCatalogue.byId("Q2").orElseThrow(), AskCatalogue.Surface.RECORDS_MENU,
+                log(AskContext.Mode.CLAUDE_CODE).selected(List.of(2, 5)).build()));
+        drafts.add(AskCatalogue.compose(AskCatalogue.byId("Q3").orElseThrow(), AskCatalogue.Surface.TOPOLOGY_NODE,
+                log(AskContext.Mode.CLAUDE_CODE).graphName("demo.graphml").node("riskMonitor", 3, false).current(8).build()));
+        drafts.add(AskCatalogue.compose(AskCatalogue.byId("Q4").orElseThrow(), AskCatalogue.Surface.CHART_POINT,
+                log(AskContext.Mode.CLAUDE_CODE).chartPoint("spread", "quote.spread", 0L, 5, 2).build()));
+        drafts.add(AskCatalogue.compose(AskCatalogue.byId("Q6").orElseThrow(), AskCatalogue.Surface.TIME_SLIDER,
+                log(AskContext.Mode.CLAUDE_CODE).range(0L, 1000L, 3, 9, 7).build()));
+        drafts.add(AskCatalogue.composeStart("S5", new AskCatalogue.StartFacts("run.yaml", "id-9", 6, null, false, null,
+                null, "")));
+        drafts.add(AskCatalogue.composeJourney("DEMO first breach", 2, c));
+        for (AskCatalogue.Draft d : drafts) {
+            assertFalse(d.text().toLowerCase(java.util.Locale.ROOT).contains("generation"), d.questionId() + ": " + d.text());
+            assertTrue(d.bound() && d.generation() > 0, d.questionId() + " is still bound to its log generation");
+        }
+        for (String key : List.of("Q1.template", "Q2.template", "Q3.template", "Q4.template", "Q5.template",
+                "Q6.template", "S5.template", "JOURNEY.template")) {
+            assertFalse(AskCatalogue.text(key).contains("{gen}"), key + " shows the generation");
+        }
+        assertEquals("", AskCatalogue.modelBinding(0), "an unbound message tells the model nothing");
+        assertTrue(AskCatalogue.modelBinding(3).contains("log generation 3"), "the model is told the binding");
     }
 }

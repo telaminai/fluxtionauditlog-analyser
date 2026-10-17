@@ -228,6 +228,8 @@ public final class LocalAgentPanel extends JPanel {
             fullBadge.setFont(fullBadge.getFont().deriveFont(Font.BOLD));
             above.add(fullBadge);
             above.add(composerHint);
+            surface.bindingChip.setAlignmentX(LEFT_ALIGNMENT);
+            above.add(surface.bindingChip);          // final review #12
             composer.add(above, BorderLayout.NORTH);
             composer.add(draftScroll, BorderLayout.CENTER);
             JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 0));
@@ -366,8 +368,13 @@ public final class LocalAgentPanel extends JPanel {
      * @return the appended range's start
      */
     public int appendDraft(long draftRef, String text, String hint) {
+        return appendDraft(draftRef, text, hint, 0);
+    }
+
+    /** Final review #12: with the log generation the node bound the draft to (0: none), for the binding chip. */
+    public int appendDraft(long draftRef, String text, String hint, long logGeneration) {
         return surface.appendDraft(telamin.fluxtion.audit.analyser.analyser.session.AssistantMode.LOCAL_AGENT, draftRef,
-                text, hint);
+                text, hint, logGeneration);
     }
 
     JTextArea composerArea() {

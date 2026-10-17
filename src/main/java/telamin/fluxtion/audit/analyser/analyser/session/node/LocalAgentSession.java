@@ -87,6 +87,8 @@ public class LocalAgentSession implements EventLogSource {
     private boolean interruptAcked;
     private long pendingDraft;
     private long pendingRequest;
+    /** Final review #12: the bound log generation of the held draft (0: none). */
+    private long pendingLogGeneration;
     /** Review M8: the Start request whose folder confirmation is open, and the posture it was asked for. */
     private long confirmRequest;
     private String confirmPosture;
@@ -378,13 +380,27 @@ public class LocalAgentSession implements EventLogSource {
             // accepted before the process is ready: the one draft waits for READY, it is never handed to the CLI's queue
             pendingDraft = e.draft();
             pendingRequest = e.request();
+            pendingLogGeneration = boundGeneration(e.draftBindings());
             reason = "";
             verdict = "";
             auditLog.info("localAgentDraftHeld", e.draft());
             return changed();
         }
-        sendTurn(e.draft(), e.request());
+        sendTurn(e.draft(), e.request(), boundGeneration(e.draftBindings()));
         return changed();
+    }
+
+    /**
+     * Final review #12 (owner decision, 2026-10-17): the log generation a message's composed drafts were checked against
+     * at Send — the open log's, since a stale one was refused — or 0 when none names a log. It goes to the MODEL with the
+     * turn; the person's draft no longer says it.
+     */
+    private long boundGeneration(java.util.List<Long> draftBindings) {
+        for (long draftBinding : draftBindings) {
+            String[] b = bindings.get(draftBinding);
+            if (b != null && b[0] != null) return Long.parseLong(b[1]);
+        }
+        return 0;
     }
 
     @OnEventHandler
@@ -526,7 +542,7 @@ public class LocalAgentSession implements EventLogSource {
                     if (pendingDraft != 0) {
                         long draft = pendingDraft;
                         pendingDraft = 0;
-                        sendTurn(draft, pendingRequest);
+                        sendTurn(draft, pendingRequest, pendingLogGeneration);
                     }
                 }
             }
@@ -933,7 +949,8 @@ public class LocalAgentSession implements EventLogSource {
         }
         auditLog.info("localAgentDraft", e.questionId()).info("bound", e.logIdentity() != null)
                 .info("armed", arm != null).info("origin", String.valueOf(e.origin()));
-        effects.request(new SessionEffects.PrimeLocalAgentDraftEffect(0L, e.draftRef(), true, arm));
+        effects.request(new SessionEffects.PrimeLocalAgentDraftEffect(0L, e.draftRef(), true, arm,
+                e.logIdentity() != null ? e.logGeneration() : 0));
         return changed();
     }
 
@@ -1133,7 +1150,7 @@ public class LocalAgentSession implements EventLogSource {
                 c.postureRef(), posture));
     }
 
-    private void sendTurn(long draft, long request) {
+    private void sendTurn(long draft, long request, long logGeneration) {
         ticket++;
         openTicket = ticket;
         phase = "BUSY";
@@ -1143,7 +1160,7 @@ public class LocalAgentSession implements EventLogSource {
         entries.add(new LocalAgentState.Entry(draft, LocalAgentState.USER, ticket, "SENT", "", 0));
         answer(request, true, "");
         auditLog.info("localAgentTurn", ticket).info("generation", generation);
-        effects.request(new SessionEffects.SendLocalAgentTurnEffect(0L, generation, ticket, draft));
+        effects.request(new SessionEffects.SendLocalAgentTurnEffect(0L, generation, ticket, draft, logGeneration));
     }
 
     private void endTurn(SessionEvents.TurnOutcome outcome) {

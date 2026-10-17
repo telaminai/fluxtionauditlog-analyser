@@ -296,4 +296,54 @@ class AskDraftSessionTest {
         assertFalse(facts.isEmpty());
         assertTrue(facts.stream().noneMatch(r -> r.contains(LOG)), "the log is named by digest, never its path");
     }
+    /**
+     * ★ Final review #12 (owner decision, 2026-10-17): the draft's words no longer carry the log generation, so the
+     * binding reaches the model with the turn: the node puts the generation the message's drafts were checked against on
+     * the send effect (and on the prime effect, for the composer's chip); an unbound message carries 0; a stale draft is
+     * still refused at Send. Witnesses: pass 0 for {@code logGeneration} in {@code LocalAgentSession.sendTurn}'s effect
+     * — the model is not told; drop the {@code staleDraft} check — the reloaded draft is sent.
+     */
+    @Test
+    @DisplayName("★ Claude Code: Send binds the turn to the drafts' log generation for the model, and still refuses a stale draft")
+    void theTurnCarriesTheBindingForTheModel() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = localAgent(a);
+        long gen = open(d, LOG);
+        LocalAgentSessionTest.startToReady(d, a);
+        d.post(new SessionEvents.LocalAgentDraftComposed(21, "Q1", identity(LOG), gen, LocalAgentSessionTest.consent(), "t"));
+        assertEquals(gen, a.agentPrimes.get(a.agentPrimes.size() - 1).logGeneration(), "the chip is told the binding");
+        d.post(new SessionEvents.LocalAgentSendRequested(9, 30, SessionEvents.SlashClass.TEXT, null,
+                LocalAgentSessionTest.consent(), 21));
+        assertEquals(1, a.agentSends.size());
+        assertEquals(gen, a.agentSends.get(0).logGeneration(), "the model is told the generation the draft was checked against");
+        var t = a.agentSends.get(0);
+        d.post(new SessionEvents.LocalAgentTurnEnded(t.generation(), t.ticket(), SessionEvents.TurnOutcome.COMPLETED));
+
+        d.post(new SessionEvents.LocalAgentSendRequested(10, 31, SessionEvents.SlashClass.TEXT, null,
+                LocalAgentSessionTest.consent(), 0));
+        assertEquals(0, a.agentSends.get(1).logGeneration(), "a message with no drafted question carries no binding");
+        t = a.agentSends.get(1);
+        d.post(new SessionEvents.LocalAgentTurnEnded(t.generation(), t.ticket(), SessionEvents.TurnOutcome.COMPLETED));
+
+        d.post(new SessionEvents.LocalAgentDraftComposed(22, "Q1", identity(LOG), gen, LocalAgentSessionTest.consent(), "t"));
+        open(d, LOG);                                                         // reloaded: a new generation
+        d.post(new SessionEvents.LocalAgentSendRequested(11, 32, SessionEvents.SlashClass.TEXT, null,
+                LocalAgentSessionTest.consent(), 22));
+        assertEquals(2, a.agentSends.size(), "the stale draft is refused, as before");
+        assertEquals("STALE_DRAFT", d.snapshot().localAgent().verdict());
+    }
+
+    /** ★ Final review #12, in-app. Witness: pass 0 for {@code logGeneration} in AssistantLoop's prepare effect. */
+    @Test
+    @DisplayName("★ in-app: the prompt is bound to the drafts' log generation for the model; a stale draft is still refused")
+    void inAppTheContextCarriesTheBinding() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = new SessionDriver(a);
+        long gen = open(d, LOG);
+        d.post(new SessionEvents.AssistantDraftComposed(41, "Q1", identity(LOG), gen, "t"));
+        assertEquals(gen, a.assistantPrimes.get(0).logGeneration(), "the chip is told the binding");
+        d.post(new SessionEvents.AssistantSendRequested(3, 50, AssistantLoopTest.route(true, 3, 20), 41));
+        assertEquals(1, a.assistantContexts.size());
+        assertEquals(gen, a.assistantContexts.get(0).logGeneration(), "the model is told the binding");
+    }
 }
