@@ -6,6 +6,10 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Added
+
+- Docs: a new page, *The audit log ▸ From a Mongoose server to the analyser*, explains how a Mongoose-hosted processor's audit records reach a `---`-separated file that the analyser opens. It covers two routes: your own `LogRecordListener` passed at boot, and Mongoose's audit capture exported by `svc-admin-web`. It also covers where the audit level comes from. Steps that the Mongoose sources do not settle are marked *To confirm*.
+
 ## [1.35.1] - 2026-10-16
 
 ### Fixed
