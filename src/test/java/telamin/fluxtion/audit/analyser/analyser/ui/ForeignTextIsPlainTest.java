@@ -83,6 +83,11 @@ class ForeignTextIsPlainTest {
                         + "plainCells where MainFrame builds it");
         REVIEWED.put("ConfigPanel.java: new JLabel(\"<html><div style='width:\" + NOTE_WIDTH + \"px'>\" + innerHtml + \"</div></html>\")",
                 "mutedNote's parameter is the panel's own help markup: every caller passes a literal");
+        // review B8: the in-app help is the analyser's OWN bundled HTML (loadHtml from the jar), never foreign text
+        REVIEWED.put("HelpPanel.java: new JEditorPane(   [an HTML document]",
+                "the help page: the analyser's own HTML resource from the jar, no foreign text reaches it");
+        REVIEWED.put("HelpPanel.java: setContentType(\"text/html\"   [an HTML document]",
+                "the same help page's content type");
         REVIEWED.put("ConfigPanel.java: createTitledBorder(title)",
                 "group's parameter (M74 UX, Settings ▸ Assistant by profile): every caller passes a literal heading");
     }
@@ -226,6 +231,28 @@ class ForeignTextIsPlainTest {
         // a reviewed parameter door is only safe while every call passes a literal
         assertEquals(1, doors("ConfigPanel.java", "class X { void f() { p.add(mutedNote(help)); } }").size());
         assertEquals(0, doors("ConfigPanel.java", "class X { void f() { p.add(mutedNote(\"<b>help</b>\")); } }").size());
+    }
+
+    /**
+     * ★ Review B8 (2026-10-17): the HTML-document doors are found, and the transcript — where Claude's words and record
+     * content are drawn — is a StyledEditorKit pane, never HTML. Witness: drop HTML_DOCUMENT from doors() — the
+     * JEditorPane shapes return no door; give TranscriptView an HTMLEditorKit — the pin fails.
+     */
+    @Test
+    @DisplayName("★ B8: JEditorPane, text/html, HTMLEditorKit and setPage are doors; the transcript is StyledEditorKit")
+    void htmlDocumentsAreDoors() throws Exception {
+        assertEquals(1, doors("X.java", "class X { JEditorPane p = new JEditorPane(); }").size());
+        assertEquals(1, doors("X.java", "class X { void f() { area.setContentType(\"text/html\"); } }").size());
+        assertEquals(1, doors("X.java", "class X { void f() { area.setEditorKit(new HTMLEditorKit()); } }").size());
+        assertEquals(1, doors("X.java", "class X { void f() { pane.setPage(url); } }").size());
+        assertEquals(0, doors("X.java", "class X { void f() { pane.setEditorKit(new StyledEditorKit()); } }").size());
+        String transcript = Files.readString(UI.resolve("TranscriptView.java"));
+        assertTrue(transcript.contains("setEditorKit(new StyledEditorKit())"), "TranscriptView sets a StyledEditorKit");
+        assertFalse(transcript.contains("HTMLEditorKit") || transcript.contains("text/html") || transcript.contains("JEditorPane("),
+                "and nothing in it makes the transcript an HTML document");
+        TranscriptView view = new TranscriptView();
+        assertInstanceOf(javax.swing.text.StyledEditorKit.class, view.getEditorKit());
+        assertFalse(view.getEditorKit() instanceof javax.swing.text.html.HTMLEditorKit, "never HTML");
     }
 
     @Test
@@ -458,8 +485,17 @@ class ForeignTextIsPlainTest {
                 out.add(file + ": " + door(s, m.start(), open) + "   [parameter door: pass a literal]");
             }
         }
+        // holistic review B8 (2026-10-17): a component that renders a whole document as HTML is a door of its own — a
+        // JEditorPane, an HTML content type, an HTML editor kit, a page loaded from a URL — whatever text it is given
+        Matcher h = HTML_DOCUMENT.matcher(s);
+        while (h.find()) out.add(file + ": " + h.group().replaceAll("\\s+", " ") + "   [an HTML document]");
         return out;
     }
+
+    /** Review B8: the doors that render a document as HTML. */
+    private static final Pattern HTML_DOCUMENT = Pattern.compile("new\\s+(?:javax\\.swing\\.)?JEditorPane\\s*\\("
+            + "|setContentType\\s*\\(\\s*\"text/html\"|(?:javax\\.swing\\.text\\.html\\.)?HTMLEditorKit\\b"
+            + "|\\.setPage\\s*\\(");
 
     // ---- expressions -----------------------------------------------------------------------------------------------
 
