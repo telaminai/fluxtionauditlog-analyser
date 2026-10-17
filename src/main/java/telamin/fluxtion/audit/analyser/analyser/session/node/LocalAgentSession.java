@@ -866,6 +866,7 @@ public class LocalAgentSession implements EventLogSource {
             String refusal = acceptable(e.consent());
             if (refusal == null) {
                 arm = "JOURNEY".equals(e.questionId()) ? "armed.JOURNEY"
+                        : "S2".equals(e.questionId()) ? "armed.SETUP"            // P2b: onboarding's set-up question
                         : e.questionId() != null && e.questionId().startsWith("Q") ? "armed.ASK" : "armed.START_PAGE";
                 armedWhy = arm;
                 verdict = "";

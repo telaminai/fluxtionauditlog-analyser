@@ -54,4 +54,14 @@ class SetupOnboardingRouteTest {
         assertTrue(d.text().contains("analyser_propose"), d.text());
         assertTrue(d.text().contains("Do not change any file"), d.text());
     }
+
+    /** Live smoke finding: the SETUP draft armed Start with the generic words. Witness: drop the S2 arm — START_PAGE. */
+    @Test
+    @DisplayName("★ the SETUP draft arms Start as 'Start — set up this project'")
+    void theSetupDraftArmsItsOwnWords() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = LocalAgentSessionTest.driver(a);
+        d.post(new SessionEvents.LocalAgentDraftComposed(5, "S2", null, 0, LocalAgentSessionTest.consent(), "start page"));
+        assertEquals("armed.SETUP", d.snapshot().localAgent().armedWhy());
+    }
 }
