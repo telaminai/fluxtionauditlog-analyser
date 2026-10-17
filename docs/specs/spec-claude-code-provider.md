@@ -13,6 +13,11 @@ carried (§11). **r8 folds in the independent review of the start-prompt materia
 failure modes, probes, live smoke) is §8.1–§8.3 and the tests are §10. Decisions r7 needed that the owner has not yet
 taken are in §2 as *proposed, for owner acceptance*; nothing that depends on one is to be built before it is accepted.
 Citations `[P0-n]` and `[P0b-n]` point at report rows, `[S-n]` at the P1a smoke report.
+**r10 (2026-10-17):** P2's first half (**P2a** — the Ask catalogue, the start-page prompt, transcript presentation) is
+implemented on `feature/claude-code-p2`; see *Implementation notes (P2a)*. The owner's decisions of 2026-10-17 are folded
+in place (§2 *r10 owner decisions*): the "Ask Claude this?" pop-up is **cut**, the configurable start list is
+**deferred** until after P3, warm start is cut on the P1 branches, full Claude Code is labelled **preview** until P3, and
+two owner requests are added — the **full-posture cue** (OD-74.25, §5.9) and the dropped **prompt pack** (OD-74.26, §5.8).
 
 **Tracker:** M74. **Builds on:** the onboard assistant ([`spec-onboard-assistant-journeys.md`](spec-onboard-assistant-journeys.md),
 "OA"), the MCP bridge ([`spec-assistant-actions-mcp.md`](spec-assistant-actions-mcp.md)), M42's Claude Code
@@ -50,7 +55,7 @@ utility P3 completes.
 | OD-74.5 | **Folders:** Start is refused in an evidence-bundle working copy. Any other directory needs a one-time confirmation, remembered on this machine, **before Start**. In the full posture, Start itself runs the folder's hooks and connects its `.mcp.json` servers [P0-28], so the dialog names them. In the default posture it names `CLAUDE.md`, which is instructions from that folder. | accepted |
 | OD-74.6 | **Typed slash commands pass through** to Claude Code, as in a terminal, **except** those that would change the posture or the session's identity, or act outside this session. Those are blocked by the classification in §5.4, built from P0b. **`@path` file mentions are sent; lines starting with `!` or `#` stay refused** (§5.4). | accepted 2026-10-16; the classified block-and-allow list (unclassified commands refused) accepted by the owner 2026-10-16; **`@path` allowed, `!`/`#` kept refused: owner decision 2026-10-16**, on the P1a live smoke's probes |
 | OD-74.7 | **Send while Claude is answering is refused**, never queued (OA §4.2: "do not silently queue"). The tab says *"Claude is still answering — Stop or wait."* | owner-accepted design |
-| OD-74.8 | **"Ask Claude this?" confirmation** (P2). Right-click (*Ask Claude about these records / this diff*, a topology node, a chart note) opens a small pop-up with the proposed question and **Yes / No**. *Yes* spotlights the Assistant tab's input with the exact draft lines highlighted; nothing is sent until the person presses Send there. Under a recorded tutorial (a walk with a conversation), *Yes* reveals the next recorded turn instead and contacts no model. | accepted |
+| OD-74.8 | **CUT by the owner, 2026-10-17 (r10)** — a catalogue question places its draft straight into the composer; the text that follows is the r9 decision, kept for the record. **"Ask Claude this?" confirmation** (P2). Right-click (*Ask Claude about these records / this diff*, a topology node, a chart note) opens a small pop-up with the proposed question and **Yes / No**. *Yes* spotlights the Assistant tab's input with the exact draft lines highlighted; nothing is sent until the person presses Send there. Under a recorded tutorial (a walk with a conversation), *Yes* reveals the next recorded turn instead and contacts no model. | accepted |
 | OD-74.9 | **Onboarding: Claude proposes, the analyser applies** (§5.6). Claude returns a structured proposal through a new non-destructive verb. The analyser previews each item with its own checks. After the person's *Yes* it applies the item through the person's own code path. Claude is never granted a destructive verb for this, so onboarding does not depend on P3. | accepted 2026-10-16 — the `propose` verb is a deliberate, recorded addition to the pinned verb set, confined to the hosted bridge |
 | OD-74.10 | **The full posture's command line drops every flag that confines** (§4.3): no `--restricted`, `--strict-mcp-config`, `--tools`, `--add-dir` or the CLAUDE.md environment flag, because each one removes part of what the person opted in for (settings, skills, hooks, servers) [P0-26, P0-28, P0-29]. In the full posture **the folder is confined only by the person's own permission rules and the mode they chose** (out-of-folder reads are denied by default without an allow rule [P0-25]); the warning (§5.1) says so. | **accepted 2026-10-16** (owner) |
 | OD-74.11 | **The full posture's child `PATH`** is the analyser's own `PATH` with the resolver's standard locations (§4.3) that exist and are not already present **appended**, so the person's order wins. **No login shell is run** to discover a `PATH`: that would execute the person's shell start-up files outside any consent the analyser asked for. The header names the added directories; the FAQ points to Claude Code's own settings `env` for anything else (an `nvm` node, a project venv). The default posture's environment is unchanged (it runs no Bash and no hooks). | **accepted 2026-10-16** (owner) |
@@ -62,11 +67,23 @@ utility P3 completes.
 | OD-74.17 | **An approval lifts the server-side refusal for exactly one call** (P3, §5.7). The person's *Allow* records a single-use grant bound to the generation, the turn ticket, the verb and a canonical digest of the input shown (and the `tool_use_id`, if probe P3-3 shows the bridge receives it). The bridge's call is admitted only by consuming a matching grant **on the session thread**; a grant expires at the end of its turn, on Stop, at the end of the generation, or 60 s after the *Allow*, whichever is first. A second request while a dialog is open is denied at once (one dialog at a time). An unanswered dialog denies after **120 s**. The keyboard default is **Deny**. | **accepted 2026-10-16** (owner) |
 | OD-74.18 | **How the full posture is smoke-tested under rule 1's capture exception**, which requires `--strict-mcp-config` on every capture under the real login. The loading of the person's own servers, skills, plugins and hooks is checked at **zero cost under an isolated `CLAUDE_CONFIG_DIR`** with planted servers, skills and hooks (`initialize`, `mcp_status` and `SessionStart` need no login [P0-5, P0-28]); model turns under the real login use the full line **plus `--strict-mcp-config`** (the analyser's line otherwise unchanged), so none of the person's servers or connectors loads into a capture. The analyser itself never adds `--strict-mcp-config` to a full-posture session; only the smoke harness does. | **accepted 2026-10-16** (owner) |
 | OD-74.19 | **The start-page prompt** (§5.8, P2): *"What would you like to do?"* on the start page, with a numbered list of example prompts drawn from the **same** `AskCatalogue` (a demo, set up a project from my code, open an evidence bundle, choose a starter template, explain a log I have, what this tool can do), a free-text box and **Send**. Choosing a number only fills the draft; nothing is sent until Send. It **works with no AI configured**: the demo plays a shipped journey with no model, and every other entry falls back to the existing guided flow or *Copy prompt*, never a dead end. Starting Claude Code stays the person's act (folder confirmation; the posture in force). Not on the AI menu (D-AI4 unaffected beyond OD-74.1). Declarative, additive and localisable. | **accepted 2026-10-16** (owner); detailed shape per this spec |
-| OD-74.20 | **Where the start-page list comes from** (§5.8; the owner's request 2026-10-16, this shape proposed). Three sources, resolved in order — the built-in entries, then the project profile's portable-context key family `startPrompt` (r8: its own family, so shipped writers preserve it, and its own share category `START_PROMPTS`, off by default; inline entries or a project-relative pointer, gated like the M38.1 runbook pointer), then P4's managed policy (which may `lock` the list). Each source replaces, prepends or appends. Entries are data in the catalogue's shape (a built-in by id, a prompt, or a saved walk to play), at most 12, each label at most 60 characters and text 500; an invalid entry is refused with its cause named and the rest shown; an invalid source is ignored with its cause named; nothing left means the built-in list. Never carried by an evidence bundle. | **accepted 2026-10-16** (owner) (configurability is the owner's request) |
+| OD-74.20 | **DEFERRED by the owner until after P3 (2026-10-17, r10)**: P2 ships the built-in list only; no `startPrompt.*` key, no `START_PROMPTS` category and no managed-policy seam are built (parts written before the decision were removed, not left as dead code). The r9 text follows for the record. **Where the start-page list comes from** (§5.8; the owner's request 2026-10-16, this shape proposed). Three sources, resolved in order — the built-in entries, then the project profile's portable-context key family `startPrompt` (r8: its own family, so shipped writers preserve it, and its own share category `START_PROMPTS`, off by default; inline entries or a project-relative pointer, gated like the M38.1 runbook pointer), then P4's managed policy (which may `lock` the list). Each source replaces, prepends or appends. Entries are data in the catalogue's shape (a built-in by id, a prompt, or a saved walk to play), at most 12, each label at most 60 characters and text 500; an invalid entry is refused with its cause named and the rest shown; an invalid source is ignored with its cause named; nothing left means the built-in list. Never carried by an evidence bundle. | **accepted 2026-10-16** (owner) (configurability is the owner's request) |
 | OD-74.21 | **Where the start page's conversation and a project's list appear** (§5.8; review c7f2 F1, F6). *Recommended:* (1) with nothing open, the start page's button pops the Assistant out into its own window through the existing pop-out host (`showAssistantHost(false)`, as an effect), composer focused and Start armed visible; over an open workspace it returns there and reveals the docked tab. (2) A project's configured list shows on the project workspace's landing state (a project with no log) as well as on the start page, and through *Help ▸ Start page* once a log is open. *Rejected:* hosting the Assistant panel on the start page itself (a third host for one panel); a project's list reachable only through Help (the team preset would rarely be seen). | **accepted 2026-10-16** (owner) |
 | OD-74.22 | **Amends OD-74.5: the folder for a project Claude Code is never started in** (§4.3; review c7f2 F2). When the active project's root is one the analyser owns and refuses — the sample project under `~/.fluxtion-analyser/demo`, or an evidence bundle's working copy under `~/.fluxtion-analyser/bundles` — the session works in the analyser's **private scratch folder** instead of refusing: Claude reads the evidence through the verbs, the working copy's `CLAUDE.md` is never loaded (the reason OD-74.5 refuses a bundle), and the header says *"working in a scratch folder: this project's folder is not one Claude Code is started in"*. Any other refused folder (home, a folder holding credentials) is still refused. | **accepted 2026-10-16** (owner) |
 | OD-74.24 | **The spend limit is optional and off by default** (owner direction 2026-10-17: the in-analyser Claude Code runs on the person's own Claude account, whose plan has its own limits). *Settings ▸ Assistant ▸ Limit spend per session* is a checkbox and an amount, unticked by default, for API-key billing. `assistant.claudeCode.budgetUsd` blank or absent is **no limit**; with none set the command line carries **no** `--max-budget-usd` and the node enforces nothing (§4.6). The header shows a dollar figure only where it means something: with an API key, what was used (and the limit, when set); on a Claude plan none, only *"usage counts against your Claude plan"*. Billing is an enum on `LocalAgentInitialized` (`SUBSCRIPTION`, `API_KEY`, `UNKNOWN`), read at the parse boundary from `initialize.account` — never the plan's or the key source's value. A config written by P1a (unreleased) always carried `budgetUsd=5.0`, its default: without P1b's `budgetFormat=2` marker, `5.0` reads as no limit and any other positive value is kept as the person's limit | **accepted 2026-10-17** (owner) |
 | OD-74.23 | **What "AI configured" means on the start page, and a remembered mode** (§5.8; review c7f2 F8). Claude Code can answer when its switch is on **and** the resolver finds `claude` (a file check; nothing is run). The mode the person last chose is remembered on this machine (`assistant.claudeCode.lastMode`, machine tier, never exported). When the mode in force cannot answer and the other can, the start page offers *Ask with Claude Code* / *Ask the in-app assistant*, which chooses that mode as the person's act. | **accepted 2026-10-16** (owner) |
+
+### r10 owner decisions (2026-10-17)
+
+| # | Decision | Status |
+|---|---|---|
+| r10-1 | **The pop-up is cut, in both modes** (amends OD-74.8, OD-74.14). A catalogue question places its draft straight into the composer — appended after the person's text, the added lines highlighted, nothing sent until Send — which restores one-click *Explain* in the in-app mode. Under a recorded tutorial the catalogue action itself reveals the next recorded turn (it plays the step that reveals it; no model, no process); with none, the status line says so. | accepted (owner) |
+| r10-2 | **The configurable start list is deferred until after P3** (OD-74.20, and with it OD-74.21 (2), the project landing strip, which shows a project's list). P2 ships the built-in numbered list S1–S6. | accepted (owner) |
+| r10-3 | **Warm start is cut** on the P1a/P1b branches (another change). P2 does not depend on it, and r8 F20's "with warm start on, a direct tab click while Start is armed starts the session" is dropped: an armed Start is started only by pressing it. | accepted (owner) |
+| r10-4 | **Full Claude Code is labelled *preview* until P3** (on P1b). The full-posture badge reads *Full Claude Code (preview) · <mode>: your tools and permissions*. | accepted (owner) |
+| r10-5 | Move's handoff report (§5.3, P2b) is deferred; it was not in P2a. | accepted (owner) |
+| OD-74.25 | **The full-posture cue** (owner request, §5.9): the composer and the start-page box carry a theme-aware accent border and a persistent badge, Send names the full posture, and the Assistant tab and the pop-out window carry a ◆ marker, whenever the person's full Claude Code is in force — following the snapshot (rule 9), *on* (switched on, not running) apart from *running*, and stronger (◆◆, another token, a thicker border) for `acceptEdits` and `auto`, which ask about fewer actions. Colour is never the only cue. | **accepted 2026-10-17** (owner request) |
+| OD-74.26 | **A dropped prompt pack** (owner request, §5.8): the start page's drop target accepts one Markdown file whose strict format replaces the numbered list for the session, with *← Return to main options*; session-only, never persisted, shared or bundled; refused with one named cause and its line otherwise. It is the person's explicit drop act, not the deferred configurable list. | **accepted 2026-10-17** (owner request) |
 
 ## 3. Posture: what Claude Code may do when the analyser starts it
 
@@ -568,6 +585,14 @@ the posture or the session's identity under the analyser. Whatever a passed comm
 
 ### 5.5 Evidence to Claude: the Ask catalogue (P2; OD-74.8, OD-74.14)
 
+> **r10 (owner, 2026-10-17): there is no pop-up.** Wherever this section says the pop-up precedes a draft, read: the
+> catalogue action places the draft directly (appended, the added lines highlighted, the composer lit with *"Press Send
+> to ask … — nothing has been sent"*), in both modes; under a recorded tutorial the action reveals the next recorded
+> user turn by playing the step whose `through` reaches it, and with none the status line says *"The recorded
+> conversation has no further turn — end the walk to ask yourself"*. The menu-bar copy of the records menu is the
+> *Records* menu (the surface is still called `AUDIT_LOG_MENU` in the registry). The draft binding, the pointer-only
+> rule and the in-app rule of F4 are unchanged.
+
 **One registry.** `AskCatalogue` (in `assistant/`, pure data, no Swing) declares every question the analyser can
 draft. Each entry has an `id`; the **surfaces** it appears on; a **precondition** over an `AskContext` value (below;
 e.g. *exactly one record selected*); its **label** and **template** as keys into one resource bundle
@@ -834,6 +859,11 @@ no in-analyser permission prompts**, so P2 precedes P3 (§8).
 
 ### 5.8 The start-page prompt (P2; OD-74.19, accepted 2026-10-16; OD-74.20–74.23)
 
+> **r10 (owner, 2026-10-17):** the list is the built-in S1–S6 only — *Where the list comes from*, *Invalid configuration*
+> and *Where a project's list is seen* below describe the **deferred** OD-74.20 and are not built in P2. The person can
+> still replace the list for a session by dropping a prompt pack (OD-74.26, *A dropped prompt pack* below). The full-
+> posture cue (OD-74.25) applies to the start page's box whenever the route goes to a full Claude Code.
+
 **The page.** The start page's hero question, today *"What would you like to work on?"*, becomes **What would you like
 to do?**, and under it: the list of entries `AskCatalogue` resolves for the start page, a line naming the **chosen
 entry**, a free-text box and one action button. The existing cards stay below, headed **Or choose directly**: they are
@@ -915,7 +945,29 @@ playing `DemoTour`, unchanged, so M71's acceptance (`tools/test_start_workspace.
 walk equals the site bundle's. Opening the sample project is an `EXPLICIT_SWITCH`, so with a Claude Code process
 running it follows §5.3's Move / Keep / Stop offer (no exemption: a running session is still working somewhere).
 
-**Where the list comes from (OD-74.20).** The entries are configurable, for an organisation or to lead with one
+**A dropped prompt pack (OD-74.26, owner request 2026-10-17).** The start page's drop target (which already routes `.fexp`,
+audit logs, GraphML and Spring XML) also accepts **one** `.md` file, dropped by itself. Its strict grammar:
+
+```
+pack        := title-line [description-line] entry-line{1..9}      (blank lines may separate any two lines)
+title-line  := "# " title                                           (title: 1–60 characters)
+description := one line that is not an entry                         (1–140 characters)
+entry-line  := n ". **" label "** — " text                           (n = 1, 2, … in order; label 1–60; text 1–500, one line)
+```
+
+The file is at most 16 KB of UTF-8; HTML, images, links, `{placeholders}`, and control, format or bidirectional characters
+(a byte-order mark among them) are refused, and so is any other content. The parse is a **pure function**
+(`assistant/PromptPack`): a pack, or ONE refusal naming its line and cause (*"line 5 — an entry needs a bold label"*). A
+valid pack replaces the numbered list under its title, with a persistent, keyboard-accessible **← Return to main options**
+(Alt+R); its entries behave exactly as a built-in prompt entry (choosing appends the text to the box; nothing is sent
+until the button), rendered plain. A refused pack keeps the list in force and shows its cause with **See the format** (the
+user guide's *Prompt packs*). **Session only**: the pack lives in the frame's memory by reference and is never written to
+the config, a profile, a share or a bundle. Rule 9: the frame posts `StartPromptPackDropped{packRef | refusal, line}` and
+the person's `ReturnToMainOptions`; `startPagePrompt` owns which list is in force and publishes `packRef` and the refusal
+in `StartPageState`; the page renders them. A sample pack ships at `docs/site/user-guide/sample-prompt-pack.md`, which a
+test parses.
+
+**Where the list comes from (OD-74.20 — DEFERRED, r10).** The entries are configurable, for an organisation or to lead with one
 journey. Three sources, resolved by the `StartPagePrompt` node in this order, each later one applied to the result of
 the earlier:
 
@@ -1068,6 +1120,18 @@ the store's words; it decides nothing (rule 9) and is a `JTextPane` over a `Styl
   screen-reader text (*"succeeded"*, *"denied by the posture"*, *"refused by the analyser"*, *"record 12 — opens the
   record"*); the text follows the application's font size (the body font from `UIManager`, the monospace font at the
   same size).
+- **The full-posture cue (OD-74.25, owner request 2026-10-17).** Whenever the person's full Claude Code is in force, the
+  composer (and the start page's box, when its route goes to Claude Code) has an accent border in the theme's
+  full-posture token, and a persistent badge above it: *◆ Full Claude Code (preview) · <mode>: your tools and
+  permissions*, followed by *— on: it runs at the next Start* or *— running*; the badge has an accessible name and a
+  tooltip saying what it means. Send reads *Send to full Claude Code*; the Assistant tab's title and the pop-out window's
+  title carry ◆. **Mapping:** `default` and `plan` are the standard cue (◆, the standard token, a 2 px border); `acceptEdits`
+  and `auto`, which ask about fewer actions, are the strong cue (◆◆, the strong token, a 3 px border). Tokens:
+  light `#B35900` / `#C2185B`, dark `#F0A040` / `#FF6FA8`, each at least 3:1 against the surface. **It follows the
+  snapshot (rule 9):** `LocalAgentState.fullCue()` is `RUNNING` while a process runs in the full posture, `ON` while none
+  runs and the last consent fact names the full posture (`consentPosture`, which `localAgentSession` records from every
+  consent-bearing fact, and which the frame reports at session start and on every Settings change), else `NONE`. The UI
+  reads only that; it never reads the config switch.
 - **Visual acceptance.** The robot screenshot harness (`tools/capture-docs.py`, isolated `user.home`, the demo
   fixture only) drives the pane through `FixtureAgent` replaying a sanitised fixture plus a synthetic answer that
   exercises every style (headings, lists, a Java and a YAML block, a link, chips, `<script>` and `<img>` as text, a
@@ -1330,6 +1394,14 @@ report refused because the active project is not the target · the REST transpor
 not verify (said before *Open*) · a link with a scheme that is not opened · a chip from an earlier log generation ·
 a recorded tutorial with no further turn.
 
+**r10 changes to this inventory (P2a as built).** Removed with the deferred list: `StartPromptsObserved` and the node's
+`activeProject` parent. Removed with the pop-up: nothing in the graph (it was rendering). Added: `StartPageAvailability`
+(what can answer, observed by the frame), `DraftPlaced` (the prime effects' answer), `StartPageEffectStarted`,
+`StartPromptPackDropped` and `ReturnToMainOptions` (OD-74.26), `ComposeStartPageDraftEffect` (the performer composes the
+words through the catalogue and reports `LocalAgentDraftComposed` / `AssistantDraftComposed`, which the nodes place and
+arm), and `LocalAgentState.armedWhy` / `consentPosture` / `Entry.logGeneration`. `ShowAssistantHostEffect{docked:false}` is
+reached through the existing `AssistantHostRequested(false, "start page")`, so `assistantLoop` keeps owning the host.
+
 **Probes.** None: P2 uses only behaviour P0, P0b and the P1a smoke established (verbs over the hosted bridge, turns,
 the busy rule, `/model`), plus the analyser's own code.
 
@@ -1551,6 +1623,22 @@ code alone.
 | ★ the diagnostics line from a fixture with unknown events and an unclassified built-in; nothing shown when all counts are zero | silent protocol drift |
 | ★ incremental rendering: a streamed answer re-renders only its own entry (a document-change counter); the 501st entry trims the first with one note and evicts its words from the store (witness: re-render per snapshot) | the panel slowing with length, an unbounded node |
 | ★ `OneDispatchModelTest` P2 rules (§8.2) (r8, F21) | hand-placed dispatch in the new flows (witness: a `StartPanel` method that branches on `AssistantMode`, or a chip handler that calls a mutating `MainFrame` method) |
+
+**r10 notes on the P2 rows above (P2a as built):** the rows that test the pop-up (*the pop-up: Yes appends…*, *under a walk
+with a recorded conversation, the pop-up shows…*) are replaced by *a catalogue draft is appended after the person's text,
+highlighted, and nothing is sent* (frame) and *the catalogue action reveals the next recorded turn* (no pop-up); the rows
+of the configurable list (*the profile key survives shipped writers*, *the landing strip*, *lenient reading*, *start-page
+list precedence*, *invalid configuration*, *configured entries are data*, and the F15 frame row's configured label) are
+**deferred** with OD-74.20 — the F15 rule is held for chips (a bundle-authored node id rendered as its characters, no
+loopback request) and by `ForeignTextIsPlainTest` for every new door. Added rows:
+
+| Test | Catches |
+|---|---|
+| ★ prompt pack grammar: oversize, ten entries, HTML, a missing bold label, extra content — and every other cause — each refused with its line, each case broken by its one defect only (witness: drop any one check) | a pack that smuggles markup, links or hidden text |
+| ★ the pack in force and Return, in the node; codes, never a file's words, in the record (witness: ignore Return) | a list stuck on a pack |
+| ★ drop → list replaced under the title → Return; a refusal names its line; nothing saved to the config (frame, a direct TransferHandler call) (witness: persisting the pack) | a pack that outlives the session |
+| ★ the full-posture cue is present iff the session's posture is full: ON, RUNNING, NONE, on the real processor (witness: the cue keyed on the running posture only, or always off) | a cue that lies about what runs |
+| ★ the start box's cue only toward a full Claude Code; badge words per mode with *(preview)*; tokens differ by theme and strength (witness: the cue on the route alone) | a cue on the wrong assistant |
 
 **P3.**
 
@@ -1888,6 +1976,54 @@ confirmation — decide on the default posture's trust; postureRef — the mode 
 events parsed as `Ignored` again; billing — `UNKNOWN` for every `initialize`; the dollar figure on a plan; the default
 posture's note for the full posture; FAQ — a pinned claim removed.
 
+## Implementation notes (P2a, 2026-10-17)
+
+P2a — the Ask catalogue (§5.5), the start-page prompt (§5.8) and transcript presentation (§5.9), with the owner's r10
+decisions and requests — is implemented on `feature/claude-code-p2` (stacked on P1b and SF-1/SF-2). P2b — `propose`
+onboarding (§5.6), Move (§5.3), conversation v2 (§6) and the carried items (h) — follows; seams are noted below. No live
+`claude` ran for P2a: every behaviour is the analyser's own, tested on the real processor and real Swing components.
+
+- **Where things live.** `assistant/AskCatalogue` (+ `AskCatalogue.properties`, the application's first
+  `ResourceBundle`), `assistant/AskContext`, `assistant/AskPointers` (one sanitiser per pointer kind),
+  `assistant/PromptPack`; `session/node/StartPagePrompt` (`startPagePrompt`; parents `assistantMode`,
+  `localAgentSession`, `openLog`), `session/StartPageState`; `LocalAgentSession` gains `openLog` as a JavaBean parent,
+  the draft bindings, `armedWhy` and `consentPosture`; `AssistantLoop` gains the bindings and the composed-draft rule.
+  UI: `StartPromptView` (the prompt, in `StartPanel`), `TranscriptView`, `TranscriptStyle`, `SafeMarkdown`,
+  `VisibleMarks`, `CodeTint`, `LinkConfirm`, `TutorialTurns`, `AskMenus`, `StartFallbackWindow`, `WrapLayout`,
+  `DemoJourney`. Regenerated with `mvn -Pregen process-classes`; the generated header carries no personal address.
+- **The demo journey in the jar (F13).** The site bundle's log bytes ship as `demo/journey/demo-quote-series.yaml` (the
+  name its walk's fingerprint names) and its walk and chart as `demo/journey/first-breach.fluxtion-settings`;
+  `DemoJourneyTest` pins them equal to the bundle's. S1 opens the sample project on that log, saves the walk (and its
+  chart) when absent under its own name, and plays it. In the Claude Code mode the walk's conversation shows in the tab
+  (a walk with dialogue shows in every mode), and *Ask about this evidence* ends the walk and arms Start with the JOURNEY
+  draft; the scratch folder (OD-74.22) makes that Start one the node accepts (`ScratchFolderTest`).
+- **Decisions where the spec left room, or where the code said otherwise.**
+  - **S2 in the Claude Code column** opens *New project…*, as in the in-app column, until `propose` onboarding (P2b) —
+    the route is the node's (`RunStartPageFlowEffect{S2}`), so P2b replaces only that branch.
+  - **Q6 on a chart** uses the chart's visible window as the range; the time slider uses its selection.
+  - **The composer is lit** by its highlight, its border focus and a hint line (*Press Send to ask … — nothing has been
+    sent*), not by the spotlight overlay: the overlay needs a target registered with the walk presenter, and the
+    composer can be in another window.
+  - **Per-turn cost and time** (§5.9 *Per turn*) are not shown: no fact carries them per turn yet (the cost fact is the
+    session total). Carried to P2b with the carried items.
+  - **The in-app transcript** keeps its P1 rendering; adopting `TranscriptView` there is the separate tracker item §5.9
+    names.
+  - **What can answer** is a fact (`StartPageAvailability`) the frame posts at session start and on every Settings
+    change, so the start page's route words render from the snapshot. A test helper that sets the config directly now
+    reports it the same way (`AssistantLiveFrameTest.configure`).
+  - **A pack's BOM** is refused as a hidden character rather than stripped: the BOM rule has one home
+    (`ByteOrderMarkSitesTest`), and a strict format gains nothing from tolerating one.
+  - The finding dialog's title *Explain record N* became *Write a finding for record N*: the source rule (F12) forbids an
+    `"Explain` literal outside the catalogue, and the title was the person's own explanation, not a question.
+- **Mutation controls repaired.** `oa4-handoff-carries-nothing` (its anchor was the removed `primeDraft("")`) and
+  `oa-settings-save-redraws-assistant` (already broken at the P1b base: the block had gained the consent post) now
+  anchor the current code; the latter drops the whole report, which now also redraws through the availability fact.
+- **Tests.** `AskCatalogueTest`, `PromptPackTest`, `AskDraftSessionTest`, `StartPagePromptTest`, `FullPostureCueTest`,
+  `RememberedModeTest`, `ScratchFolderTest`, `TranscriptViewTest`, `TranscriptStyleTest`, `StartPromptViewTest`,
+  `LocalAgentPanelCueTest`, `DemoJourneyTest`, `StartPanelNamesTest` (fallbacks), four `OneDispatchModelTest` rules,
+  `ForeignTextIsPlainTest` (every new door); frame suites `StartPromptFrameTest` and `PromptPackFrameTest` (registered
+  in CI), and `AssistantLiveFrameTest#aDraftIsAppendedNotSent` replacing the P1 Explain test.
+
 ## Revision history
 
 - **r1, r2** (2026-10-16): the long-running session design; two independent reviews (`[R …]`, `[R2-n]` tags).
@@ -1953,6 +2089,13 @@ posture's note for the full posture; FAQ — a pinned claim removed.
   under the posture in force; until P2 captures a recorded conversation the demo plays a scripted one labelled
   *Simulated conversation*; and the catalogue's pop-up applies in the in-app mode too, so *Explain selected* gains the
   confirm step. SF-1 and SF-2 (§11) land ahead of P2.
+- **r10** (2026-10-17): P2a built, and the owner's decisions of the same day folded in place (§2 *r10 owner decisions*):
+  the "Ask Claude this?" pop-up **cut** in both modes (drafts are placed directly; a tutorial reveals its next turn from
+  the action); the configurable start list (OD-74.20, and the landing strip of OD-74.21 (2)) **deferred** until after
+  P3; warm start cut on P1 (F20's armed tab click dropped); full Claude Code labelled **preview**; Move's handoff report
+  deferred. Two owner requests added: **OD-74.25** the full-posture cue (§5.9, with its mode mapping) and **OD-74.26**
+  the dropped prompt pack (§5.8, with its grammar). §8.2's inventory and §10's P2 rows annotated; *Implementation notes
+  (P2a)* added.
 - **r9** (2026-10-17): the P1b probes PB-1…PB-4 ran ([report](evidence/m74-p1b/PB-report.md)) and P1b was built.
   Folded in: `auto` is model-dependent and falls back to `default` silently (PB-3; §5.1, §8.1 failure modes); the P1b
   denial is `permission_denied{decision_reason_type:"asyncAgent"}` (PB-1); hook event shapes and their output fields

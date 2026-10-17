@@ -26,7 +26,7 @@ event, the callback, the thread and a node-count.
   sends all of them).
 - **Anomaly tints** — rows with a parse-error, a breach or a `NaN` are highlighted; jump between them
   with **⚠ Next / ⚠ Prev** (**F3 / Shift+F3**).
-- **Right-click** a row: *Diff selected two records*, *Explain selected with LLM*, *Flag / unflag*.
+- **Right-click** a row: *Diff selected two records*, the assistant's questions (*What happened here?*, *Compare these rows*, *Explain this finding* — see [Asking about what is on screen](assistant.md#asking-about-what-is-on-screen)), *Flag / unflag*.
 - **Flag** rows with **F** to bookmark findings; *Records ▸ Show flagged only* focuses on them;
   *Records ▸ Copy selected as YAML* copies them to the clipboard.
 

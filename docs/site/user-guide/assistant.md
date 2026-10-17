@@ -14,7 +14,9 @@ venue disconnected here", it can plot that series and flag those cycles, and you
 
 1. **Scope it.** Drag the **Time range** window to the incident, then select the suspicious records in
    the table (Shift/⌘-click for several).
-2. **Ask.** Right-click ▸ *Explain selected with LLM*, or use *Explain with LLM* in the record detail.
+2. **Ask.** Right-click ▸ *Ask the assistant: What happened here?* (or *Compare these rows* for several), the toolbar's
+   **Ask**, or **Ask about this** in the record detail. The question is placed in the composer — see
+   [Asking about what is on screen](#asking-about-what-is-on-screen) — and goes when you press **Send**.
 3. **Watch it work.** The assistant reads the surrounding records, aggregates over the index to spot the
    pattern, and when it finds the cause it **plots the offending series into a graph** (captioned with
    its reasoning), **flags** the culprit records, and **filters** the table down to them — the fault
@@ -52,6 +54,36 @@ doing: *Requesting*, *Running action n*, *Complete*, *Cancelled*, *Superseded*, 
 Nothing is sent until you press Send: not when you open the tab, open a bundle, or play a journey. (With Claude Code's
 *warm start* on, below, clicking the tab yourself starts Claude Code, which signs in with Anthropic before your first
 Send; no record content goes with it.)
+
+## Asking about what is on screen
+
+Every "ask" in the analyser comes from **one list of questions**, labelled for the assistant in force — *Ask Claude: …*
+in the Claude Code mode, *Ask the assistant: …* in the in-app one:
+
+| Question | Where |
+|---|---|
+| **What happened here?** | right-click one record; the toolbar's **Ask** and the record detail's **Ask about this** with one record |
+| **Compare these rows** | right-click two to twenty records (the same buttons with several); **Ask Claude about this diff** in *Diff selected two records* |
+| **Why did this node fire / not fire?** | right-click a node in the topology, with a record selected |
+| **Explain this point** | right-click a chart point or note (*Ask Claude: explain this point*, beside the chart's own *Add explanation…*, which is your words) |
+| **Explain this finding** | right-click one flagged record |
+| **Summarise this window** | right-click the time slider (its menu is new), or a chart's visible window |
+
+- **The question goes into the composer, not to the model.** It is **added after** whatever you have written there,
+  only the added lines are highlighted, and the line above the box says *Press Send to ask … — nothing has been sent*.
+  Nothing is sent until you press **Send**. In the Claude Code mode with no session running, **Start is armed**
+  (*Start — ask about this*); nothing starts until you press it.
+- **It names where to look, never what is there.** A question names record numbers, the log's file name and its
+  *generation*, node ids, a chart's name and a time — never a value, a note's words or a finding's text, because those
+  can carry text written to steer an AI. The assistant reads the records itself (`analyser_read`), so in the in-app mode
+  the questions need *Settings ▸ Assistant ▸ in-process actions*; with them off, the items say so and are disabled. A
+  question's draft never carries the raw text of your current selection.
+- **If the log changes before you Send** — you reopen or reload it — a question that names its records is refused,
+  *"This question names records of a log that has changed since it was drafted (generation 3 → 4) — ask again from the
+  records"*, and stays editable. Deleting the whole question from the box drops that check.
+- **During a walk with a conversation** (a journey), an ask does not go to any model: it shows the **next recorded
+  turn** by playing the step that reveals it. When there is none, the status line says *"The recorded conversation has
+  no further turn — end the walk to ask yourself"*.
 
 ## Claude Code in the Assistant tab
 
@@ -158,6 +190,27 @@ answers as the model's words, and check them against what the analyser shows.
   says so.
 - **Don't resume this conversation in a terminal while it is open here** — the history would fork. A second analyser
   window cannot open it either: *"This conversation is open in another analyser window."*
+
+**How the conversation is drawn.** Your turns sit on a band marked *You*; Claude's are marked *Claude Code* with *the
+model's words, not a verified result*. Claude's words are shown as **safe Markdown** — headings, lists, quotes,
+emphasis, inline code and code blocks (lightly tinted for Java, XML, YAML and JSON) — and everything else as its
+characters: HTML is shown as text, an image is *[image: …]* and its address (never fetched), nothing is run. Terminal
+escapes and invisible or direction-reversing characters are shown as marks (`␛[31m`, `⟨U+202E⟩`), so what you see is
+what you copy. Each answer has **Copy** (its words as written, never a tool line) and each code block **Copy code**;
+a copy that holds such characters says how many.
+
+- **Links** open only when you click them and confirm a dialog showing the scheme and host on their own line, the host
+  in its plain ASCII (punycode) form — so a look-alike address cannot pass — and only for `http` and `https`.
+- **Chips.** A record number (*record #12*), a node written as code or after the word *node*, or a chart's name becomes
+  a small button that **only navigates** — it selects the record, shows the node, or opens the chart. An answer written
+  about an earlier generation of the log shows its chips muted, and a click says why and goes nowhere.
+- **Tool calls** are one line each — `▸ analyser_read ✓`, `refused`, `denied by the posture` — and a click on `▸`
+  shows the call's input. **Alt+↑ / Alt+↓** move between turns. Light and dark themes both work.
+- **When your full Claude Code is in force**, the composer has a coloured border and the badge *◆ Full Claude Code
+  (preview) · \<mode\>: your tools and permissions* — *on: it runs at the next Start* until it runs, then *running* — with
+  ◆◆ and a stronger colour for `acceptEdits` and `auto`, which ask about fewer actions. **Send** reads *Send to full
+  Claude Code*, and the tab and the assistant's own window carry the same ◆ marker. The marker follows the session, so it
+  appears and goes with the posture the analyser actually started.
 
 **Warm start** (*Start Claude Code when I open the Assistant tab*, off) starts Claude Code when **you** click or key the
 Assistant tab — never when the analyser reveals the tab itself, a journey hands over, or the tab is restored at launch —

@@ -105,6 +105,8 @@ nav:
       - Playground to analyser in 10 minutes: tutorial-playground.md
   - User guide:
       - user-guide/index.md
+      - The start page: user-guide/start-page.md
+      - Sample prompt pack: user-guide/sample-prompt-pack.md
       - Records, detail & filtering: user-guide/records-and-filtering.md
       - Graphs: user-guide/graphs.md
       - Topology & step-through: user-guide/topology.md
