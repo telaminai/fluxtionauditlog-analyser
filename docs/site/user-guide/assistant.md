@@ -139,12 +139,15 @@ these rows and Explain this finding disabled, each until its condition holds](..
   only the added lines are highlighted, and the line above the box says *Press Send to ask … — nothing has been sent*.
   Nothing is sent until you press **Send**. In the Claude Code mode with no session running, **Start is armed**
   (*Start — ask about this*); nothing starts until you press it.
-- **It names where to look, never what is there.** A question names record numbers, the log's file name and its
-  *load* (how many times it has been opened or reloaded), node ids, a chart's name and a time — never a value, a note's words or a finding's text, because those
+- **It names where to look, never what is there.** A question names record numbers, the log's file name, node ids,
+  a chart's name and a time — never a value, a note's words or a finding's text, because those
   can carry text written to steer an AI. The assistant reads the records itself (`analyser_read`), so in the in-app mode
   the questions need *Settings ▸ Assistant ▸ Let the in-app assistant change the views as it answers*; with them off, the items say so and are disabled. A
   question's draft never carries the raw text of your current selection.
-- **If the log changes before you Send** — you reopen or reload it — a question that names its records is refused,
+- **A chip by the composer says which log the drafted questions are about** — *this log · opened 14:05*, small and
+  muted. The question's own words do not name a load; the analyser tells the model which log it checked when it
+  sends the message.
+- **If the log changes before you Send** — you reopen or reload it — the chip reads *an earlier log · Send will refuse it — ask again*, and a question that names its records is refused,
   *"This question names records of a log that has been reloaded since it was drafted (load 3 → 4) — ask again from the
   records"*, and stays editable. Deleting the whole question from the box drops that check.
 - **During a walk with a conversation** (a journey), an ask does not go to any model: it shows the **next recorded
@@ -645,7 +648,7 @@ analyser's verbs, then calls **`propose`** with up to ten items — a source roo
 a log to open — each with its reason.
 
 ![Review Claude Code's set-up proposal: five DEMO items — source folder, processor, graph file, runbook, log to open —
-each with the analyser's own check and a Yes / No answer starting at No, and Claude's reason, labelled
+each with a Yes / No answer starting at No in the column after its number, the analyser's own check, and Claude's reason, labelled
 unverified](../assets/proposal-review.png)
 
 - **Nothing is applied by Claude.** A banner appears on the tab — *"Claude Code proposes 4 changes to set up …/medmon.
@@ -653,8 +656,10 @@ unverified](../assets/proposal-review.png)
   review opens when you click.
 - **The analyser checks every item itself** before the banner shows (read-only): the folder exists and how many `.java`
   files it holds, the processor's class is found in the sources, the GraphML and log are readable files, the runbook is
-  Markdown. The review shows, per item, the kind, the path, **the analyser's check**, and Claude's reason in its own box,
-  labelled *Claude's reason — unverified*. An item **outside the set-up folder** (after following links) is shown and
+  Markdown. The review shows, per item, **your answer** (the column after the number, so the Yes / No stays in view at
+  the dialog's default width), the kind, the path (a long one shortened, the whole of it in the tooltip) and **the
+  analyser's check**, wrapped in its own column; Claude's reason is in its own box, labelled *Claude's reason —
+  unverified*. An item **outside the set-up folder** (after following links) is shown and
   can never be applied; an item that does not exist, or is the wrong kind of file, is refused with why.
 - **Every answer starts at No.** When the folder has no project, the first row is the analyser's own **Create a project
   here** (an empty one, through *New project…*'s path); the items that need a project wait for it. **Apply chosen**
@@ -778,9 +783,10 @@ Both work without a log. See [Source navigation](source-navigation.md#spring-des
 The source-root grant now covers Java, XML designs and producer JSON; project membership alone is not a grant.
 
 `open` also writes to the **shared canvas** — state you and the AI client both see and either of you can
-set — because `open` is the verb that already means *put this in force*. Two things live there. **Posture**: whether this session is *research/support* or
-*authoring/deploy*. The analyser guesses it from what is open (a project open reads as authoring) and
-**says when it is only guessing**; `open {posture: "authoring"}` — or *AI ▸ Work mode* — sets it, which
+set — because `open` is the verb that already means *put this in force*. Two things live there. **The work mode**: whether this session is for *investigating* or
+*building*. The analyser guesses it from what is open (a project open reads as Build) and
+**says when it is only guessing**; *AI ▸ Work mode ▸ Investigate / Build* — or `open {posture: "authoring"}`
+from a client (`posture` in the API, shown as Work mode in the app) — sets it, which
 matters because intent changes before any file does (*"let's build something new"*). **The authoring
 mode selector's record**: `open {record: {…}}` places the selector's `--json` output, so the modes in
 force, the figures the catalogue resolved and what is left to author sit where both of you can read
@@ -962,8 +968,8 @@ So the working setup is:
 3. **Your client** starts the bridge on its own, whenever it needs a tool.
 
 If you skip step 1 or 2, the tools still appear in your client, but calling one answers *"analyser not
-running, or REST transport disabled — enable it in Settings ▸ Assistant, or start the app with `java -jar
-fluxtion-auditlog-analyser.jar --rest` (REST on, no first-run dialog; the setting persists)"*. That flag turns
+running, or External MCP/REST access is off — turn it on in Settings ▸ Assistant, or start the app with `java -jar
+fluxtion-auditlog-analyser.jar --rest` (External MCP/REST access on, no first-run dialog; the setting persists)"*. That flag turns
 External MCP/REST access on (persistently), so an agent can bring the analyser up on a fresh machine without a
 human at the keyboard. The console then shows the URL and the token's first 8 characters only — and the endpoint
 file's path on a first run; a script reads the token from `~/.fluxtion-analyser/rest-endpoint` and checks its `pid`
@@ -1178,9 +1184,9 @@ Two things follow, both useful:
 
 ### If it isn't working
 
-- **"analyser not running, or REST transport disabled — enable it in Settings ▸ Assistant, or start the app with
-  `java -jar fluxtion-auditlog-analyser.jar --rest` …"** — exactly what it says: either the app isn't open, or
-  *External MCP/REST access* is off in Settings ▸ Assistant (the message's *REST transport*). It also appears while
+- **"analyser not running, or External MCP/REST access is off — turn it on in Settings ▸ Assistant, or start the
+  app with `java -jar fluxtion-auditlog-analyser.jar --rest` …"** — exactly what it says: either the app isn't open,
+  or *External MCP/REST access* is off in Settings ▸ Assistant. It also appears while
   Claude Code runs in the analyser's Assistant tab with external access off or closed for that session
   ([While Claude Code runs in the analyser](../connect-an-llm.md#while-claude-code-runs-in-the-analyser)). The same message appears if the app was
   killed, because the bridge checks the recorded process is still alive before trying to connect.

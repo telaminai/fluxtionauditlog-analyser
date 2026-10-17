@@ -16,7 +16,7 @@ directly with the Explore DEMO, Open, Create, Connect an assistant and Settings 
 | 2 | **Set up a project from my code** | *Set up…* | Toward **Claude Code**: your folder chooser, then a set-up question is placed and Start armed — Claude looks at the folder and **proposes** the set-up, you answer each item, and the analyser applies the ones you accept ([onboarding](assistant.md#set-up-a-project-with-claude)). Toward the in-app assistant (which cannot read a folder): *New project…*, which offers what it finds and lets you choose. |
 | 3 | **Open an evidence bundle someone sent me** | *Open bundle…* | Your file chooser, then the bundle's verification. A bundle that does not verify is **not opened** and nothing is written: you see why, with *Close*. A verified one opens as a disposable copy, and then a question about it is drafted. |
 | 4 | **Which starter template suits what I'm building?** | *Show templates* | Reads the starter catalogue **when you press the button** (never before), then drafts a question naming its templates. *New project from template…* is beside it. |
-| 5 | **Explain an audit log I already have** | *Open log…* | With no log open, your file chooser and the load first; then a question about that log is drafted, naming it and its load. |
+| 5 | **Explain an audit log I already have** | *Open log…* | With no log open, your file chooser and the load first; then a question about that log is drafted, naming it. |
 | 6 | **What can this tool do?** | — | Puts a question in the box. |
 
 - **Choosing does nothing yet.** Click a row, use **↑ / ↓** and **Enter**, or press **Alt+1** … **Alt+9** (**⌘1** … **⌘9**

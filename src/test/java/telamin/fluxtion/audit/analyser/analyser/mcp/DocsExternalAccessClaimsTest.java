@@ -26,7 +26,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * failed, because the only test of the docs pinned substrings that could not see any of it (rule 8).
  *
  * <p>Witnesses, one per claim: put back "seventeen in all", "Four are marked", "localhost REST transport", the old
- * short bridge message, "click **Explain**" or "two headless commands" — each assertion names the file and the words.
+ * bridge message ("REST transport disabled"), "click **Explain**" or "two headless commands" — each assertion names the file and the words.
  */
 class DocsExternalAccessClaimsTest {
 
@@ -123,7 +123,10 @@ class DocsExternalAccessClaimsTest {
             assertTrue(flat(read(SITE.resolve(page))).contains(McpBridge.NOT_RUNNING), page + " must quote: "
                     + McpBridge.NOT_RUNNING);
         }
-        assertEquals(List.of(), offenders("REST transport disabled — start the app with"));
+        assertTrue(McpBridge.NOT_RUNNING.startsWith("analyser not running, or External MCP/REST access is off — turn it on in Settings ▸ Assistant"),
+                "the bridge names the switch as Settings does");
+        // the message before the fix list's one-name rule, in full and in its short quoted form
+        assertEquals(List.of(), offenders("REST transport disabled", "(REST on, no first-run dialog"));
     }
 
     @Test

@@ -50,13 +50,14 @@ a project asked for one and did not get it), `reports` (`name`, `title`, `sectio
 `from`, `problem`, `note`), and the portable-context facts — `runbooks` (`name`, `path`, `resolved`, `exists`, `from`),
 `vocabulary` (`path`, `resolved`, `exists`, `from`), `environments` (`name`, `provenance`, `logDir`,
 `default`, `problem`) with `provenanceSource`, `analyses` (`name`, `rationale`, `parameters`, `steps`, `from`), and
-the shared canvas's `handoff` — `posture` (`value`, `source`, `setBy`, `derivedWouldBe`) and, when one has
+the shared canvas's `handoff` — `posture` (`value`, `source`, `setBy`, `derivedWouldBe`; shown as Work mode in
+the app) and, when one has
 been placed, `record` (`modes`, `resolvedFigures`, `authoringRequired`, `selectionCandidates`, `setBy`).
 
-The **posture** row says what this session is for — *research/support* or *authoring/deploy*. Drawn
-muted, it is the analyser's guess from what is open, and says so; drawn normally, somebody set it, and
-the row names who — you (*AI ▸ Work mode*) or an AI client (`open {posture}`) — and what the guess would
-have been when the two disagree. The **mode-selector record** row appears when you or a client has placed
+The **Work mode** row says what this session is for — *Investigate* or *Build*. Drawn muted, it is the
+analyser's guess from what is open, and says so (*Work mode: Investigate — guessed from what is open; change it
+in AI ▸ Work mode*); drawn normally, somebody set it, and the row names who — you (*AI ▸ Work mode*) or an AI
+client (`open {posture}`) — and what is open would suggest when the two disagree. The **mode-selector record** row appears when you or a client has placed
 the authoring mode selector's output on the canvas: the modes in force, how many figures the catalogue
 resolved, and what is left to author. Both rows belong to the session: a project switch clears them.
 

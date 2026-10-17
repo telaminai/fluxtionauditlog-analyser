@@ -185,11 +185,11 @@ the exact resolved record or registration command; then restart/reload the clien
 
 - A description of your session — the log, its record count, the filter, any flags — means the whole
   chain works. Nothing changed on screen: `context` only reads.
-- *"analyser not running, or REST transport disabled — enable it in Settings ▸ Assistant, or start the app
-  with `java -jar fluxtion-auditlog-analyser.jar --rest` (REST on, no first-run dialog; the setting
-  persists)"* means the tools are registered but the bridge found no endpoint file or could not reach it: the
-  app is closed, or External MCP/REST access is off (*REST transport* in that message is the same switch).
-  Fix step 1 and ask again — no client restart needed.
+- *"analyser not running, or External MCP/REST access is off — turn it on in Settings ▸ Assistant, or start
+  the app with `java -jar fluxtion-auditlog-analyser.jar --rest` (External MCP/REST access on, no first-run
+  dialog; the setting persists)"* means the tools are registered but the bridge found no endpoint file or could
+  not reach it: the app is closed, or External MCP/REST access is off. Fix step 1 and ask again — no client
+  restart needed.
 - The same *not running* message also appears while Claude Code runs **inside** the analyser with external
   access off or closed for that session: the analyser withdraws the endpoint file then. See
   [While Claude Code runs in the analyser](#while-claude-code-runs-in-the-analyser).
@@ -215,14 +215,14 @@ credential, and it changes what an *external* client can reach:
 
 - **External MCP/REST access off.** Claude Code in the tab still works: the analyser opens a private listener
   that serves only that session. It publishes no endpoint file, so your MCP client's bridge says *"analyser not
-  running, or REST transport disabled …"*. A script that still holds a URL and token from earlier is refused
+  running, or External MCP/REST access is off …"*. A script that still holds a URL and token from earlier is refused
   with *"External MCP/REST access is off in this analyser (Settings ▸ Assistant); this listener serves only the
   analyser's own Claude Code session"*. Turn the switch on if you want both.
 - **External MCP/REST access on, with Full Claude Code in the tab.** The session's own tools can then drive
   the analyser as an external client through the endpoint file, so the assistant panel says so and offers
   **Close external access while this session runs**. If the person chooses it, external clients are refused
-  until that session ends: the endpoint file is withdrawn, so a bridge says *"analyser not running, or REST
-  transport disabled …"* even though Settings shows the switch on, and a script still holding the URL and
+  until that session ends: the endpoint file is withdrawn, so a bridge says *"analyser not running, or External
+  MCP/REST access is off …"* even though Settings shows the switch on, and a script still holding the URL and
   token is told *"external access is closed while an in-app Claude Code session runs (the person chose "Close
   external access while this session runs"); it reopens when that session ends — the External MCP/REST access
   setting is still on"*. The analyser's status line reads *"External MCP/REST access is closed while
