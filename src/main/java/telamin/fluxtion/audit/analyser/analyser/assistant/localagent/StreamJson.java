@@ -261,8 +261,11 @@ public final class StreamJson {
         Object root;
         try {
             root = Json.parse(line);
-        } catch (RuntimeException e) {
-            return new Unknown("not-json");
+        } catch (RuntimeException | StackOverflowError e) {
+            // review P3 S2: a control request the parser cannot read (nested too deep) is still a request the CLI waits
+            // on for ever (P3-1) — it is named from a shallow scan, so the adapter can deny it
+            String requestId = shallowControlRequestId(line);
+            return requestId != null ? new ControlRequest(requestId, "unreadable") : new Unknown("not-json");
         }
         if (!(root instanceof Map<?, ?> m)) return new Unknown("not-an-object");
         String type = str(m.get("type"));
@@ -515,6 +518,23 @@ public final class StreamJson {
         if (inputRaw == null || inputRaw.isBlank()) throw new IllegalArgumentException("an allow carries the input shown");
         return "{\"type\":\"control_response\",\"response\":{\"subtype\":\"success\",\"request_id\":"
                 + Json.write(requestId) + ",\"response\":{\"behavior\":\"allow\",\"updatedInput\":" + inputRaw + "}}}";
+    }
+
+    /**
+     * Review P3 S2: the {@code request_id} of a top-level {@code control_request} line, read by the raw scanner (which
+     * never recurses), or null when the line is not one.
+     */
+    static String shallowControlRequestId(String line) {
+        try {
+            String type = rawMember(line, "type");
+            if (!"\"control_request\"".equals(type == null ? null : type.strip())) return null;
+            String id = rawMember(line, "request_id");
+            if (id == null || !id.strip().startsWith("\"")) return null;
+            Object parsed = Json.parse(id.strip());
+            return parsed instanceof String s ? s : null;
+        } catch (RuntimeException | StackOverflowError e) {
+            return null;
+        }
     }
 
     // ---- raw spans ----------------------------------------------------------------------------------------------------

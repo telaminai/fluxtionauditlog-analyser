@@ -676,4 +676,36 @@ class LocalAgentAdapterReplayTest {
         assertEquals(SessionEvents.TurnOutcome.COMPLETED,
                 h.facts(SessionEvents.LocalAgentTurnEnded.class).get(0).outcome());
     }
+
+    /**
+     * ★ Review P3 S2 (2026-10-17): a can_use_tool nested 20,000 levels deep used to throw StackOverflowError in the
+     * recursive parser, an Error no {@code catch (RuntimeException)} stops, killing the stdout reader and hanging the
+     * session. Now the parser refuses past {@code Json.MAX_DEPTH}, the request is named from a shallow scan and DENIED
+     * (the CLI waits on it for ever otherwise, P3-1), and the session answers its next turn. Witness: drop the depth check
+     * in {@code Json} — the StackOverflowError reaches the reader, and nothing is denied.
+     */
+    @Test
+    @DisplayName("★ a 20k-deep can_use_tool is denied and the session stays alive")
+    void aDeeplyNestedRequestIsDeniedAndTheSessionLives() throws Exception {
+        Harness h = bound("multiturn-partial-replay-midturn.jsonl");
+        String deep = "[".repeat(20_000) + "]".repeat(20_000);
+        String line = "{\"type\":\"control_request\",\"request_id\":\"req-deep\",\"request\":{\"subtype\":"
+                + "\"can_use_tool\",\"tool_name\":\"Bash\",\"input\":{\"command\":" + deep + "}}}";
+        assertTimeoutPreemptively(java.time.Duration.ofSeconds(10), () -> h.agent.last().emit(line));
+        assertTrue(h.agent.last().stdin.stream().anyMatch(l -> l.contains("\"req-deep\"") && l.contains("\"deny\"")),
+                "the request the CLI waits on is answered deny: " + h.agent.last().stdin);
+        h.send("Reply with exactly: one");
+        assertEquals(List.of("one"), h.answers(), "the session is alive");
+    }
+
+    /** Review P3 S2: a deep line that is not a control request is counted as unknown, and the reader reads on. */
+    @Test
+    @DisplayName("a deep line of another kind is an unknown event, counted; the reader reads on")
+    void aDeepLineIsUnknown() throws Exception {
+        assertEquals(new StreamJson.Unknown("not-json"), StreamJson.parse("{\"type\":\"assistant\",\"x\":"
+                + "[".repeat(20_000) + "]".repeat(20_000) + "}"));
+        var r = StreamJson.parse("{\"type\":\"control_request\",\"request_id\":\"r1\",\"request\":{\"input\":"
+                + "{\"a\":".repeat(9_000) + "1" + "}".repeat(9_000) + "}}");
+        assertEquals(new StreamJson.ControlRequest("r1", "unreadable"), r);
+    }
 }

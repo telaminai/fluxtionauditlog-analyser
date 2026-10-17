@@ -281,7 +281,7 @@ public final class LocalAgentAdapter {
         run.scratchForProject = env.scratchForProject();
         run.configuredModel = s.model() == null || s.model().isBlank() ? ClaudeCodeProvider.DEFAULT_MODEL : s.model().trim();
         try {
-            AgentProcess p = launcher.start(command, childEnv, removedEnv, s.cwd(), line -> onLine(run, line));
+            AgentProcess p = launcher.start(command, childEnv, removedEnv, s.cwd(), line -> onLineGuarded(run, line));
             synchronized (run) {
                 run.process = p;
             }
@@ -409,6 +409,21 @@ public final class LocalAgentAdapter {
     }
 
     // ---- reading the stream ---------------------------------------------------------------------------------------
+
+    /**
+     * Review P3 S2 (2026-10-17): the stdout reader must never die silently — a line that throws (an Error included) is
+     * counted as unknown, as an unparsable line is, and the reader reads the next one.
+     */
+    void onLineGuarded(Run run, String line) {
+        try {
+            onLine(run, line);
+        } catch (RuntimeException | StackOverflowError ex) {
+            unknownEvents++;
+            synchronized (run) {
+                run.unknown++;
+            }
+        }
+    }
 
     void onLine(Run run, String line) {
         StreamJson.Event event = provider.parse(line);
