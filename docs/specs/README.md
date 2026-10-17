@@ -28,6 +28,7 @@ line, and update this index in the same change.
 | [spec-evidence-integrity.md](spec-evidence-integrity.md) | analyser half shipped (1.21.0, 1.23.0); the producer half D-E9 is open | completed ▸ M68; MA-2/MA-7 |
 | [spec-evidence-bundle-replay.md](spec-evidence-bundle-replay.md) | released in 1.28.0; whole-feature review (PR #70) and an owner question open | M70 |
 | [spec-shared-evidence-canvas.md](spec-shared-evidence-canvas.md) | thesis; no independent read yet | M48.17 |
+| [spec-document-renderer.md](spec-document-renderer.md) | draft r2 2026-10-17, independently reviewed; owner decisions open | M75 |
 
 ## Assistant
 
