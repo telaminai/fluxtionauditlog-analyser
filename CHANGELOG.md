@@ -57,6 +57,7 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 - **A transcript tool line shows the input as Claude Code sent it**, as the permission dialog does: an integer reads `3`, not `3.0`, collapsed and expanded.
 - **A request Claude Code withdraws while it waits behind an open approval is never shown** — it used to be shown, and could be approved, after the first was answered; nothing is written to Claude Code for a request it withdrew.
 - **The approval dialog describes the call that runs.** It chose its sentence with its own reading of the input, so `report {name, delete: false, sections}` read as *delete … can be restored* while the analyser built and replaced the report; the dialog, the analyser and the file-exchange check now share one choice of operation for `report` and `open` (and `walk`'s own).
+- **A spotlight callout no longer flickers open and shut at the frame's edge**: the expanded card always covers the collapsed one; and when a callout that has the keyboard focus goes out, the focus returns to where it was.
 
 ### Security
 
