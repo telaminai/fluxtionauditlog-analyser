@@ -96,8 +96,16 @@ You can replace the numbered list for this window by **dropping one Markdown fil
 you press the button. **← Return to main options** (Alt+R; ⌘R on macOS) brings the analyser's own list back. A pack is
 never saved.
 
-[Prompt packs](../start/prompt-packs.md) has the format, what the reader tidies and what it refuses, and a sample pack
-to try. An entry can also point at an example project to download, pinned to one commit:
+A pack is written like this:
+
+```text
+# Title                                   ← one line, at most 60 characters
+An optional one-line description.         ← at most 140 characters
+1. **Label** — the prompt's words.        ← 1 to 9 entries; label at most 60 characters, words at most 500
+```
+
+[Prompt packs](../start/prompt-packs.md#write-your-own) has the whole format, what the reader tidies and what it
+refuses, and a sample pack to try. An entry can also point at an example project to download, pinned to one commit:
 [Starter templates and examples ▸ Example entries](../start/templates-and-examples.md#example-entries).
 
 ## Or open directly

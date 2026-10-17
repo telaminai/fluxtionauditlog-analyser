@@ -17,7 +17,8 @@ Every command and operation that reports on a bundle states them:
 - **No replay, or replay only on your build.** An ordinary bundle shows an investigation. It does not re-run the
   processor, reproduce the incident or fix anything, and says *no replay*. A bundle that also carries the run's
   replay records (format 2) states a narrower limit instead: the records reproduce the log only on a build whose
-  graph matches, and only you can replay them, on your own build; the analyser never runs them
+  graph matches, and only as far as the processor reads nothing the records do not carry. You replay them yourself,
+  on your own build; the analyser never runs them
   ([Commands and file format](reference.md#the-manifest-with-replay-records-format-2)).
 
 ## What is inside
@@ -35,7 +36,7 @@ Every command and operation that reports on a bundle states them:
 
 | left behind | why |
 |---|---|
-| **flags** | they are not saved anywhere, even on your machine. Put a finding in a walk step's caption or a report's narrative instead: a report's *finding* section shows a flag, so it is empty on the recipient's side |
+| **flags** | they are not exported or packed: on your machine only local session recovery keeps them, for the same unchanged log. Put a finding in a walk step's caption or a report's narrative instead: a report's *finding* section shows a flag, so on the recipient's side it shows as unresolved, naming the missing flag |
 | **a chart with an external CSV series or markers** | its data is a file on your machine, so its path would point at nothing on theirs. It is left out and named |
 | **source roots, Maven repos, processors, runbooks, environments, keys, assistant settings** | these describe your machine. Leaving all of them out means nothing can quietly point somewhere else on the recipient's machine |
 

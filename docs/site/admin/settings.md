@@ -1,6 +1,8 @@
 # Settings reference
 
-**Project ▸ Settings…** opens one dialog with its tabs down the left side. This page lists every tab and control, its
+**Project ▸ Settings…** opens one dialog with its tabs down the left side. **Sources ▸ Source roots…**, **Sources ▸
+Event processor…** and **Sources ▸ Maven repos…** open it at that tab, and the Project panel's *Settings…* buttons at
+the tab their row is about. This page lists every tab and control, its
 default, and where the setting is kept:
 
 - **Project**: kept in the open project's profile, `<project>/.analyser/project.fluxtion-settings`, which you can
@@ -58,9 +60,10 @@ managed from **AI ▸ Fluxtion API key…**, and is not an analyser setting.
 ## Assistant (machine), by profile
 
 Every option the four profile cards set is on this tab, grouped by the profile it belongs to. **All of them are this
-machine's and this user's only**: never in a project profile or an evidence bundle, and an administrator cannot lock
-them yet ([Managed policy](managed-policy.md)). One exception travels: a settings file exported with its
-*Assistant* category carries the two switches marked † below, and importing that category applies them
+machine's and this user's only**, except *Exchange folder (this project)*, which the open project stores: never in a
+project profile or an evidence bundle, and an administrator cannot lock them yet ([Managed policy](managed-policy.md)).
+One exception travels: a settings file exported with its *Assistant* category carries the four settings marked †
+below, External MCP/REST access among them, and importing that category applies them
 ([Sharing setups](../user-guide/sharing-setups.md)).
 
 ![Settings ▸ Assistant, grouped by profile: Safe analysis, Full Claude Code, In-app assistant and Every assistant, with
@@ -87,8 +90,8 @@ Connect an AI client…, External MCP/REST access and the exchange folders](../a
 |---|---|---|
 | **In-app assistant: provider, model and key…** | — | Opens the **LLM** tab |
 | **Let the in-app assistant change the views as it answers** † | **on** | Lets it filter, chart, go to a record and flag as it answers. The Ask questions need it |
-| **Max action rounds** | 3 | How many rounds of actions one answer may take |
-| **Max actions per reply** | 20 | Actions in one reply |
+| **Max action rounds** † | 3 | How many rounds of actions one answer may take |
+| **Max actions per reply** † | 20 | Actions in one reply |
 | **…per turn, across its rounds** | 30 | The budget for one question; when it is spent the turn ends and says so |
 
 ### Every assistant: the bridge, files and projects
@@ -106,8 +109,8 @@ Connect an AI client…, External MCP/REST access and the exchange folders](../a
 
 ## History (machine)
 
-Buttons that clear, at once: **Clear search history**, **Clear saved graphs**, **Clear recent files** and **Reset
-topology view** (the Topology tab's zoom, pan, orientation, spacing and label size).
+Buttons that clear, at once: **Clear search history**, **Clear saved graphs**, **Clear recent files**, **Reset
+topology view** (the Topology tab's zoom, pan, orientation, spacing and label size), and **Clear all** for the four.
 
 ## Plugins (machine)
 

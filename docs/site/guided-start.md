@@ -104,8 +104,8 @@ nothing looks the same. Only a log with invocation tracing on (the traced demo l
 the analyser say a node did not run, and the coverage answer states which of the two it is giving you.
 
 **One question, answered and anchored.** A threshold crossing, the record where it happened, and a flag on
-that record. A flag lasts for this session, until another log is opened; to keep the answer, ask the assistant to
-save it as a report or a walk.
+that record. A flag lasts until another log is opened (local session recovery can restore it for the same
+unchanged log); to keep the answer where others can see it, ask the assistant to save it as a report or a walk.
 
 ## Why the tour works this way
 

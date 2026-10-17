@@ -37,7 +37,7 @@ assume it.
 
 1. **Source roots**: **Sources ▸ Source roots…**, then *Add* the source folders for your processor and its node
    classes. A log line or a node then leads to the method that wrote it ([Source navigation](user-guide/source-navigation.md)).
-2. **Your event processor**: **Settings ▸ Event processor**, its fully qualified class name, marked active. The
+2. **Your event processor**: **Sources ▸ Event processor…**, its fully qualified class name, marked active. The
    analyser uses it to map each `instanceId` in the log to a source file. It is usually inferred when the log opens.
 
 These belong to the project when one is open. To keep them for next time, make a project for this application:

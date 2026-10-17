@@ -49,6 +49,7 @@ makes it a project. It reuses that folder afterwards.
 | `demo-quote-processor.graphml` | The processor's graph, so the topology renders and cycles can be stepped through |
 | `demo-quote-audit-traced.yaml` | A run with invocation tracing on: the one log where a node that wrote nothing can be shown not to have run |
 | `demo-quote-series.yaml` | 726 records, enough for a chart worth reading |
+| `journey/` | The demo journey's copy of the 726-record log, and its own saved settings |
 | `com/acme/demo/…` | The processor's Java source, so a node or a log line leads to its code |
 
 Opening the sample project is a project switch: it closes the log and project you had open. The demo folder belongs

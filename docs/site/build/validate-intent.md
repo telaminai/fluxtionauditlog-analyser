@@ -60,8 +60,8 @@ Mark the record that settles a criterion with a **flag**. A flag of kind `confir
 **Assessment**, for a criterion that holds; the default kind, `fault`, is for one that fails
 ([Investigation reports](../user-guide/reports.md#references-never-a-document)).
 
-Flags belong to this run, in this session: opening another log clears them, and an evidence bundle does not carry
-them. Use a flag to point at the record now; put a conclusion that must last in a report's `narrative`, a walk step's
+Flags belong to this run: opening another log clears them, local session recovery restores them only for the same
+unchanged log, and an evidence bundle does not carry them. Use a flag to point at the record now; put a conclusion that must last in a report's `narrative`, a walk step's
 caption, or a report's exported PDF.
 
 ## 4. Assemble the account: a report

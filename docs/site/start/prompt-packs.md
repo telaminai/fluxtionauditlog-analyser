@@ -52,7 +52,7 @@ It reads, and tidies, the variations Markdown writers use:
 - `-`, `--`, `–` or `:` instead of the em dash `—`, and `**Label:** words`;
 - an entry with **no bold label**: `1. Label — words` keeps *Label*; otherwise the entry's first words, up to its first
   sentence and at most 60 characters, become the label, and the whole line is the prompt;
-- `-` or `*` **bullets** instead of numbers, read as 1, 2, 3 …;
+- `-`, `*` or `+` **bullets** instead of numbers, read as 1, 2, 3 …, and `1)` for `1.`;
 - extra blank lines, trailing spaces, and no description line.
 
 When it changed anything, a quiet note under the pack's title says what, and the pack is used; nothing waits on it.
@@ -66,6 +66,7 @@ What is unsafe or out of bounds is still refused:
 - more than 16 KB, or not UTF-8; more than 9 entries; a title, description, label or prompt over its length;
 - HTML, images, links (outside an example entry), `{placeholders}`, and control, format or bidirectional characters
   (a byte-order mark counts as one);
+- no title line, no entries, or a number out of order;
 - an example entry that is not exactly its strict shape;
 - any other line after the entries, or an unclosed `**`.
 

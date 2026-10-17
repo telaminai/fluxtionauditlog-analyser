@@ -40,7 +40,8 @@ the same.</small>
 2. Confirm or change its artifact, group and base-package defaults.
 3. Choose a new or empty project directory.
 4. Select **Download and open**. If the download contains a project profile, it becomes the active project. An older
-   download without one instead offers what it finds, with nothing chosen for you. Creating the optional
+   download without one, or one whose analyser support is disabled, instead offers what it finds, with nothing chosen
+   for you; it is not silently opted back into support. Creating the optional
    pointers-only reference guide needs its own checkbox, unticked by default; an existing project guide is never
    overwritten.
 
@@ -53,15 +54,22 @@ instead of an empty picker.
 - **The archive is contained.** Absolute paths and `..` entries are refused; the number of entries and their
   expanded size are capped; a non-empty destination is never merged into or overwritten; the files are unpacked
   beside the destination and moved into place in one step.
-- **Only fixed files are made executable.** Archive permission bits are ignored. Only the root lifecycle wrappers
-  (`mvnw`, and the run, export, stop and key-check scripts) are made executable.
-- **The template's settings may only point inside the project.** Every settings file in the archive is checked before
-  the move: a source folder outside the project, the whole project, a `~`, an absolute or Windows-style path, a path
-  through a file, or a workspace anchor refuses the installation, and nothing is installed. A folder that does not
-  exist yet, such as `target/`, is allowed when it would sit inside the project. External CSV files named by a
-  template's saved charts, and Maven repositories, are not checked by this rule.
-- **Nothing is built or run.** When the project is ready, the analyser shows the build, run, export and stop commands,
-  chosen from file names it recognises, for you to copy. You decide whether to paste them into a terminal.
+- **One project folder.** The archive must hold exactly one top-level folder.
+- **Only fixed files are made executable.** Archive permission bits are ignored. Only a fixed list of root lifecycle
+  scripts is made executable: the Maven wrapper (`mvnw`), and the setup, validate, generate, run, export, stop and
+  key-check scripts.
+- **The template's settings may only point inside the project.** Every settings file in the archive (the main
+  profile, a named one beside it, or a nested module's) is checked against its own folder before the move: a source
+  folder outside the project (including one that leaves and comes back in through the archive's own folder name), the
+  whole project, a `~`, an absolute or Windows-style path (refused on every system, because the project may later be
+  opened on Windows), a path through a file, or a workspace anchor refuses the installation, and nothing is installed.
+  A folder that does not exist yet, such as `target/`, is allowed when it would sit inside the project. External CSV
+  files named by a template's saved charts, and Maven repositories, are not checked by this rule. Projects you set up
+  yourself may still name folders outside the project on purpose, such as a neighbouring module.
+- **Nothing is built or run.** When the project is ready, the analyser shows the commands to copy, chosen from the
+  script names it recognises: for example the key check, setup, validate, generate and run scripts, or a build and a
+  run. You decide whether to paste them into a terminal. On Windows, where the templates ship no `.cmd` scripts
+  today, it points you to the project's README instead.
 
 The one way code from a project runs inside the analyser is your own opt-in: with **Full Claude Code** on, pressing
 Start runs your own Claude Code, which runs the folder's hooks and connects its `.mcp.json` servers. The folder
@@ -82,8 +90,8 @@ commit. It shows with a download badge (**⤓**) and its button reads **Download
 - **Nothing is fetched until you press Download example… and confirm.** Dropping the pack fetches nothing, and nor
   does choosing the entry.
 - **The confirmation leads with the publisher**: *host / owner / repo @ short commit*. It is marked **third-party**
-  unless the address is in the Telamin GitHub organisation. Even then it reads *a Telamin repository address — the
-  code may come from a fork*, because GitHub serves a commit from any fork of a repository under the parent's
+  unless the address is in the Telamin GitHub organisation. Even then it reads *a Telamin repository address (the
+  code may come from a fork)*, because GitHub serves a commit from any fork of a repository under the parent's
   address. An address is all that is shown to be true. The confirmation then shows the exact address, the full
   commit, the integrity digest (or that there is none) and the folder you choose, which must be new or empty.
 - **Only a pinned commit.** Only `https` addresses on **github.com**, **codeload.github.com** and **gitlab.com**, and
@@ -94,6 +102,8 @@ commit. It shows with a download badge (**⤓**) and its button reads **Download
   same, only the files inside it, so a digest on such an address may one day stop matching; the analyser then
   refuses rather than accepting it. A digest is most useful on an archive published once and kept, such as a release
   asset, but this build accepts only commit-pinned archive addresses, so for GitHub the commit is what pins it.
+- **Bounded.** An archive may be at most 64 MB. The fetch must finish within 6 minutes and the unpack within 2.
+  At most 3 redirects are followed, and only to an allowed host naming the same pinned commit.
 - **Nothing is built on download.** The archive is unpacked through the same contained installer as the starter
   templates, with **no file made executable**. Nothing is built, run or installed. You are then offered to open the
   folder as a project, which you confirm.

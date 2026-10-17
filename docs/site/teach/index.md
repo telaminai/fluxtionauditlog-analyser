@@ -19,7 +19,7 @@ the audience has seen enough. The times are suggestions.
   ([Assistant profiles](../admin/profiles.md)); the first question with nothing set up opens the profile choices
   instead of an answer.
 
-## 1. The tour (3 to 5 minutes)
+## 1. The demo journey (3 to 5 minutes)
 
 On the start page, choose **1. Run me through a demo** and press **Play**. The analyser opens the sample project and
 plays the DEMO journey *Find the first recorded breach*: four steps over a 726-record log, with a scripted
@@ -79,7 +79,7 @@ bytes in their own analyser ([Evidence bundles](../evidence-bundles/index.md)).
 
 To show the receiving side, download the DEMO journey's bundle from
 [Journey: find the first recorded breach](../journeys/find-the-first-recorded-breach.md), check it with
-`analyser --verify`, and drop it on the start page. To show both sides with two analysers in one command, run the
+`analyser --verify` (or `java -jar fluxtion-auditlog-analyser.jar --verify`), and drop it on the start page. To show both sides with two analysers in one command, run the
 [round-trip demo](../evidence-bundles/index.md#try-it-with-the-demo) from the source repository.
 
 ## After the demo
