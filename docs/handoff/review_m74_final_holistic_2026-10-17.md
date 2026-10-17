@@ -51,4 +51,24 @@ as handed over (numbering kept; items not handed over — B3 — are not in this
 
 | Finding | Disposition | Commit | Test (witness) |
 |---|---|---|---|
-| B2 | _open_ | | |
+| B1 | **not fixed — out of scope by direction:** the owner merges | — | — |
+| B2 | **fixed** — a full session with external access open: the limits line says its tools can drive the analyser as an external client; the panel offers *Close external access while this session runs* (`ExternalAccessChosen`), decided by `actionListener`, reopened when the session ends. Card wording: see P3+UX S3 | `bcbe1eca`, `18742a59` | ★ `ActionListenerTest#aFullSessionIsOfferedToCloseExternalAccess` (witnesses: offer without the full check → the default posture is offered it; ignore the choice → nothing closes) |
+| B4 | **fixed** — `HostedCallAbandoned`; an admitted, abandoned call is recorded ABANDONED, its grant void (never restored, consistently), and the person told | `888d2911` | ★ `HostedAdmissionTest#aTimedOutCallIsReported`; ★ `LocalAgentPermissionTest#anAbandonedCallVoidsItsGrant` |
+| B5 | **fixed** — the `actionListener` node owns the listener lifecycle (REST switch fact; need/release pushed by `localAgentSession`; serve/release/configure effects; status words); `hostedBridgeGeneration` and `applyRestServer` are gone; the frame matches in one method | `bcbe1eca` | ★ `ActionListenerTest#theLifecycleIsTheNodes`; ★ `OneDispatchModelTest#theListenerLifecycleIsTheNodes` (witness: `setExternalAllowed` from a second method) |
+| B6 | **fixed** — Off reads "No assistant in the analyser … external MCP and REST clients are not affected"; one line under the cards says whether external MCP / REST access is on, pointing to Settings ▸ Assistant; the guide's heading is *The in-app assistant* | `18742a59` | ★ `ProfileCardsWordsTest#theExternalLoopIsSaid`, `#oneVocabulary` |
+| B7 | **fixed** — the dialog (and guide, FAQ) say what is not re-checked (`@path` imports, ancestor `CLAUDE.md`, hook script contents); the adapter's pre-spawn check verifies the FULL trust digest (`TRUST_CHANGED`). Digesting those files was not attempted: an import graph and arbitrary scripts are neither cheap nor bounded | `4029ab41` | ★ `LocalAgentFullReplayTest#theSpawnChecksTheFullTrustDigest` |
+| B8 | **fixed (in scope)** — the scratch frame test adopted as `ExternalRestWithHostedSessionFrameTest` in both ci.yml lists; `CiFrameListsTest` (headless) checks the two lists are identical and complete; `ForeignTextIsPlainTest` treats `JEditorPane`, `text/html`, `HTMLEditorKit` and `setPage` as doors (HelpPanel REVIEWED), TranscriptView's `StyledEditorKit` pinned; `LocalAgentPermissionTest`'s oracle is a literal table. **Not fixed — out of scope:** the CLI-drift canary and the managed-settings probe (tracker) | `bcbe1eca`, `7b8e9d2f`, `3cc37a52` | ★ the frame test (witness: release always stops → "server not restarted"); ★ `CiFrameListsTest` (witness: one list short); ★ `ForeignTextIsPlainTest#htmlDocumentsAreDoors`; ★ `#thePolicyTable` (witness: `asks()` true for AUTO — the old oracle would have moved with it) |
+| B9 | **fixed** — §4.2's dead `RestTransportObserved` / `RefreshHostedEndpointEffect` text deleted (and its §8.2 table row struck); §10's command-line row; the status block trimmed. **Split not done** by direction; proposed in the tracker | `61847e3f` | (spec) |
+| B10 | **not fixed — out of scope:** `LocalAgentWiring` proposed in the tracker | `61847e3f` | — |
+| B11 | **not fixed — out of scope:** OD-74.2 and the one-page security model, tracker line | `61847e3f` | — |
+| L-a | **fixed** — the credential is checked before the hosted bucket | `08f2cef7` | ★ `HostedCredentialTest#aBadCredentialSpendsNoBucket` (witness: the old order → 429) |
+| L-b | **fixed** — CHANGELOG: Copy prompt carries the token only with the tick | `18742a59` | (pinned in part by the S3 scan) |
+| L-c | **fixed** — `spec.md`'s Explain line | `31ac363d` | — |
+| L-d | **fixed** (documented) — the ask items' menu labels follow the assistant in force; read `context.menus` first. Stable target ids were not added | `31ac363d` | — |
+| L-e | **fixed** — the fork warning shows only while a conversation exists to resume | `198e977a` | ★ `LockWarningTest` |
+| L-f | **fixed** — §11 states it | `61847e3f` | — |
+| L-g | **fixed** — CHANGELOG: automation must read `~/.fluxtion-analyser/rest-endpoint` | `18742a59` | — |
+
+**Also, from the owner during this pass (2026-10-17):** the start page's *Or open directly* as titled blocks in a
+responsive grid — `a984df85`, ★ `StartWorkspaceFrameTest#startChoicesGroupByActivityAndStackOnANarrowWindow` (witness:
+the squashed FlowLayout strip → "a grid of at least 3 columns: 2"); screenshots in the scratchpad's `m74-ux-visual`.
