@@ -288,9 +288,13 @@ class OnboardingProposalTest {
         assertEquals("p-1", e.snapshot().proposal().id(), "the proposal survives the New chat");
     }
 
-    /** ★ Witness: a text-scanning proposal reader — any answer holding propose-shaped JSON would record an offer. */
+    /**
+     * The node's half: a turn's text is a reference and a revision, so the node has nothing it could parse. The text
+     * half — an answer HOLDING propose-shaped JSON, through the real parser and adapter — is
+     * {@code LocalAgentAdapterReplayTest#freeTextIsNotAProposal} (review P2-S4).
+     */
     @Test
-    @DisplayName("★ a free-text 'proposal' in an answer records nothing: only the verb does")
+    @DisplayName("a turn's text reaches the node as a reference only: no offer is recorded from it")
     void freeTextIsNotAProposal() {
         FakeSessionAdapter a = new FakeSessionAdapter();
         SessionDriver d = LocalAgentSessionTest.driver(a);

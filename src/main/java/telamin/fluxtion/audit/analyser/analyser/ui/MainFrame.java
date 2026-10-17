@@ -11652,7 +11652,14 @@ public final class MainFrame extends JFrame {
             Path base = setupDir == null ? null : Path.of(setupDir);
             String itemPath = factRefs.get(item.pathRef());
             String itemClass = factRefs.get(item.classNameRef());
-            Path at = itemPath == null || base == null ? null : base.resolve(itemPath).normalize();
+            // review S3: re-checked NOW against the set-up folder's real path — a link swapped in since the preview must not
+            // carry the apply outside it — and the REAL path is what is applied and stored
+            Path at = null;
+            if (!"createProject".equals(item.kind()) && !("processor".equals(item.kind()) && itemPath == null)) {
+                var checked = ProposalPreview.atApply(base, itemPath);
+                if (checked.refusal() != null) return new String[]{"REFUSED", checked.refusal()};
+                at = checked.real();
+            }
             switch (item.kind()) {
                 case "createProject" -> {
                     // M73's person path: an EMPTY project in the set-up folder — one write, never overwriting
@@ -11670,7 +11677,7 @@ public final class MainFrame extends JFrame {
                 case "sourceRoot" -> {
                     // Settings ▸ Sources' add: the root, then the profile save the dialog performs
                     if (at == null || !Files.isDirectory(at)) return new String[]{"REFUSED", "not a directory"};
-                    String canonical = at.toAbsolutePath().normalize().toString();
+                    String canonical = at.toString();               // already the real path (review S3)
                     if (!config.sourceRoots.contains(canonical)) config.sourceRoots.add(canonical);
                     onConfigChanged();
                     inferAndPopulateSource();

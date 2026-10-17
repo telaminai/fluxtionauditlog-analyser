@@ -87,6 +87,34 @@ public final class ProposalPreview {
         };
     }
 
+    /**
+     * Review S3 (P2, 2026-10-17): where an item's path is AT APPLY, re-checked — the preview's verdict is minutes old, and a
+     * link swapped in since then must not carry the apply outside the set-up folder. The path is resolved against the
+     * set-up folder's REAL path and then made real itself (links followed); the result is that real path, or a refusal.
+     *
+     * @return {@code {real path, null}} inside the folder, or {@code {null, refusal}}
+     */
+    public record AtApply(Path real, String refusal) {
+    }
+
+    public static AtApply atApply(Path setupDir, String itemPath) {
+        Path base = real(setupDir);
+        if (base == null || itemPath == null) return new AtApply(null, "there is no set-up folder to apply it in");
+        Path given = Path.of(itemPath);
+        Path at = (given.isAbsolute() ? given : base.resolve(given)).normalize();
+        if (!Files.exists(at)) {
+            return new AtApply(null, at.startsWith(base) ? "not found" : "OUTSIDE the set-up folder");
+        }
+        Path real = real(at);
+        if (real == null || !real.startsWith(base)) {
+            return new AtApply(null, "OUTSIDE the set-up folder (it resolves elsewhere now)");
+        }
+        return new AtApply(real, null);
+    }
+
+    /** The most of a Java file read for its package line (review N-d): a package line is at the top. */
+    static final int FQN_READ_LIMIT = 64 * 1024;
+
     private static final Pattern PACKAGE = Pattern.compile("(?m)^\\s*package\\s+([\\w.]+)\\s*;");
 
     /** A Java file's class name from its package line and file name, or null. */
@@ -97,8 +125,10 @@ public final class ProposalPreview {
         String simple = javaFile.getFileName().toString();
         simple = simple.substring(0, simple.length() - ".java".length());
         try {
-            String head = new String(Files.readAllBytes(javaFile), java.nio.charset.StandardCharsets.UTF_8);
-            if (head.length() > 64 * 1024) head = head.substring(0, 64 * 1024);
+            String head;
+            try (var in = Files.newInputStream(javaFile)) {
+                head = new String(in.readNBytes(FQN_READ_LIMIT), java.nio.charset.StandardCharsets.UTF_8);
+            }
             Matcher m = PACKAGE.matcher(head);
             return m.find() ? m.group(1) + "." + simple : simple;
         } catch (IOException e) {
