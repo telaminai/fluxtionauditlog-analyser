@@ -270,12 +270,22 @@ public class LocalAgentSession implements EventLogSource {
      * processed before this fact refuses it; one processed after it finds the call already admitted. The verdict
      * leaves as an effect the adapter completes; nothing on the HTTP thread decides from a snapshot.
      */
+    /** Final review #5: the server's refusal of an asked verb under a mode that does not ask. */
+    public static final String HIDDEN_IN_THIS_MODE = "`{verb}` is not available to Claude Code in this mode: the "
+            + "analyser's verbs that change what is open or write files are hidden under auto and plan";
+
     @OnEventHandler(propagate = false)
     public boolean onCallAdmission(SessionEvents.LocalAgentCallAdmissionRequested e) {
         long admitted = admittedGeneration();
         String refusal = admitted != 0 && admitted == e.generation() ? null
                 : "the Claude Code session is not connected to this analyser yet, or its set-up is not yet checked, so "
                 + "the analyser's own tools are refused for it (session " + e.generation() + ")";
+        if (refusal == null && LocalAgentPosture.askable(e.verb()) && (posture == null || !posture.asks())) {
+            // final review #5 (defence in depth, OD-74.16): under auto and plan the asked verbs are hidden, and
+            // localAgentPermission's policy denies every request for them — so the server admits none of them either,
+            // not even the sub-actions that change nothing (which reach this admission without a grant)
+            refusal = HIDDEN_IN_THIS_MODE.replace("{verb}", e.verb());
+        }
         // scorecard R1: the verb the call names and the turn it was made in, beside the verdict
         auditLog.info("localAgentCall", refusal == null ? "ADMITTED" : "REFUSED").info("generation", e.generation())
                 .info("verb", String.valueOf(e.verb())).info("ticket", openTicket);
