@@ -168,6 +168,51 @@ class ExternalRestWithHostedSessionFrameTest {
         return http.send(b.build(), java.net.http.HttpResponse.BodyHandlers.ofString());
     }
 
+    /**
+     * External utility review (owner-approved 2026-10-17): a normal window close removes {@code ~/.fluxtion-analyser/
+     * rest-endpoint}; only a crash or a kill leaves it (readers check its pid). The close runs the frame's real exit
+     * sequence, with only the final process exit replaced. Witness: drop the {@code deleteIfOwnedByThisProcess} step from
+     * {@code finishExit} and the endpoint delete from {@code ActionServer.stop} — the file is still there and the last
+     * assertion fails.
+     */
+    @Test
+    @DisplayName("★ closing the window removes the REST endpoint file it published")
+    void closingTheWindowRemovesTheEndpointFile(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless(), "a real display is required");
+        Path home = Files.createDirectories(tmp.resolve("home"));
+        String before = System.getProperty("user.home");
+        System.setProperty("user.home", home.toString());
+        MainFrame[] made = new MainFrame[1];
+        java.util.concurrent.CountDownLatch exited = new java.util.concurrent.CountDownLatch(1);
+        int[] code = {-1};
+        try {
+            SwingUtilities.invokeAndWait(() -> {
+                MainFrame f = new MainFrame();
+                f.exitProcess = c -> { code[0] = c; exited.countDown(); };
+                made[0] = f;
+            });
+            MainFrame f = made[0];
+            onEdt(() -> { f.setSize(1000, 700); f.setVisible(true); });
+            onEdt(() -> {
+                ((AppConfig) field(f, "config")).assistantActionsRest = true;
+                invoke(f, "reportRestSwitch");
+            });
+            Path wk = home.resolve(".fluxtion-analyser/rest-endpoint");
+            long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
+            while (!Files.exists(wk) && System.nanoTime() < deadline) Thread.sleep(20);
+            assertTrue(Files.exists(wk), "control: REST on publishes the endpoint file");
+            assertEquals(ProcessHandle.current().pid(), new telamin.fluxtion.audit.analyser.analyser.net.RestEndpointFile(wk)
+                    .read().pid(), "this process published it");
+            onEdt(() -> f.dispatchEvent(new java.awt.event.WindowEvent(f, java.awt.event.WindowEvent.WINDOW_CLOSING)));
+            assertTrue(exited.await(20, TimeUnit.SECONDS), "the close ran its exit sequence to the end");
+            assertEquals(0, code[0]);
+            assertFalse(Files.exists(wk), "a normal window close removes the endpoint file");
+        } finally {
+            System.setProperty("user.home", before);
+            if (made[0] != null) SwingUtilities.invokeAndWait(made[0]::dispose);
+        }
+    }
+
     static void invoke(Object o, String m) {
         try {
             var meth = o.getClass().getDeclaredMethod(m);

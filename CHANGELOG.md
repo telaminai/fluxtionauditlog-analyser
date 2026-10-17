@@ -56,6 +56,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ### Fixed
 
+- **The REST endpoint file `~/.fluxtion-analyser/rest-endpoint`** is removed when the analyser's window closes (as before, now pinned by a test) and also when the analyser quits without closing its window — the application menu's *Quit* on macOS, or a `SIGTERM`. It **can remain after a crash or a `kill -9`**; every client checks the `pid` it names before trusting it (the analyser's MCP bridge reports *analyser not running*), so a stale file is harmless, and the next analyser to start replaces it.
+
 - **The Safe analysis card's promise is shown in full** — it stopped at "…after you approve each call. No"; a card is as tall as its text.
 - **An external MCP/REST client refused while *Close external access while this session runs* is in force is told so** — *"external access is closed while an in-app Claude Code session runs"* — not that the REST transport is off, which Settings contradicted.
 - **A screen reader hears who denied a call**: every denied tool line was spoken "denied by the posture", including your own *Deny* and the 120 s deadline.

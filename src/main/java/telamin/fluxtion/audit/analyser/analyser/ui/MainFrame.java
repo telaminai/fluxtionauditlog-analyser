@@ -145,6 +145,15 @@ public final class MainFrame extends JFrame {
     }
     private telamin.fluxtion.audit.analyser.analyser.assistant.localagent.LocalAgentAdapter localAgentAdapter;
     /** The process launcher. A test could replace it; the application uses the one OS launcher. */
+    /**
+     * Test seam: how the window's close ends the process. A frame test replaces it, so the whole close sequence — and what
+     * it removes, such as the REST endpoint file — runs in the test's JVM without exiting it.
+     */
+    java.util.function.IntConsumer exitProcess = code -> {
+        step(Background::shutdown);              // the shared worker pool goes with the process, never before it
+        System.exit(code);
+    };
+
     telamin.fluxtion.audit.analyser.analyser.assistant.localagent.AgentProcess.Launcher localAgentLauncher =
             new telamin.fluxtion.audit.analyser.analyser.assistant.localagent.OsAgentLauncher();
     private long localAgentRequest;
@@ -293,6 +302,9 @@ public final class MainFrame extends JFrame {
         this.projectSaveDebounce.setRepeats(false);
         setIconImages(AppImages.icons());
         setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
+        // a quit that skips the window's close (the application menu's Quit on macOS, a SIGTERM) still removes the
+        // endpoint file this process published; only a crash or a kill -9 leaves it, and readers check its pid
+        telamin.fluxtion.audit.analyser.analyser.net.RestEndpointFile.removeOwnedOnJvmExit();
         buildMenu();
         buildLayout();
         installTablePopup();
@@ -11038,14 +11050,13 @@ public final class MainFrame extends JFrame {
                 }
             });
             step(this::saveConfigQuietly);   // still runs even if the steps above failed
-            step(Background::shutdown);
         } finally {
             try {
                 dispose();
             } catch (Throwable ignore) {
                 // never let a disposal failure keep the process alive
             }
-            System.exit(0);
+            exitProcess.accept(0);
         }
     }
 

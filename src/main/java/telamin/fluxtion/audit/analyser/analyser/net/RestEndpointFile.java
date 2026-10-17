@@ -142,6 +142,22 @@ public final class RestEndpointFile {
         if (e != null && e.pid() == ProcessHandle.current().pid()) delete();
     }
 
+    private static final java.util.concurrent.atomic.AtomicBoolean EXIT_HOOK = new java.util.concurrent.atomic.AtomicBoolean();
+
+    /**
+     * Once per JVM: at exit, remove the well-known endpoint file if THIS process published it. The window's close already
+     * does so ({@code MainFrame.finishExit}); this covers a quit that never closes the window — the application menu's
+     * Quit on macOS, a {@code SIGTERM}, an {@code exit} elsewhere. A crash or {@code kill -9} still strands the file, which
+     * is why every reader checks {@link Endpoint#alive()}. The home is read when the hook RUNS, and the pid check means it
+     * never removes another analyser's endpoint. Returns whether this call installed the hook.
+     */
+    public static boolean removeOwnedOnJvmExit() {
+        if (!EXIT_HOOK.compareAndSet(false, true)) return false;
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> wellKnown().deleteIfOwnedByThisProcess(),
+                "analyser-rest-endpoint-cleanup"));
+        return true;
+    }
+
     /** One published endpoint. {@link #alive()} guards against a file stranded by a crash. */
     public record Endpoint(String url, String token, long pid, String startedAt, String nonce, String hosted) {
 

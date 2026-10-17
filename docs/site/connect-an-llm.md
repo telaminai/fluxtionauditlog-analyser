@@ -151,8 +151,10 @@ that calls the REST endpoint directly must read it from the same file:
 - `~/.fluxtion-analyser/rest-endpoint` is written with **mode 600** (readable only by you) and holds
   `{url, token, pid, startedAt}`. The token is fresh on every launch, so read the file each time; never
   cache it.
-- **Check `pid` is alive before trusting the file.** A file left by an analyser that crashed still names its
-  old port and token; the bridge ignores such a file, and so should your script.
+- **Check `pid` is alive before trusting the file.** The analyser removes the file when its window closes and
+  when it quits without closing it (the macOS *Quit*, a `SIGTERM`), but a file left by an analyser that crashed or
+  was killed with `kill -9` still names its old port and token; the bridge ignores such a file, and so should your
+  script.
 - The console shows only the token's **first 8 characters** (`(token 1a2b3c4d…)`), as a hint to match the
   file against, never the token. Automation that used to read the token from the console must read the file.
 - *Copy prompt* includes the token only when you tick *Include my local REST token* (off every time).
