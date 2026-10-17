@@ -61,6 +61,7 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 - **The approval dialog describes the call that runs.** It chose its sentence with its own reading of the input, so `report {name, delete: false, sections}` read as *delete … can be restored* while the analyser built and replaced the report; the dialog, the analyser and the file-exchange check now share one choice of operation for `report` and `open` (and `walk`'s own).
 - **A spotlight callout no longer flickers open and shut at the frame's edge**: the expanded card always covers the collapsed one; and when a callout that has the keyboard focus goes out, the focus returns to where it was.
 - **A held Enter on the start page no longer sends the question it placed**: the composer ignores an Enter pressed before it had the focus, until that key is released. With an entry chosen on the start page, the hint under the box says what Enter does (*Enter: Open log… · Shift+Enter starts a new line*). The start page's ⌘/Alt+1…9 and ⌘/Alt+R no longer act while another text field has the focus.
+- **The set-up proposal's review shows every Yes / No at its default width**: the answer is now the column after the number, the analyser's check wraps in its own column and a long path is shortened — at 760 px the answers used to be the last column, scrolled out of view.
 
 ### Security
 

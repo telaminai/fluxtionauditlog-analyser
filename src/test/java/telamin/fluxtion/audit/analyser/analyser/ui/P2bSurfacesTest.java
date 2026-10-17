@@ -84,6 +84,7 @@ class P2bSurfacesTest {
             java.util.List<String> shown = new java.util.ArrayList<>();
             for (java.awt.Component k : TranscriptStyleTest.components(c.panel)) {
                 if (k instanceof javax.swing.JLabel l && l.getText() != null) shown.add(l.getText());
+                if (k instanceof javax.swing.JTextArea t && t.getText() != null) shown.add(t.getText());   // the check wraps
             }
             assertTrue(shown.contains("Source folder") && shown.contains("Processor"), shown.toString());
             assertTrue(shown.contains("found: a folder with 12 Java files"), shown.toString());
@@ -107,6 +108,50 @@ class P2bSurfacesTest {
         assertEquals("Log to open", ProposalReviewDialog.kindWords("logToOpen"));
         assertEquals("Graph file", ProposalReviewDialog.kindWords("graphml"));
         assertEquals("Runbook", ProposalReviewDialog.kindWords("runbook"));
+    }
+
+    static void layoutAll(java.awt.Container c) {
+        c.doLayout();
+        for (java.awt.Component k : c.getComponents()) if (k instanceof java.awt.Container kc) layoutAll(kc);
+    }
+
+    /**
+     * ★ Final review #13 (2026-10-17): at the dialog's default width (760 px, so 736 for its content) every Yes / No is
+     * in view without scrolling, however long the paths and the analyser's checks are. Witness: the old layout — the
+     * answer the LAST column ({@code COL_ANSWER = 4}, the others one to the left) — puts the answers past the visible
+     * width.
+     */
+    @Test
+    @DisplayName("★ the review at its default width shows every answer: the Yes / No column is never scrolled out of view")
+    void theAnswersAreInViewAtTheDefaultWidth() throws Exception {
+        StartPromptViewTest.onEdt(() -> {
+            String deep = "modules/pricing/src/main/java/com/acme/demo/pricing/engine/adapters";
+            var c = ProposalReviewDialog.content(REFS::get, proposal(false,
+                    new ProposalState.Item("p-1.1", "sourceRoot", REFS.put(deep), 0, REFS.put("REASON one"),
+                            ProposalState.ItemState.PENDING, "RESOLVES (pairing UNKNOWN)", ""),
+                    new ProposalState.Item("p-1.2", "graphml", REFS.put(deep + "/demo-graph.graphml"), 0,
+                            REFS.put("REASON two"), ProposalState.ItemState.PENDING, "READABLE (fit UNKNOWN until opened)",
+                            "")));
+            c.panel.setSize(ProposalReviewDialog.DEFAULT_WIDTH - 24, 520);
+            layoutAll(c.panel);
+            javax.swing.JViewport port = null;
+            for (java.awt.Component k : TranscriptStyleTest.components(c.panel)) {
+                if (k instanceof javax.swing.JScrollPane sp && sp.getViewport().getView() instanceof javax.swing.JPanel) {
+                    port = sp.getViewport();
+                    break;
+                }
+            }
+            assertNotNull(port, "the rows' scroll pane");
+            java.util.List<javax.swing.JRadioButton> answers = new java.util.ArrayList<>(c.yes.values());
+            answers.addAll(c.no.values());
+            answers.add(c.createYes);
+            for (javax.swing.JRadioButton b : answers) {
+                java.awt.Rectangle at = javax.swing.SwingUtilities.convertRectangle(b.getParent(), b.getBounds(), port);
+                assertTrue(at.x >= 0 && at.x + at.width <= port.getWidth(), b.getAccessibleContext().getAccessibleName()
+                        + " at " + at + " in a view " + port.getWidth() + " wide");
+            }
+            return null;
+        });
     }
 
     /** ★ Witness: show the banner whenever a proposal exists — the applied one still shows it. */

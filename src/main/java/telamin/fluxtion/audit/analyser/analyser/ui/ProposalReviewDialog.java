@@ -113,6 +113,22 @@ public final class ProposalReviewDialog {
         };
     }
 
+    /** The review's columns (final review #13: the answer second, after the number). */
+    static final int COL_ANSWER = 1, COL_WHAT = 2, COL_PATH = 3, COL_CHECK = 4;
+
+    /** The analyser's check, wrapped in its own column (about 34 characters wide) — never widening the row. */
+    static JTextArea check(String words) {
+        JTextArea t = new JTextArea(words, 0, 34);
+        t.setLineWrap(true);
+        t.setWrapStyleWord(true);
+        t.setEditable(false);
+        t.setFocusable(false);
+        t.setOpaque(false);
+        t.setBorder(null);
+        t.setFont(UIManager.getFont("Label.font"));
+        return t;
+    }
+
     static boolean needsProject(String kind) {
         return !"logToOpen".equals(kind) && !"graphml".equals(kind);
     }
@@ -125,7 +141,10 @@ public final class ProposalReviewDialog {
         g.gridy = 0;
         g.anchor = GridBagConstraints.WEST;
         g.insets = new Insets(2, 4, 2, 4);
-        String[] head = {"", "What", "Path", "The analyser's check", "Your answer"};
+        // final review #13 (2026-10-17): the ANSWER column comes straight after the number, so the Yes / No controls are
+        // in view at any width — at the default 760 px they were the last column, scrolled off to the right; the
+        // analyser's check wraps in its own column and the path is elided, never the answers
+        String[] head = {"", "Your answer", "What", "Path", "The analyser's check"};
         for (int i = 0; i < head.length; i++) {
             g.gridx = i;
             JLabel h = UiText.label(head[i]);
@@ -137,13 +156,13 @@ public final class ProposalReviewDialog {
             g.gridy++;
             g.gridx = 0;
             rows.add(UiText.label("★"), g);
-            g.gridx = 1;
+            g.gridx = COL_WHAT;
             rows.add(UiText.label("create a project"), g);
-            g.gridx = 2;
+            g.gridx = COL_PATH;
             rows.add(UiText.label(p.setupDirShown() == null ? "" : p.setupDirShown()), g);
-            g.gridx = 3;
-            rows.add(UiText.label("the analyser's own offer: an empty project here (New project…)"), g);
-            g.gridx = 4;
+            g.gridx = COL_CHECK;
+            rows.add(check("the analyser's own offer: an empty project here (New project…)"), g);
+            g.gridx = COL_ANSWER;
             JRadioButton y = UiText.plain(new JRadioButton("Yes"));
             JRadioButton n = UiText.plain(new JRadioButton("No", true));
             ButtonGroup bg = new ButtonGroup();
@@ -163,15 +182,15 @@ public final class ProposalReviewDialog {
             g.gridy++;
             g.gridx = 0;
             rows.add(UiText.label(Integer.toString(n)), g);
-            g.gridx = 1;
+            g.gridx = COL_WHAT;
             rows.add(UiText.label(kindWords(i.kind())), g);
-            g.gridx = 2;
+            g.gridx = COL_PATH;
             String where = i.pathRef() != 0 ? words.apply(i.pathRef()) : i.classNameRef() != 0
                     ? words.apply(i.classNameRef()) : "";
             JLabel path = UiText.label(where.length() > 60 ? "…" + where.substring(where.length() - 59) : where);
             path.setToolTipText(UiText.tooltip(where));
             rows.add(path, g);
-            g.gridx = 3;
+            g.gridx = COL_CHECK;
             String check = switch (i.state()) {
                 case OUTSIDE -> "outside the set-up folder — cannot be applied";
                 case REFUSED -> "refused: " + verdictWords(i.why());
@@ -179,8 +198,8 @@ public final class ProposalReviewDialog {
                 default -> i.state().name().toLowerCase(java.util.Locale.ROOT) + (i.why().isBlank() ? "" : ": "
                         + verdictWords(i.why()));
             };
-            rows.add(UiText.label(check), g);
-            g.gridx = 4;
+            rows.add(check(check), g);
+            g.gridx = COL_ANSWER;
             if (i.applicable()) {
                 JRadioButton y = UiText.plain(new JRadioButton("Yes"));
                 JRadioButton no = UiText.plain(new JRadioButton("No", true));       // every item starts at No
@@ -242,13 +261,18 @@ public final class ProposalReviewDialog {
                 + "one itself; Claude's reasons are its own words. Every answer starts at No.");
         c.panel.add(lede, BorderLayout.NORTH);
         JScrollPane rowScroll = new JScrollPane(rows);
-        // every row in view (at most 10 items and the create row), so nothing is hidden below the fold
-        int rowsShown = Math.min(11, p.items().size() + ("PENDING".equals(p.create()) ? 1 : 0) + 1);
-        rowScroll.setPreferredSize(new Dimension(820, 12 + rowsShown * 26));
+        // every row in view where the screen allows (at most 10 items and the create row), and no wider than the
+        // dialog's default width, so the answers — the second column — are never scrolled out of view
+        Dimension want = rows.getPreferredSize();
+        rowScroll.setPreferredSize(new Dimension(Math.min(want.width + 24, DEFAULT_WIDTH - 24),
+                Math.min(want.height + 12, 440)));
         c.panel.add(rowScroll, BorderLayout.CENTER);
         c.panel.add(reasonBox, BorderLayout.SOUTH);
         return c;
     }
+
+    /** The review's default (and least) width. */
+    static final int DEFAULT_WIDTH = 760;
 
     /** Show the review, modal for the person's own click; null when closed without applying. */
     public static Answer show(Window owner, ProposalState p, java.util.function.LongFunction<String> words) {
@@ -280,7 +304,8 @@ public final class ProposalReviewDialog {
         d.setContentPane(root);
         d.getRootPane().setDefaultButton(close);           // Enter closes: an answer is a click, never a default
         d.pack();
-        d.setSize(Math.max(d.getWidth(), 760), Math.min(Math.max(d.getHeight(), 360), 640));
+        d.setSize(Math.max(d.getWidth(), DEFAULT_WIDTH), Math.min(Math.max(d.getHeight(), 360), 640));
+        d.setMinimumSize(new Dimension(DEFAULT_WIDTH, 360));
         d.setLocationRelativeTo(owner);
         return d;
     }
