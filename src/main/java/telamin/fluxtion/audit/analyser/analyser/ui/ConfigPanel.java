@@ -11,6 +11,8 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.GridLayout;
 import java.awt.Insets;
+import java.awt.LayoutManager;
+import java.awt.Rectangle;
 import java.awt.event.KeyEvent;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
@@ -245,7 +247,8 @@ public final class ConfigPanel extends JDialog {
         tabs.addTab("Event processor", buildEpTab());
         tabs.addTab("LLM", buildLlmTab());
         tabs.addTab("Performance & S3", buildS3Tab());
-        tabs.addTab("Assistant", buildAssistantTab());
+        // M74 visual check: the tab grows when the full posture's mode and notes appear, so it scrolls rather than clips
+        tabs.addTab("Assistant", scrollingTab(buildAssistantTab()));
         tabs.addTab("History", buildHistoryTab());
         tabs.addTab("Plugins", buildPluginsTab());
 
@@ -674,6 +677,37 @@ public final class ConfigPanel extends JDialog {
         return p;
     }
 
+    /** A tab whose content tracks the tab's width and scrolls vertically when it is taller than the dialog. */
+    static JScrollPane scrollingTab(JComponent content) {
+        JPanel holder = new TracksWidth(new BorderLayout());
+        holder.add(content, BorderLayout.CENTER);
+        JScrollPane sp = new JScrollPane(holder, ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
+                ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        sp.setBorder(BorderFactory.createEmptyBorder());
+        sp.getVerticalScrollBar().setUnitIncrement(16);
+        return sp;
+    }
+
+    /**
+     * Follows the viewport's width (so text wraps instead of scrolling sideways) only while the viewport is at least as
+     * wide as the content needs: narrower, a GridBag falls back to its components' MINIMUM sizes and the fields collapse
+     * to empty slivers (the M74 visual check found "Max action rounds" and the model field drawn that way once the
+     * vertical scrollbar appeared), so then it scrolls sideways instead. Never its height.
+     */
+    static final class TracksWidth extends JPanel implements Scrollable {
+        TracksWidth(LayoutManager layout) {
+            super(layout);
+        }
+
+        @Override public Dimension getPreferredScrollableViewportSize() { return getPreferredSize(); }
+        @Override public int getScrollableUnitIncrement(Rectangle r, int o, int d) { return 16; }
+        @Override public int getScrollableBlockIncrement(Rectangle r, int o, int d) { return Math.max(16, r.height - 32); }
+        @Override public boolean getScrollableTracksViewportWidth() {
+            return getParent() instanceof JViewport v && v.getWidth() >= getPreferredSize().width;
+        }
+        @Override public boolean getScrollableTracksViewportHeight() { return false; }
+    }
+
     private JPanel buildAssistantTab() {
         JPanel p = new JPanel(new GridBagLayout());
         p.setBorder(BorderFactory.createEmptyBorder(14, 16, 14, 16));
@@ -818,6 +852,28 @@ public final class ConfigPanel extends JDialog {
         claudeCodeWarmNote.setVisible(on);
         revalidate();
         repaint();
+        if (isShowing()) SwingUtilities.invokeLater(this::growToFit);
+    }
+
+    /**
+     * M74 visual check: the full posture's rows make the Assistant tab taller than the dialog packed for it, so the
+     * dialog grows to its preferred size, never past the screen's usable area; the tab scrolls beyond that.
+     */
+    private void growToFit() {
+        Dimension want = getPreferredSize();
+        java.awt.Rectangle screen = getGraphicsConfiguration() == null ? null
+                : java.awt.GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds();
+        int w = Math.max(getWidth(), want.width);
+        int h = Math.max(getHeight(), want.height);
+        if (screen != null) {
+            w = Math.min(w, screen.width);
+            h = Math.min(h, screen.height);
+        }
+        if (w != getWidth() || h != getHeight()) {
+            setSize(w, h);
+            if (screen != null && getY() + h > screen.y + screen.height) setLocation(getX(), Math.max(screen.y, screen.y + screen.height - h));
+            validate();
+        }
     }
 
     /** The confirmation itself: the warning in a plain-text area, [Turn on full Claude Code] [Cancel], Cancel default. */

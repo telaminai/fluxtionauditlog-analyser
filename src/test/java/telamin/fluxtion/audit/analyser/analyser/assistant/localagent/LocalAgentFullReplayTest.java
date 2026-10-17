@@ -58,7 +58,7 @@ class LocalAgentFullReplayTest {
         List<LocalAgentState.Entry> hooks = h.state().entries().stream().filter(e -> e.status().startsWith("HOOK")).toList();
         assertEquals(1, hooks.size(), "one coalesced note for SessionStart: " + h.state().entries());
         assertEquals("HOOK_FAILED", hooks.get(0).status());
-        assertTrue(hooks.get(0).detail().startsWith("Hook SessionStart: 1 ran, 1 failed"), hooks.get(0).detail());
+        assertTrue(hooks.get(0).detail().startsWith("SessionStart: 1 ran, 1 failed"), hooks.get(0).detail());
         String everything = h.state().toString() + h.store.dump() + h.facts;
         for (String marker : List.of("HOOK-STDOUT-MARKER", "HOOK-STDERR-MARKER")) {
             assertFalse(everything.contains(marker), "a hook's output never reaches the snapshot, the store or a fact");

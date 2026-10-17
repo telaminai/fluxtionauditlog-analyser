@@ -528,7 +528,7 @@ public class LocalAgentSession implements EventLogSource {
     static String hookText(SessionEvents.HookEvent event, long started, long ok, long failed) {
         String name = event == SessionEvents.HookEvent.OTHER ? "a hook event" : event.name();
         long running = Math.max(0, started - ok - failed);
-        StringBuilder sb = new StringBuilder("Hook ").append(name).append(": ");
+        StringBuilder sb = new StringBuilder(name).append(": ");
         List<String> parts = new ArrayList<>();
         if (ok > 0) parts.add(ok + " ran");
         if (failed > 0) parts.add(failed + " failed");

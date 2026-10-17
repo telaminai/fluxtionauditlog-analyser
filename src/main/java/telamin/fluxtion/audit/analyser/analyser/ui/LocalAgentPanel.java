@@ -138,6 +138,20 @@ public final class LocalAgentPanel extends JPanel {
         stop.setEnabled(false);
     }
 
+    /**
+     * A theme switch re-renders the conversation (M74 visual check): its colours are set when an entry is drawn, so
+     * without this a note kept the previous theme's colour until the next snapshot changed something.
+     */
+    @Override
+    public void updateUI() {
+        super.updateUI();
+        LocalAgentState last = rendered;
+        if (last != null && store != null) {
+            rendered = null;
+            SwingUtilities.invokeLater(() -> render(last));
+        }
+    }
+
     public void setIntents(Intents intents) {
         this.intents = intents;
     }
@@ -231,7 +245,7 @@ public final class LocalAgentPanel extends JPanel {
             // initialize reports no model: say what was asked for until a turn's system/init confirms it
             sb.append(" · model: ").append(h.configuredModel()).append(" (confirmed after the first turn)");
         }
-        sb.append(" · ").append(s.posture().label());
+        sb.append(" · ").append(unbroken(s.posture().label()));
         if (h.cliVersion() != null) sb.append(" · CLI ").append(h.cliVersion());
         if (h != null && h.billing() != null && !h.billing().isBlank()) sb.append(" · ").append(h.billing());
         if (h != null && h.apiProvider() != null) sb.append(" · ").append(h.apiProvider());
@@ -263,10 +277,16 @@ public final class LocalAgentPanel extends JPanel {
     static String postureLine(LocalAgentTranscript.Header h, LocalAgentState s) {
         if (!s.posture().isFull()) return DEFAULT_POSTURE_NOTE;
         int n = s.personServers();
-        String line = s.posture().label() + " — your settings, skills, hooks and " + n + " MCP server" + (n == 1 ? "" : "s")
-                + " are loaded";
+        String line = unbroken(s.posture().label()) + (n == 0
+                ? " — your settings, skills and hooks are loaded, and none of your MCP servers"
+                : " — your settings, skills, hooks and " + n + " MCP server" + (n == 1 ? "" : "s") + " are loaded");
         List<String> added = h == null ? List.of() : h.pathAdded();
         return line + "\nPATH: inherited" + (added.isEmpty() ? "" : ", plus " + String.join(", ", added));
+    }
+
+    /** A name the wrapped header must not break inside: its spaces become no-break spaces (M74 visual check). */
+    static String unbroken(String s) {
+        return s == null ? "" : s.replace(' ', '\u00A0');
     }
 
     /** The Start button says what pressing it would do, or that there is nothing to press. */
@@ -330,7 +350,7 @@ public final class LocalAgentPanel extends JPanel {
     private static SimpleAttributeSet warning() {
         SimpleAttributeSet a = new SimpleAttributeSet();
         StyleConstants.setBold(a, true);
-        StyleConstants.setForeground(a, new Color(0xB0, 0x5A, 0x00));
+        StyleConstants.setForeground(a, UiTheme.noteForeground());   // theme-aware (M74 visual check)
         return a;
     }
 }

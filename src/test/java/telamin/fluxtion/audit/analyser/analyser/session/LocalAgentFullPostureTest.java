@@ -250,7 +250,7 @@ class LocalAgentFullPostureTest {
                 .filter(e -> e.status().startsWith("HOOK")).toList();
         assertEquals(1, hooks.size(), "one note for the event, however many hooks ran: " + hooks);
         assertEquals("HOOK_FAILED", hooks.get(0).status());
-        assertEquals("Hook SessionStart: 1 ran, 1 failed — the hook is yours or the folder's: check it in Claude Code's "
+        assertEquals("SessionStart: 1 ran, 1 failed — the hook is yours or the folder's: check it in Claude Code's "
                 + "own hook settings", hooks.get(0).detail());
         d.post(new SessionEvents.LocalAgentHookObserved(g + 7, 0, SessionEvents.HookEvent.PreToolUse,
                 SessionEvents.HookOutcome.OK));
@@ -404,8 +404,8 @@ class LocalAgentFullPostureTest {
         d.post(new SessionEvents.LocalAgentHookObserved(g, 2, SessionEvents.HookEvent.UserPromptSubmit, SessionEvents.HookOutcome.OK));
         var hooks = state(d).entries().stream().filter(e -> e.status().startsWith("HOOK")).toList();
         assertEquals(2, hooks.size(), hooks.toString());
-        assertEquals("Hook UserPromptSubmit: 2 ran", hooks.get(0).detail());
-        assertEquals("Hook UserPromptSubmit: 1 ran", hooks.get(1).detail());
+        assertEquals("UserPromptSubmit: 2 ran", hooks.get(0).detail());
+        assertEquals("UserPromptSubmit: 1 ran", hooks.get(1).detail());
     }
 
     @Test
