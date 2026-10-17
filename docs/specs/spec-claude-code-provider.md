@@ -1057,6 +1057,18 @@ the person's `ReturnToMainOptions`; `startPagePrompt` owns which list is in forc
 in `StartPageState`; the page renders them. A sample pack ships at `docs/site/user-guide/sample-prompt-pack.md`, which a
 test parses.
 
+**A forgiving reader (external utility review, owner-approved 2026-10-17).** The grammar above is the canonical form; the
+reader accepts and NORMALISES the common variations — `-`, `--`, `–` or `:` for the em dash (and `**Label:**`), an entry
+with no bold label (a plain `Label — text` keeps its label; otherwise the first words, to the first sentence's end and at
+most 60 characters, become it), `-`/`*`/`+` bullets or `1)` for numbers, extra blank lines, trailing ASCII whitespace and
+a missing description — and lists each fix (a kind and a line, never the file's words) in `Pack.normalised()`, which the
+page shows as a non-blocking note under the pack's title. It still REFUSES what is unsafe or out of bounds: the size and
+count caps, the length caps, HTML, images, hidden characters, placeholders, links outside an example entry, an unclosed
+`**`, any line after the entries, and every example entry not in its exact strict shape (an example line in loose framing
+is refused as `EXAMPLE_MALFORMED`, by name). The fix list rides with the pack in the frame's session-only store, so no
+new session state is needed. `PromptPackForgivingTest` pins each variation and each refusal. The onboarding pack lint in
+`tools/m74_onboarding_runner.py` (branch `docs/m74-virgin-onboarding-pack`) is still strict and needs the same relaxation.
+
 **Where the list comes from (OD-74.20 — DEFERRED, r10).** The entries are configurable, for an organisation or to lead with one
 journey. Three sources, resolved by the `StartPagePrompt` node in this order, each later one applied to the result of
 the earlier:

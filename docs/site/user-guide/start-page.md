@@ -76,7 +76,7 @@ until you press the button. **← Return to main options** (Alt+R; ⌘R on macOS
 saved: not in your settings, a project profile, a shared settings file or an evidence bundle — dropping it is your act,
 for this window.
 
-A pack is strict, so that what you see is exactly what it says:
+A pack is written like this:
 
 ```text
 # Title                                   ← one line, at most 60 characters
@@ -86,18 +86,33 @@ An optional one-line description.         ← at most 140 characters
 2. **Another label** — more words.           label at most 60 characters, words at most 500, on one line
 ```
 
-- At most 16 KB, UTF-8.
-- No HTML, no images, no links, no `{placeholders}`, and no control, format or bidirectional characters (a byte-order
-  mark counts as one).
-- Nothing else: any other line is refused.
+The reader is **forgiving about format**. It reads, and tidies, the variations Markdown writers use:
 
-A file that breaks the format is **refused with one named cause and its line** (*"This prompt pack was not used: line
-5 — an entry needs a bold label"*), with **See the format**, and the list in force stays. The
-[sample prompt pack](sample-prompt-pack.md) is a valid pack you can save and drop.
+- `-`, `--`, `–` or `:` instead of the em dash `—` (and `**Label:** words`);
+- an entry with **no bold label** — `1. Label — words` keeps *Label*; otherwise the entry's first words (up to its first
+  sentence, at most 60 characters) become the label, and the whole line is the prompt;
+- `-` or `*` **bullets** instead of numbers (read as 1, 2, 3 …);
+- extra blank lines, trailing spaces, and no description line.
+
+When it changed anything, a quiet note under the pack's title says what — *"Read with small fixes: a "-" or "*" bullet
+read as the next number (lines 3, 4); trailing spaces removed (line 1)."* — and the pack is used; nothing waits on it.
+
+What is unsafe or out of bounds is still **refused**:
+
+- More than 16 KB, or not UTF-8; more than 9 entries; a title, description, label or prompt over its length.
+- HTML, images, links (outside an example entry), `{placeholders}`, and control, format or bidirectional characters (a
+  byte-order mark counts as one).
+- An example entry that is not exactly its strict shape (below) — an example is never tidied.
+- Any other line after the entries, or an unclosed `**`.
+
+A refused file names **one cause and its line** (*"This prompt pack was not used: line 5 — HTML is not allowed"*), with
+**See the format**, and the list in force stays. The [sample prompt pack](sample-prompt-pack.md) is a valid pack you can
+save and drop.
 
 ### Example entries
 
-An entry can instead point at an **example project to download** — an archive of one pinned commit:
+An entry can instead point at an **example project to download** — an archive of one pinned commit. Example entries
+stay **strict**: numbered, a bold label, the em dash and `example:`, exactly as here:
 
 ```text
 5. **Label** — example: https://github.com/OWNER/REPO/archive/<40-character commit>.zip

@@ -11,8 +11,13 @@ import java.util.regex.Pattern;
 
 /**
  * M74 P2 (spec §5.8 "A dropped prompt pack", owner request 2026-10-17): a Markdown file the person drops on the start page
- * to replace its numbered list, for this session only. PURE: bytes in, a pack or ONE named refusal out. The grammar is
- * strict — anything it does not name is refused, never guessed:
+ * to replace its numbered list, for this session only. PURE: bytes in, a pack or ONE named refusal out. The canonical
+ * grammar is below; the external utility review (owner-approved 2026-10-17) made the reader FORGIVING about format — a
+ * "-", "--", "–" or ":" for the dash, a missing bold label (the first words become it), "*" or "-" bullets for numbers,
+ * extra blank lines, trailing whitespace and a missing description are read and NORMALISED, and each change is listed in
+ * {@link Pack#normalised()} for a gentle note. What stays refused is what is unsafe or out of bounds: HTML, images,
+ * hidden characters, the size and count caps, links outside an example entry, and any example entry not in its exact
+ * strict shape.
  *
  * <pre>
  *   pack        := title-line [description-line] entry-line{1..9}      (blank lines may separate any two lines)
@@ -53,11 +58,54 @@ public final class PromptPack {
         }
     }
 
-    /** A valid pack. */
-    public record Pack(String title, String description, List<Entry> entries) {
+    /**
+     * What the forgiving reader changed (external utility review, 2026-10-17): a kind and the line it was on (0 for the file
+     * as a whole). Never the file's words — the note that lists them is the analyser's own.
+     */
+    public enum Fix {
+        DASH("a \"-\", \"--\", \"–\" or \":\" read as the dash between label and text"),
+        LABEL_FROM_TEXT("an entry with no bold label labelled by its first words"),
+        BULLET("a \"-\" or \"*\" bullet read as the next number"),
+        TRAILING_WHITESPACE("trailing spaces removed");
+
+        public final String words;
+
+        Fix(String words) {
+            this.words = words;
+        }
+    }
+
+    public record Normalised(int line, Fix fix) {
+    }
+
+    /** A valid pack, and what the reader normalised to read it (empty for a canonical file). */
+    public record Pack(String title, String description, List<Entry> entries, List<Normalised> normalised) {
         public Pack {
             entries = List.copyOf(entries);
             description = description == null ? "" : description;
+            normalised = List.copyOf(normalised == null ? List.of() : normalised);
+        }
+
+        public Pack(String title, String description, List<Entry> entries) {
+            this(title, description, entries, List.of());
+        }
+
+        /**
+         * The gentle note: "Read with small fixes: a "-" … read as the dash (lines 3, 5); trailing spaces removed (line 2)."
+         * — or "" when nothing was changed. Grouped by kind, in the order of {@link Fix}.
+         */
+        public String normalisedWords() {
+            if (normalised.isEmpty()) return "";
+            List<String> parts = new ArrayList<>();
+            for (Fix f : Fix.values()) {
+                List<Integer> lines = normalised.stream().filter(n -> n.fix() == f).map(Normalised::line).distinct()
+                        .sorted().toList();
+                if (lines.isEmpty()) continue;
+                String at = lines.size() == 1 ? "line " + lines.get(0) : "lines " + String.join(", ",
+                        lines.stream().limit(6).map(String::valueOf).toList()) + (lines.size() > 6 ? ", …" : "");
+                parts.add(f.words + " (" + at + ")");
+            }
+            return "Read with small fixes: " + String.join("; ", parts) + ".";
         }
 
         @Override
@@ -119,8 +167,16 @@ public final class PromptPack {
         }
     }
 
-    private static final Pattern ENTRY = Pattern.compile("^(\\d{1,2})\\. (.*)$");
+    /** Forgiving: a number ("1." / "1)") or a "-", "*" or "+" bullet, then any spaces. */
+    private static final Pattern LOOSE_ENTRY = Pattern.compile("^(?:(\\d{1,2})[.)]|([-*+]))[ \\t]+(\\S.*)$");
     private static final Pattern BOLD_LABEL = Pattern.compile("^\\*\\*([^*]+)\\*\\* — (.*)$");
+    /** Forgiving: a bold label, then an em dash, an en dash, "--", "-" or ":" (or nothing), then the text. */
+    private static final Pattern LOOSE_BOLD_LABEL = Pattern.compile("^\\*\\*([^*]+)\\*\\*[ \\t]*(—|–|--|-|:)?[ \\t]*(.*)$");
+    /** Forgiving: no bold, but a short plain label before a dash or a colon. */
+    private static final Pattern PLAIN_LABEL = Pattern.compile("^([^*:—–]{1,60}?)[ \\t]+(—|–|--|-)[ \\t]+(\\S.*)$|^([^*:—–\\s][^*:—–]{0,59}):[ \\t]+(\\S.*)$");
+    /** A line that reads as an example entry in any shape — it must then be EXACTLY the strict shape. */
+    private static final Pattern LOOSE_EXAMPLE = Pattern.compile("(?i)^(?:\\d{1,2}[.)]|[-*+])[ \\t]+(?:\\*\\*[^*]*\\*\\*[ \\t]*"
+            + "(?:—|–|--|-|:)?[ \\t]*|[^*]{0,60}?[ \\t]+(?:—|–|--|-)[ \\t]+|[^*:]{0,60}:[ \\t]+)?example:[ \\t]*<?https?://");
     private static final Pattern HTML_TAG = Pattern.compile("<\\s*[/!?A-Za-z]");
     private static final Pattern PLACEHOLDER = Pattern.compile("\\{[A-Za-z_][A-Za-z0-9_]*\\}");
     private static final Pattern LINK = Pattern.compile("\\]\\(|https?://|\\bwww\\.|<https?:", Pattern.CASE_INSENSITIVE);
@@ -142,6 +198,7 @@ public final class PromptPack {
             return refuse(0, Cause.NOT_UTF8);
         }
         String[] lines = text.replace("\r\n", "\n").split("\n", -1);
+        List<Normalised> fixes = new ArrayList<>();
         // hidden characters, HTML, images, links and placeholders are refused wherever they are, first by line
         for (int i = 0; i < lines.length; i++) {
             String l = lines[i];
@@ -151,10 +208,18 @@ public final class PromptPack {
                 if (cp != '\t' && hiddenCharacter(cp)) return refuse(line, Cause.HIDDEN_CHARACTER);
                 k += Character.charCount(cp);
             }
+            // forgiving: trailing spaces and tabs are removed (ASCII only — a hidden character was refused above)
+            String trimmed = stripTrailing(l);
+            if (!trimmed.equals(l)) {
+                if (!trimmed.isEmpty()) fixes.add(new Normalised(line, Fix.TRAILING_WHITESPACE));
+                lines[i] = l = trimmed;
+            }
             if (l.contains("![")) return refuse(line, Cause.IMAGE);
             Matcher example = EXAMPLE_LINE.matcher(l);
-            // review S5: the address after "example:" is held to the example grammar below; the rest is checked here
+            // review S5: the address after "example:" is held to the example grammar below; the rest is checked here.
+            // An example entry is never normalised: one that is not exactly the strict shape is refused by name.
             if (example.matches()) l = example.group(1);
+            else if (LOOSE_EXAMPLE.matcher(l).find()) return refuse(line, Cause.EXAMPLE_MALFORMED);
             if (HTML_TAG.matcher(l).find()) return refuse(line, Cause.HTML);
             if (LINK.matcher(l).find()) return refuse(line, Cause.LINK);
             if (PLACEHOLDER.matcher(l).find()) return refuse(line, Cause.PLACEHOLDER);
@@ -167,7 +232,7 @@ public final class PromptPack {
         if (length(title) > MAX_TITLE) return refuse(i + 1, Cause.TITLE_TOO_LONG);
         i = skipBlank(lines, i + 1);
         String description = null;
-        if (i < lines.length && !ENTRY.matcher(lines[i]).matches()) {
+        if (i < lines.length && !LOOSE_ENTRY.matcher(lines[i]).matches()) {
             description = lines[i].strip();
             if (length(description) > MAX_DESCRIPTION) return refuse(i + 1, Cause.DESCRIPTION_TOO_LONG);
             i = skipBlank(lines, i + 1);
@@ -179,17 +244,39 @@ public final class PromptPack {
                 i++;
                 continue;
             }
-            Matcher m = ENTRY.matcher(l);
+            Matcher m = LOOSE_ENTRY.matcher(l);
             if (!m.matches()) {
                 return refuse(i + 1, entries.isEmpty() ? Cause.NOT_AN_ENTRY : Cause.EXTRA_CONTENT);
             }
-            int n = Integer.parseInt(m.group(1));
             if (entries.size() == MAX_ENTRIES) return refuse(i + 1, Cause.TOO_MANY);
-            if (n != entries.size() + 1) return refuse(i + 1, Cause.OUT_OF_ORDER);
-            Matcher b = BOLD_LABEL.matcher(m.group(2));
-            if (!b.matches()) return refuse(i + 1, Cause.MISSING_LABEL);
-            String label = b.group(1).strip();
-            String prompt = b.group(2).strip();
+            if (m.group(1) != null) {
+                if (Integer.parseInt(m.group(1)) != entries.size() + 1) return refuse(i + 1, Cause.OUT_OF_ORDER);
+            } else {
+                fixes.add(new Normalised(i + 1, Fix.BULLET));
+            }
+            String body = m.group(3);
+            String label;
+            String prompt;
+            Matcher b = BOLD_LABEL.matcher(body);
+            if (b.matches()) {
+                label = b.group(1).strip();
+                prompt = b.group(2).strip();
+            } else if ((b = LOOSE_BOLD_LABEL.matcher(body)).matches()) {
+                label = b.group(1).strip();
+                if (label.endsWith(":")) label = label.substring(0, label.length() - 1).strip();   // "**Label:** text"
+                prompt = b.group(3).strip();
+                fixes.add(new Normalised(i + 1, Fix.DASH));
+            } else if (body.startsWith("**")) {
+                return refuse(i + 1, Cause.MISSING_LABEL);           // an unclosed bold: refused, never guessed
+            } else if ((b = PLAIN_LABEL.matcher(body)).matches()) {
+                label = (b.group(1) != null ? b.group(1) : b.group(4)).strip();
+                prompt = (b.group(1) != null ? b.group(3) : b.group(5)).strip();
+                fixes.add(new Normalised(i + 1, Fix.LABEL_FROM_TEXT));
+            } else {
+                label = firstWords(body, MAX_LABEL);
+                prompt = body.strip();
+                fixes.add(new Normalised(i + 1, Fix.LABEL_FROM_TEXT));
+            }
             if (label.isEmpty()) return refuse(i + 1, Cause.MISSING_LABEL);
             if (length(label) > MAX_LABEL) return refuse(i + 1, Cause.LABEL_TOO_LONG);
             if (prompt.isEmpty()) return refuse(i + 1, Cause.EMPTY_TEXT);
@@ -213,7 +300,35 @@ public final class PromptPack {
             i++;
         }
         if (entries.isEmpty()) return refuse(lines.length, Cause.NO_ENTRIES);
-        return new Result(new Pack(title, description, entries), null);
+        return new Result(new Pack(title, description, entries, fixes), null);
+    }
+
+    /** Trailing ASCII spaces and tabs removed. */
+    private static String stripTrailing(String l) {
+        int end = l.length();
+        while (end > 0 && (l.charAt(end - 1) == ' ' || l.charAt(end - 1) == '\t')) end--;
+        return l.substring(0, end);
+    }
+
+    /**
+     * The first words of {@code text} as a label: up to the first sentence's end, at most {@code cap} characters, cut at a
+     * word boundary (a single word longer than the cap is cut at the cap).
+     */
+    static String firstWords(String text, int cap) {
+        String t = text.strip();
+        int stop = t.length();
+        for (int k = 0; k < t.length(); k++) {
+            char c = t.charAt(k);
+            if ((c == '.' || c == '?' || c == '!') && (k + 1 == t.length() || t.charAt(k + 1) == ' ')) {
+                stop = c == '.' ? k : k + 1;
+                break;
+            }
+        }
+        t = t.substring(0, stop).strip();
+        if (length(t) <= cap) return t;
+        int cut = t.offsetByCodePoints(0, cap);
+        int space = t.lastIndexOf(' ', cut);
+        return (space > 0 ? t.substring(0, space) : t.substring(0, cut)).strip();
     }
 
     private static boolean hiddenCharacter(int cp) {

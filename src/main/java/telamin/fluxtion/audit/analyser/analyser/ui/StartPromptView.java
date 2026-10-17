@@ -126,6 +126,8 @@ public final class StartPromptView extends JPanel {
     /** A dropped pack's title and description, the way back, and a refused drop's one cause. */
     private final JLabel packTitle = UiText.label(" ");
     private final JTextArea packDescription = Fluid.text(" ");
+    /** External utility review (2026-10-17): the gentle, non-blocking note of what the reader normalised. */
+    private final JTextArea packNormalised = Fluid.text(" ");
     private final JButton returnButton = UiText.button("← Return to main options");
     private final JTextArea packRefusal = Fluid.text(" ");
     private final JButton seeFormat = UiText.button("See the format");
@@ -193,6 +195,9 @@ public final class StartPromptView extends JPanel {
         packTitle.setFont(packTitle.getFont().deriveFont(Font.BOLD));
         packTitle.setAlignmentX(LEFT_ALIGNMENT);
         packDescription.setAlignmentX(LEFT_ALIGNMENT);
+        packNormalised.setAlignmentX(LEFT_ALIGNMENT);
+        packNormalised.getAccessibleContext().setAccessibleName("What the analyser changed to read this pack");
+        packNormalised.setVisible(false);
         returnButton.setAlignmentX(LEFT_ALIGNMENT);
         // review M74 usability #18: FlatLaf binds a mnemonic to Ctrl+⌥ on macOS, so "(Alt+R)" was wrong there — the
         // shortcut is bound explicitly, with the platform's modifier, and the tooltip names the one that works
@@ -212,6 +217,7 @@ public final class StartPromptView extends JPanel {
         packHeader.add(returnButton);
         packHeader.add(packTitle);
         packHeader.add(packDescription);
+        packHeader.add(packNormalised);
         packHeader.setVisible(false);
         refusalRow.setOpaque(false);
         refusalRow.setAlignmentX(LEFT_ALIGNMENT);
@@ -225,6 +231,7 @@ public final class StartPromptView extends JPanel {
         refusalRow.setVisible(false);
         recolour.add(() -> {
             packDescription.setForeground(UiTheme.mutedForeground());
+            packNormalised.setForeground(UiTheme.mutedForeground());
             packRefusal.setForeground(UiTheme.warnForeground());
         });
         JScrollPane listScroll = new JScrollPane(list);
@@ -353,6 +360,9 @@ public final class StartPromptView extends JPanel {
             packTitle.getAccessibleContext().setAccessibleName("Prompt pack: " + pack.title());
             packDescription.setText(pack.description());
             packDescription.setVisible(!pack.description().isBlank());
+            String fixed = pack.normalisedWords();
+            packNormalised.setText(fixed.isEmpty() ? " " : fixed);
+            packNormalised.setVisible(!fixed.isEmpty());
         }
         packRefusal.setText(state.packRefusal() == null ? " "
                 : "This prompt pack was not used: " + state.packRefusalWords() + ".");
@@ -686,6 +696,10 @@ public final class StartPromptView extends JPanel {
 
     JTextArea packRefusal() {
         return packRefusal;
+    }
+
+    JTextArea packNormalised() {
+        return packNormalised;
     }
 
     JPanel fallbacksPanel() {

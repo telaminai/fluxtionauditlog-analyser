@@ -59,7 +59,7 @@ class PromptPackTest {
                 new Case("# Big\n1. **A** — " + "x".repeat(PromptPack.MAX_BYTES), PromptPack.Cause.TOO_LARGE, 0),
                 new Case(ten.toString(), PromptPack.Cause.TOO_MANY, 11),
                 new Case(GOOD.replace("asks first.", "asks <b>first</b>."), PromptPack.Cause.HTML, 2),
-                new Case(GOOD.replace("2. **Quiet nodes** —", "2. Quiet nodes —"), PromptPack.Cause.MISSING_LABEL, 5),
+                new Case(GOOD.replace("2. **Quiet nodes** —", "2. **Quiet nodes —"), PromptPack.Cause.MISSING_LABEL, 5),
                 new Case(GOOD + "\nAnd one more paragraph.\n", PromptPack.Cause.EXTRA_CONTENT, 8),
                 new Case(GOOD.replace("# Incident triage", "Incident triage"), PromptPack.Cause.NO_TITLE, 1),
                 new Case(GOOD.replace("# Incident triage", "# " + "T".repeat(61)), PromptPack.Cause.TITLE_TOO_LONG, 1),

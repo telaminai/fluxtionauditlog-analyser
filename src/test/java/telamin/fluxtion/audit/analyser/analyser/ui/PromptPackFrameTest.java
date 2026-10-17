@@ -59,7 +59,10 @@ class PromptPackFrameTest {
                 1. **Quiet nodes** — Which nodes never logged, and why is silence not proof?
                 2. **Spread** — Where does the spread jump?
                 """);
-        Path bad = Files.writeString(tmp.resolve("bad.md"), "# Bad\n1. Quiet nodes — no bold label\n");
+        // external utility review (2026-10-17): format is forgiven and noted; only what is unsafe is refused
+        Path loose = Files.writeString(tmp.resolve("loose.md"), "# Loose\n- Quiet nodes - Which nodes never logged?  \n"
+                + "- **Spread**: Where does it jump?\n");
+        Path bad = Files.writeString(tmp.resolve("bad.md"), "# Bad\n1. **Quiet nodes** — see <b>this</b>\n");
         try (var f = new AsyncOpenInterleavingFrameTest.Frame(tmp)) {
             onEdt(() -> { f.frame.setSize(1200, 800); f.frame.setVisible(true); });
             StartPromptFrameTest.showStart(f.frame);
@@ -87,14 +90,31 @@ class PromptPackFrameTest {
                 assertTrue(page.prompt().returnButton().isFocusable(), "and reachable from the keyboard");
             });
 
-            onEdt(() -> dropped.set(drop(page, bad)));
+            assertFalse(page.prompt().packNormalised().isVisible(), "a canonical pack has no note");
+            onEdt(() -> dropped.set(drop(page, loose)));
             awaitRead(f.frame, 2);
+            AtomicReference<String> note = new AtomicReference<>();
+            onEdt(() -> {
+                var list = page.prompt().promptList();
+                List<String> labels = new java.util.ArrayList<>();
+                for (int i = 0; i < list.getModel().getSize(); i++) labels.add(list.getModel().getElementAt(i).label());
+                rows.set(labels);
+                note.set(page.prompt().packNormalised().isShowing() ? page.prompt().packNormalised().getText() : null);
+                assertTrue(page.prompt().packRefusal().getText().isBlank(), "nothing refused");
+            });
+            assertEquals(List.of("Quiet nodes", "Spread"), rows.get(), "the loose pack is read");
+            assertNotNull(note.get(), "the gentle note is on screen");
+            assertTrue(note.get().startsWith("Read with small fixes:") && note.get().contains("bullet")
+                    && note.get().contains("trailing spaces"), note.get());
+
+            onEdt(() -> dropped.set(drop(page, bad)));
+            awaitRead(f.frame, 3);
             AtomicReference<String> refusal = new AtomicReference<>();
             onEdt(() -> {
                 refusal.set(page.prompt().packRefusal().getText());
                 rows.set(List.of(String.valueOf(page.prompt().promptList().getModel().getSize())));
             });
-            assertTrue(refusal.get().contains("line 2 — an entry needs a bold label"), refusal.get());
+            assertTrue(refusal.get().contains("line 2 — HTML is not allowed"), refusal.get());
             assertEquals(List.of("2"), rows.get(), "the pack in force stays");
 
             onEdt(() -> page.prompt().returnButton().doClick());
