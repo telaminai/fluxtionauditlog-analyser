@@ -154,8 +154,13 @@ public final class FixtureAgent implements AgentProcess.Launcher {
         return p;
     }
 
-    Proc last() {
+    public Proc last() {
         return processes.get(processes.size() - 1);
+    }
+
+    /** The P3 probe captures (P3-report.md): the real bridge, the real login, sanitised. */
+    public static FixtureAgent ofP3(String fixture) throws IOException {
+        return new FixtureAgent(Path.of("docs/specs/evidence/m74-p3/fixtures"), fixture);
     }
 
     public final class Proc implements AgentProcess {
@@ -176,6 +181,11 @@ public final class FixtureAgent implements AgentProcess.Launcher {
         List<String> pausedRest;
         String pausedRequestId;
         String pausedUuid;
+        /**
+         * P3: whether a recorded turn continues as soon as its request is answered. False holds it after the answer, as a
+         * CLI still working on it would be, so an interrupt that follows the answer finds the turn running.
+         */
+        public boolean resumeOnAnswer = true;
         /** P3: the answers the adapter wrote to can_use_tool requests, by request id. */
         public final Map<String, String> permissionAnswers = new java.util.concurrent.ConcurrentHashMap<>();
 
@@ -271,6 +281,11 @@ public final class FixtureAgent implements AgentProcess.Launcher {
                 Map<?, ?> r = (Map<?, ?>) m.get("response");
                 String id = r == null ? null : String.valueOf(r.get("request_id"));
                 if (id != null) permissionAnswers.put(id, line);
+                if (id != null && id.equals(pausedRequestId) && !resumeOnAnswer) {
+                    pausedRequestId = null;             // answered; the turn is still "running" until the interrupt
+                    pausedRest = null;
+                    return;
+                }
                 if (id != null && id.equals(pausedRequestId)) {
                     List<String> rest = pausedRest;
                     String uuid = pausedUuid;

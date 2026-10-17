@@ -511,16 +511,22 @@ public final class TranscriptView extends JTextPane {
     private void renderTool(StyledDocument doc, String line, Item item, int index, boolean dark) throws BadLocationException {
         TranscriptStyle.Palette p = TranscriptStyle.palette(dark);
         String body = line.substring(2);
-        String outcome = "";
-        int dash = body.lastIndexOf(" — ");
-        if (dash >= 0) {
-            outcome = body.substring(dash + 3);
+        // the adapter appends one " — outcome" per step: P3's decision ("approved by you", "denied by you", …) and then
+        // the tool's own result (✓, refused) — every step is shown, the last one colours the mark
+        java.util.LinkedList<String> steps = new java.util.LinkedList<>();
+        while (true) {
+            int dash = body.lastIndexOf(" — ");
+            if (dash < 0) break;
+            String seg = body.substring(dash + 3);
+            if (TranscriptStyle.Mark.of(seg) == TranscriptStyle.Mark.PENDING && !seg.startsWith("withdrawn")) break;
+            steps.addFirst(seg);
             body = body.substring(0, dash);
         }
+        String outcome = String.join(" · ", steps);
         int space = body.indexOf(' ');
         String name = space < 0 ? body : body.substring(0, space);
         String input = space < 0 ? "" : body.substring(space + 1);
-        TranscriptStyle.Mark mark = TranscriptStyle.Mark.of(outcome);
+        TranscriptStyle.Mark mark = steps.isEmpty() ? TranscriptStyle.Mark.PENDING : TranscriptStyle.Mark.of(steps.getLast());
         String key = item.key() + "#tool" + index;
         boolean open = expanded.contains(key);
         JButton toggle = UiText.button(open ? "▾" : "▸");

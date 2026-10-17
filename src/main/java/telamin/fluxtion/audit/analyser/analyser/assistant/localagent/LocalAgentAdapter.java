@@ -560,13 +560,14 @@ public final class LocalAgentAdapter {
         boolean written = run != null && pending != null;
         if (written) {
             boolean allow = e.allow() && pending[1] != null && !pending[1].isBlank();
-            write(run, allow ? StreamJson.allow(pending[0], pending[1])
-                    : StreamJson.deny(pending[0], e.message() == null ? "Denied in the analyser" : e.message()));
+            // the line is marked BEFORE the answer is written: the tool's own result can follow the answer at once
             boolean marked;
             synchronized (run) {
                 marked = run.toolMark(pending[2], markWords(allow, e.by()), allow);
             }
             if (marked) textChanged(run);
+            write(run, allow ? StreamJson.allow(pending[0], pending[1])
+                    : StreamJson.deny(pending[0], e.message() == null ? "Denied in the analyser" : e.message()));
             if (allow && e.grantId() != 0) {
                 long gen = e.generation();
                 long grant = e.grantId();

@@ -30,6 +30,8 @@ final class Harness {
     final HostedCredentials credentials = new HostedCredentials();
     final List<Object> facts = new ArrayList<>();
     final List<SessionEffects> others = new ArrayList<>();
+    /** P3: what the adapter answered each effect with (an AnswerPermissionEffect's result is the answer as written). */
+    final List<SessionEvents.Result> results = new ArrayList<>();
     final Path home;
     final LocalAgentAdapter adapter;
     final SessionDriver driver;
@@ -93,7 +95,11 @@ final class Harness {
         this.adapter = new LocalAgentAdapter(new ClaudeCodeProvider(), agent, store, credentials, env, Runnable::run, clock,
                 writers);
         this.driver = new SessionDriver(effect -> {
-            if (LocalAgentAdapter.handles(effect)) return adapter.perform(effect);
+            if (LocalAgentAdapter.handles(effect)) {
+                SessionEvents.Result r = adapter.perform(effect);
+                results.add(r);
+                return r;
+            }
             others.add(effect);
             return new SessionEvents.LocalAgentEffectStarted(effect.opId(), 0, "other");
         });

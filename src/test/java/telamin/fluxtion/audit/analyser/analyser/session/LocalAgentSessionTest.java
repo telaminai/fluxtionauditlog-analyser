@@ -844,7 +844,7 @@ class LocalAgentSessionTest {
                                 }), 5_000);
                 a.onAnswer = admission::answer;
                 List<String> tools = expectedTools();
-                tools.add(LocalAgentPosture.toolName("report"));
+                tools.add("Bash");                  // P3: a tool the analyser assistant never has
                 var kill = new SessionEvents.LocalAgentInitObserved(start.generation(), 1,
                         LocalAgentPosture.digest(start.sessionId()), "default", tools,
                         List.of(LocalAgentPosture.HOSTED_SERVER + ":connected"), LocalAgentPosture.REQUIRED_CAPABILITIES, 0);

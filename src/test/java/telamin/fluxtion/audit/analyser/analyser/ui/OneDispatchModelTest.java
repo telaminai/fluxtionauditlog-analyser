@@ -549,6 +549,35 @@ class OneDispatchModelTest {
         assertFalse(offer.contains("requestProject(") || offer.contains("StopLocalAgent"), "the choice is a fact; the nodes act");
     }
 
+    /**
+     * ★ M74 P3 (§5.7, rule 9): the permission dialog shows and reports; the node decides. The dialog's file posts no fact
+     * and writes nothing to Claude Code; the frame's performer reports only the person's button or Stop; the answer to
+     * the CLI is the adapter's, performed only on the node's {@code AnswerPermissionEffect}. Witness: answer the CLI from
+     * the dialog's Allow (call the adapter, or write a control_response, in {@code showPermissionDialog}) — this fails.
+     */
+    @Test
+    @DisplayName("★ M74 P3: the permission dialog renders and reports; it decides nothing and never answers Claude Code")
+    void thePermissionDialogOnlyReports() throws Exception {
+        String dialog = Files.readString(UI.resolve("LocalAgentPermissionDialog.java"));
+        for (String never : List.of("session()", ".post(", "SessionEvents", "SessionEffects", "StreamJson", "control_response",
+                "LocalAgentAdapter")) {
+            assertFalse(dialog.contains(never), "the dialog names " + never);
+        }
+        String frame = Files.readString(UI.resolve("MainFrame.java"));
+        String show = bodyOf(frame, "private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result showPermissionDialog(");
+        assertFalse(show.isEmpty());
+        assertTrue(show.contains("LocalAgentPermissionChosen(") && show.contains("LocalAgentStopRequested("), "it reports");
+        for (String never : List.of("localAgentAdapter", "AnswerPermission", "StreamJson", "writeLine", "HostedCallPresented")) {
+            assertFalse(show.contains(never), "the dialog's performer must not use " + never);
+        }
+        String close = bodyOf(frame, "private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result closePermissionDialog(");
+        assertFalse(close.contains(".post("), "closing posts nothing: it is the node's effect");
+        String adapter = Files.readString(LOCAL_AGENT.resolve("LocalAgentAdapter.java"));
+        assertEquals(1, count(Pattern.compile("StreamJson\\s*\\.\\s*allow\\("), adapter),
+                "one place writes an allow: the AnswerPermissionEffect's performer");
+        assertTrue(bodyOf(adapter, "private SessionEvents.Result answerPermission(").contains("StreamJson.allow("));
+    }
+
     private static int count(Pattern p, String s) {
         Matcher m = p.matcher(s);
         int n = 0;
