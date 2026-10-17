@@ -1,0 +1,264 @@
+{
+ "_about": "Verdicts of the analyser's own assistant/PromptPack.parse on the M74 P2 branch build of 2026-10-17 (classes compiled after ba257e1c), recorded by running the Java parser over each input. tools/test_m74_onboarding_runner.py pins the Python mirror to them, so a divergence fails a test; re-record when PromptPack changes.",
+ "cases": {
+  "angle-placeholder": {
+   "input": "# T\n1. **x** — example: https://github.com/example/demo/archive/<40-hex>.zip\n",
+   "java": {
+    "line": 2,
+    "cause": "EXAMPLE_NOT_ARCHIVE"
+   }
+  },
+  "bad-digest": {
+   "input": "# T\n1. **x** — example: https://github.com/o/r/archive/0123456789abcdef0123456789abcdef01234567.zip sha256:abc\n",
+   "java": {
+    "line": 2,
+    "cause": "EXAMPLE_DIGEST"
+   }
+  },
+  "bidi": {
+   "input": "# T\n1. **a** — b‮c\n",
+   "java": {
+    "line": 2,
+    "cause": "HIDDEN_CHARACTER"
+   }
+  },
+  "bom": {
+   "input": "﻿# T\n1. **a** — b\n",
+   "java": {
+    "line": 1,
+    "cause": "HIDDEN_CHARACTER"
+   }
+  },
+  "branch": {
+   "input": "# T\n1. **x** — example: https://github.com/o/r/archive/main.zip\n",
+   "java": {
+    "line": 2,
+    "cause": "EXAMPLE_MOVING_REF"
+   }
+  },
+  "desc-long": {
+   "input": "# T\nddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\n1. **a** — b\n",
+   "java": {
+    "line": 2,
+    "cause": "DESCRIPTION_TOO_LONG"
+   }
+  },
+  "example-extra": {
+   "input": "# T\n1. **x** — example: https://github.com/o/r/archive/0123456789abcdef0123456789abcdef01234567.zip and more\n",
+   "java": {
+    "line": 2,
+    "cause": "EXAMPLE_MALFORMED"
+   }
+  },
+  "extra-content": {
+   "input": "# T\n1. **a** — b\nmore words\n",
+   "java": {
+    "line": 3,
+    "cause": "EXTRA_CONTENT"
+   }
+  },
+  "gitlab-name": {
+   "input": "# T\n1. **x** — example: https://gitlab.com/g/r/-/archive/0123456789abcdef0123456789abcdef01234567/other.zip\n",
+   "java": {
+    "line": 2,
+    "cause": "EXAMPLE_NOT_ARCHIVE"
+   }
+  },
+  "host": {
+   "input": "# T\n1. **x** — example: https://example.org/o/r/archive/0123456789abcdef0123456789abcdef01234567.zip\n",
+   "java": {
+    "line": 2,
+    "cause": "EXAMPLE_HOST"
+   }
+  },
+  "html": {
+   "input": "# T\n1. **a** — <b>bold</b>\n",
+   "java": {
+    "line": 2,
+    "cause": "HTML"
+   }
+  },
+  "http": {
+   "input": "# T\n1. **x** — example: http://github.com/example/demo/archive/0123456789abcdef0123456789abcdef01234567.zip\n",
+   "java": {
+    "line": 2,
+    "cause": "EXAMPLE_NOT_HTTPS"
+   }
+  },
+  "image": {
+   "input": "# T\n1. **a** — ![x](y)\n",
+   "java": {
+    "line": 2,
+    "cause": "IMAGE"
+   }
+  },
+  "label-long": {
+   "input": "# T\n1. **lllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll** — b\n",
+   "java": {
+    "line": 2,
+    "cause": "LABEL_TOO_LONG"
+   }
+  },
+  "link-www": {
+   "input": "# T\n1. **a** — see www.example.org\n",
+   "java": {
+    "line": 2,
+    "cause": "LINK"
+   }
+  },
+  "md-link": {
+   "input": "# T\n1. **a** — [x](y)\n",
+   "java": {
+    "line": 2,
+    "cause": "LINK"
+   }
+  },
+  "missing-label": {
+   "input": "# T\n1. a — b\n",
+   "java": {
+    "line": 2,
+    "cause": "MISSING_LABEL"
+   }
+  },
+  "no-entries": {
+   "input": "# T\nOnly a description\n",
+   "java": {
+    "line": 3,
+    "cause": "NO_ENTRIES"
+   }
+  },
+  "no-title": {
+   "input": "1. **a** — b\n",
+   "java": {
+    "line": 1,
+    "cause": "NO_TITLE"
+   }
+  },
+  "ok-codeload": {
+   "input": "# T\n\n1. **x** — example: https://codeload.github.com/o/r/zip/0123456789abcdef0123456789abcdef01234567\n",
+   "java": {
+    "entries": 1,
+    "thirdParty": true
+   }
+  },
+  "ok-description": {
+   "input": "# T\nOne line.\n1. **a** — b\n2. **c** — d\n",
+   "java": {
+    "entries": 2,
+    "thirdParty": false
+   }
+  },
+  "ok-example-angle": {
+   "input": "# T\n\n1. **x** — example: <https://github.com/example/demo/archive/0123456789abcdef0123456789abcdef01234567.zip>\n",
+   "java": {
+    "entries": 1,
+    "thirdParty": true
+   }
+  },
+  "ok-example-sha": {
+   "input": "# T\n\n1. **x** — example: https://github.com/example/demo/archive/0123456789abcdef0123456789abcdef01234567.zip sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n",
+   "java": {
+    "entries": 1,
+    "thirdParty": true
+   }
+  },
+  "ok-example-telamin": {
+   "input": "# T\n\n1. **x** — example: https://github.com/telaminai/demo/archive/0123456789abcdef0123456789abcdef01234567.zip\n",
+   "java": {
+    "entries": 1,
+    "thirdParty": false
+   }
+  },
+  "ok-gitlab": {
+   "input": "# T\n\n1. **x** — example: https://gitlab.com/g/r/-/archive/0123456789abcdef0123456789abcdef01234567/r-0123456789abcdef0123456789abcdef01234567.zip\n",
+   "java": {
+    "entries": 1,
+    "thirdParty": true
+   }
+  },
+  "ok-minimal": {
+   "input": "# T\n\n1. **a** — b\n",
+   "java": {
+    "entries": 1,
+    "thirdParty": false
+   }
+  },
+  "out-of-order": {
+   "input": "# T\n1. **a** — b\n3. **c** — d\n",
+   "java": {
+    "line": 3,
+    "cause": "OUT_OF_ORDER"
+   }
+  },
+  "placeholder": {
+   "input": "# T\n1. **a** — about {project}\n",
+   "java": {
+    "line": 2,
+    "cause": "PLACEHOLDER"
+   }
+  },
+  "port": {
+   "input": "# T\n1. **x** — example: https://github.com:8443/o/r/archive/0123456789abcdef0123456789abcdef01234567.zip\n",
+   "java": {
+    "line": 2,
+    "cause": "EXAMPLE_NOT_ARCHIVE"
+   }
+  },
+  "query": {
+   "input": "# T\n1. **x** — example: https://github.com/o/r/archive/0123456789abcdef0123456789abcdef01234567.zip?x=1\n",
+   "java": {
+    "line": 2,
+    "cause": "EXAMPLE_NOT_ARCHIVE"
+   }
+  },
+  "short-sha": {
+   "input": "# T\n1. **x** — example: https://github.com/o/r/archive/0123456.zip\n",
+   "java": {
+    "line": 2,
+    "cause": "EXAMPLE_MOVING_REF"
+   }
+  },
+  "tab-ok": {
+   "input": "# T\n1. **a** — b\tc\n",
+   "java": {
+    "entries": 1,
+    "thirdParty": false
+   }
+  },
+  "tag": {
+   "input": "# T\n1. **x** — example: https://github.com/o/r/archive/v1.0.0.zip\n",
+   "java": {
+    "line": 2,
+    "cause": "EXAMPLE_MOVING_REF"
+   }
+  },
+  "text-long": {
+   "input": "# T\n1. **a** — xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n",
+   "java": {
+    "line": 2,
+    "cause": "TEXT_TOO_LONG"
+   }
+  },
+  "title-long": {
+   "input": "# ttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt\n1. **a** — b\n",
+   "java": {
+    "line": 1,
+    "cause": "TITLE_TOO_LONG"
+   }
+  },
+  "too-many": {
+   "input": "# T\n1. **a** — b\n2. **a** — b\n3. **a** — b\n4. **a** — b\n5. **a** — b\n6. **a** — b\n7. **a** — b\n8. **a** — b\n9. **a** — b\n10. **a** — b\n",
+   "java": {
+    "line": 11,
+    "cause": "TOO_MANY"
+   }
+  },
+  "zero-width": {
+   "input": "# T\n1. **a** — b​c\n",
+   "java": {
+    "line": 2,
+    "cause": "HIDDEN_CHARACTER"
+   }
+  }
+ }
+}
