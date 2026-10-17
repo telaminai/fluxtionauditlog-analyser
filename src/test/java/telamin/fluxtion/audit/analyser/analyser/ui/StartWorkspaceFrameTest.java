@@ -118,7 +118,12 @@ class StartWorkspaceFrameTest {
                     assertTrue(r.y > prompt.y, "the prompt leads: " + c.title() + " is below it");
                     assertTrue(r.x >= 0 && r.x + r.width <= start.getWidth(), "inside the page: " + c.title());
                     assertTrue(r.height <= 40, "compact, not a card: " + c.title() + " is " + r.height + " px tall");
+                    // owner UI feedback (2026-10-17): a proper target, one height for every chip
+                    assertTrue(r.height >= UiTheme.TARGET_MIN_HEIGHT, "a proper target: " + c.title() + " is "
+                            + r.height + " px tall");
+                    assertEquals(chips.get(0).getHeight(), c.getHeight(), "one height for every chip: " + c.title());
                 }
+                assertBlocksAndGrid(start, 3);
                 java.awt.Component[] cols = start.recentsPanel().getComponents();
                 assertTrue(cols[0].getX() < cols[cols.length - 1].getX(), "wide: the recent lists sit side by side");
                 return null;
@@ -138,6 +143,7 @@ class StartWorkspaceFrameTest {
                             c.getParent().getBounds(), start);
                     assertTrue(g.contains(r), "and its group holds it: " + c.title());
                 }
+                assertBlocksAndGrid(start, 2);
                 java.awt.Component[] cols = start.recentsPanel().getComponents();
                 assertEquals(cols[0].getX(), cols[cols.length - 1].getX(), "narrow: the recent lists stack");
                 assertTrue(cols[cols.length - 1].getY() >= cols[0].getY() + cols[0].getHeight(), "without overlap");
@@ -147,6 +153,49 @@ class StartWorkspaceFrameTest {
             if (frame.get() != null) SwingUtilities.invokeAndWait(frame.get()::dispose);
             System.setProperty("user.home", previousHome);
         }
+    }
+
+    /**
+     * Owner UI feedback (2026-10-17): each group is a titled block — heading ABOVE its buttons, the buttons left-aligned
+     * in one column, wholly inside the block — and the blocks sit in a grid of at least {@code minColumns} across with
+     * even gutters and no overlap; the Connect block carries the help sentence as its caption. Witness: the squashed
+     * strip (a FlowLayout of inline groups, the heading beside the first chip) — the heading-above and the grid
+     * assertions fail.
+     */
+    static void assertBlocksAndGrid(StartPanel start, int minColumns) {
+        var blocks = start.directBlocks();
+        assertEquals(5, blocks.size(), "five groups");
+        java.awt.Rectangle strip = SwingUtilities.convertRectangle(start.directStrip().getParent(),
+                start.directStrip().getBounds(), start);
+        int firstRowY = blocks.get(0).getY();
+        int firstRow = (int) blocks.stream().filter(b -> b.getY() == firstRowY).count();
+        assertTrue(firstRow >= minColumns, "a grid of at least " + minColumns + " columns: " + firstRow);
+        assertTrue(firstRow <= StartPanel.BlockGrid.MAX_COLUMNS);
+        for (int i = 0; i < blocks.size(); i++) {
+            JComponent b = blocks.get(i);
+            java.awt.Rectangle br = SwingUtilities.convertRectangle(b.getParent(), b.getBounds(), start);
+            assertTrue(strip.contains(br), "the grid holds block " + b.getAccessibleContext().getAccessibleName());
+            for (int k = i + 1; k < blocks.size(); k++) {
+                assertFalse(br.intersects(SwingUtilities.convertRectangle(blocks.get(k).getParent(),
+                        blocks.get(k).getBounds(), start)), "blocks never overlap");
+            }
+            java.awt.Component heading = b.getComponent(0);
+            assertInstanceOf(javax.swing.JLabel.class, heading, "the block leads with its heading");
+            int left = -1;
+            for (java.awt.Component c : b.getComponents()) {
+                if (!(c instanceof StartPanel.ActionChip chip)) continue;
+                assertTrue(c.getY() >= heading.getY() + heading.getHeight(), "the heading is ABOVE " + chip.title());
+                assertTrue(new java.awt.Rectangle(0, 0, b.getWidth(), b.getHeight()).contains(c.getBounds()),
+                        "wholly inside its block: " + chip.title() + " " + c.getBounds() + " in " + b.getSize());
+                if (left < 0) left = c.getX();
+                assertEquals(left, c.getX(), "left-aligned in one column: " + chip.title());
+            }
+        }
+        JComponent connect = blocks.get(3);
+        java.awt.Component last = connect.getComponent(connect.getComponentCount() - 1);
+        assertInstanceOf(javax.swing.JTextArea.class, last, "the Connect block ends with its caption");
+        assertTrue(((javax.swing.JTextArea) last).getText().startsWith("Connect your CLI assistant"));
+        assertTrue(last.getWidth() <= connect.getWidth(), "a caption under the group, not a full-width line");
     }
 
     @Test void droppingSpringDesignThenGraphAndLogOpensTheirRealViews() throws Exception {

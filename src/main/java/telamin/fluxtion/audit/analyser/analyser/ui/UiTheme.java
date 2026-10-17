@@ -21,6 +21,22 @@ public final class UiTheme {
     /** Standard gap between clustered controls. */
     public static final int GAP = 6;
 
+    // ---- the spacing scale (owner UI feedback, 2026-10-17): one rhythm for a page's blocks, headings and controls ----
+    /** The smallest step: between a caption and what it captions. */
+    public static final int SPACE_XS = 4;
+    /** Between a heading and its controls, and between controls in a column. */
+    public static final int SPACE_SM = 8;
+    /** Between related groups of a section. */
+    public static final int SPACE_MD = 12;
+    /** The gutter between blocks of a grid. */
+    public static final int SPACE_LG = 20;
+    /** Above and below a section that must not crowd its neighbours. */
+    public static final int SPACE_XL = 28;
+    /** The least height of a clickable target (a button, a chip). */
+    public static final int TARGET_MIN_HEIGHT = 32;
+    /** The corner radius of a control's shape. */
+    public static final int CONTROL_RADIUS = 8;
+
     /**
      * A light section header — a thin top rule and a small, muted title, with even inner padding.
      * Use where a panel genuinely benefits from a label; otherwise prefer {@link #pad()} (no label).

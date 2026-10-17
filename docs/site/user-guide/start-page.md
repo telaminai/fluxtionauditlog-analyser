@@ -2,7 +2,7 @@
 
 The start page is what the analyser shows when nothing is open, and what **Help ▸ Start page** raises over an open
 workspace. It is one surface: it asks **What would you like to do?** — a short numbered list, a box for your own words
-and one button — and the analyser's own actions follow it as one compact strip, **Or open directly**, with your recent
+and one button — and the analyser's own actions follow it under **Or open directly**, with your recent
 projects and evidence bundles under **Recent**.
 
 ## What would you like to do?
@@ -114,8 +114,10 @@ An entry can instead point at an **example project to download** — an archive 
 
 ## Or open directly
 
-Under the question, every action the analyser offers without typing is one small button — an icon and a short label,
-grouped by what it is for. Hover one for what it does (the sentence the old card carried); each is reachable with
+Under the question, every action the analyser offers without typing is one button — an icon and a short label — in
+five small titled blocks, each heading above its buttons. The blocks sit five across on a wide window and wrap to three,
+two and one as it narrows; the *Connect an assistant* and *Settings* blocks carry a one-line caption under their
+buttons. Hover one for what it does (the sentence the old card carried); each is reachable with
 **Tab** and pressed with **Space** or **Enter**, and each does exactly what its card did.
 
 | Group | Buttons |

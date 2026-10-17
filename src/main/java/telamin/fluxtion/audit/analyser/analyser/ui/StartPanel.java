@@ -176,20 +176,21 @@ public final class StartPanel extends JPanel {
         operationFeedback.setBorder(BorderFactory.createEmptyBorder(8, 10, 8, 10));
         operationFeedback.setVisible(false);
         col.add(operationFeedback);
-        col.add(Box.createVerticalStrut(14));
-        // r8 F19 / M74 UX: the cards' actions stay, after the prompt — the no-typing path M71 accepted — as one compact
-        // strip in the prompt's style. A configured list can lead with a journey; it cannot hide these
+        col.add(Box.createVerticalStrut(UiTheme.SPACE_XL));
+        // r8 F19 / M74 UX: the cards' actions stay, after the prompt — the no-typing path M71 accepted — as small titled
+        // blocks in a responsive grid (owner UI feedback, 2026-10-17: each group's heading ABOVE its buttons, 5 columns
+        // wide wrapping to 3, 2 and 1). A configured list can lead with a journey; it cannot hide these
         col.add(heading(telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.text("start.or")));
-        directStrip.setLayout(new WrapLayout(java.awt.FlowLayout.LEFT, 14, 6));
+        directStrip.setLayout(new BlockGrid());
         directStrip.setOpaque(false);
         directStrip.setAlignmentX(LEFT_ALIGNMENT);
         directStrip.getAccessibleContext().setAccessibleName("Open directly");
-        directStrip.add(group("Explore DEMO",
+        directStrip.add(group("Explore DEMO", null,
                 chip("Take a guided tour", "Guided tour", "Follow four spotlight stops in a local DEMO project.",
                         actions::openGuidedTour),
                 chip("Open sample project", "Sample project",
                         "Explore the same DEMO log, topology and source at your own pace.", actions::openSampleProject)));
-        directStrip.add(group("Open",
+        directStrip.add(group("Open", null,
                 chip("Open project", "Project", "Use an existing project profile and its saved settings.",
                         actions::openExistingProject),
                 chip("Open evidence bundle", "Evidence bundle",
@@ -197,7 +198,7 @@ public final class StartPanel extends JPanel {
                 chip("Open audit log", "Audit log", "Choose a local audit log to investigate.", actions::openOwnLog),
                 chip("Open GraphML", "GraphML", "View a processor topology, with or without a log.",
                         actions::openGraphml)));
-        directStrip.add(group("Create",
+        directStrip.add(group("Create", null,
                 chip("Create project profile", "Project profile",
                         "Save settings for existing source and processors. No code is generated.", actions::newProject),
                 chip("Create from template", "From template", "Choose a starter template and where to install it.",
@@ -205,6 +206,9 @@ public final class StartPanel extends JPanel {
         fluxtionKeyCard = chip("", "", "", actions::openFluxtionKey);
         refreshFluxtionKeyStatus();
         directStrip.add(group("Connect an assistant",
+                // the help sentence is this group's caption, not a full-width line (owner UI feedback)
+                "Connect your CLI assistant to query records, draw charts and spotlight evidence here — the analyser "
+                        + "bridge is local.",
                 chip("Connect Codex", "Codex", "Set up the local bridge Codex will use.",
                         () -> actions.openMcpSetup(McpSetupDialog.Target.CODEX)),
                 chip("Connect Claude", "Claude", "Set up the local bridge for Claude.",
@@ -212,16 +216,13 @@ public final class StartPanel extends JPanel {
                 chip("Generic MCP setup", "Other MCP client", "Prepare this analyser for another MCP client.",
                         () -> actions.openMcpSetup(McpSetupDialog.Target.GENERIC))));
         directStrip.add(group("Settings",
+                "Source settings apply to the open project, or to global defaults when no project is open.",
                 chip("Source and assistant settings…", "Settings",
                         "Source settings apply to the open project, or to global defaults when no project is open.",
                         actions::openSettings),
                 fluxtionKeyCard));
         col.add(directStrip);
-        col.add(Box.createVerticalStrut(4));
-        col.add(body("Connect your CLI assistant to query records, draw charts and spotlight evidence here — the analyser "
-                + "bridge is local. Source settings apply to the open project, or to global defaults when no project is "
-                + "open."));
-        col.add(Box.createVerticalStrut(14));
+        col.add(Box.createVerticalStrut(UiTheme.SPACE_XL));
 
         recentProjects.setAlignmentX(LEFT_ALIGNMENT);
         setRecentProjects(List.of());
@@ -644,15 +645,6 @@ public final class StartPanel extends JPanel {
         return p;
     }
 
-    private JComponent subheading(String text) {
-        JTextArea label = wrapping(text);
-        Font base = UIManager.getFont("Label.font");
-        if (base == null) base = label.getFont();
-        label.setFont(base.deriveFont(Font.BOLD));
-        recolour.add(() -> label.setForeground(UiTheme.mutedForeground()));
-        return label;
-    }
-
     private JComponent body(String text) {
         JTextArea l = wrapping(text);
         l.setFont(UIManager.getFont("Label.font"));
@@ -789,16 +781,174 @@ public final class StartPanel extends JPanel {
         }
     }
 
-    /** A labelled group of the strip's actions: a muted word, then its chips. */
-    private JComponent group(String title, JComponent... chips) {
-        JPanel g = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 4, 0));
+    /**
+     * A titled block of the strip's actions (owner UI feedback, 2026-10-17): its heading ABOVE its buttons, the buttons
+     * left-aligned in one column with even spacing, and an optional muted caption under them.
+     */
+    private JComponent group(String title, String caption, JComponent... chips) {
+        JPanel g = new JPanel(new BlockColumn());
         g.setOpaque(false);
         g.getAccessibleContext().setAccessibleName(title);
-        JLabel l = UiText.label(title + ":");
-        recolour.add(() -> l.setForeground(UiTheme.mutedForeground()));
-        g.add(l);
+        g.add(blockHeading(title));
         for (JComponent c : chips) g.add(c);
+        if (caption != null) {
+            JTextArea t = Fluid.text(caption);
+            Font base = UIManager.getFont("Label.font");
+            if (base != null) t.setFont(base.deriveFont(base.getSize2D() - 1f));
+            recolour.add(() -> t.setForeground(UiTheme.mutedForeground()));
+            t.putClientProperty(BlockColumn.CAPTION, Boolean.TRUE);
+            g.add(t);
+        }
         return g;
+    }
+
+    /** The one heading style of a block — the strip's groups and the recent lists alike (owner UI feedback). */
+    private JComponent blockHeading(String title) {
+        JLabel l = UiText.label(title);
+        Font base = UIManager.getFont("Label.font");
+        if (base != null) l.setFont(base.deriveFont(Font.BOLD));
+        recolour.add(() -> l.setForeground(UiTheme.mutedForeground()));
+        l.setAlignmentX(LEFT_ALIGNMENT);
+        return l;
+    }
+
+    /**
+     * One block's column: the heading, then each button at its own width (never wider than the block) with
+     * {@link UiTheme#SPACE_SM} between, then a caption wrapped to the block's width. Its height is computed for the width
+     * it is given, so {@link BlockGrid} can size a row before laying it out.
+     */
+    static final class BlockColumn implements LayoutManager {
+        static final String CAPTION = "startPanel.blockCaption";
+
+        @Override public void addLayoutComponent(String name, Component comp) { }
+
+        @Override public void removeLayoutComponent(Component comp) { }
+
+        int heightFor(Container parent, int width) {
+            int h = 0;
+            for (int i = 0; i < parent.getComponentCount(); i++) {
+                Component c = parent.getComponent(i);
+                if (i > 0) h += UiTheme.SPACE_SM;
+                h += height(c, width);
+            }
+            return h;
+        }
+
+        private static boolean isCaption(Component c) {
+            return c instanceof JComponent j && Boolean.TRUE.equals(j.getClientProperty(CAPTION));
+        }
+
+        private static int height(Component c, int width) {
+            if (isCaption(c)) {
+                c.setSize(Math.max(1, width), Short.MAX_VALUE);
+                return c.getPreferredSize().height;
+            }
+            return c.getPreferredSize().height;
+        }
+
+        @Override public Dimension preferredLayoutSize(Container parent) {
+            int w = 0;
+            for (Component c : parent.getComponents()) if (!isCaption(c)) w = Math.max(w, c.getPreferredSize().width);
+            int width = parent.getWidth() > 0 ? parent.getWidth() : w;
+            return new Dimension(w, heightFor(parent, width));
+        }
+
+        @Override public Dimension minimumLayoutSize(Container parent) {
+            return preferredLayoutSize(parent);
+        }
+
+        @Override public void layoutContainer(Container parent) {
+            int width = parent.getWidth();
+            int y = 0;
+            for (int i = 0; i < parent.getComponentCount(); i++) {
+                Component c = parent.getComponent(i);
+                if (i > 0) y += UiTheme.SPACE_SM;
+                int h = height(c, width);
+                int w = isCaption(c) ? width : Math.min(width, c.getPreferredSize().width);
+                c.setBounds(0, y, w, h);
+                y += h;
+            }
+        }
+    }
+
+    /**
+     * The strip's grid (owner UI feedback, 2026-10-17): as many columns as fit a block of at least {@link #MIN_BLOCK}
+     * — at most {@link #MAX_COLUMNS} — so five across on a wide page, three, two and then one as it narrows, with
+     * {@link UiTheme#SPACE_LG} gutters. Each row is as tall as its tallest block at the column width, so nothing is
+     * clipped and nothing overlaps.
+     */
+    static final class BlockGrid implements LayoutManager {
+        static final int MIN_BLOCK = 176;
+        static final int MAX_COLUMNS = 5;
+        static final int HGAP = UiTheme.SPACE_LG;
+        static final int VGAP = UiTheme.SPACE_LG;
+
+        @Override public void addLayoutComponent(String name, Component comp) { }
+
+        @Override public void removeLayoutComponent(Component comp) { }
+
+        static int columns(int avail, int count) {
+            int fit = Math.max(1, (avail + HGAP) / (MIN_BLOCK + HGAP));
+            return Math.max(1, Math.min(Math.min(MAX_COLUMNS, Math.max(1, count)), fit));
+        }
+
+        private static int blockHeight(Component c, int width) {
+            if (c instanceof Container k && k.getLayout() instanceof BlockColumn b) return b.heightFor(k, width);
+            return c.getPreferredSize().height;
+        }
+
+        private static Dimension size(Container parent, int width) {
+            Insets in = parent.getInsets();
+            int count = parent.getComponentCount();
+            if (count == 0) return new Dimension(width, in.top + in.bottom);
+            int avail = Math.max(1, width - in.left - in.right);
+            int cols = columns(avail, count);
+            int cw = Math.max(1, (avail - (cols - 1) * HGAP) / cols);
+            int h = in.top + in.bottom;
+            for (int i = 0; i < count; i += cols) {
+                int row = 0;
+                for (int k = i; k < Math.min(count, i + cols); k++) row = Math.max(row, blockHeight(parent.getComponent(k), cw));
+                h += row + (i > 0 ? VGAP : 0);
+            }
+            return new Dimension(width, h);
+        }
+
+        @Override public Dimension preferredLayoutSize(Container parent) {
+            // before the first layout the width is unknown: answer for a wide page, which is self-correcting (Fluid
+            // revalidates when the real width arrives)
+            return size(parent, parent.getWidth() > 0 ? parent.getWidth() : MAX_COLUMNS * (MIN_BLOCK + HGAP));
+        }
+
+        @Override public Dimension minimumLayoutSize(Container parent) {
+            return size(parent, MIN_BLOCK + parent.getInsets().left + parent.getInsets().right);
+        }
+
+        @Override public void layoutContainer(Container parent) {
+            Insets in = parent.getInsets();
+            int count = parent.getComponentCount();
+            if (count == 0) return;
+            int avail = Math.max(1, parent.getWidth() - in.left - in.right);
+            int cols = columns(avail, count);
+            int cw = Math.max(1, (avail - (cols - 1) * HGAP) / cols);
+            int y = in.top;
+            for (int i = 0; i < count; i += cols) {
+                int row = 0;
+                for (int k = i; k < Math.min(count, i + cols); k++) row = Math.max(row, blockHeight(parent.getComponent(k), cw));
+                int x = in.left;
+                for (int k = i; k < Math.min(count, i + cols); k++) {
+                    parent.getComponent(k).setBounds(x, y, cw, row);
+                    x += cw + HGAP;
+                }
+                y += row + VGAP;
+            }
+        }
+    }
+
+    /** For the tests: the strip's blocks, in order. */
+    List<JComponent> directBlocks() {
+        List<JComponent> out = new ArrayList<>();
+        for (Component c : directStrip.getComponents()) if (c instanceof JComponent j) out.add(j);
+        return out;
     }
 
     private ActionChip chip(String title, String label, String why, Runnable go) {
@@ -820,8 +970,8 @@ public final class StartPanel extends JPanel {
         col.setAlignmentX(LEFT_ALIGNMENT);
         col.setMinimumSize(new Dimension(0, 0));
         col.getAccessibleContext().setAccessibleName(title);
-        col.add(subheading(title));
-        col.add(Box.createVerticalStrut(4));
+        col.add(blockHeading(title));
+        col.add(Box.createVerticalStrut(UiTheme.SPACE_SM));
         col.add(rows);
         return col;
     }
@@ -833,12 +983,12 @@ public final class StartPanel extends JPanel {
         recentsWide = wide;
         recents.removeAll();
         if (wide) {
-            recents.setLayout(new GridLayout(1, 2, 20, 0));
+            recents.setLayout(new GridLayout(1, 2, UiTheme.SPACE_LG, 0));
         } else {
             recents.setLayout(new BoxLayout(recents, BoxLayout.Y_AXIS));
         }
         recents.add(recentColumns[0]);
-        if (!wide) recents.add(Box.createVerticalStrut(10));
+        if (!wide) recents.add(Box.createVerticalStrut(UiTheme.SPACE_MD));
         recents.add(recentColumns[1]);
         recents.revalidate();
         recents.repaint();
@@ -873,7 +1023,7 @@ public final class StartPanel extends JPanel {
      * platform's.
      */
     static final class ActionChip extends JButton {
-        private static final int H_PAD = 10;
+        private static final int H_PAD = 14;
         private String title;
         private String label;
         private String why;
@@ -919,8 +1069,9 @@ public final class StartPanel extends JPanel {
         @Override
         public Dimension getPreferredSize() {
             FontMetrics fm = getFontMetrics(font());
-            return new Dimension(H_PAD + 18 + 6 + fm.stringWidth(label == null ? "" : label) + H_PAD,
-                    Math.max(28, fm.getHeight() + 12));
+            // owner UI feedback (2026-10-17): a proper target — at least TARGET_MIN_HEIGHT tall, one height for every chip
+            return new Dimension(H_PAD + 18 + 8 + fm.stringWidth(label == null ? "" : label) + H_PAD,
+                    Math.max(UiTheme.TARGET_MIN_HEIGHT + 2, fm.getHeight() + 16));
         }
 
         @Override
@@ -933,18 +1084,27 @@ public final class StartPanel extends JPanel {
             Graphics2D g = (Graphics2D) g0.create();
             g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-            boolean hot = getModel().isRollover() || getModel().isPressed() || isFocusOwner();
+            boolean hot = getModel().isRollover() || getModel().isPressed();
+            boolean focused = isFocusOwner();
             int w = getWidth(), h = getHeight();
-            RoundRectangle2D shape = new RoundRectangle2D.Float(0.5f, 0.5f, w - 1f, h - 1f, h - 2f, h - 2f);
+            float arc = 2f * UiTheme.CONTROL_RADIUS;
+            // the focus ring sits OUTSIDE the shape (an inset of 2 px), so it reads as focus and not as a thicker border
+            RoundRectangle2D shape = new RoundRectangle2D.Float(2.5f, 2.5f, w - 5f, h - 5f, arc, arc);
             g.setColor(hot ? UiTheme.accentWash(0.16f) : UiTheme.accentWash(0.06f));
             g.fill(shape);
-            g.setColor(hot ? UiTheme.accent() : UiTheme.mix(UiTheme.surfaceEdge(), UiTheme.accent(), 0.35f));
+            g.setColor(hot || focused ? UiTheme.accent() : UiTheme.mix(UiTheme.surfaceEdge(), UiTheme.accent(), 0.35f));
             g.draw(shape);
+            if (focused) {
+                g.setStroke(new BasicStroke(2f));
+                g.setColor(UiTheme.accent());
+                g.draw(new RoundRectangle2D.Float(1f, 1f, w - 2f, h - 2f, arc + 3f, arc + 3f));
+                g.setStroke(new BasicStroke(1f));
+            }
             g.setColor(UiTheme.accentText());
             paintGlyph(g, title, H_PAD, (h - 17) / 2);
             g.setFont(font());
             FontMetrics fm = g.getFontMetrics();
-            g.drawString(label == null ? "" : label, H_PAD + 18 + 6, (h - fm.getHeight()) / 2 + fm.getAscent());
+            g.drawString(label == null ? "" : label, H_PAD + 18 + 8, (h - fm.getHeight()) / 2 + fm.getAscent());
             g.dispose();
         }
 
