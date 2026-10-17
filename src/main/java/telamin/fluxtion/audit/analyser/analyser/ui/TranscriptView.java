@@ -527,7 +527,7 @@ public final class TranscriptView extends JTextPane {
             throws BadLocationException {
         TranscriptStyle.Palette p = TranscriptStyle.palette(renderedDark);
         JButton b = UiText.button(VisibleMarks.show(label));
-        b.setToolTipText(UiText.tooltip(stale ? tip + " (from an earlier log generation)" : tip));
+        b.setToolTipText(UiText.tooltip(stale ? tip + " (from an earlier load of the log)" : tip));
         b.getAccessibleContext().setAccessibleName(tip);
         b.setMargin(new Insets(0, 4, 0, 4));
         b.setFocusable(true);
@@ -541,8 +541,8 @@ public final class TranscriptView extends JTextPane {
         b.putClientProperty("transcript.chip", label);
         b.addActionListener(e -> {
             if (stale) {
-                navigator.say("this answer was about generation " + item.logGeneration() + "; the log is now generation "
-                        + chips.generation());
+                navigator.say("this answer was about load " + item.logGeneration() + " of the log; it has been "
+                        + "reloaded since (load " + chips.generation() + ")");
             } else {
                 go.run();
             }
@@ -576,7 +576,9 @@ public final class TranscriptView extends JTextPane {
         toggle.setBorderPainted(false);
         toggle.setContentAreaFilled(false);
         toggle.setFont(UiTheme.mono(fontSize()));
-        toggle.getAccessibleContext().setAccessibleName(VisibleMarks.show(name) + " — " + mark.spoken
+        atLeastTarget(toggle);                    // review §4.3 (WCAG 2.5.8): 24×24, never the 19×19 a glyph gives
+        toggle.getAccessibleContext().setAccessibleName(VisibleMarks.show(name) + " — "
+                + TranscriptStyle.spoken(mark, steps.isEmpty() ? null : VisibleMarks.show(outcome))
                 + (open ? ", expanded" : ", collapsed: press to show its " + expandedWhat));
         toggle.setToolTipText(UiText.tooltip(open ? "Hide this call's " + expandedWhat : "Show this call's " + expandedWhat));
         toggle.addActionListener(e -> {
@@ -653,8 +655,20 @@ public final class TranscriptView extends JTextPane {
         b.getAccessibleContext().setAccessibleName(tip);
         b.setMargin(new Insets(0, 4, 0, 4));
         b.setFont(getFont().deriveFont((float) Math.max(9, fontSize() - 2)));
+        atLeastTarget(b);
         b.addActionListener(e -> action.run());
         insertComponent(doc, b, item);
+    }
+
+    /** The least size of a target in the transcript (WCAG 2.5.8 minimum: 24×24 CSS px). */
+    static final int TARGET_MIN = 24;
+
+    /** Grow {@code b} to at least {@link #TARGET_MIN} in each direction, keeping its own size when larger. */
+    static void atLeastTarget(JComponent b) {
+        java.awt.Dimension d = b.getPreferredSize();
+        java.awt.Dimension min = new java.awt.Dimension(Math.max(TARGET_MIN, d.width), Math.max(TARGET_MIN, d.height));
+        b.setPreferredSize(min);
+        b.setMinimumSize(min);
     }
 
     private void insertComponent(StyledDocument doc, JComponent c, Item item) throws BadLocationException {

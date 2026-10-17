@@ -36,6 +36,12 @@ public final class UiTheme {
     public static final int TARGET_MIN_HEIGHT = 32;
     /** The corner radius of a control's shape. */
     public static final int CONTROL_RADIUS = 8;
+    /**
+     * Owner decision (2026-10-17): a spotlight callout wraps at about this many characters a line, and shows at most
+     * {@link #CALLOUT_MAX_LINES} lines — the third ending "…" when there is more, the whole caption on hover or focus.
+     */
+    public static final int CALLOUT_LINE_CHARS = 40;
+    public static final int CALLOUT_MAX_LINES = 3;
 
     /**
      * A light section header — a thin top rule and a small, muted title, with even inner padding.
@@ -63,9 +69,22 @@ public final class UiTheme {
         l.setForeground(mutedForeground());
     }
 
-    /** A warning foreground that reads on the active theme — brick on light, salmon on dark. Recomputed per call, so a re-render after a theme switch picks the right one. */
+    /*
+     * Review M74 usability §4.1 (2026-10-17): every foreground token below meets WCAG 2.2 AA — 4.5:1 for text, 3:1 for a
+     * control's boundary — on the panel, the content surface and the start page's band, in both themes. Each takes the
+     * theme explicitly so {@code ThemeContrastTest} computes the ratios headless; the no-argument form reads the theme.
+     * Each MEANING has its own token (§2, colour semantics): full Claude Code's cue is {@link #fullCue}, a denied call is
+     * {@link #deniedForeground}, a status note is {@link #noteForeground}, a warning is {@link #warnForeground} — and
+     * none of them is ever the only cue (each carries its words or its glyph).
+     */
+
+    /** A warning foreground — brick on light, salmon on dark. Recomputed per call, so a theme switch picks the right one. */
     public static Color warnForeground() {
-        return ThemeManager.isDark() ? new Color(0xE8, 0x7A, 0x5A) : new Color(0xB0, 0x40, 0x20);
+        return warnForeground(ThemeManager.isDark());
+    }
+
+    public static Color warnForeground(boolean dark) {
+        return dark ? new Color(0xF4A082) : new Color(0xB04020);
     }
 
     /**
@@ -74,7 +93,11 @@ public final class UiTheme {
      * bug where explicit colours survived updateComponentTreeUI is the reason both are methods.
      */
     public static Color okForeground() {
-        return ThemeManager.isDark() ? new Color(0x6F, 0xC2, 0x76) : new Color(0x2E, 0x7D, 0x32);
+        return okForeground(ThemeManager.isDark());
+    }
+
+    public static Color okForeground(boolean dark) {
+        return dark ? new Color(0x6F, 0xC2, 0x76) : new Color(0x2E, 0x7D, 0x32);
     }
 
     /**
@@ -84,20 +107,110 @@ public final class UiTheme {
      * owner's first sight of the light in that state was "red MCP starting" (2026-08-28).
      */
     public static Color attentionForeground() {
-        return ThemeManager.isDark() ? new Color(0xE6, 0xB4, 0x3C) : new Color(0xA8, 0x6E, 0x00);
+        return attentionForeground(ThemeManager.isDark());
+    }
+
+    public static Color attentionForeground(boolean dark) {
+        return dark ? new Color(0xE6, 0xB4, 0x3C) : new Color(0x8A, 0x5A, 0x00);
     }
 
     /**
-     * The local agent's status notes (M74 visual check): burnt orange on light (the P1a colour, about 5:1 on the panel),
-     * a lighter amber on dark, where the P1a orange read at about 3:1. Recomputed per call, like the others.
+     * A status NOTE (the composer's hint, a placed draft): teal, its own meaning — no longer the orange that full Claude
+     * Code's cue and a denied call also wore (review §2: one colour meant three things).
      */
     public static Color noteForeground() {
-        return ThemeManager.isDark() ? new Color(0xF0, 0xB4, 0x5A) : new Color(0xB0, 0x5A, 0x00);
+        return noteForeground(ThemeManager.isDark());
     }
 
-    /** The theme's muted foreground (secondary text), with a sensible fallback. */
+    public static Color noteForeground(boolean dark) {
+        return dark ? new Color(0x5FC9C9) : new Color(0x00676B);
+    }
+
+    /** A refusal or an error in words (an Apply refused, a pack refused): red, always with its words. */
+    public static Color errorForeground() {
+        return errorForeground(ThemeManager.isDark());
+    }
+
+    public static Color errorForeground(boolean dark) {
+        return dark ? new Color(0xFF9A92) : new Color(0xCF222E);
+    }
+
+    /**
+     * A call that was DENIED (by you, by the deadline, by the profile): a neutral ink, bold, with its words — the
+     * person's own decision is not a warning, and it must not wear full Claude Code's colour.
+     */
+    public static Color deniedForeground(boolean dark) {
+        return dark ? new Color(0xC9D1D9) : new Color(0x4B5563);
+    }
+
+    /** Full Claude Code's cue: the standard modes (default, plan), or {@code strong} for acceptEdits and auto. */
+    public static Color fullCue(boolean strong, boolean dark) {
+        if (strong) return dark ? new Color(0xFF8FBF) : new Color(0xC2185B);
+        return dark ? new Color(0xF0A040) : new Color(0x9A4D00);
+    }
+
+    /**
+     * The theme's muted foreground (secondary text). Review M74 usability #2: it was FlatLaf's DISABLED grey (#8C8C8C),
+     * 2.5–3.3:1 in light and 3.1–4.1:1 in dark — the longest safety explanations were the hardest to read and looked
+     * disabled. Now a secondary ink at 4.8:1 or better on every surface it sits on.
+     */
     public static Color mutedForeground() {
-        return or(UIManager.getColor("Label.disabledForeground"), new Color(0x8A8F98));
+        return mutedForeground(ThemeManager.isDark());
+    }
+
+    public static Color mutedForeground(boolean dark) {
+        return dark ? new Color(0xA9B1BA) : new Color(0x57606A);
+    }
+
+    /**
+     * Paint {@code text} as a placeholder in an empty text component (FlatLaf draws one for a text field, not for a text
+     * area): the placeholder token, at the component's text inset; nothing when it has text.
+     */
+    public static void paintPlaceholder(javax.swing.text.JTextComponent c, java.awt.Graphics g, String text) {
+        if (text == null || c.getDocument().getLength() > 0) return;
+        java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
+        try {
+            g2.setRenderingHint(java.awt.RenderingHints.KEY_TEXT_ANTIALIASING,
+                    java.awt.RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+            g2.setColor(placeholderForeground(ThemeManager.isDark()));
+            g2.setFont(c.getFont());
+            java.awt.Insets in = c.getInsets();
+            g2.drawString(text, in.left + 2, in.top + g2.getFontMetrics().getAscent());
+        } finally {
+            g2.dispose();
+        }
+    }
+
+    /** Placeholder text in an empty field: 4.5:1 on the field's own fill. */
+    public static Color placeholderForeground(boolean dark) {
+        return dark ? new Color(0xB4BCC4) : new Color(0x6B7280);
+    }
+
+    /**
+     * A control's boundary at rest — a text field, a checkbox, a button, a card, a chip's outline: 3:1 against the
+     * panel, the surface and the start page's band (WCAG 1.4.11). FlatLaf's own greys were 1.6–2.0:1.
+     */
+    public static Color controlBorder() {
+        return controlBorder(ThemeManager.isDark());
+    }
+
+    public static Color controlBorder(boolean dark) {
+        return dark ? new Color(0x8A949E) : new Color(0x6E7F95);
+    }
+
+    /** The focus ring and the hover/focus edge of a card: the accent, 3:1 or better on every surface. */
+    public static Color focusRing(boolean dark) {
+        return accent(dark);
+    }
+
+    /** The panel colour FlatLaf paints for each theme (for the contrast test; the live one is {@code Panel.background}). */
+    static Color panelOf(boolean dark) {
+        return dark ? new Color(0x3C3F41) : new Color(0xF2F2F2);
+    }
+
+    /** The start page's hero band: a 0.10 wash of the accent on the surface. */
+    static Color bandOf(boolean dark) {
+        return mix(surface(dark), accent(dark), 0.10f);
     }
 
     // ---- content surfaces -------------------------------------------------------------------------
@@ -113,7 +226,11 @@ public final class UiTheme {
      * expects — lighter in light mode, darker in dark.
      */
     public static Color surface() {
-        return ThemeManager.isDark() ? new Color(0x1B1F24) : new Color(0xFCFDFF);
+        return surface(ThemeManager.isDark());
+    }
+
+    public static Color surface(boolean dark) {
+        return dark ? new Color(0x1B1F24) : new Color(0xFCFDFF);
     }
 
     // ---- code type --------------------------------------------------------------------------------
@@ -202,7 +319,11 @@ public final class UiTheme {
      * product, which is the opposite of what an accent is for.
      */
     public static Color accent() {
-        return ThemeManager.isDark() ? new Color(0x6CB6FF) : new Color(0x1F6FEB);
+        return accent(ThemeManager.isDark());
+    }
+
+    public static Color accent(boolean dark) {
+        return dark ? new Color(0x6CB6FF) : new Color(0x1F6FEB);
     }
 
     /**
@@ -211,12 +332,20 @@ public final class UiTheme {
      * theme moves it the way that theme needs — lighter on dark, deeper on light.
      */
     public static Color accentText() {
-        return ThemeManager.isDark() ? new Color(0x8FC8FF) : new Color(0x0B4FB8);
+        return accentText(ThemeManager.isDark());
+    }
+
+    public static Color accentText(boolean dark) {
+        return dark ? new Color(0x8FC8FF) : new Color(0x0B4FB8);
     }
 
     /** Readable ink ON an accent-filled shape. */
     public static Color onAccent() {
-        return ThemeManager.isDark() ? new Color(0x0D1117) : Color.WHITE;
+        return onAccent(ThemeManager.isDark());
+    }
+
+    public static Color onAccent(boolean dark) {
+        return dark ? new Color(0x0D1117) : Color.WHITE;
     }
 
     /**
@@ -242,6 +371,11 @@ public final class UiTheme {
     /** A hairline for the edge of a {@link #surface()}, so the pane reads as a pane at any zoom. */
     public static Color surfaceEdge() {
         return ThemeManager.isDark() ? new Color(0x3A4149) : new Color(0xD6DBE1);
+    }
+
+    /** A wash of the accent mixed into the surface of the given theme (for the contrast test). */
+    static Color accentWash(float strength, boolean dark) {
+        return mix(surface(dark), accent(dark), strength);
     }
 
     /**

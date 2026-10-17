@@ -55,7 +55,7 @@ class TranscriptStyleTest {
         assertEquals("Claude Code", TranscriptStyle.marker(TranscriptStyle.Role.CLAUDE));
         assertEquals(TranscriptStyle.Mark.OK, TranscriptStyle.Mark.of("✓"));
         assertEquals(TranscriptStyle.Mark.REFUSED, TranscriptStyle.Mark.of("refused"));
-        assertEquals(TranscriptStyle.Mark.DENIED, TranscriptStyle.Mark.of("denied by the posture"));
+        assertEquals(TranscriptStyle.Mark.DENIED, TranscriptStyle.Mark.of("denied by you"));
     }
 
     @Test
@@ -64,5 +64,52 @@ class TranscriptStyleTest {
         assertNotEquals(TranscriptStyle.fullPosture(false, false), TranscriptStyle.fullPosture(false, true));
         assertNotEquals(TranscriptStyle.fullPosture(true, false), TranscriptStyle.fullPosture(true, true));
         assertNotEquals(TranscriptStyle.fullPosture(true, false), TranscriptStyle.fullPosture(false, false));
+    }
+
+    /**
+     * ★ Review M74 usability #5 (WCAG 1.3.1, 4.1.2): what is SPOKEN follows the line's own words — "denied by you", "not
+     * answered within 120 s" and "not allowed in Safe analysis" are three different decision makers, and the mark's
+     * colour is the same for all three. Witness: speak {@code mark.spoken} for every denial (the old "denied by the
+     * posture") — the live accessible name below says nothing of who denied, and the first assertion fails.
+     */
+    @Test
+    @DisplayName("★ a denied line's accessible name says who denied it, in the line's own words")
+    void theSpokenWordsFollowTheReason() throws Exception {
+        assertEquals("denied by you", TranscriptStyle.spoken(TranscriptStyle.Mark.DENIED, "denied by you"));
+        assertEquals("denied: not answered within 120 s",
+                TranscriptStyle.spoken(TranscriptStyle.Mark.DENIED, "denied: not answered within 120 s"));
+        assertEquals("denied: not allowed in Safe analysis",
+                TranscriptStyle.spoken(TranscriptStyle.Mark.DENIED, "denied: not allowed in Safe analysis"));
+        assertEquals("succeeded", TranscriptStyle.spoken(TranscriptStyle.Mark.OK, "✓"), "a tick is spoken as a word");
+        for (TranscriptStyle.Mark m : TranscriptStyle.Mark.values()) {
+            assertFalse(m.spoken.contains("posture"), "no internal word is spoken: " + m);
+        }
+
+        java.util.List<String> names = TranscriptViewTest.onEdt(() -> {
+            TranscriptView v = new TranscriptView();
+            v.render(java.util.List.of(TranscriptViewTest.answer("a",
+                    "▸ analyser_open {\"log\":\"a\"} — denied by you\n"
+                            + "▸ analyser_report {} — denied: not answered within 120 s\n"
+                            + "▸ Bash {\"command\":\"ls\"} — denied: not allowed in Safe analysis")));
+            java.util.List<String> out = new java.util.ArrayList<>();
+            for (java.awt.Component c : components(v)) {
+                if (c instanceof javax.swing.JButton b && b.getText() != null && (b.getText().equals("▸")
+                        || b.getText().equals("▾"))) out.add(b.getAccessibleContext().getAccessibleName());
+            }
+            return out;
+        });
+        assertEquals(3, names.size(), names.toString());
+        assertTrue(names.get(0).startsWith("analyser_open — denied by you"), names.get(0));
+        assertTrue(names.get(1).startsWith("analyser_report — denied: not answered within 120 s"), names.get(1));
+        assertTrue(names.get(2).startsWith("Bash — denied: not allowed in Safe analysis"), names.get(2));
+    }
+
+    static java.util.List<java.awt.Component> components(java.awt.Container root) {
+        java.util.List<java.awt.Component> out = new java.util.ArrayList<>();
+        for (java.awt.Component c : root.getComponents()) {
+            out.add(c);
+            if (c instanceof java.awt.Container k) out.addAll(components(k));
+        }
+        return out;
     }
 }

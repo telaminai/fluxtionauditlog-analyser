@@ -337,7 +337,7 @@ class TranscriptViewTest {
             return null;
         });
         assertEquals(List.of(), went);
-        assertEquals("this answer was about generation 3; the log is now generation 4", said.get(0));
+        assertEquals("this answer was about load 3 of the log; it has been reloaded since (load 4)", said.get(0));
     }
 
     // ---- ★ incremental rendering --------------------------------------------------------------------------------------
