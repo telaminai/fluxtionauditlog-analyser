@@ -10,4 +10,4 @@ The words these docs use with a fixed meaning: profile, work mode, walk, reel, b
 ## Where this is covered today
 
 - [Diagnose in the analyser](../inapp/index.md)
-- [Portable context](../user-guide/portable-context.md)
+- [Projects, profiles and sharing](../user-guide/projects.md)

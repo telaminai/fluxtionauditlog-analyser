@@ -64,7 +64,7 @@ machine's and this user's only**, except *Exchange folder (this project)*, which
 project profile or an evidence bundle, and an administrator cannot lock them yet ([Managed policy](managed-policy.md)).
 One exception travels: a settings file exported with its *Assistant* category carries the four settings marked †
 below, External MCP/REST access among them, and importing that category applies them
-([Sharing setups](../user-guide/sharing-setups.md)).
+([Projects, profiles and sharing](../user-guide/projects.md#what-is-kept-where)).
 
 ![Settings ▸ Assistant, grouped by profile: Safe analysis, Full Claude Code, In-app assistant and Every assistant, with
 Connect an AI client…, External MCP/REST access and the exchange folders](../assets/settings-assistant.png)

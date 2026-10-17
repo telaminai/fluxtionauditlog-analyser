@@ -301,7 +301,7 @@ design from chat history alone.
 You can record `RUNBOOK.md` as a project-relative runbook pointer in the analyser
 profile, preserving any existing entries. The Project panel shows that pointer;
 the LLM reads the file with its own tools. Opening a project never runs its scripts.
-See [Portable context](user-guide/portable-context.md) and
+See [Portable context](user-guide/projects.md#portable-context-what-the-team-knows) and
 [Runbooks with an AI](ai-and-runbooks.md).
 
 The [Spring design-partner procedure](https://fluxtion-playground.dev/spring-authoring/skill.md)

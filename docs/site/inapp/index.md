@@ -70,8 +70,7 @@ Every assistant renders onto the same views you use yourself:
 
 Related pages in other sections: [The start page](../user-guide/start-page.md) and the
 [sample prompt pack](../user-guide/sample-prompt-pack.md) under *Get started*;
-[Projects, profiles and sharing](../user-guide/projects.md), [Portable context](../user-guide/portable-context.md),
-[Sharing setups](../user-guide/sharing-setups.md) and [Log-source plugins](../user-guide/plugins.md) under
+[Projects, profiles and sharing](../user-guide/projects.md) and [Log-source plugins](../user-guide/plugins.md) under
 *Administer and secure*.
 
 ## Where the old *Analyser assistant* page went

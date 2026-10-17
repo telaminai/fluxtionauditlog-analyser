@@ -40,7 +40,9 @@ external loop. Each card's line is shown in full — the card grows to fit it.
 
 The cards and *Settings ▸ Assistant* write the user's own `~/.fluxtion-analyser/config`, on this machine. A profile is
 never read from a project, a shared settings file or an evidence bundle, so a cloned repository or a received bundle
-cannot turn an assistant on. What an administrator can and cannot enforce today is on
+cannot turn an assistant on. One related switch can travel: a shared settings file's *Assistant* category carries
+*External MCP/REST access* and the in-app assistant's view switch ([Projects, profiles and
+sharing](../user-guide/projects.md#what-is-kept-where)). What an administrator can and cannot enforce today is on
 [Managed policy (planned)](managed-policy.md).
 
 *Settings ▸ Assistant* groups its switches the same way as the cards: *Safe analysis*, *Full Claude Code*, *In-app

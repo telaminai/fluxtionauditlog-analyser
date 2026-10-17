@@ -151,7 +151,7 @@ so the list your client shows is the truth.
   the endpoint file that carries its token is readable only by you.
 
 Your client asks before a destructive call only if its own approval settings say so: the analyser marks the tools,
-the client decides. The [FAQ's security answer](../faq.md#is-the-assistants-action-socket-safe-to-enable) is the
+the client decides. The [security model](../admin/security.md) is the
 canonical statement of this boundary.
 
 !!! warning "Reports about a live system contain real names"

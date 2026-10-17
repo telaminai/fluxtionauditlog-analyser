@@ -1,7 +1,7 @@
 # Runbooks, glossary and saved analyses — how an AI uses them
 
 A project profile carries three things an AI acts on: **runbook pointers**, a **glossary** pointer and
-**saved analyses** ([Portable context](user-guide/portable-context.md)). This page is the operating manual for the AI side:
+**saved analyses** ([Portable context](user-guide/projects.md#portable-context-what-the-team-knows)). This page is the operating manual for the AI side:
 how the in-app assistant or an LLM connected over MCP **finds** them, **uses** them, and **creates or
 updates** them — and the one thing it never does.
 

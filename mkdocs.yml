@@ -92,6 +92,8 @@ plugins:
         'user-guide/assistant.md': 'inapp/index.md'
         'the-loop.md': 'build/index.md'
         'evidence-bundles/demo.md': 'evidence-bundles/index.md'
+        'user-guide/portable-context.md': 'user-guide/projects.md'
+        'user-guide/sharing-setups.md': 'user-guide/projects.md'
 
 extra:
   social:
@@ -166,8 +168,6 @@ nav:
       - Settings reference: admin/settings.md
       - What is stored where, what leaves: admin/data.md
       - Projects, profiles and sharing: user-guide/projects.md
-      - Portable context: user-guide/portable-context.md
-      - Sharing setups: user-guide/sharing-setups.md
       - Log-source plugins: user-guide/plugins.md
       - Managed policy (planned): admin/managed-policy.md
   - Reference:

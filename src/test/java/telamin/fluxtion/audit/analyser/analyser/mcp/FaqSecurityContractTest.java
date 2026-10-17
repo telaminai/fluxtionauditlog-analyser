@@ -10,21 +10,29 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * The governance rule from review_handoff_16_aug_2026 D2: any verb marked destructive to MCP clients
- * MUST be named in the FAQ's security answer — the sentence a security evaluator reads. This test makes
+ * MUST be named in the security statement — the page a security evaluator reads. This test makes
  * the security answer mechanically un-forgettable: add a mutating/file-writing verb without documenting
  * it there and the build fails.
+ *
+ * <p>Docs restructure, phase 6 (2026-10-18): the security answer moved from the FAQ's "Is the assistant's action
+ * socket safe to enable?" to its own page, {@code docs/site/admin/security.md}, and every pin moved with it. The FAQ
+ * keeps a short answer that links there, and its offline answer and old-name checks stay pinned here.
  */
 class FaqSecurityContractTest {
+
+    /** The security statement (B11's one-page model), where the FAQ's security answer now lives. */
+    static final Path SECURITY = Path.of("docs/site/admin/security.md");
 
     @Test
     void everyDestructiveVerbIsNamedInTheFaqSecurityAnswer() throws Exception {
         String faq = Files.readString(Path.of("docs/site/faq.md"));
-        int start = faq.indexOf("## Is the assistant's action socket safe to enable?");
-        assertTrue(start >= 0, "the FAQ security answer heading moved or was removed — update this test "
-                + "AND make sure the answer still exists; it is the user-facing security contract");
-        int end = faq.indexOf("\n## ", start + 1);
-        String answer = (end > 0 ? faq.substring(start, end) : faq.substring(start))
-                .replaceAll("\\s+", " ");   // prose reflows; the CONTRACT must survive a line-wrap
+        String page = Files.readString(SECURITY);
+        assertTrue(page.startsWith("# Security model and limits"), "the security page moved or was renamed — update this "
+                + "test AND make sure the statement still exists; it is the user-facing security contract");
+        assertTrue(faq.contains("## Is the assistant's action socket safe to enable?")
+                        && faq.contains("[security model](admin/security.md)"),
+                "the FAQ's security question must stay, and point at the security page");
+        String answer = page.replaceAll("\\s+", " ");   // prose reflows; the CONTRACT must survive a line-wrap
         // M29 D-F4 (review F1): the read rule is part of the security contract — external reads share
         // the write opt-in and its directory, and the FAQ must keep saying so
         assertTrue(answer.contains("read only from that same directory")
@@ -103,7 +111,7 @@ class FaqSecurityContractTest {
         for (String verb : McpTools.destructiveVerbs()) {
             assertTrue(answer.contains("`" + verb + "`"),
                     "destructive verb '" + verb + "' is not named in the FAQ's security answer — "
-                            + "document what it can touch (docs/site/faq.md) in the same change that adds it");
+                            + "document what it can touch (docs/site/admin/security.md) in the same change that adds it");
         }
     }
 
@@ -167,9 +175,8 @@ class FaqSecurityContractTest {
         assertTrue(inApp.contains("is sent to the model provider you chose"), inApp);
         assertTrue(telamin.fluxtion.audit.analyser.analyser.ui.LocalAgentPanel.SAFE_LIMITS.contains(cc), "the limits line");
         String faq = Files.readString(Path.of("docs/site/faq.md")).replaceAll("\\s+", " ");
-        int start = faq.indexOf("## Is the assistant's action socket safe to enable?");
-        String answer = faq.substring(start, faq.indexOf(" ## ", start + 1));
-        assertTrue(answer.contains("No assistant profile is local-only, Safe analysis included."), "the FAQ security answer");
+        String answer = Files.readString(SECURITY).replaceAll("\\s+", " ");
+        assertTrue(answer.contains("No assistant profile is local-only, Safe analysis included."), "the security page");
         assertTrue(answer.contains("is sent to the model provider (Anthropic, on your Claude plan or API key), as in any "
                 + "Claude Code session"), "…names the provider for Claude Code");
         assertTrue(answer.contains("to the model provider you chose"), "…and for the in-app assistant");
@@ -195,7 +202,8 @@ class FaqSecurityContractTest {
                 "Settings ▸ Assistant says it for Claude Code and for the in-app assistant");
         for (String untrue : new String[]{"local-only analysis", "nothing leaves this machine", "stays on your machine",
                 "never leaves your machine"}) {
-            for (String f : new String[]{"docs/site/faq.md", "docs/site/admin/profiles.md", "docs/site/admin/managed-policy.md",
+            for (String f : new String[]{"docs/site/faq.md", "docs/site/admin/security.md", "docs/site/admin/data.md",
+                    "docs/site/admin/external-access.md", "docs/site/admin/profiles.md", "docs/site/admin/managed-policy.md",
                     "docs/site/inapp/index.md", "docs/site/inapp/assistant-panel.md", "docs/site/inapp/claude-code.md",
                     "docs/site/inapp/ask.md", "docs/site/inapp/transcript.md", "docs/site/inapp/approvals.md",
                     "docs/site/user-guide/start-page.md", "docs/site/getting-started.md"}) {

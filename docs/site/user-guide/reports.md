@@ -138,4 +138,4 @@ changing the report or bin. A string always names a report, including `restore: 
 
 Reports persist with your profile, travel with projects, and share under their **own category** —
 because a shared report carries narrative written about your data, which deserves its own consent
-checkbox. See [Sharing setups](sharing-setups.md).
+checkbox. See [Sharing settings with a file](projects.md#sharing-settings-with-a-file).

@@ -10,7 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * What a share category CARRIES must be what its two disclosure surfaces SAY — the export dialog's
  * checkbox label ({@code Category.label}) and the category table in
- * {@code docs/site/user-guide/sharing-setups.md}. A user ticking a box is consenting to what leaves
+ * {@code docs/site/user-guide/projects.md} (it absorbed the old sharing-setups page in the docs restructure). A user ticking a box is consenting to what leaves
  * the machine; an artifact riding a category those surfaces don't mention is undisclosed cargo.
  *
  * <p>This test exists because it happened (review F1, feat/b-m20-3-m26-m27): named focuses joined the
@@ -22,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class ShareDisclosureContractTest {
 
-    private static final Path DOC = Path.of("docs/site/user-guide/sharing-setups.md");
+    private static final Path DOC = Path.of("docs/site/user-guide/projects.md");
 
     /** Every checkbox label appears in the docs table — a renamed or new category must update the page. */
     @Test
@@ -67,6 +67,32 @@ class ShareDisclosureContractTest {
         assertTrue(doc.contains("provenance"),
                 DOC + " never mentions provenance, but a shared report's fingerprint carries it — "
                         + "and it names internal systems, which a recipient's checkbox must warn about");
+    }
+
+    /**
+     * Docs restructure, phase 6: the ASSISTANT category carries the External MCP/REST access switch (assistant.rest) and the
+     * in-app view switch, not only the caps the old page named. Importing it can open the endpoint an outside client uses,
+     * so the page must say so where the categories are listed. Witness: drop "External MCP/REST access" from the page's
+     * Assistant row and warning, or stop exporting assistant.rest — the first assertion names which surface moved.
+     */
+    @Test
+    void theAssistantCategoryDisclosesTheExternalAccessSwitch() throws Exception {
+        java.util.Properties p = new java.util.Properties();
+        AppConfig c = new AppConfig();
+        c.assistantActionsRest = true;
+        String written = new SettingsShare("/home/x").export(c, java.util.EnumSet.of(SettingsShare.Category.ASSISTANT));
+        p.load(new java.io.StringReader(written));
+        boolean carriesRest = p.containsKey("assistant.rest");
+        String doc = Files.readString(DOC).replaceAll("\\s+", " ");
+        if (carriesRest) {
+            assertTrue(doc.contains("A shared settings file can turn on External MCP/REST access"),
+                    DOC + " must warn that the Assistant category carries the External MCP/REST access switch");
+            assertTrue(doc.contains("| Assistant | *External MCP/REST access*"),
+                    DOC + "'s Assistant row must name the switch it carries");
+        } else {
+            assertTrue(!doc.contains("A shared settings file can turn on External MCP/REST access"),
+                    "assistant.rest no longer travels: remove the warning from " + DOC);
+        }
     }
 
     /** The one promise stronger than disclosure: the key never travels, and the page must keep saying so. */
