@@ -2,16 +2,11 @@ import com.formdev.flatlaf.FlatLightLaf;
 import telamin.fluxtion.audit.analyser.analyser.config.AppConfig;
 import telamin.fluxtion.audit.analyser.analyser.ui.McpSetupDialog;
 
-import javax.imageio.ImageIO;
 import javax.swing.JButton;
 import javax.swing.SwingUtilities;
 import java.awt.Component;
 import java.awt.Container;
-import java.awt.GraphicsConfiguration;
-import java.awt.Rectangle;
-import java.awt.Robot;
 import java.awt.Window;
-import java.awt.image.BufferedImage;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.concurrent.TimeUnit;
@@ -19,7 +14,8 @@ import java.util.concurrent.TimeUnit;
 /**
  * Captures M42's Swing-only disclosures without macOS Accessibility permission.
  *
- * <p>The Python docs harness supplies an isolated {@code user.home}, a neutral fake JBang launcher and
+ * <p>Each image is taken by the harness, by window id ({@code DocShot}): Robot photographed the desktop where the
+ * screen-recording grant was missing. The Python docs harness supplies an isolated {@code user.home}, a neutral fake JBang launcher and
  * a neutral fake Claude executable before starting this class. It never accepts a registration: the
  * second image is the confirmation the person sees before a CLI would be invoked.
  */
@@ -38,7 +34,7 @@ public final class McpSetupDocCapture {
         config.assistantActionsRest = true;
         show(config, McpSetupDialog.Target.GENERIC);
         Window generic = awaitWindow("Connect an AI client");
-        capture(generic, assets.resolve("mcp-generic-setup.png"));
+        telamin.fluxtion.audit.analyser.analyser.ui.DocShot.window(generic, "mcp-generic-setup.png");
         dispose(generic);
 
         show(config, McpSetupDialog.Target.CLAUDE_CODE);
@@ -46,7 +42,7 @@ public final class McpSetupDocCapture {
         JButton register = awaitButton(setup, "Register with Claude Code…");
         SwingUtilities.invokeLater(register::doClick);
         Window confirmation = awaitWindow("Confirm Claude Code registration");
-        capture(confirmation, assets.resolve("mcp-claude-code-confirm.png"));
+        telamin.fluxtion.audit.analyser.analyser.ui.DocShot.window(confirmation, "mcp-claude-code-confirm.png");
         dispose(confirmation);
         dispose(setup);
     }
@@ -87,18 +83,6 @@ public final class McpSetupDocCapture {
             }
         }
         return null;
-    }
-
-    private static void capture(Window window, Path target) throws Exception {
-        SwingUtilities.invokeAndWait(() -> {
-            window.toFront();
-            window.requestFocus();
-        });
-        Thread.sleep(500);
-        Rectangle bounds = window.getBounds();
-        GraphicsConfiguration graphics = window.getGraphicsConfiguration();
-        BufferedImage image = new Robot(graphics.getDevice()).createScreenCapture(bounds);
-        if (!ImageIO.write(image, "png", target.toFile())) throw new IllegalStateException("could not write " + target);
     }
 
     private static void dispose(Window window) throws Exception {

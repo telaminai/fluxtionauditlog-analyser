@@ -60,9 +60,11 @@ without them. To restore any of them, load the demo fixture and capture by hand 
 mvn package                        # the harness drives the built jar
 python3 tools/capture-docs.py      # main/demo, chart, project/menu and spotlight shots
 python3 tools/capture-docs.py --mcp # regenerates only the isolated MCP setup/dialog shots
+mvn -o test-compile && python3 tools/capture-docs.py --m74   # the M74 assistant surfaces (test fixtures, no live claude)
+python3 tools/capture-docs.py --tutorial-demo                 # tutorial-cycle / -source from the DEMO fixture
 ```
 
-The harness launches the analyser on the demo fixture, drives it over the localhost REST transport
+The harness launches the analyser on the demo fixture, drives it over its loopback REST endpoint (External MCP/REST access)
 (`topology`, `goto`, `flag`, `open`, `screenshot` verbs) and takes a **native** window capture so the
 title bar is included. It sets the theme and resets the saved topology view first, so runs are
 reproducible rather than depending on whatever state the app was left in.
@@ -78,9 +80,41 @@ click the window**, then check every visible string before committing. Reference
 real alt text, e.g. from a `user-guide/` page:
 
 ```markdown
+![The records table with two flagged rows and their note](../assets/flagged-only.png)
 ```
 
 - `start-page.png` — the start page (M36): what the analyser shows with no log open. Captured by closing the log (`open {close: "all"}`) so the shot is the real state, not a mode built for the camera.
+
+## Capture audit — 2026-10-17 (M74)
+
+Regenerated on `feature/claude-code-p3` for the docs audit's M74 fix list
+([audit](../../handoff/docs-audit-2026-10-17.md)): every main-window, menu and spotlight shot (the toolbar's **Ask**,
+the record detail's **Ask about this**, the AI menu's *External MCP/REST access*), `start-page.png` (the new start
+page), the five `conv-*` shots and the eight journey shots. New, from `tools/M74DocCapture.java` (the test suite's
+`FixtureAgent` replaying the P3 capture with DEMO words, and its `FakeProvider`; no live `claude`, no network):
+`assistant-in-app.png`, `assistant-claude-code.png`, `assistant-profile-cards.png`, `ask-menu.png`,
+`permission-dialog.png`, `proposal-review.png` and `settings-assistant.png`. `tutorial-cycle.png` and
+`tutorial-source.png` are now of the DEMO fixture: the bundle's generated processor carried a real person's name in a
+Javadoc `@author` line and its events a real equity ticker.
+
+This display is 1920×1080 at 1x, so these images are 1680×1050 (dialogs at their own size), where the previous set was
+Retina 2x. Every image was opened and its visible strings read: only DEMO, `com.acme`, `/tmp/analyser-docs/…`,
+`~/.fluxtion-analyser`, the demo file names and placeholder plan names appear.
+
+Three capture-path fixes came with it. Menu shots fall back to compositing the frame and its popup windows, each by
+window id (`tools/CompositeShot.java`), where `screencapture -R` is refused; the window's top edge is 28 so the whole
+window fits a 1080-line screen. Dialog captures moved from `java.awt.Robot` to the window-id protocol of
+`tools/DocShot.java` for the M74 and MCP classes, because Robot without the screen-recording grant photographs the DESKTOP and the
+harness reported it as success. `tutorial-new-project-menu.png` is no longer ringed on the previous run's image when this
+run's Project-menu shot failed.
+
+`mcp-generic-setup.png` and `mcp-claude-code-confirm.png` were regenerated the same way (`McpSetupDocCapture` now uses
+`DocShot`). Not regenerated (the harness cannot reach them here): `template-picker.png` and
+`tutorial-template-picker.png` (`TemplatePickerDocCapture` still uses Robot, which produced the wallpaper on this
+machine, and reads the live catalogue),
+`tutorial-project-open.png` and `tutorial-log-open.png` (need the staged bundle, which needs a Fluxtion key), the four
+`spring-*` shots, `java-source-spotlight.png`, `chart-delete-confirmation.png`, `vendor-topology.png` and
+`spring-starter-preview.png`.
 
 ## Capture audit — 2026-09-21
 

@@ -16,6 +16,8 @@ Usage
     python3 tools/capture-docs.py            # regenerate everything into docs/site/assets
     python3 tools/capture-docs.py --start-page # regenerate only the no-log start page
     python3 tools/capture-docs.py --mcp      # regenerate only the MCP setup/dialog shots
+    python3 tools/capture-docs.py --tutorial-demo  # tutorial-cycle/-source from the DEMO fixture (no bundle, no key)
+    python3 tools/capture-docs.py --m74      # the assistant panel (both modes), cards, approval, proposal, Settings, Ask menu
     python3 tools/capture-docs.py --spotlight  # regenerate only the spotlight shots (light AND dark)
     python3 tools/capture-docs.py --projects-menu     # Project, Sources, Audit log + the tutorial's ringed Project shot
     python3 tools/capture-docs.py --template-picker   # the template picker + the tutorial's ringed copy of it
@@ -84,6 +86,11 @@ EXPORT_DIR = pathlib.Path(tempfile.gettempdir()) / "analyser-doc-capture"
 # prints the profile's full path, and rule 1 exists because a screenshot carries strings grep cannot see.
 DEMO_PROJECT = CAPTURE_ROOT / "demo-quote-project"
 _capture_process = None
+# The window's top edge. A menu shot is a REGION capture (the popup is its own window), and `screencapture -R` refuses a
+# rect that leaves the screen ("could not create image from rect"): at y=60 a 1050-high window overruns a 1080-line
+# display, and every menu shot failed on one (2026-10-17). Just under the macOS menu bar keeps the whole window on a
+# 1080p screen; a window-id capture is unaffected either way.
+WINDOW_Y = "28"
 
 
 def jar():
@@ -171,6 +178,8 @@ def menu_capture(ep, menu, name):
     # therefore still live for this one shot — raise_window() above is the mitigation, and READ THE IMAGE.
     subprocess.run(["screencapture", "-x", "-R",
                     f"{b['x']},{b['y']},{b['width']},{b['height']}", str(shot)], check=False)
+    if not (shot.exists() and shot.stat().st_size > 0):
+        composite_capture(ep.get("pid", -1), shot)      # -R refused: each of the app's windows by id, composited
     act(ep, "screenshot", {"path": f"menu-{menu}-close.png", "scope": "menu:close"})
     if shot.exists() and shot.stat().st_size > 0:
         shutil.copy(shot, target)
@@ -269,7 +278,7 @@ def launch(theme, project=None, mcp_setup=False):
                   # Fixed window geometry, or every run produces images of a different size and the
                   # whole asset set churns for no visual change. Documentation images should be
                   # reproducible; that is the reason they are generated rather than taken by hand.
-                  "windowX": "60", "windowY": "60", "windowW": "1680", "windowH": "1050"})
+                  "windowX": "60", "windowY": WINDOW_Y, "windowW": "1680", "windowH": "1050"})
     launch_jar = stage_mcp_setup_launchers() if mcp_setup else jar()
     env = None
     if mcp_setup:
@@ -345,6 +354,53 @@ def window_id(pid, title=None, fallback_rank=0):
           'selected?String(selected.id):""') % (expected_title, int(pid), int(fallback_rank))
     out = subprocess.run(["osascript", "-l", "JavaScript", "-e", js], capture_output=True, text=True).stdout.strip()
     return int(out) if out.isdigit() else None
+
+
+def windows_of(pid):
+    """Every on-screen window this analyser owns: [{id, layer, x, y, w, h}], largest first (CG points)."""
+    js = ('ObjC.import("CoreGraphics");'
+          'var l=$.CGWindowListCopyWindowInfo($.kCGWindowListOptionOnScreenOnly|$.kCGWindowListExcludeDesktopElements,0);'
+          'var a=ObjC.deepUnwrap(ObjC.castRefToObject(l));var o=[];'
+          'for (var w of a){ if(w.kCGWindowOwnerPID!==%d)continue; var b=w.kCGWindowBounds;'
+          ' o.push({id:w.kCGWindowNumber,layer:w.kCGWindowLayer,x:b.X,y:b.Y,w:b.Width,h:b.Height});}'
+          'JSON.stringify(o)') % int(pid)
+    out = subprocess.run(["osascript", "-l", "JavaScript", "-e", js], capture_output=True, text=True).stdout.strip()
+    try:
+        found = json.loads(out or "[]")
+    except ValueError:
+        return []
+    return sorted(found, key=lambda w: -(w["w"] * w["h"]))
+
+
+def composite_capture(pid, shot):
+    """A menu shot where `screencapture -R` is refused: the frame and its popups, each by window id, composited.
+
+    Only the analyser's OWN windows are photographed (`-l <id>`), so nothing else on the screen can reach the image —
+    stricter than the region capture it replaces. tools/CompositeShot.java draws each popup at its screen offset.
+    """
+    wins = windows_of(pid)
+    frames = [w for w in wins if w["layer"] == 0]
+    if not frames:
+        return False
+    frame = frames[0]
+    parts = []
+    for i, w in enumerate(wins):
+        part = EXPORT_DIR / f"part-{i}-{w['id']}.png"
+        subprocess.run(["screencapture", "-x", "-o", "-l", str(w["id"]), str(part)], check=False)
+        if part.exists() and part.stat().st_size > 0:
+            parts.append((w, part))
+    base = next((p for w, p in parts if w is frame), None)
+    if base is None:
+        return False
+    probe = subprocess.run(["sips", "-g", "pixelWidth", str(base)], capture_output=True, text=True).stdout
+    scale = int(probe.strip().split()[-1]) / frame["w"]
+    args = ["java", str(REPO / "tools" / "CompositeShot.java"), str(shot), str(scale), str(base),
+            str(frame["x"]), str(frame["y"])]
+    for w, p in parts:
+        if w is not frame and w["w"] * w["h"] < frame["w"] * frame["h"]:
+            args += [str(p), str(w["x"]), str(w["y"])]
+    subprocess.run(args, check=False, capture_output=True)
+    return shot.exists() and shot.stat().st_size > 0
 
 
 def native_capture(ep, bounds, shot):
@@ -436,28 +492,19 @@ def capture_mcp_setup():
     EXPORT_DIR.mkdir(parents=True)
     stage_mcp_setup_launchers()
     classes = CAPTURE_ROOT / "classes"
-    source = REPO / "tools" / "McpSetupDocCapture.java"
-    compile_result = subprocess.run(["javac", "-cp", str(CAPTURE_JAR), "-d", str(classes), str(source)],
-                                    capture_output=True, text=True)
     names = ["mcp-generic-setup.png", "mcp-claude-code-confirm.png"]
-    _attempted.extend(names)
+    compile_result = subprocess.run(["javac", "-cp", str(CAPTURE_JAR), "-d", str(classes),
+                                     str(REPO / "tools" / "DocShot.java"), str(REPO / "tools" / "McpSetupDocCapture.java")],
+                                    capture_output=True, text=True)
     if compile_result.returncode != 0:
         print(f"  ! could not compile MCP dialog capture: {compile_result.stderr.strip()}")
+        _attempted.extend(names)
         _failed.extend(names)
         return
     env = os.environ.copy()
     env["PATH"] = str(CAPTURE_BIN) + os.pathsep + env.get("PATH", "")
-    capture_result = subprocess.run(["java", f"-Duser.home={HOME}", "-cp",
-                                     str(classes) + os.pathsep + str(CAPTURE_JAR), "McpSetupDocCapture", str(ASSETS)],
-                                    capture_output=True, text=True, env=env)
-    if capture_result.returncode != 0:
-        print(f"  ! MCP dialog capture failed: {capture_result.stderr.strip()}")
-    for name in names:
-        asset = ASSETS / name
-        if capture_result.returncode == 0 and asset.exists() and asset.stat().st_size > 0:
-            print(f"  ✓ {name}  ({asset.stat().st_size // 1024} KB, dialog capture)")
-        else:
-            _failed.append(name)
+    run_shot_program(["java", f"-Duser.home={HOME}", "-cp", str(classes) + os.pathsep + str(CAPTURE_JAR),
+                      "McpSetupDocCapture", str(ASSETS)], names, env=env)
 
 
 def capture_template_picker():
@@ -503,6 +550,186 @@ def capture_template_picker():
     else:
         print(f"  ! template-picker capture failed: {result.stderr.strip()}")
         _failed.append(name)
+
+
+def run_shot_program(cmd, names, env=None, cwd=None):
+    """Run a Java capture program that speaks tools/DocShot.java's protocol, taking each image by WINDOW ID.
+
+    The program prints `SHOT <asset> x,y,w,h` (one window) or `SHOTALL <asset> x,y,w,h` (that window and the popups open
+    on it) and waits; this photographs the window whose bounds match, by `screencapture -l`, and answers `ok`. Robot
+    captures were replaced because, without the screen-recording grant, Robot silently returns the DESKTOP: four assets
+    were once "captured" as wallpaper (2026-10-17). A window-id capture shows the window or produces nothing.
+    `MARK …` lines are collected and returned, for annotate().
+    """
+    _attempted.extend(names)
+    marks = []
+    done = set()
+    proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+                            env=env, cwd=cwd)
+    for line in proc.stdout:
+        line = line.rstrip("\n")
+        if line.startswith("SHOT ") or line.startswith("SHOTALL "):
+            verb, asset, rect = line.split(" ", 2)
+            x, y, w, h = (int(v) for v in rect.split(","))
+            shot = EXPORT_DIR / f"window-{asset}"
+            if shot.exists():
+                shot.unlink()
+            if verb == "SHOTALL":
+                composite_capture(proc.pid, shot)
+            else:
+                match = [c for c in windows_of(proc.pid)
+                         if abs(c["x"] - x) <= 2 and abs(c["y"] - y) <= 2 and abs(c["w"] - w) <= 2 and abs(c["h"] - h) <= 2]
+                if match:
+                    subprocess.run(["screencapture", "-x", "-o", "-l", str(match[0]["id"]), str(shot)], check=False)
+            if shot.exists() and shot.stat().st_size > 0:
+                shutil.copy(shot, ASSETS / asset)
+                done.add(asset)
+                print(f"  ✓ {asset}  ({(ASSETS / asset).stat().st_size // 1024} KB, window capture)")
+            else:
+                print(f"  ! {asset} NOT captured — no window of pid {proc.pid} at {rect}")
+            proc.stdin.write("ok\n")
+            proc.stdin.flush()
+        elif line.startswith("MARK "):
+            marks.append(line)
+        elif line.strip():
+            print("    " + line)
+    proc.wait()
+    err = proc.stderr.read()
+    if proc.returncode != 0:
+        print(f"  ! capture program failed ({proc.returncode}): {err.strip()[-1500:]}")
+    for name in names:
+        if name not in done:
+            _failed.append(name)
+    return marks
+
+
+# the docs' Claude Code conversation: the P3 probe's ALLOW turn, recorded from the real CLI, with its probe words
+# (p3-zero-allow, a stub analyser's reply) replaced by DEMO ones. Everything else — the init, the bridge, the
+# permission request and its ids — is the recording's own.
+DOCS_FIXTURE_SOURCE = REPO / "docs/specs/evidence/m74-p3/fixtures/p3-0-default-real.jsonl"
+DOCS_ANSWER = ("The finding is written: **demo-breach-finding.pdf**, in the exchange folder. It records record #7, the "
+               "first `RiskBreachEvent`, where `breachHandler` logged `breachedOn: ord-2` with `liveOrders: 2`.")
+DOCS_RESULT = json.dumps({"ok": True, "action": "report", "wrote": {"path": "demo-breach-finding.pdf"}})
+DOCS_INPUT = {"title": "DEMO breach on record 7", "path": "demo-breach-finding.pdf"}
+
+
+def make_docs_fixture(target):
+    lines = [json.loads(l) for l in DOCS_FIXTURE_SOURCE.read_text().splitlines() if l.strip()]
+    turns, current = [], None
+    for m in lines:
+        if m.get("type") == "command_lifecycle" and m.get("state") == "started" and current is None:
+            current = [m]
+        elif current is not None:
+            current.append(m)
+            if m.get("type") == "command_lifecycle" and m.get("state") in ("completed", "cancelled"):
+                turns.append(current)
+                current = None
+    head = [m for m in lines[:2] if m.get("type") == "control_response"]
+    allow = next(t for t in turns if any("p3-zero-allow" in json.dumps(m) for m in t))
+    out, first_text, first_json = [], True, True
+
+    def fix(v):
+        if isinstance(v, dict):
+            if v.get("type") == "text_delta":
+                nonlocal first_text
+                v = dict(v, text=DOCS_ANSWER if first_text else "")
+                first_text = False
+                return v
+            if v.get("type") == "input_json_delta":
+                nonlocal first_json
+                v = dict(v, partial_json=(json.dumps(DOCS_INPUT) if first_json and v.get("partial_json") else ""))
+                if v["partial_json"]:
+                    first_json = False
+                return v
+            if "input" in v and isinstance(v["input"], dict) and "p3-zero-allow" in json.dumps(v["input"]):
+                v = dict(v, input=dict(DOCS_INPUT))
+            if "updatedInput" in v:
+                v = dict(v, updatedInput=dict(DOCS_INPUT))
+            if v.get("type") == "text" and "stub" in str(v.get("text")):
+                v = dict(v, text=DOCS_RESULT)          # a tool result's text: the analyser's own JSON shape
+            return {k: fix(x) for k, x in v.items()}
+        if isinstance(v, list):
+            return [fix(x) for x in v]
+        if isinstance(v, str):
+            return v.replace("p3-zero-allow", "demo-breach-finding")
+        return v
+
+    for m in head + allow:
+        if m.get("type") == "assistant":
+            for c in m["message"]["content"]:
+                if c.get("type") == "text":
+                    c["text"] = DOCS_ANSWER
+        if m.get("type") == "user" and isinstance(m["message"].get("content"), list):
+            for c in m["message"]["content"]:
+                if c.get("type") == "tool_result":
+                    c["content"] = [{"type": "text", "text": DOCS_RESULT}]
+            m["tool_use_result"] = [{"type": "text", "text": DOCS_RESULT}]
+        if m.get("type") == "result":
+            m["result"] = DOCS_ANSWER
+        out.append(json.dumps(fix(m)))
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text("\n".join(out) + "\n")
+    leftover = [w for w in ("p3-zero", "stub", "fake analyser") if w in target.read_text()]
+    if leftover:
+        sys.exit(f"the docs fixture still carries probe words: {leftover}")
+    return target
+
+
+def test_classpath():
+    """target/classes + target/test-classes + every dependency, for a capture that reuses the test fixtures."""
+    if not (REPO / "target/test-classes/telamin/fluxtion/audit/analyser/analyser/assistant/localagent/FixtureAgent.class").exists():
+        sys.exit("no compiled test fixtures — run `mvn -o test-compile` first")
+    out = CAPTURE_ROOT / "cp.txt"
+    subprocess.run(["mvn", "-o", "-q", "dependency:build-classpath", "-Dmdep.includeScope=test",
+                    f"-Dmdep.outputFile={out}"], cwd=REPO, check=True)
+    return os.pathsep.join([str(REPO / "target/classes"), str(REPO / "target/test-classes"), out.read_text().strip()])
+
+
+M74_NAMES = ["assistant-profile-cards.png", "assistant-in-app.png", "ask-menu.png", "permission-dialog.png",
+             "assistant-claude-code.png", "proposal-review.png", "settings-assistant.png"]
+
+
+def capture_m74():
+    """The M74 surfaces (tools/M74DocCapture.java): no live claude, no network — the test suite's FixtureAgent and
+    FakeProvider, under the same isolated home, on the demo fixture and the demo project only."""
+    print("M74 assistant surfaces (light)")
+    stop_capture_app()
+    shutil.rmtree(CAPTURE_ROOT, ignore_errors=True)
+    HOME.mkdir(parents=True)
+    if EXPORT_DIR.exists():
+        shutil.rmtree(EXPORT_DIR)
+    EXPORT_DIR.mkdir(parents=True)
+    # the exchange folder is SHOWN in Settings ▸ Assistant: a neutral path, never the machine's temp directory
+    set_config(**{"theme": "Light", "assistant.exports": "true", "assistant.exportDir": str(CAPTURE_ROOT / "exchange"),
+                  "hiddenColumn.count": "5", "hiddenColumn.0": "eventTime", "hiddenColumn.1": "groupingId",
+                  "hiddenColumn.2": "eventToString", "hiddenColumn.3": "endTime", "hiddenColumn.4": "thread",
+                  "windowX": "60", "windowY": WINDOW_Y, "windowW": "1680", "windowH": "1050"})
+    (CAPTURE_ROOT / "exchange").mkdir(parents=True, exist_ok=True)
+    profile = make_demo_project()
+    claude = HOME / ".local" / "bin" / "claude"         # found by the analyser's own search; never run (a fixture is)
+    claude.parent.mkdir(parents=True, exist_ok=True)
+    claude.write_text("#!/bin/sh\nexit 0\n")
+    claude.chmod(0o700)
+    # the bridge launcher the session resolves before Start (a classpath run has none of its own); shown, never run
+    jbang = HOME / ".jbang" / "bin" / "analyser"
+    jbang.parent.mkdir(parents=True, exist_ok=True)
+    jbang.write_text("#!/bin/sh\n# documentation capture launcher — never executed\n")
+    jbang.chmod(0o700)
+    fixture = make_docs_fixture(CAPTURE_ROOT / "m74-fixture" / "docs-claude-code.jsonl")
+    cp = test_classpath()
+    classes = CAPTURE_ROOT / "classes"
+    result = subprocess.run(["javac", "-cp", cp, "-d", str(classes), str(REPO / "tools" / "DocShot.java"),
+                             str(REPO / "tools" / "M74DocCapture.java")], capture_output=True, text=True)
+    if result.returncode != 0:
+        print(f"  ! could not compile the M74 capture: {result.stderr.strip()}")
+        _attempted.extend(M74_NAMES)
+        _failed.extend(M74_NAMES)
+        return
+    env = os.environ.copy()
+    env["PATH"] = str(claude.parent) + os.pathsep + env.get("PATH", "")
+    run_shot_program(["java", f"-Duser.home={HOME}", "-cp", str(classes) + os.pathsep + cp,
+                      "telamin.fluxtion.audit.analyser.analyser.ui.M74DocCapture", str(profile), str(LOG), str(GRAPHML),
+                      str(fixture)], M74_NAMES, env=env, cwd=REPO)
 
 
 def finish_capture():
@@ -583,6 +810,26 @@ def capture_tutorial():
     finish_capture()
 
 
+def capture_tutorial_demo():
+    """tutorial-cycle.png and tutorial-source.png from the shipped DEMO fixture, when the real bundle cannot be staged.
+
+    Staging the bundle (tools/stage-tutorial-bundle.sh) needs a Fluxtion API key and the fluxtion-web checkout. Its
+    generated processor carried a real person's name in a Javadoc @author line and its events a real equity ticker,
+    both of which reached these two images (docs audit 2026-10-17, rule 1: the sweep cannot read a PNG). These two
+    figures are therefore the same steps — one cycle read out, then click-through to the node's source — on the demo
+    fixture, which is com.acme / DEMO-A by construction; the page says so beside them.
+    """
+    print("tutorial shots from the DEMO fixture (light)")
+    ep = launch("Light")
+    seed(ep)
+    act(ep, "topology", {"showAll": True})
+    act(ep, "goto", {"recordIndex": 0, "reveal": True})
+    capture(ep, "tutorial-cycle.png")
+    act(ep, "topology", {"select": "priceListener", "source": True})
+    capture(ep, "tutorial-source.png")
+    finish_capture()
+
+
 def mark_new_project_item():
     """The tutorial's copy of the Project-menu shot, with *New project from template…* ringed.
 
@@ -591,6 +838,8 @@ def mark_new_project_item():
     """
     source = ASSETS / "projects-file-menu.png"
     bounds, items = _menu_items.get("Project", (None, []))
+    if "projects-file-menu.png" in _failed:
+        bounds = None       # never ring the PREVIOUS run's image with this run's item positions
     item = next((i for i in items if i.get("text", "").startswith("New project from template")), None)
     if not (source.exists() and bounds and item):
         print("  ! tutorial-new-project-menu.png NOT made — no Project-menu capture, or the app reported no such item")
@@ -704,6 +953,10 @@ def main():
         capture_walk()
         return
 
+    if "--tutorial-demo" in sys.argv:
+        capture_tutorial_demo()
+        return
+
     if "--tutorial" in sys.argv:
         capture_tutorial()
         return
@@ -723,6 +976,11 @@ def main():
 
     if "--template-picker" in sys.argv:
         capture_template_picker()
+        finish_capture()
+        return
+
+    if "--m74" in sys.argv:
+        capture_m74()
         finish_capture()
         return
 
