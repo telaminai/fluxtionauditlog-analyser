@@ -347,6 +347,23 @@ public final class LocalAgentPanel extends JPanel {
      * P2b (§5.6 step 4): the proposal banner, rendered from onboardingProposal's state — shown only while something is
      * the person's to answer; the review dialog opens on the person's click, never on a model call (OD-74.13).
      */
+    /** P3 (§8.3 UI): the permission prompt as the session decided it — the status line says Claude Code is waiting. */
+    public void renderPermission(telamin.fluxtion.audit.analyser.analyser.session.PermissionState p) {
+        boolean was = waitingForApproval;
+        waitingForApproval = p != null && p.waiting();
+        if (was != waitingForApproval && rendered != null) status.setText(statusText(rendered, waitingForApproval));
+    }
+
+    /** The status line: the phase, or, while a permission dialog is open, that Claude Code is waiting for the person. */
+    static String statusText(LocalAgentState s, boolean waiting) {
+        return waiting ? WAITING_TEXT : phaseText(s);
+    }
+
+    static final String WAITING_TEXT = "Claude Code is waiting for your answer — the analyser's dialog shows what it asks "
+            + "to run; Deny is the default, and Stop ends the turn";
+
+    private boolean waitingForApproval;
+
     public void renderProposal(telamin.fluxtion.audit.analyser.analyser.session.ProposalState p) {
         proposal = p == null ? telamin.fluxtion.audit.analyser.analyser.session.ProposalState.NONE : p;
         boolean show = proposal.awaitingPerson();
@@ -395,7 +412,7 @@ public final class LocalAgentPanel extends JPanel {
         send.setEnabled(!s.busy() && !"STOPPING".equals(s.phase()));
         settings.setVisible("SWITCHED_OFF".equals(s.verdict()) || "BUDGET_SPENT".equals(s.verdict()));
         newChat.setText(s.newChatOffered() ? "New chat (offered)" : "New chat");
-        status.setText(phaseText(s));
+        status.setText(statusText(s, waitingForApproval));
         renderFullCue(s);
         revalidate();
         String words = s.detailRef() != 0 ? store.text(s.detailRef()) : s.stderrRef() != 0
@@ -554,7 +571,7 @@ public final class LocalAgentPanel extends JPanel {
         LocalAgentState.FullCue cue = s.fullCue();
         if (cue == LocalAgentState.FullCue.NONE) return null;
         String mode = s.cuePosture().fullMode().cli();
-        return "Full Claude Code (preview) · " + mode + ": your tools and permissions"
+        return "Full Claude Code · " + mode + ": your tools and permissions"
                 + (cue == LocalAgentState.FullCue.RUNNING ? " — running" : " — on: it runs at the next Start");
     }
 

@@ -115,9 +115,13 @@ class HostedCredentialTest {
         assertEquals(403, post(READ, "made-up").statusCode(), "an unknown credential");
     }
 
-    /** ★ Witness (review S1): drop the destructive-verb refusal in {@code hostedRefusal} — the hosted open is dispatched. */
+    /**
+     * ★ Witness (review S1; P3): admit a destructive call in {@code hostedRefusal} instead of presenting it — the hosted
+     * open is dispatched. P3 lifts the refusal only by the person's grant (OD-74.17); with none (this gate's default
+     * presentation), every destructive call is still refused server-side, in P3's words.
+     */
     @Test
-    @DisplayName("★ S1: every destructive verb is refused for the hosted bridge server-side; an external client is unaffected")
+    @DisplayName("★ S1/P3: a destructive verb without the person's grant is refused for the hosted bridge; external unaffected")
     void destructiveVerbsAreRefusedForTheHostedBridge() throws Exception {
         String token = credentials.mint(4);
         admitted.set(4);
@@ -125,7 +129,8 @@ class HostedCredentialTest {
             String body = "{\"action\":\"" + verb + "\",\"params\":{}}";
             HttpResponse<String> hostedCall = post(body, token);
             assertEquals(403, hostedCall.statusCode(), verb);
-            assertTrue(hostedCall.body().contains("not available to Claude Code"), hostedCall.body());
+            assertTrue(hostedCall.body().contains("needs your approval in the analyser for this exact call"),
+                    hostedCall.body());
             assertEquals(400, post(body, null).statusCode(), verb + ": an external client reaches the dispatcher as before");
         }
     }

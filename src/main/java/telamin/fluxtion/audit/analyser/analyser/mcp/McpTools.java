@@ -101,6 +101,25 @@ public final class McpTools {
     }
 
     /**
+     * M74 P3 (spec §5.7): what a destructive verb changes, in the analyser's own words — the one line the permission
+     * dialog shows beside the call's input, so the person knows what Allow once lets happen.
+     */
+    public static String destructiveRationale(String verb) {
+        return switch (verb == null ? "" : verb) {
+            case "open" -> "open replaces the loaded log or project (what is open now is closed)";
+            case "source_root" -> "source_root changes the configured source roots, saved in your settings — the folders "
+                    + "the analyser reads source from";
+            case "screenshot" -> "screenshot writes an image file in the exchange directory";
+            case "report" -> "report builds or replaces a named report in the project, or writes a file in the exchange "
+                    + "directory";
+            case "walk" -> "walk saves, replaces, renames, plays or deletes a saved walk, or records one as a page in the "
+                    + "exchange directory";
+            case "import" -> "import borrows charts, reports or walks from an evidence bundle into the open project";
+            default -> "this verb changes what is open or writes files";
+        };
+    }
+
+    /**
      * M74 review H5: the verbs the analyser's own Claude Code session (the hosted bridge) may call without asking, BY
      * NAME — an allow-list, never "every verb minus the destructive ones". The one definition: {@code LocalAgentPosture}
      * (the command line and the posture check) and {@code ActionServer} (the server-side admission) both read it, so a

@@ -48,10 +48,13 @@ public class LocalAgentSession implements EventLogSource {
     public static final String AUTO_UNAVAILABLE_TEXT = "Claude Code started in default mode instead of auto: auto mode is "
             + "not available for the configured Claude Code model — choose a model that supports it (sonnet or opus) or "
             + "another mode in Settings ▸ Assistant; it was stopped";
-    /** P1b and P2: the full posture's {@code default} and {@code acceptEdits} ask, and nobody can be asked yet (PB-1). */
-    public static final String APPROVAL_UNAVAILABLE_TEXT = "an action needed your approval, which the analyser cannot ask "
-            + "for yet (approvals in the analyser come in a later release), so it was denied — allow it with your own "
-            + "Claude Code permission rules, or choose another mode in Settings ▸ Assistant";
+    /**
+     * PB-1's {@code asyncAgent} denial: a request the mode would ask about, denied because nobody could be asked. From P3
+     * every such request reaches the analyser over stdio, so this should not occur; if a CLI ever reports one, it says so.
+     */
+    public static final String APPROVAL_UNAVAILABLE_TEXT = "an action needed your approval and Claude Code did not ask "
+            + "the analyser for it, so it was denied — allow it with your own Claude Code permission rules, or choose "
+            + "another mode in Settings ▸ Assistant";
 
     /**
      * Pushed into, not read from upstream (review M2): this node decides FIRST whether the person may leave Claude Code
@@ -247,8 +250,18 @@ public class LocalAgentSession implements EventLogSource {
         String refusal = admitted != 0 && admitted == e.generation() ? null
                 : "the Claude Code session is not bound, or its posture is not yet checked, so the hosted bridge is "
                 + "refused (generation " + e.generation() + ")";
-        auditLog.info("localAgentCall", refusal == null ? "ADMITTED" : "REFUSED").info("generation", e.generation());
+        // scorecard R1: the verb the call names and the turn it was made in, beside the verdict
+        auditLog.info("localAgentCall", refusal == null ? "ADMITTED" : "REFUSED").info("generation", e.generation())
+                .info("verb", String.valueOf(e.verb())).info("ticket", openTicket);
         effects.request(new SessionEffects.AnswerHostedCallEffect(0L, e.call(), refusal));
+        return false;
+    }
+
+    /** Scorecard R1: the action server refused a hosted call itself; recorded with its verb, its code and the turn. */
+    @OnEventHandler(propagate = false)
+    public boolean onHostedRefusedByServer(SessionEvents.HostedCallRefusedByServer e) {
+        auditLog.info("localAgentCall", "REFUSED").info("generation", e.generation()).info("verb", String.valueOf(e.verb()))
+                .info("ticket", openTicket).info("by", "server").info("reason", String.valueOf(e.reason()));
         return false;
     }
 
@@ -596,12 +609,13 @@ public class LocalAgentSession implements EventLogSource {
             case AUTH_FAILED -> note("AUTH_FAILED", "Claude Code could not authenticate (an invalid inherited API key, "
                     + "or a login that expired): run `claude` in a terminal to log in again");
             case PERMISSION_DENIED -> note("DENIED", posture.isFull()
-                    ? "an action was denied by your Claude Code permission rules or the mode in force ("
-                    + posture.fullMode().cli() + ")"
-                    : "an action was denied by the analyser assistant's posture (only Read, Grep, Glob in this folder and "
-                    + "the pre-allowed analyser verbs are available)");
+                    ? "an action" + named(e.tool()) + " was denied by your Claude Code permission rules or the mode in "
+                    + "force (" + posture.fullMode().cli() + ")"
+                    : "an action" + named(e.tool()) + " was denied by the analyser assistant's posture (only Read, Grep, "
+                    + "Glob in this folder and the analyser's verbs are available)");
             case APPROVAL_UNAVAILABLE -> note("DENIED", posture.isFull() ? APPROVAL_UNAVAILABLE_TEXT
-                    : "an action was denied: it needed an approval, which the analyser assistant never asks for");
+                    : "an action" + named(e.tool()) + " was denied: it needed an approval Claude Code did not ask the "
+                    + "analyser for");
         }
         return changed();
     }
@@ -1236,6 +1250,11 @@ public class LocalAgentSession implements EventLogSource {
         return java.math.BigDecimal.valueOf(micros, 6).setScale(2, java.math.RoundingMode.HALF_UP).toPlainString();
     }
 
+    /** Scorecard R2: the tool a note is about, from the fixed vocabulary, as " (Bash)"; nothing when none is named. */
+    private static String named(String tool) {
+        return tool == null || tool.isBlank() ? "" : " (" + safe(tool) + ")";
+    }
+
     /** CLI- or person-supplied text in the node's words: control, format and line-separator characters escaped. */
     static String safe(String s) {
         if (s == null) return "(none)";
@@ -1283,6 +1302,37 @@ public class LocalAgentSession implements EventLogSource {
         hookNotes = moved;
         entries = kept;
         auditLog.info("localAgentTrimmed", trimmed);
+    }
+
+    // ---- M74 P3: what localAgentPermission reads and writes (it pushes into this node, so it runs first) ------------
+
+    /** The current process generation (0 before the first spawn). */
+    public long currentGeneration() {
+        return generation;
+    }
+
+    /** The turn in progress, or 0. */
+    public long currentTicket() {
+        return openTicket;
+    }
+
+    /** The posture the current (or last) process was started in. */
+    public LocalAgentPosture currentPosture() {
+        return posture;
+    }
+
+    /** The posture digest the current conversation was started under, or null. */
+    public String currentPostureRef() {
+        return postureRef;
+    }
+
+    /**
+     * P3 (§8.3 UI): a permission decision as one transcript note, in {@code localAgentPermission}'s words (a verb or a
+     * built-in's name from a fixed vocabulary, never the request's input). Called by that node earlier in the same cycle.
+     */
+    public void permissionNoted(long ticket, String status, String detail) {
+        entries.add(new LocalAgentState.Entry(0, LocalAgentState.NOTE, ticket, status, detail, 0));
+        changed();
     }
 
     /** The generation whose hosted calls are admitted: bound, and its first turn's posture checked. */

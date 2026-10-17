@@ -46,12 +46,17 @@ class LocalAgentFullPostureTest {
         return start;
     }
 
+    /** P3: the hosted tools the full posture shows in {@code mode} — the destructive verbs only where the mode asks. */
+    static java.util.Set<String> hostedFor(String mode) {
+        return LocalAgentPosture.full(FullMode.parse(mode).orElse(FullMode.DEFAULT)).visibleHostedTools();
+    }
+
     /** A first-turn init in the full posture: the person's own built-in and MCP tools, and exactly the hosted verbs. */
     static SessionEvents.LocalAgentInitObserved fullInit(SessionEffects.StartLocalAgentEffect start, long ticket,
                                                          String mode, List<String> extraTools, String personState) {
         List<String> tools = new ArrayList<>(List.of("Bash", "Edit", "Write", "Task", "WebFetch", "Read", "Grep", "Glob",
                 "mcp__" + PERSON_SERVER + "__query"));
-        tools.addAll(LocalAgentPosture.expectedHostedTools());
+        tools.addAll(hostedFor(mode));            // P3: the destructive verbs too, in the modes that ask
         tools.addAll(extraTools);
         return new SessionEvents.LocalAgentInitObserved(start.generation(), ticket,
                 LocalAgentPosture.digest(start.sessionId()), mode, tools,
@@ -193,7 +198,7 @@ class LocalAgentFullPostureTest {
         SessionDriver h = driver(g);
         var s4 = startFull(h, g, FullMode.DEFAULT);
         h.post(new SessionEvents.LocalAgentInitObserved(s4.generation(), 0, LocalAgentPosture.digest(s4.sessionId()),
-                "default", new ArrayList<>(LocalAgentPosture.expectedHostedTools()),
+                "default", new ArrayList<>(hostedFor("default")),
                 List.of(LocalAgentPosture.HOSTED_SERVER + ":failed", PERSON_SERVER + ":connected"),
                 LocalAgentPosture.REQUIRED_CAPABILITIES, 0));
         assertEquals("SERVERS_MISMATCH", state(h).verdict(), "the hosted bridge disconnected: the session stops");

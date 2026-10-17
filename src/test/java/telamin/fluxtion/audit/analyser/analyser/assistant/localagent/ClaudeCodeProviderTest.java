@@ -33,27 +33,36 @@ class ClaudeCodeProviderTest {
     }
 
     /**
-     * ★ Witness: drop {@code --restricted} (or read the person's {@code defaultMode} into {@code --permission-mode}) —
-     * the exact-line assertion fails.
+     * ★ Witnesses: drop {@code --restricted} (or read the person's {@code defaultMode} into {@code --permission-mode}) —
+     * the exact-line assertion fails. P3 (§10): {@code --permission-prompt-tool mcp__…} (an approval the model could
+     * call) or a line without {@code --permission-prompts host} (one that never asks) fails it too — both checked in place.
      */
     @Test
-    @DisplayName("★ the default command line is exactly §4.3, whatever the person's own settings say")
+    @DisplayName("★ the default command line is exactly §4.3 (P3: default mode, host prompts over stdio, nothing hidden)")
     void theDefaultCommandLine() throws Exception {
         List<String> c = new ClaudeCodeProvider().command(spec(false));
         String allowed = String.join(",", LocalAgentPosture.preAllowedVerbs().stream()
                 .map(LocalAgentPosture::toolName).toList());
-        String disallowed = String.join(",", LocalAgentPosture.disallowedVerbs().stream()
-                .map(LocalAgentPosture::toolName).toList());
+        assertEquals(List.of(), LocalAgentPosture.disallowedVerbs(), "P3: the default posture hides no hosted verb today");
         List<String> expected = List.of("/opt/claude/bin/claude", "-p", "--input-format", "stream-json", "--output-format",
                 "stream-json", "--verbose", "--include-partial-messages", "--replay-user-messages",
                 "--session-id", "11111111-2222-4333-8444-555555555555", "--model", "haiku",
                 "--tools", "Read,Grep,Glob", "--restricted", "--add-dir", "/work/proj", "--strict-mcp-config",
                 "--mcp-config", c.get(c.indexOf("--mcp-config") + 1),
-                "--allowedTools", allowed, "--disallowedTools", disallowed,
-                "--permission-mode", "dontAsk", "--permission-prompts", "none",
+                "--allowedTools", allowed,
+                "--permission-mode", "default", "--permission-prompts", "host", "--permission-prompt-tool", "stdio",
                 "--max-budget-usd", "4.25", "--append-system-prompt", ClaudeCodeProvider.SYSTEM_NOTE);
         assertEquals(expected, c);
-        assertFalse(allowed.contains("*") || disallowed.contains("*"), "no wildcard [P0-30]");
+        assertFalse(c.contains("--disallowedTools"), "P3: nothing hidden, so the flag is omitted (§4.3)");
+        assertFalse(allowed.contains("*"), "no wildcard [P0-30]");
+        assertPromptsGoToTheAnalyser(c);
+        // the witnesses, in place: an MCP permission tool, and a line that never asks
+        List<String> mcpTool = new ArrayList<>(c);
+        mcpTool.set(mcpTool.indexOf("stdio"), "mcp__fluxtion-analyser-hosted__approve");
+        assertThrows(org.opentest4j.AssertionFailedError.class, () -> assertPromptsGoToTheAnalyser(mcpTool));
+        List<String> noHost = new ArrayList<>(c);
+        noHost.set(noHost.indexOf("host"), "none");
+        assertThrows(org.opentest4j.AssertionFailedError.class, () -> assertPromptsGoToTheAnalyser(noHost));
         assertEquals(Map.of("CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD", "1"), new ClaudeCodeProvider().environment());
 
         List<String> resumed = new ClaudeCodeProvider().command(spec(true));
@@ -69,6 +78,16 @@ class ClaudeCodeProviderTest {
         } finally {
             System.setProperty("user.home", before);
         }
+    }
+
+    /** P3 (§5.7): every request the mode asks about goes to the analyser over stdio — never to an MCP tool, never nowhere. */
+    static void assertPromptsGoToTheAnalyser(List<String> line) {
+        int p = line.indexOf("--permission-prompts");
+        int t = line.indexOf("--permission-prompt-tool");
+        assertTrue(p >= 0 && "host".equals(line.get(p + 1)), "--permission-prompts host: " + line);
+        assertTrue(t >= 0 && "stdio".equals(line.get(t + 1)), "--permission-prompt-tool stdio, never an MCP tool: " + line);
+        int m = line.indexOf("--permission-mode");
+        assertFalse(m < 0 || List.of("dontAsk", "bypassPermissions").contains(line.get(m + 1)), "a mode that asks: " + line);
     }
 
     // ---- P1b: the full posture (OD-74.10) -----------------------------------------------------------------------------
@@ -99,18 +118,23 @@ class ClaudeCodeProviderTest {
     @DisplayName("★ the full command line is exactly §4.3 for each of the four modes: nothing confines, the registration hidden")
     void theFullCommandLine() {
         String allowed = String.join(",", LocalAgentPosture.preAllowedVerbs().stream().map(LocalAgentPosture::toolName).toList());
-        String hidden = String.join(",", LocalAgentPosture.disallowedVerbs().stream().map(LocalAgentPosture::toolName).toList());
+        String destructive = String.join(",", VerbSchemas.hosted().keySet().stream().filter(LocalAgentPosture::askable)
+                .map(LocalAgentPosture::toolName).toList());
         for (LocalAgentPosture.FullMode mode : LocalAgentPosture.FullMode.values()) {
             List<String> c = new ClaudeCodeProvider().command(fullSpec(mode, 0));
+            // P3 (OD-74.16): the destructive verbs are visible (and asked) only in the modes that ask
+            boolean asks = mode == LocalAgentPosture.FullMode.DEFAULT || mode == LocalAgentPosture.FullMode.ACCEPT_EDITS;
             List<String> expected = List.of("/opt/claude/bin/claude", "-p", "--input-format", "stream-json",
                     "--output-format", "stream-json", "--verbose", "--include-partial-messages", "--replay-user-messages",
                     "--session-id", "11111111-2222-4333-8444-555555555555", "--model", "sonnet",
                     "--mcp-config", c.get(c.indexOf("--mcp-config") + 1),
-                    "--allowedTools", allowed, "--disallowedTools", "mcp__fluxtion-analyser," + hidden,
-                    "--permission-mode", mode.cli(), "--permission-prompts", "none",
+                    "--allowedTools", allowed,
+                    "--disallowedTools", asks ? "mcp__fluxtion-analyser" : "mcp__fluxtion-analyser," + destructive,
+                    "--permission-mode", mode.cli(), "--permission-prompts", "host", "--permission-prompt-tool", "stdio",
                     "--append-system-prompt", ClaudeCodeProvider.FULL_SYSTEM_NOTE);
             assertEquals(expected, c, "full " + mode);
             assertNothingConfines(c);
+            assertPromptsGoToTheAnalyser(c);
             Map<?, ?> servers = (Map<?, ?>) ((Map<?, ?>) Json.parse(c.get(c.indexOf("--mcp-config") + 1))).get("mcpServers");
             assertEquals(Set.of(LocalAgentPosture.HOSTED_SERVER), servers.keySet(), "the analyser adds only its own bridge");
         }
@@ -119,7 +143,8 @@ class ClaudeCodeProviderTest {
         assertThrows(org.opentest4j.AssertionFailedError.class, () -> assertNothingConfines(confined));
         List<String> unhidden = new ArrayList<>(new ClaudeCodeProvider().command(fullSpec(LocalAgentPosture.FullMode.DEFAULT, 0)));
         int k = unhidden.indexOf("--disallowedTools") + 1;
-        unhidden.set(k, unhidden.get(k).replace("mcp__fluxtion-analyser,", ""));
+        unhidden.set(k, unhidden.get(k).equals("mcp__fluxtion-analyser") ? "mcp__other"     // P3: the only hidden name
+                : unhidden.get(k).replace("mcp__fluxtion-analyser,", ""));
         assertThrows(org.opentest4j.AssertionFailedError.class, () -> assertNothingConfines(unhidden));
     }
 
@@ -199,7 +224,8 @@ class ClaudeCodeProviderTest {
         Set<String> all = new LinkedHashSet<>(VerbSchemas.hosted().keySet());
         Set<String> union = new HashSet<>(pre);
         union.addAll(LocalAgentPosture.disallowedVerbs());
-        assertEquals(all, union, "every verb is either pre-allowed or hidden");
+        union.addAll(McpTools.destructiveVerbs());
+        assertEquals(all, union, "every verb is pre-allowed, asked of the person (P3), or hidden");
         assertEquals(List.of("read", "aggregate", "series", "context", "coverage", "source", "filter", "goto", "flag",
                         "graph", "topology", "spotlight", "propose").stream().sorted().toList(), pre.stream().sorted().toList(),
                 "today's pre-allowed set (§3; P2b adds propose, which only records an offer)");
@@ -218,7 +244,7 @@ class ClaudeCodeProviderTest {
                 "and a CLI that offered it fails the posture check");
         List<String> toolsWithNew = new ArrayList<>(LocalAgentPosture.expectedTools(schemaWithNew));
         toolsWithNew.add(newTool);
-        assertEquals(LocalAgentPosture.Verdict.TOOLS_MISMATCH, LocalAgentPosture.check(schemaWithNew, "s", "dontAsk",
+        assertEquals(LocalAgentPosture.Verdict.TOOLS_MISMATCH, LocalAgentPosture.check(schemaWithNew, "s", "default",
                 toolsWithNew, List.of(LocalAgentPosture.HOSTED_SERVER + ":connected"),
                 LocalAgentPosture.REQUIRED_CAPABILITIES, LocalAgentPosture.digest("s")));
         assertFalse(LocalAgentPosture.preAllowed("brand_new_verb"), "the server-side admission refuses it too");

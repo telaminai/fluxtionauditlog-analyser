@@ -333,6 +333,10 @@ public final class SessionDriver {
             case SessionEffects.ServeHostedBridgeEffect ignored -> "serveHostedBridge";
             case SessionEffects.ReleaseHostedBridgeEffect ignored -> "releaseHostedBridge";
             case SessionEffects.AnswerHostedCallEffect ignored -> "answerHostedCall";
+            case SessionEffects.ShowPermissionDialogEffect ignored -> "showPermissionDialog";
+            case SessionEffects.ClosePermissionDialogEffect ignored -> "closePermissionDialog";
+            case SessionEffects.AnswerPermissionEffect ignored -> "answerPermission";
+            case SessionEffects.StartPermissionClockEffect ignored -> "startPermissionClock";
             case SessionEffects.PreviewProposalEffect ignored -> "previewProposal";
             case SessionEffects.ApplyProposalItemEffect ignored -> "applyProposalItem";
             case SessionEffects.CheckProposalOutcomeEffect ignored -> "checkProposalOutcome";

@@ -364,6 +364,36 @@ public sealed interface SessionEffects {
     record AnswerHostedCallEffect(long opId, long call, String refusal) implements SessionEffects {
     }
 
+    // ---- M74 P3: permission prompts in the analyser (spec §5.7, §8.3) --------------------------------------------------
+
+    /**
+     * Show the permission dialog for {@code generation}'s request {@code requestRef} (its words are in the store): one
+     * modal at a time, Deny the default, a visible countdown from {@code deadlineMs}. The person's buttons are reported as
+     * {@link SessionEvents.LocalAgentPermissionChosen}; the dialog closes only on {@link ClosePermissionDialogEffect}.
+     */
+    record ShowPermissionDialogEffect(long opId, long generation, long requestRef, long deadlineMs,
+                                      SessionEvents.ToolClass toolClass, String name) implements SessionEffects {
+    }
+
+    /** Close the permission dialog for {@code requestRef}, if it is still shown. */
+    record ClosePermissionDialogEffect(long opId, long requestRef) implements SessionEffects {
+    }
+
+    /**
+     * Answer the CLI's request {@code requestRef} of {@code generation}: {@code allow} writes {@code behavior:"allow"} with
+     * {@code updatedInput} = the stored input, byte for byte; otherwise {@code behavior:"deny"} with {@code message}.
+     * Nothing else — never {@code updatedPermissions}. {@code by} decides only the tool line's mark. {@code grantId}
+     * non-zero: the adapter's clock reports {@link SessionEvents.LocalAgentGrantExpired} 60 s from now.
+     */
+    record AnswerPermissionEffect(long opId, long generation, long ticket, long requestRef, boolean allow, String message,
+                                  SessionEvents.PermissionBy by, long grantId, SessionEvents.ToolClass toolClass,
+                                  String name) implements SessionEffects {
+    }
+
+    /** Start the 120 s clock of request {@code requestRef}: {@link SessionEvents.LocalAgentPermissionDeadline} then. */
+    record StartPermissionClockEffect(long opId, long generation, long requestRef, long deadlineMs) implements SessionEffects {
+    }
+
     // ---- M74 P2b: propose onboarding (spec §5.6) ------------------------------------------------------------------------
 
     /** One item to preview or apply: the node's id and what Claude named. */

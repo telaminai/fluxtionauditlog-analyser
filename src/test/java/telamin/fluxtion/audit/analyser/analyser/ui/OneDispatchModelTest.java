@@ -399,7 +399,7 @@ class OneDispatchModelTest {
         assertTrue(bodyOf(frame, "private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result trustLocalAgentFolder(")
                 .contains("claudeCodeTrustedFolders.add("), "the performer of the node's TrustLocalAgentFolderEffect");
         assertFalse(frame.contains("admittedGeneration()"), "the frame never admits a hosted call from the snapshot (M6)");
-        assertTrue(frame.contains("hostedCredentials.gate(hostedAdmission::admit)"), "it asks the session instead");
+        assertTrue(frame.contains("hostedCredentials.gate(hostedAdmission)"), "it asks the session instead");
     }
 
     // ---- M74 P2 (spec §8.2's rules; r8 F12, F14, F21) ---------------------------------------------------------------

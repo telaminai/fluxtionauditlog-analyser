@@ -47,6 +47,12 @@ public final class ActionServer {
      */
     public static final String HOSTED_HEADER = "X-Analyser-Hosted";
 
+    /**
+     * M74 P3 (P3-3): the {@code tool_use_id} the CLI put in the call's {@code _meta["claudecode/toolUseId"]}, forwarded
+     * by the hosted bridge. A single-use grant matches it (OD-74.17); an external caller's is ignored.
+     */
+    public static final String TOOL_USE_HEADER = "X-Analyser-Tool-Use";
+
     /** Null until the local agent is installed: then every hosted credential is unknown and refused. */
     private volatile HostedCredentials.Gate hostedGate;
 
@@ -217,7 +223,7 @@ public final class ActionServer {
             }
             String body = new String(ex.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
             if (hosted != null) {
-                String refused = hostedRefusal(hostedGate, hosted, body);
+                String refused = hostedRefusal(hostedGate, hosted, body, ex.getRequestHeaders().getFirst(TOOL_USE_HEADER));
                 if (refused != null) {
                     send(ex, 403, err(refused));
                     return;
@@ -313,6 +319,16 @@ public final class ActionServer {
      * here; the cheap, local refusals (an unknown verb, {@code graph {delete}}) come first so they never wait on it.
      */
     static String hostedRefusal(HostedCredentials.Gate gate, String credential, String body) {
+        return hostedRefusal(gate, credential, body, null);
+    }
+
+    /**
+     * {@link #hostedRefusal(HostedCredentials.Gate, String, String)}, with the forwarded {@code tool_use_id} (P3-3). From
+     * P3 a hosted DESTRUCTIVE verb is not refused here: it is PRESENTED to the session ({@link HostedCredentials.Gate#present}),
+     * which admits it only by consuming the person's single-use grant for this exact call (OD-74.17) — decided on the
+     * session's thread. Everything refused here is reported to the session as a fact too (scorecard R1).
+     */
+    static String hostedRefusal(HostedCredentials.Gate gate, String credential, String body, String toolUseId) {
         long generation = gate == null ? -1 : gate.generationOf(credential);
         if (generation < 0) {
             return "the hosted credential is not one this analyser issued, or it was revoked when its Claude Code session "
@@ -328,16 +344,31 @@ public final class ActionServer {
         // person for the others), so a verb the schema gains is refused here until someone lists it. Defence in depth
         // beside --disallowedTools.
         String action = root instanceof Map<?, ?> m0 ? String.valueOf(m0.get("action")) : null;
+        // the verb as the hosted vocabulary knows it — what a fact may carry (never the call's input)
+        String verb = action != null && telamin.fluxtion.audit.analyser.analyser.llm.VerbSchemas.hosted().containsKey(action)
+                ? action : null;
+        if (telamin.fluxtion.audit.analyser.analyser.session.LocalAgentPosture.askable(action)) {
+            // P3 (OD-74.17): the server-side refusal is lifted for exactly one call the person approved in the analyser;
+            // the session consumes the grant, on its thread, or refuses. Every other gate still applies after it.
+            Object params = root instanceof Map<?, ?> m1 ? m1.get("params") : null;
+            String inputDigest = telamin.fluxtion.audit.analyser.analyser.llm.CanonicalJson.digest(
+                    params instanceof Map<?, ?> ? params : Map.of());
+            String toolUse = toolUseId == null || toolUseId.isBlank() ? null
+                    : telamin.fluxtion.audit.analyser.analyser.session.LocalAgentPosture.digest(toolUseId.trim());
+            return gate.present(generation, action, inputDigest, toolUse);
+        }
         if (!telamin.fluxtion.audit.analyser.analyser.session.LocalAgentPosture.preAllowed(action)) {
+            gate.refused(generation, verb, "NOT_LISTED");
             return "`" + action + "` is not available to Claude Code in the analyser: only the pre-allowed verbs are, "
-                    + "and a verb that changes what is open or writes files is the person's to run";
+                    + "and the verbs that change what is open or write files are asked of the person";
         }
         if (root instanceof Map<?, ?> m && "graph".equals(String.valueOf(m.get("action")))
                 && m.get("params") instanceof Map<?, ?> params && truthy(params.get("delete"))) {
+            gate.refused(generation, verb, "GRAPH_DELETE");
             return "graph {delete} is not available to Claude Code in the analyser: a chart's definition is deleted by "
                     + "the person (Graph tab), never by the hosted session";
         }
-        return gate.admit(generation);
+        return gate.admit(generation, verb);
     }
 
     private static boolean truthy(Object v) {

@@ -294,6 +294,10 @@ public final class McpBridge {
                     .POST(HttpRequest.BodyPublishers.ofString(Json.write(body), StandardCharsets.UTF_8));
             // M74 §4.2: the hosted bridge identifies itself by its generation's credential, never by the shared token
             if (hosted && endpoint.hosted() != null) builder.header(HOSTED_HEADER, endpoint.hosted());
+            // M74 P3 (P3-3): the CLI names the call's tool_use_id in _meta; the hosted bridge forwards it, so the person's
+            // single-use grant can be matched to exactly this call (OD-74.17)
+            String toolUse = hosted ? toolUseIdOf(params) : null;
+            if (toolUse != null) builder.header(TOOL_USE_HEADER, toolUse);
             // the shared token only when the file has one: the hosted per-instance file does not (review finding 6)
             if (endpoint.token() != null) builder.header("X-Analyser-Token", endpoint.token());
             HttpRequest request = builder.build();
@@ -354,6 +358,18 @@ public final class McpBridge {
 
     /** The header the hosted credential travels in; the same name {@code ActionServer} reads. */
     static final String HOSTED_HEADER = "X-Analyser-Hosted";
+
+    /** M74 P3: the header the forwarded {@code tool_use_id} travels in; the same name {@code ActionServer} reads. */
+    static final String TOOL_USE_HEADER = "X-Analyser-Tool-Use";
+
+    /** The key Claude Code uses for a call's tool-use id in {@code params._meta} (P3-3). */
+    static final String META_TOOL_USE = "claudecode/toolUseId";
+
+    /** The call's {@code _meta["claudecode/toolUseId"]}, when it is a plain token (bounded; no control characters). */
+    static String toolUseIdOf(Map<?, ?> params) {
+        if (!(params.get("_meta") instanceof Map<?, ?> meta) || !(meta.get(META_TOOL_USE) instanceof String id)) return null;
+        return id.length() <= 128 && id.matches("[A-Za-z0-9_-]+") ? id : null;
+    }
 
     private Map<String, Object> serverInfo() {
         Map<String, Object> info = new LinkedHashMap<>();

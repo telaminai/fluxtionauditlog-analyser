@@ -77,6 +77,8 @@ import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FollowTogg
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphCleared;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphClosed;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphOpened;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallPresented;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallRefusedByServer;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentBridgeServed;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentCallAdmissionRequested;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentConsentChanged;
@@ -86,6 +88,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgent
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentEffectStarted;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentExited;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentFolderAnswered;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentGrantExpired;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentHookObserved;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentInitObserved;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentInitialized;
@@ -93,6 +96,11 @@ import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgent
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentModeObserved;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentNewChatRequested;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentNoted;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentPermissionAnswered;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentPermissionCancelled;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentPermissionChosen;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentPermissionDeadline;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentPermissionRequested;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentSendRequested;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentSetupDirectoryChosen;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentSpawned;
@@ -127,6 +135,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProposalAp
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProposalChecked;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProposalDismissed;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProposalEffectStarted;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProposalItemAnswered;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProposalItemApplied;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProposalItemPreviewed;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProposalPreviewDone;
@@ -164,6 +173,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.node.EffectQueue;
 import telamin.fluxtion.audit.analyser.analyser.session.node.EvidenceCapture;
 import telamin.fluxtion.audit.analyser.analyser.session.node.ExampleDownload;
 import telamin.fluxtion.audit.analyser.analyser.session.node.IgnoredParameters;
+import telamin.fluxtion.audit.analyser.analyser.session.node.LocalAgentPermission;
 import telamin.fluxtion.audit.analyser.analyser.session.node.LocalAgentSession;
 import telamin.fluxtion.audit.analyser.analyser.session.node.LogArrival;
 import telamin.fluxtion.audit.analyser.analyser.session.node.LogEvidence;
@@ -240,6 +250,8 @@ import telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Requ
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphCleared
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphClosed
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphOpened
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallPresented
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallRefusedByServer
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentBridgeServed
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentCallAdmissionRequested
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentConsentChanged
@@ -249,6 +261,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Requ
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentEffectStarted
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentExited
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentFolderAnswered
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentGrantExpired
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentHookObserved
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentInitObserved
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentInitialized
@@ -256,6 +269,11 @@ import telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Requ
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentModeObserved
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentNewChatRequested
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentNoted
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentPermissionAnswered
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentPermissionCancelled
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentPermissionChosen
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentPermissionDeadline
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentPermissionRequested
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentSendRequested
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentSetupDirectoryChosen
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentSpawned
@@ -290,6 +308,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Requ
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProposalChecked
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProposalDismissed
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProposalEffectStarted
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProposalItemAnswered
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProposalItemApplied
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProposalItemPreviewed
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProposalPreviewDone
@@ -386,6 +405,9 @@ public class SessionProcessor
   public final transient LocalAgentSession localAgentSession =
       new telamin.fluxtion.audit.analyser.analyser.session.node.LocalAgentSession(
           assistantMode, effectQueue);;
+  public final transient LocalAgentPermission localAgentPermission =
+      new telamin.fluxtion.audit.analyser.analyser.session.node.LocalAgentPermission(
+          localAgentSession, effectQueue);;
   public final transient LogArrival logArrival =
       new telamin.fluxtion.audit.analyser.analyser.session.node.LogArrival(
           operationGate, pairing, openGraph, effectQueue);;
@@ -421,14 +443,15 @@ public class SessionProcessor
   //Measured saving on a 3-event-type graph: 0.098ns of a 5.61ns event on a JIT; nothing on native+PGO.
   private boolean callbacksPending = false;
   private final transient IdentityHashMap<Object, BooleanSupplier> dirtyFlagSupplierMap =
-      new IdentityHashMap<>(11);
+      new IdentityHashMap<>(12);
   private final transient IdentityHashMap<Object, Consumer<Boolean>> dirtyFlagUpdateMap =
-      new IdentityHashMap<>(11);
+      new IdentityHashMap<>(12);
 
   private boolean isDirty_activeProject = false;
   private boolean isDirty_assistantLoop = false;
   private boolean isDirty_assistantMode = false;
   private boolean isDirty_auditInstallation = false;
+  private boolean isDirty_localAgentPermission = false;
   private boolean isDirty_localAgentSession = false;
   private boolean isDirty_onboardingProposal = false;
   private boolean isDirty_openBundle = false;
@@ -604,6 +627,14 @@ public class SessionProcessor
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphOpened",
                 false),
             new ProcessorDescriptor.Input(
+                "HostedCallPresented",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallPresented",
+                false),
+            new ProcessorDescriptor.Input(
+                "HostedCallRefusedByServer",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallRefusedByServer",
+                false),
+            new ProcessorDescriptor.Input(
                 "LocalAgentBridgeServed",
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentBridgeServed",
                 false),
@@ -640,6 +671,10 @@ public class SessionProcessor
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentFolderAnswered",
                 false),
             new ProcessorDescriptor.Input(
+                "LocalAgentGrantExpired",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentGrantExpired",
+                false),
+            new ProcessorDescriptor.Input(
                 "LocalAgentHookObserved",
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentHookObserved",
                 false),
@@ -666,6 +701,26 @@ public class SessionProcessor
             new ProcessorDescriptor.Input(
                 "LocalAgentNoted",
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentNoted",
+                false),
+            new ProcessorDescriptor.Input(
+                "LocalAgentPermissionAnswered",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentPermissionAnswered",
+                false),
+            new ProcessorDescriptor.Input(
+                "LocalAgentPermissionCancelled",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentPermissionCancelled",
+                false),
+            new ProcessorDescriptor.Input(
+                "LocalAgentPermissionChosen",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentPermissionChosen",
+                false),
+            new ProcessorDescriptor.Input(
+                "LocalAgentPermissionDeadline",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentPermissionDeadline",
+                false),
+            new ProcessorDescriptor.Input(
+                "LocalAgentPermissionRequested",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentPermissionRequested",
                 false),
             new ProcessorDescriptor.Input(
                 "LocalAgentSendRequested",
@@ -808,6 +863,10 @@ public class SessionProcessor
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProposalEffectStarted",
                 false),
             new ProcessorDescriptor.Input(
+                "ProposalItemAnswered",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProposalItemAnswered",
+                false),
+            new ProcessorDescriptor.Input(
                 "ProposalItemApplied",
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProposalItemApplied",
                 false),
@@ -929,7 +988,7 @@ public class SessionProcessor
           new DescriptorSupport.Meta(
               null,
               "1.0.76",
-              "811b246d43eedc2ada24a6933796763ec092e4719f6186570e8b097754d331a4",
+              "9ace492f5f5ab4f4eb7fea25ef0b965a70e8843526c52ec87d71a63c835f79c6",
               null));
 
   @Override
@@ -1208,6 +1267,12 @@ public class SessionProcessor
     } else if (event instanceof GraphOpened) {
       GraphOpened typedEvent = (GraphOpened) event;
       handleEvent(typedEvent);
+    } else if (event instanceof HostedCallPresented) {
+      HostedCallPresented typedEvent = (HostedCallPresented) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof HostedCallRefusedByServer) {
+      HostedCallRefusedByServer typedEvent = (HostedCallRefusedByServer) event;
+      handleEvent(typedEvent);
     } else if (event instanceof LocalAgentBridgeServed) {
       LocalAgentBridgeServed typedEvent = (LocalAgentBridgeServed) event;
       handleEvent(typedEvent);
@@ -1235,6 +1300,9 @@ public class SessionProcessor
     } else if (event instanceof LocalAgentFolderAnswered) {
       LocalAgentFolderAnswered typedEvent = (LocalAgentFolderAnswered) event;
       handleEvent(typedEvent);
+    } else if (event instanceof LocalAgentGrantExpired) {
+      LocalAgentGrantExpired typedEvent = (LocalAgentGrantExpired) event;
+      handleEvent(typedEvent);
     } else if (event instanceof LocalAgentHookObserved) {
       LocalAgentHookObserved typedEvent = (LocalAgentHookObserved) event;
       handleEvent(typedEvent);
@@ -1255,6 +1323,21 @@ public class SessionProcessor
       handleEvent(typedEvent);
     } else if (event instanceof LocalAgentNoted) {
       LocalAgentNoted typedEvent = (LocalAgentNoted) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof LocalAgentPermissionAnswered) {
+      LocalAgentPermissionAnswered typedEvent = (LocalAgentPermissionAnswered) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof LocalAgentPermissionCancelled) {
+      LocalAgentPermissionCancelled typedEvent = (LocalAgentPermissionCancelled) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof LocalAgentPermissionChosen) {
+      LocalAgentPermissionChosen typedEvent = (LocalAgentPermissionChosen) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof LocalAgentPermissionDeadline) {
+      LocalAgentPermissionDeadline typedEvent = (LocalAgentPermissionDeadline) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof LocalAgentPermissionRequested) {
+      LocalAgentPermissionRequested typedEvent = (LocalAgentPermissionRequested) event;
       handleEvent(typedEvent);
     } else if (event instanceof LocalAgentSendRequested) {
       LocalAgentSendRequested typedEvent = (LocalAgentSendRequested) event;
@@ -1357,6 +1440,9 @@ public class SessionProcessor
       handleEvent(typedEvent);
     } else if (event instanceof ProposalEffectStarted) {
       ProposalEffectStarted typedEvent = (ProposalEffectStarted) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof ProposalItemAnswered) {
+      ProposalItemAnswered typedEvent = (ProposalItemAnswered) event;
       handleEvent(typedEvent);
     } else if (event instanceof ProposalItemApplied) {
       ProposalItemApplied typedEvent = (ProposalItemApplied) event;
@@ -1659,6 +1745,16 @@ public class SessionProcessor
   }
 
   @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(HostedCallPresented event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(HostedCallRefusedByServer event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
   public void onEvent(LocalAgentBridgeServed event) {
     processEvent(event);
   }
@@ -1704,6 +1800,11 @@ public class SessionProcessor
   }
 
   @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(LocalAgentGrantExpired event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
   public void onEvent(LocalAgentHookObserved event) {
     processEvent(event);
   }
@@ -1735,6 +1836,31 @@ public class SessionProcessor
 
   @OnEventHandler(failBuildIfMissingBooleanReturn = false)
   public void onEvent(LocalAgentNoted event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(LocalAgentPermissionAnswered event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(LocalAgentPermissionCancelled event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(LocalAgentPermissionChosen event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(LocalAgentPermissionDeadline event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(LocalAgentPermissionRequested event) {
     processEvent(event);
   }
 
@@ -1905,6 +2031,11 @@ public class SessionProcessor
 
   @OnEventHandler(failBuildIfMissingBooleanReturn = false)
   public void onEvent(ProposalEffectStarted event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(ProposalItemAnswered event) {
     processEvent(event);
   }
 
@@ -2560,6 +2691,22 @@ public class SessionProcessor
     afterEvent();
   }
 
+  public void handleEvent(HostedCallPresented typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(localAgentPermission, "localAgentPermission", "onHostedCall", typedEvent);
+    isDirty_localAgentPermission = localAgentPermission.onHostedCall(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(HostedCallRefusedByServer typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(localAgentSession, "localAgentSession", "onHostedRefusedByServer", typedEvent);
+    isDirty_localAgentSession = localAgentSession.onHostedRefusedByServer(typedEvent);
+    afterEvent();
+  }
+
   public void handleEvent(LocalAgentBridgeServed typedEvent) {
     auditEvent(typedEvent);
     //Default, no filter methods
@@ -2583,6 +2730,8 @@ public class SessionProcessor
   public void handleEvent(LocalAgentConsentChanged typedEvent) {
     auditEvent(typedEvent);
     //Default, no filter methods
+    auditInvocation(localAgentPermission, "localAgentPermission", "onConsentChanged", typedEvent);
+    isDirty_localAgentPermission = localAgentPermission.onConsentChanged(typedEvent);
     auditInvocation(localAgentSession, "localAgentSession", "onConsentChanged", typedEvent);
     isDirty_localAgentSession = localAgentSession.onConsentChanged(typedEvent);
     if (guardCheck_walkPlayback()) {
@@ -2639,6 +2788,8 @@ public class SessionProcessor
   public void handleEvent(LocalAgentExited typedEvent) {
     auditEvent(typedEvent);
     //Default, no filter methods
+    auditInvocation(localAgentPermission, "localAgentPermission", "onExited", typedEvent);
+    isDirty_localAgentPermission = localAgentPermission.onExited(typedEvent);
     auditInvocation(localAgentSession, "localAgentSession", "onExited", typedEvent);
     isDirty_localAgentSession = localAgentSession.onExited(typedEvent);
     if (guardCheck_walkPlayback()) {
@@ -2653,6 +2804,18 @@ public class SessionProcessor
     //Default, no filter methods
     auditInvocation(localAgentSession, "localAgentSession", "onFolderAnswered", typedEvent);
     isDirty_localAgentSession = localAgentSession.onFolderAnswered(typedEvent);
+    if (guardCheck_walkPlayback()) {
+      auditInvocation(walkPlayback, "walkPlayback", "onLogChanged", typedEvent);
+      walkPlayback.onLogChanged();
+    }
+    afterEvent();
+  }
+
+  public void handleEvent(LocalAgentGrantExpired typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(localAgentPermission, "localAgentPermission", "onGrantExpired", typedEvent);
+    isDirty_localAgentPermission = localAgentPermission.onGrantExpired(typedEvent);
     if (guardCheck_walkPlayback()) {
       auditInvocation(walkPlayback, "walkPlayback", "onLogChanged", typedEvent);
       walkPlayback.onLogChanged();
@@ -2723,6 +2886,8 @@ public class SessionProcessor
   public void handleEvent(LocalAgentNewChatRequested typedEvent) {
     auditEvent(typedEvent);
     //Default, no filter methods
+    auditInvocation(localAgentPermission, "localAgentPermission", "onNewChat", typedEvent);
+    isDirty_localAgentPermission = localAgentPermission.onNewChat(typedEvent);
     auditInvocation(localAgentSession, "localAgentSession", "onNewChatRequested", typedEvent);
     isDirty_localAgentSession = localAgentSession.onNewChatRequested(typedEvent);
     if (guardCheck_walkPlayback()) {
@@ -2737,6 +2902,62 @@ public class SessionProcessor
     //Default, no filter methods
     auditInvocation(localAgentSession, "localAgentSession", "onNoted", typedEvent);
     isDirty_localAgentSession = localAgentSession.onNoted(typedEvent);
+    if (guardCheck_walkPlayback()) {
+      auditInvocation(walkPlayback, "walkPlayback", "onLogChanged", typedEvent);
+      walkPlayback.onLogChanged();
+    }
+    afterEvent();
+  }
+
+  public void handleEvent(LocalAgentPermissionAnswered typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(localAgentPermission, "localAgentPermission", "onAnswered", typedEvent);
+    isDirty_localAgentPermission = localAgentPermission.onAnswered(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(LocalAgentPermissionCancelled typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(localAgentPermission, "localAgentPermission", "onCancelled", typedEvent);
+    isDirty_localAgentPermission = localAgentPermission.onCancelled(typedEvent);
+    if (guardCheck_walkPlayback()) {
+      auditInvocation(walkPlayback, "walkPlayback", "onLogChanged", typedEvent);
+      walkPlayback.onLogChanged();
+    }
+    afterEvent();
+  }
+
+  public void handleEvent(LocalAgentPermissionChosen typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(localAgentPermission, "localAgentPermission", "onChosen", typedEvent);
+    isDirty_localAgentPermission = localAgentPermission.onChosen(typedEvent);
+    if (guardCheck_walkPlayback()) {
+      auditInvocation(walkPlayback, "walkPlayback", "onLogChanged", typedEvent);
+      walkPlayback.onLogChanged();
+    }
+    afterEvent();
+  }
+
+  public void handleEvent(LocalAgentPermissionDeadline typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(localAgentPermission, "localAgentPermission", "onDeadline", typedEvent);
+    isDirty_localAgentPermission = localAgentPermission.onDeadline(typedEvent);
+    if (guardCheck_walkPlayback()) {
+      auditInvocation(walkPlayback, "walkPlayback", "onLogChanged", typedEvent);
+      walkPlayback.onLogChanged();
+    }
+    afterEvent();
+  }
+
+  public void handleEvent(LocalAgentPermissionRequested typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(localAgentPermission, "localAgentPermission", "onRequested", typedEvent);
+    isDirty_localAgentPermission = localAgentPermission.onRequested(typedEvent);
     if (guardCheck_walkPlayback()) {
       auditInvocation(walkPlayback, "walkPlayback", "onLogChanged", typedEvent);
       walkPlayback.onLogChanged();
@@ -2831,6 +3052,8 @@ public class SessionProcessor
   public void handleEvent(LocalAgentStopRequested typedEvent) {
     auditEvent(typedEvent);
     //Default, no filter methods
+    auditInvocation(localAgentPermission, "localAgentPermission", "onStopRequested", typedEvent);
+    isDirty_localAgentPermission = localAgentPermission.onStopRequested(typedEvent);
     auditInvocation(localAgentSession, "localAgentSession", "onStopRequested", typedEvent);
     isDirty_localAgentSession = localAgentSession.onStopRequested(typedEvent);
     if (guardCheck_walkPlayback()) {
@@ -2869,6 +3092,8 @@ public class SessionProcessor
   public void handleEvent(LocalAgentTurnEnded typedEvent) {
     auditEvent(typedEvent);
     //Default, no filter methods
+    auditInvocation(localAgentPermission, "localAgentPermission", "onTurnEnded", typedEvent);
+    isDirty_localAgentPermission = localAgentPermission.onTurnEnded(typedEvent);
     auditInvocation(localAgentSession, "localAgentSession", "onTurnEnded", typedEvent);
     isDirty_localAgentSession = localAgentSession.onTurnEnded(typedEvent);
     if (guardCheck_walkPlayback()) {
@@ -3303,6 +3528,14 @@ public class SessionProcessor
     //Default, no filter methods
     auditInvocation(onboardingProposal, "onboardingProposal", "onEffectStarted", typedEvent);
     isDirty_onboardingProposal = onboardingProposal.onEffectStarted(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(ProposalItemAnswered typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(onboardingProposal, "onboardingProposal", "onItemAnswered", typedEvent);
+    isDirty_onboardingProposal = onboardingProposal.onItemAnswered(typedEvent);
     afterEvent();
   }
 
@@ -3877,6 +4110,17 @@ public class SessionProcessor
       isDirty_assistantLoop = assistantLoop.onGraphOpened(typedEvent);
       auditInvocation(projectReopenOffer, "projectReopenOffer", "onGraphOpened", typedEvent);
       projectReopenOffer.onGraphOpened(typedEvent);
+    } else if (event instanceof HostedCallPresented) {
+      HostedCallPresented typedEvent = (HostedCallPresented) event;
+      auditEvent(typedEvent);
+      auditInvocation(localAgentPermission, "localAgentPermission", "onHostedCall", typedEvent);
+      isDirty_localAgentPermission = localAgentPermission.onHostedCall(typedEvent);
+    } else if (event instanceof HostedCallRefusedByServer) {
+      HostedCallRefusedByServer typedEvent = (HostedCallRefusedByServer) event;
+      auditEvent(typedEvent);
+      auditInvocation(
+          localAgentSession, "localAgentSession", "onHostedRefusedByServer", typedEvent);
+      isDirty_localAgentSession = localAgentSession.onHostedRefusedByServer(typedEvent);
     } else if (event instanceof LocalAgentBridgeServed) {
       LocalAgentBridgeServed typedEvent = (LocalAgentBridgeServed) event;
       auditEvent(typedEvent);
@@ -3890,6 +4134,8 @@ public class SessionProcessor
     } else if (event instanceof LocalAgentConsentChanged) {
       LocalAgentConsentChanged typedEvent = (LocalAgentConsentChanged) event;
       auditEvent(typedEvent);
+      auditInvocation(localAgentPermission, "localAgentPermission", "onConsentChanged", typedEvent);
+      isDirty_localAgentPermission = localAgentPermission.onConsentChanged(typedEvent);
       auditInvocation(localAgentSession, "localAgentSession", "onConsentChanged", typedEvent);
       isDirty_localAgentSession = localAgentSession.onConsentChanged(typedEvent);
     } else if (event instanceof LocalAgentCostObserved) {
@@ -3915,6 +4161,8 @@ public class SessionProcessor
     } else if (event instanceof LocalAgentExited) {
       LocalAgentExited typedEvent = (LocalAgentExited) event;
       auditEvent(typedEvent);
+      auditInvocation(localAgentPermission, "localAgentPermission", "onExited", typedEvent);
+      isDirty_localAgentPermission = localAgentPermission.onExited(typedEvent);
       auditInvocation(localAgentSession, "localAgentSession", "onExited", typedEvent);
       isDirty_localAgentSession = localAgentSession.onExited(typedEvent);
     } else if (event instanceof LocalAgentFolderAnswered) {
@@ -3922,6 +4170,11 @@ public class SessionProcessor
       auditEvent(typedEvent);
       auditInvocation(localAgentSession, "localAgentSession", "onFolderAnswered", typedEvent);
       isDirty_localAgentSession = localAgentSession.onFolderAnswered(typedEvent);
+    } else if (event instanceof LocalAgentGrantExpired) {
+      LocalAgentGrantExpired typedEvent = (LocalAgentGrantExpired) event;
+      auditEvent(typedEvent);
+      auditInvocation(localAgentPermission, "localAgentPermission", "onGrantExpired", typedEvent);
+      isDirty_localAgentPermission = localAgentPermission.onGrantExpired(typedEvent);
     } else if (event instanceof LocalAgentHookObserved) {
       LocalAgentHookObserved typedEvent = (LocalAgentHookObserved) event;
       auditEvent(typedEvent);
@@ -3950,6 +4203,8 @@ public class SessionProcessor
     } else if (event instanceof LocalAgentNewChatRequested) {
       LocalAgentNewChatRequested typedEvent = (LocalAgentNewChatRequested) event;
       auditEvent(typedEvent);
+      auditInvocation(localAgentPermission, "localAgentPermission", "onNewChat", typedEvent);
+      isDirty_localAgentPermission = localAgentPermission.onNewChat(typedEvent);
       auditInvocation(localAgentSession, "localAgentSession", "onNewChatRequested", typedEvent);
       isDirty_localAgentSession = localAgentSession.onNewChatRequested(typedEvent);
     } else if (event instanceof LocalAgentNoted) {
@@ -3957,6 +4212,31 @@ public class SessionProcessor
       auditEvent(typedEvent);
       auditInvocation(localAgentSession, "localAgentSession", "onNoted", typedEvent);
       isDirty_localAgentSession = localAgentSession.onNoted(typedEvent);
+    } else if (event instanceof LocalAgentPermissionAnswered) {
+      LocalAgentPermissionAnswered typedEvent = (LocalAgentPermissionAnswered) event;
+      auditEvent(typedEvent);
+      auditInvocation(localAgentPermission, "localAgentPermission", "onAnswered", typedEvent);
+      isDirty_localAgentPermission = localAgentPermission.onAnswered(typedEvent);
+    } else if (event instanceof LocalAgentPermissionCancelled) {
+      LocalAgentPermissionCancelled typedEvent = (LocalAgentPermissionCancelled) event;
+      auditEvent(typedEvent);
+      auditInvocation(localAgentPermission, "localAgentPermission", "onCancelled", typedEvent);
+      isDirty_localAgentPermission = localAgentPermission.onCancelled(typedEvent);
+    } else if (event instanceof LocalAgentPermissionChosen) {
+      LocalAgentPermissionChosen typedEvent = (LocalAgentPermissionChosen) event;
+      auditEvent(typedEvent);
+      auditInvocation(localAgentPermission, "localAgentPermission", "onChosen", typedEvent);
+      isDirty_localAgentPermission = localAgentPermission.onChosen(typedEvent);
+    } else if (event instanceof LocalAgentPermissionDeadline) {
+      LocalAgentPermissionDeadline typedEvent = (LocalAgentPermissionDeadline) event;
+      auditEvent(typedEvent);
+      auditInvocation(localAgentPermission, "localAgentPermission", "onDeadline", typedEvent);
+      isDirty_localAgentPermission = localAgentPermission.onDeadline(typedEvent);
+    } else if (event instanceof LocalAgentPermissionRequested) {
+      LocalAgentPermissionRequested typedEvent = (LocalAgentPermissionRequested) event;
+      auditEvent(typedEvent);
+      auditInvocation(localAgentPermission, "localAgentPermission", "onRequested", typedEvent);
+      isDirty_localAgentPermission = localAgentPermission.onRequested(typedEvent);
     } else if (event instanceof LocalAgentSendRequested) {
       LocalAgentSendRequested typedEvent = (LocalAgentSendRequested) event;
       auditEvent(typedEvent);
@@ -3995,6 +4275,8 @@ public class SessionProcessor
     } else if (event instanceof LocalAgentStopRequested) {
       LocalAgentStopRequested typedEvent = (LocalAgentStopRequested) event;
       auditEvent(typedEvent);
+      auditInvocation(localAgentPermission, "localAgentPermission", "onStopRequested", typedEvent);
+      isDirty_localAgentPermission = localAgentPermission.onStopRequested(typedEvent);
       auditInvocation(localAgentSession, "localAgentSession", "onStopRequested", typedEvent);
       isDirty_localAgentSession = localAgentSession.onStopRequested(typedEvent);
     } else if (event instanceof LocalAgentSwitchChosen) {
@@ -4012,6 +4294,8 @@ public class SessionProcessor
     } else if (event instanceof LocalAgentTurnEnded) {
       LocalAgentTurnEnded typedEvent = (LocalAgentTurnEnded) event;
       auditEvent(typedEvent);
+      auditInvocation(localAgentPermission, "localAgentPermission", "onTurnEnded", typedEvent);
+      isDirty_localAgentPermission = localAgentPermission.onTurnEnded(typedEvent);
       auditInvocation(localAgentSession, "localAgentSession", "onTurnEnded", typedEvent);
       isDirty_localAgentSession = localAgentSession.onTurnEnded(typedEvent);
     } else if (event instanceof LocalAgentTurnStarted) {
@@ -4200,6 +4484,11 @@ public class SessionProcessor
       auditEvent(typedEvent);
       auditInvocation(onboardingProposal, "onboardingProposal", "onEffectStarted", typedEvent);
       isDirty_onboardingProposal = onboardingProposal.onEffectStarted(typedEvent);
+    } else if (event instanceof ProposalItemAnswered) {
+      ProposalItemAnswered typedEvent = (ProposalItemAnswered) event;
+      auditEvent(typedEvent);
+      auditInvocation(onboardingProposal, "onboardingProposal", "onItemAnswered", typedEvent);
+      isDirty_onboardingProposal = onboardingProposal.onItemAnswered(typedEvent);
     } else if (event instanceof ProposalItemApplied) {
       ProposalItemApplied typedEvent = (ProposalItemApplied) event;
       auditEvent(typedEvent);
@@ -4418,6 +4707,7 @@ public class SessionProcessor
     auditor.nodeRegistered(evidenceCapture, "evidenceCapture");
     auditor.nodeRegistered(exampleDownload, "exampleDownload");
     auditor.nodeRegistered(ignoredParameters, "ignoredParameters");
+    auditor.nodeRegistered(localAgentPermission, "localAgentPermission");
     auditor.nodeRegistered(localAgentSession, "localAgentSession");
     auditor.nodeRegistered(logArrival, "logArrival");
     auditor.nodeRegistered(logEvidence, "logEvidence");
@@ -4503,6 +4793,7 @@ public class SessionProcessor
     isDirty_assistantLoop = false;
     isDirty_assistantMode = false;
     isDirty_auditInstallation = false;
+    isDirty_localAgentPermission = false;
     isDirty_localAgentSession = false;
     isDirty_onboardingProposal = false;
     isDirty_openBundle = false;
@@ -4544,6 +4835,7 @@ public class SessionProcessor
       dirtyFlagSupplierMap.put(assistantLoop, () -> isDirty_assistantLoop);
       dirtyFlagSupplierMap.put(assistantMode, () -> isDirty_assistantMode);
       dirtyFlagSupplierMap.put(auditInstallation, () -> isDirty_auditInstallation);
+      dirtyFlagSupplierMap.put(localAgentPermission, () -> isDirty_localAgentPermission);
       dirtyFlagSupplierMap.put(localAgentSession, () -> isDirty_localAgentSession);
       dirtyFlagSupplierMap.put(onboardingProposal, () -> isDirty_onboardingProposal);
       dirtyFlagSupplierMap.put(openBundle, () -> isDirty_openBundle);
@@ -4562,6 +4854,7 @@ public class SessionProcessor
       dirtyFlagUpdateMap.put(assistantLoop, (b) -> isDirty_assistantLoop = b);
       dirtyFlagUpdateMap.put(assistantMode, (b) -> isDirty_assistantMode = b);
       dirtyFlagUpdateMap.put(auditInstallation, (b) -> isDirty_auditInstallation = b);
+      dirtyFlagUpdateMap.put(localAgentPermission, (b) -> isDirty_localAgentPermission = b);
       dirtyFlagUpdateMap.put(localAgentSession, (b) -> isDirty_localAgentSession = b);
       dirtyFlagUpdateMap.put(onboardingProposal, (b) -> isDirty_onboardingProposal = b);
       dirtyFlagUpdateMap.put(openBundle, (b) -> isDirty_openBundle = b);
@@ -4614,7 +4907,7 @@ public class SessionProcessor
   }
 
   private boolean guardCheck_localAgentSession() {
-    return isDirty_openLog;
+    return isDirty_localAgentPermission | isDirty_openLog;
   }
 
   private boolean guardCheck_logArrival() {
@@ -4724,6 +5017,8 @@ public class SessionProcessor
         return (T) exampleDownload;
       case "ignoredParameters":
         return (T) ignoredParameters;
+      case "localAgentPermission":
+        return (T) localAgentPermission;
       case "localAgentSession":
         return (T) localAgentSession;
       case "logArrival":
@@ -4820,6 +5115,9 @@ public class SessionProcessor
     }
     if (node == ignoredParameters) {
       return "ignoredParameters";
+    }
+    if (node == localAgentPermission) {
+      return "localAgentPermission";
     }
     if (node == localAgentSession) {
       return "localAgentSession";

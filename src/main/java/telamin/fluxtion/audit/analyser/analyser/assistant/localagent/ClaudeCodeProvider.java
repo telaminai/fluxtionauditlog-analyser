@@ -93,11 +93,19 @@ public final class ClaudeCodeProvider implements LocalAgentProvider {
         c.add(mcpConfig(spec.bridgeLauncher(), spec.endpointFile()));
         c.add("--allowedTools");
         c.add(toolList(LocalAgentPosture.preAllowedVerbs(schemaVerbs)));
-        c.add("--disallowedTools");
-        c.add(String.join(",", posture.disallowedTools(schemaVerbs)));
-        // the mode is the posture's: dontAsk, or one of the four the full posture offers (an enum: bypassPermissions and
-        // dontAsk cannot be a full mode); prompts go nowhere until P3, so a request that would ask is denied (PB-1)
-        c.addAll(List.of("--permission-mode", posture.permissionMode(), "--permission-prompts", "none"));
+        // P3 (§4.3): the default posture hides nothing today (every hosted verb is pre-allowed or asked), so the flag is
+        // omitted; a verb the schema gains is still hidden (review H5). The full posture always hides the person's own
+        // registration, and the destructive verbs under auto and plan (OD-74.16)
+        List<String> hidden = posture.disallowedTools(schemaVerbs);
+        if (!hidden.isEmpty()) {
+            c.add("--disallowedTools");
+            c.add(String.join(",", hidden));
+        }
+        // the mode is the posture's: default, or one of the four the full posture offers (an enum: bypassPermissions and
+        // dontAsk cannot be a full mode); from P3 every request the mode would ask reaches the ANALYSER over stdio
+        // [P0b-3, P3-0] — never an MCP permission tool, which the model could call
+        c.addAll(List.of("--permission-mode", posture.permissionMode()));
+        c.addAll(LocalAgentPosture.PROMPT_FLAGS);
         if (spec.maxBudgetMicros() > 0) {      // owner, 2026-10-17: only when the person set a limit
             c.add("--max-budget-usd");
             c.add(usd(spec.maxBudgetMicros()));

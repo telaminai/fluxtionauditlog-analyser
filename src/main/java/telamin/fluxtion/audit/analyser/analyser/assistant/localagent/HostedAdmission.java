@@ -23,7 +23,7 @@ import java.util.function.Consumer;
  * <p>It decides nothing itself: it correlates a call with its answer, and a call that is not answered in time is
  * refused (the session did not admit it).
  */
-public final class HostedAdmission {
+public final class HostedAdmission implements telamin.fluxtion.audit.analyser.analyser.net.HostedCredentials.Decider {
 
     /** How long a hosted call waits for the session's verdict before it is refused. */
     public static final long DEFAULT_TIMEOUT_MS = 5_000;
@@ -43,11 +43,36 @@ public final class HostedAdmission {
 
     /** Ask the session whether a call of {@code generation} may run now: null admits it, else the refusal. Blocks. */
     public String admit(long generation) {
+        return admit(generation, null);
+    }
+
+    /** Scorecard R1: the same, naming the call's verb in the fact. */
+    @Override
+    public String admit(long generation, String verb) {
+        return ask(call -> new SessionEvents.LocalAgentCallAdmissionRequested(call, generation, verb));
+    }
+
+    /**
+     * M74 P3 (OD-74.17): present a hosted DESTRUCTIVE call to the session, which admits it only by consuming the
+     * person's grant for this exact call. Blocks, bounded, like {@link #admit}.
+     */
+    @Override
+    public String present(long generation, String verb, String inputDigest, String toolUseIdDigest) {
+        return ask(call -> new SessionEvents.HostedCallPresented(call, generation, verb, inputDigest, toolUseIdDigest));
+    }
+
+    /** Scorecard R1: the server's own refusal, reported to the session as a fact; nothing waits for it. */
+    @Override
+    public void refused(long generation, String verb, String reason) {
+        post.accept(new SessionEvents.HostedCallRefusedByServer(generation, verb, reason));
+    }
+
+    private String ask(java.util.function.LongFunction<Object> fact) {
         long call = calls.incrementAndGet();
         CompletableFuture<Optional<String>> answer = new CompletableFuture<>();
         waiting.put(call, answer);
         try {
-            post.accept(new SessionEvents.LocalAgentCallAdmissionRequested(call, generation));
+            post.accept(fact.apply(call));
             return answer.get(timeoutMs, TimeUnit.MILLISECONDS).orElse(null);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();

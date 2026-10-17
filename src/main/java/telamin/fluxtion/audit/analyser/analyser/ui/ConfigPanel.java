@@ -67,7 +67,7 @@ public final class ConfigPanel extends JDialog {
     private final JTextField exportDirField = new JTextField(28);
     // M74 §5.1: machine tier, all off by default; the full posture (P1b) is turned on only through its warning
     private final JCheckBox claudeCodeToggle = new JCheckBox("Allow the analyser to start Claude Code");
-    private final JCheckBox claudeCodeFullToggle = new JCheckBox("…with my full Claude Code permissions (preview)");
+    private final JCheckBox claudeCodeFullToggle = new JCheckBox("…with my full Claude Code permissions");
     private final JComboBox<String> claudeCodeModeCombo = UiText.plainCells(new JComboBox<>(
             telamin.fluxtion.audit.analyser.analyser.config.ConfigStore.FULL_MODES.toArray(new String[0])));
     private final JLabel claudeCodeModeLabel = new JLabel("Mode:");
@@ -78,14 +78,14 @@ public final class ConfigPanel extends JDialog {
     private final JSpinner claudeCodeBudgetSpinner = new JSpinner(new SpinnerNumberModel(5.0, 0.5, 1000.0, 0.5));
 
     /** §5.1: the full posture's warning, shown as a confirmation whose default is Cancel. Plain text, never HTML. */
-    /** Owner, 2026-10-17: full Claude Code is a PREVIEW until approvals in the analyser (P3) ship. */
-    static final String FULL_POSTURE_PREVIEW = "PREVIEW — for internal and demo use only. Full Claude Code is not for "
-            + "customer release until approvals in the analyser (P3) ship.";
-    static final String FULL_POSTURE_WARNING = FULL_POSTURE_PREVIEW + "\n\nFull Claude Code runs your own Claude Code inside the analyser, as in a "
+    // OD-74.26: the PREVIEW banner went when approvals in the analyser (P3) shipped; the warning's substance stays
+    static final String FULL_POSTURE_WARNING = "Full Claude Code runs your own Claude Code inside the analyser, as in a "
             + "terminal. It loads your settings and permission rules, skills, plugins, subagents, hooks and MCP servers "
             + "(including claude.ai connectors), and the folder's own hooks and .mcp.json — these run when you press "
             + "Start, before you send anything. Claude Code can then use your own tools — Bash, file edits, web access — as "
-            + "far as your permission rules and the mode below allow; the analyser does not confine it to the folder.\n\n"
+            + "far as your permission rules and the mode below allow; the analyser does not confine it to the folder. "
+            + "When Claude Code asks for an approval, the analyser asks you in a dialog — Deny is the default — but a call "
+            + "your own permission rules, hooks or the auto mode's classifier approve is never asked in the analyser.\n\n"
             + "Audit-log records are data from the system you are investigating and can contain text written to steer an "
             + "AI; in this posture that text reaches an agent that may have your shell. The analyser still never lets "
             + "Claude Code change what is open or write a file through its own connection without asking you in the "
@@ -102,8 +102,8 @@ public final class ConfigPanel extends JDialog {
                     + "you. It needs a model that supports it (sonnet or opus): with another, Claude Code starts in "
                     + "default instead, and the analyser stops it and says so.";
             case "plan" -> "plan — reads and plans; edits and runs nothing.";
-            default -> "default — asks before anything your rules don't allow. Until approvals in the analyser ship, "
-                    + "such a request is denied: the analyser cannot ask you yet, and says so in the tab when it happens.";
+            default -> "default — asks before anything your rules don't allow; the analyser shows each request in a "
+                    + "dialog, and Deny is the default.";
         };
     }
 

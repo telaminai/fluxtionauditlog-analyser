@@ -22,7 +22,17 @@ public final class LocalAgentTranscript {
     public static final int MAX_CHARS = 2_000_000;
     public static final String TRIMMED = "[trimmed: the conversation store is bounded]";
 
-    public enum Kind { USER, ANSWER, DETAIL, STDERR }
+    public enum Kind { USER, ANSWER, DETAIL, STDERR,
+        /** P2b's proposal words (Claude's summary, an item's reason, path or class name) and a chosen folder (R6). */
+        PROPOSAL, PATH }
+
+    /**
+     * P3 (§5.7): one {@code can_use_tool} request's words, for the dialog — the tool's name as the CLI sent it, its MCP
+     * server's name (null for a built-in), the display name the server gave it, and the input EXACTLY as the request
+     * carried it. Never in a fact: facts name this by reference.
+     */
+    public record Permission(String toolName, String serverName, String displayName, String inputRaw) {
+    }
 
     /**
      * The tab's header details (§5.2): the model, the CLI version, the subscription type or API-key source, the API
@@ -73,6 +83,7 @@ public final class LocalAgentTranscript {
     private final AtomicLong next = new AtomicLong(1);
     private final LinkedHashMap<Long, Text> texts = new LinkedHashMap<>();
     private final Map<Long, Header> headers = new LinkedHashMap<>();
+    private final Map<Long, Permission> permissions = new LinkedHashMap<>();
     private long chars;
 
     public synchronized long add(Kind kind, String text) {
@@ -111,6 +122,18 @@ public final class LocalAgentTranscript {
         return headers.get(id);
     }
 
+    /** P3: keep a request's words; at most 64 are kept (one dialog at a time, and the CLI asks one at a time, P3-6). */
+    public synchronized long putPermission(Permission p) {
+        long id = next.getAndIncrement();
+        permissions.put(id, p);
+        while (permissions.size() > 64) permissions.remove(permissions.keySet().iterator().next());
+        return id;
+    }
+
+    public synchronized Permission permission(long id) {
+        return permissions.get(id);
+    }
+
     public synchronized int size() {
         return texts.size();
     }
@@ -120,6 +143,7 @@ public final class LocalAgentTranscript {
         StringBuilder sb = new StringBuilder();
         for (Text t : texts.values()) sb.append(t.text()).append('\n');
         for (Header h : headers.values()) sb.append(h).append('\n');
+        for (Permission p : permissions.values()) sb.append(p).append('\n');
         return sb.toString();
     }
 

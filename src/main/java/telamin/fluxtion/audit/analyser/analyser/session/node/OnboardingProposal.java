@@ -54,6 +54,8 @@ public class OnboardingProposal implements EventLogSource {
     private String pairing = "";
     private String fit = "";
     private Map<Long, ProposalState.Answer> answers = new LinkedHashMap<>();
+    /** R5: the person's per-row answers to the open proposal, by item id ({@code create} for the create row). */
+    private Map<String, Boolean> itemAnswers = new LinkedHashMap<>();
     private ProposalState published = ProposalState.NONE;
     private boolean dirty = true;
 
@@ -93,6 +95,7 @@ public class OnboardingProposal implements EventLogSource {
         }
         counter++;
         id = "p-" + counter;
+        itemAnswers = new LinkedHashMap<>();
         summary = e.summary() == null ? "" : e.summary();
         setupDir = null;
         projectExists = false;
@@ -215,6 +218,27 @@ public class OnboardingProposal implements EventLogSource {
 
     // ---- the person's answers ----------------------------------------------------------------------------------------------
 
+    /**
+     * Scorecard R5: one row's answer, recorded as the person gave it. Apply chosen then applies the Yes rows; a row
+     * answered No here is never applied, whatever the apply's own list says.
+     */
+    @OnEventHandler
+    public boolean onItemAnswered(SessionEvents.ProposalItemAnswered e) {
+        if (id == null || !id.equals(e.proposalId()) || !previewed || applying) {
+            auditLog.info("staleFact", "ProposalItemAnswered").info("proposal", String.valueOf(e.proposalId()));
+            return false;
+        }
+        boolean known = "create".equals(e.itemId()) ? "PENDING".equals(create) : item(e.itemId()) != null
+                && item(e.itemId()).state() == ProposalState.ItemState.PENDING;
+        if (!known) {
+            auditLog.info("staleFact", "ProposalItemAnswered").info("item", String.valueOf(e.itemId()));
+            return false;
+        }
+        itemAnswers.put(e.itemId(), e.yes());
+        auditLog.info("proposalItemAnswered", e.itemId()).info("yes", e.yes());
+        return false;
+    }
+
     @OnEventHandler
     public boolean onApplyRequested(SessionEvents.ProposalApplyRequested e) {
         if (id == null || !id.equals(e.proposalId()) || !previewed || applying) {
@@ -222,8 +246,14 @@ public class OnboardingProposal implements EventLogSource {
             return false;
         }
         Set<String> yes = new HashSet<>(e.yes());
+        // R5: a row the person answered No is never applied, whatever the apply's list says
+        for (Map.Entry<String, Boolean> a : itemAnswers.entrySet()) {
+            if (Boolean.FALSE.equals(a.getValue())) yes.remove(a.getKey());
+        }
+        boolean createAnsweredNo = Boolean.FALSE.equals(itemAnswers.get("create"));
+        itemAnswers = new LinkedHashMap<>();
         queue = new ArrayList<>();
-        boolean createYes = e.createProject() && "PENDING".equals(create);
+        boolean createYes = e.createProject() && !createAnsweredNo && "PENDING".equals(create);
         if ("PENDING".equals(create)) create = createYes ? "APPLYING" : "DECLINED";
         if (createYes) queue.add("create");
         for (String kind : ORDER) {

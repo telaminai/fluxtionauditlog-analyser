@@ -54,13 +54,13 @@ class LocalAgentSessionTest {
 
     static void bind(SessionDriver d, SessionEffects.StartLocalAgentEffect start) {
         d.post(new SessionEvents.LocalAgentSpawned(start.generation(), SessionEvents.SpawnFailure.NONE, 0));
-        d.post(new SessionEvents.LocalAgentInitialized(start.generation(), true, "dontAsk", 7));
+        d.post(new SessionEvents.LocalAgentInitialized(start.generation(), true, "default", 7));
         d.post(new SessionEvents.LocalAgentStatusObserved(start.generation(), 480,
                 List.of(LocalAgentPosture.HOSTED_SERVER), "connected", LocalAgentPosture.digest(start.nonce())));
     }
 
     static SessionEvents.LocalAgentInitObserved goodInit(SessionEffects.StartLocalAgentEffect start, long ticket) {
-        return new SessionEvents.LocalAgentInitObserved(start.generation(), ticket, LocalAgentPosture.digest(start.sessionId()), "dontAsk",
+        return new SessionEvents.LocalAgentInitObserved(start.generation(), ticket, LocalAgentPosture.digest(start.sessionId()), "default",
                 expectedTools(), List.of(LocalAgentPosture.HOSTED_SERVER + ":connected"),
                 LocalAgentPosture.REQUIRED_CAPABILITIES, 0);
     }
@@ -140,7 +140,7 @@ class LocalAgentSessionTest {
         assertEquals(BUDGET, start.maxBudgetMicros());
         assertEquals("SPAWNING", state(d).phase());
         d.post(new SessionEvents.LocalAgentSpawned(1, SessionEvents.SpawnFailure.NONE, 0));
-        d.post(new SessionEvents.LocalAgentInitialized(1, true, "dontAsk", 9));
+        d.post(new SessionEvents.LocalAgentInitialized(1, true, "default", 9));
         assertEquals("BINDING", state(d).phase());
         assertEquals(9, state(d).headerRef());
         assertEquals(0, a.agentPolls.get(0).delayMs(), "the first mcp_status right after initialize answers");
@@ -164,7 +164,7 @@ class LocalAgentSessionTest {
         SessionDriver d = driver(a);
         d.post(new SessionEvents.LocalAgentStartRequested(1, consent()));
         d.post(new SessionEvents.LocalAgentSpawned(1, SessionEvents.SpawnFailure.NONE, 0));
-        d.post(new SessionEvents.LocalAgentInitialized(1, false, "dontAsk", 3));
+        d.post(new SessionEvents.LocalAgentInitialized(1, false, "default", 3));
         assertEquals("NOT_LOGGED_IN", state(d).verdict());
         assertEquals(LocalAgentSession.NOT_LOGGED_IN_TEXT, state(d).reason());
         assertEquals(1, kills(a).size(), "the process is stopped");
@@ -204,7 +204,7 @@ class LocalAgentSessionTest {
             d.post(new SessionEvents.LocalAgentStartRequested(1, consent()));
             var start = a.agentStarts.get(0);
             d.post(new SessionEvents.LocalAgentSpawned(1, SessionEvents.SpawnFailure.NONE, 0));
-            d.post(new SessionEvents.LocalAgentInitialized(1, true, "dontAsk", 3));
+            d.post(new SessionEvents.LocalAgentInitialized(1, true, "default", 3));
             d.post(new SessionEvents.LocalAgentStatusObserved(1, c.elapsed(), c.servers(), c.status(),
                     "SAME".equals(c.nonce()) ? LocalAgentPosture.digest(start.nonce()) : c.nonce()));
             assertEquals(c.verdict(), state(d).verdict(), c.toString());
@@ -242,7 +242,7 @@ class LocalAgentSessionTest {
         assertEquals(first.sessionId(), second.sessionId(), "the same conversation");
         assertNotEquals(first.nonce(), second.nonce(), "a fresh nonce per spawn");
         d.post(new SessionEvents.LocalAgentSpawned(2, SessionEvents.SpawnFailure.NONE, 0));
-        d.post(new SessionEvents.LocalAgentInitialized(2, true, "dontAsk", 3));
+        d.post(new SessionEvents.LocalAgentInitialized(2, true, "default", 3));
         d.post(new SessionEvents.LocalAgentStatusObserved(2, 400, List.of(LocalAgentPosture.HOSTED_SERVER), "connected",
                 LocalAgentPosture.digest(first.nonce())));
         assertEquals("NONCE_MISMATCH", state(d).verdict(), "a bridge reporting the previous generation's nonce is refused");
@@ -412,7 +412,8 @@ class LocalAgentSessionTest {
     @Test
     @DisplayName("★ first turn's init: an extra tool, another mode or a missing capability → killed at once, nothing admitted")
     void aWidenedSessionIsKilledAtOnce() {
-        String extra = LocalAgentPosture.toolName("report");
+        // P3: every hosted verb is visible in the default posture, so the extra tool is one the posture never has
+        String extra = "Bash";
         List<SessionEvents.LocalAgentInitObserved> bad = new ArrayList<>();
         for (int i = 0; i < 3; i++) {
             FakeSessionAdapter a = new FakeSessionAdapter();
@@ -420,7 +421,7 @@ class LocalAgentSessionTest {
             var start = startToReady(d, a);
             var t = send(d, a, 10);
             List<String> tools = expectedTools();
-            String mode = "dontAsk";
+            String mode = "default";
             List<String> caps = LocalAgentPosture.REQUIRED_CAPABILITIES;
             String expect;
             if (i == 0) { tools.add(extra); expect = "TOOLS_MISMATCH"; }
@@ -448,7 +449,7 @@ class LocalAgentSessionTest {
         d.post(goodInit(start, t1.ticket()));
         d.post(new SessionEvents.LocalAgentTurnEnded(1, t1.ticket(), SessionEvents.TurnOutcome.COMPLETED));
         var t2 = send(d, a, 11);
-        d.post(new SessionEvents.LocalAgentInitObserved(1, t2.ticket(), LocalAgentPosture.digest("00000000-0000-4000-8000-0000000000ff"), "dontAsk",
+        d.post(new SessionEvents.LocalAgentInitObserved(1, t2.ticket(), LocalAgentPosture.digest("00000000-0000-4000-8000-0000000000ff"), "default",
                 expectedTools(), List.of(LocalAgentPosture.HOSTED_SERVER + ":connected"),
                 LocalAgentPosture.REQUIRED_CAPABILITIES, 0));
         assertEquals("SESSION_CHANGED", state(d).verdict());
@@ -558,7 +559,7 @@ class LocalAgentSessionTest {
 
         // NOT_LOGGED_IN, then logged in: still fresh
         d.post(new SessionEvents.LocalAgentSpawned(2, SessionEvents.SpawnFailure.NONE, 0));
-        d.post(new SessionEvents.LocalAgentInitialized(2, false, "dontAsk", 3));
+        d.post(new SessionEvents.LocalAgentInitialized(2, false, "default", 3));
         d.post(new SessionEvents.LocalAgentStartRequested(3, consent(true, true, false, "posture-b", BUDGET)));
         assertFalse(a.agentStarts.get(2).resume());
 
@@ -805,7 +806,7 @@ class LocalAgentSessionTest {
         List<String> tools = expectedTools();
         tools.add(LocalAgentPosture.toolName("report"));
         d.post(new SessionEvents.LocalAgentInitObserved(start.generation(), t.ticket(),
-                LocalAgentPosture.digest(start.sessionId()), "dontAsk", tools,
+                LocalAgentPosture.digest(start.sessionId()), "default", tools,
                 List.of(LocalAgentPosture.HOSTED_SERVER + ":connected"), LocalAgentPosture.REQUIRED_CAPABILITIES, 0));
         d.post(new SessionEvents.LocalAgentCallAdmissionRequested(4, start.generation()));
         assertNotNull(a.agentAnswers.get(3).refusal(), "after the TOOLS_MISMATCH kill, nothing is admitted");
@@ -845,7 +846,7 @@ class LocalAgentSessionTest {
                 List<String> tools = expectedTools();
                 tools.add(LocalAgentPosture.toolName("report"));
                 var kill = new SessionEvents.LocalAgentInitObserved(start.generation(), 1,
-                        LocalAgentPosture.digest(start.sessionId()), "dontAsk", tools,
+                        LocalAgentPosture.digest(start.sessionId()), "default", tools,
                         List.of(LocalAgentPosture.HOSTED_SERVER + ":connected"), LocalAgentPosture.REQUIRED_CAPABILITIES, 0);
                 var call = java.util.concurrent.CompletableFuture.supplyAsync(() -> admission.admit(start.generation()));
                 if (round % 2 == 0) Thread.onSpinWait();

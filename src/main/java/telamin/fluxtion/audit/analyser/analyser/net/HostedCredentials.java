@@ -28,6 +28,32 @@ public final class HostedCredentials {
          * effect, awaited with a timeout); it never decides from a published snapshot on the HTTP thread.
          */
         String admit(long generation);
+
+        /** Scorecard R1: as {@link #admit(long)}, naming the call's verb (the hosted vocabulary's, or null). */
+        default String admit(long generation, String verb) {
+            return admit(generation);
+        }
+
+        /**
+         * M74 P3 (OD-74.17): a hosted DESTRUCTIVE call — admitted only by consuming the person's single-use grant for this
+         * exact call, which the session decides on its thread. Null admits; the default refuses (no session can grant).
+         */
+        default String present(long generation, String verb, String inputDigest, String toolUseIdDigest) {
+            return "`" + verb + "` needs your approval in the analyser for this exact call; none was given";
+        }
+
+        /** Scorecard R1: the server refused a hosted call itself (a code: GRAPH_DELETE, NOT_LISTED, BAD_CREDENTIAL). */
+        default void refused(long generation, String verb, String reason) {
+        }
+    }
+
+    /** What the session answers for the hosted bridge — implemented by the session's correlator (HostedAdmission). */
+    public interface Decider {
+        String admit(long generation, String verb);
+
+        String present(long generation, String verb, String inputDigest, String toolUseIdDigest);
+
+        void refused(long generation, String verb, String reason);
     }
 
     private final SecureRandom random = new SecureRandom();
@@ -52,6 +78,31 @@ public final class HostedCredentials {
         if (credential == null || credential.isBlank()) return -1;
         Long g = live.get(credential);
         return g == null ? -1 : g;
+    }
+
+    /** This store as a gate whose every decision is the session's ({@link Decider}). */
+    public Gate gate(Decider decider) {
+        return new Gate() {
+            @Override public long generationOf(String credential) {
+                return HostedCredentials.this.generationOf(credential);
+            }
+
+            @Override public String admit(long generation) {
+                return decider.admit(generation, null);
+            }
+
+            @Override public String admit(long generation, String verb) {
+                return decider.admit(generation, verb);
+            }
+
+            @Override public String present(long generation, String verb, String inputDigest, String toolUseIdDigest) {
+                return decider.present(generation, verb, inputDigest, toolUseIdDigest);
+            }
+
+            @Override public void refused(long generation, String verb, String reason) {
+                decider.refused(generation, verb, reason);
+            }
+        };
     }
 
     /** This store as a gate, with the session's admission decision supplied by the caller. */

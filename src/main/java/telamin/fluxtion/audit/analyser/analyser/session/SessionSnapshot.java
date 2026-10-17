@@ -28,6 +28,7 @@ import telamin.fluxtion.audit.analyser.analyser.topology.PairingQualifications;
  * @param startPage      M74 P2: the start page's prompt as startPagePrompt decided it — its list and its route
  * @param proposal       M74 P2b: Claude Code's set-up proposal as onboardingProposal decided it
  * @param example        M74 P2b: a prompt-pack example's download as exampleDownload decided it
+ * @param permission     M74 P3: the permission prompt as localAgentPermission decided it — ids, a class, a vocabulary name
  */
 public record SessionSnapshot(boolean logOpen, String logPath, long logGeneration, int sampled, int total,
                               boolean graphOpen, String graphPath, String graphSource, long graphRevision,
@@ -40,7 +41,7 @@ public record SessionSnapshot(boolean logOpen, String logPath, long logGeneratio
                               String contentSignature, String followReadFailure, boolean evidencePending,
                               WalkPlaybackState walkPlayback, CaptureState capture, AssistantState assistant,
                               BundleProvenance bundle, LocalAgentState localAgent, StartPageState startPage,
-                              ProposalState proposal, ExampleDownloadState example) {
+                              ProposalState proposal, ExampleDownloadState example, PermissionState permission) {
 
     /**
      * Independent review R4: immutable in fact, not only by the reference that publishes it. A volatile field cannot make
@@ -57,6 +58,7 @@ public record SessionSnapshot(boolean logOpen, String logPath, long logGeneratio
         if (startPage == null) startPage = StartPageState.IDLE;
         if (proposal == null) proposal = ProposalState.NONE;
         if (example == null) example = ExampleDownloadState.IDLE;
+        if (permission == null) permission = PermissionState.NONE;
     }
 
     /** Before the first operation: nothing is open and nothing may be claimed. */
@@ -64,7 +66,7 @@ public record SessionSnapshot(boolean logOpen, String logPath, long logGeneratio
             new SessionSnapshot(false, null, 0, 0, 0, false, null, null, 0, null, null, false, null, null, null, null,
                     null, null, null, null, false, null, null, false, WalkPlaybackState.IDLE, CaptureState.IDLE,
                     AssistantState.IDLE, BundleProvenance.NONE, LocalAgentState.IDLE, StartPageState.IDLE,
-                    ProposalState.NONE, ExampleDownloadState.IDLE);
+                    ProposalState.NONE, ExampleDownloadState.IDLE, PermissionState.NONE);
 
     static SessionSnapshot of(SessionProcessor p) {
         return new SessionSnapshot(p.openLog.isOpen(), p.openLog.logPath(), p.openLog.generation(),
@@ -86,7 +88,8 @@ public record SessionSnapshot(boolean logOpen, String logPath, long logGeneratio
                 p.localAgentSession.state(),        // M74: the local agent, as localAgentSession decided it
                 p.startPagePrompt.state(),          // M74 P2: the start page's prompt, as startPagePrompt decided it
                 p.onboardingProposal.state(),       // M74 P2b: the set-up proposal, as onboardingProposal decided it
-                p.exampleDownload.state());         // M74 P2b: an example's download, as exampleDownload decided it
+                p.exampleDownload.state(),          // M74 P2b: an example's download, as exampleDownload decided it
+                p.localAgentPermission.state());    // M74 P3: the permission prompt, as localAgentPermission decided it
     }
 
     /** The verdict a surface may state as CURRENT: none while a log open is pending. */

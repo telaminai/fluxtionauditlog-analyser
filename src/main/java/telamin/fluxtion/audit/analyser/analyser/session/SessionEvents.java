@@ -866,7 +866,24 @@ public final class SessionEvents {
      * Review M6: the hosted bridge presented a live credential of {@code generation}; call {@code call} waits for the
      * session's verdict, decided on the session's thread in its order — never from a snapshot on the HTTP thread.
      */
-    public record LocalAgentCallAdmissionRequested(long call, long generation) {
+    public record LocalAgentCallAdmissionRequested(long call, long generation, String verb) {
+        /**
+         * Scorecard R1: the verb the call names, as the hosted vocabulary knows it ({@code McpTools.hostedVerbFor}), or
+         * null when it names none — never the call's input. The turn it belongs to is the node's (it records the open
+         * ticket beside its verdict).
+         */
+        public LocalAgentCallAdmissionRequested(long call, long generation) {
+            this(call, generation, null);
+        }
+    }
+
+    /**
+     * Scorecard R1: the action server refused a hosted call itself, before asking the session — {@code graph {delete}},
+     * a verb that is neither pre-allowed nor askable, a malformed body, an unknown or revoked credential. {@code verb} is
+     * the hosted vocabulary's or null; {@code reason} is a code: {@code GRAPH_DELETE}, {@code NOT_LISTED},
+     * {@code BAD_CREDENTIAL}.
+     */
+    public record HostedCallRefusedByServer(long generation, String verb, String reason) {
     }
 
     /** Answered at once by every local-agent effect whose outcome arrives later. */
@@ -935,11 +952,25 @@ public final class SessionEvents {
      */
     public record LocalAgentInitObserved(long generation, long ticket, String sessionDigest, String permissionMode,
                                          java.util.List<String> tools, java.util.List<String> servers,
-                                         java.util.List<String> capabilities, long headerRef) {
+                                         java.util.List<String> capabilities, long headerRef,
+                                         java.util.List<String> skills, java.util.List<String> plugins) {
+        /**
+         * Scorecard R7: {@code skills} and {@code plugins} are the NAMES the turn's {@code system/init} reports (a plugin's
+         * name only, never its path), so the record says what loaded — the person's own configuration, as the server
+         * names already are; never their contents.
+         */
         public LocalAgentInitObserved {
             tools = java.util.List.copyOf(tools == null ? java.util.List.of() : tools);
             servers = java.util.List.copyOf(servers == null ? java.util.List.of() : servers);
             capabilities = java.util.List.copyOf(capabilities == null ? java.util.List.of() : capabilities);
+            skills = java.util.List.copyOf(skills == null ? java.util.List.of() : skills);
+            plugins = java.util.List.copyOf(plugins == null ? java.util.List.of() : plugins);
+        }
+
+        public LocalAgentInitObserved(long generation, long ticket, String sessionDigest, String permissionMode,
+                                      java.util.List<String> tools, java.util.List<String> servers,
+                                      java.util.List<String> capabilities, long headerRef) {
+            this(generation, ticket, sessionDigest, permissionMode, tools, servers, capabilities, headerRef, null, null);
         }
     }
 
@@ -975,7 +1006,14 @@ public final class SessionEvents {
         APPROVAL_UNAVAILABLE }
 
     /** {@code note} happened in {@code ticket}; {@code epochSeconds} is a rate limit's reset time, else 0. */
-    public record LocalAgentNoted(long generation, long ticket, AgentNote note, long epochSeconds) {
+    public record LocalAgentNoted(long generation, long ticket, AgentNote note, long epochSeconds, String tool) {
+        /**
+         * Scorecard R2: {@code tool} names the tool a denial was about from a fixed vocabulary ({@code ToolVocabulary.word}:
+         * {@code Read}, {@code Bash}, {@code analyser_report}, {@code other-mcp}, …), or null for a note about none.
+         */
+        public LocalAgentNoted(long generation, long ticket, AgentNote note, long epochSeconds) {
+            this(generation, ticket, note, epochSeconds, null);
+        }
     }
 
     /** The CLI's hook vocabulary, as {@code system/hook_*} names it; anything else is {@link #OTHER}. */
@@ -1130,6 +1168,14 @@ public final class SessionEvents {
     public record ProposalPreviewDone(String proposalId, String setupDir, boolean projectExists) {
     }
 
+    /**
+     * Scorecard R5 (spec §8.2): the person's answer to ONE row of the review dialog — Yes or No, for each row they could
+     * answer, the create row's id being {@code create} — posted before {@link ProposalApplyRequested}. So the record tells
+     * a No from a row never looked at.
+     */
+    public record ProposalItemAnswered(String proposalId, String itemId, boolean yes) {
+    }
+
     /** The person's Apply chosen: the items answered Yes (all others are No), and the analyser's own create row. */
     public record ProposalApplyRequested(String proposalId, java.util.List<String> yes, boolean createProject) {
         public ProposalApplyRequested {
@@ -1177,6 +1223,79 @@ public final class SessionEvents {
      * initialize only when one changed. Never a person's line: command names come from {@code initialize.commands}.
      */
     public record LocalAgentDiagnostics(long generation, int unknownEvents, int unclassifiedCommands, int droppedLines) {
+    }
+
+    // ---- M74 P3: permission prompts in the analyser (spec §5.7, §8.3; OD-74.16, OD-74.17) ------------------------------
+    //
+    // A request's words (the tool's name, its server, its input) live in the bounded LocalAgentTranscript; these facts
+    // carry the store reference, the tool's CLASS, a verb or built-in name from a fixed vocabulary, and digests.
+
+    /** What kind of tool a {@code can_use_tool} names — the class the policy of OD-74.16 is decided on (§5.7). */
+    public enum ToolClass {
+        /** One of the analyser's hosted destructive verbs ({@code open, source_root, screenshot, report, walk, import}). */
+        HOSTED_DESTRUCTIVE,
+        /** Another hosted verb — pre-allowed, so a request for it is an anomaly. */
+        HOSTED_OTHER,
+        /** A tool of the person's own {@code fluxtion-analyser} registration: never this analyser. */
+        PERSONS_ANALYSER_REGISTRATION,
+        /** One of the CLI's own tools (Bash, Edit, Write, WebFetch, …), named from the CLI's fixed vocabulary. */
+        BUILT_IN,
+        /** A tool of one of the person's own MCP servers. */
+        OTHER_MCP,
+        /** Anything else. */
+        UNKNOWN
+    }
+
+    /** Who decided a permission request's answer (§5.7 *Audit*). */
+    public enum PermissionBy { PERSON, TIMEOUT, STOP, POLICY, BUSY, TOO_LARGE, CANCELLED }
+
+    /**
+     * The adapter observed a {@code can_use_tool} for {@code generation}'s turn {@code ticket}. {@code requestRef} names the
+     * request in the store (its words and the CLI's request id stay in the adapter); {@code name} is the hosted verb (for
+     * a hosted class) or the built-in's name (for {@code BUILT_IN}) from a fixed vocabulary, else null.
+     * {@code inputDigest} and {@code toolUseIdDigest} are {@code CanonicalJson.digest} of the input and
+     * {@code LocalAgentPosture.digest} of the id; {@code showable} says whether the input can be shown in full (§5.7: at
+     * most 64 KB canonical, 32 levels, JSON).
+     */
+    public record LocalAgentPermissionRequested(long generation, long ticket, long requestRef, ToolClass toolClass,
+                                                String name, String inputDigest, String toolUseIdDigest,
+                                                boolean showable) {
+    }
+
+    /**
+     * Scorecard R8: the answer the adapter WROTE to the CLI for {@code requestRef} — the result of
+     * {@code AnswerPermissionEffect}, so the session record holds every answer as a fact: the turn, the class, the
+     * vocabulary name, the decision and who decided it. {@code written} false: the process was gone.
+     */
+    public record LocalAgentPermissionAnswered(long opId, long generation, long ticket, long requestRef, ToolClass toolClass,
+                                               String name, boolean allow, PermissionBy by, boolean written)
+            implements Result {
+    }
+
+    /** The person pressed a button of the dialog for {@code requestRef} (closing it is Deny). */
+    public record LocalAgentPermissionChosen(long requestRef, boolean allow) {
+    }
+
+    /** The adapter's clock: {@code deadlineMs} have passed since the dialog for {@code requestRef} was asked for. */
+    public record LocalAgentPermissionDeadline(long generation, long requestRef) {
+    }
+
+    /** The CLI withdrew request {@code requestRef} itself ({@code control_cancel_request}, P3-2). */
+    public record LocalAgentPermissionCancelled(long generation, long requestRef) {
+    }
+
+    /** The adapter's clock: 60 s have passed since grant {@code grantId} was issued (OD-74.17). */
+    public record LocalAgentGrantExpired(long generation, long grantId) {
+    }
+
+    /**
+     * OD-74.17: the hosted bridge presented a call of a hosted DESTRUCTIVE verb with this generation's credential. Call
+     * {@code call} waits (bounded) for the session's verdict, which consumes the one matching unconsumed grant or refuses
+     * — decided on the session's thread, in its order, never on the HTTP thread. {@code inputDigest} is
+     * {@code CanonicalJson.digest} of the call's params; {@code toolUseIdDigest} is the digest of the
+     * {@code claudecode/toolUseId} the bridge forwarded (P3-3), or null.
+     */
+    public record HostedCallPresented(long call, long generation, String verb, String inputDigest, String toolUseIdDigest) {
     }
 
     // ---- M74 P2b: prompt-pack example entries (owner request 2026-10-17) -----------------------------------------------

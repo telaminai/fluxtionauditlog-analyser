@@ -83,8 +83,16 @@ public record LocalAgentPosture(Kind kind, FullMode fullMode) {
     /** The person's own M42 registration's server name: hidden in the full posture, never this analyser [P0-30, P0-31]. */
     public static final String PERSONS_REGISTRATION = "fluxtion-analyser";
 
-    /** P1a and P2, default posture: anything not pre-allowed is denied without blocking [P0-21]. */
-    public static final String PERMISSION_MODE = "dontAsk";
+    /**
+     * P3, the default posture: {@code default} with the host asked ({@code --permission-prompts host
+     * --permission-prompt-tool stdio}), so a hosted destructive verb reaches the person in the analyser [P0b-3, P3-0].
+     * (P1a and P2 ran {@code dontAsk}, which asks nobody.)
+     */
+    public static final String PERMISSION_MODE = "default";
+
+    /** P3 (§5.7): the prompt flags that send every request the mode would ask about to the analyser, over stdio. */
+    public static final List<String> PROMPT_FLAGS = List.of("--permission-prompts", "host", "--permission-prompt-tool",
+            "stdio");
 
     /** A mode the analyser never starts, offers or accepts: observed in any posture it is {@code MODE_MISMATCH} (§4.4). */
     public static final String BYPASS = "bypassPermissions";
@@ -102,8 +110,8 @@ public record LocalAgentPosture(Kind kind, FullMode fullMode) {
 
     /** The name the posture is shown under. */
     public String label() {
-        // owner, 2026-10-17: the full posture is a PREVIEW until P3's approvals ship
-        return isFull() ? "full Claude Code (preview, " + fullMode.cli() + ")" : "analyser assistant (default posture)";
+        // OD-74.26: the "preview" label went when P3's approvals in the analyser shipped
+        return isFull() ? "full Claude Code (" + fullMode.cli() + ")" : "analyser assistant (default posture)";
     }
 
     /**
@@ -162,11 +170,40 @@ public record LocalAgentPosture(Kind kind, FullMode fullMode) {
         return List.copyOf(out);
     }
 
-    /** Every verb of {@code schemaVerbs} that is not pre-allowed: hidden from the model with {@code --disallowedTools}. */
-    public static List<String> disallowedVerbs(Collection<String> schemaVerbs) {
+    /**
+     * P3 (OD-74.16): whether this posture's mode ASKS — the default posture (mode {@code default}) and the full posture's
+     * {@code default} and {@code acceptEdits}. Only then are the hosted destructive verbs visible, each call asked of the
+     * person in the analyser; under {@code auto} and {@code plan} they stay hidden.
+     */
+    public boolean asks() {
+        return !isFull() || fullMode == FullMode.DEFAULT || fullMode == FullMode.ACCEPT_EDITS;
+    }
+
+    /** Whether {@code verb} is one the person is asked about, in a posture that asks: the destructive verbs, by name. */
+    public static boolean askable(String verb) {
+        return verb != null && McpTools.destructiveVerbs().contains(verb);
+    }
+
+    /** The verbs of {@code schemaVerbs} this posture shows the model: the pre-allowed ones, and the askable ones when it asks. */
+    public List<String> visibleVerbs(Collection<String> schemaVerbs) {
         List<String> out = new ArrayList<>();
-        for (String v : schemaVerbs) if (!preAllowed(v)) out.add(v);
+        for (String v : schemaVerbs) if (preAllowed(v) || asks() && askable(v)) out.add(v);
         return List.copyOf(out);
+    }
+
+    /**
+     * Every verb of {@code schemaVerbs} this posture does not show: hidden from the model with {@code --disallowedTools}.
+     * Review H5 still holds in P3: a verb the schema gains is neither pre-allowed nor askable, so it is hidden.
+     */
+    public List<String> hiddenVerbs(Collection<String> schemaVerbs) {
+        List<String> out = new ArrayList<>();
+        for (String v : schemaVerbs) if (!preAllowed(v) && !(asks() && askable(v))) out.add(v);
+        return List.copyOf(out);
+    }
+
+    /** The DEFAULT posture's hidden verbs for {@code schemaVerbs} (P3: neither pre-allowed nor destructive). */
+    public static List<String> disallowedVerbs(Collection<String> schemaVerbs) {
+        return ANALYSER_ASSISTANT.hiddenVerbs(schemaVerbs);
     }
 
     public static List<String> disallowedVerbs() {
@@ -181,11 +218,11 @@ public record LocalAgentPosture(Kind kind, FullMode fullMode) {
         return disallowedTools(VerbSchemas.hosted().keySet());
     }
 
-    /** {@code --disallowedTools} for a given schema list. */
+    /** {@code --disallowedTools} for a given schema list; empty when nothing is hidden (P3's default posture). */
     public List<String> disallowedTools(Collection<String> schemaVerbs) {
         List<String> out = new ArrayList<>();
         if (isFull()) out.add("mcp__" + PERSONS_REGISTRATION);
-        for (String v : disallowedVerbs(schemaVerbs)) out.add(toolName(v));
+        for (String v : hiddenVerbs(schemaVerbs)) out.add(toolName(v));
         return List.copyOf(out);
     }
 
@@ -197,19 +234,33 @@ public record LocalAgentPosture(Kind kind, FullMode fullMode) {
     private static final String HOSTED_PREFIX = "mcp__" + HOSTED_SERVER + "__";
     private static final String REGISTRATION_PREFIX = "mcp__" + PERSONS_REGISTRATION + "__";
 
-    /** The hosted tools the model may see in P1b and P2: the pre-allowed verbs, in both postures. */
+    /** The hosted tools every posture shows: the pre-allowed verbs (P3 adds the askable ones where the mode asks). */
     public static Set<String> expectedHostedTools() {
         return expectedHostedTools(VerbSchemas.hosted().keySet());
     }
 
-    /** The hosted tools for a given schema list (the tests add a verb to the real inputs through this). */
+    /** The pre-allowed hosted tools for a given schema list (the tests add a verb to the real inputs through this). */
     public static Set<String> expectedHostedTools(Collection<String> schemaVerbs) {
         Set<String> out = new TreeSet<>();
         for (String v : preAllowedVerbs(schemaVerbs)) out.add(toolName(v));
         return out;
     }
 
-    /** The default posture's {@code system/init.tools}, exactly: the built-ins plus the pre-allowed hosted verbs. */
+    /** P3: the hosted tools THIS posture shows — the pre-allowed ones, and the destructive ones when its mode asks. */
+    public Set<String> visibleHostedTools(Collection<String> schemaVerbs) {
+        Set<String> out = new TreeSet<>();
+        for (String v : visibleVerbs(schemaVerbs)) out.add(toolName(v));
+        return out;
+    }
+
+    public Set<String> visibleHostedTools() {
+        return visibleHostedTools(VerbSchemas.hosted().keySet());
+    }
+
+    /**
+     * The default posture's {@code system/init.tools}, exactly: the built-ins plus the visible hosted verbs — in P3 every
+     * hosted verb today (P3-0: {@code Glob, Grep, Read} and all nineteen).
+     */
     public static Set<String> expectedTools() {
         return expectedTools(VerbSchemas.hosted().keySet());
     }
@@ -217,7 +268,7 @@ public record LocalAgentPosture(Kind kind, FullMode fullMode) {
     /** The default posture's expected tool set for a given schema list. */
     public static Set<String> expectedTools(Collection<String> schemaVerbs) {
         Set<String> out = new TreeSet<>(BUILT_IN_TOOLS);
-        out.addAll(expectedHostedTools(schemaVerbs));
+        out.addAll(ANALYSER_ASSISTANT.visibleHostedTools(schemaVerbs));
         return out;
     }
 
@@ -275,7 +326,7 @@ public record LocalAgentPosture(Kind kind, FullMode fullMode) {
                 if (isRegistrationTool(t)) return Verdict.TOOLS_MISMATCH;
                 if (isHostedTool(t)) hosted.add(t);
             }
-            Set<String> expected = expectedHostedTools(schemaVerbs);
+            Set<String> expected = visibleHostedTools(schemaVerbs);
             if (!new TreeSet<>(hosted).equals(expected) || hosted.size() != expected.size()) return Verdict.TOOLS_MISMATCH;
             if (!servers.contains(HOSTED_SERVER + ":connected")) return Verdict.SERVERS_MISMATCH;
         } else {

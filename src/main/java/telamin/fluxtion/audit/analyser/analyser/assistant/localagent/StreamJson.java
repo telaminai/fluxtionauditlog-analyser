@@ -26,12 +26,23 @@ public final class StreamJson {
     /** One line of the CLI's stdout, typed. */
     public sealed interface Event permits SystemInit, Lifecycle, MessageStart, TextDelta, AssistantMessage, UserMessage,
             Result, CompactBoundary, RateLimit, PermissionDenied, ConversationReset, ControlResponse, ControlRequest,
-            Hook, ModeStatus, Ignored, Unknown {
+            ControlCancelRequest, Hook, ModeStatus, Ignored, Unknown {
     }
 
     /** {@code system/init}, emitted at the start of every turn [P0-4]. {@code servers} are {@code name:status}. */
     public record SystemInit(String sessionId, String model, String permissionMode, List<String> tools,
-                             List<String> servers, List<String> capabilities, String cliVersion) implements Event {
+                             List<String> servers, List<String> capabilities, String cliVersion, List<String> skills,
+                             List<String> plugins) implements Event {
+        /** Scorecard R7: {@code skills} as named, {@code plugins} by NAME only (a plugin's path is never read). */
+        public SystemInit {
+            skills = List.copyOf(skills == null ? List.of() : skills);
+            plugins = List.copyOf(plugins == null ? List.of() : plugins);
+        }
+
+        public SystemInit(String sessionId, String model, String permissionMode, List<String> tools, List<String> servers,
+                          List<String> capabilities, String cliVersion) {
+            this(sessionId, model, permissionMode, tools, servers, capabilities, cliVersion, null, null);
+        }
     }
 
     /** {@code command_lifecycle}: {@code queued → started → completed / cancelled}, keyed by the line's own uuid [P0-9]. */
@@ -176,8 +187,29 @@ public final class StreamJson {
                                   boolean interruptAck) implements Event {
     }
 
-    /** A {@code control_request} from the CLI (P3's {@code can_use_tool}); P1a answers every one with a denial. */
-    public record ControlRequest(String requestId, String subtype) implements Event {
+    /**
+     * A {@code control_request} from the CLI — P3's {@code can_use_tool} [P0b-3, P3-0]. What the analyser reads of it:
+     * the tool's name, its MCP server's name (null for a built-in), the server's display name, the input EXACTLY as the
+     * line carried it ({@code inputRaw}: the raw JSON text, byte for byte, so the answer's {@code updatedInput} is what the
+     * person was shown and nothing re-serialised), and the {@code tool_use_id}. {@code permission_suggestions},
+     * {@code blocked_path} and {@code description} are never read: the analyser never applies a suggestion.
+     */
+    public record ControlRequest(String requestId, String subtype, String toolName, String serverName, String displayName,
+                                 String inputRaw, String toolUseId) implements Event {
+        public ControlRequest(String requestId, String subtype) {
+            this(requestId, subtype, null, null, null, null, null);
+        }
+
+        public boolean canUseTool() {
+            return "can_use_tool".equals(subtype);
+        }
+    }
+
+    /**
+     * {@code control_cancel_request{request_id}}: the CLI withdrew a request it had sent — an interrupt while a
+     * {@code can_use_tool} is pending sends one before the interrupt's own answer (P3-2).
+     */
+    public record ControlCancelRequest(String requestId) implements Event {
     }
 
     /** A known kind the analyser does not act on (thinking estimates, status, hooks, a block start/stop, …). */
@@ -247,8 +279,15 @@ public final class StreamJson {
             case "control_response" -> controlResponse(m);
             case "control_request" -> {
                 Map<?, ?> req = map(m.get("request"));
-                yield new ControlRequest(str(m.get("request_id")), req == null ? null : str(req.get("subtype")));
+                if (req == null) yield new ControlRequest(str(m.get("request_id")), null);
+                Map<?, ?> server = map(req.get("mcp_server"));
+                // the input as the line carried it: the answer must echo exactly this (§5.7), never a re-serialisation
+                String raw = req.containsKey("input") ? rawMember(line, "request", "input") : null;
+                yield new ControlRequest(str(m.get("request_id")), str(req.get("subtype")), str(req.get("tool_name")),
+                        server == null ? null : str(server.get("name")), str(req.get("display_name")), raw,
+                        str(req.get("tool_use_id")));
             }
+            case "control_cancel_request" -> new ControlCancelRequest(str(m.get("request_id")));
             case "keep_alive" -> new Ignored(type);
             default -> new Unknown(type);
         };
@@ -263,8 +302,14 @@ public final class StreamJson {
                 for (Object o : list(m.get("mcp_servers"))) {
                     if (o instanceof Map<?, ?> s) servers.add(str(s.get("name")) + ":" + str(s.get("status")));
                 }
+                List<String> plugins = new ArrayList<>();
+                for (Object o : list(m.get("plugins"))) {
+                    if (o instanceof Map<?, ?> pl && str(pl.get("name")) != null) plugins.add(str(pl.get("name")));
+                    else if (o instanceof String name) plugins.add(name);
+                }
                 yield new SystemInit(str(m.get("session_id")), str(m.get("model")), str(m.get("permissionMode")),
-                        strings(m.get("tools")), servers, strings(m.get("capabilities")), str(m.get("claude_code_version")));
+                        strings(m.get("tools")), servers, strings(m.get("capabilities")), str(m.get("claude_code_version")),
+                        strings(m.get("skills")), plugins);
             }
             case "compact_boundary" -> {
                 Map<?, ?> meta = map(m.get("compact_metadata"));
@@ -439,7 +484,7 @@ public final class StreamJson {
         return Json.write(m);
     }
 
-    /** The answer to a {@code control_request} P1a never grants: deny, without suggestions or permission updates. */
+    /** A deny answer to a {@code control_request}: no suggestion, no permission update, ever. */
     public static String deny(String requestId, String message) {
         Map<String, Object> inner = new LinkedHashMap<>();
         inner.put("behavior", "deny");
@@ -452,6 +497,106 @@ public final class StreamJson {
         m.put("type", "control_response");
         m.put("response", response);
         return Json.write(m);
+    }
+
+    /**
+     * P3 (§5.7): allow ONE call, with {@code updatedInput} = {@code inputRaw}, the input exactly as the request carried it
+     * and the person was shown — spliced in as raw JSON text, never parsed and re-written, so a number, an escape or a key
+     * order the model wrote reaches the tool unchanged. Never {@code updatedPermissions}: an approval is for this call.
+     */
+    public static String allow(String requestId, String inputRaw) {
+        if (inputRaw == null || inputRaw.isBlank()) throw new IllegalArgumentException("an allow carries the input shown");
+        return "{\"type\":\"control_response\",\"response\":{\"subtype\":\"success\",\"request_id\":"
+                + Json.write(requestId) + ",\"response\":{\"behavior\":\"allow\",\"updatedInput\":" + inputRaw + "}}}";
+    }
+
+    // ---- raw spans ----------------------------------------------------------------------------------------------------
+
+    /**
+     * The exact JSON text of the member at {@code path} (object keys, top down) in {@code json}, or null. A small scanner
+     * over the text — strings with their escapes, nested objects and arrays — that never builds a value, so the span is
+     * the bytes the line carried. Only object keys are followed; the first match at each level wins, as in the parser.
+     */
+    static String rawMember(String json, String... path) {
+        if (json == null) return null;
+        int[] pos = {skipWs(json, 0)};
+        int start = pos[0];
+        int end = -1;
+        for (int depth = 0; depth < path.length; depth++) {
+            if (pos[0] >= json.length() || json.charAt(pos[0]) != '{') return null;
+            int[] span = memberSpan(json, pos[0], path[depth]);
+            if (span == null) return null;
+            start = span[0];
+            end = span[1];
+            pos[0] = start;
+        }
+        return end < 0 ? null : json.substring(start, end);
+    }
+
+    /** Within the object starting at {@code open}, the [start, end) of the value of {@code key}; null when absent. */
+    private static int[] memberSpan(String s, int open, String key) {
+        int i = skipWs(s, open + 1);
+        while (i < s.length() && s.charAt(i) != '}') {
+            if (s.charAt(i) != '"') return null;
+            int keyEnd = skipString(s, i);
+            if (keyEnd < 0) return null;
+            String k;
+            try {
+                k = (String) Json.parse(s.substring(i, keyEnd));
+            } catch (RuntimeException e) {
+                return null;
+            }
+            i = skipWs(s, keyEnd);
+            if (i >= s.length() || s.charAt(i) != ':') return null;
+            int vs = skipWs(s, i + 1);
+            int ve = skipValue(s, vs);
+            if (ve < 0) return null;
+            if (key.equals(k)) return new int[]{vs, ve};
+            i = skipWs(s, ve);
+            if (i < s.length() && s.charAt(i) == ',') i = skipWs(s, i + 1);
+        }
+        return null;
+    }
+
+    private static int skipWs(String s, int i) {
+        while (i < s.length() && (s.charAt(i) == ' ' || s.charAt(i) == '\t' || s.charAt(i) == '\n' || s.charAt(i) == '\r')) i++;
+        return i;
+    }
+
+    /** The index just past the string starting at {@code i} (a quote), or -1. */
+    private static int skipString(String s, int i) {
+        for (int j = i + 1; j < s.length(); j++) {
+            char c = s.charAt(j);
+            if (c == '\\') j++;
+            else if (c == '"') return j + 1;
+        }
+        return -1;
+    }
+
+    /** The index just past the value starting at {@code i}, or -1. Iterative over nesting, so depth cannot overflow. */
+    private static int skipValue(String s, int i) {
+        if (i >= s.length()) return -1;
+        char c = s.charAt(i);
+        if (c == '"') return skipString(s, i);
+        if (c == '{' || c == '[') {
+            int depth = 0;
+            for (int j = i; j < s.length(); j++) {
+                char d = s.charAt(j);
+                if (d == '"') {
+                    j = skipString(s, j) - 1;
+                    if (j < 0) return -1;
+                } else if (d == '{' || d == '[') {
+                    depth++;
+                } else if (d == '}' || d == ']') {
+                    depth--;
+                    if (depth == 0) return j + 1;
+                }
+            }
+            return -1;
+        }
+        int j = i;
+        while (j < s.length() && ",}] \t\n\r".indexOf(s.charAt(j)) < 0) j++;
+        return j == i ? -1 : j;
     }
 
     // ---- helpers ------------------------------------------------------------------------------------------------------

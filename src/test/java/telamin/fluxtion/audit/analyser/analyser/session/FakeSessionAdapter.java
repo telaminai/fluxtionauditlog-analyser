@@ -70,6 +70,11 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
     final List<SessionEffects.ServeHostedBridgeEffect> agentServes = new ArrayList<>();
     final List<SessionEffects.ReleaseHostedBridgeEffect> agentReleases = new ArrayList<>();
     final List<SessionEffects.AnswerHostedCallEffect> agentAnswers = new ArrayList<>();
+    /** M74 P3: what localAgentPermission asked for. */
+    final List<SessionEffects.ShowPermissionDialogEffect> permissionDialogs = new ArrayList<>();
+    final List<SessionEffects.ClosePermissionDialogEffect> permissionCloses = new ArrayList<>();
+    final List<SessionEffects.AnswerPermissionEffect> permissionAnswers = new ArrayList<>();
+    final List<SessionEffects.StartPermissionClockEffect> permissionClocks = new ArrayList<>();
     /** The local agent's effects by name, in the order they were performed. */
     final List<String> agentOrder = new ArrayList<>();
     /** Review H4: whether the hosted bridge listener comes up when served. */
@@ -245,6 +250,27 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
                 agentAnswers.add(e);
                 onAnswer.accept(e);
                 yield new SessionEvents.LocalAgentEffectStarted(e.opId(), 0, "answerHostedCall");
+            }
+            // M74 P3: what localAgentPermission asked for, in order
+            case SessionEffects.ShowPermissionDialogEffect e -> {
+                permissionDialogs.add(e);
+                agentOrder.add("showPermissionDialog");
+                yield new SessionEvents.LocalAgentEffectStarted(e.opId(), e.generation(), "showPermissionDialog");
+            }
+            case SessionEffects.ClosePermissionDialogEffect e -> {
+                permissionCloses.add(e);
+                agentOrder.add("closePermissionDialog");
+                yield new SessionEvents.LocalAgentEffectStarted(e.opId(), 0, "closePermissionDialog");
+            }
+            case SessionEffects.AnswerPermissionEffect e -> {
+                permissionAnswers.add(e);
+                agentOrder.add("answerPermission");
+                yield new SessionEvents.LocalAgentPermissionAnswered(e.opId(), e.generation(), e.ticket(), e.requestRef(),
+                        e.toolClass(), e.name(), e.allow(), e.by(), true);
+            }
+            case SessionEffects.StartPermissionClockEffect e -> {
+                permissionClocks.add(e);
+                yield new SessionEvents.LocalAgentEffectStarted(e.opId(), e.generation(), "permissionClock");
             }
             case SessionEffects.PreviewProposalEffect e -> {
                 proposalPreviews.add(e);

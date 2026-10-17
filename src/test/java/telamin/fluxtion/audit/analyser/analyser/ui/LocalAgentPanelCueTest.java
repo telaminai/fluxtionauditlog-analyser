@@ -26,7 +26,7 @@ class LocalAgentPanelCueTest {
     }
 
     @Test
-    @DisplayName("badge text per mode with (preview); running vs switched on; Send names the full posture; border token")
+    @DisplayName("badge text per mode (no preview label from P3, OD-74.26); running vs switched on; Send names the full posture; border token")
     void badge() throws Exception {
         SwingUtilities.invokeAndWait(() -> {
             LocalAgentPanel p = new LocalAgentPanel(new LocalAgentTranscript());
@@ -37,7 +37,7 @@ class LocalAgentPanelCueTest {
                 p.render(state("OFF", LocalAgentPosture.ANALYSER_ASSISTANT, LocalAgentPosture.full(m), null));
                 assertTrue(p.fullBadge().isVisible(), m.name());
                 assertEquals((m == LocalAgentPosture.FullMode.AUTO || m == LocalAgentPosture.FullMode.ACCEPT_EDITS ? "◆◆ " : "◆ ")
-                        + "Full Claude Code (preview) · " + m.cli() + ": your tools and permissions — on: it runs at the next "
+                        + "Full Claude Code · " + m.cli() + ": your tools and permissions — on: it runs at the next "
                         + "Start", p.fullBadge().getText());
                 assertEquals("Send to full Claude Code", p.sendButton().getText());
                 assertNotNull(p.fullBadge().getAccessibleContext().getAccessibleName());

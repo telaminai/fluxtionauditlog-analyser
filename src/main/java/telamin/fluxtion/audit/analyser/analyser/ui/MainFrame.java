@@ -5320,6 +5320,7 @@ public final class MainFrame extends JFrame {
         }
         localAgentPanel.render(agent);
         localAgentPanel.renderProposal(next.proposal());
+        localAgentPanel.renderPermission(next.permission());
         renderFullPostureMarkers(agent);
         renderStartPrompt(next);
     }
@@ -5415,7 +5416,8 @@ public final class MainFrame extends JFrame {
                             config.maxActionsPerReply, 10.0, wellKnown);
             // M74 r6 §4.2: a hosted credential maps to its generation; the session decides, on its thread, whether a
             // call is admitted (review M6)
-            actionServer.setHostedGate(hostedCredentials.gate(hostedAdmission::admit));
+            // M74 P3: the session decides admission, the destructive verbs' grants and records the server's refusals
+            actionServer.setHostedGate(hostedCredentials.gate(hostedAdmission));
             // M74 P2b (§5.6): the hosted credential alone may reach `propose`; the offer is the session's to record
             d.setProposer(this::proposeFromHosted);
             actionServer.start();
@@ -8407,6 +8409,11 @@ public final class MainFrame extends JFrame {
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.PollLocalAgentStatusEffect e -> performLocalAgent(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.SendLocalAgentTurnEffect e -> performLocalAgent(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.StopLocalAgentEffect e -> performLocalAgent(e);
+            // M74 P3 (§5.7): the CLI's answer and the request's clock are the adapter's; the dialog is the frame's
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.AnswerPermissionEffect e -> performLocalAgent(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.StartPermissionClockEffect e -> performLocalAgent(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ShowPermissionDialogEffect e -> showPermissionDialog(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ClosePermissionDialogEffect e -> closePermissionDialog(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ConfirmLocalAgentFolderEffect e -> confirmLocalAgentFolder(e);
             // M74 P2: the Ask catalogue's drafts and the start page — the nodes decided; the frame performs and reports
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.PrimeLocalAgentDraftEffect e -> primeLocalAgentDraft(e);
@@ -10969,6 +10976,58 @@ public final class MainFrame extends JFrame {
 
     public AppConfig config() {
         return config;
+    }
+
+    /** M74 P3: the permission dialog shown for each request, by store reference, and those closed before they showed. */
+    private final java.util.Map<Long, LocalAgentPermissionDialog> permissionDialogs = new java.util.HashMap<>();
+    private final java.util.Set<Long> permissionClosed = new java.util.HashSet<>();
+    /** One modal, owned by the analyser window (§5.7); a frame test may show it modeless so its thread stays free. */
+    boolean permissionDialogsModal = true;
+
+    /**
+     * M74 P3 (§5.7): show the one permission dialog the node asked for — outside the dispatch, owned by the window the
+     * Assistant is in — and report the person's buttons as facts. It decides nothing: it closes only on the node's
+     * {@code ClosePermissionDialogEffect}, and the deadline is the node's.
+     */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result showPermissionDialog(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ShowPermissionDialogEffect e) {
+        long ref = e.requestRef();
+        var content = PermissionText.of(localAgentStore.permission(ref), e.toolClass(), e.name());
+        SwingUtilities.invokeLater(() -> {
+            if (permissionClosed.remove(ref) || session == null) return;   // answered before it could show
+            Window owner = SwingUtilities.getWindowAncestor(localAgentPanel);
+            LocalAgentPermissionDialog d = new LocalAgentPermissionDialog(owner == null ? this : owner, content,
+                    e.deadlineMs(), new LocalAgentPermissionDialog.Answers() {
+                @Override public void chosen(boolean allow) {
+                    session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents
+                            .LocalAgentPermissionChosen(ref, allow));
+                }
+
+                @Override public void stop() {
+                    session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents
+                            .LocalAgentStopRequested("permission dialog"));
+                }
+            }, permissionDialogsModal);
+            permissionDialogs.put(ref, d);
+            d.setVisible(true);                         // modal: returns when the node's close effect disposes it
+        });
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentEffectStarted(e.opId(),
+                e.generation(), "showPermissionDialog");
+    }
+
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result closePermissionDialog(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ClosePermissionDialogEffect e) {
+        LocalAgentPermissionDialog d = permissionDialogs.remove(e.requestRef());
+        if (d != null) d.close();
+        else permissionClosed.add(e.requestRef());
+        while (permissionClosed.size() > 64) permissionClosed.remove(permissionClosed.iterator().next());
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentEffectStarted(e.opId(), 0,
+                d != null ? "closePermissionDialog" : "closePermissionDialog:notShown");
+    }
+
+    /** For the frame tests: the permission dialog shown for {@code requestRef}, or null. */
+    LocalAgentPermissionDialog permissionDialog(long requestRef) {
+        return permissionDialogs.get(requestRef);
     }
 
     /** M74: the ONE performer of the local agent's process effects (OneDispatchModelTest pins it). */

@@ -221,7 +221,7 @@ class StartPromptViewTest {
             assertFalse(v.fullBadge().isVisible(), "the default posture: no cue");
             v.render(route(StartPageState.Route.CLAUDE_CODE), fullOn(LocalAgentPosture.FullMode.ACCEPT_EDITS));
             assertTrue(v.fullBadge().isVisible());
-            assertTrue(v.fullBadge().getText().contains("Full Claude Code (preview) · acceptEdits: your tools and permissions"),
+            assertTrue(v.fullBadge().getText().contains("Full Claude Code · acceptEdits: your tools and permissions"),
                     v.fullBadge().getText());
             assertTrue(v.fullBadge().getText().startsWith("◆◆"), "acceptEdits is the strong cue: not colour alone");
             assertNotNull(v.fullBadge().getToolTipText());

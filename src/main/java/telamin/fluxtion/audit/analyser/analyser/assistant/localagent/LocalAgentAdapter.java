@@ -139,7 +139,9 @@ public final class LocalAgentAdapter {
         return effect instanceof SessionEffects.StartLocalAgentEffect
                 || effect instanceof SessionEffects.PollLocalAgentStatusEffect
                 || effect instanceof SessionEffects.SendLocalAgentTurnEffect
-                || effect instanceof SessionEffects.StopLocalAgentEffect;
+                || effect instanceof SessionEffects.StopLocalAgentEffect
+                || effect instanceof SessionEffects.AnswerPermissionEffect
+                || effect instanceof SessionEffects.StartPermissionClockEffect;
     }
 
     /** Perform one local-agent effect: the answer is immediate, the outcome is posted later. */
@@ -153,6 +155,13 @@ public final class LocalAgentAdapter {
             }
             case SessionEffects.SendLocalAgentTurnEffect e -> send(e);
             case SessionEffects.StopLocalAgentEffect e -> stop(e);
+            case SessionEffects.AnswerPermissionEffect e -> answerPermission(e);
+            case SessionEffects.StartPermissionClockEffect e -> {
+                long gen = e.generation();
+                long ref = e.requestRef();
+                clock.schedule(e.deadlineMs(), () -> env.post(new SessionEvents.LocalAgentPermissionDeadline(gen, ref)));
+                yield started(e.opId(), gen, "permissionClock");
+            }
             default -> throw new IllegalArgumentException("not a local-agent effect: " + effect);
         };
     }
@@ -406,9 +415,11 @@ public final class LocalAgentAdapter {
         long gen = run.generation;
         switch (event) {
             case StreamJson.ControlResponse r -> onControlResponse(run, r);
-            case StreamJson.ControlRequest r -> {
-                // P1a asks nobody: dontAsk never sends one [P0b-3]; should a CLI ever do so, it is denied, never granted
-                write(run, StreamJson.deny(r.requestId(), "Denied: the analyser assistant asks nobody in this posture"));
+            case StreamJson.ControlRequest r -> onControlRequest(run, r);
+            case StreamJson.ControlCancelRequest c -> {
+                // P3-2: the CLI withdrew a request itself (an interrupt while one was pending); the node closes the dialog
+                Long ref = run.permissionByRequestId.get(c.requestId() == null ? "" : c.requestId());
+                if (ref != null) env.post(new SessionEvents.LocalAgentPermissionCancelled(gen, ref));
             }
             case StreamJson.SystemInit i -> {
                 long headerRef;
@@ -420,7 +431,7 @@ public final class LocalAgentAdapter {
                 }
                 env.post(new SessionEvents.LocalAgentInitObserved(gen, run.runningTicket,
                         LocalAgentPosture.digest(i.sessionId()), i.permissionMode(), i.tools(), i.servers(),
-                        i.capabilities(), headerRef));
+                        i.capabilities(), headerRef, i.skills(), i.plugins()));
             }
             case StreamJson.Lifecycle l -> {
                 Long ticket = run.ticketByUuid.get(l.commandUuid());
@@ -470,8 +481,10 @@ public final class LocalAgentAdapter {
                 if (marked) textChanged(run);
                 SessionEvents.AgentNote note = p.approvalUnavailable() ? SessionEvents.AgentNote.APPROVAL_UNAVAILABLE
                         : SessionEvents.AgentNote.PERMISSION_DENIED;
-                if (run.deniedNoted.add(run.runningTicket + ":" + note)) {
-                    env.post(new SessionEvents.LocalAgentNoted(gen, run.runningTicket, note, 0));
+                // scorecard R2: the note names the tool, from a fixed vocabulary, once per tool and turn
+                String tool = ToolVocabulary.word(p.toolName());
+                if (run.deniedNoted.add(run.runningTicket + ":" + note + ":" + tool)) {
+                    env.post(new SessionEvents.LocalAgentNoted(gen, run.runningTicket, note, 0, tool));
                 }
             }
             // the mode the CLI now reports, mid-session: the node judges it against the posture (review finding 2)
@@ -502,6 +515,84 @@ public final class LocalAgentAdapter {
             case StreamJson.Ignored i -> { }
         }
     }
+
+    /**
+     * P3 (§5.7): a {@code can_use_tool} is OBSERVED here and decided by {@code localAgentPermission}. Its words go to the
+     * bounded store; the fact carries the store reference, the tool's class and vocabulary name, the canonical input's
+     * digest, the {@code tool_use_id}'s digest and whether the input can be shown in full. Any other request from the CLI
+     * is denied, never granted.
+     */
+    private void onControlRequest(Run run, StreamJson.ControlRequest r) {
+        if (!r.canUseTool() || r.requestId() == null) {
+            write(run, StreamJson.deny(r.requestId(), "Denied: the analyser does not answer this request"));
+            return;
+        }
+        ToolVocabulary.Named named = ToolVocabulary.of(r.toolName());
+        telamin.fluxtion.audit.analyser.analyser.llm.CanonicalJson.Judged judged =
+                telamin.fluxtion.audit.analyser.analyser.llm.CanonicalJson.judge(r.inputRaw());
+        long ref = store.putPermission(new LocalAgentTranscript.Permission(r.toolName(), r.serverName(), r.displayName(),
+                r.inputRaw()));
+        long ticket;
+        synchronized (run) {
+            run.pendingPermissions.put(ref, new String[]{r.requestId(), r.inputRaw(), r.toolUseId()});
+            run.permissionByRequestId.put(r.requestId(), ref);
+            ticket = run.runningTicket;
+        }
+        env.post(new SessionEvents.LocalAgentPermissionRequested(run.generation, ticket, ref, named.toolClass(),
+                named.name(), judged.digest(), r.toolUseId() == null ? null : LocalAgentPosture.digest(r.toolUseId()),
+                judged.showable()));
+    }
+
+    /**
+     * The node's answer, written exactly: allow with {@code updatedInput} = the stored input (the raw text the request
+     * carried, which the person was shown), or deny with the node's message. The tool line is marked with who decided.
+     * A grant's 60 s are measured from here.
+     */
+    private SessionEvents.Result answerPermission(SessionEffects.AnswerPermissionEffect e) {
+        Run run = runs.get(e.generation());
+        String[] pending = null;
+        if (run != null) {
+            synchronized (run) {
+                pending = run.pendingPermissions.remove(e.requestRef());
+                if (pending != null) run.permissionByRequestId.remove(pending[0]);
+            }
+        }
+        boolean written = run != null && pending != null;
+        if (written) {
+            boolean allow = e.allow() && pending[1] != null && !pending[1].isBlank();
+            write(run, allow ? StreamJson.allow(pending[0], pending[1])
+                    : StreamJson.deny(pending[0], e.message() == null ? "Denied in the analyser" : e.message()));
+            boolean marked;
+            synchronized (run) {
+                marked = run.toolMark(pending[2], markWords(allow, e.by()), allow);
+            }
+            if (marked) textChanged(run);
+            if (allow && e.grantId() != 0) {
+                long gen = e.generation();
+                long grant = e.grantId();
+                clock.schedule(GRANT_MS, () -> env.post(new SessionEvents.LocalAgentGrantExpired(gen, grant)));
+            }
+        }
+        return new SessionEvents.LocalAgentPermissionAnswered(e.opId(), e.generation(), e.ticket(), e.requestRef(),
+                e.toolClass(), e.name(), e.allow() && written, e.by(), written);
+    }
+
+    /** §8.3 UI: the tool line's mark, by who decided. */
+    static String markWords(boolean allow, SessionEvents.PermissionBy by) {
+        if (allow) return "approved by you";
+        return switch (by == null ? SessionEvents.PermissionBy.POLICY : by) {
+            case PERSON -> "denied by you";
+            case TIMEOUT -> "denied: not answered within 120 s";
+            case STOP -> "denied: Stop";
+            case BUSY -> "denied: another approval was waiting";
+            case TOO_LARGE -> "denied: too large to show you in full";
+            case CANCELLED -> "withdrawn by Claude Code";
+            case POLICY -> "denied: not asked in this posture";
+        };
+    }
+
+    /** How long a grant lives after the person's Allow (OD-74.17); the node decides what its expiry means. */
+    static final long GRANT_MS = telamin.fluxtion.audit.analyser.analyser.session.node.LocalAgentPermission.GRANT_MS;
 
     private void onControlResponse(Run run, StreamJson.ControlResponse r) {
         long gen = run.generation;
@@ -697,6 +788,9 @@ public final class LocalAgentAdapter {
         final Map<String, Long> ticketByUuid = new ConcurrentHashMap<>();
         final Set<Long> ended = ConcurrentHashMap.newKeySet();
         final Set<String> deniedNoted = ConcurrentHashMap.newKeySet();
+        /** P3: requests waiting for the node's answer, by store reference: {request id, raw input, tool_use_id}. */
+        final Map<Long, String[]> pendingPermissions = new LinkedHashMap<>();
+        final Map<String, Long> permissionByRequestId = new ConcurrentHashMap<>();
         final Executor writer;
         /** Completes when this run's lock, credential and endpoint file have been released (review M3). */
         final java.util.concurrent.CompletableFuture<Void> cleaned = new java.util.concurrent.CompletableFuture<>();
@@ -803,6 +897,17 @@ public final class LocalAgentAdapter {
             finals.add(key);
             toolKeys.add(key);
             if (id != null) toolLines.put(id, key);
+            return true;
+        }
+
+        /**
+         * P3: mark the line of tool use {@code id} with the permission's outcome. {@code keep}: the line stays open for the
+         * tool's own result (an approval is followed by ✓ or refused); a denial closes it.
+         */
+        boolean toolMark(String id, String outcome, boolean keep) {
+            String key = id == null ? null : keep ? toolLines.get(id) : toolLines.remove(id);
+            if (key == null || !blocks.containsKey(key)) return false;
+            blocks.get(key).append(" — ").append(outcome);
             return true;
         }
 

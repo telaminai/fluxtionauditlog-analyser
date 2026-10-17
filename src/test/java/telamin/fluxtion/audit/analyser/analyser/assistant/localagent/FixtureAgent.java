@@ -168,8 +168,25 @@ public final class FixtureAgent implements AgentProcess.Launcher {
         public int terminated;
         String stderr = "";
 
+        /** P3: the line ran the analyser assistant's P3 mode (default), where the P0/P0b captures ran dontAsk. */
+        final boolean p3Default;
+        /** P3: the posture the line was built for, for the hosted tools a conformed init lists. */
+        final LocalAgentPosture posture;
+        /** P3: the rest of a turn replayed up to a can_use_tool, waiting for the adapter's answer to that request. */
+        List<String> pausedRest;
+        String pausedRequestId;
+        String pausedUuid;
+        /** P3: the answers the adapter wrote to can_use_tool requests, by request id. */
+        public final Map<String, String> permissionAnswers = new java.util.concurrent.ConcurrentHashMap<>();
+
         Proc(List<String> command, Consumer<String> out) {
             this.out = out;
+            int pm = command.indexOf("--permission-mode");
+            String mode = pm < 0 ? null : command.get(pm + 1);
+            boolean restricted = command.contains("--restricted");
+            this.p3Default = restricted && "default".equals(mode);
+            this.posture = restricted ? LocalAgentPosture.ANALYSER_ASSISTANT
+                    : LocalAgentPosture.full(LocalAgentPosture.FullMode.parse(mode).orElse(LocalAgentPosture.FullMode.DEFAULT));
             int s = Math.max(command.indexOf("--session-id"), command.indexOf("--resume"));
             this.sessionId = command.get(s + 1);
             Map<?, ?> mcp = (Map<?, ?>) Json.parse(command.get(command.indexOf("--mcp-config") + 1));
@@ -184,7 +201,16 @@ public final class FixtureAgent implements AgentProcess.Launcher {
         java.util.concurrent.CountDownLatch blockWrites;
 
         void emit(String line) {
-            String l = rewrite.apply(line.replace(FIXTURE_SESSION, sessionId));
+            String raw = line.replace(FIXTURE_SESSION, sessionId);
+            if (p3Default) {
+                // the P0/P0b captures ran the P1a line (dontAsk); the P3 line runs default — the rule under test is the
+                // same, with the mode the analyser now expects
+                raw = raw.replace("\"permissionMode\": \"dontAsk\"", "\"permissionMode\": \"default\"")
+                        .replace("\"permissionMode\":\"dontAsk\"", "\"permissionMode\":\"default\"")
+                        .replace("\"current_permission_mode\": \"dontAsk\"", "\"current_permission_mode\": \"default\"")
+                        .replace("\"current_permission_mode\":\"dontAsk\"", "\"current_permission_mode\":\"default\"");
+            }
+            String l = rewrite.apply(raw);
             if (l != null) {
                 emitted.add(l);
                 out.accept(l);
@@ -219,6 +245,12 @@ public final class FixtureAgent implements AgentProcess.Launcher {
                     }
                     case "mcp_status" -> emit(rekeyResponse(nextStatus(), id));
                     case "interrupt" -> {
+                        if (pausedRequestId != null) {
+                            // P3-2: the CLI withdraws a pending request before it answers the interrupt
+                            emit("{\"type\":\"control_cancel_request\",\"request_id\":\"" + pausedRequestId + "\"}");
+                            pausedRequestId = null;
+                            pausedRest = null;
+                        }
                         if (ackInterrupts) emit("{\"type\":\"control_response\",\"response\":{\"subtype\":\"success\","
                                 + "\"request_id\":\"" + id + "\",\"response\":{\"still_queued\":[]}}}");
                         if (cancelOnInterrupt && runningUuid != null) {
@@ -234,19 +266,50 @@ public final class FixtureAgent implements AgentProcess.Launcher {
                 }
                 return;
             }
+            if ("control_response".equals(m.get("type"))) {
+                // P3: the adapter's answer to a can_use_tool; the recorded turn continues from where it asked
+                Map<?, ?> r = (Map<?, ?>) m.get("response");
+                String id = r == null ? null : String.valueOf(r.get("request_id"));
+                if (id != null) permissionAnswers.put(id, line);
+                if (id != null && id.equals(pausedRequestId)) {
+                    List<String> rest = pausedRest;
+                    String uuid = pausedUuid;
+                    pausedRequestId = null;
+                    pausedRest = null;
+                    replay(rest, uuid);
+                }
+                return;
+            }
             if ("user".equals(m.get("type"))) {
                 String uuid = String.valueOf(m.get("uuid"));
                 List<String> turn = turns.poll();
                 if (turn == null) return;
                 runningUuid = uuid;
-                for (String l : turn) {
-                    if (runningUuid == null) break;     // interrupted mid-turn
-                    String replayed = l.replace("@@UUID@@", uuid);
-                    if (conformInit && replayed.contains("\"subtype\": \"init\"")) replayed = conform(replayed);
-                    if (conformHostedTools && replayed.contains("\"subtype\": \"init\"")) replayed = conformHosted(replayed);
-                    emit(replayed);
+                replay(turn, uuid);
+            }
+        }
+
+        /** Replay {@code lines} of the running turn; a can_use_tool request pauses it until the adapter answers (P3). */
+        private void replay(List<String> lines, String uuid) {
+            for (int i = 0; i < lines.size(); i++) {
+                if (runningUuid == null) break;     // interrupted mid-turn
+                String replayed = lines.get(i).replace("@@UUID@@", uuid);
+                if (conformInit && replayed.contains("\"subtype\": \"init\"")) replayed = conform(replayed);
+                if (conformHostedTools && replayed.contains("\"subtype\": \"init\"")) replayed = conformHosted(replayed);
+                emit(replayed);
+                if (replayed.contains("\"can_use_tool\"") && replayed.contains("\"control_request\"")) {
+                    Map<?, ?> req = (Map<?, ?>) Json.parse(replayed);
+                    pausedRequestId = String.valueOf(req.get("request_id"));
+                    pausedRest = new ArrayList<>(lines.subList(i + 1, lines.size()));
+                    pausedUuid = uuid;
+                    return;
                 }
             }
+        }
+
+        /** P3: the request a recorded turn is waiting on, or null. */
+        public String pausedOn() {
+            return pausedRequestId;
         }
 
         /** The next status answer: the fixture's sequence (its last repeats), else a bound {@code connected}. */
@@ -267,7 +330,7 @@ public final class FixtureAgent implements AgentProcess.Launcher {
         private String conform(String initLine) {
             Map<String, Object> m = new LinkedHashMap<>();
             for (Map.Entry<?, ?> e : ((Map<?, ?>) Json.parse(initLine)).entrySet()) m.put(String.valueOf(e.getKey()), e.getValue());
-            m.put("tools", new ArrayList<>(LocalAgentPosture.expectedTools()));
+            m.put("tools", new ArrayList<>(LocalAgentPosture.expectedTools()));   // P3: built-ins and every visible verb
             m.put("mcp_servers", List.of(Map.of("name", LocalAgentPosture.HOSTED_SERVER, "status", "connected",
                     "source", "dynamic")));
             m.put("permissionMode", LocalAgentPosture.PERMISSION_MODE);
@@ -284,7 +347,7 @@ public final class FixtureAgent implements AgentProcess.Launcher {
             for (Object t : m.get("tools") instanceof List<?> l ? l : List.of()) {
                 if (!LocalAgentPosture.isHostedTool(String.valueOf(t))) tools.add(t);
             }
-            tools.addAll(LocalAgentPosture.expectedHostedTools());
+            tools.addAll(posture.visibleHostedTools());     // P3: the destructive verbs too, in the modes that ask
             m.put("tools", tools);
             return Json.write(m);
         }
