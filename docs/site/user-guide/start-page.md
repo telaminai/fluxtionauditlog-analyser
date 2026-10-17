@@ -5,7 +5,7 @@ workspace. It is one surface: it asks **What would you like to do?** — a short
 and one button — and the analyser's own actions follow it under **Or open directly**, with your recent
 projects and evidence bundles under **Recent**.
 
-![The start page: What would you like to do? with the six built-in entries, the box and its Send button; under it, Or open
+![The start page: What would you like to do? with the eight built-in entries, the box and its Send button; under it, Or open
 directly with the Explore DEMO, Open, Create, Connect an assistant and Settings blocks, and Recent](../assets/start-page.png)
 
 ## What would you like to do?
@@ -13,19 +13,26 @@ directly with the Explore DEMO, Open, Create, Connect an assistant and Settings 
 | # | Entry | The button | What it does |
 |---|---|---|---|
 | 1 | **Run me through a demo** | *Play* | Opens the sample project and plays the DEMO journey *Find the first recorded breach* — no AI, no key, no network, nothing sent. Its conversation is scripted and labelled *Simulated conversation*. |
-| 2 | **Set up a project from my code** | *Set up…* | Toward **Claude Code**: your folder chooser, then a set-up question is placed and Start armed — Claude looks at the folder and **proposes** the set-up, you answer each item, and the analyser applies the ones you accept ([onboarding](assistant.md#set-up-a-project-with-claude)). Toward the in-app assistant (which cannot read a folder): *New project…*, which offers what it finds and lets you choose. |
-| 3 | **Open an evidence bundle someone sent me** | *Open bundle…* | Your file chooser, then the bundle's verification. A bundle that does not verify is **not opened** and nothing is written: you see why, with *Close*. A verified one opens as a disposable copy, and then a question about it is drafted. |
-| 4 | **Which starter template suits what I'm building?** | *Show templates* | Reads the starter catalogue **when you press the button** (never before), then drafts a question naming its templates. *New project from template…* is beside it. |
-| 5 | **Explain an audit log I already have** | *Open log…* | With no log open, your file chooser and the load first; then a question about that log is drafted, naming it. |
-| 6 | **What can this tool do?** | — | Puts a question in the box. |
+| 2 | **Build a new application with me** | *Start building* | Describe what you want in the box. The analyser reads the starter catalogue **when you press the button**, then drafts *"I want to build: … Help me choose components, generate it, run sample events and show me in the evidence that it behaves as intended."*, naming the templates. *New project from template…* is beside it. With no AI: *New project from template…*, *New project…* and *Copy prompt*. |
+| 3 | **Teach me by building an example** | *Teach me* | Opens the sample DEMO project, then drafts *"Teach me Fluxtion by building a small example with me: explain events, triggers and dispatch from the evidence as we go."* With no AI it plays the DEMO **guided tour** instead, and offers *Guided tour*, *Sample project*, *Assistant settings* and *Copy prompt*. |
+| 4 | **Set up a project from my code** | *Set up…* | Toward **Claude Code**: your folder chooser, then a set-up question is placed and Start armed — Claude looks at the folder and **proposes** the set-up, you answer each item, and the analyser applies the ones you accept ([onboarding](assistant.md#set-up-a-project-with-claude)). Toward the in-app assistant (which cannot read a folder): *New project…*, which offers what it finds and lets you choose. |
+| 5 | **Open an evidence bundle someone sent me** | *Open bundle…* | Your file chooser, then the bundle's verification. A bundle that does not verify is **not opened** and nothing is written: you see why, with *Close*. A verified one opens as a disposable copy, and then a question about it is drafted. |
+| 6 | **Which starter template suits what I'm building?** | *Show templates* | Reads the starter catalogue **when you press the button** (never before), then drafts a question naming its templates. *New project from template…* is beside it. |
+| 7 | **Explain an audit log I already have** | *Open log…* | With no log open, your file chooser and the load first; then a question about that log is drafted, naming it. |
+| 8 | **What can this tool do?** | — | Puts a question in the box. |
+
+Entries 2 and 3 are the start of the authoring and learning pathways, routed today to the starter templates, the
+new-project dialogs and the sample project. In Safe analysis Claude Code reads and advises but writes no file, so
+generating an application needs a template, *New project…* or Full Claude Code. A fuller journey — a runnable
+application, an editable scenario and a comparison of runs — is planned next (M76).
 
 - **Choosing does nothing yet.** Click a row, use **↑ / ↓** and **Enter**, or press **Alt+1** … **Alt+9** (**⌘1** … **⌘9**
   on macOS, where ⌥ and a digit types a character; each row's tooltip names its shortcut). A flow
-  entry (1–5) becomes the chip above the box and gives the button its verb; a prompt entry (6) **adds** its words to the
+  entry (1–7) becomes the chip above the box and gives the button its verb; a prompt entry (8) **adds** its words to the
   box after anything you have typed. Typing a digit in the box types a digit. Nothing is sent, opened, fetched or started
   until you press the button.
-- **Your own words** in the box are added to the chosen entry's draft after a blank line (entry 4 puts them in the
-  sentence). With no entry chosen, the button is **Send** and the box is your question. Choosing the same prompt entry
+- **Your own words** in the box are added to the chosen entry's draft after a blank line (entries 2 and 6 put them in
+  the sentence). With no entry chosen, the button is **Send** and the box is your question. Choosing the same prompt entry
   again does not add its words twice.
 - **Enter presses the button; Shift+Enter starts a new line** — the same keys as the assistant's composer, and the line
   under the box says so. The button is the page's main action: accent-coloured while it can be pressed, at the box's
@@ -54,8 +61,8 @@ your question waits, and is placed for the assistant you choose when you press A
 is placed for that assistant — in Claude Code's composer with **Start** armed, or in the in-app composer — **without
 pressing the button again**; nothing is sent until you press Start or Send, and Claude Code still asks about the folder
 when it applies. Choose *Off*, or close the cards, and your words stay in the box. This happens once: after a card is
-chosen, or if you close the cards without choosing, the page never opens them by itself again. The flows (the demo, set-up, a bundle, the
-templates, a log) never open them: they work with no AI.
+chosen, or if you close the cards without choosing, the page never opens them by itself again. The flows (the demo, build, teach, set-up, a
+bundle, the templates, a log) never open them: they work with no AI.
 
 With **no AI configured**, every entry still ends somewhere: the demo plays, a bundle or log still opens, and each entry
 offers buttons that run what you would otherwise do yourself — *Assistant settings*, *Connect an AI client…*, *New
@@ -71,7 +78,7 @@ actions).
 ## Prompt packs
 
 You can replace the numbered list for this session by **dropping one Markdown file** (`.md`) on the start page: a
-*prompt pack*. Its entries behave exactly as entry 6 does — choosing one adds its words to the box, and nothing is sent
+*prompt pack*. Its entries behave exactly as entry 8 does — choosing one adds its words to the box, and nothing is sent
 until you press the button. **← Return to main options** (Alt+R; ⌘R on macOS) brings the analyser's own list back. A pack is never
 saved: not in your settings, a project profile, a shared settings file or an evidence bundle — dropping it is your act,
 for this window.

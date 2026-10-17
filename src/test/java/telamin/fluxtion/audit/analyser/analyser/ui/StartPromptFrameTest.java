@@ -88,7 +88,7 @@ class StartPromptFrameTest {
             session(f.frame);
             onEdt(() -> {
                 StartPromptView prompt = startPanel(f.frame).prompt();
-                prompt.choose(5);                                 // S6
+                prompt.choose(7);                                 // S6
                 prompt.actionButton().doClick();
             });
             Thread.sleep(300);
@@ -160,7 +160,7 @@ class StartPromptFrameTest {
 
     /** ★ r8 F19: the page's keyboard on a real frame, in both themes; a typed digit in the box is a digit. */
     @Test
-    @DisplayName("★ Alt+2 (⌘2 on macOS) chooses S2 and the button follows it, in light and in dark")
+    @DisplayName("★ Alt+2 (⌘2 on macOS) chooses entry 2, Build, and the button follows it, in light and in dark")
     void keyboardInBothThemes(@TempDir Path tmp) throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless(), "a real display is required");
         javax.swing.LookAndFeel original = javax.swing.UIManager.getLookAndFeel();
@@ -181,8 +181,8 @@ class StartPromptFrameTest {
                             StartPromptView.chooserMask(), KeyEvent.VK_2, KeyEvent.CHAR_UNDEFINED);
                     assertTrue(SwingUtilities.notifyAction(prompt.getActionMap().get(name), ks, e, prompt.box(),
                             e.getModifiersEx()));
-                    assertEquals("S2", prompt.chosen().id(), theme);
-                    assertEquals(AskCatalogue.text("S2.verb"), prompt.actionButton().getText(), theme);
+                    assertEquals("S7", prompt.chosen().id(), theme);
+                    assertEquals(AskCatalogue.text("S7.verb"), prompt.actionButton().getText(), theme);
                     assertTrue(prompt.isShowing(), theme + ": the prompt is on screen");
                 });
             }
@@ -195,6 +195,67 @@ class StartPromptFrameTest {
                     throw new AssertionError(e);
                 }
             });
+        }
+    }
+
+    static boolean demoLoaded(MainFrame f) throws Exception {
+        AtomicReference<Boolean> loaded = new AtomicReference<>(false);
+        onEdt(() -> {
+            AppConfig cfg = (AppConfig) field(f, "config");
+            loaded.set(field(f, "store") != null && DemoAssets.log().toString().equals(cfg.logFile));
+        });
+        return loaded.get();
+    }
+
+    static void awaitDemo(MainFrame f) throws Exception {
+        long deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(20);
+        while (!demoLoaded(f) && System.nanoTime() < deadline) Thread.sleep(50);
+        assertTrue(demoLoaded(f), "the sample DEMO project's log is open");
+    }
+
+    /**
+     * ★ The learning pathway on a real frame (owner priority, 2026-10-17): with no AI, Teach me plays the sample project's
+     * guided tour; with the in-app assistant, it opens the sample project and the lesson waits in the composer, unsent.
+     * Witness: route S8 to the default compose — no sample project opens and {@link #awaitDemo} fails.
+     */
+    @Test
+    @DisplayName("★ Teach me by building an example: no AI → the DEMO guided tour; in-app → the sample project and the lesson")
+    void teachMeOpensTheSampleProject(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless(), "a real display is required");
+        try (var f = new AsyncOpenInterleavingFrameTest.Frame(tmp)) {
+            onEdt(() -> { f.frame.setSize(1200, 800); f.frame.setVisible(true); });
+            showStart(f.frame);
+            SessionDriver d = session(f.frame);
+            onEdt(() -> {
+                StartPromptView prompt = startPanel(f.frame).prompt();
+                prompt.choose(2);                                 // S8
+                assertEquals("S8", prompt.chosen().id());
+                prompt.actionButton().doClick();
+            });
+            awaitDemo(f.frame);
+            assertEquals("S8", d.snapshot().startPage().fallbackEntry(), "no AI: the page keeps the entry's buttons");
+        }
+        try (FakeProvider provider = new FakeProvider();
+             var f = new AsyncOpenInterleavingFrameTest.Frame(tmp.resolve("in-app"))) {
+            configure(f.frame, provider);
+            onEdt(() -> { f.frame.setSize(1200, 800); f.frame.setVisible(true); });
+            showStart(f.frame);
+            session(f.frame);
+            onEdt(() -> {
+                StartPromptView prompt = startPanel(f.frame).prompt();
+                prompt.choose(2);                                 // S8
+                prompt.actionButton().doClick();
+            });
+            awaitDemo(f.frame);
+            String expected = AskCatalogue.composeStart("S8", AskCatalogue.StartFacts.none("")).text();
+            AtomicReference<String> draft = new AtomicReference<>();
+            long deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(10);
+            do {
+                Thread.sleep(50);
+                onEdt(() -> draft.set(panel(f.frame).draftText()));
+            } while (!expected.equals(draft.get()) && System.nanoTime() < deadline);
+            assertEquals(expected, draft.get(), "the lesson is in the composer");
+            assertEquals(0, provider.bodies.size(), "nothing is sent until Send");
         }
     }
 }

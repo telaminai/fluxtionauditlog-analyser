@@ -200,12 +200,16 @@ public class AssistantProfileChoice implements EventLogSource {
 
     /**
      * The start page's button: only a QUESTION opens the choices — free text, or a prompt entry. The flows (the demo, set
-     * up, open a bundle, the templates, open a log) work with no AI and keep their own fallbacks.
+     * up, open a bundle, the templates, open a log, build, teach) work with no AI and keep their own fallbacks.
      */
     @OnEventHandler
     public boolean onStartPageSent(SessionEvents.StartPagePromptSent e) {
         String id = e.entryId() == null ? "NONE" : e.entryId();
-        boolean question = id.equals("NONE") ? e.textRef() != 0 : !id.matches("S[1-5]");
+        // a flow entry (the catalogue's kind, so Build and Teach count too) is not a question
+        boolean question = id.equals("NONE") ? e.textRef() != 0
+                : telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.byId(id)
+                        .map(x -> x.kind() != telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.Kind.FLOW)
+                        .orElse(true);
         if (!question) return false;
         boolean canAnswer = e.inAppCanAnswer() || (e.consent() != null && e.consent().allowed() && e.claudeCodeFound());
         if (canAnswer) return false;                  // an assistant can answer it: the question goes there

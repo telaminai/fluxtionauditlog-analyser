@@ -27,15 +27,7 @@ final class StartFallbackWindow {
         content.add(Fluid.text(AskCatalogue.text("start.noAi")), BorderLayout.NORTH);
         JPanel buttons = new JPanel(new WrapLayout(FlowLayout.LEFT, 6, 4));
         for (AskCatalogue.Fallback f : fallbacks) {
-            String key = "fallback." + switch (f) {
-                case ASSISTANT_SETTINGS -> "assistantSettings";
-                case CONNECT -> "connect";
-                case COPY_PROMPT -> "copyPrompt";
-                case NEW_PROJECT -> "newProject";
-                case BUNDLE_GUIDE -> "bundleGuide";
-                case TEMPLATE -> "template";
-                case USER_GUIDE -> "userGuide";
-            };
+            String key = StartPromptView.fallbackKey(f);
             JButton b = UiText.button(AskCatalogue.text(key));
             b.setToolTipText(UiText.tooltip(AskCatalogue.text(key + ".tip")));
             b.addActionListener(e -> host.fallback(f, entryId, ""));

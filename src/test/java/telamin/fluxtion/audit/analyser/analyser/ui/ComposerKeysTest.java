@@ -97,7 +97,7 @@ class ComposerKeysTest {
             StartPromptView v = new StartPromptView(new StartPromptViewTest.Host());
             v.render(StartPromptViewTest.route(StartPageState.Route.IN_APP), LocalAgentState.IDLE);
             assertEquals(StartPromptView.KEY_HINT, v.keyHintLabel().getText());
-            v.choose(4);                                         // S5, a flow entry: a chip
+            v.choose(6);                                         // S5, a flow entry: a chip
             String verb = AskCatalogue.text("S5.verb");
             assertEquals("Enter: " + verb + " · Shift+Enter starts a new line", v.keyHintLabel().getText());
             assertEquals(v.keyHintLabel().getText(), v.box().getAccessibleContext().getAccessibleDescription());
@@ -126,7 +126,7 @@ class ComposerKeysTest {
             assertFalse(fire(v, r, JComponent.WHEN_IN_FOCUSED_WINDOW), "⌘/Alt+R too");
             v.focusOwner = v::box;
             assertTrue(fire(v, three, JComponent.WHEN_IN_FOCUSED_WINDOW), "from the start box it applies");
-            assertEquals("S3", v.chosen().id());
+            assertEquals("S8", v.chosen().id(), "the third entry: Teach me by building an example");
             v.focusOwner = () -> v.promptList();
             assertTrue(fire(v, KeyStroke.getKeyStroke(KeyEvent.VK_2, StartPromptView.chooserMask()),
                     JComponent.WHEN_IN_FOCUSED_WINDOW), "and from the page's list");

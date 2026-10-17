@@ -1502,14 +1502,15 @@ public final class MainFrame extends JFrame {
         openSampleProject(playTour, false);
     }
 
-    private void openSampleProject(boolean playTour, boolean journey) {
+    /** Whether the sample project's load was asked for (false: it could not be installed, or the switch was declined). */
+    private boolean openSampleProject(boolean playTour, boolean journey) {
         if (!journey) pendingSampleJourney = false;
         Path root;
         try { root = DemoAssets.install(); }
         catch (java.io.UncheckedIOException ex) {
             JOptionPane.showMessageDialog(this, UiText.inert("Could not open the sample files: " + ex.getMessage()),
                     "Open sample project", JOptionPane.ERROR_MESSAGE);
-            return;
+            return false;
         }
         Path profile = telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.pathFor(root);
         if (!Files.isRegularFile(profile)) {
@@ -1521,15 +1522,16 @@ public final class MainFrame extends JFrame {
             } catch (java.io.IOException ex) {
                 JOptionPane.showMessageDialog(this, UiText.inert("Could not create the sample project: " + ex.getMessage()),
                         "Open sample project", JOptionPane.ERROR_MESSAGE);
-                return;
+                return false;
             }
         }
         if (!requestProject(profile, telamin.fluxtion.audit.analyser.analyser.session.TransitionKind.EXPLICIT_SWITCH,
-                "sample-project")) return;
+                "sample-project")) return false;
         pendingSampleWalk = true;
         pendingSampleTour = playTour;
         topologyPanel.load(DemoAssets.graphml());
         openFile(journey ? DemoAssets.journeyLog() : DemoAssets.log(), OpenRequest.HUMAN);
+        return true;
     }
 
     private void finishSampleWalk(boolean playTour) {
@@ -12018,6 +12020,10 @@ public final class MainFrame extends JFrame {
                         request, telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FlowOutcome.DONE, 0, 0, 0)));
             }
             case "S5" -> SwingUtilities.invokeLater(() -> startPageLogFlow(request));
+            // the learning pathway: the sample DEMO project opens, and the lesson is drafted once its log has landed
+            case "S8" -> SwingUtilities.invokeLater(() -> startPageTeachFlow(request));
+            case telamin.fluxtion.audit.analyser.analyser.session.node.StartPagePrompt.TEACH_TOUR_FLOW ->
+                    SwingUtilities.invokeLater(() -> openSampleProject(true));
             default -> { }
         }
         return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StartPageEffectStarted(e.opId(), request,
@@ -12077,6 +12083,19 @@ public final class MainFrame extends JFrame {
         startFlowGeneration = sessionSnapshot().logGeneration();
         startFlowBundle = null;
         openFile(fc.getSelectedFile().toPath());
+    }
+
+    /** S8: the sample DEMO project opens; the draft comes when its log has landed (or nothing, if it did not open). */
+    private void startPageTeachFlow(long request) {
+        startFlowRequest = request;
+        startFlowEntry = "S8";
+        startFlowGeneration = sessionSnapshot().logGeneration();
+        startFlowBundle = null;
+        if (!openSampleProject(false, false)) {
+            startFlowRequest = 0;
+            session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StartPageFlowDone(request,
+                    telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FlowOutcome.CANCELLED, 0, 0, 0));
+        }
     }
 
     /** A flow's end, observed from the snapshot: a NEW log generation has landed (and, for S3, from the bundle). */

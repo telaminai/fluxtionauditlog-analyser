@@ -75,10 +75,10 @@ class StartPromptViewTest {
         onEdt(() -> {
             StartPromptView v = new StartPromptView(host);
             v.render(route(StartPageState.Route.IN_APP), LocalAgentState.IDLE);
-            v.choose(4);                                         // S5
+            v.choose(6);                                         // S5
             assertEquals("S5", v.chosen().id());
             assertEquals(AskCatalogue.text("S5.verb"), v.actionButton().getText(), "the button takes the entry's verb");
-            v.choose(1);                                         // S2 replaces it
+            v.choose(3);                                         // S2 replaces it
             assertEquals("S2", v.chosen().id());
             assertEquals(AskCatalogue.text("S2.label"), v.chipLabel().getText(), "one chip");
             assertEquals("", v.box().getText(), "a flow entry never touches the box");
@@ -100,7 +100,7 @@ class StartPromptViewTest {
             StartPromptView v = new StartPromptView(new Host());
             v.render(route(StartPageState.Route.IN_APP), LocalAgentState.IDLE);
             v.box().setText("Before:");
-            v.choose(5);                                         // S6
+            v.choose(7);                                         // S6
             assertTrue(v.box().getText().startsWith("Before:\n\nWhat can the Fluxtion Audit Log Analyser do for me?"),
                     v.box().getText());
             assertNull(v.chosen(), "a prompt entry is no chip");
@@ -121,7 +121,7 @@ class StartPromptViewTest {
             // review M74 usability #18: the page's window binding, with the platform's modifier (⌘ on macOS, where ⌥+digit
             // TYPES a character into the focused box), so it fires wherever the focus is on the page
             bind(v, KeyStroke.getKeyStroke(KeyEvent.VK_3, StartPromptView.chooserMask()), JComponent.WHEN_IN_FOCUSED_WINDOW);
-            assertEquals("S3", v.chosen().id(), "the platform's shortcut for 3");
+            assertEquals("S8", v.chosen().id(), "the platform's shortcut for 3");
             assertNull(v.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW)
                     .get(KeyStroke.getKeyStroke(KeyEvent.VK_3, 0)), "a plain digit is not bound");
             assertNull(v.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW)
@@ -136,13 +136,13 @@ class StartPromptViewTest {
             }
             v.box().replaceSelection("1");
             assertEquals("1", v.box().getText(), "typed into the box");
-            assertEquals("S3", v.chosen().id(), "and chose nothing");
-            list.setSelectedIndex(4);
+            assertEquals("S8", v.chosen().id(), "and chose nothing");
+            list.setSelectedIndex(6);
             bind(list, KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), JComponent.WHEN_FOCUSED);
             assertEquals("S5", v.chosen().id(), "Enter chooses the selected row");
-            var renderer = list.getCellRenderer().getListCellRendererComponent(list, list.getModel().getElementAt(2), 2,
+            var renderer = list.getCellRenderer().getListCellRendererComponent(list, list.getModel().getElementAt(4), 4,
                     false, false);
-            assertEquals("Prompt 3 of 6: Open an evidence bundle someone sent me",
+            assertEquals("Prompt 5 of 8: Open an evidence bundle someone sent me",
                     renderer.getAccessibleContext().getAccessibleName());
             assertEquals(Boolean.TRUE, ((JComponent) renderer).getClientProperty(UiText.HTML_DISABLE), "plain (r8 F15)");
             return null;
@@ -186,6 +186,16 @@ class StartPromptViewTest {
                     buttons.stream().map(JButton::getText).toList());
             buttons.get(2).doClick();
             assertEquals(List.of("COPY_PROMPT|S1"), host.fallbacks);
+            // the authoring and learning pathways work with no AI (owner priority, 2026-10-17)
+            v.choose(1);                                         // S7, Build
+            assertEquals(List.of("New project from template…", "New project…", "Copy prompt"),
+                    buttons(v.fallbacksPanel()).stream().map(JButton::getText).toList(), "Build: the existing dialogs");
+            v.choose(2);                                         // S8, Teach
+            buttons = buttons(v.fallbacksPanel());
+            assertEquals(List.of("Guided tour", "Sample project", "Assistant settings", "Copy prompt"),
+                    buttons.stream().map(JButton::getText).toList(), "Teach: the DEMO, with no AI");
+            buttons.get(0).doClick();
+            assertEquals(List.of("COPY_PROMPT|S1", "GUIDED_TOUR|S8"), host.fallbacks);
             return null;
         });
     }

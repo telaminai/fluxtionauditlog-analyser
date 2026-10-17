@@ -301,6 +301,8 @@ public final class StartPanel extends JPanel {
             case BUNDLE_GUIDE -> actions.openUserGuide("evidence-bundles/opening/");
             case TEMPLATE -> actions.newProjectFromTemplate();
             case USER_GUIDE -> actions.openUserGuide("");
+            case GUIDED_TOUR -> actions.openGuidedTour();
+            case SAMPLE_PROJECT -> actions.openSampleProject();
         }
     }
 

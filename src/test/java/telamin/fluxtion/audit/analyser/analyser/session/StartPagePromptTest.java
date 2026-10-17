@@ -218,4 +218,71 @@ class StartPagePromptTest {
         assertTrue(record.contains("StartPromptPackDropped"));
         assertFalse(record.contains("HTML is not allowed") && record.contains("words"), "codes, never a file's words");
     }
+
+    // ---- the authoring and learning pathways (owner priority, 2026-10-17) --------------------------------------------
+
+    /**
+     * ★ Build: toward an assistant, S4's flow reads the starter catalogue at the button and the BUILD question is drafted
+     * after it; with no AI, its buttons (template, new project, copy) and no flow. Witness: route S7 to the default
+     * compose — no flow is asked for and the first assertion fails.
+     */
+    @Test
+    @DisplayName("★ Build a new application with me: the template catalogue, then the build draft; no AI → its dialogs")
+    void buildRoutes() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = new SessionDriver(a);
+        d.post(new SessionEvents.AssistantModeChosen(AssistantMode.LOCAL_AGENT, "t"));
+        d.post(press(1, "S7", 5, true, true, false, false));
+        assertEquals(1, a.startFlows.size(), "the starter catalogue is read at the button");
+        assertEquals("S4", a.startFlows.get(0).entryId(), "S4's flow, the existing machinery");
+        assertEquals(0, a.startComposes.size(), "nothing drafted before the flow");
+        d.post(new SessionEvents.StartPageFlowDone(1, SessionEvents.FlowOutcome.DONE, 0, 0, 9));
+        assertEquals(1, a.startComposes.size());
+        assertEquals("S7", a.startComposes.get(0).entryId(), "the BUILD question, not S4's");
+        assertEquals(AssistantMode.LOCAL_AGENT, a.startComposes.get(0).target());
+        assertEquals(9, a.startComposes.get(0).templateNamesRef());
+        assertEquals(0, a.agentStarts.size(), "never started");
+
+        FakeSessionAdapter none = new FakeSessionAdapter();
+        SessionDriver n = new SessionDriver(none);
+        n.post(press(1, "S7", 0, false, false, false, false));
+        assertEquals(0, none.startFlows.size());
+        assertEquals(1, none.startFallbacks.size(), "no AI: the entry's own buttons");
+        assertEquals("S7", state(n).fallbackEntry());
+        assertEquals(List.of(AskCatalogue.Fallback.TEMPLATE, AskCatalogue.Fallback.NEW_PROJECT,
+                AskCatalogue.Fallback.COPY_PROMPT), AskCatalogue.byId("S7").orElseThrow().fallbacks());
+    }
+
+    /**
+     * ★ Teach: toward an assistant, the sample DEMO project opens and the lesson is drafted once its log lands; with no AI,
+     * the DEMO guided tour plays and the page keeps the entry's buttons — no window over the tour, no draft. Witness: run
+     * S8's AI flow in the no-AI column — the tour flow assertion fails.
+     */
+    @Test
+    @DisplayName("★ Teach me by building an example: the sample project, then the lesson; no AI → the guided tour")
+    void teachRoutes() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = new SessionDriver(a);
+        d.post(press(1, "S8", 0, false, false, true, false));
+        assertEquals(List.of("S8"), a.startFlows.stream().map(SessionEffects.RunStartPageFlowEffect::entryId).toList());
+        d.post(new SessionEvents.StartPageFlowDone(1, SessionEvents.FlowOutcome.DONE, 4, 0, 0));
+        assertEquals(1, a.startComposes.size());
+        assertEquals("S8", a.startComposes.get(0).entryId());
+        assertEquals(AssistantMode.IN_APP, a.startComposes.get(0).target());
+        assertEquals(4, a.startComposes.get(0).logGeneration(), "about the sample log that landed");
+
+        FakeSessionAdapter none = new FakeSessionAdapter();
+        SessionDriver n = new SessionDriver(none);
+        n.post(press(1, "S8", 0, false, false, false, false));
+        assertEquals(List.of(StartPagePrompt.TEACH_TOUR_FLOW),
+                none.startFlows.stream().map(SessionEffects.RunStartPageFlowEffect::entryId).toList(), "the tour plays");
+        assertEquals(0, none.startFallbacks.size(), "no window over the tour");
+        assertEquals("S8", state(n).fallbackEntry(), "the page keeps the entry's buttons");
+        assertTrue(state(n).note().contains("guided tour"), state(n).note());
+        n.post(new SessionEvents.StartPageFlowDone(1, SessionEvents.FlowOutcome.DONE, 4, 0, 0));
+        assertEquals(0, none.startComposes.size(), "nothing is drafted without an assistant");
+        assertEquals(List.of(AskCatalogue.Fallback.GUIDED_TOUR, AskCatalogue.Fallback.SAMPLE_PROJECT,
+                AskCatalogue.Fallback.ASSISTANT_SETTINGS, AskCatalogue.Fallback.COPY_PROMPT),
+                AskCatalogue.byId("S8").orElseThrow().fallbacks());
+    }
 }

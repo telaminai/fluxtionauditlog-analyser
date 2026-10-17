@@ -111,6 +111,14 @@ class AssistantProfileTest {
         d.post(StartPagePromptTest.press(1, "S3", 0, false, false, false, false));
         assertFalse(profiles(d).open(), "a flow entry is not a question: it runs with no AI");
         assertEquals(1, a.startFlows.size());
+        // Build and Teach (owner priority, 2026-10-17) are flows too: they work with no AI and never open the cards.
+        // Witness: the old test, !id.matches("S[1-5]") — S7 opens the cards here.
+        d.post(StartPagePromptTest.press(11, "S7", 0, false, false, false, false));
+        d.post(StartPagePromptTest.press(12, "S8", 0, false, false, false, false));
+        assertFalse(profiles(d).open(), "Build and Teach are flows, not questions");
+        assertEquals(2, a.startFlows.size(), "Teach's tour");
+        assertEquals(1, a.startFallbacks.size(), "Build's dialogs");
+        a.startFallbacks.clear();
         d.post(StartPagePromptTest.press(2, "NONE", 7, false, false, false, false));
         assertTrue(profiles(d).open(), "a question with nothing chosen opens the cards");
         assertTrue(a.profileShows.get(0).popOut(), "with no workspace the assistant pops out, as a start-page draft does");

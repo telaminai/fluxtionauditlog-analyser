@@ -41,7 +41,7 @@ class AskCatalogueTest {
                 assertTrue(AskCatalogue.hasText(e.id() + ".does"), e.id() + " says what the button will do");
             }
             if (e.kind() == AskCatalogue.Kind.QUESTION || e.id().equals("S3") || e.id().equals("S4")
-                    || e.id().equals("S5") || e.id().equals("S6")) {
+                    || e.id().equals("S5") || e.id().equals("S6") || e.id().equals("S7") || e.id().equals("S8")) {
                 assertTrue(AskCatalogue.hasText(e.templateKey()), e.id() + " template");
             }
         }
@@ -50,7 +50,7 @@ class AskCatalogueTest {
                 "start.title", "start.or", "surface.TOOLBAR.none", "disabled.inProcess")) {
             assertTrue(AskCatalogue.hasText(k), k);
         }
-        assertEquals(List.of("Q1", "Q2", "Q3", "Q4", "Q5", "Q6", "S1", "S2", "S3", "S4", "S5", "S6"),
+        assertEquals(List.of("Q1", "Q2", "Q3", "Q4", "Q5", "Q6", "S1", "S2", "S3", "S4", "S5", "S6", "S7", "S8"),
                 AskCatalogue.entries().stream().map(AskCatalogue.Entry::id).toList());
     }
 
@@ -317,5 +317,34 @@ class AskCatalogueTest {
         }
         assertEquals("", AskCatalogue.modelBinding(0), "an unbound message tells the model nothing");
         assertTrue(AskCatalogue.modelBinding(3).contains("log generation 3"), "the model is told the binding");
+    }
+
+    /**
+     * ★ The two first-class pathways (owner priority, 2026-10-17) are near the top, the list stays within Alt+1–9, and
+     * their drafts say what the owner asked. Witness: append S7 and S8 at the end of the start order — the position
+     * assertion fails.
+     */
+    @Test
+    @DisplayName("★ Build and Teach are entries 2 and 3; at most nine entries; their drafts")
+    void buildAndTeach() {
+        List<String> order = AskCatalogue.startPageBuiltIns().stream().map(AskCatalogue.Entry::id).toList();
+        assertEquals(List.of("S1", "S7", "S8", "S2", "S3", "S4", "S5", "S6"), order);
+        assertTrue(order.size() <= 9, "Alt+1–9 reach every entry");
+        assertEquals("Build a new application with me", AskCatalogue.text("S7.label"));
+        assertEquals("Teach me by building an example", AskCatalogue.text("S8.label"));
+        var build = AskCatalogue.composeStart("S7", new AskCatalogue.StartFacts(null, null, 0, null, false,
+                List.of("basic-processor", "spring-xml"), null, "a quote spread monitor."));
+        assertEquals("I want to build: a quote spread monitor. Help me choose components, generate it, run sample events "
+                + "and show me in the evidence that it behaves as intended. The starter templates offered are: "
+                + "\"basic-processor\", \"spring-xml\".", build.text());
+        assertFalse(build.bound(), "it names no record");
+        String bare = AskCatalogue.composeStart("S7", AskCatalogue.StartFacts.none("")).text();
+        assertTrue(bare.startsWith("I want to build: (describe it here). Help me choose components"), bare);
+        assertFalse(bare.contains("could not be read") || bare.contains("templates offered"),
+                "no template sentence when the catalogue was not read (Copy prompt with no AI)");
+        String teach = AskCatalogue.composeStart("S8", AskCatalogue.StartFacts.none("")).text();
+        assertTrue(teach.startsWith("Teach me Fluxtion by building a small example with me: explain events, triggers and "
+                + "dispatch from the evidence as we go."), teach);
+        assertEquals(teach, AskCatalogue.copyText("S8", AskCatalogue.StartFacts.none("")), "Copy prompt with no AI");
     }
 }

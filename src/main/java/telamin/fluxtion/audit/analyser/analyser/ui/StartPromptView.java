@@ -18,7 +18,7 @@ import java.util.Locale;
 
 /**
  * M74 P2 (spec §5.8, OD-74.19, OD-74.21–74.23): <i>What would you like to do?</i> — the start page's prompt over the
- * catalogue's built-in entries S1–S6 (the configurable list is deferred by the owner until after P3). It RENDERS
+ * catalogue's built-in entries S1–S8 (the configurable list is deferred by the owner until after P3). It RENDERS
  * {@link StartPageState} and decides nothing: where the button goes and whether anything can answer are
  * {@code startPagePrompt}'s. CHOOSING is local and posts
  * nothing (r8 F10): a flow entry becomes the removable chip and gives the button its verb; a prompt entry APPENDS its
@@ -385,7 +385,7 @@ public final class StartPromptView extends JPanel {
         repaint();
     }
 
-    /** The built-in entries S1–S6, from the registry. */
+    /** The built-in entries, in the catalogue's start order. */
     private static List<Row> rows() {
         List<Row> out = new ArrayList<>();
         for (AskCatalogue.Entry e : AskCatalogue.startPageBuiltIns()) {
@@ -527,14 +527,29 @@ public final class StartPromptView extends JPanel {
 
     }
 
-    /** Which fallback buttons show: in the no-AI column, the chosen entry's (or the last pressed one's); S4 always offers its dialog. */
+    /** The bundle key of a fallback button's words: {@code fallback.<name>} (and {@code .tip} for its tooltip). */
+    static String fallbackKey(AskCatalogue.Fallback f) {
+        return "fallback." + switch (f) {
+            case ASSISTANT_SETTINGS -> "assistantSettings";
+            case CONNECT -> "connect";
+            case COPY_PROMPT -> "copyPrompt";
+            case NEW_PROJECT -> "newProject";
+            case BUNDLE_GUIDE -> "bundleGuide";
+            case TEMPLATE -> "template";
+            case USER_GUIDE -> "userGuide";
+            case GUIDED_TOUR -> "guidedTour";
+            case SAMPLE_PROJECT -> "sampleProject";
+        };
+    }
+
+    /** Which fallback buttons show: in the no-AI column, the chosen entry's (or the last pressed one's); S4 and S7 always offer the template dialog. */
     private void renderFallbacks() {
         String entry = chosen != null ? chosen.id() : state.fallbackEntry() != null ? state.fallbackEntry() : "S6";
         List<AskCatalogue.Fallback> shown = new ArrayList<>();
         if (!state.route().canAnswer()) {
             if (entry.equals("NONE")) shown.add(AskCatalogue.Fallback.COPY_PROMPT);
             else AskCatalogue.byId(entry).ifPresent(e -> shown.addAll(e.fallbacks()));
-        } else if ("S4".equals(entry) && chosen != null) {
+        } else if (("S4".equals(entry) || "S7".equals(entry)) && chosen != null) {
             shown.add(AskCatalogue.Fallback.TEMPLATE);            // beside the draft: the existing dialog (§5.8 S4)
         }
         String fkey = entry + shown + state.route() + state.claudeCodeNotFound();
@@ -552,15 +567,7 @@ public final class StartPromptView extends JPanel {
             fallbacks.add(why);
         }
         for (AskCatalogue.Fallback f : shown) {
-            String key = "fallback." + switch (f) {
-                case ASSISTANT_SETTINGS -> "assistantSettings";
-                case CONNECT -> "connect";
-                case COPY_PROMPT -> "copyPrompt";
-                case NEW_PROJECT -> "newProject";
-                case BUNDLE_GUIDE -> "bundleGuide";
-                case TEMPLATE -> "template";
-                case USER_GUIDE -> "userGuide";
-            };
+            String key = fallbackKey(f);
             JButton b = UiText.button(AskCatalogue.text(key));
             b.setToolTipText(UiText.tooltip(AskCatalogue.text(key + ".tip")));   // a menu path, only as a tooltip (r8 F7)
             b.getAccessibleContext().setAccessibleName(AskCatalogue.text(key));

@@ -71,13 +71,15 @@ public final class AskCatalogue {
 
     /** A no-AI fallback: a BUTTON running an existing start-page action (review c7f2 F7), never a menu path. */
     public enum Fallback {
-        ASSISTANT_SETTINGS, CONNECT, COPY_PROMPT, NEW_PROJECT, BUNDLE_GUIDE, TEMPLATE, USER_GUIDE
+        ASSISTANT_SETTINGS, CONNECT, COPY_PROMPT, NEW_PROJECT, BUNDLE_GUIDE, TEMPLATE, USER_GUIDE,
+        /** The authoring and learning pathways (owner priority, 2026-10-17): the DEMO tour and the sample project. */
+        GUIDED_TOUR, SAMPLE_PROJECT
     }
 
     /**
      * One registered question or start-page entry.
      *
-     * @param id        {@code Q1}…{@code Q6}, {@code S1}…{@code S6}, or a test's own
+     * @param id        {@code Q1}…{@code Q6}, {@code S1}…{@code S8}, or a test's own
      * @param kind      question, flow or prompt
      * @param surfaces  where it appears
      * @param pointers  the pointer kinds its template may interpolate
@@ -157,7 +159,23 @@ public final class AskCatalogue {
             new Entry("S5", Kind.FLOW, EnumSet.of(Surface.START_PAGE),
                     EnumSet.of(Pointer.LOG_NAME, Pointer.LOG_GENERATION), List.of(Fallback.COPY_PROMPT)),
             new Entry("S6", Kind.PROMPT, EnumSet.of(Surface.START_PAGE), EnumSet.of(Pointer.DOCS_URL),
-                    List.of(Fallback.USER_GUIDE)));
+                    List.of(Fallback.USER_GUIDE)),
+            // The authoring and learning pathways (owner priority, 2026-10-17), routed to what exists today: Build reads
+            // the starter catalogue (S4's flow) and drafts the build question; Teach opens the sample DEMO project and
+            // drafts a lesson. With no AI, Build offers the template and new-project dialogs, and Teach plays the DEMO
+            // guided tour. The runnable app, editable scenario and comparison are M76's.
+            new Entry("S7", Kind.FLOW, EnumSet.of(Surface.START_PAGE),
+                    EnumSet.of(Pointer.TEMPLATE_NAME, Pointer.FREE_TEXT),
+                    List.of(Fallback.TEMPLATE, Fallback.NEW_PROJECT, Fallback.COPY_PROMPT)),
+            new Entry("S8", Kind.FLOW, EnumSet.of(Surface.START_PAGE), EnumSet.of(Pointer.FREE_TEXT),
+                    List.of(Fallback.GUIDED_TOUR, Fallback.SAMPLE_PROJECT, Fallback.ASSISTANT_SETTINGS,
+                            Fallback.COPY_PROMPT)));
+
+    /**
+     * The start page's built-in order (owner, 2026-10-17): the demo, then the two first-class pathways — build and
+     * learn — then the rest. At most nine, so Alt+1–9 reach every one.
+     */
+    static final List<String> START_ORDER = List.of("S1", "S7", "S8", "S2", "S3", "S4", "S5", "S6");
 
     /** Test seam: an entry registered here appears on its surfaces with no other change (§10 "the registry is the one source"). */
     private static final List<Entry> EXTRA = new CopyOnWriteArrayList<>();
@@ -175,9 +193,10 @@ public final class AskCatalogue {
         return all;
     }
 
-    /** The built-in start-page entries, S1–S6, in order. */
+    /** The built-in start-page entries, in {@link #START_ORDER}. */
     public static List<Entry> startPageBuiltIns() {
-        return BUILT_IN.stream().filter(Entry::startPage).toList();
+        return START_ORDER.stream().map(id -> BUILT_IN.stream().filter(e -> e.id().equals(id)).findFirst().orElseThrow())
+                .filter(Entry::startPage).toList();
     }
 
     public static Optional<Entry> byId(String id) {
@@ -449,6 +468,16 @@ public final class AskCatalogue {
             }
             // P2b (§5.6): S2 toward Claude Code, after the set-up folder was chosen — no pointer, no record text
             case "S2" -> text = text("S2.template", v);
+            // the build pathway: the person's description in the sentence, the templates named when they were read
+            case "S7" -> {
+                String names = AskPointers.templateNames(f.templateNames());
+                // the sentence ends in its own full stop: the person's closing punctuation is not doubled
+                v.put("text", f.freeText().isEmpty() ? text("S7.describe") : f.freeText().replaceAll("[.!\\s]+$", ""));
+                String draft = text("S7.template", v);
+                if (names != null) draft += " " + text("S7.templates", Map.of("templates", names));
+                return new Draft(id, draft, null, 0);
+            }
+            case "S8" -> text = text("S8.template", v);
             default -> {
                 return null;
             }

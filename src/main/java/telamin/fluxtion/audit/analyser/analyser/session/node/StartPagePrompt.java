@@ -24,7 +24,7 @@ import java.util.Map;
  * composed. <b>It never starts Claude Code</b>: a Claude Code draft is placed and Start ARMED by
  * {@code localAgentSession}, only when Start would be accepted (OD-74.1, r8 F2).
  *
- * <p><b>The list</b> is the built-in S1–S6 (owner, 2026-10-17: the configurable list of OD-74.20 is deferred until after
+ * <p><b>The list</b> is the built-in S1–S8 (S7 and S8, the build and learn pathways, owner priority 2026-10-17) (owner, 2026-10-17: the configurable list of OD-74.20 is deferred until after
  * P3), so the node publishes no list of its own: the page reads the catalogue's built-in entries.
  */
 public class StartPagePrompt implements EventLogSource {
@@ -37,6 +37,8 @@ public class StartPagePrompt implements EventLogSource {
 
     /** P2b: the flow id of S2 toward Claude Code — the set-up folder's chooser (§5.6 step 1). */
     public static final String SETUP_FLOW = "S2.setup";
+    /** The learning pathway with no AI: the sample project's DEMO guided tour, no draft after it. */
+    public static final String TEACH_TOUR_FLOW = "S8.tour";
 
     private EventLogger auditLog = NullEventLogger.INSTANCE;
     // Not final: node-local state (a final field is constructor-mapped by the generator).
@@ -212,6 +214,14 @@ public class StartPagePrompt implements EventLogSource {
             note = "there is nothing to send: choose an entry or write a question";
             return changed();
         }
+        if (!route.canAnswer() && id.equals("S8")) {
+            // the learning pathway with no AI: the DEMO guided tour plays (as the demo does), and the page keeps S8's
+            // buttons — Assistant settings, Copy prompt — for the lesson an assistant would give. No window over the tour.
+            fallbackEntry = id;
+            note = "No AI assistant can answer here yet — the DEMO guided tour plays instead";
+            effects.request(new SessionEffects.RunStartPageFlowEffect(0L, e.request(), TEACH_TOUR_FLOW));
+            return changed();
+        }
         if (!route.canAnswer()) {
             // S3 and S5 open what the person chose in every column, then offer their fallback (§5.8)
             if (id.equals("S3") || (id.equals("S5") && !openLog.isOpen())) {
@@ -236,9 +246,14 @@ public class StartPagePrompt implements EventLogSource {
                     effects.request(new SessionEffects.RunStartPageFlowEffect(0L, e.request(), id));
                 }
             }
-            case "S3", "S4" -> {
+            case "S3", "S4", "S8" -> {
                 pending.put(e.request(), new Pending(id, route, e.textRef(), popOut));
                 effects.request(new SessionEffects.RunStartPageFlowEffect(0L, e.request(), id));
+            }
+            // the build pathway: S4's flow reads the starter catalogue at the button, then the build question is drafted
+            case "S7" -> {
+                pending.put(e.request(), new Pending(id, route, e.textRef(), popOut));
+                effects.request(new SessionEffects.RunStartPageFlowEffect(0L, e.request(), "S4"));
             }
             case "S5" -> {
                 if (openLog.isOpen()) {

@@ -71,6 +71,8 @@ class StartPanelNamesTest {
             public void openUserGuide(String page) { calls.add("guide:" + page); }
             public void copyStartPrompt(String entry, String text) { calls.add("copy:" + entry + ":" + text); }
             public void installClaudeCode() { calls.add("install"); }
+            public void openGuidedTour() { calls.add("tour"); }
+            public void openSampleProject() { calls.add("sample"); }
         };
         for (var f : telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.Fallback.values()) {
             StartPanel.runFallback(actions, f, "S6", "q");
@@ -78,6 +80,6 @@ class StartPanelNamesTest {
         StartPanel.runFallback(actions, telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.Fallback.CONNECT,
                 "INSTALL", "");
         assertEquals(List.of("settings", "mcp:CLAUDE_CODE", "copy:S6:q", "new", "guide:evidence-bundles/opening/",
-                "template", "guide:", "install"), calls);
+                "template", "guide:", "tour", "sample", "install"), calls);
     }
 }
