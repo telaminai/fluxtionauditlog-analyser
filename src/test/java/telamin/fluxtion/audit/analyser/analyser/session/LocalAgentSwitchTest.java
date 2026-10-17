@@ -132,4 +132,44 @@ class LocalAgentSwitchTest {
         d.post(new SessionEvents.LocalAgentSwitchChosen(a.switchOffers.get(1).request(), SessionEvents.SwitchChoice.KEEP));
         assertEquals(other, a.appliedProfile);
     }
+
+    /**
+     * ★ Review S1 (P2, 2026-10-17): a log open requested while the switch is offered used to take the gate's id, so the
+     * released switch's ProfileLoaded arrived stale and was refused — Stop killed Claude Code and the project never
+     * switched. Witness: drop {@code gate.released(event)} in {@code onSwitchChosen} — nothing is applied.
+     */
+    @Test
+    @DisplayName("★ hold, then a log open, then Keep: the switch still applies")
+    void anOpenDuringTheOfferDoesNotStrandTheSwitch() {
+        FakeSessionAdapter a = new FakeSessionAdapter().withProfile(TARGET);
+        a.pendingOpens = true;
+        SessionDriver d = LocalAgentSessionTest.driver(a);
+        LocalAgentSessionTest.startToReady(d, a);
+        personSwitch(d);
+        d.submit(new SessionEvents.OpenLogRequested(d.nextOpId(), "/logs/run.yaml", null, "DECLARED", false));
+        d.post(new SessionEvents.LocalAgentSwitchChosen(a.switchOffers.get(0).request(), SessionEvents.SwitchChoice.KEEP));
+        assertEquals(1, loads(a));
+        assertEquals(TARGET, a.appliedProfile, "the released switch's ProfileLoaded is current, so it applies");
+    }
+
+    /**
+     * ★ Review S1: holding a switch supersedes nothing. Witness: drop {@code gate.held(...)} in the boundary — the open
+     * that was in flight when the switch was held is refused as stale even though the person cancelled the switch.
+     */
+    @Test
+    @DisplayName("★ a held switch, then Cancel: the log open that was in flight is still current")
+    void aCancelledHoldLeavesTheOpenInFlightCurrent() {
+        FakeSessionAdapter a = new FakeSessionAdapter().withProfile(TARGET);
+        a.pendingOpens = true;
+        SessionDriver d = LocalAgentSessionTest.driver(a);
+        LocalAgentSessionTest.startToReady(d, a);
+        long open = d.nextOpId();
+        d.submit(new SessionEvents.OpenLogRequested(open, "/logs/run.yaml", null, "DECLARED", false));
+        personSwitch(d);
+        d.post(new SessionEvents.LocalAgentSwitchChosen(a.switchOffers.get(0).request(), SessionEvents.SwitchChoice.CANCEL));
+        assertTrue(d.snapshot().pending(), "the open is still in flight");
+        d.post(new SessionEvents.LogOpened(open, "/logs/run.yaml", "DECLARED", java.util.Set.of(), 0, 0, null));
+        assertTrue(d.snapshot().logOpen(), "its result is accepted");
+        assertEquals("/logs/run.yaml", d.snapshot().logPath());
+    }
 }

@@ -106,6 +106,7 @@ public class SessionBoundary implements EventLogSource {
             // a newer switch while one is held REPLACES its target; the offer is made again for the new one
             held = event;
             heldRequest++;
+            gate.held(event.opId()); // review S1: a held switch supersedes nothing until the person releases it
             auditLog.info("decision", "holdForLocalAgent").info("kind", event.kind().name())
                     .info("opId", event.opId()).info("request", heldRequest);
             effects.request(new SessionEffects.OfferLocalAgentSwitchEffect(event.opId(), heldRequest,
@@ -158,6 +159,7 @@ public class SessionBoundary implements EventLogSource {
                     "the project switch was cancelled — Claude Code keeps running here"));
             return true;
         }
+        gate.released(event); // review S1: its result is now the one awaited (an open during the offer is superseded now)
         return decide(event);
     }
 
