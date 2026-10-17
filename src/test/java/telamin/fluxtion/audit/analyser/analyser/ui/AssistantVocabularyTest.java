@@ -79,6 +79,30 @@ class AssistantVocabularyTest {
         assertTrue(src.contains("first 8 characters"), "what the console shows");
     }
 
+    /**
+     * ★ Final review #15: Settings names the header control by its current label, read from the method that draws it.
+     * Witness: the old "(Assistant ▾)" — a label the header no longer shows.
+     */
+    @Test
+    @DisplayName("★ Settings' intro names the header control as it reads: 'Assistant: Safe analysis ▾'")
+    void theSettingsIntroNamesTheControlAsItReads() throws Exception {
+        String src = Files.readString(CONFIG_PANEL);
+        assertFalse(src.contains("(<b>Assistant ▾</b>)"), "the header has no control labelled 'Assistant ▾'");
+        assertTrue(src.contains("<b>" + AssistantPanel.assistantControlText(AssistantProfile.SAFE) + "</b>"),
+                "the label as the control draws it");
+    }
+
+    /**
+     * ★ Final review #14: the MCP bridge's own refusal uses the one name. Witness: the old "REST transport disabled".
+     */
+    @Test
+    @DisplayName("★ the MCP bridge says 'External MCP/REST access is off', never 'REST transport disabled'")
+    void theBridgeUsesTheOneName() throws Exception {
+        String bridge = Files.readString(Path.of("src/main/java/telamin/fluxtion/audit/analyser/analyser/mcp/McpBridge.java"));
+        assertFalse(bridge.contains("REST transport disabled"), "the old name");
+        assertTrue(bridge.contains("\"analyser not running, or External MCP/REST access is off"), "the one name");
+    }
+
     /** ★ #13. Witness: keep the old Settings checkbox label — the cards' name is not on it. */
     @Test
     @DisplayName("★ one name for external access: the cards, the Settings checkbox, the AI menu and the limits line agree")
