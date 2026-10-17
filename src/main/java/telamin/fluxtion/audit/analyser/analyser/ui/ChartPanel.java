@@ -1117,6 +1117,28 @@ public final class ChartPanel extends JPanel {
      * writing down, and an annotation you have to leave the chart to add is one you mostly do not add.
      * The moment is taken from the cursor's x, so the note lands where you were looking.
      */
+    /** M74 P2 (§5.5 Q4, Q6): the Ask catalogue's chart items, built by the frame from the registry. */
+    private AskMenus askMenus = AskMenus.NONE;
+    private java.util.function.Supplier<String> chartName = () -> "";
+
+    public void setAskMenus(AskMenus menus, java.util.function.Supplier<String> name) {
+        this.askMenus = menus == null ? AskMenus.NONE : menus;
+        this.chartName = name == null ? () -> "" : name;
+    }
+
+    /** The number of the note whose pin is under {@code (x, y)}, or null — a number, never its words. */
+    private Integer noteNumberAt(int x, int y) {
+        for (var pin : notePins) {
+            java.awt.Rectangle b = new java.awt.Rectangle(pin.bounds());
+            b.grow(4, 4);
+            if (b.contains(x, y)) return pin.first();
+            for (int column : pin.columns()) {
+                if (Math.abs(x - (plotX + column)) <= 3) return pin.first();
+            }
+        }
+        return null;
+    }
+
     private void maybeNoteMenu(MouseEvent e) {
         if (!e.isPopupTrigger() || Double.isNaN(vx0)) {
             return;
@@ -1166,6 +1188,12 @@ public final class ChartPanel extends JPanel {
                 notesChanged.run();
             });
             menu.add(clear);
+        }
+        var asks = askMenus.forChart(chartName.get(), nearestSeriesLabel(e.getX(), e.getY()), at,
+                noteNumberAt(e.getX(), e.getY()), (long) vx0, (long) vx1);
+        if (!asks.isEmpty()) {
+            menu.addSeparator();
+            asks.forEach(menu::add);
         }
         menu.show(this, e.getX(), e.getY());
     }

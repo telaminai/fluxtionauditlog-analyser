@@ -100,6 +100,31 @@ public final class MainFrame extends JFrame {
     private final telamin.fluxtion.audit.analyser.analyser.assistant.localagent.LocalAgentTranscript localAgentStore =
             new telamin.fluxtion.audit.analyser.analyser.assistant.localagent.LocalAgentTranscript();
     private final LocalAgentPanel localAgentPanel = new LocalAgentPanel(localAgentStore);
+    // M74 P2: the start page's own words (the box, a flow's results), by reference — never in a fact
+    private final java.util.LinkedHashMap<Long, String> startPageWords = new java.util.LinkedHashMap<>();
+    /** Dropped prompt packs, by reference — SESSION ONLY: never written to the config, a profile, a share or a bundle. */
+    private final java.util.LinkedHashMap<Long, telamin.fluxtion.audit.analyser.analyser.assistant.PromptPack.Pack> promptPacks =
+            new java.util.LinkedHashMap<>();
+    private long promptPackNext = 1;
+    private long startPageWordNext = 1;
+    private long startPageRequest;
+    /** The press whose flow is still running (S3's bundle, S5's log), and what it waits for. */
+    private long startFlowRequest;
+    private String startFlowEntry;
+    private long startFlowGeneration;
+    private String startFlowBundle;
+    /** The toolbar's Ask button: built from the registry, enabled by the selection. */
+    private JButton askToolButton;
+    /** Test seam (r8 F10): the S4 catalogue fetch, run only at the button. Returns the names, or null when unreachable. */
+    java.util.function.Supplier<java.util.List<String>> startTemplateNames = () -> {
+        try {
+            return telamin.fluxtion.audit.analyser.analyser.template.TemplateClient.playground()
+                    .catalogue(ReleaseNotes.version()).entries().stream()
+                    .map(telamin.fluxtion.audit.analyser.analyser.template.TemplateCatalogue.Entry::name).toList();
+        } catch (RuntimeException e) {
+            return null;
+        }
+    };
     /** The hosted bridge's per-generation credentials; the action server maps them, the adapter mints and revokes. */
     private final telamin.fluxtion.audit.analyser.analyser.net.HostedCredentials hostedCredentials =
             new telamin.fluxtion.audit.analyser.analyser.net.HostedCredentials();
@@ -345,7 +370,7 @@ public final class MainFrame extends JFrame {
             sourcePanel.showDispatchFor(rec);              // scroll the EP to the record's handler method
             if (sideTabs != null) sideTabs.setSelectedComponent(sourcePanel);
         });
-        detailPanel.setExplainAction(this::explainSelection);
+        detailPanel.setExplainAction(() -> askSingle(telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.Surface.DETAIL_BUTTON));
         // one GraphTargets, shared: the detail viewer and the topology plot through the same path, so a
         // series added from either lands on the same graph in the same way (M21.5)
         DetailPanel.GraphTargets graphTargets = new DetailPanel.GraphTargets() {
@@ -1012,10 +1037,12 @@ public final class MainFrame extends JFrame {
         diff.addActionListener(e -> diffSelected());
         into.add(diff);
 
-        JMenuItem explain = new JMenuItem("Explain selected with LLM");
-        explain.setEnabled(haveSelection);
-        explain.addActionListener(e -> explainSelection());
-        into.add(explain);
+        // M74 P2 (§5.5, r8 F12): the questions come from the ONE registry — the right-click menu and its menu-bar copy
+        for (JMenuItem ask : askItems(into instanceof JMenu
+                ? telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.Surface.AUDIT_LOG_MENU
+                : telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.Surface.RECORDS_MENU, askContext().build())) {
+            into.add(ask);
+        }
 
         addSeparator(into);
         JMenuItem exportCsv = new JMenuItem("Export records (CSV)…");
@@ -1108,8 +1135,17 @@ public final class MainFrame extends JFrame {
         }
         LogRecord a = store.record(rows[0]);
         LogRecord b = store.record(rows[1]);
+        // R F5: the dialog's draft is composed from ITS OWN context, never from the live selection
+        var ctx = askContext().selected(java.util.List.of(rows[0], rows[1])).build();
         RecordDiffDialog.show(this, a, b,
-                "A · " + TimeFormat.utc(a.logTime()), "B · " + TimeFormat.utc(b.logTime()));
+                "A · " + TimeFormat.utc(a.logTime()), "B · " + TimeFormat.utc(b.logTime()),
+                new RecordDiffDialog.DiffContext(rows[0], rows[1], ctx.logIdentity(), ctx.generation()),
+                keys -> askFromCatalogue(telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.byId("Q2").orElseThrow(),
+                        telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.Surface.DIFF_DIALOG,
+                        ctx.toBuilder().diffKeys(keys).build()),
+                telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.text(askMode()
+                        == telamin.fluxtion.audit.analyser.analyser.assistant.AskContext.Mode.CLAUDE_CODE
+                        ? "Q2.diffButton" : "Q2.diffButton.IN_APP"));
     }
 
     private void toggleFlags(int[] modelRows) {
@@ -1197,7 +1233,7 @@ public final class MainFrame extends JFrame {
         form.add(top, java.awt.BorderLayout.CENTER);
         form.add(bottom, java.awt.BorderLayout.SOUTH);
 
-        int ok = JOptionPane.showConfirmDialog(this, form, "Explain record " + row,
+        int ok = JOptionPane.showConfirmDialog(this, form, "Write a finding for record " + row,
                 JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
         if (ok != JOptionPane.OK_OPTION) return;
 
@@ -1411,7 +1447,20 @@ public final class MainFrame extends JFrame {
     /** The sample is a real project profile, so the Project rail and workspace match its name. */
     private void openSampleProject() { openSampleProject(false); }
 
+    /** M74 P2 S1: the sample project with the DEMO journey's log, then the journey played (r8 F13). */
+    private boolean pendingSampleJourney;
+
+    private void openSampleJourney() {
+        pendingSampleJourney = true;
+        openSampleProject(false, true);
+    }
+
     private void openSampleProject(boolean playTour) {
+        openSampleProject(playTour, false);
+    }
+
+    private void openSampleProject(boolean playTour, boolean journey) {
+        if (!journey) pendingSampleJourney = false;
         Path root;
         try { root = DemoAssets.install(); }
         catch (java.io.UncheckedIOException ex) {
@@ -1437,10 +1486,15 @@ public final class MainFrame extends JFrame {
         pendingSampleWalk = true;
         pendingSampleTour = playTour;
         topologyPanel.load(DemoAssets.graphml());
-        openFile(DemoAssets.log(), OpenRequest.HUMAN);
+        openFile(journey ? DemoAssets.journeyLog() : DemoAssets.log(), OpenRequest.HUMAN);
     }
 
     private void finishSampleWalk(boolean playTour) {
+        if (pendingSampleJourney) {
+            pendingSampleJourney = false;
+            finishSampleJourney();
+            return;
+        }
         if (store == null || !DemoAssets.log().toString().equals(config.logFile)
                 || !telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.pathFor(DemoAssets.root())
                         .equals(project.activeFile())) return;
@@ -2327,6 +2381,7 @@ public final class MainFrame extends JFrame {
         if (projectPanel != null) projectPanel.refreshTheme();   // owner, 2026-08-27: rows are painted from UiTheme at render time
         refreshMcpIndicator();                                  // D-AI9: its colour is explicit too, so it must be recomputed
         eventFilterPanel.refreshTheme();                          // section border + group headers likewise
+        localAgentPanel.themeChanged();          // M74 P2: the transcript re-styles (§5.9)
         repaint();                 // charts read the theme on paint
         config.theme = theme;
         saveConfigQuietly();
@@ -2439,7 +2494,7 @@ public final class MainFrame extends JFrame {
         }
     }
 
-    enum DropKind { BUNDLE, GRAPHML, DESIGN, LOG }
+    enum DropKind { BUNDLE, GRAPHML, DESIGN, PROMPT_PACK, LOG }
 
     static DropKind dropKind(String fileName) {
         if (fileName == null) return DropKind.LOG;
@@ -2447,6 +2502,7 @@ public final class MainFrame extends JFrame {
         if (lower.endsWith(".fexp")) return DropKind.BUNDLE;
         if (lower.endsWith(".graphml")) return DropKind.GRAPHML;
         if (lower.endsWith(".xml")) return DropKind.DESIGN;
+        if (lower.endsWith(".md")) return DropKind.PROMPT_PACK;   // M74 P2: a start-page prompt pack (owner, 2026-10-17)
         return DropKind.LOG; // preserve the file chooser's support for audit logs with unusual names
     }
 
@@ -2457,6 +2513,15 @@ public final class MainFrame extends JFrame {
         for (File file : files) {
             if (selected.putIfAbsent(dropKind(file.getName()), file.toPath()) != null)
                 ignored.add(file.getName());
+        }
+        if (selected.containsKey(DropKind.PROMPT_PACK)) {
+            if (files.size() != 1) {
+                status.setText("Drop a prompt pack (.md) by itself; no files from this mixed drop were opened.");
+                startPanel.showOperationFeedback(status.getText());
+                return false;
+            }
+            dropPromptPack(selected.get(DropKind.PROMPT_PACK));
+            return true;
         }
         if (selected.containsKey(DropKind.BUNDLE)) {
             if (files.size() != 1) {
@@ -2499,6 +2564,30 @@ public final class MainFrame extends JFrame {
             startPanel.showOperationFeedback(status.getText());
         }
         return opened;
+    }
+
+    /**
+     * M74 P2 (owner request 2026-10-17): the person dropped a Markdown prompt pack. The parse is PURE
+     * ({@link telamin.fluxtion.audit.analyser.analyser.assistant.PromptPack}); at most one byte past the cap is read, so an
+     * oversize file is refused without reading it whole. The pack lives in this window's memory only; the session decides
+     * which list is in force.
+     */
+    void dropPromptPack(Path file) {
+        byte[] bytes;
+        try (var in = Files.newInputStream(file)) {
+            bytes = in.readNBytes(telamin.fluxtion.audit.analyser.analyser.assistant.PromptPack.MAX_BYTES + 1);
+        } catch (java.io.IOException e) {
+            bytes = null;
+        }
+        var result = telamin.fluxtion.audit.analyser.analyser.assistant.PromptPack.parse(bytes);
+        long ref = 0;
+        if (result.ok()) {
+            ref = promptPackNext++;
+            promptPacks.put(ref, result.pack());
+            while (promptPacks.size() > 4) promptPacks.remove(promptPacks.keySet().iterator().next());
+        }
+        session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StartPromptPackDropped(ref,
+                result.ok() ? null : result.refusal().cause(), result.ok() ? 0 : result.refusal().line()));
     }
 
     /** Routing rule for dropped files — {@code .graphml} goes to the Topology tab. */
@@ -4357,7 +4446,7 @@ public final class MainFrame extends JFrame {
         mainSplit.setContinuousLayout(true);   // live relayout while dragging
         mainSplit.setOneTouchExpandable(true);
 
-        sideTabs = new JTabbedPane();   // right pane = outputs only (Event types moved to the left rail)
+        sideTabs = UiText.plain(new JTabbedPane());   // right pane = outputs only (Event types moved to the left rail)
         sideTabs.addTab("Summary", summaryPanel);
         sideTabs.addTab("Source", sourcePanel);
         sideTabs.addTab("Graph", graphTabs);
@@ -4422,6 +4511,22 @@ public final class MainFrame extends JFrame {
                 McpSetupDialog.show(MainFrame.this, config, MainFrame.this::onConfigChanged, target, false);
             }
             @Override public void openFluxtionKey() { openFluxtionKeyDialog(); }
+            // M74 P2 (§5.8): the prompt's button and the no-AI fallbacks, through the page's one Actions interface
+            @Override public void pressStartPrompt(String entryId, String text) {
+                MainFrame.this.pressStartPrompt(entryId, text);
+            }
+            @Override public void openUserGuide(String page) {
+                if (page == null || page.isBlank()) showHelp(); else openDocsPage(page);
+            }
+            @Override public void copyStartPrompt(String entryId, String text) { MainFrame.this.copyStartPrompt(entryId, text); }
+            @Override public void installClaudeCode() { openDocsUrl("https://docs.claude.com/en/docs/claude-code/setup"); }
+            @Override public String claudeSearched() { return claudeSearchedLine(); }
+            @Override public telamin.fluxtion.audit.analyser.analyser.assistant.PromptPack.Pack promptPack(long ref) {
+                return promptPacks.get(ref);
+            }
+            @Override public void returnToMainOptions() {
+                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ReturnToMainOptions("start page"));
+            }
             @Override public boolean fluxtionKeyPresent() { return fluxtionKeyStore.keyPresent(); }
             @Override public void backToRecords() { syncRecordsCard(); }
             @Override public void openProjectDesign() { chooseDesignFile(false); }
@@ -4608,7 +4713,11 @@ public final class MainFrame extends JFrame {
                 () -> gotoAnomaly(true)));
         tb.add(toolButton("Prev", ToolIcons.warning(), "Jump to the previous anomaly (Shift+F3)", () -> gotoAnomaly(false)));
         tb.addSeparator();
-        tb.add(toolButton("Explain", ToolIcons.chat(), "Explain the selected record(s) with the LLM assistant", this::explainSelection));
+        askToolButton = toolButton(telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.text("surface.TOOLBAR.label"),
+                ToolIcons.chat(), telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.text("surface.TOOLBAR.none"),
+                () -> askSingle(telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.Surface.TOOLBAR));
+        askToolButton.setEnabled(false);          // §5.5: with no selection, disabled — "Select a record to ask about it"
+        tb.add(askToolButton);
         tb.add(toolButton("Export CSV", ToolIcons.download(), "Export the filtered records to CSV", () -> exportRecords(false)));
         tb.addSeparator();
         followButton = new JToggleButton("Follow", ToolIcons.play());
@@ -4685,9 +4794,13 @@ public final class MainFrame extends JFrame {
         });
         assistantPanel.setIntents(new AssistantPanel.Intents() {
             @Override public void send(String draft) {
+                sendBound(draft, 0);
+            }
+            @Override public void sendBound(String draft, long binding) {
                 long entry = assistantTranscript.add(telamin.fluxtion.audit.analyser.analyser.assistant.AssistantTranscript.Kind.USER, draft);
                 assistantSendRequest++;
-                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantSendRequested(assistantSendRequest, entry, assistantRoute()));
+                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantSendRequested(
+                        assistantSendRequest, entry, assistantRoute(), binding));
             }
             @Override public void cancel() { session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantCancelRequested("Cancel pressed")); }
             @Override public void newChat() { session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantNewChatRequested("")); }
@@ -4701,11 +4814,22 @@ public final class MainFrame extends JFrame {
             @Override public void connectCliAssistant() { openMcpSetup(); }
             @Override public void showAnalyser() { toFront(); requestFocus(); }
             @Override public void askAboutEvidence() {
+                var walk = sessionSnapshot().walkPlayback();
                 session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantHandoffRequested("assistant panel"));
                 revealAssistant();                      // the fresh thread, ready for the person's own question
-                assistantPanel.primeDraft("");
+                if (askMode() == telamin.fluxtion.audit.analyser.analyser.assistant.AskContext.Mode.CLAUDE_CODE && walk.showing()) {
+                    // §5.5 Journeys: the walk ends (through the session) and Start is ARMED with the journey's draft,
+                    // the last part left for the person; a process already running gets the draft placed instead
+                    int position = 1 + Math.max(0, config.walks.indexOf(
+                            telamin.fluxtion.audit.analyser.analyser.config.WalkBin.find(config.walks, walk.walk())));
+                    composeDraft(telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.composeJourney(
+                            walk.walk(), position, askContext().build()), "journey handoff");
+                } else {
+                    assistantPanel.focusComposer();
+                }
             }
             @Override public void chooseMode(telamin.fluxtion.audit.analyser.analyser.session.AssistantMode mode) {
+                rememberMode(mode);                     // OD-74.23: machine tier, never exported
                 session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantModeChosen(mode,
                         "assistant tab"));
             }
@@ -4744,12 +4868,19 @@ public final class MainFrame extends JFrame {
             @Override public void post(Object fact) {
                 SwingUtilities.invokeLater(() -> { if (session != null) session().post(fact); });
             }
+            @Override public boolean scratchForProject() { return projectRootIsAnalyserOwned(); }
         };
         localAgentAdapter = new telamin.fluxtion.audit.analyser.analyser.assistant.localagent.LocalAgentAdapter(
                 new telamin.fluxtion.audit.analyser.analyser.assistant.localagent.ClaudeCodeProvider(), localAgentLauncher,
                 localAgentStore, hostedCredentials, env, workers, clock);
         localAgentAdapter.installShutdownHook();
         assistantPanel.setLocalAgentPanel(localAgentPanel);
+        localAgentPanel.setTranscriptLinks(transcriptChips(), transcriptNavigator());
+        // M74 P2 (§5.5): the topology, chart and time-slider questions, from the one registry
+        AskMenus asks = askMenus();
+        topologyPanel.setAskMenus(asks);
+        graphTabs.setAskMenus(asks);
+        timeSlider.setAskMenus(asks);
         localAgentPanel.setIntents(new LocalAgentPanel.Intents() {
             @Override public void start() {
                 session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentStartRequested(
@@ -4758,7 +4889,7 @@ public final class MainFrame extends JFrame {
             @Override public void stop() {
                 session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentStopRequested("Stop pressed"));
             }
-            @Override public void send(String draft) {
+            @Override public void send(String draft, long binding) {
                 var slash = localAgentAdapter.classify(draft);
                 // a passed command is sent as the CLI runs it (no leading blank); everything else as typed
                 long entry = localAgentStore.add(
@@ -4766,7 +4897,7 @@ public final class MainFrame extends JFrame {
                         slash.line(draft));
                 localAgentSendRequest = ++localAgentRequest;
                 session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentSendRequested(
-                        localAgentSendRequest, entry, slash.slash(), slash.command(), localAgentConsent()));
+                        localAgentSendRequest, entry, slash.slash(), slash.command(), localAgentConsent(), binding));
             }
             @Override public void newChat() {
                 session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentNewChatRequested("New chat"));
@@ -4795,8 +4926,21 @@ public final class MainFrame extends JFrame {
      * private empty scratch directory (never the home directory, which holds credentials and the endpoint files).
      */
     private Path localAgentDirectory() {
-        Path root = projectRoot();
-        if (root != null) return root;
+        // OD-74.22: the sample project and a bundle's working copy are the analyser's own folders, never one Claude Code
+        // is started in — the session works in the scratch folder instead and reads the evidence through the verbs
+        return telamin.fluxtion.audit.analyser.analyser.assistant.localagent.LocalAgentFolders.workingDirectory(
+                projectRoot(), Path.of(System.getProperty("user.home")),
+                telamin.fluxtion.audit.analyser.bundle.EvidenceBundle::isWorkingCopy, this::localAgentScratchDirectory);
+    }
+
+    /** OD-74.22: the active project's root is one the analyser owns (the sample, a bundle's working copy). */
+    private boolean projectRootIsAnalyserOwned() {
+        return telamin.fluxtion.audit.analyser.analyser.assistant.localagent.LocalAgentFolders.analyserOwned(projectRoot(),
+                Path.of(System.getProperty("user.home")), telamin.fluxtion.audit.analyser.bundle.EvidenceBundle::isWorkingCopy);
+    }
+
+    /** The private, empty scratch folder, made once per run (never the home directory). */
+    private Path localAgentScratchDirectory() {
         if (localAgentScratch == null) {
             try {
                 localAgentScratch = java.nio.file.Files.createTempDirectory("analyser-claude-",
@@ -5093,16 +5237,19 @@ public final class MainFrame extends JFrame {
         assistantPanel.setRoute(!hasKey ? "no provider configured"
                 : "via " + config.llmProvider + (config.llmModel == null || config.llmModel.isBlank() ? "" : " · " + config.llmModel)
                         + " — your question and its context are sent there");
-        assistantPanel.render(state, demoProjection(next.walkPlayback()));
-        // M74: the mode and the local agent, as the session decided them
+        AssistantPanel.Demo demo = demoProjection(next.walkPlayback());
+        assistantPanel.render(state, demo);
+        // M74: the mode and the local agent, as the session decided them; a walk with a conversation shows in every mode
         var agent = next.localAgent();
-        assistantPanel.renderMode(agent.mode());
+        assistantPanel.renderMode(agent.mode(), demo != null);
         if (agent.answer().accepted() && agent.answer().request() == localAgentSendRequest
                 && localAgentDraftCleared != localAgentSendRequest) {
             localAgentDraftCleared = localAgentSendRequest;
             localAgentPanel.draftAccepted();
         }
         localAgentPanel.render(agent);
+        renderFullPostureMarkers(agent);
+        renderStartPrompt(next);
     }
 
     /**
@@ -5154,10 +5301,6 @@ public final class MainFrame extends JFrame {
         return new AssistantPanel.Demo(c.label(), title, status, lines);
     }
 
-    private void explainSelection() {
-        revealAssistant();
-        assistantPanel.primeDraft("Explain this record — what happened in this cycle and why?");
-    }
 
     /** Start or stop the opt-in localhost REST transport to match {@code config.assistantActionsRest}. */
     private void applyRestServer() {
@@ -5334,6 +5477,7 @@ public final class MainFrame extends JFrame {
     }
 
     private void onRowsSelected(int[] modelRows) {
+        refreshAskEntrances(modelRows.length);
         if (store == null || modelRows.length == 0) {
             selectedRecords = List.of();
             detailPanel.clear();
@@ -5694,9 +5838,10 @@ public final class MainFrame extends JFrame {
             // person is not shown a superseded operation's failure as if it were the current one.
             return;
         }
-        if (DemoAssets.log().toString().equals(location)) {
+        if (DemoAssets.log().toString().equals(location) || DemoAssets.journeyLog().toString().equals(location)) {
             pendingSampleWalk = false;
             pendingSampleTour = false;
+            pendingSampleJourney = false;
         }
         completeRecoveryLog(opId, "log load failed: " + rootMessage(err));
         status.setText("Failed to load " + location + ": " + rootMessage(err));
@@ -6153,7 +6298,8 @@ public final class MainFrame extends JFrame {
         if (followButton != null) followButton.setEnabled(followable);
         updateLifecycleMenu();
         completeRecoveryLog(opId, null);
-        if (pendingSampleWalk && DemoAssets.log().toString().equals(location)) {
+        if (pendingSampleWalk && (DemoAssets.log().toString().equals(location)
+                || DemoAssets.journeyLog().toString().equals(location))) {
             boolean playTour = pendingSampleTour;
             pendingSampleWalk = false;
             pendingSampleTour = false;
@@ -7186,6 +7332,7 @@ public final class MainFrame extends JFrame {
                 session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentConsentChanged(
                         localAgentConsent()));
             }
+            postStartAvailability();                 // M74 P2 (OD-74.23): what can answer on the start page, now
         }
         sourceService.configure(effectiveSourceRoots(), config.selectedEventProcessor,
                 config.mavenRepos, config.searchMavenRepos);
@@ -7640,6 +7787,7 @@ public final class MainFrame extends JFrame {
             // load lands through the LogOpened result, which builds the driver first.
             session.onSnapshot(this::onSessionSnapshot);
             if (topologyPanel.hasGraph()) session.post(graphFact());
+            postStartupFacts();
         }
         return session;
     }
@@ -8149,6 +8297,13 @@ public final class MainFrame extends JFrame {
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.SendLocalAgentTurnEffect e -> performLocalAgent(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.StopLocalAgentEffect e -> performLocalAgent(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ConfirmLocalAgentFolderEffect e -> confirmLocalAgentFolder(e);
+            // M74 P2: the Ask catalogue's drafts and the start page — the nodes decided; the frame performs and reports
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.PrimeLocalAgentDraftEffect e -> primeLocalAgentDraft(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.PrimeAssistantDraftEffect e -> primeAssistantDraft(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.PlayDemoJourneyEffect e -> playDemoJourney(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.RunStartPageFlowEffect e -> runStartPageFlow(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ShowStartPageFallbackEffect e -> showStartPageFallback(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ComposeStartPageDraftEffect e -> composeStartPageDraft(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ShowStatusEffect e -> {
                 status.setText(e.text());
                 yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StatusShown(
@@ -10688,5 +10843,571 @@ public final class MainFrame extends JFrame {
     private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result confirmLocalAgentFolder(
             telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ConfirmLocalAgentFolderEffect e) {
         return confirmLocalAgentFolderNow(e);
+    }
+
+    // ---- M74 P2 (spec-claude-code-provider.md §5.5, §5.8, §5.9): the Ask catalogue's entrances, the start page's
+    // prompt, and the performers of what startPagePrompt, localAgentSession and assistantLoop decide. Nothing here
+    // decides a route, a refusal or whether a draft may be sent (rule 9): the frame assembles rendering input (an
+    // AskContext), shows the pop-up, reports the person's answers as facts and performs the effects. ---------------
+
+    /** Which assistant a catalogue item drafts for: the session's mode. */
+    private telamin.fluxtion.audit.analyser.analyser.assistant.AskContext.Mode askMode() {
+        return sessionSnapshot().localAgent().mode() == telamin.fluxtion.audit.analyser.analyser.session.AssistantMode.LOCAL_AGENT
+                ? telamin.fluxtion.audit.analyser.analyser.assistant.AskContext.Mode.CLAUDE_CODE
+                : telamin.fluxtion.audit.analyser.analyser.assistant.AskContext.Mode.IN_APP;
+    }
+
+    /**
+     * §5.5: the frame's rendering input when a menu opens — selected indexes, the flagged subset, the current record,
+     * the open log's file NAME, identity digest and generation, and the cycle's node ids. Pointers only: no value, note
+     * or finding has a place to go.
+     */
+    private telamin.fluxtion.audit.analyser.analyser.assistant.AskContext.Builder askContext() {
+        var snap = sessionSnapshot();
+        var b = telamin.fluxtion.audit.analyser.analyser.assistant.AskContext.builder(askMode())
+                .inProcessActions(config.assistantActionsInProcess);
+        if (store != null && snap.logOpen() && snap.logPath() != null) {
+            String name = java.nio.file.Path.of(snap.logPath()).getFileName() == null ? snap.logPath()
+                    : java.nio.file.Path.of(snap.logPath()).getFileName().toString();
+            b.log(name, telamin.fluxtion.audit.analyser.analyser.session.LocalAgentPosture.digest(snap.logPath()),
+                    snap.logGeneration(), store.size());
+            int[] rows = tablePanel.selectedModelRows();
+            java.util.List<Integer> selected = new java.util.ArrayList<>();
+            for (int r : rows) selected.add(r);
+            b.selected(selected).flagged(java.util.Set.copyOf(flaggedRows));
+            if (rows.length > 0) {
+                b.current(rows[rows.length - 1]);
+                if (rows.length == 1) {
+                    java.util.List<String> ids = new java.util.ArrayList<>();
+                    for (var n : store.record(rows[0]).nodeLogs()) ids.add(n.instanceId());
+                    b.cycleNodeIds(ids);
+                }
+            }
+        }
+        Path graph = topologyPanel.loadedGraphFile();
+        if (graph != null && graph.getFileName() != null) b.graphName(graph.getFileName().toString());
+        return b;
+    }
+
+    /** The registry's items for {@code surface}: the label in the mode in force, disabled with the reason. */
+    private java.util.List<JMenuItem> askItems(telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.Surface surface,
+                                               telamin.fluxtion.audit.analyser.analyser.assistant.AskContext ctx) {
+        java.util.List<JMenuItem> out = new java.util.ArrayList<>();
+        for (var item : telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.items(surface, ctx)) {
+            JMenuItem m = UiText.menuItem(item.label());
+            m.setEnabled(item.enabled());
+            m.setToolTipText(UiText.tooltip(item.enabled()
+                    ? "Drafts a question naming where to look; nothing is sent until you press Send"
+                    : item.disabledReason()));
+            m.putClientProperty("ask.entry", item.entry().id());
+            m.addActionListener(e -> askFromCatalogue(item.entry(), surface, ctx));
+            out.add(m);
+        }
+        return out;
+    }
+
+    /** §5.5: the surfaces that are not the frame's own hand over their pointers; the items come from the registry. */
+    private AskMenus askMenus() {
+        return new AskMenus() {
+            @Override public java.util.List<JMenuItem> forNode(String instanceId, int position, Boolean logged) {
+                return askItems(telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.Surface.TOPOLOGY_NODE,
+                        askContext().node(instanceId, position, logged).build());
+            }
+            @Override public java.util.List<JMenuItem> forChart(String chartName, String series, long at, Integer noteNumber,
+                                                              Long windowFrom, Long windowTo) {
+                var b = askContext().chartPoint(chartName, series, at, nearestRecord(at), noteNumber);
+                if (windowFrom != null && windowTo != null) rangeInto(b, windowFrom, windowTo);
+                return askItems(telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.Surface.CHART_POINT, b.build());
+            }
+            @Override public java.util.List<JMenuItem> forRange(long from, long to) {
+                var b = askContext();
+                rangeInto(b, from, to);
+                return askItems(telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.Surface.TIME_SLIDER, b.build());
+            }
+        };
+    }
+
+    /** The record whose log time is nearest {@code at} (a pointer for Q4), or null with no log. */
+    private Integer nearestRecord(long at) {
+        if (store == null || store.size() == 0) return null;
+        int best = 0;
+        long bestGap = Long.MAX_VALUE;
+        var idx = store.index();
+        for (int i = 0; i < store.size(); i++) {
+            Long t = idx.logTime(i);
+            if (t == null) continue;
+            long gap = Math.abs(t - at);
+            if (gap < bestGap) {
+                bestGap = gap;
+                best = i;
+            }
+        }
+        return best;
+    }
+
+    /** Q6's pointers for a window: its first and last record and the count, from the index (the analyser's own count). */
+    private void rangeInto(telamin.fluxtion.audit.analyser.analyser.assistant.AskContext.Builder b, long from, long to) {
+        if (store == null) return;
+        int first = -1, last = -1, count = 0;
+        var idx = store.index();
+        for (int i = 0; i < store.size(); i++) {
+            Long t = idx.logTime(i);
+            if (t == null || t < from || t > to) continue;
+            if (first < 0) first = i;
+            last = i;
+            count++;
+        }
+        b.range(from, to, first < 0 ? null : first, last < 0 ? null : last, count);
+    }
+
+    /** The toolbar and the detail panel: Q1 with one row, Q2 with more (§5.5). */
+    private void askSingle(telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.Surface surface) {
+        var ctx = askContext().build();
+        var item = telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.singleAction(surface, ctx);
+        if (item == null) {
+            status.setText(telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.text("surface." + surface.name() + ".none"));
+            return;
+        }
+        if (!item.enabled()) {
+            status.setText(item.label() + ": " + item.disabledReason());
+            return;
+        }
+        askFromCatalogue(item.entry(), surface, ctx);
+    }
+
+    /** The single-action entrances follow the selection: their label and tooltip are the question's (§5.5). */
+    private void refreshAskEntrances(int selected) {
+        var ctx = askContext().build();
+        var tool = telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.singleAction(
+                telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.Surface.TOOLBAR, ctx);
+        if (askToolButton != null) {
+            askToolButton.setEnabled(selected > 0 && tool != null && tool.enabled());
+            askToolButton.setToolTipText(UiText.tooltip(tool == null
+                    ? telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.text("surface.TOOLBAR.none")
+                    : tool.enabled() ? tool.label() : tool.label() + " — " + tool.disabledReason()));
+        }
+        var detail = telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.singleAction(
+                telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.Surface.DETAIL_BUTTON, ctx);
+        detailPanel.setAskEntrance(detail == null
+                ? telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.text("surface.DETAIL_BUTTON.none")
+                : detail.enabled() ? detail.label() : detail.label() + " — " + detail.disabledReason(),
+                detail != null && detail.enabled());
+    }
+
+    /**
+     * OD-74.14 (owner decision 2026-10-17: the "Ask Claude this?" pop-up is cut, in both modes): a catalogue question
+     * places its draft straight into the composer — appended after the person's text, the added lines highlighted,
+     * nothing sent until Send — by reporting the composed draft as a fact the node places and arms. Under a recorded
+     * tutorial the same action reveals the next recorded turn instead: no model, no process.
+     */
+    private void askFromCatalogue(telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.Entry entry,
+                                  telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.Surface surface,
+                                  telamin.fluxtion.audit.analyser.analyser.assistant.AskContext ctx) {
+        var walk = sessionSnapshot().walkPlayback();
+        if (TutorialTurns.tutorial(walk)) {
+            var next = TutorialTurns.next(walk);
+            if (next == null) {
+                status.setText(TutorialTurns.NO_MORE);
+                return;
+            }
+            session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.WalkNavigated(
+                    next.step() - walk.step()));
+            return;
+        }
+        String why = telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.disabledReason(entry, surface, ctx);
+        if (why != null) {
+            status.setText(why);
+            return;
+        }
+        composeDraft(telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.compose(entry, surface, ctx),
+                "ask " + entry.id() + " from " + surface.name().toLowerCase(java.util.Locale.ROOT));
+    }
+
+    /** A composed draft into the store of the assistant in force, reported as a fact. The words never enter it. */
+    private void composeDraft(telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.Draft d, String origin) {
+        if (d == null) return;
+        if (askMode() == telamin.fluxtion.audit.analyser.analyser.assistant.AskContext.Mode.CLAUDE_CODE) {
+            long ref = localAgentStore.add(
+                    telamin.fluxtion.audit.analyser.analyser.assistant.localagent.LocalAgentTranscript.Kind.USER, d.text());
+            session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentDraftComposed(ref,
+                    d.questionId(), d.logIdentity(), d.generation(), localAgentConsent(), origin));
+        } else {
+            long ref = assistantTranscript.add(
+                    telamin.fluxtion.audit.analyser.analyser.assistant.AssistantTranscript.Kind.USER, d.text());
+            session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantDraftComposed(ref,
+                    d.questionId(), d.logIdentity(), d.generation(), origin));
+        }
+    }
+
+    /** PrimeLocalAgentDraftEffect: reveal the assistant (programmatically: warm start never fires), append, light. */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result primeLocalAgentDraft(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.PrimeLocalAgentDraftEffect e) {
+        String text = localAgentStore.text(e.draftRef());
+        revealAssistant();
+        localAgentPanel.appendDraft(e.draftRef(), text,
+                telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.text("composer.hint.CLAUDE_CODE"));
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.DraftPlaced(e.opId(), e.draftRef(), true, "");
+    }
+
+    /** PrimeAssistantDraftEffect: the same for the in-app composer. */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result primeAssistantDraft(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.PrimeAssistantDraftEffect e) {
+        String text = assistantTranscript.text(e.draftRef());
+        revealAssistant();
+        assistantPanel.appendDraft(e.draftRef(), text,
+                telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.text("composer.hint.IN_APP"));
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.DraftPlaced(e.opId(), e.draftRef(), true, "");
+    }
+
+    /** §5.9: what resolves in the current snapshot — a set lookup per candidate, bounded. */
+    private TranscriptView.Chips transcriptChips() {
+        return new TranscriptView.Chips() {
+            @Override public boolean isRecord(int index) { return store != null && index >= 0 && index < store.size(); }
+            @Override public boolean isNode(String id) {
+                var full = topologyPanel.fullTopology();
+                if (full == null || full.nodes().size() > TranscriptView.MAX_NODE_IDS) return false;
+                return telamin.fluxtion.audit.analyser.analyser.topology.GraphPairing.declaredNodeIds(full).contains(id);
+            }
+            @Override public boolean isChart(String name) {
+                return config.savedGraphs.stream().anyMatch(g -> g.name().equals(name));
+            }
+            @Override public long generation() { return store == null ? 0 : sessionSnapshot().logGeneration(); }
+        };
+    }
+
+    /** §5.9 / D-L3: where a chip goes — REVEAL calls only (OneDispatchModelTest holds the allow-list). */
+    private TranscriptView.Navigator transcriptNavigator() {
+        return new TranscriptView.Navigator() {
+            @Override public void revealRecord(int index) { tablePanel.selectModelRow(index); }
+            @Override public void revealNode(String id) {
+                selectSideTab("Topology");
+                topologyPanel.selectNode(id);
+            }
+            @Override public void revealChart(String name) {
+                selectSideTab("Graph");
+                graphTabs.selectGraph(name);
+            }
+            @Override public void say(String words) { sayToStatus(words); }
+        };
+    }
+
+    /** Owner request 2026-10-17: the Assistant tab and the pop-out window carry a marker while the full posture is cued. */
+    private void renderFullPostureMarkers(telamin.fluxtion.audit.analyser.analyser.session.LocalAgentState agent) {
+        var cue = agent.fullCue();
+        String marker = cue == telamin.fluxtion.audit.analyser.analyser.session.LocalAgentState.FullCue.NONE ? ""
+                : agent.strongCue() ? " ◆◆" : " ◆";
+        if (sideTabs != null) {
+            int at = sideTabs.indexOfComponent(assistantDock);
+            if (at >= 0) {
+                boolean none = marker.isEmpty();
+                boolean strong = agent.strongCue();
+                if (!("Analyser assistant" + marker).equals(sideTabs.getTitleAt(at))) {
+                    sideTabs.setTitleAt(at, none ? "Analyser assistant" : strong ? "Analyser assistant ◆◆" : "Analyser assistant ◆");
+                }
+                sideTabs.setToolTipTextAt(at, marker.isEmpty() ? null
+                        : UiText.tooltip(LocalAgentPanel.fullBadgeText(agent)));
+            }
+        }
+        if (assistantWindow != null) {
+            String title = AssistantPanel.WINDOW_TITLE + (marker.isEmpty() ? "" : " —" + marker + " full Claude Code ("
+                    + agent.cuePosture().fullMode().cli() + ")");
+            if (!title.equals(assistantWindow.getTitle())) assistantWindow.setTitle(title);
+        }
+    }
+
+    // ---- the start page's prompt (§5.8) -------------------------------------------------------------------------------
+
+    private void renderStartPrompt(telamin.fluxtion.audit.analyser.analyser.session.SessionSnapshot next) {
+        if (startPanel != null) startPanel.renderPrompt(next.startPage(), next.localAgent());
+        checkStartFlow(next);
+    }
+
+    /** The facts a new session needs about this machine: the remembered mode, what can answer, the consent's posture. */
+    private void postStartupFacts() {
+        if ("LOCAL_AGENT".equals(config.claudeCodeLastMode)) {
+            session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantModeChosen(
+                    telamin.fluxtion.audit.analyser.analyser.session.AssistantMode.LOCAL_AGENT, "remembered on this machine"));
+        }
+        postStartAvailability();
+        session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentConsentChanged(localAgentConsent()));
+    }
+
+    /** OD-74.23: what can answer — the switch, the resolver (a file check; nothing run), a provider, in-process actions. */
+    private void postStartAvailability() {
+        if (session == null) return;
+        session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StartPageAvailability(
+                config.claudeCodeAllowed, claudeFound(), inAppCanAnswer(), config.assistantActionsInProcess));
+    }
+
+    /** Test seam: what the resolver would say (a frame test has no {@code claude} installed). Null: ask the resolver. */
+    Boolean claudeFoundForTest;
+
+    private boolean claudeFound() {
+        if (claudeFoundForTest != null) return claudeFoundForTest;
+        return telamin.fluxtion.audit.analyser.analyser.assistant.localagent.ClaudeResolver.resolve(System.getenv(),
+                Path.of(System.getProperty("user.home"))).executable() != null;
+    }
+
+    private String claudeSearchedLine() {
+        return String.join(", ", telamin.fluxtion.audit.analyser.analyser.assistant.localagent.ClaudeResolver.resolve(
+                System.getenv(), Path.of(System.getProperty("user.home"))).searched());
+    }
+
+    /** A provider with a key, or a local provider (OD-74.23). */
+    private boolean inAppCanAnswer() {
+        boolean local = config.llmProvider != null && config.llmProvider.trim().equalsIgnoreCase("ollama");
+        return local || (config.apiKey != null && !config.apiKey.isBlank());
+    }
+
+    private boolean workspaceOpen() {
+        boolean designOpen = session != null && session.processor().designSession.path() != null;
+        return store != null || topologyPanel.hasGraph() || project.hasProject() || designOpen;
+    }
+
+    /** OD-74.23: the mode the person chose, remembered on this machine (machine tier). */
+    private void rememberMode(telamin.fluxtion.audit.analyser.analyser.session.AssistantMode mode) {
+        String m = mode == telamin.fluxtion.audit.analyser.analyser.session.AssistantMode.LOCAL_AGENT ? "LOCAL_AGENT" : "IN_APP";
+        if (m.equals(config.claudeCodeLastMode)) return;
+        config.claudeCodeLastMode = m;
+        saveConfigQuietly();
+    }
+
+    private long startPageWord(String text) {
+        if (text == null || text.isEmpty()) return 0;
+        long ref = startPageWordNext++;
+        startPageWords.put(ref, text);
+        while (startPageWords.size() > 32) startPageWords.remove(startPageWords.keySet().iterator().next());
+        return ref;
+    }
+
+    private String startPageWordText(long ref) {
+        return ref == 0 ? null : startPageWords.get(ref);
+    }
+
+    /** The start page's button: the person's act, reported with what this machine says can answer. */
+    private void pressStartPrompt(String entryId, String text) {
+        session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StartPagePromptSent(
+                ++startPageRequest, entryId, startPageWord(text), localAgentConsent(), claudeFound(),
+                inAppCanAnswer(), config.assistantActionsInProcess, workspaceOpen()));
+    }
+
+    /**
+     * The start page's Copy prompt (r8 F14): the composed draft ONLY — its words; no record context, no glossary, never
+     * the REST token. The dialog says so.
+     */
+    private void copyStartPrompt(String entryId, String text) {
+        String words = startPromptCopyText(entryId, text);
+        java.awt.Toolkit.getDefaultToolkit().getSystemClipboard().setContents(
+                new java.awt.datatransfer.StringSelection(words), null);
+        JOptionPane.showMessageDialog(this,
+                UiText.inert(telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.text("start.copied")),
+                "Copy prompt", JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    /** What the start page's Copy prompt copies (r8 F14), composed by the catalogue from pointers and the box alone. */
+    String startPromptCopyText(String entryId, String text) {
+        var ctx = askContext().build();
+        var facts = new telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.StartFacts(ctx.logName(),
+                ctx.logIdentity(), ctx.generation(), null, false, null, projectFolderName(), text);
+        return telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.copyText(entryId, facts);
+    }
+
+    private String projectFolderName() {
+        Path root = projectRoot();
+        return root == null || root.getFileName() == null ? null : root.getFileName().toString();
+    }
+
+    private void openDocsUrl(String url) {
+        try {
+            java.awt.Desktop.getDesktop().browse(java.net.URI.create(url));
+        } catch (Exception ignored) {
+            status.setText("Could not open the browser for " + url);
+        }
+    }
+
+    /** PlayDemoJourneyEffect: open the sample project with the journey's log and play it — outside the dispatch. */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result playDemoJourney(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.PlayDemoJourneyEffect e) {
+        SwingUtilities.invokeLater(this::openSampleJourney);
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StartPageEffectStarted(e.opId(), e.request(), "demo");
+    }
+
+    /** S1's end: the shipped journey saved under its own name when absent (with its chart), then played. */
+    private void finishSampleJourney() {
+        if (store == null || !DemoAssets.journeyLog().toString().equals(config.logFile)) return;
+        if (telamin.fluxtion.audit.analyser.analyser.config.WalkBin.find(config.walks, DemoJourney.NAME) == null) {
+            var parts = DemoJourney.load(DemoAssets.journeyProfile());
+            if (parts == null) {
+                status.setText("Could not read the DEMO journey from the demo set");
+                return;
+            }
+            if (parts.chart() != null && config.savedGraphs.stream().noneMatch(g -> g.name().equals(parts.chart().name()))) {
+                config.savedGraphs.add(parts.chart());
+            }
+            config.walks.add(parts.walk());
+            persistWalks();
+        }
+        String error = playWalk(DemoJourney.NAME, 0, "start-page demo");
+        if (error != null) status.setText("Could not play the DEMO journey: " + error);
+    }
+
+    /** RunStartPageFlowEffect: the person's own flow — outside the dispatch, because it opens a chooser. */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result runStartPageFlow(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.RunStartPageFlowEffect e) {
+        long request = e.request();
+        switch (e.entryId()) {
+            case "S2" -> SwingUtilities.invokeLater(() -> {
+                if (sessionSnapshot().startPage().route() != telamin.fluxtion.audit.analyser.analyser.session.StartPageState.Route.NO_AI) {
+                    status.setText(telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.text("S2.inAppWhy"));
+                }
+                chooseAndCreateProject();
+            });
+            case "S3" -> SwingUtilities.invokeLater(() -> startPageBundleFlow(request));
+            case "S4" -> {
+                // r8 F10: the catalogue is fetched HERE, at the button, once — never on choose
+                java.util.function.Supplier<java.util.List<String>> fetch = startTemplateNames;
+                telamin.fluxtion.audit.analyser.analyser.core.Background.run(fetch::get, names -> {
+                    long ref = names == null ? 0 : startPageWord(String.join("\n", names));
+                    session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StartPageFlowDone(
+                            request, telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FlowOutcome.DONE, 0, 0, ref));
+                }, err -> session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StartPageFlowDone(
+                        request, telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FlowOutcome.DONE, 0, 0, 0)));
+            }
+            case "S5" -> SwingUtilities.invokeLater(() -> startPageLogFlow(request));
+            default -> { }
+        }
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StartPageEffectStarted(e.opId(), request,
+                "flow:" + e.entryId());
+    }
+
+    /**
+     * S3 (r8 F3): the person's chooser, then the EXISTING verification. A bundle that does not verify is not opened and
+     * nothing is written — Close only; a verified one opens through the existing path, with no extra question.
+     */
+    private void startPageBundleFlow(long request) {
+        JFileChooser chooser = new JFileChooser();
+        chooser.setDialogTitle("Open an evidence bundle someone sent you");
+        chooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("Evidence bundles (*.fexp)", "fexp"));
+        if (chooser.showOpenDialog(this) != JFileChooser.APPROVE_OPTION) {
+            session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StartPageFlowDone(request,
+                    telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FlowOutcome.CANCELLED, 0, 0, 0));
+            return;
+        }
+        Path bundle = chooser.getSelectedFile().toPath();
+        String refusal;
+        try {
+            var v = telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.verify(bundle);
+            refusal = v.ok() ? null : v.refusal();
+        } catch (java.io.IOException ex) {
+            refusal = "it could not be read (" + ex.getMessage() + ")";
+        }
+        if (refusal != null) {
+            // r8 F3: the refusal stands — Close only, nothing written, nothing opened
+            JOptionPane.showMessageDialog(this, UiText.inert("This bundle did not verify: " + refusal + ". It was not opened."),
+                    "Open an evidence bundle", JOptionPane.WARNING_MESSAGE);
+            session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StartPageFlowDone(request,
+                    telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FlowOutcome.REFUSED, 0, 0, 0));
+            return;
+        }
+        startFlowRequest = request;
+        startFlowEntry = "S3";
+        startFlowGeneration = sessionSnapshot().logGeneration();
+        startFlowBundle = bundle.getFileName() == null ? bundle.toString() : bundle.getFileName().toString();
+        loadExperiment(bundle);
+    }
+
+    /** S5: with no log open, the person's chooser and load first; the draft comes when the log has landed. */
+    private void startPageLogFlow(long request) {
+        JFileChooser fc = new JFileChooser();
+        fc.setDialogTitle("Choose the audit log to explain");
+        if (config.logFile != null && !S3Source.isS3(config.logFile)) {
+            fc.setCurrentDirectory(new File(config.logFile).getParentFile());
+        }
+        if (fc.showOpenDialog(this) != JFileChooser.APPROVE_OPTION) {
+            session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StartPageFlowDone(request,
+                    telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FlowOutcome.CANCELLED, 0, 0, 0));
+            return;
+        }
+        startFlowRequest = request;
+        startFlowEntry = "S5";
+        startFlowGeneration = sessionSnapshot().logGeneration();
+        startFlowBundle = null;
+        openFile(fc.getSelectedFile().toPath());
+    }
+
+    /** A flow's end, observed from the snapshot: a NEW log generation has landed (and, for S3, from the bundle). */
+    private void checkStartFlow(telamin.fluxtion.audit.analyser.analyser.session.SessionSnapshot next) {
+        if (startFlowRequest == 0 || next.pending() || !next.logOpen() || next.logGeneration() == startFlowGeneration) return;
+        if ("S3".equals(startFlowEntry) && !next.bundle().fromBundle()) return;
+        long request = startFlowRequest;
+        long bundleRef = startFlowBundle == null ? 0 : startPageWord(startFlowBundle);
+        startFlowRequest = 0;
+        if ("S5".equals(startFlowEntry)) selectSideTab("Summary");
+        session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StartPageFlowDone(request,
+                telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FlowOutcome.DONE, next.logGeneration(),
+                bundleRef, 0));
+    }
+
+    /**
+     * ShowStartPageFallbackEffect: with nothing to answer, the entry's no-AI buttons. On the start page they render from
+     * the node's state; over a workspace (a flow opened something), a small window offers the same buttons.
+     */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result showStartPageFallback(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ShowStartPageFallbackEffect e) {
+        String entry = e.entryId();
+        SwingUtilities.invokeLater(() -> {
+            if (startPanel != null && startPanel.isShowing()) return;
+            StartFallbackWindow.show(this, entry, startPanel.promptHost());
+        });
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StartPageEffectStarted(e.opId(), e.request(),
+                "fallback:" + entry);
+    }
+
+    /**
+     * ComposeStartPageDraftEffect: the draft composed AFTER its flow (r8 F9) by the catalogue, from the flow's results
+     * and the person's box; the mode chosen when the node said the button chose it; the assistant popped out when no
+     * workspace is open (OD-74.21); then the composed draft reported, for the node to place and arm.
+     */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result composeStartPageDraft(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ComposeStartPageDraftEffect e) {
+        var ctx = askContext().build();
+        String text = startPageWordText(e.textRef());
+        String bundle = startPageWordText(e.bundleNameRef());
+        String names = startPageWordText(e.templateNamesRef());
+        long generation = e.logGeneration() != 0 ? e.logGeneration() : ctx.generation();
+        var facts = new telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.StartFacts(ctx.logName(),
+                ctx.logIdentity(), generation, bundle, bundle != null,
+                names == null ? null : java.util.List.of(names.split("\n")), projectFolderName(), text);
+        telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.Draft d;
+        d = "NONE".equals(e.entryId()) ? telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.composeFreeText(facts)
+                : telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.composeStart(e.entryId(), facts);
+        if (d != null) {
+            if (e.chooseMode()) {
+                rememberMode(e.target());
+                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantModeChosen(
+                        e.target(), "start page"));
+            }
+            if (e.popOut()) {
+                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantHostRequested(
+                        false, "start page"));
+            } else {
+                syncRecordsCard();                       // over a workspace: return to it; the prime reveals the tab
+            }
+            String origin = "start page " + e.entryId();
+            if (e.target() == telamin.fluxtion.audit.analyser.analyser.session.AssistantMode.LOCAL_AGENT) {
+                long ref = localAgentStore.add(
+                        telamin.fluxtion.audit.analyser.analyser.assistant.localagent.LocalAgentTranscript.Kind.USER, d.text());
+                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentDraftComposed(
+                        ref, d.questionId(), d.logIdentity(), d.generation(), localAgentConsent(), origin));
+            } else {
+                long ref = assistantTranscript.add(
+                        telamin.fluxtion.audit.analyser.analyser.assistant.AssistantTranscript.Kind.USER, d.text());
+                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantDraftComposed(
+                        ref, d.questionId(), d.logIdentity(), d.generation(), origin));
+            }
+            if (startPanel != null) startPanel.promptSent();
+        }
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StartPageEffectStarted(e.opId(), e.request(),
+                "compose:" + e.entryId());
     }
 }

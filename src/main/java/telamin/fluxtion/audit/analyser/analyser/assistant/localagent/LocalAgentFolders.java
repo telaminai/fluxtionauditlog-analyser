@@ -35,6 +35,32 @@ public final class LocalAgentFolders {
         return FolderVerdict.OK;
     }
 
+    /**
+     * OD-74.22 (amends OD-74.5; review c7f2 F2): whether {@code projectRoot} is a folder the ANALYSER owns and never starts
+     * Claude Code in — the sample project under {@code ~/.fluxtion-analyser/demo}, or an evidence bundle's working copy
+     * (under {@code ~/.fluxtion-analyser/bundles}, or recognised by {@code bundleCopy}). Any other refused folder (home, a
+     * folder holding credentials) is NOT one of these: it is still refused.
+     */
+    public static boolean analyserOwned(Path projectRoot, Path home, java.util.function.Predicate<Path> bundleCopy) {
+        if (projectRoot == null) return false;
+        Path d = real(projectRoot);
+        if (bundleCopy != null && bundleCopy.test(projectRoot)) return true;
+        if (home == null) return false;
+        Path owned = real(home.resolve(".fluxtion-analyser"));
+        return d.startsWith(real(owned.resolve("demo"))) || d.startsWith(real(owned.resolve("bundles")));
+    }
+
+    /**
+     * §4.3's working directory: the project root; for an analyser-owned root (OD-74.22) or no project, the private scratch
+     * folder (which the session then works in, reading the evidence through the verbs; the working copy's
+     * {@code CLAUDE.md} is never loaded).
+     */
+    public static Path workingDirectory(Path projectRoot, Path home, java.util.function.Predicate<Path> bundleCopy,
+                                        java.util.function.Supplier<Path> scratch) {
+        if (projectRoot != null && !analyserOwned(projectRoot, home, bundleCopy)) return projectRoot;
+        return scratch.get();
+    }
+
     private static Path real(Path p) {
         try {
             return p.toRealPath();

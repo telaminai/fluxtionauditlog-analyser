@@ -2105,12 +2105,15 @@ CONTROLS = [
     # onConfigChanged posts SourceRootsObserved, whose snapshot redraws it. That post exists for bundle anchoring, so
     # the refresh is a dependency nobody would see -- narrow the post and the stale banner returns with every other
     # test green. This control makes the dependency fail loudly.
+    # M74 (P1b, then P2): the block now also reports the local agent's consent and what can answer on the start page,
+    # each of which redraws too — so the control drops the WHOLE report, which is the dependency it guards.
     ('oa-settings-save-redraws-assistant', UI + 'MainFrame.java',
      '        if (!fromTransition && session != null) {\n'
      '            session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents\n'
-     '                    .SourceRootsObserved(List.copyOf(config.sourceRoots)));\n'
-     '        }\n',
-     '',
+     '                    .SourceRootsObserved(List.copyOf(config.sourceRoots)));\n',
+     '        if (false) {\n'
+     '            session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents\n'
+     '                    .SourceRootsObserved(List.copyOf(config.sourceRoots)));\n',
      'AssistantLiveFrameTest#savingProviderSettingsRefreshesAssistant'),
     # ---- OA-3 (spec §6.1, §7): typed dialogue on walks, its storage, sharing and privacy -----------------------------
     ('oa3-binding-validated', UI + 'WalkAuthoring.java',
@@ -2170,9 +2173,10 @@ CONTROLS = [
      'ConversationJourneyFrameTest#aJourneyPlays'),
     # OA-A15: the handoff must not carry the demonstration into the live thread
     # (first registered as priming from the view AFTER the handoff — equivalent: the view is already cleared by then)
+    # M74 P2: the handoff's in-app branch focuses the empty composer (primeDraft is gone: drafts are appended by the node)
     ('oa4-handoff-carries-nothing', UI + 'MainFrame.java',
-     '                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantHandoffRequested("assistant panel"));\n                revealAssistant();                      // the fresh thread, ready for the person\'s own question\n                assistantPanel.primeDraft("");',
-     '                String demo = assistantPanel.conversationView().getText();\n                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantHandoffRequested("assistant panel"));\n                revealAssistant();\n                assistantPanel.primeDraft(demo);',
+     '                var walk = sessionSnapshot().walkPlayback();\n                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantHandoffRequested("assistant panel"));',
+     '                String demo = assistantPanel.conversationView().getText();\n                var walk = sessionSnapshot().walkPlayback();\n                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantHandoffRequested("assistant panel"));\n                assistantPanel.appendDraft(0, demo, null);',
      'ConversationJourneyFrameTest#theHandoffIsAFreshThread'),
     # ---- OA-5 (spec §8): the DEMO journey's page describes the actual bytes, and its dialogue is true of the log -------
     ('oa5-page-states-the-bytes', 'docs/site/journeys/find-the-first-recorded-breach.md',

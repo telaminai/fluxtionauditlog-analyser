@@ -41,6 +41,10 @@ public final class DemoAssets {
             "demo-quote-audit-traced.yaml",
             "demo-quote-series.yaml",
             "demo-quote-processor.graphml",
+            // M74 P2 (r8 F13): the DEMO journey "Find the first recorded breach" — its log and its walk + chart, exactly as
+            // the site bundle carries them, so the start page's S1 plays it from the jar (JourneyCatalogueTest pins it)
+            "journey/demo-quote-series.yaml",
+            "journey/first-breach.fluxtion-settings",
             "com/acme/demo/api/QuoteControl.java",
             "com/acme/demo/builder/DemoQuoteProcessorBuilder.java",
             "com/acme/demo/builder/DemoQuoteTracedProcessorBuilder.java",
@@ -69,6 +73,16 @@ public final class DemoAssets {
     /** 726 records, for the chart. */
     public static Path seriesLog() {
         return root().resolve("demo-quote-series.yaml");
+    }
+
+    /** The DEMO journey's log — the site bundle's bytes, which its walk is bound to (r8 F13). */
+    public static Path journeyLog() {
+        return root().resolve("journey").resolve("demo-quote-series.yaml");
+    }
+
+    /** The DEMO journey's walk and chart, as a profile fragment. */
+    public static Path journeyProfile() {
+        return root().resolve("journey").resolve("first-breach.fluxtion-settings");
     }
 
     public static Path graphml() {

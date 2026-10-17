@@ -115,6 +115,12 @@ public final class TopologyPanel extends JPanel {
 
     /** The nodeLogs of the record the table has selected — the cycle being stepped through. */
     private List<NodeLog> cycle = List.of();
+    /** M74 P2: the Ask catalogue's node items, built by the frame from the registry. */
+    private AskMenus askMenus = AskMenus.NONE;
+
+    public void setAskMenus(AskMenus menus) {
+        this.askMenus = menus == null ? AskMenus.NONE : menus;
+    }
     /** Walks the filtered record sequence and the rows within each record. */
     private StepCursor cursor = StepCursor.over(List.of());
     /** Told when the cursor rolls into a different record, so the table can follow. */
@@ -1718,6 +1724,23 @@ public final class TopologyPanel extends JPanel {
         filter.setEnabled(filterAction != null);
         filter.addActionListener(e -> filterAction.accept(instanceId));
         menu.add(filter);
+
+        // M74 P2 (§5.5 Q3): the node's question, with the analyser's own coverage reading for the current record
+        int position = 0;
+        var full = fullTopology();
+        if (full != null) {
+            int i = 0;
+            for (var node : full.nodes()) {
+                i++;
+                if (instanceId.equals(node.id())) position = i;
+            }
+        }
+        Boolean logged = cycle.isEmpty() ? null : cycle.stream().anyMatch(n -> instanceId.equals(n.instanceId()));
+        var asks = askMenus.forNode(instanceId, position, logged);
+        if (!asks.isEmpty()) {
+            menu.addSeparator();
+            asks.forEach(menu::add);
+        }
 
         menu.addSeparator();
         JMenuItem copy = new JMenuItem("Copy instance id");

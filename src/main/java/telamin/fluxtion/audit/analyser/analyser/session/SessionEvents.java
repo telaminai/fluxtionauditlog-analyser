@@ -652,8 +652,15 @@ public final class SessionEvents {
         }
     }
 
-    /** Send pressed: the draft is transcript entry {@code draft}; {@code request} correlates the answer (0 = none). */
-    public record AssistantSendRequested(long request, long draft, AssistantRoute route) {
+    /**
+     * Send pressed: the draft is transcript entry {@code draft}; {@code request} correlates the answer (0 = none).
+     * {@code draftBinding} (M74 P2, §8.2): the {@link AssistantDraftComposed} draft the composer still holds, or 0 — the
+     * node compares its binding with the open log, and a composed draft never carries the live selection's record text.
+     */
+    public record AssistantSendRequested(long request, long draft, AssistantRoute route, long draftBinding) {
+        public AssistantSendRequested(long request, long draft, AssistantRoute route) {
+            this(request, draft, route, 0);
+        }
     }
 
     /** Cancel pressed, or the application is exiting. */
@@ -818,7 +825,12 @@ public final class SessionEvents {
      * canonical name when the CLI or the table knows it, else null — CLI vocabulary, never the person's words.
      */
     public record LocalAgentSendRequested(long request, long draft, SlashClass slash, String command,
-                                          LocalAgentConsent consent) {
+                                          LocalAgentConsent consent, long draftBinding) {
+        /** M74 P2 (§8.2): {@code draftBinding} is the composed draft the composer still holds, or 0 (unbound). */
+        public LocalAgentSendRequested(long request, long draft, SlashClass slash, String command,
+                                       LocalAgentConsent consent) {
+            this(request, draft, slash, command, consent, 0);
+        }
     }
 
     /**
@@ -981,5 +993,80 @@ public final class SessionEvents {
 
     /** The process of {@code generation} exited with {@code code}; {@code stderrRef} names its redacted last line. */
     public record LocalAgentExited(long generation, int code, long stderrRef) {
+    }
+
+    // ---- M74 P2: drafts from the Ask catalogue and the start page (spec §5.5, §5.8, §8.2) -----------------------------
+    //
+    // Words never travel in these facts: a draft is a transcript reference, a configured source a store reference and a
+    // words-free shape, a flow's result references. Each is recorded in the session audit record as it is.
+
+    /**
+     * A draft was composed for Claude Code (the pop-up's Yes, a journey handoff, a start-page entry): transcript entry
+     * {@code draftRef} of the local agent's store. {@code questionId} is an {@code AskCatalogue} id, or {@code JOURNEY},
+     * {@code START_PAGE}, {@code FREE_TEXT}, {@code CONFIGURED}. {@code logIdentity} (a digest) and {@code logGeneration}
+     * bind it to the log it names, null and 0 for an unbound draft. {@code consent} is what the machine says now, so the
+     * node arms Start only when Start would be accepted (r8 F2).
+     */
+    public record LocalAgentDraftComposed(long draftRef, String questionId, String logIdentity, long logGeneration,
+                                          LocalAgentConsent consent, String origin) {
+    }
+
+    /** The same for the in-app assistant: entry {@code draftRef} of the in-app transcript. */
+    public record AssistantDraftComposed(long draftRef, String questionId, String logIdentity, long logGeneration,
+                                         String origin) {
+    }
+
+    /** A prime effect was performed: the draft is in the composer (or {@code ok} false and why). */
+    public record DraftPlaced(long opId, long draftRef, boolean ok, String reason) implements Result {
+    }
+
+    /**
+     * What can answer on the start page, observed by the frame (OD-74.23): the switch, whether the resolver finds
+     * {@code claude} (a file check, nothing run), whether the in-app assistant has a provider that can answer, and whether
+     * in-process actions are on (the catalogue needs them in-app, r8 F4).
+     */
+    public record StartPageAvailability(boolean claudeCodeAllowed, boolean claudeCodeFound, boolean inAppCanAnswer,
+                                        boolean inProcessActions) {
+    }
+
+    /**
+     * The start page's button was pressed (§5.8): the person's act. {@code entryId} is a built-in id ({@code S1}…) or
+     * {@code NONE} (free text alone).
+     * {@code textRef} is the box's words in the start page's store, 0 when empty. {@code workspaceOpen}: a workspace is
+     * behind the page (Help ▸ Start page), so the docked tab can be revealed; with none the assistant pops out (OD-74.21).
+     */
+    public record StartPagePromptSent(long request, String entryId, long textRef,
+                                      LocalAgentConsent consent, boolean claudeCodeFound, boolean inAppCanAnswer,
+                                      boolean inProcessActions, boolean workspaceOpen) {
+    }
+
+    /** How a start-page flow ended. */
+    public enum FlowOutcome { DONE, CANCELLED, REFUSED, FAILED }
+
+    /**
+     * A start-page flow ended (the chooser and load of S5, the chooser and verification of S3, the catalogue fetch of S4).
+     * {@code logGeneration} is the log it opened (S5, S3), {@code bundleNameRef} the verified bundle's file name and
+     * {@code templateNamesRef} the fetched names, each in the start page's store (0 when none; for S4, 0 = unreachable).
+     */
+    public record StartPageFlowDone(long request, FlowOutcome outcome, long logGeneration, long bundleNameRef,
+                                    long templateNamesRef) {
+    }
+
+    /**
+     * The person dropped a Markdown prompt pack on the start page (owner request 2026-10-17, §5.8): {@code packRef} names
+     * the parsed pack in the frame's session-only store (0 when refused), or {@code refusal} and {@code refusalLine} say
+     * why it was not used — a code and a line, never the file's words. Nothing of it is ever persisted.
+     */
+    public record StartPromptPackDropped(long packRef,
+                                         telamin.fluxtion.audit.analyser.analyser.assistant.PromptPack.Cause refusal,
+                                         int refusalLine) {
+    }
+
+    /** "← Return to main options": the built-in list again. */
+    public record ReturnToMainOptions(String origin) {
+    }
+
+    /** Answered at once by each start-page effect whose outcome arrives later (or never: a fallback shown). */
+    public record StartPageEffectStarted(long opId, long request, String what) implements Result {
     }
 }

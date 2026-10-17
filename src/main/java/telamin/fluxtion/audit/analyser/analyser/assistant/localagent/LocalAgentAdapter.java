@@ -60,6 +60,15 @@ public final class LocalAgentAdapter {
 
         /** Report a fact to the session, on its thread. */
         void post(Object fact);
+
+        /**
+         * OD-74.22 (P2): the working directory is the analyser's scratch folder standing in for the active project's own
+         * root, which is one the analyser owns and never starts Claude Code in (the sample project, a bundle's working
+         * copy). The header says so.
+         */
+        default boolean scratchForProject() {
+            return false;
+        }
     }
 
     /** Time and delays: real in the application, virtual in the tests. */
@@ -250,6 +259,7 @@ public final class LocalAgentAdapter {
         }
         run.startedAt = clock.nowMillis();
         run.folder = s.cwd().toString();
+        run.scratchForProject = env.scratchForProject();
         run.configuredModel = s.model() == null || s.model().isBlank() ? ClaudeCodeProvider.DEFAULT_MODEL : s.model().trim();
         try {
             AgentProcess p = launcher.start(command, childEnv, removedEnv, s.cwd(), line -> onLine(run, line));
@@ -394,7 +404,8 @@ public final class LocalAgentAdapter {
                 long headerRef;
                 synchronized (run) {
                     run.header = (run.header == null ? new LocalAgentTranscript.Header(null, null, "", null, List.of(),
-                            run.folder, run.configuredModel, run.pathAdded) : run.header).withInit(i.model(), i.cliVersion());
+                            run.folder, run.configuredModel, run.pathAdded, run.scratchForProject) : run.header)
+                            .withInit(i.model(), i.cliVersion());
                     headerRef = store.putHeader(run.header);
                 }
                 env.post(new SessionEvents.LocalAgentInitObserved(gen, run.runningTicket,
@@ -489,7 +500,8 @@ public final class LocalAgentAdapter {
             long headerRef;
             synchronized (run) {
                 run.header = new LocalAgentTranscript.Header(null, null, billing, init.apiProvider(),
-                        ClaudeCodeProvider.unclassified(init.commands()), run.folder, run.configuredModel, run.pathAdded);
+                        ClaudeCodeProvider.unclassified(init.commands()), run.folder, run.configuredModel, run.pathAdded,
+                        run.scratchForProject);
                 headerRef = store.putHeader(run.header);
             }
             // how it is paid for, as an enum: a Claude plan, or an API key — never the plan's or the source's value
@@ -654,6 +666,7 @@ public final class LocalAgentAdapter {
         volatile String restToken;
         volatile String hosted;
         volatile String folder;
+        volatile boolean scratchForProject;
         volatile String configuredModel;
         /** The directories appended to the child's PATH, as the header shows them (OD-74.11). */
         volatile List<String> pathAdded = List.of();

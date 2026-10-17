@@ -39,13 +39,19 @@ import java.util.List;
  *                           server but the hosted bridge); 0 in the default posture
  * @param billing            a Claude plan or an API key (owner, 2026-10-17): the header shows a dollar figure only for
  *                           an API key
+ * @param armedWhy           P2 (§5.2 item 6): Start is ARMED, with the bundle key of its words ({@code armed.ASK}, …), or
+ *                           null; nothing ever starts because Start is armed
+ * @param consentPosture     P2 (owner request 2026-10-17): the posture the person's settings name, as last observed in a
+ *                           consent fact — null while starting Claude Code is switched off or not yet observed. With
+ *                           {@link #posture} it decides the full-posture cue ({@link #fullCue()})
  */
 public record LocalAgentState(AssistantMode mode, long conversation, long generation, String phase, String verdict,
                               String reason, long openTicket, long admittedGeneration, long headerRef,
                               long headerRevision, long detailRef, long stderrRef, long bindingElapsedMs,
                               long spentMicros, long budgetMicros, boolean costUnderReported, boolean newChatOffered,
                               boolean resumable, long pendingDraft, List<Entry> entries, Answer answer,
-                              LocalAgentPosture posture, int personServers, SessionEvents.Billing billing) {
+                              LocalAgentPosture posture, int personServers, SessionEvents.Billing billing,
+                              String armedWhy, LocalAgentPosture consentPosture) {
 
     public static final String USER = "USER";
     public static final String ANSWER = "ANSWER";
@@ -55,10 +61,19 @@ public record LocalAgentState(AssistantMode mode, long conversation, long genera
      * One entry: a person's sent turn ({@link #USER}, its draft reference), Claude's rendered answer ({@link #ANSWER},
      * its text reference and revision), or the node's own note ({@link #NOTE}, its words in {@code detail}).
      */
-    public record Entry(long id, String kind, long ticket, String status, String detail, long revision) {
+    public record Entry(long id, String kind, long ticket, String status, String detail, long revision,
+                        long logGeneration) {
         public Entry {
             status = status == null ? "" : status;
             detail = detail == null ? "" : detail;
+        }
+
+        /**
+         * An entry with no log generation recorded. P2 (§5.9): an ANSWER carries the log generation it was written
+         * under, so the transcript shows its chips muted once the log has moved.
+         */
+        public Entry(long id, String kind, long ticket, String status, String detail, long revision) {
+            this(id, kind, ticket, status, detail, revision, 0);
         }
     }
 
@@ -69,6 +84,45 @@ public record LocalAgentState(AssistantMode mode, long conversation, long genera
         public Answer {
             reason = reason == null ? "" : reason;
         }
+    }
+
+    /** The P1b shape: nothing armed. */
+    public LocalAgentState(AssistantMode mode, long conversation, long generation, String phase, String verdict,
+                           String reason, long openTicket, long admittedGeneration, long headerRef,
+                           long headerRevision, long detailRef, long stderrRef, long bindingElapsedMs,
+                           long spentMicros, long budgetMicros, boolean costUnderReported, boolean newChatOffered,
+                           boolean resumable, long pendingDraft, List<Entry> entries, Answer answer,
+                           LocalAgentPosture posture, int personServers, SessionEvents.Billing billing) {
+        this(mode, conversation, generation, phase, verdict, reason, openTicket, admittedGeneration, headerRef,
+                headerRevision, detailRef, stderrRef, bindingElapsedMs, spentMicros, budgetMicros, costUnderReported,
+                newChatOffered, resumable, pendingDraft, entries, answer, posture, personServers, billing, null, null);
+    }
+
+    /**
+     * The full-posture cue (owner request, 2026-10-17): whether the person's own full Claude Code is RUNNING here, or is
+     * switched ON and would run at the next Start, or neither. It follows the session's state, never the config file.
+     */
+    public enum FullCue { NONE, ON, RUNNING }
+
+    public FullCue fullCue() {
+        if (running()) return posture.isFull() ? FullCue.RUNNING : FullCue.NONE;
+        return consentPosture != null && consentPosture.isFull() ? FullCue.ON : FullCue.NONE;
+    }
+
+    /** The posture the cue describes: the running one, else the one the settings name; null when there is no cue. */
+    public LocalAgentPosture cuePosture() {
+        return switch (fullCue()) {
+            case RUNNING -> posture;
+            case ON -> consentPosture;
+            case NONE -> null;
+        };
+    }
+
+    /** The stronger cue (owner request): the modes that ask least — {@code acceptEdits} and {@code auto}. */
+    public boolean strongCue() {
+        LocalAgentPosture p = cuePosture();
+        return p != null && (p.fullMode() == LocalAgentPosture.FullMode.AUTO
+                || p.fullMode() == LocalAgentPosture.FullMode.ACCEPT_EDITS);
     }
 
     public static final LocalAgentState IDLE = new LocalAgentState(AssistantMode.IN_APP, 1, 0, "OFF", "", "", 0, 0, 0, 0,

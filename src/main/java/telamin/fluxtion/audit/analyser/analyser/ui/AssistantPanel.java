@@ -37,6 +37,14 @@ public final class AssistantPanel extends JPanel {
     public interface Intents {
         void send(String draft);
 
+        /**
+         * M74 P2: Send with the composed draft the composer still holds ({@code draftBinding}, 0 when none) — the node
+         * compares its binding with the open log, and a composed draft never carries the live selection's text.
+         */
+        default void sendBound(String draft, long draftBinding) {
+            send(draft);
+        }
+
         void cancel();
 
         void newChat();
@@ -136,6 +144,9 @@ public final class AssistantPanel extends JPanel {
         draft.setWrapStyleWord(true);
         draft.getAccessibleContext().setAccessibleName("Your question");
         composer.add(new JScrollPane(draft), BorderLayout.CENTER);
+        composerHint.setVisible(false);
+        composerHint.setFont(composerHint.getFont().deriveFont(Font.BOLD));
+        composer.add(composerHint, BorderLayout.NORTH);
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 0));
         buttons.add(copyPrompt);
         buttons.add(cancel);
@@ -213,12 +224,21 @@ public final class AssistantPanel extends JPanel {
 
     /** M74: render the session's mode — the selected button and the card. Deciding nothing. */
     public void renderMode(telamin.fluxtion.audit.analyser.analyser.session.AssistantMode mode) {
+        renderMode(mode, false);
+    }
+
+    /**
+     * M74 P2: render the mode; while a walk with a conversation shows, the tab shows that conversation whichever mode is
+     * in force (S1's demo plays the same in every mode, §5.8) — the walk's own strip, its label and its handoff.
+     */
+    public void renderMode(telamin.fluxtion.audit.analyser.analyser.session.AssistantMode mode, boolean demoShowing) {
         if (mode == null) mode = telamin.fluxtion.audit.analyser.analyser.session.AssistantMode.IN_APP;
         (mode == telamin.fluxtion.audit.analyser.analyser.session.AssistantMode.LOCAL_AGENT ? claudeMode : inAppMode)
                 .setSelected(true);
-        if (mode == shownMode) return;
-        shownMode = mode;
-        cardLayout.show(cards, mode.name());
+        var shown = demoShowing ? telamin.fluxtion.audit.analyser.analyser.session.AssistantMode.IN_APP : mode;
+        if (shown == shownMode) return;
+        shownMode = shown;
+        cardLayout.show(cards, shown.name());
     }
 
     JRadioButton claudeModeButton() {
@@ -244,21 +264,65 @@ public final class AssistantPanel extends JPanel {
     private void onSend() {
         String text = draft.getText().trim();
         if (text.isEmpty() || intents == null || !send.isEnabled()) return;
-        intents.send(text);
+        intents.sendBound(text, currentBinding());
     }
 
     /** The node accepted the send: the composer is cleared for the next question. Nothing else clears the draft. */
     public void draftAccepted() {
         draft.setText("");
+        if (boundHighlight != null) draft.getHighlighter().removeHighlight(boundHighlight);
+        boundHighlight = null;
+        boundDraft = 0;
+        composerHint.setVisible(false);
     }
 
+    /** The composed draft the composer holds, for the binding at Send; 0 when none (or its text was wholly deleted). */
+    private long boundDraft;
+    private Object boundHighlight;
+    private final JLabel composerHint = UiText.label(" ");
+
     /**
-     * Explain (§3): put a question in the composer WITHOUT sending, never overwriting what the person is writing, and
-     * focus it. The frame reveals whichever host is active first.
+     * M74 P2 (OD-74.14): place a composed draft — APPENDED after whatever the person has written, never over it — with
+     * exactly the appended range highlighted, the composer focused and lit with {@code hint}. Nothing is sent.
      */
-    public void primeDraft(String question) {
-        if (draft.getText().isBlank()) draft.setText(question);
+    public int appendDraft(long draftRef, String text, String hint) {
+        String was = draft.getText();
+        String sep = was.isBlank() ? "" : was.endsWith("\n\n") ? "" : was.endsWith("\n") ? "\n" : "\n\n";
+        if (was.isBlank()) draft.setText("");
+        int from = draft.getDocument().getLength() + sep.length();
+        draft.append(sep + text);
+        int to = draft.getDocument().getLength();
+        if (boundHighlight != null) draft.getHighlighter().removeHighlight(boundHighlight);
+        try {
+            boundHighlight = draft.getHighlighter().addHighlight(from, to,
+                    new javax.swing.text.DefaultHighlighter.DefaultHighlightPainter(UiTheme.accentWash(0.28f)));
+            boundDraft = draftRef;
+        } catch (BadLocationException e) {
+            throw new IllegalStateException(e);
+        }
+        composerHint.setText(hint == null ? " " : hint);
+        composerHint.setVisible(hint != null && !hint.isBlank());
+        draft.setCaretPosition(to);
         draft.requestFocusInWindow();
+        return from;
+    }
+
+    /** The composed draft's binding while any of its appended text remains. */
+    long currentBinding() {
+        if (boundDraft == 0 || boundHighlight == null) return 0;
+        for (javax.swing.text.Highlighter.Highlight h : draft.getHighlighter().getHighlights()) {
+            if (h == boundHighlight) return h.getEndOffset() > h.getStartOffset() ? boundDraft : 0;
+        }
+        return 0;
+    }
+
+    /** Focus the composer (the journey handoff's fresh thread), changing nothing in it. */
+    public void focusComposer() {
+        draft.requestFocusInWindow();
+    }
+
+    JLabel composerHint() {
+        return composerHint;
     }
 
     public String draftText() {

@@ -107,9 +107,13 @@ public final class DetailPanel extends JPanel {
         bar.add(buildViewToggle());
         JCheckBox wrap = new JCheckBox("Wrap", false);
         wrap.addActionListener(e -> setWrap(wrap.isSelected()));
-        JButton explain = new JButton("Explain with LLM");
-        explain.setToolTipText("Send the selected record(s) to the LLM assistant for a plain-English explanation");
-        explain.addActionListener(e -> explainAction.run());
+        // M74 P2 (§5.5, r8 F12): an Ask entrance built from the registry — its label and tooltip are the question's
+        askButton.setText(telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.text("surface.DETAIL_BUTTON.label"));
+        askButton.setToolTipText(UiText.tooltip(telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.text(
+                "surface.DETAIL_BUTTON.none")));
+        askButton.setEnabled(false);
+        askButton.addActionListener(e -> explainAction.run());
+        JButton explain = askButton;
         JButton copy = new JButton("Copy");
         copy.setToolTipText("Copy raw record text for inspection; not a reloadable log export");
         copy.addActionListener(e -> copyToClipboard());
@@ -190,7 +194,20 @@ public final class DetailPanel extends JPanel {
         this.eventHandlerOpener = opener == null ? r -> { } : opener;
     }
 
-    /** Action run by the "Explain with LLM" button. */
+    /** The registry's Ask entrance on this panel (M74 P2). */
+    private final JButton askButton = UiText.button(" ");
+
+    /** M74 P2: the entrance follows the selection — the question's label as the tooltip, disabled with none. */
+    public void setAskEntrance(String tooltip, boolean enabled) {
+        askButton.setToolTipText(UiText.tooltip(tooltip));
+        askButton.setEnabled(enabled);
+    }
+
+    JButton askButton() {
+        return askButton;
+    }
+
+    /** Action run by the Ask button. */
     public void setExplainAction(Runnable action) {
         this.explainAction = action == null ? () -> { } : action;
     }

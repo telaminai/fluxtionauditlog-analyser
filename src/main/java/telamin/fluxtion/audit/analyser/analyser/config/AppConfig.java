@@ -153,6 +153,13 @@ public final class AppConfig {
      * {@code .mcp.json}: a separate trust, bound to content, so a changed hook file is asked about again.
      */
     public final List<String> claudeCodeTrustedFullFolders = new ArrayList<>();
+    /**
+     * M74 P2 (OD-74.23): the assistant mode the person last chose on the Assistant tab ({@code IN_APP} or
+     * {@code LOCAL_AGENT}), remembered on THIS MACHINE so a Claude Code user relaunching with no API key is not sent to
+     * the start page's no-AI column. Machine tier, like every {@code assistant.claudeCode*} key: never in a profile, a
+     * share or a bundle.
+     */
+    public String claudeCodeLastMode = "IN_APP";
 
     /**
      * Where THIS PROJECT would like the exchange directory to be — project-relative, no {@code ..}

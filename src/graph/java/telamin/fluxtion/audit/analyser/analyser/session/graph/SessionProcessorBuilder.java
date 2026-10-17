@@ -135,8 +135,14 @@ public class SessionProcessorBuilder implements FluxtionGraphBuilder {
                 new telamin.fluxtion.audit.analyser.analyser.session.node.AssistantLoop(openLog, openGraph, activeProject, gate, effects);
         assistantLoop.setAssistantMode(assistantMode);
         cfg.addNode(assistantLoop, "assistantLoop");
-        cfg.addNode(new telamin.fluxtion.audit.analyser.analyser.session.node.LocalAgentSession(assistantMode, effects),
-                "localAgentSession");
+        telamin.fluxtion.audit.analyser.analyser.session.node.LocalAgentSession localAgent =
+                new telamin.fluxtion.audit.analyser.analyser.session.node.LocalAgentSession(assistantMode, effects);
+        // M74 P2 (§8.2): the open log is a JavaBean parent — what a bound draft is compared with at Send
+        localAgent.setOpenLog(openLog);
+        cfg.addNode(localAgent, "localAgentSession");
+        // M74 P2 (§5.8): the start page's "What would you like to do?" — its list and where its button goes
+        cfg.addNode(new telamin.fluxtion.audit.analyser.analyser.session.node.StartPagePrompt(assistantMode, localAgent,
+                openLog, effects), "startPagePrompt");
         cfg.addNode(new telamin.fluxtion.audit.analyser.analyser.session.node.WalkPlayback(openLog, assistantLoop, effects), "walkPlayback");
         // evidence bundle capture (convergence): the capture skill's decisions, in the session (rule 9)
         cfg.addNode(new telamin.fluxtion.audit.analyser.analyser.session.node.EvidenceCapture(openLog, gate, effects), "evidenceCapture");

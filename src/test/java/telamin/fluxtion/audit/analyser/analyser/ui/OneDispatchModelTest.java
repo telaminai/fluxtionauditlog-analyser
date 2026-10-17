@@ -377,6 +377,81 @@ class OneDispatchModelTest {
         assertFalse(bodyOf(frame, "private void revealAssistant(").contains("onAssistantTabSelected"));
     }
 
+    // ---- M74 P2 (spec §8.2's rules; r8 F12, F14, F21) ---------------------------------------------------------------
+
+    /**
+     * ★ The start page decides no route: neither the page nor its prompt names the assistant mode, posts a fact or reads
+     * the session's machinery — it renders {@code StartPageState} and reports the person's button through its Actions.
+     * Witness: a {@code StartPanel} method that branches on {@code AssistantMode} (or posts a fact) fails this.
+     */
+    @Test
+    @DisplayName("★ M74 P2: the start page and its prompt decide no route — no mode branch, no fact posted")
+    void theStartPageDecidesNoRoute() throws Exception {
+        for (String file : List.of("StartPanel.java", "StartPromptView.java", "StartFallbackWindow.java")) {
+            String src = Files.readString(UI.resolve(file));
+            for (String forbidden : List.of("AssistantMode", ".post(", "SessionDriver", "SessionEvents", "localAgentConsent",
+                    "claudeCodeAllowed")) {
+                assertFalse(src.contains(forbidden), file + " must not use " + forbidden + ": the route is startPagePrompt's");
+            }
+        }
+    }
+
+    /**
+     * ★ D-L3 for the transcript's chips: the navigator the frame gives the transcript calls REVEAL methods only — select a
+     * record, select a tab, select a node, select a chart, say a sentence. Witness: a chip handler that calls a mutating
+     * frame method ({@code openFile}, {@code goto}, {@code applyProjectSettings}) fails the allow-list.
+     */
+    @Test
+    @DisplayName("★ M74 P2: the transcript's chips navigate and never mutate (an allow-list of reveal calls)")
+    void chipsAreRevealOnly() throws Exception {
+        String frame = Files.readString(UI.resolve("MainFrame.java"));
+        String body = bodyOf(frame, "private TranscriptView.Navigator transcriptNavigator(");
+        assertFalse(body.isBlank(), "the navigator has one home");
+        java.util.Set<String> allowed = java.util.Set.of("Navigator", "revealRecord", "revealNode", "revealChart", "say",
+                "selectModelRow", "selectSideTab", "selectNode", "selectGraph", "sayToStatus");
+        Matcher m = Pattern.compile("\\b([A-Za-z_][A-Za-z0-9_]*)\\s*\\(").matcher(body);
+        List<String> calls = new ArrayList<>();
+        while (m.find()) if (!allowed.contains(m.group(1))) calls.add(m.group(1));
+        assertEquals(List.of(), calls, "a chip only reveals: " + body);
+        String view = Files.readString(UI.resolve("TranscriptView.java"));
+        assertFalse(view.contains("MainFrame"), "the view knows no frame: its chips call the Navigator only");
+    }
+
+    /**
+     * ★ r8 F12: the registry is the one source for every Explain entrance — no {@code primeDraft(} call and no
+     * {@code "Explain} literal anywhere in {@code ui/}. Witness: the detail panel's own "Explain with LLM" button and
+     * tooltip (the P1 code) fail this.
+     */
+    @Test
+    @DisplayName("★ M74 P2: no draft or Explain label is written outside the Ask catalogue")
+    void theRegistryIsTheOneSource() throws Exception {
+        List<String> offenders = new ArrayList<>();
+        try (var files = Files.list(UI)) {
+            for (Path f : files.filter(p -> p.toString().endsWith(".java")).sorted().toList()) {
+                String src = Files.readString(f);
+                if (src.contains("primeDraft(")) offenders.add(f.getFileName() + ": primeDraft(");
+                if (src.contains("\"Explain")) offenders.add(f.getFileName() + ": \"Explain");
+            }
+        }
+        assertEquals(List.of(), offenders, "every question and its label comes from AskCatalogue");
+    }
+
+    /**
+     * ★ r8 F14: the start page's Copy prompt copies the composed draft only. Witness: reusing {@code copyAssistantPrompt}
+     * (record text, the glossary and, with REST on, the token) fails this.
+     */
+    @Test
+    @DisplayName("★ M74 P2: the start page's Copy prompt reads no record, glossary or token")
+    void theStartPageCopyIsTheDraftOnly() throws Exception {
+        String frame = Files.readString(UI.resolve("MainFrame.java"));
+        String copy = bodyOf(frame, "private void copyStartPrompt(") + bodyOf(frame, "String startPromptCopyText(");
+        assertFalse(copy.isBlank());
+        for (String forbidden : List.of("copyAssistantPrompt", "PromptBuilder", "restToken", "restUrl", "selectedRecords",
+                "vocabularyText", "rawText")) {
+            assertFalse(copy.contains(forbidden), "the start page's Copy prompt must not read " + forbidden);
+        }
+    }
+
     private static int count(Pattern p, String s) {
         Matcher m = p.matcher(s);
         int n = 0;

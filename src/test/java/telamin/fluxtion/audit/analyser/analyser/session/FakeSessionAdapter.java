@@ -47,6 +47,13 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
     final List<SessionEffects.SendLocalAgentTurnEffect> agentSends = new ArrayList<>();
     final List<SessionEffects.StopLocalAgentEffect> agentStops = new ArrayList<>();
     final List<SessionEffects.ConfirmLocalAgentFolderEffect> agentConfirms = new ArrayList<>();
+    /** M74 P2: what the Ask catalogue and the start page asked the adapter to do, in order. */
+    final List<SessionEffects.PrimeLocalAgentDraftEffect> agentPrimes = new ArrayList<>();
+    final List<SessionEffects.PrimeAssistantDraftEffect> assistantPrimes = new ArrayList<>();
+    final List<SessionEffects.PlayDemoJourneyEffect> demos = new ArrayList<>();
+    final List<SessionEffects.RunStartPageFlowEffect> startFlows = new ArrayList<>();
+    final List<SessionEffects.ShowStartPageFallbackEffect> startFallbacks = new ArrayList<>();
+    final List<SessionEffects.ComposeStartPageDraftEffect> startComposes = new ArrayList<>();
     /** Set to have the fake refuse a walk step's view. */
     boolean refuseWalkViews;
 
@@ -169,6 +176,30 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
             case SessionEffects.ConfirmLocalAgentFolderEffect e -> {
                 agentConfirms.add(e);
                 yield new SessionEvents.LocalAgentEffectStarted(e.opId(), 0, "confirmFolder");
+            }
+            case SessionEffects.PrimeLocalAgentDraftEffect e -> {
+                agentPrimes.add(e);
+                yield new SessionEvents.DraftPlaced(e.opId(), e.draftRef(), true, "");
+            }
+            case SessionEffects.PrimeAssistantDraftEffect e -> {
+                assistantPrimes.add(e);
+                yield new SessionEvents.DraftPlaced(e.opId(), e.draftRef(), true, "");
+            }
+            case SessionEffects.PlayDemoJourneyEffect e -> {
+                demos.add(e);
+                yield new SessionEvents.StartPageEffectStarted(e.opId(), e.request(), "demo");
+            }
+            case SessionEffects.RunStartPageFlowEffect e -> {
+                startFlows.add(e);
+                yield new SessionEvents.StartPageEffectStarted(e.opId(), e.request(), "flow:" + e.entryId());
+            }
+            case SessionEffects.ShowStartPageFallbackEffect e -> {
+                startFallbacks.add(e);
+                yield new SessionEvents.StartPageEffectStarted(e.opId(), e.request(), "fallback:" + e.entryId());
+            }
+            case SessionEffects.ComposeStartPageDraftEffect e -> {
+                startComposes.add(e);
+                yield new SessionEvents.StartPageEffectStarted(e.opId(), e.request(), "compose:" + e.entryId());
             }
             case SessionEffects.DeleteBundleEffect e -> {
                 deletes.add(e);

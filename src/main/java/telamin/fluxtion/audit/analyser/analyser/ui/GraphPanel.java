@@ -975,6 +975,9 @@ public final class GraphPanel extends JPanel {
     public String graphName() { return graphName; }
     public void setGraphName(String name) { this.graphName = name == null ? "" : name; }
 
+    /** M74 P2: the chart's Ask items (§5.5 Q4, Q6), named by this chart's logical name. */
+    public void setAskMenus(AskMenus menus) { chart.setAskMenus(menus, this::graphName); }
+
     /**
      * The explanation block and pinned notes drawn on the plot.
      *

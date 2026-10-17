@@ -79,6 +79,8 @@ public class AssistantLoop implements EventLogSource {
     private String basisLabel = "";
     private String reason = "";
     private AssistantState.Answer answer = AssistantState.Answer.NONE;
+    /** M74 P2 (§8.2): each composed draft's binding — the log identity digest and generation it names — by draft id. */
+    private java.util.Map<Long, String[]> bindings = new java.util.LinkedHashMap<>();
     /** The published state, rebuilt only when something changed, so an unrelated snapshot does not copy the entries. */
     private AssistantState published = AssistantState.IDLE;
     private boolean dirty = true;
@@ -143,7 +145,10 @@ public class AssistantLoop implements EventLogSource {
         if (e.request() != 0) answer = new AssistantState.Answer(e.request(), true, "");
         boolean includeManifest = route.actions() && !manifestSent;
         manifestInFlight = includeManifest;
-        boolean includeRecordContext = history.isEmpty();   // the record context rides on a conversation's first question
+        // the record context rides on a conversation's first question — but never on a COMPOSED draft (r8 F4): its words name
+        // the records to read, and the live selection's raw text may be other records than the draft names
+        boolean composed = e.draftBinding() != 0 && bindings.containsKey(e.draftBinding());
+        boolean includeRecordContext = history.isEmpty() && !composed;
         auditLog.info("assistantTurn", turn).info("ticket", ticket).info("manifest", includeManifest)
                 .info("recordContext", includeRecordContext);
         effects.request(new SessionEffects.PrepareAssistantContextEffect(0L, ticket, e.draft(), includeManifest,
@@ -158,6 +163,8 @@ public class AssistantLoop implements EventLogSource {
         }
         if (busy()) return "a turn is in progress: wait for it to finish, or Cancel it";
         if (e.draft() <= 0) return "there is no question to send";
+        String stale = staleDraft(e.draftBinding());
+        if (stale != null) return stale;
         if (e.route() == null || !e.route().hasKey()) {
             return "no provider is configured, so nothing was sent: Configure provider, Copy prompt, or Connect a CLI "
                     + "assistant";
@@ -167,6 +174,36 @@ public class AssistantLoop implements EventLogSource {
                     + "no longer open: start a New chat to ask about the current workspace";
         }
         return null;
+    }
+
+    /**
+     * M74 P2 (§5.5): a draft was composed for the in-app assistant (the pop-up's Yes, a start-page entry). Ignored under
+     * Claude Code, in this node. Its binding is kept for Send, and it is placed — appended, highlighted, never sent.
+     */
+    @OnEventHandler
+    public boolean onDraftComposed(SessionEvents.AssistantDraftComposed e) {
+        if (localAgentMode()) {
+            auditLog.info("noOp", "AssistantDraftComposed").info("reason", "the local agent is the assistant in force");
+            return false;
+        }
+        bindings.put(e.draftRef(), new String[]{e.logIdentity(), Long.toString(e.logGeneration())});
+        while (bindings.size() > 64) bindings.remove(bindings.keySet().iterator().next());
+        auditLog.info("assistantDraft", e.questionId()).info("bound", e.logIdentity() != null)
+                .info("origin", String.valueOf(e.origin()));
+        effects.request(new SessionEffects.PrimeAssistantDraftEffect(0L, e.draftRef(), true));
+        return changed();
+    }
+
+    /** §5.5 Send, in this node's own handler: a bound draft whose log moved is refused with the same words. */
+    private String staleDraft(long draftBinding) {
+        if (draftBinding == 0) return null;
+        String[] b = bindings.get(draftBinding);
+        if (b == null || b[0] == null) return null;
+        long was = Long.parseLong(b[1]);
+        boolean open = openLog.isOpen();
+        String now = open ? telamin.fluxtion.audit.analyser.analyser.session.LocalAgentPosture.digest(openLog.logPath()) : null;
+        if (open && b[0].equals(now) && openLog.generation() == was) return null;
+        return LocalAgentSession.staleWords(was, open ? Long.toString(openLog.generation()) : "none open");
     }
 
     @OnEventHandler

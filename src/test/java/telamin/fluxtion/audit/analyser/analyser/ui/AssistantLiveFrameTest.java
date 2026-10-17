@@ -91,6 +91,15 @@ class AssistantLiveFrameTest {
             cfg.llmProvider = "anthropic";
             cfg.llmBaseUrl = provider.url();
             cfg.assistantActionsInProcess = true;
+            // M74 P2: the frame reports what can answer when its configuration changes (onConfigChanged does this);
+            // a test that sets the config directly reports it the same way, so the panel renders the provider in force
+            try {
+                var report = MainFrame.class.getDeclaredMethod("postStartAvailability");
+                report.setAccessible(true);
+                report.invoke(f);
+            } catch (ReflectiveOperationException e) {
+                throw new AssertionError(e);
+            }
         });
     }
 
@@ -158,37 +167,49 @@ class AssistantLiveFrameTest {
         }
     }
 
+    /**
+     * ★ M74 P2 (§5.5, OD-74.14; the pop-up cut by the owner 2026-10-17): a catalogue draft is placed in the composer —
+     * APPENDED after the person's own text, only the appended range highlighted — and nothing is sent until Send.
+     * Witness: P1's {@code primeDraft} blank-only rule (the draft is dropped when the composer has text) fails the
+     * appended assertion.
+     */
     @Test
-    @DisplayName("Explain primes the composer without sending and never overwrites a draft in progress")
-    void explainPrimesWithoutSending(@TempDir Path tmp) throws Exception {
+    @DisplayName("★ a catalogue draft is appended after the person's text, highlighted, and nothing is sent")
+    void aDraftIsAppendedNotSent(@TempDir Path tmp) throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless(), "a real display is required");
         try (FakeProvider provider = new FakeProvider();
              var f = new AsyncOpenInterleavingFrameTest.Frame(tmp)) {
             configure(f.frame, provider);
-            var explain = MainFrame.class.getDeclaredMethod("explainSelection");
-            explain.setAccessible(true);
-            onEdt(() -> {
-                try {
-                    explain.invoke(f.frame);
-                } catch (ReflectiveOperationException e) {
-                    throw new AssertionError(e);
-                }
-            });
-            AtomicReference<String> draft = new AtomicReference<>();
-            onEdt(() -> draft.set(panel(f.frame).draftText()));
-            assertTrue(draft.get().startsWith("Explain this record"), draft.get());
+            var compose = MainFrame.class.getDeclaredMethod("composeDraft",
+                    telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.Draft.class, String.class);
+            compose.setAccessible(true);
+            var draft = telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.composeStart("S6",
+                    telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.StartFacts.none(""));
             onEdt(() -> {
                 panel(f.frame).composerArea().setText("my own question");
                 try {
-                    explain.invoke(f.frame);
+                    compose.invoke(f.frame, draft, "test");
                 } catch (ReflectiveOperationException e) {
                     throw new AssertionError(e);
                 }
-                draft.set(panel(f.frame).draftText());
             });
-            assertEquals("my own question", draft.get(), "an existing draft is never overwritten");
+            AtomicReference<String> text = new AtomicReference<>();
+            AtomicReference<String> lit = new AtomicReference<>();
+            onEdt(() -> {
+                var area = panel(f.frame).composerArea();
+                text.set(area.getText());
+                var h = area.getHighlighter().getHighlights();
+                try {
+                    lit.set(h.length == 1 ? area.getText(h[0].getStartOffset(), h[0].getEndOffset() - h[0].getStartOffset())
+                            : "highlights: " + h.length);
+                } catch (javax.swing.text.BadLocationException e) {
+                    throw new AssertionError(e);
+                }
+            });
+            assertEquals("my own question\n\n" + draft.text(), text.get(), "appended after the person's own text");
+            assertEquals(draft.text(), lit.get(), "exactly the appended range is highlighted");
             Thread.sleep(300);
-            assertEquals(0, provider.bodies.size(), "priming sends nothing");
+            assertEquals(0, provider.bodies.size(), "placing sends nothing");
         }
     }
 }

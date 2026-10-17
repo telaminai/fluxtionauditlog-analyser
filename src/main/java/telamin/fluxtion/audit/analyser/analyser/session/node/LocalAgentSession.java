@@ -98,6 +98,17 @@ public class LocalAgentSession implements EventLogSource {
     private Map<String, long[]> hookNotes = new LinkedHashMap<>();
     private List<LocalAgentState.Entry> entries = new ArrayList<>();
     private LocalAgentState.Answer answer = LocalAgentState.Answer.NONE;
+    /**
+     * M74 P2 (§8.2): the open log, a JavaBean parent so the generator wires it without changing the constructor — what a
+     * bound draft is compared with at Send. Null only in a processor generated before P2: no draft is then bound.
+     */
+    private OpenLog openLog;
+    /** P2: each composed draft's binding (the log identity digest and generation it names), by draft reference. */
+    private Map<Long, String[]> bindings = new LinkedHashMap<>();
+    /** P2 (§5.2 item 6): Start armed with these words (a bundle key), or null; nothing starts because it is armed. */
+    private String armedWhy;
+    /** P2 (owner request 2026-10-17): the posture the last consent fact named, for the full-posture cue; null when off. */
+    private LocalAgentPosture consentPosture;
     private LocalAgentState published = LocalAgentState.IDLE;
     private boolean dirty = true;
 
@@ -111,11 +122,20 @@ public class LocalAgentSession implements EventLogSource {
         this.auditLog = log;
     }
 
+    public OpenLog getOpenLog() {
+        return openLog;
+    }
+
+    public void setOpenLog(OpenLog openLog) {
+        this.openLog = openLog;
+    }
+
     // ---- the person's requests ------------------------------------------------------------------------------------
 
     @OnEventHandler
     public boolean onModeChosen(SessionEvents.AssistantModeChosen e) {
         // the mode node is upstream: it already holds the new mode. Leaving the local agent stops its process.
+        if (!mode.localAgent()) armedWhy = null;          // P2: a mode switch replaces an armed Start
         if (mode.localAgent() || !running()) return changed();
         kill("the Assistant tab was switched to the in-app assistant, so Claude Code was stopped");
         return changed();
@@ -123,6 +143,7 @@ public class LocalAgentSession implements EventLogSource {
 
     @OnEventHandler
     public boolean onStartRequested(SessionEvents.LocalAgentStartRequested e) {
+        observeConsent(e.consent());
         if (running()) {
             auditLog.info("noOp", "LocalAgentStartRequested").info("phase", phase);
             if (!e.warm()) answer(e.request(), true, "");
@@ -150,7 +171,8 @@ public class LocalAgentSession implements EventLogSource {
      */
     @OnEventHandler
     public boolean onConsentChanged(SessionEvents.LocalAgentConsentChanged e) {
-        if (!running()) return false;                     // the next Start decides with the new consent
+        boolean cue = observeConsent(e.consent());
+        if (!running()) return cue && changed();          // the next Start decides with the new consent
         if (!endForConsent(e.consent())) return false;
         return changed();
     }
@@ -184,6 +206,7 @@ public class LocalAgentSession implements EventLogSource {
 
     @OnEventHandler
     public boolean onSendRequested(SessionEvents.LocalAgentSendRequested e) {
+        observeConsent(e.consent());
         // review finding 4: a Send re-checks the consent the running session was started under
         if (running() && openTicket == 0 && !"STOPPING".equals(phase) && endForConsent(e.consent())) {
             answer(e.request(), false, reason);
@@ -248,6 +271,7 @@ public class LocalAgentSession implements EventLogSource {
         pendingDraft = 0;
         newChatOffered = false;
         entries = new ArrayList<>();
+        armedWhy = null;                                 // P2: New chat replaces an armed Start
         verdict = "";
         reason = "a new conversation: it starts with the next Start or Send";
         auditLog.info("localAgentConversation", conversation);
@@ -446,12 +470,14 @@ public class LocalAgentSession implements EventLogSource {
             LocalAgentState.Entry x = entries.get(i);
             if (LocalAgentState.ANSWER.equals(x.kind()) && x.ticket() == e.ticket()) {
                 entries.set(i, new LocalAgentState.Entry(e.textRef(), LocalAgentState.ANSWER, e.ticket(), "STREAMING", "",
-                        e.revision()));
+                        e.revision(), x.logGeneration()));
                 return changed();
             }
         }
+        // P2 (§5.9): the answer is stamped with the log generation it was written under — its chips go muted when the
+        // log moves, decided here rather than remembered by the panel
         entries.add(new LocalAgentState.Entry(e.textRef(), LocalAgentState.ANSWER, e.ticket(), "STREAMING", "",
-                e.revision()));
+                e.revision(), openLog != null && openLog.isOpen() ? openLog.generation() : 0));
         return changed();
     }
 
@@ -598,6 +624,114 @@ public class LocalAgentSession implements EventLogSource {
         return changed();
     }
 
+    // ---- P2: drafts from the Ask catalogue, a journey and the start page (§5.5, §8.2) -----------------------------
+
+    /**
+     * A draft was composed (the pop-up's Yes, a journey handoff, a start-page entry). The node keeps its binding — the
+     * log identity and generation it names — to compare at Send, asks for it to be PLACED (appended and highlighted,
+     * never sent), and ARMS Start when no process runs, only when Start would be accepted (r8 F2): if it would be
+     * refused, the draft is still placed and the refusal is shown with its action instead.
+     */
+    @OnEventHandler
+    public boolean onDraftComposed(SessionEvents.LocalAgentDraftComposed e) {
+        if (!mode.localAgent()) {
+            auditLog.info("noOp", "LocalAgentDraftComposed").info("reason", "the in-app assistant is the mode in force");
+            return false;
+        }
+        observeConsent(e.consent());
+        bindings.put(e.draftRef(), new String[]{e.logIdentity(), Long.toString(e.logGeneration())});
+        while (bindings.size() > 64) bindings.remove(bindings.keySet().iterator().next());
+        String arm = null;
+        if (!running()) {
+            String refusal = acceptable(e.consent());
+            if (refusal == null) {
+                arm = "JOURNEY".equals(e.questionId()) ? "armed.JOURNEY"
+                        : e.questionId() != null && e.questionId().startsWith("Q") ? "armed.ASK" : "armed.START_PAGE";
+                armedWhy = arm;
+                verdict = "";
+                reason = "";
+            } else {
+                armedWhy = null;
+                verdict = verdictOf(refusal);
+                reason = refusal.substring(refusal.indexOf(':') + 1).trim();
+            }
+        }
+        auditLog.info("localAgentDraft", e.questionId()).info("bound", e.logIdentity() != null)
+                .info("armed", arm != null).info("origin", String.valueOf(e.origin()));
+        effects.request(new SessionEffects.PrimeLocalAgentDraftEffect(0L, e.draftRef(), true, arm));
+        return changed();
+    }
+
+    @OnEventHandler(propagate = false)
+    public boolean onDraftPlaced(SessionEvents.DraftPlaced e) {
+        auditLog.info("draftPlaced", e.draftRef()).info("ok", e.ok());
+        return false;
+    }
+
+    /**
+     * Whether Start would be refused under {@code c} — the same checks as {@link #startRefusal}, with no side effect. An
+     * unconfirmed folder is NOT a refusal here: pressing Start asks the folder question, which is Start's own path.
+     */
+    private String acceptable(SessionEvents.LocalAgentConsent c) {
+        if (c == null || !c.allowed()) {
+            return "SWITCHED_OFF: starting Claude Code is switched off — Settings ▸ Assistant ▸ Allow the analyser to start "
+                    + "Claude Code; your question was placed, and nothing was sent";
+        }
+        if (c.folder() == SessionEvents.FolderVerdict.UNAVAILABLE) {
+            return "NO_FOLDER: the analyser could not make its private scratch folder for Claude Code; your question was "
+                    + "placed, and nothing was sent";
+        }
+        if (c.folder() == SessionEvents.FolderVerdict.EXPOSES_SECRETS) {
+            return "FOLDER_EXPOSES_SECRETS: Claude Code is not started in a folder that reaches credentials; open a project "
+                    + "in its own folder — your question was placed, and nothing was sent";
+        }
+        if (c.bundleWorkingCopy()) {
+            return "BUNDLE: Start is refused in an evidence-bundle working copy; your question was placed, and nothing was "
+                    + "sent";
+        }
+        if (!c.restOn()) {
+            return "REST_OFF: Claude Code reaches the analyser through the REST transport, which is off — turn it on, then "
+                    + "press Start; your question was placed, and nothing was sent";
+        }
+        long remaining = c.budgetMicros() - spent();
+        if (c.budgetMicros() > 0 && remaining <= 0) {
+            return "BUDGET_SPENT: the Claude Code session budget is spent (at least US$" + usd(spent())
+                    + "); raise it in Settings ▸ Assistant — your question was placed, and nothing was sent";
+        }
+        return null;
+    }
+
+    /**
+     * §5.5 Send: a bound draft whose log has moved since it was composed is refused, with the generations named; an
+     * unbound draft (0, or a draft that names no log) is not checked. Deleting the whole draft drops the binding: the
+     * panel then reports 0.
+     */
+    private String staleDraft(long draftBinding) {
+        if (draftBinding == 0) return null;
+        String[] b = bindings.get(draftBinding);
+        if (b == null || b[0] == null) return null;
+        long was = Long.parseLong(b[1]);
+        boolean open = openLog != null && openLog.isOpen();
+        String now = open ? LocalAgentPosture.digest(openLog.logPath()) : null;
+        if (open && b[0].equals(now) && openLog.generation() == was) return null;
+        return staleWords(was, open ? Long.toString(openLog.generation()) : "none open");
+    }
+
+    /** Record the posture a consent fact names (for the full-posture cue); true when it changed. */
+    private boolean observeConsent(SessionEvents.LocalAgentConsent c) {
+        LocalAgentPosture now = c == null || !c.allowed() ? null : c.posture();
+        if (java.util.Objects.equals(now, consentPosture)) return false;
+        consentPosture = now;
+        dirty = true;
+        return true;
+    }
+
+    /** The words of a stale-draft refusal, the same in both assistants (§5.5). */
+    public static String staleWords(long was, String now) {
+        return "This question names records of a log that has changed since it was drafted (generation " + was + " → "
+                + now + ") — ask again from the records";
+    }
+
     // ---- decisions --------------------------------------------------------------------------------------------------
 
     /** Why a start cannot happen now, or null. A folder needing confirmation asks for the dialog (never when warm). */
@@ -655,6 +789,8 @@ public class LocalAgentSession implements EventLogSource {
         if (openTicket != 0 || "STOPPING".equals(phase)) return "BUSY: " + BUSY_TEXT;
         if (e.draft() <= 0) return "EMPTY: there is nothing to send";
         if (pendingDraft != 0) return "BUSY: " + BUSY_TEXT;
+        String stale = staleDraft(e.draftBinding());
+        if (stale != null) return "STALE_DRAFT: " + stale;
         String named = e.command() == null ? "this command" : "/" + e.command();
         return switch (e.slash() == null ? SessionEvents.SlashClass.TEXT : e.slash()) {
             case NEW_CHAT -> {
@@ -689,6 +825,7 @@ public class LocalAgentSession implements EventLogSource {
         personServers = 0;
         hookNotes = new LinkedHashMap<>();
         phase = "SPAWNING";
+        armedWhy = null;                                 // P2: pressing an armed Start is a Start; the draft stays placed
         bound = false;
         postureChecked = false;
         endAfterTurn = false;
@@ -734,7 +871,8 @@ public class LocalAgentSession implements EventLogSource {
         for (int i = entries.size() - 1; i >= 0; i--) {
             LocalAgentState.Entry x = entries.get(i);
             if (LocalAgentState.ANSWER.equals(x.kind()) && x.ticket() == was) {
-                entries.set(i, new LocalAgentState.Entry(x.id(), x.kind(), x.ticket(), outcome.name(), "", x.revision()));
+                entries.set(i, new LocalAgentState.Entry(x.id(), x.kind(), x.ticket(), outcome.name(), "", x.revision(),
+                        x.logGeneration()));
                 break;
             }
         }
@@ -908,7 +1046,7 @@ public class LocalAgentSession implements EventLogSource {
             published = new LocalAgentState(mode.mode(), conversation, generation, phase, verdict, reason, openTicket,
                     admittedGeneration(), headerRef, headerRevision, detailRef, stderrRef, bindingElapsedMs, spent(),
                     budgetMicros, costUnderReported, newChatOffered, resumable && sessionId != null, pendingDraft,
-                    entries, answer, posture, personServers, billing);
+                    entries, answer, posture, personServers, billing, armedWhy, consentPosture);
             dirty = false;
         }
         return published;

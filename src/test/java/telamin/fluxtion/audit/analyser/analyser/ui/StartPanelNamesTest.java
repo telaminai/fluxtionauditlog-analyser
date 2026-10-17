@@ -48,4 +48,36 @@ class StartPanelNamesTest {
     void singleEntry() {
         assertEquals(List.of("run.fexp"), StartPanel.distinctNames(List.of("/w/a/run.fexp")));
     }
+
+    /**
+     * ★ r8 F7: every no-AI fallback is a BUTTON that runs an EXISTING start-page action — never a menu path (the start
+     * page hides the menu bar). Witness: route BUNDLE_GUIDE to nothing — its call is missing and this fails.
+     */
+    @Test
+    @DisplayName("★ each no-AI fallback runs an existing start-page action")
+    void fallbacksRunExistingActions() {
+        List<String> calls = new java.util.ArrayList<>();
+        StartPanel.Actions actions = new StartPanel.Actions() {
+            public void openDemo(java.nio.file.Path p, boolean g) { }
+            public void showTab(String n) { }
+            public void openOwnLog() { }
+            public void openSettings() { calls.add("settings"); }
+            public void openMcpSetup(McpSetupDialog.Target t) { calls.add("mcp:" + t.name()); }
+            public void openFluxtionKey() { }
+            public boolean fluxtionKeyPresent() { return false; }
+            public void backToRecords() { }
+            public void newProject() { calls.add("new"); }
+            public void newProjectFromTemplate() { calls.add("template"); }
+            public void openUserGuide(String page) { calls.add("guide:" + page); }
+            public void copyStartPrompt(String entry, String text) { calls.add("copy:" + entry + ":" + text); }
+            public void installClaudeCode() { calls.add("install"); }
+        };
+        for (var f : telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.Fallback.values()) {
+            StartPanel.runFallback(actions, f, "S6", "q");
+        }
+        StartPanel.runFallback(actions, telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.Fallback.CONNECT,
+                "INSTALL", "");
+        assertEquals(List.of("settings", "mcp:CLAUDE_CODE", "copy:S6:q", "new", "guide:evidence-bundles/opening/",
+                "template", "guide:", "install"), calls);
+    }
 }

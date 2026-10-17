@@ -323,6 +323,12 @@ public final class SessionDriver {
             case SessionEffects.SendLocalAgentTurnEffect ignored -> "sendLocalAgentTurn";
             case SessionEffects.StopLocalAgentEffect ignored -> "stopLocalAgent";
             case SessionEffects.ConfirmLocalAgentFolderEffect ignored -> "confirmLocalAgentFolder";
+            case SessionEffects.PrimeLocalAgentDraftEffect ignored -> "primeLocalAgentDraft";
+            case SessionEffects.PrimeAssistantDraftEffect ignored -> "primeAssistantDraft";
+            case SessionEffects.PlayDemoJourneyEffect ignored -> "playDemoJourney";
+            case SessionEffects.RunStartPageFlowEffect ignored -> "runStartPageFlow";
+            case SessionEffects.ShowStartPageFallbackEffect ignored -> "showStartPageFallback";
+            case SessionEffects.ComposeStartPageDraftEffect ignored -> "composeStartPageDraft";
         };
     }
 

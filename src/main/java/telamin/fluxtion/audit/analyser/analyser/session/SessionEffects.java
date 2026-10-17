@@ -290,4 +290,50 @@ public sealed interface SessionEffects {
             this(opId, request, false);
         }
     }
+
+    // ---- M74 P2: the Ask catalogue's drafts and the start page (spec §5.5, §5.8, §8.2) -------------------------------
+
+    /**
+     * Place local-agent transcript entry {@code draftRef} in the Claude Code composer: APPENDED after anything the person
+     * wrote (OD-74.14), the appended range highlighted, the composer focused and lit. {@code armedWhy} non-null arms
+     * Start with those words (the bundle's {@code armed.*} key); nothing starts because Start is armed. Answered by
+     * {@link SessionEvents.DraftPlaced}.
+     */
+    record PrimeLocalAgentDraftEffect(long opId, long draftRef, boolean highlight, String armedWhy)
+            implements SessionEffects {
+    }
+
+    /** The same for the in-app composer: in-app transcript entry {@code draftRef}, appended and highlighted. */
+    record PrimeAssistantDraftEffect(long opId, long draftRef, boolean highlight) implements SessionEffects {
+    }
+
+    /**
+     * S1 (§5.8, r8 F13): open the sample project and play the shipped "DEMO first breach" journey through the walk path —
+     * no model, no key, no network, nothing sent.
+     */
+    record PlayDemoJourneyEffect(long opId, long request) implements SessionEffects {
+    }
+
+    /**
+     * Run start-page entry {@code entryId}'s own flow, the person's: S3's chooser and verification, S5's chooser and
+     * load, S4's catalogue fetch, S2's New project…. Answered at once by {@link SessionEvents.StartPageEffectStarted};
+     * later {@link SessionEvents.StartPageFlowDone} (not for S2, whose dialog is its own flow).
+     */
+    record RunStartPageFlowEffect(long opId, long request, String entryId) implements SessionEffects {
+    }
+
+    /** Nothing can answer: show entry {@code entryId}'s no-AI fallback buttons (§5.8's last column), saying why. */
+    record ShowStartPageFallbackEffect(long opId, long request, String entryId, String why) implements SessionEffects {
+    }
+
+    /**
+     * Compose the start page's draft — entry {@code entryId} after its flow, with the person's words ({@code textRef})
+     * appended — in {@code target}'s store,
+     * and report it as {@link SessionEvents.LocalAgentDraftComposed} or {@link SessionEvents.AssistantDraftComposed}.
+     * {@code chooseMode}: the mode in force could not answer and {@code target} can, so the person's button chose it
+     * (OD-74.23). {@code popOut}: no workspace is open, so the assistant is shown in its own window (OD-74.21).
+     */
+    record ComposeStartPageDraftEffect(long opId, long request, String entryId, AssistantMode target, boolean chooseMode, long logGeneration, long bundleNameRef,
+                                       long templateNamesRef, long textRef, boolean popOut) implements SessionEffects {
+    }
 }

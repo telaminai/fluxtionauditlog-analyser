@@ -1,13 +1,14 @@
 package telamin.fluxtion.audit.analyser.analyser.ui;
 
+import telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue;
 import telamin.fluxtion.audit.analyser.analyser.assistant.localagent.LocalAgentTranscript;
 import telamin.fluxtion.audit.analyser.analyser.session.LocalAgentState;
 
 import javax.swing.*;
+import javax.swing.border.Border;
 import javax.swing.text.BadLocationException;
-import javax.swing.text.SimpleAttributeSet;
-import javax.swing.text.StyleConstants;
-import javax.swing.text.StyledDocument;
+import javax.swing.text.DefaultHighlighter;
+import javax.swing.text.Highlighter;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.FlowLayout;
@@ -16,14 +17,20 @@ import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
 /**
- * M74 (spec-claude-code-provider.md §5.2): the Assistant tab while it drives Claude Code. It RENDERS the session's
+ * M74 (spec-claude-code-provider.md §5.2, §5.9): the Assistant tab while it drives Claude Code. It RENDERS the session's
  * {@link LocalAgentState} and the words that state names in the bounded store, and it REPORTS what the person did —
  * Start, Stop, Send, New chat, turn on REST — as intents. Whether any of that may happen is {@code localAgentSession}'s
  * decision, and the process belongs to the adapter: this class never starts, stops or reads one.
+ *
+ * <p>P2: the conversation is drawn by {@link TranscriptView} (roles, safe Markdown, chips, collapsible tool lines,
+ * copy), incrementally; the header is compact chips; a draft from the Ask catalogue is APPENDED after the person's own
+ * text, the appended range highlighted and the composer lit; Start shows when it is ARMED; and the full posture is cued
+ * on the composer, its badge and Send (owner request, 2026-10-17) — every one of these rendered from the snapshot.
  *
  * <p>Copy prompt and Connect a CLI assistant are not here: they exist for external agents.
  */
@@ -35,7 +42,11 @@ public final class LocalAgentPanel extends JPanel {
 
         void stop();
 
-        void send(String draft);
+        /**
+         * Send: the composer's words, and {@code draftBinding} — the composed draft the composer still holds (its
+         * appended range not wholly deleted), or 0. The node compares the binding with the open log.
+         */
+        void send(String draft, long draftBinding);
 
         void newChat();
 
@@ -55,40 +66,55 @@ public final class LocalAgentPanel extends JPanel {
             + "hooks and connects your MCP servers.";
     /** On a Claude plan a dollar figure means nothing to the person (owner, 2026-10-17). */
     static final String PLAN_USAGE = "usage counts against your Claude plan";
+    /** OD-74.22: the header line when the session works in the scratch folder for an analyser-owned project. */
+    static final String SCRATCH_NOTE = "working in a scratch folder: this project's folder is not one Claude Code is "
+            + "started in";
 
     private final LocalAgentTranscript store;
     private Intents intents;
 
     // they WRAP to the tab's width: a header, a warning or a status that ends in "…" hides its most important part
-    private final WrapLine header = new WrapLine(" ").bold();
+    private final WrapLine header = new WrapLine(" ");
+    private final JPanel chips = new JPanel(new WrapLayout(FlowLayout.LEFT, 4, 3));
     private final WrapLine posture = new WrapLine(DEFAULT_POSTURE_NOTE);
     private final WrapLine lockWarning = new WrapLine(LOCK_WARNING);
     private final WrapLine status = new WrapLine(" ");
     private final JTextArea detail = new JTextArea(2, 40);
-    private final JTextPane view = new JTextPane();
+    private final TranscriptView view = new TranscriptView();
     private final JScrollPane viewScroll = new JScrollPane(view);
     private final JTextArea draft = new JTextArea(3, 40);
+    private final JScrollPane draftScroll = new JScrollPane(draft);
+    private final JLabel fullBadge = UiText.label(" ");
+    private final WrapLine composerHint = new WrapLine(" ");
     private final JButton start = new JButton("Start Claude Code");
     private final JButton stop = new JButton("Stop");
     private final JButton newChat = new JButton("New chat");
-    private final JButton send = new JButton("Send");
+    private final JButton send = UiText.button("Send");
     private final JButton turnOnRest = new JButton("Turn on the REST transport");
     private final JButton settings = new JButton("Settings ▸ Assistant");
+    private final Border draftBorder;
 
     private LocalAgentState rendered;
     private String renderedHeader;
+    /** The composed draft the composer holds (its appended range), for the binding at Send; 0 when none. */
+    private long boundDraft;
+    private Object boundHighlight;
 
     public LocalAgentPanel(LocalAgentTranscript store) {
         super(new BorderLayout(4, 4));
         this.store = store;
         getAccessibleContext().setAccessibleName("Claude Code");
-        header.getAccessibleContext().setAccessibleName("Claude Code session");
+        header.getAccessibleContext().setAccessibleName("Claude Code session folder");
+        chips.getAccessibleContext().setAccessibleName("Claude Code session");
+        chips.setOpaque(false);
         status.getAccessibleContext().setAccessibleName("Claude Code status");
         detail.setEditable(false);
         detail.setLineWrap(true);
         detail.setWrapStyleWord(true);
         detail.setOpaque(false);
         detail.setVisible(false);
+        posture.setForeground(UiTheme.mutedForeground());
+        lockWarning.setForeground(UiTheme.mutedForeground());
 
         JPanel top = new JPanel();
         top.setLayout(new BoxLayout(top, BoxLayout.Y_AXIS));
@@ -98,21 +124,30 @@ public final class LocalAgentPanel extends JPanel {
         actions.add(newChat);
         actions.add(turnOnRest);
         actions.add(settings);
-        for (JComponent c : new JComponent[]{header, posture, lockWarning, actions, status, detail}) {
+        for (JComponent c : new JComponent[]{chips, header, posture, lockWarning, actions, status, detail}) {
             c.setAlignmentX(LEFT_ALIGNMENT);
             top.add(c);
         }
         add(top, BorderLayout.NORTH);
 
-        view.setEditable(false);
-        view.getAccessibleContext().setAccessibleName("Claude Code conversation");
         add(viewScroll, BorderLayout.CENTER);
 
         draft.setLineWrap(true);
         draft.setWrapStyleWord(true);
         draft.getAccessibleContext().setAccessibleName("Your message to Claude Code");
+        draftBorder = draftScroll.getBorder();
         JPanel composer = new JPanel(new BorderLayout(4, 4));
-        composer.add(new JScrollPane(draft), BorderLayout.CENTER);
+        JPanel above = new JPanel();
+        above.setLayout(new BoxLayout(above, BoxLayout.Y_AXIS));
+        fullBadge.setAlignmentX(LEFT_ALIGNMENT);
+        composerHint.setAlignmentX(LEFT_ALIGNMENT);
+        fullBadge.setVisible(false);
+        composerHint.setVisible(false);
+        fullBadge.setFont(fullBadge.getFont().deriveFont(Font.BOLD));
+        above.add(fullBadge);
+        above.add(composerHint);
+        composer.add(above, BorderLayout.NORTH);
+        composer.add(draftScroll, BorderLayout.CENTER);
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 0));
         buttons.add(send);
         composer.add(buttons, BorderLayout.SOUTH);
@@ -142,28 +177,73 @@ public final class LocalAgentPanel extends JPanel {
         this.intents = intents;
     }
 
+    /** The transcript's analyser references and where a chip goes: the frame's, reveal-only. */
+    public void setTranscriptLinks(TranscriptView.Chips chips, TranscriptView.Navigator navigator) {
+        view.setChips(chips);
+        view.setNavigator(navigator);
+    }
+
     private void onSend() {
         String text = draft.getText().trim();
         if (text.isEmpty() || intents == null) return;
-        intents.send(text);      // refused or not, the node says so; the draft stays until it is accepted
+        intents.send(text, currentBinding());   // refused or not, the node says so; the draft stays until it is accepted
+    }
+
+    /** The composed draft's binding while any of its appended text remains (deleting the whole draft drops it). */
+    long currentBinding() {
+        if (boundDraft == 0 || boundHighlight == null) return 0;
+        for (Highlighter.Highlight h : draft.getHighlighter().getHighlights()) {
+            if (h == boundHighlight) return h.getEndOffset() > h.getStartOffset() ? boundDraft : 0;
+        }
+        return 0;
     }
 
     /** The node accepted the send: clear the composer. Nothing else clears it (a refused draft stays editable). */
     public void draftAccepted() {
         draft.setText("");
+        clearDraftMarks();
     }
 
-    /** Put words in the composer without sending, never over what the person is writing. */
-    public void primeDraft(String text) {
-        if (draft.getText().isBlank()) draft.setText(text);
+    /**
+     * Place a composed draft (OD-74.14): APPENDED after whatever the person has written — never over it — with exactly
+     * the appended range highlighted, the composer focused and lit with {@code hint}. Nothing is sent.
+     *
+     * @return the appended range's start
+     */
+    public int appendDraft(long draftRef, String text, String hint) {
+        String was = draft.getText();
+        String sep = was.isBlank() ? "" : was.endsWith("\n\n") ? "" : was.endsWith("\n") ? "\n" : "\n\n";
+        if (was.isBlank()) draft.setText("");
+        int from = draft.getDocument().getLength() + sep.length();
+        draft.append(sep + text);
+        int to = draft.getDocument().getLength();
+        clearDraftMarks();
+        try {
+            boundHighlight = draft.getHighlighter().addHighlight(from, to,
+                    new DefaultHighlighter.DefaultHighlightPainter(UiTheme.accentWash(0.28f)));
+            boundDraft = draftRef;
+        } catch (BadLocationException e) {
+            throw new IllegalStateException(e);
+        }
+        composerHint.setText(hint == null ? " " : hint);
+        composerHint.setVisible(hint != null && !hint.isBlank());
+        draft.setCaretPosition(to);
         draft.requestFocusInWindow();
+        return from;
+    }
+
+    private void clearDraftMarks() {
+        if (boundHighlight != null) draft.getHighlighter().removeHighlight(boundHighlight);
+        boundHighlight = null;
+        boundDraft = 0;
+        composerHint.setVisible(false);
     }
 
     JTextArea composerArea() {
         return draft;
     }
 
-    JTextPane conversationView() {
+    TranscriptView conversationView() {
         return view;
     }
 
@@ -179,14 +259,32 @@ public final class LocalAgentPanel extends JPanel {
         return stop;
     }
 
+    JLabel fullBadge() {
+        return fullBadge;
+    }
+
+    WrapLine composerHint() {
+        return composerHint;
+    }
+
+    JScrollPane draftScroll() {
+        return draftScroll;
+    }
+
     /** Render the session's decision. Unchanged input changes nothing on screen. */
     public void render(LocalAgentState s) {
         // review S5: the header is the session's own — its launch folder, not the project open now — and it is shown
         // only once the session is bound (READY or later), never from a handshake that may yet be refused
-        String headerText = headerLine(shownHeader(s, store), s);
+        LocalAgentTranscript.Header h = shownHeader(s, store);
+        String headerText = headerLine(h, s);
         if (s.equals(rendered) && Objects.equals(headerText, renderedHeader)) return;
-        header.setText(headerText);
-        posture.setText(postureLine(shownHeader(s, store), s));
+        renderChips(h, s, headerText);
+        String folder = h == null ? null : h.folder();
+        header.setText(folder == null || folder.isBlank() ? " " : "Folder: " + shortFolder(folder)
+                + (h.scratchForProject() ? " — " + SCRATCH_NOTE : ""));
+        header.setToolTipText(folder == null ? null : UiText.tooltip(folder));
+        header.setVisible(folder != null && !folder.isBlank());
+        posture.setText(postureLine(h, s));
         boolean running = s.running();
         start.setEnabled(!running);
         start.setText(UiText.inert(startLabel(s)));
@@ -196,6 +294,7 @@ public final class LocalAgentPanel extends JPanel {
         settings.setVisible("SWITCHED_OFF".equals(s.verdict()) || "BUDGET_SPENT".equals(s.verdict()));
         newChat.setText(s.newChatOffered() ? "New chat (offered)" : "New chat");
         status.setText(phaseText(s));
+        renderFullCue(s);
         revalidate();
         String words = s.detailRef() != 0 ? store.text(s.detailRef()) : s.stderrRef() != 0
                 ? "Claude Code's last error line: " + store.text(s.stderrRef()) : "";
@@ -203,17 +302,130 @@ public final class LocalAgentPanel extends JPanel {
         detail.setVisible(!words.isBlank());
 
         boolean follow = following();
-        StyledDocument doc = view.getStyledDocument();
-        try {
-            doc.remove(0, doc.getLength());
-            for (LocalAgentState.Entry e : s.entries()) renderEntry(doc, e);
-        } catch (BadLocationException ex) {
-            throw new IllegalStateException(ex);
-        }
-        if (follow) view.setCaretPosition(doc.getLength());
+        view.render(items(s));
+        if (follow) view.setCaretPosition(view.getDocument().getLength());
         rendered = s;
         renderedHeader = headerText;
     }
+
+    /** A theme change: the transcript re-styles (the one full re-render besides New chat and a trim). */
+    public void themeChanged() {
+        view.restyle();
+        if (rendered != null) renderFullCue(rendered);
+    }
+
+    /** The published entries as the view's items: words from the store, state from the snapshot. */
+    List<TranscriptView.Item> items(LocalAgentState s) {
+        List<TranscriptView.Item> out = new ArrayList<>();
+        int i = 0;
+        for (LocalAgentState.Entry e : s.entries()) {
+            String key = s.conversation() + ":" + i++ + ":" + e.kind() + ":" + e.id() + ":" + e.ticket();
+            switch (e.kind()) {
+                case LocalAgentState.USER -> out.add(new TranscriptView.Item(key, TranscriptStyle.Role.YOU,
+                        store.text(e.id()), e.status(), 0, 0, false));
+                case LocalAgentState.ANSWER -> {
+                    boolean stopped = "CANCELLED".equals(e.status()) || "PROCESS_EXIT".equals(e.status());
+                    out.add(new TranscriptView.Item(key, stopped ? TranscriptStyle.Role.STOPPED : TranscriptStyle.Role.CLAUDE,
+                            store.text(e.id()), e.status(), e.revision(), e.logGeneration(), "STREAMING".equals(e.status())));
+                }
+                case LocalAgentState.NOTE -> out.add(new TranscriptView.Item(key, TranscriptStyle.Role.NOTE,
+                        "[" + e.status().toLowerCase(java.util.Locale.ROOT).replace('_', ' ') + "] " + e.detail(),
+                        e.status(), 0, 0, false));
+                default -> { }
+            }
+        }
+        return out;
+    }
+
+    // ---- the header as chips (§5.9) -----------------------------------------------------------------------------------
+
+    private void renderChips(LocalAgentTranscript.Header h, LocalAgentState s, String headerText) {
+        chips.removeAll();
+        chips.getAccessibleContext().setAccessibleDescription(headerText);
+        chips.add(chip("Claude Code", true));
+        if (h == null) {
+            chips.add(chip(s.running() ? "starting" : "not running", false));
+        } else {
+            if (h.model() != null) chips.add(chip(h.model(), false));
+            else if (h.configuredModel() != null && !h.configuredModel().isBlank()) {
+                chips.add(chip("model: " + h.configuredModel() + " (confirmed after the first turn)", false));
+            }
+            chips.add(chip(s.posture().label(), s.posture().isFull()));
+            if (h.billing() != null && !h.billing().isBlank()) chips.add(chip(h.billing(), false));
+            String cost = costText(s);
+            if (!cost.isEmpty()) chips.add(chip(cost, false));
+            if (h.cliVersion() != null) chips.add(chip("CLI " + h.cliVersion(), false));
+            if (h.apiProvider() != null) chips.add(chip(h.apiProvider(), false));
+        }
+        chips.revalidate();
+        chips.repaint();
+    }
+
+    private JLabel chip(String text, boolean strong) {
+        JLabel l = UiText.label(text);                 // a model name or a folder is not the analyser's words
+        l.setOpaque(true);
+        l.setBackground(UiTheme.accentWash(strong ? 0.22f : 0.10f));
+        l.setForeground(strong ? UiTheme.accentText() : UIManager.getColor("Label.foreground"));
+        l.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(UiTheme.surfaceEdge(), 1, true),
+                BorderFactory.createEmptyBorder(1, 6, 1, 6)));
+        Font f = UIManager.getFont("Label.font");
+        if (f != null) l.setFont(f.deriveFont(strong ? Font.BOLD : Font.PLAIN, f.getSize2D() - 1f));
+        return l;
+    }
+
+    /** {@code …/<folder name>}; the full path is the line's tooltip (§5.2). */
+    static String shortFolder(String folder) {
+        String f = folder.endsWith("/") || folder.endsWith("\\") ? folder.substring(0, folder.length() - 1) : folder;
+        int cut = Math.max(f.lastIndexOf('/'), f.lastIndexOf('\\'));
+        return cut < 0 ? f : "…/" + f.substring(cut + 1);
+    }
+
+    // ---- the full-posture cue (owner request, 2026-10-17) -------------------------------------------------------------
+
+    /** The badge's words for the cue, or null when there is none: {@code Full Claude Code · <mode>: …}. */
+    static String fullBadgeText(LocalAgentState s) {
+        LocalAgentState.FullCue cue = s.fullCue();
+        if (cue == LocalAgentState.FullCue.NONE) return null;
+        String mode = s.cuePosture().fullMode().cli();
+        return "Full Claude Code (preview) · " + mode + ": your tools and permissions"
+                + (cue == LocalAgentState.FullCue.RUNNING ? " — running" : " — on: it runs at the next Start");
+    }
+
+    /** The badge's tooltip: what the cue means. */
+    static String fullBadgeTip(LocalAgentState s) {
+        boolean strong = s.strongCue();
+        return "Full Claude Code is your own Claude Code with your settings, skills, hooks and MCP servers, under your "
+                + "permission rules and the mode you chose. The analyser does not confine it to the folder."
+                + (strong ? " In this mode fewer actions are asked about." : "");
+    }
+
+    /** Send's label: it names the full posture whenever the cue is shown. */
+    static String sendLabel(LocalAgentState s) {
+        return s.fullCue() == LocalAgentState.FullCue.NONE ? "Send" : "Send to full Claude Code";
+    }
+
+    private void renderFullCue(LocalAgentState s) {
+        String badge = fullBadgeText(s);
+        boolean dark = ThemeManager.isDark();
+        send.setText(sendLabel(s));
+        if (badge == null) {
+            fullBadge.setVisible(false);
+            draftScroll.setBorder(draftBorder);
+            send.setToolTipText(null);
+            return;
+        }
+        Color c = TranscriptStyle.fullPosture(s.strongCue(), dark);
+        fullBadge.setText((s.strongCue() ? "◆◆ " : "◆ ") + badge);
+        fullBadge.setForeground(c);
+        fullBadge.setToolTipText(UiText.tooltip(fullBadgeTip(s)));
+        fullBadge.getAccessibleContext().setAccessibleName(badge);
+        fullBadge.getAccessibleContext().setAccessibleDescription(fullBadgeTip(s));
+        fullBadge.setVisible(true);
+        draftScroll.setBorder(BorderFactory.createLineBorder(c, s.strongCue() ? 3 : 2));
+        send.setToolTipText(UiText.tooltip("Sends to your full Claude Code (" + s.cuePosture().fullMode().cli() + ")"));
+    }
+
+    // ---- the words (pinned by LocalAgentHeaderTest) -------------------------------------------------------------------
 
     /** The header record the tab may show: only once the session is bound and checked (READY, BUSY or STOPPING). */
     static LocalAgentTranscript.Header shownHeader(LocalAgentState s, LocalAgentTranscript store) {
@@ -233,8 +445,8 @@ public final class LocalAgentPanel extends JPanel {
         }
         sb.append(" · ").append(s.posture().label());
         if (h.cliVersion() != null) sb.append(" · CLI ").append(h.cliVersion());
-        if (h != null && h.billing() != null && !h.billing().isBlank()) sb.append(" · ").append(h.billing());
-        if (h != null && h.apiProvider() != null) sb.append(" · ").append(h.apiProvider());
+        if (h.billing() != null && !h.billing().isBlank()) sb.append(" · ").append(h.billing());
+        if (h.apiProvider() != null) sb.append(" · ").append(h.apiProvider());
         String cost = costText(s);
         if (!cost.isEmpty()) sb.append(" · ").append(cost);
         if (folder != null && !folder.isBlank()) sb.append("\nFolder: ").append(folder);     // its own line
@@ -269,10 +481,11 @@ public final class LocalAgentPanel extends JPanel {
         return line + "\nPATH: inherited" + (added.isEmpty() ? "" : ", plus " + String.join(", ", added));
     }
 
-    /** The Start button says what pressing it would do, or that there is nothing to press. */
+    /** The Start button says what pressing it would do, that it is ARMED, or that there is nothing to press. */
     static String startLabel(LocalAgentState s) {
         if (s.starting()) return "Starting…";
         if (s.running()) return "Running…";
+        if (s.armedWhy() != null) return AskCatalogue.text(s.armedWhy());
         return s.resumable() ? "Resume Claude Code" : "Start Claude Code";
     }
 
@@ -283,7 +496,8 @@ public final class LocalAgentPanel extends JPanel {
             case "READY" -> s.pendingDraft() != 0 ? "Sending your message…" : "Ready";
             case "BUSY" -> "Claude is answering…";
             case "STOPPING" -> "Stopping the turn…";
-            default -> "Not running. " + CONTACTS_ANTHROPIC;
+            default -> s.armedWhy() != null ? "Not running — your question is placed; press Start, then Send. "
+                    + CONTACTS_ANTHROPIC : "Not running. " + CONTACTS_ANTHROPIC;
         };
         // a Send refused as busy already says what is happening: one sentence, not the phase and then the refusal
         if ("BUSY".equals(s.verdict()) && s.busy()) return s.reason();
@@ -295,42 +509,8 @@ public final class LocalAgentPanel extends JPanel {
         return BigDecimal.valueOf(micros, 6).setScale(2, RoundingMode.HALF_UP).toPlainString();
     }
 
-    private void renderEntry(StyledDocument doc, LocalAgentState.Entry e) throws BadLocationException {
-        switch (e.kind()) {
-            case LocalAgentState.USER -> {
-                doc.insertString(doc.getLength(), "You\n", bold());
-                doc.insertString(doc.getLength(), store.text(e.id()) + "\n\n", plain());
-            }
-            case LocalAgentState.ANSWER -> {
-                doc.insertString(doc.getLength(), "Claude Code" + ("STREAMING".equals(e.status()) ? " (answering…)" : "")
-                        + " — the model's words, not a verified result\n", bold());
-                doc.insertString(doc.getLength(), store.text(e.id()) + "\n\n", plain());
-            }
-            case LocalAgentState.NOTE -> doc.insertString(doc.getLength(), "[" + e.status().toLowerCase(java.util.Locale.ROOT)
-                    .replace('_', ' ') + "] " + e.detail() + "\n\n", warning());
-            default -> { }
-        }
-    }
-
     private boolean following() {
         JScrollBar bar = viewScroll.getVerticalScrollBar();
         return bar.getValue() + bar.getVisibleAmount() >= bar.getMaximum() - 4;
-    }
-
-    private static SimpleAttributeSet plain() {
-        return new SimpleAttributeSet();
-    }
-
-    private static SimpleAttributeSet bold() {
-        SimpleAttributeSet a = new SimpleAttributeSet();
-        StyleConstants.setBold(a, true);
-        return a;
-    }
-
-    private static SimpleAttributeSet warning() {
-        SimpleAttributeSet a = new SimpleAttributeSet();
-        StyleConstants.setBold(a, true);
-        StyleConstants.setForeground(a, new Color(0xB0, 0x5A, 0x00));
-        return a;
     }
 }

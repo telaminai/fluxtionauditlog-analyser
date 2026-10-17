@@ -294,7 +294,18 @@ public final class GraphTabs extends JPanel {
         panel.setOnTimeClick(timeClickHandler);
         panel.setOnMarkerClick(markerClickHandler);
         panel.setFlagRugSource(flagRugSource);
+        panel.setAskMenus(askMenus);
         return panel;
+    }
+
+    /** M74 P2: the Ask catalogue's chart items, fanned to every panel, current and future. */
+    private AskMenus askMenus = AskMenus.NONE;
+
+    public void setAskMenus(AskMenus menus) {
+        this.askMenus = menus == null ? AskMenus.NONE : menus;
+        for (int i = 0; i < tabs.getTabCount(); i++) {
+            if (tabs.getComponentAt(i) instanceof GraphPanel gp) gp.setAskMenus(this.askMenus);
+        }
     }
 
     /** Flagged rows → note, from MainFrame (M32.6); fanned to every panel, current and future. */

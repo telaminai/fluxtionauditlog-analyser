@@ -23,7 +23,21 @@ public final class RecordDiffDialog {
     private RecordDiffDialog() {
     }
 
+    /**
+     * M74 P2 (§5.5, R F5): the dialog's own binding — the two model rows, the log identity and generation at open — so
+     * its Ask button composes Q2 from THIS, never from the live selection, and a reload while it is open makes its draft
+     * refused at Send.
+     */
+    public record DiffContext(int indexA, int indexB, String logIdentity, long generation) {
+    }
+
     public static void show(Component parent, LogRecord a, LogRecord b, String labelA, String labelB) {
+        show(parent, a, b, labelA, labelB, null, null, null);
+    }
+
+    /** With an Ask entrance: {@code ask} receives the key names the two records differ in (at most 30, names only). */
+    public static void show(Component parent, LogRecord a, LogRecord b, String labelA, String labelB, DiffContext context,
+                            java.util.function.Consumer<java.util.List<String>> ask, String askLabel) {
         List<DiffRow> rows = DiffBuilder.diff(a, b);
         long diffs = rows.stream().filter(DiffRow::isDifference).count();
 
@@ -53,6 +67,17 @@ public final class RecordDiffDialog {
                         "Record diff: " + labelA + " vs " + labelB,
                         DiffExport.toTextLines(rows, labelA, labelB))));
         exportBar.add(pdf);
+        if (context != null && ask != null) {
+            java.util.List<String> keys = new java.util.ArrayList<>();
+            for (DiffRow row : rows) {
+                if (row.isDifference() && keys.size() < 30 && !keys.contains(row.key())) keys.add(row.key());
+            }
+            javax.swing.JButton askButton = UiText.button(askLabel == null ? "Ask" : askLabel);
+            askButton.setToolTipText(UiText.tooltip("Drafts a question naming records #" + context.indexA() + " and #"
+                    + context.indexB() + " and the keys they differ in; nothing is sent until you press Send"));
+            askButton.addActionListener(e -> ask.accept(java.util.List.copyOf(keys)));
+            exportBar.add(askButton);
+        }
         dialog.add(exportBar, BorderLayout.SOUTH);
 
         dialog.setSize(1040, 640);

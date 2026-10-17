@@ -81,6 +81,29 @@ public final class StartPanel extends JPanel {
         default void restoreSession(long generation) { }
         default void dismissSessionRestore(long generation) { }
 
+        // ---- M74 P2 (§5.8): the prompt's button and its no-AI fallbacks; every fallback is an EXISTING action ----
+
+        /** The prompt's button: the person's act; the session decides the route. */
+        default void pressStartPrompt(String entryId, String text) { }
+
+        /** A guide page ({@code ""} for the in-app user guide). */
+        default void openUserGuide(String page) { }
+
+        /** The start page's own Copy prompt: the composed draft only (r8 F14). */
+        default void copyStartPrompt(String entryId, String text) { }
+
+        /** Where Claude Code is installed from. */
+        default void installClaudeCode() { }
+
+        /** The resolver's searched places, for "Claude Code was not found". */
+        default String claudeSearched() { return ""; }
+
+        /** A dropped prompt pack's words, by the session's reference (session only). */
+        default telamin.fluxtion.audit.analyser.analyser.assistant.PromptPack.Pack promptPack(long ref) { return null; }
+
+        /** "← Return to main options": the person's act; the session restores the built-in list. */
+        default void returnToMainOptions() { }
+
     }
 
     private final JPanel recoveryOffer = new JPanel(new BorderLayout(8, 8));
@@ -97,6 +120,9 @@ public final class StartPanel extends JPanel {
     private List<telamin.fluxtion.audit.analyser.analyser.config.AppConfig.RecentBundle> lastBundleRecents;
     private final Actions actions;
     private final Consumer<String> status;
+    /** M74 P2: "What would you like to do?" — the prompt, rendering the session's start-page state. */
+    private final StartPromptView prompt;
+    private final StartPromptView.Host promptHost;
 
     /** Components whose colour is theme-derived, re-resolved on a theme switch. */
     private final List<Runnable> recolour = new ArrayList<>();
@@ -114,6 +140,22 @@ public final class StartPanel extends JPanel {
         super(new BorderLayout());
         this.actions = actions;
         this.status = status == null ? s -> { } : status;
+        this.promptHost = new StartPromptView.Host() {
+            @Override public void press(String entryId, String text) {
+                actions.pressStartPrompt(entryId, text);
+            }
+            @Override public void fallback(telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.Fallback f,
+                                           String entryId, String text) {
+                runFallback(actions, f, entryId, text);
+            }
+            @Override public String claudeSearched() { return actions.claudeSearched(); }
+            @Override public telamin.fluxtion.audit.analyser.analyser.assistant.PromptPack.Pack pack(long ref) {
+                return actions.promptPack(ref);
+            }
+            @Override public void returnToMainOptions() { actions.returnToMainOptions(); }
+            @Override public void seePackFormat() { actions.openUserGuide("user-guide/start-page/#prompt-packs"); }
+        };
+        this.prompt = new StartPromptView(promptHost);
         setOpaque(true);
 
         Box col = Box.createVerticalBox();
@@ -129,6 +171,10 @@ public final class StartPanel extends JPanel {
         operationFeedback.setVisible(false);
         col.add(operationFeedback);
         col.add(Box.createVerticalStrut(20));
+        // r8 F19: the cards stay, below the prompt — the no-typing path M71 accepted. A configured list can lead with a
+        // journey; it cannot hide these
+        col.add(heading(telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.text("start.or")));
+        col.add(Box.createVerticalStrut(6));
         workstreamSections[0] = workstream("Explore DEMO",
                 row(card("Take a guided tour", "Follow four spotlight stops in a local DEMO project.",
                                 true, actions::openGuidedTour),
@@ -186,6 +232,47 @@ public final class StartPanel extends JPanel {
         recoveryOffer.setVisible(false);
         add(recoveryOffer, BorderLayout.NORTH);
         applyColours();
+    }
+
+    /** M74 P2: render the session's start-page state (and the local agent's, for the full-posture cue). */
+    public void renderPrompt(telamin.fluxtion.audit.analyser.analyser.session.StartPageState state,
+                             telamin.fluxtion.audit.analyser.analyser.session.LocalAgentState agent) {
+        prompt.render(state, agent);
+    }
+
+    /** The prompt's host: its button and its fallbacks, through this page's one Actions interface. */
+    public StartPromptView.Host promptHost() {
+        return promptHost;
+    }
+
+    /** The button's draft was placed: the box is cleared for the next question. */
+    public void promptSent() {
+        prompt.clearAfterSend();
+    }
+
+    StartPromptView prompt() {
+        return prompt;
+    }
+
+    /**
+     * A no-AI fallback BUTTON runs an existing action (r8 F7); the menu path is only its tooltip. One switch over the
+     * fallback kinds — never over the assistant mode, which is the session's (OneDispatchModelTest).
+     */
+    static void runFallback(Actions actions, telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.Fallback f,
+                            String entryId, String text) {
+        if ("INSTALL".equals(entryId)) {
+            actions.installClaudeCode();
+            return;
+        }
+        switch (f) {
+            case ASSISTANT_SETTINGS -> actions.openSettings();
+            case CONNECT -> actions.openMcpSetup(McpSetupDialog.Target.CLAUDE_CODE);
+            case COPY_PROMPT -> actions.copyStartPrompt(entryId, text);
+            case NEW_PROJECT -> actions.newProject();
+            case BUNDLE_GUIDE -> actions.openUserGuide("evidence-bundles/opening/");
+            case TEMPLATE -> actions.newProjectFromTemplate();
+            case USER_GUIDE -> actions.openUserGuide("");
+        }
     }
 
     /** Show a recovery offer without replacing the shared start choices. */
@@ -401,13 +488,18 @@ public final class StartPanel extends JPanel {
         // WRAPS rather than ellipsising: a JLabel would render this as "…see what the system act…",
         // and the one sentence on the page that says what the app is for is the worst possible thing
         // to truncate
-        JTextArea title = wrapping("What would you like to work on?");
+        JTextArea title = wrapping(telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.text("start.title"));
         Font tf = UIManager.getFont("Label.font");
         title.setFont((tf != null ? tf : title.getFont()).deriveFont(Font.BOLD,
                 (tf != null ? tf : title.getFont()).getSize2D() + 5f));
         recolour.add(() -> title.setForeground(UIManager.getColor("Label.foreground")));
         inner.add(title);
         inner.add(Box.createVerticalStrut(6));
+        inner.add(body(telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.text("start.lede")));
+        inner.add(Box.createVerticalStrut(8));
+        prompt.setAlignmentX(LEFT_ALIGNMENT);
+        inner.add(prompt);
+        inner.add(Box.createVerticalStrut(8));
         inner.add(body("Open evidence, return to a project, or learn with DEMO. An assistant can drive the same views through the local bridge."));
         inner.add(Box.createVerticalStrut(6));
         inner.add(body("Drop an .fexp bundle, audit log, GraphML or Spring XML anywhere on this page. Return here from Help."));
