@@ -1760,10 +1760,10 @@ CONTROLS = [
     ('rp-verify-states-the-replay-limit', BUNDLE,
      '        return v.replay() == null ? LIMITS : LIMITS_REPLAY;\n', '        return LIMITS;\n',
      'MainBundleTest#aReplayBundleSaysWhatItCarries'),
-    # M70.R3: --replay-compare (spec §6). Every record exact but endTime; a count difference and a changed line are
+    # M70.R3: --replay-compare (spec §6). Every record exact but endTime and thread (ReplayCompare.EXCEPTED_FIELDS); a count difference and a changed line are
     # divergences; only a bundle carrying replay records is compared; the exit code carries the verdict.
     ('rc-only-endtime-is-excepted', COMPARE,
-     'Pattern.compile("^\\\\s*(endTime|thread):.*$")', 'Pattern.compile("^\\\\s*(endTime|thread|eventTime):.*$")',
+     'java.util.List.of("endTime", "thread");', 'java.util.List.of("endTime", "thread", "eventTime");',
      'ReplayCompareTest#anEventTimeIsNeverExcepted'),
     ('rc-a-changed-line-diverges', COMPARE,
      '            if (first != null) {\n', '            if (false) {\n',
