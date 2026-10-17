@@ -177,6 +177,28 @@ class HostedCredentialTest {
     }
 
     /**
+     * ★ Holistic review L-a (2026-10-17): a made-up hosted credential is refused BEFORE the hosted bucket, so it cannot
+     * spend the analyser's own session's rate limit. Witness: move the credential check after {@code tryAcquire} (the
+     * old order) — the made-up calls drain the 1/s bucket and the real hosted call is 429.
+     */
+    @Test
+    @DisplayName("★ L-a: an unauthenticated hosted caller cannot spend the hosted bucket")
+    void aBadCredentialSpendsNoBucket() throws Exception {
+        server.stop();
+        server = new ActionServer(new ActionDispatcher(false, null, () -> null, null), "shared", 20, 1.0);
+        server.setHostedGate(credentials.gate(g -> g == admitted.get() ? null : "not admitted"));
+        server.start();
+        String token = credentials.mint(9);
+        admitted.set(9);
+        for (int i = 0; i < 5; i++) {
+            var r = postHostedOnly(READ, "made-up-" + i);
+            assertEquals(403, r.statusCode(), r.body());
+            assertTrue(r.body().contains("not one this analyser issued"), r.body());
+        }
+        assertEquals(400, postHostedOnly(READ, token).statusCode(), "the real hosted call still has its bucket");
+    }
+
+    /**
      * ★ Review H4. Witness: let {@code refusedAsExternal} admit the shared token (return false), or publish in
      * {@code republish} regardless of the mode — the external call is dispatched (400) or the well-known file appears,
      * and the named assertion fails.

@@ -217,6 +217,12 @@ public final class ActionServer {
                     return;
                 }
             }
+            // holistic review L-a (2026-10-17): the hosted credential is checked BEFORE its bucket, so a caller with a
+            // made-up credential cannot spend the analyser's own Claude Code session's rate limit
+            if (hosted != null && (hostedGate == null || hostedGate.generationOf(hosted) < 0)) {
+                send(ex, 403, err(BAD_HOSTED_CREDENTIAL));
+                return;
+            }
             if (!(hosted != null ? hostedLimiter : limiter).tryAcquire()) {   // L2: separate buckets
                 send(ex, 429, err("rate limited (" + ratePerSec + "/s)"));
                 return;
@@ -264,6 +270,10 @@ public final class ActionServer {
         send(ex, 403, err(EXTERNAL_OFF));
         return true;
     }
+
+    /** A hosted credential this analyser did not issue, or has revoked. */
+    static final String BAD_HOSTED_CREDENTIAL = "the hosted credential is not one this analyser issued, or it was revoked "
+            + "when its Claude Code session stopped";
 
     /** What an external client is told by a hosted-only server. */
     static final String EXTERNAL_OFF = "the analyser's REST transport for external clients is off (Settings ▸ Assistant); "
@@ -331,8 +341,7 @@ public final class ActionServer {
     static String hostedRefusal(HostedCredentials.Gate gate, String credential, String body, String toolUseId) {
         long generation = gate == null ? -1 : gate.generationOf(credential);
         if (generation < 0) {
-            return "the hosted credential is not one this analyser issued, or it was revoked when its Claude Code session "
-                    + "stopped";
+            return BAD_HOSTED_CREDENTIAL;
         }
         Object root;
         try {
