@@ -269,6 +269,136 @@ class OneDispatchModelTest {
         }
     }
 
+    // ---- M74: the local agent (spec-claude-code-provider.md §4.1) ---------------------------------------------------
+
+    private static final Path LOCAL_AGENT = Path.of("src/main/java/telamin/fluxtion/audit/analyser/analyser/assistant/localagent");
+
+    /**
+     * One launcher, one performer. Witnesses: construct a {@code ProcessBuilder} in {@code LocalAgentAdapter}; add a
+     * second {@code localAgentAdapter.perform(} call outside {@code performLocalAgent}; build the command line anywhere but
+     * the adapter's spawn.
+     */
+    @Test
+    @DisplayName("M74: the agent's ProcessBuilder, its command line and the StartLocalAgentEffect performer each have one home")
+    void theLocalAgentHasOneLauncherAndOnePerformer() throws Exception {
+        Pattern processBuilder = Pattern.compile("\\bProcessBuilder\\b");
+        Pattern commandLine = Pattern.compile("\\.command\\(\\s*new\\s+LocalAgentProvider\\.LaunchSpec\\(");
+        List<String> offenders = new ArrayList<>();
+        try (var files = Files.list(LOCAL_AGENT)) {
+            for (Path f : files.filter(p -> p.toString().endsWith(".java")).sorted().toList()) {
+                String src = Files.readString(f);
+                String name = f.getFileName().toString();
+                if (!name.equals("OsAgentLauncher.java") && count(processBuilder, src) != 0) {
+                    offenders.add(name + " builds a process: only OsAgentLauncher may");
+                }
+                if (!name.equals("LocalAgentAdapter.java") && count(commandLine, src) != 0) {
+                    offenders.add(name + " builds the agent's command line: only the adapter's spawn may");
+                }
+                if (src.contains("import javax.swing") || src.contains("import java.awt") || src.contains("javax.swing.")
+                        || src.contains("SwingUtilities")) {
+                    offenders.add(name + " touches Swing: the adapter never writes to the UI (§4.1)");
+                }
+            }
+        }
+        String adapter = Files.readString(LOCAL_AGENT.resolve("LocalAgentAdapter.java"));
+        assertEquals(1, count(commandLine, bodyOf(adapter, "private void spawn(")), "the spawn builds the line, once");
+        assertEquals(1, count(Pattern.compile("new\\s+ProcessBuilder\\s*\\("),
+                Files.readString(LOCAL_AGENT.resolve("OsAgentLauncher.java"))), "OsAgentLauncher builds it, once");
+        // the one performer: MainFrame routes the effects to performLocalAgent, which is the only call of the adapter
+        String frame = Files.readString(UI.resolve("MainFrame.java"));
+        String performer = bodyOf(frame, "private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result performLocalAgent(");
+        Pattern perform = Pattern.compile("\\blocalAgentAdapter\\s*\\.\\s*perform\\s*\\(");
+        assertEquals(1, count(perform, performer), "performLocalAgent performs");
+        assertEquals(1, count(perform, frame), "and nothing else in the frame does");
+        Pattern startCase = Pattern.compile("case\\s+[\\w.]*StartLocalAgentEffect\\b");
+        assertEquals(1, count(startCase, bodyOf(frame, PERFORMER)), "performSessionEffect routes the start, once");
+        try (var files = Files.walk(Path.of("src/main/java"))) {
+            for (Path f : files.filter(p -> p.toString().endsWith(".java")).sorted().toList()) {
+                String src = Files.readString(f);
+                int n = count(startCase, src);
+                boolean home = f.equals(UI.resolve("MainFrame.java")) || f.equals(LOCAL_AGENT.resolve("LocalAgentAdapter.java"))
+                        || f.getFileName().toString().equals("SessionDriver.java");
+                if (n != 0 && !home) offenders.add(f.getFileName() + " performs StartLocalAgentEffect");
+                if (!f.startsWith(LOCAL_AGENT) && !f.equals(UI.resolve("MainFrame.java"))
+                        && src.contains("new telamin.fluxtion.audit.analyser.analyser.assistant.localagent.OsAgentLauncher(")) {
+                    offenders.add(f.getFileName() + " constructs the agent launcher");
+                }
+            }
+        }
+        // review S8: the ProcessBuilder rule covers the whole main tree, not only the localagent package — every process the
+        // analyser can build is in a named home, so a second agent launcher anywhere fails here
+        java.util.Set<String> processHomes = java.util.Set.of("OsAgentLauncher.java", "S3Source.java", "CodexMcpClient.java",
+                "McpConnectionProbe.java", "ClaudeMcpClient.java");
+        Pattern newProcess = Pattern.compile("new\\s+ProcessBuilder\\s*\\(|Runtime\\.getRuntime\\(\\)\\s*\\.\\s*exec\\s*\\(");
+        try (var files = Files.walk(Path.of("src/main/java"))) {
+            for (Path f : files.filter(p -> p.toString().endsWith(".java")).sorted().toList()) {
+                if (count(newProcess, Files.readString(f)) != 0 && !processHomes.contains(f.getFileName().toString())) {
+                    offenders.add(f.getFileName() + " builds a process outside the named homes");
+                }
+            }
+        }
+        assertEquals(List.of(), offenders, "one dispatch model for the local agent");
+    }
+
+    /**
+     * The tab renders and reports; it never decides or performs. Witness: call {@code localAgentAdapter} or post a
+     * session fact from {@code LocalAgentPanel}.
+     */
+    @Test
+    @DisplayName("M74: the Claude Code panel renders the snapshot and reports intents; it starts, posts and decides nothing")
+    void theLocalAgentPanelOnlyRenders() throws Exception {
+        String panel = Files.readString(UI.resolve("LocalAgentPanel.java"));
+        for (String forbidden : List.of("LocalAgentAdapter", "ClaudeCodeProvider", "ProcessBuilder", "OsAgentLauncher",
+                ".post(", "SessionDriver", "SessionEvents")) {
+            assertFalse(panel.contains(forbidden), "LocalAgentPanel must not use " + forbidden);
+        }
+    }
+
+    /**
+     * Warm start was cut (owner, 2026-10-17): Start is always the explicit button. Witnesses: post
+     * {@code LocalAgentStartRequested} from a tab-selection listener, or from {@code revealAssistant()} — the counts fail.
+     */
+    @Test
+    @DisplayName("M74: only the Start button posts a Start; selecting or revealing the Assistant tab starts nothing")
+    void onlyTheStartButtonStarts() throws Exception {
+        String frame = Files.readString(UI.resolve("MainFrame.java"));
+        Pattern start = Pattern.compile("new\\s+[\\w.]*LocalAgentStartRequested\\(");
+        assertEquals(1, count(start, frame), "one Start in the frame");
+        assertEquals(1, count(start, bodyOf(frame, "private void installLocalAgent(")), "and it is the Start intent's");
+        assertFalse(bodyOf(frame, "private void revealAssistant(").contains("LocalAgentStartRequested"),
+                "a programmatic reveal never starts a process");
+        assertFalse(frame.contains("onAssistantTabSelected") || frame.contains("WarmStart"), "no warm-start path remains");
+        assertFalse(Files.exists(UI.resolve("WarmStart.java")));
+    }
+
+    /**
+     * Review M8 and M6: the folder answer is a fact and the hosted admission is the node's. Witnesses: post
+     * {@code LocalAgentStartRequested} from the dialog's callback, re-run {@code LocalAgentFolders.check} there, write the
+     * trusted folder before the node accepts the answer, or admit a hosted call from {@code admittedGeneration()} in the
+     * frame — each fails its named assertion.
+     */
+    @Test
+    @DisplayName("M74 M8/M6: the folder answer and the hosted admission are decided by the node; the frame reports and performs")
+    void theFolderAnswerAndTheAdmissionAreTheNodes() throws Exception {
+        String frame = Files.readString(UI.resolve("MainFrame.java"));
+        String confirm = bodyOf(frame, "private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result confirmLocalAgentFolderNow(");
+        assertFalse(confirm.isEmpty(), "confirmLocalAgentFolderNow must exist");
+        assertFalse(confirm.contains("LocalAgentStartRequested"), "the dialog reports an answer; it never starts anything");
+        assertFalse(confirm.contains("LocalAgentFolders"), "and never re-checks the folder: the node already decided");
+        assertFalse(confirm.contains("claudeCodeTrustedFolders"), "nor records trust before the node accepts the answer");
+        assertTrue(confirm.contains("LocalAgentFolderAnswered("), "the answer is a fact");
+        assertEquals(1, count(Pattern.compile("LocalAgentFolders\\s*\\.\\s*check\\("), frame),
+                "one folder check in the frame: the consent observation");
+        assertTrue(bodyOf(frame, "private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentConsent localAgentConsent(")
+                .contains("LocalAgentFolders.check("), "and it is the consent's");
+        assertEquals(1, count(Pattern.compile("claudeCodeTrustedFolders\\s*\\.\\s*add\\("), frame),
+                "the trust record has one writer");
+        assertTrue(bodyOf(frame, "private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result trustLocalAgentFolder(")
+                .contains("claudeCodeTrustedFolders.add("), "the performer of the node's TrustLocalAgentFolderEffect");
+        assertFalse(frame.contains("admittedGeneration()"), "the frame never admits a hosted call from the snapshot (M6)");
+        assertTrue(frame.contains("hostedCredentials.gate(hostedAdmission::admit)"), "it asks the session instead");
+    }
+
     private static int count(Pattern p, String s) {
         Matcher m = p.matcher(s);
         int n = 0;

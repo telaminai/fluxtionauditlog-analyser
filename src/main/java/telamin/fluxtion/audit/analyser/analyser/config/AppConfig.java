@@ -117,6 +117,26 @@ public final class AppConfig {
      */
     public boolean assistantCreateProjects = false;
 
+    // ---- M74: Claude Code as the Assistant tab's local agent (spec-claude-code-provider.md §5.1) ------------------
+    // EVERY one of these is MACHINE tier only, like assistantCreateProjects: read and written by ConfigStore, never
+    // exported or imported by SettingsShare, never a project-profile key, never carried by a bundle — so a cloned
+    // repository, an imported share or a received bundle cannot start anything (pinned by LocalAgentConsentTest).
+
+    /** <i>Allow the analyser to start Claude Code</i> (OD-74.1): off by default. */
+    public boolean claudeCodeAllowed = false;
+    /** <i>…with my full Claude Code permissions</i> (P1b): stored, but the switch is disabled until P1b ships. */
+    public boolean claudeCodeFull = false;
+    /** The Claude Code model — its own setting, never {@link #llmModel}. */
+    public String claudeCodeModel = "sonnet";
+    /**
+     * The Claude Code budget, in US dollars (§4.6): the cap on what this analyser's Claude Code conversations may spend
+     * while it runs. The spend is counted in the session's memory, so it starts again from zero when the analyser
+     * restarts; it is not a lifetime or per-machine total.
+     */
+    public double claudeCodeBudgetUsd = 5.0;
+    /** Folders confirmed for Claude Code on this machine (OD-74.5), by real path. */
+    public final List<String> claudeCodeTrustedFolders = new ArrayList<>();
+
     /**
      * Where THIS PROJECT would like the exchange directory to be — project-relative, no {@code ..}
      * (#21). Project-tier, and it says WHERE, never WHETHER: {@link #assistantExports} stays machine

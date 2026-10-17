@@ -52,6 +52,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantE
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantHandoffRequested;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantHostRequested;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantHostShown;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantModeChosen;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantNewChatRequested;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantOpenApplied;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantOpenApplyFailed;
@@ -69,6 +70,27 @@ import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FollowTogg
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphCleared;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphClosed;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphOpened;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentBridgeServed;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentCallAdmissionRequested;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentCostObserved;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentEffectStarted;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentExited;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentFolderAnswered;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentInitObserved;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentInitialized;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentInterruptAcked;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentNewChatRequested;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentNoted;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentSendRequested;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentSpawned;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentStartDeadline;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentStartRequested;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentStatusObserved;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentStopDeadline;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentStopRequested;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentTextUpdated;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentTurnEnded;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentTurnStarted;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogAppended;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogCleared;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogClosed;
@@ -104,6 +126,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.WalkViewAp
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.WalkViewChanged;
 import telamin.fluxtion.audit.analyser.analyser.session.node.ActiveProject;
 import telamin.fluxtion.audit.analyser.analyser.session.node.AssistantLoop;
+import telamin.fluxtion.audit.analyser.analyser.session.node.AssistantModeChoice;
 import telamin.fluxtion.audit.analyser.analyser.session.node.AuditInstallation;
 import telamin.fluxtion.audit.analyser.analyser.session.node.BundleAnchor;
 import telamin.fluxtion.audit.analyser.analyser.session.node.CoverageClaim;
@@ -112,6 +135,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.node.EffectOutcomes;
 import telamin.fluxtion.audit.analyser.analyser.session.node.EffectQueue;
 import telamin.fluxtion.audit.analyser.analyser.session.node.EvidenceCapture;
 import telamin.fluxtion.audit.analyser.analyser.session.node.IgnoredParameters;
+import telamin.fluxtion.audit.analyser.analyser.session.node.LocalAgentSession;
 import telamin.fluxtion.audit.analyser.analyser.session.node.LogArrival;
 import telamin.fluxtion.audit.analyser.analyser.session.node.LogEvidence;
 import telamin.fluxtion.audit.analyser.analyser.session.node.LogOpening;
@@ -160,6 +184,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Requ
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantHandoffRequested
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantHostRequested
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantHostShown
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantModeChosen
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantNewChatRequested
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantOpenApplied
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantOpenApplyFailed
@@ -177,6 +202,27 @@ import telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Requ
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphCleared
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphClosed
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphOpened
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentBridgeServed
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentCallAdmissionRequested
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentCostObserved
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentEffectStarted
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentExited
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentFolderAnswered
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentInitObserved
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentInitialized
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentInterruptAcked
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentNewChatRequested
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentNoted
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentSendRequested
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentSpawned
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentStartDeadline
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentStartRequested
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentStatusObserved
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentStopDeadline
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentStopRequested
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentTextUpdated
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentTurnEnded
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentTurnStarted
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogAppended
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogCleared
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogClosed
@@ -231,6 +277,7 @@ public class SessionProcessor
         com.telamin.fluxtion.runtime.node.NodeNameLookup {
 
   //Node declarations
+  public final transient AssistantModeChoice assistantMode = new AssistantModeChoice();
   private final transient CallbackDispatcherImpl callbackDispatcher = new CallbackDispatcherImpl();
   public final transient Clock clock = new Clock();
   public final transient EventLogManager eventLogger = new EventLogManager();
@@ -275,6 +322,9 @@ public class SessionProcessor
   public final transient EvidenceCapture evidenceCapture =
       new telamin.fluxtion.audit.analyser.analyser.session.node.EvidenceCapture(
           openLog, operationGate, effectQueue);;
+  public final transient LocalAgentSession localAgentSession =
+      new telamin.fluxtion.audit.analyser.analyser.session.node.LocalAgentSession(
+          assistantMode, effectQueue);;
   public final transient LogArrival logArrival =
       new telamin.fluxtion.audit.analyser.analyser.session.node.LogArrival(
           operationGate, pairing, openGraph, effectQueue);;
@@ -304,13 +354,15 @@ public class SessionProcessor
   //Measured saving on a 3-event-type graph: 0.098ns of a 5.61ns event on a JIT; nothing on native+PGO.
   private boolean callbacksPending = false;
   private final transient IdentityHashMap<Object, BooleanSupplier> dirtyFlagSupplierMap =
-      new IdentityHashMap<>(8);
+      new IdentityHashMap<>(10);
   private final transient IdentityHashMap<Object, Consumer<Boolean>> dirtyFlagUpdateMap =
-      new IdentityHashMap<>(8);
+      new IdentityHashMap<>(10);
 
   private boolean isDirty_activeProject = false;
   private boolean isDirty_assistantLoop = false;
+  private boolean isDirty_assistantMode = false;
   private boolean isDirty_auditInstallation = false;
+  private boolean isDirty_localAgentSession = false;
   private boolean isDirty_openBundle = false;
   private boolean isDirty_openGraph = false;
   private boolean isDirty_openLog = false;
@@ -370,6 +422,10 @@ public class SessionProcessor
             new ProcessorDescriptor.Input(
                 "AssistantHostShown",
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantHostShown",
+                false),
+            new ProcessorDescriptor.Input(
+                "AssistantModeChosen",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantModeChosen",
                 false),
             new ProcessorDescriptor.Input(
                 "AssistantNewChatRequested",
@@ -450,6 +506,90 @@ public class SessionProcessor
             new ProcessorDescriptor.Input(
                 "GraphOpened",
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphOpened",
+                false),
+            new ProcessorDescriptor.Input(
+                "LocalAgentBridgeServed",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentBridgeServed",
+                false),
+            new ProcessorDescriptor.Input(
+                "LocalAgentCallAdmissionRequested",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentCallAdmissionRequested",
+                false),
+            new ProcessorDescriptor.Input(
+                "LocalAgentCostObserved",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentCostObserved",
+                false),
+            new ProcessorDescriptor.Input(
+                "LocalAgentEffectStarted",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentEffectStarted",
+                false),
+            new ProcessorDescriptor.Input(
+                "LocalAgentExited",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentExited",
+                false),
+            new ProcessorDescriptor.Input(
+                "LocalAgentFolderAnswered",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentFolderAnswered",
+                false),
+            new ProcessorDescriptor.Input(
+                "LocalAgentInitObserved",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentInitObserved",
+                false),
+            new ProcessorDescriptor.Input(
+                "LocalAgentInitialized",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentInitialized",
+                false),
+            new ProcessorDescriptor.Input(
+                "LocalAgentInterruptAcked",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentInterruptAcked",
+                false),
+            new ProcessorDescriptor.Input(
+                "LocalAgentNewChatRequested",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentNewChatRequested",
+                false),
+            new ProcessorDescriptor.Input(
+                "LocalAgentNoted",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentNoted",
+                false),
+            new ProcessorDescriptor.Input(
+                "LocalAgentSendRequested",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentSendRequested",
+                false),
+            new ProcessorDescriptor.Input(
+                "LocalAgentSpawned",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentSpawned",
+                false),
+            new ProcessorDescriptor.Input(
+                "LocalAgentStartDeadline",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentStartDeadline",
+                false),
+            new ProcessorDescriptor.Input(
+                "LocalAgentStartRequested",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentStartRequested",
+                false),
+            new ProcessorDescriptor.Input(
+                "LocalAgentStatusObserved",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentStatusObserved",
+                false),
+            new ProcessorDescriptor.Input(
+                "LocalAgentStopDeadline",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentStopDeadline",
+                false),
+            new ProcessorDescriptor.Input(
+                "LocalAgentStopRequested",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentStopRequested",
+                false),
+            new ProcessorDescriptor.Input(
+                "LocalAgentTextUpdated",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentTextUpdated",
+                false),
+            new ProcessorDescriptor.Input(
+                "LocalAgentTurnEnded",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentTurnEnded",
+                false),
+            new ProcessorDescriptor.Input(
+                "LocalAgentTurnStarted",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentTurnStarted",
                 false),
             new ProcessorDescriptor.Input(
                 "LogAppended",
@@ -609,7 +749,7 @@ public class SessionProcessor
           new DescriptorSupport.Meta(
               null,
               "1.0.76",
-              "ea9564b8aa0260d4c928b54052f99d3ea0e465fda0c5eee9f79b2dfc7465320e",
+              "d39a377f0456485fbd87733c992f3cb063661b2c19453ca9896e5f117c103387",
               null));
 
   @Override
@@ -634,6 +774,7 @@ public class SessionProcessor
     eventLogger.recordEndTime = true;
     context.setClock(clock);
     serviceRegistry.setDataFlowContext(context);
+    assistantLoop.setAssistantMode(assistantMode);
     effectQueue.setDataFlowContext(context);
     //node auditors
     initialiseAuditor(clock);
@@ -809,6 +950,9 @@ public class SessionProcessor
     } else if (event instanceof AssistantHostShown) {
       AssistantHostShown typedEvent = (AssistantHostShown) event;
       handleEvent(typedEvent);
+    } else if (event instanceof AssistantModeChosen) {
+      AssistantModeChosen typedEvent = (AssistantModeChosen) event;
+      handleEvent(typedEvent);
     } else if (event instanceof AssistantNewChatRequested) {
       AssistantNewChatRequested typedEvent = (AssistantNewChatRequested) event;
       handleEvent(typedEvent);
@@ -859,6 +1003,69 @@ public class SessionProcessor
       handleEvent(typedEvent);
     } else if (event instanceof GraphOpened) {
       GraphOpened typedEvent = (GraphOpened) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof LocalAgentBridgeServed) {
+      LocalAgentBridgeServed typedEvent = (LocalAgentBridgeServed) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof LocalAgentCallAdmissionRequested) {
+      LocalAgentCallAdmissionRequested typedEvent = (LocalAgentCallAdmissionRequested) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof LocalAgentCostObserved) {
+      LocalAgentCostObserved typedEvent = (LocalAgentCostObserved) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof LocalAgentEffectStarted) {
+      LocalAgentEffectStarted typedEvent = (LocalAgentEffectStarted) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof LocalAgentExited) {
+      LocalAgentExited typedEvent = (LocalAgentExited) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof LocalAgentFolderAnswered) {
+      LocalAgentFolderAnswered typedEvent = (LocalAgentFolderAnswered) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof LocalAgentInitObserved) {
+      LocalAgentInitObserved typedEvent = (LocalAgentInitObserved) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof LocalAgentInitialized) {
+      LocalAgentInitialized typedEvent = (LocalAgentInitialized) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof LocalAgentInterruptAcked) {
+      LocalAgentInterruptAcked typedEvent = (LocalAgentInterruptAcked) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof LocalAgentNewChatRequested) {
+      LocalAgentNewChatRequested typedEvent = (LocalAgentNewChatRequested) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof LocalAgentNoted) {
+      LocalAgentNoted typedEvent = (LocalAgentNoted) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof LocalAgentSendRequested) {
+      LocalAgentSendRequested typedEvent = (LocalAgentSendRequested) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof LocalAgentSpawned) {
+      LocalAgentSpawned typedEvent = (LocalAgentSpawned) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof LocalAgentStartDeadline) {
+      LocalAgentStartDeadline typedEvent = (LocalAgentStartDeadline) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof LocalAgentStartRequested) {
+      LocalAgentStartRequested typedEvent = (LocalAgentStartRequested) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof LocalAgentStatusObserved) {
+      LocalAgentStatusObserved typedEvent = (LocalAgentStatusObserved) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof LocalAgentStopDeadline) {
+      LocalAgentStopDeadline typedEvent = (LocalAgentStopDeadline) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof LocalAgentStopRequested) {
+      LocalAgentStopRequested typedEvent = (LocalAgentStopRequested) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof LocalAgentTextUpdated) {
+      LocalAgentTextUpdated typedEvent = (LocalAgentTextUpdated) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof LocalAgentTurnEnded) {
+      LocalAgentTurnEnded typedEvent = (LocalAgentTurnEnded) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof LocalAgentTurnStarted) {
+      LocalAgentTurnStarted typedEvent = (LocalAgentTurnStarted) event;
       handleEvent(typedEvent);
     } else if (event instanceof LogAppended) {
       LogAppended typedEvent = (LogAppended) event;
@@ -1060,6 +1267,11 @@ public class SessionProcessor
   }
 
   @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(AssistantModeChosen event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
   public void onEvent(AssistantNewChatRequested event) {
     processEvent(event);
   }
@@ -1141,6 +1353,111 @@ public class SessionProcessor
 
   @OnEventHandler(failBuildIfMissingBooleanReturn = false)
   public void onEvent(GraphOpened event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(LocalAgentBridgeServed event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(LocalAgentCallAdmissionRequested event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(LocalAgentCostObserved event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(LocalAgentEffectStarted event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(LocalAgentExited event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(LocalAgentFolderAnswered event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(LocalAgentInitObserved event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(LocalAgentInitialized event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(LocalAgentInterruptAcked event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(LocalAgentNewChatRequested event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(LocalAgentNoted event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(LocalAgentSendRequested event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(LocalAgentSpawned event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(LocalAgentStartDeadline event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(LocalAgentStartRequested event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(LocalAgentStatusObserved event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(LocalAgentStopDeadline event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(LocalAgentStopRequested event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(LocalAgentTextUpdated event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(LocalAgentTurnEnded event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(LocalAgentTurnStarted event) {
     processEvent(event);
   }
 
@@ -1500,6 +1817,22 @@ public class SessionProcessor
     afterEvent();
   }
 
+  public void handleEvent(AssistantModeChosen typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(localAgentSession, "localAgentSession", "onModeChosen", typedEvent);
+    isDirty_localAgentSession = localAgentSession.onModeChosen(typedEvent);
+    auditInvocation(assistantMode, "assistantMode", "onModeChosen", typedEvent);
+    isDirty_assistantMode = assistantMode.onModeChosen(typedEvent);
+    auditInvocation(assistantLoop, "assistantLoop", "onModeChosen", typedEvent);
+    isDirty_assistantLoop = assistantLoop.onModeChosen(typedEvent);
+    if (guardCheck_walkPlayback()) {
+      auditInvocation(walkPlayback, "walkPlayback", "onLogChanged", typedEvent);
+      walkPlayback.onLogChanged();
+    }
+    afterEvent();
+  }
+
   public void handleEvent(AssistantNewChatRequested typedEvent) {
     auditEvent(typedEvent);
     //Default, no filter methods
@@ -1755,6 +2088,250 @@ public class SessionProcessor
     }
     auditInvocation(projectReopenOffer, "projectReopenOffer", "onGraphOpened", typedEvent);
     projectReopenOffer.onGraphOpened(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(LocalAgentBridgeServed typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(localAgentSession, "localAgentSession", "onBridgeServed", typedEvent);
+    isDirty_localAgentSession = localAgentSession.onBridgeServed(typedEvent);
+    if (guardCheck_walkPlayback()) {
+      auditInvocation(walkPlayback, "walkPlayback", "onLogChanged", typedEvent);
+      walkPlayback.onLogChanged();
+    }
+    afterEvent();
+  }
+
+  public void handleEvent(LocalAgentCallAdmissionRequested typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(localAgentSession, "localAgentSession", "onCallAdmission", typedEvent);
+    isDirty_localAgentSession = localAgentSession.onCallAdmission(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(LocalAgentCostObserved typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(localAgentSession, "localAgentSession", "onCostObserved", typedEvent);
+    isDirty_localAgentSession = localAgentSession.onCostObserved(typedEvent);
+    if (guardCheck_walkPlayback()) {
+      auditInvocation(walkPlayback, "walkPlayback", "onLogChanged", typedEvent);
+      walkPlayback.onLogChanged();
+    }
+    afterEvent();
+  }
+
+  public void handleEvent(LocalAgentEffectStarted typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(localAgentSession, "localAgentSession", "onEffectStarted", typedEvent);
+    isDirty_localAgentSession = localAgentSession.onEffectStarted(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(LocalAgentExited typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(localAgentSession, "localAgentSession", "onExited", typedEvent);
+    isDirty_localAgentSession = localAgentSession.onExited(typedEvent);
+    if (guardCheck_walkPlayback()) {
+      auditInvocation(walkPlayback, "walkPlayback", "onLogChanged", typedEvent);
+      walkPlayback.onLogChanged();
+    }
+    afterEvent();
+  }
+
+  public void handleEvent(LocalAgentFolderAnswered typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(localAgentSession, "localAgentSession", "onFolderAnswered", typedEvent);
+    isDirty_localAgentSession = localAgentSession.onFolderAnswered(typedEvent);
+    if (guardCheck_walkPlayback()) {
+      auditInvocation(walkPlayback, "walkPlayback", "onLogChanged", typedEvent);
+      walkPlayback.onLogChanged();
+    }
+    afterEvent();
+  }
+
+  public void handleEvent(LocalAgentInitObserved typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(localAgentSession, "localAgentSession", "onInitObserved", typedEvent);
+    isDirty_localAgentSession = localAgentSession.onInitObserved(typedEvent);
+    if (guardCheck_walkPlayback()) {
+      auditInvocation(walkPlayback, "walkPlayback", "onLogChanged", typedEvent);
+      walkPlayback.onLogChanged();
+    }
+    afterEvent();
+  }
+
+  public void handleEvent(LocalAgentInitialized typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(localAgentSession, "localAgentSession", "onInitialized", typedEvent);
+    isDirty_localAgentSession = localAgentSession.onInitialized(typedEvent);
+    if (guardCheck_walkPlayback()) {
+      auditInvocation(walkPlayback, "walkPlayback", "onLogChanged", typedEvent);
+      walkPlayback.onLogChanged();
+    }
+    afterEvent();
+  }
+
+  public void handleEvent(LocalAgentInterruptAcked typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(localAgentSession, "localAgentSession", "onInterruptAcked", typedEvent);
+    isDirty_localAgentSession = localAgentSession.onInterruptAcked(typedEvent);
+    if (guardCheck_walkPlayback()) {
+      auditInvocation(walkPlayback, "walkPlayback", "onLogChanged", typedEvent);
+      walkPlayback.onLogChanged();
+    }
+    afterEvent();
+  }
+
+  public void handleEvent(LocalAgentNewChatRequested typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(localAgentSession, "localAgentSession", "onNewChatRequested", typedEvent);
+    isDirty_localAgentSession = localAgentSession.onNewChatRequested(typedEvent);
+    if (guardCheck_walkPlayback()) {
+      auditInvocation(walkPlayback, "walkPlayback", "onLogChanged", typedEvent);
+      walkPlayback.onLogChanged();
+    }
+    afterEvent();
+  }
+
+  public void handleEvent(LocalAgentNoted typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(localAgentSession, "localAgentSession", "onNoted", typedEvent);
+    isDirty_localAgentSession = localAgentSession.onNoted(typedEvent);
+    if (guardCheck_walkPlayback()) {
+      auditInvocation(walkPlayback, "walkPlayback", "onLogChanged", typedEvent);
+      walkPlayback.onLogChanged();
+    }
+    afterEvent();
+  }
+
+  public void handleEvent(LocalAgentSendRequested typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(localAgentSession, "localAgentSession", "onSendRequested", typedEvent);
+    isDirty_localAgentSession = localAgentSession.onSendRequested(typedEvent);
+    if (guardCheck_walkPlayback()) {
+      auditInvocation(walkPlayback, "walkPlayback", "onLogChanged", typedEvent);
+      walkPlayback.onLogChanged();
+    }
+    afterEvent();
+  }
+
+  public void handleEvent(LocalAgentSpawned typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(localAgentSession, "localAgentSession", "onSpawned", typedEvent);
+    isDirty_localAgentSession = localAgentSession.onSpawned(typedEvent);
+    if (guardCheck_walkPlayback()) {
+      auditInvocation(walkPlayback, "walkPlayback", "onLogChanged", typedEvent);
+      walkPlayback.onLogChanged();
+    }
+    afterEvent();
+  }
+
+  public void handleEvent(LocalAgentStartDeadline typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(localAgentSession, "localAgentSession", "onStartDeadline", typedEvent);
+    isDirty_localAgentSession = localAgentSession.onStartDeadline(typedEvent);
+    if (guardCheck_walkPlayback()) {
+      auditInvocation(walkPlayback, "walkPlayback", "onLogChanged", typedEvent);
+      walkPlayback.onLogChanged();
+    }
+    afterEvent();
+  }
+
+  public void handleEvent(LocalAgentStartRequested typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(localAgentSession, "localAgentSession", "onStartRequested", typedEvent);
+    isDirty_localAgentSession = localAgentSession.onStartRequested(typedEvent);
+    if (guardCheck_walkPlayback()) {
+      auditInvocation(walkPlayback, "walkPlayback", "onLogChanged", typedEvent);
+      walkPlayback.onLogChanged();
+    }
+    afterEvent();
+  }
+
+  public void handleEvent(LocalAgentStatusObserved typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(localAgentSession, "localAgentSession", "onStatusObserved", typedEvent);
+    isDirty_localAgentSession = localAgentSession.onStatusObserved(typedEvent);
+    if (guardCheck_walkPlayback()) {
+      auditInvocation(walkPlayback, "walkPlayback", "onLogChanged", typedEvent);
+      walkPlayback.onLogChanged();
+    }
+    afterEvent();
+  }
+
+  public void handleEvent(LocalAgentStopDeadline typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(localAgentSession, "localAgentSession", "onStopDeadline", typedEvent);
+    isDirty_localAgentSession = localAgentSession.onStopDeadline(typedEvent);
+    if (guardCheck_walkPlayback()) {
+      auditInvocation(walkPlayback, "walkPlayback", "onLogChanged", typedEvent);
+      walkPlayback.onLogChanged();
+    }
+    afterEvent();
+  }
+
+  public void handleEvent(LocalAgentStopRequested typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(localAgentSession, "localAgentSession", "onStopRequested", typedEvent);
+    isDirty_localAgentSession = localAgentSession.onStopRequested(typedEvent);
+    if (guardCheck_walkPlayback()) {
+      auditInvocation(walkPlayback, "walkPlayback", "onLogChanged", typedEvent);
+      walkPlayback.onLogChanged();
+    }
+    afterEvent();
+  }
+
+  public void handleEvent(LocalAgentTextUpdated typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(localAgentSession, "localAgentSession", "onTextUpdated", typedEvent);
+    isDirty_localAgentSession = localAgentSession.onTextUpdated(typedEvent);
+    if (guardCheck_walkPlayback()) {
+      auditInvocation(walkPlayback, "walkPlayback", "onLogChanged", typedEvent);
+      walkPlayback.onLogChanged();
+    }
+    afterEvent();
+  }
+
+  public void handleEvent(LocalAgentTurnEnded typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(localAgentSession, "localAgentSession", "onTurnEnded", typedEvent);
+    isDirty_localAgentSession = localAgentSession.onTurnEnded(typedEvent);
+    if (guardCheck_walkPlayback()) {
+      auditInvocation(walkPlayback, "walkPlayback", "onLogChanged", typedEvent);
+      walkPlayback.onLogChanged();
+    }
+    afterEvent();
+  }
+
+  public void handleEvent(LocalAgentTurnStarted typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(localAgentSession, "localAgentSession", "onTurnStarted", typedEvent);
+    isDirty_localAgentSession = localAgentSession.onTurnStarted(typedEvent);
+    if (guardCheck_walkPlayback()) {
+      auditInvocation(walkPlayback, "walkPlayback", "onLogChanged", typedEvent);
+      walkPlayback.onLogChanged();
+    }
     afterEvent();
   }
 
@@ -2470,6 +3047,15 @@ public class SessionProcessor
       auditEvent(typedEvent);
       auditInvocation(assistantLoop, "assistantLoop", "onHostShown", typedEvent);
       isDirty_assistantLoop = assistantLoop.onHostShown(typedEvent);
+    } else if (event instanceof AssistantModeChosen) {
+      AssistantModeChosen typedEvent = (AssistantModeChosen) event;
+      auditEvent(typedEvent);
+      auditInvocation(localAgentSession, "localAgentSession", "onModeChosen", typedEvent);
+      isDirty_localAgentSession = localAgentSession.onModeChosen(typedEvent);
+      auditInvocation(assistantMode, "assistantMode", "onModeChosen", typedEvent);
+      isDirty_assistantMode = assistantMode.onModeChosen(typedEvent);
+      auditInvocation(assistantLoop, "assistantLoop", "onModeChosen", typedEvent);
+      isDirty_assistantLoop = assistantLoop.onModeChosen(typedEvent);
     } else if (event instanceof AssistantNewChatRequested) {
       AssistantNewChatRequested typedEvent = (AssistantNewChatRequested) event;
       auditEvent(typedEvent);
@@ -2581,6 +3167,111 @@ public class SessionProcessor
       isDirty_assistantLoop = assistantLoop.onGraphOpened(typedEvent);
       auditInvocation(projectReopenOffer, "projectReopenOffer", "onGraphOpened", typedEvent);
       projectReopenOffer.onGraphOpened(typedEvent);
+    } else if (event instanceof LocalAgentBridgeServed) {
+      LocalAgentBridgeServed typedEvent = (LocalAgentBridgeServed) event;
+      auditEvent(typedEvent);
+      auditInvocation(localAgentSession, "localAgentSession", "onBridgeServed", typedEvent);
+      isDirty_localAgentSession = localAgentSession.onBridgeServed(typedEvent);
+    } else if (event instanceof LocalAgentCallAdmissionRequested) {
+      LocalAgentCallAdmissionRequested typedEvent = (LocalAgentCallAdmissionRequested) event;
+      auditEvent(typedEvent);
+      auditInvocation(localAgentSession, "localAgentSession", "onCallAdmission", typedEvent);
+      isDirty_localAgentSession = localAgentSession.onCallAdmission(typedEvent);
+    } else if (event instanceof LocalAgentCostObserved) {
+      LocalAgentCostObserved typedEvent = (LocalAgentCostObserved) event;
+      auditEvent(typedEvent);
+      auditInvocation(localAgentSession, "localAgentSession", "onCostObserved", typedEvent);
+      isDirty_localAgentSession = localAgentSession.onCostObserved(typedEvent);
+    } else if (event instanceof LocalAgentEffectStarted) {
+      LocalAgentEffectStarted typedEvent = (LocalAgentEffectStarted) event;
+      auditEvent(typedEvent);
+      auditInvocation(localAgentSession, "localAgentSession", "onEffectStarted", typedEvent);
+      isDirty_localAgentSession = localAgentSession.onEffectStarted(typedEvent);
+    } else if (event instanceof LocalAgentExited) {
+      LocalAgentExited typedEvent = (LocalAgentExited) event;
+      auditEvent(typedEvent);
+      auditInvocation(localAgentSession, "localAgentSession", "onExited", typedEvent);
+      isDirty_localAgentSession = localAgentSession.onExited(typedEvent);
+    } else if (event instanceof LocalAgentFolderAnswered) {
+      LocalAgentFolderAnswered typedEvent = (LocalAgentFolderAnswered) event;
+      auditEvent(typedEvent);
+      auditInvocation(localAgentSession, "localAgentSession", "onFolderAnswered", typedEvent);
+      isDirty_localAgentSession = localAgentSession.onFolderAnswered(typedEvent);
+    } else if (event instanceof LocalAgentInitObserved) {
+      LocalAgentInitObserved typedEvent = (LocalAgentInitObserved) event;
+      auditEvent(typedEvent);
+      auditInvocation(localAgentSession, "localAgentSession", "onInitObserved", typedEvent);
+      isDirty_localAgentSession = localAgentSession.onInitObserved(typedEvent);
+    } else if (event instanceof LocalAgentInitialized) {
+      LocalAgentInitialized typedEvent = (LocalAgentInitialized) event;
+      auditEvent(typedEvent);
+      auditInvocation(localAgentSession, "localAgentSession", "onInitialized", typedEvent);
+      isDirty_localAgentSession = localAgentSession.onInitialized(typedEvent);
+    } else if (event instanceof LocalAgentInterruptAcked) {
+      LocalAgentInterruptAcked typedEvent = (LocalAgentInterruptAcked) event;
+      auditEvent(typedEvent);
+      auditInvocation(localAgentSession, "localAgentSession", "onInterruptAcked", typedEvent);
+      isDirty_localAgentSession = localAgentSession.onInterruptAcked(typedEvent);
+    } else if (event instanceof LocalAgentNewChatRequested) {
+      LocalAgentNewChatRequested typedEvent = (LocalAgentNewChatRequested) event;
+      auditEvent(typedEvent);
+      auditInvocation(localAgentSession, "localAgentSession", "onNewChatRequested", typedEvent);
+      isDirty_localAgentSession = localAgentSession.onNewChatRequested(typedEvent);
+    } else if (event instanceof LocalAgentNoted) {
+      LocalAgentNoted typedEvent = (LocalAgentNoted) event;
+      auditEvent(typedEvent);
+      auditInvocation(localAgentSession, "localAgentSession", "onNoted", typedEvent);
+      isDirty_localAgentSession = localAgentSession.onNoted(typedEvent);
+    } else if (event instanceof LocalAgentSendRequested) {
+      LocalAgentSendRequested typedEvent = (LocalAgentSendRequested) event;
+      auditEvent(typedEvent);
+      auditInvocation(localAgentSession, "localAgentSession", "onSendRequested", typedEvent);
+      isDirty_localAgentSession = localAgentSession.onSendRequested(typedEvent);
+    } else if (event instanceof LocalAgentSpawned) {
+      LocalAgentSpawned typedEvent = (LocalAgentSpawned) event;
+      auditEvent(typedEvent);
+      auditInvocation(localAgentSession, "localAgentSession", "onSpawned", typedEvent);
+      isDirty_localAgentSession = localAgentSession.onSpawned(typedEvent);
+    } else if (event instanceof LocalAgentStartDeadline) {
+      LocalAgentStartDeadline typedEvent = (LocalAgentStartDeadline) event;
+      auditEvent(typedEvent);
+      auditInvocation(localAgentSession, "localAgentSession", "onStartDeadline", typedEvent);
+      isDirty_localAgentSession = localAgentSession.onStartDeadline(typedEvent);
+    } else if (event instanceof LocalAgentStartRequested) {
+      LocalAgentStartRequested typedEvent = (LocalAgentStartRequested) event;
+      auditEvent(typedEvent);
+      auditInvocation(localAgentSession, "localAgentSession", "onStartRequested", typedEvent);
+      isDirty_localAgentSession = localAgentSession.onStartRequested(typedEvent);
+    } else if (event instanceof LocalAgentStatusObserved) {
+      LocalAgentStatusObserved typedEvent = (LocalAgentStatusObserved) event;
+      auditEvent(typedEvent);
+      auditInvocation(localAgentSession, "localAgentSession", "onStatusObserved", typedEvent);
+      isDirty_localAgentSession = localAgentSession.onStatusObserved(typedEvent);
+    } else if (event instanceof LocalAgentStopDeadline) {
+      LocalAgentStopDeadline typedEvent = (LocalAgentStopDeadline) event;
+      auditEvent(typedEvent);
+      auditInvocation(localAgentSession, "localAgentSession", "onStopDeadline", typedEvent);
+      isDirty_localAgentSession = localAgentSession.onStopDeadline(typedEvent);
+    } else if (event instanceof LocalAgentStopRequested) {
+      LocalAgentStopRequested typedEvent = (LocalAgentStopRequested) event;
+      auditEvent(typedEvent);
+      auditInvocation(localAgentSession, "localAgentSession", "onStopRequested", typedEvent);
+      isDirty_localAgentSession = localAgentSession.onStopRequested(typedEvent);
+    } else if (event instanceof LocalAgentTextUpdated) {
+      LocalAgentTextUpdated typedEvent = (LocalAgentTextUpdated) event;
+      auditEvent(typedEvent);
+      auditInvocation(localAgentSession, "localAgentSession", "onTextUpdated", typedEvent);
+      isDirty_localAgentSession = localAgentSession.onTextUpdated(typedEvent);
+    } else if (event instanceof LocalAgentTurnEnded) {
+      LocalAgentTurnEnded typedEvent = (LocalAgentTurnEnded) event;
+      auditEvent(typedEvent);
+      auditInvocation(localAgentSession, "localAgentSession", "onTurnEnded", typedEvent);
+      isDirty_localAgentSession = localAgentSession.onTurnEnded(typedEvent);
+    } else if (event instanceof LocalAgentTurnStarted) {
+      LocalAgentTurnStarted typedEvent = (LocalAgentTurnStarted) event;
+      auditEvent(typedEvent);
+      auditInvocation(localAgentSession, "localAgentSession", "onTurnStarted", typedEvent);
+      isDirty_localAgentSession = localAgentSession.onTurnStarted(typedEvent);
     } else if (event instanceof LogAppended) {
       LogAppended typedEvent = (LogAppended) event;
       auditEvent(typedEvent);
@@ -2898,6 +3589,7 @@ public class SessionProcessor
     auditor.nodeRegistered(context, "context");
     auditor.nodeRegistered(activeProject, "activeProject");
     auditor.nodeRegistered(assistantLoop, "assistantLoop");
+    auditor.nodeRegistered(assistantMode, "assistantMode");
     auditor.nodeRegistered(auditInstallation, "auditInstallation");
     auditor.nodeRegistered(bundleAnchor, "bundleAnchor");
     auditor.nodeRegistered(coverageClaim, "coverageClaim");
@@ -2906,6 +3598,7 @@ public class SessionProcessor
     auditor.nodeRegistered(effectQueue, "effectQueue");
     auditor.nodeRegistered(evidenceCapture, "evidenceCapture");
     auditor.nodeRegistered(ignoredParameters, "ignoredParameters");
+    auditor.nodeRegistered(localAgentSession, "localAgentSession");
     auditor.nodeRegistered(logArrival, "logArrival");
     auditor.nodeRegistered(logEvidence, "logEvidence");
     auditor.nodeRegistered(logOpening, "logOpening");
@@ -2986,7 +3679,9 @@ public class SessionProcessor
     eventLogger.processingComplete();
     isDirty_activeProject = false;
     isDirty_assistantLoop = false;
+    isDirty_assistantMode = false;
     isDirty_auditInstallation = false;
+    isDirty_localAgentSession = false;
     isDirty_openBundle = false;
     isDirty_openGraph = false;
     isDirty_openLog = false;
@@ -3024,7 +3719,9 @@ public class SessionProcessor
     if (dirtyFlagSupplierMap.isEmpty()) {
       dirtyFlagSupplierMap.put(activeProject, () -> isDirty_activeProject);
       dirtyFlagSupplierMap.put(assistantLoop, () -> isDirty_assistantLoop);
+      dirtyFlagSupplierMap.put(assistantMode, () -> isDirty_assistantMode);
       dirtyFlagSupplierMap.put(auditInstallation, () -> isDirty_auditInstallation);
+      dirtyFlagSupplierMap.put(localAgentSession, () -> isDirty_localAgentSession);
       dirtyFlagSupplierMap.put(openBundle, () -> isDirty_openBundle);
       dirtyFlagSupplierMap.put(openGraph, () -> isDirty_openGraph);
       dirtyFlagSupplierMap.put(openLog, () -> isDirty_openLog);
@@ -3039,7 +3736,9 @@ public class SessionProcessor
     if (dirtyFlagUpdateMap.isEmpty()) {
       dirtyFlagUpdateMap.put(activeProject, (b) -> isDirty_activeProject = b);
       dirtyFlagUpdateMap.put(assistantLoop, (b) -> isDirty_assistantLoop = b);
+      dirtyFlagUpdateMap.put(assistantMode, (b) -> isDirty_assistantMode = b);
       dirtyFlagUpdateMap.put(auditInstallation, (b) -> isDirty_auditInstallation = b);
+      dirtyFlagUpdateMap.put(localAgentSession, (b) -> isDirty_localAgentSession = b);
       dirtyFlagUpdateMap.put(openBundle, (b) -> isDirty_openBundle = b);
       dirtyFlagUpdateMap.put(openGraph, (b) -> isDirty_openGraph = b);
       dirtyFlagUpdateMap.put(openLog, (b) -> isDirty_openLog = b);
@@ -3054,7 +3753,15 @@ public class SessionProcessor
   }
 
   private boolean guardCheck_assistantLoop() {
-    return isDirty_activeProject | isDirty_openGraph | isDirty_openLog | isDirty_operationGate;
+    return isDirty_activeProject
+        | isDirty_assistantMode
+        | isDirty_openGraph
+        | isDirty_openLog
+        | isDirty_operationGate;
+  }
+
+  private boolean guardCheck_assistantMode() {
+    return isDirty_localAgentSession;
   }
 
   private boolean guardCheck_auditInstallation() {
@@ -3155,6 +3862,8 @@ public class SessionProcessor
         return (T) activeProject;
       case "assistantLoop":
         return (T) assistantLoop;
+      case "assistantMode":
+        return (T) assistantMode;
       case "auditInstallation":
         return (T) auditInstallation;
       case "bundleAnchor":
@@ -3171,6 +3880,8 @@ public class SessionProcessor
         return (T) evidenceCapture;
       case "ignoredParameters":
         return (T) ignoredParameters;
+      case "localAgentSession":
+        return (T) localAgentSession;
       case "logArrival":
         return (T) logArrival;
       case "logEvidence":
@@ -3232,6 +3943,9 @@ public class SessionProcessor
     if (node == assistantLoop) {
       return "assistantLoop";
     }
+    if (node == assistantMode) {
+      return "assistantMode";
+    }
     if (node == auditInstallation) {
       return "auditInstallation";
     }
@@ -3255,6 +3969,9 @@ public class SessionProcessor
     }
     if (node == ignoredParameters) {
       return "ignoredParameters";
+    }
+    if (node == localAgentSession) {
+      return "localAgentSession";
     }
     if (node == logArrival) {
       return "logArrival";

@@ -44,17 +44,17 @@ class Process(api.Analyser):
         self.out, self.shim, self.args = str(output), shim, args
 
     def __enter__(self):
+        launched = time.time()
         with open(self.out, 'w') as output:
             self.proc = subprocess.Popen(['java', '-Duser.home=' + self.home, '-cp',
                 self.jar + ':' + str(self.shim), 'RestartProbe', '--rest', *self.args],
                 stdin=subprocess.PIPE, stdout=output, stderr=subprocess.STDOUT)
         deadline = time.monotonic() + 40
         while time.monotonic() < deadline:
-            for line in Path(self.out).read_text().splitlines():
-                if 'X-Analyser-Token:' in line:
-                    self.url = 'http://' + line.split('http://')[1].split()[0]
-                    self.token = line.split('X-Analyser-Token:')[1].strip()
-                    return self
+            published = api.published_endpoint(self.home, self.proc, launched)
+            if published:
+                self.url, self.token = published
+                return self
             if self.proc.poll() is not None:
                 raise AssertionError('JVM exited during startup; inspect local stdout')
             time.sleep(.2)

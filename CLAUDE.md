@@ -33,6 +33,12 @@ architecture, conventions). This file is only the rules that must never be skipp
    and then read every visible string — title bar, status bar, paths — before committing. **The same rule
    covers transcripts**: `docs/site/sample-conversations.md` is written by `tools/capture-conversations.py` from a
    real run under the same isolated home; a hand-typed transcript is a screenshot the sweep cannot read either.
+   **One recorded exception (owner, 2026-10-16): Claude Code transcripts** (M74 fixtures and live smokes). An
+   isolated `HOME` or `CLAUDE_CONFIG_DIR` loses the Claude login (M74 P0), so these are captured under the real login,
+   **always** with `--strict-mcp-config` so the person's own servers and connectors stay out, then sanitised (session
+   ids, paths, account email and organisation, product and server names replaced by placeholders, streamed chunks
+   rejoined before sanitising), **every distinct string read**, the sweep run, and the raw unsanitised capture deleted
+   before commit. Nothing captured this way may be committed unsanitised, and the exception covers nothing else.
    **The sweep cannot see git metadata either.** **230** commits carry an employer-domain author
    email into the public history — 132 on the third sweep term's domain, 98 on the fourth's. Rewriting
    is ruled out by rule 3, so that history is accepted and recorded here.

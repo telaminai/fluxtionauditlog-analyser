@@ -49,7 +49,78 @@ doing: *Requesting*, *Running action n*, *Complete*, *Cancelled*, *Superseded*, 
   in either place, and moving it never sends again. The tab says where it went. Scrolling or copying in the docked
   assistant does not end a showing walk.
 
-Nothing is sent until you press Send: not when you open the tab, open a bundle, or play a journey.
+Nothing is sent until you press Send: not when you open the tab, open a bundle, or play a journey. Claude Code (below)
+starts only when you press its **Start** button.
+
+## Claude Code in the Assistant tab
+
+If you have [Claude Code](https://docs.claude.com/en/docs/claude-code/setup) installed and logged in, the Assistant tab
+can host **one long-running Claude Code session** instead of the in-app assistant: you type into it here, and it drives
+the analyser through the same verbs an external client uses. It is **off by default**.
+
+**Turn it on.** *Settings ▸ Assistant ▸ Claude Code in the Assistant tab ▸ Allow the analyser to start Claude Code.*
+Then choose **Claude Code** at the top of the Assistant tab (beside *In-app assistant*). One assistant drives the tab
+at a time; switching back stops an idle Claude Code, and is refused while Claude is answering (*"Claude is still
+answering — Stop or wait, then switch to the in-app assistant."*). These settings — both switches, the model, the budget and the
+folders you have confirmed — are **this machine's only**: never in a project profile, a shared settings file or an
+evidence bundle, so a cloned repository or a received bundle cannot turn any of them on.
+
+**Start.** Press **Start Claude Code**. What happens:
+
+- The analyser runs **your own installed `claude`**, logged in as you. It never reads, stores or passes on your Claude
+  Code credentials; if Claude Code is not logged in, Start says *"Claude Code is not logged in — run `claude` once in a
+  terminal to log in."* If `claude` cannot be found — common when the analyser was started from the Finder or the
+  Dock — the tab lists every place it looked.
+- The first time in a folder, it asks: *"Claude Code will read this folder's CLAUDE.md as instructions. Trust <folder>
+  for Claude Code in the analyser?"* Your answer is remembered on this machine. With no project open, Claude Code works
+  in a private, empty scratch folder instead. Start is refused outright in an evidence bundle's working copy.
+- Claude Code does **not** need the REST transport turned on. With it off, the analyser opens a private listener that
+  serves only this Claude Code session — it refuses every external client, even one holding the REST token, and
+  publishes no endpoint file for other tools to find — and closes it when the session stops. With it on, the session
+  shares the REST transport's listener, and external clients are served as before.
+- Start **contacts Anthropic** (the sign-in check and connecting the analyser's bridge) **before your first Send**. No
+  record content is sent until you press Send.
+- The analyser checks that the session it started is the one it asked for: the bridge proves it belongs to this
+  analyser window, and Claude Code's tools, permission mode and servers must be exactly the posture below, or the
+  session is stopped and the tab names what differed. An older installed analyser bridge is refused by name.
+
+**What it can do — the analyser-assistant posture.** Claude Code here has:
+
+- the folder's **`CLAUDE.md`**, and **Read, Grep and Glob confined to the folder** (a symbolic link pointing outside it
+  is refused too);
+- the analyser's **non-destructive verbs** — `read`, `aggregate`, `series`, `context`, `coverage`, `source`, `filter`,
+  `goto`, `flag`, `graph`, `topology`, `spotlight` — approved without asking; deleting a chart's definition
+  (`graph {delete}`) is refused;
+- nothing else. **Not loaded:** your own skills, commands, hooks and settings, your MCP servers and connectors, and the
+  folder's `.claude/settings.json` hooks and `.mcp.json`. **No Bash, no file edits, no web, no subagents.** The
+  destructive verbs (`open`, `source_root`, `screenshot`, `report`, `walk`, `import`) are hidden from it. Anything not
+  allowed is denied at once, without a prompt. The header says *"analyser assistant — your skills and hooks are not
+  loaded"*. Using your full Claude Code from the tab is a later, separate opt-in (the switch is shown, disabled).
+
+Claude Code is told that record content is data, not instructions — a weak protection, stated as such: treat its
+answers as the model's words, and check them against what the analyser shows.
+
+**Using it.**
+
+- **Send** (or Enter) sends one turn. While Claude is answering, Send is refused — *"Claude is still answering — Stop
+  or wait."* — and your draft stays; nothing is queued.
+- **Stop** interrupts the turn. If Claude Code does not acknowledge within 5 s, or the turn has not ended within 15 s,
+  the analyser ends the process; your next Send resumes the same conversation in a new process.
+- **New chat** starts a new conversation. Changing the folder (opening another project) or a switch means a New chat:
+  a conversation is never resumed under a different posture.
+- **Slash commands** you type are sent as in a terminal — `/compact`, `/model`, `/context`, `/usage` and the like —
+  except those that would change the posture or the conversation's identity, or act outside this session: `/config`,
+  `/mcp` with an argument, `/add-dir`, `/permissions` and others are refused with *"… is not available in the analyser —
+  use Claude Code in a terminal for that."*; `/clear` offers New chat instead. A command the analyser has not
+  classified (from a newer Claude Code) is refused the same way. Lines starting with `!` or `#` (the terminal's shell and
+  memory shortcuts) are refused. An `@file` mention works as in a terminal for a file inside the folder; a file
+  outside it is not read.
+- **The header** shows the model, the posture, the folder, the Claude Code version, your subscription type or the
+  API-key source, the API provider, and the session's spend against its **budget** (*Settings ▸ Assistant ▸ Session
+  budget*, US$5 by default; Claude Code's own model setting is beside it). When the budget is reached the analyser stops
+  Claude Code and says so. It never shows your e-mail address or organisation.
+- **Don't resume this conversation in a terminal while it is open here** — the history would fork. A second analyser
+  window cannot open it either: *"This conversation is open in another analyser window."*
 
 ## No API key? Copy-prompt mode
 

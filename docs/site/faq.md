@@ -106,6 +106,20 @@ log, and no file writes**. Two groups of verbs go further, honestly labelled:
   roots and Maven repos are removed at capture, so it can never point your analyser somewhere new.
   Reports carry prose the sender wrote about their data, so they are applied only when named explicitly.
   It is marked destructive to MCP clients because it merges someone else's work into your project.
+- **Claude Code in the Assistant tab is off by default.** *Allow the analyser to start Claude Code*
+  (Settings ▸ Assistant) lets the tab's **Start** button run **your own installed `claude`**, logged in as you; the
+  analyser never reads or stores your Claude Code credentials. Start contacts Anthropic (the sign-in check and the
+  bridge connection) **before your first Send**; no record content is sent until you press Send. In this release
+  Claude Code runs in the **analyser-assistant posture** only: the folder's `CLAUDE.md`, **Read, Grep and Glob confined
+  to the folder**, and the non-destructive verbs above; **no Bash**, no file edits, no web, none of your skills, hooks,
+  settings or MCP servers, and the destructive verbs hidden — so "no shell access" stays true. Each folder is
+  confirmed once before Start, a bundle's working copy is refused, and its bridge carries its own per-session
+  credential: a call with only the REST token is never treated as Claude Code's, Claude Code cannot delete a chart, and
+  only the verbs listed above are served to it — a verb added in a later release stays refused until it is listed.
+  Claude Code does not need the REST transport on: with it off, its private listener refuses every external client,
+  even one holding the REST token, and publishes no endpoint file. Start is always the explicit button; opening the
+  Assistant tab starts nothing. The switches and the confirmed folders are this machine's only — never in a project profile, a shared
+  settings file or an evidence bundle.
 - **Log-source plugins are jars you install yourself, and installing a jar is arbitrary code
   execution.** Nothing is bundled or downloaded — without plugins this application is byte-identical
   to a plain build — and a plugin can only ever be a log *reader*: it cannot add verbs to the action

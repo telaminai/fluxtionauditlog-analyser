@@ -119,6 +119,22 @@ class SessionGraphShapeTest {
     }
 
     @Test
+    @DisplayName("M74: the mode is decided before assistantLoop and after localAgentSession may refuse leaving it")
+    void theAssistantModeIsUpstreamOfBothAssistants() {
+        ProcessorTopology topology = topology();
+        assertTrue(hasEdge(topology, "assistantMode", "assistantLoop"),
+                "assistantLoop reads the mode in its own handlers, so the mode must be decided before it runs");
+        // review M2: localAgentSession decides FIRST whether the person may leave Claude Code (never mid-turn) and
+        // pushes a refusal into the mode node, so it is upstream of the mode, not downstream
+        assertTrue(hasEdge(topology, "localAgentSession", "assistantMode"),
+                "localAgentSession pushes into the mode: it decides before the mode changes");
+        assertFalse(hasEdge(topology, "assistantMode", "localAgentSession"), "and the mode is not its parent");
+        assertTrue(hasEdge(topology, "localAgentSession", "effectQueue"),
+                "the local agent's effects descend from its decision");
+        assertFalse(hasEdge(topology, "assistantMode", "effectQueue"), "the mode itself asks for nothing");
+    }
+
+    @Test
     @DisplayName("the processor can actually write an audit log — asked of the graph, as a user would")
     void auditIsInstalled() {
         AuditReadiness readiness = AuditReadiness.of(topology());

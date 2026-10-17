@@ -43,6 +43,11 @@ public class AssistantLoop implements EventLogSource {
     private final EffectQueue effects;
 
     private EventLogger auditLog = NullEventLogger.INSTANCE;
+    /**
+     * M74 §4.1: the assistant mode in force, a JavaBean parent so the generator wires it without changing this node's
+     * constructor. Null only in a processor generated before M74, which never has the local agent: read as in-app.
+     */
+    private AssistantModeChoice assistantMode;
     // Not final: node-local state (a final field is constructor-mapped by the generator).
     private long conversation = 1;
     private long ticket;
@@ -92,6 +97,26 @@ public class AssistantLoop implements EventLogSource {
         this.auditLog = log;
     }
 
+    public AssistantModeChoice getAssistantMode() {
+        return assistantMode;
+    }
+
+    public void setAssistantMode(AssistantModeChoice assistantMode) {
+        this.assistantMode = assistantMode;
+    }
+
+    private boolean localAgentMode() {
+        return assistantMode != null && assistantMode.localAgent();
+    }
+
+    /** M74: leaving the in-app assistant ends its turn in progress, in this node — the one-mode rule is a session fact. */
+    @OnEventHandler
+    public boolean onModeChosen(SessionEvents.AssistantModeChosen e) {
+        if (!localAgentMode() || !busy()) return false;
+        end("CANCELLED", "the Assistant tab was switched to Claude Code" + completedActions());
+        return changed();
+    }
+
     // ---- requests -------------------------------------------------------------------------------------------------
 
     @OnEventHandler
@@ -128,6 +153,9 @@ public class AssistantLoop implements EventLogSource {
 
     /** Why this send cannot run, by name, or null. Nothing is sent when it is refused. */
     private String refusal(SessionEvents.AssistantSendRequested e) {
+        if (localAgentMode()) {
+            return "the Assistant tab is on Claude Code: switch it to the in-app assistant to send from here";
+        }
         if (busy()) return "a turn is in progress: wait for it to finish, or Cancel it";
         if (e.draft() <= 0) return "there is no question to send";
         if (e.route() == null || !e.route().hasKey()) {
@@ -160,6 +188,10 @@ public class AssistantLoop implements EventLogSource {
 
     @OnEventHandler
     public boolean onHandoffRequested(SessionEvents.AssistantHandoffRequested e) {
+        if (localAgentMode()) {               // M74 §4.1: ignored in this node, not only hidden in the UI
+            auditLog.info("noOp", "AssistantHandoffRequested").info("reason", "the local agent is the assistant in force");
+            return false;
+        }
         fresh("a fresh conversation about the evidence on screen; the demonstration's dialogue is not part of it");
         return changed();
     }

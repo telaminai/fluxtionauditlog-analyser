@@ -25,8 +25,15 @@ import java.util.concurrent.Executors;
  *       always do) — strictly simpler and safer than parsing origins, moots DNS-rebinding.</li>
  *   <li><b>Token</b> via the {@code X-Analyser-Token} header (per-run nonce) — the server checks it, so
  *       the wrapped dispatcher is token-free.</li>
- *   <li><b>Token-bucket rate limit</b> → {@code 429}, so a runaway agent degrades gracefully.</li>
+ *   <li><b>Token-bucket rate limit</b> → {@code 429}, so a runaway agent degrades gracefully. The hosted bridge has its
+ *       own bucket (review L2), so an external client cannot starve the analyser's own Claude Code session, nor the
+ *       reverse.</li>
  * </ul>
+ * <p><b>Two modes (review H4).</b> With external clients allowed (the REST switch on) it serves both external clients
+ * and the hosted bridge, and publishes the well-known endpoint file. <b>Hosted-only</b> (the REST switch off while a
+ * Claude Code session needs the bridge) it publishes nothing and refuses every request that does not carry a hosted
+ * credential, whatever shared token it presents: turning on Claude Code never opens the analyser to external
+ * clients.
  * {@code GET /manifest} advertises the verbs + caps so a client can pace itself instead of failing.
  */
 public final class ActionServer {
@@ -34,14 +41,27 @@ public final class ActionServer {
     /** Package-visible so a test can assert the discovery reply names the real header. */
     static final String TOKEN_HEADER = "X-Analyser-Token";
 
+    /**
+     * M74 r6 §4.2: the hosted bridge's own credential, minted per generation and written only to the per-instance
+     * endpoint file. A request without it is an external client, whatever token it carries.
+     */
+    public static final String HOSTED_HEADER = "X-Analyser-Hosted";
+
+    /** Null until the local agent is installed: then every hosted credential is unknown and refused. */
+    private volatile HostedCredentials.Gate hostedGate;
+
     private final HttpServer server;
     private final ActionDispatcher dispatcher;
     private final String token;
     private final int maxActionsPerReply;
     private final double ratePerSec;
     private final RateLimiter limiter;
+    /** Review L2: the hosted bridge's own bucket. */
+    private final RateLimiter hostedLimiter;
     private final int port;
     private final RestEndpointFile endpointFile;   // null = publish nothing (the default; tests, embedders)
+    /** Review H4: false = hosted-only — no well-known file, and only a hosted credential is served. */
+    private volatile boolean externalAllowed = true;
 
     public ActionServer(ActionDispatcher dispatcher, String token, int maxActionsPerReply, double ratePerSec)
             throws IOException {
@@ -62,6 +82,7 @@ public final class ActionServer {
         this.ratePerSec = ratePerSec;
         this.endpointFile = endpointFile;
         this.limiter = new RateLimiter(ratePerSec, Math.max(1, ratePerSec));
+        this.hostedLimiter = new RateLimiter(ratePerSec, Math.max(1, ratePerSec));
         this.server = HttpServer.create(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0), 0);
         this.port = server.getAddress().getPort();
         server.createContext("/action", this::handleAction);
@@ -81,6 +102,39 @@ public final class ActionServer {
     }
 
     /**
+     * Review H4: a server that serves ONLY the hosted bridge — it never writes the well-known endpoint file, and a
+     * request without a hosted credential is refused (403) even with the shared token. Used when the external REST
+     * switch is off but a Claude Code session needs the bridge.
+     */
+    public static ActionServer hostedOnly(ActionDispatcher dispatcher, String token, int maxActionsPerReply,
+                                          double ratePerSec, RestEndpointFile endpointFile) throws IOException {
+        ActionServer s = new ActionServer(dispatcher, token, maxActionsPerReply, ratePerSec, endpointFile);
+        s.externalAllowed = false;
+        return s;
+    }
+
+    /**
+     * Allow or refuse external clients on this running server (review H4): the REST switch turned on while a hosted-only
+     * server runs opens it to external clients and publishes the well-known file; turned off while a Claude Code
+     * session still needs it, withdraws the file and refuses them again. The port, and so the session's per-instance
+     * endpoint file, stay valid either way.
+     */
+    public void setExternalAllowed(boolean allowed) {
+        externalAllowed = allowed;
+        if (allowed) republish();
+        else if (endpointFile != null) endpointFile.deleteIfOwnedByThisProcess();
+    }
+
+    public boolean externalAllowed() {
+        return externalAllowed;
+    }
+
+    /** M74: how a hosted credential maps to its generation, and whether the session admits that generation now. */
+    public void setHostedGate(HostedCredentials.Gate gate) {
+        this.hostedGate = gate;
+    }
+
+    /**
      * (Re)write the well-known endpoint file for this running server. Called at start, and again by the
      * owner window when the file has gone missing or names a dead process while this server is still
      * listening — the pointer is disposable, the server is not. Returns false when nothing was published
@@ -88,7 +142,7 @@ public final class ActionServer {
      * usable, only MCP discovery is degraded).
      */
     public boolean republish() {
-        if (endpointFile == null) return false;
+        if (endpointFile == null || !externalAllowed) return false;   // H4: hosted-only publishes nothing
         try {
             endpointFile.write(url(), token);
             return true;
@@ -99,7 +153,7 @@ public final class ActionServer {
     }
 
     public void stop() {
-        if (endpointFile != null) endpointFile.delete();
+        if (endpointFile != null && externalAllowed) endpointFile.delete();
         server.stop(0);
         if (server.getExecutor() instanceof java.util.concurrent.ExecutorService es) es.shutdownNow();
     }
@@ -131,6 +185,7 @@ public final class ActionServer {
             send(ex, 403, err("requests carrying an Origin header are rejected"));
             return true;
         }
+        if (refusedAsExternal(ex)) return true;
         if (!exactPath.equals(ex.getRequestURI().getPath())) {
             sendDiscovery(ex);           // a near-miss gets the signpost, never the handler
             return true;
@@ -150,11 +205,19 @@ public final class ActionServer {
                 send(ex, 401, err("missing or bad " + TOKEN_HEADER));
                 return;
             }
-            if (!limiter.tryAcquire()) {
+            String hosted = ex.getRequestHeaders().getFirst(HOSTED_HEADER);
+            if (!(hosted != null ? hostedLimiter : limiter).tryAcquire()) {   // L2: separate buckets
                 send(ex, 429, err("rate limited (" + ratePerSec + "/s)"));
                 return;
             }
             String body = new String(ex.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+            if (hosted != null) {
+                String refused = hostedRefusal(hostedGate, hosted, body);
+                if (refused != null) {
+                    send(ex, 403, err(refused));
+                    return;
+                }
+            }
             ActionResult r = dispatcher.dispatch(body);
             send(ex, r.ok() ? 200 : 400, r.toJson());
         } catch (RuntimeException e) {
@@ -177,8 +240,20 @@ public final class ActionServer {
             send(ex, 403, err("requests carrying an Origin header are rejected"));
             return;
         }
+        if (refusedAsExternal(ex)) return;
         sendDiscovery(ex);
     }
+
+    /** H4: in hosted-only mode, a request without a hosted credential is refused before anything else is said. */
+    private boolean refusedAsExternal(HttpExchange ex) throws IOException {
+        if (externalAllowed || ex.getRequestHeaders().containsKey(HOSTED_HEADER)) return false;
+        send(ex, 403, err(EXTERNAL_OFF));
+        return true;
+    }
+
+    /** What an external client is told by a hosted-only server. */
+    static final String EXTERNAL_OFF = "the analyser's REST transport for external clients is off (Settings ▸ Assistant); "
+            + "this listener serves only the analyser's own Claude Code session";
 
     /** The signpost: still 404, but enough to reach a working call on the next attempt. */
     private void sendDiscovery(HttpExchange ex) throws IOException {
@@ -221,6 +296,47 @@ public final class ActionServer {
         } finally {
             ex.close();
         }
+    }
+
+    /**
+     * M74 §4.2 step 5 and §3: what the hosted bridge may not do, decided from its credential's generation and the
+     * session's admission — never from the shared token. Null when the call may run. The admission is asked of the
+     * session on ITS thread, in its order ({@link HostedCredentials.Gate#admit}, review M6), never read from a snapshot
+     * here; the cheap, local refusals (an unknown verb, {@code graph {delete}}) come first so they never wait on it.
+     */
+    static String hostedRefusal(HostedCredentials.Gate gate, String credential, String body) {
+        long generation = gate == null ? -1 : gate.generationOf(credential);
+        if (generation < 0) {
+            return "the hosted credential is not one this analyser issued, or it was revoked when its Claude Code session "
+                    + "stopped";
+        }
+        Object root;
+        try {
+            root = Json.parse(body);
+        } catch (RuntimeException e) {
+            root = null;                       // malformed: refused below as no listed verb
+        }
+        // review H5: an ALLOW-list — only a verb on the pre-allow list is served for the hosted bridge (until P3 asks the
+        // person for the others), so a verb the schema gains is refused here until someone lists it. Defence in depth
+        // beside --disallowedTools.
+        String action = root instanceof Map<?, ?> m0 ? String.valueOf(m0.get("action")) : null;
+        if (!telamin.fluxtion.audit.analyser.analyser.session.LocalAgentPosture.preAllowed(action)) {
+            return "`" + action + "` is not available to Claude Code in the analyser: only the pre-allowed verbs are, "
+                    + "and a verb that changes what is open or writes files is the person's to run";
+        }
+        if (root instanceof Map<?, ?> m && "graph".equals(String.valueOf(m.get("action")))
+                && m.get("params") instanceof Map<?, ?> params && truthy(params.get("delete"))) {
+            return "graph {delete} is not available to Claude Code in the analyser: a chart's definition is deleted by "
+                    + "the person (Graph tab), never by the hosted session";
+        }
+        return gate.admit(generation);
+    }
+
+    private static boolean truthy(Object v) {
+        if (v == null) return false;
+        if (v instanceof Boolean b) return b;
+        String s = v.toString().trim();
+        return !(s.isEmpty() || "false".equalsIgnoreCase(s) || "0".equals(s) || "0.0".equals(s));
     }
 
     private static String err(String msg) {

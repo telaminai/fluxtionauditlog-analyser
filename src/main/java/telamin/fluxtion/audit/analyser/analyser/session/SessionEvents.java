@@ -720,4 +720,204 @@ public final class SessionEvents {
 
     /** An accepted load failed during its final frame apply; no assistant continuation may use its partial view. */
     public record AssistantOpenApplyFailed(long opId, AssistantActionOrigin assistantOrigin) { }
+
+    // ---- M74: the local agent (Claude Code), decided by the localAgentSession node, performed by LocalAgentAdapter ----
+    //
+    // Facts carry ids, a process generation, a turn ticket and enums: never the words of a turn, account data or a path.
+    // Words live in the bounded LocalAgentTranscript and are named here by reference (spec §4.1).
+
+    /** The person chose an assistant mode on the Assistant tab. */
+    public record AssistantModeChosen(AssistantMode mode, String origin) {
+    }
+
+    /**
+     * What the person's machine says about starting Claude Code now, observed by the frame when Start or Send is
+     * asked for. The node combines these; the frame decides none of them.
+     *
+     * @param allowed           the raw {@code assistant.claudeCode} switch (machine tier)
+     * @param folderConfirmed   the working directory is confirmed on this machine (or is the analyser's own scratch)
+     * @param bundleWorkingCopy the working directory lies in an evidence-bundle working copy
+     * @param postureRef        a digest of the posture (switches, mode, directory, pre-allow list, note) — an id
+     * @param budgetMicros      the session budget setting, in millionths of a US dollar
+     * @param folder            whether the working directory may be used at all (review M4, S10)
+     */
+    public record LocalAgentConsent(boolean allowed, boolean folderConfirmed, boolean bundleWorkingCopy,
+                                    String postureRef, long budgetMicros, FolderVerdict folder) {
+        /** A folder that has been checked and may be used. */
+        public LocalAgentConsent(boolean allowed, boolean folderConfirmed, boolean bundleWorkingCopy,
+                                 String postureRef, long budgetMicros) {
+            this(allowed, folderConfirmed, bundleWorkingCopy, postureRef, budgetMicros, FolderVerdict.OK);
+        }
+
+        public LocalAgentConsent {
+            folder = folder == null ? FolderVerdict.UNAVAILABLE : folder;
+        }
+    }
+
+    /**
+     * Whether a working directory may be given to the local agent at all, observed by the frame (review M4, S10).
+     * {@code EXPOSES_SECRETS}: it is, or contains, the home directory, {@code ~/.fluxtion-analyser} (the endpoint files
+     * with the REST token and the hosted credential) or {@code ~/.claude}, or lies inside one of the last two — Read and
+     * Grep confined to it would still reach credentials. {@code UNAVAILABLE}: there is no folder (the private scratch
+     * folder could not be made).
+     */
+    public enum FolderVerdict { OK, EXPOSES_SECRETS, UNAVAILABLE }
+
+    /** Start pressed: the one way a process is started (warm start was cut by the owner, 2026-10-17). */
+    public record LocalAgentStartRequested(long request, LocalAgentConsent consent) {
+    }
+
+    /** How a draft reads as a command, classified by the provider's table (§5.4); the node decides what follows. */
+    public enum SlashClass {
+        /** Not a command: ordinary words. */
+        TEXT,
+        /** A classified command that is sent as a turn. */
+        PASS,
+        /** {@code /clear} and its aliases: never sent; New chat is offered instead. */
+        NEW_CHAT,
+        /** A classified command that would change the posture, the session's identity or act outside it. */
+        BLOCK,
+        /** A command name the table does not classify: refused, as an unknown tool would be. */
+        UNCLASSIFIED,
+        /** A terminal shortcut ({@code !} or {@code #} first): refused. An {@code @path} mention is not one (owner, 2026-10-16). */
+        SHORTCUT
+    }
+
+    /**
+     * Send pressed under the local agent: the draft is transcript entry {@code draft}. {@code command} is the command's
+     * canonical name when the CLI or the table knows it, else null — CLI vocabulary, never the person's words.
+     */
+    public record LocalAgentSendRequested(long request, long draft, SlashClass slash, String command,
+                                          LocalAgentConsent consent) {
+    }
+
+    /** Stop pressed: interrupt the one open turn. */
+    public record LocalAgentStopRequested(String origin) {
+    }
+
+    /** New chat under the local agent: end any process, and the next Start begins a new conversation id. */
+    public record LocalAgentNewChatRequested(String origin) {
+    }
+
+    /**
+     * Review M8: the person answered the folder confirmation the node asked for with
+     * {@code ConfirmLocalAgentFolderEffect{request}}. {@code consent} is what the machine says NOW (observed after the
+     * answer); the node decides whether the answer still applies, and asks for the trust record and the start.
+     */
+    public record LocalAgentFolderAnswered(long request, boolean yes, LocalAgentConsent consent) {
+    }
+
+    /**
+     * Review H4: the answer to {@code ServeHostedBridgeEffect} — whether a listener the hosted bridge can reach is up for
+     * {@code generation} ({@code hostedOnly}: it serves only hosted credentials and published no well-known file).
+     */
+    public record LocalAgentBridgeServed(long opId, long generation, boolean listening, boolean hostedOnly)
+            implements Result {
+    }
+
+    /**
+     * Review M6: the hosted bridge presented a live credential of {@code generation}; call {@code call} waits for the
+     * session's verdict, decided on the session's thread in its order — never from a snapshot on the HTTP thread.
+     */
+    public record LocalAgentCallAdmissionRequested(long call, long generation) {
+    }
+
+    /** Answered at once by every local-agent effect whose outcome arrives later. */
+    public record LocalAgentEffectStarted(long opId, long generation, String what) implements Result {
+    }
+
+    /** Why a spawn did not produce a process. */
+    public enum SpawnFailure { NONE, NOT_FOUND, LAUNCHER_UNAVAILABLE, LOCKED, ENDPOINT_FAILED, LAUNCH_FAILED,
+        /** This analyser's own previous process for the conversation had not finished stopping (review M3). */
+        PREVIOUS_STILL_STOPPING,
+        /** The Claude Code model setting is not a model name (review S7). */
+        INVALID_MODEL,
+        /** The working directory at spawn is not the one the posture was decided for (review M7). */
+        FOLDER_CHANGED }
+
+    /** The process for {@code generation} started ({@code failure} NONE), or did not; {@code detailRef} names the words. */
+    public record LocalAgentSpawned(long generation, SpawnFailure failure, long detailRef) {
+    }
+
+    /**
+     * The {@code initialize} control request answered. Only what the handshake needs: whether the CLI is logged in
+     * (decided from {@code tokenSource}, {@code subscriptionType} and {@code apiKeySource}, read at the parse boundary
+     * — the account's e-mail and organisation are never read), the permission mode it reports, and the header's
+     * reference.
+     */
+    public record LocalAgentInitialized(long generation, boolean loggedIn, String permissionMode, long headerRef) {
+    }
+
+    /**
+     * One {@code mcp_status} answer. {@code servers} are the configured server names; {@code hostedStatus} is the
+     * hosted bridge's status ({@code connected}, {@code pending}, {@code failed}, or null when it is absent);
+     * {@code hostedNonce} is what follows {@code +bind.} in its {@code serverInfo.version}, or null when there is no
+     * {@code +bind.} — an older bridge. The nonce arrives as {@code LocalAgentPosture.digest}, so the record never holds it.
+     */
+    public record LocalAgentStatusObserved(long generation, long elapsedMs, java.util.List<String> servers,
+                                           String hostedStatus, String hostedNonceDigest) {
+        public LocalAgentStatusObserved {
+            servers = java.util.List.copyOf(servers == null ? java.util.List.of() : servers);
+        }
+    }
+
+    /** 35 s have passed since the spawn of {@code generation}; the node decides whether that ends it. */
+    public record LocalAgentStartDeadline(long generation) {
+    }
+
+    /**
+     * A turn's {@code system/init}: what the CLI says the session is running with. {@code servers} are
+     * {@code name:status}; {@code sessionDigest} is {@code LocalAgentPosture.digest} of the session id the CLI reports,
+     * compared with the node's own: the id itself never enters the record.
+     */
+    public record LocalAgentInitObserved(long generation, long ticket, String sessionDigest, String permissionMode,
+                                         java.util.List<String> tools, java.util.List<String> servers,
+                                         java.util.List<String> capabilities, long headerRef) {
+        public LocalAgentInitObserved {
+            tools = java.util.List.copyOf(tools == null ? java.util.List.of() : tools);
+            servers = java.util.List.copyOf(servers == null ? java.util.List.of() : servers);
+            capabilities = java.util.List.copyOf(capabilities == null ? java.util.List.of() : capabilities);
+        }
+    }
+
+    /** The CLI's lifecycle for the turn's own uuid reached {@code started}. */
+    public record LocalAgentTurnStarted(long generation, long ticket) {
+    }
+
+    /** The answer text of {@code ticket} is transcript entry {@code textRef}, now at {@code revision} (coalesced). */
+    public record LocalAgentTextUpdated(long generation, long ticket, long textRef, long revision) {
+    }
+
+    /** What a turn's end was. */
+    public enum TurnOutcome { COMPLETED, CANCELLED, ERROR, BUDGET, PROCESS_EXIT }
+
+    /** The first end signal of {@code ticket}: lifecycle completed/cancelled, its {@code result}, or process exit. */
+    public record LocalAgentTurnEnded(long generation, long ticket, TurnOutcome outcome) {
+    }
+
+    /** A {@code result}'s {@code total_cost_usd}, a running total for the SESSION (it survives resume), in micro-USD. */
+    public record LocalAgentCostObserved(long generation, long totalCostMicros) {
+    }
+
+    /** Something the stream said that the person should see as a status line. */
+    public enum AgentNote { COMPACTED, RATE_LIMITED, AUTH_FAILED, PERMISSION_DENIED }
+
+    /** {@code note} happened in {@code ticket}; {@code epochSeconds} is a rate limit's reset time, else 0. */
+    public record LocalAgentNoted(long generation, long ticket, AgentNote note, long epochSeconds) {
+    }
+
+    /** The interrupt for {@code ticket} was acknowledged by a {@code control_response}. */
+    public record LocalAgentInterruptAcked(long generation, long ticket) {
+    }
+
+    /** Which Stop deadline passed: no acknowledgement in 5 s, or no end in 15 s. */
+    public enum StopDeadline { ACK, END }
+
+    /** A Stop deadline for {@code ticket} passed; the node decides whether the process tree is killed. */
+    public record LocalAgentStopDeadline(long generation, long ticket, StopDeadline which) {
+    }
+
+    /** The process of {@code generation} exited with {@code code}; {@code stderrRef} names its redacted last line. */
+    public record LocalAgentExited(long generation, int code, long stderrRef) {
+    }
 }

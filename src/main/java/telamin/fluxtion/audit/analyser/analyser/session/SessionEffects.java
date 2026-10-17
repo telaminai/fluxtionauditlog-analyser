@@ -231,4 +231,75 @@ public sealed interface SessionEffects {
     /** Put the assistant in its side tab ({@code docked}) or its own window. */
     record ShowAssistantHostEffect(long opId, boolean docked) implements SessionEffects {
     }
+
+    // ---- M74: the local agent, decided by the localAgentSession node, performed by LocalAgentAdapter (§4.1) ----------
+
+    /**
+     * Spawn the local agent for {@code generation}: take the session lock, mint this generation's hosted credential,
+     * write the per-instance endpoint file holding the REST URL, the token, {@code nonce} and the credential, start the
+     * CLI with the default posture's command line (§4.3), and send {@code initialize}. Answered at once by
+     * {@link SessionEvents.LocalAgentEffectStarted}; later {@link SessionEvents.LocalAgentSpawned} and the handshake facts.
+     *
+     * @param sessionId       the conversation id: {@code --session-id} when {@code resume} is false, else {@code --resume}
+     * @param nonce           the binding nonce minted for THIS spawn; never reused across generations (§4.2)
+     * @param maxBudgetMicros {@code --max-budget-usd}: the session budget less what the session total has spent (§4.6)
+     * @param postureRef      the posture digest decided for THIS spawn (it names the real working directory); the adapter
+     *                        refuses to spawn when the folder it reads digests otherwise (review M7)
+     */
+    record StartLocalAgentEffect(long opId, long generation, String sessionId, boolean resume, String nonce,
+                                 long maxBudgetMicros, String postureRef) implements SessionEffects {
+    }
+
+    /** Ask the CLI for {@code mcp_status} after {@code delayMs}, and report {@link SessionEvents.LocalAgentStatusObserved}. */
+    record PollLocalAgentStatusEffect(long opId, long generation, long delayMs) implements SessionEffects {
+    }
+
+    /** Write transcript entry {@code draft} to the CLI as one user line, with a freshly minted uuid for {@code ticket}. */
+    record SendLocalAgentTurnEffect(long opId, long generation, long ticket, long draft) implements SessionEffects {
+    }
+
+    /** How a Stop is carried out. */
+    enum StopHow {
+        /** A stream-json {@code interrupt} control request for the one open turn; the deadlines are scheduled. */
+        INTERRUPT,
+        /** Kill the process tree: snapshot its descendants, SIGTERM, wait, kill the survivors (§4.7). */
+        KILL
+    }
+
+    /** Stop {@code generation}'s turn {@code ticket} (0 when none is open) the way {@code how} says. */
+    record StopLocalAgentEffect(long opId, long generation, long ticket, StopHow how) implements SessionEffects {
+    }
+
+    /**
+     * Ask the person, outside the dispatch, whether this working directory may be used by Claude Code (OD-74.5). On yes
+     * the frame records the confirmation on this machine and submits a NEW Start request; it never starts anything here.
+     */
+    record ConfirmLocalAgentFolderEffect(long opId, long request) implements SessionEffects {
+    }
+
+    /**
+     * Review M8: the person said yes to {@code ConfirmLocalAgentFolderEffect{request}} and the node accepted it: record,
+     * on this machine, the folder that dialog named. The performer writes what it showed; it decides nothing.
+     */
+    record TrustLocalAgentFolderEffect(long opId, long request) implements SessionEffects {
+    }
+
+    /**
+     * Review H4: make sure a listener the hosted bridge can reach is up for {@code generation} — the REST server when
+     * external clients are allowed, otherwise a HOSTED-ONLY server that writes no well-known file and serves only hosted
+     * credentials. Answered with {@link SessionEvents.LocalAgentBridgeServed}.
+     */
+    record ServeHostedBridgeEffect(long opId, long generation) implements SessionEffects {
+    }
+
+    /**
+     * Review H4: no Claude Code process needs the bridge any more; a hosted-only server is stopped (the external REST
+     * server, when it is on, is the person's and stays).
+     */
+    record ReleaseHostedBridgeEffect(long opId, long generation) implements SessionEffects {
+    }
+
+    /** Review M6: the node's verdict on hosted call {@code call}: {@code refusal} null admits it. */
+    record AnswerHostedCallEffect(long opId, long call, String refusal) implements SessionEffects {
+    }
 }
