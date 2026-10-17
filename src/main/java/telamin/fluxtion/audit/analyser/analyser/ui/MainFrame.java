@@ -4940,7 +4940,7 @@ public final class MainFrame extends JFrame {
         assistantPanel.setProfileDefaults(() -> new ProfileOverlay.Defaults(
                 telamin.fluxtion.audit.analyser.analyser.assistant.AssistantProfiles.inForce(config), config.claudeCodeModel,
                 config.claudeCodeFullMode, config.llmProvider, config.llmModel,
-                config.apiKey != null && !config.apiKey.isBlank()));
+                config.apiKey != null && !config.apiKey.isBlank(), config.assistantActionsRest));
         installLocalAgent();
     }
 

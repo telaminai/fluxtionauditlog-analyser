@@ -241,8 +241,9 @@ public final class LocalAgentPanel extends JPanel {
     }
 
     /** M74 UX: what Claude Code here cannot do — said in the one panel's limits line, where the in-app limits are said. */
-    static final String SAFE_LIMITS = "Safe analysis reads only: no shell, no edits, no web, none of your own skills or "
-            + "servers — choose Full Claude Code (Profile…) for those. Copy prompt is for an external assistant.";
+    public static final String SAFE_LIMITS = "Safe analysis reads your evidence; it changes what is open or writes a file only "
+            + "after you approve each call. No shell, no edits, no web, none of your own skills or servers — choose Full "
+            + "Claude Code (Profile…) for those. Copy prompt is for an external assistant.";
     static final String FULL_LIMITS = "Your own tools run under your permission rules: the analyser asks you only when "
             + "Claude Code asks, and cannot confine the rest. Copy prompt is for an external assistant.";
     static final String OFF_LIMITS = "Claude Code is not set up on this machine — choose Safe analysis or Full Claude "

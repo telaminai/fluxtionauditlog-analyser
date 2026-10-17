@@ -142,6 +142,37 @@ class AssistantProfilesTest {
         assertEquals(AssistantMode.IN_APP, AssistantProfile.OFF.mode());
     }
 
+    /**
+     * ★ Review P3 N1 (2026-10-17): Settings ▸ Assistant's switches map to a card through ONE function, pinned here as a
+     * literal table (allowed, full, key, stored before → stored after). Witness: map the full switch to SAFE in
+     * {@code claudeCodeSwitches} — rows 2 and 6 fail, and so does inForce's FULL row above.
+     */
+    @Test
+    @DisplayName("★ one mapping from the switches to a card, used by Settings and by inForce")
+    void oneMappingFromTheSwitches() throws Exception {
+        Object[][] table = {
+                {true, false, null, null, "SAFE"},
+                {true, true, null, null, "FULL"},
+                {false, false, "sk-DEMO", null, "IN_APP"},
+                {false, false, null, null, null},
+                {false, false, null, "SAFE", "OFF"},
+                {true, true, "sk-DEMO", "IN_APP", "FULL"},
+        };
+        for (Object[] row : table) {
+            AppConfig c = new AppConfig();
+            c.claudeCodeAllowed = (Boolean) row[0];
+            c.claudeCodeFull = (Boolean) row[1];
+            c.apiKey = (String) row[2];
+            c.assistantProfile = (String) row[3];
+            assertEquals(row[4], AssistantProfiles.storedFromSwitches(c), java.util.Arrays.toString(row));
+        }
+        String settings = java.nio.file.Files.readString(java.nio.file.Path.of(
+                "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/ConfigPanel.java"));
+        assertTrue(settings.contains("AssistantProfiles\n                    .storedFromSwitches(config)")
+                || settings.contains("AssistantProfiles.storedFromSwitches(config)"), "Settings uses the one mapping");
+        assertFalse(settings.contains("claudeCodeFull ? \"FULL\" : \"SAFE\""), "no second copy of it");
+    }
+
     @Test
     @DisplayName("the stored profile is machine tier: it round-trips in ConfigStore and nothing else reads it")
     void theStoredProfileRoundTrips() throws Exception {

@@ -756,12 +756,13 @@ public final class ConfigPanel extends JDialog {
 
     /** M74 §5.1 / UX: Safe analysis — Claude Code in the Assistant tab, reading the evidence only. */
     private JPanel buildClaudeCodeSection() {
-        JPanel box = group("Safe analysis — Claude Code reads the evidence");
+        JPanel box = group("Safe analysis — Claude Code reads your evidence");
         GridBagConstraints g = new GridBagConstraints();
         g.gridx = 0; g.gridwidth = 2; g.anchor = GridBagConstraints.LINE_START; g.insets = new Insets(2, 4, 2, 4);
         claudeCodeToggle.setToolTipText("Lets the Assistant tab's Start button run YOUR installed claude, logged in as you, "
                 + "in the analyser-assistant posture: Read, Grep and Glob confined to the folder, the analyser's own "
-                + "non-destructive verbs, the folder's CLAUDE.md — no Bash, no edits, no web, none of your skills, hooks or "
+                + "verbs (those that change what is open or write a file only after you approve each call), the folder's "
+                + "CLAUDE.md — no Bash, no edits, no web, none of your skills, hooks or "
                 + "MCP servers. Off by default; this machine only.");
         claudeCodeBudgetToggle.setToolTipText("For API-key billing: stop a Claude Code session once it has spent this much. "
                 + "Off by default — on a Claude plan your plan's own usage limits apply anyway.");
@@ -1071,14 +1072,6 @@ public final class ConfigPanel extends JDialog {
                 String.valueOf(providerCombo.getSelectedItem()), apiKeyField.getText().trim());
     }
 
-    /** The card the switches amount to after a Settings change: Claude Code on → Safe or Full; a key → In-app. */
-    static String profileFromSwitches(AppConfig c) {
-        if (c.claudeCodeAllowed) return c.claudeCodeFull ? "FULL" : "SAFE";
-        if (c.apiKey != null && !c.apiKey.isBlank()) return "IN_APP";
-        return telamin.fluxtion.audit.analyser.analyser.session.AssistantProfile.parse(c.assistantProfile)
-                == telamin.fluxtion.audit.analyser.analyser.session.AssistantProfile.NONE ? null : "OFF";
-    }
-
     private void saveToConfig() {
         config.sourceRoots.clear();
         for (int i = 0; i < rootsModel.size(); i++) config.sourceRoots.add(rootsModel.get(i));
@@ -1152,7 +1145,8 @@ public final class ConfigPanel extends JDialog {
         // M74 UX: an assistant switch or the key changed here — the stored profile follows the switches again (Off ends
         // when an assistant is turned on); otherwise the person's card choice stands
         if (!assistantSwitches().equals(loadedAssistant)) {
-            config.assistantProfile = profileFromSwitches(config);
+            config.assistantProfile = telamin.fluxtion.audit.analyser.analyser.assistant.AssistantProfiles
+                    .storedFromSwitches(config);   // review P3 N1: the one mapping
         }
         if (onSaved != null) onSaved.run();
     }

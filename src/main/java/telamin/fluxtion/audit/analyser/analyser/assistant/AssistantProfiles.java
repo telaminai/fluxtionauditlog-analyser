@@ -94,8 +94,7 @@ public final class AssistantProfiles {
      */
     public static AssistantProfile inForce(AppConfig c) {
         AssistantProfile stored = AssistantProfile.parse(c.assistantProfile);
-        AssistantProfile switches = c.claudeCodeAllowed ? (c.claudeCodeFull ? AssistantProfile.FULL : AssistantProfile.SAFE)
-                : null;
+        AssistantProfile switches = claudeCodeSwitches(c);
         if (stored == AssistantProfile.OFF) return switches != null ? switches : AssistantProfile.OFF;
         if (stored == AssistantProfile.IN_APP && inAppReady(c) && !"LOCAL_AGENT".equals(c.claudeCodeLastMode)) {
             return AssistantProfile.IN_APP;
@@ -104,6 +103,23 @@ public final class AssistantProfiles {
         if (inAppReady(c)) return AssistantProfile.IN_APP;
         if (switches != null) return switches;
         return stored == AssistantProfile.SAFE || stored == AssistantProfile.FULL ? AssistantProfile.OFF : stored;
+    }
+
+    /** The one mapping from the Claude Code switches to a card: on → Safe analysis or Full by the full switch; off → null. */
+    static AssistantProfile claudeCodeSwitches(AppConfig c) {
+        return c.claudeCodeAllowed ? (c.claudeCodeFull ? AssistantProfile.FULL : AssistantProfile.SAFE) : null;
+    }
+
+    /**
+     * Review P3 N1 (2026-10-17): the card a Settings change amounts to, stored — the ONE mapping Settings ▸ Assistant and
+     * {@link #inForce} share: Claude Code on → Safe or Full; else a key → In-app; else Off once a card was ever chosen, and
+     * not chosen ({@code null}) otherwise.
+     */
+    public static String storedFromSwitches(AppConfig c) {
+        AssistantProfile switches = claudeCodeSwitches(c);
+        if (switches != null) return switches.stored();
+        if (inAppReady(c)) return AssistantProfile.IN_APP.stored();
+        return AssistantProfile.parse(c.assistantProfile) == AssistantProfile.NONE ? null : AssistantProfile.OFF.stored();
     }
 
     /** Off: the in-app assistant does not answer even with a key stored (the key is kept; nothing is sent). */

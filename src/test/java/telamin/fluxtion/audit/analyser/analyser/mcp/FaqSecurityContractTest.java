@@ -83,4 +83,45 @@ class FaqSecurityContractTest {
                             + "document what it can touch (docs/site/faq.md) in the same change that adds it");
         }
     }
+
+    /**
+     * Review P3+UX S3 and holistic B6 (2026-10-17): the claims P3 made untrue are gone from every surface that made them,
+     * and what replaced them is pinned. Witness: put back the old Safe card line ("Claude Code reads the evidence only")
+     * — the first assertion and the scan both fail.
+     */
+    @Test
+    void theProfileClaimsSayWhatP3MadeTrue() throws Exception {
+        String safe = "reads your evidence; it changes what is open or writes a file only after you approve each call";
+        assertTrue(telamin.fluxtion.audit.analyser.analyser.ui.ProfileOverlay.SAFE_CARD_LINE.contains(safe),
+                "the Safe analysis card");
+        assertTrue(telamin.fluxtion.audit.analyser.analyser.ui.LocalAgentPanel.SAFE_LIMITS.contains(safe),
+                "the Safe analysis limits line");
+        assertTrue(telamin.fluxtion.audit.analyser.analyser.ui.ProfileOverlay.FULL_CARD_LINE
+                .contains("When Claude Code asks for approval, the analyser asks you"), "the Full Claude Code card");
+        assertTrue(telamin.fluxtion.audit.analyser.analyser.ui.ProfileOverlay.OFF_CARD_LINE
+                .startsWith("No assistant in the analyser"), "Off is about the assistant in the analyser (B6)");
+        assertTrue(telamin.fluxtion.audit.analyser.analyser.ui.ProfileOverlay.OFF_CARD_LINE
+                .contains("external MCP and REST clients are not affected"), "…and says the external loop is apart");
+        String changelog = Files.readString(Path.of("CHANGELOG.md"));
+        String unreleased = changelog.substring(changelog.indexOf("## [Unreleased]"), changelog.indexOf("\n## [", changelog
+                .indexOf("## [Unreleased]") + 1));
+        String guide = Files.readString(Path.of("docs/site/user-guide/assistant.md"));
+        assertTrue(guide.replaceAll("\\s+", " ").contains(safe), "the guide's Safe analysis row");
+        String ui = "src/main/java/telamin/fluxtion/audit/analyser/analyser/";
+        java.util.Map<String, String> surfaces = new java.util.LinkedHashMap<>();
+        surfaces.put("CHANGELOG [Unreleased]", unreleased);
+        surfaces.put("assistant.md", guide);
+        for (String f : new String[]{"ui/ProfileOverlay.java", "ui/LocalAgentPanel.java", "ui/ConfigPanel.java",
+                "session/AssistantProfile.java"}) {
+            surfaces.put(f, Files.readString(Path.of(ui + f)));
+        }
+        for (var e : surfaces.entrySet()) {
+            String text = e.getValue().replaceAll("\\s+", " ").replace("\" + \"", "");
+            for (String untrue : new String[]{"reads the evidence only", "Safe analysis reads only",
+                    "approve each action in the analyser", "denied until approvals", "non-destructive verbs"}) {
+                assertFalse(text.toLowerCase(java.util.Locale.ROOT).contains(untrue.toLowerCase(java.util.Locale.ROOT)),
+                        e.getKey() + " still says \"" + untrue + "\", which P3 made untrue");
+            }
+        }
+    }
 }

@@ -12,7 +12,10 @@ package telamin.fluxtion.audit.analyser.analyser.session;
 public enum AssistantProfile {
     /** Not chosen: no card was picked and no assistant is set up. */
     NONE,
-    /** Safe analysis (the default card): Claude Code reads the evidence only — no shell, safe with untrusted logs. */
+    /**
+     * Safe analysis (the default card): Claude Code reads your evidence; it changes what is open or writes a file only
+     * after you approve each call — no shell, safe with untrusted logs.
+     */
     SAFE,
     /** Full Claude Code: the person's own set-up, skills and tools, under their rules and the mode they choose. */
     FULL,

@@ -52,10 +52,13 @@ permissions and approvals. Switching modes is refused while an answer is in prog
 
 | Card | What it sets up |
 |---|---|
-| **Safe analysis** (the default) | Claude Code that **reads the evidence only**: Read, Grep and Glob in the project folder and the analyser's own views. No shell, no edits, no web, none of your own skills or servers — safe with logs you did not write. Its detail: Claude Code's model. |
-| **Full Claude Code** | **Your own Claude Code** — your settings, skills, plugins, hooks and MCP servers, and your own tools under your rules. The card shows the warning in full and the **mode** (`default`, `acceptEdits`, `auto`, `plan`); its button reads **Turn on full Claude Code**. You approve each action Claude Code asks about in the analyser ([Approvals](#approvals-in-the-analyser)). |
+| **Safe analysis** (the default) | Claude Code that **reads your evidence; it changes what is open or writes a file only after you approve each call**: Read, Grep and Glob in the project folder and the analyser's own views. No shell, no edits, no web, none of your own skills or servers — safe with logs you did not write. Its detail: Claude Code's model. |
+| **Full Claude Code** | **Your own Claude Code** — your settings, skills, plugins, hooks and MCP servers, and your own tools under your rules. The card shows the warning in full and the **mode** (`default`, `acceptEdits`, `auto`, `plan`); its button reads **Turn on full Claude Code**. When Claude Code asks for approval, the analyser asks you ([Approvals](#approvals-in-the-analyser)). |
 | **In-app assistant** | The analyser's own assistant: a **provider**, a **model** and an **API key** (left blank, a key already stored is kept). |
-| **Off** | **No AI.** No question is sent anywhere; every view, chart, report and walk still works. A stored key is kept, unused. |
+| **Off** | **No assistant in the analyser.** No question is sent anywhere from the analyser; every view, chart, report and walk still works. A stored key is kept, unused. An external MCP or REST client you connected is **not** affected. |
+
+Under the cards, one line says whether **external MCP / REST access** is on or off, with a pointer to *Settings ▸
+Assistant*, where it is changed: the cards choose the assistant *in* the analyser, never the external loop.
 
 - **Choosing a card shows only its two or three details; nothing changes until Apply.** Apply writes the same settings
   *Settings ▸ Assistant* holds — on this machine only, never in a project, a shared settings file or a bundle — and puts
@@ -67,7 +70,7 @@ permissions and approvals. Switching modes is refused while an answer is in prog
 - **A change while an answer is in progress is refused**, by name — *"Claude is still answering — Stop or wait, then
   change how the assistant works."* — as a mode switch is.
 
-## The onboard assistant
+## The in-app assistant
 
 In the **In-app · API key** mode the panel is a live chat with the provider you configure. Its header says what it is —
 **Live assistant**, the provider and model it sends to, and the workspace it is about — and the line under it says what
@@ -163,7 +166,7 @@ evidence bundle, so a cloned repository or a received bundle cannot turn any of 
 
 - the folder's **`CLAUDE.md`**, and **Read, Grep and Glob confined to the folder** (a symbolic link pointing outside it
   is refused too);
-- the analyser's **non-destructive verbs** — `read`, `aggregate`, `series`, `context`, `coverage`, `source`, `filter`,
+- the analyser's **verbs that only read or change the view** — `read`, `aggregate`, `series`, `context`, `coverage`, `source`, `filter`,
   `goto`, `flag`, `graph`, `topology`, `spotlight` — approved without asking; deleting a chart's definition
   (`graph {delete}`) is refused; and **`propose`**, which only Claude Code in the tab is offered: it records a set-up
   offer and changes nothing ([below](#set-up-a-project-with-claude));

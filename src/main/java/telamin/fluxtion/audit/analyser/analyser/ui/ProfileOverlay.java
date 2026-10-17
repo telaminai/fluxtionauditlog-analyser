@@ -38,8 +38,14 @@ public final class ProfileOverlay extends JPanel {
 
     /** What the cards start from when they open: the profile in force and this machine's current details. */
     public record Defaults(AssistantProfile inForce, String claudeModel, String fullMode, String provider, String model,
-                           boolean keyStored) {
-        public static final Defaults NONE = new Defaults(AssistantProfile.NONE, "sonnet", "default", "anthropic", "", false);
+                           boolean keyStored, boolean externalAccess) {
+        public static final Defaults NONE = new Defaults(AssistantProfile.NONE, "sonnet", "default", "anthropic", "", false,
+                false);
+
+        public Defaults(AssistantProfile inForce, String claudeModel, String fullMode, String provider, String model,
+                        boolean keyStored) {
+            this(inForce, claudeModel, fullMode, provider, model, keyStored, false);
+        }
     }
 
     static final String TITLE = "How should the assistant work on this machine?";
@@ -51,12 +57,33 @@ public final class ProfileOverlay extends JPanel {
     static final List<AssistantProfile> CARDS = List.of(AssistantProfile.SAFE, AssistantProfile.FULL,
             AssistantProfile.IN_APP, AssistantProfile.OFF);
 
+    /**
+     * Review P3 S3 (2026-10-17): what P3 made true. Safe analysis READS your evidence, and it can change what is open or
+     * write a file — through the verbs that do — only after you approve each call; Full Claude Code's own tools run under
+     * your rules, and the analyser asks you only when Claude Code asks. {@code FaqSecurityContractTest} pins these.
+     */
+    public static final String SAFE_CARD_LINE = "Claude Code reads your evidence; it changes what is open or writes a file only "
+            + "after you approve each call. No shell — safe with logs you did not write.";
+    public static final String FULL_CARD_LINE = "Your own Claude Code set-up, skills and tools. When Claude Code asks for "
+            + "approval, the analyser asks you.";
+    /** Review B6: Off is about the assistant IN the analyser; an external MCP or REST client is another matter. */
+    public static final String OFF_CARD_LINE = "No assistant in the analyser. Everything else still works; external MCP and REST "
+            + "clients are not affected.";
+
+    /** Review B6: the one line under the cards — the external loop, on or off, and where it is set. */
+    static String externalLine(boolean externalOn) {
+        return externalOn
+                ? "External MCP / REST access is ON: an MCP client or a REST caller on this machine can drive the analyser "
+                        + "— Settings ▸ Assistant turns it off."
+                : "External MCP / REST access is off — Settings ▸ Assistant turns it on for an MCP client or a REST caller.";
+    }
+
     static String cardLine(AssistantProfile p) {
         return switch (p) {
-            case SAFE -> "Claude Code reads the evidence only. No shell — safe with logs you did not write.";
-            case FULL -> "Your own Claude Code set-up, skills and tools. You approve each action in the analyser.";
+            case SAFE -> SAFE_CARD_LINE;
+            case FULL -> FULL_CARD_LINE;
             case IN_APP -> "The analyser's own assistant, with your API key and model.";
-            case OFF -> "No AI. Everything else still works.";
+            case OFF -> OFF_CARD_LINE;
             case NONE -> "";
         };
     }
@@ -77,7 +104,9 @@ public final class ProfileOverlay extends JPanel {
                     "The analyser sends your question and its context to the provider you choose.",
                     "The key is stored on this machine only (in cleartext), never in a project, a share or a bundle.");
             case OFF -> List.of(
-                    "No question is sent anywhere: the assistant panel and the start page say so instead.",
+                    "No question is sent anywhere from the analyser: the assistant panel and the start page say so instead.",
+                    "An external MCP or REST client you connected is not affected — its access is set in Settings ▸ "
+                            + "Assistant.",
                     "Every view, chart, report, walk and the topology work exactly as before.");
             case NONE -> List.of();
         };
@@ -88,6 +117,8 @@ public final class ProfileOverlay extends JPanel {
 
     private final WrapLine title = new WrapLine(TITLE);
     private final WrapLine why = new WrapLine(" ");
+    /** Review B6: the external loop, under the cards. */
+    final WrapLine external = new WrapLine(" ");
     private final Map<AssistantProfile, Card> cards = new EnumMap<>(AssistantProfile.class);
     private final ButtonGroup group = new ButtonGroup();
     private final CardLayout detailLayout = new CardLayout();
@@ -139,6 +170,10 @@ public final class ProfileOverlay extends JPanel {
             c.addActionListener(e -> choose(p));
         }
         head.add(row);
+        head.add(Box.createVerticalStrut(6));
+        external.setAlignmentX(LEFT_ALIGNMENT);
+        external.getAccessibleContext().setAccessibleName("External access");
+        head.add(external);
         add(head, BorderLayout.NORTH);
 
         details.setOpaque(false);
@@ -221,6 +256,7 @@ public final class ProfileOverlay extends JPanel {
         apiKey.setText("");
         keyNote.setText(d.keyStored() ? "A key is stored on this machine; leave this blank to keep it."
                 : "No key is stored yet.");
+        external.setText(externalLine(d.externalAccess()));
         choose(p);
     }
 
