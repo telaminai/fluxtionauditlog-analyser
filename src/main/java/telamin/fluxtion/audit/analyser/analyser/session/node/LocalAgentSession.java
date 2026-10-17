@@ -1430,10 +1430,32 @@ public class LocalAgentSession implements EventLogSource {
                     admittedGeneration(), headerRef, headerRevision, detailRef, stderrRef, bindingElapsedMs, spent(),
                     budgetMicros, costUnderReported, newChatOffered, resumable && sessionId != null, pendingDraft,
                     entries, answer, posture, personServers, billing, armedWhy, consentPosture,
-                    new LocalAgentState.Extra(setupDirRef, setupDirShown, unknownEvents, unclassifiedCommands, droppedLines, turns, trimmed));
+                    new LocalAgentState.Extra(setupDirRef, setupDirShown, unknownEvents, unclassifiedCommands, droppedLines, turns, trimmed,
+                            attention(verdict, detailRef, stderrRef, unknownEvents + unclassifiedCommands + droppedLines)));
             dirty = false;
         }
         return published;
+    }
+
+    /**
+     * External utility review (owner-approved 2026-10-17): whether the operator details need the person. A mismatch first
+     * (the session did not match its set-up: a {@code *_MISMATCH}, a changed session, a missing capability, an older
+     * bridge), then a refusal (not logged in, no bridge, a failed or timed-out start, or a spawn failure's words), then a
+     * warning (an exited process's last error line, or a diagnostics count). Everything else — a version, an endpoint, a
+     * PATH — is detail the person can open, and never opens by itself.
+     */
+    public static LocalAgentState.Attention attention(String verdict, long detailRef, long stderrRef, int diagnostics) {
+        String v = verdict == null ? "" : verdict;
+        if (v.endsWith("_MISMATCH") || v.equals("SESSION_CHANGED") || v.equals("CAPABILITY_MISSING")
+                || v.equals("OLD_BRIDGE")) {
+            return LocalAgentState.Attention.MISMATCH;
+        }
+        if (v.equals("NOT_LOGGED_IN") || v.equals("BRIDGE_UNAVAILABLE") || v.equals("FAILED") || v.equals("TIMEOUT")
+                || detailRef != 0) {
+            return LocalAgentState.Attention.REFUSAL;
+        }
+        if (stderrRef != 0 || diagnostics > 0) return LocalAgentState.Attention.WARNING;
+        return LocalAgentState.Attention.NONE;
     }
 
     /** For the adapter's tests and the posture assertion: whether the given mode is the one in force. */

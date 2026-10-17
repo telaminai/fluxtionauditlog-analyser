@@ -126,6 +126,20 @@ public final class LocalAgentPanel extends JPanel {
             telamin.fluxtion.audit.analyser.analyser.session.ListenerState.NONE;
     private final WrapLine diagnostics = new WrapLine(" ");
     private final WrapLine endpoint = new WrapLine(" ");
+    /**
+     * External utility review (owner-approved 2026-10-17): the operator lines — the CLI version, the endpoint, the PATH,
+     * the diagnostics and the last error — sit behind <i>Details</i>, collapsed by default. It opens by itself only when
+     * the session's node says they need attention ({@link LocalAgentState.Extra#attention()}); the panel only renders.
+     * The person's own choice is kept for this run of the analyser, never saved.
+     */
+    private final JButton detailsToggle = UiText.button(DETAILS);
+    private final JPanel detailsBody = new JPanel();
+    private final WrapLine cliLine = new WrapLine(" ");
+    private final WrapLine pathLine = new WrapLine(" ");
+    /** The person's choice for the disclosure in this run, or null to follow the node's attention. */
+    private Boolean detailsChosen;
+    private LocalAgentState.Attention detailsAttention = LocalAgentState.Attention.NONE;
+    static final String DETAILS = "Details";
     private telamin.fluxtion.audit.analyser.analyser.session.ProposalState proposal =
             telamin.fluxtion.audit.analyser.analyser.session.ProposalState.NONE;
 
@@ -208,10 +222,32 @@ public final class LocalAgentPanel extends JPanel {
         diagnostics.setVisible(false);
         endpoint.setForeground(UiTheme.mutedForeground());
         endpoint.setVisible(false);
+        cliLine.setForeground(UiTheme.mutedForeground());
+        cliLine.setVisible(false);
+        pathLine.setForeground(UiTheme.mutedForeground());
+        pathLine.setVisible(false);
+        detailsBody.setLayout(new BoxLayout(detailsBody, BoxLayout.Y_AXIS));
+        detailsBody.setBorder(BorderFactory.createEmptyBorder(0, 14, 2, 0));
+        for (JComponent c : new JComponent[]{cliLine, endpoint, pathLine, diagnostics, detail}) {
+            c.setAlignmentX(LEFT_ALIGNMENT);
+            detailsBody.add(c);
+        }
+        detailsBody.setVisible(false);
+        detailsBody.getAccessibleContext().setAccessibleName("Claude Code details");
+        detailsToggle.setVisible(false);
+        detailsToggle.setBorderPainted(false);
+        detailsToggle.setContentAreaFilled(false);
+        detailsToggle.setHorizontalAlignment(SwingConstants.LEFT);
+        detailsToggle.setToolTipText(UiText.tooltip("The CLI version, where requests go, the PATH, diagnostics and the "
+                + "last error. Opens by itself when something needs your attention."));
+        detailsToggle.addActionListener(e -> {
+            detailsChosen = !detailsBody.isVisible();
+            showDetails();
+        });
         java.util.List<JComponent> lines = new java.util.ArrayList<>();
         if (standalone) lines.add(chips);
-        lines.addAll(java.util.List.of(header, posture, endpoint, diagnostics, lockWarning, actions, closeExternal,
-                proposalBanner, status, detail));
+        lines.addAll(java.util.List.of(header, posture, lockWarning, actions, closeExternal,
+                proposalBanner, status, detailsToggle, detailsBody));
         for (JComponent c : lines) {
             c.setAlignmentX(LEFT_ALIGNMENT);
             top.add(c);
@@ -257,6 +293,44 @@ public final class LocalAgentPanel extends JPanel {
 
     boolean active() {
         return active;
+    }
+
+    /** Whether the Details disclosure is open: the person's choice in this run, else the node's attention. */
+    boolean detailsOpen() {
+        return detailsChosen != null ? detailsChosen : detailsAttention != LocalAgentState.Attention.NONE;
+    }
+
+    JButton detailsToggle() {
+        return detailsToggle;
+    }
+
+    JPanel detailsBody() {
+        return detailsBody;
+    }
+
+    /** The disclosure's label: ▸ closed, ▾ open, and what needs attention when the node says something does. */
+    static String detailsLabel(boolean open, LocalAgentState.Attention a) {
+        String why = switch (a == null ? LocalAgentState.Attention.NONE : a) {
+            case NONE -> "";
+            case WARNING -> " — needs attention: Claude Code reported something unexpected";
+            case REFUSAL -> " — needs attention: Claude Code could not start, or was refused";
+            case MISMATCH -> " — needs attention: the session did not match how Claude Code was set up";
+        };
+        return (open ? "▾ " : "▸ ") + DETAILS + why;
+    }
+
+    private void showDetails() {
+        boolean any = cliLine.isVisible() || endpoint.isVisible() || pathLine.isVisible() || diagnostics.isVisible()
+                || detail.isVisible();
+        boolean open = any && detailsOpen();
+        detailsToggle.setVisible(any);
+        detailsToggle.setText(detailsLabel(open, detailsAttention));
+        detailsToggle.getAccessibleContext().setAccessibleName(DETAILS);
+        detailsToggle.getAccessibleContext().setAccessibleDescription((open ? "expanded" : "collapsed")
+                + (detailsAttention == LocalAgentState.Attention.NONE ? "" : "; needs attention"));
+        detailsBody.setVisible(open);
+        revalidate();
+        repaint();
     }
 
     /** The state last rendered (null before the first), for the one panel's limits line. */
@@ -490,7 +564,15 @@ public final class LocalAgentPanel extends JPanel {
                 + (h.scratchForProject() ? " — " + SCRATCH_NOTE : ""));
         header.setToolTipText(folder == null ? null : UiText.tooltip(folder));
         header.setVisible(folder != null && !folder.isBlank());
-        posture.setText(postureLine(h, s));
+        String postureWords = postureLine(h, s);
+        int nl = postureWords.indexOf('\n');
+        posture.setText(nl < 0 ? postureWords : postureWords.substring(0, nl));
+        String path = nl < 0 ? null : postureWords.substring(nl + 1);
+        pathLine.setText(path == null ? " " : path);
+        pathLine.setVisible(path != null);
+        String cli = h == null || h.cliVersion() == null ? null : "Claude Code CLI " + h.cliVersion();
+        cliLine.setText(cli == null ? " " : cli);
+        cliLine.setVisible(cli != null);
         // holistic review L-e (2026-10-17): the fork warning only when there IS a conversation a terminal could resume —
         // never always-on, where it was noise before the first turn
         lockWarning.setVisible(s.resumable());
@@ -517,6 +599,11 @@ public final class LocalAgentPanel extends JPanel {
                 ? "Claude Code's last error line: " + store.text(s.stderrRef()) : "";
         detail.setText(words);
         detail.setVisible(!words.isBlank());
+        // the node decides whether the details need attention; a NEW attention opens them even if the person closed them
+        LocalAgentState.Attention attention = s.extra().attention();
+        if (attention != detailsAttention && attention != LocalAgentState.Attention.NONE) detailsChosen = null;
+        detailsAttention = attention;
+        showDetails();
 
         if (active) {
             boolean follow = following();
@@ -603,7 +690,7 @@ public final class LocalAgentPanel extends JPanel {
             if (h.billing() != null && !h.billing().isBlank()) chips.add(chip(h.billing(), false));
             String cost = costText(s);
             if (!cost.isEmpty()) chips.add(chip(cost, false));
-            if (h.cliVersion() != null) chips.add(chip("CLI " + h.cliVersion(), false));
+            // the CLI version is an operator line: it is under Details (external utility review, 2026-10-17)
             // P2b visual fix: "firstParty" is the CLI's own word for Anthropic's API — internal jargon, not shown as a chip
             String provider = providerWords(h.apiProvider());
             if (provider != null) chips.add(chip(provider, false));

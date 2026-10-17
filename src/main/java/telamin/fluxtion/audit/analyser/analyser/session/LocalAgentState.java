@@ -64,11 +64,22 @@ public record LocalAgentState(AssistantMode mode, long conversation, long genera
      * @param droppedLines       stdout lines over the size cap, dropped
      * @param turns              per answered turn (by ticket): its cost (micro-USD, -1 unknown) and time (ms, -1 unknown)
      * @param trimmed            entries trimmed from the start of this conversation (the node keeps 500)
+     * @param attention          whether the operator details (CLI version, endpoint, PATH, diagnostics, the last error)
+     *                           need the person's attention — the node's decision; the panel's <i>Details</i> disclosure
+     *                           opens by itself only when this is not {@link Attention#NONE}
      */
     public record Extra(long setupDirRef, String setupDirShown, int unknownEvents, int unclassifiedCommands, int droppedLines,
-                        java.util.Map<Long, Turn> turns, int trimmed) {
+                        java.util.Map<Long, Turn> turns, int trimmed, Attention attention) {
         public Extra {
             turns = java.util.Map.copyOf(turns == null ? java.util.Map.of() : turns);
+            attention = attention == null ? Attention.NONE : attention;
+        }
+
+        /** The shape before the Details disclosure: nothing needs attention. */
+        public Extra(long setupDirRef, String setupDirShown, int unknownEvents, int unclassifiedCommands, int droppedLines,
+                     java.util.Map<Long, Turn> turns, int trimmed) {
+            this(setupDirRef, setupDirShown, unknownEvents, unclassifiedCommands, droppedLines, turns, trimmed,
+                    Attention.NONE);
         }
 
         public static final Extra NONE = new Extra(0, null, 0, 0, 0, java.util.Map.of(), 0);
@@ -78,6 +89,14 @@ public record LocalAgentState(AssistantMode mode, long conversation, long genera
             return unknownEvents > 0 || unclassifiedCommands > 0 || droppedLines > 0;
         }
     }
+
+    /**
+     * External utility review (owner-approved 2026-10-17): whether the operator details need the person — decided by the
+     * {@code localAgentSession} node (rule 9), never by the panel. {@link #MISMATCH}: the session did not match how
+     * Claude Code was set up; {@link #REFUSAL}: Claude Code could not start, or was refused; {@link #WARNING}: the stream
+     * held something unexpected, or the process left an error line.
+     */
+    public enum Attention { NONE, WARNING, REFUSAL, MISMATCH }
 
     /** One turn's cost and time, from its {@code result}: the cost is the difference of successive totals (§5.9). */
     public record Turn(long costMicros, long durationMs) {

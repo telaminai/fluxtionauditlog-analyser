@@ -167,6 +167,8 @@ class LocalAgentSessionTest {
         d.post(new SessionEvents.LocalAgentInitialized(1, false, "default", 3));
         assertEquals("NOT_LOGGED_IN", state(d).verdict());
         assertEquals(LocalAgentSession.NOT_LOGGED_IN_TEXT, state(d).reason());
+        // external utility review (2026-10-17): the node publishes that the details need attention (the panel opens them)
+        assertEquals(LocalAgentState.Attention.REFUSAL, state(d).extra().attention());
         assertEquals(1, kills(a).size(), "the process is stopped");
         assertTrue(a.agentPolls.isEmpty(), "nothing is bound");
         assertEquals("OFF", state(d).phase());
@@ -430,6 +432,7 @@ class LocalAgentSessionTest {
             d.post(new SessionEvents.LocalAgentInitObserved(1, t.ticket(), LocalAgentPosture.digest(start.sessionId()), mode, tools,
                     List.of(LocalAgentPosture.HOSTED_SERVER + ":connected"), caps, 0));
             assertEquals(expect, state(d).verdict());
+            assertEquals(LocalAgentState.Attention.MISMATCH, state(d).extra().attention(), expect + " needs attention");
             assertEquals(List.of(SessionEffects.StopHow.KILL),
                     a.agentStops.stream().map(SessionEffects.StopLocalAgentEffect::how).toList(),
                     expect + ": killed at once, no interrupt first");

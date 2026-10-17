@@ -237,7 +237,7 @@ choose allow**. **The analyser does not confine it to the folder**; your rules a
   dialog says so. A folder confirmed for the analyser assistant is not thereby confirmed for full Claude Code.
 - **What the tab shows.** Each hook's event and outcome is a status line (*"Hook SessionStart: 1 ran"*, or that one
   failed), never its output. The header says *"Full Claude Code (<mode>) — your settings, skills, hooks and n MCP
-  servers are loaded"*, and an environment line, *"PATH: inherited, plus ~/.local/bin, /opt/homebrew/bin"*: an analyser
+  servers are loaded"*, and an environment line under **Details**, *"PATH: inherited, plus ~/.local/bin, /opt/homebrew/bin"*: an analyser
   started from the Finder or the Dock has a minimal `PATH`, where your hooks and `npx` servers would not start, so the
   standard install folders that exist and are not already on your `PATH` are **appended** (your order wins). The
   analyser never runs a login shell to find a `PATH`; set anything else (an `nvm` node, a project's virtual
@@ -338,8 +338,13 @@ that, run inside the analyser.
   classified (from a newer Claude Code) is refused the same way. Lines starting with `!` or `#` (the terminal's shell and
   memory shortcuts) are refused. An `@file` mention works as in a terminal for a file inside the folder; a file
   outside it is not read.
-- **The header** shows the model, the profile (*Safe analysis*, *Full Claude Code (<mode>)*), the folder (shortened; the full path is its tooltip), the Claude Code
-  version, your subscription type or the API-key source, and the API provider when it is not Anthropic's own. It never
+- **The header** shows the model, the profile (*Safe analysis*, *Full Claude Code (<mode>)*), the folder (shortened; the full path is its tooltip),
+  your subscription type or the API-key source, and the API provider when it is not Anthropic's own. The operator lines —
+  the Claude Code CLI version, where requests go, the `PATH` line, diagnostics and the last error line — sit behind
+  **▸ Details**, collapsed by default (Tab reaches it; Space or Enter opens it). It opens by itself, reading
+  *"▾ Details — needs attention: …"*, only when something needs you: a session that did not match how Claude Code was
+  set up, a start that failed or was refused, or a warning (diagnostics, or an error line Claude Code left). Your own
+  choice to open or close it is kept until the analyser closes, never saved. It never
   shows your e-mail address or organisation. When the environment the analyser passes to Claude Code sets
   `ANTHROPIC_BASE_URL`, a line says *"requests go to https://proxy.example:8443"* — the scheme, host and port only,
   never a path, query or credentials; with full Claude Code it adds that your own settings may set another endpoint,
