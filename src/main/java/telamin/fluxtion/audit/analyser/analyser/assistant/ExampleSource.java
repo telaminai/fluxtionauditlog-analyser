@@ -100,9 +100,15 @@ public record ExampleSource(String url, String host, String owner, String repo, 
         } else {
             return refuse(Refusal.NOT_AN_ARCHIVE);
         }
+        // review N-e: a path segment of "." or ".." names no repository
+        if (dotSegment(owner) || dotSegment(repo)) return refuse(Refusal.NOT_AN_ARCHIVE);
         if (!ref.matches(HEX40)) return refuse(Refusal.MOVING_REF);
         return new Parsed(new ExampleSource(uri.toString(), host, owner, repo, ref.toLowerCase(Locale.ROOT),
                 sha256 == null ? null : sha256.toLowerCase(Locale.ROOT)), null);
+    }
+
+    private static boolean dotSegment(String s) {
+        return s.equals(".") || s.equals("..");
     }
 
     /** The first seven characters of the commit, as git shows it. */
@@ -115,7 +121,11 @@ public record ExampleSource(String url, String host, String owner, String repo, 
         return host + " / " + owner + " / " + repo + " @ " + shortCommit();
     }
 
-    /** Anything not from the Telamin GitHub organisation is third-party. */
+    /**
+     * Anything not ADDRESSED to the Telamin GitHub organisation is third-party. Review S6 (P2, 2026-10-17): the address is
+     * all that is proven — GitHub serves a commit of any repository in a fork network under the parent's URL, so a
+     * Telamin address does not prove Telamin wrote the code. The words say so ({@link #publisherVerdict}).
+     */
     public boolean thirdParty() {
         return !(host.equals("github.com") || host.equals("codeload.github.com")) || !owner.equalsIgnoreCase(TELAMIN_ORG);
     }
@@ -125,8 +135,11 @@ public record ExampleSource(String url, String host, String owner, String repo, 
      * exists the answer is only first-party or third-party; nothing is ever called "validated" or "approved".
      */
     public String publisherVerdict() {
-        return thirdParty() ? "third-party" : "Telamin";
+        return thirdParty() ? "third-party" : TELAMIN_ADDRESS;
     }
+
+    /** What a Telamin address proves, and no more (review S6; OD-74.30). */
+    public static final String TELAMIN_ADDRESS = "a Telamin repository address (the code may come from a fork)";
 
     /**
      * Whether {@code location} (a redirect) may be followed for this source: https, an allowed host, no user info or
@@ -139,7 +152,9 @@ public record ExampleSource(String url, String host, String owner, String repo, 
         if (h == null || !ALLOWED_HOSTS.contains(h)) return false;
         if (location.getRawUserInfo() != null || location.getPort() != -1) return false;
         String p = location.getRawPath() == null ? "" : location.getRawPath().toLowerCase(Locale.ROOT);
-        return p.contains(commit);
+        // review N-e: the SAME owner and repository, and the same pinned commit
+        String repoPrefix = ("/" + owner + "/" + repo + "/").toLowerCase(Locale.ROOT);
+        return p.startsWith(repoPrefix) && p.contains(commit);
     }
 
     /** The hosts' set, for a redirect check that has no source at hand. */

@@ -65,4 +65,29 @@ class PromptPackExampleTest {
         assertFalse(r.ok(), entry);
         return r.refusal().cause();
     }
+
+    /**
+     * ★ Review S5 (P2, 2026-10-17): the reviewer's probe — an example line whose LABEL carries a link, HTML and a
+     * placeholder. Only the address after {@code example:} is exempt. Witness: {@code continue} on an example line (the
+     * old exemption) — the pack parses.
+     */
+    @Test
+    @DisplayName("★ an example line's label is checked like any entry's: link, HTML and placeholder refused")
+    void anExampleLabelIsChecked() {
+        assertEquals(PromptPack.Cause.LINK, cause("**Read https://evil.example/now** — example: " + URL));
+        assertEquals(PromptPack.Cause.LINK, cause("**[click](x)** — example: " + URL));
+        assertEquals(PromptPack.Cause.HTML, cause("**<img src=x onerror=y>** — example: " + URL));
+        assertEquals(PromptPack.Cause.PLACEHOLDER, cause("**Hello {user}** — example: " + URL));
+        assertTrue(PromptPackTest.parse(pack("**DEMO example** — example: <" + URL + ">")).ok(),
+                "the address itself, in angle brackets, is still the one exemption");
+    }
+
+    /** ★ Review S6: what the confirmation and the start page say for a Telamin address. Witness: the old "Telamin". */
+    @Test
+    @DisplayName("★ a Telamin address is called an address, and may be a fork")
+    void aTelaminAddressIsOnlyAnAddress() {
+        var t = ExampleSource.parse("https://github.com/telaminai/fluxtion-examples/archive/" + C + ".zip", null).source();
+        assertEquals("a Telamin repository address (the code may come from a fork)", t.publisherVerdict());
+        assertEquals("a Telamin repository address — the code may come from a fork", AskCatalogue.text("example.telamin"));
+    }
 }

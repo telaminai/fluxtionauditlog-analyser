@@ -69,7 +69,8 @@ class ExampleSourceTest {
                 .source().thirdParty(), "Telamin's org is on GitHub; the same name elsewhere is someone else");
         var telamin = ExampleSource.parse("https://github.com/telaminai/fluxtion-examples/archive/" + C + ".zip", null).source();
         assertFalse(telamin.thirdParty());
-        assertEquals("Telamin", telamin.publisherVerdict());
+        assertEquals("a Telamin repository address (the code may come from a fork)", telamin.publisherVerdict(),
+                "review S6: the address is what is proven, not who wrote the code");
         assertEquals("third-party", ExampleSource.parse("https://github.com/x/y/archive/" + C + ".zip", null).source()
                 .publisherVerdict());
     }
@@ -82,5 +83,26 @@ class ExampleSourceTest {
         assertFalse(s.mayRedirectTo(URI.create("https://codeload.github.com/example/demo/zip/refs/heads/main")));
         assertFalse(s.mayRedirectTo(URI.create("https://objects.evil.example/" + C)));
         assertFalse(s.mayRedirectTo(URI.create("http://codeload.github.com/example/demo/zip/" + C)));
+    }
+
+    /**
+     * ★ Review N-e: a redirect keeps the owner and repository, and "." / ".." are no repository. Witness: the old
+     * commit-only check in {@code mayRedirectTo} — another repository's archive of the same commit is followed.
+     */
+    @Test
+    @DisplayName("★ a redirect to another owner or repository is refused; '.' and '..' segments are refused")
+    void redirectsKeepTheRepository() {
+        var s = ExampleSource.parse("https://github.com/example/demo/archive/" + C + ".zip", null).source();
+        assertTrue(s.mayRedirectTo(URI.create("https://codeload.github.com/Example/Demo/zip/" + C)), "case is GitHub's");
+        assertFalse(s.mayRedirectTo(URI.create("https://codeload.github.com/someone/demo/zip/" + C)));
+        assertFalse(s.mayRedirectTo(URI.create("https://codeload.github.com/example/other/zip/" + C)));
+        assertFalse(s.mayRedirectTo(URI.create("https://codeload.github.com/x/example/demo/zip/" + C)));
+        for (String bad : new String[]{"https://github.com/../demo/archive/" + C + ".zip",
+                "https://github.com/example/../archive/" + C + ".zip", "https://github.com/./demo/archive/" + C + ".zip",
+                "https://codeload.github.com/example/./zip/" + C}) {
+            assertEquals(ExampleSource.Refusal.NOT_AN_ARCHIVE, ExampleSource.parse(bad, null).refusal(), bad);
+        }
+        assertNull(ExampleSource.parse("https://github.com/example/demo.js/archive/" + C + ".zip", null).refusal(),
+                "a dot inside a name is fine");
     }
 }

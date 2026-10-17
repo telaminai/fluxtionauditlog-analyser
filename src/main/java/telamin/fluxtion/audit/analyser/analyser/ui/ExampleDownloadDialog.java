@@ -23,7 +23,8 @@ public final class ExampleDownloadDialog {
 
     /** The line the confirmation leads with: the publisher, and whose it is. */
     static String publisherLine(ExampleSource s, boolean thirdParty) {
-        return s.publisher() + (thirdParty ? "   — third-party: not published by Telamin" : "   — Telamin");
+        return s.publisher() + (thirdParty ? "   — third-party: not published by Telamin"
+                : "   — " + ExampleSource.TELAMIN_ADDRESS);
     }
 
     /** The words under the publisher line, in order (a test reads them). */

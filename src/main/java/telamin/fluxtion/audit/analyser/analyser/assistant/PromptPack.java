@@ -120,8 +120,12 @@ public final class PromptPack {
     private static final Pattern HTML_TAG = Pattern.compile("<\\s*[/!?A-Za-z]");
     private static final Pattern PLACEHOLDER = Pattern.compile("\\{[A-Za-z_][A-Za-z0-9_]*\\}");
     private static final Pattern LINK = Pattern.compile("\\]\\(|https?://|\\bwww\\.|<https?:", Pattern.CASE_INSENSITIVE);
-    /** P2b: an entry line whose text begins "example:" — exempt from the link and HTML checks, and held to EXAMPLE. */
-    private static final Pattern EXAMPLE_LINE = Pattern.compile("^\\d{1,2}\\. \\*\\*[^*]+\\*\\* — example:.*$");
+    /**
+     * P2b: an entry line whose text begins "example:". Review S5 (P2, 2026-10-17): only the text AFTER {@code example:} is
+     * exempt from the link and HTML checks (it is held to EXAMPLE below); the number and label (group 1) are checked like
+     * any entry's.
+     */
+    private static final Pattern EXAMPLE_LINE = Pattern.compile("^(\\d{1,2}\\. \\*\\*[^*]+\\*\\* — )example:.*$");
     private static final Pattern EXAMPLE = Pattern.compile("^example: (?:<(\\S+)>|(\\S+))(?: sha256:(\\S+))?$");
 
     public static Result parse(byte[] bytes) {
@@ -144,7 +148,9 @@ public final class PromptPack {
                 k += Character.charCount(cp);
             }
             if (l.contains("![")) return refuse(line, Cause.IMAGE);
-            if (EXAMPLE_LINE.matcher(l).matches()) continue;      // held to the example grammar below, nothing else
+            Matcher example = EXAMPLE_LINE.matcher(l);
+            // review S5: the address after "example:" is held to the example grammar below; the rest is checked here
+            if (example.matches()) l = example.group(1);
             if (HTML_TAG.matcher(l).find()) return refuse(line, Cause.HTML);
             if (LINK.matcher(l).find()) return refuse(line, Cause.LINK);
             if (PLACEHOLDER.matcher(l).find()) return refuse(line, Cause.PLACEHOLDER);

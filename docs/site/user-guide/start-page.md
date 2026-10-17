@@ -94,7 +94,9 @@ An entry can instead point at an **example project to download** — an archive 
 
 - It shows with a download badge (**⤓**). **Nothing is fetched** when the pack is dropped or the entry chosen; only the
   entry's own **Download example…** button fetches, after a confirmation that **leads with the publisher** — *host /
-  owner / repo @ short commit* — marked **third-party** unless it is the Telamin GitHub organisation, then the exact
+  owner / repo @ short commit* — marked **third-party** unless the address is in the Telamin GitHub organisation. An
+  address is all that is proven: GitHub serves a commit from any fork of a repository under the parent's address, so a
+  Telamin address is shown as *a Telamin repository address (the code may come from a fork)*. Then come the exact
   address, the full commit, the integrity digest (or that there is none) and the folder you choose (a new or empty one).
 - Only `https` from **github.com**, **codeload.github.com** and **gitlab.com**, and only an archive of a **40-character
   commit**: a branch or tag can change under you, so `…/archive/main.zip` or `…/archive/v1.0.zip` is refused. No git,
