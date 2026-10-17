@@ -139,8 +139,10 @@ answers as the model's words, and check them against what the analyser shows.
   or wait."* — and your draft stays; nothing is queued.
 - **Stop** interrupts the turn. If Claude Code does not acknowledge within 5 s, or the turn has not ended within 15 s,
   the analyser ends the process; your next Send resumes the same conversation in a new process.
-- **New chat** starts a new conversation. Changing the folder (opening another project) or a switch means a New chat:
-  a conversation is never resumed under a different posture.
+- **New chat** starts a new conversation. Changing the folder (opening another project), a switch or the full
+  posture's mode means a New chat: a conversation is never resumed under a different posture. Applying Settings while
+  Claude Code runs ends the session if the change affects it — at once when you turned Claude Code off, otherwise
+  after the turn in progress — and the next Start offers New chat.
 - **Slash commands** you type are sent as in a terminal — `/compact`, `/model`, `/context`, `/usage` and the like —
   except those that would change the posture or the conversation's identity, or act outside this session: `/config`,
   `/mcp` with an argument, `/add-dir`, `/permissions` and others are refused with *"… is not available in the analyser —

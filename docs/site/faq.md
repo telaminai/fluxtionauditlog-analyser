@@ -130,7 +130,10 @@ log, and no file writes**. Two groups of verbs go further, honestly labelled:
   own destructive verbs stay hidden from it, your own `fluxtion-analyser` registration is hidden too, and warm start
   does not apply to it: only the Start button starts full Claude Code. This is the stated exception to "no shell
   access": record text that steers an AI reaches an agent with your shell, under your rules, so turn it on only for
-  folders and logs you trust. Agent edits then happen as your own Claude Code makes them, within your rules.
+  folders and logs you trust. **The full posture cannot stop your own tools reading the analyser's REST token**
+  (it lives in a file in your home folder, as for any external client); with it, Claude Code could drive the analyser
+  as an external client, including the destructive verbs above. The per-session file Claude Code's own bridge reads
+  carries only that session's credential, not the token. Agent edits then happen as your own Claude Code makes them, within your rules.
 - **Log-source plugins are jars you install yourself, and installing a jar is arbitrary code
   execution.** Nothing is bundled or downloaded — without plugins this application is byte-identical
   to a plain build — and a plugin can only ever be a log *reader*: it cannot add verbs to the action

@@ -404,8 +404,10 @@ here — the history would fork."* No further detection is attempted.
   > then use your own tools — Bash, file edits, web access — **as far as your permission rules and the mode below
   > allow**; the analyser does not confine it to the folder. Audit-log records are data from the system you are
   > investigating and can contain text written to steer an AI; in this posture that text reaches an agent that may
-  > have your shell. The analyser still never lets Claude Code change what is open or write a file without asking you
-  > in the analyser, but **it cannot limit what your own tools do**. Turn this on only for folders and logs you trust.
+  > have your shell. The analyser still never lets Claude Code change what is open or write a file through its own
+  > connection without asking you in the analyser, but **it cannot limit what your own tools do** — they can read files
+  > in your home folder, including the analyser's local REST token, and use it to drive the analyser as any external
+  > client can. Turn this on only for folders and logs you trust. *(r9, review finding 6.)*
   >
   > [Turn on full Claude Code] [Cancel]
 
@@ -445,11 +447,19 @@ here — the history would fork."* No further detection is attempted.
    >
    > Hooks in this folder: `SessionStart` (1), `PreToolUse` (2) — from `.claude/settings.json`
    > MCP servers in this folder: `db-tools`, `search` — from `.mcp.json`
-   > (*Nothing that runs* when there is none; *could not be read* when a file is not JSON or is over the size cap,
-   > which is said, never hidden.)
+   > Plugins enabled in this folder: `formatter@team` — from `.claude/settings.json` (their hooks, servers and commands run too)
+   > Commands this folder's settings run: `apiKeyHelper`, `statusLine` — from `.claude/settings.json`
+   > Settings the analyser does not interpret: `env` — from `.claude/settings.json`; they may run other commands
+   > (*Nothing that runs* only when every file is absent or holds only keys the analyser knows run nothing; *could not
+   > be read* when a file is not JSON, not a regular file, or over the size cap, which is said, never hidden.)
    >
    > Trust <dir> for **full** Claude Code in the analyser? This is asked again if these files change.
 
+   *(r9, review finding 5:)* besides `hooks` and `mcpServers` the scan names `enabledPlugins`, `extraKnownMarketplaces`
+   and the command-valued keys (`apiKeyHelper`, `awsAuthRefresh`, `awsCredentialExport`, `otelHeadersHelper`,
+   `statusLine`); a top-level key outside a short list known to run nothing (`permissions`, `model`, `outputStyle`, …)
+   is named as one that may run other commands. The scratch folder counts as confirmed only while all three files are
+   absent (finding 3).
    The names come from the files and are shown as plain text (never HTML); the commands are not shown. The
    confirmation records the folder's real path and the digest of OD-74.12. Start never runs in a bundle working copy:
    from P2 a bundle project's session works in the scratch folder instead (OD-74.22); before that, Start is refused.
@@ -1580,6 +1590,13 @@ code alone.
   ticket, verb and canonical input, single-use and short-lived, which is what makes "exactly this call" true.
 - **A full-posture live transcript is never captured with the person's own servers** (OD-74.18); their loading is
   verified only by the isolated zero-cost checks.
+- **The full posture cannot keep the person's own tools from the analyser's shared REST token** (review finding 6,
+  2026-10-17). The well-known endpoint file in the home folder holds it, as every external client needs, and the
+  person's Bash or Read can read it and call any verb as `EXTERNAL`, destructive ones included, gated only as an
+  external client is. The warning (§5.1) and the FAQ say so. Defence in depth: the per-instance hosted endpoint file
+  no longer carries the shared token — only the URL, the nonce and the generation's hosted credential — and
+  `ActionServer` authenticates a call carrying `X-Analyser-Hosted` by that credential alone (an unknown or revoked one
+  is refused, never treated as external).
 
 **Defects in shipped code found by the r7 review (c7f2), fixed separately from M74** (r8). Each is a fix in its own
 right, with its own regression check, and **should go in ahead of P2**: both are small, independent of the local
@@ -1808,7 +1825,7 @@ and **PB** captures (`FixtureAgent`, now also reading `evidence/m74-p1b/fixtures
   file counted as absent). Records are `assistant.claudeCode.trustedFull.N = <real path>|<digest>`, machine tier; a
   re-confirmation replaces the folder's old record. The dialog (`ui/LocalAgentFolderDialog`) is a read-only
   `JTextArea` with `html.disable`, default *Don't trust*; the scan is taken when the effect is performed and the trust
-  records exactly that digest. The scratch folder counts as confirmed in both postures (it holds nothing to run).
+  records exactly that digest. The scratch folder counts as confirmed in the default posture, and in the full one only while all three files are absent (review finding 3).
 - **Settings.** The full switch is enabled; ticking it shows the warning (a plain-text area, *Turn on full Claude
   Code* / *Cancel*, Cancel the default) and Cancel unticks it. The mode is shown only while the switch is on, with its
   note (the `auto` note names PB-3). `ConfigStore` reads `assistant.claudeCode.full.mode` as one of the four, anything
@@ -1828,6 +1845,30 @@ and **PB** captures (`FixtureAgent`, now also reading `evidence/m74-p1b/fixtures
   flag, the four modes), `ChildPathTest`, `FullFolderTrustTest`, `LocalAgentFolderDialogTest` (headless),
   `LocalAgentHeaderTest` (cost by billing, the posture and PATH lines), `LocalAgentConsentTest` (the new machine-tier
   keys, mode normalisation, the stored limit) and `FaqSecurityContractTest` (§7's P1b claims). No frame test was added.
+
+- **Review fixes (2026-10-17, independent review of `01597847..30487f87`, 14 findings, no blockers).** (1) A host Claude
+  Code session's variables never reach the child, in either posture (`ChildEnvironment`; the launcher takes a remove
+  set); the full posture also drops an inherited `CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD`. (2) `system/status`
+  with `permissionMode` is a fact, `LocalAgentModeObserved`; a mode the posture does not expect is killed at once
+  (captured at no cost with a `set_permission_mode` control request, `pb-status-mode-iso.jsonl`). (3) The scratch folder
+  counts as confirmed for the full posture only while all three files are absent. (4) `LocalAgentConsentChanged` is
+  posted when Settings are applied; withdrawn consent ends a running session at once, a changed posture after the turn
+  (at once when idle), and a Send re-checks the consent. (5) The folder scan names plugins, marketplaces, command-valued
+  keys and any key it does not interpret (§5.2). (6) The per-instance hosted endpoint file no longer carries the shared
+  token; the bridge authenticates with `X-Analyser-Hosted` alone; the warning and FAQ say the person's own tools can read
+  the shared token (§11). (7) `PATH` is found without regard to case and written back under its own key; no `PATH`
+  means the OS default. (8) the CHANGELOG. (9) The consent is computed by the pure `LocalAgentConsents.of`. (10) The tool
+  line's denial words follow the CLI's reason (`StreamJson.DenialReason`), not the posture. (11) `apiKeySource:"none"`
+  is no key, and an API key beside a subscription is billed as the key. (12) Hook notes are coalesced per event and turn.
+  (13) A relative `NPM_CONFIG_PREFIX` is ignored; the `PATH` extension is computed once; the digest reads at most
+  256 KB of each file (a larger one adds its size and modification time) and treats a non-regular file as unreadable,
+  as the scan does; `plain()` and the node's `safe()` escape control, format and line-separator characters. The digest is
+  still read on the event thread, at Start and Send, now bounded at 768 KB in all. (14) A stored limit below US$0.50 is
+  clamped to it. Witnesses: each new ★ test failed under its finding's mutation (the host markers passed through;
+  `status` ignored, in the parser and in the node; the scratch folder confirmed unconditionally; the consent change
+  ignored, and the Send not re-checked; the P1b scan; the shared token required first; an exact `PATH` key;
+  `fullConfirmed = confirmed`, another folder's digest, the default posture's ref; hook notes keyed on the event alone;
+  a non-regular file digested as absent).
 
 **Witnesses run (2026-10-17; each ★ test failed with the mutation, then passed restored):** full line — keep the
 default posture's confining flags in the full posture; drop `mcp__fluxtion-analyser` from the disallow list; modes —
