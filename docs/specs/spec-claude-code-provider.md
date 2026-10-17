@@ -1,6 +1,6 @@
 # M74 — Claude Code as the analyser's assistant: a long-running local session
 
-**Status:** DRAFT r12, 2026-10-17 — r12 runs the P3 probes P3-0…P3-6 on the real bridge
+**Status:** DRAFT r13, 2026-10-17 — r13 records the owner's **UX unification** decisions of 2026-10-17 (§2 *r13*) and builds them on `feature/claude-code-p3`: one start-page surface, one assistant panel in two modes, the profile overlay, Settings ▸ Assistant grouped by profile, and four P3 leftovers (see *Implementation notes (UX)*). r12 runs the P3 probes P3-0…P3-6 on the real bridge
 ([report](evidence/m74-p3/P3-report.md); amendments marked *r12* in place) and builds **P3**, permission prompts in the
 analyser, with the scorecard's fact requirements R1, R2, R5–R8 (see *Implementation notes (P3)*); with P3 built the
 *preview* labelling of OD-74.26 is removed. (r11 merged the P1b branch into P2, built **P2b** and added the owner's
@@ -107,6 +107,16 @@ utility P3 completes.
 | r12-1 | **P3 is built** against r11 after the probes P3-0…P3-6 ([report](evidence/m74-p3/P3-report.md)); the probe findings are folded in place, marked *r12*. P3 makes the full posture usable for authoring: in `default` and `acceptEdits` a request that needs the person's approval is asked in the analyser instead of denied (owner, 2026-10-17). | built; the owner's local UI test, then agent reviews, follow |
 | r12-2 | **No budget cap** for P3's runs (owner, 2026-10-17): Claude Code runs on the person's own Claude plan; the optional limit of OD-74.24 is unchanged. The probes and the smoke used a runaway guard only. | owner direction |
 | r12-3 | **The scorecard's fact requirements** (the virgin-LLM onboarding scorecard, §7, coordinated 2026-10-17) are met in P3 through the session processor: **R1** the admission fact names the verb and the node records the ticket, and the server's own refusals are facts; **R2** a denial note names the tool from a fixed vocabulary; **R5** each review row's answer, Yes and No, is a fact (`ProposalItemAnswered`, as §8.2 listed); **R6** no fact carries a model's words or an absolute path (§4.1, with a rule); **R7** the init fact records the skills and plugins loaded, by name; **R8** the approval facts are first-class (`LocalAgentPermissionRequested`, and `LocalAgentPermissionAnswered` as the answer's own result). | built (requested by the coordinator) |
+
+### r13 owner decisions (2026-10-17): the UX unification step
+
+| # | Decision | Status |
+|---|---|---|
+| r13-1 | **One start-page surface.** The start prompt (question, numbered list, chip, box, button) leads; the old large cards collapse into one compact strip, *Or open directly*, in the prompt's style — an icon and a short label, keyboard-reachable, the old card's sentence as its tooltip (and its title as its accessible name). Recent projects and bundles stay, compact. Every action calls the same `StartPanel.Actions` method; the drop hints stay. Amends §5.8's *"The existing cards stay below, headed Or choose directly"*. | accepted (owner); built |
+| r13-2 | **One assistant look and feel.** The in-app assistant and Claude Code are ONE assistant panel: one transcript (`TranscriptView`, §5.9, now also the in-app one), one composer, one header of chips and the same tool-line marks; the mode is one selector in the panel (*Claude Code · your plan* / *In-app · API key*), not two panels. Each mode keeps its behaviour and rules (in-app actions and the round limit; Claude Code's posture, permissions and approvals); where a mode cannot do something the panel says so in the same place for both. Rendered from the snapshot (rule 9). Amends §5.2 and §5.9 (*"its adoption there is a separate tracker item"*). | accepted (owner); built |
+| r13-3 | **A profile overlay instead of switch-by-switch set-up.** Four cards in the panel — **Safe analysis** (the default: Claude Code reads the evidence only, no shell, safe with untrusted logs), **Full Claude Code** (the person's own set-up, skills and tools, with its warning and mode choice; P3's approvals exist, so not labelled preview), **In-app assistant** (API key + model), **Off** (no AI; everything still works). It opens from the assistant header, and by itself the first time the person presses Start or asks a question with no profile chosen. Choosing a card shows only its 2–3 details, then Apply. It writes the same machine-tier settings as Settings ▸ Assistant and posts the same consent facts; the session node decides. Settings ▸ Assistant keeps every option, grouped by profile, a child control disabled while its parent is off. | accepted (owner); built |
+| r13-4 | **Naming.** The product will be renamed *Telamin Canvas* and the assistant *Telamin AI* in a separate later PR; this step keeps new strings neutral (*the assistant*, *Claude Code*, *In-app assistant*) and renames nothing. | accepted (owner); honoured |
+| r13-5 | **P3 leftovers:** (a) `AskUserQuestion` is denied by policy without a dialog, with the note *"Claude asked a question — answer it in the conversation"*; (b) the permission dialog names a built-in as *built-in tool*, never *"named by the server"*; (c) a transcript tool line shows the input as received, as the dialog does (`3`, not `3.0`); (d) the P1b smoke harness compiles again. | owner request; built |
 
 **On GitHub archive byte-stability (OD-74.30, checked 2026-10-17 against GitHub's documentation, "Downloading source
 code archives"):** an archive of a commit always has the same *file contents*, but *"the exact compression settings
@@ -462,6 +472,8 @@ here — the history would fork."* No further detection is attempted.
 
 ### 5.1 Settings ▸ Assistant
 
+> **r13 (owner, 2026-10-17):** the page is grouped by profile — *Safe analysis* (the Claude Code switch, the model, the spend limit), *Full Claude Code* (the second switch and its mode), *In-app assistant* (in-process actions and the budgets; the provider is the LLM page's), *Every assistant* (the bridge, exchange, project creation) — and a child is enabled only while its parent is on. The profile overlay (r13-3) writes the same fields in one step.
+
 - *Allow the analyser to start Claude Code* (off).
 - *…with my full Claude Code permissions (preview)* (off; enabled from P1b; a preview until P3, OD-74.26). Turning it
   on shows the **full-posture warning** as a confirmation, default button *Cancel*; it opens with *"PREVIEW — for
@@ -503,6 +515,8 @@ here — the history would fork."* No further detection is attempted.
   settings share or a bundle, pinned by the consent test, §10.)*
 
 ### 5.2 The Assistant tab
+
+> **r13 (owner, 2026-10-17):** the tab is ONE panel in two modes (r13-2). The items below describe the Claude Code mode; its Start, Stop, Send and New chat are the panel's one set, its transcript the panel's one `TranscriptView`, its chips the panel's one row; the mode is the selector at the panel's top, beside *Profile…* (r13-3).
 
 1. **Start Claude Code.** In a directory not yet confirmed, the dialog says (default posture): *"Claude Code will read
    this folder's CLAUDE.md as instructions. Trust <dir> for Claude Code in the analyser?"*. In the full posture it
@@ -939,7 +953,7 @@ no in-analyser permission prompts**, so P2 precedes P3 (§8).
 **The page.** The start page's hero question, today *"What would you like to work on?"*, becomes **What would you like
 to do?**, and under it: the list of entries `AskCatalogue` resolves for the start page, a line naming the **chosen
 entry**, a free-text box and one action button. The existing cards stay below, headed **Or choose directly**: they are
-the no-typing path M71 accepted. An entry that does what a card does (S1, S3, S4, S5) calls **the same
+the no-typing path M71 accepted (*r13: one compact strip, **Or open directly**, r13-1*). An entry that does what a card does (S1, S3, S4, S5) calls **the same
 `StartPanel.Actions` method** as its card, so there is one flow with two entrances, not a second flow. A configured
 list can lead with a journey but cannot hide the cards (stated: "present one journey" means *first*, not *only*). The
 recent projects and bundles stay in their own section, after the prompt, for a returning user as for a new one. It is
@@ -1127,7 +1141,8 @@ routing or list of their own.
 
 The Claude Code pane's conversation is drawn by one component, `TranscriptView` (in `ui/`), reusable by the in-app
 assistant (its adoption there is a separate tracker item, not P2's acceptance). It renders the published entries and
-the store's words; it decides nothing (rule 9) and is a `JTextPane` over a `StyledDocument` with a `StyledEditorKit`,
+the store's words; it decides nothing (rule 9) and is a `JTextPane` over a `StyledDocument` with a `StyledEditorKit`
+(*r13: the in-app assistant's too — one view for both modes, r13-2*),
 **never** an HTML editor kit.
 
 - **Role and kind, by style and by words.** `TranscriptStyle.of(role, kind, dark)` maps each entry to its style:
@@ -2326,6 +2341,71 @@ prompt tool; P2's hidden destructive verbs in P3's default posture; and, on the 
 Allow, Allow active at once, Escape allowing, and the frame never closing the dialog. The FAQ pin was witnessed by
 weakening one claim.
 
+## Implementation notes (UX, 2026-10-17)
+
+Built on `feature/claude-code-p3` against r12 and the owner's decisions r13-1…r13-5.
+
+- **Where things live.** Session: `session/AssistantProfile` (the four cards and `NONE`), `session/ProfileState` (in the
+  snapshot as `profiles`), `session/node/AssistantProfileChoice` (`assistantProfile`). Frame side:
+  `assistant/AssistantProfiles` (the ONE writer of a profile's settings, and the observation of the profile in force).
+  UI: `ui/AssistantSurface` (the shared transcript, composer, chips, Start/Stop/Send/New chat), `ui/AssistantPanel` (the one
+  panel), `ui/LocalAgentPanel` (Claude Code's part — its own lines; it draws the shared parts only while it is the mode
+  shown; standalone it lays them out itself, as before, for its tests), `ui/ProfileOverlay`, `ui/StartPanel` (the strip,
+  `ActionChip`). Regenerated with `mvn -Pregen process-classes`; the generated header is as committed.
+- **Facts and effects.** In: `AssistantProfileObserved{profile}` (the frame, at session start and after every settings
+  change), `AssistantProfilesRequested{origin}` / `AssistantProfilesClosed{origin}` (the header's button, Close/Escape),
+  `AssistantProfileChosen{request, profile}` (Apply). Out: `ShowAssistantProfilesEffect{popOut}` (bring the panel forward;
+  its own window with nothing open, as the start page's drafts do), `ApplyAssistantProfileEffect{request, profile}`;
+  results `AssistantProfilesShown`, `AssistantProfileApplied{request, profile, ok, reason}`. No fact carries the card's
+  details (a key, a model, a mode): they stay in the overlay and reach the settings through the effect's performer
+  (`FactFieldsTest` lists the new fields).
+- **Order.** `assistantProfile` is downstream of `localAgentSession` and `assistantLoop` (it reads whether a turn is open,
+  and whether the Start or Send that might open the cards was accepted) and a JavaBean parent of `startPagePrompt` (a
+  first-use question opens the cards instead of the no-AI fallback; the page says *"Choose how the assistant works first —
+  then ask again"*).
+- **Decisions where the spec left room.**
+  - **"No profile chosen"** is the frame's observation `AssistantProfiles.inForce`: the stored card while it matches the
+    switches, otherwise what the switches amount to; so a machine set up before profiles existed (Claude Code allowed, or
+    a key) counts as chosen and is never asked. Before the frame's first report the node opens nothing by itself.
+  - **The first use** opens the cards once per session, and only when the Start or question was not accepted by its own
+    node (an assistant that can answer is never interrupted); the Start/Send itself is refused by its node as before.
+    Start-page flows (S1–S5) never open them; free text, S6 and pack entries do.
+  - **Mid-turn** (the owner: "refused as today"): an Apply while either assistant's turn is open, being stopped or a
+    question is held is refused by name, as a mode switch is (review M2); the cards stay open, saying why.
+  - **What each card writes.** Safe: Claude Code allowed, full off, the model; mode Claude Code. Full: allowed, full on,
+    the mode (the card shows the warning in full; its Apply reads *Turn on full Claude Code*); mode Claude Code. In-app:
+    Claude Code off, provider, model, key (blank keeps the stored one); mode in-app. Off: Claude Code off, mode in-app,
+    the key kept but unused (`inAppCanAnswer` and the route's `hasKey` read *off*). Stored as
+    `assistant.claudeCode.profile`, machine tier (the consent test pins it).
+  - **Settings ▸ Assistant** recomputes the stored card from the switches when a switch or the key changed there, so
+    turning an assistant on ends *Off*.
+  - **The posture's name** follows the cards: *Safe analysis (default posture)*, *Full Claude Code (mode)*.
+  - **The in-app transcript.** Its answers are safe Markdown; each action is a tool line (`▸ analyser_<verb>`, the marks
+    `✓` / `refused: …` / `denied: not run`), whose expansion shows the result the model was given (Claude Code's shows the
+    input), at most 4,000 characters, as before; a demonstration's lines are plain (`Role.PLAIN`), never Markdown.
+- **P3 leftovers.** (a) `LocalAgentPermission.policy(posture, class, name)`; (b) `PermissionText.serverLine`;
+  (c) `StreamJson.rawContentInput` slices `message.content[i].input` from the line, and `TranscriptView.pretty` re-indents
+  token by token (`PermissionText.pretty`); (d) the P1b harness's warm-start-only file removed and its warm steps replaced
+  by a note, the P2b harness's two print lines following R6's references, the P1a/P1b `click` helpers following the mode
+  selector; `M74HarnessesCompileTest` compiles every M74 harness.
+- **(e) Other inconsistencies fixed on the way.** The start page counted an `ollama` provider as able to answer with no
+  key, though `LlmClient` refuses an unknown provider (P2); the start-page guide still called full Claude Code a
+  *preview*; `ONBOARDING.md`'s D-AI4 row did too; the posture's name differed from the card's.
+- **Tests.** `AssistantProfileTest` (node), `AssistantProfilesTest` (each card's consent and command line),
+  `OneDispatchModelTest#theProfileIsWrittenOnlyByItsEffect`, `LocalAgentPermissionTest#askUserQuestionIsAnsweredInTheConversation`,
+  `PermissionTextTest#aBuiltInClaimsNoServer`, `ToolLineRawInputTest`, `M74HarnessesCompileTest`, and the frame suites
+  `UnifiedAssistantFrameTest`, `ProfileOverlayFrameTest` (both CI frame lists) and `StartWorkspaceFrameTest`'s rewritten
+  strip case.
+
+**Witnesses run (2026-10-17; each mutation turned its named test red, then the source was restored — 18 in all):** the
+AskUserQuestion case dropped from the policy; the built-in line removed; the tool line from `Json.write(input)`; the
+expanded input re-parsed; `claudeCodeWarmStart` put back in the harness; the first use never / again / after a choice;
+the start page's fallback beside the cards; Apply mid-turn; an accepted Send interrupted; Safe analysis writing the full
+posture; the overlay writing settings itself; Claude Code's own composer again (two panels); the performer skipping the
+write; the Settings children's listener dropped; the start page's first use not popping out; a non-wrapping strip
+(which first SURVIVED: the strip clipped its last row inside the page — the test now also requires every chip inside its
+strip and its group).
+
 ## Revision history
 
 - **r1, r2** (2026-10-16): the long-running session design; two independent reviews (`[R …]`, `[R2-n]` tags).
@@ -2424,3 +2504,7 @@ weakening one claim.
   simplified Move (r11-1), conversation v2 (§6), the carried items, per-turn time and cost; owner requests OD-74.29
   (prompt-pack example entries) and OD-74.30 (third-party publishers, the optional sha256, no "validated" badge,
   deferred catalogue); the GitHub archive byte-stability finding; *Implementation notes (P2b)* added.
+- **r13** (2026-10-17): the owner's UX unification decisions (§2 *r13*: one start-page surface, one assistant panel in two
+  modes, the profile overlay, Settings ▸ Assistant by profile, neutral naming until the later rename) and the four P3
+  leftovers, built on `feature/claude-code-p3`; §5.1, §5.2, §5.8 and §5.9 annotated in place; *Implementation notes (UX)*
+  added.

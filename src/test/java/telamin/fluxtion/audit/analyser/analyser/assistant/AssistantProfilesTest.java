@@ -135,6 +135,9 @@ class AssistantProfilesTest {
         AssistantProfiles.apply(AssistantProfile.SAFE, null, c);
         c.claudeCodeAllowed = false;                        // Settings turned it off again, no key
         assertEquals(AssistantProfile.OFF, AssistantProfiles.inForce(c), "chosen, then switched off: Off, not unchosen");
+        c = new AppConfig();
+        c.llmProvider = "ollama";
+        assertFalse(AssistantProfiles.inAppReady(c), "an unknown provider with no key cannot answer (LlmClient refuses it)");
         assertEquals(AssistantMode.LOCAL_AGENT, AssistantProfile.FULL.mode());
         assertEquals(AssistantMode.IN_APP, AssistantProfile.OFF.mode());
     }

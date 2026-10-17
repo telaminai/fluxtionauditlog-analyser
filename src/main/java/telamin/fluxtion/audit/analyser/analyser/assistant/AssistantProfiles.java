@@ -78,10 +78,13 @@ public final class AssistantProfiles {
         }
     }
 
-    /** Whether the in-app assistant has what it needs to answer: a key, or a local provider. */
+    /**
+     * Whether the in-app assistant has what it needs to answer: a key. (M74 UX: the start page also counted an
+     * {@code ollama} provider as able to answer with no key, but no such provider exists — {@code LlmClient} refuses an
+     * unknown provider by name since P2 — so the page promised an answer the assistant then refused.)
+     */
     public static boolean inAppReady(AppConfig c) {
-        boolean local = c.llmProvider != null && c.llmProvider.trim().equalsIgnoreCase("ollama");
-        return local || (c.apiKey != null && !c.apiKey.isBlank());
+        return c.apiKey != null && !c.apiKey.isBlank();
     }
 
     /**

@@ -106,8 +106,9 @@ log, and no file writes**. Two groups of verbs go further, honestly labelled:
   roots and Maven repos are removed at capture, so it can never point your analyser somewhere new.
   Reports carry prose the sender wrote about their data, so they are applied only when named explicitly.
   It is marked destructive to MCP clients because it merges someone else's work into your project.
-- **Claude Code in the Assistant tab is off by default.** *Allow the analyser to start Claude Code*
-  (Settings ▸ Assistant) lets the tab's **Start** button run **your own installed `claude`**, logged in as you; the
+- **Claude Code in the Assistant tab is off by default.** The assistant header's **Profile…** cards turn it on in
+  one step — **Safe analysis** for the posture below, **Full Claude Code** for yours — and write the same switches.
+  *Allow the analyser to start Claude Code* (Settings ▸ Assistant) lets the tab's **Start** button run **your own installed `claude`**, logged in as you; the
   analyser never reads or stores your Claude Code credentials. Start contacts Anthropic (the sign-in check and the
   bridge connection) **before your first Send**; no record content is sent until you press Send. By default Claude
   Code runs in the **analyser-assistant posture**: the folder's `CLAUDE.md`, **Read, Grep and Glob confined to the
@@ -126,7 +127,8 @@ log, and no file writes**. Two groups of verbs go further, honestly labelled:
   Assistant tab starts nothing. The switches and the confirmed folders are this machine's only — never in a project profile, a shared
   settings file or an evidence bundle.
 
-  **Full Claude Code is a separate switch with its own warning** (*…with my full Claude Code permissions*, off). It
+  **Full Claude Code is a separate switch with its own warning** (*…with my full Claude Code permissions*, off; the
+  **Full Claude Code** card shows the warning in full and its button reads *Turn on full Claude Code*). It
   runs your own Claude Code as in a terminal, with **your settings, skills, hooks and MCP servers** (claude.ai
   connectors included), and **the folder's hooks and MCP servers run when you press Start**, before you send anything, so
   the folder is confirmed for full Claude Code separately — the dialog names the hooks and servers it found — and the
@@ -146,6 +148,8 @@ log, and no file writes**. Two groups of verbs go further, honestly labelled:
   (it lives in a file in your home folder, as for any external client); with it, Claude Code could drive the analyser
   as an external client, including the destructive verbs above. The per-session file Claude Code's own bridge reads
   carries only that session's credential, not the token. Agent edits then happen as your own Claude Code makes them, within your rules.
+  Claude Code's own question tool (`AskUserQuestion`) is denied without a dialog: Claude is told to ask in its reply,
+  and you answer in the conversation — an approval dialog is never used for a question.
 - **Log-source plugins are jars you install yourself, and installing a jar is arbitrary code
   execution.** Nothing is bundled or downloaded — without plugins this application is byte-identical
   to a plain build — and a plugin can only ever be a log *reader*: it cannot add verbs to the action
@@ -153,7 +157,8 @@ log, and no file writes**. Two groups of verbs go further, honestly labelled:
 
 ## How do I connect Codex, Claude Code or another MCP client?
 
-With the analyser open, use **Connect an AI client** on the Start page or **Settings ▸ Assistant / LLM**.
+With the analyser open, use **Connect an assistant** on the Start page (**Codex**, **Claude**, **Other MCP client**) or
+**Settings ▸ Assistant / LLM**.
 Turn on local transport and use **Check connection** to prove the local bridge reaches this live window.
 The screen can explicitly register Codex or user-scoped Claude Code when their CLIs are available. For
 Claude Desktop and any other client, **Generic MCP setup** supplies the exact no-token stdio JSON for you

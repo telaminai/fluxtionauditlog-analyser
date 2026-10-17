@@ -1,8 +1,9 @@
 # The start page
 
 The start page is what the analyser shows when nothing is open, and what **Help ▸ Start page** raises over an open
-workspace. It asks **What would you like to do?** — a short numbered list, a box for your own words and one button —
-and keeps the familiar cards below it, under **Or choose directly**.
+workspace. It is one surface: it asks **What would you like to do?** — a short numbered list, a box for your own words
+and one button — and the analyser's own actions follow it as one compact strip, **Or open directly**, with your recent
+projects and evidence bundles under **Recent**.
 
 ## What would you like to do?
 
@@ -35,8 +36,15 @@ and keeps the familiar cards below it, under **Or choose directly**.
 
 The page asks the assistant you last chose on the Assistant tab (remembered on this machine only). **Claude Code can
 answer** when *Allow the analyser to start Claude Code* is on and `claude` is installed (a file check, nothing is run);
-**the in-app assistant can answer** with a provider and key (or a local provider). If the one in force cannot and the
-other can, the button reads **Ask with Claude Code** (or **Ask the in-app assistant**) and pressing it chooses that one.
+**the in-app assistant can answer** with a provider and key. If the one in force cannot and the other can, the button
+reads **Ask with Claude Code** (or **Ask the in-app assistant**) and pressing it chooses that one.
+
+**The first question with nothing set up** — no assistant chosen on this machine and none able to answer — opens the
+[four cards](assistant.md#choose-how-the-assistant-works) (*Safe analysis*, *Full Claude Code*, *In-app assistant*,
+*Off*) in the assistant's own window instead of an answer, and the start page says *Choose how the assistant works
+first — then ask again*. Your words stay in the box. This happens once: after a card is chosen, or if you close the
+cards without choosing, the page never opens them by itself again. The flows (the demo, set-up, a bundle, the
+templates, a log) never open them: they work with no AI.
 
 With **no AI configured**, every entry still ends somewhere: the demo plays, a bundle or log still opens, and each entry
 offers buttons that run what you would otherwise do yourself — *Assistant settings*, *Connect an AI client…*, *New
@@ -44,8 +52,8 @@ project…*, *New project from template…*, *Evidence bundles guide*, *User gui
 *Copy prompt* copies **your question only**: no record text, no glossary, never your REST token. If Claude Code is
 switched on but not found, the page lists every place it looked and offers *Install Claude Code*.
 
-When your **full Claude Code** is in force (the preview opt-in in *Settings ▸ Assistant*), the box carries the same
-marker as the Assistant tab's composer: a coloured border and the badge *◆ Full Claude Code · \<mode\>: your
+When your **full Claude Code** is in force (the *Full Claude Code* card, or its switch in *Settings ▸ Assistant*), the
+box carries the same marker as the assistant's composer: a coloured border and the badge *◆ Full Claude Code · \<mode\>: your
 tools and permissions* (◆◆ for `acceptEdits` and `auto`, which ask about fewer actions).
 
 ## Prompt packs
@@ -102,9 +110,25 @@ An entry can instead point at an **example project to download** — an archive 
   Claude Code: that is Start's own question, asked there.
 - There is no *validated* or *approved* mark: an example is the publisher's, and the analyser says only whose it is.
 
-## Or choose directly
+## Or open directly
 
-The cards — the guided tour, the sample project, *Open project*, *Open evidence bundle*, *Open audit log*, *Open
-GraphML*, *Create project profile*, *Create from template*, and the assistant settings — work exactly as before. You can
-also drop an `.fexp` bundle, an audit log, a GraphML file, a Spring XML design or a prompt pack (`.md`) anywhere on the
-page.
+Under the question, every action the analyser offers without typing is one small button — an icon and a short label,
+grouped by what it is for. Hover one for what it does (the sentence the old card carried); each is reachable with
+**Tab** and pressed with **Space** or **Enter**, and each does exactly what its card did.
+
+| Group | Buttons |
+|---|---|
+| Explore DEMO | **Guided tour** (four spotlight stops in the local DEMO project) · **Sample project** (the same DEMO log, topology and source, at your own pace) |
+| Open | **Project** · **Evidence bundle** (verified, then a disposable copy; no replay) · **Audit log** · **GraphML** |
+| Create | **Project profile** (settings for existing source; no code generated) · **From template** |
+| Connect an assistant | **Codex** · **Claude** · **Other MCP client** — the local bridge set-up for each |
+| Settings | **Settings** (source and assistant settings: the open project's, or the global defaults) · **Fluxtion key** (present or not; needed only to regenerate a processor) |
+
+You can also drop an `.fexp` bundle, an audit log, a GraphML file, a Spring XML design or a prompt pack (`.md`)
+anywhere on the page.
+
+## Recent
+
+**Recent projects** and **Recent evidence bundles** sit side by side (one under the other in a narrow window). A row
+names the workspace or the bundle and its path; its **…** button removes it from the list, reveals it in your file
+manager or renames it. A bundle's row also carries its sender's note — their words, not a verified fact.
