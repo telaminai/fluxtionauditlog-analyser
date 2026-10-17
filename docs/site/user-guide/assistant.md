@@ -697,6 +697,9 @@ saved name containing `"` has no address at all: `context.graphAddresses` gives 
 `context.graphAddressUnavailable` says why; the chart is kept, and renaming it gives it an address. Then `project:log`, `toolbar:flag`, `menu:Audit log` and
 `menu:Project:New project from template…` (the menu opens and the item is lit; a click on it chooses it, and the
 spotlight goes out with the menu), `status`. Menu names are the visible labels: Project, Sources and Audit log replace File.
+**The ask items' labels depend on the assistant in force** (*Ask Claude: What happened here?* in the Claude Code mode,
+*Ask the assistant: What happened here?* in the in-app one), so a saved step naming one of them reaches it only in that
+mode: read the current labels from `context.menus` before naming one.
 Update saved spotlight steps that name `menu:File`; old names are refused rather than redirected, and the refusal says
 where the item is now — `menu:File:Follow (tail)` answers that it is in the Audit log menu, and `menu:File:Reset` that it
 was renamed Project > Close log and topology. `context.menus` lists the menu bar as spotlight targets name it — each
