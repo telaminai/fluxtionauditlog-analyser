@@ -26,6 +26,12 @@ class MenuDocumentationTest {
     private static final Pattern END = Pattern.compile("[▸→<`*\"',;.!?]|…|\\s+(?:sets it|or open)\\b");
     record MenuPath(int line, String menu, String item) { }
 
+    /** A menu path in text that goes to the model or the API, kept byte-identical, with the alias that resolves it. */
+    record ApiText(String file, String menu, String item) { }
+
+    static final List<ApiText> API_TEXT = List.of(
+            new ApiText("llm/CanvasHandoff.java", "AI", "Posture"));   // context.handoff.posture.note (model + API)
+
     static List<MenuPath> paths(String source) {
         // Preserve line breaks for diagnostics, including a path wrapped inside one Markdown span.
         String text = source.replace("&rarr;", "→").replace("&#8594;", "→")
@@ -128,6 +134,10 @@ class MenuDocumentationTest {
                 errors.addAll(javaProblems(file.toString(), Files.readString(file)));
         }
         assertTrue(count >= 80, "the extractor must inspect the published paths, not silently match nothing: " + count);
+        // Owner feedback (2026-10-17): API text that must stay byte-identical may name a renamed item's OLD path, and only
+        // while that path still resolves as an alias (MenuHints.ALIASES): context.handoff.posture.note says "AI ▸ Posture"
+        errors.removeIf(e -> API_TEXT.stream().anyMatch(a -> e.contains(a.file()) && e.endsWith(
+                "no menu item " + a.menu() + " → " + a.item()) && MenuHints.alias(a.menu(), a.item()) != null));
         assertTrue(errors.isEmpty(), String.join("\n", errors));
     }
 

@@ -2869,18 +2869,21 @@ public final class MainFrame extends JFrame {
         // M48.7 / R10: the session's posture is SET by either party; derivation is only the default. These
         // items are BOUND to the one handoff state (D-AI2) — painted from it each time the menu opens, the
         // same state an agent reads in context.handoff and writes with `open {posture | record}`.
+        // Owner feedback (2026-10-17): the person reads WORK MODE — Investigate / Build; the API keeps its words
+        // (open {posture: research|authoring|derived}, context.handoff.posture), and menu:AI:Posture still lights this
         ai.addSeparator();
-        JMenu postureMenu = new JMenu("Posture");
-        postureMenu.setToolTipText("What this session is for — shared with an AI client through context.handoff");
-        JRadioButtonMenuItem postureDerived = UiText.radioMenuItem("Derived");
-        postureDerived.addActionListener(e -> applyHandoffFromMenu(Map.of("posture", "derived")));
-        JRadioButtonMenuItem postureResearch = new JRadioButtonMenuItem("Research / support");
+        JMenu postureMenu = new JMenu("Work mode");
+        postureMenu.setToolTipText("What this session is for — investigating a system, or building one; an AI client "
+                + "you connect reads the same choice");
+        JRadioButtonMenuItem postureResearch = new JRadioButtonMenuItem("Investigate");
         postureResearch.addActionListener(e -> applyHandoffFromMenu(Map.of("posture", "research")));
-        JRadioButtonMenuItem postureAuthoring = new JRadioButtonMenuItem("Authoring / deploy");
+        JRadioButtonMenuItem postureAuthoring = new JRadioButtonMenuItem("Build");
         postureAuthoring.addActionListener(e -> applyHandoffFromMenu(Map.of("posture", "authoring")));
-        postureMenu.add(postureDerived);
+        JRadioButtonMenuItem postureDerived = UiText.radioMenuItem("Guess from what is open");
+        postureDerived.addActionListener(e -> applyHandoffFromMenu(Map.of("posture", "derived")));
         postureMenu.add(postureResearch);
         postureMenu.add(postureAuthoring);
+        postureMenu.add(postureDerived);
         ai.add(postureMenu);
         JMenuItem placeRecord = new JMenuItem("Place mode-selector record…");
         placeRecord.setToolTipText("Put the authoring mode selector's --json record on the shared canvas — "
@@ -2922,7 +2925,7 @@ public final class MainFrame extends JFrame {
                 // M48.7: painted from the handoff state, never remembered here (D-AI2)
                 var set = handoff.posture();
                 var derived = telamin.fluxtion.audit.analyser.analyser.llm.CanvasHandoff.derive(project.hasProject());
-                postureDerived.setText("Derived — currently " + derived.label());
+                postureDerived.setText("Guess from what is open — now " + derived.words());
                 postureDerived.setSelected(set == null);
                 postureResearch.setSelected(set != null && set.posture()
                         == telamin.fluxtion.audit.analyser.analyser.llm.CanvasHandoff.Posture.RESEARCH);
@@ -4074,8 +4077,15 @@ public final class MainFrame extends JFrame {
     private JMenuItem menuItemFor(SpotlightTarget t) {
         javax.swing.JMenu m = topLevelMenu(t.menuName());
         if (m == null) return null;
+        JMenuItem found = menuItemNamed(m, t.menuItem());
+        // owner feedback (2026-10-17): an agent's old name for a renamed item still lights it (menu:AI:Posture)
+        String alias = found == null ? MenuHints.alias(t.menuName(), t.menuItem()) : null;
+        return alias == null ? found : menuItemNamed(m, alias);
+    }
+
+    private static JMenuItem menuItemNamed(javax.swing.JMenu m, String name) {
         for (java.awt.Component c : m.getPopupMenu().getComponents()) {
-            if (c instanceof JMenuItem item && item.getText() != null && item.getText().trim().equalsIgnoreCase(t.menuItem().trim())) return item;
+            if (c instanceof JMenuItem item && item.getText() != null && item.getText().trim().equalsIgnoreCase(name.trim())) return item;
         }
         return null;
     }

@@ -55,6 +55,19 @@ public final class CanvasHandoff {
             return label;
         }
 
+        /**
+         * Owner feedback (2026-10-17): what a PERSON reads for this value — the work mode, "Investigate" or "Build".
+         * {@link #label()} stays the API's value ({@code context.handoff}, {@code open {posture}}), unchanged.
+         */
+        public String words() {
+            return this == RESEARCH ? "Investigate" : "Build";
+        }
+
+        /** The person's words for an API label ("research/support" → "Investigate"); anything else as it is. */
+        public static String wordsFor(String label) {
+            return parse(label).map(Posture::words).orElse(label == null ? "" : label);
+        }
+
         /** Accepts either half of the label, either enum spelling, any case — and nothing else. */
         public static Optional<Posture> parse(String raw) {
             if (raw == null) return Optional.empty();

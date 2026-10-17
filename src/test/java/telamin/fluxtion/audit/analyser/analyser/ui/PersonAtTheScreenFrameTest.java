@@ -28,7 +28,7 @@ import static telamin.fluxtion.audit.analyser.analyser.ui.AsyncOpenInterleavingF
  *   <li>Escape with keyboard focus in a component that has its own Escape (the time-range combo's popup)
  *       while SEVERAL spotlights are lit: the key event is POSTED through the AWT queue, so it walks the same
  *       focus-manager and key-binding path a keyboard does — the one thing a Robot would add is the OS.</li>
- *   <li>AI ▸ Posture and AI ▸ Clear mode-selector record: the real {@link JMenuItem}s' listeners, found by
+ *   <li>AI ▸ Work mode and AI ▸ Clear mode-selector record: the real {@link JMenuItem}s' listeners, found by
  *       walking the menu bar, and the shared canvas read back through {@code context.handoff}.</li>
  *   <li>The Project-panel row for a log RESTORED at startup: the same {@code openFile(path, atStartup(true))}
  *       the launcher makes, and the attribution the row and {@code context} then carry.</li>
@@ -100,18 +100,19 @@ class PersonAtTheScreenFrameTest {
         assumeFalse(GraphicsEnvironment.isHeadless());
         try (Frame f = new Frame(tmp)) {
             JMenu ai = menu(f.frame.getJMenuBar().getComponents(), "AI");
-            JMenu posture = (JMenu) item(ai.getMenuComponents(), "Posture");
-            JMenuItem research = item(posture.getMenuComponents(), "Research / support");
-            JMenuItem authoring = item(posture.getMenuComponents(), "Authoring / deploy");
-            JMenuItem derived = item(posture.getMenuComponents(), "Derived");
+            // owner feedback (2026-10-17): AI ▸ Work mode ▸ Investigate / Build / Guess from what is open
+            JMenu posture = (JMenu) item(ai.getMenuComponents(), "Work mode");
+            JMenuItem research = item(posture.getMenuComponents(), "Investigate");
+            JMenuItem authoring = item(posture.getMenuComponents(), "Build");
+            JMenuItem derived = item(posture.getMenuComponents(), "Guess from what is open");
             JMenuItem clearRecord = item(ai.getMenuComponents(), "Clear mode-selector record");
 
             onEdt(() -> research.doClick(0));
-            onEdt(() -> assertTrue(String.valueOf(handoff(f)).contains("research"), "AI ▸ Posture ▸ Research: " + handoff(f)));
+            onEdt(() -> assertTrue(String.valueOf(handoff(f)).contains("research"), "AI ▸ Work mode ▸ Investigate: " + handoff(f)));
             onEdt(() -> authoring.doClick(0));
-            onEdt(() -> assertTrue(String.valueOf(handoff(f)).contains("authoring"), "AI ▸ Posture ▸ Authoring: " + handoff(f)));
+            onEdt(() -> assertTrue(String.valueOf(handoff(f)).contains("authoring"), "AI ▸ Work mode ▸ Build: " + handoff(f)));
             onEdt(() -> derived.doClick(0));
-            onEdt(() -> assertTrue(String.valueOf(handoff(f)).contains("derived"), "AI ▸ Posture ▸ Derived: " + handoff(f)));
+            onEdt(() -> assertTrue(String.valueOf(handoff(f)).contains("derived"), "AI ▸ Work mode ▸ Guess: " + handoff(f)));
             // Clear record with no record placed: a no-op that must neither throw nor open a dialog
             onEdt(() -> clearRecord.doClick(0));
             pump();

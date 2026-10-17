@@ -230,7 +230,7 @@ Two more items on the *AI* menu are not pointers. They are **session state that 
 see** — the client reads them in `context.handoff`, you read them as rows in the
 [Project panel](user-guide/project-panel.md) — and either of you can set them.
 
-**AI ▸ Posture.** An assistant works differently when you are *investigating* a system than when you are
+**AI ▸ Work mode.** An assistant works differently when you are *investigating* a system than when you are
 *building* one, and that intent changes before any file does (*"let's build something new"*). Posture says
 which: *Research / support* or *Authoring / deploy*. Left on *Derived*, the analyser guesses — a project open
 reads as authoring, otherwise research — and **says it is only a guess**. Pick one to set it; a client sets it

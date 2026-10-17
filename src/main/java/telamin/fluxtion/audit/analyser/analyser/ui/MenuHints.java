@@ -41,6 +41,19 @@ final class MenuHints {
     static final List<Rename> RENAMES = List.of(
             new Rename("Reset", List.of("Reset", "Reset (close log + graph)"), "Close log and topology"));
 
+    /**
+     * Owner feedback (2026-10-17): an item renamed for the PERSON whose old name agents use as a spotlight target —
+     * {@code menu:AI:Posture} — resolves to the new item as an ALIAS (it lights it), unlike a {@link #RENAMES} entry,
+     * which only says where the item went. Keyed by the normalized menu and old item; the value is the live item's name.
+     */
+    static final Map<String, Map<String, String>> ALIASES = Map.of("ai", Map.of("posture", "Work mode"));
+
+    /** The live item a spotlight's {@code menu:<menu>:<item>} names through an alias, or null. */
+    static String alias(String menu, String item) {
+        Map<String, String> items = ALIASES.get(normalize(menu));
+        return items == null ? null : items.get(normalize(item));
+    }
+
     private static final Pattern ELLIPSIS = Pattern.compile("(…|\\.\\.\\.)$");
     private static final Pattern SHORTCUT = Pattern.compile("\\s*\\(\\w\\)$");   // "(F)" — one character only
 

@@ -49,11 +49,12 @@ class UserVisibleJargonTest {
      */
     static final Map<String, String> EXEMPT_FILES = Map.of(
             "ui/ActionExecutor.java", "verb results and refusals for the MODEL (the action socket's JSON), not the person");
-    static final Map<String, String> EXEMPT_LITERALS = Map.of(
-            "ui/ProjectModel.java|derived from what is open — a starting guess; AI ▸ Posture sets it",
-            "the shared canvas's research/authoring posture (AI ▸ Posture, open {posture}) — that feature's own name",
-            "ui/ProjectModel.java|posture: ",
-            "the same: the Project panel's row for the shared canvas's posture");
+    /**
+     * Owner feedback (2026-10-17): the shared canvas's posture is "Work mode" (Investigate / Build) for the person, so it
+     * has no exemption any more. Only a string that goes to the MODEL or the API may say "posture" — and none in these
+     * files does (the action socket's results are {@link #EXEMPT_FILES}'s).
+     */
+    static final Map<String, String> EXEMPT_LITERALS = Map.of();
 
     record Hit(String file, int line, String text) {
     }

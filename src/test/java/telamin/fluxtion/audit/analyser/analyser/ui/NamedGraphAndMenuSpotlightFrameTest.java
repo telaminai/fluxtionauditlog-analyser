@@ -414,6 +414,7 @@ class NamedGraphAndMenuSpotlightFrameTest {
             onEdt(() -> assertEquals(true, attempt(f, "spotlight", Map.of("target", "menu:Audit log:Close log")).get("ok")));
             pump();
             onEdt(() -> {
+                // owner feedback (2026-10-17): the item reads "Work mode"; agents' old name is an ALIAS that lights it
                 Map<String, Object> r = attempt(f, "spotlight", Map.of("target", "menu:AI:Posture"));
                 assertEquals(true, r.get("ok"), r::toString);
             });
@@ -446,6 +447,14 @@ class NamedGraphAndMenuSpotlightFrameTest {
                         "the non-menu spotlight survived the Audit log menu closing; the AI item is lit");
                 assertTrue(aiMenu.getPopupMenu().isShowing());
             });
+            onEdt(() -> render(f.ex, "spotlight", Map.of("clear", true)));
+            pump();
+            // and the item's new name lights it too
+            onEdt(() -> {
+                Map<String, Object> r = attempt(f, "spotlight", Map.of("target", "menu:AI:Work mode"));
+                assertEquals(true, r.get("ok"), r::toString);
+            });
+            pump();
             onEdt(() -> render(f.ex, "spotlight", Map.of("clear", true)));
             pump();
         } finally {
