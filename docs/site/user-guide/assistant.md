@@ -46,12 +46,23 @@ plan, or an API key). Both share:
   folder or use your own tools; Safe analysis has no shell, edits or web; full Claude Code's own tools are not confined
   by the analyser; with no key, or with the assistant *Off*, it says so there.
 
+![The assistant panel in the in-app mode: Assistant: In-app assistant, the provider and API-key chips, the limits line, a
+question about record #7, one analyser_read tool line and an answer in safe Markdown with record and node
+chips](../assets/assistant-in-app.png)
+
+![The same panel in the Claude Code mode, Safe analysis: the Claude Code chips, the folder, Set up a project with Claude…,
+and one analyser_report call marked approved by you](../assets/assistant-claude-code.png)
+
 Each keeps its own rules: the in-app assistant's actions, its per-reply cap and round limit; Claude Code's profile,
 permissions and approvals. Changing how the assistant works is refused while an answer is in progress.
 
 ## Choose how the assistant works
 
-**Assistant ▾** in the assistant's header shows four cards in the panel — not a chain of dialogs:
+**Assistant: … ▾** in the assistant's header (it names the profile in force, e.g. *Assistant: Safe analysis ▾*) shows four cards in the panel — not a chain of dialogs:
+
+![The four cards in the assistant panel — Safe analysis (the default, selected, with its model), Full Claude Code, In-app
+assistant and Off — the External MCP/REST access line under them, and Close / Apply — Safe
+analysis](../assets/assistant-profile-cards.png)
 
 | Card | What it sets up |
 |---|---|
@@ -72,7 +83,7 @@ external loop. Each card's line is shown in full — the card grows to fit it.
   start page **waits for you**: after **Apply** it is placed in the composer of the assistant you chose, with **Start**
   ready for Claude Code — you do not press the button again, and nothing is sent until you press Start or Send. Close the
   cards instead and the question stays in the box. After a card is chosen (or if you close them), they open only from
-  **Assistant ▾**. A machine that was already set up (Claude Code allowed, or an API key) counts as chosen and is never
+  **Assistant: … ▾**. A machine that was already set up (Claude Code allowed, or an API key) counts as chosen and is never
   asked.
 - **A change while an answer is in progress is refused**, by name — *"Claude is still answering — Stop or wait, then
   change how the assistant works."* — as a mode switch is.
@@ -121,6 +132,9 @@ in the Claude Code mode, *Ask the assistant: …* in the in-app one:
 | **Explain this finding** | right-click one flagged record |
 | **Summarise this window** | right-click the time slider (its menu is new), or a chart's visible window |
 
+![The records' right-click menu in the in-app mode: Ask the assistant: What happened here? enabled for one record; Compare
+these rows and Explain this finding disabled, each until its condition holds](../assets/ask-menu.png)
+
 - **The question goes into the composer, not to the model.** It is **added after** whatever you have written there,
   only the added lines are highlighted, and the line above the box says *Press Send to ask … — nothing has been sent*.
   Nothing is sent until you press **Send**. In the Claude Code mode with no session running, **Start is armed**
@@ -143,7 +157,7 @@ If you have [Claude Code](https://docs.claude.com/en/docs/claude-code/setup) ins
 can host **one long-running Claude Code session** instead of the in-app assistant: you type into it here, and it drives
 the analyser through the same verbs an external client uses. It is **off by default**.
 
-**Turn it on.** Choose the **Safe analysis** card (**Assistant ▾** in the assistant's header), or *Settings ▸ Assistant
+**Turn it on.** Choose the **Safe analysis** card (**Assistant: … ▾** in the assistant's header), or *Settings ▸ Assistant
 ▸ Safe analysis ▸ Allow the analyser to start Claude Code*. One assistant drives the tab at a time; switching back stops
 an idle Claude Code, and is refused while Claude is answering (*"Claude is still answering — Stop or wait, then change
 how the assistant works."*). These settings — both switches, Full Claude Code's mode, the model, the spend limit and the
@@ -162,10 +176,11 @@ administrator lock yet ([For administrators](#for-administrators)).
   consent dialog here). Your answer is remembered on this machine. With no project open — or with the sample project or
   a bundle open — Claude Code works in a private, empty scratch folder instead, and the question says so in words before
   its path. Start is refused outright in an evidence bundle's working copy.
-- Claude Code does **not** need the REST transport turned on. With it off, the analyser opens a private listener that
+- Claude Code does **not** need *External MCP/REST access* turned on. With it off, the analyser opens a private listener that
   serves only this Claude Code session — it refuses every external client, even one holding the REST token, and
   publishes no endpoint file for other tools to find — and closes it when the session stops. With it on, the session
-  shares the REST transport's listener, and external clients are served as before.
+  shares that listener, and external clients are served as before — unless you choose **Close external access while
+  this session runs** ([Connecting an LLM ▸ While Claude Code runs in the analyser](../connect-an-llm.md#while-claude-code-runs-in-the-analyser)).
 - Start **contacts Anthropic** (the sign-in check and connecting the analyser's bridge) **before your first Send**. No
   record content is sent until you press Send.
 - The analyser checks that the session it started is the one it asked for: the bridge proves it belongs to this
@@ -230,6 +245,10 @@ Turn it on only for folders and logs you trust: in Full Claude Code, text in a r
 reaches an agent that may have your shell, and the analyser cannot limit what your own tools do.
 
 ### Approvals in the analyser
+
+![Claude Code asks for your approval: Claude Code asks to write a finding to “demo-breach-finding.pdf”, what follows from
+it, the call's input as plain text, the 120 s deadline, Allow once alone at the left, Stop Claude Code and Deny, the
+default](../assets/permission-dialog.png)
 
 When Claude Code needs your approval for a call, the analyser asks you in **one dialog** that says what **this call**
 does, from its own input — *"Claude Code asks to delete the saved walk “DEMO first breach”"*, *"…to play the walk
@@ -367,17 +386,18 @@ source, **and** the log's file path, shape and per-record **byte offsets**. The 
 part it copied, in the order they appear ("the analyser's standing instructions, the glossary, the raw text of 2
 records and your question"), and says so when a very large selection had to be cut.
 
-The analyser's **action protocol** (the localhost REST endpoint, its token and the verbs) is copied only when
+The analyser's **action protocol** (the loopback REST endpoint, its token and the verbs) is copied only when
 you tick **Include my local REST token (lets the pasted assistant drive this analyser)** — off every time the
 dialog opens, because the token lets whoever holds it drive this analyser. Tick it and an external agent can
 not only reason about the evidence, it can **drive this analyser back** — seek more records, aggregate, and
 plot a graph to show you the fault — exactly as the in-app assistant does. Without the token the protocol is
-left out entirely: every action call needs it. The box appears only while the REST transport is on.
+left out entirely: every action call needs it. The box appears only while *External MCP/REST access* is on.
 
 ## Setup
 
-The **In-app assistant** card (**Assistant ▾**) sets the provider, model and key in one step. Or open
-**Settings ▸ Assistant / LLM**:
+The **In-app assistant** card (**Assistant: … ▾**) sets the provider, model and key in one step. Or open
+**Settings ▸ LLM** (provider, model, key and base URL; *Settings ▸ Assistant ▸ In-app assistant* holds its action
+switch and limits):
 
 - **Provider / model** — Anthropic (Claude) or OpenAI, and a model id.
 - **API key** — stored locally in cleartext (single-user tool), and sent to the configured provider
@@ -392,7 +412,7 @@ The analyser does not show the provider's raw error body because it may contain 
 ## Actions the assistant can take
 
 From a reply the assistant runs bounded **actions** (within the round / per-reply caps in Settings) and
-feeds the results back. An optional localhost **REST transport** (off by default) lets an external agent
+feeds the results back. Optional **External MCP/REST access** (off by default) lets an external agent
 drive the same verbs:
 
 - **aggregate** — counts / rates over the index (the expensive parse is done once and shared), with
@@ -617,12 +637,16 @@ analyser itself, with no assistant connected.
 
 ### Set up a project with Claude
 
-**Set up a project with Claude…** (on the Claude Code tab, and the start page's *Set up a project from my code*) asks
+**Set up a project with Claude…** (in the assistant panel in its Claude Code mode, and the start page's *Set up a project from my code*) asks
 you for **your code's folder** — the same folder checks as Start: not your home folder, a credential folder or a
 bundle's working copy. That folder becomes the session's working folder for this run (it is not remembered, and is not
 a project), and Start is armed with a set-up question. Claude reads the folder with its read-only tools and the
 analyser's verbs, then calls **`propose`** with up to ten items — a source root, the processor, a GraphML, a runbook,
 a log to open — each with its reason.
+
+![Review Claude Code's set-up proposal: five DEMO items — source folder, processor, graph file, runbook, log to open —
+each with the analyser's own check and a Yes / No answer starting at No, and Claude's reason, labelled
+unverified](../assets/proposal-review.png)
 
 - **Nothing is applied by Claude.** A banner appears on the tab — *"Claude Code proposes 4 changes to set up …/medmon.
   Nothing has been applied — review each one."* — with **Review…** and **Not now**. A model never opens a dialog: the
@@ -837,7 +861,7 @@ Three more on `open`, so an agent can manage what is loaded rather than only add
     `context` (and `topology`) once the load lands, and none of them is ever a dialog on this path. This is
     one pattern, not four exceptions — if you need any of them, call `context` after opening.
 
-When the project points at a glossary (*Portable context ▸ Vocabulary*), its text leads every *Explain*
+When the project points at a glossary (*Portable context ▸ Vocabulary*), its text leads every *Ask*
 prompt and is served as `context.vocabulary.text`, so the assistant reads `live` the way this system means it.
 
 !!! tip "Ask `context` for part of it — `sections`"
@@ -894,10 +918,13 @@ suspicious number. It also reports `projectOffer` when the log sits inside a pro
 human would see as a dialog, which an agent gets as data instead, because a dialog nobody can answer
 would simply stall the session.
 
-`aggregate`, `read`, `series`, `context` and `coverage` are marked read-only. The verbs that only change what the
-app shows are reversible and marked accordingly. Four are marked **destructive**, so a client can prompt
-before running them: `open` replaces the loaded log (taking the session's flags with it), `source_root`
-writes the persisted config, and `screenshot` and `report` write files.
+`aggregate`, `read`, `series`, `context`, `coverage` and `source` are marked read-only (`source` rereads XML or Java
+under your source roots, and moves the transient source view). The verbs that only change what the app shows are
+reversible and marked accordingly. Six are marked **destructive**, so a client can prompt before running them: `open`
+replaces the loaded log (taking the session's flags with it), `source_root` writes the persisted config, `screenshot`
+and `report` write files, `walk` can replace a saved walk by name (and `walk {reel}` writes an HTML file), and `import`
+merges a bundle's saved state into your project. A further verb, `propose`, is offered **only** to Claude Code in the
+Assistant tab ([Set up a project with Claude](#set-up-a-project-with-claude)), never to an external client.
 
 Those last two are **off by default**. Turning on *Allow assistant file exchange* (Settings ▸ Assistant) lets them
 write **only inside the exchange directory you choose**, and they never overwrite an existing file — so a
@@ -930,24 +957,29 @@ spawned subprocess would have none of it, so the bridge forwards to the app inst
 So the working setup is:
 
 1. **You** open the analyser and load a log, as usual.
-2. **You** enable Settings ▸ Assistant ▸ **localhost REST transport** (off by default) — once; it's
-   remembered.
+2. **You** turn on *Settings ▸ Assistant ▸ **External MCP/REST access*** (or *AI ▸ External MCP/REST access*; off by
+   default) — once; it's remembered.
 3. **Your client** starts the bridge on its own, whenever it needs a tool.
 
 If you skip step 1 or 2, the tools still appear in your client, but calling one answers *"analyser not
-running, or REST transport disabled — start the app with `--rest`"*. That flag turns the transport on
-(persistently) and prints where the endpoint file is, so an agent can bring the analyser up on a fresh
-machine without a human at the keyboard.
+running, or REST transport disabled — enable it in Settings ▸ Assistant, or start the app with `java -jar
+fluxtion-auditlog-analyser.jar --rest` (REST on, no first-run dialog; the setting persists)"*. That flag turns
+External MCP/REST access on (persistently), so an agent can bring the analyser up on a fresh machine without a
+human at the keyboard. The console then shows the URL and the token's first 8 characters only — and the endpoint
+file's path on a first run; a script reads the token from `~/.fluxtion-analyser/rest-endpoint` and checks its `pid`
+([The token, for scripts](../connect-an-llm.md#the-token-for-scripts)).
 
 ### Set up an MCP client in the app
 
-Open **Connect an AI client** from the Start page, or from **Settings ▸ Assistant / LLM**. Opening the
+Open **Connect an AI client** from **AI ▸ Connect an AI client…**, the Start page's *Connect an assistant* block
+(**Codex**, **Claude**, **Other MCP client**), or *Settings ▸ Assistant ▸ Every assistant ▸ Connect an AI client…*. Opening the
 screen only inspects this analyser; it does not change a client configuration. Its **Bridge command** is
 the exact local launcher this installation can use — the installed JBang launcher or the current packaged
 application, including an absolute Java path where one is required. Do not shorten, split or substitute
 that command.
 
-First turn on **local transport** for this already-open analyser, then choose **Check connection**. The
+First turn on **External MCP/REST access** for this already-open analyser (the screen's *Turn on External MCP/REST
+access…* button), then choose **Check connection**. The
 check launches that same bridge and makes one read-only `analyser_context` call. A successful check proves
 the analyser → bridge chain for this window; it cannot prove that a foreign client has imported the setup
 or made a model call.
@@ -987,13 +1019,13 @@ server actually connected, then say what you want:
 $ claude
 
 > /mcp
-  ⎿ fluxtion-analyser   ✔ connected · 17 tools
-       analyser_aggregate · analyser_read · analyser_series
+  ⎿ fluxtion-analyser   ✔ connected · 18 tools
+       analyser_aggregate · analyser_series · analyser_read
        analyser_filter · analyser_graph · analyser_goto
-       analyser_flag · analyser_report · analyser_coverage
+       analyser_flag · analyser_coverage · analyser_report
        analyser_context · analyser_topology · analyser_screenshot
-       analyser_open · analyser_source_root · analyser_source · analyser_spotlight
-       analyser_walk
+       analyser_import · analyser_open · analyser_source
+       analyser_source_root · analyser_spotlight · analyser_walk
 
 > I have a Fluxtion audit log open in the analyser. Use the fluxtion-analyser
   tools to work out why the hedge stopped quoting.
@@ -1003,9 +1035,9 @@ That first message is the whole handshake on your side. You mention the server b
 reaches for these tools rather than, say, grepping your filesystem; after that it just uses them. There's
 no path to give it and no token to paste — it's already pointed at whatever log you have open.
 
-If `/mcp` shows nothing, the client never started the bridge: re-check the config paths in the tab above.
+If `/mcp` shows nothing, the client never started the bridge: re-check the registration from **AI ▸ Connect an AI client…** above.
 If it shows *connected* but a call comes back **"analyser not running"**, the bridge is fine and the
-**app** is the missing half — open it and turn on the REST transport.
+**app** is the missing half — open it and turn on *External MCP/REST access*.
 
 From there the agent works, and you watch it work:
 
@@ -1134,7 +1166,7 @@ Setup notes:
 ### How it finds your running analyser
 
 REST picks a fresh port and mints a fresh token every launch, so there is nothing stable to hard-code.
-Instead, while the transport is running the app writes its live endpoint to
+Instead, while External MCP/REST access is on the app writes its live endpoint to
 `~/.fluxtion-analyser/rest-endpoint` (owner-readable only), and the bridge reads it **on every call**.
 
 Two things follow, both useful:
@@ -1146,8 +1178,11 @@ Two things follow, both useful:
 
 ### If it isn't working
 
-- **"analyser not running, or REST transport disabled"** — exactly what it says: either the app isn't
-  open, or the REST transport is off in Settings ▸ Assistant. The same message appears if the app was
+- **"analyser not running, or REST transport disabled — enable it in Settings ▸ Assistant, or start the app with
+  `java -jar fluxtion-auditlog-analyser.jar --rest` …"** — exactly what it says: either the app isn't open, or
+  *External MCP/REST access* is off in Settings ▸ Assistant (the message's *REST transport*). It also appears while
+  Claude Code runs in the analyser's Assistant tab with external access off or closed for that session
+  ([While Claude Code runs in the analyser](../connect-an-llm.md#while-claude-code-runs-in-the-analyser)). The same message appears if the app was
   killed, because the bridge checks the recorded process is still alive before trying to connect.
 - **The server won't start at all** — reopen **Connect an AI client** and use the exact bridge command
   it resolves for this installation. It should sit and wait for input rather than exit when run from a
@@ -1164,8 +1199,9 @@ discovered live, so the list you see in your client is the truth. An agent can r
 change what the app displays, and (via `open` / `source_root`) switch which log, processor or source
 roots are open — the same things you change through the UI. **File writes are off by default**: the
 `screenshot` / `report` verbs work only after you enable *Allow assistant file exchange* (Settings ▸ Assistant),
-write **only inside the exchange directory you configure**, and never overwrite. It **cannot** touch your
-API key, run anything, or read files outside the log and sources you configured. Server control is
+write **only inside the exchange directory you configure**, and never overwrite (`walk {reel}` writes its HTML page
+there too). It **cannot** touch your API key, run anything, or read files outside the log, the source roots you
+configured (`source` rereads XML and Java beneath them) and the exchange directory. Server control is
 deliberately not an assistant capability. The channel is loopback-only and the endpoint file is
 owner-readable. (The [FAQ's security answer](../faq.md#is-the-assistants-action-socket-safe-to-enable)
 is the canonical statement of this boundary.)

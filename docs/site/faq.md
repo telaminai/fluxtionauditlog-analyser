@@ -34,9 +34,11 @@ redisplays it. See [Sharing setups](user-guide/sharing-setups.md).
 
 ## Does it work offline?
 
-Yes. Everything except the optional LLM call is local. Opening from S3 uses your local `aws` CLI; the
-assistant needs network only when you actually ask it to explain something (and even then, no key =
-copy-prompt mode).
+Yes. Everything except the optional assistant is local. Opening from S3 uses your local `aws` CLI. The
+in-app assistant needs network only when you actually send it a question (and even then, no key =
+copy-prompt mode). Claude Code in the Assistant tab contacts Anthropic when you press **Start** (its sign-in
+check and the bridge connection), before your first Send; with the assistant **Off**, nothing in the analyser
+goes on the network.
 
 ## Can I follow a growing log?
 
@@ -61,23 +63,26 @@ Only **top-level** numeric or boolean nodeLog keys can be plotted. A number sitt
 
 ## Is the assistant's action socket safe to enable?
 
-Yes — it's built to be. The optional REST transport that lets an external agent drive the analyser is
-**off by default**, and when on it is:
+Yes — it's built to be. *External MCP/REST access* (*Settings ▸ Assistant*, or *AI ▸ External MCP/REST access*),
+which lets an external agent drive the analyser, is **off by default**, and when on it is:
 
 - **loopback-only** — bound to `127.0.0.1`; not reachable from the network,
 - **token-guarded** — every request needs a **per-run** secret token (regenerated each launch),
 - **CSRF-hardened** — requests carrying an `Origin` header are rejected, so a browser page can't reach it,
 - **rate-limited** and **bounded** — capped actions per reply; no shell access, ever.
 
-Out of the box an agent can compute, filter, graph, flag and read records — **nothing outside the loaded
-log, and no file writes**. Two groups of verbs go further, honestly labelled:
+Out of the box an agent can compute, filter, graph, flag and read records, and `source` can reread the XML
+and Java files **under the source roots you configured** (to show a declaration) — **no other file reads, and
+no file writes**. These groups of verbs go further, honestly labelled:
 
 - **File exchange — `screenshot` and `report` writes, and external-series reads — is off by
   default.** Enabling *Allow assistant file exchange* (Settings ▸ Assistant) lets the write verbs write
   **only inside the exchange directory you choose** (never overwriting an existing file), and lets the
   `graph` verb's `external` series **read only from that same directory** — one opt-in, one directory,
   both directions. A file you pick in a chooser yourself is readable for that session: the chooser is
-  the grant. `screenshot` and `report` are marked destructive to MCP clients so your agent asks first.
+  the grant. `walk {reel}`, which records a walk as one self-contained HTML page, is the same kind of
+  write, and so is `report {bundle}`, which captures an evidence bundle. `screenshot` and `report` are marked
+  destructive to MCP clients so your agent asks first.
 - **Scripting verbs — `open` and `source_root` — can change which log, event processor or source roots
   are open**, the same things you change through the UI. Still nothing outside the analyser: no shell,
   no arbitrary file reads, and your API key is never reachable.
@@ -96,9 +101,10 @@ log, and no file writes**. Two groups of verbs go further, honestly labelled:
   entry for the new session. An assistant is also refused inside an evidence bundle's working copy, inside the
   exchange directory, inside an existing project, and through a symbolic-link `.analyser`.
 - **`walk` edits the project's saved spotlight walks** — it can save one, replace one by name, rename one or
-  move one to the recently-deleted list (restorable). It writes no file of its own and reads no log data
-  beyond the records a walk points at; it is marked destructive to MCP clients because replacing a walk by
-  name overwrites a person's work.
+  move one to the recently-deleted list (restorable). Its one file write is **`walk {reel}`**, which writes a
+  walk as an HTML page — only with file exchange on, only inside the exchange directory, never overwriting. It
+  reads no log data beyond the records a walk points at; it is marked destructive to MCP clients because
+  replacing a walk by name overwrites a person's work.
 - **`import` borrows an evidence bundle's saved state into the project you already have** — its charts
   and named focuses, its investigation reports and spotlight walks, and your column choices. Called with
   only a bundle path it previews and changes nothing; it applies only the categories you name, which is
@@ -106,7 +112,12 @@ log, and no file writes**. Two groups of verbs go further, honestly labelled:
   roots and Maven repos are removed at capture, so it can never point your analyser somewhere new.
   Reports carry prose the sender wrote about their data, so they are applied only when named explicitly.
   It is marked destructive to MCP clients because it merges someone else's work into your project.
-- **Claude Code in the Assistant tab is off by default.** The assistant header's **Assistant ▾** cards turn it on in
+- **`propose` is offered only to Claude Code in the Assistant tab** — never on `/manifest`, never to an external
+  MCP or REST client and never to the in-app assistant. It records an offer of up to ten set-up items (source
+  roots, the processor, a GraphML, runbooks, a log) and **changes nothing**; you review each item, every answer
+  starts at No, an item outside the chosen folder can never be applied, and only *Apply chosen* acts.
+- **Claude Code in the Assistant tab is off by default.** The assistant header's **Assistant: … ▾** control (it names
+  the profile in force, e.g. *Assistant: Safe analysis ▾*) opens the cards that turn it on in
   one step — **Safe analysis** for what is described below, **Full Claude Code** for yours — and write the same switches.
   *Allow the analyser to start Claude Code* (Settings ▸ Assistant) lets the tab's **Start** button run **your own installed `claude`**, logged in as you; the
   analyser never reads or stores your Claude Code credentials. Start contacts Anthropic (the sign-in check and the
@@ -127,7 +138,7 @@ log, and no file writes**. Two groups of verbs go further, honestly labelled:
   confirmed once before Start, a bundle's working copy is refused, and its bridge carries its own per-session
   credential: a call with only the REST token is never treated as Claude Code's, Claude Code cannot delete a chart, and
   only the verbs listed above are served to it — a verb added in a later release stays refused until it is listed.
-  Claude Code does not need the REST transport on: with it off, its private listener refuses every external client,
+  Claude Code does not need External MCP/REST access on: with it off, its private listener refuses every external client,
   even one holding the REST token, and publishes no endpoint file. Start is always the explicit button; opening the
   Assistant tab starts nothing. The switches and the confirmed folders are this machine's only — never in a project profile, a shared
   settings file or an evidence bundle.
@@ -170,9 +181,10 @@ log, and no file writes**. Two groups of verbs go further, honestly labelled:
 
 ## How do I connect Codex, Claude Code or another MCP client?
 
-With the analyser open, use **Connect an assistant** on the Start page (**Codex**, **Claude**, **Other MCP client**) or
-**Settings ▸ Assistant / LLM**.
-Turn on local transport and use **Check connection** to prove the local bridge reaches this live window.
+With the analyser open, use **AI ▸ Connect an AI client…**, the Start page's **Connect an assistant** block (**Codex**,
+**Claude**, **Other MCP client**), or *Settings ▸ Assistant ▸ Every assistant ▸ Connect an AI client…*.
+Turn on **External MCP/REST access** (the screen's *Turn on External MCP/REST access…* button) and use **Check
+connection** to prove the local bridge reaches this live window.
 The screen can explicitly register Codex or user-scoped Claude Code when their CLIs are available. For
 Claude Desktop and any other client, **Generic MCP setup** supplies the exact no-token stdio JSON for you
 to copy or save to a file you choose; it never guesses or edits a client configuration location. See

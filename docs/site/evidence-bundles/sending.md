@@ -14,6 +14,10 @@ report {bundle: {path: "breach-0900.fexp", notes: "# The 09:00 breach\n\nThe spr
 ```
 
 - **`path`** is written inside the exchange directory (*AI ▸ Report exchange directory…*), and never overwrites.
+  Capture is a file write, so it is **refused unless *Allow assistant file exchange* is on** (*Settings ▸ Assistant ▸
+  Every assistant*): *"file exports are disabled — enable Settings ▸ Assistant ▸ 'Allow assistant file exchange' and
+  choose an exchange directory"*. From Claude Code in the Assistant tab, `report` is one of the verbs the analyser
+  asks you about first: an approval dialog shows this call's input, and only *Allow once* lets it run.
 - **`notes`** (optional) is your account, in Markdown. It travels as `notes/NOTES.md`.
 - **`from` / `to`** (optional, epoch millis) make the bundle an **excerpt**, described below.
 

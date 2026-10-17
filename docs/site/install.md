@@ -42,12 +42,19 @@ After installation, run `analyser [optional-log-file]` from your PATH.
 java -jar fluxtion-auditlog-analyser.jar --rest        # or: jbang analyser@telaminai/fluxtionauditlog-analyser --rest
 ```
 
-`--rest` opens the app with the **localhost REST transport on**, so a process can drive it on a machine
-that has never run the analyser. On a first run it prints where the REST endpoint file is, rather than
-expecting anyone to read the screen. The setting persists (Settings ▸ Assistant shows it on; turn it off
-there) and the console says so. It is what an agent runs on a fresh machine before its MCP client
-connects; a human launch without the flag is unchanged — and neither one opens a dialog before you can
-use the app.
+`--rest` opens the app with **External MCP/REST access on**, so a process can drive it on a machine
+that has never run the analyser. The setting persists (*Settings ▸ Assistant ▸ External MCP/REST access*
+shows it on; turn it off there), and when the flag has just turned it on the console says so. It is what an
+agent runs on a fresh machine before its MCP client connects; a human launch without the flag is
+unchanged — and neither one opens a dialog before you can use the app.
+
+What the console prints: the URL and only the token's **first 8 characters**
+(`[analyser] assistant REST: http://127.0.0.1:… (token 1a2b3c4d…)`), plus, on a first run with no
+configuration yet, where the endpoint file is. The full token is never printed. **Automation reads the
+token from `~/.fluxtion-analyser/rest-endpoint`** — mode 600, `{url, token, pid, startedAt}`, rewritten with
+a fresh token on every launch — and checks that `pid` is a live process before trusting it (a crashed
+analyser can leave a stale file). An MCP client needs none of this: its bridge reads the file itself. See
+[Connecting an LLM ▸ The token, for scripts](connect-an-llm.md#the-token-for-scripts).
 
 ## Plain download
 

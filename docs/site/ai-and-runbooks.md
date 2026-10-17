@@ -32,7 +32,7 @@ in it. The pointer lives in a committed file, so it goes through the same review
 
 ## Finding them — `context`
 
-Both agents read the same payload: the in-app assistant through its in-process actions, an external LLM
+Both agents read the same payload: the in-app assistant through its own actions (*Let the in-app assistant change the views as it answers*), an external LLM
 through `analyser_context`. With a project open it carries:
 
 ```json
@@ -142,7 +142,7 @@ A prompt that uses this well:
 ## Using the glossary
 
 The glossary is the **one** pointed-at file whose contents the analyser reads — a glossary is read, a
-runbook is acted on. The in-app assistant gets its text **first** in every *Explain* prompt, framed as
+runbook is acted on. The in-app assistant gets its text **first** in every question it is asked (*Ask*), framed as
 reference text (not an instruction), so `live` is read the way this system means it. An external LLM
 gets the same text as `context.vocabulary.text`, capped at 16 000 characters with truncation announced.
 An agent that does not use the built-in prompt should put it first too.
@@ -259,9 +259,9 @@ The status bar carries a light that answers exactly that:
 | **MCP ready** (green) | this window is serving — an AI client pointed here reaches *this* log |
 | **MCP elsewhere** (amber) | **another analyser window owns the endpoint**; a client using it is reading that window's log, not this one |
 | **MCP starting** (amber) | enabled, but no live endpoint published yet |
-| **MCP off** (grey) | the local transport is off — a choice, not a fault |
+| **MCP off** (grey) | External MCP/REST access is off — a choice, not a fault |
 
-If the window that owns the endpoint **closes**, a window whose transport is on takes the endpoint back within a few
+If the window that owns the endpoint **closes**, a window with External MCP/REST access on takes the endpoint back within a few
 seconds and its light returns to **MCP ready** — a live owner is never displaced, so two windows cannot fight over it.
 
 *Ready* is not *connected*. This window being reachable and a client actually talking to it are two

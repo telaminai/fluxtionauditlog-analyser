@@ -77,6 +77,29 @@ class FaqSecurityContractTest {
             assertTrue(answer.toLowerCase(java.util.Locale.ROOT).contains(claim.toLowerCase(java.util.Locale.ROOT)),
                     "the FAQ security answer must state, for approvals in the analyser: " + claim);
         }
+        // Docs audit 2026-10-17 §4 item 8: claims the substring pins above could not see were wrong — walk "writes no
+        // file", "nothing outside the loaded log" though source rereads the source roots, no word on propose, a control
+        // called "Profile…" that no longer exists. Witness: restore any of those sentences; its assertion names it.
+        assertTrue(answer.contains("`walk {reel}`") && answer.contains("writes a walk as an HTML page"),
+                "the FAQ must say walk {reel} writes a file");
+        assertFalse(answer.contains("writes no file of its own"), "walk {reel} writes a file");
+        assertTrue(answer.contains("`source` can reread the XML and Java files **under the source roots you configured**"),
+                "the FAQ must say source reads beyond the loaded log, and where");
+        assertFalse(answer.contains("nothing outside the loaded log"), "source reads the source roots");
+        assertTrue(answer.contains("`propose` is offered only to Claude Code in the Assistant tab")
+                        && answer.contains("never on `/manifest`") && answer.contains("**changes nothing**"),
+                "the FAQ must say what propose is and who is offered it");
+        assertTrue(answer.contains("**Assistant: … ▾**"), "the header control's real label");
+        assertFalse(answer.contains("Profile…"), "Profile… was replaced by Assistant: <profile> ▾");
+        assertTrue(answer.contains("*External MCP/REST access*"), "the REST switch's one name");
+        assertFalse(answer.contains("REST transport that lets"), "the switch is External MCP/REST access");
+        assertTrue(answer.contains("Claude Code does not need External MCP/REST access on"));
+        String whole = faq.replaceAll("\\s+", " ");
+        assertFalse(whole.contains("local transport") || whole.contains("Assistant / LLM"), "the FAQ's old switch and tab names");
+        int offline = whole.indexOf("## Does it work offline?");
+        String offlineAnswer = whole.substring(offline, whole.indexOf(" ## ", offline + 1));
+        assertTrue(offlineAnswer.contains("Claude Code") && offlineAnswer.contains("contacts Anthropic"),
+                "offline: Start contacts Anthropic");
         for (String verb : McpTools.destructiveVerbs()) {
             assertTrue(answer.contains("`" + verb + "`"),
                     "destructive verb '" + verb + "' is not named in the FAQ's security answer — "

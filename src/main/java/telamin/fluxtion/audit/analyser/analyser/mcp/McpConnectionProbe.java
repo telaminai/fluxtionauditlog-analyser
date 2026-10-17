@@ -136,7 +136,7 @@ public final class McpConnectionProbe {
             requestTools(in, out, readers, era);
             return requestContext(in, out, readers, era);
         } catch (RestUnavailable e) {
-            return result(Status.REST_OFF, Era.NONE, "the bridge could not reach this analyser's local transport");
+            return result(Status.REST_OFF, Era.NONE, "the bridge could not reach this analyser (External MCP/REST access may be off)");
         } catch (ProbeFailure e) {
             return result(e.status, e.era, e.getMessage());
         } catch (IOException | RuntimeException e) {

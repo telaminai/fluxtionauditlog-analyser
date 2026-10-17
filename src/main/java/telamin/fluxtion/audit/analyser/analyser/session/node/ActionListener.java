@@ -54,16 +54,16 @@ public class ActionListener implements EventLogSource {
     }
 
     /** The words the status line says (the node's, never the performer's). */
-    public static final String EXTERNAL_OPEN = "Assistant REST transport listening on %s for external clients — the token "
+    public static final String EXTERNAL_OPEN = "External MCP/REST access is on: listening on %s for external clients — the token "
             + "is in the endpoint file (~/.fluxtion-analyser/rest-endpoint); Copy prompt includes it only if you tick "
             + "\"Include my local REST token\"";
-    public static final String HOSTED_ONLY = "Claude Code's bridge listener is up (external clients are refused: the REST "
-            + "transport is off)";
+    public static final String HOSTED_ONLY = "Claude Code's bridge listener is up (external clients are refused: External "
+            + "MCP/REST access is off)";
     public static final String CLOSED_FOR_SESSION = "External MCP/REST access is closed while this Claude Code session "
             + "runs; Claude Code keeps its own connection. It opens again when the session ends.";
-    public static final String EXTERNAL_CLOSED = "Assistant REST transport stopped for external clients; Claude Code in "
+    public static final String EXTERNAL_CLOSED = "External MCP/REST access stopped for external clients; Claude Code in "
             + "the Assistant tab keeps its own connection.";
-    public static final String STOPPED = "Assistant REST transport stopped.";
+    public static final String STOPPED = "External MCP/REST access stopped.";
 
     @OnEventHandler
     public boolean onRestSwitch(SessionEvents.RestSwitchObserved e) {

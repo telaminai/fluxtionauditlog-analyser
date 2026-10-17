@@ -17,11 +17,12 @@
 <h1>Fluxtion Audit Log Analyser — Help</h1>
 <p>This tool reads <b>Fluxtion event-audit logs</b>: machine-readable records emitted by a
 Mongoose/Fluxtion <code>EventProcessor</code>. It lets you browse, filter, summarise, graph, view the
-source behind a node, and ask an LLM to explain records.</p>
+source behind a node, and ask an assistant about records.</p>
 <p>Full documentation online:
 <a href="https://telaminai.github.io/fluxtionauditlog-analyser/">telaminai.github.io/fluxtionauditlog-analyser</a>.</p>
 <p>The <b>toolbar</b> across the top gives one-click access to the common actions: Open, Open S3,
-Flag, Flagged-only, <b>Explain</b> (send the selection to the LLM), and Export CSV. The event-type
+Flag, Flagged-only, Next / Prev anomaly, <b>Ask</b> (draft a question about the selection for the assistant; nothing
+is sent until you press Send), Export CSV and Follow. The event-type
 checklist is the <b>left rail</b>; the right-hand tabs are the outputs (Summary / Source / Graph /
 Analyser&nbsp;assistant).</p>
 
@@ -70,7 +71,7 @@ macOS) a <code>receiver.method()</code> to jump to that node's method, a field t
 type name to open its source. Use <b>Back</b> (Alt+Left, or Cmd/Ctrl+[) to return to the previous
 source file. The node-log viewer has a <b>Wrap</b> toggle (off → horizontal scroll for long lines).
 Select <b>two</b> records and use <b>Records → Diff selected two records</b> — or <b>right-click</b>
-the records table (Diff / Explain / Flag) — for a side-by-side that highlights what changed between
+the records table (Diff, the assistant's questions such as <i>What happened here?</i>, Flag) — for a side-by-side that highlights what changed between
 the two cycles (changed / only-A / only-B). The diff can be <b>exported as CSV, JSON or PDF</b>.</p>
 
 <h2>Filtering &amp; search</h2>
@@ -123,7 +124,8 @@ exports to CSV/PNG.</p>
 <li><b>Sources</b>: source roots, event processor, Maven repositories, topology, design and diagnostics.</li>
 <li><b>Audit log</b>: open local/S3 logs, follow new records, add external CSV series and export records.</li>
 </ul>
-<p><b>Records</b>, <b>Theme</b>, <b>AI</b> and <b>Help</b> remain separate. Toolbar shortcuts are unchanged.</p>
+<p><b>Records</b>, <b>Theme</b>, <b>AI</b> and <b>Help</b> remain separate. The toolbar's <b>Ask</b> and the record
+detail's <b>Ask about this</b> replace the former <i>Explain</i> buttons.</p>
 
 <h2>Source navigation</h2>
 <p>Set your <b>source roots</b> in <i>Sources &rarr; Source roots&hellip;</i> (drag folders in, or Add…). The tool
@@ -182,9 +184,12 @@ reports how well the graph matches the log: which node ids the log writes that t
 A mismatch says the two disagree about which nodes exist. It does not say which one is right, and matching
 names do not prove the two came from the same build either — decide that from what else you know.</p>
 
-<h2>LLM assistant</h2>
-<p>The <b>LLM</b> tab explains records. In <i>Settings</i> choose a provider (Anthropic / OpenAI), a
-model and an API key. Select record(s), type a question, and <i>Send</i>. The context sent is: the
+<h2>Analyser assistant</h2>
+<p>The <b>Analyser assistant</b> tab answers questions about records. Its header control,
+<b>Assistant: &hellip; &#9662;</b>, chooses how it works: <i>Safe analysis</i> or <i>Full Claude Code</i> (your own
+installed Claude Code), the <i>In-app assistant</i> (a provider, model and API key, also in
+<i>Settings &rarr; LLM</i>) or <i>Off</i>. Select record(s) and press <b>Ask</b>, or type a question, and
+<i>Send</i>; nothing is sent before that. For the in-app assistant: The context sent is: the
 selected record(s), the EventProcessor FQN, and source snippets for the referenced node classes, plus
 a system prompt describing the audit format. <i>Reset</i> clears the conversation.</p>
 <p><b>Whole-log access (agentic).</b> The prompt is also <b>seeded</b> with the audit log's file path,

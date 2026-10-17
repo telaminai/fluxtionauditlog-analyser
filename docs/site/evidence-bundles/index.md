@@ -15,7 +15,9 @@ Every command and operation that reports on a bundle states them:
   who packed it. If the sender gives you the bundle's *identity* line by another route, comparing the two is what
   ties the file to them.
 - **No replay.** A bundle shows an investigation. It does not re-run the processor, reproduce the incident or fix
-  anything.
+  anything. A bundle that carries the run's replay records (format 2) states a narrower limit instead: the records
+  reproduce the log only on a build whose graph matches, and you replay them yourself
+  ([Commands and file format](reference.md#the-manifest-with-replay-records-format-2)).
 
 ## What is inside
 
@@ -42,5 +44,5 @@ all work.
 
 - [Sending an investigation](sending.md): one operation on the running analyser, whole log or a time window.
 - [Opening a bundle you were sent](opening.md): verify it, open it and play the walk.
-- [Commands and file format](reference.md): the capture operation, the two commands, and the manifest.
+- [Commands and file format](reference.md): the capture operation, the three commands, and the manifest.
 - [Try it with the demo](demo.md): the whole round trip on the DEMO log, in one command.

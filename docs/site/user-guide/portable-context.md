@@ -109,7 +109,7 @@ matter and which are plumbing, which events are routine and which never are.
 
 **What the analyser does with it — this is the one pointer whose contents it reads.** A glossary is
 tier-1 fact: inert, read, never acted on. So its text is served in `context` (`vocabulary.text`, capped at
-16 000 characters) and placed **first** in the assistant's prompt for *Explain* — before the record, because
+16 000 characters) and placed **first** in the in-app assistant's prompt for every *Ask* question — before the record, because
 what `live` means decides how every number in the record reads. A runbook's contents are never read; a
 glossary's are the point.
 

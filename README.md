@@ -114,8 +114,9 @@ mvn test
    identifiers in the Source tab to follow the graph; **Back** (Alt+Left / ⌘|Ctrl+[) returns.
 5. **Graph** — in the Graph tab, add series (`Pick…` for a searchable multi-select), click a legend entry
    to remove one, export CSV/PNG.
-6. **Explain** — select record(s) and hit **Explain** (toolbar or detail panel) to ask the LLM, or copy
-   the assembled prompt for another model.
+6. **Ask** — select record(s) and hit **Ask** (toolbar) or **Ask about this** (detail panel), or right-click for the
+   assistant's questions; the question is drafted in the assistant's composer and sent when you press Send. With no key,
+   **Copy prompt** copies the assembled prompt for another model.
 7. **Triage** — press `F` to flag rows, "Flagged only" to focus, and `Records → Diff selected two records`
    to compare two cycles.
 

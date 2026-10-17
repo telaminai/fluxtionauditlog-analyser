@@ -109,7 +109,7 @@ log as three separate actions in that order: a project switch is a session bound
 closes any previous log and graph.
 
 The analyser now shows 23 records, the event types it found and whether the graph actually fits the
-log. The screenshots in this section were generated from the real bundle staged under a neutral path.
+log. The first screenshots in this section were generated from the real bundle staged under a neutral path.
 
 ![The real exported bundle log paired with its GraphML: 23 records, event counts and the
 PriceEvent-to-RootNode-to-RiskCheck topology](assets/tutorial-log-open.png)
@@ -122,11 +122,15 @@ Try these in order:
 - Check the pairing statement before treating an absent node as meaningful.
 - Click a node log, then use **Source** to open the generated processor and node method that produced it.
 
-![One real PriceEvent cycle: rootNode records the received event, riskCheck follows it, and the
-topology numbers the two nodes in dispatch order](assets/tutorial-cycle.png)
+The two figures below show the same two steps on the analyser's own DEMO fixture rather than the bundle (the bundle's
+generated sources carry names that cannot appear on this public site): the cycle is a `MarketDataEvent` where your bundle
+has a `PriceEvent`, and the node is `priceListener` where yours is `rootNode`.
 
-![Source navigation from the selected rootNode audit line to the generated processor and its
-RootNode implementation](assets/tutorial-source.png)
+![One DEMO MarketDataEvent cycle: priceListener records the price, quotePublisher follows it, and the topology numbers
+the two nodes in dispatch order](assets/tutorial-cycle.png)
+
+![Source navigation from the selected priceListener node to the generated DemoQuoteProcessor and its
+imports](assets/tutorial-source.png)
 
 The analyser can graph any numeric node-log value, and this bundle now writes two. Alongside the
 readable `rootNode.receivedEvent`, each cycle records `price` and `volume` as their own numeric keys —
@@ -144,12 +148,14 @@ export again after another run and reopen the resulting snapshot.
 
 ## 5. Ask an AI, then verify what it shows
 
-Select one or more records and click **Explain**. With an LLM provider configured, the in-app assistant
+Select one or more records and click **Ask** on the toolbar (or **Ask about this** in the record detail, or
+right-click for the assistant's questions). The question is placed in the assistant's composer and sent only when
+you press **Send**. With an LLM provider configured, the in-app assistant
 can read around the selection and render findings back into the analyser as filters, flags and graphs.
 Without a provider key, **Copy prompt** gives the same evidence to another agent — and the action protocol
 too when you tick **Include my local REST token** in its dialog.
 
-![The AI menu with the local transport, client setup and project runbooks available](assets/ai-menu.png)
+![The AI menu with External MCP/REST access, client setup and project runbooks available](assets/ai-menu.png)
 
 To let an MCP client work in this analyser window, use **AI ▸ Connect an AI client…**. The dialog
 resolves the launcher for this installation and provides the exact client record; do not reconstruct a

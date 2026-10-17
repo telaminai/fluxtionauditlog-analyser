@@ -44,7 +44,7 @@ import java.util.Optional;
  * The local MCP readiness and confirmed-client-setup surface (M42.2–.6).
  *
  * <p>Opening it only reads the current local state and the documented JBang launcher. Third-party
- * configuration changes have their own confirmation; enabling local transport has another. Bridge
+ * configuration changes have their own confirmation; turning on External MCP/REST access has another. Bridge
  * probing is a background, read-only {@code analyser_context} call through the actual child command.
  */
 public final class McpSetupDialog extends JDialog {
@@ -90,7 +90,7 @@ public final class McpSetupDialog extends JDialog {
     private final JPanel clientActions = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
     /** Generic JSON is shown as data the person can inspect/select, never placed in a hidden client configuration. */
     private final JTextArea genericConfiguration = configurationBox();
-    private final JButton enableTransport = new JButton("Enable local transport…");
+    private final JButton enableTransport = new JButton("Turn on External MCP/REST access…");
     private final JButton checkBridge = new JButton("Check connection");
     private final JComboBox<Target> target;
     private McpLaunchCommand command;
@@ -698,14 +698,14 @@ public final class McpSetupDialog extends JDialog {
 
     private void confirmEnableTransport() {
         int choice = JOptionPane.showConfirmDialog(this,
-                "Enable local transport for this analyser?\n\n"
-                        + "This saves the Assistant REST setting and starts a loopback-only endpoint with a fresh "
+                "Turn on External MCP/REST access for this analyser?\n\n"
+                        + "This saves the setting (Settings ▸ Assistant ▸ External MCP/REST access) and starts a loopback-only endpoint with a fresh "
                         + "per-run token. The token is not copied into client configuration.",
-                "Enable local transport", JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
+                "Turn on External MCP/REST access", JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
         if (choice != JOptionPane.OK_OPTION) return;
         config.assistantActionsRest = true;
         if (!rememberSetup()) onConfigurationChanged.run();
-        bridgeStatus.setText("Bridge: local transport enabled; waiting for this analyser's endpoint.");
+        bridgeStatus.setText("Bridge: External MCP/REST access is on; waiting for this analyser's endpoint.");
         refreshReadiness();
     }
 
@@ -725,7 +725,7 @@ public final class McpSetupDialog extends JDialog {
     private void showProbeResult(McpConnectionProbe.Result result) {
         bridgeStatus.setText(switch (result.status()) {
             case VERIFIED -> "Bridge works now: the configured command reached this analyser.";
-            case REST_OFF -> "Turn on local transport, then check again.";
+            case REST_OFF -> "Turn on External MCP/REST access, then check again.";
             case OTHER_INSTANCE -> "Another analyser owns the MCP connection; check that window instead.";
             case LAUNCH_FAILED -> "Fix launcher path: the configured bridge command did not start.";
             case PROTOCOL_FAILED -> "Bridge needs attention: it did not complete the MCP exchange. A cold launcher may need a moment; retry once.";

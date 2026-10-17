@@ -47,7 +47,7 @@ public final class McpIndicator {
 
     public static View of(McpSetupState.LocalReadiness readiness) {
         if (readiness == null) {
-            return new View(Level.NEUTRAL, "MCP off", "Local transport state is not known in this window.");
+            return new View(Level.NEUTRAL, "MCP off", "Whether External MCP/REST access is on is not known in this window.");
         }
         return switch (readiness.status()) {
             // "ready", not "connected": this window is serving; whether an AI client is actually talking

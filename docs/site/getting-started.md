@@ -8,19 +8,19 @@ of your own.
 
 1. **Run it** — `jbang analyser@telaminai/fluxtionauditlog-analyser`, or download the jar and
    `java -jar …`. See [Install & run](install.md). You need **JDK 21+** and nothing else.
-2. **Click "Open the demo log"** on the page the analyser opens on.
+2. **Choose *Run me through a demo*** on the page the analyser opens on, and press **Play** — or, under *Or open
+   directly ▸ Explore DEMO*, **Guided tour** or **Sample project**.
 
 That is the whole path. No log to find, no source roots, no server, no API key. You get a real
 investigation — 10 events, the processor's graph, the cycle shaded onto it — opened through exactly the
 same door your own log will use.
 
-![The analyser with no log open: what it does, three questions a log alone will not answer, where it
-sits in the cycle, and three ways in](assets/start-page.png)
+![The start page: What would you like to do? with its numbered entries, a box and Send; Or open directly with the
+Explore DEMO, Open, Create, Connect an assistant and Settings blocks; and Recent](assets/start-page.png)
 
 The page is a **state, not a splash**: opening a log replaces it, **Audit log ▸ Close log** brings it back,
-and **Help ▸ Start page** recalls it without closing what you are working on. The three questions each
-open a different demo log, because one log cannot answer all three — coverage needs a *traced* run, and
-a chart needs a series.
+and **Help ▸ Start page** recalls it without closing what you are working on. Choosing an entry sends, opens and
+starts nothing; only its button does. [The start page](user-guide/start-page.md) describes every entry and block.
 
 ## Next: a system you actually run
 
@@ -125,7 +125,8 @@ Configure in-app explanations:
 
 !!! tip "No key is fine"
     Leave the key blank and the assistant runs in **copy-prompt mode** — it builds a ready-to-paste
-    prompt (evidence + the analyser's action protocol) for Claude Code, Claude Desktop or any agent.
+    prompt (the evidence, and the analyser's action protocol only when you tick *Include my local REST token*)
+    for Claude Code, Claude Desktop or any agent.
 
 This LLM-provider key is not the Fluxtion build key managed under **AI ▸ Fluxtion API key…**. They have
 different homes and purposes.
@@ -136,8 +137,14 @@ different homes and purposes.
 - **AWS profile / region (optional)** — used by *Open from S3*.
 
 ### Assistant
-Bounds for the two-way action loop: **max action rounds** and **max actions per reply**, and whether the
-in-process executor and the optional **localhost REST transport** (off by default) are enabled.
+Grouped by profile: **Safe analysis** (*Allow the analyser to start Claude Code*, its model), **Full Claude Code**
+(*…with my full Claude Code permissions*, its mode and the optional spend limit), **In-app assistant** (*Let the
+in-app assistant change the views as it answers*, **max action rounds** and **max actions per reply**), and **Every
+assistant**: *Connect an AI client…*, **External MCP/REST access (for an AI client on this machine)** (off by
+default), *Allow assistant file exchange* with its exchange folder, and *Allow the assistant to create projects*.
+
+![Settings ▸ Assistant, grouped by profile: Safe analysis, Full Claude Code, In-app assistant and Every assistant, with
+Connect an AI client…, External MCP/REST access and the exchange folders](assets/settings-assistant.png)
 
 ### History
 Clear remembered **searches**, **saved graphs** and **recent files**.

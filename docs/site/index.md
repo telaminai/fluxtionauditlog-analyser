@@ -49,7 +49,8 @@ time that reading raw logs normally takes. Every feature below is a lens on that
   a threshold are memory-mapped rather than loaded into heap.
 - **Graph any node value** over time — stairs/line/points, booleans as ±1, zoom/pan, multiple graphs,
   CSV/PNG export, and derived **formula series** (`f(x)`). See [Graphs](user-guide/graphs.md).
-- **Explain — and let the assistant _drive the analyser_.** Ask Claude/OpenAI what happened; it can
+- **Ask — and let the assistant _drive the analyser_.** Select a record, press **Ask**, and Claude Code, Claude or
+  OpenAI works out what happened; it can
   **plot the offending series, flag the culprit records and filter the view** so you *see* the fault —
   over the same data you can click into and verify. No key? It copies a prompt that lets any agent drive
   the analyser too. See [Assistant](user-guide/assistant.md).
@@ -97,8 +98,9 @@ record, trace it to the exact source method.
 See the [Assistant guide](user-guide/assistant.md) for the full workflow.
 
 !!! tip "Connect your own AI client"
-    The Start page has **Codex**, **Claude** and **Other MCP client** cards. They take
-    you to the live-session setup screen, where you enable the local transport, test the exact bridge
+    The Start page's *Connect an assistant* block has **Codex**, **Claude** and **Other MCP client** buttons (also
+    **AI ▸ Connect an AI client…**). They take you to the live-session setup screen, where you turn on External
+    MCP/REST access, test the exact bridge
     command, and either explicitly register a supported CLI client or copy the generic no-token JSON.
     See [Connecting an LLM to the analyser](connect-an-llm.md).
 
