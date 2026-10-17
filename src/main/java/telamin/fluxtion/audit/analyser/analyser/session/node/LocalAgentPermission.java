@@ -318,8 +318,8 @@ public class LocalAgentPermission implements EventLogSource {
 
     /**
      * OD-74.17 step 2: a hosted destructive call is admitted only by consuming the one unconsumed, unexpired grant that
-     * matches its generation, the open ticket, its verb, its input digest and — when both sides have one — its
-     * {@code tool_use_id}. Consumption is this handler: two identical calls presented one after the other cannot both
+     * matches its generation, the open ticket, its verb, its input digest and — when the grant has one — its
+     * {@code tool_use_id} (review P3 S1: a call without the id does not match a grant bound to one). Consumption is this handler: two identical calls presented one after the other cannot both
      * pass. The verdict leaves as {@link SessionEffects.AnswerHostedCallEffect}, which the waiting HTTP call reads.
      */
     @OnEventHandler(propagate = false)
@@ -347,7 +347,9 @@ public class LocalAgentPermission implements EventLogSource {
             String[] g = grants.get(i);
             if (Long.parseLong(g[1]) != e.generation() || Long.parseLong(g[2]) != ticket || !Objects.equals(g[3], e.verb())
                     || !Objects.equals(g[4], e.inputDigest())) continue;
-            if (g[5] != null && e.toolUseIdDigest() != null && !g[5].equals(e.toolUseIdDigest())) continue;
+            // review P3 S1: a grant bound to a tool_use_id admits only a call carrying THAT id — a call with none does not
+            // match (the bridge forwards the id; a call without it is not the call the person approved)
+            if (g[5] != null && !g[5].equals(e.toolUseIdDigest())) continue;
             if (!"live".equals(g[6])) {
                 expiredMatch = true;
                 continue;

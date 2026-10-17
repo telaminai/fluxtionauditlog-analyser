@@ -141,6 +141,21 @@ class HostedGrantServerTest {
         assertEquals(200, hostedCall(BODY, TOOL_USE).statusCode(), "this tool use's call");
     }
 
+    /**
+     * ★ Review P3 S1 (2026-10-17): a grant bound to a tool_use_id is not consumed by a call that carries none. Witness:
+     * the old {@code && e.toolUseIdDigest() != null} in {@code LocalAgentPermission.consume} — the header-less call is
+     * admitted (200).
+     */
+    @Test
+    @DisplayName("★ a grant with a tool_use_id refuses a call without the header (403); the call with it is admitted")
+    void aGrantWithAnIdNeedsTheId() throws Exception {
+        allowOnce(205);
+        HttpResponse<String> bare = hostedCall(BODY, null);
+        assertEquals(403, bare.statusCode(), bare.body());
+        assertTrue(rendered.isEmpty(), "nothing reached the dispatcher");
+        assertEquals(200, hostedCall(BODY, TOOL_USE).statusCode(), "the grant is still there for the approved call");
+    }
+
     /** ★ Witness: lift graph {delete} for a granted caller — the delete reaches the dispatcher. */
     @Test
     @DisplayName("★ graph {delete} stays refused whatever was approved; an admitted call still meets the dispatcher's own gate")
