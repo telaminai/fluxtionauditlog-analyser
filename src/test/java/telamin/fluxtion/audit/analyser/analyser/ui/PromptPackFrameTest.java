@@ -119,7 +119,7 @@ class PromptPackFrameTest {
 
             onEdt(() -> page.prompt().returnButton().doClick());
             onEdt(() -> rows.set(List.of(String.valueOf(page.prompt().promptList().getModel().getSize()))));
-            assertEquals(List.of("6"), rows.get(), "Return: the built-in S1–S6");
+            assertEquals(List.of(String.valueOf(telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.startPageBuiltIns().size())), rows.get(), "Return: the built-in list");
 
             onEdt(() -> {
                 try {
