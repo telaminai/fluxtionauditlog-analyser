@@ -108,6 +108,8 @@ public class LocalAgentPermission implements EventLogSource {
     private long grantCounter;
     private List<String[]> grants = new ArrayList<>();
     private List<String> used = new ArrayList<>();
+    /** Review B4: the hosted calls admitted, by call id (verb, ticket) — so an abandoned one can be recorded as such. */
+    private java.util.Map<Long, String[]> admittedCalls = new java.util.LinkedHashMap<>();
     private long decisions;
     private PermissionState published = PermissionState.NONE;
     private boolean dirty = true;
@@ -351,8 +353,32 @@ public class LocalAgentPermission implements EventLogSource {
             refusal = consume(e);
         }
         auditLog.info("localAgentHostedCall", refusal == null ? "ADMITTED" : "REFUSED").info("verb", String.valueOf(e.verb()))
-                .info("generation", e.generation());
+                .info("generation", e.generation()).info("call", e.call());
+        if (refusal == null) {
+            admittedCalls.put(e.call(), new String[]{String.valueOf(e.verb()), Long.toString(localAgent.currentTicket())});
+            while (admittedCalls.size() > 64) admittedCalls.remove(admittedCalls.keySet().iterator().next());
+        }
         effects.request(new SessionEffects.AnswerHostedCallEffect(0L, e.call(), refusal));
+        dirty = true;
+        return false;
+    }
+
+    /**
+     * Holistic review B4 (2026-10-17): a hosted call gave up waiting and the server refused it. If this node admitted it
+     * — consuming the person's one grant — the record must not say "admitted" alone: the call never ran. The grant stays
+     * consumed (VOID: it is never restored, so a later identical call is refused as "used", consistently), the record says
+     * ABANDONED, and the person reads that the approved call did not run.
+     */
+    @OnEventHandler(propagate = false)
+    public boolean onHostedCallAbandoned(SessionEvents.HostedCallAbandoned e) {
+        String[] admitted = admittedCalls.remove(e.call());
+        auditLog.info("localAgentHostedCall", "ABANDONED").info("call", e.call()).info("generation", e.generation())
+                .info("grantVoided", admitted != null);
+        if (admitted != null && e.generation() == localAgent.currentGeneration()) {
+            localAgent.permissionNoted(Long.parseLong(admitted[1]), "ABANDONED", "The approved call to analyser_"
+                    + admitted[0] + " did not run: the analyser answered it too late and refused it. Your approval is "
+                    + "used up — approve it again if Claude asks again");
+        }
         dirty = true;
         return false;
     }

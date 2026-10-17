@@ -383,6 +383,35 @@ class LocalAgentPermissionTest {
         assertNotNull(verdict(a, 8), "another ticket");
     }
 
+    /**
+     * ★ Holistic review B4 (2026-10-17): a call the session admits AFTER its HTTP wait gave up never ran; the record says
+     * ABANDONED with the grant voided, the person reads that the approved call did not run, and the grant stays used.
+     * Witness: drop the onHostedCallAbandoned handler — the record holds ADMITTED alone and no note is shown.
+     */
+    @Test
+    @DisplayName("★ an abandoned, admitted call is recorded as abandoned; its grant is void and the person is told")
+    void anAbandonedCallVoidsItsGrant() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = LocalAgentSessionTest.driver(a);
+        var start = ready(d, a);
+        long g = start.generation();
+        d.post(report(g, 1, 101));
+        d.post(new SessionEvents.LocalAgentPermissionChosen(101, true));
+        d.post(call(6, g, "report", INPUT, TOOL_USE));
+        assertNull(verdict(a, 6), "admitted — but the HTTP call had already given up");
+        d.post(new SessionEvents.HostedCallAbandoned(6, g));
+        String record = String.join("\n", d.auditSink().records());
+        assertTrue(record.contains("ABANDONED") && record.contains("grantVoided: true"), record.substring(
+                Math.max(0, record.length() - 600)));
+        assertTrue(d.snapshot().localAgent().entries().stream().anyMatch(e -> "ABANDONED".equals(e.status())
+                && e.detail().contains("did not run")), "the person reads it");
+        d.post(call(7, g, "report", INPUT, TOOL_USE));
+        assertTrue(verdict(a, 7).contains("has been used"), "void, consistently: " + verdict(a, 7));
+        d.post(new SessionEvents.HostedCallAbandoned(99, g));
+        assertTrue(String.join("\n", d.auditSink().records()).contains("grantVoided: false"),
+                "an abandoned call that was never admitted voids nothing");
+    }
+
     /** ★ Witness: drop the expired check in {@code consume} — the call 60 s later is admitted. */
     @Test
     @DisplayName("★ a grant expires 60 s after the Allow, and on Stop; an expired one is refused by name")

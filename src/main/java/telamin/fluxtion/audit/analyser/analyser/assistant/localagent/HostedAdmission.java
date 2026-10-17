@@ -49,7 +49,7 @@ public final class HostedAdmission implements telamin.fluxtion.audit.analyser.an
     /** Scorecard R1: the same, naming the call's verb in the fact. */
     @Override
     public String admit(long generation, String verb) {
-        return ask(call -> new SessionEvents.LocalAgentCallAdmissionRequested(call, generation, verb));
+        return ask(generation, call -> new SessionEvents.LocalAgentCallAdmissionRequested(call, generation, verb));
     }
 
     /**
@@ -58,7 +58,8 @@ public final class HostedAdmission implements telamin.fluxtion.audit.analyser.an
      */
     @Override
     public String present(long generation, String verb, String inputDigest, String toolUseIdDigest) {
-        return ask(call -> new SessionEvents.HostedCallPresented(call, generation, verb, inputDigest, toolUseIdDigest));
+        return ask(generation, call -> new SessionEvents.HostedCallPresented(call, generation, verb, inputDigest,
+                toolUseIdDigest));
     }
 
     /** Scorecard R1: the server's own refusal, reported to the session as a fact; nothing waits for it. */
@@ -67,21 +68,38 @@ public final class HostedAdmission implements telamin.fluxtion.audit.analyser.an
         post.accept(new SessionEvents.HostedCallRefusedByServer(generation, verb, reason));
     }
 
-    private String ask(java.util.function.LongFunction<Object> fact) {
+    private String ask(long generation, java.util.function.LongFunction<Object> fact) {
         long call = calls.incrementAndGet();
         CompletableFuture<Optional<String>> answer = new CompletableFuture<>();
         waiting.put(call, answer);
+        boolean posted = false;
         try {
             post.accept(fact.apply(call));
+            posted = true;
             return answer.get(timeoutMs, TimeUnit.MILLISECONDS).orElse(null);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            return TIMEOUT_TEXT;
+            return abandoned(call, generation, posted);
         } catch (ExecutionException | TimeoutException | RuntimeException e) {
-            return TIMEOUT_TEXT;
+            return abandoned(call, generation, posted);
         } finally {
             waiting.remove(call);
         }
+    }
+
+    /**
+     * Review B4: the call gave up. If its fact reached the session, the session may still admit it — so the session is
+     * told, and decides what an admission of a call that never ran means.
+     */
+    private String abandoned(long call, long generation, boolean posted) {
+        if (posted) {
+            try {
+                post.accept(new SessionEvents.HostedCallAbandoned(call, generation));
+            } catch (RuntimeException ignored) {
+                // the session is gone: there is nothing left that could admit it
+            }
+        }
+        return TIMEOUT_TEXT;
     }
 
     /** Perform the node's verdict: complete the waiting call (a call that already gave up is ignored). */

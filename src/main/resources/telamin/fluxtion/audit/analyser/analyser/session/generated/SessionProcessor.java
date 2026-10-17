@@ -84,6 +84,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FollowTogg
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphCleared;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphClosed;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphOpened;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallAbandoned;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallPresented;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallRefusedByServer;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentBridgeServed;
@@ -265,6 +266,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Requ
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphCleared
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphClosed
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphOpened
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallAbandoned
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallPresented
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallRefusedByServer
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentBridgeServed
@@ -674,6 +676,10 @@ public class SessionProcessor
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphOpened",
                 false),
             new ProcessorDescriptor.Input(
+                "HostedCallAbandoned",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallAbandoned",
+                false),
+            new ProcessorDescriptor.Input(
                 "HostedCallPresented",
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallPresented",
                 false),
@@ -1035,7 +1041,7 @@ public class SessionProcessor
           new DescriptorSupport.Meta(
               null,
               "1.0.76",
-              "55106d22415eeddad0fc2e4bc1685f8cf1e805525a4f9f725a4df02a748bf733",
+              "9e55055d00027d8b7122bc9691956a26dc202f4476aafd8880563f39c80e5131",
               null));
 
   @Override
@@ -1335,6 +1341,9 @@ public class SessionProcessor
       handleEvent(typedEvent);
     } else if (event instanceof GraphOpened) {
       GraphOpened typedEvent = (GraphOpened) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof HostedCallAbandoned) {
+      HostedCallAbandoned typedEvent = (HostedCallAbandoned) event;
       handleEvent(typedEvent);
     } else if (event instanceof HostedCallPresented) {
       HostedCallPresented typedEvent = (HostedCallPresented) event;
@@ -1845,6 +1854,11 @@ public class SessionProcessor
 
   @OnEventHandler(failBuildIfMissingBooleanReturn = false)
   public void onEvent(GraphOpened event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(HostedCallAbandoned event) {
     processEvent(event);
   }
 
@@ -2852,6 +2866,15 @@ public class SessionProcessor
     }
     auditInvocation(projectReopenOffer, "projectReopenOffer", "onGraphOpened", typedEvent);
     projectReopenOffer.onGraphOpened(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(HostedCallAbandoned typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(
+        localAgentPermission, "localAgentPermission", "onHostedCallAbandoned", typedEvent);
+    isDirty_localAgentPermission = localAgentPermission.onHostedCallAbandoned(typedEvent);
     afterEvent();
   }
 
@@ -4325,6 +4348,12 @@ public class SessionProcessor
       isDirty_onboardingProposal = onboardingProposal.onGraphOpened(typedEvent);
       auditInvocation(projectReopenOffer, "projectReopenOffer", "onGraphOpened", typedEvent);
       projectReopenOffer.onGraphOpened(typedEvent);
+    } else if (event instanceof HostedCallAbandoned) {
+      HostedCallAbandoned typedEvent = (HostedCallAbandoned) event;
+      auditEvent(typedEvent);
+      auditInvocation(
+          localAgentPermission, "localAgentPermission", "onHostedCallAbandoned", typedEvent);
+      isDirty_localAgentPermission = localAgentPermission.onHostedCallAbandoned(typedEvent);
     } else if (event instanceof HostedCallPresented) {
       HostedCallPresented typedEvent = (HostedCallPresented) event;
       auditEvent(typedEvent);

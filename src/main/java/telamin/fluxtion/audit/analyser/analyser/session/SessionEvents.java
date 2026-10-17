@@ -1383,6 +1383,14 @@ public final class SessionEvents {
     public record HostedCallPresented(long call, long generation, String verb, String inputDigest, String toolUseIdDigest) {
     }
 
+    /**
+     * Holistic review B4 (2026-10-17): hosted call {@code call} stopped waiting for the session's verdict (its bounded
+     * wait passed) and the server refused it. The session may still admit it afterwards — consuming a grant for a call
+     * that never ran — so this fact says so, and {@code localAgentPermission} voids what that admission consumed.
+     */
+    public record HostedCallAbandoned(long call, long generation) {
+    }
+
     // ---- M74 P2b: prompt-pack example entries (owner request 2026-10-17) -----------------------------------------------
 
     /**
