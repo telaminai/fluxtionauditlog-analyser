@@ -22,6 +22,9 @@ class LocalAgentConsentTest {
     static final String SMUGGLED = String.join("\n",
             "assistant.claudeCode=true",
             "assistant.claudeCode.full=true",
+            "assistant.claudeCode.full.mode=acceptEdits",
+            "assistant.claudeCode.trustedFull.count=1",
+            "assistant.claudeCode.trustedFull.0=/somewhere/else|0123456789abcdef0123456789abcdef",
             "assistant.claudeCode.warmStart=true",
             "assistant.claudeCode.budgetUsd=999",
             "assistant.claudeCode.trusted.count=1",
@@ -54,6 +57,9 @@ class LocalAgentConsentTest {
         on.claudeCodeFull = true;
         on.claudeCodeWarmStart = true;
         on.claudeCodeTrustedFolders.add("/a/confirmed/folder");
+        on.claudeCodeFullMode = "plan";
+        on.claudeCodeTrustedFullFolders.add("/a/full/folder|00112233445566778899aabbccddeeff");
+        on.claudeCodeBudgetUsd = 7.5;
         String exported = share.export(on, SettingsShare.Category.defaults());
         assertFalse(exported.contains("claudeCode"), "never exported: " + exported);
         assertFalse(ProjectProfile.write(on, share, profile).contains("claudeCode"), "never a profile key");
@@ -66,10 +72,13 @@ class LocalAgentConsentTest {
         AppConfig back = store.load();
         assertTrue(back.claudeCodeAllowed && back.claudeCodeFull && back.claudeCodeWarmStart, "ConfigStore is where they live");
         assertEquals(java.util.List.of("/a/confirmed/folder"), back.claudeCodeTrustedFolders);
+        assertEquals("plan", back.claudeCodeFullMode);
+        assertEquals(java.util.List.of("/a/full/folder|00112233445566778899aabbccddeeff"), back.claudeCodeTrustedFullFolders);
+        assertEquals(7.5, back.claudeCodeBudgetUsd);
         AppConfig fresh = new ConfigStore(tmp.resolve("absent")).load();
         assertOff(fresh, "off by default");
         assertEquals("sonnet", fresh.claudeCodeModel);
-        assertEquals(5.0, fresh.claudeCodeBudgetUsd);
+        assertNull(fresh.claudeCodeBudgetUsd, "no spend limit by default (owner, 2026-10-17)");
     }
 
     private static void assertOff(AppConfig c, String what) {
@@ -77,6 +86,57 @@ class LocalAgentConsentTest {
         assertFalse(c.claudeCodeFull, what + " cannot widen it to the full posture");
         assertFalse(c.claudeCodeWarmStart, what + " cannot turn on warm start");
         assertTrue(c.claudeCodeTrustedFolders.isEmpty(), what + " cannot add a trusted folder");
-        assertEquals(5.0, c.claudeCodeBudgetUsd, what + " cannot raise the budget");
+        assertTrue(c.claudeCodeTrustedFullFolders.isEmpty(), what + " cannot add a full-posture trusted folder");
+        assertEquals("default", c.claudeCodeFullMode, what + " cannot choose the full posture's mode");
+        assertNull(c.claudeCodeBudgetUsd, what + " cannot set a spend limit");
+    }
+
+    /**
+     * ★ §5.1: bypassPermissions, dontAsk and anything unknown read as default, and Settings is told. Witness: pass the
+     * stored string through in {@code ConfigStore.fullMode} — {@code bypassPermissions} comes back and the first
+     * assertion fails.
+     */
+    @Test
+    @DisplayName("★ a stored full mode the analyser does not offer reads as default, and says so")
+    void unofferedModesReadAsDefault() throws Exception {
+        for (String stored : new String[]{"bypassPermissions", "dontAsk", "manual", "yolo", "  PLAN  "}) {
+            Path dir = Files.createDirectories(tmp.resolve("m-" + stored.trim()));
+            Files.writeString(dir.resolve("config"), "assistant.claudeCode.full=true\nassistant.claudeCode.full.mode="
+                    + stored + "\n");
+            AppConfig c = new ConfigStore(dir.resolve("config")).load();
+            if (stored.trim().equalsIgnoreCase("plan")) {
+                assertEquals("plan", c.claudeCodeFullMode, "an offered mode, in any case, is kept");
+                assertFalse(c.claudeCodeFullModeReadAsDefault);
+            } else {
+                assertEquals("default", c.claudeCodeFullMode, stored + " is never passed through");
+                assertTrue(c.claudeCodeFullModeReadAsDefault, "Settings says the stored mode read as default");
+            }
+        }
+        assertEquals(java.util.List.of("default", "acceptEdits", "auto", "plan"), ConfigStore.FULL_MODES);
+    }
+
+    /**
+     * ★ owner, 2026-10-17: the budget is optional. Witness: read a P1a-written {@code 5.0} as a limit — the second
+     * assertion fails; or read P1b's blank as 5.0 — the first fails.
+     */
+    @Test
+    @DisplayName("★ the spend limit: blank or absent is none; P1a's unreleased default 5.0 reads as none; P1b's own 5.0 is kept")
+    void theSpendLimitIsOptional() throws Exception {
+        assertNull(ConfigStore.budget(null, null));
+        assertNull(ConfigStore.budget("", "2"), "P1b writes blank for no limit");
+        assertNull(ConfigStore.budget("5.0", null), "a config written by P1a carried its unreleased default, 5.0");
+        assertEquals(12.0, ConfigStore.budget("12.0", null), "any other P1a value is honoured as the person's limit");
+        assertEquals(5.0, ConfigStore.budget("5.0", "2"), "a limit of 5.0 chosen in P1b is kept");
+        assertNull(ConfigStore.budget("-1", "2"));
+        assertNull(ConfigStore.budget("x", "2"));
+
+        Path dir = Files.createDirectories(tmp.resolve("budget"));
+        ConfigStore store = new ConfigStore(dir.resolve("config"));
+        AppConfig c = new AppConfig();
+        store.save(c);
+        assertNull(store.load().claudeCodeBudgetUsd, "none round-trips as none");
+        c.claudeCodeBudgetUsd = 5.0;
+        store.save(c);
+        assertEquals(5.0, store.load().claudeCodeBudgetUsd, "a deliberate 5.0 round-trips");
     }
 }

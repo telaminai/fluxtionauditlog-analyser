@@ -26,7 +26,7 @@ public final class StreamJson {
     /** One line of the CLI's stdout, typed. */
     public sealed interface Event permits SystemInit, Lifecycle, MessageStart, TextDelta, AssistantMessage, UserMessage,
             Result, CompactBoundary, RateLimit, PermissionDenied, ConversationReset, ControlResponse, ControlRequest,
-            Ignored, Unknown {
+            Hook, Ignored, Unknown {
     }
 
     /** {@code system/init}, emitted at the start of every turn [P0-4]. {@code servers} are {@code name:status}. */
@@ -100,11 +100,32 @@ public final class StreamJson {
     public record RateLimit(String status, long resetsAt) implements Event {
     }
 
-    /** {@code system/permission_denied}: the posture denied a tool, without blocking [P0-21]. */
-    public record PermissionDenied(String toolName, String toolUseId) implements Event {
+    /**
+     * {@code system/permission_denied}: a tool was denied, without blocking [P0-21]. {@code reasonType} is the CLI's
+     * {@code decision_reason_type}: {@code mode} under {@code dontAsk} [P0b-1], {@code asyncAgent} when the mode would
+     * have asked and {@code --permission-prompts none} let nobody answer (PB-1). The decision's prose is not kept.
+     */
+    public record PermissionDenied(String toolName, String toolUseId, String reasonType) implements Event {
         public PermissionDenied(String toolName) {
-            this(toolName, null);
+            this(toolName, null, null);
         }
+
+        public PermissionDenied(String toolName, String toolUseId) {
+            this(toolName, toolUseId, null);
+        }
+
+        /** The request needed an approval nobody could give (PB-1). */
+        public boolean approvalUnavailable() {
+            return "asyncAgent".equals(reasonType);
+        }
+    }
+
+    /**
+     * {@code system/hook_started} ({@code started}) or {@code system/hook_response}: a hook's EVENT and whether it
+     * succeeded — and nothing else. The response also carries the hook's {@code output}, {@code stdout} and
+     * {@code stderr} (PB hook shapes); this record has no field for them, so they stop at the parse boundary.
+     */
+    public record Hook(String event, boolean started, boolean succeeded) implements Event {
     }
 
     /** {@code conversation_reset}: {@code /clear} changed the session under the analyser [P0b-4]. */
@@ -210,9 +231,11 @@ public final class StreamJson {
                 Map<?, ?> meta = map(m.get("compact_metadata"));
                 yield new CompactBoundary(meta == null ? null : str(meta.get("trigger")));
             }
-            case "permission_denied" -> new PermissionDenied(str(m.get("tool_name")), str(m.get("tool_use_id")));
-            case "status", "thinking_tokens", "hook_started", "hook_response", "background_tasks_changed",
-                 "commands_changed" -> new Ignored("system/" + sub);
+            case "permission_denied" -> new PermissionDenied(str(m.get("tool_name")), str(m.get("tool_use_id")),
+                    str(m.get("decision_reason_type")));
+            case "hook_started" -> new Hook(str(m.get("hook_event")), true, false);
+            case "hook_response" -> new Hook(str(m.get("hook_event")), false, "success".equals(str(m.get("outcome"))));
+            case "status", "thinking_tokens", "background_tasks_changed", "commands_changed" -> new Ignored("system/" + sub);
             default -> new Unknown("system/" + sub);
         };
     }

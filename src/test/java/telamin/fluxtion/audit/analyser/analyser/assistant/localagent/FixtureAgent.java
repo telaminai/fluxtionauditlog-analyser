@@ -33,6 +33,8 @@ import java.util.function.UnaryOperator;
 final class FixtureAgent implements AgentProcess.Launcher {
 
     static final Path FIXTURES = Path.of("docs/specs/evidence/m74-p0/fixtures");
+    /** The P1b probes' isolated captures (PB-report.md). */
+    static final Path PB_FIXTURES = Path.of("docs/specs/evidence/m74-p1b/fixtures");
     static final String FIXTURE_SESSION = "00000000-0000-4000-8000-000000000000";
 
     final List<List<String>> commands = new ArrayList<>();
@@ -43,7 +45,16 @@ final class FixtureAgent implements AgentProcess.Launcher {
     private final Deque<List<String>> turns = new ArrayDeque<>();
     private final List<String> initializeLines = new ArrayList<>();
     private final Deque<String> statusLines = new ArrayDeque<>();
+    /** Lines the CLI emits at spawn, before any turn (hook events): replayed before the first initialize answer. */
+    private final List<String> spawnLines = new ArrayList<>();
+    private final Path dir;
     boolean conformInit;
+    /**
+     * P1b: rewrite each turn's {@code system/init} so its HOSTED tools are the real pre-allowed verbs (the probe's stub
+     * advertised {@code context}/{@code echo}), keeping everything else the CLI reported — the person's built-in tools,
+     * any registration tools, the servers and the mode. The rule under test is then the full-posture assertion's.
+     */
+    boolean conformHostedTools;
     boolean ackInterrupts = true;
     boolean cancelOnInterrupt = true;
     boolean exitOnKill = true;
@@ -55,12 +66,21 @@ final class FixtureAgent implements AgentProcess.Launcher {
     java.util.concurrent.CountDownLatch blockNewWrites;
 
     FixtureAgent(String fixture) throws IOException {
+        this(FIXTURES, fixture);
+    }
+
+    FixtureAgent(Path dir, String fixture) throws IOException {
+        this.dir = dir;
         load(fixture);
     }
 
     static List<String> lines(String fixture) throws IOException {
+        return lines(FIXTURES, fixture);
+    }
+
+    static List<String> lines(Path dir, String fixture) throws IOException {
         List<String> out = new ArrayList<>();
-        for (String l : Files.readAllLines(FIXTURES.resolve(fixture))) if (!l.isBlank()) out.add(l);
+        for (String l : Files.readAllLines(dir.resolve(fixture))) if (!l.isBlank()) out.add(l);
         return out;
     }
 
@@ -68,9 +88,13 @@ final class FixtureAgent implements AgentProcess.Launcher {
         List<String> current = null;
         String currentUuid = null;
         List<String> loose = new ArrayList<>();
-        for (String line : lines(fixture)) {
+        for (String line : lines(dir, fixture)) {
             Map<?, ?> m = (Map<?, ?>) Json.parse(line);
             String type = String.valueOf(m.get("type"));
+            if (current == null && "system".equals(type) && String.valueOf(m.get("subtype")).startsWith("hook_")) {
+                spawnLines.add(line);
+                continue;
+            }
             if ("control_response".equals(type)) {
                 Map<?, ?> body = (Map<?, ?>) ((Map<?, ?>) m.get("response")).get("response");
                 if (body != null && body.containsKey("mcpServers")) statusLines.add(line);
@@ -185,7 +209,11 @@ final class FixtureAgent implements AgentProcess.Launcher {
                 String id = String.valueOf(m.get("request_id"));
                 String subtype = String.valueOf(((Map<?, ?>) m.get("request")).get("subtype"));
                 switch (subtype) {
-                    case "initialize" -> emit(rekeyResponse(initializeLines.get(0), id));
+                    case "initialize" -> {
+                        for (String l : spawnLines) emit(l);          // the hooks ran at spawn [P0-28, PB-2]
+                        spawnLines.clear();
+                        emit(rekeyResponse(initializeLines.get(0), id));
+                    }
                     case "mcp_status" -> emit(rekeyResponse(nextStatus(), id));
                     case "interrupt" -> {
                         if (ackInterrupts) emit("{\"type\":\"control_response\",\"response\":{\"subtype\":\"success\","
@@ -212,6 +240,7 @@ final class FixtureAgent implements AgentProcess.Launcher {
                     if (runningUuid == null) break;     // interrupted mid-turn
                     String replayed = l.replace("@@UUID@@", uuid);
                     if (conformInit && replayed.contains("\"subtype\": \"init\"")) replayed = conform(replayed);
+                    if (conformHostedTools && replayed.contains("\"subtype\": \"init\"")) replayed = conformHosted(replayed);
                     emit(replayed);
                 }
             }
@@ -242,6 +271,18 @@ final class FixtureAgent implements AgentProcess.Launcher {
             List<Object> caps = new ArrayList<>(m.get("capabilities") instanceof List<?> l ? l : List.of());
             for (String c : LocalAgentPosture.REQUIRED_CAPABILITIES) if (!caps.contains(c)) caps.add(c);
             m.put("capabilities", caps);
+            return Json.write(m);
+        }
+
+        private String conformHosted(String initLine) {
+            Map<String, Object> m = new LinkedHashMap<>();
+            for (Map.Entry<?, ?> e : ((Map<?, ?>) Json.parse(initLine)).entrySet()) m.put(String.valueOf(e.getKey()), e.getValue());
+            List<Object> tools = new ArrayList<>();
+            for (Object t : m.get("tools") instanceof List<?> l ? l : List.of()) {
+                if (!LocalAgentPosture.isHostedTool(String.valueOf(t))) tools.add(t);
+            }
+            tools.addAll(LocalAgentPosture.expectedHostedTools());
+            m.put("tools", tools);
             return Json.write(m);
         }
 

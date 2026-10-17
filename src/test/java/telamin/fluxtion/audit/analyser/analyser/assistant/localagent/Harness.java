@@ -37,6 +37,10 @@ final class Harness {
     final Thread owner = Thread.currentThread();
     final java.util.concurrent.ConcurrentLinkedQueue<Object> offThread = new java.util.concurrent.ConcurrentLinkedQueue<>();
     String model = "haiku";
+    /** The consent Start and Send report: the default posture unless a test sets the full one. */
+    SessionEvents.LocalAgentConsent consent = consent();
+    /** The analyser's own environment as the adapter reads it (the GUI PATH in a full-posture test). */
+    Map<String, String> environment;
 
     /** Deliver facts that arrived on other threads, on this one. */
     void drain() {
@@ -71,7 +75,9 @@ final class Harness {
             @Override public Optional<List<String>> bridgeLauncher() {
                 return Optional.of(List.of("/usr/bin/java", "-jar", "/opt/analyser/analyser.jar"));
             }
-            @Override public Map<String, String> environment() { return Map.of("PATH", bin.toString()); }
+            @Override public Map<String, String> environment() {
+                return environment != null ? environment : Map.of("PATH", bin.toString());
+            }
             @Override public Path userHome() { return home; }
             @Override public void post(Object fact) {
                 if (Thread.currentThread() != owner) {          // a process exit on another thread: marshal, as the app does
@@ -97,15 +103,22 @@ final class Harness {
         return new SessionEvents.LocalAgentConsent(true, true, false, true, "posture-a", BUDGET);
     }
 
+    /** The full posture in {@code mode}, its folder confirmed for it (OD-74.12), with no spend limit. */
+    static SessionEvents.LocalAgentConsent fullConsent(
+            telamin.fluxtion.audit.analyser.analyser.session.LocalAgentPosture.FullMode mode) {
+        return new SessionEvents.LocalAgentConsent(true, false, false, true, "posture-full-" + mode, 0,
+                SessionEvents.FolderVerdict.OK, true, mode, true);
+    }
+
     void start() {
-        driver.post(new SessionEvents.LocalAgentStartRequested(++requests, consent(), false));
+        driver.post(new SessionEvents.LocalAgentStartRequested(++requests, consent, false));
     }
 
     /** Type {@code text} and press Send: the draft goes to the store, its classification to the node. */
     void send(String text) {
         var slash = adapter.classify(text);
         long draft = store.add(LocalAgentTranscript.Kind.USER, slash.line(text));
-        driver.post(new SessionEvents.LocalAgentSendRequested(++requests, draft, slash.slash(), slash.command(), consent()));
+        driver.post(new SessionEvents.LocalAgentSendRequested(++requests, draft, slash.slash(), slash.command(), consent));
     }
 
     LocalAgentState state() {

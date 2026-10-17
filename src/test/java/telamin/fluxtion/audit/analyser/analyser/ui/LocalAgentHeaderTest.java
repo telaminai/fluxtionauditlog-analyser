@@ -4,7 +4,9 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import telamin.fluxtion.audit.analyser.analyser.assistant.localagent.LocalAgentTranscript;
 import telamin.fluxtion.audit.analyser.analyser.session.AssistantMode;
+import telamin.fluxtion.audit.analyser.analyser.session.LocalAgentPosture;
 import telamin.fluxtion.audit.analyser.analyser.session.LocalAgentState;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents;
 
 import java.util.List;
 
@@ -108,5 +110,52 @@ class LocalAgentHeaderTest {
         String line = LocalAgentPanel.headerLine(shown, state("READY", ref));
         assertTrue(line.contains("/work/launched-here"), line);
         assertTrue(line.contains("CLI 2.1.282") && line.contains("<subscription>") && line.contains("firstParty"), line);
+    }
+
+    static LocalAgentState billed(SessionEvents.Billing billing, long spent, long budget, boolean under,
+                                  LocalAgentPosture posture, int servers) {
+        return new LocalAgentState(AssistantMode.LOCAL_AGENT, 1, 1, "READY", "", "", 0, 1, 1, 1, 0, 0, 0, spent, budget,
+                under, false, true, 0, List.of(), LocalAgentState.Answer.NONE, posture, servers, billing);
+    }
+
+    /**
+     * ★ owner, 2026-10-17: a cost only where it means something. Witness: show the dollar figure whatever the billing
+     * (P1a) — the subscription line carries "US$" and the first assertion fails; and "of US$0.00" with no limit.
+     */
+    @Test
+    @DisplayName("★ the header's cost by billing: a plan shows no dollars; an API key shows used, of the limit when one is set")
+    void costWordingPerBilling() {
+        var a = LocalAgentPosture.ANALYSER_ASSISTANT;
+        String plan = LocalAgentPanel.costText(billed(SessionEvents.Billing.SUBSCRIPTION, 1_230_000, 5_000_000, false, a, 0));
+        assertEquals(LocalAgentPanel.PLAN_USAGE, plan, "on a Claude plan: no dollar figure, even with a limit set");
+        assertFalse(plan.contains("US$"));
+        assertEquals("US$1.23 used", LocalAgentPanel.costText(billed(SessionEvents.Billing.API_KEY, 1_230_000, 0, false, a, 0)));
+        assertEquals("at least US$1.23 of US$5.00",
+                LocalAgentPanel.costText(billed(SessionEvents.Billing.API_KEY, 1_230_000, 5_000_000, true, a, 0)));
+        assertEquals("", LocalAgentPanel.costText(billed(SessionEvents.Billing.UNKNOWN, 1_230_000, 0, false, a, 0)),
+                "billing unknown and no limit: nothing");
+        var h = new LocalAgentTranscript.Header("claude-sonnet-5", "2.1.282", "<subscription>", "firstParty", List.of(),
+                "/w");
+        String line = LocalAgentPanel.headerLine(h, billed(SessionEvents.Billing.SUBSCRIPTION, 1_230_000, 0, false, a, 0));
+        assertTrue(line.contains("usage counts against your Claude plan") && !line.contains("US$"), line);
+    }
+
+    /** ★ §5.2: the full posture's lines. Witness: render the default posture's note for both — the full assertion fails. */
+    @Test
+    @DisplayName("★ the posture line: the mode, n MCP servers loaded, and exactly what was appended to PATH")
+    void theFullPostureLines() {
+        var full = LocalAgentPosture.full(LocalAgentPosture.FullMode.ACCEPT_EDITS);
+        var h = new LocalAgentTranscript.Header("claude-sonnet-5", "2.1.282", "<subscription>", "firstParty", List.of(),
+                "/w", "sonnet", List.of("~/.local/bin", "/opt/homebrew/bin"));
+        String line = LocalAgentPanel.postureLine(h, billed(SessionEvents.Billing.SUBSCRIPTION, 0, 0, false, full, 3));
+        assertEquals("full Claude Code (acceptEdits) — your settings, skills, hooks and 3 MCP servers are loaded\n"
+                + "PATH: inherited, plus ~/.local/bin, /opt/homebrew/bin", line);
+        assertTrue(LocalAgentPanel.headerLine(h, billed(SessionEvents.Billing.SUBSCRIPTION, 0, 0, false, full, 3))
+                .contains("full Claude Code (acceptEdits)"));
+        assertEquals(LocalAgentPanel.DEFAULT_POSTURE_NOTE, LocalAgentPanel.postureLine(h,
+                billed(SessionEvents.Billing.SUBSCRIPTION, 0, 0, false, LocalAgentPosture.ANALYSER_ASSISTANT, 0)));
+        String none = LocalAgentPanel.postureLine(new LocalAgentTranscript.Header(null, null, "", null, List.of(), "/w"),
+                billed(SessionEvents.Billing.SUBSCRIPTION, 0, 0, false, full, 1));
+        assertTrue(none.endsWith("1 MCP server are loaded\nPATH: inherited"), none);
     }
 }

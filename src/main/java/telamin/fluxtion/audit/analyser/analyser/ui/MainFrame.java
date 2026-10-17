@@ -4817,21 +4817,33 @@ public final class MainFrame extends JFrame {
         }
     }
 
-    /** What this machine says about starting Claude Code now — observed here, decided by localAgentSession. */
+    /**
+     * What this machine says about starting Claude Code now — observed here, decided by localAgentSession. P1b: the full
+     * switch and its mode (already normalised by ConfigStore), and whether the folder's FULL trust record matches the
+     * digest of its settings and .mcp.json now (OD-74.12) — an observation; the node decides what it means.
+     */
     private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentConsent localAgentConsent() {
         Path dir = localAgentDirectory();
         String real = realPathOf(dir);
         boolean scratch = dir != null && dir.equals(localAgentScratch);
         boolean confirmed = scratch || config.claudeCodeTrustedFolders.contains(real);
-        String posture = telamin.fluxtion.audit.analyser.analyser.session.LocalAgentPosture.digest("default|" + real + "|"
-                + telamin.fluxtion.audit.analyser.analyser.assistant.localagent.ClaudeCodeProvider.SYSTEM_NOTE + "|"
-                + telamin.fluxtion.audit.analyser.analyser.session.LocalAgentPosture.preAllowedVerbs() + "|full="
-                + config.claudeCodeFull);
+        var mode = telamin.fluxtion.audit.analyser.analyser.session.LocalAgentPosture.FullMode.parse(config.claudeCodeFullMode)
+                .orElse(telamin.fluxtion.audit.analyser.analyser.session.LocalAgentPosture.FullMode.DEFAULT);
+        var posture = config.claudeCodeFull
+                ? telamin.fluxtion.audit.analyser.analyser.session.LocalAgentPosture.full(mode)
+                : telamin.fluxtion.audit.analyser.analyser.session.LocalAgentPosture.ANALYSER_ASSISTANT;
+        boolean fullConfirmed = config.claudeCodeFull && dir != null && (scratch
+                || telamin.fluxtion.audit.analyser.analyser.assistant.localagent.FullFolderTrust.confirms(
+                        config.claudeCodeTrustedFullFolders, real,
+                        telamin.fluxtion.audit.analyser.analyser.assistant.localagent.FullFolderTrust.digest(dir)));
+        String postureRef = posture.ref(real,
+                telamin.fluxtion.audit.analyser.analyser.assistant.localagent.ClaudeCodeProvider.systemNote(posture));
         var folder = telamin.fluxtion.audit.analyser.analyser.assistant.localagent.LocalAgentFolders.check(dir,
                 Path.of(System.getProperty("user.home")));
+        long budget = config.claudeCodeBudgetUsd == null ? 0 : Math.round(config.claudeCodeBudgetUsd * 1_000_000d);
         return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentConsent(config.claudeCodeAllowed,
                 confirmed, dir != null && telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.isWorkingCopy(dir),
-                actionServer != null, posture, Math.round(config.claudeCodeBudgetUsd * 1_000_000d), folder);
+                actionServer != null, postureRef, budget, folder, config.claudeCodeFull, mode, fullConfirmed);
     }
 
     /**
@@ -4865,6 +4877,24 @@ public final class MainFrame extends JFrame {
                 .FolderVerdict.OK) {
             return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentEffectStarted(e.opId(), 0,
                     "confirmFolder:refused");
+        }
+        if (e.full()) {
+            // OD-74.12: read the folder's three files (bounded, names only) NOW, name what will run, and bind the trust
+            // to exactly the content that was shown — a file changed after this read is asked about again
+            var scan = telamin.fluxtion.audit.analyser.analyser.assistant.localagent.FullFolderTrust.scan(dir);
+            SwingUtilities.invokeLater(() -> {
+                if (!LocalAgentFolderDialog.confirmFull(this, dir, scan) || session == null) return;
+                String real = realPathOf(dir);
+                java.util.List<String> records = telamin.fluxtion.audit.analyser.analyser.assistant.localagent.FullFolderTrust
+                        .recorded(config.claudeCodeTrustedFullFolders, real, scan.digest());
+                config.claudeCodeTrustedFullFolders.clear();
+                config.claudeCodeTrustedFullFolders.addAll(records);
+                saveConfigQuietly();
+                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentStartRequested(
+                        ++localAgentRequest, localAgentConsent(), false));
+            });
+            return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentEffectStarted(e.opId(), 0,
+                    "confirmFolder:full");
         }
         SwingUtilities.invokeLater(() -> {
             int answer = JOptionPane.showConfirmDialog(this,

@@ -61,8 +61,8 @@ the analyser through the same verbs an external client uses. It is **off by defa
 
 **Turn it on.** *Settings ▸ Assistant ▸ Claude Code in the Assistant tab ▸ Allow the analyser to start Claude Code.*
 Then choose **Claude Code** at the top of the Assistant tab (beside *In-app assistant*). One assistant drives the tab
-at a time; switching back stops Claude Code. These settings — both switches, warm start, the model, the budget and the
-folders you have confirmed — are **this machine's only**: never in a project profile, a shared settings file or an
+at a time; switching back stops Claude Code. These settings — both switches, the full posture's mode, warm start, the
+model, the spend limit and the folders you have confirmed — are **this machine's only**: never in a project profile, a shared settings file or an
 evidence bundle, so a cloned repository or a received bundle cannot turn any of them on.
 
 **Start.** Press **Start Claude Code**. What happens:
@@ -93,7 +93,42 @@ evidence bundle, so a cloned repository or a received bundle cannot turn any of 
   folder's `.claude/settings.json` hooks and `.mcp.json`. **No Bash, no file edits, no web, no subagents.** The
   destructive verbs (`open`, `source_root`, `screenshot`, `report`, `walk`, `import`) are hidden from it. Anything not
   allowed is denied at once, without a prompt. The header says *"analyser assistant — your skills and hooks are not
-  loaded"*. Using your full Claude Code from the tab is a later, separate opt-in (the switch is shown, disabled).
+  loaded"*. Your full Claude Code is a separate opt-in, below.
+
+**Full Claude Code — your own Claude Code, by a second opt-in.** *Settings ▸ Assistant ▸ …with my full Claude Code
+permissions* (off) runs your own Claude Code in the tab as it runs in a terminal. Turning it on shows a warning first,
+and its default button is *Cancel*. It loads **your settings and permission rules, skills, commands, plugins,
+subagents, hooks and MCP servers** (claude.ai connectors included), and the folder's own hooks and `.mcp.json`, and
+Claude Code can use **your own tools — Bash, file edits, web access — as far as your permission rules and the mode you
+choose allow**. **The analyser does not confine it to the folder**; your rules and the mode do.
+
+- **The mode** (shown under the switch when it is on): `default` asks before anything your rules don't allow — until
+  approvals in the analyser ship, such a request is **denied**, and the tab says *"an action needed your approval,
+  which the analyser cannot ask for yet"*; `acceptEdits` edits files in the folder without asking, otherwise as
+  `default`; `auto` lets Claude Code's own safety classifier approve or block each action without asking you — it needs
+  a model that supports it (sonnet or opus): with another, Claude Code starts in `default` instead, and the analyser
+  stops it and says so; `plan` reads and plans, and edits and runs nothing. `bypassPermissions` and `dontAsk` are
+  never offered; a hand-edited setting naming either reads as `default`, and Settings says so.
+- **The folder is confirmed separately for full Claude Code**, because Start itself **runs the folder's hooks and
+  connects its MCP servers**, before you send anything. The dialog names what it found — *"Hooks in this folder:
+  SessionStart (1) — from .claude/settings.json"*, *"MCP servers in this folder: db-tools — from .mcp.json"*, or that a
+  file could not be read — and never shows the commands. The confirmation is tied to the content of
+  `.claude/settings.json`, `.claude/settings.local.json` and `.mcp.json`: **when any of them changes** (a `git pull`
+  that adds a hook), **Start asks again**. A folder confirmed for the analyser assistant is not thereby confirmed for
+  full Claude Code.
+- **What the tab shows.** Each hook's event and outcome is a status line (*"Hook SessionStart: 1 ran"*, or that one
+  failed), never its output. The header says *"full Claude Code (<mode>) — your settings, skills, hooks and n MCP
+  servers are loaded"*, and an environment line, *"PATH: inherited, plus ~/.local/bin, /opt/homebrew/bin"*: an analyser
+  started from the Finder or the Dock has a minimal `PATH`, where your hooks and `npx` servers would not start, so the
+  standard install folders that exist and are not already on your `PATH` are **appended** (your order wins). The
+  analyser never runs a login shell to find a `PATH`; set anything else (an `nvm` node, a project's virtual
+  environment) in Claude Code's own settings `env`.
+- **Still the analyser's.** Its destructive verbs stay hidden from Claude Code, and so do the tools of your own
+  `fluxtion-analyser` registration, which is not bound to this analyser window. Warm start never starts full Claude
+  Code. Changing the switch or the mode means a New chat.
+
+Turn it on only for folders and logs you trust: in this posture, text in a record that is written to steer an AI
+reaches an agent that may have your shell, and the analyser cannot limit what your own tools do.
 
 Claude Code is told that record content is data, not instructions — a weak protection, stated as such: treat its
 answers as the model's words, and check them against what the analyser shows.
@@ -114,15 +149,18 @@ answers as the model's words, and check them against what the analyser shows.
   memory shortcuts) are refused. An `@file` mention works as in a terminal for a file inside the folder; a file
   outside it is not read.
 - **The header** shows the model, the posture, the folder, the Claude Code version, your subscription type or the
-  API-key source, the API provider, and the session's spend against its **budget** (*Settings ▸ Assistant ▸ Session
-  budget*, US$5 by default; Claude Code's own model setting is beside it). When the budget is reached the analyser stops
-  Claude Code and says so. It never shows your e-mail address or organisation.
+  API-key source, and the API provider. It never shows your e-mail address or organisation. **Cost:** on a Claude plan
+  it shows no dollar figure — *"usage counts against your Claude plan"*, whose own usage limits apply. With an API key
+  it shows what the session has used, and, if you set one, the limit: *Settings ▸ Assistant ▸ Limit spend per session*
+  is **off by default** and is meant for API-key billing; when the limit is reached the analyser stops Claude Code and
+  says so.
 - **Don't resume this conversation in a terminal while it is open here** — the history would fork. A second analyser
   window cannot open it either: *"This conversation is open in another analyser window."*
 
 **Warm start** (*Start Claude Code when I open the Assistant tab*, off) starts Claude Code when **you** click or key the
 Assistant tab — never when the analyser reveals the tab itself, a journey hands over, or the tab is restored at launch —
-and only in a folder you have already confirmed; it never asks the folder question.
+and only in a folder you have already confirmed; it never asks the folder question. **It never applies to full Claude
+Code**: a click on the tab is too weak an act to run hooks on, so there you press Start.
 
 ## No API key? Copy-prompt mode
 

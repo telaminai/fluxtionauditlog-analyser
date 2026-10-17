@@ -83,7 +83,10 @@ purpose, such as a neighbouring module.
 
 The analyser **does not run downloaded code**. When the project is ready it shows fixed, copyable build,
 run, export and stop commands selected from recognised filenames. You decide whether to paste them into
-a terminal. If the catalogue is unreachable, the error gives the manual template-gallery route instead
+a terminal. The one exception is your own opt-in: with **full Claude Code** on (Settings ▸ Assistant), pressing
+Start in the Assistant tab runs your own Claude Code, which **runs a confirmed folder's hooks and connects its
+`.mcp.json` servers** — the confirmation names them, and is asked again whenever those files change (see
+[the assistant guide](assistant.md#claude-code-in-the-assistant-tab)). If the catalogue is unreachable, the error gives the manual template-gallery route instead
 of leaving an empty picker.
 
 ## Opening and switching

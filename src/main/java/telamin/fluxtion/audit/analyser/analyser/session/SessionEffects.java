@@ -242,11 +242,21 @@ public sealed interface SessionEffects {
      *
      * @param sessionId       the conversation id: {@code --session-id} when {@code resume} is false, else {@code --resume}
      * @param nonce           the binding nonce minted for THIS spawn; never reused across generations (§4.2)
-     * @param maxBudgetMicros {@code --max-budget-usd}: the session budget less what the session total has spent (§4.6)
+     * @param maxBudgetMicros {@code --max-budget-usd}: the session budget less what the session total has spent (§4.6);
+     *                        0 when no limit is set, and then the flag is not passed at all (owner, 2026-10-17)
      * @param postureRef      the posture digest this session was created under
+     * @param posture         the posture value the command line and the child's environment are computed from (§4.3)
      */
     record StartLocalAgentEffect(long opId, long generation, String sessionId, boolean resume, String nonce,
-                                 long maxBudgetMicros, String postureRef) implements SessionEffects {
+                                 long maxBudgetMicros, String postureRef, LocalAgentPosture posture) implements SessionEffects {
+        public StartLocalAgentEffect {
+            posture = posture == null ? LocalAgentPosture.ANALYSER_ASSISTANT : posture;
+        }
+
+        public StartLocalAgentEffect(long opId, long generation, String sessionId, boolean resume, String nonce,
+                                     long maxBudgetMicros, String postureRef) {
+            this(opId, generation, sessionId, resume, nonce, maxBudgetMicros, postureRef, LocalAgentPosture.ANALYSER_ASSISTANT);
+        }
     }
 
     /** Ask the CLI for {@code mcp_status} after {@code delayMs}, and report {@link SessionEvents.LocalAgentStatusObserved}. */
@@ -272,7 +282,12 @@ public sealed interface SessionEffects {
     /**
      * Ask the person, outside the dispatch, whether this working directory may be used by Claude Code (OD-74.5). On yes
      * the frame records the confirmation on this machine and submits a NEW Start request; it never starts anything here.
+     * {@code full} (OD-74.12): the full-posture dialog, which reads the folder's three files (bounded, names only), names
+     * the hooks and servers that will run, and records the trust bound to their digest.
      */
-    record ConfirmLocalAgentFolderEffect(long opId, long request) implements SessionEffects {
+    record ConfirmLocalAgentFolderEffect(long opId, long request, boolean full) implements SessionEffects {
+        public ConfirmLocalAgentFolderEffect(long opId, long request) {
+            this(opId, request, false);
+        }
     }
 }
