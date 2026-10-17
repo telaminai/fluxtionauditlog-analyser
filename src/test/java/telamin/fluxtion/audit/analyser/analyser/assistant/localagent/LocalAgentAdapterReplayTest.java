@@ -621,4 +621,30 @@ class LocalAgentAdapterReplayTest {
         assertEquals(1, ((Map<?, ?>) mcp.get("mcpServers")).size(), "only the hosted bridge");
         assertTrue(h.state().entries().stream().noneMatch(e -> LocalAgentState.NOTE.equals(e.kind())), h.state().entries().toString());
     }
+
+    /**
+     * ★ Review M7. Witness: drop the posture-digest check at the top of {@code LocalAgentAdapter.spawn} (spawn in
+     * whatever {@code env.workingDirectory()} says now) — a process is started in the moved folder and the named
+     * assertion fails.
+     */
+    @Test
+    @DisplayName("★ M7: the adapter spawns only in the folder the posture was decided for; a moved folder is refused, nothing runs")
+    void aMovedFolderIsNeverSpawnedIn() throws Exception {
+        FixtureAgent agent = new FixtureAgent("multiturn-partial-replay-midturn.jsonl");
+        agent.conformInit = true;
+        Harness h = new Harness(agent, home);
+        // the consent (and the node's decision) name proj; a project is then opened elsewhere before the spawn runs
+        h.workingDirectory = Files.createDirectories(home.resolve("other-project"));
+        h.start();
+        assertEquals(0, h.agent.processes.size(), "no process was started in a folder nobody decided on");
+        assertEquals(SessionEvents.SpawnFailure.FOLDER_CHANGED,
+                h.facts(SessionEvents.LocalAgentSpawned.class).get(0).failure());
+        assertEquals("FOLDER_CHANGED", h.state().verdict());
+        assertEquals("OFF", h.state().phase());
+        // the same folder digests the same: back in proj, Start runs
+        h.workingDirectory = null;
+        h.start();
+        assertEquals(1, h.agent.processes.size());
+        assertEquals("READY", h.state().phase(), h.state().reason());
+    }
 }

@@ -51,9 +51,8 @@ doing: *Requesting*, *Running action n*, *Complete*, *Cancelled*, *Superseded*, 
   in either place, and moving it never sends again. The tab says where it went. Scrolling or copying in the docked
   assistant does not end a showing walk.
 
-Nothing is sent until you press Send: not when you open the tab, open a bundle, or play a journey. (With Claude Code's
-*warm start* on, below, clicking the tab yourself starts Claude Code, which signs in with Anthropic before your first
-Send; no record content goes with it.)
+Nothing is sent until you press Send: not when you open the tab, open a bundle, or play a journey. Claude Code (below)
+starts only when you press its **Start** button.
 
 ## Asking about what is on screen
 
@@ -93,8 +92,9 @@ the analyser through the same verbs an external client uses. It is **off by defa
 
 **Turn it on.** *Settings ▸ Assistant ▸ Claude Code in the Assistant tab ▸ Allow the analyser to start Claude Code.*
 Then choose **Claude Code** at the top of the Assistant tab (beside *In-app assistant*). One assistant drives the tab
-at a time; switching back stops Claude Code. These settings — both switches, the full posture's mode, warm start, the
-model, the spend limit and the folders you have confirmed — are **this machine's only**: never in a project profile, a shared settings file or an
+at a time; switching back stops an idle Claude Code, and is refused while Claude is answering (*"Claude is still
+answering — Stop or wait, then switch to the in-app assistant."*). These settings — both switches, the full posture's
+mode, the model, the spend limit and the folders you have confirmed — are **this machine's only**: never in a project profile, a shared settings file or an
 evidence bundle, so a cloned repository or a received bundle cannot turn any of them on.
 
 **Start.** Press **Start Claude Code**. What happens:
@@ -106,8 +106,10 @@ evidence bundle, so a cloned repository or a received bundle cannot turn any of 
 - The first time in a folder, it asks: *"Claude Code will read this folder's CLAUDE.md as instructions. Trust <folder>
   for Claude Code in the analyser?"* Your answer is remembered on this machine. With no project open, Claude Code works
   in a private, empty scratch folder instead. Start is refused outright in an evidence bundle's working copy.
-- Claude Code reaches the analyser through the **REST transport**; if it is off, the tab says so and offers to turn it
-  on.
+- Claude Code does **not** need the REST transport turned on. With it off, the analyser opens a private listener that
+  serves only this Claude Code session — it refuses every external client, even one holding the REST token, and
+  publishes no endpoint file for other tools to find — and closes it when the session stops. With it on, the session
+  shares the REST transport's listener, and external clients are served as before.
 - Start **contacts Anthropic** (the sign-in check and connecting the analyser's bridge) **before your first Send**. No
   record content is sent until you press Send.
 - The analyser checks that the session it started is the one it asked for: the bridge proves it belongs to this
@@ -127,8 +129,9 @@ evidence bundle, so a cloned repository or a received bundle cannot turn any of 
   allowed is denied at once, without a prompt. The header says *"analyser assistant — your skills and hooks are not
   loaded"*. Your full Claude Code is a separate opt-in, below.
 
-**Full Claude Code — your own Claude Code, by a second opt-in.** *Settings ▸ Assistant ▸ …with my full Claude Code
-permissions* (off) runs your own Claude Code in the tab as it runs in a terminal. Turning it on shows a warning first,
+**Full Claude Code (preview) — your own Claude Code, by a second opt-in.** It is a **preview**: for internal and demo
+use, and not for customer release until approvals in the analyser (P3) ship. *Settings ▸ Assistant ▸ …with my full
+Claude Code permissions (preview)* (off) runs your own Claude Code in the tab as it runs in a terminal. Turning it on shows a warning first,
 and its default button is *Cancel*. It loads **your settings and permission rules, skills, commands, plugins,
 subagents, hooks and MCP servers** (claude.ai connectors included), and the folder's own hooks and `.mcp.json`, and
 Claude Code can use **your own tools — Bash, file edits, web access — as far as your permission rules and the mode you
@@ -145,19 +148,21 @@ choose allow**. **The analyser does not confine it to the folder**; your rules a
   connects its MCP servers**, before you send anything. The dialog names what it found — *"Hooks in this folder:
   SessionStart (1) — from .claude/settings.json"*, *"MCP servers in this folder: db-tools — from .mcp.json"*, or that a
   file could not be read — and never shows the commands. The confirmation is tied to the content of
-  `.claude/settings.json`, `.claude/settings.local.json` and `.mcp.json`: **when any of them changes** (a `git pull`
-  that adds a hook), **Start asks again**. A folder confirmed for the analyser assistant is not thereby confirmed for
+  `.claude/settings.json`, `.claude/settings.local.json` and `.mcp.json`, and of the folder's **instruction files**
+  (`CLAUDE.md`, `CLAUDE.local.md`, `.claude/CLAUDE.md`, and everything under `.claude/commands`, `.claude/skills` and
+  `.claude/agents`, read up to a bound and without following a link out of the folder): **when any of them changes**
+  (a `git pull` that adds a hook or rewrites `CLAUDE.md`), **Start asks again**, and the dialog says which changed. A folder confirmed for the analyser assistant is not thereby confirmed for
   full Claude Code.
 - **What the tab shows.** Each hook's event and outcome is a status line (*"Hook SessionStart: 1 ran"*, or that one
-  failed), never its output. The header says *"full Claude Code (<mode>) — your settings, skills, hooks and n MCP
+  failed), never its output. The header says *"full Claude Code (preview, <mode>) — your settings, skills, hooks and n MCP
   servers are loaded"*, and an environment line, *"PATH: inherited, plus ~/.local/bin, /opt/homebrew/bin"*: an analyser
   started from the Finder or the Dock has a minimal `PATH`, where your hooks and `npx` servers would not start, so the
   standard install folders that exist and are not already on your `PATH` are **appended** (your order wins). The
   analyser never runs a login shell to find a `PATH`; set anything else (an `nvm` node, a project's virtual
   environment) in Claude Code's own settings `env`.
 - **Still the analyser's.** Its destructive verbs stay hidden from Claude Code, and so do the tools of your own
-  `fluxtion-analyser` registration, which is not bound to this analyser window. Warm start never starts full Claude
-  Code. Changing the switch or the mode means a New chat.
+  `fluxtion-analyser` registration, which is not bound to this analyser window. Only the Start button starts it.
+  Changing the switch or the mode means a New chat.
 
 Turn it on only for folders and logs you trust: in this posture, text in a record that is written to steer an AI
 reaches an agent that may have your shell, and the analyser cannot limit what your own tools do.
@@ -211,11 +216,6 @@ a copy that holds such characters says how many.
   ◆◆ and a stronger colour for `acceptEdits` and `auto`, which ask about fewer actions. **Send** reads *Send to full
   Claude Code*, and the tab and the assistant's own window carry the same ◆ marker. The marker follows the session, so it
   appears and goes with the posture the analyser actually started.
-
-**Warm start** (*Start Claude Code when I open the Assistant tab*, off) starts Claude Code when **you** click or key the
-Assistant tab — never when the analyser reveals the tab itself, a journey hands over, or the tab is restored at launch —
-and only in a folder you have already confirmed; it never asks the folder question. **It never applies to full Claude
-Code**: a click on the tab is too weak an act to run hooks on, so there you press Start.
 
 ## No API key? Copy-prompt mode
 

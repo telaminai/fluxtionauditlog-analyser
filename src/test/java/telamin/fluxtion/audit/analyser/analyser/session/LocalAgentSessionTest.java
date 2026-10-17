@@ -22,12 +22,12 @@ class LocalAgentSessionTest {
     static final long BUDGET = 5_000_000;   // US$5 in micro-dollars
 
     static SessionEvents.LocalAgentConsent consent() {
-        return consent(true, true, false, true, "posture-a", BUDGET);
+        return consent(true, true, false, "posture-a", BUDGET);
     }
 
-    static SessionEvents.LocalAgentConsent consent(boolean allowed, boolean confirmed, boolean bundle, boolean rest,
+    static SessionEvents.LocalAgentConsent consent(boolean allowed, boolean confirmed, boolean bundle,
                                                    String posture, long budget) {
-        return new SessionEvents.LocalAgentConsent(allowed, confirmed, bundle, rest, posture, budget);
+        return new SessionEvents.LocalAgentConsent(allowed, confirmed, bundle, posture, budget);
     }
 
     static LocalAgentState state(SessionDriver d) {
@@ -46,7 +46,7 @@ class LocalAgentSessionTest {
 
     /** Start and drive the handshake to READY: returns the start effect. */
     static SessionEffects.StartLocalAgentEffect startToReady(SessionDriver d, FakeSessionAdapter a) {
-        d.post(new SessionEvents.LocalAgentStartRequested(1, consent(), false));
+        d.post(new SessionEvents.LocalAgentStartRequested(1, consent()));
         var start = a.agentStarts.get(a.agentStarts.size() - 1);
         bind(d, start);
         return start;
@@ -88,45 +88,41 @@ class LocalAgentSessionTest {
 
     /** ★ Witness: drop the {@code !c.allowed()} check in {@code startRefusal} — the first assertion fails. */
     @Test
-    @DisplayName("★ consent: switch off, in-app mode, a bundle, REST off — each refuses Start by name and starts nothing")
+    @DisplayName("★ consent: switch off, in-app mode, a bundle — each refuses Start by name and starts nothing")
     void consentRefusesStart() {
         FakeSessionAdapter a = new FakeSessionAdapter();
         SessionDriver d = driver(a);
-        d.post(new SessionEvents.LocalAgentStartRequested(1, consent(false, true, false, true, "p", BUDGET), false));
+        d.post(new SessionEvents.LocalAgentStartRequested(1, consent(false, true, false, "p", BUDGET)));
         assertEquals(0, a.agentStarts.size(), "the switch is off: nothing starts");
         assertEquals("SWITCHED_OFF", state(d).verdict());
         assertTrue(state(d).reason().contains("Allow the analyser to start Claude Code"), state(d).reason());
 
-        d.post(new SessionEvents.LocalAgentStartRequested(2, consent(true, true, true, true, "p", BUDGET), false));
+        d.post(new SessionEvents.LocalAgentStartRequested(2, consent(true, true, true, "p", BUDGET)));
         assertEquals("BUNDLE", state(d).verdict());
-        d.post(new SessionEvents.LocalAgentStartRequested(3, consent(true, true, false, false, "p", BUDGET), false));
-        assertEquals("REST_OFF", state(d).verdict());
         assertEquals(0, a.agentStarts.size());
 
         FakeSessionAdapter b = new FakeSessionAdapter();
         SessionDriver inApp = new SessionDriver(b);       // the default mode is in-app
-        inApp.post(new SessionEvents.LocalAgentStartRequested(1, consent(), false));
+        inApp.post(new SessionEvents.LocalAgentStartRequested(1, consent()));
         assertEquals(0, b.agentStarts.size(), "localAgentSession refuses under IN_APP, in its own handler");
         assertEquals("MODE", state(inApp).verdict());
     }
 
     @Test
-    @DisplayName("an unconfirmed folder asks first (Start) and asks nothing (warm start); neither starts a process")
+    @DisplayName("an unconfirmed folder asks first and starts nothing; a confirmed one starts")
     void anUnconfirmedFolderAsksBeforeStart() {
         FakeSessionAdapter a = new FakeSessionAdapter();
         SessionDriver d = driver(a);
-        d.post(new SessionEvents.LocalAgentStartRequested(1, consent(true, false, false, true, "p", BUDGET), true));
-        assertEquals(0, a.agentConfirms.size(), "a warm start never raises the confirmation dialog");
-        assertEquals(0, a.agentStarts.size());
-        assertEquals("", state(d).verdict(), "and says nothing");
-
-        d.post(new SessionEvents.LocalAgentStartRequested(2, consent(true, false, false, true, "p", BUDGET), false));
+        d.post(new SessionEvents.LocalAgentStartRequested(2, consent(true, false, false, "p", BUDGET)));
         assertEquals(1, a.agentConfirms.size(), "Start asks for the folder confirmation");
         assertEquals(2, a.agentConfirms.get(0).request());
-        assertEquals(0, a.agentStarts.size(), "and starts nothing until the person confirms and presses again");
+        assertEquals(0, a.agentStarts.size(), "and starts nothing until the person answers");
 
-        d.post(new SessionEvents.LocalAgentStartRequested(3, consent(true, true, false, true, "p", BUDGET), true));
-        assertEquals(1, a.agentStarts.size(), "a warm start in a confirmed folder starts");
+        FakeSessionAdapter b = new FakeSessionAdapter();
+        SessionDriver e = driver(b);
+        e.post(new SessionEvents.LocalAgentStartRequested(3, consent(true, true, false, "p", BUDGET)));
+        assertEquals(0, b.agentConfirms.size(), "a confirmed folder is not asked about again");
+        assertEquals(1, b.agentStarts.size());
     }
 
     // ---- the handshake and the binding ------------------------------------------------------------------------------
@@ -136,7 +132,7 @@ class LocalAgentSessionTest {
     void theHandshake() {
         FakeSessionAdapter a = new FakeSessionAdapter();
         SessionDriver d = driver(a);
-        d.post(new SessionEvents.LocalAgentStartRequested(1, consent(), false));
+        d.post(new SessionEvents.LocalAgentStartRequested(1, consent()));
         var start = a.agentStarts.get(0);
         assertEquals(1, start.generation());
         assertFalse(start.resume(), "a new conversation uses --session-id");
@@ -166,7 +162,7 @@ class LocalAgentSessionTest {
     void notLoggedInIsRefused() {
         FakeSessionAdapter a = new FakeSessionAdapter();
         SessionDriver d = driver(a);
-        d.post(new SessionEvents.LocalAgentStartRequested(1, consent(), false));
+        d.post(new SessionEvents.LocalAgentStartRequested(1, consent()));
         d.post(new SessionEvents.LocalAgentSpawned(1, SessionEvents.SpawnFailure.NONE, 0));
         d.post(new SessionEvents.LocalAgentInitialized(1, false, "dontAsk", 3));
         assertEquals("NOT_LOGGED_IN", state(d).verdict());
@@ -181,7 +177,7 @@ class LocalAgentSessionTest {
     void anotherModeAtInitializeIsRefused() {
         FakeSessionAdapter a = new FakeSessionAdapter();
         SessionDriver d = driver(a);
-        d.post(new SessionEvents.LocalAgentStartRequested(1, consent(), false));
+        d.post(new SessionEvents.LocalAgentStartRequested(1, consent()));
         d.post(new SessionEvents.LocalAgentSpawned(1, SessionEvents.SpawnFailure.NONE, 0));
         d.post(new SessionEvents.LocalAgentInitialized(1, true, "acceptEdits", 3));
         assertEquals("MODE_MISMATCH", state(d).verdict());
@@ -205,7 +201,7 @@ class LocalAgentSessionTest {
         for (Case c : cases) {
             FakeSessionAdapter a = new FakeSessionAdapter();
             SessionDriver d = driver(a);
-            d.post(new SessionEvents.LocalAgentStartRequested(1, consent(), false));
+            d.post(new SessionEvents.LocalAgentStartRequested(1, consent()));
             var start = a.agentStarts.get(0);
             d.post(new SessionEvents.LocalAgentSpawned(1, SessionEvents.SpawnFailure.NONE, 0));
             d.post(new SessionEvents.LocalAgentInitialized(1, true, "dontAsk", 3));
@@ -217,7 +213,7 @@ class LocalAgentSessionTest {
         }
         FakeSessionAdapter a = new FakeSessionAdapter();
         SessionDriver d = driver(a);
-        d.post(new SessionEvents.LocalAgentStartRequested(1, consent(), false));
+        d.post(new SessionEvents.LocalAgentStartRequested(1, consent()));
         d.post(new SessionEvents.LocalAgentStartDeadline(1));
         assertEquals("TIMEOUT", state(d).verdict(), "the 35 s start deadline ends a start that never answered");
         assertEquals(LocalAgentSession.OLD_BRIDGE_TEXT, "the installed analyser bridge is older than this analyser — update it");
@@ -553,7 +549,7 @@ class LocalAgentSessionTest {
         d.post(new SessionEvents.LocalAgentStopRequested("Stop"));                         // nothing open: no-op
         d.post(new SessionEvents.AssistantModeChosen(AssistantMode.IN_APP, "test"));        // kills it
         d.post(new SessionEvents.AssistantModeChosen(AssistantMode.LOCAL_AGENT, "test"));
-        d.post(new SessionEvents.LocalAgentStartRequested(2, consent(true, true, false, true, "posture-b", BUDGET), false));
+        d.post(new SessionEvents.LocalAgentStartRequested(2, consent(true, true, false, "posture-b", BUDGET)));
         assertEquals(2, a.agentStarts.size(), "a turn-less conversation is never refused for a posture change");
         var second = a.agentStarts.get(1);
         assertFalse(second.resume(), "never --resume a conversation the CLI never started a turn of");
@@ -563,16 +559,16 @@ class LocalAgentSessionTest {
         // NOT_LOGGED_IN, then logged in: still fresh
         d.post(new SessionEvents.LocalAgentSpawned(2, SessionEvents.SpawnFailure.NONE, 0));
         d.post(new SessionEvents.LocalAgentInitialized(2, false, "dontAsk", 3));
-        d.post(new SessionEvents.LocalAgentStartRequested(3, consent(true, true, false, true, "posture-b", BUDGET), false));
+        d.post(new SessionEvents.LocalAgentStartRequested(3, consent(true, true, false, "posture-b", BUDGET)));
         assertFalse(a.agentStarts.get(2).resume());
 
         // after a turn has started, a restart resumes the same id
         bind(d, a.agentStarts.get(2));
-        var t = send(d, a, 10, consent(true, true, false, true, "posture-b", BUDGET));
+        var t = send(d, a, 10, consent(true, true, false, "posture-b", BUDGET));
         assertTrue(state(d).resumable());
         d.post(new SessionEvents.LocalAgentStopRequested("Stop"));
         d.post(new SessionEvents.LocalAgentStopDeadline(3, t.ticket(), SessionEvents.StopDeadline.ACK));
-        d.post(new SessionEvents.LocalAgentStartRequested(4, consent(true, true, false, true, "posture-b", BUDGET), false));
+        d.post(new SessionEvents.LocalAgentStartRequested(4, consent(true, true, false, "posture-b", BUDGET)));
         var resumed = a.agentStarts.get(3);
         assertTrue(resumed.resume());
         assertEquals(a.agentStarts.get(2).sessionId(), resumed.sessionId());
@@ -584,12 +580,12 @@ class LocalAgentSessionTest {
     void unusableFoldersAreRefused() {
         FakeSessionAdapter a = new FakeSessionAdapter();
         SessionDriver d = driver(a);
-        d.post(new SessionEvents.LocalAgentStartRequested(1, new SessionEvents.LocalAgentConsent(true, false, false, true,
-                "p", BUDGET, SessionEvents.FolderVerdict.EXPOSES_SECRETS), false));
+        d.post(new SessionEvents.LocalAgentStartRequested(1, new SessionEvents.LocalAgentConsent(true, false, false,
+                "p", BUDGET, SessionEvents.FolderVerdict.EXPOSES_SECRETS)));
         assertEquals("FOLDER_EXPOSES_SECRETS", state(d).verdict());
         assertTrue(state(d).reason().contains("home folder"), state(d).reason());
-        d.post(new SessionEvents.LocalAgentStartRequested(2, new SessionEvents.LocalAgentConsent(true, true, false, true,
-                "p", BUDGET, SessionEvents.FolderVerdict.UNAVAILABLE), false));
+        d.post(new SessionEvents.LocalAgentStartRequested(2, new SessionEvents.LocalAgentConsent(true, true, false,
+                "p", BUDGET, SessionEvents.FolderVerdict.UNAVAILABLE)));
         assertEquals("NO_FOLDER", state(d).verdict());
         assertEquals(0, a.agentConfirms.size(), "never asked to trust such a folder");
         assertEquals(0, a.agentStarts.size());
@@ -605,7 +601,7 @@ class LocalAgentSessionTest {
         d.post(new SessionEvents.LocalAgentCostObserved(1, BUDGET));
         d.post(new SessionEvents.LocalAgentTurnEnded(1, t.ticket(), SessionEvents.TurnOutcome.COMPLETED));
         d.post(new SessionEvents.LocalAgentNewChatRequested("test"));
-        d.post(new SessionEvents.LocalAgentStartRequested(5, consent(), false));
+        d.post(new SessionEvents.LocalAgentStartRequested(5, consent()));
         assertEquals(1, a.agentStarts.size());
         assertEquals("BUDGET_SPENT", state(d).verdict());
     }
@@ -623,12 +619,12 @@ class LocalAgentSessionTest {
         d.post(new SessionEvents.LocalAgentTurnEnded(1, t.ticket(), SessionEvents.TurnOutcome.COMPLETED));
         d.post(new SessionEvents.AssistantModeChosen(AssistantMode.IN_APP, "test"));
         d.post(new SessionEvents.AssistantModeChosen(AssistantMode.LOCAL_AGENT, "test"));
-        d.post(new SessionEvents.LocalAgentStartRequested(2, consent(true, true, false, true, "posture-b", BUDGET), false));
+        d.post(new SessionEvents.LocalAgentStartRequested(2, consent(true, true, false, "posture-b", BUDGET)));
         assertEquals(1, a.agentStarts.size(), "not resumed under another posture");
         assertEquals("POSTURE_CHANGED", state(d).verdict());
         assertTrue(state(d).newChatOffered());
         d.post(new SessionEvents.LocalAgentNewChatRequested("offered"));
-        d.post(new SessionEvents.LocalAgentStartRequested(3, consent(true, true, false, true, "posture-b", BUDGET), false));
+        d.post(new SessionEvents.LocalAgentStartRequested(3, consent(true, true, false, "posture-b", BUDGET)));
         var second = a.agentStarts.get(1);
         assertFalse(second.resume());
         assertNotEquals(first.sessionId(), second.sessionId());
@@ -652,7 +648,7 @@ class LocalAgentSessionTest {
 
         FakeSessionAdapter b = new FakeSessionAdapter();
         SessionDriver e = driver(b);
-        e.post(new SessionEvents.LocalAgentStartRequested(1, consent(), false));
+        e.post(new SessionEvents.LocalAgentStartRequested(1, consent()));
         e.post(new SessionEvents.LocalAgentSpawned(1, SessionEvents.SpawnFailure.LOCKED, 0));
         assertEquals("This conversation is open in another analyser window.", state(e).reason());
         assertEquals("OFF", state(e).phase());
@@ -675,5 +671,196 @@ class LocalAgentSessionTest {
         assertFalse(record.contains(start.nonce()), "nor the nonce");
         assertTrue(record.contains("localAgentTurn"), "the decisions are");
         assertFalse(d.snapshot().toString().contains(start.sessionId()), "nor published in the snapshot");
+    }
+
+    // ---- review fixes (holistic M74 review) -------------------------------------------------------------------------
+
+    /**
+     * ★ Review H4. Witness: put the REST_OFF refusal back in {@code startRefusal}, or drop the
+     * {@code ServeHostedBridgeEffect} from {@code spawn} — Start is refused / no listener is asked for, and the named
+     * assertion fails.
+     */
+    @Test
+    @DisplayName("★ H4: Start never needs the external REST switch — the node asks for the bridge's listener first, then the process")
+    void startAsksForTheBridgeListenerFirst() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = driver(a);
+        d.post(new SessionEvents.LocalAgentStartRequested(1, consent()));
+        assertEquals(List.of("serveBridge", "start"), a.agentOrder, "the listener, then the process that connects to it");
+        assertEquals(a.agentStarts.get(0).generation(), a.agentServes.get(0).generation());
+        assertEquals("SPAWNING", state(d).phase(), "nothing refused REST being off: " + state(d).reason());
+
+        // stopping releases the listener for that generation (a hosted-only one then stops)
+        d.post(new SessionEvents.LocalAgentStopRequested("Stop"));
+        assertEquals(List.of("serveBridge", "start", "stop:KILL", "releaseBridge"), a.agentOrder);
+        assertEquals(1, a.agentReleases.get(0).generation());
+
+        // a listener that could not be started refuses the spawn by name and stops it
+        FakeSessionAdapter b = new FakeSessionAdapter();
+        b.bridgeListening = false;
+        SessionDriver e = driver(b);
+        e.post(new SessionEvents.LocalAgentStartRequested(1, consent()));
+        assertEquals("BRIDGE_UNAVAILABLE", state(e).verdict());
+        assertEquals("OFF", state(e).phase());
+        assertEquals(List.of(SessionEffects.StopHow.KILL), b.agentStops.stream().map(SessionEffects.StopLocalAgentEffect::how)
+                .toList());
+    }
+
+    /**
+     * ★ Review M8. Witness: in {@code onFolderAnswered}, start without comparing the asked posture with the answered
+     * one — the moved folder starts a process and the named assertion fails; or skip the trust-record effect.
+     */
+    @Test
+    @DisplayName("★ M8: the folder answer is a fact — the node requests the trust record and the start; stale, no and moved answers start nothing")
+    void theFolderAnswerIsDecidedByTheNode() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = driver(a);
+        d.post(new SessionEvents.LocalAgentStartRequested(5, consent(true, false, false, "p", BUDGET)));
+        assertEquals(1, a.agentConfirms.size());
+        assertEquals(0, a.agentStarts.size());
+        // an answer to a question the node did not ask is refused
+        d.post(new SessionEvents.LocalAgentFolderAnswered(99, true, true, consent(true, false, false, "p", BUDGET)));
+        assertEquals(0, a.agentStarts.size(), "a stale answer starts nothing");
+        assertEquals(0, a.agentTrusts.size());
+        // yes: the trust record, then the listener and the process
+        d.post(new SessionEvents.LocalAgentFolderAnswered(5, true, true, consent(true, false, false, "p", BUDGET)));
+        assertEquals(List.of("confirmFolder", "trustFolder", "serveBridge", "start"), a.agentOrder);
+        assertEquals(5, a.agentTrusts.get(0).request());
+        assertEquals("p", a.agentStarts.get(0).postureRef());
+        // the same answer again is stale: the question is closed
+        d.post(new SessionEvents.LocalAgentFolderAnswered(5, true, true, consent(true, false, false, "p", BUDGET)));
+        assertEquals(1, a.agentTrusts.size());
+
+        // no: nothing is recorded or started, and the tab says why
+        FakeSessionAdapter b = new FakeSessionAdapter();
+        SessionDriver e = driver(b);
+        e.post(new SessionEvents.LocalAgentStartRequested(6, consent(true, false, false, "p", BUDGET)));
+        e.post(new SessionEvents.LocalAgentFolderAnswered(6, false, true, consent(true, false, false, "p", BUDGET)));
+        assertEquals("FOLDER_NOT_CONFIRMED", state(e).verdict());
+        assertEquals(0, b.agentStarts.size());
+        assertEquals(0, b.agentTrusts.size());
+
+        // yes, but the folder moved while the dialog was open (a project was opened): nothing is trusted or started
+        FakeSessionAdapter c = new FakeSessionAdapter();
+        SessionDriver f = driver(c);
+        f.post(new SessionEvents.LocalAgentStartRequested(7, consent(true, false, false, "folder-a", BUDGET)));
+        f.post(new SessionEvents.LocalAgentFolderAnswered(7, true, true, consent(true, false, false, "folder-b", BUDGET)));
+        assertEquals("FOLDER_CHANGED", state(f).verdict());
+        assertEquals(0, c.agentStarts.size(), "a folder nobody was asked about is never started in");
+        assertEquals(0, c.agentTrusts.size(), "nor recorded as trusted");
+
+        // yes, but the switch went off meanwhile: the fresh observation is what counts
+        FakeSessionAdapter g = new FakeSessionAdapter();
+        SessionDriver h = driver(g);
+        h.post(new SessionEvents.LocalAgentStartRequested(8, consent(true, false, false, "p", BUDGET)));
+        h.post(new SessionEvents.LocalAgentFolderAnswered(8, true, true, consent(false, false, false, "p", BUDGET)));
+        assertEquals("SWITCHED_OFF", state(h).verdict());
+        assertEquals(0, g.agentStarts.size());
+    }
+
+    /**
+     * ★ Review M2. Witness: drop the open-turn refusal in {@code onModeChosen} (kill as before) — the turn is killed and
+     * the mode changes; the named assertions fail.
+     */
+    @Test
+    @DisplayName("★ M2: choosing the in-app assistant while Claude is answering is refused by name; the turn and the mode stay")
+    void leavingClaudeCodeMidTurnIsRefused() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = driver(a);
+        var start = startToReady(d, a);
+        var t = send(d, a, 10);
+        d.post(new SessionEvents.AssistantModeChosen(AssistantMode.IN_APP, "assistant tab"));
+        assertEquals("MODE_SWITCH_REFUSED", state(d).verdict());
+        assertEquals(LocalAgentSession.MODE_SWITCH_REFUSED_TEXT, state(d).reason());
+        assertEquals(AssistantMode.LOCAL_AGENT, state(d).mode(), "the mode is kept");
+        assertEquals(0, kills(a).size(), "the turn in progress is not killed");
+        assertEquals(t.ticket(), state(d).openTicket());
+
+        // the turn ends: now the switch applies, and the idle process is stopped
+        d.post(new SessionEvents.LocalAgentTurnEnded(start.generation(), t.ticket(), SessionEvents.TurnOutcome.COMPLETED));
+        d.post(new SessionEvents.AssistantModeChosen(AssistantMode.IN_APP, "assistant tab"));
+        assertEquals(AssistantMode.IN_APP, state(d).mode());
+        assertEquals(1, kills(a).size(), "leaving an idle Claude Code stops its process");
+        assertEquals("OFF", state(d).phase());
+    }
+
+    /**
+     * ★ Review M6. Witness: answer the admission from {@code bound} alone (ignore {@code postureChecked}), or read a
+     * stale value — the call ordered after the TOOLS_MISMATCH kill is admitted and the named assertion fails.
+     */
+    @Test
+    @DisplayName("★ M6: a hosted call is admitted on the session's thread, in its order — after a posture kill it is refused")
+    void hostedAdmissionFollowsTheSessionsOrder() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = driver(a);
+        var start = startToReady(d, a);
+        var t = send(d, a, 10);
+        d.post(new SessionEvents.LocalAgentCallAdmissionRequested(1, start.generation()));
+        assertNotNull(a.agentAnswers.get(0).refusal(), "bound but the posture not yet checked: refused");
+        d.post(goodInit(start, t.ticket()));
+        d.post(new SessionEvents.LocalAgentCallAdmissionRequested(2, start.generation()));
+        assertNull(a.agentAnswers.get(1).refusal(), "bound and checked: admitted");
+        d.post(new SessionEvents.LocalAgentCallAdmissionRequested(3, start.generation() + 1));
+        assertNotNull(a.agentAnswers.get(2).refusal(), "another generation: refused");
+        List<String> tools = expectedTools();
+        tools.add(LocalAgentPosture.toolName("report"));
+        d.post(new SessionEvents.LocalAgentInitObserved(start.generation(), t.ticket(),
+                LocalAgentPosture.digest(start.sessionId()), "dontAsk", tools,
+                List.of(LocalAgentPosture.HOSTED_SERVER + ":connected"), LocalAgentPosture.REQUIRED_CAPABILITIES, 0));
+        d.post(new SessionEvents.LocalAgentCallAdmissionRequested(4, start.generation()));
+        assertNotNull(a.agentAnswers.get(3).refusal(), "after the TOOLS_MISMATCH kill, nothing is admitted");
+        assertEquals(List.of(1L, 2L, 3L, 4L), a.agentAnswers.stream().map(SessionEffects.AnswerHostedCallEffect::call).toList());
+    }
+
+    /**
+     * ★ Review M6, raced for real. An HTTP-thread call waits in {@code HostedAdmission} while the session's single thread
+     * processes a TOOLS_MISMATCH kill. Whatever the interleaving, the verdict agrees with the session's own order:
+     * admitted only when the admission was processed before the kill. Witness: answer from a value read on the calling
+     * thread before posting (the snapshot) — some admitted calls are ordered after the kill and the assertion fails.
+     */
+    @Test
+    @DisplayName("★ M6: a TOOLS_MISMATCH kill racing an admitted call — the verdict always matches the session's order")
+    void aPostureKillRacingAHostedCall() throws Exception {
+        for (int round = 0; round < 40; round++) {
+            java.util.concurrent.ExecutorService sessionThread = java.util.concurrent.Executors.newSingleThreadExecutor();
+            try {
+                FakeSessionAdapter a = new FakeSessionAdapter();
+                List<String> order = java.util.Collections.synchronizedList(new ArrayList<>());
+                SessionDriver d = sessionThread.submit(() -> driver(a)).get();
+                var startRef = new java.util.concurrent.atomic.AtomicReference<SessionEffects.StartLocalAgentEffect>();
+                sessionThread.submit(() -> {
+                    var start = startToReady(d, a);
+                    var t = send(d, a, 10);
+                    d.post(goodInit(start, t.ticket()));
+                    startRef.set(start);
+                }).get();
+                var start = startRef.get();
+                telamin.fluxtion.audit.analyser.analyser.assistant.localagent.HostedAdmission admission =
+                        new telamin.fluxtion.audit.analyser.analyser.assistant.localagent.HostedAdmission(
+                                fact -> sessionThread.execute(() -> {
+                                    order.add("admission");
+                                    d.post(fact);
+                                }), 5_000);
+                a.onAnswer = admission::answer;
+                List<String> tools = expectedTools();
+                tools.add(LocalAgentPosture.toolName("report"));
+                var kill = new SessionEvents.LocalAgentInitObserved(start.generation(), 1,
+                        LocalAgentPosture.digest(start.sessionId()), "dontAsk", tools,
+                        List.of(LocalAgentPosture.HOSTED_SERVER + ":connected"), LocalAgentPosture.REQUIRED_CAPABILITIES, 0);
+                var call = java.util.concurrent.CompletableFuture.supplyAsync(() -> admission.admit(start.generation()));
+                if (round % 2 == 0) Thread.onSpinWait();
+                sessionThread.execute(() -> {
+                    order.add("kill");
+                    d.post(kill);
+                });
+                String verdict = call.get(10, java.util.concurrent.TimeUnit.SECONDS);
+                sessionThread.submit(() -> { }).get();
+                boolean admittedFirst = order.indexOf("admission") < order.indexOf("kill");
+                assertEquals(admittedFirst, verdict == null, "round " + round + ": order " + order + ", verdict " + verdict);
+                assertEquals("TOOLS_MISMATCH", sessionThread.submit(() -> state(d).verdict()).get());
+            } finally {
+                sessionThread.shutdownNow();
+            }
+        }
     }
 }

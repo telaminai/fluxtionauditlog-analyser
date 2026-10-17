@@ -71,6 +71,14 @@ public final class UiTheme {
         return ThemeManager.isDark() ? new Color(0xE6, 0xB4, 0x3C) : new Color(0xA8, 0x6E, 0x00);
     }
 
+    /**
+     * The local agent's status notes (M74 visual check): burnt orange on light (the P1a colour, about 5:1 on the panel),
+     * a lighter amber on dark, where the P1a orange read at about 3:1. Recomputed per call, like the others.
+     */
+    public static Color noteForeground() {
+        return ThemeManager.isDark() ? new Color(0xF0, 0xB4, 0x5A) : new Color(0xB0, 0x5A, 0x00);
+    }
+
     /** The theme's muted foreground (secondary text), with a sensible fallback. */
     public static Color mutedForeground() {
         return or(UIManager.getColor("Label.disabledForeground"), new Color(0x8A8F98));

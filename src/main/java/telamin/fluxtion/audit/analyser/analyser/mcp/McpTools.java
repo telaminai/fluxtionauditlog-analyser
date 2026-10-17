@@ -84,6 +84,16 @@ public final class McpTools {
     }
 
     /**
+     * M74 review H5: the verbs the analyser's own Claude Code session (the hosted bridge) may call without asking, BY
+     * NAME — an allow-list, never "every verb minus the destructive ones". The one definition: {@code LocalAgentPosture}
+     * (the command line and the posture check) and {@code ActionServer} (the server-side admission) both read it, so a
+     * verb added to {@code VerbSchemas} stays hidden and refused for the hosted bridge until it is listed here. (It lives
+     * here, not in the session package, because a persisting package may not name the overlay verb, D-SP4.)
+     */
+    public static final java.util.List<String> HOSTED_PRE_ALLOWED = java.util.List.of("read", "aggregate", "series",
+            "context", "coverage", "source", "filter", "goto", "flag", "graph", "topology", "spotlight");
+
+    /**
      * Read-only hint on the query verbs only. The render verbs change what the UI shows, so they are not
      * read-only — but nothing is deleted and every one of them is reversible (a filter can be widened, a
      * graph closed, a flag cleared), hence {@code destructiveHint:false}.

@@ -35,11 +35,11 @@ class ScratchFolderTest {
             assertTrue(LocalAgentFolders.analyserOwned(root, home, p -> false), root.toString());
             Path dir = LocalAgentFolders.workingDirectory(root, home, p -> false, () -> scratch);
             assertEquals(scratch, dir, "the scratch folder, never the analyser-owned root");
-            var consent = LocalAgentConsents.of(dir, scratch, home, on(), true, p -> false);
+            var consent = LocalAgentConsents.of(dir, scratch, home, on(), p -> false);
             assertEquals(SessionEvents.FolderVerdict.OK, consent.folder());
             assertTrue(consent.confirmedForPosture(), "the scratch folder holds nothing to trust");
             assertFalse(consent.bundleWorkingCopy());
-            var witness = LocalAgentConsents.of(root, scratch, home, on(), true, p -> false);
+            var witness = LocalAgentConsents.of(root, scratch, home, on(), p -> false);
             assertEquals(SessionEvents.FolderVerdict.EXPOSES_SECRETS, witness.folder(), "the root itself is refused");
         }
         assertEquals(elsewhere, LocalAgentFolders.workingDirectory(elsewhere, home, p -> false, () -> scratch),

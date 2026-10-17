@@ -75,7 +75,7 @@ class ChildEnvironmentTest {
             Harness h = new Harness(agent, dir);
             Map<String, String> env = inherited(dir.resolve("bin"));
             h.environment = env;
-            if (posture.isFull()) h.consent = Harness.fullConsent(posture.fullMode());
+            if (posture.isFull()) h.consent = h.fullConsent(posture.fullMode());
             h.start();
             assertEquals(1, agent.commands.size(), posture + ": " + h.state().reason());
             Map<String, String> child = ChildEnvironment.compose(env, agent.removedEnvironments.get(0),

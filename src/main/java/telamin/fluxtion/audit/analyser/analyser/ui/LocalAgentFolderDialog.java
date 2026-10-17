@@ -26,7 +26,12 @@ public final class LocalAgentFolderDialog {
 
     /** The dialog's body: the words of {@link FullFolderTrust#dialogText}, in a read-only plain-text area. */
     static JComponent content(Path dir, FullFolderTrust.Scan scan) {
-        JTextArea a = new JTextArea(FullFolderTrust.dialogText(dir, scan), 12, 64);
+        return content(dir, scan, java.util.List.of(), null);
+    }
+
+    /** With the folder's earlier full-posture trust records: a re-ask says what changed (review H6). */
+    static JComponent content(Path dir, FullFolderTrust.Scan scan, java.util.List<String> records, String realPath) {
+        JTextArea a = new JTextArea(FullFolderTrust.dialogText(dir, scan, records, realPath), 12, 64);
         a.setEditable(false);
         a.setLineWrap(true);
         a.setWrapStyleWord(true);
@@ -39,9 +44,10 @@ public final class LocalAgentFolderDialog {
     }
 
     /** Ask; true only on the person's explicit {@link #TRUST}. Closing the dialog, or Enter on the default, is No. */
-    static boolean confirmFull(Component parent, Path dir, FullFolderTrust.Scan scan) {
+    static boolean confirmFull(Component parent, Path dir, FullFolderTrust.Scan scan, java.util.List<String> records,
+                               String realPath) {
         Object[] options = {TRUST, DONT};
-        JComponent message = content(dir, scan);
+        JComponent message = content(dir, scan, records, realPath);   // a component: its text area is html-disabled
         int answer = JOptionPane.showOptionDialog(parent, message, "Full Claude Code — confirm this folder",
                 JOptionPane.DEFAULT_OPTION, JOptionPane.WARNING_MESSAGE, null, options, options[1]);
         return answer == 0;

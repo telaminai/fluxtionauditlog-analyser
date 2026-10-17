@@ -37,7 +37,7 @@ class LocalAgentFullReplayTest {
         agent.rewrite = LOGGED_IN;
         agent.conformHostedTools = true;
         Harness h = new Harness(agent, home);
-        h.consent = Harness.fullConsent(mode);
+        h.consent = h.fullConsent(mode);
         // the GUI PATH, plus where this harness's fake claude lives (the resolver must still find it)
         h.environment = Map.of("PATH", "/usr/bin:/bin:/usr/sbin:/sbin:" + home.resolve("bin"));
         h.start();
@@ -58,7 +58,7 @@ class LocalAgentFullReplayTest {
         List<LocalAgentState.Entry> hooks = h.state().entries().stream().filter(e -> e.status().startsWith("HOOK")).toList();
         assertEquals(1, hooks.size(), "one coalesced note for SessionStart: " + h.state().entries());
         assertEquals("HOOK_FAILED", hooks.get(0).status());
-        assertTrue(hooks.get(0).detail().startsWith("Hook SessionStart: 1 ran, 1 failed"), hooks.get(0).detail());
+        assertTrue(hooks.get(0).detail().startsWith("SessionStart: 1 ran, 1 failed"), hooks.get(0).detail());
         String everything = h.state().toString() + h.store.dump() + h.facts;
         for (String marker : List.of("HOOK-STDOUT-MARKER", "HOOK-STDERR-MARKER")) {
             assertFalse(everything.contains(marker), "a hook's output never reaches the snapshot, the store or a fact");
@@ -89,7 +89,7 @@ class LocalAgentFullReplayTest {
         assertFalse(env.containsKey(ClaudeCodeProvider.CLAUDE_MD_ENV), "no CLAUDE.md flag in the full posture");
 
         Harness bad = new Harness(witness(), home.resolve("w"));
-        bad.consent = Harness.fullConsent(FullMode.DEFAULT);
+        bad.consent = bad.fullConsent(FullMode.DEFAULT);
         bad.environment = Map.of("PATH", home.resolve("w").resolve("bin").toString());
         bad.start();
         bad.send("hello");

@@ -14,8 +14,9 @@ import java.util.TreeSet;
 /**
  * M74 §3/§4.3/§4.4: the posture a local-agent session is started in, AS A VALUE, and the check of what the CLI says it
  * is running against it. Pure and deterministic, so the command line ({@code ClaudeCodeProvider}) and the posture
- * assertion ({@code localAgentSession}) are computed from ONE definition: a verb added to {@link VerbSchemas} lands in
- * the disallow list and out of the expected tools until someone classifies it.
+ * assertion ({@code localAgentSession}) are computed from ONE definition, the explicit {@link #PRE_ALLOWED} list: a verb
+ * added to {@link VerbSchemas} lands in the disallow list, out of the expected tools and outside the hosted bridge's
+ * admission until someone lists it (review H5).
  *
  * <p>Two kinds. {@link Kind#ANALYSER_ASSISTANT} (the default): Read, Grep and Glob confined to one folder, only the
  * hosted bridge, {@code dontAsk}. {@link Kind#FULL} (P1b, OD-74.10): the person's own Claude Code in the mode they chose
@@ -101,7 +102,8 @@ public record LocalAgentPosture(Kind kind, FullMode fullMode) {
 
     /** The name the posture is shown under. */
     public String label() {
-        return isFull() ? "full Claude Code (" + fullMode.cli() + ")" : "analyser assistant (default posture)";
+        // owner, 2026-10-17: the full posture is a PREVIEW until P3's approvals ship
+        return isFull() ? "full Claude Code (preview, " + fullMode.cli() + ")" : "analyser assistant (default posture)";
     }
 
     /**
@@ -132,26 +134,43 @@ public record LocalAgentPosture(Kind kind, FullMode fullMode) {
     /** What the posture check found. */
     public enum Verdict { OK, MODE_MISMATCH, TOOLS_MISMATCH, SERVERS_MISMATCH, CAPABILITY_MISSING, SESSION_CHANGED }
 
-    /** The pre-allowed verbs: every verb minus the destructive ones, in {@code VerbSchemas} order (both postures, P1b). */
-    public static List<String> preAllowedVerbs() {
-        return preAllowedVerbs(VerbSchemas.all().keySet(), McpTools.destructiveVerbs());
+    /**
+     * The pre-allow list, BY NAME (review H5): the single source of truth for what the hosted bridge may call without
+     * asking, in both postures. A verb is pre-allowed only if it is listed; a verb added to {@link VerbSchemas} is
+     * therefore hidden from Claude ({@code --disallowedTools}), absent from the expected tool set, and refused by
+     * {@code ActionServer} for the hosted credential until someone lists it. It was "every verb minus the destructive
+     * ones", a deny-list, which auto-allowed every new verb on both sides.
+     */
+    public static final List<String> PRE_ALLOWED = McpTools.HOSTED_PRE_ALLOWED;
+
+    private static final Set<String> PRE_ALLOWED_SET = Set.copyOf(PRE_ALLOWED);
+
+    /** Whether {@code verb} is on the pre-allow list. */
+    public static boolean preAllowed(String verb) {
+        return verb != null && PRE_ALLOWED_SET.contains(verb);
     }
 
-    public static List<String> preAllowedVerbs(Collection<String> verbs, Set<String> destructive) {
+    /** The pre-allowed verbs of today's schema list, in {@code VerbSchemas} order. */
+    public static List<String> preAllowedVerbs() {
+        return preAllowedVerbs(VerbSchemas.all().keySet());
+    }
+
+    /** The verbs of {@code schemaVerbs} that are on the pre-allow list, in their order; nothing else ever is. */
+    public static List<String> preAllowedVerbs(Collection<String> schemaVerbs) {
         List<String> out = new ArrayList<>();
-        for (String v : verbs) if (!destructive.contains(v)) out.add(v);
+        for (String v : schemaVerbs) if (preAllowed(v)) out.add(v);
         return List.copyOf(out);
     }
 
-    /** Every verb that is not pre-allowed: hidden from the model with {@code --disallowedTools} until P3. */
-    public static List<String> disallowedVerbs(Collection<String> verbs, Collection<String> preAllowed) {
+    /** Every verb of {@code schemaVerbs} that is not pre-allowed: hidden from the model with {@code --disallowedTools}. */
+    public static List<String> disallowedVerbs(Collection<String> schemaVerbs) {
         List<String> out = new ArrayList<>();
-        for (String v : verbs) if (!preAllowed.contains(v)) out.add(v);
+        for (String v : schemaVerbs) if (!preAllowed(v)) out.add(v);
         return List.copyOf(out);
     }
 
     public static List<String> disallowedVerbs() {
-        return disallowedVerbs(VerbSchemas.all().keySet(), preAllowedVerbs());
+        return disallowedVerbs(VerbSchemas.all().keySet());
     }
 
     /**
@@ -159,9 +178,14 @@ public record LocalAgentPosture(Kind kind, FullMode fullMode) {
      * server level first, which removes only that server's tools (PB-1), then the hidden hosted verbs.
      */
     public List<String> disallowedTools() {
+        return disallowedTools(VerbSchemas.all().keySet());
+    }
+
+    /** {@code --disallowedTools} for a given schema list. */
+    public List<String> disallowedTools(Collection<String> schemaVerbs) {
         List<String> out = new ArrayList<>();
         if (isFull()) out.add("mcp__" + PERSONS_REGISTRATION);
-        for (String v : disallowedVerbs()) out.add(toolName(v));
+        for (String v : disallowedVerbs(schemaVerbs)) out.add(toolName(v));
         return List.copyOf(out);
     }
 
@@ -175,15 +199,25 @@ public record LocalAgentPosture(Kind kind, FullMode fullMode) {
 
     /** The hosted tools the model may see in P1b and P2: the pre-allowed verbs, in both postures. */
     public static Set<String> expectedHostedTools() {
+        return expectedHostedTools(VerbSchemas.all().keySet());
+    }
+
+    /** The hosted tools for a given schema list (the tests add a verb to the real inputs through this). */
+    public static Set<String> expectedHostedTools(Collection<String> schemaVerbs) {
         Set<String> out = new TreeSet<>();
-        for (String v : preAllowedVerbs()) out.add(toolName(v));
+        for (String v : preAllowedVerbs(schemaVerbs)) out.add(toolName(v));
         return out;
     }
 
     /** The default posture's {@code system/init.tools}, exactly: the built-ins plus the pre-allowed hosted verbs. */
     public static Set<String> expectedTools() {
+        return expectedTools(VerbSchemas.all().keySet());
+    }
+
+    /** The default posture's expected tool set for a given schema list. */
+    public static Set<String> expectedTools(Collection<String> schemaVerbs) {
         Set<String> out = new TreeSet<>(BUILT_IN_TOOLS);
-        out.addAll(expectedHostedTools());
+        out.addAll(expectedHostedTools(schemaVerbs));
         return out;
     }
 
@@ -208,6 +242,14 @@ public record LocalAgentPosture(Kind kind, FullMode fullMode) {
         return ANALYSER_ASSISTANT.verdict(expectedSessionId, permissionMode, tools, servers, capabilities, sessionDigest);
     }
 
+    /** The default posture's check against a given schema list. */
+    public static Verdict check(Collection<String> schemaVerbs, String expectedSessionId, String permissionMode,
+                                Collection<String> tools, Collection<String> servers, Collection<String> capabilities,
+                                String sessionDigest) {
+        return ANALYSER_ASSISTANT.verdict(schemaVerbs, expectedSessionId, permissionMode, tools, servers, capabilities,
+                sessionDigest);
+    }
+
     /**
      * Check a turn's {@code system/init} against this posture. The order is the order of severity: a changed mode or
      * tool set is a session already running with powers it was not started with.
@@ -217,6 +259,14 @@ public record LocalAgentPosture(Kind kind, FullMode fullMode) {
      */
     public Verdict verdict(String expectedSessionId, String permissionMode, Collection<String> tools,
                            Collection<String> servers, Collection<String> capabilities, String sessionDigest) {
+        return verdict(VerbSchemas.all().keySet(), expectedSessionId, permissionMode, tools, servers, capabilities,
+                sessionDigest);
+    }
+
+    /** {@link #verdict} against a given schema list (the tests add a verb to the real inputs through this). */
+    public Verdict verdict(Collection<String> schemaVerbs, String expectedSessionId, String permissionMode,
+                           Collection<String> tools, Collection<String> servers, Collection<String> capabilities,
+                           String sessionDigest) {
         if (!modeMatches(permissionMode)) return Verdict.MODE_MISMATCH;
         if (isFull()) {
             // the person's built-in and MCP tools are theirs and vary: only the analyser's own are asserted
@@ -225,11 +275,11 @@ public record LocalAgentPosture(Kind kind, FullMode fullMode) {
                 if (isRegistrationTool(t)) return Verdict.TOOLS_MISMATCH;
                 if (isHostedTool(t)) hosted.add(t);
             }
-            Set<String> expected = expectedHostedTools();
+            Set<String> expected = expectedHostedTools(schemaVerbs);
             if (!new TreeSet<>(hosted).equals(expected) || hosted.size() != expected.size()) return Verdict.TOOLS_MISMATCH;
             if (!servers.contains(HOSTED_SERVER + ":connected")) return Verdict.SERVERS_MISMATCH;
         } else {
-            Set<String> expected = expectedTools();
+            Set<String> expected = expectedTools(schemaVerbs);
             if (!new TreeSet<>(tools).equals(expected) || tools.size() != expected.size()) return Verdict.TOOLS_MISMATCH;
             if (servers.size() != 1 || !servers.contains(HOSTED_SERVER + ":connected")) return Verdict.SERVERS_MISMATCH;
         }

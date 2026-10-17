@@ -1,7 +1,8 @@
 # M74 — Claude Code as the analyser's assistant: a long-running local session
 
-**Status:** DRAFT r9, 2026-10-17 (r8 accepted 2026-10-16; r9 folds in the P1b probes and the owner's optional budget,
-OD-74.24). **P1b** is implemented against r9 ([probes](evidence/m74-p1b/PB-report.md), US$0.24; see *Implementation
+**Status:** DRAFT r10, 2026-10-17 (r8 accepted 2026-10-16; r9 folds in the P1b probes and the owner's optional budget,
+OD-74.24; r10 merges P1a's holistic-review fixes (P1a r7), adds H6 and the owner's two decisions of 2026-10-17:
+warm start cut, OD-74.25, and full Claude Code a preview until P3, OD-74.26). **P1b** is implemented against r9 ([probes](evidence/m74-p1b/PB-report.md), US$0.24; see *Implementation
 notes (P1b)*). Two protocol probes have run against the installed CLI (2.1.282): **P0**
 ([report](evidence/m74-p0/P0-report.md), 40 items, US$0.85) and **P0b**
 ([report](evidence/m74-p0/P0b-report.md): the exact default command, the binding nonce, the P3 permission contract,
@@ -17,7 +18,7 @@ Citations `[P0-n]` and `[P0b-n]` point at report rows, `[S-n]` at the P1a smoke 
 implemented on `feature/claude-code-p2`; see *Implementation notes (P2a)*. The owner's decisions of 2026-10-17 are folded
 in place (§2 *r10 owner decisions*): the "Ask Claude this?" pop-up is **cut**, the configurable start list is
 **deferred** until after P3, warm start is cut on the P1 branches, full Claude Code is labelled **preview** until P3, and
-two owner requests are added — the **full-posture cue** (OD-74.25, §5.9) and the dropped **prompt pack** (OD-74.26, §5.8).
+two owner requests are added — the **full-posture cue** (OD-74.27, §5.9) and the dropped **prompt pack** (OD-74.28, §5.8).
 
 **Tracker:** M74. **Builds on:** the onboard assistant ([`spec-onboard-assistant-journeys.md`](spec-onboard-assistant-journeys.md),
 "OA"), the MCP bridge ([`spec-assistant-actions-mcp.md`](spec-assistant-actions-mcp.md)), M42's Claude Code
@@ -48,7 +49,7 @@ utility P3 completes.
 
 | # | Decision | Status |
 |---|---|---|
-| OD-74.1 | A narrow, recorded exception to D-AI4: **the person's own act** in the Assistant tab may run the person's installed `claude`, behind its own off-by-default switch. Two acts qualify: the tab's **Start** button, and, with *warm start* on (§5.1), **the person's direct selection of the Assistant tab**. The AI menu, right-click and verbs never start it; right-click only drafts. *Amended in r5 for warm start:* a programmatic reveal (`revealAssistant()`), a journey handoff, or restoring the tab at launch is not the person's act and never starts a process, and warm start applies only to an already-confirmed folder (OD-74.5). | accepted 2026-10-16; warm-start amendment for r5 review |
+| OD-74.1 | A narrow, recorded exception to D-AI4: **the person's own act** in the Assistant tab may run the person's installed `claude`, behind its own off-by-default switch. **One act qualifies: the tab's Start button** (and a Send that needs a process, which the person pressed in the same tab). The AI menu, right-click, verbs, a programmatic reveal (`revealAssistant()`), a journey handoff, restoring the tab at launch and selecting the tab never start it; right-click only drafts. *(r5 added a second act, warm start on the person's direct tab selection; the owner cut it on 2026-10-17, OD-74.25.)* | accepted 2026-10-16; warm start cut 2026-10-17 |
 | OD-74.2 | Internal and demo use proceeds. Before a release enables M74 for customers, Anthropic's terms for third-party products (no claude.ai login or rate limits offered without approval) are confirmed with Anthropic or counsel and recorded here. | accepted |
 | OD-74.3 | **Carry context forward; don't keep the process.** On a project switch the tab offers **Move** (default), **Keep** or **Stop**, in the order §5.3 gives. *Move* drafts a handoff turn; the analyser stores the person-confirmed answer as a labelled narrative report in the target project; Start is then **armed**, never started. *Keep* leaves the session in the old directory, and the header says its context describes the previous workspace. The session's **own** project creation during onboarding is Keep plus an armed Start (§5.6). | accepted |
 | OD-74.4 | **Narrow default; full mode by explicit opt-in** (§3). | accepted |
@@ -59,7 +60,7 @@ utility P3 completes.
 | OD-74.9 | **Onboarding: Claude proposes, the analyser applies** (§5.6). Claude returns a structured proposal through a new non-destructive verb. The analyser previews each item with its own checks. After the person's *Yes* it applies the item through the person's own code path. Claude is never granted a destructive verb for this, so onboarding does not depend on P3. | accepted 2026-10-16 — the `propose` verb is a deliberate, recorded addition to the pinned verb set, confined to the hosted bridge |
 | OD-74.10 | **The full posture's command line drops every flag that confines** (§4.3): no `--restricted`, `--strict-mcp-config`, `--tools`, `--add-dir` or the CLAUDE.md environment flag, because each one removes part of what the person opted in for (settings, skills, hooks, servers) [P0-26, P0-28, P0-29]. In the full posture **the folder is confined only by the person's own permission rules and the mode they chose** (out-of-folder reads are denied by default without an allow rule [P0-25]); the warning (§5.1) says so. | **accepted 2026-10-16** (owner) |
 | OD-74.11 | **The full posture's child `PATH`** is the analyser's own `PATH` with the resolver's standard locations (§4.3) that exist and are not already present **appended**, so the person's order wins. **No login shell is run** to discover a `PATH`: that would execute the person's shell start-up files outside any consent the analyser asked for. The header names the added directories; the FAQ points to Claude Code's own settings `env` for anything else (an `nvm` node, a project venv). The default posture's environment is unchanged (it runs no Bash and no hooks). | **accepted 2026-10-16** (owner) |
-| OD-74.12 | **Full-posture folder trust is separate and bound to content.** A folder confirmed for the default posture is not thereby confirmed for the full one. A full-posture confirmation records a digest of the folder's `.claude/settings.json`, `.claude/settings.local.json` and `.mcp.json` (an absent file counted as absent); when the digest changes (a `git pull` adds a hook), Start asks again. **Warm start never fires in the full posture**: a tab click is too weak an act to run hooks on. | **accepted 2026-10-16** (owner) |
+| OD-74.12 | **Full-posture folder trust is separate and bound to content.** A folder confirmed for the default posture is not thereby confirmed for the full one. A full-posture confirmation records a digest of the folder's `.claude/settings.json`, `.claude/settings.local.json` and `.mcp.json` (an absent file counted as absent); when the digest changes (a `git pull` adds a hook), Start asks again. *(Its warm-start clause is moot: warm start was cut, OD-74.25.)* r10 (review H6): the digest also covers the folder's **instruction files** — `CLAUDE.md`, `CLAUDE.local.md`, `.claude/CLAUDE.md` and every file under `.claude/commands`, `.claude/skills` and `.claude/agents` (bounded: at most 1,000 files and 8 MB, symbolic links never followed out of the folder, a stable order) — and the dialog names which part changed when it asks again. | **accepted 2026-10-16** (owner); H6 2026-10-17 |
 | OD-74.13 | **The shape of an onboarding proposal** (§5.6). `propose` items are `sourceRoot`, `processor`, `graphml`, `runbook` and `logToOpen`. **Creating the project is the analyser's own offer**, never Claude's item: the set-up directory is the one the person chose, so Claude names no directory. An item whose path resolves outside the set-up directory is shown, marked *outside*, and **cannot be applied from the proposal**. At most one proposal is under review at a time. A proposal surfaces as a **banner** in the tab; the review dialog opens only on the person's click (a model call never raises a modal). Every item starts as **No**. | **accepted 2026-10-16** (owner) |
 | OD-74.14 | **One Ask catalogue** (§5.5; the owner's request 2026-10-16, this shape proposed). Every "Ask Claude" question — the right-click record actions (*Explain selected with LLM*, *Diff selected two records*' Ask button), a topology node, a chart note or point, a flagged record, a time range, and the start-page prompts (OD-74.19) — is declared in **one registry**, `AskCatalogue`, which the menus, the start page and the tests read, so a new question is one entry. A question **only drafts**: no new verb, pointers (indexes, ids, names, times) and never record text, each draft bound to the log's identity and generation. The pop-up (OD-74.8) precedes every draft **in both assistant modes**; under a recorded tutorial *Yes* reveals the next recorded turn. Yes **never overwrites** the composer: a draft is appended after the person's own text, and only the appended lines are highlighted. | **accepted 2026-10-16** (owner) (the catalogue itself is the owner's request) |
 | OD-74.15 | **Move's order** (§5.3). The handoff report is stored **after** the switch lands, in the now-active target project, refused unless that project's identity is the one the person chose: reports live in the project profile, and the target's profile is not loaded before the switch. *Move* is offered only while a Claude Code process runs; with none running the switch applies as today. *Skip handoff* and *Discard* still switch, with no report. | **accepted 2026-10-16** (owner) |
@@ -72,6 +73,8 @@ utility P3 completes.
 | OD-74.22 | **Amends OD-74.5: the folder for a project Claude Code is never started in** (§4.3; review c7f2 F2). When the active project's root is one the analyser owns and refuses — the sample project under `~/.fluxtion-analyser/demo`, or an evidence bundle's working copy under `~/.fluxtion-analyser/bundles` — the session works in the analyser's **private scratch folder** instead of refusing: Claude reads the evidence through the verbs, the working copy's `CLAUDE.md` is never loaded (the reason OD-74.5 refuses a bundle), and the header says *"working in a scratch folder: this project's folder is not one Claude Code is started in"*. Any other refused folder (home, a folder holding credentials) is still refused. | **accepted 2026-10-16** (owner) |
 | OD-74.24 | **The spend limit is optional and off by default** (owner direction 2026-10-17: the in-analyser Claude Code runs on the person's own Claude account, whose plan has its own limits). *Settings ▸ Assistant ▸ Limit spend per session* is a checkbox and an amount, unticked by default, for API-key billing. `assistant.claudeCode.budgetUsd` blank or absent is **no limit**; with none set the command line carries **no** `--max-budget-usd` and the node enforces nothing (§4.6). The header shows a dollar figure only where it means something: with an API key, what was used (and the limit, when set); on a Claude plan none, only *"usage counts against your Claude plan"*. Billing is an enum on `LocalAgentInitialized` (`SUBSCRIPTION`, `API_KEY`, `UNKNOWN`), read at the parse boundary from `initialize.account` — never the plan's or the key source's value. A config written by P1a (unreleased) always carried `budgetUsd=5.0`, its default: without P1b's `budgetFormat=2` marker, `5.0` reads as no limit and any other positive value is kept as the person's limit | **accepted 2026-10-17** (owner) |
 | OD-74.23 | **What "AI configured" means on the start page, and a remembered mode** (§5.8; review c7f2 F8). Claude Code can answer when its switch is on **and** the resolver finds `claude` (a file check; nothing is run). The mode the person last chose is remembered on this machine (`assistant.claudeCode.lastMode`, machine tier, never exported). When the mode in force cannot answer and the other can, the start page offers *Ask with Claude Code* / *Ask the in-app assistant*, which chooses that mode as the person's act. | **accepted 2026-10-16** (owner) |
+| OD-74.25 | **Warm start: cut by the owner, 2026-10-17** (holistic review). There is no *Start Claude Code when I open the Assistant tab* setting, no tab-selection path (`WarmStart`, its `Tracker`) and no warm path in the node, in either posture: Start is always the explicit button. A stored `assistant.claudeCode.warmStart` key is ignored on read and dropped on the next write. (P1a's r7 recorded this as OD-74.10 before the P1b numbering was merged in.) | owner decision 2026-10-17 |
+| OD-74.26 | **Full Claude Code is a PREVIEW until P3** (owner, 2026-10-17). The Settings checkbox reads *…with my full Claude Code permissions (preview)*; the warning, the guide and the FAQ say it is for internal and demo use and **not for customer release until approvals in the analyser (P3) ship**; the header's posture text reads *full Claude Code (preview, <mode>)*. | owner decision 2026-10-17 |
 
 ### r10 owner decisions (2026-10-17)
 
@@ -82,8 +85,8 @@ utility P3 completes.
 | r10-3 | **Warm start is cut** on the P1a/P1b branches (another change). P2 does not depend on it, and r8 F20's "with warm start on, a direct tab click while Start is armed starts the session" is dropped: an armed Start is started only by pressing it. | accepted (owner) |
 | r10-4 | **Full Claude Code is labelled *preview* until P3** (on P1b). The full-posture badge reads *Full Claude Code (preview) · <mode>: your tools and permissions*. | accepted (owner) |
 | r10-5 | Move's handoff report (§5.3, P2b) is deferred; it was not in P2a. | accepted (owner) |
-| OD-74.25 | **The full-posture cue** (owner request, §5.9): the composer and the start-page box carry a theme-aware accent border and a persistent badge, Send names the full posture, and the Assistant tab and the pop-out window carry a ◆ marker, whenever the person's full Claude Code is in force — following the snapshot (rule 9), *on* (switched on, not running) apart from *running*, and stronger (◆◆, another token, a thicker border) for `acceptEdits` and `auto`, which ask about fewer actions. Colour is never the only cue. | **accepted 2026-10-17** (owner request) |
-| OD-74.26 | **A dropped prompt pack** (owner request, §5.8): the start page's drop target accepts one Markdown file whose strict format replaces the numbered list for the session, with *← Return to main options*; session-only, never persisted, shared or bundled; refused with one named cause and its line otherwise. It is the person's explicit drop act, not the deferred configurable list. | **accepted 2026-10-17** (owner request) |
+| OD-74.27 | **The full-posture cue** *(numbered OD-74.25 in r10 before the P1b merge; renumbered because P1b's OD-74.25 is the warm-start cut)* (owner request, §5.9): the composer and the start-page box carry a theme-aware accent border and a persistent badge, Send names the full posture, and the Assistant tab and the pop-out window carry a ◆ marker, whenever the person's full Claude Code is in force — following the snapshot (rule 9), *on* (switched on, not running) apart from *running*, and stronger (◆◆, another token, a thicker border) for `acceptEdits` and `auto`, which ask about fewer actions. Colour is never the only cue. | **accepted 2026-10-17** (owner request) |
+| OD-74.28 | **A dropped prompt pack** *(numbered OD-74.26 in r10 before the P1b merge; P1b's OD-74.26 is the preview label)* (owner request, §5.8): the start page's drop target accepts one Markdown file whose strict format replaces the numbered list for the session, with *← Return to main options*; session-only, never persisted, shared or bundled; refused with one named cause and its line otherwise. It is the person's explicit drop act, not the deferred configurable list. | **accepted 2026-10-17** (owner request) |
 
 ## 3. Posture: what Claude Code may do when the analyser starts it
 
@@ -96,7 +99,7 @@ hand it the person's shell. [R S1, S2]
 | What loads from the folder | **only `CLAUDE.md`** of the project root (`--restricted --add-dir <root>` + `CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD=1`). No hooks, no `.mcp.json`, no user, project or local settings, none of the person's skills or commands; the CLI's bundled built-ins remain [P0-26, P0-28, P0b-1] | everything the person's Claude Code loads: user, project and local settings and permission rules, user and project `CLAUDE.md`, skills, commands, plugins, subagents, the user's and the folder's hooks and the folder's `.mcp.json`, which run at Start [P0-28] (OD-74.10) |
 | MCP servers | **only the hosted bridge** (`--strict-mcp-config`) [P0-29] | the person's own (user scope, the folder's `.mcp.json`, claude.ai connectors) plus the hosted bridge; the person's own `fluxtion-analyser` registration (M42) is hidden (`--disallowedTools mcp__fluxtion-analyser`), because it is not bound to this instance [P0-30, P0-31] |
 | Built-in tools | an **allow-list**, `--tools "Read,Grep,Glob"`: no Bash, Write, Edit, Agent, Skill or web tools, so no subagents [P0-24]. Confined to the working directories by `--restricted`, symlinks included, even against an allow rule [P0-26]; an approval cannot widen that [P0b-3] | the person's tools, under the person's rules and the chosen mode. Not confined to the folder by the analyser (OD-74.10) |
-| Analyser verbs | the hosted verb list is **`VerbSchemas.hosted()`** from P2: the public verbs plus **`propose`** (§5.6). **Pre-allowed by explicit name** (no wildcard [P0-30]): `hosted()` minus `McpTools.destructiveVerbs()`, i.e. `read, aggregate, series, context, coverage, source, filter, goto, flag, graph, topology, spotlight` and, from P2, `propose`. The destructive verbs (`open, source_root, screenshot, report, walk, import`) are **removed from the model's tools** with `--disallowedTools` until P3; from P3 they are visible and each call is asked of the person (§5.7). The analyser refuses `graph {delete}` from the hosted bridge in every phase, because `graph` is pre-allowed [R2-6]; "from the hosted bridge" means a call carrying this generation's hosted credential (§4.2) | the same pre-allow list. From P3 the destructive verbs are visible and asked **only under the modes that ask** (`default`, `acceptEdits`); under `auto` and `plan` they stay hidden (OD-74.16) |
+| Analyser verbs | the hosted verb list is **`VerbSchemas.hosted()`** from P2: the public verbs plus **`propose`** (§5.6). **Pre-allowed by explicit name** (no wildcard [P0-30]) from ONE explicit list, `McpTools.HOSTED_PRE_ALLOWED` (read through `LocalAgentPosture.PRE_ALLOWED`): `read, aggregate, series, context, coverage, source, filter, goto, flag, graph, topology, spotlight` and, from P2, `propose`. A verb is pre-allowed **only if it is listed** — an allow-list, never "the hosted verbs minus the destructive ones" — so a verb added to the schema is hidden, unexpected by the posture check and refused server-side for the hosted credential until listed (review H5, r10). The destructive verbs (`open, source_root, screenshot, report, walk, import`) are **removed from the model's tools** with `--disallowedTools` until P3; from P3 they are visible and each call is asked of the person (§5.7). The analyser refuses `graph {delete}` from the hosted bridge in every phase, because `graph` is pre-allowed [R2-6]; "from the hosted bridge" means a call carrying this generation's hosted credential (§4.2) | the same pre-allow list. From P3 the destructive verbs are visible and asked **only under the modes that ask** (`default`, `acceptEdits`); under `auto` and `plan` they stay hidden (OD-74.16) |
 | Permission mode | P1a and P2: **always** `--permission-mode dontAsk --permission-prompts none`: anything not pre-allowed is denied without blocking [P0-21]. From P3: `--permission-mode default --permission-prompts host --permission-prompt-tool stdio`, the combination P0b ran, so the analyser is asked [P0b-3]. Neither inherits the person's `defaultMode` [P0-34] | an **explicit** mode the person picks in Settings (`default`, `acceptEdits`, `auto`, `plan`; `bypassPermissions` and `dontAsk` are not offered), with `--permission-prompts none` in P1b and P2 (a request that would ask is denied; probe PB-1 confirms it does not block) and the P3 triple's prompt flags from P3. The analyser never parses the person's settings to detect a mode [R2-1] |
 | Slash commands | pass through, except the §5.4 block list | same, plus the person's own commands (`builtin:false`) |
 | Budget | **optional, off by default** (OD-74.24): when a limit is set, `--max-budget-usd` per process **and** a session total the node keeps (§4.6); with none, neither | same |
@@ -154,7 +157,15 @@ analyser cannot narrow the full posture; it can only say so, which §5.1's warni
 
 ### 4.2 Prerequisites and binding [R F2, P0-31..33, P0b-2]
 
-- Start requires the REST transport. With it off, Start says so and offers to turn it on (a person action).
+- **Start does not require the external REST switch** (review H4). The switch is the person's choice about EXTERNAL
+  clients. The node asks for a listener as an effect (`ServeHostedBridgeEffect{generation}`) before the spawn, and the
+  adapter answers with a fact (`LocalAgentBridgeServed{generation, listening, hostedOnly}`): the REST server when the
+  switch is on, otherwise a **hosted-only** `ActionServer` that writes **no** well-known endpoint file and refuses
+  every request without a hosted credential (403), even one carrying the shared token. A listener that cannot be
+  started refuses the spawn (`BRIDGE_UNAVAILABLE`). When the process ends the node asks to release it
+  (`ReleaseHostedBridgeEffect`), and a hosted-only listener stops. Turning the switch on while a hosted-only listener
+  runs opens that same listener to external clients and publishes the well-known file; turning it off while a session
+  still needs it withdraws the file and refuses them again.
 - **The hosted bridge is bound to this analyser instance and proves it:**
   1. **A binding nonce is minted for every spawn**: Start, every resume, and the restart after a fallback kill. It is
      never reused across generations.
@@ -172,8 +183,11 @@ analyser cannot narrow the full posture; it can only say so, which §5.1's warni
      below) older than this feature ignores the argument and binds to the well-known endpoint file, i.e. whichever analyser wrote it
      last [P0-33]; it reports no nonce and is refused by name: *"the installed analyser bridge is older than this
      analyser — update it"*.
-  5. Until `BOUND` and a passing posture check (§4.4), the hosted bridge's calls are refused by the dispatcher for
-     this generation.
+  5. Until `BOUND` and a passing posture check (§4.4), the hosted bridge's calls are refused for this generation.
+     **The admission is decided on the session's thread, in its order** (review M6): each hosted call posts
+     `LocalAgentCallAdmissionRequested{call, generation}` and waits (bounded, 5 s) for the node's verdict, an
+     `AnswerHostedCallEffect{call, refusal}`. A posture kill the session processed first refuses the call; nothing on
+     the HTTP thread decides from a published snapshot.
 - **The hosted caller is identified by its own credential, never by the shared token.** A **hosted token** is minted
   for every spawn (with the nonce, per generation) and written **only** to the per-instance endpoint file, beside the
   REST URL, the shared token and the nonce. The hosted bridge sends it in its own header, `X-Analyser-Hosted`, on
@@ -234,7 +248,7 @@ cwd:   the confirmed project root; for an unset project, the set-up directory th
        analyser's own endpoint file) [R2-2]
 ```
 
-`--disallowedTools` is computed as *the hosted verbs minus the pre-allowed list* (in P3, the default posture hides
+`--disallowedTools` is computed as *the hosted verbs not on the explicit pre-allow list* (review H5) (in P3, the default posture hides
 none, so the flag is omitted). A verb added to `VerbSchemas` is therefore hidden from Claude until it is classified,
 and `--allowedTools` approves without hiding [P0b-1]. `--verbose` is required by stream-json [P0-7]. P0b ran the
 P1a line verbatim, with a stub server [P0b-1], and ran the P3 prompt flags exactly as above [P0b-3]; probe P3-0
@@ -412,8 +426,10 @@ here — the history would fork."* No further detection is attempted.
 ### 5.1 Settings ▸ Assistant
 
 - *Allow the analyser to start Claude Code* (off).
-- *…with my full Claude Code permissions* (off; enabled from P1b). Turning it on shows the **full-posture warning**
-  as a confirmation, default button *Cancel*:
+- *…with my full Claude Code permissions (preview)* (off; enabled from P1b; a preview until P3, OD-74.26). Turning it
+  on shows the **full-posture warning** as a confirmation, default button *Cancel*; it opens with *"PREVIEW — for
+  internal and demo use only. Full Claude Code is not for customer release until approvals in the analyser (P3)
+  ship."*:
 
   > **Full Claude Code runs your own Claude Code inside the analyser, as in a terminal.** It loads your settings and
   > permission rules, skills, plugins, subagents, hooks and MCP servers (including claude.ai connectors), and the
@@ -445,13 +461,9 @@ here — the history would fork."* No further detection is attempted.
   as `default` and Settings says *"the stored mode was not one the analyser offers; it reads as default"*.
 - The optional spend limit (*Limit spend per session*, off by default, OD-74.24), and the model (its own setting, **not** `llmModel`). The provider is **not** a value of `llmProvider`, and
   from P2 `LlmClient` refuses an unknown provider instead of defaulting to Anthropic [R F4] (§8.2).
-- **Warm start** (off): *Start Claude Code when I open the Assistant tab*, with the note that it contacts Anthropic
-  before the first Send. It fires **only** on the person's direct selection of the tab (a click or key on the tab),
-  **never** on `revealAssistant()`, a journey handoff, or the tab being restored at launch, and only when the working
-  directory is already confirmed: it never raises the confirmation dialog (OD-74.1 amendment). **It never fires in the
-  full posture** (OD-74.12); the setting's note says so when the full switch is on. **The warm-start setting is
-  machine-tier only**, like both switches, the mode and the folder-trust records: never in a project profile, a
-  settings share or a bundle, pinned by the consent test (§10).
+- *(Warm start was cut by the owner on 2026-10-17, OD-74.25: there is no setting to start Claude Code when the tab is
+  opened. Both switches, the mode and the folder-trust records are machine-tier only: never in a project profile, a
+  settings share or a bundle, pinned by the consent test, §10.)*
 
 ### 5.2 The Assistant tab
 
@@ -511,8 +523,8 @@ here — the history would fork."* No further detection is attempted.
 6. **An armed Start** (P2). Some flows leave Start *armed*: the button reads *Start — <why>* (*Start a new session in
    medmon*, *Start — ask about this evidence*) and a draft is ready. Pressing it is the person's act (OD-74.1); the
    draft is placed in the composer, highlighted, and is still not sent. New chat, a mode switch or another armed flow
-   replaces it. Nothing ever starts because Start is armed. With warm start on, the person's direct click on the tab
-   while Start is armed is a Start (OD-74.1): the session starts and the armed draft is placed, still not sent (r8, F20).
+   replaces it. Nothing ever starts because Start is armed. (r8 F20's warm-start click on an armed tab went with warm
+   start, OD-74.25.)
 7. **The proposal banner** (P2, §5.6), **Set up a project with Claude…** (P2, §5.6) and **the permission dialog**
    (P3, §5.7).
 
@@ -658,7 +670,7 @@ value, note, finding and an ill-formed node id hold a marker string, and asserts
 |---|---|---|---|
 | The item | labelled *Ask Claude: <question>* | labelled *Ask the assistant: <question>* | labelled as in the mode in force |
 | The pop-up | the draft's exact lines in a read-only text box, **Yes** / **No** (default No; Escape is No) | the same pop-up | the **next recorded user turn** (the first turn after the current step's `through`), labelled with the conversation's own label (*Recorded conversation*, *Edited recorded conversation*, *Simulated conversation*) |
-| Yes | reveals the Assistant tab (programmatically, so warm start never fires) and asks the node to place the draft (`LocalAgentDraftComposed`, §8.2); the panel **appends** it after any text in the composer (OD-74.14), highlights exactly the appended range, and the spotlight overlay lights the composer: *"Press Send to ask Claude — nothing has been sent"*. With no process running, Start is also armed (*Start — ask about this*); nothing starts | reveals the in-app assistant and places the draft the same way (appended, highlighted, `AssistantDraftComposed`); with no provider configured, the in-app tab's own guidance (configure a provider, or *Copy prompt*) applies, so it is never a dead end | plays the next step whose `through` reveals that turn (`WalkPlayRequested`, the existing path); **no model is contacted, no process starts, nothing is sent** (a test asserts zero processes and zero network). With no further recorded turn: *"The recorded conversation has no further turn — end the walk to ask yourself"*, Close only |
+| Yes | reveals the Assistant tab (programmatically; revealing never starts anything) and asks the node to place the draft (`LocalAgentDraftComposed`, §8.2); the panel **appends** it after any text in the composer (OD-74.14), highlights exactly the appended range, and the spotlight overlay lights the composer: *"Press Send to ask Claude — nothing has been sent"*. With no process running, Start is also armed (*Start — ask about this*); nothing starts | reveals the in-app assistant and places the draft the same way (appended, highlighted, `AssistantDraftComposed`); with no provider configured, the in-app tab's own guidance (configure a provider, or *Copy prompt*) applies, so it is never a dead end | plays the next step whose `through` reveals that turn (`WalkPlayRequested`, the existing path); **no model is contacted, no process starts, nothing is sent** (a test asserts zero processes and zero network). With no further recorded turn: *"The recorded conversation has no further turn — end the walk to ask yourself"*, Close only |
 | Send | **compares the binding** (§8.2): a bound draft whose log identity or generation moved since composition is refused, *"This question names records of a log that has changed since it was drafted (generation 3 → 4) — ask again from the records"*; the draft stays editable; deleting the whole draft drops the binding | the same check, in `AssistantLoop`'s own handler, same words | — |
 
 - `RecordDiffDialog` is given the two model rows, their record indexes and the log generation at open
@@ -861,8 +873,8 @@ no in-analyser permission prompts**, so P2 precedes P3 (§8).
 
 > **r10 (owner, 2026-10-17):** the list is the built-in S1–S6 only — *Where the list comes from*, *Invalid configuration*
 > and *Where a project's list is seen* below describe the **deferred** OD-74.20 and are not built in P2. The person can
-> still replace the list for a session by dropping a prompt pack (OD-74.26, *A dropped prompt pack* below). The full-
-> posture cue (OD-74.25) applies to the start page's box whenever the route goes to a full Claude Code.
+> still replace the list for a session by dropping a prompt pack (OD-74.28, *A dropped prompt pack* below). The full-
+> posture cue (OD-74.27) applies to the start page's box whenever the route goes to a full Claude Code.
 
 **The page.** The start page's hero question, today *"What would you like to work on?"*, becomes **What would you like
 to do?**, and under it: the list of entries `AskCatalogue` resolves for the start page, a line naming the **chosen
@@ -945,7 +957,7 @@ playing `DemoTour`, unchanged, so M71's acceptance (`tools/test_start_workspace.
 walk equals the site bundle's. Opening the sample project is an `EXPLICIT_SWITCH`, so with a Claude Code process
 running it follows §5.3's Move / Keep / Stop offer (no exemption: a running session is still working somewhere).
 
-**A dropped prompt pack (OD-74.26, owner request 2026-10-17).** The start page's drop target (which already routes `.fexp`,
+**A dropped prompt pack (OD-74.28, owner request 2026-10-17).** The start page's drop target (which already routes `.fexp`,
 audit logs, GraphML and Spring XML) also accepts **one** `.md` file, dropped by itself. Its strict grammar:
 
 ```
@@ -1120,7 +1132,7 @@ the store's words; it decides nothing (rule 9) and is a `JTextPane` over a `Styl
   screen-reader text (*"succeeded"*, *"denied by the posture"*, *"refused by the analyser"*, *"record 12 — opens the
   record"*); the text follows the application's font size (the body font from `UIManager`, the monospace font at the
   same size).
-- **The full-posture cue (OD-74.25, owner request 2026-10-17).** Whenever the person's full Claude Code is in force, the
+- **The full-posture cue (OD-74.27, owner request 2026-10-17).** Whenever the person's full Claude Code is in force, the
   composer (and the start page's box, when its route goes to Claude Code) has an accent border in the theme's
   full-posture token, and a persistent badge above it: *◆ Full Claude Code (preview) · <mode>: your tools and
   permissions*, followed by *— on: it runs at the next Start* or *— running*; the badge has an accessible name and a
@@ -1185,7 +1197,7 @@ The words used are "reviewed before sharing".
 
 | Decision / public claim | Change | Phase, docs |
 |---|---|---|
-| D-AI4 (nothing on the AI menu runs anything) | unchanged on the menu. The Assistant tab's Start, and the person's direct tab selection with warm start on (default posture only from P1b), are the recorded exception (OD-74.1). *Set up a project with Claude…* and the start-page prompt (OD-74.19) are on the Claude Code panel and the start page, not the menu; they choose a folder, run the person's own flows, place drafts and arm Start, and never start a process | P1a; P1b (warm start); P2 (set-up, start page) — ONBOARDING's D-AI4 row, `spec-ai-menu.md` unchanged |
+| D-AI4 (nothing on the AI menu runs anything) | unchanged on the menu. The Assistant tab's Start button is the recorded exception (OD-74.1); warm start was cut (OD-74.25). *Set up a project with Claude…* and the start-page prompt (OD-74.19) are on the Claude Code panel and the start page, not the menu; they choose a folder, run the person's own flows, place drafts and arm Start, and never start a process | P1a; P1b (warm start); P2 (set-up, start page) — ONBOARDING's D-AI4 row, `spec-ai-menu.md` unchanged |
 | D-L3 (reveal-only) | extended to the transcript's chips (§5.9): a chip navigates (selects, reveals, spotlights, opens a tab) and never edits; the same bytecode-style test as the Project panel's | P2 — assistant guide |
 | OA §4.3 "no shell, arbitrary URL fetch or producer execution is added"; FAQ "no shell access, ever" | **true in the default posture** (no Bash, no web, strict MCP, no hooks). **The full posture is the stated exception**: the person's own Claude Code, with their shell and web tools, under their own rules and the mode they chose, behind its own switch and warning. The REST socket's own "no shell access, ever" stays true: the socket never runs anything | P1b — FAQ security answer (the REST bullet unchanged; the Claude Code bullet gains a full-posture paragraph), assistant guide, `FaqSecurityContractTest` |
 | OA §4.2 "do not silently queue" | kept: Send while busy is refused (OD-74.7) | P1a |
@@ -1203,7 +1215,7 @@ The words used are "reviewed before sharing".
   your own Claude Code with *"your settings, skills, hooks and MCP servers"*; *"the folder's hooks and MCP servers run
   when you press Start"*, and the analyser *"asks again if those files change"*; Claude Code can use *"your own tools,
   including Bash"*, *"as far as your permission rules and the mode you chose allow"*; *"the analyser does not confine
-  it to the folder"*; *"bypassPermissions is never offered"*; warm start does not apply to it.
+  it to the folder"*; *"bypassPermissions is never offered"*; only the Start button starts it; it is a preview until P3 (OD-74.26).
 - **P2:** *"Claude Code can propose a project set-up; nothing is applied until you answer each item"*, and *"the
   `propose` verb exists only for the Claude Code the analyser started"*.
 - **P3:** *"before Claude Code runs any of these verbs the analyser asks you"*, *"an approval covers one call"*,
@@ -1247,7 +1259,7 @@ command names appears is sanitised to `<skill-n>` / `<slash_command-n>` as P0 di
 from `ClaudeCodeProvider`, computed from a `LocalAgentPosture` that is now a value (`kind`, `permissionMode`, visible
 and pre-allowed hosted verbs) rather than constants; the child `PATH` (OD-74.11); the full-posture folder dialog with
 the folder's hook and server names and the content-bound trust record (OD-74.12); the full-posture assertion (§4.4);
-hook status lines; warm start disabled in the full posture; the docs and FAQ of §7.
+hook status lines; the docs and FAQ of §7. (Warm start is gone in both postures, OD-74.25.)
 
 **Rule 9 inventory.**
 
@@ -1312,7 +1324,7 @@ ran (isolated analyser `user.home`, the branch's jar, the harness pressing the t
 5. `analyser_context` and `analyser_read` work; a destructive verb is hidden; `graph {delete}` refused;
 6. changing the planted hook file: the next Start asks again;
 7. switching the full switch or the mode with a resumable conversation: Start offers New chat, never `--resume`;
-8. warm start with the full switch on: a direct tab click starts nothing;
+8. *(withdrawn: warm start was cut, OD-74.25; selecting the tab starts nothing in either posture, `ClaudeCodeTabFrameTest`)*;
 9. Stop, a kill and resume, and the process tree empty afterwards (the planted MCP server included).
 
 ### 8.2 P2 — evidence to Claude, onboarding and the carried items
@@ -1397,7 +1409,7 @@ a recorded tutorial with no further turn.
 **r10 changes to this inventory (P2a as built).** Removed with the deferred list: `StartPromptsObserved` and the node's
 `activeProject` parent. Removed with the pop-up: nothing in the graph (it was rendering). Added: `StartPageAvailability`
 (what can answer, observed by the frame), `DraftPlaced` (the prime effects' answer), `StartPageEffectStarted`,
-`StartPromptPackDropped` and `ReturnToMainOptions` (OD-74.26), `ComposeStartPageDraftEffect` (the performer composes the
+`StartPromptPackDropped` and `ReturnToMainOptions` (OD-74.28), `ComposeStartPageDraftEffect` (the performer composes the
 words through the catalogue and reports `LocalAgentDraftComposed` / `AssistantDraftComposed`, which the nodes place and
 arm), and `LocalAgentState.armedWhy` / `consentPosture` / `Entry.logGeneration`. `ShowAssistantHostEffect{docked:false}` is
 reached through the existing `AssistantHostRequested(false, "start page")`, so `assistantLoop` keeps owning the host.
@@ -1494,7 +1506,8 @@ create switch).
 ## 9. Failure modes, in words
 
 `claude` not found (with the install link and every place searched) · not logged in · a required capability missing
-(with the CLI version) · REST off · the bridge launcher unavailable (IDE or multi-entry classpath) · the bridge failed
+(with the CLI version) · the bridge's listener could not be started · the folder changed after Start was decided ·
+leaving Claude Code while it is answering · the bridge launcher unavailable (IDE or multi-entry classpath) · the bridge failed
 to connect / timed out · bound to another instance · an older bridge · the posture check failed (the field named) ·
 the conversation open in another analyser window · Claude is still answering · the process exited (code, last
 redacted stderr line) · budget reached · rate or usage limit (with the reset time) · auth failed on the first turn
@@ -1527,8 +1540,15 @@ code alone.
 | ★ rendering: text from `assistant`, never `result` (fixture `budget-exhausted-per-process`: answer shown although `result.result` is empty); deltas replaced, not duplicated; the compaction summary (`isSynthetic`) is never shown or recorded as the person's turn (fixture `autocompact-headless`) | doubled, missing or misattributed text |
 | ★ slash classification pinned against `p0b-slash`'s `initialize.commands`: `/config …`, `/settings`, `/mcp disable …` and `/add-dir` are never written to stdin; `/clear` offers New chat; `/compact` passes; a made-up built-in name is refused as unclassified; `  /CONFIG x` (leading whitespace, upper case) is refused like `/config x`; a passed `   /usage` is sent as `/usage`; `!` and `#` lines are refused; an `@path` line is sent (witness: a deny-list implementation passes the made-up name) | posture or identity changed by a typed command |
 | ★ lock: a second analyser instance cannot resume a locked session id; the lock is released on stop, exit and crash | a forked history between instances |
-| ★ warm start fires on the person's tab selection with a confirmed folder only; `revealAssistant()`, a journey handoff, restore at launch and an unconfirmed folder start nothing (witness: a listener on tab-selection-changed, which fires for programmatic reveals, fails) | a process started without the person's act |
-| ★ consent: switches off → Start refused; a profile, share or bundle containing either switch, the **warm-start setting** or a **folder-trust record** leaves each off or absent; all of them are machine-tier only and never exported | consent or trust smuggled in |
+| ★ only the Start button starts a process: revealing or selecting the Assistant tab starts nothing (`OneDispatchModelTest`, and `ClaudeCodeTabFrameTest` in the real frame; witness: a Start posted from a tab-selection listener) | a process started without the person's act |
+| ★ consent: switches off → Start refused; a profile, share or bundle containing either switch or a **folder-trust record** leaves each off or absent; all of them are machine-tier only and never exported; a stored warm-start key is ignored and dropped | consent or trust smuggled in |
+| ★ H5: a verb added to the REAL schema list is hidden (`--disallowedTools`), unexpected by the posture check, and refused server-side for the hosted credential (witness: the old deny-list) | a new verb auto-allowed |
+| ★ H4: with external REST off, a hosted-only listener refuses the shared token (403) and writes no well-known file; Start asks for the listener before the spawn | Claude Code opening the analyser to external clients |
+| ★ M6: hosted admission decided on the session's thread; a TOOLS_MISMATCH kill racing an admitted call agrees with the session's order | a call admitted after the kill |
+| ★ M8: the folder answer is a fact; stale, no and moved answers start nothing; yes asks for the trust record and the start | a folder trusted or started in that nobody was asked about |
+| ★ M7: the adapter re-digests the folder it is about to use and refuses a mismatch with the decided posture | a spawn in an unconfirmed folder |
+| ★ M2: leaving Claude Code while a turn is open is refused by name; the mode and the turn stay | an answer killed by a mode click |
+| ★ L2: the hosted credential has its own rate bucket | an external client starving the session |
 | ★ a posture change (switch, mode, cwd, note) never resumes the old session id; it offers New chat | a session silently resumed under another posture |
 | ★ `graph {delete}` from the hosted bridge refused; the hosted credential maps to its generation only while that generation runs; a call with the shared token alone is never hosted (witness: treating a valid shared token as hosted) | injected chart deletion, a hosted refusal dodged |
 | ★ `AssistantMode` enforced in both nodes (in-app Send refused under `LOCAL_AGENT`, and the reverse) | a UI-only mode switch |
@@ -1551,7 +1571,7 @@ code alone.
 | ★ `PATH`: appended in order, only existing directories not already present, never prepended; the default posture's environment unchanged; no process is started to compute it (witness: prepending; adding a missing directory) | the person's tool order overridden, a login shell run |
 | ★ full-posture trust: a default-posture trust record does not confirm the full posture; a changed `.claude/settings.json`, `.claude/settings.local.json` or `.mcp.json` asks again; an unchanged one does not (witness: keying the record on the path alone) | a new hook run on an old consent |
 | ★ the folder dialog names the hook events and `.mcp.json` server names from planted files, as plain text; a file over 256 KB or not JSON is said to be unreadable (witness: an HTML-rendering label shows `<html>` markup from a planted server name) | a dialog that hides what runs, or renders injected markup |
-| ★ warm start never fires in the full posture (witness: the P1a predicate alone) | hooks run on a tab click |
+| ★ H6: a changed `CLAUDE.md`, `.claude/CLAUDE.md` or file under `.claude/commands`/`skills`/`agents` re-asks the full-posture folder question and the dialog says the instruction files changed; bounded, symlinks out of the folder not followed (witness: the three settings files only) | instructions changed under a trusted folder |
 | ★ `postureRef` differs between the postures and between modes, so switching either offers New chat (witness: leaving the mode out of the digest) | resuming under another mode |
 | ★ hook status lines from a fixture with `system/hook_started` / `hook_response`: event and outcome shown, the hook's output never in the store or the snapshot | the person's hook output in the transcript |
 | `FaqSecurityContractTest`: the P1b claims of §7 | docs promising the default posture only |
@@ -1768,8 +1788,14 @@ ambiguous, the closest sound option was taken and is recorded here.
   header shows it from the first turn's `system/init`.
 - **Send with nothing running** starts (or resumes) the process and holds that one draft until `BOUND`; it is never
   handed to the CLI's queue, and a second Send while starting is refused as busy.
-- **Folders.** The node asks with `ConfirmLocalAgentFolderEffect`; on *Yes* the frame records the real path in
-  `assistant.claudeCode.trusted.N` (machine tier) and submits a new Start. With no project the working directory is a
+- **Folders.** The node asks with `ConfirmLocalAgentFolderEffect`; the frame shows the dialog and reports the answer as
+  a fact, `LocalAgentFolderAnswered{request, yes, consent}` (review M8). The node decides: an answer to another request
+  is stale; *No* starts nothing; *Yes* for a folder whose posture digest moved while the dialog was open starts nothing
+  (`FOLDER_CHANGED`); otherwise it asks for `TrustLocalAgentFolderEffect{request}` (the frame records the real path it
+  showed in `assistant.claudeCode.trusted.N`, machine tier) and the start. The frame re-checks no folder and posts no
+  Start. Before spawning, the adapter digests the folder it is about to use and refuses a mismatch with the effect's
+  `postureRef` (`FOLDER_CHANGED`, review M7): `ClaudeCodeProvider.postureRef` is the one posture function, used by the
+  consent and the adapter. With no project the working directory is a
   private, empty `0700` temporary folder made once per analyser run; it counts as confirmed (it holds nothing to trust).
   `postureRef` digests the posture name, the real working directory, the system note, the pre-allow list and the full
   switch — the §3 list; the model is not part of it (`/model` changes it within a session).
@@ -1778,8 +1804,11 @@ ambiguous, the closest sound option was taken and is recorded here.
   allowing `!` fails "none of these was written to stdin").
   A refusal names the command only when the table or `initialize.commands` knows it (CLI vocabulary); otherwise it
   says "this command".
-- **Mode switches.** Switching the tab to the in-app assistant kills a running Claude Code; switching to Claude Code
-  ends an in-app turn in progress (`CANCELLED`). Both in the nodes.
+- **Mode switches.** Switching the tab to the in-app assistant **while Claude is answering is refused by name**
+  (*"Claude is still answering — Stop or wait, then switch to the in-app assistant."*, review M2); an idle Claude Code
+  is stopped. Switching to Claude Code ends an in-app turn in progress (`CANCELLED`). Both in the nodes: so that
+  `localAgentSession` can decide before the mode changes, it pushes into `assistantMode` (`@PushReference`), and the
+  graph runs `localAgentSession → assistantMode → assistantLoop`.
 - **A `control_request` in P1a** (`can_use_tool`, which `dontAsk` never sends [P0b-3]) is answered with a deny, never an
   allow or a permission update.
 - **The hosted bridge** lists every verb (`VerbSchemas.hosted()` is P2); the CLI hides the non-pre-allowed ones with
@@ -1843,6 +1872,24 @@ ambiguous, the closest sound option was taken and is recorded here.
   the folder check also refuses `~/.ssh`, `~/.aws`, `~/.config`, `~/.gnupg` and anything inside them. Each with a
   regression test and a witness (catch narrowed to `IllegalStateException`; the old `\s*[:=]?\s*` pattern; no `\b`;
   the four folders dropped).
+- **Holistic review fixes (2026-10-17).** H5: `McpTools.HOSTED_PRE_ALLOWED` (read through `LocalAgentPosture.PRE_ALLOWED`) is the explicit pre-allow list and the
+  single source of truth for the command line, the posture check and `ActionServer.hostedRefusal`, which now serves
+  the hosted credential only a listed verb (`graph {delete}` still refused). H4: Start no longer refuses `REST_OFF`; the
+  node asks for `ServeHostedBridgeEffect` / `ReleaseHostedBridgeEffect`, and `ActionServer.hostedOnly` refuses every
+  request without a hosted credential and publishes no well-known file; the tab's *Turn on the REST transport* button
+  is gone. M6: `HostedAdmission` posts `LocalAgentCallAdmissionRequested` and awaits the node's
+  `AnswerHostedCallEffect` (5 s); the frame no longer reads `admittedGeneration()` from the snapshot. M8, M7, M2: above.
+  L2: the hosted credential has its own token bucket. H8: `ClaudeCodeTabFrameTest`. Warm start removed (OD-74.25, r7's OD-74.10):
+  the setting, the `WarmStart` predicate, the tab-selection hook, the node's warm path and their tests.
+  **Witnesses (2026-10-17; each failed at its named assertion, then passed restored):** H5 — the deny-list in
+  `preAllowedVerbs` ("an unlisted verb is never auto-approved") and in `hostedRefusal` (403 became 400); H4 — the
+  shared token admitted by a hosted-only server (403 became 400), the well-known file published in hosted-only mode,
+  and the `ServeHostedBridgeEffect` dropped from `spawn`; M8 — the asked/answered posture comparison dropped
+  (`FOLDER_CHANGED` expected), and a Start posted from the dialog callback (`OneDispatchModelTest`); M2 — the open-turn
+  refusal dropped; M6 — admission from `bound` alone, and `HostedAdmission` answering without asking the session (the
+  race test's "order [kill, admission], verdict null"); M7 — the adapter's folder digest check dropped; L2 — one bucket
+  for both callers (429); warm key — still written on save; H8 — a Yes that starts nothing (READY never reached), and
+  the bridge served by a full server instead of a hosted-only one.
 - **Follow-ups (review S6, not done):** incremental rendering in the Claude Code panel (it re-renders the whole
   conversation per snapshot) and trimming the node's entries for a very long conversation (the store is bounded; the
   node's entry list is not).
@@ -1850,8 +1897,9 @@ ambiguous, the closest sound option was taken and is recorded here.
   + processor over the fixtures), `ClaudeCodeProviderTest` (the exact line, the verb lists, the slash table pinned to
   `p0b-slash`), `LocalAgentProcessTest` (a real SIGTERM-ignoring tree, stderr above 64 KB, the lock across two JVMs,
   the resolver with the GUI `PATH`), `HostedCredentialTest`, `McpBridgeBindingTest`, `LocalAgentConsentTest`,
-  `WarmStartTest`, three new `OneDispatchModelTest` rules, `FaqSecurityContractTest` and a graph-shape assertion. No
-  frame test was added; the existing frame suites that show the Assistant tab run in CI only.
+  `OneDispatchModelTest` rules, `FaqSecurityContractTest` and a graph-shape assertion, and one frame test,
+  `ClaudeCodeTabFrameTest` (review H8: Start → the folder dialog → Yes → READY over a hosted-only listener, a turn and
+  Stop, and a reveal that starts nothing, with a fake process), registered in both CI frame lists.
 
 **Witnesses run (2026-10-16; each ★ test failed at its named assertion with the mutation, then passed restored):**
 consent — drop the switch check; not logged in — skip the `loggedIn` refusal; binding — accept any `connected`; fresh
@@ -1868,8 +1916,8 @@ loses its answer) and append a final block to its deltas (text doubles); compact
 `loggedIn()` always true; slash — a pass-all classifier, and a deny-list (unclassified → pass); command line — drop
 `--restricted`; verb lists — disallow only the destructive verbs; lock — skip the adapter's lock, and treat a failed
 `tryLock` as held (two JVMs); hosted — treat the shared token as hosted, drop the delete check, open the gate; consent
-tier — read `assistant.claudeCode` in `ProjectProfile.load`; warm start — a predicate true for any event; one home —
-a `ProcessBuilder` in the adapter, a warm Start from `revealAssistant()`; FAQ — remove a pinned claim.
+tier — read `assistant.claudeCode` in `ProjectProfile.load`; one home — a `ProcessBuilder` in the adapter; FAQ —
+remove a pinned claim. (The warm-start witnesses went with warm start, OD-74.25.)
 
 ## Implementation notes (P1b, 2026-10-17)
 
@@ -1892,7 +1940,7 @@ and **PB** captures (`FixtureAgent`, now also reading `evidence/m74-p1b/fixtures
   New: `LocalAgentHookObserved{generation, ticket, HookEvent, HookOutcome}` (regenerated, one handler on
   `localAgentSession`), `AgentNote.APPROVAL_UNAVAILABLE` (PB-1's `asyncAgent` denial), and `LocalAgentInitialized`
   gains a `Billing` enum (OD-74.24). `LocalAgentState` publishes the posture, the person's server count and billing.
-- **The node's full rules.** Warm start in the full posture is refused silently (`WARM_FULL`) before anything else.
+- **The node's full rules.** *(The `WARM_FULL` refusal went with warm start, OD-74.25.)*
   At `initialize` the mode must be the posture's (`bypassPermissions` is always `MODE_MISMATCH`; `auto` reported as
   `default` gets PB-3's words). At binding the hosted bridge must be among the servers; the others are counted. At each
   init the full check asserts the mode, no `mcp__fluxtion-analyser__…` tool, exactly the pre-allowed hosted tools, the
@@ -1917,7 +1965,7 @@ and **PB** captures (`FixtureAgent`, now also reading `evidence/m74-p1b/fixtures
 - **Settings.** The full switch is enabled; ticking it shows the warning (a plain-text area, *Turn on full Claude
   Code* / *Cancel*, Cancel the default) and Cancel unticks it. The mode is shown only while the switch is on, with its
   note (the `auto` note names PB-3). `ConfigStore` reads `assistant.claudeCode.full.mode` as one of the four, anything
-  else as `default` with a transient flag Settings shows. Warm start's note says it never applies to full Claude Code.
+  else as `default` with a transient flag Settings shows. (The warm-start note went with warm start, OD-74.25.)
 - **The optional budget (OD-74.24).** `AppConfig.claudeCodeBudgetUsd` is a nullable `Double`, null by default;
   *Limit spend per session (US$)* is a checkbox plus the amount. `ConfigStore` writes blank for none and
   `assistant.claudeCode.budgetFormat=2`; without that marker (a P1a config) `5.0` reads as none and any other positive
@@ -1952,9 +2000,11 @@ and **PB** captures (`FixtureAgent`, now also reading `evidence/m74-p1b/fixtures
   256 KB of each file (a larger one adds its size and modification time) and treats a non-regular file as unreadable,
   as the scan does; `plain()` and the node's `safe()` escape control, format and line-separator characters. The digest is
   still read on the event thread, at Start and Send, now bounded at 768 KB in all. (14) A stored limit below US$0.50 is
-  clamped to it. **Re-smoke (2026-10-17):** the touched items passed live, and §8.1 item 8 (warm start) found a P1a
-  defect: with the Aqua tab UI `EventQueue.getCurrentEvent()` reads as a nested `HierarchyEvent` while the person's
-  click selects the tab, so warm start never fired in either posture. `WarmStart.Tracker` (an `AWTEventListener` on the
+  clamped to it. **Re-smoke (2026-10-17):** the touched items passed live. §8.1 item 8 (warm start) at first did not
+  fire in either posture, but that run was in the macOS Aqua look (the harness skipped the theme `Main` applies):
+  there `EventQueue.getCurrentEvent()` reads as a nested `HierarchyEvent` while the click selects the tab. **Under
+  FlatLaf, which the application always uses, P1a's predicate recognises the click unaided** (verified live; the
+  correction is in the smoke report), so this was not a P1a defect. `WarmStart.Tracker` (an `AWTEventListener` on the
   tab strip's mouse and key input) now supplies the held click, accepted only while the queue's most recent input time
   is still its own; live, the full posture then starts nothing and the default posture's control starts. Witnesses:
   `getCurrentEvent()` alone (the overwritten case fails), and the held input without the time check (a later reveal
@@ -1976,6 +2026,27 @@ confirmation — decide on the default posture's trust; postureRef — the mode 
 events parsed as `Ignored` again; billing — `UNKNOWN` for every `initialize`; the dollar figure on a plan; the default
 posture's note for the full posture; FAQ — a pinned claim removed.
 
+**r10 additions (2026-10-17, after merging P1a's review fixes).**
+
+- **H6, instruction files.** `FullFolderTrust.digest` is now `<settings digest>.<instruction digest>`. The instruction
+  part covers `CLAUDE.md`, `CLAUDE.local.md`, `.claude/CLAUDE.md` and every file under `.claude/commands`,
+  `.claude/skills` and `.claude/agents`, sorted by path, at most 1,000 files and 8 MB read (each file at most 256 KB;
+  past a bound a file counts by its size and modification time, and the dialog says the bound was reached). A symbolic
+  link is followed only to a regular file inside the folder; otherwise its target's name is digested and, when it
+  points out of the folder, the dialog names it. The dialog lists the instruction files by name (never their text), and
+  a re-ask leads with what changed (`FullFolderTrust.changeNote`: the instruction files, the settings or `.mcp.json`,
+  both, or a record made before instruction files were covered). Old records (no `.` in the digest) therefore re-ask.
+- **M8 in the full posture.** The full dialog binds the trust to the digest it showed; `LocalAgentFolderAnswered`
+  carries `contentUnchanged` (the files read again when the answer is given), and the node refuses `FOLDER_CHANGED`
+  on a yes whose files moved while the dialog was open. `TrustLocalAgentFolderEffect` records the full-posture record
+  with the digest that was shown.
+- **H4 in the full posture.** The full posture spawns through the same `ServeHostedBridgeEffect`, so with the REST
+  switch off its bridge reaches the hosted-only listener; P1b's credential-only hosted authentication is kept.
+- **Warm start** removed in both postures (OD-74.25), with `WarmStart.Tracker`, the `WARM_FULL` refusal and their tests;
+  **preview** labels (OD-74.26) on the Settings checkbox, the warning, the header and the docs.
+- **Witnesses** (each failed at its named assertion, then passed restored): H6 — the settings files only ("a rewritten
+  CLAUDE.md asks again"), and a link followed out of the folder (the outside change altered the digest); full M8 — the
+  `contentUnchanged` refusal dropped (a process started).
 ## Implementation notes (P2a, 2026-10-17)
 
 P2a — the Ask catalogue (§5.5), the start-page prompt (§5.8) and transcript presentation (§5.9), with the owner's r10
@@ -2104,11 +2175,11 @@ onboarding (§5.6), Move (§5.3), conversation v2 (§6) and the carried items (h
   under the posture in force; until P2 captures a recorded conversation the demo plays a scripted one labelled
   *Simulated conversation*; and the catalogue's pop-up applies in the in-app mode too, so *Explain selected* gains the
   confirm step. SF-1 and SF-2 (§11) land ahead of P2.
-- **r10** (2026-10-17): P2a built, and the owner's decisions of the same day folded in place (§2 *r10 owner decisions*):
+- **r10** (2026-10-17, on the P2 branch): P2a built, and the owner's decisions of the same day folded in place (§2 *r10 owner decisions*):
   the "Ask Claude this?" pop-up **cut** in both modes (drafts are placed directly; a tutorial reveals its next turn from
   the action); the configurable start list (OD-74.20, and the landing strip of OD-74.21 (2)) **deferred** until after
   P3; warm start cut on P1 (F20's armed tab click dropped); full Claude Code labelled **preview**; Move's handoff report
-  deferred. Two owner requests added: **OD-74.25** the full-posture cue (§5.9, with its mode mapping) and **OD-74.26**
+  deferred. Two owner requests added: **OD-74.27** the full-posture cue (§5.9, with its mode mapping) and **OD-74.28**
   the dropped prompt pack (§5.8, with its grammar). §8.2's inventory and §10's P2 rows annotated; *Implementation notes
   (P2a)* added.
 - **r9** (2026-10-17): the P1b probes PB-1…PB-4 ran ([report](evidence/m74-p1b/PB-report.md)) and P1b was built.
@@ -2117,3 +2188,11 @@ onboarding (§5.6), Move (§5.3), conversation v2 (§6) and the carried items (h
   (§8.1); `default` is an accepted, unlisted alias of `manual`. **OD-74.24** (owner direction 2026-10-17): the spend
   limit is optional and off by default, with no `--max-budget-usd` when unset and the header's cost by billing (§2, §3,
   §4.3, §4.6, §5.1, §10). *Implementation notes (P1b)* added.
+- **r10** (2026-10-17, on the P1b branch; the two r10s were written in parallel and met in r11): P1a's holistic-review fixes merged in (P1a's r7: the explicit pre-allow list, a hosted-only
+  listener so Start no longer needs the REST switch, session-thread admission, the folder answer as a fact, the
+  adapter's folder check, leaving Claude Code mid-turn refused, a separate hosted bucket, a frame test) and carried
+  through the full posture: its consent and adapter use the one posture function, its folder answer reports whether
+  the files the dialog named are unchanged, and its hosted bridge reaches the same hosted-only listener. **H6**: the
+  full-posture trust digest covers the instruction files, bounded, and the dialog names what changed. **Owner
+  decisions:** warm start cut in both postures (OD-74.25; P1a's r7 called it OD-74.10); full Claude Code a preview
+  until P3 (OD-74.26).

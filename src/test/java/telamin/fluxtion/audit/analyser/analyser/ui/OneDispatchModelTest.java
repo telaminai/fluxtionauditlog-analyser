@@ -355,26 +355,51 @@ class OneDispatchModelTest {
     }
 
     /**
-     * OD-74.1 amendment: warm start only on the person's direct selection. Witness: post the warm Start from
-     * {@code revealAssistant()}, or drop the {@code WarmStart.isDirectSelection} guard.
+     * Warm start was cut (owner, 2026-10-17): Start is always the explicit button. Witnesses: post
+     * {@code LocalAgentStartRequested} from a tab-selection listener, or from {@code revealAssistant()} — the counts fail.
      */
     @Test
-    @DisplayName("M74: a warm start is posted in one place, behind the direct-selection check; revealAssistant starts nothing")
-    void warmStartHasOneGuardedHome() throws Exception {
+    @DisplayName("M74: only the Start button posts a Start; selecting or revealing the Assistant tab starts nothing")
+    void onlyTheStartButtonStarts() throws Exception {
         String frame = Files.readString(UI.resolve("MainFrame.java"));
-        String home = bodyOf(frame, "private void onAssistantTabSelected(");
-        assertFalse(home.isEmpty(), "onAssistantTabSelected must exist");
-        // P1b smoke finding: the event being dispatched, and the tab strip's own held input against the queue's
-        // most recent input time (the current event can be overwritten by a nested dispatch)
-        assertTrue(home.contains("WarmStart.isDirectSelection(java.awt.EventQueue.getCurrentEvent(),")
-                        && home.contains("warmStartTracker.held()") && home.contains("getMostRecentEventTime()"),
-                "the guard reads the event being dispatched and the tab strip's held input");
-        Pattern warm = Pattern.compile("LocalAgentStartRequested\\([^;]*?,\\s*true\\)\\s*\\)", Pattern.DOTALL);
-        assertEquals(1, count(warm, frame), "one warm start in the frame");
-        assertEquals(1, count(warm, home), "and it is the guarded one");
+        Pattern start = Pattern.compile("new\\s+[\\w.]*LocalAgentStartRequested\\(");
+        assertEquals(1, count(start, frame), "one Start in the frame");
+        assertEquals(1, count(start, bodyOf(frame, "private void installLocalAgent(")), "and it is the Start intent's");
         assertFalse(bodyOf(frame, "private void revealAssistant(").contains("LocalAgentStartRequested"),
                 "a programmatic reveal never starts a process");
-        assertFalse(bodyOf(frame, "private void revealAssistant(").contains("onAssistantTabSelected"));
+        assertFalse(frame.contains("onAssistantTabSelected") || frame.contains("WarmStart"), "no warm-start path remains");
+        assertFalse(Files.exists(UI.resolve("WarmStart.java")));
+    }
+
+    /**
+     * Review M8 and M6: the folder answer is a fact and the hosted admission is the node's. Witnesses: post
+     * {@code LocalAgentStartRequested} from the dialog's callback, re-run {@code LocalAgentFolders.check} there, write the
+     * trusted folder before the node accepts the answer, or admit a hosted call from {@code admittedGeneration()} in the
+     * frame — each fails its named assertion.
+     */
+    @Test
+    @DisplayName("M74 M8/M6: the folder answer and the hosted admission are decided by the node; the frame reports and performs")
+    void theFolderAnswerAndTheAdmissionAreTheNodes() throws Exception {
+        String frame = Files.readString(UI.resolve("MainFrame.java"));
+        String confirm = bodyOf(frame, "private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result confirmLocalAgentFolderNow(");
+        assertFalse(confirm.isEmpty(), "confirmLocalAgentFolderNow must exist");
+        assertFalse(confirm.contains("LocalAgentStartRequested"), "the dialog reports an answer; it never starts anything");
+        assertFalse(confirm.contains("LocalAgentFolders"), "and never re-checks the folder: the node already decided");
+        assertFalse(confirm.contains("claudeCodeTrustedFolders"), "nor records trust before the node accepts the answer");
+        assertTrue(confirm.contains("LocalAgentFolderAnswered("), "the answer is a fact");
+        // P1b: the consent observation lives in LocalAgentConsents.of, the frame's localAgentConsent() calls it
+        assertEquals(0, count(Pattern.compile("LocalAgentFolders\\s*\\.\\s*check\\("), frame),
+                "no folder check in the frame: the consent observation is LocalAgentConsents'");
+        assertEquals(1, count(Pattern.compile("LocalAgentFolders\\s*\\.\\s*check\\("),
+                Files.readString(LOCAL_AGENT.resolve("LocalAgentConsents.java"))), "and it is checked there, once");
+        assertTrue(bodyOf(frame, "private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentConsent localAgentConsent(")
+                .contains("LocalAgentConsents.of("), "the frame's consent is that observation");
+        assertEquals(1, count(Pattern.compile("claudeCodeTrustedFolders\\s*\\.\\s*add\\("), frame),
+                "the trust record has one writer");
+        assertTrue(bodyOf(frame, "private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result trustLocalAgentFolder(")
+                .contains("claudeCodeTrustedFolders.add("), "the performer of the node's TrustLocalAgentFolderEffect");
+        assertFalse(frame.contains("admittedGeneration()"), "the frame never admits a hosted call from the snapshot (M6)");
+        assertTrue(frame.contains("hostedCredentials.gate(hostedAdmission::admit)"), "it asks the session instead");
     }
 
     // ---- M74 P2 (spec §8.2's rules; r8 F12, F14, F21) ---------------------------------------------------------------

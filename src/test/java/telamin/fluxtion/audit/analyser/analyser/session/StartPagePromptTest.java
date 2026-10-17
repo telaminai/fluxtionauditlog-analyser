@@ -17,7 +17,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class StartPagePromptTest {
 
     static SessionEvents.LocalAgentConsent consent(boolean allowed) {
-        return LocalAgentSessionTest.consent(allowed, true, false, true, "p", 0);
+        return LocalAgentSessionTest.consent(allowed, true, false, "p", 0);
     }
 
     static SessionEvents.StartPagePromptSent press(long request, String entry, long textRef, boolean claudeAllowed,

@@ -134,8 +134,6 @@ public final class AppConfig {
     public String claudeCodeFullMode = "default";
     /** The stored mode was not one the analyser offers, so it reads as {@code default}; Settings says so. Not stored. */
     public transient boolean claudeCodeFullModeReadAsDefault = false;
-    /** <i>Start Claude Code when I open the Assistant tab</i> — only on the person's direct selection of the tab. */
-    public boolean claudeCodeWarmStart = false;
     /** The Claude Code model — its own setting, never {@link #llmModel}. */
     public String claudeCodeModel = "sonnet";
     /**

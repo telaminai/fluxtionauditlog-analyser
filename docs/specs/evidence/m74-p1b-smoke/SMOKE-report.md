@@ -78,8 +78,17 @@ was US$0.094 (four haiku turns, on the Claude plan); the warm-start runs sent no
 | Settings applied mid-turn (4) | **PASS** | mode `plan` → `default` while counting: the turn ran to `COMPLETED`, then the session stopped, with the note *"… after the turn in progress"* |
 | consent withdrawn mid-turn (4) | **PASS** | *Allow the analyser to start Claude Code* off: `SWITCHED_OFF`, stopped at once, no process left |
 | a hook planted in the scratch folder (3) | **PASS** | Start raised the full dialog naming *"SessionStart (1) — from .claude/settings.json"*; after *Don't trust* nothing started and the hook's marker file was never written |
-| §8.1 item 8: warm start with the full switch on | **PASS, after a fix** | first attempt: the Assistant tab's click selected the tab but **did not count as the person's in either posture** — with the Aqua tab UI the selection is made inside the `MOUSE_RELEASED` dispatch while `EventQueue.getCurrentEvent()` reads as a `HierarchyEvent` left by a nested dispatch, so P1a's `WarmStart` never recognised a click (P1a defect). Fixed (`WarmStart.Tracker`: the tab strip's own input, held while the queue's most recent input time is still its own) and re-run: full posture — the click selected the tab and **started nothing**; control, the same click with the full switch off — **started Claude Code** (`--session-id …`, `READY`) |
+| §8.1 item 8: warm start with the full switch on | **PASS** (see the correction below) | first attempt: the Assistant tab's click selected the tab but **did not count as the person's in either posture** — with the Aqua tab UI the selection is made inside the `MOUSE_RELEASED` dispatch while `EventQueue.getCurrentEvent()` reads as a `HierarchyEvent` left by a nested dispatch, so P1a's `WarmStart` never recognised a click (P1a defect). Fixed (`WarmStart.Tracker`: the tab strip's own input, held while the queue's most recent input time is still its own) and re-run: full posture — the click selected the tab and **started nothing**; control, the same click with the full switch off — **started Claude Code** (`--session-id …`, `READY`) |
 | process tree after the final stop | **PASS** | 0 live descendants |
+
+**Correction (2026-10-17, during the owner's visual capture).** These harnesses built `MainFrame` directly and never
+applied the application's look and feel, so every smoke above ran in the macOS **Aqua** look; the application always
+applies **FlatLaf** first (`Main` → `ThemeManager.apply`). The warm-start "P1a defect" was an Aqua artefact: re-run
+under FlatLaf Light, the person's click selects the tab while the current event is the tab strip's own
+`MOUSE_PRESSED`, so **P1a's predicate recognised it unaided** (logged live), and item 8 passes — the full posture
+starts nothing, the default posture's control starts. `WarmStart.Tracker` (`02bf9645`) is kept as defence in depth for
+a tab UI that selects inside a nested dispatch; whether to keep it is the owner's call. `M74P1bWarmSmoke` now applies
+the theme as `Main` does. The other smoke results are logic and do not depend on the look.
 
 A mid-session **mode change through the CLI** (`system/status`, finding 2) was not provoked live: it is captured
 (`../m74-p1b/fixtures/pb-status-mode-iso.jsonl`) and replayed through the real adapter in

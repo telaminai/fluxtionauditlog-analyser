@@ -50,8 +50,6 @@ public final class LocalAgentPanel extends JPanel {
 
         void newChat();
 
-        void turnOnRest();
-
         void openSettings();
     }
 
@@ -90,7 +88,6 @@ public final class LocalAgentPanel extends JPanel {
     private final JButton stop = new JButton("Stop");
     private final JButton newChat = new JButton("New chat");
     private final JButton send = UiText.button("Send");
-    private final JButton turnOnRest = new JButton("Turn on the REST transport");
     private final JButton settings = new JButton("Settings ▸ Assistant");
     private final Border draftBorder;
 
@@ -122,7 +119,6 @@ public final class LocalAgentPanel extends JPanel {
         actions.add(start);
         actions.add(stop);
         actions.add(newChat);
-        actions.add(turnOnRest);
         actions.add(settings);
         for (JComponent c : new JComponent[]{chips, header, posture, lockWarning, actions, status, detail}) {
             c.setAlignmentX(LEFT_ALIGNMENT);
@@ -156,7 +152,6 @@ public final class LocalAgentPanel extends JPanel {
         start.addActionListener(e -> { if (intents != null) intents.start(); });
         stop.addActionListener(e -> { if (intents != null) intents.stop(); });
         newChat.addActionListener(e -> { if (intents != null) intents.newChat(); });
-        turnOnRest.addActionListener(e -> { if (intents != null) intents.turnOnRest(); });
         settings.addActionListener(e -> { if (intents != null) intents.openSettings(); });
         send.addActionListener(e -> onSend());
         draft.getInputMap(JComponent.WHEN_FOCUSED).put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), "local-agent-send");
@@ -169,8 +164,21 @@ public final class LocalAgentPanel extends JPanel {
                 onSend();
             }
         });
-        turnOnRest.setVisible(false);
         stop.setEnabled(false);
+    }
+
+    /**
+     * A theme switch re-renders the conversation (M74 visual check): its colours are set when an entry is drawn, so
+     * without this a note kept the previous theme's colour until the next snapshot changed something.
+     */
+    @Override
+    public void updateUI() {
+        super.updateUI();
+        LocalAgentState last = rendered;
+        if (last != null && store != null) {
+            rendered = null;
+            SwingUtilities.invokeLater(() -> render(last));
+        }
     }
 
     public void setIntents(Intents intents) {
@@ -290,7 +298,6 @@ public final class LocalAgentPanel extends JPanel {
         start.setText(UiText.inert(startLabel(s)));
         stop.setEnabled(s.busy() || s.starting() || s.pendingDraft() != 0);
         send.setEnabled(!s.busy() && !"STOPPING".equals(s.phase()));
-        turnOnRest.setVisible("REST_OFF".equals(s.verdict()));
         settings.setVisible("SWITCHED_OFF".equals(s.verdict()) || "BUDGET_SPENT".equals(s.verdict()));
         newChat.setText(s.newChatOffered() ? "New chat (offered)" : "New chat");
         status.setText(phaseText(s));
@@ -443,7 +450,7 @@ public final class LocalAgentPanel extends JPanel {
             // initialize reports no model: say what was asked for until a turn's system/init confirms it
             sb.append(" · model: ").append(h.configuredModel()).append(" (confirmed after the first turn)");
         }
-        sb.append(" · ").append(s.posture().label());
+        sb.append(" · ").append(unbroken(s.posture().label()));
         if (h.cliVersion() != null) sb.append(" · CLI ").append(h.cliVersion());
         if (h.billing() != null && !h.billing().isBlank()) sb.append(" · ").append(h.billing());
         if (h.apiProvider() != null) sb.append(" · ").append(h.apiProvider());
@@ -475,10 +482,16 @@ public final class LocalAgentPanel extends JPanel {
     static String postureLine(LocalAgentTranscript.Header h, LocalAgentState s) {
         if (!s.posture().isFull()) return DEFAULT_POSTURE_NOTE;
         int n = s.personServers();
-        String line = s.posture().label() + " — your settings, skills, hooks and " + n + " MCP server" + (n == 1 ? "" : "s")
-                + " are loaded";
+        String line = unbroken(s.posture().label()) + (n == 0
+                ? " — your settings, skills and hooks are loaded, and none of your MCP servers"
+                : " — your settings, skills, hooks and " + n + " MCP server" + (n == 1 ? "" : "s") + " are loaded");
         List<String> added = h == null ? List.of() : h.pathAdded();
         return line + "\nPATH: inherited" + (added.isEmpty() ? "" : ", plus " + String.join(", ", added));
+    }
+
+    /** A name the wrapped header must not break inside: its spaces become no-break spaces (M74 visual check). */
+    static String unbroken(String s) {
+        return s == null ? "" : s.replace(' ', '\u00A0');
     }
 
     /** The Start button says what pressing it would do, that it is ARMED, or that there is nothing to press. */

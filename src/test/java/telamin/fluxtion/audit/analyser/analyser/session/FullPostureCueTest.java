@@ -15,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class FullPostureCueTest {
 
     static SessionEvents.LocalAgentConsent full(LocalAgentPosture.FullMode mode) {
-        return new SessionEvents.LocalAgentConsent(true, true, false, true, "p-" + mode, 0,
+        return new SessionEvents.LocalAgentConsent(true, true, false, "p-" + mode, 0,
                 SessionEvents.FolderVerdict.OK, true, mode, true);
     }
 
@@ -40,14 +40,14 @@ class FullPostureCueTest {
         assertEquals(LocalAgentState.FullCue.ON, state(d).fullCue(), "switched on, not running");
         assertFalse(state(d).strongCue());
 
-        d.post(new SessionEvents.LocalAgentStartRequested(1, full(LocalAgentPosture.FullMode.AUTO), false));
+        d.post(new SessionEvents.LocalAgentStartRequested(1, full(LocalAgentPosture.FullMode.AUTO)));
         var start = a.agentStarts.get(0);
         assertTrue(start.posture().isFull());
         assertEquals(LocalAgentState.FullCue.RUNNING, state(d).fullCue(), "running in the full posture");
         assertTrue(state(d).strongCue(), "auto asks least: the strong cue");
         assertEquals(LocalAgentPosture.FullMode.AUTO, state(d).cuePosture().fullMode());
 
-        d.post(new SessionEvents.LocalAgentConsentChanged(new SessionEvents.LocalAgentConsent(false, true, false, true,
+        d.post(new SessionEvents.LocalAgentConsentChanged(new SessionEvents.LocalAgentConsent(false, true, false,
                 "p", 0)));
         assertEquals(LocalAgentState.FullCue.NONE, state(d).fullCue(), "switched off: the session stops and the cue goes");
     }

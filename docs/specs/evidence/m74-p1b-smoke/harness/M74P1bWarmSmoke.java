@@ -31,6 +31,7 @@ public final class M74P1bWarmSmoke {
         c.assistantPoppedOut = false;
         c.claudeCodeModel = "haiku";
         cs.save(c);
+        ThemeManager.apply(args.length > 1 ? args[1] : "Light");   // as Main does, before any UI is built
         edt(() -> {
             frame = new MainFrame();
             frame.setSize(1600, 1000);
@@ -56,7 +57,7 @@ public final class M74P1bWarmSmoke {
             java.awt.AWTEvent cur = java.awt.EventQueue.getCurrentEvent();
             ev("tab change while dispatching: " + (cur == null ? "null" : cur.getClass().getSimpleName() + " id=" + cur.getID()
                     + " source=" + (cur.getSource() == null ? "null" : cur.getSource().getClass().getSimpleName()))
-                    + " direct=" + WarmStart.isDirectSelection(cur, tabs));
+                    + " direct(P1a predicate, current event only)=" + WarmStart.isDirectSelection(cur, tabs));
             StringBuilder st = new StringBuilder();
             for (StackTraceElement f : new Throwable().getStackTrace()) {
                 String cn = f.getClassName();

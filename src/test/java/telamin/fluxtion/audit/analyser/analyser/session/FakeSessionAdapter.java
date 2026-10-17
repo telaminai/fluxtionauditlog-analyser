@@ -54,6 +54,16 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
     final List<SessionEffects.RunStartPageFlowEffect> startFlows = new ArrayList<>();
     final List<SessionEffects.ShowStartPageFallbackEffect> startFallbacks = new ArrayList<>();
     final List<SessionEffects.ComposeStartPageDraftEffect> startComposes = new ArrayList<>();
+    final List<SessionEffects.TrustLocalAgentFolderEffect> agentTrusts = new ArrayList<>();
+    final List<SessionEffects.ServeHostedBridgeEffect> agentServes = new ArrayList<>();
+    final List<SessionEffects.ReleaseHostedBridgeEffect> agentReleases = new ArrayList<>();
+    final List<SessionEffects.AnswerHostedCallEffect> agentAnswers = new ArrayList<>();
+    /** The local agent's effects by name, in the order they were performed. */
+    final List<String> agentOrder = new ArrayList<>();
+    /** Review H4: whether the hosted bridge listener comes up when served. */
+    boolean bridgeListening = true;
+    /** Review M6: where an admission verdict goes as well (a test's waiting call). */
+    java.util.function.Consumer<SessionEffects.AnswerHostedCallEffect> onAnswer = e -> { };
     /** Set to have the fake refuse a walk step's view. */
     boolean refuseWalkViews;
 
@@ -159,6 +169,7 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
             // M74: the local agent's effects are recorded and answered at once; the test posts the CLI's facts
             case SessionEffects.StartLocalAgentEffect e -> {
                 agentStarts.add(e);
+                agentOrder.add("start");
                 yield new SessionEvents.LocalAgentEffectStarted(e.opId(), e.generation(), "start");
             }
             case SessionEffects.PollLocalAgentStatusEffect e -> {
@@ -171,10 +182,12 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
             }
             case SessionEffects.StopLocalAgentEffect e -> {
                 agentStops.add(e);
+                agentOrder.add("stop:" + e.how());
                 yield new SessionEvents.LocalAgentEffectStarted(e.opId(), e.generation(), "stop:" + e.how());
             }
             case SessionEffects.ConfirmLocalAgentFolderEffect e -> {
                 agentConfirms.add(e);
+                agentOrder.add("confirmFolder");
                 yield new SessionEvents.LocalAgentEffectStarted(e.opId(), 0, "confirmFolder");
             }
             case SessionEffects.PrimeLocalAgentDraftEffect e -> {
@@ -200,6 +213,26 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
             case SessionEffects.ComposeStartPageDraftEffect e -> {
                 startComposes.add(e);
                 yield new SessionEvents.StartPageEffectStarted(e.opId(), e.request(), "compose:" + e.entryId());
+            }
+            case SessionEffects.TrustLocalAgentFolderEffect e -> {
+                agentTrusts.add(e);
+                agentOrder.add("trustFolder");
+                yield new SessionEvents.LocalAgentEffectStarted(e.opId(), 0, "trustFolder");
+            }
+            case SessionEffects.ServeHostedBridgeEffect e -> {
+                agentServes.add(e);
+                agentOrder.add("serveBridge");
+                yield new SessionEvents.LocalAgentBridgeServed(e.opId(), e.generation(), bridgeListening, true);
+            }
+            case SessionEffects.ReleaseHostedBridgeEffect e -> {
+                agentReleases.add(e);
+                agentOrder.add("releaseBridge");
+                yield new SessionEvents.LocalAgentEffectStarted(e.opId(), e.generation(), "releaseBridge");
+            }
+            case SessionEffects.AnswerHostedCallEffect e -> {
+                agentAnswers.add(e);
+                onAnswer.accept(e);
+                yield new SessionEvents.LocalAgentEffectStarted(e.opId(), 0, "answerHostedCall");
             }
             case SessionEffects.DeleteBundleEffect e -> {
                 deletes.add(e);

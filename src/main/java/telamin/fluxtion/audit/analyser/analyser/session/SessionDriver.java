@@ -329,6 +329,10 @@ public final class SessionDriver {
             case SessionEffects.RunStartPageFlowEffect ignored -> "runStartPageFlow";
             case SessionEffects.ShowStartPageFallbackEffect ignored -> "showStartPageFallback";
             case SessionEffects.ComposeStartPageDraftEffect ignored -> "composeStartPageDraft";
+            case SessionEffects.TrustLocalAgentFolderEffect ignored -> "trustLocalAgentFolder";
+            case SessionEffects.ServeHostedBridgeEffect ignored -> "serveHostedBridge";
+            case SessionEffects.ReleaseHostedBridgeEffect ignored -> "releaseHostedBridge";
+            case SessionEffects.AnswerHostedCallEffect ignored -> "answerHostedCall";
         };
     }
 

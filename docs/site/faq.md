@@ -114,21 +114,27 @@ log, and no file writes**. Two groups of verbs go further, honestly labelled:
   folder**, and the non-destructive verbs above; **no Bash**, no file edits, no web, none of your skills, hooks,
   settings or MCP servers, and the destructive verbs hidden — so "no shell access" stays true there. Each folder is
   confirmed once before Start, a bundle's working copy is refused, and its bridge carries its own per-session
-  credential: a call with only the REST token is never treated as Claude Code's, and Claude Code cannot delete a chart.
-  The switches, warm start and the confirmed folders are this machine's only — never in a project profile, a shared
+  credential: a call with only the REST token is never treated as Claude Code's, Claude Code cannot delete a chart, and
+  only the verbs listed above are served to it — a verb added in a later release stays refused until it is listed.
+  Claude Code does not need the REST transport on: with it off, its private listener refuses every external client,
+  even one holding the REST token, and publishes no endpoint file. Start is always the explicit button; opening the
+  Assistant tab starts nothing. The switches and the confirmed folders are this machine's only — never in a project profile, a shared
   settings file or an evidence bundle.
 
-  **Full Claude Code is a separate switch with its own warning** (*…with my full Claude Code permissions*, off). It
+  **Full Claude Code is a separate switch with its own warning** (*…with my full Claude Code permissions (preview)*,
+  off), and a **preview**: for internal and demo use, not for customer release until approvals in the analyser (P3)
+  ship. It
   runs your own Claude Code as in a terminal, with **your settings, skills, hooks and MCP servers** (claude.ai
   connectors included), and **the folder's hooks and MCP servers run when you press Start**, before you send anything, so
   the folder is confirmed for full Claude Code separately — the dialog names the hooks and servers it found — and the
-  analyser **asks again if those files change** (`.claude/settings.json`, `.claude/settings.local.json`, `.mcp.json`).
+  analyser **asks again if those files change** (`.claude/settings.json`, `.claude/settings.local.json`, `.mcp.json`,
+  and the instruction files: `CLAUDE.md`, `.claude/CLAUDE.md`, `.claude/commands`, `.claude/skills`, `.claude/agents`).
   Claude Code can then use **your own tools, including Bash**, file edits and web access, **as far as your permission
   rules and the mode you chose allow** (`default`, `acceptEdits`, `auto` or `plan`; **bypassPermissions is never
   offered**, nor `dontAsk`) — **the analyser does not confine it to the folder**, and in Claude Code's own `default`
   and `acceptEdits` modes anything that would ask you is denied until approvals in the analyser ship. The analyser's
-  own destructive verbs stay hidden from it, your own `fluxtion-analyser` registration is hidden too, and warm start
-  does not apply to it: only the Start button starts full Claude Code. This is the stated exception to "no shell
+  own destructive verbs stay hidden from it, your own `fluxtion-analyser` registration is hidden too, and only the
+  Start button starts full Claude Code. This is the stated exception to "no shell
   access": record text that steers an AI reaches an agent with your shell, under your rules, so turn it on only for
   folders and logs you trust. **The full posture cannot stop your own tools reading the analyser's REST token**
   (it lives in a file in your home folder, as for any external client); with it, Claude Code could drive the analyser

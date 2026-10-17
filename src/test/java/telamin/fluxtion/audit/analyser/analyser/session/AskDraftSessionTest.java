@@ -52,29 +52,29 @@ class AskDraftSessionTest {
         assertEquals(0, a.agentSends.size(), "nothing is written to stdin before Send");
 
         // pressing the armed Start is the person's Start; the draft stays placed, still not sent
-        d.post(new SessionEvents.LocalAgentStartRequested(1, LocalAgentSessionTest.consent(), false));
+        d.post(new SessionEvents.LocalAgentStartRequested(1, LocalAgentSessionTest.consent()));
         assertEquals(1, a.agentStarts.size());
         assertNull(d.snapshot().localAgent().armedWhy(), "a Start disarms");
         assertEquals(0, a.agentSends.size());
     }
 
-    /** ★ Witness: arm whatever the consent says — the REST-off row is armed and its assertion fails. */
+    /** ★ Witness: arm whatever the consent says — the bundle row is armed and its assertion fails. */
     @Test
     @DisplayName("★ Start is armed only when it would be accepted; otherwise the refusal is shown with the draft placed")
     void armedOnlyWhenAccepted() {
         FakeSessionAdapter a = new FakeSessionAdapter();
         SessionDriver d = localAgent(a);
-        var restOff = LocalAgentSessionTest.consent(true, true, false, false, "p", 0);
-        d.post(new SessionEvents.LocalAgentDraftComposed(5, "S6", null, 0, restOff, "start page"));
+        var bundle = LocalAgentSessionTest.consent(true, true, true, "p", 0);
+        d.post(new SessionEvents.LocalAgentDraftComposed(5, "S6", null, 0, bundle, "start page"));
         assertEquals(1, a.agentPrimes.size(), "the draft is still placed");
         assertNull(a.agentPrimes.get(0).armedWhy(), "Start would be refused, so it is not armed");
-        assertEquals("REST_OFF", d.snapshot().localAgent().verdict(), "the refusal names its action (Turn on REST)");
-        var off = LocalAgentSessionTest.consent(false, true, false, true, "p", 0);
+        assertEquals("BUNDLE", d.snapshot().localAgent().verdict(), "the refusal names why (a bundle working copy)");
+        var off = LocalAgentSessionTest.consent(false, true, false, "p", 0);
         d.post(new SessionEvents.LocalAgentDraftComposed(6, "S6", null, 0, off, "start page"));
         assertNull(a.agentPrimes.get(1).armedWhy());
         assertEquals("SWITCHED_OFF", d.snapshot().localAgent().verdict());
         // an unconfirmed folder is armable: pressing Start asks the folder question, Start's own path
-        var unconfirmed = LocalAgentSessionTest.consent(true, false, false, true, "p", 0);
+        var unconfirmed = LocalAgentSessionTest.consent(true, false, false, "p", 0);
         d.post(new SessionEvents.LocalAgentDraftComposed(7, "JOURNEY", null, 0, unconfirmed, "journey"));
         assertEquals("armed.JOURNEY", a.agentPrimes.get(2).armedWhy());
         assertEquals(0, a.agentStarts.size());

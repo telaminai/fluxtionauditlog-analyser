@@ -13,7 +13,7 @@ import static telamin.fluxtion.audit.analyser.analyser.session.LocalAgentSession
 
 /**
  * M74 P1b (spec-claude-code-provider.md §8.1, §10 P1b) — the full posture's decisions on the REAL generated processor:
- * the consent it starts under, the separate content-bound folder trust, warm start never firing, the full-posture
+ * the consent it starts under, the separate content-bound folder trust, the full-posture
  * assertion, hook notes, the denial note, PB-3's auto fallback, and the optional budget (owner, 2026-10-17).
  *
  * <p>Witnesses for the ★ rows were run by breaking the node as each comment says and seeing the named assertion fail;
@@ -22,7 +22,7 @@ import static telamin.fluxtion.audit.analyser.analyser.session.LocalAgentSession
 class LocalAgentFullPostureTest {
 
     static SessionEvents.LocalAgentConsent full(FullMode mode, boolean defaultConfirmed, boolean fullConfirmed, long budget) {
-        return new SessionEvents.LocalAgentConsent(true, defaultConfirmed, false, true,
+        return new SessionEvents.LocalAgentConsent(true, defaultConfirmed, false,
                 LocalAgentPosture.full(mode).ref("/work/proj", "full-note"), budget, SessionEvents.FolderVerdict.OK, true,
                 mode, fullConfirmed);
     }
@@ -35,7 +35,7 @@ class LocalAgentFullPostureTest {
 
     /** Start and bind in the full posture: the person's own server is beside the hosted bridge. */
     static SessionEffects.StartLocalAgentEffect startFull(SessionDriver d, FakeSessionAdapter a, FullMode mode) {
-        d.post(new SessionEvents.LocalAgentStartRequested(1, full(mode), false));
+        d.post(new SessionEvents.LocalAgentStartRequested(1, full(mode)));
         var start = a.agentStarts.get(a.agentStarts.size() - 1);
         d.post(new SessionEvents.LocalAgentSpawned(start.generation(), SessionEvents.SpawnFailure.NONE, 0));
         d.post(new SessionEvents.LocalAgentInitialized(start.generation(), true, mode.cli(), 7,
@@ -60,7 +60,7 @@ class LocalAgentFullPostureTest {
                 LocalAgentPosture.REQUIRED_CAPABILITIES, 0);
     }
 
-    // ---- consent, trust and warm start ----------------------------------------------------------------------------------
+    // ---- consent and trust ----------------------------------------------------------------------------------
 
     @Test
     @DisplayName("the full consent starts the full posture: the effect carries the posture value and the person's mode")
@@ -84,32 +84,15 @@ class LocalAgentFullPostureTest {
     void defaultTrustDoesNotConfirmTheFullPosture() {
         FakeSessionAdapter a = new FakeSessionAdapter();
         SessionDriver d = driver(a);
-        d.post(new SessionEvents.LocalAgentStartRequested(1, full(FullMode.DEFAULT, true, false, BUDGET), false));
+        d.post(new SessionEvents.LocalAgentStartRequested(1, full(FullMode.DEFAULT, true, false, BUDGET)));
         assertEquals(0, a.agentStarts.size(), "trusted for the default posture only: nothing starts");
         assertEquals(1, a.agentConfirms.size());
         assertTrue(a.agentConfirms.get(0).full(), "the FULL folder dialog, which names the hooks and servers");
         assertEquals("CONFIRM_FOLDER", state(d).verdict());
-        assertTrue(state(d).reason().contains("hooks and MCP servers run at Start"), state(d).reason());
+        assertTrue(state(d).reason().contains("hooks, MCP servers and instruction files load at Start"), state(d).reason());
 
-        d.post(new SessionEvents.LocalAgentStartRequested(2, full(FullMode.DEFAULT, true, true, BUDGET), false));
+        d.post(new SessionEvents.LocalAgentStartRequested(2, full(FullMode.DEFAULT, true, true, BUDGET)));
         assertEquals(1, a.agentStarts.size(), "confirmed for the full posture (its digest matches): it starts");
-    }
-
-    /**
-     * ★ OD-74.12: warm start never fires in the full posture. Witness: the P1a predicate alone (drop the
-     * {@code WARM_FULL} refusal) — the warm start in a confirmed folder starts a process.
-     */
-    @Test
-    @DisplayName("★ warm start never fires in the full posture, even in a folder confirmed for it, and says nothing")
-    void warmStartNeverFiresInTheFullPosture() {
-        FakeSessionAdapter a = new FakeSessionAdapter();
-        SessionDriver d = driver(a);
-        d.post(new SessionEvents.LocalAgentStartRequested(1, full(FullMode.DEFAULT, true, true, BUDGET), true));
-        assertEquals(0, a.agentStarts.size(), "a tab click is too weak an act to run hooks on");
-        assertEquals(0, a.agentConfirms.size(), "and it raises no dialog");
-        assertEquals("", state(d).verdict(), "silent, as every warm refusal");
-        d.post(new SessionEvents.LocalAgentStartRequested(2, consent(), true));
-        assertEquals(1, a.agentStarts.size(), "the default posture's warm start in a confirmed folder still starts");
     }
 
     /**
@@ -141,7 +124,7 @@ class LocalAgentFullPostureTest {
         d.post(new SessionEvents.LocalAgentStopRequested("test"));
         d.post(new SessionEvents.AssistantModeChosen(AssistantMode.IN_APP, "test"));     // stops the process
         d.post(new SessionEvents.AssistantModeChosen(AssistantMode.LOCAL_AGENT, "test"));
-        d.post(new SessionEvents.LocalAgentStartRequested(3, full(FullMode.PLAN), false));
+        d.post(new SessionEvents.LocalAgentStartRequested(3, full(FullMode.PLAN)));
         assertEquals("POSTURE_CHANGED", state(d).verdict(), "another mode: New chat, never --resume");
         assertTrue(state(d).newChatOffered());
         assertEquals(1, a.agentStarts.size());
@@ -154,7 +137,7 @@ class LocalAgentFullPostureTest {
     void autoFallingBackToDefaultIsRefusedByName() {
         FakeSessionAdapter a = new FakeSessionAdapter();
         SessionDriver d = driver(a);
-        d.post(new SessionEvents.LocalAgentStartRequested(1, full(FullMode.AUTO), false));
+        d.post(new SessionEvents.LocalAgentStartRequested(1, full(FullMode.AUTO)));
         var start = a.agentStarts.get(0);
         assertEquals("auto", start.posture().permissionMode());
         d.post(new SessionEvents.LocalAgentSpawned(1, SessionEvents.SpawnFailure.NONE, 0));
@@ -222,7 +205,7 @@ class LocalAgentFullPostureTest {
     void bypassAtInitializeInTheDefaultPosture() {
         FakeSessionAdapter a = new FakeSessionAdapter();
         SessionDriver d = driver(a);
-        d.post(new SessionEvents.LocalAgentStartRequested(1, consent(), false));
+        d.post(new SessionEvents.LocalAgentStartRequested(1, consent()));
         d.post(new SessionEvents.LocalAgentSpawned(1, SessionEvents.SpawnFailure.NONE, 0));
         d.post(new SessionEvents.LocalAgentInitialized(1, true, LocalAgentPosture.BYPASS, 7));
         assertEquals("MODE_MISMATCH", state(d).verdict());
@@ -240,7 +223,7 @@ class LocalAgentFullPostureTest {
     void hookNotesAreCoalescedPerEvent() {
         FakeSessionAdapter a = new FakeSessionAdapter();
         SessionDriver d = driver(a);
-        d.post(new SessionEvents.LocalAgentStartRequested(1, full(FullMode.DEFAULT), false));
+        d.post(new SessionEvents.LocalAgentStartRequested(1, full(FullMode.DEFAULT)));
         long g = a.agentStarts.get(0).generation();
         d.post(new SessionEvents.LocalAgentHookObserved(g, 0, SessionEvents.HookEvent.SessionStart, SessionEvents.HookOutcome.STARTED));
         d.post(new SessionEvents.LocalAgentHookObserved(g, 0, SessionEvents.HookEvent.SessionStart, SessionEvents.HookOutcome.STARTED));
@@ -250,7 +233,7 @@ class LocalAgentFullPostureTest {
                 .filter(e -> e.status().startsWith("HOOK")).toList();
         assertEquals(1, hooks.size(), "one note for the event, however many hooks ran: " + hooks);
         assertEquals("HOOK_FAILED", hooks.get(0).status());
-        assertEquals("Hook SessionStart: 1 ran, 1 failed — the hook is yours or the folder's: check it in Claude Code's "
+        assertEquals("SessionStart: 1 ran, 1 failed — the hook is yours or the folder's: check it in Claude Code's "
                 + "own hook settings", hooks.get(0).detail());
         d.post(new SessionEvents.LocalAgentHookObserved(g + 7, 0, SessionEvents.HookEvent.PreToolUse,
                 SessionEvents.HookOutcome.OK));
@@ -282,7 +265,7 @@ class LocalAgentFullPostureTest {
     void noLimitByDefault() {
         FakeSessionAdapter a = new FakeSessionAdapter();
         SessionDriver d = driver(a);
-        d.post(new SessionEvents.LocalAgentStartRequested(1, full(FullMode.DEFAULT, true, true, 0), false));
+        d.post(new SessionEvents.LocalAgentStartRequested(1, full(FullMode.DEFAULT, true, true, 0)));
         assertEquals(1, a.agentStarts.size(), "no limit: it starts");
         assertEquals(0, a.agentStarts.get(0).maxBudgetMicros(), "and the command line carries no --max-budget-usd");
         var start = a.agentStarts.get(0);
@@ -294,19 +277,19 @@ class LocalAgentFullPostureTest {
         d.post(new SessionEvents.LocalAgentStopRequested("test"));
         d.post(new SessionEvents.AssistantModeChosen(AssistantMode.IN_APP, "test"));
         d.post(new SessionEvents.AssistantModeChosen(AssistantMode.LOCAL_AGENT, "test"));
-        d.post(new SessionEvents.LocalAgentStartRequested(2, full(FullMode.DEFAULT, true, true, 0), false));
+        d.post(new SessionEvents.LocalAgentStartRequested(2, full(FullMode.DEFAULT, true, true, 0)));
         assertNotEquals("BUDGET_SPENT", state(d).verdict(), "US$99 spent and no limit: never refused for spending");
         assertEquals(2, a.agentStarts.size());
 
         // a limit set: the remainder is passed, and spending it refuses
         FakeSessionAdapter b = new FakeSessionAdapter();
         SessionDriver e = driver(b);
-        e.post(new SessionEvents.LocalAgentStartRequested(1, full(FullMode.DEFAULT, true, true, 2_000_000), false));
+        e.post(new SessionEvents.LocalAgentStartRequested(1, full(FullMode.DEFAULT, true, true, 2_000_000)));
         assertEquals(2_000_000, b.agentStarts.get(0).maxBudgetMicros());
         e.post(new SessionEvents.LocalAgentCostObserved(1, 2_000_000));
         e.post(new SessionEvents.AssistantModeChosen(AssistantMode.IN_APP, "test"));
         e.post(new SessionEvents.AssistantModeChosen(AssistantMode.LOCAL_AGENT, "test"));
-        e.post(new SessionEvents.LocalAgentStartRequested(2, full(FullMode.DEFAULT, true, true, 2_000_000), false));
+        e.post(new SessionEvents.LocalAgentStartRequested(2, full(FullMode.DEFAULT, true, true, 2_000_000)));
         assertEquals("BUDGET_SPENT", state(e).verdict());
     }
 
@@ -352,7 +335,7 @@ class LocalAgentFullPostureTest {
         d.post(fullInit(start, 0, "default", List.of(), "connected"));
         d.post(new SessionEvents.LocalAgentSendRequested(10, 10, SessionEvents.SlashClass.TEXT, null, full(FullMode.DEFAULT)));
         assertTrue(state(d).busy());
-        var off = new SessionEvents.LocalAgentConsent(false, true, false, true, full(FullMode.DEFAULT).postureRef(), BUDGET,
+        var off = new SessionEvents.LocalAgentConsent(false, true, false, full(FullMode.DEFAULT).postureRef(), BUDGET,
                 SessionEvents.FolderVerdict.OK, true, FullMode.DEFAULT, true);
         d.post(new SessionEvents.LocalAgentConsentChanged(off));
         assertEquals(1, kills(a).size(), "switched off: stopped at once");
@@ -397,15 +380,15 @@ class LocalAgentFullPostureTest {
     void hookNotesPerTurn() {
         FakeSessionAdapter a = new FakeSessionAdapter();
         SessionDriver d = driver(a);
-        d.post(new SessionEvents.LocalAgentStartRequested(1, full(FullMode.DEFAULT), false));
+        d.post(new SessionEvents.LocalAgentStartRequested(1, full(FullMode.DEFAULT)));
         long g = a.agentStarts.get(0).generation();
         d.post(new SessionEvents.LocalAgentHookObserved(g, 1, SessionEvents.HookEvent.UserPromptSubmit, SessionEvents.HookOutcome.OK));
         d.post(new SessionEvents.LocalAgentHookObserved(g, 1, SessionEvents.HookEvent.UserPromptSubmit, SessionEvents.HookOutcome.OK));
         d.post(new SessionEvents.LocalAgentHookObserved(g, 2, SessionEvents.HookEvent.UserPromptSubmit, SessionEvents.HookOutcome.OK));
         var hooks = state(d).entries().stream().filter(e -> e.status().startsWith("HOOK")).toList();
         assertEquals(2, hooks.size(), hooks.toString());
-        assertEquals("Hook UserPromptSubmit: 2 ran", hooks.get(0).detail());
-        assertEquals("Hook UserPromptSubmit: 1 ran", hooks.get(1).detail());
+        assertEquals("UserPromptSubmit: 2 ran", hooks.get(0).detail());
+        assertEquals("UserPromptSubmit: 1 ran", hooks.get(1).detail());
     }
 
     @Test
@@ -427,5 +410,32 @@ class LocalAgentFullPostureTest {
     static List<String> notes(SessionDriver d) {
         return state(d).entries().stream().filter(e -> LocalAgentState.NOTE.equals(e.kind()))
                 .map(LocalAgentState.Entry::detail).toList();
+    }
+
+    /**
+     * ★ Review M8/H6 in the full posture. Witness: drop the {@code contentUnchanged} refusal in {@code onFolderAnswered}
+     * — a yes given while a hook or instruction file changed starts a process and the named assertion fails.
+     */
+    @Test
+    @DisplayName("★ M8/H6: a full-posture yes starts only when the files the dialog named are unchanged; it asks for the trust record")
+    void aFullPostureYesIsBoundToWhatTheDialogShowed() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = driver(a);
+        d.post(new SessionEvents.LocalAgentStartRequested(3, full(FullMode.DEFAULT, true, false, BUDGET)));
+        assertTrue(a.agentConfirms.get(0).full());
+        d.post(new SessionEvents.LocalAgentFolderAnswered(3, true, false, full(FullMode.DEFAULT, true, false, BUDGET)));
+        assertEquals("FOLDER_CHANGED", state(d).verdict(), state(d).reason());
+        assertTrue(state(d).reason().contains("instruction files changed while the confirmation was open"), state(d).reason());
+        assertEquals(0, a.agentStarts.size(), "never started on files nobody was shown");
+        assertEquals(0, a.agentTrusts.size(), "nor trusted");
+
+        d.post(new SessionEvents.LocalAgentStartRequested(4, full(FullMode.DEFAULT, true, false, BUDGET)));
+        d.post(new SessionEvents.LocalAgentFolderAnswered(4, true, true, full(FullMode.DEFAULT, true, false, BUDGET)));
+        assertEquals(1, a.agentTrusts.size(), "the full-posture trust record is asked for");
+        assertEquals(1, a.agentStarts.size(), "and the start, in the full posture");
+        assertTrue(a.agentStarts.get(0).posture().isFull());
+        // review H4 carried through: the full posture's bridge also reaches a listener asked for first (hosted-only when
+        // the REST switch is off), never a refusal for REST being off
+        assertEquals(List.of("confirmFolder", "confirmFolder", "trustFolder", "serveBridge", "start"), a.agentOrder);
     }
 }
