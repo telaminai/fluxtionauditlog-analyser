@@ -73,6 +73,7 @@ public final class ConfigPanel extends JDialog {
     private final JLabel claudeCodeModeLabel = new JLabel("Mode:");
     private final JTextArea claudeCodeModeNote = plainNote();
     private final JTextField claudeCodeModelField = new JTextField(12);
+    private final JLabel claudeCodeModelLabel = new JLabel("Claude Code model:");
     // owner, 2026-10-17: optional and off by default — the person's own Claude plan has its own limits
     private final JCheckBox claudeCodeBudgetToggle = new JCheckBox("Limit spend per session (US$):");
     private final JSpinner claudeCodeBudgetSpinner = new JSpinner(new SpinnerNumberModel(5.0, 0.5, 1000.0, 0.5));
@@ -712,12 +713,126 @@ public final class ConfigPanel extends JDialog {
         @Override public boolean getScrollableTracksViewportHeight() { return false; }
     }
 
+    /**
+     * M74 UX (owner, 2026-10-17): every assistant option, grouped by the profile it belongs to — Safe analysis, Full Claude
+     * Code, the in-app assistant — and then what applies to every assistant. The four cards in the assistant's header set
+     * these in one step; this page keeps every option for power users. A child is enabled only while its parent is on:
+     * the full switch, the model and the spend limit need <i>Allow the analyser to start Claude Code</i>, the mode needs
+     * the full switch, the amount needs its box.
+     */
     private JPanel buildAssistantTab() {
         JPanel p = new JPanel(new GridBagLayout());
         p.setBorder(BorderFactory.createEmptyBorder(14, 16, 14, 16));
         GridBagConstraints c = new GridBagConstraints();
+        c.gridx = 0; c.gridwidth = 1; c.weightx = 1; c.anchor = GridBagConstraints.LINE_START;
+        c.fill = GridBagConstraints.HORIZONTAL; c.insets = new Insets(0, 0, 10, 0);
+        c.gridy = 0;
+        p.add(mutedNote("Choose how the assistant works in one step from the assistant's header (<b>Profile…</b>): "
+                + "<b>Safe analysis</b>, <b>Full Claude Code</b>, <b>In-app assistant</b> or <b>Off</b>. Every option "
+                + "those cards set is here, grouped by the profile it belongs to. All of them are this machine's only — "
+                + "never in a project, a shared settings file or a bundle."), c);
+        c.gridy = 1;
+        p.add(buildClaudeCodeSection(), c);
+        c.gridy = 2;
+        p.add(buildFullSection(), c);
+        c.gridy = 3;
+        p.add(buildInAppSection(), c);
+        c.gridy = 4;
+        p.add(buildEveryAssistantSection(), c);
+        c.gridy = 5; c.weighty = 1; c.fill = GridBagConstraints.BOTH;
+        p.add(Box.createGlue(), c);
+        claudeCodeToggle.addActionListener(e -> childrenFollowParents());
+        claudeCodeBudgetToggle.addActionListener(e -> childrenFollowParents());
+        return p;
+    }
+
+    /** A titled group, its rows in a two-column grid. */
+    private static JPanel group(String title) {
+        JPanel box = new JPanel(new GridBagLayout());
+        box.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createTitledBorder(title),
+                BorderFactory.createEmptyBorder(2, 4, 4, 4)));
+        return box;
+    }
+
+    /** M74 §5.1 / UX: Safe analysis — Claude Code in the Assistant tab, reading the evidence only. */
+    private JPanel buildClaudeCodeSection() {
+        JPanel box = group("Safe analysis — Claude Code reads the evidence");
+        GridBagConstraints g = new GridBagConstraints();
+        g.gridx = 0; g.gridwidth = 2; g.anchor = GridBagConstraints.LINE_START; g.insets = new Insets(2, 4, 2, 4);
+        claudeCodeToggle.setToolTipText("Lets the Assistant tab's Start button run YOUR installed claude, logged in as you, "
+                + "in the analyser-assistant posture: Read, Grep and Glob confined to the folder, the analyser's own "
+                + "non-destructive verbs, the folder's CLAUDE.md — no Bash, no edits, no web, none of your skills, hooks or "
+                + "MCP servers. Off by default; this machine only.");
+        claudeCodeBudgetToggle.setToolTipText("For API-key billing: stop a Claude Code session once it has spent this much. "
+                + "Off by default — on a Claude plan your plan's own usage limits apply anyway.");
+        g.gridy = 0; box.add(claudeCodeToggle, g);
+        g.gridwidth = 1;
+        g.gridy = 1; g.gridx = 0; g.insets = new Insets(2, 24, 2, 4); box.add(claudeCodeModelLabel, g);
+        g.gridx = 1; g.insets = new Insets(2, 4, 2, 4); box.add(claudeCodeModelField, g);
+        g.gridy = 2; g.gridx = 0; g.insets = new Insets(2, 20, 2, 4); box.add(claudeCodeBudgetToggle, g);
+        g.gridx = 1; g.insets = new Insets(2, 4, 2, 4); box.add(leftWrap(claudeCodeBudgetSpinner), g);
+        g.gridy = 3; g.gridx = 0; g.gridwidth = 2; g.fill = GridBagConstraints.HORIZONTAL; g.weightx = 1;
+        box.add(mutedNote("Start runs <b>your own</b> <code>claude</code> CLI, on your own Claude account; the analyser "
+                + "never reads or stores your Claude Code credentials. Start contacts Anthropic before your first Send "
+                + "(and in the full posture runs hooks); no record content is sent until you press Send. The spend limit "
+                + "is for API-key billing — on a Claude plan, your plan's own usage limits apply anyway. The model and "
+                + "limit are Claude Code's own (not the in-app provider's)."), g);
+        return box;
+    }
+
+    /** M74 §5.1 / UX: Full Claude Code — the second switch, its warning and its mode. */
+    private JPanel buildFullSection() {
+        JPanel box = group("Full Claude Code — your own set-up, skills and tools");
+        GridBagConstraints g = new GridBagConstraints();
+        g.gridx = 0; g.gridwidth = 2; g.anchor = GridBagConstraints.LINE_START; g.insets = new Insets(2, 4, 2, 4);
+        claudeCodeFullToggle.setToolTipText("Your own Claude Code — your settings, skills, hooks and MCP servers, and your "
+                + "tools as far as your permission rules and the mode allow. Turning it on shows a warning first; it needs "
+                + "Allow the analyser to start Claude Code.");
+        claudeCodeFullToggle.addActionListener(e -> onFullToggled());
+        claudeCodeModeCombo.addActionListener(e -> claudeCodeModeNote.setText(modeNote(
+                String.valueOf(claudeCodeModeCombo.getSelectedItem()))));
+        claudeCodeModeCombo.getAccessibleContext().setAccessibleName("Full Claude Code mode");
+        g.gridy = 0; g.weightx = 1; box.add(claudeCodeFullToggle, g);
+        g.weightx = 0;
+        g.gridwidth = 1;
+        g.gridy = 1; g.gridx = 0; g.insets = new Insets(2, 24, 2, 4); box.add(claudeCodeModeLabel, g);
+        g.gridx = 1; g.insets = new Insets(2, 4, 2, 4); box.add(claudeCodeModeCombo, g);
+        g.gridy = 2; g.gridx = 0; g.gridwidth = 2; g.fill = GridBagConstraints.HORIZONTAL; g.weightx = 1;
+        g.insets = new Insets(2, 24, 2, 4);
+        box.add(claudeCodeModeNote, g);
+        return box;
+    }
+
+    /** M74 UX: the in-app assistant — its provider is on the LLM page; how far it may act is here. */
+    private JPanel buildInAppSection() {
+        JPanel box = group("In-app assistant — your API key");
+        GridBagConstraints g = new GridBagConstraints();
+        g.gridx = 0; g.gridwidth = 2; g.anchor = GridBagConstraints.LINE_START; g.insets = new Insets(2, 4, 2, 4);
+        JButton llm = UiText.button("Provider, model and API key: the LLM page");
+        llm.addActionListener(e -> selectPage("LLM"));
+        g.gridy = 0; box.add(llm, g);
+        g.gridy = 1; box.add(actionsInProcess, g);
+        g.gridwidth = 1; g.insets = new Insets(6, 4, 3, 8);
+        g.gridy = 2; g.gridx = 0; g.anchor = GridBagConstraints.LINE_END; box.add(new JLabel("Max action rounds:"), g);
+        g.gridx = 1; g.weightx = 1; g.anchor = GridBagConstraints.LINE_START; box.add(leftWrap(maxRoundsSpinner), g);
+        g.weightx = 0;
+        g.gridy = 3; g.gridx = 0; g.anchor = GridBagConstraints.LINE_END; box.add(new JLabel("Max actions per reply:"), g);
+        JPanel caps = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 6, 0));
+        caps.add(maxActionsSpinner);
+        caps.add(new JLabel("per turn, across its rounds:"));
+        maxTurnActionsSpinner.setToolTipText("The onboard assistant's budget for one question: when it is spent the turn "
+                + "ends and says so, whatever the per-reply cap and round limit would still allow");
+        caps.add(maxTurnActionsSpinner);
+        g.gridx = 1; g.weightx = 1; g.anchor = GridBagConstraints.LINE_START; box.add(leftWrap(caps), g);
+        return box;
+    }
+
+    /** What applies to every assistant: the local bridge, file exchange, project creation. */
+    private JPanel buildEveryAssistantSection() {
+        JPanel box = group("Every assistant — the bridge, files and projects");
+        GridBagConstraints c = new GridBagConstraints();
         c.gridx = 0; c.anchor = GridBagConstraints.LINE_START; c.fill = GridBagConstraints.NONE;
-        c.gridwidth = 2; c.insets = new Insets(3, 0, 3, 0);
+        c.gridwidth = 2; c.insets = new Insets(3, 4, 3, 4);
         JButton connect = new JButton("Connect an AI client…");
         connect.addActionListener(e -> McpSetupDialog.show(this, config, () -> {
             // The nested setup may persistently enable REST. Mirror that direct state change into this
@@ -725,20 +840,17 @@ public final class ConfigPanel extends JDialog {
             actionsRest.setSelected(config.assistantActionsRest);
             if (onSaved != null) onSaved.run();
         }, McpSetupDialog.Target.fromPersisted(config.mcpSetupTarget, McpSetupDialog.Target.GENERIC), true));
-        c.gridy = 0; p.add(connect, c);
-        c.gridy = 1; p.add(actionsInProcess, c);
-        c.gridy = 2; p.add(actionsRest, c);
-        c.gridy = 3; p.add(exportsToggle, c);
+        c.gridy = 0; box.add(connect, c);
+        c.gridy = 1; box.add(actionsRest, c);
+        c.gridy = 2; box.add(exportsToggle, c);
         createProjectsToggle.setToolTipText("Lets an assistant (MCP/REST or the in-app one) create a project with "
                 + "open {project, create}: it writes .analyser/project.fluxtion-settings in a directory it names, never "
                 + "over an existing one. Project ▸ New project… is never gated by this. This machine only — never in a "
                 + "project, a shared settings file or a bundle.");
-        c.gridy = 4; p.add(createProjectsToggle, c);
+        c.gridy = 3; box.add(createProjectsToggle, c);
 
-        // label column stays at preferred width; the value column takes all spare width so the
-        // spinners keep their preferred size instead of being squeezed / clipped on the right
-        c.gridwidth = 1; c.insets = new Insets(6, 0, 3, 8);
-        c.gridy = 5; c.gridx = 0; c.weightx = 0; c.anchor = GridBagConstraints.LINE_END; p.add(new JLabel("Export directory:"), c);
+        c.gridwidth = 1; c.insets = new Insets(6, 4, 3, 8);
+        c.gridy = 4; c.gridx = 0; c.weightx = 0; c.anchor = GridBagConstraints.LINE_END; box.add(new JLabel("Export directory:"), c);
         c.gridx = 1; c.weightx = 1; c.anchor = GridBagConstraints.LINE_START; c.fill = GridBagConstraints.HORIZONTAL;
         JPanel dirRow = new JPanel(new BorderLayout(6, 0));
         dirRow.setOpaque(false);
@@ -752,84 +864,44 @@ public final class ConfigPanel extends JDialog {
             }
         });
         dirRow.add(browseExport, BorderLayout.EAST);
-        p.add(dirRow, c);
+        box.add(dirRow, c);
 
         // #21: the project's own preference, typed rather than browsed — it is a path INSIDE the
         // repository, and a file chooser would invite the absolute machine path the gate refuses.
-        c.gridy = 6; c.gridx = 0; c.weightx = 0; c.anchor = GridBagConstraints.LINE_END;
-        p.add(new JLabel("This project's directory:"), c);
-        c.gridx = 1; c.weightx = 1; c.anchor = GridBagConstraints.LINE_START;
+        c.gridy = 5; c.gridx = 0; c.weightx = 0; c.fill = GridBagConstraints.NONE; c.anchor = GridBagConstraints.LINE_END;
+        box.add(new JLabel("This project's directory:"), c);
+        c.gridx = 1; c.weightx = 1; c.anchor = GridBagConstraints.LINE_START; c.fill = GridBagConstraints.HORIZONTAL;
         projectExchangeField.setToolTipText("Relative to the project root, e.g. src/report/shared — "
                 + "no '..', no absolute path. Blank means use the export directory above.");
-        p.add(projectExchangeField, c);
+        box.add(projectExchangeField, c);
 
-        c.fill = GridBagConstraints.NONE;
-        c.gridy = 7; c.gridx = 0; c.weightx = 0; c.anchor = GridBagConstraints.LINE_END; p.add(new JLabel("Max action rounds:"), c);
-        c.gridx = 1; c.weightx = 1; c.anchor = GridBagConstraints.LINE_START; p.add(leftWrap(maxRoundsSpinner), c);
-        c.gridy = 8; c.gridx = 0; c.weightx = 0; c.anchor = GridBagConstraints.LINE_END; p.add(new JLabel("Max actions per reply:"), c);
-        JPanel caps = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 6, 0));
-        caps.add(maxActionsSpinner);
-        caps.add(new JLabel("per turn, across its rounds:"));
-        maxTurnActionsSpinner.setToolTipText("The onboard assistant's budget for one question: when it is spent the turn "
-                + "ends and says so, whatever the per-reply cap and round limit would still allow");
-        caps.add(maxTurnActionsSpinner);
-        c.gridx = 1; c.weightx = 1; c.anchor = GridBagConstraints.LINE_START; p.add(leftWrap(caps), c);
-        c.weightx = 0;
-
-        c.gridx = 0; c.gridy = 9; c.gridwidth = 2; c.weightx = 1; c.fill = GridBagConstraints.HORIZONTAL;
-        c.insets = new Insets(14, 0, 4, 0);
-        p.add(mutedNote("The assistant can <b>compute over the index</b> and <b>build curation</b> (filter / "
+        c.gridx = 0; c.gridy = 6; c.gridwidth = 2; c.weightx = 1; c.fill = GridBagConstraints.HORIZONTAL;
+        c.insets = new Insets(10, 4, 4, 4);
+        box.add(mutedNote("The assistant can <b>compute over the index</b> and <b>build curation</b> (filter / "
                 + "graph / goto / flag) as it answers. <b>In-process</b> opens no port. <b>REST</b> exposes a "
                 + "<b>loopback-only</b> endpoint (127.0.0.1) guarded by a per-run token, for an external agent that "
                 + "can make HTTP calls — its URL + token appear in the status bar (and console) when enabled. "
                 + "<b>File exports are off by default</b>: when allowed, the screenshot/report verbs may write "
                 + "<b>only inside the exchange directory</b> above; external-series reads are confined to the same directory (or files you pick in a chooser), and writes never overwrite an existing file."), c);
-        c.gridy = 10; c.insets = new Insets(14, 0, 4, 0);
-        p.add(buildClaudeCodeSection(), c);
-        c.gridy = 11; c.weighty = 1; c.fill = GridBagConstraints.BOTH;
-        p.add(Box.createGlue(), c);
-        return p;
+        return box;
     }
 
-    /** M74 §5.1: the Claude Code switches, model and budget — this machine only. */
-    private JPanel buildClaudeCodeSection() {
-        JPanel box = new JPanel(new GridBagLayout());
-        box.setBorder(BorderFactory.createTitledBorder("Claude Code in the Assistant tab"));
-        GridBagConstraints g = new GridBagConstraints();
-        g.gridx = 0; g.gridwidth = 2; g.anchor = GridBagConstraints.LINE_START; g.insets = new Insets(2, 4, 2, 4);
-        claudeCodeToggle.setToolTipText("Lets the Assistant tab's Start button run YOUR installed claude, logged in as you, "
-                + "in the analyser-assistant posture: Read, Grep and Glob confined to the folder, the analyser's own "
-                + "non-destructive verbs, the folder's CLAUDE.md — no Bash, no edits, no web, none of your skills, hooks or "
-                + "MCP servers. Off by default; this machine only.");
-        claudeCodeFullToggle.setToolTipText("Your own Claude Code — your settings, skills, hooks and MCP servers, and your "
-                + "tools as far as your permission rules and the mode allow. Turning it on shows a warning first.");
-        claudeCodeFullToggle.addActionListener(e -> onFullToggled());
-        claudeCodeModeCombo.addActionListener(e -> claudeCodeModeNote.setText(modeNote(
-                String.valueOf(claudeCodeModeCombo.getSelectedItem()))));
-        claudeCodeModeCombo.getAccessibleContext().setAccessibleName("Full Claude Code mode");
-        claudeCodeBudgetToggle.setToolTipText("For API-key billing: stop a Claude Code session once it has spent this much. "
-                + "Off by default — on a Claude plan your plan's own usage limits apply anyway.");
-        claudeCodeBudgetToggle.addActionListener(e -> claudeCodeBudgetSpinner.setEnabled(claudeCodeBudgetToggle.isSelected()));
-        g.gridy = 0; box.add(claudeCodeToggle, g);
-        g.gridy = 1; box.add(claudeCodeFullToggle, g);
-        g.gridwidth = 1;
-        g.gridy = 2; g.gridx = 0; box.add(claudeCodeModeLabel, g);
-        g.gridx = 1; box.add(claudeCodeModeCombo, g);
-        g.gridy = 3; g.gridx = 0; g.gridwidth = 2; g.fill = GridBagConstraints.HORIZONTAL; g.weightx = 1;
-        box.add(claudeCodeModeNote, g);
-        g.fill = GridBagConstraints.NONE; g.weightx = 0;
-        g.gridwidth = 1;
-        g.gridy = 6; g.gridx = 0; box.add(new JLabel("Claude Code model:"), g);
-        g.gridx = 1; box.add(claudeCodeModelField, g);
-        g.gridy = 7; g.gridx = 0; box.add(claudeCodeBudgetToggle, g);
-        g.gridx = 1; box.add(leftWrap(claudeCodeBudgetSpinner), g);
-        g.gridy = 8; g.gridx = 0; g.gridwidth = 2; g.fill = GridBagConstraints.HORIZONTAL; g.weightx = 1;
-        box.add(mutedNote("Start runs <b>your own</b> <code>claude</code> CLI, on your own Claude account; the analyser "
-                + "never reads or stores your Claude Code credentials. Start contacts Anthropic before your first Send "
-                + "(and in the full posture runs hooks); no record content is sent until you press Send. The spend limit "
-                + "is for API-key billing — on a Claude plan, your plan's own usage limits apply anyway. The model and "
-                + "limit are Claude Code's own (not the in-app provider's)."), g);
-        return box;
+    /**
+     * M74 UX (the holistic review): a child is enabled only while its parent is on — the full switch, the model and the
+     * spend limit need Claude Code allowed; the amount needs its box; the mode needs the full switch (and is shown only
+     * then, as before).
+     */
+    void childrenFollowParents() {
+        boolean allowed = claudeCodeToggle.isSelected();
+        claudeCodeFullToggle.setEnabled(allowed);
+        claudeCodeModelLabel.setEnabled(allowed);
+        claudeCodeModelField.setEnabled(allowed);
+        claudeCodeBudgetToggle.setEnabled(allowed);
+        claudeCodeBudgetSpinner.setEnabled(allowed && claudeCodeBudgetToggle.isSelected());
+        boolean full = allowed && claudeCodeFullToggle.isSelected();
+        claudeCodeModeLabel.setEnabled(full);
+        claudeCodeModeCombo.setEnabled(full);
+        claudeCodeModeNote.setEnabled(full);
     }
 
     /**
@@ -847,6 +919,7 @@ public final class ConfigPanel extends JDialog {
         claudeCodeModeLabel.setVisible(on);
         claudeCodeModeCombo.setVisible(on);
         claudeCodeModeNote.setVisible(on);
+        childrenFollowParents();
         revalidate();
         repaint();
         if (isShowing()) SwingUtilities.invokeLater(this::growToFit);
@@ -982,11 +1055,28 @@ public final class ConfigPanel extends JDialog {
                 : Math.max(0.5, Math.min(1000.0, config.claudeCodeBudgetUsd)));
         claudeCodeBudgetSpinner.setEnabled(claudeCodeBudgetToggle.isSelected());
         fullPostureShown();
+        loadedAssistant = assistantSwitches();
         exportDirField.setText(config.assistantExportDir == null ? "" : config.assistantExportDir);
         projectExchangeField.setText(config.projectExchangeDir == null ? "" : config.projectExchangeDir);
         maxRoundsSpinner.setValue(config.maxActionRounds);
         maxActionsSpinner.setValue(config.maxActionsPerReply);
         maxTurnActionsSpinner.setValue(config.maxActionsPerTurn);
+    }
+
+    /** What Settings shows of the assistant's switches when it opened, to tell whether a save changed any. */
+    private java.util.List<Object> loadedAssistant = java.util.List.of();
+
+    private java.util.List<Object> assistantSwitches() {
+        return java.util.List.of(claudeCodeToggle.isSelected(), claudeCodeFullToggle.isSelected(),
+                String.valueOf(providerCombo.getSelectedItem()), apiKeyField.getText().trim());
+    }
+
+    /** The card the switches amount to after a Settings change: Claude Code on → Safe or Full; a key → In-app. */
+    static String profileFromSwitches(AppConfig c) {
+        if (c.claudeCodeAllowed) return c.claudeCodeFull ? "FULL" : "SAFE";
+        if (c.apiKey != null && !c.apiKey.isBlank()) return "IN_APP";
+        return telamin.fluxtion.audit.analyser.analyser.session.AssistantProfile.parse(c.assistantProfile)
+                == telamin.fluxtion.audit.analyser.analyser.session.AssistantProfile.NONE ? null : "OFF";
     }
 
     private void saveToConfig() {
@@ -1059,6 +1149,11 @@ public final class ConfigPanel extends JDialog {
         config.maxActionRounds = (Integer) maxRoundsSpinner.getValue();
         config.maxActionsPerTurn = (Integer) maxTurnActionsSpinner.getValue();
         config.maxActionsPerReply = (Integer) maxActionsSpinner.getValue();
+        // M74 UX: an assistant switch or the key changed here — the stored profile follows the switches again (Off ends
+        // when an assistant is turned on); otherwise the person's card choice stands
+        if (!assistantSwitches().equals(loadedAssistant)) {
+            config.assistantProfile = profileFromSwitches(config);
+        }
         if (onSaved != null) onSaved.run();
     }
 

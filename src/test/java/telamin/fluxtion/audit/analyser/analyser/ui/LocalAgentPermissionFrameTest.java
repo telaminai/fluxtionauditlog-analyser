@@ -168,7 +168,7 @@ class LocalAgentPermissionFrameTest {
             onEdt(() -> render(ex, "open", Map.of("project", profile.toString())));
             AssistantPanel assistant = (AssistantPanel) field(f, "assistantPanel");
             LocalAgentPanel panel = (LocalAgentPanel) field(f, "localAgentPanel");
-            onEdt(() -> assistant.claudeModeButton().doClick());
+            onEdt(() -> assistant.modeSelector().setSelectedIndex(0));
             ClaudeCodeTabFrameTest.awaitState(f, s -> s.mode() == telamin.fluxtion.audit.analyser.analyser.session.AssistantMode.LOCAL_AGENT, "Claude Code");
             onEdt(() -> ((JButton) field(panel, "start")).doClick());
             JDialog folder = ClaudeCodeTabFrameTest.awaitDialog(ClaudeCodeTabFrameTest.DIALOG_TITLE);

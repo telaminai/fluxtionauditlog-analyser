@@ -118,6 +118,10 @@ public final class TranscriptView extends JTextPane {
 
     private Chips chips = Chips.NONE;
     private Navigator navigator = Navigator.NONE;
+    /** M74 UX: who an answer is from — "Claude Code", or "Assistant" for the in-app assistant (one view, both modes). */
+    private String speaker = TranscriptStyle.marker(TranscriptStyle.Role.CLAUDE);
+    /** M74 UX: a tool line's expanded block holds the call's input (Claude Code) or its result (the in-app assistant). */
+    private String expandedWhat = "input";
     private LinkConfirm.Asker asker = LinkConfirm.DIALOG;
     private Consumer<URI> opener = uri -> {
         try {
@@ -175,6 +179,26 @@ public final class TranscriptView extends JTextPane {
 
     public void setNavigator(Navigator navigator) {
         this.navigator = navigator == null ? Navigator.NONE : navigator;
+    }
+
+    /**
+     * M74 UX: who the answers are from, and what an expanded tool line shows. A change re-renders everything on the next
+     * {@link #render} (the unified panel calls this when its mode changes).
+     */
+    public void setSpeaker(String speaker, String expandedWhat) {
+        String next = speaker == null || speaker.isBlank() ? TranscriptStyle.marker(TranscriptStyle.Role.CLAUDE) : speaker;
+        String what = expandedWhat == null || expandedWhat.isBlank() ? "input" : expandedWhat;
+        if (next.equals(this.speaker) && what.equals(this.expandedWhat)) return;
+        this.speaker = next;
+        this.expandedWhat = what;
+        getAccessibleContext().setAccessibleName(next + " conversation");
+        rendered.clear();
+        renderedDark = !ThemeManager.isDark();          // the next render is a full one
+    }
+
+    /** Who the answers are from. */
+    public String speaker() {
+        return speaker;
     }
 
     /** Test seams: the link confirmation, the browser and the clipboard. */
@@ -263,10 +287,28 @@ public final class TranscriptView extends JTextPane {
                 put(doc, "\n\n", base(p.body(), dark), item);
             }
             case CLAUDE, STOPPED -> renderAnswer(doc, item, dark);
-            case NOTE, TOOL -> {
+            case NOTE -> {
                 SimpleAttributeSet a = smaller(base(p.muted(), dark));
                 StyleConstants.setItalic(a, true);
                 put(doc, VisibleMarks.show(item.text()) + "\n\n", a, item);
+            }
+            // M74 UX: a tool line of its own (the in-app assistant's actions): the same line, marks and toggle as Claude
+            // Code's tool lines inside an answer
+            case TOOL -> {
+                int i = 0;
+                for (String line : item.text().split("\n", -1)) {
+                    if (line.startsWith("▸ ")) renderTool(doc, line, item, i++, dark);
+                }
+            }
+            // M74 UX: a demonstration's lines, as written: the first line of a block bold (who speaks), the rest plain
+            case PLAIN -> {
+                String text = item.text();
+                int nl = text.indexOf('\n');
+                if (nl > 0 && text.substring(0, nl).endsWith(":")) {
+                    put(doc, VisibleMarks.show(text.substring(0, nl + 1)), bold(base(p.body(), dark)), item);
+                    text = text.substring(nl + 1);
+                }
+                put(doc, VisibleMarks.show(text) + "\n", base(p.body(), dark), item);
             }
         }
     }
@@ -275,7 +317,7 @@ public final class TranscriptView extends JTextPane {
         TranscriptStyle.Palette p = TranscriptStyle.palette(dark);
         boolean stopped = item.role() == TranscriptStyle.Role.STOPPED;
         SimpleAttributeSet head = bold(base(p.link(), dark));
-        put(doc, TranscriptStyle.marker(TranscriptStyle.Role.CLAUDE), head, item);
+        put(doc, speaker, head, item);
         SimpleAttributeSet note = smaller(base(p.muted(), dark));
         put(doc, "  " + TranscriptStyle.NOT_VERIFIED + "\n", note, item);
         Color ink = stopped ? p.muted() : p.body();
@@ -535,8 +577,8 @@ public final class TranscriptView extends JTextPane {
         toggle.setContentAreaFilled(false);
         toggle.setFont(UiTheme.mono(fontSize()));
         toggle.getAccessibleContext().setAccessibleName(VisibleMarks.show(name) + " — " + mark.spoken
-                + (open ? ", expanded" : ", collapsed: press to show its input"));
-        toggle.setToolTipText(UiText.tooltip(open ? "Hide this call's input" : "Show this call's input"));
+                + (open ? ", expanded" : ", collapsed: press to show its " + expandedWhat));
+        toggle.setToolTipText(UiText.tooltip(open ? "Hide this call's " + expandedWhat : "Show this call's " + expandedWhat));
         toggle.addActionListener(e -> {
             if (!expanded.remove(key)) expanded.add(key);
             restyleKeepingTheme();
@@ -698,7 +740,8 @@ public final class TranscriptView extends JTextPane {
         List<Integer> turns = new ArrayList<>();
         for (int i = 0; i < rendered.size(); i++) {
             TranscriptStyle.Role r = rendered.get(i).item().role();
-            if (r == TranscriptStyle.Role.YOU || r == TranscriptStyle.Role.CLAUDE || r == TranscriptStyle.Role.STOPPED) {
+            if (r == TranscriptStyle.Role.YOU || r == TranscriptStyle.Role.CLAUDE || r == TranscriptStyle.Role.STOPPED
+                    || r == TranscriptStyle.Role.PLAIN) {
                 turns.add(i);
             }
         }
@@ -713,7 +756,7 @@ public final class TranscriptView extends JTextPane {
                     new DefaultHighlighter.DefaultHighlightPainter(TranscriptStyle.palette(renderedDark).chipBackground()));
             setCaretPosition(r.start());
             getAccessibleContext().setAccessibleDescription(r.item().role() == TranscriptStyle.Role.YOU
-                    ? "your turn" : "Claude Code's answer");
+                    ? "your turn" : speaker + "'s answer");
         } catch (BadLocationException e) {
             throw new IllegalStateException(e);
         }

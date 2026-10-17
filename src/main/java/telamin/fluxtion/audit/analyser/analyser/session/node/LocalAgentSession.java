@@ -1318,6 +1318,14 @@ public class LocalAgentSession implements EventLogSource {
         return openTicket;
     }
 
+    /**
+     * M74 UX: a turn is open, being stopped, or a question is held for it (read by assistantProfile, downstream: a profile
+     * is never applied mid-turn — the rule a mode switch already follows, review M2).
+     */
+    public boolean turnInProgress() {
+        return openTicket != 0 || "STOPPING".equals(phase) || pendingDraft != 0;
+    }
+
     /** The posture the current (or last) process was started in. */
     public LocalAgentPosture currentPosture() {
         return posture;

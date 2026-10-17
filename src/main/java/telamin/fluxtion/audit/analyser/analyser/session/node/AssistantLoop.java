@@ -693,6 +693,11 @@ public class AssistantLoop implements EventLogSource {
         return "PREPARING".equals(phase) || "REQUESTING".equals(phase) || "RUNNING_ACTION".equals(phase);
     }
 
+    /** M74 UX: a turn is in progress (read by assistantProfile, downstream: a profile is never applied mid-turn). */
+    public boolean turnInProgress() {
+        return busy();
+    }
+
     private boolean owns(SessionEvents.AssistantActionOrigin origin) {
         return origin != null && "RUNNING_ACTION".equals(phase)
                 && origin.ticket() == ticket && origin.action() == runningAction;

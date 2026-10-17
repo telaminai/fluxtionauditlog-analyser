@@ -65,7 +65,9 @@ class FactFieldsTest {
                 "ProposalItemPreviewed.refusal", "ProposalItemApplied.outcome", "ProposalChecked.pairing",
                 "ProposalChecked.fit", "ProposalEffectStarted.what", "LocalAgentPermissionRequested.name",
                 "LocalAgentPermissionAnswered.name", "HostedCallPresented.verb", "ExampleDownloadConfirmed.targetProblem",
-                "ExampleEffectStarted.what")) {
+                "ExampleEffectStarted.what",
+                // M74 UX: the assistant profile's facts — who opened or closed the cards (an origin word)
+                "AssistantProfilesRequested.origin", "AssistantProfilesClosed.origin")) {
             M74.put(c, Holds.VOCABULARY);
         }
         for (String c : List.of("LocalAgentConsent.postureRef", "LocalAgentStatusObserved.hostedNonceDigest",
@@ -84,7 +86,7 @@ class FactFieldsTest {
             M74.put(c, Holds.SHOWN_PATH);
         }
         for (String c : List.of("DraftPlaced.reason", "ProposalItemApplied.why", "ExampleFetched.failure",
-                "ExampleUnpacked.failure")) {
+                "ExampleUnpacked.failure", "AssistantProfileApplied.reason")) {
             M74.put(c, Holds.ANALYSER_WORDS);
         }
         for (String c : List.of("LocalAgentStatusObserved.servers", "LocalAgentInitObserved.servers",

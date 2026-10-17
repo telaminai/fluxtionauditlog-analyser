@@ -83,6 +83,8 @@ class ForeignTextIsPlainTest {
                         + "plainCells where MainFrame builds it");
         REVIEWED.put("ConfigPanel.java: new JLabel(\"<html><div style='width:\" + NOTE_WIDTH + \"px'>\" + innerHtml + \"</div></html>\")",
                 "mutedNote's parameter is the panel's own help markup: every caller passes a literal");
+        REVIEWED.put("ConfigPanel.java: createTitledBorder(title)",
+                "group's parameter (M74 UX, Settings ▸ Assistant by profile): every caller passes a literal heading");
     }
 
     // ---- the doors -------------------------------------------------------------------------------------------------

@@ -57,6 +57,12 @@ import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantM
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantNewChatRequested;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantOpenApplied;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantOpenApplyFailed;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantProfileApplied;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantProfileChosen;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantProfileObserved;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantProfilesClosed;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantProfilesRequested;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantProfilesShown;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantSendRequested;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleCaptureRequested;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleDeleted;
@@ -164,6 +170,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.WalkViewCh
 import telamin.fluxtion.audit.analyser.analyser.session.node.ActiveProject;
 import telamin.fluxtion.audit.analyser.analyser.session.node.AssistantLoop;
 import telamin.fluxtion.audit.analyser.analyser.session.node.AssistantModeChoice;
+import telamin.fluxtion.audit.analyser.analyser.session.node.AssistantProfileChoice;
 import telamin.fluxtion.audit.analyser.analyser.session.node.AuditInstallation;
 import telamin.fluxtion.audit.analyser.analyser.session.node.BundleAnchor;
 import telamin.fluxtion.audit.analyser.analyser.session.node.CoverageClaim;
@@ -230,6 +237,12 @@ import telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Requ
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantNewChatRequested
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantOpenApplied
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantOpenApplyFailed
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantProfileApplied
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantProfileChosen
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantProfileObserved
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantProfilesClosed
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantProfilesRequested
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantProfilesShown
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantSendRequested
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleCaptureRequested
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleDeleted
@@ -405,6 +418,9 @@ public class SessionProcessor
   public final transient LocalAgentSession localAgentSession =
       new telamin.fluxtion.audit.analyser.analyser.session.node.LocalAgentSession(
           assistantMode, effectQueue);;
+  public final transient AssistantProfileChoice assistantProfile =
+      new telamin.fluxtion.audit.analyser.analyser.session.node.AssistantProfileChoice(
+          localAgentSession, assistantLoop, effectQueue);;
   public final transient LocalAgentPermission localAgentPermission =
       new telamin.fluxtion.audit.analyser.analyser.session.node.LocalAgentPermission(
           localAgentSession, effectQueue);;
@@ -443,13 +459,14 @@ public class SessionProcessor
   //Measured saving on a 3-event-type graph: 0.098ns of a 5.61ns event on a JIT; nothing on native+PGO.
   private boolean callbacksPending = false;
   private final transient IdentityHashMap<Object, BooleanSupplier> dirtyFlagSupplierMap =
-      new IdentityHashMap<>(12);
+      new IdentityHashMap<>(13);
   private final transient IdentityHashMap<Object, Consumer<Boolean>> dirtyFlagUpdateMap =
-      new IdentityHashMap<>(12);
+      new IdentityHashMap<>(13);
 
   private boolean isDirty_activeProject = false;
   private boolean isDirty_assistantLoop = false;
   private boolean isDirty_assistantMode = false;
+  private boolean isDirty_assistantProfile = false;
   private boolean isDirty_auditInstallation = false;
   private boolean isDirty_localAgentPermission = false;
   private boolean isDirty_localAgentSession = false;
@@ -533,6 +550,30 @@ public class SessionProcessor
             new ProcessorDescriptor.Input(
                 "AssistantOpenApplyFailed",
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantOpenApplyFailed",
+                false),
+            new ProcessorDescriptor.Input(
+                "AssistantProfileApplied",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantProfileApplied",
+                false),
+            new ProcessorDescriptor.Input(
+                "AssistantProfileChosen",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantProfileChosen",
+                false),
+            new ProcessorDescriptor.Input(
+                "AssistantProfileObserved",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantProfileObserved",
+                false),
+            new ProcessorDescriptor.Input(
+                "AssistantProfilesClosed",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantProfilesClosed",
+                false),
+            new ProcessorDescriptor.Input(
+                "AssistantProfilesRequested",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantProfilesRequested",
+                false),
+            new ProcessorDescriptor.Input(
+                "AssistantProfilesShown",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantProfilesShown",
                 false),
             new ProcessorDescriptor.Input(
                 "AssistantSendRequested",
@@ -988,7 +1029,7 @@ public class SessionProcessor
           new DescriptorSupport.Meta(
               null,
               "1.0.76",
-              "9ace492f5f5ab4f4eb7fea25ef0b965a70e8843526c52ec87d71a63c835f79c6",
+              "c00daae7cd8ac5011cf7b973945b0be7d2e51fecc6ceb9780ce2d0ea6ace3b04",
               null));
 
   @Override
@@ -1018,6 +1059,7 @@ public class SessionProcessor
     localAgentSession.setOpenLog(openLog);
     sessionBoundary.setLocalAgentSession(localAgentSession);
     sessionBoundary.setOnboardingProposal(onboardingProposal);
+    startPagePrompt.setAssistantProfile(assistantProfile);
     //node auditors
     initialiseAuditor(clock);
     initialiseAuditor(eventLogger);
@@ -1206,6 +1248,24 @@ public class SessionProcessor
       handleEvent(typedEvent);
     } else if (event instanceof AssistantOpenApplyFailed) {
       AssistantOpenApplyFailed typedEvent = (AssistantOpenApplyFailed) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof AssistantProfileApplied) {
+      AssistantProfileApplied typedEvent = (AssistantProfileApplied) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof AssistantProfileChosen) {
+      AssistantProfileChosen typedEvent = (AssistantProfileChosen) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof AssistantProfileObserved) {
+      AssistantProfileObserved typedEvent = (AssistantProfileObserved) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof AssistantProfilesClosed) {
+      AssistantProfilesClosed typedEvent = (AssistantProfilesClosed) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof AssistantProfilesRequested) {
+      AssistantProfilesRequested typedEvent = (AssistantProfilesRequested) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof AssistantProfilesShown) {
+      AssistantProfilesShown typedEvent = (AssistantProfilesShown) event;
       handleEvent(typedEvent);
     } else if (event instanceof AssistantSendRequested) {
       AssistantSendRequested typedEvent = (AssistantSendRequested) event;
@@ -1641,6 +1701,36 @@ public class SessionProcessor
 
   @OnEventHandler(failBuildIfMissingBooleanReturn = false)
   public void onEvent(AssistantOpenApplyFailed event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(AssistantProfileApplied event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(AssistantProfileChosen event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(AssistantProfileObserved event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(AssistantProfilesClosed event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(AssistantProfilesRequested event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(AssistantProfilesShown event) {
     processEvent(event);
   }
 
@@ -2421,11 +2511,61 @@ public class SessionProcessor
     afterEvent();
   }
 
+  public void handleEvent(AssistantProfileApplied typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(assistantProfile, "assistantProfile", "onProfileApplied", typedEvent);
+    isDirty_assistantProfile = assistantProfile.onProfileApplied(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(AssistantProfileChosen typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(assistantProfile, "assistantProfile", "onProfileChosen", typedEvent);
+    isDirty_assistantProfile = assistantProfile.onProfileChosen(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(AssistantProfileObserved typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(assistantProfile, "assistantProfile", "onProfileObserved", typedEvent);
+    isDirty_assistantProfile = assistantProfile.onProfileObserved(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(AssistantProfilesClosed typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(assistantProfile, "assistantProfile", "onProfilesClosed", typedEvent);
+    isDirty_assistantProfile = assistantProfile.onProfilesClosed(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(AssistantProfilesRequested typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(assistantProfile, "assistantProfile", "onProfilesRequested", typedEvent);
+    isDirty_assistantProfile = assistantProfile.onProfilesRequested(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(AssistantProfilesShown typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(assistantProfile, "assistantProfile", "onProfilesShown", typedEvent);
+    isDirty_assistantProfile = assistantProfile.onProfilesShown(typedEvent);
+    afterEvent();
+  }
+
   public void handleEvent(AssistantSendRequested typedEvent) {
     auditEvent(typedEvent);
     //Default, no filter methods
     auditInvocation(assistantLoop, "assistantLoop", "onSendRequested", typedEvent);
     isDirty_assistantLoop = assistantLoop.onSendRequested(typedEvent);
+    auditInvocation(assistantProfile, "assistantProfile", "onAssistantSend", typedEvent);
+    isDirty_assistantProfile = assistantProfile.onAssistantSend(typedEvent);
     if (guardCheck_walkPlayback()) {
       auditInvocation(walkPlayback, "walkPlayback", "onLogChanged", typedEvent);
       walkPlayback.onLogChanged();
@@ -2970,6 +3110,8 @@ public class SessionProcessor
     //Default, no filter methods
     auditInvocation(localAgentSession, "localAgentSession", "onSendRequested", typedEvent);
     isDirty_localAgentSession = localAgentSession.onSendRequested(typedEvent);
+    auditInvocation(assistantProfile, "assistantProfile", "onLocalAgentSend", typedEvent);
+    isDirty_assistantProfile = assistantProfile.onLocalAgentSend(typedEvent);
     if (guardCheck_walkPlayback()) {
       auditInvocation(walkPlayback, "walkPlayback", "onLogChanged", typedEvent);
       walkPlayback.onLogChanged();
@@ -3018,6 +3160,8 @@ public class SessionProcessor
     //Default, no filter methods
     auditInvocation(localAgentSession, "localAgentSession", "onStartRequested", typedEvent);
     isDirty_localAgentSession = localAgentSession.onStartRequested(typedEvent);
+    auditInvocation(assistantProfile, "assistantProfile", "onStartRequested", typedEvent);
+    isDirty_assistantProfile = assistantProfile.onStartRequested(typedEvent);
     if (guardCheck_walkPlayback()) {
       auditInvocation(walkPlayback, "walkPlayback", "onLogChanged", typedEvent);
       walkPlayback.onLogChanged();
@@ -3655,6 +3799,8 @@ public class SessionProcessor
   public void handleEvent(StartPagePromptSent typedEvent) {
     auditEvent(typedEvent);
     //Default, no filter methods
+    auditInvocation(assistantProfile, "assistantProfile", "onStartPageSent", typedEvent);
+    isDirty_assistantProfile = assistantProfile.onStartPageSent(typedEvent);
     auditInvocation(startPagePrompt, "startPagePrompt", "onSent", typedEvent);
     startPagePrompt.onSent(typedEvent);
     afterEvent();
@@ -3984,11 +4130,43 @@ public class SessionProcessor
       auditEvent(typedEvent);
       auditInvocation(assistantLoop, "assistantLoop", "onAssistantOpenApplyFailed", typedEvent);
       isDirty_assistantLoop = assistantLoop.onAssistantOpenApplyFailed(typedEvent);
+    } else if (event instanceof AssistantProfileApplied) {
+      AssistantProfileApplied typedEvent = (AssistantProfileApplied) event;
+      auditEvent(typedEvent);
+      auditInvocation(assistantProfile, "assistantProfile", "onProfileApplied", typedEvent);
+      isDirty_assistantProfile = assistantProfile.onProfileApplied(typedEvent);
+    } else if (event instanceof AssistantProfileChosen) {
+      AssistantProfileChosen typedEvent = (AssistantProfileChosen) event;
+      auditEvent(typedEvent);
+      auditInvocation(assistantProfile, "assistantProfile", "onProfileChosen", typedEvent);
+      isDirty_assistantProfile = assistantProfile.onProfileChosen(typedEvent);
+    } else if (event instanceof AssistantProfileObserved) {
+      AssistantProfileObserved typedEvent = (AssistantProfileObserved) event;
+      auditEvent(typedEvent);
+      auditInvocation(assistantProfile, "assistantProfile", "onProfileObserved", typedEvent);
+      isDirty_assistantProfile = assistantProfile.onProfileObserved(typedEvent);
+    } else if (event instanceof AssistantProfilesClosed) {
+      AssistantProfilesClosed typedEvent = (AssistantProfilesClosed) event;
+      auditEvent(typedEvent);
+      auditInvocation(assistantProfile, "assistantProfile", "onProfilesClosed", typedEvent);
+      isDirty_assistantProfile = assistantProfile.onProfilesClosed(typedEvent);
+    } else if (event instanceof AssistantProfilesRequested) {
+      AssistantProfilesRequested typedEvent = (AssistantProfilesRequested) event;
+      auditEvent(typedEvent);
+      auditInvocation(assistantProfile, "assistantProfile", "onProfilesRequested", typedEvent);
+      isDirty_assistantProfile = assistantProfile.onProfilesRequested(typedEvent);
+    } else if (event instanceof AssistantProfilesShown) {
+      AssistantProfilesShown typedEvent = (AssistantProfilesShown) event;
+      auditEvent(typedEvent);
+      auditInvocation(assistantProfile, "assistantProfile", "onProfilesShown", typedEvent);
+      isDirty_assistantProfile = assistantProfile.onProfilesShown(typedEvent);
     } else if (event instanceof AssistantSendRequested) {
       AssistantSendRequested typedEvent = (AssistantSendRequested) event;
       auditEvent(typedEvent);
       auditInvocation(assistantLoop, "assistantLoop", "onSendRequested", typedEvent);
       isDirty_assistantLoop = assistantLoop.onSendRequested(typedEvent);
+      auditInvocation(assistantProfile, "assistantProfile", "onAssistantSend", typedEvent);
+      isDirty_assistantProfile = assistantProfile.onAssistantSend(typedEvent);
       auditInvocation(walkPlayback, "walkPlayback", "onAssistantSendRequested", typedEvent);
       walkPlayback.onAssistantSendRequested(typedEvent);
     } else if (event instanceof BundleCaptureRequested) {
@@ -4242,6 +4420,8 @@ public class SessionProcessor
       auditEvent(typedEvent);
       auditInvocation(localAgentSession, "localAgentSession", "onSendRequested", typedEvent);
       isDirty_localAgentSession = localAgentSession.onSendRequested(typedEvent);
+      auditInvocation(assistantProfile, "assistantProfile", "onLocalAgentSend", typedEvent);
+      isDirty_assistantProfile = assistantProfile.onLocalAgentSend(typedEvent);
     } else if (event instanceof LocalAgentSetupDirectoryChosen) {
       LocalAgentSetupDirectoryChosen typedEvent = (LocalAgentSetupDirectoryChosen) event;
       auditEvent(typedEvent);
@@ -4262,6 +4442,8 @@ public class SessionProcessor
       auditEvent(typedEvent);
       auditInvocation(localAgentSession, "localAgentSession", "onStartRequested", typedEvent);
       isDirty_localAgentSession = localAgentSession.onStartRequested(typedEvent);
+      auditInvocation(assistantProfile, "assistantProfile", "onStartRequested", typedEvent);
+      isDirty_assistantProfile = assistantProfile.onStartRequested(typedEvent);
     } else if (event instanceof LocalAgentStatusObserved) {
       LocalAgentStatusObserved typedEvent = (LocalAgentStatusObserved) event;
       auditEvent(typedEvent);
@@ -4559,6 +4741,8 @@ public class SessionProcessor
     } else if (event instanceof StartPagePromptSent) {
       StartPagePromptSent typedEvent = (StartPagePromptSent) event;
       auditEvent(typedEvent);
+      auditInvocation(assistantProfile, "assistantProfile", "onStartPageSent", typedEvent);
+      isDirty_assistantProfile = assistantProfile.onStartPageSent(typedEvent);
       auditInvocation(startPagePrompt, "startPagePrompt", "onSent", typedEvent);
       startPagePrompt.onSent(typedEvent);
     } else if (event instanceof StartPromptPackDropped) {
@@ -4698,6 +4882,7 @@ public class SessionProcessor
     auditor.nodeRegistered(activeProject, "activeProject");
     auditor.nodeRegistered(assistantLoop, "assistantLoop");
     auditor.nodeRegistered(assistantMode, "assistantMode");
+    auditor.nodeRegistered(assistantProfile, "assistantProfile");
     auditor.nodeRegistered(auditInstallation, "auditInstallation");
     auditor.nodeRegistered(bundleAnchor, "bundleAnchor");
     auditor.nodeRegistered(coverageClaim, "coverageClaim");
@@ -4792,6 +4977,7 @@ public class SessionProcessor
     isDirty_activeProject = false;
     isDirty_assistantLoop = false;
     isDirty_assistantMode = false;
+    isDirty_assistantProfile = false;
     isDirty_auditInstallation = false;
     isDirty_localAgentPermission = false;
     isDirty_localAgentSession = false;
@@ -4834,6 +5020,7 @@ public class SessionProcessor
       dirtyFlagSupplierMap.put(activeProject, () -> isDirty_activeProject);
       dirtyFlagSupplierMap.put(assistantLoop, () -> isDirty_assistantLoop);
       dirtyFlagSupplierMap.put(assistantMode, () -> isDirty_assistantMode);
+      dirtyFlagSupplierMap.put(assistantProfile, () -> isDirty_assistantProfile);
       dirtyFlagSupplierMap.put(auditInstallation, () -> isDirty_auditInstallation);
       dirtyFlagSupplierMap.put(localAgentPermission, () -> isDirty_localAgentPermission);
       dirtyFlagSupplierMap.put(localAgentSession, () -> isDirty_localAgentSession);
@@ -4853,6 +5040,7 @@ public class SessionProcessor
       dirtyFlagUpdateMap.put(activeProject, (b) -> isDirty_activeProject = b);
       dirtyFlagUpdateMap.put(assistantLoop, (b) -> isDirty_assistantLoop = b);
       dirtyFlagUpdateMap.put(assistantMode, (b) -> isDirty_assistantMode = b);
+      dirtyFlagUpdateMap.put(assistantProfile, (b) -> isDirty_assistantProfile = b);
       dirtyFlagUpdateMap.put(auditInstallation, (b) -> isDirty_auditInstallation = b);
       dirtyFlagUpdateMap.put(localAgentPermission, (b) -> isDirty_localAgentPermission = b);
       dirtyFlagUpdateMap.put(localAgentSession, (b) -> isDirty_localAgentSession = b);
@@ -4880,6 +5068,10 @@ public class SessionProcessor
 
   private boolean guardCheck_assistantMode() {
     return isDirty_localAgentSession;
+  }
+
+  private boolean guardCheck_assistantProfile() {
+    return isDirty_assistantLoop | isDirty_localAgentSession;
   }
 
   private boolean guardCheck_auditInstallation() {
@@ -4964,7 +5156,10 @@ public class SessionProcessor
   }
 
   private boolean guardCheck_startPagePrompt() {
-    return isDirty_assistantMode | isDirty_localAgentSession | isDirty_openLog;
+    return isDirty_assistantMode
+        | isDirty_assistantProfile
+        | isDirty_localAgentSession
+        | isDirty_openLog;
   }
 
   private boolean guardCheck_walkPlayback() {
@@ -4999,6 +5194,8 @@ public class SessionProcessor
         return (T) assistantLoop;
       case "assistantMode":
         return (T) assistantMode;
+      case "assistantProfile":
+        return (T) assistantProfile;
       case "auditInstallation":
         return (T) auditInstallation;
       case "bundleAnchor":
@@ -5088,6 +5285,9 @@ public class SessionProcessor
     }
     if (node == assistantMode) {
       return "assistantMode";
+    }
+    if (node == assistantProfile) {
+      return "assistantProfile";
     }
     if (node == auditInstallation) {
       return "auditInstallation";

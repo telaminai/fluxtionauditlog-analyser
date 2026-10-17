@@ -122,6 +122,8 @@ public final class ConfigStore {
         c.claudeCodeModel = p.getProperty("assistant.claudeCode.model", c.claudeCodeModel);
         // M74 P2 (OD-74.23): the remembered mode, machine tier; anything but the two modes reads as in-app
         c.claudeCodeLastMode = "LOCAL_AGENT".equals(p.getProperty("assistant.claudeCode.lastMode")) ? "LOCAL_AGENT" : "IN_APP";
+        c.assistantProfile = telamin.fluxtion.audit.analyser.analyser.session.AssistantProfile.parse(
+                p.getProperty("assistant.claudeCode.profile")).stored();
         c.claudeCodeBudgetUsd = budget(p.getProperty("assistant.claudeCode.budgetUsd"),
                 p.getProperty("assistant.claudeCode.budgetFormat"));
         readList(p, "assistant.claudeCode.trusted", c.claudeCodeTrustedFolders);
@@ -227,6 +229,8 @@ public final class ConfigStore {
         put(p, "assistant.claudeCode.full.mode", fullMode(c.claudeCodeFullMode));
         put(p, "assistant.claudeCode.model", c.claudeCodeModel);
         put(p, "assistant.claudeCode.lastMode", "LOCAL_AGENT".equals(c.claudeCodeLastMode) ? "LOCAL_AGENT" : "IN_APP");
+        put(p, "assistant.claudeCode.profile", telamin.fluxtion.audit.analyser.analyser.session.AssistantProfile.parse(
+                c.assistantProfile).stored());
         put(p, "assistant.claudeCode.budgetUsd", c.claudeCodeBudgetUsd == null || !(c.claudeCodeBudgetUsd > 0) ? ""
                 : Double.toString(c.claudeCodeBudgetUsd));
         put(p, "assistant.claudeCode.budgetFormat", BUDGET_FORMAT);

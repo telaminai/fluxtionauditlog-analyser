@@ -160,6 +160,14 @@ public final class AppConfig {
     public String claudeCodeLastMode = "IN_APP";
 
     /**
+     * M74 UX (owner, 2026-10-17): the assistant profile the person last chose from the four cards ({@code SAFE},
+     * {@code FULL}, {@code IN_APP}, {@code OFF}), or null when none was chosen. Machine tier, like every
+     * {@code assistant.claudeCode*} key (stored as {@code assistant.claudeCode.profile}): never in a profile, a share or a
+     * bundle. The profile in force is read through {@code AssistantProfiles.inForce}, which follows the switches.
+     */
+    public String assistantProfile = null;
+
+    /**
      * Where THIS PROJECT would like the exchange directory to be — project-relative, no {@code ..}
      * (#21). Project-tier, and it says WHERE, never WHETHER: {@link #assistantExports} stays machine
      * tier, so opening a project can widen no permission. See {@link ExchangeDir}.

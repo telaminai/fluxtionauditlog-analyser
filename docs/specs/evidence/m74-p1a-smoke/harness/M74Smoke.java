@@ -73,12 +73,9 @@ public final class M74Smoke {
         edt(() -> {
             try {
                 switch (which) {
-                    case "claude" -> assistant().claudeModeButton().doClick();
-                    case "inapp" -> {
-                        var f = AssistantPanel.class.getDeclaredField("inAppMode");
-                        f.setAccessible(true);
-                        ((javax.swing.JRadioButton) f.get(assistant())).doClick();
-                    }
+                    // M74 UX (2026-10-17): the mode is one selector in the one assistant panel now
+                    case "claude" -> assistant().modeSelector().setSelectedIndex(0);
+                    case "inapp" -> assistant().modeSelector().setSelectedIndex(1);
                     case "start" -> panel().startButton().doClick();
                     case "stop" -> panel().stopButton().doClick();
                     default -> throw new IllegalArgumentException(which);

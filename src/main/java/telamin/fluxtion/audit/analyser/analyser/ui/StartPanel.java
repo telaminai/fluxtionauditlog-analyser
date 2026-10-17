@@ -112,12 +112,17 @@ public final class StartPanel extends JPanel {
     private final JPanel recoveryOffer = new JPanel(new BorderLayout(8, 8));
     private final Box recentProjects = Box.createVerticalBox();
     private final JTextArea operationFeedback = Fluid.text("");
-    private final JPanel workstreams = new Fluid.Panel();
-    private final JPanel leftWorkstreams = new Fluid.Panel();
-    private final JPanel rightWorkstreams = new Fluid.Panel();
-    private final JComponent[] workstreamSections = new JComponent[4];
-    private boolean workstreamsWide;
-    private boolean workstreamsArranged;
+    /**
+     * M74 UX (owner, 2026-10-17): ONE start-page surface — the prompt leads, and the actions the old cards carried follow
+     * as a compact strip in the prompt's style (icon + short label; the old card's words are the tooltip and the
+     * accessible name). Every action is the same {@link Actions} method it always was.
+     */
+    private final JPanel directStrip = new Fluid.Panel();
+    /** The recent projects and bundles, side by side when wide, stacked when narrow. */
+    private final JPanel recents = new Fluid.Panel();
+    private final JComponent[] recentColumns = new JComponent[2];
+    private boolean recentsWide;
+    private boolean recentsArranged;
     private List<String> lastRecents;
     private final Box recentBundles = Box.createVerticalBox();
     private List<telamin.fluxtion.audit.analyser.analyser.config.AppConfig.RecentBundle> lastBundleRecents;
@@ -133,11 +138,8 @@ public final class StartPanel extends JPanel {
     /** The return row — visible whenever a project, graph, design or log workspace exists. */
     private final JComponent returnRow;
 
-    /** The optional AI-client offer; dismissal is deliberately only for this rendered Start Page. */
-    private final JComponent aiClientOffer;
-
     /** M19.12: the non-gating key offer; mutable only so it follows a save in the one owner dialog. */
-    private final Card fluxtionKeyCard;
+    private final ActionChip fluxtionKeyCard;
 
     public StartPanel(Actions actions, Consumer<String> status) {
         super(new BorderLayout());
@@ -174,52 +176,69 @@ public final class StartPanel extends JPanel {
         operationFeedback.setBorder(BorderFactory.createEmptyBorder(8, 10, 8, 10));
         operationFeedback.setVisible(false);
         col.add(operationFeedback);
-        col.add(Box.createVerticalStrut(20));
-        // r8 F19: the cards stay, below the prompt — the no-typing path M71 accepted. A configured list can lead with a
-        // journey; it cannot hide these
+        col.add(Box.createVerticalStrut(14));
+        // r8 F19 / M74 UX: the cards' actions stay, after the prompt — the no-typing path M71 accepted — as one compact
+        // strip in the prompt's style. A configured list can lead with a journey; it cannot hide these
         col.add(heading(telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.text("start.or")));
-        col.add(Box.createVerticalStrut(6));
-        workstreamSections[0] = workstream("Explore DEMO",
-                row(card("Take a guided tour", "Follow four spotlight stops in a local DEMO project.",
-                                true, actions::openGuidedTour),
-                        card("Open sample project", "Explore the same DEMO log, topology and source at your own pace.",
-                                false, actions::openSampleProject)));
+        directStrip.setLayout(new WrapLayout(java.awt.FlowLayout.LEFT, 14, 6));
+        directStrip.setOpaque(false);
+        directStrip.setAlignmentX(LEFT_ALIGNMENT);
+        directStrip.getAccessibleContext().setAccessibleName("Open directly");
+        directStrip.add(group("Explore DEMO",
+                chip("Take a guided tour", "Guided tour", "Follow four spotlight stops in a local DEMO project.",
+                        actions::openGuidedTour),
+                chip("Open sample project", "Sample project",
+                        "Explore the same DEMO log, topology and source at your own pace.", actions::openSampleProject)));
+        directStrip.add(group("Open",
+                chip("Open project", "Project", "Use an existing project profile and its saved settings.",
+                        actions::openExistingProject),
+                chip("Open evidence bundle", "Evidence bundle",
+                        "Verify an .fexp and open a disposable copy. No replay is run.", actions::openExperiment),
+                chip("Open audit log", "Audit log", "Choose a local audit log to investigate.", actions::openOwnLog),
+                chip("Open GraphML", "GraphML", "View a processor topology, with or without a log.",
+                        actions::openGraphml)));
+        directStrip.add(group("Create",
+                chip("Create project profile", "Project profile",
+                        "Save settings for existing source and processors. No code is generated.", actions::newProject),
+                chip("Create from template", "From template", "Choose a starter template and where to install it.",
+                        actions::newProjectFromTemplate)));
+        fluxtionKeyCard = chip("", "", "", actions::openFluxtionKey);
+        refreshFluxtionKeyStatus();
+        directStrip.add(group("Connect an assistant",
+                chip("Connect Codex", "Codex", "Set up the local bridge Codex will use.",
+                        () -> actions.openMcpSetup(McpSetupDialog.Target.CODEX)),
+                chip("Connect Claude", "Claude", "Set up the local bridge for Claude.",
+                        () -> actions.openMcpSetup(McpSetupDialog.Target.CLAUDE_CODE)),
+                chip("Generic MCP setup", "Other MCP client", "Prepare this analyser for another MCP client.",
+                        () -> actions.openMcpSetup(McpSetupDialog.Target.GENERIC))));
+        directStrip.add(group("Settings",
+                chip("Source and assistant settings…", "Settings",
+                        "Source settings apply to the open project, or to global defaults when no project is open.",
+                        actions::openSettings),
+                fluxtionKeyCard));
+        col.add(directStrip);
+        col.add(Box.createVerticalStrut(4));
+        col.add(body("Connect your CLI assistant to query records, draw charts and spotlight evidence here — the analyser "
+                + "bridge is local. Source settings apply to the open project, or to global defaults when no project is "
+                + "open."));
+        col.add(Box.createVerticalStrut(14));
 
         recentProjects.setAlignmentX(LEFT_ALIGNMENT);
         setRecentProjects(List.of());
         recentBundles.setAlignmentX(LEFT_ALIGNMENT);
         setRecentBundles(List.of());
-        workstreamSections[1] = workstream("Open your work",
-                row(card("Open project", "Use an existing project profile and its saved settings.", false,
-                                actions::openExistingProject),
-                        card("Open evidence bundle", "Verify an .fexp and open a disposable copy. No replay is run.",
-                                false, actions::openExperiment)),
-                row(card("Open audit log", "Choose a local audit log to investigate.", false, actions::openOwnLog),
-                        card("Open GraphML", "View a processor topology, with or without a log.", false,
-                                actions::openGraphml)),
-                subheading("Recent projects"), recentProjects,
-                subheading("Recent evidence bundles"), recentBundles);
-
-        workstreamSections[2] = workstream("Create a project",
-                row(card("Create project profile", "Save settings for existing source and processors. No code is generated.",
-                                false, actions::newProject),
-                        card("Create from template", "Choose a starter template and where to install it.",
-                                false, actions::newProjectFromTemplate)));
-
-        fluxtionKeyCard = card("", "", false, actions::openFluxtionKey);
-        refreshFluxtionKeyStatus();
-        aiClientOffer = aiClientOffer();
-        workstreamSections[3] = workstream("Assistant and settings", aiClientOffer, footer(),
-                subheading("Optional: processor regeneration"), row(fluxtionKeyCard));
-        workstreams.setOpaque(false);
-        workstreams.setAlignmentX(LEFT_ALIGNMENT);
-        arrangeWorkstreams(false);
-        workstreams.addComponentListener(new java.awt.event.ComponentAdapter() {
+        col.add(heading("Recent"));
+        recentColumns[0] = recentColumn("Recent projects", recentProjects);
+        recentColumns[1] = recentColumn("Recent evidence bundles", recentBundles);
+        recents.setOpaque(false);
+        recents.setAlignmentX(LEFT_ALIGNMENT);
+        arrangeRecents(false);
+        recents.addComponentListener(new java.awt.event.ComponentAdapter() {
             @Override public void componentResized(java.awt.event.ComponentEvent event) {
-                arrangeWorkstreams(workstreams.getWidth() >= 900);
+                arrangeRecents(recents.getWidth() >= 900);
             }
         });
-        col.add(workstreams);
+        col.add(recents);
 
         col.add(Box.createVerticalStrut(18));
         col.add(Box.createVerticalGlue());
@@ -319,7 +338,7 @@ public final class StartPanel extends JPanel {
         JPanel row = new JPanel(new BorderLayout(4, 0));
         row.setOpaque(false);
         row.setAlignmentX(LEFT_ALIGNMENT);
-        JButton more = new JButton("…");
+        JButton more = compact(new JButton("…"));
         more.setToolTipText("Remove from recents, reveal, rename");
         more.setMargin(new java.awt.Insets(0, 6, 0, 6));
         JPopupMenu menu = new JPopupMenu();
@@ -339,6 +358,14 @@ public final class StartPanel extends JPanel {
         return row;
     }
 
+    /** M74 UX: a recent row, compact — a smaller font and a tight margin; its words and its tooltip are unchanged. */
+    private static JButton compact(JButton b) {
+        Font f = UIManager.getFont("Label.font");
+        if (f != null) b.setFont(f.deriveFont(f.getSize2D() - 1f));
+        b.setMargin(new Insets(1, 6, 1, 6));
+        return b;
+    }
+
     private static boolean isMac() {
         return System.getProperty("os.name", "").toLowerCase(java.util.Locale.ROOT).contains("mac");
     }
@@ -350,7 +377,7 @@ public final class StartPanel extends JPanel {
         lastRecents = next;
         recentProjects.removeAll();
         if (next.isEmpty()) {
-            recentProjects.add(body("No recent projects yet. Use Open project above to choose a workspace."));
+            recentProjects.add(body("No recent projects yet. Use Open: Project above to choose a workspace."));
         } else {
             for (String path : next) {
                 Path file = Path.of(path);
@@ -361,14 +388,14 @@ public final class StartPanel extends JPanel {
                 String title = parent == null || parent.getFileName() == null
                         ? path : parent.getFileName().toString();
                 // SF-2: a folder name and a configured path are not the analyser's words — shown as characters
-                JButton button = UiText.button(title + " / " + file.getFileName() + "  —  " + path);
+                JButton button = compact(UiText.button(title + " / " + file.getFileName() + "  —  " + path));
                 button.setHorizontalAlignment(SwingConstants.LEFT);
                 button.setToolTipText(UiText.tooltip(path));
                 button.setAlignmentX(LEFT_ALIGNMENT);
                 button.setMaximumSize(new Dimension(Integer.MAX_VALUE, button.getPreferredSize().height));
                 button.addActionListener(e -> actions.openRecentProject(path));
                 recentProjects.add(recentRow(button, path, false));
-                recentProjects.add(Box.createVerticalStrut(4));
+                recentProjects.add(Box.createVerticalStrut(2));
             }
         }
         recentProjects.revalidate();
@@ -388,7 +415,7 @@ public final class StartPanel extends JPanel {
         lastBundleRecents = next;
         recentBundles.removeAll();
         if (next.isEmpty()) {
-            recentBundles.add(body("No evidence bundles opened yet. Use Open evidence bundle above, "
+            recentBundles.add(body("No evidence bundles opened yet. Use Open: Evidence bundle above, "
                     + "or drop a .fexp anywhere on this page."));
         } else {
             List<String> names = distinctNames(next.stream().map(
@@ -401,7 +428,7 @@ public final class StartPanel extends JPanel {
                         + (b.notes().isEmpty() ? "" : "  —  " + b.notes())
                         + (present ? "" : "   (file not found)");
                 // SF-2: the note is the bundle SENDER's sentence and the name is a file on disk
-                JButton button = UiText.button(label);
+                JButton button = compact(UiText.button(label));
                 button.setHorizontalAlignment(SwingConstants.LEFT);
                 button.setToolTipText(UiText.tooltip(b.path() + (b.identity().isEmpty() ? "" : "\n" + b.identity())));
                 button.setAlignmentX(LEFT_ALIGNMENT);
@@ -409,7 +436,7 @@ public final class StartPanel extends JPanel {
                 button.setEnabled(present);
                 button.addActionListener(e -> actions.openRecentBundle(b.path()));
                 recentBundles.add(recentRow(button, b.path(), true));
-                recentBundles.add(Box.createVerticalStrut(4));
+                recentBundles.add(Box.createVerticalStrut(2));
             }
         }
         recentBundles.revalidate();
@@ -451,6 +478,7 @@ public final class StartPanel extends JPanel {
     public void refreshFluxtionKeyStatus() {
         boolean present = actions.fluxtionKeyPresent();
         fluxtionKeyCard.setCopy(present ? "Fluxtion API key — found" : "Fluxtion API key — not found",
+                present ? "Fluxtion key ✓" : "Fluxtion key",
                 present
                         ? "Available for a future processor regeneration; this analyser does not validate it."
                         : "Needed to regenerate a processor; existing generated projects still run without one.");
@@ -535,45 +563,6 @@ public final class StartPanel extends JPanel {
 
     private JTextArea heroTitle;
 
-    private JComponent footer() {
-        Box p = Box.createVerticalBox();
-        p.setOpaque(false);
-        p.setAlignmentX(LEFT_ALIGNMENT);
-        p.add(body("Source settings apply to the open project, or to global defaults when no project is open."));
-        p.add(Box.createVerticalStrut(4));
-        JPanel action = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
-        action.setOpaque(false);
-        action.setAlignmentX(LEFT_ALIGNMENT);
-        action.add(link("Source and assistant settings…", actions::openSettings));
-        p.add(action);
-        return p;
-    }
-
-    /**
-     * M42.2's Start Page offer. "Not now" is only a page-level dismissal: there is no remembered
-     * opt-out, because declining an offer while reading a log says nothing about a later investigation.
-     */
-    private JComponent aiClientOffer() {
-        Box offer = Box.createVerticalBox();
-        offer.setAlignmentX(LEFT_ALIGNMENT);
-        offer.add(body("Connect your CLI assistant to query records, draw charts and spotlight evidence here. The analyser bridge is local."));
-        offer.add(Box.createVerticalStrut(8));
-        offer.add(row(
-                card("Connect Codex", "Set up the local bridge Codex will use.", false,
-                        () -> actions.openMcpSetup(McpSetupDialog.Target.CODEX)),
-                card("Connect Claude", "Set up the local bridge for Claude.", false,
-                        () -> actions.openMcpSetup(McpSetupDialog.Target.CLAUDE_CODE)),
-                card("Generic MCP setup", "Prepare this analyser for another MCP client.", false,
-                        () -> actions.openMcpSetup(McpSetupDialog.Target.GENERIC))));
-        offer.add(Box.createVerticalStrut(6));
-        offer.add(link("Not now", () -> {
-            aiClientOffer.setVisible(false);
-            revalidate();
-            repaint();
-        }));
-        return offer;
-    }
-
     /**
      * The way back, shown ONLY when there is something to go back to.
      *
@@ -655,31 +644,6 @@ public final class StartPanel extends JPanel {
         return p;
     }
 
-    /** Keep each activity together as the page changes between one and two columns. */
-    private JComponent workstream(String title, JComponent... content) {
-        JPanel section = new Fluid.Panel() {
-            @Override public Dimension getPreferredSize() {
-                Dimension size = super.getPreferredSize();
-                // A recent path or a row of cards can have a very wide natural size.
-                // The columns must divide the available width before their cards wrap;
-                // an unbounded natural width would otherwise force content offscreen.
-                return new Dimension(0, size.height);
-            }
-        };
-        section.setLayout(new BoxLayout(section, BoxLayout.Y_AXIS));
-        section.setOpaque(false);
-        section.setAlignmentX(LEFT_ALIGNMENT);
-        section.setMinimumSize(new Dimension(0, 0));
-        section.setBorder(BorderFactory.createEmptyBorder(0, 0, 16, 0));
-        section.getAccessibleContext().setAccessibleName(title + " workstream");
-        section.add(heading(title));
-        for (JComponent child : content) {
-            section.add(child);
-            section.add(Box.createVerticalStrut(8));
-        }
-        return section;
-    }
-
     private JComponent subheading(String text) {
         JTextArea label = wrapping(text);
         Font base = UIManager.getFont("Label.font");
@@ -687,34 +651,6 @@ public final class StartPanel extends JPanel {
         label.setFont(base.deriveFont(Font.BOLD));
         recolour.add(() -> label.setForeground(UiTheme.mutedForeground()));
         return label;
-    }
-
-    /** Keep two independent columns so a short group does not leave a blank row beneath it. */
-    private void arrangeWorkstreams(boolean wide) {
-        if (workstreamsArranged && workstreamsWide == wide) return;
-        workstreamsArranged = true;
-        workstreamsWide = wide;
-        workstreams.removeAll();
-        leftWorkstreams.removeAll();
-        rightWorkstreams.removeAll();
-        if (wide) {
-            leftWorkstreams.setLayout(new BoxLayout(leftWorkstreams, BoxLayout.Y_AXIS));
-            rightWorkstreams.setLayout(new BoxLayout(rightWorkstreams, BoxLayout.Y_AXIS));
-            leftWorkstreams.setOpaque(false);
-            rightWorkstreams.setOpaque(false);
-            leftWorkstreams.add(workstreamSections[0]);
-            leftWorkstreams.add(workstreamSections[2]);
-            rightWorkstreams.add(workstreamSections[1]);
-            rightWorkstreams.add(workstreamSections[3]);
-            workstreams.setLayout(new GridLayout(1, 2, 20, 0));
-            workstreams.add(leftWorkstreams);
-            workstreams.add(rightWorkstreams);
-        } else {
-            workstreams.setLayout(new BoxLayout(workstreams, BoxLayout.Y_AXIS));
-            for (JComponent section : workstreamSections) workstreams.add(section);
-        }
-        workstreams.revalidate();
-        workstreams.repaint();
     }
 
     private JComponent body(String text) {
@@ -853,215 +789,219 @@ public final class StartPanel extends JPanel {
         }
     }
 
-    private Card card(String title, String why, boolean primary, Runnable go) {
-        Card c = new Card(title, why, primary, go);
+    /** A labelled group of the strip's actions: a muted word, then its chips. */
+    private JComponent group(String title, JComponent... chips) {
+        JPanel g = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 4, 0));
+        g.setOpaque(false);
+        g.getAccessibleContext().setAccessibleName(title);
+        JLabel l = UiText.label(title + ":");
+        recolour.add(() -> l.setForeground(UiTheme.mutedForeground()));
+        g.add(l);
+        for (JComponent c : chips) g.add(c);
+        return g;
+    }
+
+    private ActionChip chip(String title, String label, String why, Runnable go) {
+        ActionChip c = new ActionChip(title, label, why, go);
         recolour.add(c::repaint);
         return c;
     }
 
+    /** One column of the recent lists: its subheading and its rows. */
+    private JComponent recentColumn(String title, JComponent rows) {
+        JPanel col = new Fluid.Panel() {
+            @Override public Dimension getPreferredSize() {
+                // a recent path can be very wide: the columns share the width before their rows are measured
+                return new Dimension(0, super.getPreferredSize().height);
+            }
+        };
+        col.setLayout(new BoxLayout(col, BoxLayout.Y_AXIS));
+        col.setOpaque(false);
+        col.setAlignmentX(LEFT_ALIGNMENT);
+        col.setMinimumSize(new Dimension(0, 0));
+        col.getAccessibleContext().setAccessibleName(title);
+        col.add(subheading(title));
+        col.add(Box.createVerticalStrut(4));
+        col.add(rows);
+        return col;
+    }
+
+    /** The two recent lists side by side on a wide page, one under the other on a narrow one. */
+    private void arrangeRecents(boolean wide) {
+        if (recentsArranged && recentsWide == wide) return;
+        recentsArranged = true;
+        recentsWide = wide;
+        recents.removeAll();
+        if (wide) {
+            recents.setLayout(new GridLayout(1, 2, 20, 0));
+        } else {
+            recents.setLayout(new BoxLayout(recents, BoxLayout.Y_AXIS));
+        }
+        recents.add(recentColumns[0]);
+        if (!wide) recents.add(Box.createVerticalStrut(10));
+        recents.add(recentColumns[1]);
+        recents.revalidate();
+        recents.repaint();
+    }
+
+    /** For the tests: the strip's actions, in order. */
+    List<ActionChip> directActions() {
+        List<ActionChip> out = new ArrayList<>();
+        collect(directStrip, out);
+        return out;
+    }
+
+    private static void collect(Container c, List<ActionChip> out) {
+        for (Component k : c.getComponents()) {
+            if (k instanceof ActionChip a) out.add(a);
+            else if (k instanceof Container inner) collect(inner, out);
+        }
+    }
+
+    JPanel directStrip() {
+        return directStrip;
+    }
+
+    JPanel recentsPanel() {
+        return recents;
+    }
+
     /**
-     * A two-line action. Drawn rather than styled: FlatLaf owns a JButton's background and border, and
-     * fighting it per-theme is how a control ends up looking right in Dark and wrong in Light. It is
-     * still a JButton, so keyboard activation, focus traversal, tooltips and accessibility are the
-     * platform's, not a reimplementation.
+     * One action of the strip: an icon and a short label, in the prompt's chip style (M74 UX). Drawn rather than styled —
+     * FlatLaf owns a JButton's background — but still a JButton, so keyboard activation, focus traversal, the tooltip
+     * (the old card's sentence) and the accessible name (the old card's title, which tests and docs name) are the
+     * platform's.
      */
-    private static final class Card extends JButton {
-        private static final int PAD = 12;
-        private static final int SUB_LINES = 2;
-
+    static final class ActionChip extends JButton {
+        private static final int H_PAD = 10;
         private String title;
+        private String label;
         private String why;
-        private final boolean primary;
 
-        Card(String title, String why, boolean primary, Runnable go) {
-            this.title = title;
-            this.why = why;
-            this.primary = primary;
+        ActionChip(String title, String label, String why, Runnable go) {
             setContentAreaFilled(false);
             setBorderPainted(false);
             setFocusPainted(false);
             setOpaque(false);
-            setToolTipText(UiText.tooltip(why));
-            getAccessibleContext().setAccessibleName(title);
-            getAccessibleContext().setAccessibleDescription(why);
+            setCopy(title, label, why);
             setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
             addActionListener(e -> go.run());
         }
 
-        void setCopy(String title, String why) {
+        void setCopy(String title, String label, String why) {
             this.title = title;
+            this.label = label;
             this.why = why;
-            setToolTipText(UiText.tooltip(why));
+            setToolTipText(why == null || why.isBlank() ? null : UiText.tooltip(why));
             getAccessibleContext().setAccessibleName(title);
             getAccessibleContext().setAccessibleDescription(why);
+            revalidate();
             repaint();
         }
 
-        private static Font base() {
+        String title() {
+            return title;
+        }
+
+        String label() {
+            return label;
+        }
+
+        String why() {
+            return why;
+        }
+
+        private static Font font() {
             Font f = UIManager.getFont("Label.font");
             return f != null ? f : new Font(Font.SANS_SERIF, Font.PLAIN, 12);
         }
 
-        private Font titleFont() {
-            return base().deriveFont(Font.BOLD, base().getSize2D() + 0.5f);
-        }
-
-        private Font subFont() {
-            return base().deriveFont(Font.PLAIN, base().getSize2D() - 1f);
-        }
-
-        /**
-         * Height DERIVED from the two fonts, never a constant. The constant it replaces was measured
-         * against a one-line description and clipped the second line of "…an absence is proof, not
-         * silence." — a card is exactly as tall as a title plus the two lines it promises to show.
-         */
         @Override
         public Dimension getPreferredSize() {
-            int h = PAD * 2 + getFontMetrics(titleFont()).getHeight() + 3
-                    + SUB_LINES * getFontMetrics(subFont()).getHeight();
-            return new Dimension(220, h);
+            FontMetrics fm = getFontMetrics(font());
+            return new Dimension(H_PAD + 18 + 6 + fm.stringWidth(label == null ? "" : label) + H_PAD,
+                    Math.max(28, fm.getHeight() + 12));
         }
 
         @Override
         public Dimension getMaximumSize() {
-            return new Dimension(Integer.MAX_VALUE, getPreferredSize().height);
+            return getPreferredSize();
         }
 
         @Override
         protected void paintComponent(Graphics g0) {
             Graphics2D g = (Graphics2D) g0.create();
             g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING,
-                    RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+            g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
             boolean hot = getModel().isRollover() || getModel().isPressed() || isFocusOwner();
             int w = getWidth(), h = getHeight();
-            RoundRectangle2D shape = new RoundRectangle2D.Float(0.5f, 0.5f, w - 1f, h - 1f, 9, 9);
-
-            Color ink;
-            Color sub;
-            if (primary) {
-                Color fill = UiTheme.accent();
-                g.setColor(hot ? UiTheme.mix(fill, UiTheme.onAccent(), 0.14f) : fill);
-                g.fill(shape);
-                ink = UiTheme.onAccent();
-                sub = UiTheme.mix(UiTheme.onAccent(), UiTheme.accent(), 0.32f);
-            } else {
-                g.setColor(hot ? UiTheme.accentWash(0.14f) : UiTheme.accentWash(0.05f));
-                g.fill(shape);
-                g.setColor(hot ? UiTheme.accent() : UiTheme.mix(UiTheme.surfaceEdge(),
-                        UiTheme.accent(), 0.35f));
-                g.draw(shape);
-                ink = UiTheme.accentText();
-                sub = UiTheme.mutedForeground();
-            }
-
-            int inner = w - PAD * 2;
-
-            g.setFont(titleFont());
-            g.setColor(ink);
+            RoundRectangle2D shape = new RoundRectangle2D.Float(0.5f, 0.5f, w - 1f, h - 1f, h - 2f, h - 2f);
+            g.setColor(hot ? UiTheme.accentWash(0.16f) : UiTheme.accentWash(0.06f));
+            g.fill(shape);
+            g.setColor(hot ? UiTheme.accent() : UiTheme.mix(UiTheme.surfaceEdge(), UiTheme.accent(), 0.35f));
+            g.draw(shape);
+            g.setColor(UiTheme.accentText());
+            paintGlyph(g, title, H_PAD, (h - 17) / 2);
+            g.setFont(font());
             FontMetrics fm = g.getFontMetrics();
-            int titleY = PAD + fm.getAscent();
-            paintGlyph(g, title, PAD, titleY - 13);
-            g.drawString(ellipsis(fm, title, inner - 24), PAD + 24, titleY);
-
-            int y = PAD + fm.getHeight() + 3;
-            g.setFont(subFont());
-            g.setColor(sub);
-            FontMetrics fm2 = g.getFontMetrics();
-            // two lines, then ellipsis — the tooltip carries the full sentence either way, so a narrow
-            // column costs a word rather than costing the action
-            for (String line : wrap(fm2, why, inner, SUB_LINES)) {
-                g.drawString(line, PAD, y + fm2.getAscent());
-                y += fm2.getHeight();
-            }
+            g.drawString(label == null ? "" : label, H_PAD + 18 + 6, (h - fm.getHeight()) / 2 + fm.getAscent());
             g.dispose();
         }
 
-        /** Small vector marks stay crisp at any scale and inherit the card's current theme ink. */
-        private static void paintGlyph(Graphics2D g, String title, int x, int y) {
+        /** Small vector marks stay crisp at any scale and inherit the chip's current theme ink. */
+        static void paintGlyph(Graphics2D g, String title, int x, int y) {
             Graphics2D icon = (Graphics2D) g.create();
             icon.translate(x, y);
-            icon.setStroke(new BasicStroke(1.7f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-            if (title.startsWith("Take a guided tour")) {
+            icon.setStroke(new BasicStroke(1.6f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            String t = title == null ? "" : title;
+            if (t.startsWith("Take a guided tour") || t.startsWith("Open sample")) {
                 icon.drawOval(1, 1, 15, 15);
                 icon.drawLine(7, 5, 12, 8);
                 icon.drawLine(12, 8, 7, 11);
                 icon.drawLine(7, 11, 7, 5);
-            } else if (title.startsWith("Open evidence bundle")) {
+            } else if (t.startsWith("Open evidence bundle")) {
                 icon.drawRoundRect(2, 1, 13, 15, 2, 2);
                 icon.drawLine(5, 5, 11, 5);
                 icon.drawLine(5, 9, 12, 9);
                 icon.drawLine(5, 12, 9, 12);
-            } else if (title.startsWith("Investigate")) {
-                icon.drawOval(1, 1, 10, 10);
-                icon.drawLine(10, 10, 16, 16);
-            } else if (title.startsWith("Create project profile")) {
+            } else if (t.startsWith("Create project profile")) {
                 icon.drawRoundRect(1, 1, 14, 14, 2, 2);
                 icon.drawLine(8, 4, 8, 12);
                 icon.drawLine(4, 8, 12, 8);
-            } else if (title.startsWith("Create from template")) {
+            } else if (t.startsWith("Create from template")) {
                 icon.drawRoundRect(1, 1, 14, 14, 2, 2);
                 icon.drawLine(8, 2, 8, 14);
                 icon.drawLine(2, 8, 14, 8);
-            } else if (title.startsWith("Open audit")) {
+            } else if (t.startsWith("Open audit")) {
                 icon.drawRoundRect(2, 1, 13, 15, 2, 2);
                 for (int row : new int[]{5, 8, 11}) icon.drawLine(5, row, 12, row);
-            } else if (title.startsWith("Open GraphML")) {
+            } else if (t.startsWith("Open GraphML")) {
                 icon.drawLine(4, 4, 13, 5);
                 icon.drawLine(4, 4, 7, 13);
                 icon.drawLine(13, 5, 7, 13);
                 icon.fillOval(1, 1, 5, 5);
                 icon.fillOval(11, 3, 5, 5);
                 icon.fillOval(5, 11, 5, 5);
-            } else if (title.startsWith("Open sample")) {
-                icon.drawOval(1, 1, 15, 15);
-                icon.drawLine(7, 5, 12, 8);
-                icon.drawLine(12, 8, 7, 11);
-                icon.drawLine(7, 11, 7, 5);
-            } else if (title.startsWith("Connect") || title.startsWith("Generic MCP")) {
+            } else if (t.startsWith("Connect") || t.startsWith("Generic MCP")) {
                 icon.drawRoundRect(0, 4, 6, 9, 2, 2);
                 icon.drawRoundRect(11, 4, 6, 9, 2, 2);
                 icon.drawLine(6, 8, 11, 8);
-            } else if (title.startsWith("Open project")) {
+            } else if (t.startsWith("Open project")) {
                 icon.drawPolyline(new int[]{1, 1, 6, 8, 16, 16, 1},
                         new int[]{14, 3, 3, 5, 5, 14, 14}, 7);
+            } else if (t.startsWith("Source and assistant settings")) {
+                icon.drawOval(4, 4, 9, 9);
+                for (int k = 0; k < 8; k++) {
+                    double a = k * Math.PI / 4;
+                    icon.drawLine((int) Math.round(8.5 + 5 * Math.cos(a)), (int) Math.round(8.5 + 5 * Math.sin(a)),
+                            (int) Math.round(8.5 + 7.5 * Math.cos(a)), (int) Math.round(8.5 + 7.5 * Math.sin(a)));
+                }
             } else {
                 icon.drawOval(1, 2, 8, 8);
                 icon.drawLine(8, 9, 15, 16);
                 icon.drawLine(12, 12, 15, 9);
             }
             icon.dispose();
-        }
-
-        private static List<String> wrap(FontMetrics fm, String text, int width, int maxLines) {
-            List<String> out = new ArrayList<>();
-            StringBuilder line = new StringBuilder();
-            for (String word : text.split(" ")) {
-                String next = line.isEmpty() ? word : line + " " + word;
-                if (fm.stringWidth(next) <= width || line.isEmpty()) {
-                    line.setLength(0);
-                    line.append(next);
-                } else {
-                    out.add(line.toString());
-                    line.setLength(0);
-                    line.append(word);
-                    if (out.size() == maxLines) break;
-                }
-            }
-            if (out.size() < maxLines && !line.isEmpty()) out.add(line.toString());
-            if (out.size() == maxLines) {
-                out.set(maxLines - 1, ellipsis(fm, out.get(maxLines - 1), width));
-            }
-            return out;
-        }
-
-        private static String ellipsis(FontMetrics fm, String s, int width) {
-            if (fm.stringWidth(s) <= width) return s;
-            String cut = s;
-            while (cut.length() > 1 && fm.stringWidth(cut + "…") > width) {
-                cut = cut.substring(0, cut.length() - 1);
-            }
-            return cut + "…";
         }
     }
 

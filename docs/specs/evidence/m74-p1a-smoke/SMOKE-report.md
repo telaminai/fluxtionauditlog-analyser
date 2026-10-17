@@ -98,3 +98,9 @@ the bridge launches from it). The two classes are in [`harness/`](harness) (pack
 `telamin.fluxtion.audit.analyser.analyser.ui`, compiled against the jar with `javac -cp <jar>` and added with
 `jar uf`): `M74Smoke <SMOKE>` drives the tab, `M74Probe <SMOKE> <path to claude>` sends the raw probes. They are not
 part of the build. Delete `~/.claude/projects/*scratchpad-m74-smoke*` afterwards.
+
+## Harness note (2026-10-17, the M74 UX step)
+
+The Assistant tab's two radio buttons became one mode selector in the one assistant panel, so the harness's `click`
+helper now selects the mode there (`modeSelector()`); nothing else changed and the results above are as recorded.
+`M74HarnessesCompileTest` holds the harness to compiling against the current analyser.

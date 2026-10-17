@@ -1,31 +1,37 @@
 package telamin.fluxtion.audit.analyser.analyser.ui;
 
+import telamin.fluxtion.audit.analyser.analyser.assistant.AssistantProfiles;
 import telamin.fluxtion.audit.analyser.analyser.assistant.AssistantTranscript;
+import telamin.fluxtion.audit.analyser.analyser.session.AssistantMode;
+import telamin.fluxtion.audit.analyser.analyser.session.AssistantProfile;
 import telamin.fluxtion.audit.analyser.analyser.session.AssistantState;
+import telamin.fluxtion.audit.analyser.analyser.session.ProfileState;
 
 import javax.swing.*;
-import javax.swing.text.BadLocationException;
-import javax.swing.text.SimpleAttributeSet;
-import javax.swing.text.StyleConstants;
-import javax.swing.text.StyledDocument;
 import java.awt.BorderLayout;
-import java.awt.Color;
+import java.awt.CardLayout;
 import java.awt.FlowLayout;
 import java.awt.Font;
-import java.awt.event.ActionEvent;
-import java.awt.event.KeyEvent;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /**
- * The onboard assistant's one surface (spec-onboard-assistant-journeys.md §3, OA-1/OA-2). It RENDERS the session's
- * {@link AssistantState} and the transcript text that state names, and it REPORTS what the person did — Send, Cancel,
- * New chat, Pop out/Dock — as intents. Whether any of that may happen is the {@code assistantLoop} node's decision.
+ * The ONE assistant panel (spec-onboard-assistant-journeys.md §3, OA-1/OA-2; M74 UX, owner 2026-10-17). The in-app
+ * assistant (an API key) and Claude Code (the person's own CLI) are two MODES of this panel, not two panels: one
+ * transcript ({@link TranscriptView}, the safe Markdown of P2a), one composer, one header of chips with the mode as a
+ * single selector, the same tool-line marks, and one place that says what the mode in force cannot do.
+ *
+ * <p>It RENDERS the session's {@link AssistantState} (in-app), {@code LocalAgentState} (through Claude Code's part,
+ * {@link LocalAgentPanel}) and {@link ProfileState} (the profile overlay), and the words those states name in their
+ * stores; it REPORTS what the person did — Send, Stop, New chat, the mode, Pop out/Dock, the profile's Apply — as
+ * intents. Whether any of that may happen is the session's ({@code assistantLoop}, {@code localAgentSession},
+ * {@code assistantProfile}); each mode keeps its own rules (in-app actions and the round limit; Claude Code's posture,
+ * permissions and approvals).
  *
  * <p>There is exactly one of these, whichever host shows it: the side tab or the assistant window reparent this same
- * component, so the draft, the transcript, the selection and the scroll position move with it, and there is never a
- * second composer that could send a second request.
+ * component, so the draft, the transcript, the selection and the scroll position move with it.
  *
  * <p><b>Live and demonstration.</b> The header states the mode in words (§3): <i>Live assistant</i>, or — while a walk
  * with dialogue shows — <i>Simulated conversation</i>, <i>Recorded conversation</i> or <i>Edited recorded
@@ -62,35 +68,52 @@ public final class AssistantPanel extends JPanel {
         void askAboutEvidence();
 
         /** M74: the person chose which assistant the tab drives; the session holds the mode. */
-        default void chooseMode(telamin.fluxtion.audit.analyser.analyser.session.AssistantMode mode) {
+        default void chooseMode(AssistantMode mode) {
+        }
+
+        /** M74 UX: the header's Profile… — the person opens the four cards. */
+        default void openProfiles() {
+        }
+
+        /** M74 UX: the cards were closed without applying. */
+        default void closeProfiles() {
+        }
+
+        /** M74 UX: Apply on a card; the details stay in the overlay ({@link #profileDetails()}). */
+        default void applyProfile(long request, AssistantProfile profile) {
         }
     }
 
-    /** M74: the in-app assistant's own surface, and the card the local agent's panel shares the tab with. */
-    private final JPanel inApp = new JPanel(new BorderLayout(4, 4));
-    private final java.awt.CardLayout cardLayout = new java.awt.CardLayout();
-    private final JPanel cards = new JPanel(cardLayout);
-    private final JRadioButton inAppMode = new JRadioButton("In-app assistant");
-    private final JRadioButton claudeMode = new JRadioButton("Claude Code");
-    private final JPanel modeBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
-    private telamin.fluxtion.audit.analyser.analyser.session.AssistantMode shownMode =
-            telamin.fluxtion.audit.analyser.analyser.session.AssistantMode.IN_APP;
+    /** The mode selector's two entries (owner, 2026-10-17). */
+    static final String MODE_CLAUDE_CODE = "Claude Code · your plan";
+    static final String MODE_IN_APP = "In-app · API key";
 
+    /** What the in-app mode cannot do, said where Claude Code's limits are said. */
+    static final String IN_APP_LIMITS = "In-app cannot read your project folder, set up a project or use your own "
+            + "tools — Claude Code can.";
+    static final String IN_APP_NO_KEY = "No API key is configured, so nothing is sent from here — choose how the assistant "
+            + "works (Profile…), Copy prompt, or Connect a CLI assistant.";
+    static final String OFF_LIMITS = "The assistant is off on this machine: no question is sent anywhere. Everything else "
+            + "works — choose a profile (Profile…) to turn an assistant on.";
+
+    private final AssistantSurface surface = new AssistantSurface();
     private final AssistantTranscript transcript;
     private Intents intents;
+    private LocalAgentPanel localAgent;
+
+    private final JComboBox<String> modeSelector = UiText.plainCells(new JComboBox<>(new String[]{MODE_CLAUDE_CODE,
+            MODE_IN_APP}));
+    private boolean renderingMode;
+    private final JButton profileButton = UiText.button("Profile…");
 
     // SF-2: the route names a configured model, the basis a walk or record, the status a provider's error
     private final JLabel mode = UiText.plain(new JLabel("Live assistant"));
     private final JLabel route = UiText.plain(new JLabel());
     private final JLabel basis = UiText.plain(new JLabel());
     private final JLabel status = UiText.plain(new JLabel(" "));
-    private final JTextPane view = new JTextPane();
-    private final JScrollPane viewScroll = new JScrollPane(view);
-    private final JTextArea draft = new JTextArea(3, 40);
-    private final JButton send = new JButton("Send");
-    private final JButton cancel = new JButton("Cancel");
+    /** M74 UX: what the mode in force cannot do — the same place for both modes. */
+    private final WrapLine limits = new WrapLine(" ");
     private final JButton copyPrompt = new JButton("Copy prompt");
-    private final JButton newChat = new JButton("New chat");
     private final JButton hostButton = new JButton("Pop out");
     private final JButton showAnalyser = new JButton("Show analyser");
     private final JButton configure = new JButton("Configure provider");
@@ -101,8 +124,33 @@ public final class AssistantPanel extends JPanel {
     private final JPanel demoBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
     /** OA-4 (§6.2): Show / Hide conversation is presentation only; the strip still names the journey and its mode. */
     private final JCheckBox showConversation = new JCheckBox("Show conversation");
+
+    /** The mode lines: the in-app assistant's, or Claude Code's own part; one card shows. */
+    private final CardLayout detailsLayout = new CardLayout();
+    /** As tall as the card SHOWN — a CardLayout alone is as tall as its tallest card, which left a band of blank header. */
+    private final JPanel details = new JPanel(detailsLayout) {
+        @Override public java.awt.Dimension getPreferredSize() {
+            for (java.awt.Component c : getComponents()) {
+                if (c.isVisible()) {
+                    java.awt.Dimension d = c.getPreferredSize();
+                    java.awt.Insets in = getInsets();
+                    return new java.awt.Dimension(d.width + in.left + in.right, d.height + in.top + in.bottom);
+                }
+            }
+            return super.getPreferredSize();
+        }
+    };
+    private final JPanel inAppLines = new JPanel();
+    /** The transcript, or the profile overlay in its place. */
+    private final CardLayout centerLayout = new CardLayout();
+    private final JPanel center = new JPanel(centerLayout);
+    private final ProfileOverlay profiles = new ProfileOverlay();
+
     private AssistantState lastState = AssistantState.IDLE;
     private Demo lastDemo;
+    private AssistantMode shownMode = AssistantMode.IN_APP;
+    private boolean demoShowing;
+    private AssistantProfile profile = AssistantProfile.NONE;
 
     /** What was last rendered, so an unchanged snapshot repaints nothing and never moves the scroll. */
     private AssistantState rendered;
@@ -117,42 +165,75 @@ public final class AssistantPanel extends JPanel {
         setBorder(UiTheme.pad());
         getAccessibleContext().setAccessibleName("Analyser assistant");
 
-        JPanel header = new JPanel(new BorderLayout(6, 2));
+        // ---- the header: the mode selector, the chips, the panel's own actions -------------------------------------
+        modeSelector.getAccessibleContext().setAccessibleName("Assistant mode");
+        modeSelector.setToolTipText(UiText.tooltip("Which assistant this panel drives: your own Claude Code on your Claude "
+                + "plan, or the analyser's in-app assistant with an API key"));
+        modeSelector.addActionListener(e -> {
+            if (renderingMode || intents == null) return;
+            intents.chooseMode(modeSelector.getSelectedIndex() == 0 ? AssistantMode.LOCAL_AGENT : AssistantMode.IN_APP);
+        });
+        profileButton.getAccessibleContext().setAccessibleName("Choose how the assistant works");
+        profileButton.setToolTipText(UiText.tooltip("Safe analysis, Full Claude Code, In-app assistant or Off"));
+        profileButton.addActionListener(e -> { if (intents != null) intents.openProfiles(); });
         mode.setFont(mode.getFont().deriveFont(Font.BOLD));
-        mode.getAccessibleContext().setAccessibleName("Assistant mode");
+        mode.getAccessibleContext().setAccessibleName("Assistant mode, in words");
         route.getAccessibleContext().setAccessibleName("Assistant provider");
         basis.getAccessibleContext().setAccessibleName("Workspace this conversation is about");
         status.getAccessibleContext().setAccessibleName("Assistant status");
-        JPanel titles = new JPanel(new BorderLayout(6, 0));
-        titles.add(mode, BorderLayout.WEST);
-        titles.add(route, BorderLayout.CENTER);
-        JPanel hostActions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 0));
-        hostActions.add(newChat);
+        limits.getAccessibleContext().setAccessibleName("What this mode cannot do");
+        limits.setForeground(UiTheme.mutedForeground());
+
+        JPanel top = new JPanel();
+        top.setLayout(new BoxLayout(top, BoxLayout.Y_AXIS));
+        JPanel bar = new JPanel(new BorderLayout(6, 0));
+        JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
+        left.add(modeSelector);
+        left.add(mode);
+        bar.add(left, BorderLayout.WEST);
+        JPanel hostActions = new JPanel(new WrapLayout(FlowLayout.RIGHT, 4, 0));
+        hostActions.add(profileButton);
+        hostActions.add(surface.newChat);
         hostActions.add(showAnalyser);
         hostActions.add(hostButton);
-        titles.add(hostActions, BorderLayout.EAST);
-        header.add(titles, BorderLayout.NORTH);
-        header.add(basis, BorderLayout.CENTER);
-        header.add(status, BorderLayout.SOUTH);
-        inApp.add(header, BorderLayout.NORTH);
+        bar.add(hostActions, BorderLayout.CENTER);
+        for (JComponent c : new JComponent[]{bar, surface.chips, details, limits}) {
+            c.setAlignmentX(LEFT_ALIGNMENT);
+            top.add(c);
+        }
+        add(top, BorderLayout.NORTH);
 
-        view.setEditable(false);
-        view.getAccessibleContext().setAccessibleName("Conversation");
-        inApp.add(viewScroll, BorderLayout.CENTER);
+        inAppLines.setLayout(new BoxLayout(inAppLines, BoxLayout.Y_AXIS));
+        for (JComponent c : new JComponent[]{route, basis, status}) {
+            c.setAlignmentX(LEFT_ALIGNMENT);
+            inAppLines.add(c);
+        }
+        details.add(inAppLines, AssistantMode.IN_APP.name());
 
-        draft.setLineWrap(true);
-        draft.setWrapStyleWord(true);
-        draft.getAccessibleContext().setAccessibleName("Your question");
-        composer.add(new JScrollPane(draft), BorderLayout.CENTER);
-        composerHint.setVisible(false);
-        composerHint.setFont(composerHint.getFont().deriveFont(Font.BOLD));
-        composer.add(composerHint, BorderLayout.NORTH);
-        JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 0));
+        // ---- the one transcript, or the profile cards in its place ---------------------------------------------------
+        surface.view.setSpeaker("Assistant", "result");
+        center.add(surface.viewScroll, "TRANSCRIPT");
+        center.add(profiles, "PROFILES");
+        add(center, BorderLayout.CENTER);
+
+        // ---- the one composer --------------------------------------------------------------------------------------
+        JPanel above = new JPanel();
+        above.setLayout(new BoxLayout(above, BoxLayout.Y_AXIS));
+        surface.fullBadge.setAlignmentX(LEFT_ALIGNMENT);
+        surface.composerHint.setAlignmentX(LEFT_ALIGNMENT);
+        surface.fullBadge.setFont(surface.fullBadge.getFont().deriveFont(Font.BOLD));
+        surface.composerHint.setFont(surface.composerHint.getFont().deriveFont(Font.BOLD));
+        above.add(surface.fullBadge);
+        above.add(surface.composerHint);
+        composer.add(above, BorderLayout.NORTH);
+        composer.add(surface.draftScroll, BorderLayout.CENTER);
+        JPanel buttons = new JPanel(new WrapLayout(FlowLayout.RIGHT, 4, 0));
+        buttons.add(surface.start);
         buttons.add(copyPrompt);
-        buttons.add(cancel);
-        buttons.add(send);
+        buttons.add(surface.stop);
+        buttons.add(surface.send);
         composer.add(buttons, BorderLayout.SOUTH);
-        noProvider.add(new JLabel("No provider is configured — nothing is sent from here."));
+        noProvider.add(UiText.label("No provider is configured — nothing is sent from here."));
         noProvider.add(configure);
         noProvider.add(connectCli);
         demoBar.add(askAboutEvidence);
@@ -168,81 +249,137 @@ public final class AssistantPanel extends JPanel {
         south.add(noProvider, BorderLayout.NORTH);
         south.add(composer, BorderLayout.CENTER);
         south.add(demoBar, BorderLayout.SOUTH);
-        inApp.add(south, BorderLayout.SOUTH);
+        add(south, BorderLayout.SOUTH);
         demoBar.setVisible(false);
-
-        // M74: one tab, two assistants, one mode at a time — the choice is reported, and the session's mode is rendered
-        ButtonGroup modes = new ButtonGroup();
-        modes.add(inAppMode);
-        modes.add(claudeMode);
-        inAppMode.setSelected(true);
-        modeBar.add(new JLabel("Assistant:"));
-        modeBar.add(inAppMode);
-        modeBar.add(claudeMode);
-        inAppMode.getAccessibleContext().setAccessibleName("Use the in-app assistant");
-        claudeMode.getAccessibleContext().setAccessibleName("Use Claude Code");
-        inAppMode.addActionListener(e -> { if (intents != null) intents.chooseMode(
-                telamin.fluxtion.audit.analyser.analyser.session.AssistantMode.IN_APP); });
-        claudeMode.addActionListener(e -> { if (intents != null) intents.chooseMode(
-                telamin.fluxtion.audit.analyser.analyser.session.AssistantMode.LOCAL_AGENT); });
-        cards.add(inApp, telamin.fluxtion.audit.analyser.analyser.session.AssistantMode.IN_APP.name());
-        add(modeBar, BorderLayout.NORTH);
-        add(cards, BorderLayout.CENTER);
         showAnalyser.setVisible(false);
+        surface.start.setVisible(false);
 
-        send.addActionListener(e -> onSend());
-        cancel.addActionListener(e -> { if (intents != null) intents.cancel(); });
-        newChat.addActionListener(e -> { if (intents != null) intents.newChat(); });
-        copyPrompt.addActionListener(e -> { if (intents != null) intents.copyPrompt(draft.getText().trim()); });
+        // the shared buttons do what the MODE IN FORCE does with them; the session decides whether they may
+        surface.onSend = this::dispatchSend;
+        surface.onStop = this::dispatchStop;
+        surface.onNewChat = this::dispatchNewChat;
+        surface.onStart = () -> { if (localAgent != null) localAgent.onStart(); };
+        copyPrompt.addActionListener(e -> { if (intents != null) intents.copyPrompt(surface.draft.getText().trim()); });
         hostButton.addActionListener(e -> { if (intents != null) intents.host(!docked); });
         showAnalyser.addActionListener(e -> { if (intents != null) intents.showAnalyser(); });
         configure.addActionListener(e -> { if (intents != null) intents.configureProvider(); });
         connectCli.addActionListener(e -> { if (intents != null) intents.connectCliAssistant(); });
         askAboutEvidence.addActionListener(e -> { if (intents != null) intents.askAboutEvidence(); });
-        cancel.setEnabled(false);
-
-        // Enter sends; Shift+Enter is a newline. While an input method is composing, Enter belongs to it (§3).
-        draft.getInputMap(JComponent.WHEN_FOCUSED).put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), "assistant-send");
-        draft.getInputMap(JComponent.WHEN_FOCUSED).put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, KeyEvent.SHIFT_DOWN_MASK),
-                "insert-break");
-        draft.getActionMap().put("assistant-send", new AbstractAction() {
-            @Override public void actionPerformed(ActionEvent e) {
-                if (composing()) return;
-                onSend();
-            }
+        profiles.setHost(new ProfileOverlay.Host() {
+            @Override public void apply(long request, AssistantProfile p) { if (intents != null) intents.applyProfile(request, p); }
+            @Override public void close() { if (intents != null) intents.closeProfiles(); }
+            @Override public void openSettings() { if (intents != null) intents.configureProvider(); }
         });
+        renderMode(AssistantMode.IN_APP, false);
     }
 
     public void setIntents(Intents intents) {
         this.intents = intents;
     }
 
-    /** M74: the local agent's surface, shown in this tab when the session's mode is {@code LOCAL_AGENT}. */
-    public void setLocalAgentPanel(LocalAgentPanel panel) {
-        cards.add(panel, telamin.fluxtion.audit.analyser.analyser.session.AssistantMode.LOCAL_AGENT.name());
+    /** M74 UX: the shared transcript, composer and chips, for Claude Code's part of this panel. */
+    AssistantSurface surface() {
+        return surface;
     }
 
-    /** M74: render the session's mode — the selected button and the card. Deciding nothing. */
-    public void renderMode(telamin.fluxtion.audit.analyser.analyser.session.AssistantMode mode) {
+    /** M74 UX: the profile overlay's details for the card being applied — read by the performer of the node's effect. */
+    public AssistantProfiles.Details profileDetails() {
+        return profiles.details();
+    }
+
+    /** M74 UX: what the cards start from when they open (the frame reads this machine's settings). */
+    public void setProfileDefaults(Supplier<ProfileOverlay.Defaults> defaults) {
+        profiles.setDefaults(defaults);
+    }
+
+    ProfileOverlay profileOverlay() {
+        return profiles;
+    }
+
+    /** M74: Claude Code's part — its own lines here; it draws the shared transcript and composer while it is shown. */
+    public void setLocalAgentPanel(LocalAgentPanel panel) {
+        this.localAgent = panel;
+        details.add(panel, AssistantMode.LOCAL_AGENT.name());
+        panel.setActive(shownMode == AssistantMode.LOCAL_AGENT && !demoShowing);
+    }
+
+    private boolean claudeCodeShown() {
+        return shownMode == AssistantMode.LOCAL_AGENT && !demoShowing && localAgent != null;
+    }
+
+    private void dispatchSend() {
+        if (claudeCodeShown()) localAgent.onSend();
+        else onInAppSend();
+    }
+
+    private void dispatchStop() {
+        if (claudeCodeShown()) localAgent.onStop();
+        else if (intents != null) intents.cancel();
+    }
+
+    private void dispatchNewChat() {
+        if (claudeCodeShown()) localAgent.onNewChat();
+        else if (intents != null) intents.newChat();
+    }
+
+    /** M74: render the session's mode — the selector, the mode's lines and who draws the shared parts. Deciding nothing. */
+    public void renderMode(AssistantMode mode) {
         renderMode(mode, false);
     }
 
     /**
-     * M74 P2: render the mode; while a walk with a conversation shows, the tab shows that conversation whichever mode is
-     * in force (S1's demo plays the same in every mode, §5.8) — the walk's own strip, its label and its handoff.
+     * M74 P2: render the mode; while a walk with a conversation shows, the panel shows that conversation whichever mode
+     * is in force (S1's demo plays the same in every mode, §5.8) — the walk's own strip, its label and its handoff.
      */
-    public void renderMode(telamin.fluxtion.audit.analyser.analyser.session.AssistantMode mode, boolean demoShowing) {
-        if (mode == null) mode = telamin.fluxtion.audit.analyser.analyser.session.AssistantMode.IN_APP;
-        (mode == telamin.fluxtion.audit.analyser.analyser.session.AssistantMode.LOCAL_AGENT ? claudeMode : inAppMode)
-                .setSelected(true);
-        var shown = demoShowing ? telamin.fluxtion.audit.analyser.analyser.session.AssistantMode.IN_APP : mode;
-        if (shown == shownMode) return;
-        shownMode = shown;
-        cardLayout.show(cards, shown.name());
+    public void renderMode(AssistantMode mode, boolean demoShowing) {
+        AssistantMode m = mode == null ? AssistantMode.IN_APP : mode;
+        renderingMode = true;
+        try {
+            modeSelector.setSelectedIndex(m == AssistantMode.LOCAL_AGENT ? 0 : 1);
+        } finally {
+            renderingMode = false;
+        }
+        boolean changed = m != shownMode || demoShowing != this.demoShowing;
+        shownMode = m;
+        this.demoShowing = demoShowing;
+        boolean claude = claudeCodeShown();
+        detailsLayout.show(details, (claude ? AssistantMode.LOCAL_AGENT : AssistantMode.IN_APP).name());
+        surface.start.setVisible(claude);
+        copyPrompt.setVisible(!claude);
+        if (localAgent != null) localAgent.setActive(claude);
+        if (changed && !claude) {
+            surface.fullBadge.setVisible(false);          // the full-posture cue is Claude Code's alone
+            surface.cueBorder(null, 0);
+            surface.send.setText("Send");
+            surface.send.setToolTipText(null);
+            surface.newChat.setText("New chat");
+            rendered = null;
+            render(lastState, lastDemo);
+        }
+        renderLimits();
     }
 
-    JRadioButton claudeModeButton() {
-        return claudeMode;
+    /** The selector, for the tests: the person's choice of mode is a selection here. */
+    JComboBox<String> modeSelector() {
+        return modeSelector;
+    }
+
+    JButton profileButton() {
+        return profileButton;
+    }
+
+    WrapLine limitsLine() {
+        return limits;
+    }
+
+    /** M74 UX: the profile in force and its overlay, as assistantProfile decided them. */
+    public void renderProfiles(ProfileState s) {
+        ProfileState st = s == null ? ProfileState.NONE : s;
+        profile = st.profile();
+        profileButton.setText("Profile: " + profile.title() + "…");
+        profiles.render(st);
+        centerLayout.show(center, st.open() ? "PROFILES" : "TRANSCRIPT");
+        renderLimits();
     }
 
     /** Whether a usable provider is configured, read when rendering (it is configuration, not a session decision). */
@@ -255,106 +392,70 @@ public final class AssistantPanel extends JPanel {
         route.setText(text == null ? "" : text);
     }
 
-    /** An input method is mid-composition: the committed text is shorter than the document. */
-    private boolean composing() {
-        var requests = draft.getInputMethodRequests();
-        return requests != null && requests.getCommittedTextLength() != draft.getDocument().getLength();
-    }
-
-    private void onSend() {
-        String text = draft.getText().trim();
-        if (text.isEmpty() || intents == null || !send.isEnabled()) return;
+    private void onInAppSend() {
+        String text = surface.draft.getText().trim();
+        if (text.isEmpty() || intents == null || !surface.send.isEnabled()) return;
         intents.sendBound(text, currentBinding());
     }
 
     /** The node accepted the send: the composer is cleared for the next question. Nothing else clears the draft. */
     public void draftAccepted() {
-        draft.setText("");
-        if (boundHighlight != null) draft.getHighlighter().removeHighlight(boundHighlight);
-        boundHighlight = null;
-        boundDraft = 0;
-        composerHint.setVisible(false);
+        surface.accepted();
     }
-
-    /** The composed draft the composer holds, for the binding at Send; 0 when none (or its text was wholly deleted). */
-    private long boundDraft;
-    private Object boundHighlight;
-    private final JLabel composerHint = UiText.label(" ");
 
     /**
      * M74 P2 (OD-74.14): place a composed draft — APPENDED after whatever the person has written, never over it — with
      * exactly the appended range highlighted, the composer focused and lit with {@code hint}. Nothing is sent.
      */
     public int appendDraft(long draftRef, String text, String hint) {
-        String was = draft.getText();
-        String sep = was.isBlank() ? "" : was.endsWith("\n\n") ? "" : was.endsWith("\n") ? "\n" : "\n\n";
-        if (was.isBlank()) draft.setText("");
-        int from = draft.getDocument().getLength() + sep.length();
-        draft.append(sep + text);
-        int to = draft.getDocument().getLength();
-        if (boundHighlight != null) draft.getHighlighter().removeHighlight(boundHighlight);
-        try {
-            boundHighlight = draft.getHighlighter().addHighlight(from, to,
-                    new javax.swing.text.DefaultHighlighter.DefaultHighlightPainter(UiTheme.accentWash(0.28f)));
-            boundDraft = draftRef;
-        } catch (BadLocationException e) {
-            throw new IllegalStateException(e);
-        }
-        composerHint.setText(hint == null ? " " : hint);
-        composerHint.setVisible(hint != null && !hint.isBlank());
-        draft.setCaretPosition(to);
-        draft.requestFocusInWindow();
-        return from;
+        return surface.appendDraft(AssistantMode.IN_APP, draftRef, text, hint);
     }
 
     /** The composed draft's binding while any of its appended text remains. */
     long currentBinding() {
-        if (boundDraft == 0 || boundHighlight == null) return 0;
-        for (javax.swing.text.Highlighter.Highlight h : draft.getHighlighter().getHighlights()) {
-            if (h == boundHighlight) return h.getEndOffset() > h.getStartOffset() ? boundDraft : 0;
-        }
-        return 0;
+        return surface.binding(AssistantMode.IN_APP);
     }
 
     /** Focus the composer (the journey handoff's fresh thread), changing nothing in it. */
     public void focusComposer() {
-        draft.requestFocusInWindow();
+        surface.draft.requestFocusInWindow();
     }
 
-    JLabel composerHint() {
-        return composerHint;
+    WrapLine composerHint() {
+        return surface.composerHint;
     }
 
     public String draftText() {
-        return draft.getText();
+        return surface.draft.getText();
     }
 
     /** Where the conversation is scrolled to, so a move between hosts can put it back. */
     public java.awt.Point scrollPosition() {
-        return viewScroll.getViewport().getViewPosition();
+        return surface.viewScroll.getViewport().getViewPosition();
     }
 
     /** Put the conversation back where it was (after a move between hosts has laid it out again). */
     public void restoreScrollPosition(java.awt.Point p) {
         if (p == null) return;
-        SwingUtilities.invokeLater(() -> viewScroll.getViewport().setViewPosition(p));
+        SwingUtilities.invokeLater(() -> surface.viewScroll.getViewport().setViewPosition(p));
     }
 
-    /** For tests and the host: the composer. */
+    /** For tests and the host: the one composer. */
     JTextArea composerArea() {
-        return draft;
+        return surface.draft;
     }
 
-    JTextPane conversationView() {
-        return view;
+    TranscriptView conversationView() {
+        return surface.view;
     }
 
     JButton sendButton() {
-        return send;
+        return surface.send;
     }
 
+    /** The one Stop: in-app it cancels the turn; under Claude Code it interrupts it. */
     JButton cancelButton() {
-        return cancel;
+        return surface.stop;
     }
 
     JButton hostButton() {
@@ -368,14 +469,20 @@ public final class AssistantPanel extends JPanel {
     // ---- rendering ----------------------------------------------------------------------------------------------------
 
     /**
-     * Render live mode from the session's decision. {@code demo} is null in live mode; otherwise the demonstration's
-     * header and its already-rendered lines (OA-4). Unchanged input changes nothing on screen.
+     * Render the in-app assistant from the session's decision. {@code demo} is null in live mode; otherwise the
+     * demonstration's header and its already-rendered lines (OA-4). Unchanged input changes nothing on screen. While
+     * Claude Code is the mode shown, the shared transcript and composer are its: only the in-app lines are kept.
      */
     public void render(AssistantState state, Demo demo) {
         lastState = state;
         lastDemo = demo;
         boolean configured = Boolean.TRUE.equals(providerConfiguredSupplier.get());
         List<String> demoLines = demo == null ? null : demo.lines();
+        boolean inDemo = demo != null;
+        if (inDemo != demoShowing) {
+            renderMode(shownMode, inDemo);                 // a walk with dialogue starts or ends: who draws changes
+            return;
+        }
         if (state.equals(rendered) && java.util.Objects.equals(demoLines, renderedDemo) && configured == providerConfigured
                 && docked == state.docked()) {
             return;
@@ -386,43 +493,92 @@ public final class AssistantPanel extends JPanel {
         hostButton.getAccessibleContext().setAccessibleName(docked ? "Pop out the assistant" : "Dock the assistant");
         showAnalyser.setVisible(!docked);
 
-        boolean inDemo = demo != null;
         mode.setText(inDemo ? demo.mode() : "Live assistant");
-        route.setVisible(!inDemo);                    // a demonstration has no provider: nothing is sent from it
         mode.getAccessibleContext().setAccessibleDescription(mode.getText());
+        route.setVisible(!inDemo);                    // a demonstration has no provider: nothing is sent from it
+        basis.setText(inDemo ? demo.walkTitle() : (state.basis().isBlank() ? " " : "About: " + state.basis()));
+        status.setText(inDemo ? demo.status() : phaseLine(state));
         composer.setVisible(!inDemo);
         demoBar.setVisible(inDemo);
-        noProvider.setVisible(!inDemo && !configured);
-        newChat.setEnabled(!inDemo);
-        basis.setText(inDemo ? demo.walkTitle() : (state.basis().isBlank() ? " " : "About: " + state.basis()));
-        send.setEnabled(!inDemo && configured && !state.busy() && !state.frozen());
-        cancel.setEnabled(!inDemo && state.busy());
+        modeSelector.setEnabled(!inDemo);
+        boolean claude = claudeCodeShown();
+        noProvider.setVisible(!inDemo && !claude && !configured && profile != AssistantProfile.OFF);
+        renderLimits();
+        if (claude) {                                     // Claude Code draws the shared parts while it is shown
+            rendered = state;
+            renderedDemo = demoLines;
+            return;
+        }
+        surface.newChat.setEnabled(!inDemo);
+        // with nothing chosen Send stays pressable: the first question opens the profile cards (assistantProfile)
+        surface.send.setEnabled(!inDemo && (configured || profile == AssistantProfile.NONE) && !state.busy()
+                && !state.frozen());
+        surface.stop.setEnabled(!inDemo && state.busy());
         copyPrompt.setEnabled(!inDemo && !state.busy());
-        status.setText(inDemo ? demo.status() : phaseLine(state));
+        renderChips(state, configured, inDemo);
 
         boolean follow = following();
-        java.awt.Point at = viewScroll.getViewport().getViewPosition();
-        StyledDocument doc = view.getStyledDocument();
-        try {
-            doc.remove(0, doc.getLength());
-            if (inDemo && !showConversation.isSelected()) {
-                doc.insertString(doc.getLength(), "(conversation hidden — the walk's strip still steps it)\n", plain());
-            } else if (inDemo) {
-                for (String line : demoLines) doc.insertString(doc.getLength(), line + "\n", plain());
-            } else {
-                for (AssistantState.Entry e : state.visibleEntries()) renderEntry(doc, e, state);
-            }
-        } catch (BadLocationException ex) {
-            throw new IllegalStateException(ex);
-        }
+        java.awt.Point at = surface.viewScroll.getViewport().getViewPosition();
+        surface.view.setSpeaker(inDemo ? demo.mode() : "Assistant", "result");
+        surface.view.render(inDemo ? demoItems(demo) : items(state));
         // new content scrolls only when the person was already following the bottom (§3)
         if (follow) {
-            view.setCaretPosition(doc.getLength());
+            surface.view.setCaretPosition(surface.view.getDocument().getLength());
         } else {
-            SwingUtilities.invokeLater(() -> viewScroll.getViewport().setViewPosition(at));
+            SwingUtilities.invokeLater(() -> surface.viewScroll.getViewport().setViewPosition(at));
         }
         rendered = state;
         renderedDemo = demoLines;
+    }
+
+    /** M74 UX: what the mode in force cannot do — one line, in the same place for both modes. */
+    private void renderLimits() {
+        String words;
+        if (profile == AssistantProfile.OFF) {
+            words = OFF_LIMITS;
+        } else if (demoShowing) {
+            words = " ";
+        } else if (claudeCodeShown()) {
+            words = LocalAgentPanel.limitsText(localAgent.lastState());
+        } else {
+            words = Boolean.TRUE.equals(providerConfiguredSupplier.get()) ? IN_APP_LIMITS : IN_APP_NO_KEY;
+        }
+        limits.setText(words == null ? " " : words);
+        limits.setVisible(words != null && !words.isBlank());
+    }
+
+    /** The in-app header's chips: who answers, the provider and model, the key, and the action budget. */
+    private void renderChips(AssistantState state, boolean configured, boolean inDemo) {
+        JPanel chips = surface.chips;
+        chips.removeAll();
+        if (inDemo) {
+            chips.add(chip("Demonstration", true));
+            chips.add(chip("nothing is sent", false));
+        } else {
+            chips.add(chip("In-app assistant", true));
+            String r = route.getText();
+            if (r.startsWith("via ")) {
+                int dash = r.indexOf(" — ");
+                chips.add(chip(r.substring(4, dash > 0 ? dash : r.length()), false));
+            }
+            chips.add(chip(configured ? "API key" : "no API key", false));
+            if (state.busy()) chips.add(chip("answering", false));
+        }
+        chips.revalidate();
+        chips.repaint();
+    }
+
+    /** A header chip, in the same look as Claude Code's (§5.9). */
+    static JLabel chip(String text, boolean strong) {
+        JLabel l = UiText.label(text);                 // a model name or a folder is not the analyser's words
+        l.setOpaque(true);
+        l.setBackground(UiTheme.accentWash(strong ? 0.22f : 0.10f));
+        l.setForeground(strong ? UiTheme.accentText() : UIManager.getColor("Label.foreground"));
+        l.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(UiTheme.surfaceEdge(), 1, true),
+                BorderFactory.createEmptyBorder(1, 6, 1, 6)));
+        Font f = UIManager.getFont("Label.font");
+        if (f != null) l.setFont(f.deriveFont(strong ? Font.BOLD : Font.PLAIN, f.getSize2D() - 1f));
+        return l;
     }
 
     /** A demonstration's projection, built by the frame from walkPlayback's frozen definition (OA-4). */
@@ -432,9 +588,79 @@ public final class AssistantPanel extends JPanel {
         }
     }
 
+    /** The demonstration as transcript items: its lines as written, plain (never Markdown), or the hidden note. */
+    List<TranscriptView.Item> demoItems(Demo demo) {
+        List<TranscriptView.Item> out = new ArrayList<>();
+        if (!showConversation.isSelected()) {
+            out.add(new TranscriptView.Item("demo:hidden", TranscriptStyle.Role.NOTE,
+                    "(conversation hidden — the walk's strip still steps it)", "", 0, 0, false));
+            return out;
+        }
+        int i = 0;
+        for (String line : demo.lines()) {
+            out.add(new TranscriptView.Item("demo:" + i++ + ":" + line.hashCode(), TranscriptStyle.Role.PLAIN, line, "", 0, 0,
+                    false));
+        }
+        return out;
+    }
+
+    /**
+     * The in-app conversation as transcript items: the person's turns as typed, the answers as safe Markdown (their
+     * fenced action blocks shown as the tool lines that follow), each action as a tool line with the same marks Claude
+     * Code's carry, and the node's notes.
+     */
+    List<TranscriptView.Item> items(AssistantState state) {
+        List<TranscriptView.Item> out = new ArrayList<>();
+        int i = 0;
+        for (AssistantState.Entry e : state.visibleEntries()) {
+            String key = state.conversation() + ":" + i++ + ":" + e.kind() + ":" + e.id();
+            switch (e.kind()) {
+                case AssistantState.USER -> out.add(new TranscriptView.Item(key, TranscriptStyle.Role.YOU,
+                        transcript.text(e.id()), "", 0, 0, false));
+                case AssistantState.ANSWER -> out.add(new TranscriptView.Item(key, TranscriptStyle.Role.CLAUDE,
+                        withoutActionBlocks(transcript.text(e.id())), e.status(), 0, 0, false));
+                case AssistantState.ACTION -> out.add(new TranscriptView.Item(key + ":" + e.status(),
+                        TranscriptStyle.Role.TOOL, toolLine(e, e.result() == 0 ? null : transcript.text(e.result())),
+                        e.status(), 0, 0, false));
+                case AssistantState.NOTE -> out.add(new TranscriptView.Item(key, TranscriptStyle.Role.NOTE,
+                        "[" + e.status().toLowerCase(java.util.Locale.ROOT).replace('_', ' ') + "] " + e.detail(),
+                        e.status(), 0, 0, false));
+                default -> { }
+            }
+        }
+        return out;
+    }
+
+    /**
+     * An in-app action as a tool line: {@code ▸ analyser_read <its result> — ✓}, the same marks as Claude Code's lines
+     * ({@code ✓}, {@code refused}, {@code denied}); the result — what the model was given — is shown on expanding it, as
+     * data, at most 4,000 characters here (the whole result went to the model).
+     */
+    static String toolLine(AssistantState.Entry e, String result) {
+        String verb = e.verb().isBlank() ? "action" : e.verb();
+        String outcome = switch (e.status()) {
+            case "OK" -> "✓";
+            case "REFUSED" -> "refused" + (e.detail().isBlank() ? "" : ": " + e.detail());
+            case "NOT_RUN" -> "denied: not run" + (e.detail().isBlank() ? "" : " (" + e.detail() + ")");
+            default -> "";
+        };
+        String shown = result == null ? "" : result.length() > 4000 ? result.substring(0, 4000) + " … (" + result.length()
+                + " characters; the whole result was given to the model)" : result;
+        shown = shown.replace('\n', ' ');
+        return "▸ " + telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.PREFIX + verb
+                + (shown.isBlank() ? "" : " " + shown) + (outcome.isEmpty() ? "" : " — " + outcome);
+    }
+
     private boolean following() {
-        JScrollBar bar = viewScroll.getVerticalScrollBar();
+        JScrollBar bar = surface.viewScroll.getVerticalScrollBar();
         return bar.getValue() + bar.getVisibleAmount() >= bar.getMaximum() - 4;
+    }
+
+    /** A theme change: the one transcript re-styles. */
+    public void themeChanged() {
+        surface.view.restyle();
+        limits.setForeground(UiTheme.mutedForeground());
+        if (localAgent != null) localAgent.themeChanged();
     }
 
     static String phaseLine(AssistantState s) {
@@ -454,69 +680,9 @@ public final class AssistantPanel extends JPanel {
         return phase + why;
     }
 
-    private void renderEntry(StyledDocument doc, AssistantState.Entry e, AssistantState state) throws BadLocationException {
-        switch (e.kind()) {
-            case AssistantState.USER -> {
-                doc.insertString(doc.getLength(), "You\n", bold());
-                doc.insertString(doc.getLength(), transcript.text(e.id()) + "\n\n", plain());
-            }
-            case AssistantState.ANSWER -> {
-                doc.insertString(doc.getLength(), "Assistant — answer (the model's words, not a verified result)\n", bold());
-                doc.insertString(doc.getLength(), withoutActionBlocks(transcript.text(e.id())) + "\n\n", plain());
-            }
-            case AssistantState.ACTION -> {
-                String verb = e.verb().isBlank() ? "action" : e.verb();
-                String outcome = switch (e.status()) {
-                    case "OK" -> "result";
-                    case "REFUSED" -> "REFUSED";
-                    case "NOT_RUN" -> "NOT RUN";
-                    default -> "running…";
-                };
-                doc.insertString(doc.getLength(), "▸ " + verb + " — " + outcome
-                        + (e.detail().isBlank() ? "" : " (" + e.detail() + ")") + "\n", "REFUSED".equals(e.status())
-                        || "NOT_RUN".equals(e.status()) ? warning() : bold());
-                if (e.result() != 0) {
-                    String json = transcript.text(e.result());
-                    doc.insertString(doc.getLength(), "   " + (json.length() > 4000 ? json.substring(0, 4000)
-                            + " … (" + json.length() + " characters; the whole result was given to the model)" : json)
-                            + "\n\n", mono());
-                } else {
-                    doc.insertString(doc.getLength(), "\n", plain());
-                }
-            }
-            case AssistantState.NOTE -> doc.insertString(doc.getLength(), "[" + e.status().toLowerCase(java.util.Locale.ROOT)
-                    .replace('_', ' ') + "] " + e.detail() + "\n\n", warning());
-            default -> { }
-        }
-    }
-
     /** An answer's fenced action blocks are shown as the action entries that follow it, not as prose. */
     static String withoutActionBlocks(String reply) {
         return reply.replaceAll("(?s)```analyser-action\\s.*?```", "[an action was requested — its result follows]").strip();
-    }
-
-    private static SimpleAttributeSet plain() {
-        return new SimpleAttributeSet();
-    }
-
-    private static SimpleAttributeSet bold() {
-        SimpleAttributeSet a = new SimpleAttributeSet();
-        StyleConstants.setBold(a, true);
-        return a;
-    }
-
-    private static SimpleAttributeSet mono() {
-        SimpleAttributeSet a = new SimpleAttributeSet();
-        StyleConstants.setFontFamily(a, Font.MONOSPACED);
-        StyleConstants.setFontSize(a, 11);
-        return a;
-    }
-
-    private static SimpleAttributeSet warning() {
-        SimpleAttributeSet a = new SimpleAttributeSet();
-        StyleConstants.setBold(a, true);
-        StyleConstants.setForeground(a, new Color(0xB0, 0x5A, 0x00));
-        return a;
     }
 
     /** Unused while docked: the host shows the panel itself. Kept for the popout host's title. */

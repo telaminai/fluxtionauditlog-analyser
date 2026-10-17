@@ -27,6 +27,7 @@ class LocalAgentConsentTest {
             "assistant.claudeCode.trustedFull.0=/somewhere/else|0123456789abcdef0123456789abcdef",
             "assistant.claudeCode.warmStart=true",
             "assistant.claudeCode.budgetUsd=999",
+            "assistant.claudeCode.profile=FULL",
             "assistant.claudeCode.trusted.count=1",
             "assistant.claudeCode.trusted.0=/somewhere/else",
             "sourceRoot.0=src/main/java", "");
@@ -59,6 +60,7 @@ class LocalAgentConsentTest {
         on.claudeCodeFullMode = "plan";
         on.claudeCodeTrustedFullFolders.add("/a/full/folder|00112233445566778899aabbccddeeff");
         on.claudeCodeBudgetUsd = 7.5;
+        on.assistantProfile = "FULL";
         String exported = share.export(on, SettingsShare.Category.defaults());
         assertFalse(exported.contains("claudeCode"), "never exported: " + exported);
         assertFalse(ProjectProfile.write(on, share, profile).contains("claudeCode"), "never a profile key");
@@ -87,6 +89,7 @@ class LocalAgentConsentTest {
         assertTrue(c.claudeCodeTrustedFullFolders.isEmpty(), what + " cannot add a full-posture trusted folder");
         assertEquals("default", c.claudeCodeFullMode, what + " cannot choose the full posture's mode");
         assertNull(c.claudeCodeBudgetUsd, what + " cannot set a spend limit");
+        assertNull(c.assistantProfile, what + " cannot choose the assistant profile (M74 UX)");
     }
 
     /**

@@ -27,7 +27,9 @@ public final class TranscriptStyle {
         /** a status or note line: muted, smaller */
         NOTE,
         /** an interrupted or ended turn: the answer kept, muted */
-        STOPPED
+        STOPPED,
+        /** M74 UX: a demonstration's scripted or recorded lines — body text, plain, never Markdown */
+        PLAIN
     }
 
     /** A tool line's outcome mark. */
@@ -121,6 +123,7 @@ public final class TranscriptStyle {
             case TOOL -> "▸";
             case NOTE -> "";
             case STOPPED -> "— stopped";
+            case PLAIN -> "";
         };
     }
 
@@ -132,7 +135,7 @@ public final class TranscriptStyle {
         Palette p = palette(dark);
         return switch (role) {
             case YOU -> p.youText();
-            case CLAUDE, TOOL -> p.body();
+            case CLAUDE, TOOL, PLAIN -> p.body();
             case NOTE, STOPPED -> p.muted();
         };
     }

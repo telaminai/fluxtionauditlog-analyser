@@ -107,7 +107,8 @@ telamin.fluxtion.audit.analyser.analyser.ui.M74P1bSmoke <SMOKE>` under `/tmp/flu
 Warm start was cut by the owner after these smokes ran (OD-74.25), and with it the `claudeCodeWarmStart` setting and the
 `WarmStart` class the harness used, so the harness no longer compiled. It was trimmed rather than left broken:
 `M74P1bWarmSmoke.java`, which tested only warm start, was removed, and the warm-start steps of `M74P1bSmoke.java` (item 8)
-and `M74P1bFixSmoke.java` were replaced by a comment. The results recorded above are unchanged; they describe the P1b
+and `M74P1bFixSmoke.java` were replaced by a comment; and the `click` helper selects the mode in the one
+assistant panel's selector, which replaced the tab's two radio buttons in the same step. The results recorded above are unchanged; they describe the P1b
 branch as it was. The harness drives the Assistant tab by field names of that time, so re-running it against a later
 analyser needs those names checked first. `M74HarnessesCompileTest` now holds every M74 harness to compiling, so the
 next cut setting fails a test instead of a later reader.

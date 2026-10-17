@@ -63,8 +63,8 @@ public final class LocalAgentPanel extends JPanel {
     }
 
     /** The posture line of the default posture (§5.2). */
-    static final String DEFAULT_POSTURE_NOTE = "analyser assistant — your skills and hooks are not loaded; enable full "
-            + "Claude Code for those";
+    static final String DEFAULT_POSTURE_NOTE = "Safe analysis — your skills and hooks are not loaded; choose Full Claude "
+            + "Code (Profile…) for those";
     /** §4.8: an external terminal is invisible to the lock. */
     static final String LOCK_WARNING = "Don't resume this conversation in a terminal while it is open here — the history "
             + "would fork.";
@@ -79,24 +79,30 @@ public final class LocalAgentPanel extends JPanel {
 
     private final LocalAgentTranscript store;
     private Intents intents;
+    /** M74 UX: the one panel's shared transcript, composer and chips — this mode renders into them while it is shown. */
+    private final AssistantSurface surface;
+    /** Standalone (its own layout, as before the M74 UX step) or a part of the one assistant panel. */
+    private final boolean standalone;
+    /** This mode is the one the panel shows: only then does it draw the shared transcript, chips and composer. */
+    private boolean active = true;
 
     // they WRAP to the tab's width: a header, a warning or a status that ends in "…" hides its most important part
     private final WrapLine header = new WrapLine(" ");
-    private final JPanel chips = new JPanel(new WrapLayout(FlowLayout.LEFT, 4, 3));
+    private final JPanel chips;
     private final WrapLine posture = new WrapLine(DEFAULT_POSTURE_NOTE);
     private final WrapLine lockWarning = new WrapLine(LOCK_WARNING);
     private final WrapLine status = new WrapLine(" ");
     private final JTextArea detail = new JTextArea(2, 40);
-    private final TranscriptView view = new TranscriptView();
-    private final JScrollPane viewScroll = new JScrollPane(view);
-    private final JTextArea draft = new JTextArea(3, 40);
-    private final JScrollPane draftScroll = new JScrollPane(draft);
-    private final JLabel fullBadge = UiText.label(" ");
-    private final WrapLine composerHint = new WrapLine(" ");
-    private final JButton start = new JButton("Start Claude Code");
-    private final JButton stop = new JButton("Stop");
-    private final JButton newChat = new JButton("New chat");
-    private final JButton send = UiText.button("Send");
+    private final TranscriptView view;
+    private final JScrollPane viewScroll;
+    private final JTextArea draft;
+    private final JScrollPane draftScroll;
+    private final JLabel fullBadge;
+    private final WrapLine composerHint;
+    private final JButton start;
+    private final JButton stop;
+    private final JButton newChat;
+    private final JButton send;
     private final JButton settings = new JButton("Settings ▸ Assistant");
     /** P2b (§5.6): <i>Set up a project with Claude…</i>, and the proposal banner (never a modal). */
     private final JButton setUp = UiText.button("Set up a project with Claude…");
@@ -108,21 +114,40 @@ public final class LocalAgentPanel extends JPanel {
     private final WrapLine endpoint = new WrapLine(" ");
     private telamin.fluxtion.audit.analyser.analyser.session.ProposalState proposal =
             telamin.fluxtion.audit.analyser.analyser.session.ProposalState.NONE;
-    private final Border draftBorder;
 
     private LocalAgentState rendered;
     private String renderedHeader;
-    /** The composed draft the composer holds (its appended range), for the binding at Send; 0 when none. */
-    private long boundDraft;
-    private Object boundHighlight;
 
     public LocalAgentPanel(LocalAgentTranscript store) {
+        this(store, new AssistantSurface(), true);
+    }
+
+    /** M74 UX: Claude Code's part of the one assistant panel — its own lines; the transcript and composer are shared. */
+    LocalAgentPanel(LocalAgentTranscript store, AssistantSurface surface) {
+        this(store, surface, false);
+    }
+
+    private LocalAgentPanel(LocalAgentTranscript store, AssistantSurface surface, boolean standalone) {
         super(new BorderLayout(4, 4));
         this.store = store;
+        this.surface = surface;
+        this.standalone = standalone;
+        this.chips = surface.chips;
+        this.view = surface.view;
+        this.viewScroll = surface.viewScroll;
+        this.draft = surface.draft;
+        this.draftScroll = surface.draftScroll;
+        this.fullBadge = surface.fullBadge;
+        this.composerHint = surface.composerHint;
+        this.start = surface.start;
+        this.stop = surface.stop;
+        this.newChat = surface.newChat;
+        this.send = surface.send;
+        // SF-2: the shared Send and badge carry this mode's computed words — plain, as they were when built here
+        UiText.plain(send);
+        UiText.plain(fullBadge);
         getAccessibleContext().setAccessibleName("Claude Code");
         header.getAccessibleContext().setAccessibleName("Claude Code session folder");
-        chips.getAccessibleContext().setAccessibleName("Claude Code session");
-        chips.setOpaque(false);
         status.getAccessibleContext().setAccessibleName("Claude Code status");
         detail.setEditable(false);
         detail.setLineWrap(true);
@@ -135,9 +160,11 @@ public final class LocalAgentPanel extends JPanel {
         JPanel top = new JPanel();
         top.setLayout(new BoxLayout(top, BoxLayout.Y_AXIS));
         JPanel actions = new JPanel(new WrapLayout(FlowLayout.LEFT, 4, 2));   // P2b: wraps in a narrow tab
-        actions.add(start);
-        actions.add(stop);
-        actions.add(newChat);
+        if (standalone) {
+            actions.add(start);
+            actions.add(stop);
+            actions.add(newChat);
+        }
         actions.add(setUp);
         actions.add(settings);
         setUp.setToolTipText(UiText.tooltip("Choose a folder; Claude Code looks and proposes a set-up, you answer each "
@@ -159,52 +186,85 @@ public final class LocalAgentPanel extends JPanel {
         diagnostics.setVisible(false);
         endpoint.setForeground(UiTheme.mutedForeground());
         endpoint.setVisible(false);
-        for (JComponent c : new JComponent[]{chips, header, posture, endpoint, diagnostics, lockWarning, actions,
-                proposalBanner, status, detail}) {
+        java.util.List<JComponent> lines = new java.util.ArrayList<>();
+        if (standalone) lines.add(chips);
+        lines.addAll(java.util.List.of(header, posture, endpoint, diagnostics, lockWarning, actions, proposalBanner, status,
+                detail));
+        for (JComponent c : lines) {
             c.setAlignmentX(LEFT_ALIGNMENT);
             top.add(c);
         }
-        add(top, BorderLayout.NORTH);
+        add(top, standalone ? BorderLayout.NORTH : BorderLayout.CENTER);
 
-        add(viewScroll, BorderLayout.CENTER);
-
-        draft.setLineWrap(true);
-        draft.setWrapStyleWord(true);
-        draft.getAccessibleContext().setAccessibleName("Your message to Claude Code");
-        draftBorder = draftScroll.getBorder();
-        JPanel composer = new JPanel(new BorderLayout(4, 4));
-        JPanel above = new JPanel();
-        above.setLayout(new BoxLayout(above, BoxLayout.Y_AXIS));
-        fullBadge.setAlignmentX(LEFT_ALIGNMENT);
-        composerHint.setAlignmentX(LEFT_ALIGNMENT);
-        fullBadge.setVisible(false);
-        composerHint.setVisible(false);
-        fullBadge.setFont(fullBadge.getFont().deriveFont(Font.BOLD));
-        above.add(fullBadge);
-        above.add(composerHint);
-        composer.add(above, BorderLayout.NORTH);
-        composer.add(draftScroll, BorderLayout.CENTER);
-        JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 0));
-        buttons.add(send);
-        composer.add(buttons, BorderLayout.SOUTH);
-        add(composer, BorderLayout.SOUTH);
-
-        start.addActionListener(e -> { if (intents != null) intents.start(); });
-        stop.addActionListener(e -> { if (intents != null) intents.stop(); });
-        newChat.addActionListener(e -> { if (intents != null) intents.newChat(); });
+        if (standalone) {
+            add(viewScroll, BorderLayout.CENTER);
+            JPanel composer = new JPanel(new BorderLayout(4, 4));
+            JPanel above = new JPanel();
+            above.setLayout(new BoxLayout(above, BoxLayout.Y_AXIS));
+            fullBadge.setAlignmentX(LEFT_ALIGNMENT);
+            composerHint.setAlignmentX(LEFT_ALIGNMENT);
+            fullBadge.setFont(fullBadge.getFont().deriveFont(Font.BOLD));
+            above.add(fullBadge);
+            above.add(composerHint);
+            composer.add(above, BorderLayout.NORTH);
+            composer.add(draftScroll, BorderLayout.CENTER);
+            JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 0));
+            buttons.add(send);
+            composer.add(buttons, BorderLayout.SOUTH);
+            add(composer, BorderLayout.SOUTH);
+            surface.onStart = this::onStart;
+            surface.onStop = this::onStop;
+            surface.onNewChat = this::onNewChat;
+            surface.onSend = this::onSend;
+        }
         settings.addActionListener(e -> { if (intents != null) intents.openSettings(); });
-        send.addActionListener(e -> onSend());
-        draft.getInputMap(JComponent.WHEN_FOCUSED).put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), "local-agent-send");
-        draft.getInputMap(JComponent.WHEN_FOCUSED).put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, KeyEvent.SHIFT_DOWN_MASK),
-                "insert-break");
-        draft.getActionMap().put("local-agent-send", new AbstractAction() {
-            @Override public void actionPerformed(ActionEvent e) {
-                var requests = draft.getInputMethodRequests();
-                if (requests != null && requests.getCommittedTextLength() != draft.getDocument().getLength()) return;
-                onSend();
-            }
-        });
-        stop.setEnabled(false);
+    }
+
+    /** M74 UX: whether this mode is the one the panel shows (only then does it draw the shared parts). */
+    void setActive(boolean active) {
+        if (this.active == active) return;
+        this.active = active;
+        if (active && rendered != null) {
+            LocalAgentState last = rendered;
+            rendered = null;
+            render(last);
+        }
+    }
+
+    boolean active() {
+        return active;
+    }
+
+    /** The state last rendered (null before the first), for the one panel's limits line. */
+    LocalAgentState lastState() {
+        return rendered;
+    }
+
+    /** M74 UX: what Claude Code here cannot do — said in the one panel's limits line, where the in-app limits are said. */
+    static final String SAFE_LIMITS = "Safe analysis reads only: no shell, no edits, no web, none of your own skills or "
+            + "servers — choose Full Claude Code (Profile…) for those. Copy prompt is for an external assistant.";
+    static final String FULL_LIMITS = "Your own tools run under your permission rules: the analyser asks you only when "
+            + "Claude Code asks, and cannot confine the rest. Copy prompt is for an external assistant.";
+    static final String OFF_LIMITS = "Claude Code is not set up on this machine — choose Safe analysis or Full Claude "
+            + "Code (Profile…), or switch to the in-app assistant.";
+
+    static String limitsText(LocalAgentState s) {
+        if (s == null) return SAFE_LIMITS;
+        if ("SWITCHED_OFF".equals(s.verdict())) return OFF_LIMITS;
+        boolean full = s.running() ? s.posture().isFull() : s.fullCue() != LocalAgentState.FullCue.NONE;
+        return full ? FULL_LIMITS : SAFE_LIMITS;
+    }
+
+    void onStart() {
+        if (intents != null) intents.start();
+    }
+
+    void onStop() {
+        if (intents != null) intents.stop();
+    }
+
+    void onNewChat() {
+        if (intents != null) intents.newChat();
     }
 
     /**
@@ -231,7 +291,7 @@ public final class LocalAgentPanel extends JPanel {
         view.setNavigator(navigator);
     }
 
-    private void onSend() {
+    void onSend() {
         String text = draft.getText().trim();
         if (text.isEmpty() || intents == null) return;
         intents.send(text, currentBinding());   // refused or not, the node says so; the draft stays until it is accepted
@@ -239,17 +299,12 @@ public final class LocalAgentPanel extends JPanel {
 
     /** The composed draft's binding while any of its appended text remains (deleting the whole draft drops it). */
     long currentBinding() {
-        if (boundDraft == 0 || boundHighlight == null) return 0;
-        for (Highlighter.Highlight h : draft.getHighlighter().getHighlights()) {
-            if (h == boundHighlight) return h.getEndOffset() > h.getStartOffset() ? boundDraft : 0;
-        }
-        return 0;
+        return surface.binding(telamin.fluxtion.audit.analyser.analyser.session.AssistantMode.LOCAL_AGENT);
     }
 
     /** The node accepted the send: clear the composer. Nothing else clears it (a refused draft stays editable). */
     public void draftAccepted() {
-        draft.setText("");
-        clearDraftMarks();
+        surface.accepted();
     }
 
     /**
@@ -259,32 +314,8 @@ public final class LocalAgentPanel extends JPanel {
      * @return the appended range's start
      */
     public int appendDraft(long draftRef, String text, String hint) {
-        String was = draft.getText();
-        String sep = was.isBlank() ? "" : was.endsWith("\n\n") ? "" : was.endsWith("\n") ? "\n" : "\n\n";
-        if (was.isBlank()) draft.setText("");
-        int from = draft.getDocument().getLength() + sep.length();
-        draft.append(sep + text);
-        int to = draft.getDocument().getLength();
-        clearDraftMarks();
-        try {
-            boundHighlight = draft.getHighlighter().addHighlight(from, to,
-                    new DefaultHighlighter.DefaultHighlightPainter(UiTheme.accentWash(0.28f)));
-            boundDraft = draftRef;
-        } catch (BadLocationException e) {
-            throw new IllegalStateException(e);
-        }
-        composerHint.setText(hint == null ? " " : hint);
-        composerHint.setVisible(hint != null && !hint.isBlank());
-        draft.setCaretPosition(to);
-        draft.requestFocusInWindow();
-        return from;
-    }
-
-    private void clearDraftMarks() {
-        if (boundHighlight != null) draft.getHighlighter().removeHighlight(boundHighlight);
-        boundHighlight = null;
-        boundDraft = 0;
-        composerHint.setVisible(false);
+        return surface.appendDraft(telamin.fluxtion.audit.analyser.analyser.session.AssistantMode.LOCAL_AGENT, draftRef,
+                text, hint);
     }
 
     JTextArea composerArea() {
@@ -392,7 +423,7 @@ public final class LocalAgentPanel extends JPanel {
         LocalAgentTranscript.Header h = shownHeader(s, store);
         String headerText = headerLine(h, s);
         if (s.equals(rendered) && Objects.equals(headerText, renderedHeader)) return;
-        renderChips(h, s, headerText);
+        if (active) renderChips(h, s, headerText);
         String folder = h == null ? null : h.folder();
         header.setText(folder == null || folder.isBlank() ? " " : "Folder: " + shortFolder(folder)
                 + (h.scratchForProject() ? " — " + SCRATCH_NOTE : ""));
@@ -406,29 +437,36 @@ public final class LocalAgentPanel extends JPanel {
         diagnostics.setText(diag == null ? " " : diag);
         diagnostics.setVisible(diag != null);
         boolean running = s.running();
-        start.setEnabled(!running);
-        start.setText(UiText.inert(startLabel(s)));
-        stop.setEnabled(s.busy() || s.starting() || s.pendingDraft() != 0);
-        send.setEnabled(!s.busy() && !"STOPPING".equals(s.phase()));
+        if (active) {
+            // the shared parts are drawn by the mode the panel shows (M74 UX: one composer, one Start/Stop/Send)
+            start.setEnabled(!running);
+            start.setText(UiText.inert(startLabel(s)));
+            stop.setEnabled(s.busy() || s.starting() || s.pendingDraft() != 0);
+            send.setEnabled(!s.busy() && !"STOPPING".equals(s.phase()));
+            newChat.setText(s.newChatOffered() ? "New chat (offered)" : "New chat");
+            renderFullCue(s);
+        }
         settings.setVisible("SWITCHED_OFF".equals(s.verdict()) || "BUDGET_SPENT".equals(s.verdict()));
-        newChat.setText(s.newChatOffered() ? "New chat (offered)" : "New chat");
         status.setText(statusText(s, waitingForApproval));
-        renderFullCue(s);
         revalidate();
         String words = s.detailRef() != 0 ? store.text(s.detailRef()) : s.stderrRef() != 0
                 ? "Claude Code's last error line: " + store.text(s.stderrRef()) : "";
         detail.setText(words);
         detail.setVisible(!words.isBlank());
 
-        boolean follow = following();
-        view.render(items(s));
-        if (follow) view.setCaretPosition(view.getDocument().getLength());
+        if (active) {
+            boolean follow = following();
+            view.setSpeaker(TranscriptStyle.marker(TranscriptStyle.Role.CLAUDE), "input");
+            view.render(items(s));
+            if (follow) view.setCaretPosition(view.getDocument().getLength());
+        }
         rendered = s;
         renderedHeader = headerText;
     }
 
     /** A theme change: the transcript re-styles (the one full re-render besides New chat and a trim). */
     public void themeChanged() {
+        if (!active) return;
         view.restyle();
         if (rendered != null) renderFullCue(rendered);
     }
@@ -594,7 +632,7 @@ public final class LocalAgentPanel extends JPanel {
         send.setText(sendLabel(s));
         if (badge == null) {
             fullBadge.setVisible(false);
-            draftScroll.setBorder(draftBorder);
+            surface.cueBorder(null, 0);
             send.setToolTipText(null);
             return;
         }
@@ -605,7 +643,7 @@ public final class LocalAgentPanel extends JPanel {
         fullBadge.getAccessibleContext().setAccessibleName(badge);
         fullBadge.getAccessibleContext().setAccessibleDescription(fullBadgeTip(s));
         fullBadge.setVisible(true);
-        draftScroll.setBorder(BorderFactory.createLineBorder(c, s.strongCue() ? 3 : 2));
+        surface.cueBorder(c, s.strongCue() ? 3 : 2);
         send.setToolTipText(UiText.tooltip("Sends to your full Claude Code (" + s.cuePosture().fullMode().cli() + ")"));
     }
 

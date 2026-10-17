@@ -54,6 +54,20 @@ public class StartPagePrompt implements EventLogSource {
     private int packRefusalLine;
     private StartPageState published = StartPageState.IDLE;
     private boolean dirty = true;
+    /**
+     * M74 UX: the assistant profile, a JavaBean parent so the generator wires it without changing the constructor — a
+     * first-use question it answered by opening the profile choices gets no no-AI fallback here. Null only in a processor
+     * generated before the profile existed.
+     */
+    private AssistantProfileChoice assistantProfile;
+
+    public AssistantProfileChoice getAssistantProfile() {
+        return assistantProfile;
+    }
+
+    public void setAssistantProfile(AssistantProfileChoice assistantProfile) {
+        this.assistantProfile = assistantProfile;
+    }
 
     /** A press waiting for its flow: what to compose once the flow is done. */
     private record Pending(String entryId, StartPageState.Route route, long textRef, boolean popOut) {
@@ -163,6 +177,12 @@ public class StartPagePrompt implements EventLogSource {
         // the demo plays the same in every column: the walk path, no model (r8 F13)
         if (id.equals("S1")) {
             effects.request(new SessionEffects.PlayDemoJourneyEffect(0L, e.request()));
+            return changed();
+        }
+        if (assistantProfile != null && assistantProfile.interceptedStartPage(e.request())) {
+            // M74 UX: the first question with no profile chosen opened the choices; nothing else is asked for
+            note = AssistantProfileChoice.FIRST_USE_NOTE;
+            auditLog.info("startPageRoute", "PROFILE_CHOICES");
             return changed();
         }
         if (id.equals("NONE") && e.textRef() == 0) {

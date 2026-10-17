@@ -91,7 +91,7 @@ class ClaudeCodeTabFrameTest {
             onEdt(() -> render(ex, "open", Map.of("project", profile.toString())));
             AssistantPanel assistant = (AssistantPanel) field(f, "assistantPanel");
             LocalAgentPanel panel = (LocalAgentPanel) field(f, "localAgentPanel");
-            onEdt(() -> assistant.claudeModeButton().doClick());
+            onEdt(() -> assistant.modeSelector().setSelectedIndex(0));
             awaitState(f, s -> s.mode() == telamin.fluxtion.audit.analyser.analyser.session.AssistantMode.LOCAL_AGENT,
                     "Claude Code chosen");
 

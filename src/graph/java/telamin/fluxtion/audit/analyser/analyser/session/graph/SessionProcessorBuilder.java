@@ -154,9 +154,19 @@ public class SessionProcessorBuilder implements FluxtionGraphBuilder {
         boundary.setOnboardingProposal(onboarding);
         // M74 P2b (owner request 2026-10-17): a prompt pack's example entry — confirm, fetch, verify, unpack, offer
         cfg.addNode(new telamin.fluxtion.audit.analyser.analyser.session.node.ExampleDownload(effects), "exampleDownload");
+        // M74 UX (owner, 2026-10-17): the assistant profile — when its four cards open, and whether Apply may be applied
+        // now (never mid-turn). Downstream of both assistants (it reads whether a turn is open), upstream of the start
+        // page's prompt (a first-use question opens the cards instead of the no-AI fallback)
+        telamin.fluxtion.audit.analyser.analyser.session.node.AssistantProfileChoice assistantProfile =
+                new telamin.fluxtion.audit.analyser.analyser.session.node.AssistantProfileChoice(localAgent, assistantLoop,
+                        effects);
+        cfg.addNode(assistantProfile, "assistantProfile");
         // M74 P2 (§5.8): the start page's "What would you like to do?" — its list and where its button goes
-        cfg.addNode(new telamin.fluxtion.audit.analyser.analyser.session.node.StartPagePrompt(assistantMode, localAgent,
-                openLog, effects), "startPagePrompt");
+        telamin.fluxtion.audit.analyser.analyser.session.node.StartPagePrompt startPagePrompt =
+                new telamin.fluxtion.audit.analyser.analyser.session.node.StartPagePrompt(assistantMode, localAgent,
+                        openLog, effects);
+        startPagePrompt.setAssistantProfile(assistantProfile);
+        cfg.addNode(startPagePrompt, "startPagePrompt");
         cfg.addNode(new telamin.fluxtion.audit.analyser.analyser.session.node.WalkPlayback(openLog, assistantLoop, effects), "walkPlayback");
         // evidence bundle capture (convergence): the capture skill's decisions, in the session (rule 9)
         cfg.addNode(new telamin.fluxtion.audit.analyser.analyser.session.node.EvidenceCapture(openLog, gate, effects), "evidenceCapture");

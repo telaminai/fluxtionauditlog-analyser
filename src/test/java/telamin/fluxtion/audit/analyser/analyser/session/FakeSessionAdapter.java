@@ -39,6 +39,9 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
     final List<SessionEffects.RunAssistantActionEffect> assistantActions = new ArrayList<>();
     final List<SessionEffects.CancelAssistantTransportEffect> assistantCancels = new ArrayList<>();
     final List<SessionEffects.ShowAssistantHostEffect> assistantHosts = new ArrayList<>();
+    /** M74 UX: what assistantProfile asked for — the panel brought forward, a profile's settings written. */
+    final List<SessionEffects.ShowAssistantProfilesEffect> profileShows = new ArrayList<>();
+    final List<SessionEffects.ApplyAssistantProfileEffect> profileApplies = new ArrayList<>();
     /** The verb each action entry names, as the real adapter would read it from the block. */
     final java.util.Map<Long, String> assistantVerbs = new java.util.HashMap<>();
     /** M74: what localAgentSession asked the adapter to do, in order. */
@@ -182,6 +185,14 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
             case SessionEffects.ShowAssistantHostEffect e -> {
                 assistantHosts.add(e);
                 yield new SessionEvents.AssistantHostShown(e.opId(), e.docked(), true, "");
+            }
+            case SessionEffects.ShowAssistantProfilesEffect e -> {
+                profileShows.add(e);
+                yield new SessionEvents.AssistantProfilesShown(e.opId());
+            }
+            case SessionEffects.ApplyAssistantProfileEffect e -> {
+                profileApplies.add(e);
+                yield new SessionEvents.AssistantProfileApplied(e.opId(), e.request(), e.profile(), true, "");
             }
             // M74: the local agent's effects are recorded and answered at once; the test posts the CLI's facts
             case SessionEffects.StartLocalAgentEffect e -> {

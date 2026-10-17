@@ -150,10 +150,10 @@ class LocalAgentHeaderTest {
         var h = new LocalAgentTranscript.Header("claude-sonnet-5", "2.1.282", "<subscription>", "firstParty", List.of(),
                 "/w", "sonnet", List.of("~/.local/bin", "/opt/homebrew/bin"));
         String line = LocalAgentPanel.postureLine(h, billed(SessionEvents.Billing.SUBSCRIPTION, 0, 0, false, full, 3));
-        assertEquals("full\u00A0Claude\u00A0Code\u00A0(acceptEdits) — your settings, skills, hooks and 3 MCP servers are loaded\n"
+        assertEquals("Full\u00A0Claude\u00A0Code\u00A0(acceptEdits) — your settings, skills, hooks and 3 MCP servers are loaded\n"
                 + "PATH: inherited, plus ~/.local/bin, /opt/homebrew/bin", line);
         assertTrue(LocalAgentPanel.headerLine(h, billed(SessionEvents.Billing.SUBSCRIPTION, 0, 0, false, full, 3))
-                .contains("full\u00A0Claude\u00A0Code\u00A0(acceptEdits)"), "no preview label once P3 shipped (OD-74.26)");
+                .contains("Full\u00A0Claude\u00A0Code\u00A0(acceptEdits)"), "no preview label once P3 shipped (OD-74.26)");
         assertEquals(LocalAgentPanel.DEFAULT_POSTURE_NOTE, LocalAgentPanel.postureLine(h,
                 billed(SessionEvents.Billing.SUBSCRIPTION, 0, 0, false, LocalAgentPosture.ANALYSER_ASSISTANT, 0)));
         String none = LocalAgentPanel.postureLine(new LocalAgentTranscript.Header(null, null, "", null, List.of(), "/w"),
@@ -175,7 +175,7 @@ class LocalAgentHeaderTest {
         javax.swing.JPanel parent = new javax.swing.JPanel(new java.awt.BorderLayout());
         WrapLine w = new WrapLine(header);
         parent.add(w);
-        String label = "full\u00A0Claude\u00A0Code\u00A0(default)";
+        String label = "Full\u00A0Claude\u00A0Code\u00A0(default)";
         int at = header.indexOf(label);
         assertTrue(at > 0, header);
         for (int width = 260; width <= 520; width += 10) {   // the posture label is longer than 200 px

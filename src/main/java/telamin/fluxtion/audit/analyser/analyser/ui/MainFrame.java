@@ -99,7 +99,8 @@ public final class MainFrame extends JFrame {
     // touches no Swing); this panel renders the snapshot. Its words live in the bounded store, never in the session.
     private final telamin.fluxtion.audit.analyser.analyser.assistant.localagent.LocalAgentTranscript localAgentStore =
             new telamin.fluxtion.audit.analyser.analyser.assistant.localagent.LocalAgentTranscript();
-    private final LocalAgentPanel localAgentPanel = new LocalAgentPanel(localAgentStore);
+    /** M74 UX: Claude Code's part of the ONE assistant panel — it renders into that panel's transcript and composer. */
+    private final LocalAgentPanel localAgentPanel = new LocalAgentPanel(localAgentStore, assistantPanel.surface());
     // M74 P2: the start page's own words (the box, a flow's results), by reference — never in a fact
     private final java.util.LinkedHashMap<Long, String> startPageWords = new java.util.LinkedHashMap<>();
     /** Dropped prompt packs, by reference — SESSION ONLY: never written to the config, a profile, a share or a bundle. */
@@ -2419,7 +2420,7 @@ public final class MainFrame extends JFrame {
         if (projectPanel != null) projectPanel.refreshTheme();   // owner, 2026-08-27: rows are painted from UiTheme at render time
         refreshMcpIndicator();                                  // D-AI9: its colour is explicit too, so it must be recomputed
         eventFilterPanel.refreshTheme();                          // section border + group headers likewise
-        localAgentPanel.themeChanged();          // M74 P2: the transcript re-styles (§5.9)
+        assistantPanel.themeChanged();           // M74 P2/UX: the one transcript re-styles (§5.9)
         repaint();                 // charts read the theme on paint
         config.theme = theme;
         saveConfigQuietly();
@@ -4835,7 +4836,9 @@ public final class MainFrame extends JFrame {
             }
             @Override public String showHost(boolean docked) { return showAssistantHost(docked); }
         }, (route, key) -> assistantClients.create(route, key));
-        assistantPanel.setProviderConfigured(() -> config != null && config.apiKey != null && !config.apiKey.isBlank());
+        // M74 UX: under the Off profile no provider counts as configured, though a key may be stored
+        assistantPanel.setProviderConfigured(() -> config != null && config.apiKey != null && !config.apiKey.isBlank()
+                && !telamin.fluxtion.audit.analyser.analyser.assistant.AssistantProfiles.off(config));
         // OA-2: the host preference is machine-tier; a popped-out assistant comes back popped out, once the window shows
         addWindowListener(new java.awt.event.WindowAdapter() {
             // the assistant's window is UNOWNED (so it does not float above the analyser), which also means nothing
@@ -4892,7 +4895,26 @@ public final class MainFrame extends JFrame {
                 session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantModeChosen(mode,
                         "assistant tab"));
             }
+            // M74 UX: the profile cards — the person's acts, reported; assistantProfile decides
+            @Override public void openProfiles() {
+                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantProfilesRequested(
+                        "assistant header"));
+            }
+            @Override public void closeProfiles() {
+                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantProfilesClosed(
+                        "assistant panel"));
+            }
+            @Override public void applyProfile(long request,
+                                               telamin.fluxtion.audit.analyser.analyser.session.AssistantProfile profile) {
+                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantProfileChosen(
+                        request, profile));
+            }
         });
+        // what the cards start from: this machine's settings as they are (read, never decided, here)
+        assistantPanel.setProfileDefaults(() -> new ProfileOverlay.Defaults(
+                telamin.fluxtion.audit.analyser.analyser.assistant.AssistantProfiles.inForce(config), config.claudeCodeModel,
+                config.claudeCodeFullMode, config.llmProvider, config.llmModel,
+                config.apiKey != null && !config.apiKey.isBlank()));
         installLocalAgent();
     }
 
@@ -5133,7 +5155,9 @@ public final class MainFrame extends JFrame {
 
     /** The route a Send is made by, captured now: provider, model, whether a key exists (never the key), the budgets. */
     private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantRoute assistantRoute() {
-        boolean hasKey = config.apiKey != null && !config.apiKey.isBlank();
+        // M74 UX: under the Off profile the route has no key, so assistantLoop refuses a Send by name
+        boolean hasKey = config.apiKey != null && !config.apiKey.isBlank()
+                && !telamin.fluxtion.audit.analyser.analyser.assistant.AssistantProfiles.off(config);
         return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantRoute(config.llmProvider, config.llmModel, config.llmBaseUrl, hasKey,
                 config.assistantActionsInProcess, config.maxActionRounds, config.maxActionsPerReply, config.maxActionsPerTurn);
     }
@@ -5312,10 +5336,12 @@ public final class MainFrame extends JFrame {
                 : "via " + config.llmProvider + (config.llmModel == null || config.llmModel.isBlank() ? "" : " · " + config.llmModel)
                         + " — your question and its context are sent there");
         AssistantPanel.Demo demo = demoProjection(next.walkPlayback());
-        assistantPanel.render(state, demo);
-        // M74: the mode and the local agent, as the session decided them; a walk with a conversation shows in every mode
+        // M74: the mode and the local agent, as the session decided them; a walk with a conversation shows in every mode.
+        // M74 UX: the mode first — it says which assistant draws the one panel's transcript and composer
         var agent = next.localAgent();
         assistantPanel.renderMode(agent.mode(), demo != null);
+        assistantPanel.renderProfiles(next.profiles());
+        assistantPanel.render(state, demo);
         if (agent.answer().accepted() && agent.answer().request() == localAgentSendRequest
                 && localAgentDraftCleared != localAgentSendRequest) {
             localAgentDraftCleared = localAgentSendRequest;
@@ -7446,6 +7472,9 @@ public final class MainFrame extends JFrame {
                         localAgentConsent()));
             }
             postStartAvailability();                 // M74 P2 (OD-74.23): what can answer on the start page, now
+            // M74 UX: and the assistant profile in force, which follows the switches a Settings save may have changed
+            session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantProfileObserved(
+                    telamin.fluxtion.audit.analyser.analyser.assistant.AssistantProfiles.inForce(config)));
         }
         sourceService.configure(effectiveSourceRoots(), config.selectedEventProcessor,
                 config.mavenRepos, config.searchMavenRepos);
@@ -8407,6 +8436,9 @@ public final class MainFrame extends JFrame {
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.RunAssistantActionEffect e -> assistantAdapter.perform(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.CancelAssistantTransportEffect e -> assistantAdapter.perform(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ShowAssistantHostEffect e -> assistantAdapter.perform(e);
+            // M74 UX: the assistant profile — assistantProfile decided; the frame brings the panel forward and writes settings
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ShowAssistantProfilesEffect e -> showAssistantProfiles(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ApplyAssistantProfileEffect e -> applyAssistantProfile(e);
             // M74: the local agent's effects have ONE performer, the adapter (OneDispatchModelTest pins it)
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.StartLocalAgentEffect e -> performLocalAgent(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.PollLocalAgentStatusEffect e -> performLocalAgent(e);
@@ -11325,6 +11357,51 @@ public final class MainFrame extends JFrame {
         checkStartFlow(next);
     }
 
+    // ---- M74 UX: the assistant profile — assistantProfile decides when its cards open and whether Apply applies now;
+    // the frame performs: it brings the panel forward, and writes the same settings Settings ▸ Assistant writes ---------
+
+    /** ShowAssistantProfilesEffect: the panel in its own window when nothing is open, else the docked tab revealed. */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result showAssistantProfiles(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ShowAssistantProfilesEffect e) {
+        if (e.popOut()) {
+            session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantHostRequested(
+                    false, "assistant profiles"));
+        } else {
+            revealAssistant();
+        }
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantProfilesShown(e.opId());
+    }
+
+    /**
+     * ApplyAssistantProfileEffect: the node accepted the person's Apply. The card's details (the overlay holds them; no
+     * fact does) are written to this machine's settings by {@code AssistantProfiles.apply} — the same fields Settings ▸
+     * Assistant writes — and then reported exactly as a Settings save reports them: the mode, the consent, what can
+     * answer, and the profile in force. localAgentSession and assistantLoop decide what the new settings mean.
+     */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result applyAssistantProfile(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ApplyAssistantProfileEffect e) {
+        telamin.fluxtion.audit.analyser.analyser.assistant.AssistantProfiles.apply(e.profile(), assistantPanel.profileDetails(),
+                config);
+        saveConfigQuietly();
+        session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantModeChosen(
+                e.profile().mode(), "assistant profile"));
+        reportAssistantSettings();
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantProfileApplied(e.opId(),
+                e.request(), e.profile(), true, "");
+    }
+
+    /** What the machine now says about the assistants — the facts a Settings save reports, and the profile in force. */
+    private void reportAssistantSettings() {
+        if (session == null) return;
+        if (localAgentAdapter != null) {
+            session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentConsentChanged(
+                    localAgentConsent()));
+        }
+        postStartAvailability();
+        session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantProfileObserved(
+                telamin.fluxtion.audit.analyser.analyser.assistant.AssistantProfiles.inForce(config)));
+    }
+
     /** The facts a new session needs about this machine: the remembered mode, what can answer, the consent's posture. */
     private void postStartupFacts() {
         if ("LOCAL_AGENT".equals(config.claudeCodeLastMode)) {
@@ -11333,6 +11410,8 @@ public final class MainFrame extends JFrame {
         }
         postStartAvailability();
         session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentConsentChanged(localAgentConsent()));
+        session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantProfileObserved(
+                telamin.fluxtion.audit.analyser.analyser.assistant.AssistantProfiles.inForce(config)));
     }
 
     /** OD-74.23: what can answer — the switch, the resolver (a file check; nothing run), a provider, in-process actions. */
@@ -11358,8 +11437,9 @@ public final class MainFrame extends JFrame {
 
     /** A provider with a key, or a local provider (OD-74.23). */
     private boolean inAppCanAnswer() {
-        boolean local = config.llmProvider != null && config.llmProvider.trim().equalsIgnoreCase("ollama");
-        return local || (config.apiKey != null && !config.apiKey.isBlank());
+        // M74 UX: under the Off profile nothing answers, though a key may still be stored on this machine
+        return telamin.fluxtion.audit.analyser.analyser.assistant.AssistantProfiles.inAppReady(config)
+                && !telamin.fluxtion.audit.analyser.analyser.assistant.AssistantProfiles.off(config);
     }
 
     private boolean workspaceOpen() {

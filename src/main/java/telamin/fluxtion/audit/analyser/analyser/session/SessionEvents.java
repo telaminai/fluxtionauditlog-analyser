@@ -737,6 +737,39 @@ public final class SessionEvents {
     public record AssistantModeChosen(AssistantMode mode, String origin) {
     }
 
+    // ---- M74 UX (owner, 2026-10-17): the assistant profile, decided by the assistantProfile node --------------------
+    //
+    // Enums and ids only: the overlay's details (an API key, a model, a mode) stay in the overlay and are written to this
+    // machine's settings by ApplyAssistantProfileEffect's performer; no fact carries them.
+
+    /**
+     * The profile in force on this machine, as the frame observes its settings — at session start and after every
+     * settings change (the overlay's Apply, Settings ▸ Assistant). {@link AssistantProfile#NONE}: nothing is chosen.
+     */
+    public record AssistantProfileObserved(AssistantProfile profile) {
+    }
+
+    /** The person opened the profile choices (the assistant header's button). */
+    public record AssistantProfilesRequested(String origin) {
+    }
+
+    /** The person closed the profile choices without applying (Close, Escape). */
+    public record AssistantProfilesClosed(String origin) {
+    }
+
+    /** The person pressed Apply on a card: the node decides whether it may be applied now. */
+    public record AssistantProfileChosen(long request, AssistantProfile profile) {
+    }
+
+    /** Answers {@code ApplyAssistantProfileEffect}: the settings were written ({@code ok}) and the consent re-reported. */
+    public record AssistantProfileApplied(long opId, long request, AssistantProfile profile, boolean ok, String reason)
+            implements Result {
+    }
+
+    /** Answers {@code ShowAssistantProfilesEffect}: the assistant was made visible for the choices. */
+    public record AssistantProfilesShown(long opId) implements Result {
+    }
+
     /**
      * What the person's machine says about starting Claude Code now, observed by the frame when Start or Send is
      * asked for. The node combines these; the frame decides none of them.
