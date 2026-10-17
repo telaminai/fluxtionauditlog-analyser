@@ -731,14 +731,13 @@ public final class SessionEvents {
     }
 
     /**
-     * What the person's machine says about starting Claude Code now, observed by the frame when Start, Send or a warm
-     * start is asked for. The node combines these; the frame decides none of them.
+     * What the person's machine says about starting Claude Code now, observed by the frame when Start or Send is
+     * asked for. The node combines these; the frame decides none of them.
      *
      * @param allowed             the raw {@code assistant.claudeCode} switch (machine tier)
      * @param folderConfirmed     the working directory is confirmed on this machine for the DEFAULT posture (or is the
      *                            analyser's own scratch)
      * @param bundleWorkingCopy   the working directory lies in an evidence-bundle working copy
-     * @param restOn              the REST transport is listening (the hosted bridge reaches the analyser through it)
      * @param postureRef          a digest of the posture (kind, mode, directory, note, pre-allow list) — an id
      * @param budgetMicros        the session spend limit, in millionths of a US dollar; 0 when none is set (owner,
      *                            2026-10-17: optional, off by default)
@@ -747,22 +746,22 @@ public final class SessionEvents {
      * @param fullMode            the full posture's mode, already normalised by {@code ConfigStore} (never bypass, never
      *                            dontAsk)
      * @param fullFolderConfirmed a FULL-posture trust record exists for the folder AND its digest equals the digest of
-     *                            the folder's {@code .claude/settings.json}, {@code .claude/settings.local.json} and
-     *                            {@code .mcp.json} now (OD-74.12); the scratch folder counts, holding nothing to run
+     *                            the folder's files Start would load (OD-74.12, review H6); the scratch folder counts,
+     *                            holding nothing to run
      */
-    public record LocalAgentConsent(boolean allowed, boolean folderConfirmed, boolean bundleWorkingCopy, boolean restOn,
+    public record LocalAgentConsent(boolean allowed, boolean folderConfirmed, boolean bundleWorkingCopy,
                                     String postureRef, long budgetMicros, FolderVerdict folder, boolean full,
                                     LocalAgentPosture.FullMode fullMode, boolean fullFolderConfirmed) {
         /** The default posture, with a folder verdict. */
-        public LocalAgentConsent(boolean allowed, boolean folderConfirmed, boolean bundleWorkingCopy, boolean restOn,
+        public LocalAgentConsent(boolean allowed, boolean folderConfirmed, boolean bundleWorkingCopy,
                                  String postureRef, long budgetMicros, FolderVerdict folder) {
-            this(allowed, folderConfirmed, bundleWorkingCopy, restOn, postureRef, budgetMicros, folder, false, null, false);
+            this(allowed, folderConfirmed, bundleWorkingCopy, postureRef, budgetMicros, folder, false, null, false);
         }
 
         /** A folder that has been checked and may be used, in the default posture. */
-        public LocalAgentConsent(boolean allowed, boolean folderConfirmed, boolean bundleWorkingCopy, boolean restOn,
+        public LocalAgentConsent(boolean allowed, boolean folderConfirmed, boolean bundleWorkingCopy,
                                  String postureRef, long budgetMicros) {
-            this(allowed, folderConfirmed, bundleWorkingCopy, restOn, postureRef, budgetMicros, FolderVerdict.OK);
+            this(allowed, folderConfirmed, bundleWorkingCopy, postureRef, budgetMicros, FolderVerdict.OK);
         }
 
         public LocalAgentConsent {
@@ -790,11 +789,8 @@ public final class SessionEvents {
      */
     public enum FolderVerdict { OK, EXPOSES_SECRETS, UNAVAILABLE }
 
-    /**
-     * Start pressed ({@code warm} false), or the person's DIRECT selection of the Assistant tab with warm start on
-     * ({@code warm} true). A warm start never raises a dialog and never starts in an unconfirmed folder.
-     */
-    public record LocalAgentStartRequested(long request, LocalAgentConsent consent, boolean warm) {
+    /** Start pressed: the one way a process is started (warm start was cut by the owner, 2026-10-17). */
+    public record LocalAgentStartRequested(long request, LocalAgentConsent consent) {
     }
 
     /** How a draft reads as a command, classified by the provider's table (§5.4); the node decides what follows. */
@@ -836,6 +832,31 @@ public final class SessionEvents {
     public record LocalAgentNewChatRequested(String origin) {
     }
 
+    /**
+     * Review M8: the person answered the folder confirmation the node asked for with
+     * {@code ConfirmLocalAgentFolderEffect{request}}. {@code consent} is what the machine says NOW (observed after the
+     * answer); {@code contentUnchanged} says whether the files the full-posture dialog named still read as they did
+     * when it was shown (always true for the default posture). The node decides whether the answer still applies, and
+     * asks for the trust record and the start.
+     */
+    public record LocalAgentFolderAnswered(long request, boolean yes, boolean contentUnchanged, LocalAgentConsent consent) {
+    }
+
+    /**
+     * Review H4: the answer to {@code ServeHostedBridgeEffect} — whether a listener the hosted bridge can reach is up for
+     * {@code generation} ({@code hostedOnly}: it serves only hosted credentials and published no well-known file).
+     */
+    public record LocalAgentBridgeServed(long opId, long generation, boolean listening, boolean hostedOnly)
+            implements Result {
+    }
+
+    /**
+     * Review M6: the hosted bridge presented a live credential of {@code generation}; call {@code call} waits for the
+     * session's verdict, decided on the session's thread in its order — never from a snapshot on the HTTP thread.
+     */
+    public record LocalAgentCallAdmissionRequested(long call, long generation) {
+    }
+
     /** Answered at once by every local-agent effect whose outcome arrives later. */
     public record LocalAgentEffectStarted(long opId, long generation, String what) implements Result {
     }
@@ -845,7 +866,9 @@ public final class SessionEvents {
         /** This analyser's own previous process for the conversation had not finished stopping (review M3). */
         PREVIOUS_STILL_STOPPING,
         /** The Claude Code model setting is not a model name (review S7). */
-        INVALID_MODEL }
+        INVALID_MODEL,
+        /** The working directory at spawn is not the one the posture was decided for (review M7). */
+        FOLDER_CHANGED }
 
     /** The process for {@code generation} started ({@code failure} NONE), or did not; {@code detailRef} names the words. */
     public record LocalAgentSpawned(long generation, SpawnFailure failure, long detailRef) {

@@ -38,7 +38,7 @@ final class Harness {
     final java.util.concurrent.ConcurrentLinkedQueue<Object> offThread = new java.util.concurrent.ConcurrentLinkedQueue<>();
     String model = "haiku";
     /** The consent Start and Send report: the default posture unless a test sets the full one. */
-    SessionEvents.LocalAgentConsent consent = consent();
+    SessionEvents.LocalAgentConsent consent;
     /** The analyser's own environment as the adapter reads it (the GUI PATH in a full-posture test). */
     Map<String, String> environment;
 
@@ -69,7 +69,9 @@ final class Harness {
         SessionDriver[] d = new SessionDriver[1];
         LocalAgentAdapter.Environment env = new LocalAgentAdapter.Environment() {
             @Override public String model() { return model; }
-            @Override public Path workingDirectory() { return home.resolve("proj"); }
+            @Override public Path workingDirectory() {
+                return workingDirectory != null ? workingDirectory : home.resolve("proj");
+            }
             @Override public String restUrl() { return "http://127.0.0.1:1"; }
             @Override public String restToken() { return "shared-rest-token"; }
             @Override public Optional<List<String>> bridgeLauncher() {
@@ -99,26 +101,34 @@ final class Harness {
         driver.post(new SessionEvents.AssistantModeChosen(AssistantMode.LOCAL_AGENT, "test"));
     }
 
-    static SessionEvents.LocalAgentConsent consent() {
-        return new SessionEvents.LocalAgentConsent(true, true, false, true, "posture-a", BUDGET);
+    /** The folder the posture is decided for; a test may move it after Start to witness review M7. */
+    volatile Path workingDirectory;
+
+    SessionEvents.LocalAgentConsent consent() {
+        // the posture digest of the folder the adapter will use, as the frame observes it (review M7)
+        return new SessionEvents.LocalAgentConsent(true, true, false,
+                ClaudeCodeProvider.postureRef(home.resolve("proj"),
+                        telamin.fluxtion.audit.analyser.analyser.session.LocalAgentPosture.ANALYSER_ASSISTANT), BUDGET);
     }
 
     /** The full posture in {@code mode}, its folder confirmed for it (OD-74.12), with no spend limit. */
-    static SessionEvents.LocalAgentConsent fullConsent(
+    SessionEvents.LocalAgentConsent fullConsent(
             telamin.fluxtion.audit.analyser.analyser.session.LocalAgentPosture.FullMode mode) {
-        return new SessionEvents.LocalAgentConsent(true, false, false, true, "posture-full-" + mode, 0,
+        return new SessionEvents.LocalAgentConsent(true, false, false, ClaudeCodeProvider.postureRef(home.resolve("proj"),
+                telamin.fluxtion.audit.analyser.analyser.session.LocalAgentPosture.full(mode)), 0,
                 SessionEvents.FolderVerdict.OK, true, mode, true);
     }
 
     void start() {
-        driver.post(new SessionEvents.LocalAgentStartRequested(++requests, consent, false));
+        driver.post(new SessionEvents.LocalAgentStartRequested(++requests, consent == null ? consent() : consent));
     }
 
     /** Type {@code text} and press Send: the draft goes to the store, its classification to the node. */
     void send(String text) {
         var slash = adapter.classify(text);
         long draft = store.add(LocalAgentTranscript.Kind.USER, slash.line(text));
-        driver.post(new SessionEvents.LocalAgentSendRequested(++requests, draft, slash.slash(), slash.command(), consent));
+        driver.post(new SessionEvents.LocalAgentSendRequested(++requests, draft, slash.slash(), slash.command(),
+                consent == null ? consent() : consent));
     }
 
     LocalAgentState state() {

@@ -37,7 +37,7 @@ class LocalAgentFullReplayTest {
         agent.rewrite = LOGGED_IN;
         agent.conformHostedTools = true;
         Harness h = new Harness(agent, home);
-        h.consent = Harness.fullConsent(mode);
+        h.consent = h.fullConsent(mode);
         // the GUI PATH, plus where this harness's fake claude lives (the resolver must still find it)
         h.environment = Map.of("PATH", "/usr/bin:/bin:/usr/sbin:/sbin:" + home.resolve("bin"));
         h.start();
@@ -89,7 +89,7 @@ class LocalAgentFullReplayTest {
         assertFalse(env.containsKey(ClaudeCodeProvider.CLAUDE_MD_ENV), "no CLAUDE.md flag in the full posture");
 
         Harness bad = new Harness(witness(), home.resolve("w"));
-        bad.consent = Harness.fullConsent(FullMode.DEFAULT);
+        bad.consent = bad.fullConsent(FullMode.DEFAULT);
         bad.environment = Map.of("PATH", home.resolve("w").resolve("bin").toString());
         bad.start();
         bad.send("hello");

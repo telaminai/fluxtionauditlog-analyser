@@ -60,6 +60,14 @@ public final class ClaudeCodeProvider implements LocalAgentProvider {
 
     @Override
     public List<String> command(LaunchSpec spec) {
+        return command(spec, telamin.fluxtion.audit.analyser.analyser.llm.VerbSchemas.all().keySet());
+    }
+
+    /**
+     * The line for a given schema list. Review H5: the allow and disallow lists come from the explicit pre-allow list
+     * ({@link LocalAgentPosture#PRE_ALLOWED}) applied to the schema, so a verb the schema gains is hidden until listed.
+     */
+    public List<String> command(LaunchSpec spec, java.util.Collection<String> schemaVerbs) {
         List<String> c = new ArrayList<>();
         c.add(spec.executable().toString());
         c.addAll(List.of("-p", "--input-format", "stream-json", "--output-format", "stream-json", "--verbose",
@@ -84,9 +92,9 @@ public final class ClaudeCodeProvider implements LocalAgentProvider {
         c.add("--mcp-config");
         c.add(mcpConfig(spec.bridgeLauncher(), spec.endpointFile()));
         c.add("--allowedTools");
-        c.add(toolList(LocalAgentPosture.preAllowedVerbs()));
+        c.add(toolList(LocalAgentPosture.preAllowedVerbs(schemaVerbs)));
         c.add("--disallowedTools");
-        c.add(String.join(",", posture.disallowedTools()));
+        c.add(String.join(",", posture.disallowedTools(schemaVerbs)));
         // the mode is the posture's: dontAsk, or one of the four the full posture offers (an enum: bypassPermissions and
         // dontAsk cannot be a full mode); prompts go nowhere until P3, so a request that would ask is denied (PB-1)
         c.addAll(List.of("--permission-mode", posture.permissionMode(), "--permission-prompts", "none"));
@@ -97,6 +105,26 @@ public final class ClaudeCodeProvider implements LocalAgentProvider {
         c.add("--append-system-prompt");
         c.add(systemNote(posture));
         return List.copyOf(c);
+    }
+
+    /**
+     * The posture digest for a working directory ({@link LocalAgentPosture#ref}: the kind, the full mode, the REAL
+     * directory, the system note and the pre-allow list). ONE function, used where the consent is observed and again by
+     * the adapter just before it spawns (review M7), so a spawn in any folder but the decided one is refused.
+     */
+    public static String postureRef(Path workingDirectory, LocalAgentPosture posture) {
+        LocalAgentPosture p = posture == null ? LocalAgentPosture.ANALYSER_ASSISTANT : posture;
+        return p.ref(realPath(workingDirectory), systemNote(p));
+    }
+
+    /** The real path of {@code p} (symlinks resolved), or its normalised absolute path when it cannot be resolved. */
+    public static String realPath(Path p) {
+        if (p == null) return "";
+        try {
+            return p.toRealPath().toString();
+        } catch (java.io.IOException e) {
+            return p.toAbsolutePath().normalize().toString();
+        }
     }
 
     /** The model when the setting is blank. */

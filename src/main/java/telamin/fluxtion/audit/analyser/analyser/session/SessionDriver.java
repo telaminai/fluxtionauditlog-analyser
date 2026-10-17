@@ -323,6 +323,10 @@ public final class SessionDriver {
             case SessionEffects.SendLocalAgentTurnEffect ignored -> "sendLocalAgentTurn";
             case SessionEffects.StopLocalAgentEffect ignored -> "stopLocalAgent";
             case SessionEffects.ConfirmLocalAgentFolderEffect ignored -> "confirmLocalAgentFolder";
+            case SessionEffects.TrustLocalAgentFolderEffect ignored -> "trustLocalAgentFolder";
+            case SessionEffects.ServeHostedBridgeEffect ignored -> "serveHostedBridge";
+            case SessionEffects.ReleaseHostedBridgeEffect ignored -> "releaseHostedBridge";
+            case SessionEffects.AnswerHostedCallEffect ignored -> "answerHostedCall";
         };
     }
 

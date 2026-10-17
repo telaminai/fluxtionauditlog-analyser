@@ -31,10 +31,9 @@ public final class LocalAgentConsents {
      * @param dir               the working directory the session would use (the project root, or the scratch folder)
      * @param scratch           the analyser's own private scratch folder, or null
      * @param home              the user's home folder
-     * @param restOn            the REST transport is listening
      * @param bundleWorkingCopy whether a folder lies in an evidence bundle's working copy
      */
-    public static SessionEvents.LocalAgentConsent of(Path dir, Path scratch, Path home, Settings s, boolean restOn,
+    public static SessionEvents.LocalAgentConsent of(Path dir, Path scratch, Path home, Settings s,
                                                      Predicate<Path> bundleWorkingCopy) {
         String real = realPath(dir);
         boolean isScratch = dir != null && dir.equals(scratch);
@@ -50,11 +49,12 @@ public final class LocalAgentConsents {
             fullConfirmed = isScratch && scan.allAbsent()
                     || FullFolderTrust.confirms(s.trustedFull(), real, scan.digest());
         }
-        String postureRef = posture.ref(real, ClaudeCodeProvider.systemNote(posture));
+        // the one posture function, the adapter's too: it re-digests the folder it is about to use (review M7)
+        String postureRef = ClaudeCodeProvider.postureRef(dir, posture);
         SessionEvents.FolderVerdict folder = LocalAgentFolders.check(dir, home);
         long budget = s.budgetUsd() == null ? 0 : Math.round(s.budgetUsd() * 1_000_000d);
         return new SessionEvents.LocalAgentConsent(s.allowed(), confirmed,
-                dir != null && bundleWorkingCopy != null && bundleWorkingCopy.test(dir), restOn, postureRef, budget, folder,
+                dir != null && bundleWorkingCopy != null && bundleWorkingCopy.test(dir), postureRef, budget, folder,
                 s.full(), mode, fullConfirmed);
     }
 

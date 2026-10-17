@@ -22,8 +22,12 @@ public final class HostedCredentials {
         /** The generation {@code credential} was minted for while it is live, or -1. */
         long generationOf(String credential);
 
-        /** Why calls of {@code generation} are refused now, or null when the session admits them. */
-        String refusal(long generation);
+        /**
+         * Why a call of {@code generation} is refused now, or null when the session admits it. Review M6: an
+         * implementation asks the SESSION, on its thread and in its order (a fact, then the node's verdict as an
+         * effect, awaited with a timeout); it never decides from a published snapshot on the HTTP thread.
+         */
+        String admit(long generation);
     }
 
     private final SecureRandom random = new SecureRandom();
@@ -50,14 +54,14 @@ public final class HostedCredentials {
         return g == null ? -1 : g;
     }
 
-    /** This store as a gate, with the session's admission decision supplied by the caller (it reads the snapshot). */
+    /** This store as a gate, with the session's admission decision supplied by the caller. */
     public Gate gate(LongFunction<String> refusal) {
         return new Gate() {
             @Override public long generationOf(String credential) {
                 return HostedCredentials.this.generationOf(credential);
             }
 
-            @Override public String refusal(long generation) {
+            @Override public String admit(long generation) {
                 return refusal.apply(generation);
             }
         };

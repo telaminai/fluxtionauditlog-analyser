@@ -30,7 +30,7 @@ import java.util.function.UnaryOperator;
  * endpoint file. With {@link #conformInit}, each turn's {@code system/init} is rewritten to the default posture's tools
  * and server, because most P0 runs used a stub server of other names; the rule under test is then the parser's.
  */
-final class FixtureAgent implements AgentProcess.Launcher {
+public final class FixtureAgent implements AgentProcess.Launcher {
 
     static final Path FIXTURES = Path.of("docs/specs/evidence/m74-p0/fixtures");
     /** The P1b probes' isolated captures (PB-report.md). */
@@ -42,7 +42,7 @@ final class FixtureAgent implements AgentProcess.Launcher {
     /** The names the adapter asked to be removed from the child's environment, per start. */
     final List<java.util.Set<String>> removedEnvironments = new ArrayList<>();
     final List<Path> workingDirs = new ArrayList<>();
-    final List<Proc> processes = new ArrayList<>();
+    public final List<Proc> processes = new ArrayList<>();
 
     private final Deque<List<String>> turns = new ArrayDeque<>();
     private final List<String> initializeLines = new ArrayList<>();
@@ -50,7 +50,7 @@ final class FixtureAgent implements AgentProcess.Launcher {
     /** Lines the CLI emits at spawn, before any turn (hook events): replayed before the first initialize answer. */
     private final List<String> spawnLines = new ArrayList<>();
     private final Path dir;
-    boolean conformInit;
+    public boolean conformInit;
     /**
      * P1b: rewrite each turn's {@code system/init} so its HOSTED tools are the real pre-allowed verbs (the probe's stub
      * advertised {@code context}/{@code echo}), keeping everything else the CLI reported — the person's built-in tools,
@@ -63,11 +63,11 @@ final class FixtureAgent implements AgentProcess.Launcher {
     /** Replaces the nonce the bound status reports: null keeps the endpoint file's (an exact bind). */
     UnaryOperator<String> statusVersion;
     /** Applied to every replayed line, for rewrites a test needs (an e-mail in the account, a dropped result). */
-    UnaryOperator<String> rewrite = UnaryOperator.identity();
+    public UnaryOperator<String> rewrite = UnaryOperator.identity();
     /** Given to every process started from now on: its stdin writes wait for this latch. */
     java.util.concurrent.CountDownLatch blockNewWrites;
 
-    FixtureAgent(String fixture) throws IOException {
+    public FixtureAgent(String fixture) throws IOException {
         this(FIXTURES, fixture);
     }
 
@@ -158,14 +158,14 @@ final class FixtureAgent implements AgentProcess.Launcher {
         return processes.get(processes.size() - 1);
     }
 
-    final class Proc implements AgentProcess {
-        final List<String> stdin = new ArrayList<>();
+    public final class Proc implements AgentProcess {
+        public final List<String> stdin = new java.util.concurrent.CopyOnWriteArrayList<>();
         final CompletableFuture<Integer> exit = new CompletableFuture<>();
         final Consumer<String> out;
         final String sessionId;
         final Path endpointFile;
         String runningUuid;
-        int terminated;
+        public int terminated;
         String stderr = "";
 
         Proc(List<String> command, Consumer<String> out) {

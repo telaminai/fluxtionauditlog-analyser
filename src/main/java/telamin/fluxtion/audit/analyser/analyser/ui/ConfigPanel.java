@@ -66,20 +66,21 @@ public final class ConfigPanel extends JDialog {
     private final JTextField exportDirField = new JTextField(28);
     // M74 §5.1: machine tier, all off by default; the full posture (P1b) is turned on only through its warning
     private final JCheckBox claudeCodeToggle = new JCheckBox("Allow the analyser to start Claude Code");
-    private final JCheckBox claudeCodeFullToggle = new JCheckBox("…with my full Claude Code permissions");
+    private final JCheckBox claudeCodeFullToggle = new JCheckBox("…with my full Claude Code permissions (preview)");
     private final JComboBox<String> claudeCodeModeCombo = new JComboBox<>(
             telamin.fluxtion.audit.analyser.analyser.config.ConfigStore.FULL_MODES.toArray(new String[0]));
     private final JLabel claudeCodeModeLabel = new JLabel("Mode:");
     private final JTextArea claudeCodeModeNote = plainNote();
-    private final JCheckBox claudeCodeWarmToggle = new JCheckBox("Start Claude Code when I open the Assistant tab");
-    private final JTextArea claudeCodeWarmNote = plainNote();
     private final JTextField claudeCodeModelField = new JTextField(12);
     // owner, 2026-10-17: optional and off by default — the person's own Claude plan has its own limits
     private final JCheckBox claudeCodeBudgetToggle = new JCheckBox("Limit spend per session (US$):");
     private final JSpinner claudeCodeBudgetSpinner = new JSpinner(new SpinnerNumberModel(5.0, 0.5, 1000.0, 0.5));
 
     /** §5.1: the full posture's warning, shown as a confirmation whose default is Cancel. Plain text, never HTML. */
-    static final String FULL_POSTURE_WARNING = "Full Claude Code runs your own Claude Code inside the analyser, as in a "
+    /** Owner, 2026-10-17: full Claude Code is a PREVIEW until approvals in the analyser (P3) ship. */
+    static final String FULL_POSTURE_PREVIEW = "PREVIEW — for internal and demo use only. Full Claude Code is not for "
+            + "customer release until approvals in the analyser (P3) ship.";
+    static final String FULL_POSTURE_WARNING = FULL_POSTURE_PREVIEW + "\n\nFull Claude Code runs your own Claude Code inside the analyser, as in a "
             + "terminal. It loads your settings and permission rules, skills, plugins, subagents, hooks and MCP servers "
             + "(including claude.ai connectors), and the folder's own hooks and .mcp.json — these run when you press "
             + "Start, before you send anything. Claude Code can then use your own tools — Bash, file edits, web access — as "
@@ -104,9 +105,6 @@ public final class ConfigPanel extends JDialog {
                     + "such a request is denied: the analyser cannot ask you yet, and says so in the tab when it happens.";
         };
     }
-
-    static final String WARM_FULL_NOTE = "Warm start never applies to full Claude Code: a click on the tab is too weak an "
-            + "act to run hooks on. Press Start.";
 
     private static JTextArea plainNote() {
         JTextArea a = new JTextArea(2, 40);
@@ -787,7 +785,7 @@ public final class ConfigPanel extends JDialog {
         return p;
     }
 
-    /** M74 §5.1: the Claude Code switches, warm start, model and budget — this machine only. */
+    /** M74 §5.1: the Claude Code switches, model and budget — this machine only. */
     private JPanel buildClaudeCodeSection() {
         JPanel box = new JPanel(new GridBagLayout());
         box.setBorder(BorderFactory.createTitledBorder("Claude Code in the Assistant tab"));
@@ -803,8 +801,6 @@ public final class ConfigPanel extends JDialog {
         claudeCodeModeCombo.addActionListener(e -> claudeCodeModeNote.setText(modeNote(
                 String.valueOf(claudeCodeModeCombo.getSelectedItem()))));
         claudeCodeModeCombo.getAccessibleContext().setAccessibleName("Full Claude Code mode");
-        claudeCodeWarmToggle.setToolTipText("Only when you click or key the Assistant tab yourself, and only in a folder you "
-                + "have already confirmed. It contacts Anthropic (sign-in check, MCP connect) before your first Send.");
         claudeCodeBudgetToggle.setToolTipText("For API-key billing: stop a Claude Code session once it has spent this much. "
                 + "Off by default — on a Claude plan your plan's own usage limits apply anyway.");
         claudeCodeBudgetToggle.addActionListener(e -> claudeCodeBudgetSpinner.setEnabled(claudeCodeBudgetToggle.isSelected()));
@@ -815,9 +811,6 @@ public final class ConfigPanel extends JDialog {
         g.gridx = 1; box.add(claudeCodeModeCombo, g);
         g.gridy = 3; g.gridx = 0; g.gridwidth = 2; g.fill = GridBagConstraints.HORIZONTAL; g.weightx = 1;
         box.add(claudeCodeModeNote, g);
-        g.fill = GridBagConstraints.NONE; g.weightx = 0;
-        g.gridy = 4; box.add(claudeCodeWarmToggle, g);
-        g.gridy = 5; g.fill = GridBagConstraints.HORIZONTAL; g.weightx = 1; box.add(claudeCodeWarmNote, g);
         g.fill = GridBagConstraints.NONE; g.weightx = 0;
         g.gridwidth = 1;
         g.gridy = 6; g.gridx = 0; box.add(new JLabel("Claude Code model:"), g);
@@ -842,14 +835,12 @@ public final class ConfigPanel extends JDialog {
         fullPostureShown();
     }
 
-    /** The mode is shown only while the full switch is on; the warm-start note says it never applies there. */
+    /** The mode is shown only while the full switch is on. */
     private void fullPostureShown() {
         boolean on = claudeCodeFullToggle.isSelected();
         claudeCodeModeLabel.setVisible(on);
         claudeCodeModeCombo.setVisible(on);
         claudeCodeModeNote.setVisible(on);
-        claudeCodeWarmNote.setText(on ? WARM_FULL_NOTE : "");
-        claudeCodeWarmNote.setVisible(on);
         revalidate();
         repaint();
         if (isShowing()) SwingUtilities.invokeLater(this::growToFit);
@@ -978,7 +969,6 @@ public final class ConfigPanel extends JDialog {
         claudeCodeModeNote.setText(modeNote(String.valueOf(claudeCodeModeCombo.getSelectedItem()))
                 + (config.claudeCodeFullModeReadAsDefault
                 ? "\nThe stored mode was not one the analyser offers; it reads as default." : ""));
-        claudeCodeWarmToggle.setSelected(config.claudeCodeWarmStart);
         claudeCodeModelField.setText(config.claudeCodeModel == null ? "" : config.claudeCodeModel);
         claudeCodeBudgetToggle.setSelected(config.claudeCodeBudgetUsd != null);
         claudeCodeBudgetSpinner.setValue(config.claudeCodeBudgetUsd == null ? 5.0
@@ -1033,7 +1023,6 @@ public final class ConfigPanel extends JDialog {
         config.claudeCodeFullMode = telamin.fluxtion.audit.analyser.analyser.config.ConfigStore.fullMode(
                 String.valueOf(claudeCodeModeCombo.getSelectedItem()));
         config.claudeCodeFullModeReadAsDefault = false;
-        config.claudeCodeWarmStart = claudeCodeWarmToggle.isSelected();
         String model = claudeCodeModelField.getText().trim();
         if (telamin.fluxtion.audit.analyser.analyser.assistant.localagent.ClaudeCodeProvider.validModel(model)) {
             config.claudeCodeModel = model;

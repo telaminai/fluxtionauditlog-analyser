@@ -41,7 +41,7 @@ class LocalAgentConsentsTest {
     }
 
     static SessionEvents.LocalAgentConsent of(Path dir, Path scratch, Path home, LocalAgentConsents.Settings s) {
-        return LocalAgentConsents.of(dir, scratch, home, s, true, p -> false);
+        return LocalAgentConsents.of(dir, scratch, home, s, p -> false);
     }
 
     /**
@@ -100,7 +100,7 @@ class LocalAgentConsentsTest {
             return new SessionEvents.LocalAgentEffectStarted(e.opId(), 0, "test");
         });
         d.post(new SessionEvents.AssistantModeChosen(AssistantMode.LOCAL_AGENT, "test"));
-        d.post(new SessionEvents.LocalAgentStartRequested(1, planted, false));
+        d.post(new SessionEvents.LocalAgentStartRequested(1, planted));
         assertEquals("CONFIRM_FOLDER", d.snapshot().localAgent().verdict());
         assertTrue(effects.stream().anyMatch(e -> e instanceof SessionEffects.ConfirmLocalAgentFolderEffect f && f.full()));
         assertTrue(effects.stream().noneMatch(SessionEffects.StartLocalAgentEffect.class::isInstance));
