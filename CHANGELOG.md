@@ -56,6 +56,7 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ### Fixed
 
+- **The start page's *Evidence bundles guide* button says where it goes**: its tooltip read *Help ▸ User guide ▸ Evidence bundles*, a section the in-app help does not have; the button opens the docs site's *Opening a bundle you were sent* page in your browser, and the tooltip now says so.
 - **The REST endpoint file `~/.fluxtion-analyser/rest-endpoint`** is removed when the analyser's window closes (as before, now pinned by a test) and also when the analyser quits without closing its window — the application menu's *Quit* on macOS, or a `SIGTERM`. It **can remain after a crash or a `kill -9`**; every client checks the `pid` it names before trusting it (the analyser's MCP bridge reports *analyser not running*), so a stale file is harmless, and the next analyser to start replaces it.
 
 - **The Safe analysis card's promise is shown in full** — it stopped at "…after you approve each call. No"; a card is as tall as its text.
