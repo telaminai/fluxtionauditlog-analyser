@@ -214,7 +214,20 @@ class AskCatalogueTest {
                 log(AskContext.Mode.CLAUDE_CODE).graphName("demo.graphml").node("riskMonitor", 3, false).current(8)
                         .build()).text();
         assertTrue(q3.contains("node riskMonitor did not log in record #8"), q3);
-        assertTrue(q3.contains("Why did it not fire?"), q3);
+        // external utility review (2026-10-17): silence is not proof of not running, so Q3 never asks why a node "did
+        // not fire". Witness: put back "Why did it {fire}?" with Q3.notFire=not fire — both assertions below fail.
+        assertTrue(q3.contains("Did it run, and what does the evidence establish?"), q3);
+        assertFalse(q3.contains("fire"), q3);
+        String q3Logged = AskCatalogue.compose(AskCatalogue.byId("Q3").orElseThrow(), AskCatalogue.Surface.TOPOLOGY_NODE,
+                log(AskContext.Mode.CLAUDE_CODE).graphName("demo.graphml").node("riskMonitor", 3, true).current(8)
+                        .build()).text();
+        assertTrue(q3Logged.contains("node riskMonitor logged in record #8"), q3Logged);
+        assertTrue(q3Logged.contains("What made it run, and what does the evidence establish?"), q3Logged);
+        for (var e : AskCatalogue.entries()) {
+            String label = AskCatalogue.text(e.id() + ".label");
+            assertFalse(label.toLowerCase(java.util.Locale.ROOT).matches(".*(not fire|did not fire|never fired).*"),
+                    "no entry asks why something did not fire: " + label);
+        }
         String q4 = AskCatalogue.compose(AskCatalogue.byId("Q4").orElseThrow(), AskCatalogue.Surface.CHART_POINT,
                 log(AskContext.Mode.CLAUDE_CODE).chartPoint("spread", "quote.spread", 0L, 5, 2).build()).text();
         assertTrue(q4.contains("(nearest record #5), where there is note 2:"), q4);

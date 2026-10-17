@@ -130,7 +130,7 @@ in the Claude Code mode, *Ask the assistant: …* in the in-app one:
 |---|---|
 | **What happened here?** | right-click one record; the toolbar's **Ask** and the record detail's **Ask about this** with one record |
 | **Compare these rows** | right-click two to twenty records (the same buttons with several); **Ask Claude about this diff** in *Diff selected two records* |
-| **Why did this node fire / not fire?** | right-click a node in the topology, with a record selected |
+| **Did this node run, and what does the evidence establish?** | right-click a node in the topology, with a record selected |
 | **Explain this point** | right-click a chart point or note (*Ask Claude: explain this point*, beside the chart's own *Add explanation…*, which is your words) |
 | **Explain this finding** | right-click one flagged record |
 | **Summarise this window** | right-click the time slider (its menu is new), or a chart's visible window |

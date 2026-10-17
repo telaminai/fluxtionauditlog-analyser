@@ -328,7 +328,7 @@ public final class AskCatalogue {
                 v.put("nodeId", AskPointers.identifier(c.nodeId(), "#" + Math.max(1, c.nodePosition()) + " of the graph"));
                 boolean logged = Boolean.TRUE.equals(c.nodeLogged());
                 v.put("logged", text(logged ? "Q3.logged" : "Q3.notLogged"));
-                v.put("fire", text(logged ? "Q3.fire" : "Q3.notFire"));
+                v.put("ask", text(logged ? "Q3.ask.logged" : "Q3.ask.notLogged"));
                 v.put("index", AskPointers.integer(c.current()));
                 yield text(e.templateKey(), v);
             }
