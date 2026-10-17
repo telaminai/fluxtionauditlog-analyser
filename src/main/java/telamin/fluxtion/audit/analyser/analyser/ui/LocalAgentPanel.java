@@ -94,6 +94,10 @@ public final class LocalAgentPanel extends JPanel {
     private final JPanel chips;
     private final WrapLine posture = new WrapLine(DEFAULT_POSTURE_NOTE);
     private final WrapLine lockWarning = new WrapLine(LOCK_WARNING);
+
+    WrapLine lockWarningLine() {
+        return lockWarning;
+    }
     private final WrapLine status = new WrapLine(" ");
     private final JTextArea detail = new JTextArea(2, 40);
     private final TranscriptView view;
@@ -164,6 +168,7 @@ public final class LocalAgentPanel extends JPanel {
         detail.setVisible(false);
         posture.setForeground(UiTheme.mutedForeground());
         lockWarning.setForeground(UiTheme.mutedForeground());
+        lockWarning.setVisible(false);                         // L-e: shown once a conversation exists
 
         JPanel top = new JPanel();
         top.setLayout(new BoxLayout(top, BoxLayout.Y_AXIS));
@@ -476,6 +481,9 @@ public final class LocalAgentPanel extends JPanel {
         header.setToolTipText(folder == null ? null : UiText.tooltip(folder));
         header.setVisible(folder != null && !folder.isBlank());
         posture.setText(postureLine(h, s));
+        // holistic review L-e (2026-10-17): the fork warning only when there IS a conversation a terminal could resume —
+        // never always-on, where it was noise before the first turn
+        lockWarning.setVisible(s.resumable());
         String ep = endpointText(h, s);
         endpoint.setText(ep == null ? " " : ep);
         endpoint.setVisible(ep != null);
