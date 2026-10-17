@@ -30,6 +30,8 @@ final class Harness {
     final HostedCredentials credentials = new HostedCredentials();
     final List<Object> facts = new ArrayList<>();
     final List<SessionEffects> others = new ArrayList<>();
+    /** Review B7: the full-posture trust records the environment reports; null until first asked (then the folder as-is). */
+    List<String> fullTrust;
     /** P3: what the adapter answered each effect with (an AnswerPermissionEffect's result is the answer as written). */
     final List<SessionEvents.Result> results = new ArrayList<>();
     final Path home;
@@ -83,6 +85,15 @@ final class Harness {
                 return environment != null ? environment : Map.of("PATH", bin.toString());
             }
             @Override public Path userHome() { return home; }
+            @Override public List<String> fullTrustRecords() {
+                // review B7: the working folder is trusted as it is when first asked, unless a test set its own records
+                if (fullTrust == null) {
+                    Path dir = workingDirectory();
+                    fullTrust = new java.util.ArrayList<>(List.of(FullFolderTrust.record(ClaudeCodeProvider.realPath(dir),
+                            FullFolderTrust.digest(dir))));
+                }
+                return fullTrust;
+            }
             @Override public void post(Object fact) {
                 if (Thread.currentThread() != owner) {          // a process exit on another thread: marshal, as the app does
                     offThread.add(fact);

@@ -989,7 +989,9 @@ public final class SessionEvents {
         /** The Claude Code model setting is not a model name (review S7). */
         INVALID_MODEL,
         /** The working directory at spawn is not the one the posture was decided for (review M7). */
-        FOLDER_CHANGED }
+        FOLDER_CHANGED,
+        /** Review B7: in the full posture, the folder's full trust digest at spawn is not one the person confirmed. */
+        TRUST_CHANGED }
 
     /** The process for {@code generation} started ({@code failure} NONE), or did not; {@code detailRef} names the words. */
     public record LocalAgentSpawned(long generation, SpawnFailure failure, long detailRef) {

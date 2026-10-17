@@ -133,7 +133,9 @@ log, and no file writes**. Two groups of verbs go further, honestly labelled:
   connectors included), and **the folder's hooks and MCP servers run when you press Start**, before you send anything, so
   the folder is confirmed for full Claude Code separately — the dialog names the hooks and servers it found — and the
   analyser **asks again if those files change** (`.claude/settings.json`, `.claude/settings.local.json`, `.mcp.json`,
-  and the instruction files: `CLAUDE.md`, `.claude/CLAUDE.md`, `.claude/commands`, `.claude/skills`, `.claude/agents`).
+  and the instruction files: `CLAUDE.md`, `.claude/CLAUDE.md`, `.claude/commands`, `.claude/skills`, `.claude/agents`),
+  checked again when the process starts; files a `CLAUDE.md` imports, `CLAUDE.md` files in the folders above, and the
+  contents of a hook's scripts are **not** re-checked, and the dialog says so.
   Claude Code can then use **your own tools, including Bash**, file edits and web access, **as far as your permission
   rules and the mode you chose allow** (`default`, `acceptEdits`, `auto` or `plan`; **bypassPermissions is never
   offered**, nor `dontAsk`) — **the analyser does not confine it to the folder**. In Claude Code's own `default` and

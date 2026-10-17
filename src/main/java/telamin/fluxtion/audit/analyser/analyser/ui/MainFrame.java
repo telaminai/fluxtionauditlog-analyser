@@ -4974,6 +4974,7 @@ public final class MainFrame extends JFrame {
                 SwingUtilities.invokeLater(() -> { if (session != null) session().post(fact); });
             }
             @Override public boolean scratchForProject() { return projectRootIsAnalyserOwned(); }
+            @Override public java.util.List<String> fullTrustRecords() { return config.claudeCodeTrustedFullFolders; }
         };
         localAgentAdapter = new telamin.fluxtion.audit.analyser.analyser.assistant.localagent.LocalAgentAdapter(
                 new telamin.fluxtion.audit.analyser.analyser.assistant.localagent.ClaudeCodeProvider(),

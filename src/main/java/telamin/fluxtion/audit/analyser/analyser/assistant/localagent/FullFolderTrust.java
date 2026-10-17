@@ -146,6 +146,15 @@ public final class FullFolderTrust {
         return new Scan(out, instructions, settingsDigest(dir) + "." + instructions.digest());
     }
 
+    /**
+     * Holistic review B7 (2026-10-17): what the trust digest does NOT cover — said in the dialog, never implied. Files a
+     * CLAUDE.md pulls in with {@code @path} imports, CLAUDE.md files in folders ABOVE this one, and the contents of the
+     * scripts a hook runs are read by Claude Code but not re-checked by the analyser: a change to them asks nothing.
+     */
+    public static final String NOT_RECHECKED = "Not re-checked by the analyser: files a CLAUDE.md imports with @path, "
+            + "CLAUDE.md files in the folders above this one, and the contents of the scripts a hook runs. Claude Code "
+            + "reads or runs them, and a change to them does not ask again.";
+
     /** The trust digest: {@code <settings digest>.<instruction digest>} (review H6). */
     public static String digest(Path dir) {
         return settingsDigest(dir) + "." + instructions(dir).digest();
@@ -480,6 +489,8 @@ public final class FullFolderTrust {
                         .append(" files or 8 MB); the rest are checked by size and date only\n");
             }
         }
+        // holistic review B7 (2026-10-17): what the trust does NOT cover, said plainly
+        sb.append("\n").append(NOT_RECHECKED).append('\n');
         sb.append("\nTrust ").append(dir).append(" for full Claude Code in the analyser? This is asked again if these files ")
                 .append("change.\n\nRemembered on this machine only; never in a project, a shared settings file or a bundle.");
         return sb.toString();

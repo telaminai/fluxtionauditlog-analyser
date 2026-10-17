@@ -199,8 +199,11 @@ choose allow**. **The analyser does not confine it to the folder**; your rules a
   `.claude/settings.json`, `.claude/settings.local.json` and `.mcp.json`, and of the folder's **instruction files**
   (`CLAUDE.md`, `CLAUDE.local.md`, `.claude/CLAUDE.md`, and everything under `.claude/commands`, `.claude/skills` and
   `.claude/agents`, read up to a bound and without following a link out of the folder): **when any of them changes**
-  (a `git pull` that adds a hook or rewrites `CLAUDE.md`), **Start asks again**, and the dialog says which changed. A folder confirmed for the analyser assistant is not thereby confirmed for
-  full Claude Code.
+  (a `git pull` that adds a hook or rewrites `CLAUDE.md`), **Start asks again**, and the dialog says which changed;
+  the check is made again when the process is started, so a change between the question and the start is refused too.
+  **Not re-checked:** files a `CLAUDE.md` imports with `@path`, `CLAUDE.md` files in the folders above this one, and
+  the contents of the scripts a hook runs — Claude Code reads or runs them, and a change to them does not ask again; the
+  dialog says so. A folder confirmed for the analyser assistant is not thereby confirmed for full Claude Code.
 - **What the tab shows.** Each hook's event and outcome is a status line (*"Hook SessionStart: 1 ran"*, or that one
   failed), never its output. The header says *"Full Claude Code (<mode>) — your settings, skills, hooks and n MCP
   servers are loaded"* (the posture named *Full Claude Code (<mode>)*), and an environment line, *"PATH: inherited, plus ~/.local/bin, /opt/homebrew/bin"*: an analyser

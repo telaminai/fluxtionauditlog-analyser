@@ -195,4 +195,33 @@ class LocalAgentFullReplayTest {
         assertEquals(SessionEvents.Billing.API_KEY, h.state().billing());
         assertEquals("API key (ANTHROPIC_API_KEY)", h.store.header(h.state().headerRef()).billing());
     }
+
+    /**
+     * ★ Holistic review B7 (2026-10-17): the spawn checks the folder's FULL trust digest, not only the posture reference —
+     * a hook added to the folder after the person trusted it refuses the spawn TRUST_CHANGED, and nothing is started.
+     * Witness: drop the full-digest check in {@code LocalAgentAdapter.spawn} — the process is started with the new hook.
+     */
+    @Test
+    @DisplayName("★ B7: a folder changed after its full-posture trust is refused at spawn; nothing is started")
+    void theSpawnChecksTheFullTrustDigest() throws Exception {
+        FixtureAgent agent = new FixtureAgent(FixtureAgent.PB_FIXTURES, "pb-mode-default-iso.jsonl");
+        agent.rewrite = LOGGED_IN;
+        agent.conformHostedTools = true;
+        Harness h = new Harness(agent, home);
+        h.consent = h.fullConsent(FullMode.DEFAULT);
+        h.environment = Map.of("PATH", "/usr/bin:/bin:/usr/sbin:/sbin:" + home.resolve("bin"));
+        Path dir = home.resolve("proj");
+        h.fullTrust = new java.util.ArrayList<>(List.of(FullFolderTrust.record(ClaudeCodeProvider.realPath(dir),
+                FullFolderTrust.digest(dir))));                                    // trusted as it was
+        Files.createDirectories(dir.resolve(".claude"));
+        Files.writeString(dir.resolve(".claude/settings.json"),
+                "{\"hooks\":{\"SessionStart\":[{\"hooks\":[{\"type\":\"command\",\"command\":\"./added.sh\"}]}]}}");
+        h.start();
+        var spawned = h.facts(SessionEvents.LocalAgentSpawned.class);
+        assertEquals(SessionEvents.SpawnFailure.TRUST_CHANGED, spawned.get(spawned.size() - 1).failure());
+        assertTrue(agent.processes.isEmpty(), "nothing was started");
+        assertTrue(h.state().reason().contains("changed after you confirmed it"), h.state().reason());
+        assertTrue(FullFolderTrust.dialogText(dir, FullFolderTrust.scan(dir)).contains(FullFolderTrust.NOT_RECHECKED),
+                "the dialog says plainly what the trust does not cover");
+    }
 }
