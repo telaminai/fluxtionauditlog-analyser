@@ -17,7 +17,6 @@ import javax.swing.WindowConstants;
 import java.awt.BorderLayout;
 import java.awt.Dialog;
 import java.awt.Dimension;
-import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.Window;
 import java.awt.event.KeyEvent;
@@ -31,7 +30,9 @@ import java.awt.event.WindowEvent;
  * node's, from the adapter's clock (the countdown here only shows it).
  *
  * <ul>
- *   <li><b>Deny is the default</b>: the default button, and Enter and Escape both deny; closing the window denies.</li>
+ *   <li><b>Deny is the default</b>: the default button, and Enter and Escape both deny; closing the window denies. It
+ *       sits at the right end of the row and Allow once at the left, apart — the rule every consent dialog shares
+ *       ({@link SafeChoice}, review M74 usability #7).</li>
  *   <li><b>Allow once</b> has no mnemonic and is enabled only {@link #ALLOW_DELAY_MS} after the dialog appears, so a
  *       keystroke meant for the composer cannot approve. There is no <i>Always allow</i>: a suggestion is never shown.</li>
  *   <li><b>The input is data</b>: a read-only, monospaced text area (never an HTML-rendering component), headed as the
@@ -60,6 +61,8 @@ public final class LocalAgentPermissionDialog extends JDialog {
     private final JButton allow = UiText.button(ALLOW);
     private final JButton stop = UiText.button(STOP);
     private final JLabel countdown = UiText.label(" ");
+    /** Review M74 usability #10c: how many more requests wait behind this one (rendered from the snapshot). */
+    private final JLabel waiting = UiText.label(" ");
     private final JTextArea input = new JTextArea();
     private final Timer enable;
     private final Timer tick;
@@ -113,15 +116,21 @@ public final class LocalAgentPermissionDialog extends JDialog {
         middle.setBorder(BorderFactory.createEmptyBorder(0, 14, 0, 14));
         middle.add(scroll, BorderLayout.CENTER);
 
-        JPanel bottom = new JPanel(new BorderLayout());
+        JPanel bottom = new JPanel(new BorderLayout(0, UiTheme.SPACE_SM));
         bottom.setBorder(BorderFactory.createEmptyBorder(8, 14, 12, 14));
         countdown.getAccessibleContext().setAccessibleName("Time left to answer");
-        bottom.add(countdown, BorderLayout.WEST);
-        JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
-        buttons.add(stop);
-        buttons.add(allow);
-        buttons.add(deny);
-        bottom.add(buttons, BorderLayout.EAST);
+        JPanel lines = new JPanel(new BorderLayout(UiTheme.SPACE_MD, 0));
+        lines.add(countdown, BorderLayout.WEST);
+        waiting.setVisible(false);
+        waiting.getAccessibleContext().setAccessibleName("Requests waiting");
+        lines.add(waiting, BorderLayout.EAST);
+        bottom.add(lines, BorderLayout.NORTH);
+        // review M74 usability #7 (the shared rule): Allow once alone at the left; Stop, then Deny — the default — at
+        // the right
+        bottom.add(SafeChoice.buttonRow(allow, deny, stop), BorderLayout.SOUTH);
+        // review D3: the deadline is said once to a screen reader, where the ticking label is not announced
+        getAccessibleContext().setAccessibleDescription("Denied automatically after " + (deadlineMs / 1000)
+                + " seconds if not answered. Deny is the default; Enter and Escape deny.");
 
         getContentPane().setLayout(new BorderLayout());
         getContentPane().add(top, BorderLayout.NORTH);
@@ -187,6 +196,16 @@ public final class LocalAgentPermissionDialog extends JDialog {
         if (answered) return;
         answered = true;
         answers.chosen(yes);
+    }
+
+    /** #10c: render how many requests wait behind this one, as the session published it. */
+    public void setWaiting(int n) {
+        waiting.setText(n <= 0 ? " " : n == 1 ? "1 more request is waiting" : n + " more requests are waiting");
+        waiting.setVisible(n > 0);
+    }
+
+    JLabel waitingLabel() {
+        return waiting;
     }
 
     /** Close on the node's effect (the person's answer, the deadline, Stop, the turn's end). */

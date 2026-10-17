@@ -66,6 +66,49 @@ class P2bSurfacesTest {
         });
     }
 
+    /**
+     * ★ Review M74 usability #16: plain words for each item's kind and the analyser's verdict, never the codes; and
+     * Claude's reason — still labelled unverified — is visible BEFORE an answer is chosen. Witness: render
+     * {@code i.kind()} and {@code i.verdict()} as before — "sourceRoot" and "DIRECTORY (12 .java files)" are on screen;
+     * or show the reason only on a choice — the reason box is empty at first.
+     */
+    @Test
+    @DisplayName("★ the review says what each item is and what the analyser found, in words; the reason shows before answering")
+    void theReviewSpeaksPlainly() throws Exception {
+        StartPromptViewTest.onEdt(() -> {
+            var c = ProposalReviewDialog.content(REFS::get, proposal(true,
+                    new ProposalState.Item("p-1.1", "sourceRoot", REFS.put("src"), 0, REFS.put("REASON one"),
+                            ProposalState.ItemState.PENDING, "DIRECTORY (12 .java files)", ""),
+                    new ProposalState.Item("p-1.2", "processor", 0, REFS.put("com.acme.DemoProcessor"),
+                            REFS.put("REASON two"), ProposalState.ItemState.PENDING, "RESOLVES (pairing UNKNOWN)", "")));
+            java.util.List<String> shown = new java.util.ArrayList<>();
+            for (java.awt.Component k : TranscriptStyleTest.components(c.panel)) {
+                if (k instanceof javax.swing.JLabel l && l.getText() != null) shown.add(l.getText());
+            }
+            assertTrue(shown.contains("Source folder") && shown.contains("Processor"), shown.toString());
+            assertTrue(shown.contains("found: a folder with 12 Java files"), shown.toString());
+            assertTrue(shown.contains("found in the source; whether it matches the log is not known yet"), shown.toString());
+            for (String code : java.util.List.of("sourceRoot", "DIRECTORY (12 .java files)", "RESOLVES", "UNKNOWN")) {
+                assertTrue(shown.stream().noneMatch(t -> t.contains(code)), "no code on screen: " + code + " in " + shown);
+            }
+            assertEquals("REASON one", c.reason.getText(), "the first row's reason, before any answer");
+            assertTrue(c.reasonLabel.getText().startsWith(ProposalReviewDialog.REASON_LABEL), c.reasonLabel.getText());
+            assertTrue(c.reasonLabel.getText().contains("item 1"));
+            for (var l : c.no.get("p-1.2").getFocusListeners()) {
+                l.focusGained(new java.awt.event.FocusEvent(c.no.get("p-1.2"), java.awt.event.FocusEvent.FOCUS_GAINED));
+            }
+            assertEquals("REASON two", c.reason.getText(), "focusing a row shows its reason — still unanswered");
+            assertFalse(c.yes.get("p-1.2").isSelected());
+            assertEquals("Item 2, Processor: No", c.no.get("p-1.2").getAccessibleContext().getAccessibleName());
+            return null;
+        });
+        assertEquals("found: 2048 bytes, not opened yet", ProposalReviewDialog.verdictWords("READABLE (2048 bytes, not opened)"));
+        assertEquals("not a GraphML file", ProposalReviewDialog.verdictWords("NOT_GRAPHML"));
+        assertEquals("Log to open", ProposalReviewDialog.kindWords("logToOpen"));
+        assertEquals("Graph file", ProposalReviewDialog.kindWords("graphml"));
+        assertEquals("Runbook", ProposalReviewDialog.kindWords("runbook"));
+    }
+
     /** ★ Witness: show the banner whenever a proposal exists — the applied one still shows it. */
     @Test
     @DisplayName("★ the banner shows only while something is the person's to answer; its words say nothing was applied")

@@ -25,14 +25,20 @@ public final class PermissionText {
     /** The dialog's words for request {@code p}, of class {@code cls} with vocabulary name {@code name}. */
     public static Content of(LocalAgentTranscript.Permission p, ToolClass cls, String name) {
         String tool = p == null || p.toolName() == null ? "a tool" : visible(p.toolName()).text();
+        String raw = p == null ? null : p.inputRaw();
+        java.util.Map<?, ?> params = params(raw);
         String title;
         String changes;
         if (cls == ToolClass.HOSTED_DESTRUCTIVE && name != null) {
-            title = "Claude Code asks to run " + McpTools.PREFIX + name;
-            changes = McpTools.destructiveRationale(name);
+            // review M74 usability #6: what THIS call does, from its own input — the verb's general rationale only when
+            // the input says nothing more specific; the exact input is still shown below, unchanged
+            Call call = hostedCall(name, params);
+            title = call == null ? "Claude Code asks to run " + McpTools.PREFIX + name : "Claude Code asks to " + call.what();
+            changes = call == null ? McpTools.destructiveRationale(name) : call.consequence();
         } else {
-            title = "Claude Code asks to use " + tool;
-            changes = switch (name == null ? "" : name) {
+            Call call = toolCall(name, params);
+            title = call == null ? "Claude Code asks to use " + tool : "Claude Code asks to " + call.what();
+            changes = call != null ? call.consequence() : switch (name == null ? "" : name) {
                 case "Bash" -> "Bash runs a command on your computer, as your own Claude Code does in a terminal";
                 case "Edit", "MultiEdit", "Write", "NotebookEdit" -> name + " changes a file on your computer";
                 case "WebFetch", "WebSearch" -> name + " contacts the web";
@@ -41,8 +47,153 @@ public final class PermissionText {
                         : "one of your own Claude Code's tools";
             };
         }
-        Visible in = visible(pretty(p == null ? null : p.inputRaw()));
-        return new Content(title, changes, serverLine(p, cls), in.text(), in.escaped());
+        Visible in = visible(pretty(raw));
+        return new Content(title, changes, serverLine(p, cls, name), in.text(), in.escaped());
+    }
+
+    /** One call in words: what it does (a phrase after "Claude Code asks to"), and its consequence. */
+    record Call(String what, String consequence) {
+    }
+
+    /** The longest value quoted in a sentence; the input below always has all of it. */
+    static final int QUOTE_MAX = 60;
+
+    /** A value from the model's input, quoted, its invisible characters escaped, at most {@link #QUOTE_MAX} long. */
+    static String q(Object v) {
+        // the JSON reader gives numbers as doubles: a whole number reads as written (3, never 3.0)
+        String raw = v instanceof Double d && d == Math.rint(d) && Math.abs(d) < 1e15 ? Long.toString(d.longValue())
+                : v == null ? "" : String.valueOf(v);
+        String t = visible(raw).text();
+        if (t.length() > QUOTE_MAX) t = t.substring(0, QUOTE_MAX) + "…";
+        return "“" + t + "”";
+    }
+
+    private static java.util.Map<?, ?> params(String raw) {
+        if (raw == null || raw.isBlank()) return java.util.Map.of();
+        try {
+            Object o = telamin.fluxtion.audit.analyser.analyser.llm.Json.parse(raw);
+            return o instanceof java.util.Map<?, ?> m ? m : java.util.Map.of();
+        } catch (RuntimeException unreadable) {
+            return java.util.Map.of();
+        }
+    }
+
+    private static boolean has(java.util.Map<?, ?> p, String k) {
+        return p.containsKey(k) && p.get(k) != null;
+    }
+
+    private static final String RESTORABLE = "It can be restored: it moves to this project's recently deleted list.";
+    private static final String EXCHANGE = " in the exchange folder; an existing file is never overwritten.";
+
+    /**
+     * Review M74 usability #6: an asked analyser verb's call, by its sub-action — one sentence per operation the verb's
+     * schema names; null when the input names none (the general rationale is shown then).
+     */
+    static Call hostedCall(String verb, java.util.Map<?, ?> p) {
+        Object name = p.get("name");
+        switch (verb) {
+            case "walk" -> {
+                if (has(p, "reel")) return new Call("record the walk " + q(name) + " as a page, written to " + q(p.get("reel")),
+                        "It plays the walk step by step and writes one HTML page" + EXCHANGE);
+                if (has(p, "delete")) return new Call("delete the saved walk " + q(name), RESTORABLE);
+                if (has(p, "rename")) return new Call("rename the walk " + q(name) + " to " + q(p.get("rename")),
+                        "The walk keeps its steps; only its name changes.");
+                if (Boolean.TRUE.equals(p.get("restore"))) return new Call("list the deleted walks", "It changes nothing.");
+                if (has(p, "restore")) return new Call("restore the deleted walk " + q(p.get("restore")),
+                        "It comes back into this project under its name.");
+                if (Boolean.TRUE.equals(p.get("play"))) return new Call("play the walk " + q(name)
+                        + (has(p, "step") ? " from step " + q(p.get("step")) : ""),
+                        "It shows the walk's steps on the analyser; nothing saved changes.");
+                if (Boolean.TRUE.equals(p.get("end"))) return new Call("end the walk that is showing", "It changes nothing saved.");
+                if (has(p, "steps")) return new Call("save the walk " + q(name),
+                        "A saved walk of that name is replaced; a new name adds one.");
+                if (p.containsKey("conversation")) return new Call(p.get("conversation") == null
+                        ? "remove the conversation from the walk " + q(name)
+                        : "attach a conversation to the walk " + q(name), "The walk's steps do not change.");
+                return null;
+            }
+            case "report" -> {
+                if (p.get("bundle") instanceof java.util.Map<?, ?> b) {
+                    return new Call("write an evidence bundle to " + q(b.get("path")),
+                            "It packs the open log, its graph and this project's reports into one file" + EXCHANGE);
+                }
+                if (Boolean.TRUE.equals(p.get("restore"))) return new Call("list the deleted reports", "It changes nothing.");
+                if (has(p, "restore")) return new Call("restore the deleted report " + q(p.get("restore")),
+                        "It comes back into this project under its name.");
+                if (has(p, "delete")) return new Call("delete the report " + q(name), RESTORABLE);
+                if (has(p, "rename")) return new Call("rename the report " + q(name) + " to " + q(p.get("rename")),
+                        "The report keeps its sections; only its name changes.");
+                if (has(p, "csv")) return new Call("write table " + q(p.get("csv")) + " of the report " + q(name)
+                        + " as CSV to " + q(p.get("path")), "It writes one file" + EXCHANGE);
+                if (has(p, "sections") || has(p, "name")) {
+                    String what = "build the report " + q(name) + (has(p, "path") ? " and write it to " + q(p.get("path")) : "");
+                    return new Call(what, (has(p, "path") ? "It writes one file" + EXCHANGE + " " : "")
+                            + "A report of that name in this project is replaced; a new name adds one.");
+                }
+                if (has(p, "path")) return new Call("write a finding" + (has(p, "recordIndex") ? " for record "
+                        + q(p.get("recordIndex")) : "") + " to " + q(p.get("path")), "It writes one PDF file" + EXCHANGE);
+                return null;
+            }
+            case "screenshot" -> {
+                return new Call("write a screenshot of " + (has(p, "scope") ? "the " + q(p.get("scope")) : "the window")
+                        + " to " + q(p.get("path")), "It writes one PNG file" + EXCHANGE);
+            }
+            case "open" -> {
+                for (String k : new String[]{"log", "project", "bundle", "graphml", "processor", "design"}) {
+                    if (has(p, k)) {
+                        String kind = switch (k) {
+                            case "log" -> "the audit log";
+                            case "project" -> "the project";
+                            case "bundle" -> "the evidence bundle";
+                            case "graphml" -> "the graph file";
+                            case "processor" -> "the processor";
+                            default -> "the design";
+                        };
+                        return new Call("open " + kind + " " + q(p.get(k)), "What is open now is replaced.");
+                    }
+                }
+                if (has(p, "close")) return new Call("close the " + q(p.get("close")), "It closes what is open now.");
+                return null;
+            }
+            case "source_root" -> {
+                if (has(p, "add") || has(p, "remove")) {
+                    return new Call((has(p, "add") ? "add the source folder(s) " + q(p.get("add")) : "")
+                            + (has(p, "add") && has(p, "remove") ? " and " : "")
+                            + (has(p, "remove") ? "remove the source folder(s) " + q(p.get("remove")) : ""),
+                            "Saved in your settings: the analyser reads source from these folders.");
+                }
+                return new Call("list the configured source folders", "It changes nothing; it shows the folders' paths.");
+            }
+            case "import" -> {
+                if (has(p, "categories")) return new Call("borrow " + q(p.get("categories")) + " from the bundle "
+                        + q(p.get("bundle")) + " into this project", "This project's settings for those categories change.");
+                if (has(p, "bundle")) return new Call("preview what the bundle " + q(p.get("bundle")) + " would bring",
+                        "It reads the bundle file and changes nothing.");
+                return null;
+            }
+            default -> {
+                return null;
+            }
+        }
+    }
+
+    /** A person's own tool, in words where its input says what it does; null otherwise. */
+    static Call toolCall(String name, java.util.Map<?, ?> p) {
+        if (name == null) return null;
+        return switch (name) {
+            case "Bash" -> new Call("run a command on your computer", "Bash runs it as your own Claude Code does in a "
+                    + "terminal — the exact command is below.");
+            case "Edit", "MultiEdit" -> has(p, "file_path") ? new Call("change the file " + q(p.get("file_path")),
+                    name + " edits it in place.") : null;
+            case "Write" -> has(p, "file_path") ? new Call("write the file " + q(p.get("file_path")),
+                    "Write replaces the file if it exists.") : null;
+            case "NotebookEdit" -> has(p, "notebook_path") ? new Call("change the notebook " + q(p.get("notebook_path")),
+                    "NotebookEdit edits it in place.") : null;
+            case "WebFetch" -> has(p, "url") ? new Call("fetch " + q(p.get("url")), "WebFetch contacts the web.") : null;
+            case "WebSearch" -> has(p, "query") ? new Call("search the web for " + q(p.get("query")),
+                    "WebSearch contacts the web.") : null;
+            default -> null;
+        };
     }
 
     /** The secondary line for a built-in tool: it belongs to Claude Code itself, so no server is claimed. */
@@ -50,16 +201,24 @@ public final class PermissionText {
 
     /**
      * M74 UX (P3 leftover b): who names the tool. A built-in (its request carries {@code mcp_server: null}) is Claude
-     * Code's own tool — it has no server, so the line says {@code built-in tool} and never "named by the server"; an MCP
-     * tool keeps its server and the name its server gave it.
+     * Code's own tool — it has no server, so the line says {@code built-in tool}; an MCP tool keeps its server and the
+     * name its server gave it. Review M74 usability D1: the analyser's own verb says so in words — never the bridge's
+     * server name or "named by the server".
      */
     static String serverLine(LocalAgentTranscript.Permission p, ToolClass cls) {
+        return serverLine(p, cls, null);
+    }
+
+    static String serverLine(LocalAgentTranscript.Permission p, ToolClass cls, String name) {
         if (cls == ToolClass.BUILT_IN) return BUILT_IN_LINE;
+        if (cls == ToolClass.HOSTED_DESTRUCTIVE || cls == ToolClass.HOSTED_OTHER) {
+            return "the analyser's own tool" + (name == null ? "" : " (" + McpTools.PREFIX + name + ")");
+        }
         StringBuilder server = new StringBuilder();
         if (p != null && p.serverName() != null) server.append("server: ").append(visible(p.serverName()).text());
         if (p != null && p.displayName() != null) {
             if (!server.isEmpty()) server.append(" · ");
-            server.append("named by the server: ").append(visible(p.displayName()).text());
+            server.append("its name for the tool: ").append(visible(p.displayName()).text());
         }
         return server.toString();
     }

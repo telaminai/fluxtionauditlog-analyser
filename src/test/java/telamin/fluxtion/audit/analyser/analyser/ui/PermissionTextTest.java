@@ -32,9 +32,11 @@ class PermissionTextTest {
         assertTrue(c.input().contains("\\u202E"), c.input());
         assertTrue(c.input().contains("\\u200B"), "zero-width characters too");
         assertTrue(c.escaped(), "and the dialog says it escaped them");
-        assertEquals("Claude Code asks to run analyser_report", c.title());
-        assertTrue(c.changes().contains("report builds or replaces a named report"), c.changes());
-        assertEquals("server: fluxtion-analyser-hosted · named by the server: Analyser Report", c.serverLine());
+        // review M74 usability #6: the title says what THIS call does, its quoted value escaped like the input
+        assertEquals("Claude Code asks to write a finding to \u201Cfdp.\\u202Epdf\u201D", c.title());
+        assertFalse(c.title().contains(RLO), "the sentence never carries a live override either");
+        assertTrue(c.changes().contains("exchange folder"), c.changes());
+        assertEquals("the analyser's own tool (analyser_report)", c.serverLine(), "no bridge name, no 'named by'");
     }
 
     /** ★ §8.3 UI. Witness: show only the last " — " step (the P2 rendering) — "approved by you" vanishes behind the ✓. */
@@ -71,8 +73,8 @@ class PermissionTextTest {
     void thePersonsOwnTools() {
         var bash = PermissionText.of(new LocalAgentTranscript.Permission("Bash", null, "Bash",
                 "{\"command\":\"rm -rf ./build && echo done\",\"description\":\"Clean\"}"), ToolClass.BUILT_IN, "Bash");
-        assertEquals("Claude Code asks to use Bash", bash.title());
-        assertTrue(bash.changes().contains("runs a command on your computer"));
+        assertEquals("Claude Code asks to run a command on your computer", bash.title());
+        assertTrue(bash.changes().contains("the exact command is below"), bash.changes());
         assertTrue(bash.input().contains("\"command\": \"rm -rf ./build && echo done\""), bash.input());
         var mcp = PermissionText.of(new LocalAgentTranscript.Permission("mcp__db-tools__drop", "db-tools", "Drop", "{}"),
                 ToolClass.OTHER_MCP, null);
@@ -97,10 +99,10 @@ class PermissionTextTest {
         assertFalse(bash.serverLine().contains("server"), bash.serverLine());
         var mcp = PermissionText.of(new LocalAgentTranscript.Permission("mcp__db-tools__drop", "db-tools", "Drop", "{}"),
                 ToolClass.OTHER_MCP, null);
-        assertEquals("server: db-tools · named by the server: Drop", mcp.serverLine(), "the MCP tool keeps its server");
+        assertEquals("server: db-tools · its name for the tool: Drop", mcp.serverLine(), "the MCP tool keeps its server");
         var hosted = PermissionText.of(new LocalAgentTranscript.Permission("mcp__fluxtion-analyser-hosted__analyser_open",
                 "fluxtion-analyser-hosted", null, "{}"), ToolClass.HOSTED_DESTRUCTIVE, "open");
-        assertEquals("server: fluxtion-analyser-hosted", hosted.serverLine());
+        assertEquals("the analyser's own tool (analyser_open)", hosted.serverLine(), "review D1: no '…-hosted' jargon");
     }
 
     /**
@@ -120,5 +122,80 @@ class PermissionTextTest {
         var plain = PermissionText.visible("rm -rf ./build\n");
         assertFalse(plain.escaped(), "an ordinary space and the newline are kept");
         assertEquals("rm -rf ./build\n", plain.text());
+    }
+
+    // ---- review M74 usability #6: the dialog says what THIS call does, from its input ------------------------------
+
+    static PermissionText.Content hosted(String verb, String input) {
+        return PermissionText.of(new LocalAgentTranscript.Permission("mcp__fluxtion-analyser-hosted__analyser_" + verb,
+                "fluxtion-analyser-hosted", "Analyser " + verb, input), ToolClass.HOSTED_DESTRUCTIVE, verb);
+    }
+
+    /**
+     * ★ One sentence per sub-action, the exact input still below. Witness: return the verb's general rationale
+     * ({@code McpTools.destructiveRationale}) as before — every title reads "asks to run analyser_walk" and this fails
+     * at the first row; the "a delete reads as a delete" assertion is the one the review found missing.
+     */
+    @org.junit.jupiter.params.ParameterizedTest(name = "{0} {1}")
+    @org.junit.jupiter.params.provider.CsvSource(delimiter = '|', textBlock = """
+            walk       | {"name":"x","delete":true}                         | Claude Code asks to delete the saved walk “x”
+            walk       | {"name":"x","play":true}                           | Claude Code asks to play the walk “x”
+            walk       | {"name":"x","play":true,"step":3}                  | Claude Code asks to play the walk “x” from step “3”
+            walk       | {"end":true}                                       | Claude Code asks to end the walk that is showing
+            walk       | {"name":"x","rename":"y"}                          | Claude Code asks to rename the walk “x” to “y”
+            walk       | {"restore":true}                                   | Claude Code asks to list the deleted walks
+            walk       | {"restore":"x"}                                    | Claude Code asks to restore the deleted walk “x”
+            walk       | {"name":"x","steps":[]}                            | Claude Code asks to save the walk “x”
+            walk       | {"name":"x","conversation":null}                   | Claude Code asks to remove the conversation from the walk “x”
+            walk       | {"name":"x","reel":"x.html"}                       | Claude Code asks to record the walk “x” as a page, written to “x.html”
+            report     | {"name":"y","sections":[]}                         | Claude Code asks to build the report “y”
+            report     | {"name":"y","sections":[],"path":"y.pdf"}          | Claude Code asks to build the report “y” and write it to “y.pdf”
+            report     | {"name":"y","delete":true}                         | Claude Code asks to delete the report “y”
+            report     | {"name":"y","rename":"z"}                          | Claude Code asks to rename the report “y” to “z”
+            report     | {"restore":true}                                   | Claude Code asks to list the deleted reports
+            report     | {"restore":"y"}                                    | Claude Code asks to restore the deleted report “y”
+            report     | {"name":"y","csv":2,"path":"t.csv"}                | Claude Code asks to write table “2” of the report “y” as CSV to “t.csv”
+            report     | {"recordIndex":16,"path":"f.pdf"}                  | Claude Code asks to write a finding for record “16” to “f.pdf”
+            report     | {"bundle":{"path":"case.fexp"}}                    | Claude Code asks to write an evidence bundle to “case.fexp”
+            screenshot | {"path":"s.png"}                                   | Claude Code asks to write a screenshot of the window to “s.png”
+            open       | {"log":"other.yaml"}                               | Claude Code asks to open the audit log “other.yaml”
+            open       | {"project":"p"}                                    | Claude Code asks to open the project “p”
+            source_root| {"add":["src"]}                                    | Claude Code asks to add the source folder(s) “[src]”
+            import     | {"bundle":"b.fexp"}                                | Claude Code asks to preview what the bundle “b.fexp” would bring
+            import     | {"bundle":"b.fexp","categories":["REPORTS"]}       | Claude Code asks to borrow “[REPORTS]” from the bundle “b.fexp” into this project
+            """)
+    void eachSubActionSaysWhatThisCallDoes(String verb, String input, String title) {
+        var c = hosted(verb.strip(), input.strip());
+        assertEquals(title.strip(), c.title());
+        assertFalse(c.changes().isBlank(), "and its consequence");
+        assertEquals(PermissionText.visible(PermissionText.pretty(input.strip())).text(), c.input(),
+                "the exact input is still shown, unchanged");
+    }
+
+    @Test
+    @DisplayName("★ a delete reads as a delete and says it is restorable; a play says nothing saved changes")
+    void deleteAndPlayAreDifferent() {
+        var delete = hosted("walk", "{\"delete\":true,\"name\":\"DEMO first breach\"}");
+        var play = hosted("walk", "{\"play\":true,\"name\":\"DEMO first breach\"}");
+        assertNotEquals(delete.title(), play.title(), "the review's finding: both read the verb's whole rationale");
+        assertTrue(delete.changes().contains("restored"), delete.changes());
+        assertTrue(play.changes().contains("nothing saved changes"), play.changes());
+        String long60 = "n".repeat(200);
+        var longName = hosted("walk", "{\"delete\":true,\"name\":\"" + long60 + "\"}");
+        assertTrue(longName.title().length() < 140, "a long value is cut in the sentence: " + longName.title().length());
+        assertTrue(longName.input().contains(long60), "and never in the input below");
+    }
+
+    @Test
+    @DisplayName("an input that names no sub-action falls back to the verb's rationale; built-ins name their file or URL")
+    void fallbacksAndBuiltIns() {
+        var unknown = hosted("walk", "{}");
+        assertEquals("Claude Code asks to run analyser_walk", unknown.title());
+        var write = PermissionText.of(new LocalAgentTranscript.Permission("Write", null, "Write",
+                "{\"file_path\":\"/tmp/DEMO.txt\",\"content\":\"x\"}"), ToolClass.BUILT_IN, "Write");
+        assertEquals("Claude Code asks to write the file \u201C/tmp/DEMO.txt\u201D", write.title());
+        var fetch = PermissionText.of(new LocalAgentTranscript.Permission("WebFetch", null, "WebFetch",
+                "{\"url\":\"https://example.com\"}"), ToolClass.BUILT_IN, "WebFetch");
+        assertEquals("Claude Code asks to fetch \u201Chttps://example.com\u201D", fetch.title());
     }
 }

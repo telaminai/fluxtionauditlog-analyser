@@ -24,7 +24,7 @@ final class MenuInventory {
                     "Ask the assistant: What happened here?", "Ask the assistant: Compare these rows",
                     "Ask the assistant: Explain this finding", SEPARATOR,
                     "Export records (CSV)…", "Export records (YAML)…"),
-            "AI", List.of("Connect an AI client…", "Local MCP / REST enabled", SEPARATOR, "Fluxtion API key…",
+            "AI", List.of("Connect an AI client…", "External MCP/REST access", SEPARATOR, "Fluxtion API key…",
                     SEPARATOR, "Runbooks…", "Domain glossary…", SEPARATOR, "Posture", "Place mode-selector record…",
                     "Clear mode-selector record", SEPARATOR, "Report exchange directory…", "Show exchange directory",
                     SEPARATOR, "Working with AI (docs)"),

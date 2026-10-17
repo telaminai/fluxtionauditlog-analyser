@@ -397,8 +397,8 @@ public final class MainFrame extends JFrame {
         if (Boolean.getBoolean(telamin.fluxtion.audit.analyser.Main.REST_PROPERTY) && !config.assistantActionsRest) {
             config.assistantActionsRest = true;
             saveConfigQuietly();
-            System.out.println("[analyser] --rest: REST transport enabled and saved (Settings ▸ Assistant ▸ "
-                    + "localhost REST); turn it off there if this machine should not offer it");
+            System.out.println("[analyser] --rest: External MCP/REST access turned on and saved (Settings ▸ "
+                    + "Assistant ▸ External MCP/REST access); turn it off there if this machine should not offer it");
         }
         // review B5: the REST switch is a fact; actionListener decides. The session is built lazily, so the start-up
         // report is made once construction has finished — building it (postStartupFacts) reports the switch, and the
@@ -2839,7 +2839,7 @@ public final class MainFrame extends JFrame {
         ai.add(connect);
 
         // BOUND, not copied: it reads and writes the same field Settings ▸ Assistant renders
-        JCheckBoxMenuItem transport = new JCheckBoxMenuItem("Local MCP / REST enabled");
+        JCheckBoxMenuItem transport = new JCheckBoxMenuItem("External MCP/REST access");
         transport.addActionListener(e -> {
             config.assistantActionsRest = transport.isSelected();
             onConfigChanged();
@@ -5131,12 +5131,9 @@ public final class MainFrame extends JFrame {
                     "confirmFolder:full");
         }
         SwingUtilities.invokeLater(() -> {
-            boolean yes = dir != null && JOptionPane.showConfirmDialog(this,
-                    UiText.inert("Claude Code will read this folder's CLAUDE.md as instructions.\n\nTrust " + dir
-                            + " for Claude Code in the analyser?\n\nRemembered on this machine only; never in a project, "
-                            + "a shared settings file or a bundle."),
-                    "Claude Code — confirm this folder", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE)
-                    == JOptionPane.YES_OPTION;
+            // review M74 usability #7/F2/F3: the shared rule (Don't trust is the default, at the right), verb labels, and
+            // the analyser's own scratch folder said in words before its path
+            boolean yes = dir != null && LocalAgentFolderDialog.confirmSafe(this, dir, dir.equals(localAgentScratch));
             if (session == null) return;
             if (yes) localAgentFolderAsked.put(e.request(), new FolderAsked(realPathOf(dir), null));
             session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentFolderAnswered(
@@ -5181,13 +5178,17 @@ public final class MainFrame extends JFrame {
     /** Review H4/B5: no process needs the bridge — the listener matches actionListener's decision (up or not, external). */
     private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result releaseHostedBridge(
             telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ReleaseHostedBridgeEffect e) {
-        return configured(e.opId(), matchActionListener(e.keepListening(), e.external()));
+        String failure = matchActionListener(e.keepListening(), e.external());
+        if (actionServer != null) actionServer.setClosedForSession(false);     // the session's end reopens it
+        return configured(e.opId(), failure);
     }
 
     /** ConfigureActionListenerEffect (review B5): the REST switch or the person's B2 choice, as actionListener decided. */
     private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result configureActionListener(
             telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ConfigureActionListenerEffect e) {
-        return configured(e.opId(), matchActionListener(e.listen(), e.external()));
+        String failure = matchActionListener(e.listen(), e.external());
+        if (actionServer != null) actionServer.setClosedForSession(e.closedForSession());   // review #11: the words only
+        return configured(e.opId(), failure);
     }
 
     private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result configured(long opId, String failure) {
@@ -5409,6 +5410,8 @@ public final class MainFrame extends JFrame {
         localAgentPanel.render(agent);
         localAgentPanel.renderProposal(next.proposal());
         localAgentPanel.renderPermission(next.permission());
+        LocalAgentPermissionDialog open = permissionDialogs.get(next.permission().pendingRef());
+        if (open != null) open.setWaiting(next.permission().queued());     // review #10c: rendered, never decided
         renderFullPostureMarkers(agent);
         renderStartPrompt(next);
     }
@@ -11100,6 +11103,8 @@ public final class MainFrame extends JFrame {
                 }
             }, permissionDialogsModal);
             permissionDialogs.put(ref, d);
+            var now = sessionSnapshot().permission();
+            if (now.pendingRef() == ref) d.setWaiting(now.queued());
             d.setVisible(true);                         // modal: returns when the node's close effect disposes it
         });
         return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentEffectStarted(e.opId(),
@@ -11488,6 +11493,9 @@ public final class MainFrame extends JFrame {
     /** OD-74.23: what can answer — the switch, the resolver (a file check; nothing run), a provider, in-process actions. */
     private void postStartAvailability() {
         if (session == null) return;
+        // review M74 usability #10a: file exchange on or off, so an approval is never asked for a write it would refuse
+        session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantFileExchangeObserved(
+                config.assistantExports));
         session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StartPageAvailability(
                 config.claudeCodeAllowed, claudeFound(), inAppCanAnswer(), config.assistantActionsInProcess));
     }

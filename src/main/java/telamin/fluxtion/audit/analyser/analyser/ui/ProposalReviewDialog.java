@@ -36,6 +36,9 @@ public final class ProposalReviewDialog {
         }
     }
 
+    /** The reason box's label: Claude's words, never verified by the analyser. */
+    static final String REASON_LABEL = "Claude's reason — unverified";
+
     /** The review's content, separable from the dialog for the tests. */
     static final class Content {
         final JPanel panel = new JPanel(new BorderLayout(8, 8));
@@ -43,6 +46,16 @@ public final class ProposalReviewDialog {
         final Map<String, JRadioButton> no = new LinkedHashMap<>();
         JRadioButton createYes;
         final JTextArea reason = Fluid.text(" ");
+        /** The row whose reason shows, or 0; its label names the row and stays "Claude's reason — unverified". */
+        int reasonRow;
+        final JLabel reasonLabel = UiText.label(REASON_LABEL + " (point at or select a row)");
+
+        void showReason(int row, String text) {
+            reasonRow = row;
+            reasonLabel.setText(REASON_LABEL + " — item " + row);
+            reason.setText(text == null || text.isBlank() ? "(Claude gave no reason)" : text);
+            reason.setCaretPosition(0);
+        }
         final JButton apply = UiText.button("Apply chosen");
 
         Answer answer() {
@@ -58,6 +71,48 @@ public final class ProposalReviewDialog {
         }
     }
 
+    /** Review M74 usability #16 (R1): an item's kind in plain words — never the proposal's code identifier. */
+    static String kindWords(String kind) {
+        return switch (kind == null ? "" : kind) {
+            case "sourceRoot" -> "Source folder";
+            case "processor" -> "Processor";
+            case "graphml" -> "Graph file";
+            case "runbook" -> "Runbook";
+            case "logToOpen" -> "Log to open";
+            default -> kind == null || kind.isBlank() ? "Item" : kind;
+        };
+    }
+
+    /** Review M74 usability #16 (R1): the analyser's verdict in words — the code stays in the record, not on screen. */
+    static String verdictWords(String verdict) {
+        String v = verdict == null ? "" : verdict.strip();
+        java.util.regex.Matcher m;
+        if ((m = java.util.regex.Pattern.compile("DIRECTORY \\((\\d+) \\.java files\\)").matcher(v)).matches()) {
+            int n = Integer.parseInt(m.group(1));
+            return "found: a folder with " + n + " Java file" + (n == 1 ? "" : "s");
+        }
+        if ((m = java.util.regex.Pattern.compile("READABLE \\((\\d+) bytes, not opened\\)").matcher(v)).matches()) {
+            return "found: " + m.group(1) + " bytes, not opened yet";
+        }
+        return switch (v) {
+            case "RESOLVES (pairing UNKNOWN)", "RESOLVES" -> "found in the source; whether it matches the log is not known yet";
+            case "READABLE (fit UNKNOWN until opened)" -> "found; whether it fits is known only once it is opened";
+            case "MARKDOWN" -> "found: a Markdown file";
+            case "SOURCE_FILE (not in the source roots yet)" -> "a Java file, not in the source folders yet";
+            case "NOT_IN_SOURCES" -> "not found in the source folders";
+            case "NOT_FOUND" -> "not found";
+            case "OUTSIDE" -> "outside the set-up folder";
+            case "NOT_A_DIRECTORY" -> "not a folder";
+            case "NOT_GRAPHML" -> "not a GraphML file";
+            case "NOT_MARKDOWN" -> "not a Markdown file";
+            case "NOT_A_FILE" -> "not a file";
+            case "NOT_JAVA" -> "not a Java file";
+            case "WRONG_TYPE" -> "the wrong kind of file";
+            case "UNKNOWN", "" -> "not known";
+            default -> v;
+        };
+    }
+
     static boolean needsProject(String kind) {
         return !"logToOpen".equals(kind) && !"graphml".equals(kind);
     }
@@ -70,7 +125,7 @@ public final class ProposalReviewDialog {
         g.gridy = 0;
         g.anchor = GridBagConstraints.WEST;
         g.insets = new Insets(2, 4, 2, 4);
-        String[] head = {"", "Kind", "Path", "The analyser's check", "Your answer"};
+        String[] head = {"", "What", "Path", "The analyser's check", "Your answer"};
         for (int i = 0; i < head.length; i++) {
             g.gridx = i;
             JLabel h = UiText.label(head[i]);
@@ -109,7 +164,7 @@ public final class ProposalReviewDialog {
             g.gridx = 0;
             rows.add(UiText.label(Integer.toString(n)), g);
             g.gridx = 1;
-            rows.add(UiText.label(i.kind()), g);
+            rows.add(UiText.label(kindWords(i.kind())), g);
             g.gridx = 2;
             String where = i.pathRef() != 0 ? words.apply(i.pathRef()) : i.classNameRef() != 0
                     ? words.apply(i.classNameRef()) : "";
@@ -119,9 +174,10 @@ public final class ProposalReviewDialog {
             g.gridx = 3;
             String check = switch (i.state()) {
                 case OUTSIDE -> "outside the set-up folder — cannot be applied";
-                case REFUSED -> "refused: " + i.why();
-                case PENDING -> i.verdict();
-                default -> i.state().name().toLowerCase(java.util.Locale.ROOT) + (i.why().isBlank() ? "" : ": " + i.why());
+                case REFUSED -> "refused: " + verdictWords(i.why());
+                case PENDING -> verdictWords(i.verdict());
+                default -> i.state().name().toLowerCase(java.util.Locale.ROOT) + (i.why().isBlank() ? "" : ": "
+                        + verdictWords(i.why()));
             };
             rows.add(UiText.label(check), g);
             g.gridx = 4;
@@ -135,14 +191,27 @@ public final class ProposalReviewDialog {
                 yn.add(y);
                 yn.add(no);
                 rows.add(yn, g);
-                y.getAccessibleContext().setAccessibleName("Item " + n + " " + i.kind() + ": Yes");
-                no.getAccessibleContext().setAccessibleName("Item " + n + " " + i.kind() + ": No");
+                y.getAccessibleContext().setAccessibleName("Item " + n + ", " + kindWords(i.kind()) + ": Yes");
+                no.getAccessibleContext().setAccessibleName("Item " + n + ", " + kindWords(i.kind()) + ": No");
                 c.yes.put(i.id(), y);
                 c.no.put(i.id(), no);
                 if (!p.projectExists() && needsProject(i.kind())) needing.add(y);
                 final String reason = i.reasonRef() == 0 ? "" : words.apply(i.reasonRef());
-                y.addActionListener(e -> c.reason.setText(reason));
-                no.addActionListener(e -> c.reason.setText(reason));
+                // review M74 usability #16 (R2): the reason is input TO the decision — shown when the row is pointed
+                // at or focused, before any answer, and the first row's from the start
+                final int row = n;
+                Runnable show = () -> c.showReason(row, reason);
+                for (JComponent target : new JComponent[]{y, no, path}) {
+                    target.addFocusListener(new java.awt.event.FocusAdapter() {
+                        @Override public void focusGained(java.awt.event.FocusEvent e) { show.run(); }
+                    });
+                    target.addMouseListener(new java.awt.event.MouseAdapter() {
+                        @Override public void mouseEntered(java.awt.event.MouseEvent e) { show.run(); }
+                    });
+                }
+                y.addActionListener(e -> show.run());
+                no.addActionListener(e -> show.run());
+                if (c.reasonRow == 0) show.run();
             } else {
                 rows.add(UiText.label("—"), g);               // outside or refused: never a Yes
             }
@@ -163,8 +232,7 @@ public final class ProposalReviewDialog {
         }
 
         JPanel reasonBox = new JPanel(new BorderLayout(4, 4));
-        JLabel reasonLabel = UiText.label("Claude's reason — unverified (choose an answer to see it)");
-        reasonBox.add(reasonLabel, BorderLayout.NORTH);
+        reasonBox.add(c.reasonLabel, BorderLayout.NORTH);
         c.reason.setRows(3);
         c.reason.setForeground(UiTheme.mutedForeground());
         reasonBox.add(new JScrollPane(c.reason), BorderLayout.CENTER);
@@ -184,10 +252,19 @@ public final class ProposalReviewDialog {
 
     /** Show the review, modal for the person's own click; null when closed without applying. */
     public static Answer show(Window owner, ProposalState p, java.util.function.LongFunction<String> words) {
-        Content c = content(words, p);
-        JDialog d = new JDialog(owner, "Review Claude Code's set-up proposal", Dialog.ModalityType.APPLICATION_MODAL);
-        JButton close = UiText.button("Close");
         Answer[] result = new Answer[1];
+        JDialog d = dialog(owner, p, words, true, result);
+        d.setVisible(true);
+        return result[0];
+    }
+
+    /** The review's dialog, built and not shown ({@code modal} false for a frame test or a capture). */
+    static JDialog dialog(Window owner, ProposalState p, java.util.function.LongFunction<String> words, boolean modal,
+                          Answer[] result) {
+        Content c = content(words, p);
+        JDialog d = new JDialog(owner, "Review Claude Code's set-up proposal", modal ? Dialog.ModalityType.APPLICATION_MODAL
+                : Dialog.ModalityType.MODELESS);
+        JButton close = UiText.button("Close");
         c.apply.addActionListener(e -> {
             result[0] = c.answer();
             d.dispose();
@@ -205,7 +282,6 @@ public final class ProposalReviewDialog {
         d.pack();
         d.setSize(Math.max(d.getWidth(), 760), Math.min(Math.max(d.getHeight(), 360), 640));
         d.setLocationRelativeTo(owner);
-        d.setVisible(true);
-        return result[0];
+        return d;
     }
 }
