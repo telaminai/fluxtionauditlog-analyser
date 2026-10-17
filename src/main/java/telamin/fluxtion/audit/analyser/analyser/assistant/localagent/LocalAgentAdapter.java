@@ -449,7 +449,13 @@ public final class LocalAgentAdapter {
             case StreamJson.ControlRequest r -> onControlRequest(run, r);
             case StreamJson.ControlCancelRequest c -> {
                 // P3-2: the CLI withdrew a request itself (an interrupt while one was pending); the node closes the dialog
-                Long ref = run.permissionByRequestId.get(c.requestId() == null ? "" : c.requestId());
+                // or drops it from the queue. Final review #1: the request_id is forgotten here, at once — the CLI no
+                // longer waits for it, so no answer (above all no allow) is ever written for it, whatever is decided later
+                Long ref;
+                synchronized (run) {
+                    ref = run.permissionByRequestId.remove(c.requestId() == null ? "" : c.requestId());
+                    if (ref != null) run.pendingPermissions.remove(ref);
+                }
                 if (ref != null) env.post(new SessionEvents.LocalAgentPermissionCancelled(gen, ref));
             }
             case StreamJson.SystemInit i -> {

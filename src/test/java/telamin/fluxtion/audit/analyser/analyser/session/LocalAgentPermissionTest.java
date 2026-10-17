@@ -331,6 +331,96 @@ class LocalAgentPermissionTest {
         assertEquals(0, d.snapshot().permission().liveGrants(), "the grants went with the settings they were given under");
     }
 
+    /** A pending request (ref 1xx) and one waiting behind it (ref 1xx+1), turn 1 of the ready session. */
+    static long[] pendingAndQueued(SessionDriver d, long g, long base) {
+        d.post(report(g, 1, base));
+        d.post(report(g, 1, base + 1));
+        assertEquals(1, d.snapshot().permission().queued(), "the second waits");
+        return new long[]{base, base + 1};
+    }
+
+    static SessionEffects.AnswerPermissionEffect answerFor(FakeSessionAdapter a, long ref) {
+        return a.permissionAnswers.stream().filter(x -> x.requestRef() == ref).reduce((x, y) -> y).orElse(null);
+    }
+
+    /**
+     * ★ Final review #4 (rule 8): a WAITING request is denied, and never shown, when the settings change. Witness: drop
+     * {@code denyQueued} in {@code onConsentChanged} — the waiting request is never answered.
+     */
+    @Test
+    @DisplayName("★ a settings change denies the waiting request too, and it is never shown")
+    void aSettingsChangeDeniesTheQueue() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = LocalAgentSessionTest.driver(a);
+        var start = ready(d, a);
+        long[] r = pendingAndQueued(d, start.generation(), 110);
+        d.post(new SessionEvents.LocalAgentConsentChanged(LocalAgentSessionTest.consent(true, true, false, "another-posture",
+                LocalAgentSessionTest.BUDGET)));
+        assertNotNull(answerFor(a, r[1]), "the waiting request is answered");
+        assertEquals(LocalAgentPermission.DENIED_SETTINGS, answerFor(a, r[1]).message());
+        assertFalse(answerFor(a, r[1]).allow());
+        assertEquals(1, a.permissionDialogs.size(), "and never shown");
+        assertEquals(0, d.snapshot().permission().queued());
+    }
+
+    /** ★ Final review #4: New chat denies the waiting request. Witness: drop {@code denyQueued} in {@code onNewChat}. */
+    @Test
+    @DisplayName("★ New chat denies the waiting request too, and it is never shown")
+    void newChatDeniesTheQueue() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = LocalAgentSessionTest.driver(a);
+        var start = ready(d, a);
+        long[] r = pendingAndQueued(d, start.generation(), 120);
+        d.post(new SessionEvents.LocalAgentNewChatRequested("test"));
+        assertNotNull(answerFor(a, r[1]), "the waiting request is answered");
+        assertEquals(LocalAgentPermission.DENIED_ENDED, answerFor(a, r[1]).message());
+        assertFalse(answerFor(a, r[1]).allow());
+        assertEquals(1, a.permissionDialogs.size(), "and never shown");
+        assertEquals(0, d.snapshot().permission().queued());
+    }
+
+    /**
+     * ★ Final review #4: the process's exit denies the waiting request. Witness: drop {@code denyQueued} in
+     * {@code onExited} — this node runs before {@code localAgentSession} handles the exit, so {@code askNext} still sees
+     * a running session and SHOWS the waiting request of a process that has gone.
+     */
+    @Test
+    @DisplayName("★ the process's exit denies the waiting request too, and it is never shown")
+    void anExitDeniesTheQueue() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = LocalAgentSessionTest.driver(a);
+        var start = ready(d, a);
+        long[] r = pendingAndQueued(d, start.generation(), 130);
+        d.post(new SessionEvents.LocalAgentExited(start.generation(), 1, 0));
+        assertEquals(1, a.permissionDialogs.size(), "the waiting request of a gone process is never shown");
+        assertNotNull(answerFor(a, r[1]), "it is answered");
+        assertEquals(LocalAgentPermission.DENIED_ENDED, answerFor(a, r[1]).message());
+        assertEquals(0, d.snapshot().permission().queued());
+    }
+
+    /**
+     * ★ Final review #4: {@code askNext} re-checks a waiting request before it shows it. A mode mismatch kills the
+     * process inside {@code localAgentSession} (no turn-end or exit fact reaches this node yet), so the waiting request
+     * still sits in the queue; the open dialog's deadline then passes. Witness: {@code if (false)} for the staleness
+     * check in {@code askNext} — the waiting request of the killed session is shown.
+     */
+    @Test
+    @DisplayName("★ the next waiting request is re-checked before it is shown: one of a killed session is denied as ended")
+    void askNextReChecksStaleness() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = LocalAgentSessionTest.driver(a);
+        var start = ready(d, a);
+        long g = start.generation();
+        long[] r = pendingAndQueued(d, g, 140);
+        d.post(new SessionEvents.LocalAgentModeObserved(g, 1, "bypassPermissions"));
+        assertFalse(d.snapshot().localAgent().running(), "the session was killed");
+        assertEquals(1, d.snapshot().permission().queued(), "no fact this node handles ended the waiting request yet");
+        d.post(new SessionEvents.LocalAgentPermissionDeadline(g, r[0]));
+        assertEquals(1, a.permissionDialogs.size(), "the stale waiting request is not shown");
+        assertNotNull(answerFor(a, r[1]));
+        assertEquals(LocalAgentPermission.DENIED_ENDED, answerFor(a, r[1]).message());
+    }
+
     /** The CLI withdrew it (P3-2): the dialog closes and nothing is answered. */
     @Test
     @DisplayName("P3-2: the CLI's own cancel closes the dialog and answers nothing")
@@ -343,6 +433,36 @@ class LocalAgentPermissionTest {
         assertTrue(a.permissionAnswers.isEmpty(), "nothing is answered to a withdrawn request");
         assertEquals(95, a.permissionCloses.get(0).requestRef());
         assertFalse(d.snapshot().permission().waiting());
+    }
+
+    /**
+     * ★ Final review #1 (2026-10-17): a request the CLI withdraws while it WAITS behind the open dialog leaves the queue —
+     * it is never shown, never approvable, and nothing is answered for it. Witness: the old early return in
+     * {@code onCancelled} (ignore a cancel of any but the pending request) — the second dialog opens after the first is
+     * denied, and the person's Allow writes a grant for the withdrawn request.
+     */
+    @Test
+    @DisplayName("★ a waiting request the CLI withdraws is never shown: the first is denied, then no dialog and no grant for the second")
+    void aWithdrawnWaitingRequestIsNeverShown() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = LocalAgentSessionTest.driver(a);
+        var start = ready(d, a);
+        long g = start.generation();
+        d.post(report(g, 1, 96));
+        d.post(report(g, 1, 97));
+        assertEquals(1, d.snapshot().permission().queued(), "the second waits");
+        d.post(new SessionEvents.LocalAgentPermissionCancelled(g, 97));
+        assertEquals(0, d.snapshot().permission().queued(), "the withdrawn request left the queue");
+        assertTrue(a.permissionAnswers.isEmpty(), "nothing is answered to a withdrawn request");
+        d.post(new SessionEvents.LocalAgentPermissionChosen(96, false));
+        assertEquals(96, lastAnswer(a).requestRef(), "the first is denied by the person");
+        assertEquals(1, a.permissionDialogs.size(), "no dialog for the withdrawn request");
+        assertFalse(d.snapshot().permission().waiting());
+        d.post(new SessionEvents.LocalAgentPermissionChosen(97, true));   // a stray click for the withdrawn one
+        assertEquals(0, d.snapshot().permission().liveGrants(), "no grant for a withdrawn request");
+        assertTrue(a.permissionAnswers.stream().noneMatch(x -> x.requestRef() == 97), "and no answer for it");
+        assertTrue(d.snapshot().localAgent().entries().stream().anyMatch(x -> x.detail() != null
+                && x.detail().contains("withdrew its request")), "the person reads that Claude Code withdrew it");
     }
 
     // ---- ★ OD-74.17: the single-use grant ---------------------------------------------------------------------------

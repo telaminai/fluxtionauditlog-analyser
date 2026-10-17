@@ -55,6 +55,7 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 - **The permission dialog no longer says a built-in tool was "named by the server".** For Claude Code's own tools (Bash, Edit, …) the secondary line reads *built-in tool*; a tool of an MCP server still shows its server and the name the server gave it.
 - The start page no longer counts an `ollama` provider with no key as an assistant that can answer — the in-app assistant refuses a provider it does not know, so the page promised an answer it would not give.
 - **A transcript tool line shows the input as Claude Code sent it**, as the permission dialog does: an integer reads `3`, not `3.0`, collapsed and expanded.
+- **A request Claude Code withdraws while it waits behind an open approval is never shown** — it used to be shown, and could be approved, after the first was answered; nothing is written to Claude Code for a request it withdrew.
 
 ### Security
 

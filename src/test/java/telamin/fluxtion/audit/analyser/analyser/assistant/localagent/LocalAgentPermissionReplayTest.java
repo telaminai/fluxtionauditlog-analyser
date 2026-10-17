@@ -181,6 +181,27 @@ class LocalAgentPermissionReplayTest {
         assertEquals(SessionEvents.TurnOutcome.COMPLETED, h.facts(SessionEvents.LocalAgentTurnEnded.class).get(0).outcome());
     }
 
+    /**
+     * ★ Final review #1 (2026-10-17): once the CLI withdraws a request, the adapter forgets its request_id at once, so no
+     * answer — above all no allow — is ever written for it, whatever is decided later. Witness: keep the entry in
+     * {@code pendingPermissions} on {@code control_cancel_request} (the old behaviour) — the late allow is written.
+     */
+    @Test
+    @DisplayName("★ a request the CLI withdrew is forgotten: a later allow for it writes nothing")
+    void aWithdrawnRequestIsNeverAnswered() throws Exception {
+        Harness h = bound("p3-1-unanswered-real.jsonl");
+        h.send("ask and wait");
+        var req = h.facts(SessionEvents.LocalAgentPermissionRequested.class).get(0);
+        String id = String.valueOf(requestId(asked(h).get(0)));
+        h.agent.last().emit("{\"type\":\"control_cancel_request\",\"request_id\":\"" + id + "\"}");
+        h.drain();
+        assertFalse(h.driver.snapshot().permission().waiting(), "the dialog closed on the CLI's withdrawal");
+        var r = h.adapter.perform(new SessionEffects.AnswerPermissionEffect(0L, req.generation(), req.ticket(),
+                req.requestRef(), true, null, PermissionBy.PERSON, 0, ToolClass.HOSTED_DESTRUCTIVE, "report"));
+        assertFalse(((SessionEvents.LocalAgentPermissionAnswered) r).written(), "nothing is written for a withdrawn request");
+        assertTrue(answers(h).isEmpty(), "no control_response for the withdrawn request_id: " + answers(h));
+    }
+
     // ---- ★ what is recorded --------------------------------------------------------------------------------------
 
     /**
