@@ -67,6 +67,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ### Security
 
+- **No assistant profile is local-only, Safe analysis included.** The profile cards, the assistant's limits line, *Settings ▸ Assistant*, the in-app help, the FAQ and the assistant guide now say it plainly: what you ask, and the evidence Claude reads through the analyser, is sent to the model provider (Anthropic, on your Claude plan or API key), as in any Claude Code session; the in-app assistant sends them to the model provider you chose, on your API key. *Safe* describes what Claude Code may do on this machine, not where your words go.
+
 - **Full Claude Code's folder trust is checked again when the process starts**, by its whole digest (settings, `.mcp.json` and instruction files), so a hook added between the confirmation and the start is refused by name; the confirmation now says plainly what it does not re-check — files a `CLAUDE.md` imports with `@path`, `CLAUDE.md` files in the folders above, and the contents of a hook's scripts.
 - **With external MCP / REST access on, full Claude Code's own tools can drive the analyser as an external client** (through `~/.fluxtion-analyser/rest-endpoint`). The assistant panel now says so while such a session runs and offers **Close external access while this session runs**; external access opens again when the session ends.
 

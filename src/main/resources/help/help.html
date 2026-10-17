@@ -189,7 +189,9 @@ names do not prove the two came from the same build either — decide that from 
 <b>Assistant: &hellip; &#9662;</b>, chooses how it works: <i>Safe analysis</i> or <i>Full Claude Code</i> (your own
 installed Claude Code), the <i>In-app assistant</i> (a provider, model and API key, also in
 <i>Settings &rarr; LLM</i>) or <i>Off</i>. Select record(s) and press <b>Ask</b>, or type a question, and
-<i>Send</i>; nothing is sent before that. For the in-app assistant: The context sent is: the
+<i>Send</i>; nothing is sent before that. <b>No profile is local-only:</b> with Claude Code, what you ask, and
+the evidence Claude reads through the analyser, is sent to the model provider (Anthropic, on your Claude plan or API
+key), as in any Claude Code session; with the in-app assistant it is sent to the model provider you chose. For the in-app assistant: The context sent is: the
 selected record(s), the EventProcessor FQN, and source snippets for the referenced node classes, plus
 a system prompt describing the audit format. <i>Reset</i> clears the conversation.</p>
 <p><b>Whole-log access (agentic).</b> The prompt is also <b>seeded</b> with the audit log's file path,

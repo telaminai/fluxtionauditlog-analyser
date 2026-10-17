@@ -44,7 +44,10 @@ plan, or an API key). Both share:
 - **one row of header chips** — who answers, the model, the profile or the provider, how it is paid for;
 - **one line under the header that says what this mode cannot do** — the in-app assistant cannot read your project
   folder or use your own tools; Safe analysis has no shell, edits or web; full Claude Code's own tools are not confined
-  by the analyser; with no key, or with the assistant *Off*, it says so there.
+  by the analyser; with no key, or with the assistant *Off*, it says so there. It also says that **no profile is
+  local-only**: what you ask, and the evidence Claude reads through the analyser, is sent to the model provider
+  (Anthropic, on your Claude plan or API key), as in any Claude Code session — and, for the in-app assistant, to the
+  model provider you chose.
 
 ![The assistant panel in the in-app mode: Assistant: In-app assistant, the provider and API-key chips, the limits line, a
 question about record #7, one analyser_read tool line and an answer in safe Markdown with record and node
@@ -66,9 +69,9 @@ analysis](../assets/assistant-profile-cards.png)
 
 | Card | What it sets up |
 |---|---|
-| **Safe analysis** (the default) | Claude Code that **reads your evidence; it changes what is open or writes a file only after you approve each call**: Read, Grep and Glob in the project folder and the analyser's own views. No shell, no edits, no web, none of your own skills or servers — safe with logs you did not write. Its detail: Claude Code's model. |
-| **Full Claude Code** | **Your own Claude Code** — your settings, skills, plugins, hooks and MCP servers, and your own tools under your rules. The card shows the warning in full and the **mode** (`default`, `acceptEdits`, `auto`, `plan`); its button reads **Turn on full Claude Code**. When Claude Code asks for approval, the analyser asks you ([Approvals](#approvals-in-the-analyser)). |
-| **In-app assistant** | The analyser's own assistant: a **provider**, a **model** and an **API key** (left blank, a key already stored is kept). |
+| **Safe analysis** (the default) | Claude Code that **reads your evidence; it changes what is open or writes a file only after you approve each call**: Read, Grep and Glob in the project folder and the analyser's own views. No shell, no edits, no web, none of your own skills or servers — safe with logs you did not write. **Not local-only:** what you ask, and the evidence Claude reads through the analyser, is sent to the model provider (Anthropic, on your Claude plan or API key), as in any Claude Code session. Its detail: Claude Code's model. |
+| **Full Claude Code** | **Your own Claude Code** — your settings, skills, plugins, hooks and MCP servers, and your own tools under your rules. The card shows the warning in full and the **mode** (`default`, `acceptEdits`, `auto`, `plan`); its button reads **Turn on full Claude Code**. When Claude Code asks for approval, the analyser asks you ([Approvals](#approvals-in-the-analyser)). Like Safe analysis, it sends what you ask, and the evidence Claude reads, to the model provider. |
+| **In-app assistant** | The analyser's own assistant: a **provider**, a **model** and an **API key** (left blank, a key already stored is kept). **Not local-only:** what you ask, and the evidence the assistant reads through the analyser, is sent to the model provider you chose, on your API key. |
 | **Off** | **No assistant in the analyser.** No question is sent anywhere from the analyser; every view, chart, report and walk still works. A stored key is kept, unused. An external MCP or REST client you connected is **not** affected. |
 
 Under the cards, one line says whether **External MCP/REST access** is on or off, with a pointer to *Settings ▸

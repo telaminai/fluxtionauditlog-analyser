@@ -100,7 +100,8 @@ public final class AssistantPanel extends JPanel {
 
     /** What the in-app mode cannot do, said where Claude Code's limits are said. */
     static final String IN_APP_LIMITS = "In-app cannot read your project folder, set up a project or use your own "
-            + "tools — Claude Code can.";
+            + "tools — Claude Code can. "
+            + telamin.fluxtion.audit.analyser.analyser.assistant.AssistantProfiles.IN_APP_SENDS;
     static final String IN_APP_NO_KEY = "No API key is configured, so nothing is sent from here — choose how the assistant "
             + "works (Assistant ▾ above), Copy prompt, or Connect a CLI assistant.";
     static final String OFF_LIMITS = "The assistant is off on this machine: no question is sent anywhere. Everything else "

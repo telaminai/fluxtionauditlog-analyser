@@ -63,9 +63,10 @@ public final class ProfileOverlay extends JPanel {
      * your rules, and the analyser asks you only when Claude Code asks. {@code FaqSecurityContractTest} pins these.
      */
     public static final String SAFE_CARD_LINE = "Claude Code reads your evidence; it changes what is open or writes a file only "
-            + "after you approve each call. No shell — safe with logs you did not write.";
+            + "after you approve each call. No shell — safe with logs you did not write. "
+            + AssistantProfiles.CARD_SENDS + "Anthropic.";
     public static final String FULL_CARD_LINE = "Your own Claude Code set-up, skills and tools. When Claude Code asks for "
-            + "approval, the analyser asks you.";
+            + "approval, the analyser asks you. " + AssistantProfiles.CARD_SENDS + "Anthropic.";
     /** Review B6: Off is about the assistant IN the analyser; an external MCP or REST client is another matter. */
     public static final String OFF_CARD_LINE = "No assistant in the analyser. Everything else still works; external MCP and REST "
             + "clients are not affected.";
@@ -82,7 +83,8 @@ public final class ProfileOverlay extends JPanel {
         return switch (p) {
             case SAFE -> SAFE_CARD_LINE;
             case FULL -> FULL_CARD_LINE;
-            case IN_APP -> "The analyser's own assistant, with your API key and model.";
+            case IN_APP -> "The analyser's own assistant, with your API key and model. " + AssistantProfiles.CARD_SENDS
+                    + "the provider you chose.";
             case OFF -> OFF_CARD_LINE;
             case NONE -> "";
         };
@@ -95,13 +97,15 @@ public final class ProfileOverlay extends JPanel {
                     "Claude Code reads with Read, Grep and Glob in the project folder, and uses the analyser's own views.",
                     "No Bash, no file edits, no web, and none of your own skills, hooks or MCP servers — so text in a "
                             + "log written to steer an AI reaches no shell.",
-                    "Runs your installed claude on your own Claude plan; the analyser never reads your credentials.");
+                    "Runs your installed claude on your own Claude plan; the analyser never reads your credentials.",
+                    AssistantProfiles.CLAUDE_CODE_SENDS);
             case FULL -> List.of(
                     "Loads your settings, skills, plugins, hooks and MCP servers, and the folder's own — they run when "
                             + "you press Start.",
-                    "When Claude Code asks for an approval, the analyser asks you; Deny is the default.");
+                    "When Claude Code asks for an approval, the analyser asks you; Deny is the default.",
+                    AssistantProfiles.CLAUDE_CODE_SENDS);
             case IN_APP -> List.of(
-                    "The analyser sends your question and its context to the provider you choose.",
+                    AssistantProfiles.IN_APP_SENDS,
                     "The key is stored on this machine only (in cleartext), never in a project, a share or a bundle.");
             case OFF -> List.of(
                     "No question is sent anywhere from the analyser: the assistant panel and the start page say so instead.",

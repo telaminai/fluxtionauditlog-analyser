@@ -147,4 +147,50 @@ class FaqSecurityContractTest {
             }
         }
     }
+
+    /**
+     * External utility review (owner-approved 2026-10-17): "Safe analysis" is not local-only, and every surface that
+     * describes a profile says where your words and evidence go. Witness: drop the not-local-only bullet from the FAQ's
+     * security answer, or the provider sentence from the Safe card's details — the assertion that names it fails.
+     */
+    @Test
+    void noProfileClaimsToBeLocalOnly() throws Exception {
+        String cc = telamin.fluxtion.audit.analyser.analyser.assistant.AssistantProfiles.CLAUDE_CODE_SENDS;
+        String inApp = telamin.fluxtion.audit.analyser.analyser.assistant.AssistantProfiles.IN_APP_SENDS;
+        assertTrue(cc.contains("what you ask, and the evidence Claude reads through the analyser, is sent to the model "
+                + "provider (Anthropic, on your Claude plan or API key), as in any Claude Code session"), cc);
+        assertTrue(inApp.contains("is sent to the model provider you chose"), inApp);
+        assertTrue(telamin.fluxtion.audit.analyser.analyser.ui.LocalAgentPanel.SAFE_LIMITS.contains(cc), "the limits line");
+        String faq = Files.readString(Path.of("docs/site/faq.md")).replaceAll("\\s+", " ");
+        int start = faq.indexOf("## Is the assistant's action socket safe to enable?");
+        String answer = faq.substring(start, faq.indexOf(" ## ", start + 1));
+        assertTrue(answer.contains("No assistant profile is local-only, Safe analysis included."), "the FAQ security answer");
+        assertTrue(answer.contains("is sent to the model provider (Anthropic, on your Claude plan or API key), as in any "
+                + "Claude Code session"), "…names the provider for Claude Code");
+        assertTrue(answer.contains("to the model provider you chose"), "…and for the in-app assistant");
+        int offline = faq.indexOf("## Does it work offline?");
+        assertTrue(faq.substring(offline, faq.indexOf(" ## ", offline + 1)).contains("No assistant profile is local-only"),
+                "the offline answer");
+        String guide = Files.readString(Path.of("docs/site/user-guide/assistant.md")).replaceAll("\\s+", " ");
+        assertTrue(guide.contains("| **Safe analysis** (the default) |") && guide.contains("**Not local-only:** what you ask, "
+                + "and the evidence Claude reads through the analyser, is sent to the model provider (Anthropic"),
+                "the guide's Safe analysis row");
+        assertTrue(guide.contains("the evidence the assistant reads through the analyser, is sent to the model provider you "
+                + "chose"), "the guide's In-app row");
+        assertTrue(guide.contains("**no profile is local-only**"), "the guide's limits-line bullet");
+        String help = Files.readString(Path.of("src/main/resources/help/help.html")).replaceAll("\\s+", " ");
+        assertTrue(help.contains("<b>No profile is local-only:</b>"), "the in-app help");
+        String settings = Files.readString(Path.of(
+                "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/ConfigPanel.java"));
+        assertTrue(settings.contains("AssistantProfiles.CLAUDE_CODE_SENDS") && settings.contains("AssistantProfiles.IN_APP_SENDS"),
+                "Settings ▸ Assistant says it for Claude Code and for the in-app assistant");
+        for (String untrue : new String[]{"local-only analysis", "nothing leaves this machine", "stays on your machine",
+                "never leaves your machine"}) {
+            for (String f : new String[]{"docs/site/faq.md", "docs/site/user-guide/assistant.md",
+                    "docs/site/user-guide/start-page.md", "docs/site/getting-started.md"}) {
+                assertFalse(Files.readString(Path.of(f)).replaceAll("\\s+", " ").toLowerCase(java.util.Locale.ROOT)
+                        .contains(untrue), f + " claims \"" + untrue + "\"");
+            }
+        }
+    }
 }

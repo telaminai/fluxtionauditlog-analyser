@@ -34,7 +34,10 @@ redisplays it. See [Sharing setups](user-guide/sharing-setups.md).
 
 ## Does it work offline?
 
-Yes. Everything except the optional assistant is local. Opening from S3 uses your local `aws` CLI. The
+Yes. Everything except the optional assistant is local. **No assistant profile is local-only — Safe analysis
+included:** what you ask, and the evidence Claude reads through the analyser, is sent to the model provider
+(Anthropic, on your Claude plan or API key), as in any Claude Code session; with the in-app assistant, what you ask
+and the evidence it reads are sent to the model provider you chose, on your API key. Opening from S3 uses your local `aws` CLI. The
 in-app assistant needs network only when you actually send it a question (and even then, no key =
 copy-prompt mode). Claude Code in the Assistant tab contacts Anthropic when you press **Start** (its sign-in
 check and the bridge connection), before your first Send; with the assistant **Off**, nothing in the analyser
@@ -116,6 +119,10 @@ no file writes**. These groups of verbs go further, honestly labelled:
   MCP or REST client and never to the in-app assistant. It records an offer of up to ten set-up items (source
   roots, the processor, a GraphML, runbooks, a log) and **changes nothing**; you review each item, every answer
   starts at No, an item outside the chosen folder can never be applied, and only *Apply chosen* acts.
+- **No assistant profile is local-only, Safe analysis included.** What you ask, and the evidence Claude reads
+  through the analyser, is sent to the model provider (Anthropic, on your Claude plan or API key), as in any Claude
+  Code session. The in-app assistant sends what you ask, and the evidence it reads, to the model provider you chose,
+  on your API key. *Safe* describes what Claude Code may do on this machine, not where your words go.
 - **Claude Code in the Assistant tab is off by default.** The assistant header's **Assistant: … ▾** control (it names
   the profile in force, e.g. *Assistant: Safe analysis ▾*) opens the cards that turn it on in
   one step — **Safe analysis** for what is described below, **Full Claude Code** for yours — and write the same switches.

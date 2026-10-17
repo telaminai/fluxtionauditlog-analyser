@@ -266,9 +266,11 @@ public final class LocalAgentPanel extends JPanel {
 
     /** M74 UX: what Claude Code here cannot do — said in the one panel's limits line, where the in-app limits are said. */
     public static final String SAFE_LIMITS = "Safe analysis reads your evidence; it changes what is open or writes a file only "
-            + "after you approve each call. No shell, no edits, no web.";
+            + "after you approve each call. No shell, no edits, no web. "
+            + telamin.fluxtion.audit.analyser.analyser.assistant.AssistantProfiles.CLAUDE_CODE_SENDS;
     static final String FULL_LIMITS = "Your own tools run under your permission rules: the analyser asks you only when "
-            + "Claude Code asks, and cannot confine the rest.";
+            + "Claude Code asks, and cannot confine the rest. "
+            + telamin.fluxtion.audit.analyser.analyser.assistant.AssistantProfiles.CLAUDE_CODE_SENDS;
     static final String OFF_LIMITS = "Claude Code is not set up on this machine — choose Safe analysis or Full Claude "
             + "Code (Assistant ▾ above), or the in-app assistant.";
 

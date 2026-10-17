@@ -137,4 +137,26 @@ class AssistantVocabularyTest {
                 "the tick is not part of the label a person says");
         assertEquals("Assistant: Off — choose how the assistant works", AssistantPanel.assistantControlName(AssistantProfile.OFF));
     }
+
+    /**
+     * External utility review (2026-10-17): every card and every limits line says the profile is not local-only.
+     * Witness: drop {@code CLAUDE_CODE_SENDS} from the Full card's details, or the provider clause from a limits line.
+     */
+    @Test
+    @DisplayName("★ every card and every limits line says where your words and evidence go")
+    void everyProfileSaysItIsNotLocalOnly() {
+        String cc = telamin.fluxtion.audit.analyser.analyser.assistant.AssistantProfiles.CLAUDE_CODE_SENDS;
+        String inApp = telamin.fluxtion.audit.analyser.analyser.assistant.AssistantProfiles.IN_APP_SENDS;
+        for (AssistantProfile p : List.of(AssistantProfile.SAFE, AssistantProfile.FULL)) {
+            assertTrue(ProfileOverlay.cardLine(p).contains("Not local-only") && ProfileOverlay.cardLine(p).contains("Anthropic"),
+                    p + " card line: " + ProfileOverlay.cardLine(p));
+            assertTrue(ProfileOverlay.detailLines(p).contains(cc), p + " details");
+        }
+        assertTrue(ProfileOverlay.cardLine(AssistantProfile.IN_APP).contains("Not local-only"), "in-app card line");
+        assertTrue(ProfileOverlay.detailLines(AssistantProfile.IN_APP).contains(inApp), "in-app details");
+        assertTrue(LocalAgentPanel.SAFE_LIMITS.endsWith(cc), "Safe limits");
+        assertTrue(LocalAgentPanel.FULL_LIMITS.endsWith(cc), "Full limits");
+        assertTrue(AssistantPanel.IN_APP_LIMITS.endsWith(inApp), "in-app limits");
+        assertFalse(ProfileOverlay.cardLine(AssistantProfile.OFF).contains("Not local-only"), "Off sends nothing");
+    }
 }

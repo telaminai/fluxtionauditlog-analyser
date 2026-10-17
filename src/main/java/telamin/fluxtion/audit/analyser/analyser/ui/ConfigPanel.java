@@ -781,7 +781,8 @@ public final class ConfigPanel extends JDialog {
                 + "never reads or stores your Claude Code credentials. Start contacts Anthropic before your first Send "
                 + "(and in Full Claude Code runs hooks); no record content is sent until you press Send. The spend limit "
                 + "is for API-key billing — on a Claude plan, your plan's own usage limits apply anyway. The model and "
-                + "limit are Claude Code's own (not the in-app provider's)."), g);
+                + "limit are Claude Code's own (not the in-app provider's). <b>"
+                + telamin.fluxtion.audit.analyser.analyser.assistant.AssistantProfiles.CLAUDE_CODE_SENDS + "</b>"), g);
         return box;
     }
 
@@ -817,6 +818,10 @@ public final class ConfigPanel extends JDialog {
         llm.addActionListener(e -> selectPage("LLM"));
         g.gridy = 0; box.add(llm, g);
         g.gridy = 1; box.add(actionsInProcess, g);
+        g.gridx = 0; g.gridwidth = 2; g.fill = GridBagConstraints.HORIZONTAL;
+        g.gridy = 4; box.add(mutedNote("<b>"
+                + telamin.fluxtion.audit.analyser.analyser.assistant.AssistantProfiles.IN_APP_SENDS + "</b>"), g);
+        g.fill = GridBagConstraints.NONE;
         g.gridwidth = 1; g.insets = new Insets(6, 4, 3, 8);
         g.gridy = 2; g.gridx = 0; g.anchor = GridBagConstraints.LINE_END; box.add(new JLabel("Max action rounds:"), g);
         g.gridx = 1; g.weightx = 1; g.anchor = GridBagConstraints.LINE_START; box.add(leftWrap(maxRoundsSpinner), g);

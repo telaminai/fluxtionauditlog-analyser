@@ -21,6 +21,20 @@ public final class AssistantProfiles {
     }
 
     /**
+     * External utility review, owner-approved 2026-10-17: no assistant here is local-only. What a person asks, and the
+     * evidence the assistant reads through the analyser, goes to the model provider — said in these words on the cards,
+     * the limits line, Settings, the FAQ and the guide ({@code FaqSecurityContractTest} pins every surface).
+     */
+    public static final String CLAUDE_CODE_SENDS = "Not local-only: what you ask, and the evidence Claude reads through the "
+            + "analyser, is sent to the model provider (Anthropic, on your Claude plan or API key), as in any Claude Code "
+            + "session.";
+    /** The in-app assistant's form of {@link #CLAUDE_CODE_SENDS}: its provider is the one you chose. */
+    public static final String IN_APP_SENDS = "Not local-only: what you ask, and the evidence the assistant reads through "
+            + "the analyser, is sent to the model provider you chose, on your API key.";
+    /** The short form a card's one line carries. */
+    public static final String CARD_SENDS = "Not local-only: what you ask and the evidence it reads go to ";
+
+    /**
      * The overlay's details for the chosen card: only the ones that card shows are read.
      *
      * @param fullMode    Full Claude Code's mode ({@code default}, {@code acceptEdits}, {@code auto}, {@code plan})
