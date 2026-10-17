@@ -120,6 +120,63 @@ public final class McpTools {
     }
 
     /**
+     * Review M74 usability #10 (2026-10-17), verified against the code that performs each call: what a hosted call of an
+     * ASKED verb does, judged from its own parameters — the ONE classification the adapter (whether to ask) and the
+     * action server (whether a grant is needed) share.
+     *
+     * <ul>
+     *   <li>{@code NON_MUTATING} — exactly these, and only with no other field: {@code walk {name, play: true, step?}}
+     *       (posts a play request; {@code WalkVerb.play} saves nothing), {@code walk {end: true}} (ends the showing walk),
+     *       {@code walk {restore: true}} and {@code report {restore: true}} (list the bins). They change what is SHOWN,
+     *       as the pre-allowed render verbs do, and nothing stored.</li>
+     *   <li>{@code WRITES_FILE} — the calls that go through the exchange-folder guard ({@code ActionExecutor
+     *       .guardedPath}): every {@code screenshot}; {@code walk {reel}}; {@code report {bundle}}; a named report with a
+     *       {@code path}; the single-record report (always a file).</li>
+     *   <li>{@code CHANGES} — everything else: save, replace, rename, delete, restore by name, {@code open},
+     *       {@code import}, {@code source_root}. These are always asked.</li>
+     * </ul>
+     */
+    public static telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallKind hostedCallKind(String verb,
+                                                                                                             Object params) {
+        Map<?, ?> p = params instanceof Map<?, ?> m ? m : Map.of();
+        String v = verb == null ? "" : verb;
+        switch (v) {
+            case "walk" -> {
+                if (p.containsKey("reel")) return telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallKind.WRITES_FILE;
+                if (Boolean.TRUE.equals(p.get("play")) && Set.of("play", "name", "step").containsAll(keys(p))) return nonMutating();
+                if (Boolean.TRUE.equals(p.get("end")) && keys(p).equals(Set.of("end"))) return nonMutating();
+                if (Boolean.TRUE.equals(p.get("restore")) && keys(p).equals(Set.of("restore"))) return nonMutating();
+            }
+            case "report" -> {
+                if (Boolean.TRUE.equals(p.get("restore")) && keys(p).equals(Set.of("restore"))) return nonMutating();
+                if (p.containsKey("bundle")) return writesFile();
+                boolean named = p.containsKey("sections") || p.containsKey("name") || p.containsKey("csv")
+                        || p.containsKey("restore");
+                if (!named || p.get("path") != null) return writesFile();
+            }
+            case "screenshot" -> {
+                return writesFile();
+            }
+            default -> { }
+        }
+        return telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallKind.CHANGES;
+    }
+
+    private static Set<String> keys(Map<?, ?> p) {
+        Set<String> out = new java.util.HashSet<>();
+        for (Object k : p.keySet()) out.add(String.valueOf(k));
+        return out;
+    }
+
+    private static telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallKind nonMutating() {
+        return telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallKind.NON_MUTATING;
+    }
+
+    private static telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallKind writesFile() {
+        return telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallKind.WRITES_FILE;
+    }
+
+    /**
      * M74 review H5: the verbs the analyser's own Claude Code session (the hosted bridge) may call without asking, BY
      * NAME — an allow-list, never "every verb minus the destructive ones". The one definition: {@code LocalAgentPosture}
      * (the command line and the posture check) and {@code ActionServer} (the server-side admission) both read it, so a

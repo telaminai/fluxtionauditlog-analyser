@@ -112,7 +112,7 @@ public record LocalAgentPosture(Kind kind, FullMode fullMode) {
     public String label() {
         // OD-74.26: the "preview" label went when P3's approvals in the analyser shipped. M74 UX: the names are the
         // profile cards' — the default posture IS Safe analysis, so the header says so
-        return isFull() ? "Full Claude Code (" + fullMode.cli() + ")" : "Safe analysis (default posture)";
+        return isFull() ? "Full Claude Code (" + fullMode.cli() + ")" : "Safe analysis";
     }
 
     /**

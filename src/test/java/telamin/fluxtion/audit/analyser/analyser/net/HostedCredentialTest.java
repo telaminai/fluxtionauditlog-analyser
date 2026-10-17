@@ -217,7 +217,7 @@ class HostedCredentialTest {
         assertFalse(java.nio.file.Files.exists(wellKnown.path()));
         HttpResponse<String> external = post(READ, null);
         assertEquals(403, external.statusCode(), "the shared token alone is refused: external REST is off");
-        assertTrue(external.body().contains("for external clients is off"), external.body());
+        assertTrue(external.body().contains("External MCP/REST access is off"), external.body());
         HttpResponse<String> manifest = http.send(HttpRequest.newBuilder(URI.create(server.url() + "/manifest")).GET()
                 .build(), HttpResponse.BodyHandlers.ofString());
         assertEquals(403, manifest.statusCode(), "nor does it answer an external manifest request");
@@ -233,6 +233,27 @@ class HostedCredentialTest {
         assertFalse(java.nio.file.Files.exists(wellKnown.path()), "withdrawn again when the switch goes off");
         assertEquals(403, post(READ, null).statusCode());
         assertEquals(400, post(READ, token).statusCode(), "while the hosted bridge keeps its listener");
+    }
+
+    /**
+     * ★ Review M74 usability #11: with "Close external access while this session runs" in force, an external client is
+     * told THAT — not that the REST switch is off, which Settings contradicts and which sends an incident responder to
+     * the wrong place. Witness: send {@code EXTERNAL_OFF} whatever the reason — the first assertion fails.
+     */
+    @Test
+    @DisplayName("★ closed for an in-app session: the external client is told so, accurately; switch off: told that")
+    void theRefusalSaysWhyExternalAccessIsClosed() throws Exception {
+        server.setExternalAllowed(false);
+        server.setClosedForSession(true);
+        HttpResponse<String> closed = post(READ, null);
+        assertEquals(403, closed.statusCode());
+        assertTrue(closed.body().contains("external access is closed while an in-app Claude Code session runs"),
+                closed.body());
+        assertFalse(closed.body().contains("is off"), "never the switch's words: " + closed.body());
+        server.setClosedForSession(false);
+        HttpResponse<String> off = post(READ, null);
+        assertTrue(off.body().contains("External MCP/REST access is off"), off.body());
+        server.setExternalAllowed(true);
     }
 
     @Test

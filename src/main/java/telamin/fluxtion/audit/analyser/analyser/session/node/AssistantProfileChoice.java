@@ -46,7 +46,7 @@ public class AssistantProfileChoice implements EventLogSource {
     public static final String BUSY_IN_APP_TEXT = "The in-app assistant is still answering — Stop or wait, then change how "
             + "the assistant works.";
     /** The start page's note when its question opened the choices instead of an answer. */
-    public static final String FIRST_USE_NOTE = "Choose how the assistant works first — then ask again";
+    public static final String FIRST_USE_NOTE = StartPagePrompt.CARRIED_NOTE;
 
     private final LocalAgentSession localAgent;
     private final AssistantLoop assistantLoop;

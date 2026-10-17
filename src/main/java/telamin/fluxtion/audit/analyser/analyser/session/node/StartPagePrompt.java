@@ -73,6 +73,24 @@ public class StartPagePrompt implements EventLogSource {
     private record Pending(String entryId, StartPageState.Route route, long textRef, boolean popOut) {
     }
 
+    /**
+     * Review M74 usability #3 (2026-10-17): the question that opened the profile cards, CARRIED through Apply — the person
+     * already pressed Send once. Kept until the cards are applied (then placed for the chosen assistant, Start armed
+     * where it applies) or closed (then dropped, and the box keeps its words). Never sent: placing is all this does.
+     */
+    private Pending carried;
+    private long carriedRequest;
+    private telamin.fluxtion.audit.analyser.analyser.session.AssistantProfile carriedProfile;
+    /** Apply succeeded; the machine's new facts (consent, what can answer, the profile) follow as their own operations. */
+    private boolean carriedAwaitingObservation;
+
+    /** The start page's note while its question waits behind the cards. */
+    public static final String CARRIED_NOTE = "Choose how the assistant works — your question waits, and is placed for "
+            + "the assistant you choose when you press Apply. Nothing is sent until you press Start or Send.";
+    /** The note when the cards closed without Apply. */
+    public static final String CARRY_DROPPED_NOTE = "The cards were closed, so your question was not placed — it is still "
+            + "in the box";
+
     public StartPagePrompt(AssistantModeChoice mode, LocalAgentSession localAgent, OpenLog openLog, EffectQueue effects) {
         this.mode = mode;
         this.localAgent = localAgent;
@@ -180,9 +198,14 @@ public class StartPagePrompt implements EventLogSource {
             return changed();
         }
         if (assistantProfile != null && assistantProfile.interceptedStartPage(e.request())) {
-            // M74 UX: the first question with no profile chosen opened the choices; nothing else is asked for
-            note = AssistantProfileChoice.FIRST_USE_NOTE;
-            auditLog.info("startPageRoute", "PROFILE_CHOICES");
+            // M74 UX: the first question with no profile chosen opened the choices; nothing else is asked for.
+            // Review M74 usability #3: the question is CARRIED — placed for the chosen assistant after Apply
+            carried = new Pending(id, route, e.textRef(), popOut);
+            carriedRequest = e.request();
+            carriedProfile = null;
+            carriedAwaitingObservation = false;
+            note = CARRIED_NOTE;
+            auditLog.info("startPageRoute", "PROFILE_CHOICES").info("carried", true);
             return changed();
         }
         if (id.equals("NONE") && e.textRef() == 0) {
@@ -255,6 +278,64 @@ public class StartPagePrompt implements EventLogSource {
         }
         compose(e.request(), p.entryId(), p.route(), e.logGeneration(), e.bundleNameRef(), e.templateNamesRef(),
                 p.textRef(), p.popOut());
+        return changed();
+    }
+
+    // ---- review M74 usability #3: the carried question --------------------------------------------------------------
+
+    /** Apply wrote the settings: the question is placed once the machine's new facts have been reported. */
+    @OnEventHandler
+    public boolean onProfileApplied(SessionEvents.AssistantProfileApplied e) {
+        if (carried == null || !e.ok()) return false;              // a refused Apply leaves the cards open, still carried
+        carriedProfile = e.profile();
+        carriedAwaitingObservation = true;
+        auditLog.info("startPageCarried", "APPLIED").info("profile", String.valueOf(e.profile()));
+        return false;
+    }
+
+    /**
+     * The profile in force, reported AFTER the consent and what can answer (the Apply performer posts them in that
+     * order, each its own operation): the carried question is routed as a start-page press would be now, to the
+     * chosen profile's assistant — placed, never sent.
+     */
+    @OnEventHandler
+    public boolean onProfileObserved(SessionEvents.AssistantProfileObserved e) {
+        if (carried == null || !carriedAwaitingObservation) return false;
+        Pending p = carried;
+        long request = carriedRequest;
+        var profile = carriedProfile;
+        carried = null;
+        carriedAwaitingObservation = false;
+        carriedProfile = null;
+        if (profile == null || profile == telamin.fluxtion.audit.analyser.analyser.session.AssistantProfile.NONE
+                || profile == telamin.fluxtion.audit.analyser.analyser.session.AssistantProfile.OFF) {
+            note = "The assistant is off, so your question was not placed — it is still in the box";
+            auditLog.info("startPageCarried", "OFF");
+            return changed();
+        }
+        boolean toClaude = profile.mode() == AssistantMode.LOCAL_AGENT;
+        StartPageState.Route route = route(toClaude, claudeCodeAllowed, claudeCodeFound, inAppCanAnswer);
+        if (!route.canAnswer() || route.switchesMode()) {
+            note = (toClaude ? "Claude Code" : "The in-app assistant") + " cannot answer yet"
+                    + (toClaude && !claudeCodeFound ? " (claude was not found on this machine)"
+                    : !toClaude ? " (no API key is stored)" : "") + ", so your question was not placed — it is still in the box";
+            auditLog.info("startPageCarried", "CANNOT_ANSWER").info("route", route.name());
+            return changed();
+        }
+        note = "";
+        answered = request;
+        auditLog.info("startPageCarried", "PLACED").info("route", route.name());
+        compose(request, p.entryId(), route, openLog.isOpen() ? openLog.generation() : 0, 0, 0, p.textRef(), p.popOut());
+        return changed();
+    }
+
+    /** The cards closed without Apply: the carried question is dropped; the box still has its words. */
+    @OnEventHandler
+    public boolean onProfilesClosed(SessionEvents.AssistantProfilesClosed e) {
+        if (carried == null || carriedAwaitingObservation) return false;
+        carried = null;
+        note = CARRY_DROPPED_NOTE;
+        auditLog.info("startPageCarried", "DROPPED");
         return changed();
     }
 

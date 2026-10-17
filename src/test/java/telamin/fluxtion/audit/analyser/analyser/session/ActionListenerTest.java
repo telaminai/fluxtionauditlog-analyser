@@ -82,6 +82,8 @@ class ActionListenerTest {
         d.post(new SessionEvents.ExternalAccessChosen(start.generation(), true));
         var closed = a.listenerConfigs.get(a.listenerConfigs.size() - 1);
         assertTrue(closed.listen() && !closed.external(), "closed for external clients; the session keeps its listener");
+        assertTrue(closed.closedForSession(), "review M74 usability #11: the performer is told WHY, so a refused external "
+                + "client is told the truth (Settings still says on)");
         s = d.snapshot().listener();
         assertTrue(s.closedForSession() && !s.offerClose() && !s.external(), String.valueOf(s));
         assertTrue(statuses(a).contains(ActionListener.CLOSED_FOR_SESSION));

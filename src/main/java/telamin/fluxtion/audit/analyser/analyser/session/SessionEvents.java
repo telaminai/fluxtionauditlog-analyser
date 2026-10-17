@@ -1361,7 +1361,27 @@ public final class SessionEvents {
     }
 
     /** Who decided a permission request's answer (§5.7 *Audit*). */
-    public enum PermissionBy { PERSON, TIMEOUT, STOP, POLICY, BUSY, TOO_LARGE, CANCELLED }
+    /**
+     * Who decided. {@code NON_MUTATING} (review M74 usability #10b, a refinement of OD-74.16): the analyser allowed, without
+     * a dialog, a sub-action of an asked verb that changes nothing ({@code walk {play}}, {@code walk {end}}, the bins'
+     * listings) — only ever for {@link HostedCallKind#NON_MUTATING}, and the server re-checks the call itself.
+     */
+    public enum PermissionBy { PERSON, TIMEOUT, STOP, POLICY, BUSY, TOO_LARGE, CANCELLED, NON_MUTATING }
+
+    /**
+     * Review M74 usability #10 (2026-10-17): what a hosted call of an asked verb does, classified by the adapter from the
+     * input it holds ({@code McpTools.hostedCallKind}) — never its words. {@code NON_MUTATING}: a sub-action that changes
+     * nothing stored (playing or ending a walk, listing a bin); {@code WRITES_FILE}: it writes a file in the exchange
+     * folder (a screenshot, a report's PDF or CSV, a bundle, a walk's reel); {@code CHANGES}: everything else.
+     */
+    public enum HostedCallKind { CHANGES, NON_MUTATING, WRITES_FILE }
+
+    /**
+     * Review M74 usability #10a: whether the assistant's file exchange (Settings ▸ Assistant) is on — the frame's
+     * observation, so {@code localAgentPermission} never asks the person about a write the settings would refuse.
+     */
+    public record AssistantFileExchangeObserved(boolean on) {
+    }
 
     /**
      * The adapter observed a {@code can_use_tool} for {@code generation}'s turn {@code ticket}. {@code requestRef} names the
@@ -1373,7 +1393,17 @@ public final class SessionEvents {
      */
     public record LocalAgentPermissionRequested(long generation, long ticket, long requestRef, ToolClass toolClass,
                                                 String name, String inputDigest, String toolUseIdDigest,
-                                                boolean showable) {
+                                                boolean showable, HostedCallKind kind) {
+        /** A request whose call has not been classified: it changes something, as every asked call did before #10. */
+        public LocalAgentPermissionRequested(long generation, long ticket, long requestRef, ToolClass toolClass,
+                                             String name, String inputDigest, String toolUseIdDigest, boolean showable) {
+            this(generation, ticket, requestRef, toolClass, name, inputDigest, toolUseIdDigest, showable,
+                    HostedCallKind.CHANGES);
+        }
+
+        public HostedCallKind kind() {
+            return kind == null ? HostedCallKind.CHANGES : kind;
+        }
     }
 
     /**

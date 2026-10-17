@@ -274,23 +274,32 @@ class LocalAgentPermissionTest {
     }
 
     /**
-     * ★ Witnesses: drop the busy check (a second request replaces the first) — the second opens a dialog; drop the
-     * showable check — the 64 KB input opens one; drop the stale check — the old generation's request opens one.
+     * ★ Review M74 usability #10c (amends OD-74.17's "denied at once"). Witnesses: drop the queue (deny the second at
+     * once, as before) — no answer is pending for 82 and its dialog never opens; drop {@code askNext} after an answer —
+     * 82 waits forever; drop the showable check — the 64 KB input opens one; drop the stale check — the old
+     * generation's request opens one.
      */
     @Test
-    @DisplayName("★ a second request while one is open, an unshowable input and a stale generation or ticket: denied at once")
-    void busyUnshowableAndStaleAreDenied() {
+    @DisplayName("★ a second request WAITS behind the open dialog and is shown after it; unshowable and stale are denied")
+    void aSecondRequestWaitsUnshowableAndStaleAreDenied() {
         FakeSessionAdapter a = new FakeSessionAdapter();
         SessionDriver d = LocalAgentSessionTest.driver(a);
         var start = ready(d, a);
         long g = start.generation();
         d.post(report(g, 1, 81));
+        int answersBefore = a.permissionAnswers.size();
         d.post(report(g, 1, 82));
         assertEquals(1, a.permissionDialogs.size(), "one dialog at a time (OD-74.17)");
-        assertEquals(82, lastAnswer(a).requestRef());
-        assertEquals(PermissionBy.BUSY, lastAnswer(a).by());
-        assertEquals(LocalAgentPermission.DENIED_BUSY, lastAnswer(a).message());
+        assertEquals(answersBefore, a.permissionAnswers.size(), "the second is not denied: it waits");
+        assertEquals(1, d.snapshot().permission().queued(), "and the open dialog can say so");
         d.post(new SessionEvents.LocalAgentPermissionChosen(81, false));
+        assertEquals(81, lastAnswer(a).requestRef(), "the person's answer to the first");
+        assertEquals(2, a.permissionDialogs.size(), "then the waiting one is shown");
+        assertEquals(82, d.snapshot().permission().pendingRef());
+        assertEquals(0, d.snapshot().permission().queued());
+        d.post(new SessionEvents.LocalAgentPermissionChosen(82, false));
+        assertEquals(82, lastAnswer(a).requestRef());
+        assertEquals(PermissionBy.PERSON, lastAnswer(a).by(), "asked and answered by the person, never auto-denied");
 
         d.post(new SessionEvents.LocalAgentPermissionRequested(g, 1, 83, ToolClass.HOSTED_DESTRUCTIVE, "report", null,
                 TOOL_USE, false));
@@ -301,7 +310,7 @@ class LocalAgentPermissionTest {
         assertEquals(LocalAgentPermission.DENIED_STALE, lastAnswer(a).message());
         d.post(report(g, 9, 85));
         assertEquals(LocalAgentPermission.DENIED_STALE, lastAnswer(a).message());
-        assertEquals(1, a.permissionDialogs.size(), "none of them opened a dialog");
+        assertEquals(2, a.permissionDialogs.size(), "none of them opened a dialog");
     }
 
     /** ★ Witness: ignore the consent change — the request stays open after the person's settings moved under it. */
@@ -468,7 +477,7 @@ class LocalAgentPermissionTest {
         d.post(new SessionEvents.LocalAgentInitObserved(g, 1, LocalAgentPosture.digest(start.sessionId()), "default", tools,
                 List.of(LocalAgentPosture.HOSTED_SERVER + ":connected"), LocalAgentPosture.REQUIRED_CAPABILITIES, 0));
         d.post(call(1, g, "report", INPUT, TOOL_USE));
-        assertTrue(verdict(a, 1).contains("not bound"), verdict(a, 1));
+        assertTrue(verdict(a, 1).contains("not connected to this analyser yet"), verdict(a, 1));
     }
 
     // ---- ★ audit -----------------------------------------------------------------------------------------------------

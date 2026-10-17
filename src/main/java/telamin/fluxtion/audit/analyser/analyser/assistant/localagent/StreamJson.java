@@ -146,7 +146,7 @@ public final class StreamJson {
 
     /** Why the CLI denied a tool: its permission mode, an approval nobody could give, or a rule or hook of the person's. */
     public enum DenialReason {
-        MODE("denied by the posture"),
+        MODE("denied by Claude Code's permission mode"),
         APPROVAL_UNAVAILABLE("denied — it needed an approval Claude Code did not ask the analyser for"),
         RULE("denied by a permission rule");
 

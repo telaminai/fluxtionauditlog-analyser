@@ -175,4 +175,30 @@ class HostedGrantServerTest {
         assertTrue(String.join("\n", sessionThread.submit(() -> driver.auditSink().records()).get())
                 .contains("GRAPH_DELETE"), "the server's own refusal is a fact (R1)");
     }
+
+    /**
+     * ★ Review M74 usability #10b (a refinement of OD-74.16): a sub-action that changes nothing stored is admitted without
+     * a grant, judged from the call's own input; every other sub-action of the same verb still needs one. Witnesses:
+     * drop the NON_MUTATING branch in {@code hostedRefusal} — the play is refused (403) for want of a grant; classify
+     * {@code walk {delete}} as non-mutating — the delete reaches the dispatcher with no approval.
+     */
+    @Test
+    @DisplayName("★ walk {play} and the bins' listings need no grant; walk {delete} and every write still do")
+    void nonMutatingSubActionsNeedNoGrant() throws Exception {
+        HttpResponse<String> play = hostedCall(Json.write(Map.of("action", "walk", "params",
+                Map.of("name", "DEMO first breach", "play", true))), TOOL_USE);
+        assertEquals(200, play.statusCode(), play.body());
+        assertEquals(List.of("walk"), rendered, "the play reached the dispatcher");
+        HttpResponse<String> list = hostedCall(Json.write(Map.of("action", "report", "params", Map.of("restore", true))),
+                TOOL_USE);
+        assertEquals(200, list.statusCode(), list.body());
+        HttpResponse<String> delete = hostedCall(Json.write(Map.of("action", "walk", "params",
+                Map.of("name", "DEMO first breach", "delete", true))), TOOL_USE);
+        assertEquals(403, delete.statusCode(), delete.body());
+        assertTrue(delete.body().contains("needs your approval"), delete.body());
+        HttpResponse<String> playAndDelete = hostedCall(Json.write(Map.of("action", "walk", "params",
+                Map.of("name", "x", "play", true, "delete", true))), TOOL_USE);
+        assertEquals(403, playAndDelete.statusCode(), "a play carrying another operation's field is not a play");
+        assertEquals(List.of("walk", "report"), rendered, "neither the delete nor the mixed call ran");
+    }
 }

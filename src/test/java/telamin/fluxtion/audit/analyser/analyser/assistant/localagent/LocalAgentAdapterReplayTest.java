@@ -520,7 +520,7 @@ class LocalAgentAdapterReplayTest {
         // M74 UX (P3 leftover c): the input as the line carried it (the sanitised capture's own spacing), never re-written
         assertTrue(answers.get(0).startsWith("▸ echo {\"text\": \"h1\"} — ✓\n\n"), answers.get(0));
         assertTrue(answers.get(0).endsWith("The tool returned: `[fluxtion-analyser-hosted] h1`"), "the model's own words follow");
-        assertTrue(answers.get(1).startsWith("▸ add {\"a\": 2, \"b\": 3} — denied by the posture"), answers.get(1));
+        assertTrue(answers.get(1).startsWith("▸ add {\"a\": 2, \"b\": 3} — denied by Claude Code's permission mode"), answers.get(1));
         assertFalse(answers.get(1).contains("— refused"), "marked once: the denial, not again by its error result");
         String all = String.join("\n", answers);
         assertEquals(1, all.split("Permission to use mcp__fluxtion-analyser-hosted__add", -1).length - 1,

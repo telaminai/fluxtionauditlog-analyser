@@ -569,9 +569,19 @@ public final class LocalAgentAdapter {
             run.permissionByRequestId.put(r.requestId(), ref);
             ticket = run.runningTicket;
         }
+        // review M74 usability #10: what THIS call does, from its own input — a class, never its words
+        SessionEvents.HostedCallKind kind = SessionEvents.HostedCallKind.CHANGES;
+        if (named.toolClass() == SessionEvents.ToolClass.HOSTED_DESTRUCTIVE && judged.showable()) {
+            try {
+                kind = telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.hostedCallKind(named.name(),
+                        telamin.fluxtion.audit.analyser.analyser.llm.Json.parse(r.inputRaw()));
+            } catch (RuntimeException unreadable) {
+                kind = SessionEvents.HostedCallKind.CHANGES;     // unreadable: asked, as before
+            }
+        }
         env.post(new SessionEvents.LocalAgentPermissionRequested(run.generation, ticket, ref, named.toolClass(),
                 named.name(), judged.digest(), r.toolUseId() == null ? null : LocalAgentPosture.digest(r.toolUseId()),
-                judged.showable()));
+                judged.showable(), kind));
     }
 
     /**
@@ -594,7 +604,7 @@ public final class LocalAgentAdapter {
             // the line is marked BEFORE the answer is written: the tool's own result can follow the answer at once
             boolean marked;
             synchronized (run) {
-                marked = run.toolMark(pending[2], markWords(allow, e.by()), allow);
+                marked = run.toolMark(pending[2], markWords(allow, e.by(), e.message()), allow);
             }
             if (marked) textChanged(run);
             write(run, allow ? StreamJson.allow(pending[0], pending[1])
@@ -611,7 +621,31 @@ public final class LocalAgentAdapter {
 
     /** §8.3 UI: the tool line's mark, by who decided. */
     static String markWords(boolean allow, SessionEvents.PermissionBy by) {
-        if (allow) return "approved by you";
+        return markWords(allow, by, null);
+    }
+
+    /**
+     * Review M74 usability #5: a denial by policy names WHY in the person's words — the profile, the mode, or what the
+     * analyser's node said — never "the posture". The words are also what a screen reader speaks for the line.
+     */
+    static String markWords(boolean allow, SessionEvents.PermissionBy by, String message) {
+        if (allow) return by == SessionEvents.PermissionBy.NON_MUTATING ? "allowed: it changes nothing" : "approved by you";
+        if ((by == null || by == SessionEvents.PermissionBy.POLICY) && message != null) {
+            if (message.equals(telamin.fluxtion.audit.analyser.analyser.session.node.LocalAgentPermission.DENIED_DEFAULT_POSTURE)) {
+                return "denied: not allowed in Safe analysis";
+            }
+            if (message.equals(telamin.fluxtion.audit.analyser.analyser.session.node.LocalAgentPermission.DENIED_HIDDEN)) {
+                return "denied: not available in this Full Claude Code mode";
+            }
+            if (message.equals(telamin.fluxtion.audit.analyser.analyser.session.node.LocalAgentPermission.DENIED_ASK_QUESTION)) {
+                return "denied: answer in the conversation instead";
+            }
+            if (message.equals(telamin.fluxtion.audit.analyser.analyser.session.node.LocalAgentPermission.DENIED_PLAN_MODE)) {
+                return "denied: the mode stays as you chose it";
+            }
+            String m = message.startsWith("Denied: ") ? message.substring("Denied: ".length()) : message;
+            return "denied: " + m;
+        }
         return switch (by == null ? SessionEvents.PermissionBy.POLICY : by) {
             case PERSON -> "denied by you";
             case TIMEOUT -> "denied: not answered within 120 s";
@@ -619,7 +653,8 @@ public final class LocalAgentAdapter {
             case BUSY -> "denied: another approval was waiting";
             case TOO_LARGE -> "denied: too large to show you in full";
             case CANCELLED -> "withdrawn by Claude Code";
-            case POLICY -> "denied: not asked in this posture";
+            case POLICY -> "denied by the analyser's settings";
+            case NON_MUTATING -> "denied";
         };
     }
 

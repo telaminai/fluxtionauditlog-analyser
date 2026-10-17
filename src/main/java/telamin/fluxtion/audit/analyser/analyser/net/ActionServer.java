@@ -68,6 +68,8 @@ public final class ActionServer {
     private final RestEndpointFile endpointFile;   // null = publish nothing (the default; tests, embedders)
     /** Review H4: false = hosted-only — no well-known file, and only a hosted credential is served. */
     private volatile boolean externalAllowed = true;
+    /** Review M74 usability #11: why external clients are refused — the switch is off, or closed for a session. */
+    private volatile boolean closedForSession;
 
     public ActionServer(ActionDispatcher dispatcher, String token, int maxActionsPerReply, double ratePerSec)
             throws IOException {
@@ -133,6 +135,19 @@ public final class ActionServer {
 
     public boolean externalAllowed() {
         return externalAllowed;
+    }
+
+    /**
+     * Review M74 usability #11: external clients are refused because the person closed external access while an in-app
+     * Claude Code session runs — they are told so, never that the REST switch is off (Settings still says it is on).
+     */
+    public void setClosedForSession(boolean closed) {
+        closedForSession = closed;
+    }
+
+    /** What a refused external client is told, now. */
+    String externalRefusal() {
+        return closedForSession ? EXTERNAL_CLOSED_FOR_SESSION : EXTERNAL_OFF;
     }
 
     /** M74: how a hosted credential maps to its generation, and whether the session admits that generation now. */
@@ -267,7 +282,7 @@ public final class ActionServer {
     /** H4: in hosted-only mode, a request without a hosted credential is refused before anything else is said. */
     private boolean refusedAsExternal(HttpExchange ex) throws IOException {
         if (externalAllowed || ex.getRequestHeaders().containsKey(HOSTED_HEADER)) return false;
-        send(ex, 403, err(EXTERNAL_OFF));
+        send(ex, 403, err(externalRefusal()));
         return true;
     }
 
@@ -276,8 +291,13 @@ public final class ActionServer {
             + "when its Claude Code session stopped";
 
     /** What an external client is told by a hosted-only server. */
-    static final String EXTERNAL_OFF = "the analyser's REST transport for external clients is off (Settings ▸ Assistant); "
+    static final String EXTERNAL_OFF = "External MCP/REST access is off in this analyser (Settings ▸ Assistant); "
             + "this listener serves only the analyser's own Claude Code session";
+
+    /** Review M74 usability #11: what an external client is told while external access is closed for a session. */
+    static final String EXTERNAL_CLOSED_FOR_SESSION = "external access is closed while an in-app Claude Code session runs "
+            + "(the person chose \"Close external access while this session runs\"); it reopens when that session ends — "
+            + "the External MCP/REST access setting is still on";
 
     /** The signpost: still 404, but enough to reach a working call on the next attempt. */
     private void sendDiscovery(HttpExchange ex) throws IOException {
@@ -360,6 +380,13 @@ public final class ActionServer {
             // P3 (OD-74.17): the server-side refusal is lifted for exactly one call the person approved in the analyser;
             // the session consumes the grant, on its thread, or refuses. Every other gate still applies after it.
             Object params = root instanceof Map<?, ?> m1 ? m1.get("params") : null;
+            // review M74 usability #10b (a refinement of OD-74.16): a sub-action that changes nothing stored — playing
+            // or ending a walk, listing a bin — is admitted as a pre-allowed verb is, judged from THIS call's input;
+            // every other call of the verb still needs the person's grant
+            if (telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.hostedCallKind(action, params)
+                    == telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallKind.NON_MUTATING) {
+                return gate.admit(generation, verb);
+            }
             String inputDigest = telamin.fluxtion.audit.analyser.analyser.llm.CanonicalJson.digest(
                     params instanceof Map<?, ?> ? params : Map.of());
             String toolUse = toolUseId == null || toolUseId.isBlank() ? null

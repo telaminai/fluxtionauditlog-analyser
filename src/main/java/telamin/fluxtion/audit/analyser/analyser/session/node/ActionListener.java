@@ -59,7 +59,7 @@ public class ActionListener implements EventLogSource {
             + "\"Include my local REST token\"";
     public static final String HOSTED_ONLY = "Claude Code's bridge listener is up (external clients are refused: the REST "
             + "transport is off)";
-    public static final String CLOSED_FOR_SESSION = "External MCP / REST access is closed while this Claude Code session "
+    public static final String CLOSED_FOR_SESSION = "External MCP/REST access is closed while this Claude Code session "
             + "runs; Claude Code keeps its own connection. It opens again when the session ends.";
     public static final String EXTERNAL_CLOSED = "Assistant REST transport stopped for external clients; Claude Code in "
             + "the Assistant tab keeps its own connection.";
@@ -161,7 +161,7 @@ public class ActionListener implements EventLogSource {
         wantListen = listen;
         wantExternal = ext;
         auditLog.info("listenerDecision", listen).info("external", ext);
-        effects.request(new SessionEffects.ConfigureActionListenerEffect(0L, listen, ext));
+        effects.request(new SessionEffects.ConfigureActionListenerEffect(0L, listen, ext, restOn && closedForSession));
     }
 
     private boolean changed() {

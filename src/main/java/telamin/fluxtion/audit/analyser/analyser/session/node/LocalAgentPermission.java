@@ -24,8 +24,16 @@ import java.util.Objects;
  *   <li><b>Which requests reach the person</b> (OD-74.16): in the default posture only the hosted destructive verbs; in
  *       the full posture also the person's own tools (built-ins and the person's MCP servers), and the hosted destructive
  *       verbs only in the modes that ask. Anything else is denied without a dialog, with its reason.</li>
- *   <li><b>One dialog at a time</b>; a second request while one is open is denied at once; one that cannot be shown in
+ *   <li><b>One dialog at a time</b>; a second request while one is open WAITS (review M74 usability #10c, amending
+ *       OD-74.17's "denied at once") and is shown when the first is answered — denied if its turn ends, on Stop, on New
+ *       chat or when the settings change first, and at once only past {@link #MAX_QUEUED}; one that cannot be shown in
  *       full is denied; an unanswered one is denied at the 120 s deadline the adapter's clock reports.</li>
+ *   <li><b>Never a futile question</b> (#10a): a call that writes a file while file exchange is off is refused with
+ *       the reason, without a dialog — the analyser would refuse the write after the person's Allow.</li>
+ *   <li><b>Non-mutating sub-actions</b> (#10b, a refinement of OD-74.16): a call of an asked verb that the adapter
+ *       classified {@link SessionEvents.HostedCallKind#NON_MUTATING} (playing or ending a walk, listing a bin) is
+ *       allowed without a dialog and without a grant — the server admits exactly those sub-actions itself, re-checking
+ *       the call's own input; every other sub-action of the verb is still asked.</li>
  *   <li><b>The single-use grant</b> (OD-74.17): the person's <i>Allow once</i> on a hosted destructive request records a
  *       grant bound to the generation, the turn ticket, the verb, the input's canonical digest and the
  *       {@code tool_use_id} (P3-3); the bridge's call is admitted only by consuming a matching grant, here, on the
@@ -56,8 +64,7 @@ public class LocalAgentPermission implements EventLogSource {
     public static final String DENIED_STOP = "Denied: the person pressed Stop in the analyser";
     public static final String DENIED_BUSY = "Denied: another approval is waiting for the person — ask again after it";
     public static final String DENIED_TOO_LARGE = "Denied: the request was too large to show the person in full";
-    public static final String DENIED_DEFAULT_POSTURE = "Denied: this tool is not asked about in the analyser assistant's "
-            + "posture";
+    public static final String DENIED_DEFAULT_POSTURE = "Denied: this tool is not allowed in Safe analysis";
     public static final String DENIED_REGISTRATION = "Denied: the person's own fluxtion-analyser registration is not this "
             + "analyser";
     public static final String DENIED_PRE_ALLOWED = "Denied: this analyser tool is pre-allowed, so an approval request for "
@@ -87,9 +94,17 @@ public class LocalAgentPermission implements EventLogSource {
     public static final String DENIED_PLAN_MODE = "Denied: the analyser keeps the mode the person chose for this session — "
             + "give the plan in your reply; the person changes the mode and starts a New chat to act on it";
     public static final String PLAN_MODE_NOTE = "Claude asked to change its plan mode — the mode stays as you chose it; to "
-            + "act on a plan, change the mode (Profile…) and start a New chat";
+            + "act on a plan, change the mode (Assistant ▾) and start a New chat";
     /** Review P3 N4: a request that arrives while a Stop is in progress is denied without asking. */
     public static final String DENIED_STOPPING = "Denied: the person stopped this turn";
+    /** Review M74 usability #10a: a file write the settings would refuse is never asked about. */
+    public static final String DENIED_FILE_EXCHANGE = "Denied: file exchange is off in the analyser (Settings ▸ Assistant ▸ "
+            + "Allow assistant file exchange), so this write would be refused — the person was not asked";
+    /** What the person reads for that denial. */
+    public static final String FILE_EXCHANGE_NOTE = " was not asked about: it writes a file, and file exchange is off — "
+            + "turn on Settings ▸ Assistant ▸ Allow assistant file exchange, then ask Claude again";
+    /** Review M74 usability #10c: how many requests may wait behind an open dialog; one more is denied as busy. */
+    public static final int MAX_QUEUED = 8;
 
     @PushReference
     private final LocalAgentSession localAgent;
@@ -111,6 +126,11 @@ public class LocalAgentPermission implements EventLogSource {
     /** Review B4: the hosted calls admitted, by call id (verb, ticket) — so an abandoned one can be recorded as such. */
     private java.util.Map<Long, String[]> admittedCalls = new java.util.LinkedHashMap<>();
     private long decisions;
+    /** #10c: requests waiting behind the open dialog — ref, generation, ticket, class, name, input, tool_use digests. */
+    private List<String[]> queued = new ArrayList<>();
+    /** #10a: the frame's observation of file exchange; until it reports, nothing is refused for it. */
+    private boolean fileExchangeObserved;
+    private boolean fileExchangeOn;
     private PermissionState published = PermissionState.NONE;
     private boolean dirty = true;
 
@@ -150,23 +170,96 @@ public class LocalAgentPermission implements EventLogSource {
             deny(e.generation(), e.requestRef(), e.ticket(), cls, e.name(), PermissionBy.TOO_LARGE, DENIED_TOO_LARGE);
             return changed();
         }
-        if (pendingRef != 0) {
-            // one dialog at a time (OD-74.17); the CLI itself asks one at a time (P3-6), so this is a guard
-            deny(e.generation(), e.requestRef(), e.ticket(), cls, e.name(), PermissionBy.BUSY, DENIED_BUSY);
+        if (cls == ToolClass.HOSTED_DESTRUCTIVE && e.kind() == SessionEvents.HostedCallKind.NON_MUTATING) {
+            // #10b: it changes nothing stored — allowed without asking and without a grant; the server admits only the
+            // non-mutating sub-actions without one, judging the call's own input
+            allowWithoutAsking(e.generation(), e.requestRef(), e.ticket(), cls, e.name());
             return changed();
         }
-        pendingRef = e.requestRef();
-        pendingGeneration = e.generation();
-        pendingTicket = e.ticket();
-        pendingClass = cls.name();
-        pendingName = e.name();
-        pendingInput = e.inputDigest();
-        pendingToolUse = e.toolUseIdDigest();
-        auditLog.info("localAgentPermissionAsked", pendingRef);
-        effects.request(new SessionEffects.ShowPermissionDialogEffect(0L, e.generation(), e.requestRef(), DEADLINE_MS, cls,
-                e.name()));
-        effects.request(new SessionEffects.StartPermissionClockEffect(0L, e.generation(), e.requestRef(), DEADLINE_MS));
+        if (cls == ToolClass.HOSTED_DESTRUCTIVE && e.kind() == SessionEvents.HostedCallKind.WRITES_FILE
+                && fileExchangeObserved && !fileExchangeOn) {
+            // #10a: never ask a question whose Allow the settings would refuse
+            deny(e.generation(), e.requestRef(), e.ticket(), cls, e.name(), PermissionBy.POLICY, DENIED_FILE_EXCHANGE);
+            return changed();
+        }
+        if (pendingRef != 0) {
+            // #10c (amends OD-74.17): one dialog at a time, and a request arriving meanwhile WAITS for it
+            if (queued.size() >= MAX_QUEUED) {
+                deny(e.generation(), e.requestRef(), e.ticket(), cls, e.name(), PermissionBy.BUSY, DENIED_BUSY);
+                return changed();
+            }
+            queued.add(new String[]{Long.toString(e.requestRef()), Long.toString(e.generation()), Long.toString(e.ticket()),
+                    cls.name(), e.name(), e.inputDigest(), e.toolUseIdDigest()});
+            auditLog.info("localAgentPermissionQueued", e.requestRef()).info("waiting", queued.size());
+            return changed();
+        }
+        ask(e.requestRef(), e.generation(), e.ticket(), cls, e.name(), e.inputDigest(), e.toolUseIdDigest());
         return changed();
+    }
+
+    private void ask(long ref, long generation, long ticket, ToolClass cls, String name, String inputDigest,
+                     String toolUseDigest) {
+        pendingRef = ref;
+        pendingGeneration = generation;
+        pendingTicket = ticket;
+        pendingClass = cls.name();
+        pendingName = name;
+        pendingInput = inputDigest;
+        pendingToolUse = toolUseDigest;
+        auditLog.info("localAgentPermissionAsked", pendingRef);
+        effects.request(new SessionEffects.ShowPermissionDialogEffect(0L, generation, ref, DEADLINE_MS, cls, name));
+        effects.request(new SessionEffects.StartPermissionClockEffect(0L, generation, ref, DEADLINE_MS));
+    }
+
+    /**
+     * #10c: the open dialog was answered — the next waiting request is shown if it still belongs to the open turn of
+     * the running session; one that no longer does is denied as ended.
+     */
+    private void askNext() {
+        while (pendingRef == 0 && !queued.isEmpty()) {
+            String[] q = queued.remove(0);
+            long ref = Long.parseLong(q[0]), gen = Long.parseLong(q[1]), ticket = Long.parseLong(q[2]);
+            ToolClass cls = ToolClass.valueOf(q[3]);
+            if (gen != localAgent.currentGeneration() || ticket != localAgent.currentTicket() || !localAgent.processRunning()) {
+                deny(gen, ref, ticket, cls, q[4], PermissionBy.POLICY, DENIED_ENDED);
+            } else if (localAgent.stopping()) {
+                deny(gen, ref, ticket, cls, q[4], PermissionBy.STOP, DENIED_STOPPING);
+            } else {
+                ask(ref, gen, ticket, cls, q[4], q[5], q[6]);
+            }
+        }
+    }
+
+    /** #10c: every waiting request is denied — Stop, New chat, a settings change, the session's end. */
+    private boolean denyQueued(PermissionBy by, String message, java.util.function.Predicate<String[]> which) {
+        boolean any = false;
+        for (java.util.Iterator<String[]> it = queued.iterator(); it.hasNext(); ) {
+            String[] q = it.next();
+            if (!which.test(q)) continue;
+            it.remove();
+            any = true;
+            deny(Long.parseLong(q[1]), Long.parseLong(q[0]), Long.parseLong(q[2]), ToolClass.valueOf(q[3]), q[4], by,
+                    message);
+        }
+        return any;
+    }
+
+    /** #10b: an allow decided by the analyser for a call that changes nothing — recorded, never a grant. */
+    private void allowWithoutAsking(long generation, long ref, long ticket, ToolClass cls, String name) {
+        decisions++;
+        auditLog.info("localAgentPermissionAnswered", ref).info("decision", "ALLOW").info("by",
+                PermissionBy.NON_MUTATING.name()).info("class", cls.name()).info("ticket", ticket);
+        effects.request(new SessionEffects.AnswerPermissionEffect(0L, generation, ticket, ref, true, null,
+                PermissionBy.NON_MUTATING, 0, cls, name));
+    }
+
+    /** #10a: what the frame says about file exchange (Settings ▸ Assistant). */
+    @OnEventHandler(propagate = false)
+    public boolean onFileExchange(SessionEvents.AssistantFileExchangeObserved e) {
+        fileExchangeObserved = true;
+        fileExchangeOn = e.on();
+        auditLog.info("localAgentFileExchange", e.on());
+        return false;
     }
 
     /**
@@ -211,6 +304,7 @@ public class LocalAgentPermission implements EventLogSource {
         }
         if (!e.allow()) {
             resolvePending(PermissionBy.PERSON, DENIED_BY_PERSON);
+            askNext();
             return changed();
         }
         long grant = 0;
@@ -235,6 +329,7 @@ public class LocalAgentPermission implements EventLogSource {
         effects.request(new SessionEffects.ClosePermissionDialogEffect(0L, ref));
         localAgent.permissionNoted(ticket, "APPROVED", "You allowed " + shown(cls, name) + " — once"
                 + (grant != 0 ? "; the analyser will run exactly this call" : ""));
+        askNext();
         return changed();
     }
 
@@ -242,6 +337,7 @@ public class LocalAgentPermission implements EventLogSource {
     public boolean onDeadline(SessionEvents.LocalAgentPermissionDeadline e) {
         if (pendingRef == 0 || e.requestRef() != pendingRef || e.generation() != pendingGeneration) return false;
         resolvePending(PermissionBy.TIMEOUT, DENIED_TIMEOUT);
+        askNext();
         return changed();
     }
 
@@ -259,6 +355,7 @@ public class LocalAgentPermission implements EventLogSource {
                 PermissionBy.CANCELLED.name());
         effects.request(new SessionEffects.ClosePermissionDialogEffect(0L, ref));
         localAgent.permissionNoted(ticket, "WITHDRAWN", "Claude Code withdrew its request to use " + shown(cls, name));
+        askNext();
         return changed();
     }
 
@@ -274,8 +371,9 @@ public class LocalAgentPermission implements EventLogSource {
     /** §4.5, §5.7: Stop answers a pending request deny BEFORE the interrupt (this node runs first), and drops the grants. */
     @OnEventHandler
     public boolean onStopRequested(SessionEvents.LocalAgentStopRequested e) {
-        boolean any = pendingRef != 0 || !grants.isEmpty();
+        boolean any = pendingRef != 0 || !grants.isEmpty() || !queued.isEmpty();
         if (pendingRef != 0) resolvePending(PermissionBy.STOP, DENIED_STOP);
+        denyQueued(PermissionBy.STOP, DENIED_STOP, q -> true);
         dropGrants("stop");
         return any && changed();
     }
@@ -283,29 +381,35 @@ public class LocalAgentPermission implements EventLogSource {
     @OnEventHandler
     public boolean onTurnEnded(SessionEvents.LocalAgentTurnEnded e) {
         boolean any = false;
+        any |= denyQueued(PermissionBy.POLICY, DENIED_ENDED,
+                q -> Long.parseLong(q[1]) == e.generation() && Long.parseLong(q[2]) == e.ticket());
         if (pendingRef != 0 && e.generation() == pendingGeneration && e.ticket() == pendingTicket) {
             resolvePending(PermissionBy.POLICY, DENIED_ENDED);
             any = true;
         }
         any |= grants.removeIf(g -> Long.parseLong(g[1]) == e.generation() && Long.parseLong(g[2]) == e.ticket());
+        askNext();
         return any && changed();
     }
 
     @OnEventHandler
     public boolean onExited(SessionEvents.LocalAgentExited e) {
         boolean any = false;
+        any |= denyQueued(PermissionBy.POLICY, DENIED_ENDED, q -> Long.parseLong(q[1]) == e.generation());
         if (pendingRef != 0 && e.generation() == pendingGeneration) {
             resolvePending(PermissionBy.POLICY, DENIED_ENDED);
             any = true;
         }
         any |= grants.removeIf(g -> Long.parseLong(g[1]) == e.generation());
+        askNext();
         return any && changed();
     }
 
     @OnEventHandler
     public boolean onNewChat(SessionEvents.LocalAgentNewChatRequested e) {
-        boolean any = pendingRef != 0 || !grants.isEmpty();
+        boolean any = pendingRef != 0 || !grants.isEmpty() || !queued.isEmpty();
         if (pendingRef != 0) resolvePending(PermissionBy.POLICY, DENIED_ENDED);
+        denyQueued(PermissionBy.POLICY, DENIED_ENDED, q -> true);
         dropGrants("newChat");
         return any && changed();
     }
@@ -316,8 +420,9 @@ public class LocalAgentPermission implements EventLogSource {
         SessionEvents.LocalAgentConsent c = e.consent();
         boolean same = c != null && c.allowed() && c.full() == localAgent.currentPosture().isFull()
                 && Objects.equals(c.postureRef(), localAgent.currentPostureRef());
-        if (same || pendingRef == 0 && grants.isEmpty()) return false;
+        if (same || pendingRef == 0 && grants.isEmpty() && queued.isEmpty()) return false;
         if (pendingRef != 0) resolvePending(PermissionBy.POLICY, DENIED_SETTINGS);
+        denyQueued(PermissionBy.POLICY, DENIED_SETTINGS, q -> true);
         dropGrants("settings");
         return changed();
     }
@@ -347,8 +452,8 @@ public class LocalAgentPermission implements EventLogSource {
         long admitted = localAgent.admittedGeneration();
         String refusal;
         if (admitted == 0 || admitted != e.generation()) {
-            refusal = "the Claude Code session is not bound, or its posture is not yet checked, so the hosted bridge is "
-                    + "refused (generation " + e.generation() + ")";
+            refusal = "the Claude Code session is not connected to this analyser yet, or its set-up is not yet checked, "
+                    + "so the analyser's own tools are refused for it (session " + e.generation() + ")";
         } else {
             refusal = consume(e);
         }
@@ -445,7 +550,9 @@ public class LocalAgentPermission implements EventLogSource {
             case CANCELLED -> "Claude Code withdrew its request to use " + what;
             case POLICY -> DENIED_ASK_QUESTION.equals(message) ? ASK_QUESTION_NOTE
                     : DENIED_PLAN_MODE.equals(message) ? PLAN_MODE_NOTE
+                    : DENIED_FILE_EXCHANGE.equals(message) ? what + FILE_EXCHANGE_NOTE
                     : what + " was denied without asking you — " + lower(message);
+            case NON_MUTATING -> what + " was allowed: it changes nothing";
         };
         // a request of an earlier generation belongs to a conversation entry nobody is reading: no note for it
         if (generation == localAgent.currentGeneration()) {
@@ -500,9 +607,9 @@ public class LocalAgentPermission implements EventLogSource {
     public PermissionState state() {
         if (dirty) {
             published = pendingRef == 0
-                    ? new PermissionState(0, 0, null, null, 0, liveGrants(), decisions)
+                    ? new PermissionState(0, 0, null, null, 0, liveGrants(), decisions, queued.size())
                     : new PermissionState(pendingRef, pendingGeneration, ToolClass.valueOf(pendingClass), pendingName,
-                    DEADLINE_MS, liveGrants(), decisions);
+                    DEADLINE_MS, liveGrants(), decisions, queued.size());
             dirty = false;
         }
         return published;

@@ -397,9 +397,15 @@ public sealed interface SessionEffects {
     /**
      * Review B5 (2026-10-17): make the action listener match {@code listen} (up or not) and {@code external} (open to
      * external clients, with the well-known endpoint file, or not) — decided by actionListener; answered with
-     * {@link SessionEvents.ActionListenerConfigured}.
+     * {@link SessionEvents.ActionListenerConfigured}. {@code closedForSession} (review M74 usability #11): external
+     * clients are refused because the person closed external access while an in-app Claude Code session runs, not
+     * because the switch is off — the refusal they are sent says which.
      */
-    record ConfigureActionListenerEffect(long opId, boolean listen, boolean external) implements SessionEffects {
+    record ConfigureActionListenerEffect(long opId, boolean listen, boolean external, boolean closedForSession)
+            implements SessionEffects {
+        public ConfigureActionListenerEffect(long opId, boolean listen, boolean external) {
+            this(opId, listen, external, false);
+        }
     }
 
     /** Review M6: the node's verdict on hosted call {@code call}: {@code refusal} null admits it. */

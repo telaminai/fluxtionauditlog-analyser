@@ -131,7 +131,7 @@ class AskDraftSessionTest {
         assertEquals(0, a.agentSends.size(), "a stale draft is never written to stdin");
         LocalAgentState s = d.snapshot().localAgent();
         assertEquals("STALE_DRAFT", s.verdict());
-        assertTrue(s.reason().contains("(generation " + gen + " → " + reloaded + ")"), s.reason());
+        assertTrue(s.reason().contains("(load " + gen + " → " + reloaded + ")"), s.reason());
         assertFalse(s.answer().accepted());
 
         // the person deleted the whole draft: the panel reports no binding, and the words are sent
@@ -178,8 +178,8 @@ class AskDraftSessionTest {
         assertEquals(0, a.assistantContexts.size(), "a stale draft never reaches the provider");
         AssistantState s = d.snapshot().assistant();
         assertFalse(s.answer().accepted());
-        assertTrue(s.answer().reason().contains("(generation " + gen + " → " + reloaded + ")"), s.answer().reason());
-        assertTrue(s.answer().reason().startsWith("This question names records of a log that has changed"));
+        assertTrue(s.answer().reason().contains("(load " + gen + " → " + reloaded + ")"), s.answer().reason());
+        assertTrue(s.answer().reason().startsWith("This question names records of a log that has been reloaded"));
     }
 
     /**
