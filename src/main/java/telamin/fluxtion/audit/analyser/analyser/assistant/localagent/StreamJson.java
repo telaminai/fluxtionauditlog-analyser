@@ -542,7 +542,10 @@ public final class StreamJson {
     /**
      * The exact JSON text of the member at {@code path} (object keys, top down) in {@code json}, or null. A small scanner
      * over the text — strings with their escapes, nested objects and arrays — that never builds a value, so the span is
-     * the bytes the line carried. Only object keys are followed; the first match at each level wins, as in the parser.
+     * the bytes the line carried. Only object keys are followed, and the FIRST match at each level wins — unlike
+     * {@link Json#parse}, which keeps the LAST of a duplicated key (review P3 N5: the old comment said "as in the parser").
+     * For {@code can_use_tool} that is safe: the span is what the person is shown AND what is echoed as
+     * {@code updatedInput}, so what runs is what was shown, whichever duplicate the parser kept.
      */
     static String rawMember(String json, String... path) {
         if (json == null) return null;

@@ -121,6 +121,10 @@ public final class PermissionText {
         for (int k = 0; k < depth; k++) out.append("  ");
     }
 
+    /** Characters that are letters or marks to Unicode but draw as nothing (review P3 N5). */
+    static final java.util.Set<Integer> BLANK_LOOKING = java.util.Set.of(0x115F, 0x1160, 0x3164, 0xFFA0, 0x2800, 0x034F,
+            0x17B4, 0x17B5);
+
     /** Text with its invisible characters made visible. */
     public record Visible(String text, boolean escaped) {
     }
@@ -128,7 +132,11 @@ public final class PermissionText {
     /**
      * Control characters (but the newline the re-indent wrote), format characters (bidirectional overrides and isolates,
      * zero-width characters), line and paragraph separators, and unassigned or private-use code points become
-     * a visible escape (backslash, u, four hex digits); everything else is kept.
+     * a visible escape (backslash, u, four hex digits); everything else is kept. Review P3 N5 (2026-10-17): so do the
+     * spaces that look like an ordinary space but are not (U+00A0, U+1680, U+2000–U+200A, U+202F, U+205F, U+3000) and the
+     * characters that draw as blank ({@link #BLANK_LOOKING}: the Hangul fillers U+115F, U+1160, U+3164, U+FFA0, the
+     * blank Braille pattern U+2800, and the combining grapheme joiner and Khmer inherent vowels) — any of them can make
+     * two different commands read the same.
      */
     public static Visible visible(String s) {
         if (s == null) return new Visible("", false);
@@ -140,7 +148,8 @@ public final class PermissionText {
             int t = Character.getType(cp);
             boolean hide = cp != '\n' && (Character.isISOControl(cp) || t == Character.FORMAT
                     || t == Character.LINE_SEPARATOR || t == Character.PARAGRAPH_SEPARATOR || t == Character.UNASSIGNED
-                    || t == Character.PRIVATE_USE || t == Character.SURROGATE);
+                    || t == Character.PRIVATE_USE || t == Character.SURROGATE
+                    || (t == Character.SPACE_SEPARATOR && cp != ' ') || BLANK_LOOKING.contains(cp));
             if (hide) {
                 escaped = true;
                 if (cp > 0xFFFF) out.append(String.format("\\U%08X", cp));

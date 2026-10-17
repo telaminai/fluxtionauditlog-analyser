@@ -57,7 +57,7 @@ class FactFieldsTest {
                 "LocalAgentStopRequested.origin", "LocalAgentNewChatRequested.origin", "LocalAgentCallAdmissionRequested.verb",
                 "HostedCallRefusedByServer.verb", "HostedCallRefusedByServer.reason", "LocalAgentEffectStarted.what",
                 "LocalAgentInitialized.permissionMode", "LocalAgentStatusObserved.hostedStatus",
-                "LocalAgentInitObserved.permissionMode", "LocalAgentInitObserved.tools",
+                "LocalAgentInitObserved.permissionMode",
                 "LocalAgentInitObserved.capabilities", "LocalAgentNoted.tool", "LocalAgentModeObserved.permissionMode",
                 "LocalAgentDraftComposed.questionId", "LocalAgentDraftComposed.origin", "AssistantDraftComposed.questionId",
                 "AssistantDraftComposed.origin", "StartPagePromptSent.entryId", "ReturnToMainOptions.origin",
@@ -93,7 +93,8 @@ class FactFieldsTest {
                 "ProfileApplied.droppedBindings")) {
             M74.put(c, Holds.ANALYSER_WORDS);
         }
-        for (String c : List.of("LocalAgentStatusObserved.servers", "LocalAgentInitObserved.servers",
+        // review P3 N3: the tools the CLI reports are the person's configuration (their MCP servers' tools), not vocabulary
+        for (String c : List.of("LocalAgentInitObserved.tools", "LocalAgentStatusObserved.servers", "LocalAgentInitObserved.servers",
                 "LocalAgentInitObserved.skills", "LocalAgentInitObserved.plugins")) {
             M74.put(c, Holds.PERSON_CONFIG);
         }
@@ -151,6 +152,13 @@ class FactFieldsTest {
             "AssistantActionFinished.verb", "AssistantOpenApplied.assistantOrigin",
             "AssistantOpenApplyFailed.assistantOrigin");
 
+    /**
+     * Review P3 N3 (2026-10-17): VOCABULARY components whose NAME matches {@link #PLACE_OR_PROSE} — each a fixed word, and
+     * each listed here by name so a new one cannot shelter under the heading.
+     */
+    static final Set<String> VOCABULARY_NAME_EXEMPT = Set.of(
+            "HostedCallRefusedByServer.reason");   // a code: GRAPH_DELETE, NOT_LISTED, BAD_CREDENTIAL (scorecard R1)
+
     /** A name that says the field holds a place or prose. */
     static final Pattern PLACE_OR_PROSE = Pattern.compile("(?i).*(path|dir|root|folder|summary|reason|text|words|caption"
             + "|note|failure|why|description|message|label)$");
@@ -186,12 +194,28 @@ class FactFieldsTest {
                     continue;
                 }
                 if (isM74 && h != null && PLACE_OR_PROSE.matcher(c.getName()).matches()
-                        && h != Holds.SHOWN_PATH && h != Holds.ANALYSER_WORDS && h != Holds.VOCABULARY) {
+                        && h != Holds.SHOWN_PATH && h != Holds.ANALYSER_WORDS
+                        && !(h == Holds.VOCABULARY && VOCABULARY_NAME_EXEMPT.contains(key))) {
                     out.add(key + ": its name says a place or prose, held as " + h);
+                }
+                // review P3 N3: a STRUCTURE is a nested fact record of SessionEvents (itself checked), or a List of them
+                if (h == Holds.STRUCTURE && !nestedFact(c)) {
+                    out.add(key + ": held as STRUCTURE but its type " + c.getGenericType().getTypeName()
+                            + " is not a SessionEvents record (or a List of them)");
                 }
             }
         }
         return out;
+    }
+
+    /** A record nested in SessionEvents, or a List whose element type is one. */
+    static boolean nestedFact(RecordComponent c) {
+        Class<?> t = c.getType();
+        if (List.class.isAssignableFrom(t) && c.getGenericType() instanceof java.lang.reflect.ParameterizedType p
+                && p.getActualTypeArguments().length == 1 && p.getActualTypeArguments()[0] instanceof Class<?> e) {
+            t = e;
+        }
+        return t.isRecord() && t.getEnclosingClass() == SessionEvents.class;
     }
 
     static List<Class<?>> factRecords() {
@@ -237,6 +261,25 @@ class FactFieldsTest {
         lied.put("ProposalReceivedP2b.reasons", Holds.DIGEST);
         assertTrue(offenders(List.of(ProposalReceivedP2b.class), m74, lied, PRE_M74).stream()
                 .anyMatch(s -> s.contains("its name says a place or prose")));
+    }
+
+    /** A STRUCTURE that is not a fact record, and a prose-named VOCABULARY field: both shapes the inventory used to wave through. */
+    record EvadesP3(long request, List<String> items, String reason) { }
+
+    /**
+     * ★ Review P3 N3: a String list held as STRUCTURE, and a field named {@code reason} held as VOCABULARY, are flagged.
+     * Witness: drop the {@code nestedFact} check, or exempt VOCABULARY from the name rule again — the count falls.
+     */
+    @Test
+    @DisplayName("★ N3 witness: STRUCTURE must be a nested fact record; VOCABULARY obeys the name rule unless listed")
+    void structureAndVocabularyCannotEvade() {
+        Map<String, Holds> lied = new LinkedHashMap<>(M74);
+        lied.put("EvadesP3.items", Holds.STRUCTURE);
+        lied.put("EvadesP3.reason", Holds.VOCABULARY);
+        List<String> wrong = offenders(List.of(EvadesP3.class), Set.of("EvadesP3"), lied, PRE_M74);
+        assertEquals(2, wrong.size(), String.join("\n", wrong));
+        assertTrue(wrong.stream().anyMatch(w -> w.startsWith("EvadesP3.items: held as STRUCTURE")));
+        assertTrue(wrong.stream().anyMatch(w -> w.startsWith("EvadesP3.reason: its name says a place or prose")));
     }
 
     @Test

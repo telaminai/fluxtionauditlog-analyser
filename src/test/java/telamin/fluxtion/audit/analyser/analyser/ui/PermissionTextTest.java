@@ -59,8 +59,8 @@ class PermissionTextTest {
         String raw = "{\"a\": 1.50, \"b\":[true,null,{}],\"c\":\"x, y: {z}\"}";
         String p = PermissionText.pretty(raw);
         assertEquals("{\n  \"a\": 1.50,\n  \"b\": [\n    true,\n    null,\n    {}\n  ],\n  \"c\": \"x, y: {z}\"\n}", p);
-        assertEquals(raw.replaceAll("\\s", ""), p.replaceAll("\\s", "").replace("x,y:{z}", "x,y:{z}"),
-                "the same tokens, in the same order");
+        // review P3 N5: whitespace stripped from both sides — the one string inside quotes loses its spaces on both
+        assertEquals(raw.replaceAll("\\s", ""), p.replaceAll("\\s", ""), "the same tokens, in the same order");
         String big = "{\"k\":\"" + "v".repeat(60_000) + "\"}";
         assertTrue(PermissionText.of(new LocalAgentTranscript.Permission("Bash", null, "Bash", big), ToolClass.BUILT_IN,
                 "Bash").input().contains("v".repeat(60_000)), "nothing is elided");
@@ -101,5 +101,24 @@ class PermissionTextTest {
         var hosted = PermissionText.of(new LocalAgentTranscript.Permission("mcp__fluxtion-analyser-hosted__analyser_open",
                 "fluxtion-analyser-hosted", null, "{}"), ToolClass.HOSTED_DESTRUCTIVE, "open");
         assertEquals("server: fluxtion-analyser-hosted", hosted.serverLine());
+    }
+
+    /**
+     * ★ Review P3 N5 (2026-10-17): look-alike spaces and blank-drawing characters are escaped, so two commands that differ
+     * only by them never read the same. Witness: drop the SPACE_SEPARATOR / BLANK_LOOKING clause in {@code visible} —
+     * the no-break space and the Hangul filler pass through.
+     */
+    @Test
+    @DisplayName("★ a no-break space, an en space, a Hangul filler and a blank Braille cell are shown escaped")
+    void lookAlikeSpacesAreEscaped() {
+        for (int cp : new int[]{0x00A0, 0x1680, 0x2000, 0x2005, 0x200A, 0x202F, 0x205F, 0x3000, 0x3164, 0x115F, 0x1160,
+                0xFFA0, 0x2800, 0x034F}) {
+            var v = PermissionText.visible("rm" + new String(Character.toChars(cp)) + "-rf");
+            assertTrue(v.escaped(), Integer.toHexString(cp));
+            assertEquals("rm" + String.format("\\u%04X", cp) + "-rf", v.text());
+        }
+        var plain = PermissionText.visible("rm -rf ./build\n");
+        assertFalse(plain.escaped(), "an ordinary space and the newline are kept");
+        assertEquals("rm -rf ./build\n", plain.text());
     }
 }

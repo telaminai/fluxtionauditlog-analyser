@@ -130,6 +130,11 @@ public final class LocalAgentPermissionDialog extends JDialog {
 
         allow.setEnabled(false);
         allow.setMnemonic(0);
+        // review P3 N6 (2026-10-17): Button.defaultButtonFollowsFocus, per dialog — where the look and feel moves the
+        // default button to the focused one, a focused Allow would make Enter approve. Allow and Stop are never default
+        // capable, so Enter denies wherever the focus is.
+        allow.setDefaultCapable(false);
+        stop.setDefaultCapable(false);
         deny.addActionListener(e -> answer(answers, false));
         allow.addActionListener(e -> {
             if (allow.isEnabled()) answer(answers, true);

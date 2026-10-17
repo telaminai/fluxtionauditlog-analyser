@@ -84,6 +84,20 @@ class LocalAgentPermissionFrameTest {
                 assertTrue(labels(dialog).contains(PermissionText.INPUT_HEADING));
                 assertTrue(labels(dialog).contains(PermissionText.ESCAPED_NOTE), "the dialog says it escaped them");
                 assertTrue(dialog.countdownLabel().getText().contains("120 s"), dialog.countdownLabel().getText());
+                // ★ review P3 N6: with the look and feel's defaultButtonFollowsFocus ON, a focused Allow still does not
+                // become the default (witness: drop allow.setDefaultCapable(false) — the default becomes Allow)
+                Object follows = javax.swing.UIManager.get("Button.defaultButtonFollowsFocus");
+                javax.swing.UIManager.put("Button.defaultButtonFollowsFocus", Boolean.TRUE);
+                try {
+                    for (var l : dialog.allowButton().getFocusListeners()) {
+                        l.focusGained(new java.awt.event.FocusEvent(dialog.allowButton(), java.awt.event.FocusEvent.FOCUS_GAINED));
+                    }
+                    assertSame(dialog.denyButton(), dialog.getRootPane().getDefaultButton(),
+                            "a focused Allow never becomes the default: Enter denies wherever the focus is");
+                    assertFalse(dialog.allowButton().isDefaultCapable());
+                } finally {
+                    javax.swing.UIManager.put("Button.defaultButtonFollowsFocus", follows);
+                }
             });
             switch (how) {
                 case "escape" -> onEdt(() -> dialog.getRootPane().getActionMap().get("deny").actionPerformed(
