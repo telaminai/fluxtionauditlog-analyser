@@ -65,6 +65,14 @@ class PackGrammarTest(unittest.TestCase):
                 with self.subTest(p.name, label=e['label']):
                     self.assertNotRegex(text, r'analyser_|\bopen \{|\brecord #|#\d|\.yaml|\.graphml|spotlight')
 
+    def test_every_published_pack_lints(self):
+        """The teaching packs under docs/proposals/packs/ are dropped on the start page as they are: each must parse."""
+        packs = sorted((HERE.parent / 'docs/proposals/packs').glob('*/[0-9]*.md'))
+        self.assertGreaterEqual(len(packs), 8)
+        for p in packs:
+            with self.subTest(p.name):
+                self.assertIn('pack', r.lint_pack(p.read_bytes()), p.name)
+
     def test_a_literal_angle_placeholder_is_refused_as_java_refuses_it(self):
         """Control for the cross-check finding: urlsplit alone accepted `<40-hex>` and called it a moving ref."""
         got = r.lint_pack('# T\n1. **x** — example: https://github.com/example/demo/archive/<40-hex>.zip\n')
