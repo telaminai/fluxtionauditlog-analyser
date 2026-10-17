@@ -120,7 +120,7 @@ The analyser's own Claude Code session has a separate rate limit, so a script ca
 - **`propose` is not served.** It is offered only to Claude Code running inside the analyser; a script asking for it is
   told it is an unknown verb.
 
-Each verb's arguments are in [Analyser assistant ▸ Actions the assistant can take](../user-guide/assistant.md#actions-the-assistant-can-take)
+Each verb's arguments are in [Verbs](../reference/verbs.md)
 and in `GET /manifest`, which is always current.
 
 ## The token anywhere else

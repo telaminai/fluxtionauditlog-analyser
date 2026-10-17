@@ -91,7 +91,7 @@ Flags do not travel in a bundle. A walk step with a caption on the record says t
 To show the reasoning rather than only state it, save the explanation as a **spotlight walk**: numbered steps that
 anyone who opens the project, or the bundle, replays on the analyser itself. A **reel** turns a walk into one HTML page
 that opens anywhere, for a reader who does not have the analyser
-([Save it as a walk](../user-guide/assistant.md#save-it-as-a-walk), [Send it as a reel](../user-guide/assistant.md#send-it-as-a-reel)).
+([Save it as a walk](../teach/spotlights-walks-reels.md#save-it-as-a-walk), [Send it as a reel](../teach/spotlights-walks-reels.md#send-it-as-a-reel)).
 
 Treat a report or a bundle about a live system as a production artefact: see the warning on
 [Diagnose an incident](index.md#what-your-client-can-do-to-your-machine).

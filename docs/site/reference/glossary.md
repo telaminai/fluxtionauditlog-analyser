@@ -9,5 +9,5 @@ The words these docs use with a fixed meaning: profile, work mode, walk, reel, b
 
 ## Where this is covered today
 
-- [Analyser assistant](../user-guide/assistant.md)
+- [Diagnose in the analyser](../inapp/index.md)
 - [Portable context](../user-guide/portable-context.md)

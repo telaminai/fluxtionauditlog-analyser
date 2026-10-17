@@ -86,7 +86,7 @@ The chart and the flags are the claim; check them before you repeat it.
 - **Open a flagged record.** Its detail shows the event and what each node computed.
 - **Click a node log line.** With source roots set, it opens the method that wrote it.
 - **Say *"show me"*.** The agent lights what it means on screen, numbered, so *"1 feeds 2, and 2 never logged"* finds
-  its place ([Ask it to show you](../user-guide/assistant.md#ask-it-to-show-you)).
+  its place ([Ask it to show you](../teach/spotlights-walks-reels.md#ask-it-to-show-you)).
 
 ## 6. Ask the next question
 

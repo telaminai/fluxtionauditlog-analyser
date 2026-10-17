@@ -128,12 +128,17 @@ class FaqSecurityContractTest {
         String changelog = Files.readString(Path.of("CHANGELOG.md"));
         String unreleased = changelog.substring(changelog.indexOf("## [Unreleased]"), changelog.indexOf("\n## [", changelog
                 .indexOf("## [Unreleased]") + 1));
-        String guide = Files.readString(Path.of("docs/site/user-guide/assistant.md"));
+        // the assistant guide, split by task (docs restructure, phase 3)
+        String guide = java.util.stream.Stream.of("admin/profiles.md", "inapp/assistant-panel.md", "inapp/claude-code.md",
+                "inapp/approvals.md", "inapp/ask.md", "inapp/transcript.md", "inapp/index.md").map(f -> {
+                    try { return Files.readString(Path.of("docs/site").resolve(f)); }
+                    catch (java.io.IOException e) { throw new java.io.UncheckedIOException(e); }
+                }).collect(java.util.stream.Collectors.joining("\n"));
         assertTrue(guide.replaceAll("\\s+", " ").contains(safe), "the guide's Safe analysis row");
         String ui = "src/main/java/telamin/fluxtion/audit/analyser/analyser/";
         java.util.Map<String, String> surfaces = new java.util.LinkedHashMap<>();
         surfaces.put("CHANGELOG [Unreleased]", unreleased);
-        surfaces.put("assistant.md", guide);
+        surfaces.put("the assistant pages (inapp/, admin/profiles.md)", guide);
         for (String f : new String[]{"ui/ProfileOverlay.java", "ui/LocalAgentPanel.java", "ui/ConfigPanel.java",
                 "session/AssistantProfile.java"}) {
             surfaces.put(f, Files.readString(Path.of(ui + f)));
@@ -171,7 +176,11 @@ class FaqSecurityContractTest {
         int offline = faq.indexOf("## Does it work offline?");
         assertTrue(faq.substring(offline, faq.indexOf(" ## ", offline + 1)).contains("No assistant profile is local-only"),
                 "the offline answer");
-        String guide = Files.readString(Path.of("docs/site/user-guide/assistant.md")).replaceAll("\\s+", " ");
+        String guide = (java.util.stream.Stream.of("admin/profiles.md", "inapp/assistant-panel.md", "inapp/claude-code.md",
+                "inapp/approvals.md", "inapp/ask.md", "inapp/transcript.md", "inapp/index.md").map(f -> {
+                    try { return Files.readString(Path.of("docs/site").resolve(f)); }
+                    catch (java.io.IOException e) { throw new java.io.UncheckedIOException(e); }
+                }).collect(java.util.stream.Collectors.joining("\n"))).replaceAll("\\s+", " ");
         assertTrue(guide.contains("| **Safe analysis** (the default) |") && guide.contains("**Not local-only:** what you ask, "
                 + "and the evidence Claude reads through the analyser, is sent to the model provider (Anthropic"),
                 "the guide's Safe analysis row");
@@ -186,7 +195,8 @@ class FaqSecurityContractTest {
                 "Settings ▸ Assistant says it for Claude Code and for the in-app assistant");
         for (String untrue : new String[]{"local-only analysis", "nothing leaves this machine", "stays on your machine",
                 "never leaves your machine"}) {
-            for (String f : new String[]{"docs/site/faq.md", "docs/site/user-guide/assistant.md",
+            for (String f : new String[]{"docs/site/faq.md", "docs/site/admin/profiles.md", "docs/site/inapp/assistant-panel.md",
+                    "docs/site/inapp/claude-code.md",
                     "docs/site/user-guide/start-page.md", "docs/site/getting-started.md"}) {
                 assertFalse(Files.readString(Path.of(f)).replaceAll("\\s+", " ").toLowerCase(java.util.Locale.ROOT)
                         .contains(untrue), f + " claims \"" + untrue + "\"");

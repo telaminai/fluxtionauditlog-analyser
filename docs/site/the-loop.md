@@ -69,7 +69,7 @@ the analyser turns it into an answer **with evidence**:
   this event; not an order you invented.
 - **Graph any value over time**, diff two cycles, and **click any log line to the exact source method**
   that wrote it. See [Graphs](user-guide/graphs.md) and [Source navigation](user-guide/source-navigation.md).
-- **Let an agent drive it** — the [assistant](user-guide/assistant.md) plots the offending series, flags
+- **Let an agent drive it** — the [assistant](inapp/index.md) plots the offending series, flags
   the culprit records and filters the view, over data you can click into and verify.
 
 Crucially, this runs on the **deployed** runtime's audit, and a replay of that audit is **byte-identical**

@@ -89,6 +89,7 @@ plugins:
       redirect_maps:
         'user-guide/index.md': 'inapp/index.md'
         'support.md': 'diagnose/index.md'
+        'user-guide/assistant.md': 'inapp/index.md'
 
 extra:
   social:
@@ -122,7 +123,6 @@ nav:
       - Claude Code in the analyser: inapp/claude-code.md
       - Reading the transcript: inapp/transcript.md
       - Approvals: inapp/approvals.md
-      - Analyser assistant (full reference): user-guide/assistant.md
       - The canvas:
           - Records, detail & filtering: user-guide/records-and-filtering.md
           - Graphs: user-guide/graphs.md

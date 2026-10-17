@@ -11,4 +11,4 @@ Showing the analyser to an audience: the guided tour, a prompt pack, a spotlight
 
 - [Journey: find the first recorded breach](../journeys/find-the-first-recorded-breach.md)
 - [Evidence bundles ▸ Try it with the demo](../evidence-bundles/demo.md)
-- [Analyser assistant ▸ Save it as a walk](../user-guide/assistant.md#save-it-as-a-walk)
+- [Spotlights, walks and reels](spotlights-walks-reels.md)

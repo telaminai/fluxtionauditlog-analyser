@@ -10,4 +10,4 @@ One page on the trust boundaries: the loopback listener and its token, what each
 ## Where this is covered today
 
 - [FAQ ▸ Is the assistant's action socket safe to enable?](../faq.md#is-the-assistants-action-socket-safe-to-enable)
-- [Analyser assistant ▸ Approvals in the analyser](../user-guide/assistant.md#approvals-in-the-analyser)
+- [Approvals](../inapp/approvals.md)

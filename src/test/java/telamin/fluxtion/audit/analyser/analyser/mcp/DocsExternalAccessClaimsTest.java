@@ -105,7 +105,7 @@ class DocsExternalAccessClaimsTest {
         Set<String> destructive = McpTools.destructiveVerbs();
         assertEquals(6, destructive.size(), "the guide says six: change the words with the set");
         assertTrue(McpTools.READ_ONLY.contains("source"));
-        String guide = flat(read(SITE.resolve("user-guide/assistant.md")));
+        String guide = flat(read(SITE.resolve("reference/verbs.md")));
         int at = guide.indexOf("Six are marked **destructive**");
         assertTrue(at >= 0, "the guide's count of destructive verbs");
         String sentence = guide.substring(at, guide.indexOf("never to an external client", at));

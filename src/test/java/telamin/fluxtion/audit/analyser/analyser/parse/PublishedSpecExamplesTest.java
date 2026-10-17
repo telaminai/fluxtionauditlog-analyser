@@ -30,7 +30,7 @@ class PublishedSpecExamplesTest {
 
     private static final Path SPEC = Path.of("docs/site/format-spec.md");
     private static final Path DESIGN = Path.of("docs/specs/completed/spec-audit-stream-end.md");
-    private static final Path ASSISTANT = Path.of("docs/site/user-guide/assistant.md");
+    private static final Path ASSISTANT = Path.of("docs/site/log-format.md");   // "Is the log whole?" (docs restructure)
 
     /** Every fenced yaml block in a page that contains a stream-end key. */
     private static List<String> markerExamples(Path page) throws IOException {

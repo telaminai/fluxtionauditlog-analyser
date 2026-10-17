@@ -89,7 +89,7 @@ the processor's `.graphml`: the **Project panel's Graph section** says *⚠ audi
 processor writes no audit log.
 
 Whether a file is **complete** is a separate question, answered under `context.log.streamEnd`
-([Is the log whole?](../user-guide/assistant.md#is-the-log-whole)). Most logs today answer `unknown`, which is not a
+([Is the log whole?](../log-format.md#is-the-log-whole)). Most logs today answer `unknown`, which is not a
 fault, but it does mean a missing node is not proof that the node never ran.
 
 ### 3. Ask
@@ -111,7 +111,7 @@ The client's answer arrives as a view: a filtered table, a flagged record, a cap
 - Open the flagged record and read its node logs.
 - Click a node log line to open the source method that wrote it.
 - Ask *"show me"* when the client explains something without pointing. It can light up to six things on screen,
-  numbered, so its sentence finds its place ([Ask it to show you](../user-guide/assistant.md#ask-it-to-show-you)).
+  numbered, so its sentence finds its place ([Ask it to show you](../teach/spotlights-walks-reels.md#ask-it-to-show-you)).
 
 A callout is the client's words. If it says something the screen under it does not bear out, believe the screen.
 

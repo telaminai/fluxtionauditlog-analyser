@@ -30,7 +30,7 @@ class ProfileCardsWordsTest {
     @Test
     @DisplayName("the guide calls it the in-app assistant, as the card and the Assistant control do")
     void oneVocabulary() throws Exception {
-        String guide = Files.readString(Path.of("docs/site/user-guide/assistant.md"));
+        String guide = Files.readString(Path.of("docs/site/inapp/assistant-panel.md"));
         assertTrue(guide.contains("\n## The in-app assistant\n"));
         assertFalse(guide.contains("## The onboard assistant"));
         assertEquals("In-app assistant", AssistantProfile.IN_APP.title());

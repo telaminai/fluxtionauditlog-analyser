@@ -38,7 +38,7 @@ The client sees **one tool per verb**, `analyser_open`, `analyser_context`, `ana
 there is nothing to teach the model. The read-only tools are marked read-only. The six that replace what is loaded or
 write files (`open`, `source_root`, `screenshot`, `report`, `walk`, `import`) are marked destructive, so your client can
 ask you first. The analyser's own Claude Code session has one extra verb, `propose`; outside clients never see it,
-and it is not on `/manifest`. [Analyser assistant ▸ Actions the assistant can take](user-guide/assistant.md#actions-the-assistant-can-take)
+and it is not on `/manifest`. [Verbs](reference/verbs.md)
 has every verb's arguments.
 
 Three names, three jobs, so none of them needs renaming:
@@ -185,7 +185,7 @@ The records table narrows and a flagged row appears, in your window, as you watc
 ## While Claude Code runs in the analyser
 
 The analyser can also run Claude Code inside its own assistant panel
-([Claude Code in the Assistant tab](user-guide/assistant.md#claude-code-in-the-assistant-tab)). That session has its own
+([Claude Code in the Assistant tab](inapp/claude-code.md)). That session has its own
 private bridge and credential, and it changes what an outside client can reach:
 
 - **External MCP/REST access off.** Claude Code in the panel still works, through a private listener that serves only

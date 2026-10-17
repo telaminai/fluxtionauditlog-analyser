@@ -30,7 +30,7 @@ read-only viewer, *Settings…* for roots, processors and the exchange directory
 processor's source was not found. Nothing on it closes, switches, edits or runs — those stay in the File
 menu and Settings, so the panel is a display you can trust. (Running anything of a project's own — a folder's
 Claude Code hooks and `.mcp.json` servers — happens only when you press Start with full Claude Code turned on, after
-a confirmation that names them; see [the assistant guide](assistant.md#claude-code-in-the-assistant-tab).)
+a confirmation that names them; see [the assistant guide](../inapp/claude-code.md).)
 
 Paths are drawn abbreviated (`~/…/build/x.graphml`); the full value is the tooltip and what *Copy*
 copies. That keeps the column readable, and it keeps an incidental screenshot from carrying every path

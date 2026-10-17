@@ -44,7 +44,7 @@ blocks you from reading records:
 3. **The topology** — **Sources ▸ Open GraphML…**, or **Sources ▸ Find GraphML in source roots…** to see which
    of your compiled graphs actually fits the log you have open, ranked.
 4. **An LLM key (optional)** — **Settings ▸ LLM** for in-app explanations. No key? Skip it and use
-   **Copy prompt** with any agent (see [Assistant](user-guide/assistant.md)).
+   **Copy prompt** with any agent (see [Diagnose in the analyser](inapp/index.md)).
 
 If you later **regenerate a Fluxtion processor**, that build uses a different key. Open
 **AI ▸ Fluxtion API key…** (also offered on the Start page) to write the established
@@ -55,7 +55,7 @@ stored value. A `-Dfluxtion.apiKey` passed to the build overrides the file, whil
 without this key.
 
 Now [filter](user-guide/records-and-filtering.md#the-shared-filter), [graph](user-guide/graphs.md), and
-[explain](user-guide/assistant.md).
+[explain](inapp/index.md).
 
 ---
 
@@ -170,6 +170,6 @@ records — and if a read fails it says so on the same line. (Follow isn't avail
 ## Where next
 
 - [Graphs](user-guide/graphs.md) — plot node values and formulas over time
-- [Assistant](user-guide/assistant.md) — explain records, and let the assistant drive the analyser
+- [Diagnose in the analyser](inapp/index.md) — ask about records, and let the assistant drive the analyser
 - [Source navigation](user-guide/source-navigation.md) — jump from a log line to the code
 - [Sharing setups](user-guide/sharing-setups.md) — export/import your whole configuration

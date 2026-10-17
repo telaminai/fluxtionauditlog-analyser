@@ -26,7 +26,7 @@ event, the callback, the thread and a node-count.
   sends all of them).
 - **Anomaly tints** — rows with a parse-error, a breach or a `NaN` are highlighted; jump between them
   with **⚠ Next / ⚠ Prev** (**F3 / Shift+F3**).
-- **Right-click** a row: *Diff selected two records*, the assistant's questions (*What happened here?*, *Compare these rows*, *Explain this finding* — see [Asking about what is on screen](assistant.md#asking-about-what-is-on-screen)), *Flag / unflag*.
+- **Right-click** a row: *Diff selected two records*, the assistant's questions (*What happened here?*, *Compare these rows*, *Explain this finding* — see [Asking about what is on screen](../inapp/ask.md)), *Flag / unflag*.
 - **Flag** rows with **F** to bookmark findings; *Records ▸ Show flagged only* focuses on them;
   *Records ▸ Copy selected as YAML* copies them to the clipboard.
 
@@ -42,7 +42,7 @@ everything you (or the assistant) marked as relevant, while the counts and time 
 
 ![Flagged records are tinted in the table, and carry the note you filed them with](../assets/flagged-only.png)
 
-Because flagging is also one of the assistant's [actions](assistant.md), an agent's findings land here
+Because flagging is also one of the assistant's [actions](../inapp/index.md), an agent's findings land here
 as flags too — with a note attached — so its conclusions become a reviewable set in your own view, not
 just text in a chat.
 
@@ -80,7 +80,7 @@ One filter scopes **every** view at once — table, summary and graphs all honou
 
 Because there's one filter and one log, the assistant can **drive these same controls** — filter to a
 window, jump to a record, plot a series — and you see the result in the very views you're already
-reading. See the [Assistant](assistant.md).
+reading. See [Ask the assistant](../inapp/ask.md).
 
 ## Summary
 

@@ -86,7 +86,7 @@ run, export and stop commands selected from recognised filenames. You decide whe
 a terminal. The one exception is your own opt-in: with **full Claude Code** on (Settings ▸ Assistant), pressing
 Start in the Assistant tab runs your own Claude Code, which **runs a confirmed folder's hooks and connects its
 `.mcp.json` servers** — the confirmation names them, and is asked again whenever those files change (see
-[the assistant guide](assistant.md#claude-code-in-the-assistant-tab)). If the catalogue is unreachable, the error gives the manual template-gallery route instead
+[the assistant guide](../inapp/claude-code.md)). If the catalogue is unreachable, the error gives the manual template-gallery route instead
 of leaving an empty picker.
 
 ## Opening and switching
@@ -234,7 +234,7 @@ file, and a temp directory isn't a project.
 
 ## From an agent
 
-An assistant working over the [action socket](assistant.md) sees the same offer as data —
+An assistant working over the [action socket](../inapp/index.md) sees the same offer as data —
 `context` reports `projectOffer` with the settings path — and accepts it with
 `open {project: "<that path>"}`; the same call opens any project by directory. It also reads which
 project is in force (`context.project`) and leaves one with `open {close: "project"}`.
@@ -250,7 +250,7 @@ An agent can also **create** a project, through the same discovery as *Project �
 by writing a profile by hand: `open {project: "<absolute dir>", create: true}` previews the offer and writes
 nothing, and `open {project: "<absolute dir>", create: {sourceRoots, skills, referenceGuide, offerDigest}}`
 creates it with only the items named from that offer. Opening a graph is a separate `open {graphml}`.
-See [the open verb](assistant.md#connect-an-mcp-client) for the full contract.
+See [the open verb](../reference/verbs.md#the-tools-an-mcp-client-sees) for the full contract.
 
 !!! warning "An assistant creates a project only with your consent"
 
