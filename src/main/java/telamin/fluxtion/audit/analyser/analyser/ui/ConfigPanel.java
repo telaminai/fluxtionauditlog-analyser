@@ -59,8 +59,8 @@ public final class ConfigPanel extends JDialog {
     private final JTextField awsRegionField = new JTextField(18);
     private final JSpinner memThresholdSpinner =
             new JSpinner(new SpinnerNumberModel(500, 0, 1_000_000, 50));
-    private final JCheckBox actionsInProcess = new JCheckBox("Let the assistant build views from its replies (in-process)");
-    private final JCheckBox actionsRest = new JCheckBox("Allow the assistant to drive the UI over localhost (REST)");
+    private final JCheckBox actionsInProcess = new JCheckBox("Let the in-app assistant change the views as it answers");
+    private final JCheckBox actionsRest = new JCheckBox("External MCP/REST access (for an AI client on this machine)");
     private final JCheckBox exportsToggle = new JCheckBox("Allow assistant file exchange (screenshot/report writes, external-series reads)");
     // M73 D-73.7: machine tier, off by default; gates only requests of assistant origin — a person is never gated
     private final JCheckBox createProjectsToggle = new JCheckBox("Allow the assistant to create projects");
@@ -88,7 +88,7 @@ public final class ConfigPanel extends JDialog {
             + "When Claude Code asks for an approval, the analyser asks you in a dialog — Deny is the default — but a call "
             + "your own permission rules, hooks or the auto mode's classifier approve is never asked in the analyser.\n\n"
             + "Audit-log records are data from the system you are investigating and can contain text written to steer an "
-            + "AI; in this posture that text reaches an agent that may have your shell. The analyser still never lets "
+            + "AI; in full Claude Code that text reaches an agent that may have your shell. The analyser still never lets "
             + "Claude Code change what is open or write a file through its own connection without asking you in the "
             + "analyser, but it cannot limit what your own tools do — they can read files in your home folder, including "
             + "the analyser's local REST token, and use it to drive the analyser as any external client can. Turn this on "
@@ -313,8 +313,8 @@ public final class ConfigPanel extends JDialog {
      */
     private static JLabel mutedNote(String innerHtml) {
         JLabel note = new JLabel("<html><div style='width:" + NOTE_WIDTH + "px'>" + innerHtml + "</div></html>");
-        java.awt.Color fg = UIManager.getColor("Label.disabledForeground");
-        if (fg != null) note.setForeground(fg);
+        // review M74 usability #2: secondary ink at 4.5:1, never the DISABLED grey (3.0:1 on the panel)
+        note.setForeground(UiTheme.mutedForeground());
         return note;
     }
 
@@ -727,10 +727,11 @@ public final class ConfigPanel extends JDialog {
         c.gridx = 0; c.gridwidth = 1; c.weightx = 1; c.anchor = GridBagConstraints.LINE_START;
         c.fill = GridBagConstraints.HORIZONTAL; c.insets = new Insets(0, 0, 10, 0);
         c.gridy = 0;
-        p.add(mutedNote("Choose how the assistant works in one step from the assistant's header (<b>Profile…</b>): "
+        p.add(mutedNote("Choose how the assistant works in one step from the assistant's header (<b>Assistant ▾</b>): "
                 + "<b>Safe analysis</b>, <b>Full Claude Code</b>, <b>In-app assistant</b> or <b>Off</b>. Every option "
-                + "those cards set is here, grouped by the profile it belongs to. All of them are this machine's only — "
-                + "never in a project, a shared settings file or a bundle."), c);
+                + "those cards set is here, grouped by the profile it belongs to. All of them are this machine's and "
+                + "this user's only — never in a project, a shared settings file or a bundle; an administrator cannot "
+                + "lock them yet."), c);
         c.gridy = 1;
         p.add(buildClaudeCodeSection(), c);
         c.gridy = 2;
@@ -760,8 +761,8 @@ public final class ConfigPanel extends JDialog {
         GridBagConstraints g = new GridBagConstraints();
         g.gridx = 0; g.gridwidth = 2; g.anchor = GridBagConstraints.LINE_START; g.insets = new Insets(2, 4, 2, 4);
         claudeCodeToggle.setToolTipText("Lets the Assistant tab's Start button run YOUR installed claude, logged in as you, "
-                + "in the analyser-assistant posture: Read, Grep and Glob confined to the folder, the analyser's own "
-                + "verbs (those that change what is open or write a file only after you approve each call), the folder's "
+                + "as Safe analysis: reading files in the folder (Read, Grep and Glob), the analyser's own "
+                + "tools (those that change what is open or write a file only after you approve each call), the folder's "
                 + "CLAUDE.md — no Bash, no edits, no web, none of your skills, hooks or "
                 + "MCP servers. Off by default; this machine only.");
         claudeCodeBudgetToggle.setToolTipText("For API-key billing: stop a Claude Code session once it has spent this much. "
@@ -775,7 +776,7 @@ public final class ConfigPanel extends JDialog {
         g.gridy = 3; g.gridx = 0; g.gridwidth = 2; g.fill = GridBagConstraints.HORIZONTAL; g.weightx = 1;
         box.add(mutedNote("Start runs <b>your own</b> <code>claude</code> CLI, on your own Claude account; the analyser "
                 + "never reads or stores your Claude Code credentials. Start contacts Anthropic before your first Send "
-                + "(and in the full posture runs hooks); no record content is sent until you press Send. The spend limit "
+                + "(and in Full Claude Code runs hooks); no record content is sent until you press Send. The spend limit "
                 + "is for API-key billing — on a Claude plan, your plan's own usage limits apply anyway. The model and "
                 + "limit are Claude Code's own (not the in-app provider's)."), g);
         return box;
@@ -809,7 +810,7 @@ public final class ConfigPanel extends JDialog {
         JPanel box = group("In-app assistant — your API key");
         GridBagConstraints g = new GridBagConstraints();
         g.gridx = 0; g.gridwidth = 2; g.anchor = GridBagConstraints.LINE_START; g.insets = new Insets(2, 4, 2, 4);
-        JButton llm = UiText.button("Provider, model and API key: the LLM page");
+        JButton llm = UiText.button("In-app assistant: provider, model and key…");
         llm.addActionListener(e -> selectPage("LLM"));
         g.gridy = 0; box.add(llm, g);
         g.gridy = 1; box.add(actionsInProcess, g);
@@ -851,7 +852,7 @@ public final class ConfigPanel extends JDialog {
         c.gridy = 3; box.add(createProjectsToggle, c);
 
         c.gridwidth = 1; c.insets = new Insets(6, 4, 3, 8);
-        c.gridy = 4; c.gridx = 0; c.weightx = 0; c.anchor = GridBagConstraints.LINE_END; box.add(new JLabel("Export directory:"), c);
+        c.gridy = 4; c.gridx = 0; c.weightx = 0; c.anchor = GridBagConstraints.LINE_END; box.add(new JLabel("Exchange folder (this machine):"), c);
         c.gridx = 1; c.weightx = 1; c.anchor = GridBagConstraints.LINE_START; c.fill = GridBagConstraints.HORIZONTAL;
         JPanel dirRow = new JPanel(new BorderLayout(6, 0));
         dirRow.setOpaque(false);
@@ -870,20 +871,21 @@ public final class ConfigPanel extends JDialog {
         // #21: the project's own preference, typed rather than browsed — it is a path INSIDE the
         // repository, and a file chooser would invite the absolute machine path the gate refuses.
         c.gridy = 5; c.gridx = 0; c.weightx = 0; c.fill = GridBagConstraints.NONE; c.anchor = GridBagConstraints.LINE_END;
-        box.add(new JLabel("This project's directory:"), c);
+        box.add(new JLabel("Exchange folder (this project):"), c);
         c.gridx = 1; c.weightx = 1; c.anchor = GridBagConstraints.LINE_START; c.fill = GridBagConstraints.HORIZONTAL;
         projectExchangeField.setToolTipText("Relative to the project root, e.g. src/report/shared — "
-                + "no '..', no absolute path. Blank means use the export directory above.");
+                + "no '..', no absolute path. Blank means use the exchange folder above.");
         box.add(projectExchangeField, c);
 
         c.gridx = 0; c.gridy = 6; c.gridwidth = 2; c.weightx = 1; c.fill = GridBagConstraints.HORIZONTAL;
         c.insets = new Insets(10, 4, 4, 4);
-        box.add(mutedNote("The assistant can <b>compute over the index</b> and <b>build curation</b> (filter / "
-                + "graph / goto / flag) as it answers. <b>In-process</b> opens no port. <b>REST</b> exposes a "
-                + "<b>loopback-only</b> endpoint (127.0.0.1) guarded by a per-run token, for an external agent that "
-                + "can make HTTP calls — its URL + token appear in the status bar (and console) when enabled. "
+        box.add(mutedNote("The in-app assistant can count and summarise the log and change the views (filter, chart, "
+                + "go to a record, flag) as it answers, without opening any port. <b>External MCP/REST access</b> opens a "
+                + "<b>loopback-only</b> endpoint (127.0.0.1), guarded by a per-run token, for an AI client on this "
+                + "machine: the URL and token are written to <code>~/.fluxtion-analyser/rest-endpoint</code>, readable "
+                + "only by you, and the console shows only the token's first 8 characters. "
                 + "<b>File exports are off by default</b>: when allowed, the screenshot/report verbs may write "
-                + "<b>only inside the exchange directory</b> above; external-series reads are confined to the same directory (or files you pick in a chooser), and writes never overwrite an existing file."), c);
+                + "<b>only inside the exchange folder</b> above; external-series reads are confined to the same directory (or files you pick in a chooser), and writes never overwrite an existing file."), c);
         return box;
     }
 
