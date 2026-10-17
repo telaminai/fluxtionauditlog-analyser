@@ -539,7 +539,7 @@ public final class AssistantPanel extends JPanel {
         } else if (demoShowing) {
             words = " ";
         } else if (claudeCodeShown()) {
-            words = LocalAgentPanel.limitsText(localAgent.lastState());
+            words = localAgent.limitsNow();   // review B2: says when external access is open to a full session's tools
         } else {
             words = Boolean.TRUE.equals(providerConfiguredSupplier.get()) ? IN_APP_LIMITS : IN_APP_NO_KEY;
         }

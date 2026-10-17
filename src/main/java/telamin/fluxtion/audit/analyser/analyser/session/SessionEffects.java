@@ -375,14 +375,31 @@ public sealed interface SessionEffects {
      * external clients are allowed, otherwise a HOSTED-ONLY server that writes no well-known file and serves only hosted
      * credentials. Answered with {@link SessionEvents.LocalAgentBridgeServed}.
      */
-    record ServeHostedBridgeEffect(long opId, long generation) implements SessionEffects {
+    record ServeHostedBridgeEffect(long opId, long generation, boolean external) implements SessionEffects {
+        /** Review B5: {@code external} — whether the listener serves external clients — is actionListener's decision. */
+        public ServeHostedBridgeEffect(long opId, long generation) {
+            this(opId, generation, false);
+        }
     }
 
     /**
-     * Review H4: no Claude Code process needs the bridge any more; a hosted-only server is stopped (the external REST
-     * server, when it is on, is the person's and stays).
+     * Review H4: no Claude Code process needs the bridge any more. Review B5: whether the listener stays up
+     * ({@code keepListening}: the REST switch is on) and serves external clients is actionListener's decision; the
+     * performer only makes the listener match.
      */
-    record ReleaseHostedBridgeEffect(long opId, long generation) implements SessionEffects {
+    record ReleaseHostedBridgeEffect(long opId, long generation, boolean keepListening, boolean external)
+            implements SessionEffects {
+        public ReleaseHostedBridgeEffect(long opId, long generation) {
+            this(opId, generation, false, false);
+        }
+    }
+
+    /**
+     * Review B5 (2026-10-17): make the action listener match {@code listen} (up or not) and {@code external} (open to
+     * external clients, with the well-known endpoint file, or not) — decided by actionListener; answered with
+     * {@link SessionEvents.ActionListenerConfigured}.
+     */
+    record ConfigureActionListenerEffect(long opId, boolean listen, boolean external) implements SessionEffects {
     }
 
     /** Review M6: the node's verdict on hosted call {@code call}: {@code refusal} null admits it. */

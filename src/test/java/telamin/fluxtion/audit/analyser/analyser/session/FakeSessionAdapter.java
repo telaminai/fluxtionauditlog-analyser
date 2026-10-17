@@ -79,6 +79,8 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
     final List<SessionEffects.TrustLocalAgentFolderEffect> agentTrusts = new ArrayList<>();
     final List<SessionEffects.ServeHostedBridgeEffect> agentServes = new ArrayList<>();
     final List<SessionEffects.ReleaseHostedBridgeEffect> agentReleases = new ArrayList<>();
+    /** Review B5: what actionListener asked the listener to be, in order. */
+    final List<SessionEffects.ConfigureActionListenerEffect> listenerConfigs = new ArrayList<>();
     final List<SessionEffects.AnswerHostedCallEffect> agentAnswers = new ArrayList<>();
     /** M74 P3: what localAgentPermission asked for. */
     final List<SessionEffects.ShowPermissionDialogEffect> permissionDialogs = new ArrayList<>();
@@ -262,12 +264,19 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
             case SessionEffects.ServeHostedBridgeEffect e -> {
                 agentServes.add(e);
                 agentOrder.add("serveBridge");
-                yield new SessionEvents.LocalAgentBridgeServed(e.opId(), e.generation(), bridgeListening, true);
+                yield new SessionEvents.LocalAgentBridgeServed(e.opId(), e.generation(), bridgeListening,
+                        !(bridgeListening && e.external()), bridgeListening ? "http://127.0.0.1:7" : null);
+            }
+            case SessionEffects.ConfigureActionListenerEffect e -> {
+                listenerConfigs.add(e);
+                yield new SessionEvents.ActionListenerConfigured(e.opId(), e.listen(), e.listen() && e.external(),
+                        e.listen() ? "http://127.0.0.1:7" : null, null);
             }
             case SessionEffects.ReleaseHostedBridgeEffect e -> {
                 agentReleases.add(e);
                 agentOrder.add("releaseBridge");
-                yield new SessionEvents.LocalAgentEffectStarted(e.opId(), e.generation(), "releaseBridge");
+                yield new SessionEvents.ActionListenerConfigured(e.opId(), e.keepListening(), e.keepListening() && e.external(),
+                        e.keepListening() ? "http://127.0.0.1:7" : null, null);
             }
             case SessionEffects.AnswerHostedCallEffect e -> {
                 agentAnswers.add(e);

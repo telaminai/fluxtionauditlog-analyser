@@ -614,6 +614,34 @@ class OneDispatchModelTest {
         assertFalse(intents.contains("AssistantProfiles"), "the intent writes nothing itself");
     }
 
+    /**
+     * ★ Holistic review B5 (2026-10-17): the action listener's lifecycle is actionListener's. The frame keeps no field of
+     * its own to decide from, makes the listener match the node's decision in ONE place, and composes no status line
+     * about it. Witnesses: restore {@code hostedBridgeGeneration} and the keep-or-stop branch in applyRestServer, or call
+     * {@code setExternalAllowed} from a second method — each fails here.
+     */
+    @Test
+    @DisplayName("★ B5: the listener is started, stopped and opened or closed to external clients only to match the node")
+    void theListenerLifecycleIsTheNodes() throws Exception {
+        String frame = Files.readString(UI.resolve("MainFrame.java"));
+        assertFalse(frame.contains("hostedBridgeGeneration"), "no frame field decides the listener");
+        assertFalse(frame.contains("applyRestServer"), "the REST switch is reported, never applied by the frame");
+        String match = bodyOf(frame, "private String matchActionListener(");
+        assertFalse(match.isEmpty(), "matchActionListener must exist");
+        for (String call : List.of("setExternalAllowed(", "startActionServer(", "stopActionServer(")) {
+            Pattern p = Pattern.compile(Pattern.quote(call));
+            int total = count(p, frame);
+            int defs = call.equals("startActionServer(") ? 1 : call.equals("stopActionServer(") ? 1 : 0;   // the methods
+            assertEquals(count(p, match), total - defs, call + " only where the listener is made to match the node");
+        }
+        for (String words : List.of("Assistant REST transport listening", "bridge listener is up",
+                "Assistant REST transport stopped")) {
+            assertFalse(frame.contains(words), "the node composes the status words, not the frame: " + words);
+        }
+        String report = bodyOf(frame, "private void reportRestSwitch(");
+        assertTrue(report.contains("RestSwitchObserved("), "the switch is a fact");
+    }
+
     private static int count(Pattern p, String s) {
         Matcher m = p.matcher(s);
         int n = 0;

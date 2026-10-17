@@ -139,6 +139,12 @@ public class SessionProcessorBuilder implements FluxtionGraphBuilder {
                 new telamin.fluxtion.audit.analyser.analyser.session.node.LocalAgentSession(assistantMode, effects);
         // M74 P2 (§8.2): the open log is a JavaBean parent — what a bound draft is compared with at Send
         localAgent.setOpenLog(openLog);
+        // review B5 (2026-10-17): the action listener's lifecycle — a JavaBean parent the session tells when it needs the
+        // hosted bridge; it decides whether a listener is up and whether it serves external clients (rule 9)
+        telamin.fluxtion.audit.analyser.analyser.session.node.ActionListener actionListener =
+                new telamin.fluxtion.audit.analyser.analyser.session.node.ActionListener(effects);
+        cfg.addNode(actionListener, "actionListener");
+        localAgent.setActionListener(actionListener);
         cfg.addNode(localAgent, "localAgentSession");
         // M74 P3 (§5.7, §8.3): permission prompts in the analyser — which requests reach the person, the one dialog, the
         // single-use grants. It PUSHES into localAgentSession, so it runs first for a fact both handle: on Stop the

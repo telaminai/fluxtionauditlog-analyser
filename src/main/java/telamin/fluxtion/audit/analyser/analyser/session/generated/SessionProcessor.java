@@ -42,6 +42,7 @@ import telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.Cleared;
 import telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ReadCompleted;
 import telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ReadRequested;
 import telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ResultReadCompleted;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ActionListenerConfigured;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantActionFinished;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantCancelRequested;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantCompletionFailed;
@@ -79,6 +80,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExampleDow
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExampleEffectStarted;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExampleFetched;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExampleUnpacked;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExternalAccessChosen;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FollowSet;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FollowToggled;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphCleared;
@@ -148,6 +150,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProposalIt
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProposalItemPreviewed;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProposalPreviewDone;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProposalReceived;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.RestSwitchObserved;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ReturnToMainOptions;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ScanScheduled;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.SettingsRestored;
@@ -169,6 +172,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.WalkStepPr
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.WalkTargetsLit;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.WalkViewApplied;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.WalkViewChanged;
+import telamin.fluxtion.audit.analyser.analyser.session.node.ActionListener;
 import telamin.fluxtion.audit.analyser.analyser.session.node.ActiveProject;
 import telamin.fluxtion.audit.analyser.analyser.session.node.AssistantLoop;
 import telamin.fluxtion.audit.analyser.analyser.session.node.AssistantModeChoice;
@@ -224,6 +228,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Requ
  *   <li>telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ReadCompleted
  *   <li>telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ReadRequested
  *   <li>telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ResultReadCompleted
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ActionListenerConfigured
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantActionFinished
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantCancelRequested
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantCompletionFailed
@@ -261,6 +266,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Requ
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExampleEffectStarted
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExampleFetched
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExampleUnpacked
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExternalAccessChosen
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FollowSet
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FollowToggled
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphCleared
@@ -330,6 +336,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Requ
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProposalItemPreviewed
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProposalPreviewDone
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProposalReceived
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.RestSwitchObserved
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ReturnToMainOptions
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ScanScheduled
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.SettingsRestored
@@ -408,6 +415,8 @@ public class SessionProcessor
       new com.telamin.fluxtion.runtime.node.MutableDataFlowContext(
           nodeNameLookup, callbackDispatcher, subscriptionManager, callbackDispatcher);;
   public final transient EffectQueue effectQueue = new EffectQueue();
+  public final transient ActionListener actionListener =
+      new telamin.fluxtion.audit.analyser.analyser.session.node.ActionListener(effectQueue);;
   public final transient AssistantLoop assistantLoop =
       new telamin.fluxtion.audit.analyser.analyser.session.node.AssistantLoop(
           openLog, openGraph, activeProject, operationGate, effectQueue);;
@@ -463,10 +472,11 @@ public class SessionProcessor
   //Measured saving on a 3-event-type graph: 0.098ns of a 5.61ns event on a JIT; nothing on native+PGO.
   private boolean callbacksPending = false;
   private final transient IdentityHashMap<Object, BooleanSupplier> dirtyFlagSupplierMap =
-      new IdentityHashMap<>(13);
+      new IdentityHashMap<>(14);
   private final transient IdentityHashMap<Object, Consumer<Boolean>> dirtyFlagUpdateMap =
-      new IdentityHashMap<>(13);
+      new IdentityHashMap<>(14);
 
+  private boolean isDirty_actionListener = false;
   private boolean isDirty_activeProject = false;
   private boolean isDirty_assistantLoop = false;
   private boolean isDirty_assistantMode = false;
@@ -491,6 +501,10 @@ public class SessionProcessor
           SessionProcessor.class,
           SessionProcessor::new,
           new ProcessorDescriptor.Input[] {
+            new ProcessorDescriptor.Input(
+                "ActionListenerConfigured",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ActionListenerConfigured",
+                false),
             new ProcessorDescriptor.Input(
                 "Activated",
                 "telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Activated",
@@ -650,6 +664,10 @@ public class SessionProcessor
             new ProcessorDescriptor.Input(
                 "ExampleUnpacked",
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExampleUnpacked",
+                false),
+            new ProcessorDescriptor.Input(
+                "ExternalAccessChosen",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExternalAccessChosen",
                 false),
             new ProcessorDescriptor.Input(
                 "Finished",
@@ -948,6 +966,10 @@ public class SessionProcessor
                 "telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Requested",
                 false),
             new ProcessorDescriptor.Input(
+                "RestSwitchObserved",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.RestSwitchObserved",
+                false),
+            new ProcessorDescriptor.Input(
                 "ResultReadCompleted",
                 "telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ResultReadCompleted",
                 false),
@@ -1041,7 +1063,7 @@ public class SessionProcessor
           new DescriptorSupport.Meta(
               null,
               "1.0.76",
-              "9e55055d00027d8b7122bc9691956a26dc202f4476aafd8880563f39c80e5131",
+              "5195a2099c9ec3f3a0f2765626a3528db8650d5d98ca06143db37751f2c34674",
               null));
 
   @Override
@@ -1068,6 +1090,7 @@ public class SessionProcessor
     serviceRegistry.setDataFlowContext(context);
     assistantLoop.setAssistantMode(assistantMode);
     effectQueue.setDataFlowContext(context);
+    localAgentSession.setActionListener(actionListener);
     localAgentSession.setOpenLog(openLog);
     sessionBoundary.setLocalAgentSession(localAgentSession);
     sessionBoundary.setOnboardingProposal(onboardingProposal);
@@ -1216,6 +1239,9 @@ public class SessionProcessor
     } else if (event instanceof ResultReadCompleted) {
       ResultReadCompleted typedEvent = (ResultReadCompleted) event;
       handleEvent(typedEvent);
+    } else if (event instanceof ActionListenerConfigured) {
+      ActionListenerConfigured typedEvent = (ActionListenerConfigured) event;
+      handleEvent(typedEvent);
     } else if (event instanceof AssistantActionFinished) {
       AssistantActionFinished typedEvent = (AssistantActionFinished) event;
       handleEvent(typedEvent);
@@ -1326,6 +1352,9 @@ public class SessionProcessor
       handleEvent(typedEvent);
     } else if (event instanceof ExampleUnpacked) {
       ExampleUnpacked typedEvent = (ExampleUnpacked) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof ExternalAccessChosen) {
+      ExternalAccessChosen typedEvent = (ExternalAccessChosen) event;
       handleEvent(typedEvent);
     } else if (event instanceof FollowSet) {
       FollowSet typedEvent = (FollowSet) event;
@@ -1534,6 +1563,9 @@ public class SessionProcessor
     } else if (event instanceof ProposalReceived) {
       ProposalReceived typedEvent = (ProposalReceived) event;
       handleEvent(typedEvent);
+    } else if (event instanceof RestSwitchObserved) {
+      RestSwitchObserved typedEvent = (RestSwitchObserved) event;
+      handleEvent(typedEvent);
     } else if (event instanceof ReturnToMainOptions) {
       ReturnToMainOptions typedEvent = (ReturnToMainOptions) event;
       handleEvent(typedEvent);
@@ -1644,6 +1676,11 @@ public class SessionProcessor
 
   @OnEventHandler(failBuildIfMissingBooleanReturn = false)
   public void onEvent(ResultReadCompleted event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(ActionListenerConfigured event) {
     processEvent(event);
   }
 
@@ -1829,6 +1866,11 @@ public class SessionProcessor
 
   @OnEventHandler(failBuildIfMissingBooleanReturn = false)
   public void onEvent(ExampleUnpacked event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(ExternalAccessChosen event) {
     processEvent(event);
   }
 
@@ -2178,6 +2220,11 @@ public class SessionProcessor
   }
 
   @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(RestSwitchObserved event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
   public void onEvent(ReturnToMainOptions event) {
     processEvent(event);
   }
@@ -2352,6 +2399,18 @@ public class SessionProcessor
     //Default, no filter methods
     auditInvocation(designSession, "designSession", "result", typedEvent);
     designSession.result(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(ActionListenerConfigured typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(actionListener, "actionListener", "onConfigured", typedEvent);
+    isDirty_actionListener = actionListener.onConfigured(typedEvent);
+    if (guardCheck_walkPlayback()) {
+      auditInvocation(walkPlayback, "walkPlayback", "onLogChanged", typedEvent);
+      walkPlayback.onLogChanged();
+    }
     afterEvent();
   }
 
@@ -2764,6 +2823,18 @@ public class SessionProcessor
     afterEvent();
   }
 
+  public void handleEvent(ExternalAccessChosen typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(actionListener, "actionListener", "onExternalChosen", typedEvent);
+    isDirty_actionListener = actionListener.onExternalChosen(typedEvent);
+    if (guardCheck_walkPlayback()) {
+      auditInvocation(walkPlayback, "walkPlayback", "onLogChanged", typedEvent);
+      walkPlayback.onLogChanged();
+    }
+    afterEvent();
+  }
+
   public void handleEvent(FollowSet typedEvent) {
     auditEvent(typedEvent);
     //Default, no filter methods
@@ -2897,6 +2968,8 @@ public class SessionProcessor
   public void handleEvent(LocalAgentBridgeServed typedEvent) {
     auditEvent(typedEvent);
     //Default, no filter methods
+    auditInvocation(actionListener, "actionListener", "onBridgeServed", typedEvent);
+    isDirty_actionListener = actionListener.onBridgeServed(typedEvent);
     auditInvocation(localAgentSession, "localAgentSession", "onBridgeServed", typedEvent);
     isDirty_localAgentSession = localAgentSession.onBridgeServed(typedEvent);
     if (guardCheck_walkPlayback()) {
@@ -3774,6 +3847,18 @@ public class SessionProcessor
     afterEvent();
   }
 
+  public void handleEvent(RestSwitchObserved typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(actionListener, "actionListener", "onRestSwitch", typedEvent);
+    isDirty_actionListener = actionListener.onRestSwitch(typedEvent);
+    if (guardCheck_walkPlayback()) {
+      auditInvocation(walkPlayback, "walkPlayback", "onLogChanged", typedEvent);
+      walkPlayback.onLogChanged();
+    }
+    afterEvent();
+  }
+
   public void handleEvent(ReturnToMainOptions typedEvent) {
     auditEvent(typedEvent);
     //Default, no filter methods
@@ -4100,6 +4185,11 @@ public class SessionProcessor
       auditEvent(typedEvent);
       auditInvocation(designSession, "designSession", "result", typedEvent);
       designSession.result(typedEvent);
+    } else if (event instanceof ActionListenerConfigured) {
+      ActionListenerConfigured typedEvent = (ActionListenerConfigured) event;
+      auditEvent(typedEvent);
+      auditInvocation(actionListener, "actionListener", "onConfigured", typedEvent);
+      isDirty_actionListener = actionListener.onConfigured(typedEvent);
     } else if (event instanceof AssistantActionFinished) {
       AssistantActionFinished typedEvent = (AssistantActionFinished) event;
       auditEvent(typedEvent);
@@ -4305,6 +4395,11 @@ public class SessionProcessor
       auditEvent(typedEvent);
       auditInvocation(exampleDownload, "exampleDownload", "onUnpacked", typedEvent);
       exampleDownload.onUnpacked(typedEvent);
+    } else if (event instanceof ExternalAccessChosen) {
+      ExternalAccessChosen typedEvent = (ExternalAccessChosen) event;
+      auditEvent(typedEvent);
+      auditInvocation(actionListener, "actionListener", "onExternalChosen", typedEvent);
+      isDirty_actionListener = actionListener.onExternalChosen(typedEvent);
     } else if (event instanceof FollowSet) {
       FollowSet typedEvent = (FollowSet) event;
       auditEvent(typedEvent);
@@ -4368,6 +4463,8 @@ public class SessionProcessor
     } else if (event instanceof LocalAgentBridgeServed) {
       LocalAgentBridgeServed typedEvent = (LocalAgentBridgeServed) event;
       auditEvent(typedEvent);
+      auditInvocation(actionListener, "actionListener", "onBridgeServed", typedEvent);
+      isDirty_actionListener = actionListener.onBridgeServed(typedEvent);
       auditInvocation(localAgentSession, "localAgentSession", "onBridgeServed", typedEvent);
       isDirty_localAgentSession = localAgentSession.onBridgeServed(typedEvent);
     } else if (event instanceof LocalAgentCallAdmissionRequested) {
@@ -4765,6 +4862,11 @@ public class SessionProcessor
       auditEvent(typedEvent);
       auditInvocation(onboardingProposal, "onboardingProposal", "onReceived", typedEvent);
       isDirty_onboardingProposal = onboardingProposal.onReceived(typedEvent);
+    } else if (event instanceof RestSwitchObserved) {
+      RestSwitchObserved typedEvent = (RestSwitchObserved) event;
+      auditEvent(typedEvent);
+      auditInvocation(actionListener, "actionListener", "onRestSwitch", typedEvent);
+      isDirty_actionListener = actionListener.onRestSwitch(typedEvent);
     } else if (event instanceof ReturnToMainOptions) {
       ReturnToMainOptions typedEvent = (ReturnToMainOptions) event;
       auditEvent(typedEvent);
@@ -4951,6 +5053,7 @@ public class SessionProcessor
     auditor.nodeRegistered(callbackDispatcher, "callbackDispatcher");
     auditor.nodeRegistered(subscriptionManager, "subscriptionManager");
     auditor.nodeRegistered(context, "context");
+    auditor.nodeRegistered(actionListener, "actionListener");
     auditor.nodeRegistered(activeProject, "activeProject");
     auditor.nodeRegistered(assistantLoop, "assistantLoop");
     auditor.nodeRegistered(assistantMode, "assistantMode");
@@ -5046,6 +5149,7 @@ public class SessionProcessor
   private void afterEvent() {
     clock.processingComplete();
     eventLogger.processingComplete();
+    isDirty_actionListener = false;
     isDirty_activeProject = false;
     isDirty_assistantLoop = false;
     isDirty_assistantMode = false;
@@ -5089,6 +5193,7 @@ public class SessionProcessor
   @Override
   public BooleanSupplier dirtySupplier(Object node) {
     if (dirtyFlagSupplierMap.isEmpty()) {
+      dirtyFlagSupplierMap.put(actionListener, () -> isDirty_actionListener);
       dirtyFlagSupplierMap.put(activeProject, () -> isDirty_activeProject);
       dirtyFlagSupplierMap.put(assistantLoop, () -> isDirty_assistantLoop);
       dirtyFlagSupplierMap.put(assistantMode, () -> isDirty_assistantMode);
@@ -5109,6 +5214,7 @@ public class SessionProcessor
   @Override
   public void setDirty(Object node, boolean dirtyFlag) {
     if (dirtyFlagUpdateMap.isEmpty()) {
+      dirtyFlagUpdateMap.put(actionListener, (b) -> isDirty_actionListener = b);
       dirtyFlagUpdateMap.put(activeProject, (b) -> isDirty_activeProject = b);
       dirtyFlagUpdateMap.put(assistantLoop, (b) -> isDirty_assistantLoop = b);
       dirtyFlagUpdateMap.put(assistantMode, (b) -> isDirty_assistantMode = b);
@@ -5171,7 +5277,7 @@ public class SessionProcessor
   }
 
   private boolean guardCheck_localAgentSession() {
-    return isDirty_localAgentPermission | isDirty_openLog;
+    return isDirty_actionListener | isDirty_localAgentPermission | isDirty_openLog;
   }
 
   private boolean guardCheck_logArrival() {
@@ -5260,6 +5366,8 @@ public class SessionProcessor
         return (T) serviceRegistry;
       case "clock":
         return (T) clock;
+      case "actionListener":
+        return (T) actionListener;
       case "activeProject":
         return (T) activeProject;
       case "assistantLoop":
@@ -5348,6 +5456,9 @@ public class SessionProcessor
     }
     if (node == clock) {
       return "clock";
+    }
+    if (node == actionListener) {
+      return "actionListener";
     }
     if (node == activeProject) {
       return "activeProject";

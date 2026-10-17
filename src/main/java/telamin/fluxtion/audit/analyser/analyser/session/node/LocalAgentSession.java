@@ -155,6 +155,31 @@ public class LocalAgentSession implements EventLogSource {
         this.openLog = openLog;
     }
 
+    /**
+     * Review B5 (2026-10-17): the action listener's lifecycle node, a JavaBean parent. This node tells it when a session
+     * needs the hosted bridge and when it no longer does — in the same dispatch, so the listener is asked for before the
+     * process that connects to it — and it decides the listener.
+     */
+    private ActionListener actionListener;
+
+    public ActionListener getActionListener() {
+        return actionListener;
+    }
+
+    public void setActionListener(ActionListener actionListener) {
+        this.actionListener = actionListener;
+    }
+
+    private void needBridge(long gen) {
+        if (actionListener != null) actionListener.need(gen, posture != null && posture.isFull());
+        else effects.request(new SessionEffects.ServeHostedBridgeEffect(0L, gen));
+    }
+
+    private void releaseBridge(long gen) {
+        if (actionListener != null) actionListener.released(gen);
+        else effects.request(new SessionEffects.ReleaseHostedBridgeEffect(0L, gen));
+    }
+
     // ---- the person's requests ------------------------------------------------------------------------------------
 
     /** The mode turned in the IN_APP direction while a turn is open (review M2): the reason, by name. */
@@ -426,7 +451,7 @@ public class LocalAgentSession implements EventLogSource {
             };
             pendingDraft = 0;
             note(verdict, reason);
-            effects.request(new SessionEffects.ReleaseHostedBridgeEffect(0L, generation));
+            releaseBridge(generation);
             auditLog.info("localAgentSpawnFailed", verdict).info("generation", generation);
             return changed();
         }
@@ -740,7 +765,7 @@ public class LocalAgentSession implements EventLogSource {
             return changed();
         }
         if (openTicket != 0) endTurn(SessionEvents.TurnOutcome.PROCESS_EXIT);
-        effects.request(new SessionEffects.ReleaseHostedBridgeEffect(0L, generation));
+        releaseBridge(generation);
         phase = "OFF";
         bound = false;
         postureChecked = false;
@@ -1089,7 +1114,7 @@ public class LocalAgentSession implements EventLogSource {
         auditLog.info("localAgentSpawn", generation).info("resume", resumable).info("session", sessionRef)
                 .info("posture", posture.toString());
         // review H4: the listener first (hosted-only when external REST is off), then the process that connects to it
-        effects.request(new SessionEffects.ServeHostedBridgeEffect(0L, generation));
+        needBridge(generation);
         effects.request(new SessionEffects.StartLocalAgentEffect(0L, generation, sessionId, resumable, nonce, remaining,
                 c.postureRef(), posture));
     }
@@ -1197,7 +1222,7 @@ public class LocalAgentSession implements EventLogSource {
             note("STOPPED", "the turn in progress ended when Claude Code was stopped");
         }
         effects.request(new SessionEffects.StopLocalAgentEffect(0L, generation, was, SessionEffects.StopHow.KILL));
-        effects.request(new SessionEffects.ReleaseHostedBridgeEffect(0L, generation));
+        releaseBridge(generation);
         phase = "OFF";
         bound = false;
         postureChecked = false;

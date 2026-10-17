@@ -137,8 +137,6 @@ public final class MainFrame extends JFrame {
             new telamin.fluxtion.audit.analyser.analyser.assistant.localagent.HostedAdmission(
                     fact -> SwingUtilities.invokeLater(() -> { if (this.session != null) session().post(fact); }),
                     telamin.fluxtion.audit.analyser.analyser.assistant.localagent.HostedAdmission.DEFAULT_TIMEOUT_MS);
-    /** Review H4: the generation a hosted bridge listener was served for (0 = none needs it). */
-    private long hostedBridgeGeneration;
     /** Review M8: the folder each open confirmation dialog named, by request — what a yes records. */
     private final java.util.Map<Long, FolderAsked> localAgentFolderAsked = new java.util.HashMap<>();
 
@@ -402,7 +400,7 @@ public final class MainFrame extends JFrame {
             System.out.println("[analyser] --rest: REST transport enabled and saved (Settings ▸ Assistant ▸ "
                     + "localhost REST); turn it off there if this machine should not offer it");
         }
-        applyRestServer();   // start the localhost REST transport if the profile opted in
+        // review B5: the REST switch is reported with the start-up facts (postStartupFacts); actionListener decides
         detailPanel.setInstanceSourceOpener(this::openNodeSource);
         detailPanel.setEventHandlerOpener(rec -> {
             sourcePanel.showDispatchFor(rec);              // scroll the EP to the record's handler method
@@ -5011,6 +5009,11 @@ public final class MainFrame extends JFrame {
             @Override public void newChat() {
                 session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentNewChatRequested("New chat"));
             }
+            @Override public void closeExternalAccess(long generation) {
+                // review B2: the person's choice, reported; actionListener decides
+                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExternalAccessChosen(
+                        generation, true));
+            }
             @Override public void openSettings() {
                 ConfigPanel.show(MainFrame.this, config, MainFrame.this::onConfigChanged, MainFrame.this::readerSummaries);
             }
@@ -5161,22 +5164,44 @@ public final class MainFrame extends JFrame {
      */
     private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result serveHostedBridge(
             telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ServeHostedBridgeEffect e) {
-        if (actionServer == null) startActionServer(false);
-        if (actionServer != null) hostedBridgeGeneration = e.generation();
+        // review B5: actionListener decided up, and whether external; this only makes the listener match
+        matchActionListener(true, e.external());
         return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentBridgeServed(e.opId(),
-                e.generation(), actionServer != null, actionServer != null && !actionServer.externalAllowed());
+                e.generation(), actionServer != null, actionServer != null && !actionServer.externalAllowed(),
+                actionServer == null ? null : actionServer.url());
     }
 
-    /** Review H4: no process needs the bridge — a hosted-only listener stops; the person's REST server stays. */
+    /** Review H4/B5: no process needs the bridge — the listener matches actionListener's decision (up or not, external). */
     private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result releaseHostedBridge(
             telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ReleaseHostedBridgeEffect e) {
-        boolean ours = e.generation() == hostedBridgeGeneration;
-        if (ours) {
-            hostedBridgeGeneration = 0;
-            if (actionServer != null && !actionServer.externalAllowed()) stopActionServer(null);
+        return configured(e.opId(), matchActionListener(e.keepListening(), e.external()));
+    }
+
+    /** ConfigureActionListenerEffect (review B5): the REST switch or the person's B2 choice, as actionListener decided. */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result configureActionListener(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ConfigureActionListenerEffect e) {
+        return configured(e.opId(), matchActionListener(e.listen(), e.external()));
+    }
+
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result configured(long opId, String failure) {
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ActionListenerConfigured(opId,
+                actionServer != null, actionServer != null && actionServer.externalAllowed(),
+                actionServer == null ? null : actionServer.url(),
+                failure == null ? null : telamin.fluxtion.audit.analyser.analyser.session.FactWords.withoutPaths(failure));
+    }
+
+    /**
+     * Review B5: make the listener match {@code listen} / {@code external} — start, stop, or open/close it to external
+     * clients. Decides nothing (actionListener did); null when it matches, else why it could not start.
+     */
+    private String matchActionListener(boolean listen, boolean external) {
+        if (!listen) {
+            if (actionServer != null) stopActionServer();
+            return null;
         }
-        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentEffectStarted(e.opId(),
-                e.generation(), ours ? "releaseBridge" : "releaseBridge:superseded");
+        if (actionServer == null) return startActionServer(external);
+        if (actionServer.externalAllowed() != external) actionServer.setExternalAllowed(external);
+        return null;
     }
 
     /** The route a Send is made by, captured now: provider, model, whether a key exists (never the key), the budgets. */
@@ -5373,6 +5398,7 @@ public final class MainFrame extends JFrame {
             localAgentDraftCleared = localAgentSendRequest;
             localAgentPanel.draftAccepted();
         }
+        localAgentPanel.renderListener(next.listener());   // review B2/B5: before render, which redraws the limits line
         localAgentPanel.render(agent);
         localAgentPanel.renderProposal(next.proposal());
         localAgentPanel.renderPermission(next.permission());
@@ -5431,31 +5457,21 @@ public final class MainFrame extends JFrame {
 
 
     /**
-     * Start or stop the opt-in localhost REST transport to match {@code config.assistantActionsRest}. Review H4: while a
-     * Claude Code session needs the bridge, turning the switch off does not stop the listener — it withdraws the
-     * well-known file and refuses external clients again; turning it on opens the running listener to them.
+     * Review B5 (2026-10-17): the REST switch is REPORTED; actionListener decides whether a listener is up and whether it
+     * serves external clients (it used to be decided here, from a frame field, with the status line composed here too).
      */
-    private void applyRestServer() {
-        boolean wanted = config.assistantActionsRest;
-        if (wanted) {
-            if (actionServer == null) startActionServer(true);
-            else if (!actionServer.externalAllowed()) {
-                actionServer.setExternalAllowed(true);
-                status.setText("Assistant REST transport listening on " + actionServer.url() + " for external clients too");
-            }
-        } else if (actionServer != null && actionServer.externalAllowed()) {
-            if (hostedBridgeGeneration != 0) {
-                actionServer.setExternalAllowed(false);
-                status.setText("Assistant REST transport stopped for external clients; Claude Code in the Assistant tab "
-                        + "keeps its own connection.");
-            } else {
-                stopActionServer("Assistant REST transport stopped.");
-            }
+    private void reportRestSwitch() {
+        if (session != null) {
+            session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.RestSwitchObserved(
+                    config.assistantActionsRest));
         }
     }
 
-    /** @param external serve external clients and publish the well-known file (the REST switch), else hosted-only */
-    private void startActionServer(boolean external) {
+    /**
+     * @param external serve external clients and publish the well-known file (the REST switch), else hosted-only
+     * @return null when it started, else why not (actionListener says it)
+     */
+    private String startActionServer(boolean external) {
         try {
             // the server checks the header token, so the dispatcher itself is token-free; a null store
             // yields a clean "no log loaded" error rather than an NPE
@@ -5478,30 +5494,23 @@ public final class MainFrame extends JFrame {
             actionServer.start();
             restUrl = actionServer.url();
             restToken = actionToken;
-            if (!external) {
-                status.setText("Claude Code's bridge listener is up (external clients are refused: the REST transport is "
-                        + "off)");
-                return;
+            if (external) {
+                // M74 §4.7: the full token is no longer printed to stdout; the endpoint file (mode 600) carries it
+                String tokenHint = actionToken.substring(0, Math.min(8, actionToken.length())) + "…";
+                System.out.println("[analyser] assistant REST: " + actionServer.url() + "  (token " + tokenHint + ")");
             }
-            // status bar shows only a token prefix (screenshots/screen-shares); the full token is in the endpoint
-            // file, and goes into a copied prompt only when the person ticks the token box (SF-1)
-            String tokenHint = actionToken.substring(0, Math.min(8, actionToken.length())) + "…";
-            status.setText("Assistant REST transport listening on " + actionServer.url()
-                    + "  (token " + tokenHint + " — the full token is in the endpoint file; Copy prompt includes it only if you tick \"Include my local REST token\")");
-            // M74 §4.7: the full token is no longer printed to stdout; the endpoint file (mode 600) carries it
-            System.out.println("[analyser] assistant REST: " + actionServer.url() + "  (token " + tokenHint + ")");
+            return null;
         } catch (Exception e) {
             actionServer = null;
-            status.setText("Could not start the assistant REST transport: " + rootMessage(e));
+            return rootMessage(e);
         }
     }
 
-    private void stopActionServer(String said) {
+    private void stopActionServer() {
         actionServer.stop();
         actionServer = null;
         restUrl = null;
         restToken = null;
-        if (said != null) status.setText(said);
     }
 
     private LogStore observedLogStore;
@@ -7513,7 +7522,7 @@ public final class MainFrame extends JFrame {
         if (reportsPanel != null) reportsPanel.refresh();   // reports are project-tier state too
         if (walksPanel != null) walksPanel.refresh();       // M69: and walks, stored like them
         rebuildRecentMenu();
-        applyRestServer();   // honour a change to the REST toggle
+        reportRestSwitch();   // review B5: a change to the REST toggle is a fact; actionListener decides
         saveConfigQuietly();
         // M20.2 auto-persist. Deliberately here and nowhere else: this funnel is what `source_root` and
         // `open {processor}` already go through, so scripted edits persist without a second code path.
@@ -8491,6 +8500,7 @@ public final class MainFrame extends JFrame {
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.TrustLocalAgentFolderEffect e -> trustLocalAgentFolder(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ServeHostedBridgeEffect e -> serveHostedBridge(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ReleaseHostedBridgeEffect e -> releaseHostedBridge(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ConfigureActionListenerEffect e -> configureActionListener(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.AnswerHostedCallEffect e -> hostedAdmission.answer(e);
             // M74 P2b: onboarding, the switch offer and an example's download — the nodes decided; the frame performs
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.PreviewProposalEffect e -> previewProposal(e);
@@ -11457,6 +11467,7 @@ public final class MainFrame extends JFrame {
 
     /** The facts a new session needs about this machine: the remembered mode, what can answer, the consent's posture. */
     private void postStartupFacts() {
+        reportRestSwitch();   // review B5: actionListener decides whether to listen
         if ("LOCAL_AGENT".equals(config.claudeCodeLastMode)) {
             session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantModeChosen(
                     telamin.fluxtion.audit.analyser.analyser.session.AssistantMode.LOCAL_AGENT, "remembered on this machine"));

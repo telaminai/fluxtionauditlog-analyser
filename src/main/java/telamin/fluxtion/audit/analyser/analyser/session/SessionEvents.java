@@ -923,7 +923,34 @@ public final class SessionEvents {
      * Review H4: the answer to {@code ServeHostedBridgeEffect} — whether a listener the hosted bridge can reach is up for
      * {@code generation} ({@code hostedOnly}: it serves only hosted credentials and published no well-known file).
      */
-    public record LocalAgentBridgeServed(long opId, long generation, boolean listening, boolean hostedOnly)
+    public record LocalAgentBridgeServed(long opId, long generation, boolean listening, boolean hostedOnly, String endpoint)
+            implements Result {
+        /** Review B5: {@code endpoint} — the loopback address it listens on (never a token), or null. */
+        public LocalAgentBridgeServed(long opId, long generation, boolean listening, boolean hostedOnly) {
+            this(opId, generation, listening, hostedOnly, null);
+        }
+    }
+
+    /**
+     * Review B5 (2026-10-17): the person's REST switch (Settings ▸ Assistant ▸ external MCP / REST access), as the frame
+     * observes it at start-up and after a Settings change; actionListener decides what it means for the listener.
+     */
+    public record RestSwitchObserved(boolean on) {
+    }
+
+    /**
+     * Review B2 (2026-10-17): the person's answer to "Close external access while this session runs", for the Claude
+     * Code session of {@code generation}; actionListener decides.
+     */
+    public record ExternalAccessChosen(long generation, boolean closeWhileSession) {
+    }
+
+    /**
+     * Review B5: what a {@link SessionEffects.ConfigureActionListenerEffect} did — up or not, open to external clients or
+     * not, the loopback {@code endpoint} (never a token), or why it could not start ({@code failure}, the analyser's
+     * words with paths removed).
+     */
+    public record ActionListenerConfigured(long opId, boolean listening, boolean external, String endpoint, String failure)
             implements Result {
     }
 

@@ -90,7 +90,9 @@ class FactFieldsTest {
         for (String c : List.of("DraftPlaced.reason", "ProposalItemApplied.why", "ExampleFetched.failure",
                 "ExampleUnpacked.failure", "AssistantProfileApplied.reason",
                 // review P2 N-b: the walk bindings a load dropped, the analyser's words with paths removed
-                "ProfileApplied.droppedBindings")) {
+                "ProfileApplied.droppedBindings",
+                // review B5: the listener's loopback address (never a token) and why it could not start (paths removed)
+                "LocalAgentBridgeServed.endpoint", "ActionListenerConfigured.endpoint", "ActionListenerConfigured.failure")) {
             M74.put(c, Holds.ANALYSER_WORDS);
         }
         // review P3 N3: the tools the CLI reports are the person's configuration (their MCP servers' tools), not vocabulary

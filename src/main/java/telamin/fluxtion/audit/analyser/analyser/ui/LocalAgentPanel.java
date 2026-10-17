@@ -52,6 +52,9 @@ public final class LocalAgentPanel extends JPanel {
 
         void openSettings();
 
+        /** Review B2: the person chose to close external access while the session of {@code generation} runs. */
+        default void closeExternalAccess(long generation) { }
+
         /** P2b (§5.6): the banner's Review… — the person's click opens the review; a model call never does. */
         default void reviewProposal(String proposalId) { }
 
@@ -110,6 +113,11 @@ public final class LocalAgentPanel extends JPanel {
     private final WrapLine proposalText = new WrapLine(" ");
     private final JButton review = UiText.button("Review…");
     private final JButton notNow = UiText.button("Not now");
+    /** Review B2: "Close external access while this session runs" — offered when actionListener says so. */
+    private final JButton closeExternal = UiText.button(CLOSE_EXTERNAL);
+    static final String CLOSE_EXTERNAL = "Close external access while this session runs";
+    private telamin.fluxtion.audit.analyser.analyser.session.ListenerState listener =
+            telamin.fluxtion.audit.analyser.analyser.session.ListenerState.NONE;
     private final WrapLine diagnostics = new WrapLine(" ");
     private final WrapLine endpoint = new WrapLine(" ");
     private telamin.fluxtion.audit.analyser.analyser.session.ProposalState proposal =
@@ -182,14 +190,21 @@ public final class LocalAgentPanel extends JPanel {
         proposalBanner.getAccessibleContext().setAccessibleName("Claude Code's set-up proposal");
         review.addActionListener(e -> { if (intents != null && proposal.exists()) intents.reviewProposal(proposal.id()); });
         notNow.addActionListener(e -> { if (intents != null && proposal.exists()) intents.dismissProposal(proposal.id()); });
+        closeExternal.setVisible(false);
+        closeExternal.setToolTipText(UiText.tooltip("While this session runs, refuse external MCP and REST clients — "
+                + "including this session's own tools, which could otherwise reach the analyser through the endpoint "
+                + "file. Claude Code keeps its own connection; external access opens again when the session ends."));
+        closeExternal.addActionListener(e -> {
+            if (intents != null && listener.offerClose()) intents.closeExternalAccess(listener.bridgeFor());
+        });
         diagnostics.setForeground(UiTheme.mutedForeground());
         diagnostics.setVisible(false);
         endpoint.setForeground(UiTheme.mutedForeground());
         endpoint.setVisible(false);
         java.util.List<JComponent> lines = new java.util.ArrayList<>();
         if (standalone) lines.add(chips);
-        lines.addAll(java.util.List.of(header, posture, endpoint, diagnostics, lockWarning, actions, proposalBanner, status,
-                detail));
+        lines.addAll(java.util.List.of(header, posture, endpoint, diagnostics, lockWarning, actions, closeExternal,
+                proposalBanner, status, detail));
         for (JComponent c : lines) {
             c.setAlignmentX(LEFT_ALIGNMENT);
             top.add(c);
@@ -250,10 +265,40 @@ public final class LocalAgentPanel extends JPanel {
             + "Code (Profile…), or switch to the in-app assistant.";
 
     static String limitsText(LocalAgentState s) {
+        return limitsText(s, telamin.fluxtion.audit.analyser.analyser.session.ListenerState.NONE);
+    }
+
+    /** Review B2: a full session with external access open says its tools can drive the analyser as an external client. */
+    public static final String EXTERNAL_OPEN_TO_TOOLS = " External MCP / REST access is open: this session's own tools "
+            + "can drive the analyser as an external client, through the endpoint file (~/.fluxtion-analyser/rest-endpoint).";
+    public static final String EXTERNAL_CLOSED_FOR_SESSION = " External MCP / REST access is closed while this session "
+            + "runs.";
+
+    public static String limitsText(LocalAgentState s, telamin.fluxtion.audit.analyser.analyser.session.ListenerState l) {
         if (s == null) return SAFE_LIMITS;
         if ("SWITCHED_OFF".equals(s.verdict())) return OFF_LIMITS;
         boolean full = s.running() ? s.posture().isFull() : s.fullCue() != LocalAgentState.FullCue.NONE;
-        return full ? FULL_LIMITS : SAFE_LIMITS;
+        if (!full) return SAFE_LIMITS;
+        if (l != null && l.bridgeFor() != 0 && l.fullSession()) {
+            if (l.external()) return FULL_LIMITS + EXTERNAL_OPEN_TO_TOOLS;
+            if (l.closedForSession()) return FULL_LIMITS + EXTERNAL_CLOSED_FOR_SESSION;
+        }
+        return FULL_LIMITS;
+    }
+
+    /** The limits line for the state and listener last rendered. */
+    String limitsNow() {
+        return limitsText(rendered, listener);
+    }
+
+    /** Review B2/B5: render actionListener's decision — the offer to close external access, and the limits line. */
+    public void renderListener(telamin.fluxtion.audit.analyser.analyser.session.ListenerState l) {
+        listener = l == null ? telamin.fluxtion.audit.analyser.analyser.session.ListenerState.NONE : l;
+        closeExternal.setVisible(listener.offerClose());
+    }
+
+    JButton closeExternalButton() {
+        return closeExternal;
     }
 
     void onStart() {
