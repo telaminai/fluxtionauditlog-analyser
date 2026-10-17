@@ -1035,7 +1035,7 @@ public class SessionProcessor
           new DescriptorSupport.Meta(
               null,
               "1.0.76",
-              "628ef00ff04d3eda5806b0d5295d45e9bd3b336ae3cc15bbbe2a11dbab2f1ce1",
+              "55106d22415eeddad0fc2e4bc1685f8cf1e805525a4f9f725a4df02a748bf733",
               null));
 
   @Override
@@ -2832,6 +2832,8 @@ public class SessionProcessor
       auditInvocation(logEvidence, "logEvidence", "onOpenLogChanged", typedEvent);
       logEvidence.onOpenLogChanged();
     }
+    auditInvocation(onboardingProposal, "onboardingProposal", "onGraphOpened", typedEvent);
+    isDirty_onboardingProposal = onboardingProposal.onGraphOpened(typedEvent);
     if (guardCheck_pairing()) {
       auditInvocation(pairing, "pairing", "recomputeOnStateChange", typedEvent);
       isDirty_pairing = pairing.recomputeOnStateChange();
@@ -3386,6 +3388,8 @@ public class SessionProcessor
       auditInvocation(logEvidence, "logEvidence", "onOpenLogChanged", typedEvent);
       logEvidence.onOpenLogChanged();
     }
+    auditInvocation(onboardingProposal, "onboardingProposal", "onLogOpenFailed", typedEvent);
+    isDirty_onboardingProposal = onboardingProposal.onLogOpenFailed(typedEvent);
     commonDispatchTail_1(typedEvent);
     afterEvent();
   }
@@ -3409,6 +3413,8 @@ public class SessionProcessor
       auditInvocation(logEvidence, "logEvidence", "onOpenLogChanged", typedEvent);
       logEvidence.onOpenLogChanged();
     }
+    auditInvocation(onboardingProposal, "onboardingProposal", "onLogOpened", typedEvent);
+    isDirty_onboardingProposal = onboardingProposal.onLogOpened(typedEvent);
     if (guardCheck_pairing()) {
       auditInvocation(pairing, "pairing", "recomputeOnStateChange", typedEvent);
       isDirty_pairing = pairing.recomputeOnStateChange();
@@ -3588,6 +3594,8 @@ public class SessionProcessor
       auditInvocation(pairingQualifier, "pairingQualifier", "onPairChanged", typedEvent);
       pairingQualifier.onPairChanged();
     }
+    auditInvocation(sessionBoundary, "sessionBoundary", "onProfileApplied", typedEvent);
+    sessionBoundary.onProfileApplied(typedEvent);
     if (guardCheck_walkPlayback()) {
       auditInvocation(walkPlayback, "walkPlayback", "onLogChanged", typedEvent);
       walkPlayback.onLogChanged();
@@ -4313,6 +4321,8 @@ public class SessionProcessor
       isDirty_openGraph = openGraph.onGraphOpened(typedEvent);
       auditInvocation(assistantLoop, "assistantLoop", "onGraphOpened", typedEvent);
       isDirty_assistantLoop = assistantLoop.onGraphOpened(typedEvent);
+      auditInvocation(onboardingProposal, "onboardingProposal", "onGraphOpened", typedEvent);
+      isDirty_onboardingProposal = onboardingProposal.onGraphOpened(typedEvent);
       auditInvocation(projectReopenOffer, "projectReopenOffer", "onGraphOpened", typedEvent);
       projectReopenOffer.onGraphOpened(typedEvent);
     } else if (event instanceof HostedCallPresented) {
@@ -4562,6 +4572,8 @@ public class SessionProcessor
       logOpening.onLogOpenFailed(typedEvent);
       auditInvocation(assistantLoop, "assistantLoop", "onLogOpenFailed", typedEvent);
       isDirty_assistantLoop = assistantLoop.onLogOpenFailed(typedEvent);
+      auditInvocation(onboardingProposal, "onboardingProposal", "onLogOpenFailed", typedEvent);
+      isDirty_onboardingProposal = onboardingProposal.onLogOpenFailed(typedEvent);
     } else if (event instanceof LogOpened) {
       LogOpened typedEvent = (LogOpened) event;
       auditEvent(typedEvent);
@@ -4573,6 +4585,8 @@ public class SessionProcessor
       isDirty_openLog = openLog.onLogOpened(typedEvent);
       auditInvocation(assistantLoop, "assistantLoop", "onLogOpened", typedEvent);
       isDirty_assistantLoop = assistantLoop.onLogOpened(typedEvent);
+      auditInvocation(onboardingProposal, "onboardingProposal", "onLogOpened", typedEvent);
+      isDirty_onboardingProposal = onboardingProposal.onLogOpened(typedEvent);
       auditInvocation(logArrival, "logArrival", "onLogOpened", typedEvent);
       logArrival.onLogOpened(typedEvent);
     } else if (event instanceof MembershipCompared) {
@@ -4639,6 +4653,8 @@ public class SessionProcessor
       isDirty_openBundle = openBundle.onProfileApplied(typedEvent);
       auditInvocation(assistantLoop, "assistantLoop", "onProfileApplied", typedEvent);
       isDirty_assistantLoop = assistantLoop.onProfileApplied(typedEvent);
+      auditInvocation(sessionBoundary, "sessionBoundary", "onProfileApplied", typedEvent);
+      sessionBoundary.onProfileApplied(typedEvent);
       auditInvocation(bundleAnchor, "bundleAnchor", "onProfileApplied", typedEvent);
       bundleAnchor.onProfileApplied(typedEvent);
       auditInvocation(projectReopenOffer, "projectReopenOffer", "onProfileApplied", typedEvent);

@@ -226,6 +226,12 @@ public final class AppConfig {
     public final List<DeletedReport> deletedReports = new ArrayList<>();
     /** M69: saved spotlight walks — project-tier, beside reports in the REPORTS category (the M69 walk spec, §3.1). */
     public final List<telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec> walks = new ArrayList<>();
+    /**
+     * M74 P2b (§6; review P2 N-b): the walk bindings this config's load dropped, in the analyser's words — what the file
+     * held, carried with the config that was read rather than in a static buffer. Never written; the session decides
+     * whether to say them (sessionBoundary, on ProfileApplied).
+     */
+    public final transient List<String> walkBindingNotes = new ArrayList<>();
     /** M69: walks deleted from any project, restorable (see {@link WalkBin}). MACHINE tier, like the report bin. */
     public final List<DeletedWalk> deletedWalks = new ArrayList<>();
     /** M38.1: runbook POINTERS — name → project-relative path (never contents). Project-scoped; see {@link Runbooks}. */

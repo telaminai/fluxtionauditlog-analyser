@@ -358,7 +358,18 @@ public final class SessionEvents {
     }
 
     /** The profile's settings are now genuinely in force. This is the authoritative fact. */
-    public record ProfileApplied(long opId, String profilePath, String name) implements Result {
+    public record ProfileApplied(long opId, String profilePath, String name, java.util.List<String> droppedBindings)
+            implements Result {
+        /**
+         * {@code droppedBindings} (M74 P2b §6; review P2 N-b): the walk bindings the load dropped, in the analyser's words
+         * with paths removed — sessionBoundary says them.
+         */
+        public ProfileApplied {
+            droppedBindings = droppedBindings == null ? java.util.List.of() : java.util.List.copyOf(droppedBindings);
+        }
+        public ProfileApplied(long opId, String profilePath, String name) {
+            this(opId, profilePath, name, java.util.List.of());
+        }
     }
 
     /** The pre-project settings are back in force after a {@link TransitionKind#CLOSE}. */

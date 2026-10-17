@@ -96,7 +96,7 @@ public final class ConfigStore {
         readReports(p, c.reports);
         readDeletedReports(p, c.deletedReports);   // PR #33: machine-local, never in a profile or an export
         readRecentBundles(p, c.recentBundles);     // #73: machine-local, like the other recent lists
-        readWalks(p, c.walks);                     // M69: beside reports, same tier
+        readWalks(p, "walk", c.walks, null, c.walkBindingNotes);   // M69: beside reports, same tier
         readDeletedWalks(p, c.deletedWalks);       // M69: machine-local, like the report bin
         readRunbooks(p, c.runbooks);
         c.vocabularyPath = readVocabulary(p).orElse("");
@@ -553,6 +553,9 @@ public final class ConfigStore {
         writeWalks(p, "walk", walks);
     }
 
+    /** The most dropped-binding notes one load keeps (§6). */
+    static final int MAX_BINDING_NOTES = 50;
+
     static void readWalks(Properties p, List<telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec> out) {
         readWalks(p, "walk", out, null);
     }
@@ -639,21 +642,18 @@ public final class ConfigStore {
         }
     }
 
-    /**
-     * M74 P2b (§6): the bindings dropped on load, said — the frame shows them on the status line; bounded. A read is
-     * not a session decision: it is what the file held.
-     */
-    static final List<String> BINDING_NOTES = new java.util.concurrent.CopyOnWriteArrayList<>();
-
-    /** The dropped-binding notes since the last call, emptied. */
-    public static List<String> takeBindingNotes() {
-        List<String> out = List.copyOf(BINDING_NOTES);
-        BINDING_NOTES.clear();
-        return out;
-    }
-
     static void readWalks(Properties p, String prefix, List<telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec> out,
                           List<Integer> kept) {
+        readWalks(p, prefix, out, kept, null);
+    }
+
+    /**
+     * {@code notes} (M74 P2b §6; review P2 N-b): where the bindings dropped on load are said — the loaded config's own
+     * list, bounded; null when the caller has nowhere to say them. A read is not a session decision: it is what the file
+     * held, and the session decides whether to show it.
+     */
+    static void readWalks(Properties p, String prefix, List<telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec> out,
+                          List<Integer> kept, List<String> notes) {
         out.clear();
         int n = parseInt(p.getProperty(prefix + ".count"), 0);
         for (int i = 0; i < n; i++) {
@@ -763,8 +763,10 @@ public final class ConfigStore {
             var revalidated = telamin.fluxtion.audit.analyser.analyser.walk.WalkConversation.revalidate(
                     new telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec(name, title, author, created, updated, fp,
                             run, steps, extras, conversation));
-            for (String note : revalidated.notes()) BINDING_NOTES.add("walk '" + name + "': " + note);
-            while (BINDING_NOTES.size() > 50) BINDING_NOTES.remove(0);
+            if (notes != null) {
+                for (String note : revalidated.notes()) notes.add("walk '" + name + "': " + note);
+                while (notes.size() > MAX_BINDING_NOTES) notes.remove(0);
+            }
             out.add(revalidated.walk());
         }
     }

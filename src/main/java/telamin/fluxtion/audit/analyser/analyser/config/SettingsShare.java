@@ -411,10 +411,11 @@ public final class SettingsShare {
 
         // M69: walks are recognised on their OWN count, so a walk-only share file is still the REPORTS category
         List<telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec> walks = null;
+        List<String> walkNotes = new ArrayList<>();
         if (p.getProperty("walk.count") != null) {
             present.add(Category.REPORTS);
             walks = new ArrayList<>();
-            ConfigStore.readWalks(p, walks);
+            ConfigStore.readWalks(p, "walk", walks, null, walkNotes);   // review P2 N-b: the notes ride with the plan
             // OA-3 (§6.1): dialogue is validated BEFORE anything is installed; a walk whose dialogue is malformed is
             // refused by name and never partly installed, and what the rest carry is said, because it is prose too
             List<String> refusedWalks = new ArrayList<>();
@@ -536,7 +537,7 @@ public final class SettingsShare {
         }
 
         return new ImportPlan(version, present, sourceRoots, mavenRepos, mavenRepoSearch,
-                eventProcessorFqns, selectedEventProcessor, processorDeclarations, graphs, focuses, defaultFocus, reports, walks, hiddenColumns, runbooks, vocabulary, environments, defaultEnvironment, analyses, destinations, workspaceRoot, exchangeDir,
+                eventProcessorFqns, selectedEventProcessor, processorDeclarations, graphs, focuses, defaultFocus, reports, walks, List.copyOf(walkNotes), hiddenColumns, runbooks, vocabulary, environments, defaultEnvironment, analyses, destinations, workspaceRoot, exchangeDir,
                 assistantInProcess, assistantRest, maxRounds, maxActionsPerReply,
                 llmProvider, llmModel, llmBaseUrl, Map.copyOf(summary));
     }
@@ -596,6 +597,7 @@ public final class SettingsShare {
                 target.walks.removeIf(existing -> existing.name().equals(w.name()));
                 target.walks.add(w);   // M69: replace-by-name within the walk family; reports are untouched
             }
+            target.walkBindingNotes.addAll(plan.walkNotes());
         }
         if (selected.contains(Category.RUNBOOKS) && plan.runbooks() != null) {
             plan.runbooks().forEach((name, ptr) -> {
@@ -673,6 +675,8 @@ public final class SettingsShare {
             List<telamin.fluxtion.audit.analyser.analyser.report.ReportSpec> reports,
             /** M69: walks in the share file, or null when it carried none (a report-only file leaves walks alone). */
             List<telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec> walks,
+            /** M74 P2b (§6; review P2 N-b): the walk bindings this file's walks dropped on read, in the analyser's words. */
+            List<String> walkNotes,
             List<String> hiddenColumns,
             Map<String, Runbooks.Pointer> runbooks,
             String vocabulary,

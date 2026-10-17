@@ -54,6 +54,14 @@ public class OnboardingProposal implements EventLogSource {
     private List<String> queue = new ArrayList<>();
     private String pairing = "";
     private String fit = "";
+    /**
+     * Review P2 N-a (2026-10-17): the final check ran while an item's open was still loading, so it read the OLD pairing.
+     * The performer then answers {@code PENDING}; this node asks again when a log or graph result lands, a bounded number
+     * of times, so the verdict shown is the one after the loads.
+     */
+    private boolean checkAwaiting;
+    private int rechecks;
+    static final int MAX_RECHECKS = 4;
     private Map<Long, ProposalState.Answer> answers = new LinkedHashMap<>();
     /** R5: the person's per-row answers to the open proposal, by item id ({@code create} for the create row). */
     private Map<String, Boolean> itemAnswers = new LinkedHashMap<>();
@@ -107,6 +115,8 @@ public class OnboardingProposal implements EventLogSource {
         queue = new ArrayList<>();
         pairing = "";
         fit = "";
+        checkAwaiting = false;
+        rechecks = 0;
         items = new ArrayList<>();
         Set<String> seen = new HashSet<>();
         boolean processor = false;
@@ -281,6 +291,8 @@ public class OnboardingProposal implements EventLogSource {
         }
         auditLog.info("proposalApply", id).info("queued", queue.size()).info("create", createYes);
         applying = !queue.isEmpty();
+        checkAwaiting = false;
+        rechecks = 0;
         next();
         return changed();
     }
@@ -335,8 +347,37 @@ public class OnboardingProposal implements EventLogSource {
         if (id == null || !id.equals(e.proposalId())) return false;
         pairing = e.pairing() == null ? "UNKNOWN" : e.pairing();
         fit = e.fit() == null ? "UNKNOWN" : e.fit();
-        auditLog.info("proposalChecked", id).info("pairing", pairing).info("fit", fit);
+        checkAwaiting = PENDING.equals(pairing) && rechecks < MAX_RECHECKS;
+        auditLog.info("proposalChecked", id).info("pairing", pairing).info("fit", fit).info("awaiting", checkAwaiting);
         return changed();
+    }
+
+    /** What the check answers while a load an item started has not settled (N-a). */
+    public static final String PENDING = "PENDING";
+
+    /** N-a: a log or graph result landed — if the check is awaiting the loads, it is asked again now. */
+    private boolean recheck(String what) {
+        if (!checkAwaiting || id == null) return false;
+        checkAwaiting = false;
+        rechecks++;
+        auditLog.info("proposalRecheck", what).info("n", rechecks);
+        effects.request(new SessionEffects.CheckProposalOutcomeEffect(0L, id));
+        return false;
+    }
+
+    @OnEventHandler(propagate = false)
+    public boolean onLogOpened(SessionEvents.LogOpened e) {
+        return recheck("LogOpened");
+    }
+
+    @OnEventHandler(propagate = false)
+    public boolean onLogOpenFailed(SessionEvents.LogOpenFailed e) {
+        return recheck("LogOpenFailed");
+    }
+
+    @OnEventHandler(propagate = false)
+    public boolean onGraphOpened(SessionEvents.GraphOpened e) {
+        return recheck("GraphOpened");
     }
 
     @OnEventHandler(propagate = false)

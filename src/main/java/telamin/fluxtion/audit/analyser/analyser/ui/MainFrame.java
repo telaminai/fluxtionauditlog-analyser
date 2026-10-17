@@ -8270,11 +8270,15 @@ public final class MainFrame extends JFrame {
                 // fact was then about the wrong project (found by review, 2026-09-29). The render is reported
                 // as the separate thing it is.
                 renderAfterTheRealWorkIsDone("applyProfile");
-                // M74 P2b (§6): a walk binding dropped on load is said, not hidden
-                var dropped = telamin.fluxtion.audit.analyser.analyser.config.ConfigStore.takeBindingNotes();
-                if (!dropped.isEmpty()) SwingUtilities.invokeLater(() -> status.setText(String.join("; ", dropped)));
+                // M74 P2b (§6; review N-b): a walk binding dropped on load is REPORTED as a fact of the config now in
+                // force; sessionBoundary decides to say it
+                java.util.List<String> dropped = new java.util.ArrayList<>();
+                for (String n : config.walkBindingNotes) {
+                    dropped.add(telamin.fluxtion.audit.analyser.analyser.session.FactWords.withoutPaths(n));
+                }
+                config.walkBindingNotes.clear();
                 yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileApplied(
-                        opId, e.profilePath(), e.name());
+                        opId, e.profilePath(), e.name(), dropped);
             }
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.OfferProjectReopenEffect e -> {
                 var observed = new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectReopenReady(
@@ -11720,6 +11724,13 @@ public final class MainFrame extends JFrame {
     private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result checkProposal(
             telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.CheckProposalOutcomeEffect e) {
         var snap = sessionSnapshot();
+        if (snap.pending()) {
+            // review N-a: an item's open is still loading — the pairing now is the OLD one; the node asks again later
+            String p = telamin.fluxtion.audit.analyser.analyser.session.node.OnboardingProposal.PENDING;
+            return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProposalChecked(e.opId(),
+                    e.proposalId(), p, p);
+        }
+        // the graph–log fit IS the pairing comparison here (GraphPairing); fit is UNKNOWN unless both are open
         var pairing = snap.publishedPairing();
         String verdict = pairing == null ? "UNKNOWN" : pairing.auditLabel();
         String fit = !snap.graphOpen() || !snap.logOpen() ? "UNKNOWN" : verdict;

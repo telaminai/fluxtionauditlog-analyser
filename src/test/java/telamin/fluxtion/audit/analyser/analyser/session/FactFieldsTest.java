@@ -88,7 +88,9 @@ class FactFieldsTest {
             M74.put(c, Holds.SHOWN_PATH);
         }
         for (String c : List.of("DraftPlaced.reason", "ProposalItemApplied.why", "ExampleFetched.failure",
-                "ExampleUnpacked.failure", "AssistantProfileApplied.reason")) {
+                "ExampleUnpacked.failure", "AssistantProfileApplied.reason",
+                // review P2 N-b: the walk bindings a load dropped, the analyser's words with paths removed
+                "ProfileApplied.droppedBindings")) {
             M74.put(c, Holds.ANALYSER_WORDS);
         }
         for (String c : List.of("LocalAgentStatusObserved.servers", "LocalAgentInitObserved.servers",

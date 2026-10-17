@@ -68,6 +68,8 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
     final List<SessionEffects.FetchExampleEffect> exampleFetches = new ArrayList<>();
     final List<SessionEffects.UnpackExampleEffect> exampleUnpacks = new ArrayList<>();
     final List<SessionEffects.DiscardExampleBytesEffect> exampleDiscards = new ArrayList<>();
+    /** Review N-a: what successive proposal checks answer (then UNKNOWN). */
+    final java.util.ArrayDeque<String> checkAnswers = new java.util.ArrayDeque<>();
     /** Review S7: the deadlines exampleDownload started. */
     final List<SessionEffects.StartExampleClockEffect> exampleClocks = new ArrayList<>();
     final List<SessionEffects.OfferExampleProjectEffect> exampleOffers = new ArrayList<>();
@@ -297,7 +299,8 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
             }
             case SessionEffects.CheckProposalOutcomeEffect e -> {
                 proposalChecks.add(e);
-                yield new SessionEvents.ProposalChecked(e.opId(), e.proposalId(), "UNKNOWN", "UNKNOWN");
+                String answer = checkAnswers.isEmpty() ? "UNKNOWN" : checkAnswers.poll();
+                yield new SessionEvents.ProposalChecked(e.opId(), e.proposalId(), answer, answer);
             }
             case SessionEffects.OfferLocalAgentSwitchEffect e -> {
                 switchOffers.add(e);

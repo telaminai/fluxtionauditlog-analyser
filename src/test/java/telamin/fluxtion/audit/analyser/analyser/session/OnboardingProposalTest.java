@@ -192,6 +192,32 @@ class OnboardingProposalTest {
     }
 
     /**
+     * ★ Review N-a (P2, 2026-10-17): the final check ran while an item's open was still loading and showed the OLD
+     * pairing. Now it answers PENDING and the node asks again when the load lands. Witness: never recheck (drop the
+     * effect request in {@code recheck}) — one check, and the panel keeps PENDING.
+     */
+    @Test
+    @DisplayName("★ a check made while a load is pending is asked again after the load, and shows the settled verdict")
+    void theCheckWaitsForTheLoads() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        a.checkAnswers.add("PENDING");
+        a.checkAnswers.add("applies");
+        SessionDriver d = LocalAgentSessionTest.driver(a);
+        var start = admitted(d, a);
+        d.post(new SessionEvents.ProposalReceived(1, start.generation(), REFS.put(""), List.of(item("logToOpen", "logs/demo.log"))));
+        previewAll(d, a, true);
+        d.post(new SessionEvents.ProposalApplyRequested("p-1", List.of("p-1.1"), false));
+        d.post(new SessionEvents.ProposalItemApplied(0, "p-1", "p-1.1", "APPLIED", ""));
+        assertEquals(1, a.proposalChecks.size());
+        assertEquals("PENDING", proposal(d).pairing());
+        d.post(new SessionEvents.LogOpened(99, "/logs/demo.log", "DECLARED", java.util.Set.of(), 0, 0, null));
+        assertEquals(2, a.proposalChecks.size(), "asked again once the load landed");
+        assertEquals("applies", proposal(d).pairing());
+        d.post(new SessionEvents.LogOpened(100, "/logs/demo.log", "DECLARED", java.util.Set.of(), 0, 0, null));
+        assertEquals(2, a.proposalChecks.size(), "a settled check is not asked again");
+    }
+
+    /**
      * ★ Scorecard R5. Witness: ignore the per-row answers in onApplyRequested — the row answered No is applied; drop
      * the {@code onItemAnswered} record — the record holds no No.
      */

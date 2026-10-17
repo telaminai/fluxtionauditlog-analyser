@@ -409,6 +409,20 @@ public class SessionBoundary implements EventLogSource {
     }
 
     /**
+     * M74 P2b (§6; review P2 N-b): a walk binding the load dropped is said, not hidden — decided here, after the profile is
+     * in force, rather than composed by the performer from a static buffer.
+     */
+    @OnEventHandler
+    public boolean onProfileApplied(SessionEvents.ProfileApplied event) {
+        if (!gate.accepted() || event.droppedBindings().isEmpty()) return false;
+        auditLog.info("decision", "sayDroppedBindings").info("count", event.droppedBindings().size())
+                .info("opId", event.opId());
+        effects.request(new SessionEffects.ShowStatusEffect(event.opId(),
+                "walk bindings dropped on load: " + String.join("; ", event.droppedBindings())));
+        return true;
+    }
+
+    /**
      * The rule itself, in one place — used by both moments it can be reached: after a load succeeded,
      * and immediately for {@link TransitionKind#CLOSE}, which has nothing to load.
      *
