@@ -67,7 +67,7 @@ public final class McpBridge {
             "Drives a running Fluxtion Audit Log Analyser over its localhost action socket. "
             + "Query verbs (analyser_aggregate, analyser_read) read the loaded audit log; the render verbs "
             + "change what the desktop app shows (filter, graph, goto, flag) and are all reversible. "
-            + "The analyser must be running with the REST transport enabled (Settings > Assistant). "
+            + "The analyser must be running with External MCP/REST access on (Settings > Assistant). "
             // M64.6: server instructions are the one text EVERY MCP client is handed before it picks a tool,
             // so this is where "when to point" has to be for it to be general rather than a skill's habit
             + telamin.fluxtion.audit.analyser.analyser.llm.SpotlightVocabulary.GUIDANCE

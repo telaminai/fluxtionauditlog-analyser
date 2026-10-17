@@ -25,6 +25,10 @@ public final class SpotlightVocabulary {
      * server instructions. Until M64.6 this lived only in the verb's own description and in one skill, so an
      * assistant diagnosing a real log had the verb and no reason to reach for it.
      */
+    /** The caption-length line every entrance carries (owner, 2026-10-17). */
+    public static final String CAPTION_LENGTH = "Keep a caption under about 80 characters — a callout shows three short "
+            + "lines until the person points at it — and put the detail in your answer.";
+
     public static final String GUIDANCE =
             "POINT BEFORE YOU EXPLAIN. When your answer is about something the person can see in the analyser — "
                     + "the node that never logged, the record where a value crossed, a note on a chart — light it "
@@ -36,7 +40,9 @@ public final class SpotlightVocabulary {
                     + "Light AFTER filter / goto / graph / topology: a verb that changes the view puts a spotlight "
                     + "out, as does any click. A callout is YOUR words and shows WHERE to look; it is not evidence "
                     + "and is never saved — a finding worth keeping is a flag, a chart note or a report. Point when "
-                    + "the person would otherwise have to hunt for it, not for every sentence.";
+                    + "the person would otherwise have to hunt for it, not for every sentence. "
+                    // owner, 2026-10-17: a callout shows three lines of about 40 characters until it is pointed at
+                    + CAPTION_LENGTH;
 
     public static final String TEXT =
             "tab:<summary|source|graph|topology|reports|assistant> · source:design · source:design:bean:<id> · source:design:line:<n> · source:java:<fqn> · source:java:<fqn>:line:<n> · records · records:row:<recordIndex> · "

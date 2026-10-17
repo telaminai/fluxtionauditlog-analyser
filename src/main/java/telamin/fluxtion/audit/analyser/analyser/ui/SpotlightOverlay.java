@@ -45,6 +45,12 @@ import java.util.List;
  *
  * <p><b>Transient by construction</b> (D-SP4): the only state is the list below. Nothing here is read by the
  * config, the profile, a saved graph or a report.
+ *
+ * <p><b>A caption is never cut silently</b> (owner, 2026-10-17). It wraps at {@link UiTheme#CALLOUT_LINE_CHARS}
+ * characters a line, up to {@link UiTheme#CALLOUT_MAX_LINES} lines; a longer one ends its third line with "…" and
+ * EXPANDS IN PLACE, in the same card, to the whole caption while the pointer is over it or it has the keyboard focus —
+ * each callout is a focusable target whose accessible name is always the whole caption. The expanded card is drawn on
+ * top of the others. Pure presentation: no session state (rule 9).
  */
 public final class SpotlightOverlay extends JComponent {
 
@@ -64,6 +70,11 @@ public final class SpotlightOverlay extends JComponent {
      */
     private int nextNumber = 1;
     private final Runnable onDismissed;
+    /** The callout under the pointer and the one with the keyboard focus (indices into {@link #lit}), or -1. */
+    private int hoveredCallout = -1;
+    private int focusedCallout = -1;
+    /** One focusable, named target per callout — where hover and focus are noticed and the full caption is spoken. */
+    private final List<CalloutTarget> targets = new ArrayList<>();
     private java.util.function.BiConsumer<Point, List<Lit>> onPressed = (p, l) -> { };
 
     // ---- M69: a walk's control strip, and the right-click save menu (spec-spotlight-walks.md §3.7) ------------
@@ -325,6 +336,10 @@ public final class SpotlightOverlay extends JComponent {
     /** Nothing is lit: stop swallowing clicks, and let the numbers start again — nobody is referring to them. */
     private void wentDark() {
         nextNumber = 1;
+        for (CalloutTarget t : targets) remove(t);         // no callout, no target: nothing left to hover or focus
+        targets.clear();
+        hoveredCallout = -1;
+        focusedCallout = -1;
         setVisible(strip != null);   // M69: a walk's strip keeps the overlay up, to say why nothing is lit
     }
 
@@ -369,7 +384,7 @@ public final class SpotlightOverlay extends JComponent {
         if (!isLit() && strip == null) return;
         Graphics2D g2 = (Graphics2D) g.create();
         try {
-            if (isLit()) paintSpotlight(g2, getSize());
+            if (isLit()) paintSpotlight(g2, getSize(), true);
             if (strip != null) paintStrip(g2, getSize());
         } finally {
             g2.dispose();
@@ -485,14 +500,14 @@ public final class SpotlightOverlay extends JComponent {
         Graphics2D g2 = (Graphics2D) g.create();
         try {
             g2.translate(origin.x, origin.y);
-            if (isLit()) paintSpotlight(g2, getSize());
+            if (isLit()) paintSpotlight(g2, getSize(), false);
             if (strip != null) paintStrip(g2, getSize());   // M69: a screenshot shows the walk's strip too
         } finally {
             g2.dispose();
         }
     }
 
-    private void paintSpotlight(Graphics2D g, Dimension size) {
+    private void paintSpotlight(Graphics2D g, Dimension size, boolean updateTargets) {
         boolean dark = ThemeManager.isDark();
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
@@ -523,7 +538,7 @@ public final class SpotlightOverlay extends JComponent {
                 boxes.add(null);
                 continue;
             }
-            List<String> lines = wrap(fm, l.caption(), maxText);
+            List<String> lines = calloutLines(l.caption(), false);
             int textW = fm.stringWidth(tag);
             for (String line : lines) textW = Math.max(textW, fm.stringWidth(line));
             wrapped.add(lines);
@@ -531,8 +546,26 @@ public final class SpotlightOverlay extends JComponent {
         }
         List<Rectangle> keep = new ArrayList<>();
         for (List<Rectangle> rects : keepClear.values()) keep.addAll(rects);
-        List<Rectangle> callouts = SpotlightGeometry.layout(cuts, boxes, size, keep);
+        List<Rectangle> callouts = new ArrayList<>(SpotlightGeometry.layout(cuts, boxes, size, keep));
+        // the expanded callout (hover or focus): the WHOLE caption in the same card, grown from where it was placed and
+        // kept inside the frame; drawn last, on top of any card it now covers
+        int open = expandedCallout();
+        if (open >= 0 && open < lit.size() && callouts.get(open) != null && lit.get(open).caption() != null
+                && calloutTruncated(lit.get(open).caption())) {
+            List<String> lines = calloutLines(lit.get(open).caption(), true);
+            int textW = fm.stringWidth(tags.get(open));
+            for (String line : lines) textW = Math.max(textW, fm.stringWidth(line));
+            int w = textW + pad * 2 + 6, h = (lines.size() + 1) * fm.getHeight() + tagGap + pad * 2;
+            Rectangle at = callouts.get(open);
+            int x = Math.max(SpotlightGeometry.MARGIN, Math.min(at.x, size.width - SpotlightGeometry.MARGIN - w));
+            int y = Math.max(SpotlightGeometry.MARGIN, Math.min(at.y, size.height - SpotlightGeometry.MARGIN - h));
+            callouts.set(open, new Rectangle(x, y, w, h));
+            wrapped.set(open, lines);
+        } else {
+            open = -1;
+        }
         lastCallouts = callouts;
+        if (updateTargets) syncTargets(callouts);
 
         // arrows first, so a callout box is never crossed by another spotlight's arrow
         for (int i = 0; i < lit.size(); i++) {
@@ -546,7 +579,10 @@ public final class SpotlightOverlay extends JComponent {
             g.fill(arrowHead(arrow[0], arrow[1]));
         }
 
-        for (int i = 0; i < lit.size(); i++) {
+        List<Integer> order = new ArrayList<>();
+        for (int i = 0; i < lit.size(); i++) if (i != open) order.add(i);
+        if (open >= 0) order.add(open);                       // the expanded card on top
+        for (int i : order) {
             Rectangle at = callouts.get(i);
             if (at == null) continue;
             Color fill = dark ? new Color(0x1B1F24) : new Color(0xFFFFFF);
@@ -597,6 +633,140 @@ public final class SpotlightOverlay extends JComponent {
         head.lineTo(to.x - size * Math.cos(angle + spread), to.y - size * Math.sin(angle + spread));
         head.closePath();
         return head;
+    }
+
+    // ---- the callout's lines (owner, 2026-10-17): wrap, at most three, "…", the whole on hover or focus ----------------
+
+    /**
+     * {@code caption} wrapped at {@link UiTheme#CALLOUT_LINE_CHARS} characters a line — a word longer than a line is
+     * broken, never left to run out of the card. Collapsed ({@code expanded} false): at most
+     * {@link UiTheme#CALLOUT_MAX_LINES} lines, the last ending "…" when words remain. Expanded: every line.
+     */
+    static List<String> calloutLines(String caption, boolean expanded) {
+        List<String> all = wrapChars(caption == null ? "" : caption.strip(), UiTheme.CALLOUT_LINE_CHARS);
+        if (expanded || all.size() <= UiTheme.CALLOUT_MAX_LINES) return all;
+        List<String> kept = new ArrayList<>(all.subList(0, UiTheme.CALLOUT_MAX_LINES));
+        String last = kept.get(kept.size() - 1);
+        int room = UiTheme.CALLOUT_LINE_CHARS - 1;
+        if (last.length() > room) last = last.substring(0, room);
+        kept.set(kept.size() - 1, last.stripTrailing() + "…");
+        return kept;
+    }
+
+    /** Whether {@code caption} needs more than the collapsed lines (and so expands on hover or focus). */
+    static boolean calloutTruncated(String caption) {
+        return wrapChars(caption == null ? "" : caption.strip(), UiTheme.CALLOUT_LINE_CHARS).size() > UiTheme.CALLOUT_MAX_LINES;
+    }
+
+    static List<String> wrapChars(String text, int width) {
+        List<String> out = new ArrayList<>();
+        StringBuilder line = new StringBuilder();
+        for (String word : text.split("\\s+")) {
+            if (word.isEmpty()) continue;
+            while (word.length() > width) {                         // a run longer than a line is broken, not clipped
+                if (line.length() > 0) {
+                    out.add(line.toString());
+                    line.setLength(0);
+                }
+                out.add(word.substring(0, width));
+                word = word.substring(width);
+            }
+            if (line.length() == 0) line.append(word);
+            else if (line.length() + 1 + word.length() <= width) line.append(' ').append(word);
+            else {
+                out.add(line.toString());
+                line.setLength(0);
+                line.append(word);
+            }
+        }
+        if (line.length() > 0) out.add(line.toString());
+        return out;
+    }
+
+    /** Which callout is expanded now: the hovered one, else the focused one; -1 for none. */
+    int expandedCallout() {
+        return hoveredCallout >= 0 ? hoveredCallout : focusedCallout;
+    }
+
+    /** The focusable targets, for the tests. */
+    List<CalloutTarget> calloutTargets() {
+        return List.copyOf(targets);
+    }
+
+    /** Keep one target per captioned callout, each named by its whole caption, placed where its card is drawn. */
+    private void syncTargets(List<Rectangle> drawn) {
+        while (targets.size() < lit.size()) {
+            CalloutTarget t = new CalloutTarget(targets.size());
+            targets.add(t);
+            add(t);
+        }
+        while (targets.size() > lit.size()) remove(targets.remove(targets.size() - 1));
+        for (int i = 0; i < lit.size(); i++) {
+            CalloutTarget t = targets.get(i);
+            String caption = lit.get(i).caption();
+            Rectangle at = i < drawn.size() ? drawn.get(i) : null;
+            t.setVisible(caption != null && at != null);
+            if (caption == null || at == null) continue;
+            t.getAccessibleContext().setAccessibleName(caption);              // always the WHOLE caption
+            t.getAccessibleContext().setAccessibleDescription("the assistant's callout"
+                    + (numbered(lit.get(i)) ? " " + lit.get(i).n() : "") + " — its words, not a verified result");
+            if (!at.equals(t.getBounds())) t.setBounds(at);
+        }
+    }
+
+    /** A callout's hover and focus target: invisible (the overlay paints the card), focusable, named. */
+    final class CalloutTarget extends JComponent {
+        final int index;
+
+        CalloutTarget(int index) {
+            this.index = index;
+            setOpaque(false);
+            setFocusable(true);
+            setCursor(java.awt.Cursor.getDefaultCursor());
+            addMouseListener(new MouseAdapter() {
+                @Override public void mouseEntered(MouseEvent e) {
+                    hoveredCallout = CalloutTarget.this.index;
+                    SpotlightOverlay.this.repaint();
+                }
+
+                @Override public void mouseExited(MouseEvent e) {
+                    if (hoveredCallout == CalloutTarget.this.index) hoveredCallout = -1;
+                    SpotlightOverlay.this.repaint();
+                }
+
+                // a press on a card is a press on the overlay (it dismisses, as before)
+                @Override public void mousePressed(MouseEvent e) { forward(e); }
+
+                @Override public void mouseReleased(MouseEvent e) { forward(e); }
+            });
+            addFocusListener(new java.awt.event.FocusAdapter() {
+                @Override public void focusGained(java.awt.event.FocusEvent e) {
+                    focusedCallout = CalloutTarget.this.index;
+                    SpotlightOverlay.this.repaint();
+                }
+
+                @Override public void focusLost(java.awt.event.FocusEvent e) {
+                    if (focusedCallout == CalloutTarget.this.index) focusedCallout = -1;
+                    SpotlightOverlay.this.repaint();
+                }
+            });
+        }
+
+        @Override
+        public javax.accessibility.AccessibleContext getAccessibleContext() {
+            if (accessibleContext == null) {
+                accessibleContext = new AccessibleJComponent() {
+                    @Override public javax.accessibility.AccessibleRole getAccessibleRole() {
+                        return javax.accessibility.AccessibleRole.LABEL;
+                    }
+                };
+            }
+            return accessibleContext;
+        }
+
+        private void forward(MouseEvent e) {
+            SpotlightOverlay.this.dispatchEvent(javax.swing.SwingUtilities.convertMouseEvent(this, e, SpotlightOverlay.this));
+        }
     }
 
     /** Greedy word wrap to a pixel width; a word wider than the box is left long rather than broken. */
