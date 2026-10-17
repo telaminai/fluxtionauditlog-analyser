@@ -959,7 +959,11 @@ public final class SessionEvents {
     }
 
     /** A {@code result}'s {@code total_cost_usd}, a running total for the SESSION (it survives resume), in micro-USD. */
-    public record LocalAgentCostObserved(long generation, long totalCostMicros) {
+    public record LocalAgentCostObserved(long generation, long totalCostMicros, long ticket, long durationMs) {
+        /** No turn named: only the running total. */
+        public LocalAgentCostObserved(long generation, long totalCostMicros) {
+            this(generation, totalCostMicros, 0, -1);
+        }
     }
 
     /** Something the stream said that the person should see as a status line. */
@@ -1091,5 +1095,120 @@ public final class SessionEvents {
 
     /** Answered at once by each start-page effect whose outcome arrives later (or never: a fallback shown). */
     public record StartPageEffectStarted(long opId, long request, String what) implements Result {
+    }
+
+    // ---- M74 P2b: propose onboarding (spec §5.6, OD-74.13) ------------------------------------------------------------
+
+    /**
+     * One proposed item as the dispatcher received it: Claude's kind, path, class name and reason, and what was observed
+     * about its fields' lengths and the class name's form. The node decides every item-level refusal from these.
+     */
+    public record ProposalItemFact(String kind, String path, String className, String reason, boolean tooLong,
+                                   boolean classNameMalformed) {
+    }
+
+    /**
+     * A hosted {@code propose} call whose shape passed, posted on the session thread by the dispatcher's
+     * {@code propose} case for the admitted {@code generation}. The node records the offer and answers in
+     * {@code ProposalState.answer(request)}; it changes NOTHING but the preview it asks for.
+     */
+    public record ProposalReceived(long request, long generation, String summary, java.util.List<ProposalItemFact> items) {
+        public ProposalReceived {
+            items = java.util.List.copyOf(items == null ? java.util.List.of() : items);
+        }
+    }
+
+    /**
+     * The analyser's own read-only check of one item (§5.6 step 5): its verdict word ({@code PAIRED}, {@code FITS},
+     * {@code READABLE}, {@code DIRECTORY}, {@code MARKDOWN}, {@code UNKNOWN}, …), whether it lies {@code outside} the set-up
+     * directory after resolving links, and a refusal code ({@code NOT_FOUND}, {@code WRONG_TYPE}) or null.
+     */
+    public record ProposalItemPreviewed(String proposalId, String itemId, String verdict, boolean outside, String refusal) {
+    }
+
+    /** Every item was checked: the set-up directory as the session uses it, and whether it already holds a project. */
+    public record ProposalPreviewDone(String proposalId, String setupDir, boolean projectExists) {
+    }
+
+    /** The person's Apply chosen: the items answered Yes (all others are No), and the analyser's own create row. */
+    public record ProposalApplyRequested(String proposalId, java.util.List<String> yes, boolean createProject) {
+        public ProposalApplyRequested {
+            yes = java.util.List.copyOf(yes == null ? java.util.List.of() : yes);
+        }
+    }
+
+    /** The person closed the banner without applying: every pending item is declined. */
+    public record ProposalDismissed(String proposalId) {
+    }
+
+    /**
+     * What applying one item through the person's own path did: {@code outcome} {@code APPLIED}, {@code REFUSED} (the path's
+     * own gate, said in its words) or {@code FAILED}. The id {@code create} is the analyser's own create row.
+     */
+    public record ProposalItemApplied(long opId, String proposalId, String itemId, String outcome, String why)
+            implements Result {
+    }
+
+    /** The analyser's own verdicts after the last item (§5.6 step 8). */
+    public record ProposalChecked(long opId, String proposalId, String pairing, String fit) implements Result {
+    }
+
+    /** Answered at once by a proposal effect whose outcome arrives later. */
+    public record ProposalEffectStarted(long opId, String proposalId, String what) implements Result {
+    }
+
+    /**
+     * The person chose (or cancelled) the set-up directory (§5.6 step 1): its real path, or null when cancelled, and the
+     * folder verdict computed as for Start. Held for this analyser run only; it is not a project.
+     */
+    public record LocalAgentSetupDirectoryChosen(long request, String dir, FolderVerdict verdict) {
+    }
+
+    // ---- M74 P2b: a project switch while Claude Code runs (the simplified Move, owner 2026-10-17) ---------------------
+
+    /** What the person chose in the switch offer: stop and get Start ready in the new project, keep it running, cancel. */
+    public enum SwitchChoice { STOP_AND_ARM, KEEP, CANCEL }
+
+    public record LocalAgentSwitchChosen(long request, SwitchChoice choice) {
+    }
+
+    /**
+     * §5.2 the diagnostics line (P2): counts the adapter observed for {@code generation}, posted at a turn's end and at
+     * initialize only when one changed. Never a person's line: command names come from {@code initialize.commands}.
+     */
+    public record LocalAgentDiagnostics(long generation, int unknownEvents, int unclassifiedCommands, int droppedLines) {
+    }
+
+    // ---- M74 P2b: prompt-pack example entries (owner request 2026-10-17) -----------------------------------------------
+
+    /**
+     * The person pressed an example entry's own Download button: the entry's parsed source, from the pack the node holds.
+     * Nothing was fetched on the drop or on choosing; the node decides each step from here.
+     */
+    public record ExampleDownloadRequested(long request, long packRef, int entryIndex,
+                                           telamin.fluxtion.audit.analyser.analyser.assistant.ExampleSource source) {
+    }
+
+    /**
+     * The person answered the confirmation that showed the exact URL, the publisher, the pinned commit and the target
+     * folder: {@code yes}, the folder chosen ({@code targetDir}, real path) and what was observed about it
+     * ({@code targetProblem}: null, {@code EXISTS_NOT_EMPTY}, {@code NOT_A_DIRECTORY}, {@code NO_PARENT}).
+     */
+    public record ExampleDownloadConfirmed(long request, boolean yes, String targetDir, String targetProblem) {
+    }
+
+    /**
+     * The archive arrived (or did not): {@code bytesRef} names the bytes in the frame's store (never in a fact), with
+     * their SHA-256 and size as observed; or {@code failure} in words. The node verifies the digest before any unpack.
+     */
+    public record ExampleFetched(long request, boolean ok, long bytesRef, String sha256, long size, String failure) {
+    }
+
+    /** The unpack through the template archive machinery: the project root it made, or why not. */
+    public record ExampleUnpacked(long request, boolean ok, String root, String failure) {
+    }
+
+    /** Answered at once by each example effect. */
+    public record ExampleEffectStarted(long opId, long request, String what) implements Result {
     }
 }

@@ -614,18 +614,38 @@ public final class ConfigStore {
                 p.setProperty(base + ".conv.v", Integer.toString(conv.version()));
                 put(p, base + ".conv.kind", conv.kind());
                 put(p, base + ".conv.author", conv.author().isBlank() ? null : conv.author());
+                // M74 P2b (§6): v2 only — the recording's source (provider, model, CLI version; nothing else ever)
+                if (conv.source() != null) {
+                    put(p, base + ".conv.src.kind", conv.source().kind());
+                    put(p, base + ".conv.src.model", conv.source().model().isBlank() ? null : conv.source().model());
+                    put(p, base + ".conv.src.cli", conv.source().cliVersion().isBlank() ? null : conv.source().cliVersion());
+                }
                 p.setProperty(base + ".conv.t.count", Integer.toString(conv.turns().size()));
                 for (int t = 0; t < conv.turns().size(); t++) {
                     var turn = conv.turns().get(t);
                     put(p, base + ".conv.t." + t + ".id", turn.id());
                     put(p, base + ".conv.t." + t + ".role", turn.role());
                     put(p, base + ".conv.t." + t + ".text", turn.text());
+                    if (turn.truncated()) p.setProperty(base + ".conv.t." + t + ".truncated", "true");
                 }
             }
             for (var e : new java.util.TreeMap<>(w.extras()).entrySet()) {
                 if (p.getProperty(base + "." + e.getKey()) == null) p.setProperty(base + "." + e.getKey(), e.getValue());
             }
         }
+    }
+
+    /**
+     * M74 P2b (§6): the bindings dropped on load, said — the frame shows them on the status line; bounded. A read is
+     * not a session decision: it is what the file held.
+     */
+    static final List<String> BINDING_NOTES = new java.util.concurrent.CopyOnWriteArrayList<>();
+
+    /** The dropped-binding notes since the last call, emptied. */
+    public static List<String> takeBindingNotes() {
+        List<String> out = List.copyOf(BINDING_NOTES);
+        BINDING_NOTES.clear();
+        return out;
     }
 
     static void readWalks(Properties p, String prefix, List<telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec> out,
@@ -699,18 +719,25 @@ public final class ConfigStore {
             String convVersion = p.getProperty(base + ".conv.v");
             if (convVersion != null) {
                 int cv = parseInt(convVersion, -1);
-                if (cv == telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec.CONVERSATION_VERSION) {
+                if (cv == telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec.CONVERSATION_VERSION
+                        || cv == telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec.CONVERSATION_V2) {
                     get.apply("conv.v");
                     List<telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec.Turn> turns = new java.util.ArrayList<>();
                     int tc = parseInt(get.apply("conv.t.count"), 0);
                     // Keep one overflow sentinel so validation refuses it, without allocating an untrusted count.
                     int boundedCount = Math.min(tc, telamin.fluxtion.audit.analyser.analyser.walk.WalkConversation.MAX_TURNS + 1);
                     for (int t = 0; t < boundedCount; t++) {
+                        boolean truncated = cv == telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec.CONVERSATION_V2
+                                && "true".equals(get.apply("conv.t." + t + ".truncated"));
                         turns.add(new telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec.Turn(get.apply("conv.t." + t + ".id"),
-                                get.apply("conv.t." + t + ".role"), get.apply("conv.t." + t + ".text")));
+                                get.apply("conv.t." + t + ".role"), get.apply("conv.t." + t + ".text"), truncated));
                     }
+                    telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec.Source source =
+                            cv == telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec.CONVERSATION_V2
+                                    ? new telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec.Source(get.apply("conv.src.kind"),
+                                    get.apply("conv.src.model"), get.apply("conv.src.cli")) : null;
                     conversation = new telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec.Conversation(cv,
-                            get.apply("conv.kind"), get.apply("conv.author"), turns);
+                            get.apply("conv.kind"), get.apply("conv.author"), turns, source);
                 } else {
                     conversation = new telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec.Conversation(cv,
                             p.getProperty(base + ".conv.kind"), p.getProperty(base + ".conv.author"), List.of());
@@ -728,8 +755,13 @@ public final class ConfigStore {
                 String rest = key.substring(head.length());
                 if (!used.contains(rest)) extras.put(rest, p.getProperty(key));
             }
-            out.add(new telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec(name, title, author, created, updated, fp,
-                    run, steps, extras, conversation));
+            // M74 P2b (§6, [R2-9]): a binding that no longer matches the turns is dropped and reported, never played
+            var revalidated = telamin.fluxtion.audit.analyser.analyser.walk.WalkConversation.revalidate(
+                    new telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec(name, title, author, created, updated, fp,
+                            run, steps, extras, conversation));
+            for (String note : revalidated.notes()) BINDING_NOTES.add("walk '" + name + "': " + note);
+            while (BINDING_NOTES.size() > 50) BINDING_NOTES.remove(0);
+            out.add(revalidated.walk());
         }
     }
 

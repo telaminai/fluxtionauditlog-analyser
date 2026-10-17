@@ -51,6 +51,15 @@ public final class LocalAgentPanel extends JPanel {
         void newChat();
 
         void openSettings();
+
+        /** P2b (§5.6): the banner's Review… — the person's click opens the review; a model call never does. */
+        default void reviewProposal(String proposalId) { }
+
+        /** P2b: the banner's Not now — every pending item is declined. */
+        default void dismissProposal(String proposalId) { }
+
+        /** P2b (§5.6 step 1): <i>Set up a project with Claude…</i> — the person's chooser for the set-up folder. */
+        default void setUpProject() { }
     }
 
     /** The posture line of the default posture (§5.2). */
@@ -89,6 +98,16 @@ public final class LocalAgentPanel extends JPanel {
     private final JButton newChat = new JButton("New chat");
     private final JButton send = UiText.button("Send");
     private final JButton settings = new JButton("Settings ▸ Assistant");
+    /** P2b (§5.6): <i>Set up a project with Claude…</i>, and the proposal banner (never a modal). */
+    private final JButton setUp = UiText.button("Set up a project with Claude…");
+    private final JPanel proposalBanner = new JPanel(new BorderLayout(6, 2));
+    private final WrapLine proposalText = new WrapLine(" ");
+    private final JButton review = UiText.button("Review…");
+    private final JButton notNow = UiText.button("Not now");
+    private final WrapLine diagnostics = new WrapLine(" ");
+    private final WrapLine endpoint = new WrapLine(" ");
+    private telamin.fluxtion.audit.analyser.analyser.session.ProposalState proposal =
+            telamin.fluxtion.audit.analyser.analyser.session.ProposalState.NONE;
     private final Border draftBorder;
 
     private LocalAgentState rendered;
@@ -119,8 +138,29 @@ public final class LocalAgentPanel extends JPanel {
         actions.add(start);
         actions.add(stop);
         actions.add(newChat);
+        actions.add(setUp);
         actions.add(settings);
-        for (JComponent c : new JComponent[]{chips, header, posture, lockWarning, actions, status, detail}) {
+        setUp.setToolTipText(UiText.tooltip("Choose a folder; Claude Code looks and proposes a set-up, you answer each "
+                + "item, and the analyser applies the ones you accept"));
+        setUp.addActionListener(e -> { if (intents != null) intents.setUpProject(); });
+        proposalBanner.setOpaque(true);
+        proposalBanner.setBorder(BorderFactory.createEmptyBorder(6, 8, 6, 8));
+        proposalBanner.add(proposalText, BorderLayout.CENTER);
+        JPanel bannerButtons = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
+        bannerButtons.setOpaque(false);
+        bannerButtons.add(review);
+        bannerButtons.add(notNow);
+        proposalBanner.add(bannerButtons, BorderLayout.SOUTH);
+        proposalBanner.setVisible(false);
+        proposalBanner.getAccessibleContext().setAccessibleName("Claude Code's set-up proposal");
+        review.addActionListener(e -> { if (intents != null && proposal.exists()) intents.reviewProposal(proposal.id()); });
+        notNow.addActionListener(e -> { if (intents != null && proposal.exists()) intents.dismissProposal(proposal.id()); });
+        diagnostics.setForeground(UiTheme.mutedForeground());
+        diagnostics.setVisible(false);
+        endpoint.setForeground(UiTheme.mutedForeground());
+        endpoint.setVisible(false);
+        for (JComponent c : new JComponent[]{chips, header, posture, endpoint, diagnostics, lockWarning, actions,
+                proposalBanner, status, detail}) {
             c.setAlignmentX(LEFT_ALIGNMENT);
             top.add(c);
         }
@@ -279,6 +319,55 @@ public final class LocalAgentPanel extends JPanel {
         return draftScroll;
     }
 
+    JPanel proposalBanner() {
+        return proposalBanner;
+    }
+
+    WrapLine proposalText() {
+        return proposalText;
+    }
+
+    JButton reviewButton() {
+        return review;
+    }
+
+    JButton setUpButton() {
+        return setUp;
+    }
+
+    WrapLine diagnosticsLine() {
+        return diagnostics;
+    }
+
+    WrapLine endpointLine() {
+        return endpoint;
+    }
+
+    /**
+     * P2b (§5.6 step 4): the proposal banner, rendered from onboardingProposal's state — shown only while something is
+     * the person's to answer; the review dialog opens on the person's click, never on a model call (OD-74.13).
+     */
+    public void renderProposal(telamin.fluxtion.audit.analyser.analyser.session.ProposalState p) {
+        proposal = p == null ? telamin.fluxtion.audit.analyser.analyser.session.ProposalState.NONE : p;
+        boolean show = proposal.awaitingPerson();
+        proposalText.setText(show ? bannerText(proposal) : " ");
+        proposalBanner.setBackground(UiTheme.accentWash(0.14f));
+        proposalBanner.setVisible(show);
+        revalidate();
+        repaint();
+    }
+
+    /** "Claude Code proposes 4 changes to set up …/medmon — Review…" (§5.6 step 4). */
+    static String bannerText(telamin.fluxtion.audit.analyser.analyser.session.ProposalState p) {
+        long pending = p.count(telamin.fluxtion.audit.analyser.analyser.session.ProposalState.ItemState.PENDING);
+        long n = pending + ("PENDING".equals(p.create()) ? 1 : 0);
+        long shown = p.items().size() - pending;
+        String dir = p.setupDir() == null ? "this folder" : shortFolder(p.setupDir());
+        return "Claude Code proposes " + n + " change" + (n == 1 ? "" : "s") + " to set up " + dir
+                + (shown > 0 ? " (" + shown + " more shown, which cannot be applied)" : "")
+                + " — nothing has been applied; review each one";
+    }
+
     /** Render the session's decision. Unchanged input changes nothing on screen. */
     public void render(LocalAgentState s) {
         // review S5: the header is the session's own — its launch folder, not the project open now — and it is shown
@@ -293,6 +382,12 @@ public final class LocalAgentPanel extends JPanel {
         header.setToolTipText(folder == null ? null : UiText.tooltip(folder));
         header.setVisible(folder != null && !folder.isBlank());
         posture.setText(postureLine(h, s));
+        String ep = endpointText(h, s);
+        endpoint.setText(ep == null ? " " : ep);
+        endpoint.setVisible(ep != null);
+        String diag = diagnosticsText(s, h);
+        diagnostics.setText(diag == null ? " " : diag);
+        diagnostics.setVisible(diag != null);
         boolean running = s.running();
         start.setEnabled(!running);
         start.setText(UiText.inert(startLabel(s)));
@@ -334,6 +429,9 @@ public final class LocalAgentPanel extends JPanel {
                     boolean stopped = "CANCELLED".equals(e.status()) || "PROCESS_EXIT".equals(e.status());
                     out.add(new TranscriptView.Item(key, stopped ? TranscriptStyle.Role.STOPPED : TranscriptStyle.Role.CLAUDE,
                             store.text(e.id()), e.status(), e.revision(), e.logGeneration(), "STREAMING".equals(e.status())));
+                    String turn = "STREAMING".equals(e.status()) ? null : turnText(s, e.ticket());
+                    if (turn != null) out.add(new TranscriptView.Item(key + ":turn", TranscriptStyle.Role.NOTE,
+                            "[turn] " + turn, "TURN", 0, 0, false));
                 }
                 case LocalAgentState.NOTE -> out.add(new TranscriptView.Item(key, TranscriptStyle.Role.NOTE,
                         "[" + e.status().toLowerCase(java.util.Locale.ROOT).replace('_', ' ') + "] " + e.detail(),
@@ -362,7 +460,9 @@ public final class LocalAgentPanel extends JPanel {
             String cost = costText(s);
             if (!cost.isEmpty()) chips.add(chip(cost, false));
             if (h.cliVersion() != null) chips.add(chip("CLI " + h.cliVersion(), false));
-            if (h.apiProvider() != null) chips.add(chip(h.apiProvider(), false));
+            // P2b visual fix: "firstParty" is the CLI's own word for Anthropic's API — internal jargon, not shown as a chip
+            String provider = providerWords(h.apiProvider());
+            if (provider != null) chips.add(chip(provider, false));
         }
         chips.revalidate();
         chips.repaint();
@@ -378,6 +478,66 @@ public final class LocalAgentPanel extends JPanel {
         Font f = UIManager.getFont("Label.font");
         if (f != null) l.setFont(f.deriveFont(strong ? Font.BOLD : Font.PLAIN, f.getSize2D() - 1f));
         return l;
+    }
+
+    /**
+     * The API provider as the person should read it, or null for none: the CLI's {@code firstParty} is Anthropic's own
+     * API — the default, and internal jargon — so it is not shown (P2b visual fix); another provider is named as given.
+     */
+    static String providerWords(String apiProvider) {
+        if (apiProvider == null || apiProvider.isBlank() || "firstParty".equals(apiProvider)) return null;
+        return apiProvider;
+    }
+
+    /**
+     * §5.2 the endpoint line (P2): what the analyser can observe and no more — only {@code scheme://host[:port]} of the
+     * {@code ANTHROPIC_BASE_URL} it passed to the child; in the full posture, that the person's settings may set another.
+     */
+    static String endpointText(LocalAgentTranscript.Header h, LocalAgentState s) {
+        if (h == null) return null;
+        String ep = h.endpoint();
+        String line = ep == null ? null : "requests go to " + ep;
+        if (s.posture().isFull()) {
+            String more = "your Claude Code settings may set another endpoint; the analyser does not read them";
+            line = line == null ? more : line + " — " + more;
+        }
+        return line;
+    }
+
+    /** §5.2 the diagnostics line (P2), only when a count is non-zero; command names from {@code initialize.commands}. */
+    static String diagnosticsText(LocalAgentState s, LocalAgentTranscript.Header h) {
+        var x = s.extra();
+        if (!x.diagnostics()) return null;
+        List<String> parts = new ArrayList<>();
+        if (x.unknownEvents() > 0) parts.add(x.unknownEvents() + " unknown stream event" + (x.unknownEvents() == 1 ? "" : "s"));
+        if (x.unclassifiedCommands() > 0) {
+            List<String> names = h == null ? List.of() : h.unclassified();
+            parts.add(x.unclassifiedCommands() + " command" + (x.unclassifiedCommands() == 1 ? "" : "s")
+                    + " not classified for the analyser" + (names.isEmpty() ? ""
+                    : " (" + String.join(", ", names.stream().limit(5).map(n -> "/" + n).toList())
+                    + (names.size() > 5 ? ", …" : "") + ")"));
+        }
+        if (x.droppedLines() > 0) parts.add(x.droppedLines() + " line" + (x.droppedLines() == 1 ? "" : "s")
+                + " over 16 MB dropped");
+        return "Diagnostics: " + String.join(" · ", parts);
+    }
+
+    /**
+     * §5.9 per turn (P2b): a finished answer's time, and its cost only where a dollar figure means something — with an
+     * API key (OD-74.24: never on a Claude plan). Null when nothing is known.
+     */
+    static String turnText(LocalAgentState s, long ticket) {
+        LocalAgentState.Turn t = s.extra().turns().get(ticket);
+        if (t == null) return null;
+        List<String> parts = new ArrayList<>();
+        if (t.durationMs() >= 0) parts.add(BigDecimal.valueOf(t.durationMs(), 3).setScale(1, RoundingMode.HALF_UP)
+                .toPlainString() + " s");
+        boolean apiKey = switch (s.billing()) {
+            case API_KEY -> true;
+            default -> false;
+        };
+        if (apiKey && t.costMicros() >= 0) parts.add("US$" + usd(t.costMicros()));
+        return parts.isEmpty() ? null : String.join(" · ", parts);
     }
 
     /** {@code …/<folder name>}; the full path is the line's tooltip (§5.2). */
@@ -453,7 +613,8 @@ public final class LocalAgentPanel extends JPanel {
         sb.append(" · ").append(unbroken(s.posture().label()));
         if (h.cliVersion() != null) sb.append(" · CLI ").append(h.cliVersion());
         if (h.billing() != null && !h.billing().isBlank()) sb.append(" · ").append(h.billing());
-        if (h.apiProvider() != null) sb.append(" · ").append(h.apiProvider());
+        String provider = providerWords(h.apiProvider());
+        if (provider != null) sb.append(" · ").append(provider);
         String cost = costText(s);
         if (!cost.isEmpty()) sb.append(" · ").append(cost);
         if (folder != null && !folder.isBlank()) sb.append("\nFolder: ").append(folder);     // its own line

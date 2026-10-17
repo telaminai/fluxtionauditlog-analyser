@@ -333,6 +333,15 @@ public final class SessionDriver {
             case SessionEffects.ServeHostedBridgeEffect ignored -> "serveHostedBridge";
             case SessionEffects.ReleaseHostedBridgeEffect ignored -> "releaseHostedBridge";
             case SessionEffects.AnswerHostedCallEffect ignored -> "answerHostedCall";
+            case SessionEffects.PreviewProposalEffect ignored -> "previewProposal";
+            case SessionEffects.ApplyProposalItemEffect ignored -> "applyProposalItem";
+            case SessionEffects.CheckProposalOutcomeEffect ignored -> "checkProposalOutcome";
+            case SessionEffects.OfferLocalAgentSwitchEffect ignored -> "offerLocalAgentSwitch";
+            case SessionEffects.ConfirmExampleDownloadEffect ignored -> "confirmExampleDownload";
+            case SessionEffects.FetchExampleEffect ignored -> "fetchExample";
+            case SessionEffects.UnpackExampleEffect ignored -> "unpackExample";
+            case SessionEffects.DiscardExampleBytesEffect ignored -> "discardExampleBytes";
+            case SessionEffects.OfferExampleProjectEffect ignored -> "offerExampleProject";
         };
     }
 

@@ -54,6 +54,18 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
     final List<SessionEffects.RunStartPageFlowEffect> startFlows = new ArrayList<>();
     final List<SessionEffects.ShowStartPageFallbackEffect> startFallbacks = new ArrayList<>();
     final List<SessionEffects.ComposeStartPageDraftEffect> startComposes = new ArrayList<>();
+    /** M74 P2b: what onboardingProposal, the switch hold and exampleDownload asked for, in order. */
+    final List<SessionEffects.PreviewProposalEffect> proposalPreviews = new ArrayList<>();
+    final List<SessionEffects.ApplyProposalItemEffect> proposalApplies = new ArrayList<>();
+    /** When true an apply is only started (the real performer answers later): the test posts the outcome. */
+    boolean holdApplies;
+    final List<SessionEffects.CheckProposalOutcomeEffect> proposalChecks = new ArrayList<>();
+    final List<SessionEffects.OfferLocalAgentSwitchEffect> switchOffers = new ArrayList<>();
+    final List<SessionEffects.ConfirmExampleDownloadEffect> exampleConfirms = new ArrayList<>();
+    final List<SessionEffects.FetchExampleEffect> exampleFetches = new ArrayList<>();
+    final List<SessionEffects.UnpackExampleEffect> exampleUnpacks = new ArrayList<>();
+    final List<SessionEffects.DiscardExampleBytesEffect> exampleDiscards = new ArrayList<>();
+    final List<SessionEffects.OfferExampleProjectEffect> exampleOffers = new ArrayList<>();
     final List<SessionEffects.TrustLocalAgentFolderEffect> agentTrusts = new ArrayList<>();
     final List<SessionEffects.ServeHostedBridgeEffect> agentServes = new ArrayList<>();
     final List<SessionEffects.ReleaseHostedBridgeEffect> agentReleases = new ArrayList<>();
@@ -233,6 +245,44 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
                 agentAnswers.add(e);
                 onAnswer.accept(e);
                 yield new SessionEvents.LocalAgentEffectStarted(e.opId(), 0, "answerHostedCall");
+            }
+            case SessionEffects.PreviewProposalEffect e -> {
+                proposalPreviews.add(e);
+                yield new SessionEvents.ProposalEffectStarted(e.opId(), e.proposalId(), "preview");
+            }
+            case SessionEffects.ApplyProposalItemEffect e -> {
+                proposalApplies.add(e);
+                // the person path's recorder: APPLIED, as the real path reports a success
+                yield holdApplies ? new SessionEvents.ProposalEffectStarted(e.opId(), e.proposalId(), "apply")
+                        : new SessionEvents.ProposalItemApplied(e.opId(), e.proposalId(), e.item().itemId(), "APPLIED", "");
+            }
+            case SessionEffects.CheckProposalOutcomeEffect e -> {
+                proposalChecks.add(e);
+                yield new SessionEvents.ProposalChecked(e.opId(), e.proposalId(), "UNKNOWN", "UNKNOWN");
+            }
+            case SessionEffects.OfferLocalAgentSwitchEffect e -> {
+                switchOffers.add(e);
+                yield new SessionEvents.LocalAgentEffectStarted(e.opId(), 0, "offerSwitch");
+            }
+            case SessionEffects.ConfirmExampleDownloadEffect e -> {
+                exampleConfirms.add(e);
+                yield new SessionEvents.ExampleEffectStarted(e.opId(), e.request(), "confirm");
+            }
+            case SessionEffects.FetchExampleEffect e -> {
+                exampleFetches.add(e);
+                yield new SessionEvents.ExampleEffectStarted(e.opId(), e.request(), "fetch");
+            }
+            case SessionEffects.UnpackExampleEffect e -> {
+                exampleUnpacks.add(e);
+                yield new SessionEvents.ExampleEffectStarted(e.opId(), e.request(), "unpack");
+            }
+            case SessionEffects.DiscardExampleBytesEffect e -> {
+                exampleDiscards.add(e);
+                yield new SessionEvents.ExampleEffectStarted(e.opId(), e.request(), "discard");
+            }
+            case SessionEffects.OfferExampleProjectEffect e -> {
+                exampleOffers.add(e);
+                yield new SessionEvents.ExampleEffectStarted(e.opId(), e.request(), "offer");
             }
             case SessionEffects.DeleteBundleEffect e -> {
                 deletes.add(e);

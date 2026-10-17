@@ -223,7 +223,10 @@ public final class ActionServer {
                     return;
                 }
             }
-            ActionResult r = dispatcher.dispatch(body);
+            // M74 P2: a hosted call carries its admitted generation, the only way to reach `propose`
+            ActionResult r = hosted != null && hostedGate != null
+                    ? dispatcher.dispatchHosted(body, hostedGate.generationOf(hosted))
+                    : dispatcher.dispatch(body);
             send(ex, r.ok() ? 200 : 400, r.toJson());
         } catch (RuntimeException e) {
             send(ex, 500, err("server error: " + e.getMessage()));

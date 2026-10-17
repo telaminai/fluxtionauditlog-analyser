@@ -152,7 +152,7 @@ public record LocalAgentPosture(Kind kind, FullMode fullMode) {
 
     /** The pre-allowed verbs of today's schema list, in {@code VerbSchemas} order. */
     public static List<String> preAllowedVerbs() {
-        return preAllowedVerbs(VerbSchemas.all().keySet());
+        return preAllowedVerbs(VerbSchemas.hosted().keySet());
     }
 
     /** The verbs of {@code schemaVerbs} that are on the pre-allow list, in their order; nothing else ever is. */
@@ -170,7 +170,7 @@ public record LocalAgentPosture(Kind kind, FullMode fullMode) {
     }
 
     public static List<String> disallowedVerbs() {
-        return disallowedVerbs(VerbSchemas.all().keySet());
+        return disallowedVerbs(VerbSchemas.hosted().keySet());
     }
 
     /**
@@ -178,7 +178,7 @@ public record LocalAgentPosture(Kind kind, FullMode fullMode) {
      * server level first, which removes only that server's tools (PB-1), then the hidden hosted verbs.
      */
     public List<String> disallowedTools() {
-        return disallowedTools(VerbSchemas.all().keySet());
+        return disallowedTools(VerbSchemas.hosted().keySet());
     }
 
     /** {@code --disallowedTools} for a given schema list. */
@@ -199,7 +199,7 @@ public record LocalAgentPosture(Kind kind, FullMode fullMode) {
 
     /** The hosted tools the model may see in P1b and P2: the pre-allowed verbs, in both postures. */
     public static Set<String> expectedHostedTools() {
-        return expectedHostedTools(VerbSchemas.all().keySet());
+        return expectedHostedTools(VerbSchemas.hosted().keySet());
     }
 
     /** The hosted tools for a given schema list (the tests add a verb to the real inputs through this). */
@@ -211,7 +211,7 @@ public record LocalAgentPosture(Kind kind, FullMode fullMode) {
 
     /** The default posture's {@code system/init.tools}, exactly: the built-ins plus the pre-allowed hosted verbs. */
     public static Set<String> expectedTools() {
-        return expectedTools(VerbSchemas.all().keySet());
+        return expectedTools(VerbSchemas.hosted().keySet());
     }
 
     /** The default posture's expected tool set for a given schema list. */
@@ -259,7 +259,7 @@ public record LocalAgentPosture(Kind kind, FullMode fullMode) {
      */
     public Verdict verdict(String expectedSessionId, String permissionMode, Collection<String> tools,
                            Collection<String> servers, Collection<String> capabilities, String sessionDigest) {
-        return verdict(VerbSchemas.all().keySet(), expectedSessionId, permissionMode, tools, servers, capabilities,
+        return verdict(VerbSchemas.hosted().keySet(), expectedSessionId, permissionMode, tools, servers, capabilities,
                 sessionDigest);
     }
 

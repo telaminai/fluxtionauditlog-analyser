@@ -26,7 +26,11 @@ import java.util.function.BiFunction;
 final class ConversationEditor extends JDialog {
 
     /** A completed live turn's visible words, offered for capture. */
-    record Candidate(String role, String text) {
+    record Candidate(String role, String text, boolean truncated) {
+        Candidate(String role, String text) {
+            this(role, text, false);
+        }
+
         @Override public String toString() {
             String one = text.replace('\n', ' ');
             return ("user".equals(role) ? "You: " : "Assistant: ") + (one.length() > 90 ? one.substring(0, 90) + "…" : one);
@@ -45,6 +49,15 @@ final class ConversationEditor extends JDialog {
     String lastRefusal;
 
     ConversationEditor(Window owner, WalkSpec walk, List<Candidate> candidates,
+                       BiFunction<WalkSpec.Conversation, List<String>, String> save) {
+        this(owner, walk, candidates, null, 0, save);
+    }
+
+    /**
+     * M74 P2b (§6): with the Claude Code conversation as the source of candidates — {@code source} names it (a captured
+     * turn makes the dialogue v2), and {@code leftOut} is how many of its oldest turns were not offered (the limits).
+     */
+    ConversationEditor(Window owner, WalkSpec walk, List<Candidate> candidates, WalkSpec.Source source, int leftOut,
                        BiFunction<WalkSpec.Conversation, List<String>, String> save) {
         super(owner, "Conversation for walk '" + walk.displayTitle() + "'", ModalityType.MODELESS);
         this.walk = walk;
@@ -72,13 +85,18 @@ final class ConversationEditor extends JDialog {
         offer.getAccessibleContext().setAccessibleName("Completed turns of the current chat");
         JButton addCaptured = new JButton("Add selected turns");
         addCaptured.addActionListener(e -> {
-            for (Candidate c : offer.getSelectedValuesList()) draft.addCaptured(c.role(), c.text());
+            if (source != null && !offer.getSelectedValuesList().isEmpty()) draft.setSource(source);
+            for (Candidate c : offer.getSelectedValuesList()) draft.addCaptured(c.role(), c.text(), c.truncated());
             offer.clearSelection();
             refresh();
         });
         JPanel west = new JPanel(new BorderLayout(4, 4));
-        west.add(new JLabel(candidates.isEmpty() ? "No completed turns in the current chat."
-                : "From the current chat (completed turns; none is added until you choose):"), BorderLayout.NORTH);
+        String from = source != null ? "From the Claude Code conversation" : "From the current chat";
+        String limits = leftOut > 0 ? " — " + leftOut + " earlier turn" + (leftOut == 1 ? " is" : "s are")
+                + " not offered (at most 200 turns, 512 KB)" : "";
+        west.add(UiText.label(candidates.isEmpty() ? "No completed turns in " + (source != null
+                ? "the Claude Code conversation." : "the current chat.")
+                : from + " (completed turns; none is added until you choose)" + limits + ":"), BorderLayout.NORTH);
         west.add(new JScrollPane(offer), BorderLayout.CENTER);
         west.add(addCaptured, BorderLayout.SOUTH);
         west.setPreferredSize(new Dimension(320, 300));
@@ -161,6 +179,28 @@ final class ConversationEditor extends JDialog {
         return out;
     }
 
+    /**
+     * M74 P2b (§6): the Claude Code conversation's candidates — only the person's SENT turns and Claude's rendered,
+     * completed answers; never a tool line, a note, a refusal or a compaction summary, and never a trimmed entry (the
+     * node no longer holds it). After §6's limits.
+     */
+    static telamin.fluxtion.audit.analyser.analyser.walk.WalkConversation.Offer localAgentCandidates(
+            telamin.fluxtion.audit.analyser.analyser.session.LocalAgentState state,
+            telamin.fluxtion.audit.analyser.analyser.assistant.localagent.LocalAgentTranscript store) {
+        List<telamin.fluxtion.audit.analyser.analyser.walk.WalkConversation.Candidate> raw = new ArrayList<>();
+        for (var e : state.entries()) {
+            if (telamin.fluxtion.audit.analyser.analyser.session.LocalAgentState.USER.equals(e.kind())) {
+                String t = store.text(e.id());
+                if (t != null && !t.isBlank()) raw.add(new telamin.fluxtion.audit.analyser.analyser.walk.WalkConversation.Candidate("user", t, null));
+            } else if (telamin.fluxtion.audit.analyser.analyser.session.LocalAgentState.ANSWER.equals(e.kind())
+                    && "COMPLETED".equals(e.status())) {
+                String t = store.text(e.id());
+                if (t != null && !t.isBlank()) raw.add(new telamin.fluxtion.audit.analyser.analyser.walk.WalkConversation.Candidate("assistant", t, null));
+            }
+        }
+        return telamin.fluxtion.audit.analyser.analyser.walk.WalkConversation.limit(raw);
+    }
+
     ConversationDraft draft() {
         return draft;
     }
@@ -206,13 +246,15 @@ final class ConversationEditor extends JDialog {
         @Override public int getRowCount() { return draft.lines().size(); }
         @Override public int getColumnCount() { return 4; }
         @Override public String getColumnName(int c) { return new String[]{"id", "who", "source", "words"}[c]; }
+        // §6: a truncated turn is marked in the list
         @Override public boolean isCellEditable(int r, int c) { return c == 3; }
         @Override public Object getValueAt(int r, int c) {
             ConversationDraft.Line l = draft.lines().get(r);
             return switch (c) {
                 case 0 -> "t" + (r + 1);
                 case 1 -> l.role();
-                case 2 -> l.captured() ? (l.edited() ? "captured, edited" : "captured") : "written";
+                case 2 -> (l.captured() ? (l.edited() ? "captured, edited" : "captured") : "written")
+                        + (l.truncated() ? ", truncated" : "");
                 default -> l.text();
             };
         }

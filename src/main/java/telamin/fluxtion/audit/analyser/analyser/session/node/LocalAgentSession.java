@@ -118,6 +118,18 @@ public class LocalAgentSession implements EventLogSource {
     private String armedWhy;
     /** P2 (owner request 2026-10-17): the posture the last consent fact named, for the full-posture cue; null when off. */
     private LocalAgentPosture consentPosture;
+    /** P2b (§5.6 step 1): the set-up directory the person chose, held for this run; null for none. */
+    private String setupDir;
+    /** P2b (§5.2): the diagnostics counts the adapter last reported for this generation. */
+    private int unknownEvents;
+    private int unclassifiedCommands;
+    private int droppedLines;
+    /** P2b (§5.9 per turn): each answered turn's cost and time, by ticket (the last 500). */
+    private Map<Long, LocalAgentState.Turn> turns = new LinkedHashMap<>();
+    /** P2b (§4.5): entries trimmed from this conversation's start. */
+    private int trimmed;
+    /** The node keeps at most this many entries per conversation (§4.5). */
+    public static final int MAX_ENTRIES = 500;
     private LocalAgentState published = LocalAgentState.IDLE;
     private boolean dirty = true;
 
@@ -359,6 +371,8 @@ public class LocalAgentSession implements EventLogSource {
         pendingDraft = 0;
         newChatOffered = false;
         entries = new ArrayList<>();
+        trimmed = 0;
+        turns = new LinkedHashMap<>();
         armedWhy = null;                                 // P2: New chat replaces an armed Start
         verdict = "";
         reason = "a new conversation: it starts with the next Start or Send";
@@ -661,7 +675,14 @@ public class LocalAgentSession implements EventLogSource {
         if (stale(e.generation(), "LocalAgentCostObserved")) return false;
         // total_cost_usd is already the SESSION's running total, and it survives resume: never sum (§4.6). It is also
         // MONOTONE per session — an interrupted turn can report 0 [P0-22], which must not reset the total (review M1)
+        long before = costBySession.getOrDefault(sessionRef, 0L);
         costBySession.merge(sessionRef, Math.max(0, e.totalCostMicros()), Math::max);
+        if (e.ticket() > 0) {
+            // P2b (§5.9): a turn's cost is the difference of successive totals; its time is the result's duration
+            long cost = e.totalCostMicros() >= 0 ? Math.max(0, costBySession.get(sessionRef) - before) : -1;
+            turns.put(e.ticket(), new LocalAgentState.Turn(cost, e.durationMs()));
+            while (turns.size() > MAX_ENTRIES) turns.remove(turns.keySet().iterator().next());
+        }
         return changed();
     }
 
@@ -714,6 +735,113 @@ public class LocalAgentSession implements EventLogSource {
         note("EXITED", reason);
         auditLog.info("localAgentExited", e.code()).info("requested", false);
         return changed();
+    }
+
+    // ---- P2b: onboarding's set-up directory, a project switch, diagnostics (§5.6, §5.3 simplified, §5.2) -----------
+
+    /**
+     * §5.6 step 1: the person chose the set-up directory. A usable one becomes the working directory of the NEXT spawn
+     * (the frame reads it from this node's state); with a process running that is a posture change, answered by New
+     * chat. A refused one is said, and the earlier choice stays.
+     */
+    @OnEventHandler
+    public boolean onSetupDirectoryChosen(SessionEvents.LocalAgentSetupDirectoryChosen e) {
+        if (e.dir() == null) {
+            auditLog.info("localAgentSetupDir", "CANCELLED");
+            return false;
+        }
+        if (e.verdict() != SessionEvents.FolderVerdict.OK) {
+            verdict = e.verdict() == SessionEvents.FolderVerdict.EXPOSES_SECRETS ? "FOLDER_EXPOSES_SECRETS" : "NO_FOLDER";
+            reason = e.verdict() == SessionEvents.FolderVerdict.EXPOSES_SECRETS
+                    ? "that folder reaches credentials (your home folder, a folder containing it, or a settings folder), so "
+                    + "it was not chosen as the set-up folder"
+                    : "that folder cannot be used as the set-up folder";
+            auditLog.info("localAgentSetupDir", verdict);
+            return changed();
+        }
+        setupDir = e.dir();
+        auditLog.info("localAgentSetupDir", "CHOSEN").info("running", running());
+        if (running()) {
+            newChatOffered = true;
+            verdict = "SETUP_DIRECTORY";
+            reason = "the set-up folder takes effect in a new session — press New chat, then Start";
+        } else {
+            verdict = "";
+            reason = "";
+        }
+        return changed();
+    }
+
+    /**
+     * The simplified Move (owner, 2026-10-17): the person's project switch was held while Claude Code runs and the person
+     * chose. STOP_AND_ARM stops the process and arms Start for the new project — nothing starts until Start is pressed,
+     * and the new folder's own confirmation applies then. KEEP keeps it running where it is. CANCEL changes nothing here
+     * ({@code sessionBoundary} drops the switch).
+     */
+    @OnEventHandler
+    public boolean onSwitchChosen(SessionEvents.LocalAgentSwitchChosen e) {
+        auditLog.info("localAgentSwitch", e.choice().name()).info("running", running());
+        switch (e.choice()) {
+            case STOP_AND_ARM -> {
+                if (running()) kill("Claude Code was stopped for the project switch; press Start to begin a session in "
+                        + "the new project");
+                armedWhy = "armed.SWITCH";
+                return changed();
+            }
+            case KEEP -> {
+                if (running()) {
+                    reason = "this session keeps working in its own folder; its context describes the previous project";
+                    note("KEPT", reason);
+                    return changed();
+                }
+                return false;
+            }
+            default -> {
+                return false;
+            }
+        }
+    }
+
+    /**
+     * §5.6 step 7: the analyser's own create in the set-up folder needs no switch offer — the session already works
+     * there. It keeps running (Keep), and New chat is offered to start a session in the project.
+     */
+    @OnEventHandler
+    public boolean onProposalItemApplied(SessionEvents.ProposalItemApplied e) {
+        if (!"create".equals(e.itemId()) || !"APPLIED".equals(e.outcome())) return false;
+        auditLog.info("localAgentProposalCreate", running());
+        if (running()) {
+            newChatOffered = true;
+            reason = "this session started before the project existed — New chat starts a session in the project";
+            note("KEPT", reason);
+        } else {
+            armedWhy = "armed.SETUP";
+        }
+        return changed();
+    }
+
+    /** §5.2: the diagnostics counts, coalesced by the adapter; shown only when one is non-zero. */
+    @OnEventHandler
+    public boolean onDiagnostics(SessionEvents.LocalAgentDiagnostics e) {
+        if (stale(e.generation(), "LocalAgentDiagnostics")) return false;
+        if (e.unknownEvents() == unknownEvents && e.unclassifiedCommands() == unclassifiedCommands
+                && e.droppedLines() == droppedLines) return false;
+        unknownEvents = Math.max(0, e.unknownEvents());
+        unclassifiedCommands = Math.max(0, e.unclassifiedCommands());
+        droppedLines = Math.max(0, e.droppedLines());
+        auditLog.info("localAgentDiagnostics", unknownEvents).info("unclassified", unclassifiedCommands)
+                .info("dropped", droppedLines);
+        return changed();
+    }
+
+    /** The set-up directory, for the frame's working-directory read (it renders this; it decides nothing). */
+    public String setupDirectory() {
+        return setupDir;
+    }
+
+    /** Whether a Claude Code process runs now — what a held project switch is decided on. */
+    public boolean processRunning() {
+        return running();
     }
 
     // ---- P2: drafts from the Ask catalogue, a journey and the start page (§5.5, §8.2) -----------------------------
@@ -911,6 +1039,9 @@ public class LocalAgentSession implements EventLogSource {
         personServerStates = new ArrayList<>();
         personServers = 0;
         hookNotes = new LinkedHashMap<>();
+        unknownEvents = 0;
+        unclassifiedCommands = 0;
+        droppedLines = 0;
         phase = "SPAWNING";
         armedWhy = null;                                 // P2: pressing an armed Start is a Start; the draft stays placed
         bound = false;
@@ -1121,8 +1252,36 @@ public class LocalAgentSession implements EventLogSource {
     }
 
     private boolean changed() {
+        trim();
         dirty = true;
         return true;
+    }
+
+    /**
+     * §4.5 (P2b): at most {@link #MAX_ENTRIES} entries per conversation. The oldest are dropped and ONE note at the start
+     * (not counted) says how many; the hook-note indices move with them. (The transcript store bounds its own words.)
+     */
+    private void trim() {
+        boolean noted = !entries.isEmpty() && "TRIMMED".equals(entries.get(0).status());
+        int from = noted ? 1 : 0;
+        int drop = entries.size() - from - MAX_ENTRIES;      // the note is not counted: 500 entries are kept
+        if (drop <= 0) return;
+        List<LocalAgentState.Entry> kept = new ArrayList<>(entries.subList(from + drop, entries.size()));
+        trimmed += drop;
+        kept.add(0, new LocalAgentState.Entry(0, LocalAgentState.NOTE, 0, "TRIMMED",
+                trimmed + " earlier entries are not shown", 0));
+        int shift = drop + from - 1;          // old index i is now i - shift
+        Map<String, long[]> moved = new LinkedHashMap<>();
+        for (Map.Entry<String, long[]> h : hookNotes.entrySet()) {
+            long at = h.getValue()[0] - shift;
+            if (at >= 1) {
+                h.getValue()[0] = at;
+                moved.put(h.getKey(), h.getValue());
+            }
+        }
+        hookNotes = moved;
+        entries = kept;
+        auditLog.info("localAgentTrimmed", trimmed);
     }
 
     /** The generation whose hosted calls are admitted: bound, and its first turn's posture checked. */
@@ -1136,7 +1295,8 @@ public class LocalAgentSession implements EventLogSource {
             published = new LocalAgentState(mode.mode(), conversation, generation, phase, verdict, reason, openTicket,
                     admittedGeneration(), headerRef, headerRevision, detailRef, stderrRef, bindingElapsedMs, spent(),
                     budgetMicros, costUnderReported, newChatOffered, resumable && sessionId != null, pendingDraft,
-                    entries, answer, posture, personServers, billing, armedWhy, consentPosture);
+                    entries, answer, posture, personServers, billing, armedWhy, consentPosture,
+                    new LocalAgentState.Extra(setupDir, unknownEvents, unclassifiedCommands, droppedLines, turns, trimmed));
             dirty = false;
         }
         return published;

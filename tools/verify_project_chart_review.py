@@ -343,8 +343,8 @@ CASES += [
     # PR #27 review nit 1: only ROOT entries on the list become executable; a basename-only match would
     # make a nested bundle/tools/generate.sh executable
     ('installer-nested-script-not-executable', TEMPLATE_ARCHIVE,
-     "if (portable.indexOf('/') == portable.lastIndexOf('/') && POSIX_EXECUTABLES.contains(base)) {",
-     'if (POSIX_EXECUTABLES.contains(base)) {',
+     "if (executables && portable.indexOf('/') == portable.lastIndexOf('/') && POSIX_EXECUTABLES.contains(base)) {",
+     'if (executables && POSIX_EXECUTABLES.contains(base)) {',
      'TemplateArchiveTest#archiveExecutableClaimIsIgnoredOutsideTheFixedAllowlist'),
     # edit-loop spec §E: without the profile-identity comparison a project recreated at the same path is offered the old session
     ('recovery-profile-identity', SESSION_RECOVERY, '                && !e.profileIdentity().equals(candidate.profileIdentity())) {',

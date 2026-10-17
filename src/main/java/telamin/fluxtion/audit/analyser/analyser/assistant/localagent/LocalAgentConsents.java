@@ -51,7 +51,7 @@ public final class LocalAgentConsents {
         }
         // the one posture function, the adapter's too: it re-digests the folder it is about to use (review M7)
         String postureRef = ClaudeCodeProvider.postureRef(dir, posture);
-        SessionEvents.FolderVerdict folder = LocalAgentFolders.check(dir, home);
+        SessionEvents.FolderVerdict folder = verdictOf(dir, home);
         long budget = s.budgetUsd() == null ? 0 : Math.round(s.budgetUsd() * 1_000_000d);
         return new SessionEvents.LocalAgentConsent(s.allowed(), confirmed,
                 dir != null && bundleWorkingCopy != null && bundleWorkingCopy.test(dir), postureRef, budget, folder,
@@ -65,5 +65,23 @@ public final class LocalAgentConsents {
         } catch (IOException e) {
             return p.toAbsolutePath().normalize().toString();
         }
+    }
+
+    /**
+     * M74 P2b (§5.6 step 1): the set-up folder's verdict — the same folder checks as Start, plus a bundle's working copy,
+     * which is never a set-up folder. An observation for {@code localAgentSession}, which decides.
+     */
+    public static SessionEvents.FolderVerdict setupVerdict(java.nio.file.Path real, java.nio.file.Path home,
+                                                          java.util.function.Predicate<java.nio.file.Path> bundleCopy) {
+        SessionEvents.FolderVerdict v = verdictOf(real, home);
+        if (v == SessionEvents.FolderVerdict.OK && bundleCopy != null && bundleCopy.test(real)) {
+            return SessionEvents.FolderVerdict.EXPOSES_SECRETS;
+        }
+        return v;
+    }
+
+    /** The one folder check (OneDispatchModelTest: it happens here, once). */
+    private static SessionEvents.FolderVerdict verdictOf(Path dir, Path home) {
+        return LocalAgentFolders.check(dir, home);
     }
 }

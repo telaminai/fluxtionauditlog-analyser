@@ -104,8 +104,30 @@ public record WalkSpec(String name, String title, String author, String createdA
     /** Kinds of dialogue: written as a script, captured from a live chat, or captured and then edited. */
     public static final String SCRIPTED = "scripted", RECORDED = "recorded", EDITED_RECORDING = "edited-recording";
 
-    /** The one conversation schema version this build reads and writes. */
+    /** The conversation schema version written for every dialogue without a recorded source (v1, byte-for-byte). */
     public static final int CONVERSATION_VERSION = 1;
+
+    /**
+     * M74 P2b (spec-claude-code-provider.md §6): v2 — written ONLY when the dialogue was recorded from a local agent
+     * ({@code source} set). It adds {@code source} and a turn's {@code truncated}; everything else is v1's.
+     */
+    public static final int CONVERSATION_V2 = 2;
+
+    /** The provider id a v2 source names (§6). */
+    public static final String CLAUDE_CODE_SOURCE = "claude-code";
+
+    /**
+     * Where a v2 recording came from: the provider's id, the model of its turns (the distinct models in order, joined by
+     * ", ", after a {@code /model}), and the CLI version. No session id, machine path, account detail, cost or budget —
+     * ever (the 1.27.0 rule).
+     */
+    public record Source(String kind, String model, String cliVersion) {
+        public Source {
+            kind = kind == null ? "" : kind.trim();
+            model = model == null ? "" : model.trim();
+            cliVersion = cliVersion == null ? "" : cliVersion.trim();
+        }
+    }
 
     /**
      * A walk's dialogue: an ordered list of turns, each attributed by role. It is TESTIMONY, as a caption is: shown beside
@@ -117,15 +139,21 @@ public record WalkSpec(String name, String title, String author, String createdA
      * @param author    who says they wrote or recorded it, as declared; "" when unstated
      * @param turns     the turns, in order; empty for an unsupported version
      */
-    public record Conversation(int version, String kind, String author, List<Turn> turns) {
+    public record Conversation(int version, String kind, String author, List<Turn> turns, Source source) {
         public Conversation {
             kind = kind == null ? "" : kind.trim();
             author = author == null ? "" : author.trim();
             turns = List.copyOf(turns == null ? List.of() : turns);
         }
 
+        /** v1's shape: no recorded source. */
+        public Conversation(int version, String kind, String author, List<Turn> turns) {
+            this(version, kind, author, turns, null);
+        }
+
+        /** Every version this build reads and plays: v1, and v2 (a local-agent recording). */
         public boolean supported() {
-            return version == CONVERSATION_VERSION;
+            return version == CONVERSATION_VERSION || version == CONVERSATION_V2;
         }
 
         /** The index of turn {@code id}, or -1. */
@@ -144,12 +172,19 @@ public record WalkSpec(String name, String title, String author, String createdA
         }
     }
 
-    /** One turn: its stable id, {@code user} or {@code assistant}, and its plain text. */
-    public record Turn(String id, String role, String text) {
+    /**
+     * One turn: its stable id, {@code user} or {@code assistant}, its plain text, and (v2) whether the analyser truncated
+     * it at 16 KB.
+     */
+    public record Turn(String id, String role, String text, boolean truncated) {
         public Turn {
             id = id == null ? "" : id.trim();
             role = role == null ? "" : role.trim();
             text = text == null ? "" : text;
+        }
+
+        public Turn(String id, String role, String text) {
+            this(id, role, text, false);
         }
     }
 

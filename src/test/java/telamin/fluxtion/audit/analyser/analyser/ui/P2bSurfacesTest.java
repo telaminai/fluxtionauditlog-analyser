@@ -1,0 +1,185 @@
+package telamin.fluxtion.audit.analyser.analyser.ui;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue;
+import telamin.fluxtion.audit.analyser.analyser.assistant.PromptPack;
+import telamin.fluxtion.audit.analyser.analyser.assistant.localagent.LocalAgentTranscript;
+import telamin.fluxtion.audit.analyser.analyser.session.AssistantMode;
+import telamin.fluxtion.audit.analyser.analyser.session.LocalAgentState;
+import telamin.fluxtion.audit.analyser.analyser.session.ProposalState;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents;
+import telamin.fluxtion.audit.analyser.analyser.session.StartPageState;
+
+import javax.swing.UIManager;
+import java.awt.Font;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+/**
+ * M74 P2b (§10 P2): the surfaces render the session's decisions — the proposal review and banner, the example row, the
+ * header's carried items, the hero title — and decide nothing. Headless, on the event thread.
+ */
+class P2bSurfacesTest {
+
+    static ProposalState proposal(boolean projectExists, ProposalState.Item... items) {
+        return new ProposalState("p-1", "s", "/work/medmon", projectExists, true, List.of(items),
+                projectExists ? "NONE" : "PENDING", false, "", "", Map.of());
+    }
+
+    static ProposalState.Item item(String id, String kind, ProposalState.ItemState s) {
+        return new ProposalState.Item(id, kind, "path/" + id, null, "REASON " + id, s, "READABLE", "");
+    }
+
+    /** ★ Witness: a review that starts an item at Yes ({@code new JRadioButton("Yes", true)}) — the all-No assertion fails. */
+    @Test
+    @DisplayName("★ the review: every answer starts at No; outside or refused items have no Yes; project items wait for Create")
+    void theReview() throws Exception {
+        StartPromptViewTest.onEdt(() -> {
+            var c = ProposalReviewDialog.content(proposal(false,
+                    item("p-1.1", "sourceRoot", ProposalState.ItemState.PENDING),
+                    item("p-1.2", "graphml", ProposalState.ItemState.PENDING),
+                    item("p-1.3", "runbook", ProposalState.ItemState.OUTSIDE),
+                    item("p-1.4", "logToOpen", ProposalState.ItemState.REFUSED)));
+            assertEquals(List.of("p-1.1", "p-1.2"), new ArrayList<>(c.yes.keySet()), "only applicable items have a Yes");
+            assertTrue(c.yes.values().stream().noneMatch(javax.swing.AbstractButton::isSelected), "every answer starts No");
+            assertFalse(c.createYes.isSelected());
+            assertFalse(c.yes.get("p-1.1").isEnabled(), "a source root needs a project: disabled until Create is chosen");
+            assertTrue(c.yes.get("p-1.2").isEnabled(), "a GraphML opens without one");
+            c.createYes.setSelected(true);
+            assertTrue(c.yes.get("p-1.1").isEnabled());
+            c.yes.get("p-1.1").setSelected(true);
+            assertEquals(new ProposalReviewDialog.Answer(List.of("p-1.1"), true), c.answer());
+            c.yes.get("p-1.1").doClick();
+            assertEquals("REASON p-1.1", c.reason.getText(), "Claude's reason, in its own labelled box");
+            return null;
+        });
+    }
+
+    /** ★ Witness: show the banner whenever a proposal exists — the applied one still shows it. */
+    @Test
+    @DisplayName("★ the banner shows only while something is the person's to answer; its words say nothing was applied")
+    void theBanner() throws Exception {
+        StartPromptViewTest.onEdt(() -> {
+            LocalAgentPanel panel = new LocalAgentPanel(new LocalAgentTranscript());
+            panel.renderProposal(proposal(true, item("p-1.1", "sourceRoot", ProposalState.ItemState.PENDING),
+                    item("p-1.2", "graphml", ProposalState.ItemState.OUTSIDE)));
+            assertTrue(panel.proposalBanner().isVisible());
+            String words = panel.proposalText().getText();
+            assertTrue(words.startsWith("Claude Code proposes 1 change to set up …/medmon"), words);
+            assertTrue(words.contains("1 more shown, which cannot be applied") && words.contains("nothing has been applied"), words);
+            panel.renderProposal(proposal(true, item("p-1.1", "sourceRoot", ProposalState.ItemState.APPLIED)));
+            assertFalse(panel.proposalBanner().isVisible(), "answered: no banner");
+            panel.renderProposal(ProposalState.NONE);
+            assertFalse(panel.proposalBanner().isVisible());
+            return null;
+        });
+    }
+
+    static LocalAgentState withExtra(SessionEvents.Billing billing, LocalAgentState.Extra x) {
+        return new LocalAgentState(AssistantMode.LOCAL_AGENT, 1, 1, "READY", "", "", 0, 1, 0, 0, 0, 0, 0, 0, 0, false,
+                false, false, 0, List.of(), LocalAgentState.Answer.NONE, null, 0, billing, null, null, x);
+    }
+
+    /** ★ Witness: a dollar figure on a Claude plan (drop the API_KEY condition in turnText) — the plan row shows US$. */
+    @Test
+    @DisplayName("★ per turn: the time always, the cost only with an API key — never a dollar figure on a Claude plan")
+    void perTurnText() {
+        var x = new LocalAgentState.Extra(null, 0, 0, 0, Map.of(4L, new LocalAgentState.Turn(30_000, 4_250)), 0);
+        assertEquals("4.3 s · US$0.03", LocalAgentPanel.turnText(withExtra(SessionEvents.Billing.API_KEY, x), 4));
+        assertEquals("4.3 s", LocalAgentPanel.turnText(withExtra(SessionEvents.Billing.SUBSCRIPTION, x), 4));
+        assertNull(LocalAgentPanel.turnText(withExtra(SessionEvents.Billing.API_KEY, x), 5));
+    }
+
+    @Test
+    @DisplayName("the diagnostics line only when a count is non-zero; the endpoint line names the host only")
+    void diagnosticsAndEndpoint() {
+        assertNull(LocalAgentPanel.diagnosticsText(withExtra(SessionEvents.Billing.UNKNOWN, LocalAgentState.Extra.NONE), null));
+        var h = new LocalAgentTranscript.Header("m", "2.1", "", "firstParty", List.of("foo"), "/w", null, List.of(), false,
+                "https://proxy.example:8443");
+        String d = LocalAgentPanel.diagnosticsText(withExtra(SessionEvents.Billing.UNKNOWN,
+                new LocalAgentState.Extra(null, 3, 1, 1, Map.of(), 0)), h);
+        assertEquals("Diagnostics: 3 unknown stream events · 1 command not classified for the analyser (/foo) · 1 line "
+                + "over 16 MB dropped", d);
+        assertEquals("requests go to https://proxy.example:8443",
+                LocalAgentPanel.endpointText(h, withExtra(SessionEvents.Billing.UNKNOWN, LocalAgentState.Extra.NONE)));
+        assertNull(LocalAgentPanel.providerWords("firstParty"), "internal jargon, not shown");
+        assertEquals("bedrock", LocalAgentPanel.providerWords("bedrock"));
+    }
+
+    /** ★ Witness: render an example row as a prompt row (append on choose) — choosing it would change the box. */
+    @Test
+    @DisplayName("★ an example entry shows its download badge; choosing it fetches nothing; only its own button asks")
+    void theExampleRow() throws Exception {
+        String pack = "# DEMO\n\n1. **Breach** — Where did it first breach?\n2. **DEMO example** — example: "
+                + "https://github.com/example/demo/archive/0123456789abcdef0123456789abcdef01234567.zip\n";
+        var parsed = PromptPack.parse(pack.getBytes(StandardCharsets.UTF_8));
+        assertTrue(parsed.ok());
+        List<Integer> downloads = new ArrayList<>();
+        StartPromptViewTest.onEdt(() -> {
+            var view = new StartPromptView(new StartPromptView.Host() {
+                @Override public void press(String entryId, String text) { }
+                @Override public void fallback(AskCatalogue.Fallback f, String entryId, String text) { }
+                @Override public String claudeSearched() { return ""; }
+                @Override public PromptPack.Pack pack(long ref) { return parsed.pack(); }
+                @Override public void downloadExample(int entryIndex) { downloads.add(entryIndex); }
+            });
+            view.render(new StartPageState(StartPageState.Route.CLAUDE_CODE, false, null, "", 0, 7, null, 0),
+                    LocalAgentState.IDLE);
+            var row = view.promptList().getModel().getElementAt(1);
+            assertTrue(row.label().startsWith(StartPromptView.DOWNLOAD_BADGE + " "), row.label());
+            view.choose(1);
+            assertEquals("", view.box().getText(), "choosing appends nothing");
+            assertTrue(downloads.isEmpty(), "choosing fetches nothing");
+            assertEquals(AskCatalogue.text("example.verb"), view.actionButton().getText());
+            assertTrue(view.chipLabel().getText().contains("DEMO example"));
+            view.actionButton().doClick();
+            assertEquals(List.of(1), downloads, "the entry's own button, once");
+            return null;
+        });
+    }
+
+    /** ★ Witness: style the title once at construction (no recolour entry) — after a look-and-feel change it is plain. */
+    @Test
+    @DisplayName("★ the hero title is bold and 5 pt larger in every theme, including after the look and feel is applied")
+    void heroTitleIsConsistent() throws Exception {
+        StartPanel[] holder = new StartPanel[1];
+        StartPromptViewTest.onEdt(() -> {
+            holder[0] = new StartPanel(new StartPanel.Actions() {
+                public void openDemo(java.nio.file.Path p, boolean graph) { }
+                public void showTab(String n) { }
+                public void openOwnLog() { }
+                public void openSettings() { }
+                public void openMcpSetup(McpSetupDialog.Target t) { }
+                public void openFluxtionKey() { }
+                public boolean fluxtionKeyPresent() { return false; }
+                public void backToRecords() { }
+            }, s -> { });
+            javax.swing.SwingUtilities.updateComponentTreeUI(holder[0]);   // what applying FlatLaf after construction does
+            return null;
+        });
+        StartPromptViewTest.onEdt(() -> null);                     // the queued recolour
+        StartPromptViewTest.onEdt(() -> {
+            Font f = holder[0].heroTitle().getFont();
+            Font label = UIManager.getFont("Label.font");
+            assertTrue(f.isBold(), "bold: " + f);
+            assertEquals(label.getSize2D() + 5f, f.getSize2D(), 0.01f, "5 pt larger than the label font");
+            return null;
+        });
+        assertTrue(StartPanelTextHolder.dropLine().contains("a prompt pack (.md)"));
+    }
+
+    /** The hero's drop line, as shipped. */
+    static final class StartPanelTextHolder {
+        static String dropLine() throws Exception {
+            String src = java.nio.file.Files.readString(java.nio.file.Path.of(
+                    "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/StartPanel.java"));
+            int at = src.indexOf("Drop an .fexp bundle");
+            return src.substring(at, at + 200);
+        }
+    }
+}

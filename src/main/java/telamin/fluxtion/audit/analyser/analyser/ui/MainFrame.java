@@ -150,6 +150,27 @@ public final class MainFrame extends JFrame {
     private long localAgentDraftCleared;
     /** The analyser's own private, empty working directory for a session with no project (§4.3), made on first use. */
     private Path localAgentScratch;
+    /** M74 P2b: the hosted propose calls' request counter, and the fetched example archives (never in a fact). */
+    private long proposalRequest;
+    private final java.util.Map<Long, byte[]> exampleBytes = new java.util.concurrent.ConcurrentHashMap<>();
+    private final java.util.concurrent.atomic.AtomicLong exampleBytesRef = new java.util.concurrent.atomic.AtomicLong();
+    private long exampleRequest;
+    /** Read at each fetch, so a frame test can put a recording transport in (no network in a test). */
+    telamin.fluxtion.audit.analyser.analyser.assistant.ExampleArchiveClient exampleClient =
+            telamin.fluxtion.audit.analyser.analyser.assistant.ExampleArchiveClient.https();
+    /**
+     * The confirmation, replaceable so a frame test can answer it (the real one is a modal option pane, which a test
+     * cannot drive — as {@link #walkNamePrompt}): the source, third-party, the suggested folder → the folder, or null.
+     */
+    ExampleConfirm exampleConfirm = (source, thirdParty, suggested) ->
+            ExampleDownloadDialog.ask(this, source, thirdParty, suggested);
+    /** The M73 project offer for an unpacked example; replaceable for the same reason. */
+    java.util.function.Consumer<Path> exampleProjectOffer = this::createProjectAt;
+
+    @FunctionalInterface
+    interface ExampleConfirm {
+        Path ask(telamin.fluxtion.audit.analyser.analyser.assistant.ExampleSource source, boolean thirdParty, Path suggested);
+    }
     private final GraphTabs graphTabs = new GraphTabs();
     private ReportsPanel reportsPanel;   // constructed in the ctor once its collaborators exist
     private final TopologyPanel topologyPanel = new TopologyPanel();
@@ -3112,9 +3133,25 @@ public final class MainFrame extends JFrame {
     void openConversationEditor(String name) {
         var walk = telamin.fluxtion.audit.analyser.analyser.config.WalkBin.find(config.walks, name);
         if (walk == null) return;
-        var offered = ConversationEditor.candidates(sessionSnapshot().assistant(), assistantTranscript);
-        ConversationEditor editor = new ConversationEditor(this, walk, offered,
-                (dialogue, through) -> walkAuthoring.setConversation(name, dialogue, through));
+        // M74 P2b (§6): the candidates come from the assistant in force — the Claude Code conversation in its mode
+        var agent = sessionSnapshot().localAgent();
+        ConversationEditor editor;
+        if (agent.mode() == telamin.fluxtion.audit.analyser.analyser.session.AssistantMode.LOCAL_AGENT) {
+            var offer = ConversationEditor.localAgentCandidates(agent, localAgentStore);
+            var header = agent.headerRef() == 0 ? null : localAgentStore.header(agent.headerRef());
+            var source = new telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec.Source(
+                    telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec.CLAUDE_CODE_SOURCE,
+                    header == null ? "" : header.model() != null ? header.model() : header.configuredModel(),
+                    header == null ? "" : header.cliVersion());
+            List<ConversationEditor.Candidate> offered = new java.util.ArrayList<>();
+            for (var t : offer.turns()) offered.add(new ConversationEditor.Candidate(t.role(), t.text(), t.truncated()));
+            editor = new ConversationEditor(this, walk, offered, source, offer.leftOut(),
+                    (dialogue, through) -> walkAuthoring.setConversation(name, dialogue, through));
+        } else {
+            var offered = ConversationEditor.candidates(sessionSnapshot().assistant(), assistantTranscript);
+            editor = new ConversationEditor(this, walk, offered,
+                    (dialogue, through) -> walkAuthoring.setConversation(name, dialogue, through));
+        }
         lastConversationEditor = editor;
         editor.setVisible(true);
     }
@@ -4544,6 +4581,7 @@ public final class MainFrame extends JFrame {
             @Override public void returnToMainOptions() {
                 session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ReturnToMainOptions("start page"));
             }
+            @Override public void downloadExample(int entryIndex) { MainFrame.this.downloadExample(entryIndex); }
             @Override public boolean fluxtionKeyPresent() { return fluxtionKeyStore.keyPresent(); }
             @Override public void backToRecords() { syncRecordsCard(); }
             @Override public void openProjectDesign() { chooseDesignFile(false); }
@@ -4925,6 +4963,12 @@ public final class MainFrame extends JFrame {
             @Override public void openSettings() {
                 ConfigPanel.show(MainFrame.this, config, MainFrame.this::onConfigChanged, MainFrame.this::readerSummaries);
             }
+            // M74 P2b (§5.6): the banner and the set-up button are the person's acts, reported as facts
+            @Override public void reviewProposal(String proposalId) { MainFrame.this.reviewProposal(proposalId); }
+            @Override public void dismissProposal(String proposalId) {
+                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProposalDismissed(proposalId));
+            }
+            @Override public void setUpProject() { pressStartPrompt("S2", ""); }
         });
     }
 
@@ -4941,6 +4985,10 @@ public final class MainFrame extends JFrame {
      * private empty scratch directory (never the home directory, which holds credentials and the endpoint files).
      */
     private Path localAgentDirectory() {
+        // M74 P2b (§5.6 step 1): the set-up folder the person chose, held by localAgentSession for this run — rendered
+        // from its state, never decided here
+        String setup = session == null ? null : sessionSnapshot().localAgent().extra().setupDir();
+        if (setup != null) return Path.of(setup);
         // OD-74.22: the sample project and a bundle's working copy are the analyser's own folders, never one Claude Code
         // is started in — the session works in the scratch folder instead and reads the evidence through the verbs
         return telamin.fluxtion.audit.analyser.analyser.assistant.localagent.LocalAgentFolders.workingDirectory(
@@ -5271,6 +5319,7 @@ public final class MainFrame extends JFrame {
             localAgentPanel.draftAccepted();
         }
         localAgentPanel.render(agent);
+        localAgentPanel.renderProposal(next.proposal());
         renderFullPostureMarkers(agent);
         renderStartPrompt(next);
     }
@@ -5367,6 +5416,8 @@ public final class MainFrame extends JFrame {
             // M74 r6 §4.2: a hosted credential maps to its generation; the session decides, on its thread, whether a
             // call is admitted (review M6)
             actionServer.setHostedGate(hostedCredentials.gate(hostedAdmission::admit));
+            // M74 P2b (§5.6): the hosted credential alone may reach `propose`; the offer is the session's to record
+            d.setProposer(this::proposeFromHosted);
             actionServer.start();
             restUrl = actionServer.url();
             restToken = actionToken;
@@ -8185,6 +8236,9 @@ public final class MainFrame extends JFrame {
                 // fact was then about the wrong project (found by review, 2026-09-29). The render is reported
                 // as the separate thing it is.
                 renderAfterTheRealWorkIsDone("applyProfile");
+                // M74 P2b (§6): a walk binding dropped on load is said, not hidden
+                var dropped = telamin.fluxtion.audit.analyser.analyser.config.ConfigStore.takeBindingNotes();
+                if (!dropped.isEmpty()) SwingUtilities.invokeLater(() -> status.setText(String.join("; ", dropped)));
                 yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileApplied(
                         opId, e.profilePath(), e.name());
             }
@@ -8365,6 +8419,23 @@ public final class MainFrame extends JFrame {
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ServeHostedBridgeEffect e -> serveHostedBridge(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ReleaseHostedBridgeEffect e -> releaseHostedBridge(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.AnswerHostedCallEffect e -> hostedAdmission.answer(e);
+            // M74 P2b: onboarding, the switch offer and an example's download — the nodes decided; the frame performs
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.PreviewProposalEffect e -> previewProposal(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ApplyProposalItemEffect e -> applyProposalItem(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.CheckProposalOutcomeEffect e -> checkProposal(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.OfferLocalAgentSwitchEffect e -> offerLocalAgentSwitch(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ConfirmExampleDownloadEffect e -> confirmExample(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.FetchExampleEffect e -> fetchExample(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.UnpackExampleEffect e -> unpackExample(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.DiscardExampleBytesEffect e -> {
+                exampleBytes.remove(e.bytesRef());
+                yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExampleEffectStarted(e.opId(), e.request(), "discard");
+            }
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.OfferExampleProjectEffect e -> {
+                Path root = Path.of(e.root());
+                SwingUtilities.invokeLater(() -> exampleProjectOffer.accept(root));   // M73's offer: the person confirms
+                yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExampleEffectStarted(e.opId(), e.request(), "offer");
+            }
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ShowStatusEffect e -> {
                 status.setText(e.text());
                 yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StatusShown(
@@ -10303,6 +10374,11 @@ public final class MainFrame extends JFrame {
                         walkRunBasisNow(),
                         project.hasProject() ? "project" : "own settings");
                 if (walks != null) out.put("walks", walks);
+                // M74 P2b (§5.6): the onboarding proposal, rendered from onboardingProposal — ids, kinds, states and the
+                // analyser's verdicts only, never Claude's reasons
+                if (session != null && sessionSnapshot().proposal().exists()) {
+                    out.put("proposals", sessionSnapshot().proposal().contextRows());
+                }
                 // evidence bundle capture, rendered from the session's decision (evidenceCapture), never composed here
                 var capture = session == null ? null : sessionSnapshot().capture();
                 if (capture != null && !"IDLE".equals(capture.phase())) {
@@ -11179,7 +11255,10 @@ public final class MainFrame extends JFrame {
     // ---- the start page's prompt (§5.8) -------------------------------------------------------------------------------
 
     private void renderStartPrompt(telamin.fluxtion.audit.analyser.analyser.session.SessionSnapshot next) {
-        if (startPanel != null) startPanel.renderPrompt(next.startPage(), next.localAgent());
+        if (startPanel != null) {
+            startPanel.renderPrompt(next.startPage(), next.localAgent());
+            startPanel.renderExample(next.example());
+        }
         checkStartFlow(next);
     }
 
@@ -11312,6 +11391,299 @@ public final class MainFrame extends JFrame {
         if (error != null) status.setText("Could not play the DEMO journey: " + error);
     }
 
+    // ---- M74 P2b: propose onboarding (§5.6) — the session decides; the frame observes, asks and performs ---------------
+
+    /**
+     * The dispatcher's {@code propose} case, for an admitted hosted call (HTTP thread): the shape passed; the offer is
+     * posted as a fact on the session's thread, and the node's answer is what the verb returns. Nothing is applied.
+     */
+    private telamin.fluxtion.audit.analyser.analyser.llm.ActionResult proposeFromHosted(long generation,
+            telamin.fluxtion.audit.analyser.analyser.llm.ProposeShape.Call call) {
+        java.util.concurrent.atomic.AtomicReference<telamin.fluxtion.audit.analyser.analyser.llm.ActionResult> out =
+                new java.util.concurrent.atomic.AtomicReference<>();
+        Runnable r = () -> {
+            if (session == null) {
+                out.set(telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("unknown verb 'propose'"));
+                return;
+            }
+            long request = ++proposalRequest;
+            java.util.List<telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProposalItemFact> items =
+                    new java.util.ArrayList<>();
+            for (var i : call.items()) {
+                items.add(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProposalItemFact(i.kind(),
+                        i.path(), i.className(), i.reason(), i.tooLong(), i.classNameMalformed()));
+            }
+            session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProposalReceived(request,
+                    generation, call.summary(), items));
+            out.set(proposeAnswer(sessionSnapshot().proposal(), request));
+        };
+        try {
+            if (SwingUtilities.isEventDispatchThread()) r.run();
+            else SwingUtilities.invokeAndWait(r);
+        } catch (Exception e) {
+            return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("propose failed: " + rootMessage(e));
+        }
+        return out.get();
+    }
+
+    /** The verb's reply from the node's answer: the offer's id and each item's state, and that nothing was applied. */
+    static telamin.fluxtion.audit.analyser.analyser.llm.ActionResult proposeAnswer(
+            telamin.fluxtion.audit.analyser.analyser.session.ProposalState p, long request) {
+        var a = p.answers().get(request);
+        if (a == null) return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("propose: no answer");
+        if (!a.accepted()) return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(a.refusal());
+        Map<String, Object> payload = new java.util.LinkedHashMap<>();
+        payload.put("proposalId", a.proposalId());
+        java.util.List<Map<String, Object>> items = new java.util.ArrayList<>();
+        for (var i : p.items()) {
+            Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("id", i.id());
+            m.put("kind", i.kind());
+            m.put("state", i.state() == telamin.fluxtion.audit.analyser.analyser.session.ProposalState.ItemState.CHECKING
+                    ? "pending" : i.state().name().toLowerCase(java.util.Locale.ROOT));
+            if (!i.why().isBlank()) m.put("why", i.why());
+            items.add(m);
+        }
+        payload.put("items", items);
+        payload.put("next", "the person reviews each item in the analyser; call analyser_context to see outcomes — "
+                + "nothing has been applied");
+        return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("propose", "proposal", payload);
+    }
+
+    /** PreviewProposalEffect: §5.6 step 5 — the analyser's own read-only checks, off the event thread. */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result previewProposal(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.PreviewProposalEffect e) {
+        Path dir = localAgentDirectory();
+        Background.run(() -> ProposalPreview.check(dir, e.items(), fqn -> sourceService.sourceForFqn(fqn).isPresent()),
+                checked -> {
+                    for (var c : checked) session().post(c.withProposal(e.proposalId()));
+                    boolean exists = dir != null && Files.exists(
+                            telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.pathFor(dir));
+                    session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProposalPreviewDone(
+                            e.proposalId(), dir == null ? null : dir.toString(), exists));
+                },
+                err -> session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProposalPreviewDone(
+                        e.proposalId(), dir == null ? null : dir.toString(), false)));
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProposalEffectStarted(e.opId(),
+                e.proposalId(), "preview");
+    }
+
+    /**
+     * ApplyProposalItemEffect: §5.6 step 6 — ONE item through the person's own path for its kind, with person origin,
+     * outside the dispatch; its outcome is a fact, and the node asks for the next.
+     */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result applyProposalItem(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ApplyProposalItemEffect e) {
+        SwingUtilities.invokeLater(() -> {
+            String[] outcome = applyProposalItemNow(e.item(), e.setupDir());
+            session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProposalItemApplied(0L,
+                    e.proposalId(), e.item().itemId(), outcome[0], outcome[1]));
+        });
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProposalEffectStarted(e.opId(),
+                e.proposalId(), "apply:" + e.item().itemId());
+    }
+
+    /** The person's path per kind (one home each); {outcome, why}. */
+    private String[] applyProposalItemNow(telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ProposalItemRef item,
+                                          String setupDir) {
+        try {
+            Path base = setupDir == null ? null : Path.of(setupDir);
+            Path at = item.path() == null || base == null ? null : base.resolve(item.path()).normalize();
+            switch (item.kind()) {
+                case "createProject" -> {
+                    // M73's person path: an EMPTY project in the set-up folder — one write, never overwriting
+                    Path root = CreateProjectObservation.realDir(base);
+                    var offer = NewProjectDiscovery.discover(root);
+                    var request = new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CreateRequest(
+                            CreateProjectObservation.facts(root, offer, config),
+                            telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CreateSelection.empty());
+                    boolean ok = requestProject(telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.pathFor(root),
+                            telamin.fluxtion.audit.analyser.analyser.session.TransitionKind.CREATE, "proposal", true, request)
+                            && sessionCreated != null;
+                    return ok ? new String[]{"APPLIED", ""} : new String[]{"FAILED",
+                            sessionProblem == null ? "the project was not created" : sessionProblem};
+                }
+                case "sourceRoot" -> {
+                    // Settings ▸ Sources' add: the root, then the profile save the dialog performs
+                    if (at == null || !Files.isDirectory(at)) return new String[]{"REFUSED", "not a directory"};
+                    String canonical = at.toAbsolutePath().normalize().toString();
+                    if (!config.sourceRoots.contains(canonical)) config.sourceRoots.add(canonical);
+                    onConfigChanged();
+                    inferAndPopulateSource();
+                    return new String[]{"APPLIED", ""};
+                }
+                case "processor" -> {
+                    String fqn = item.className() != null ? item.className() : ProposalPreview.fqnOf(at);
+                    if (fqn == null) return new String[]{"REFUSED", "the processor's class name could not be read"};
+                    var r = actionControl.selectProcessor(fqn);      // the Project panel's own processor choice
+                    refreshProjectPanel();
+                    return r.ok() ? new String[]{"APPLIED", ""} : new String[]{"REFUSED", r.error()};
+                }
+                case "runbook" -> {
+                    Path root = projectRoot();
+                    if (root == null || at == null) return new String[]{"REFUSED", "there is no project to add it to"};
+                    var refused = PointerDialog.addRunbookPointer(config, root, at);
+                    if (refused.isPresent()) return new String[]{"REFUSED", refused.get()};
+                    onProfileEdited();
+                    return new String[]{"APPLIED", ""};
+                }
+                case "graphml" -> {
+                    openGraphml(at.toString());
+                    return new String[]{"APPLIED", ""};
+                }
+                case "logToOpen" -> {
+                    openFile(at);                                    // Open log…'s path: a person's open
+                    return new String[]{"APPLIED", ""};
+                }
+                default -> {
+                    return new String[]{"REFUSED", "unknown kind"};
+                }
+            }
+        } catch (RuntimeException ex) {
+            return new String[]{"FAILED", rootMessage(ex)};
+        }
+    }
+
+    /** CheckProposalOutcomeEffect: §5.6 step 8 — the analyser's own verdicts after the last item. */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result checkProposal(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.CheckProposalOutcomeEffect e) {
+        var snap = sessionSnapshot();
+        var pairing = snap.publishedPairing();
+        String verdict = pairing == null ? "UNKNOWN" : pairing.auditLabel();
+        String fit = !snap.graphOpen() || !snap.logOpen() ? "UNKNOWN" : verdict;
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProposalChecked(e.opId(),
+                e.proposalId(), verdict, fit);
+    }
+
+    /** The banner's Review…: the review dialog, rendering the node's state; Apply chosen posts the person's answers. */
+    private void reviewProposal(String proposalId) {
+        var p = sessionSnapshot().proposal();
+        if (!proposalId.equals(p.id())) return;
+        var answer = ProposalReviewDialog.show(SwingUtilities.getWindowAncestor(localAgentPanel), p);
+        if (answer == null) return;                 // closed: nothing answered, the banner stays
+        session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProposalApplyRequested(
+                proposalId, answer.yes(), answer.createProject()));
+    }
+
+    /**
+     * §5.6 step 1 (S2 toward Claude Code): the person's chooser for the set-up folder, the folder checks as for Start;
+     * the choice is a fact for localAgentSession, then the flow's end for the start page.
+     */
+    private void chooseSetupDirectory(long request) {
+        JFileChooser fc = new JFileChooser();
+        fc.setDialogTitle("Set up a project with Claude — choose your code's folder");
+        fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+        if (fc.showOpenDialog(this) != JFileChooser.APPROVE_OPTION) {
+            session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentSetupDirectoryChosen(
+                    request, null, null));
+            session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StartPageFlowDone(request,
+                    telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FlowOutcome.CANCELLED, 0, 0, 0));
+            return;
+        }
+        Path dir = fc.getSelectedFile().toPath();
+        String real = realPathOf(dir);
+        var verdict = telamin.fluxtion.audit.analyser.analyser.assistant.localagent.LocalAgentConsents.setupVerdict(
+                Path.of(real), Path.of(System.getProperty("user.home")),
+                telamin.fluxtion.audit.analyser.bundle.EvidenceBundle::isWorkingCopy);
+        session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentSetupDirectoryChosen(
+                request, real, verdict));
+        session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StartPageFlowDone(request,
+                verdict == telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FolderVerdict.OK
+                        ? telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FlowOutcome.DONE
+                        : telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FlowOutcome.REFUSED, 0, 0, 0));
+        // the consent the next Start is judged under now names the set-up folder
+        session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentConsentChanged(
+                localAgentConsent()));
+    }
+
+    // ---- M74 P2b: a project switch while Claude Code runs (the simplified Move) ---------------------------------------
+
+    static final String SWITCH_STOP = "Stop, and get Start ready in the new project";
+    static final String SWITCH_KEEP = "Keep it running here";
+    static final String SWITCH_CANCEL = "Cancel";
+
+    /** OfferLocalAgentSwitchEffect: the person's own switch was held; ask, outside the dispatch, and report the choice. */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result offerLocalAgentSwitch(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.OfferLocalAgentSwitchEffect e) {
+        SwingUtilities.invokeLater(() -> {
+            var choice = LocalAgentSwitchDialog.ask(this, e.currentName(), e.targetName());
+            session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentSwitchChosen(
+                    e.request(), choice));
+        });
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentEffectStarted(e.opId(), 0,
+                "offerSwitch");
+    }
+
+    // ---- M74 P2b: a prompt pack's example entry -----------------------------------------------------------------------
+
+    /** The entry's own Download button: the person's act, as a fact; the node decides every step from here. */
+    private void downloadExample(int entryIndex) {
+        long ref = sessionSnapshot().startPage().packRef();
+        var pack = ref == 0 ? null : promptPacks.get(ref);
+        if (pack == null || entryIndex < 0 || entryIndex >= pack.entries().size()) return;
+        var entry = pack.entries().get(entryIndex);
+        if (!entry.isExample()) return;
+        session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExampleDownloadRequested(
+                ++exampleRequest, ref, entryIndex, entry.example()));
+    }
+
+    /** ConfirmExampleDownloadEffect: the confirmation, outside the dispatch; the answer and the folder are a fact. */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result confirmExample(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ConfirmExampleDownloadEffect e) {
+        SwingUtilities.invokeLater(() -> {
+            Path suggested = Path.of(System.getProperty("user.home"), e.source().repo() + "-" + e.source().shortCommit());
+            Path target = exampleConfirm.ask(e.source(), e.thirdParty(), suggested);
+            if (target == null) {
+                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExampleDownloadConfirmed(
+                        e.request(), false, null, null));
+                return;
+            }
+            Path abs = target.toAbsolutePath().normalize();
+            session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExampleDownloadConfirmed(
+                    e.request(), true, abs.toString(), ExampleDownloadDialog.targetProblem(abs)));
+        });
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExampleEffectStarted(e.opId(), e.request(), "confirm");
+    }
+
+    /** FetchExampleEffect: https, allowed hosts, pinned commit, capped — off the event thread; its digest is a fact. */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result fetchExample(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.FetchExampleEffect e) {
+        var parsed = telamin.fluxtion.audit.analyser.analyser.assistant.ExampleSource.parse(e.url(), null);
+        var client = exampleClient;
+        Background.run(() -> client.fetch(parsed.source(), e.maxBytes()), fetched -> {
+            if (fetched.ok()) {
+                long ref = exampleBytesRef.incrementAndGet();
+                exampleBytes.put(ref, fetched.bytes());
+                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExampleFetched(
+                        e.request(), true, ref, fetched.sha256(), fetched.bytes().length, null));
+            } else {
+                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExampleFetched(
+                        e.request(), false, 0, null, 0, fetched.failure()));
+            }
+        }, err -> session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExampleFetched(
+                e.request(), false, 0, null, 0, rootMessage(err))));
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExampleEffectStarted(e.opId(), e.request(), "fetch");
+    }
+
+    /** UnpackExampleEffect: TemplateArchive's containment checks and caps, no executable bits — nothing built or run. */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result unpackExample(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.UnpackExampleEffect e) {
+        byte[] bytes = exampleBytes.get(e.bytesRef());
+        Path target = Path.of(e.targetDir());
+        Background.run(() -> {
+            if (bytes == null) throw new IllegalStateException("the downloaded archive is no longer held");
+            try {
+                return telamin.fluxtion.audit.analyser.analyser.template.TemplateArchive.forExamples().install(bytes, target);
+            } catch (java.io.IOException ex) {
+                throw new java.io.UncheckedIOException(ex);
+            }
+        }, installed -> session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExampleUnpacked(
+                e.request(), true, installed.projectRoot().toString(), null)),
+                err -> session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExampleUnpacked(
+                        e.request(), false, null, rootMessage(err))));
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExampleEffectStarted(e.opId(), e.request(), "unpack");
+    }
+
     /** RunStartPageFlowEffect: the person's own flow — outside the dispatch, because it opens a chooser. */
     private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result runStartPageFlow(
             telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.RunStartPageFlowEffect e) {
@@ -11323,6 +11695,8 @@ public final class MainFrame extends JFrame {
                 }
                 chooseAndCreateProject();
             });
+            case telamin.fluxtion.audit.analyser.analyser.session.node.StartPagePrompt.SETUP_FLOW ->
+                    SwingUtilities.invokeLater(() -> chooseSetupDirectory(request));
             case "S3" -> SwingUtilities.invokeLater(() -> startPageBundleFlow(request));
             case "S4" -> {
                 // r8 F10: the catalogue is fetched HERE, at the button, once — never on choose

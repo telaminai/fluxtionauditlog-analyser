@@ -19,16 +19,22 @@ import java.util.List;
 public final class ConversationDraft {
 
     /** One turn in the draft: where it came from and whether its words were changed after capture. */
-    public record Line(String role, String text, boolean captured, boolean edited) {
+    public record Line(String role, String text, boolean captured, boolean edited, boolean truncated) {
         public Line {
             role = role == null ? "user" : role;
             text = text == null ? "" : text;
+        }
+
+        public Line(String role, String text, boolean captured, boolean edited) {
+            this(role, text, captured, edited, false);
         }
     }
 
     private final List<Line> lines = new ArrayList<>();
     private final List<String> through = new ArrayList<>();
     private String author = "";
+    /** M74 P2b (§6): the local agent a recording came from — set, the dialogue is saved as v2; null keeps v1. */
+    private WalkSpec.Source source;
 
     /** A draft for a walk of {@code steps} steps, starting from its saved dialogue (or none). */
     public ConversationDraft(WalkSpec walk) {
@@ -36,9 +42,10 @@ public final class ConversationDraft {
         if (c != null && c.supported()) {
             boolean captured = !WalkSpec.SCRIPTED.equals(c.kind());
             for (WalkSpec.Turn t : c.turns()) {
-                lines.add(new Line(t.role(), t.text(), captured, WalkSpec.EDITED_RECORDING.equals(c.kind())));
+                lines.add(new Line(t.role(), t.text(), captured, WalkSpec.EDITED_RECORDING.equals(c.kind()), t.truncated()));
             }
             author = c.author();
+            source = c.source();
         }
         for (WalkSpec.Step s : walk.steps()) {
             int at = c == null || s.through() == null ? -1 : c.indexOf(s.through());
@@ -55,6 +62,23 @@ public final class ConversationDraft {
         lines.add(new Line(role, text, true, false));
     }
 
+    /** M74 P2b (§6): a captured local-agent turn, marked when the analyser truncated it at 16 KB. */
+    public void addCaptured(String role, String text, boolean truncated) {
+        lines.add(new Line(role, text, true, false, truncated));
+    }
+
+    /**
+     * M74 P2b (§6): the recording's source — the provider, the model(s), the CLI version. Set when a local-agent turn is
+     * captured; with it the dialogue is v2. Nothing else about the session is ever kept.
+     */
+    public void setSource(WalkSpec.Source source) {
+        this.source = source;
+    }
+
+    public WalkSpec.Source source() {
+        return source;
+    }
+
     /** Add a written (simulated) turn. */
     public void addWritten(String role, String text) {
         lines.add(new Line(role, text, false, false));
@@ -64,7 +88,7 @@ public final class ConversationDraft {
     public void edit(int index, String text) {
         Line l = lines.get(index);
         if (l.text().equals(text)) return;
-        lines.set(index, new Line(l.role(), text, l.captured(), l.captured() || l.edited()));
+        lines.set(index, new Line(l.role(), text, l.captured(), l.captured() || l.edited(), l.truncated()));
     }
 
     /** Remove a turn; any step that revealed up to it now reveals up to the one before it. */
@@ -107,8 +131,13 @@ public final class ConversationDraft {
     public WalkSpec.Conversation conversation() {
         if (lines.isEmpty()) return null;
         List<WalkSpec.Turn> turns = new ArrayList<>();
-        for (int i = 0; i < lines.size(); i++) turns.add(new WalkSpec.Turn("t" + (i + 1), lines.get(i).role(), lines.get(i).text()));
-        return new WalkSpec.Conversation(WalkSpec.CONVERSATION_VERSION, kind(), author, turns);
+        boolean v2 = source != null;
+        for (int i = 0; i < lines.size(); i++) {
+            turns.add(new WalkSpec.Turn("t" + (i + 1), lines.get(i).role(), lines.get(i).text(), v2 && lines.get(i).truncated()));
+        }
+        // §6: v2 ONLY with a source; every other dialogue stays v1, byte-for-byte
+        return v2 ? new WalkSpec.Conversation(WalkSpec.CONVERSATION_V2, kind(), author, turns, source)
+                : new WalkSpec.Conversation(WalkSpec.CONVERSATION_VERSION, kind(), author, turns);
     }
 
     /**

@@ -52,18 +52,33 @@ public final class TemplateArchive {
     private final int maxEntries;
     private final long maxEntryBytes;
     private final long maxExpandedBytes;
+    /** False for a downloaded example (M74 P2b): no file becomes executable, not even a named root script. */
+    private final boolean executables;
 
     public TemplateArchive() {
         this(MAX_ENTRIES, MAX_ENTRY_BYTES, MAX_EXPANDED_BYTES);
     }
 
+    /**
+     * M74 P2b: the same fail-closed boundary for a prompt pack's example archive — every containment check and cap, and
+     * NO executable bit on any file: an example is unpacked to be read and offered as a project, never to be run.
+     */
+    public static TemplateArchive forExamples() {
+        return new TemplateArchive(MAX_ENTRIES, MAX_ENTRY_BYTES, MAX_EXPANDED_BYTES, false);
+    }
+
     TemplateArchive(int maxEntries, long maxEntryBytes, long maxExpandedBytes) {
+        this(maxEntries, maxEntryBytes, maxExpandedBytes, true);
+    }
+
+    TemplateArchive(int maxEntries, long maxEntryBytes, long maxExpandedBytes, boolean executables) {
         if (maxEntries < 1 || maxEntryBytes < 1 || maxExpandedBytes < 1) {
             throw new IllegalArgumentException("archive limits must be positive");
         }
         this.maxEntries = maxEntries;
         this.maxEntryBytes = maxEntryBytes;
         this.maxExpandedBytes = maxExpandedBytes;
+        this.executables = executables;
     }
 
     /**
@@ -156,7 +171,7 @@ public final class TemplateArchive {
                         out.write(buffer, 0, read);
                     }
                 }
-                setFixedPermissions(output, entry.getName());
+                setFixedPermissions(output, entry.getName(), executables);
                 input.closeEntry();
             }
         }
@@ -268,7 +283,7 @@ public final class TemplateArchive {
         return Files.isRegularFile(root.resolve(file), LinkOption.NOFOLLOW_LINKS);
     }
 
-    private static void setFixedPermissions(Path file, String archiveName) throws IOException {
+    private static void setFixedPermissions(Path file, String archiveName, boolean executables) throws IOException {
         try {
             Set<PosixFilePermission> permissions = new HashSet<>(Set.of(
                     PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE,
@@ -277,7 +292,7 @@ public final class TemplateArchive {
             String base = portable.substring(portable.lastIndexOf('/') + 1);
             // The archive has one top-level project directory. Only named root lifecycle files may
             // become executable; neither a matching nested basename nor an arbitrary .sh qualifies.
-            if (portable.indexOf('/') == portable.lastIndexOf('/') && POSIX_EXECUTABLES.contains(base)) {
+            if (executables && portable.indexOf('/') == portable.lastIndexOf('/') && POSIX_EXECUTABLES.contains(base)) {
                 permissions.add(PosixFilePermission.OWNER_EXECUTE);
                 permissions.add(PosixFilePermission.GROUP_EXECUTE);
                 permissions.add(PosixFilePermission.OTHERS_EXECUTE);

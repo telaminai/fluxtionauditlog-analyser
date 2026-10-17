@@ -51,7 +51,49 @@ public record LocalAgentState(AssistantMode mode, long conversation, long genera
                               long spentMicros, long budgetMicros, boolean costUnderReported, boolean newChatOffered,
                               boolean resumable, long pendingDraft, List<Entry> entries, Answer answer,
                               LocalAgentPosture posture, int personServers, SessionEvents.Billing billing,
-                              String armedWhy, LocalAgentPosture consentPosture) {
+                              String armedWhy, LocalAgentPosture consentPosture, Extra extra) {
+
+    /**
+     * M74 P2b's additions, in one component so the earlier shapes keep their constructors.
+     *
+     * @param setupDir           the set-up directory chosen for onboarding (§5.6 step 1), held for this run; null for none
+     * @param unknownEvents      §5.2's diagnostics line: stream events of a kind this analyser does not know
+     * @param unclassifiedCommands built-in commands the slash table does not classify
+     * @param droppedLines       stdout lines over the size cap, dropped
+     * @param turns              per answered turn (by ticket): its cost (micro-USD, -1 unknown) and time (ms, -1 unknown)
+     * @param trimmed            entries trimmed from the start of this conversation (the node keeps 500)
+     */
+    public record Extra(String setupDir, int unknownEvents, int unclassifiedCommands, int droppedLines,
+                        java.util.Map<Long, Turn> turns, int trimmed) {
+        public Extra {
+            turns = java.util.Map.copyOf(turns == null ? java.util.Map.of() : turns);
+        }
+
+        public static final Extra NONE = new Extra(null, 0, 0, 0, java.util.Map.of(), 0);
+
+        /** Whether the diagnostics line shows (only when a count is non-zero). */
+        public boolean diagnostics() {
+            return unknownEvents > 0 || unclassifiedCommands > 0 || droppedLines > 0;
+        }
+    }
+
+    /** One turn's cost and time, from its {@code result}: the cost is the difference of successive totals (§5.9). */
+    public record Turn(long costMicros, long durationMs) {
+    }
+
+    /** The P2a shape: no P2b additions. */
+    public LocalAgentState(AssistantMode mode, long conversation, long generation, String phase, String verdict,
+                           String reason, long openTicket, long admittedGeneration, long headerRef,
+                           long headerRevision, long detailRef, long stderrRef, long bindingElapsedMs,
+                           long spentMicros, long budgetMicros, boolean costUnderReported, boolean newChatOffered,
+                           boolean resumable, long pendingDraft, List<Entry> entries, Answer answer,
+                           LocalAgentPosture posture, int personServers, SessionEvents.Billing billing,
+                           String armedWhy, LocalAgentPosture consentPosture) {
+        this(mode, conversation, generation, phase, verdict, reason, openTicket, admittedGeneration, headerRef,
+                headerRevision, detailRef, stderrRef, bindingElapsedMs, spentMicros, budgetMicros, costUnderReported,
+                newChatOffered, resumable, pendingDraft, entries, answer, posture, personServers, billing, armedWhy,
+                consentPosture, Extra.NONE);
+    }
 
     public static final String USER = "USER";
     public static final String ANSWER = "ANSWER";
@@ -149,6 +191,7 @@ public record LocalAgentState(AssistantMode mode, long conversation, long genera
         answer = answer == null ? Answer.NONE : answer;
         posture = posture == null ? LocalAgentPosture.ANALYSER_ASSISTANT : posture;
         billing = billing == null ? SessionEvents.Billing.UNKNOWN : billing;
+        extra = extra == null ? Extra.NONE : extra;
     }
 
     /** A spend limit was set for the last start (owner, 2026-10-17: optional, off by default). */

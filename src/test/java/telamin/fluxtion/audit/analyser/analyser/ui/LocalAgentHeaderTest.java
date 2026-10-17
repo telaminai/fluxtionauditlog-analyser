@@ -109,7 +109,9 @@ class LocalAgentHeaderTest {
         var shown = LocalAgentPanel.shownHeader(state("READY", ref), store);
         String line = LocalAgentPanel.headerLine(shown, state("READY", ref));
         assertTrue(line.contains("/work/launched-here"), line);
-        assertTrue(line.contains("CLI 2.1.282") && line.contains("<subscription>") && line.contains("firstParty"), line);
+        assertTrue(line.contains("CLI 2.1.282") && line.contains("<subscription>"), line);
+        // P2b visual fix: the CLI's "firstParty" (Anthropic's own API) is internal jargon and is not shown
+        assertFalse(line.contains("firstParty"), line);
     }
 
     static LocalAgentState billed(SessionEvents.Billing billing, long spent, long budget, boolean under,

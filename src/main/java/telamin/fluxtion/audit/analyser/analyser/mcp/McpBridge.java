@@ -240,7 +240,7 @@ public final class McpBridge {
         if (modern) {
             result.put("resultType", "complete");
         }
-        result.put("tools", McpTools.list());
+        result.put("tools", hosted ? McpTools.hostedList() : McpTools.list());   // M74 P2: propose, hosted only
         if (modern) {
             // CacheableResult: required on modern list results; our tool set is fixed for the process
             result.put("ttlMs", CACHE_TTL_MS);
@@ -263,7 +263,8 @@ public final class McpBridge {
      */
     private String toolsCall(Object id, Map<?, ?> params, boolean modern) {
         Object rawName = params.get("name");
-        String verb = McpTools.verbFor(rawName == null ? null : rawName.toString());
+        String verb = hosted ? McpTools.hostedVerbFor(rawName == null ? null : rawName.toString())
+                : McpTools.verbFor(rawName == null ? null : rawName.toString());
         if (verb == null) {
             // an unknown tool is a protocol error, not something the model can fix by retrying
             return error(id, -32602, "Unknown tool: " + rawName, null);

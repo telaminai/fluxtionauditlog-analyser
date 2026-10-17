@@ -183,6 +183,10 @@ public final class AssistantAdapter {
             } catch (InterruptedException ex) {
                 Thread.currentThread().interrupt();
                 env.post(new SessionEvents.AssistantCompletionFailed(ticket, round, "the request was stopped"));
+            } catch (LlmClient.UnknownProvider ex) {
+                // §8.2 (h): refused before anything is constructed or sent; the stored key never leaves
+                env.post(new SessionEvents.AssistantCompletionFailed(ticket, round,
+                        LlmClient.UnknownProvider.words(e.route().provider())));
             } catch (Exception ex) {
                 env.post(new SessionEvents.AssistantCompletionFailed(ticket, round, safeFailure(ex)));
             }

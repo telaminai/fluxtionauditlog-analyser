@@ -60,7 +60,7 @@ public final class ClaudeCodeProvider implements LocalAgentProvider {
 
     @Override
     public List<String> command(LaunchSpec spec) {
-        return command(spec, telamin.fluxtion.audit.analyser.analyser.llm.VerbSchemas.all().keySet());
+        return command(spec, telamin.fluxtion.audit.analyser.analyser.llm.VerbSchemas.hosted().keySet());   // P2: + propose
     }
 
     /**

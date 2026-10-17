@@ -49,19 +49,38 @@ public final class StartPromptView extends JPanel {
 
         /** "See the format": the user guide's prompt-pack section. */
         default void seePackFormat() { }
+
+        /**
+         * P2b: an example entry's own button — the person's act. Nothing was fetched on the drop or on choosing; the
+         * session decides each step from here (confirm, fetch, verify, unpack, the project offer).
+         */
+        default void downloadExample(int entryIndex) { }
     }
+
+    /** P2b: the download badge an example entry shows in the list and on its chip. */
+    static final String DOWNLOAD_BADGE = "⤓";
 
     /**
      * One list row: the entry (null for a dropped pack's entry), its label and, for a prompt entry, the text choosing it
      * appends. A pack's entries behave exactly as a built-in prompt entry: choosing fills the box.
      */
-    record Row(AskCatalogue.Entry entry, String label, String text) {
+    record Row(AskCatalogue.Entry entry, String label, String text,
+               telamin.fluxtion.audit.analyser.analyser.assistant.ExampleSource example, int packIndex) {
+        Row(AskCatalogue.Entry entry, String label, String text) {
+            this(entry, label, text, null, -1);
+        }
+
         String id() {
-            return entry == null ? "NONE" : entry.id();
+            return entry == null ? (example != null ? "EXAMPLE" : "NONE") : entry.id();
         }
 
         boolean flow() {
             return entry != null && entry.kind() == AskCatalogue.Kind.FLOW;
+        }
+
+        /** P2b: a downloadable example — chosen like a flow (a chip), pressed only by its own button. */
+        boolean isExample() {
+            return example != null;
         }
 
         @Override
@@ -91,6 +110,10 @@ public final class StartPromptView extends JPanel {
     private final JLabel fullBadge = UiText.label(" ");
     private final JButton action = UiText.button(AskCatalogue.text("start.send"));
     private final JTextArea note = Fluid.text(" ");
+    /** P2b: an example download's phase and the node's words (exampleDownload decides them). */
+    private final JTextArea exampleNote = Fluid.text(" ");
+    private telamin.fluxtion.audit.analyser.analyser.session.ExampleDownloadState example =
+            telamin.fluxtion.audit.analyser.analyser.session.ExampleDownloadState.IDLE;
     /** A dropped pack's title and description, the way back, and a refused drop's one cause. */
     private final JLabel packTitle = UiText.label(" ");
     private final JTextArea packDescription = Fluid.text(" ");
@@ -220,7 +243,7 @@ public final class StartPromptView extends JPanel {
         fallbacks.setOpaque(false);
         fallbacks.setAlignmentX(LEFT_ALIGNMENT);
         fallbacks.setVisible(false);
-        for (JTextArea t : new JTextArea[]{note, notFound}) {
+        for (JTextArea t : new JTextArea[]{note, notFound, exampleNote}) {
             t.setAlignmentX(LEFT_ALIGNMENT);
             t.setVisible(false);
             recolour.add(() -> t.setForeground(UiTheme.mutedForeground()));
@@ -238,6 +261,7 @@ public final class StartPromptView extends JPanel {
         add(Box.createVerticalStrut(6));
         add(actions);
         add(note);
+        add(exampleNote);
         add(notFound);
         add(fallbacks);
         recolour.add(() -> {
@@ -248,6 +272,16 @@ public final class StartPromptView extends JPanel {
     }
 
     // ---- rendering ----------------------------------------------------------------------------------------------------
+
+    /** P2b: render an example download's state, as exampleDownload decided it. */
+    public void renderExample(telamin.fluxtion.audit.analyser.analyser.session.ExampleDownloadState e) {
+        example = e == null ? telamin.fluxtion.audit.analyser.analyser.session.ExampleDownloadState.IDLE : e;
+        exampleNote.setText(example.note().isBlank() ? " " : example.note());
+        exampleNote.setVisible(!example.note().isBlank());
+        renderAction();
+        revalidate();
+        repaint();
+    }
 
     /** Render the node's state (and the local agent's, for the full-posture cue on the box). */
     public void render(StartPageState s, LocalAgentState agent) {
@@ -296,7 +330,13 @@ public final class StartPromptView extends JPanel {
     /** A dropped pack's entries, as prompt rows: choosing one appends its text to the box. */
     private static List<Row> packRows(telamin.fluxtion.audit.analyser.analyser.assistant.PromptPack.Pack pack) {
         List<Row> out = new ArrayList<>();
-        for (var e : pack.entries()) out.add(new Row(null, e.label(), e.text()));
+        int i = 0;
+        for (var e : pack.entries()) {
+            // P2b: an example entry shows its download badge; choosing it fetches nothing
+            out.add(e.isExample() ? new Row(null, DOWNLOAD_BADGE + " " + e.label(), null, e.example(), i)
+                    : new Row(null, e.label(), e.text(), null, i));
+            i++;
+        }
         return out;
     }
 
@@ -319,13 +359,20 @@ public final class StartPromptView extends JPanel {
         }
         chip.setText(chosen.label());
         chip.getAccessibleContext().setAccessibleName(chosen.label());
-        does.setText(AskCatalogue.text(chosen.id() + ".does"));
+        does.setText(chosen.isExample() ? exampleDoes(chosen.example()) : AskCatalogue.text(chosen.id() + ".does"));
         chipRow.setVisible(true);
         does.setVisible(true);
     }
 
     private void renderAction() {
         String label;
+        if (chosen != null && chosen.isExample()) {
+            label = AskCatalogue.text("example.verb");
+            action.setText(label);
+            action.getAccessibleContext().setAccessibleName(label);
+            action.setEnabled(!example.busy());                     // one download at a time (the node refuses too)
+            return;
+        }
         if (chosen != null) {
             label = AskCatalogue.text(chosen.id() + ".verb");
         } else {
@@ -417,7 +464,7 @@ public final class StartPromptView extends JPanel {
     void choose(int i) {
         if (i < 0 || i >= model.size()) return;
         Row r = model.get(i);
-        if (r.flow()) {
+        if (r.flow() || r.isExample()) {
             chosen = r;
             renderChip();
         } else if (r.text() != null) {
@@ -442,7 +489,9 @@ public final class StartPromptView extends JPanel {
 
     private void press() {
         String text = box.getText().strip();
-        if (chosen != null) {
+        if (chosen != null && chosen.isExample()) {
+            host.downloadExample(chosen.packIndex());          // the entry's own button; nothing was fetched before
+        } else if (chosen != null) {
             host.press(chosen.id(), text);
         } else if (!text.isEmpty()) {
             host.press("NONE", text);
@@ -521,12 +570,23 @@ public final class StartPromptView extends JPanel {
             String number = index < 9 ? (index + 1) + ".  " : "     ";
             setText(number + r.label());
             setBorder(BorderFactory.createEmptyBorder(3, 6, 3, 6));
-            setToolTipText(UiText.tooltip(r.text() != null ? r.text() : AskCatalogue.text(r.id() + ".does")));   // plain
+            setToolTipText(UiText.tooltip(r.isExample() ? exampleDoes(r.example())
+                    : r.text() != null ? r.text() : AskCatalogue.text(r.id() + ".does")));   // plain
             getAccessibleContext().setAccessibleName(accessibleName(index + 1, l.getModel().getSize(), r.label()));
             if (!selected) setForeground(UiTheme.accentText());
             setOpaque(selected);
             return this;
         }
+    }
+
+    /** What choosing an example says: its publisher, marked third-party unless Telamin's, and that nothing is fetched yet. */
+    static String exampleDoes(telamin.fluxtion.audit.analyser.analyser.assistant.ExampleSource x) {
+        return AskCatalogue.text("example.does", java.util.Map.of("publisher", x.publisher(),
+                "party", x.thirdParty() ? AskCatalogue.text("example.thirdParty") : AskCatalogue.text("example.telamin")));
+    }
+
+    JTextArea exampleNote() {
+        return exampleNote;
     }
 
     /** For a host that needs to know the box's words (Copy prompt). */

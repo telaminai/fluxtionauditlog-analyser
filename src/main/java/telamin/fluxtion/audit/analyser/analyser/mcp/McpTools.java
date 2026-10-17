@@ -28,12 +28,29 @@ public final class McpTools {
 
     /** Read-only data operations; source additionally changes the transient navigation view. */
     static final Set<String> READ_ONLY = Set.of("aggregate", "read", "context", "coverage", "series", "source");
+    // (propose is not read-only — it records an offer — and not destructive: annotations() reports it so)
 
     /** One MCP tool descriptor per verb, in {@code VerbSchemas} order. */
-    @SuppressWarnings("unchecked")
     public static List<Map<String, Object>> list() {
+        return list(VerbSchemas.all());
+    }
+
+    /** M74 P2: the hosted bridge's tools — {@code VerbSchemas.hosted()}, which adds {@code propose} (§8.2 (a)). */
+    public static List<Map<String, Object>> hostedList() {
+        return list(VerbSchemas.hosted());
+    }
+
+    /** The verb behind a hosted tool name: {@link #verbFor} plus {@code propose}. */
+    public static String hostedVerbFor(String toolName) {
+        if (toolName == null || !toolName.startsWith(PREFIX)) return null;
+        String verb = toolName.substring(PREFIX.length());
+        return VerbSchemas.hosted().containsKey(verb) ? verb : null;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<Map<String, Object>> list(Map<String, Object> schemas) {
         List<Map<String, Object>> tools = new ArrayList<>();
-        for (Map.Entry<String, Object> e : VerbSchemas.all().entrySet()) {
+        for (Map.Entry<String, Object> e : schemas.entrySet()) {
             String verb = e.getKey();
             Map<String, Object> inputSchema = new LinkedHashMap<>((Map<String, Object>) e.getValue());
             Object description = inputSchema.remove("description");   // schema → tool description
@@ -91,7 +108,9 @@ public final class McpTools {
      * here, not in the session package, because a persisting package may not name the overlay verb, D-SP4.)
      */
     public static final java.util.List<String> HOSTED_PRE_ALLOWED = java.util.List.of("read", "aggregate", "series",
-            "context", "coverage", "source", "filter", "goto", "flag", "graph", "topology", "spotlight");
+            "context", "coverage", "source", "filter", "goto", "flag", "graph", "topology", "spotlight",
+            // M74 P2 (§5.6): non-destructive — it only records an offer; the person answers and the analyser applies
+            "propose");
 
     /**
      * Read-only hint on the query verbs only. The render verbs change what the UI shows, so they are not

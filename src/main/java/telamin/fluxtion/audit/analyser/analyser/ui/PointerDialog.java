@@ -198,6 +198,30 @@ public final class PointerDialog {
     }
 
     /**
+     * M74 P2b (§5.6): the add path for a runbook the person accepted in an onboarding review — the same checks the Add
+     * dialog applies ({@link Runbooks#refuse}), the name and description the file's frontmatter offers (the file's
+     * name otherwise), a POINTER relative to the project, never its contents (D-C2). Empty when added, else why not.
+     */
+    static Optional<String> addRunbookPointer(AppConfig config, Path projectRoot, Path file) {
+        Path root = projectRoot.toAbsolutePath().normalize();
+        Path abs = file.toAbsolutePath().normalize();
+        if (!abs.startsWith(root)) return Optional.of("the runbook is outside the project");
+        String rel = root.relativize(abs).toString().replace('\\', '/');
+        var suggestion = SkillFrontmatter.read(abs);
+        String fallback = abs.getFileName() == null ? "runbook" : abs.getFileName().toString().replaceFirst("\\.md$", "");
+        if ("SKILL".equalsIgnoreCase(fallback) && abs.getParent() != null && abs.getParent().getFileName() != null) {
+            fallback = abs.getParent().getFileName().toString();
+        }
+        String name = SkillFrontmatter.usableName(suggestion.name()).orElse(fallback);
+        String description = SkillFrontmatter.usableDescription(suggestion.description()).orElse(null);
+        var bad = Runbooks.refuse(name, rel);
+        if (bad.isEmpty() && description != null) bad = Runbooks.refuseDescription("runbook", description);
+        if (bad.isPresent()) return bad;
+        config.runbooks.put(name, new Runbooks.Pointer(rel, description));
+        return Optional.empty();
+    }
+
+    /**
      * M43.7 — list the skill-shaped files already in the project and let the user pick.
      *
      * <p>It OFFERS (M35.4): every candidate is shown with what it would be called, and nothing reaches

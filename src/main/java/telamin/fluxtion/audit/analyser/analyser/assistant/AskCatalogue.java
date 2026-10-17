@@ -447,6 +447,8 @@ public final class AskCatalogue {
                 v.put("docsUrl", AskPointers.DOCS_URL);
                 text = text("S6.template", v);
             }
+            // P2b (§5.6): S2 toward Claude Code, after the set-up folder was chosen — no pointer, no record text
+            case "S2" -> text = text("S2.template", v);
             default -> {
                 return null;
             }
@@ -456,7 +458,7 @@ public final class AskCatalogue {
 
     /**
      * The start page's Copy prompt (r8 F14): the composed draft ONLY — the entry's words from pointers, then the box. No
-     * record context, no glossary, never a token: there is nothing else for this to read. S1 and S2 compose none, so the
+     * record context, no glossary, never a token: there is nothing else for this to read. S1 composes none, so the
      * box's words (or, with an empty box, S6's question) are copied.
      */
     public static String copyText(String entryId, StartFacts f) {

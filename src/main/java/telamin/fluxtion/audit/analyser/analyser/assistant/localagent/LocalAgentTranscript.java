@@ -31,10 +31,18 @@ public final class LocalAgentTranscript {
      * ({@code ~/.local/bin}); empty in the default posture.
      */
     public record Header(String model, String cliVersion, String billing, String apiProvider, List<String> unclassified,
-                         String folder, String configuredModel, List<String> pathAdded, boolean scratchForProject) {
+                         String folder, String configuredModel, List<String> pathAdded, boolean scratchForProject,
+                         String endpoint) {
         public Header {
             unclassified = List.copyOf(unclassified == null ? List.of() : unclassified);
             pathAdded = List.copyOf(pathAdded == null ? List.of() : pathAdded);
+        }
+
+        /** The P2a shape: no endpoint observed. {@code endpoint} (P2b, §5.2) is {@code scheme://host[:port]} only. */
+        public Header(String model, String cliVersion, String billing, String apiProvider, List<String> unclassified,
+                      String folder, String configuredModel, List<String> pathAdded, boolean scratchForProject) {
+            this(model, cliVersion, billing, apiProvider, unclassified, folder, configuredModel, pathAdded,
+                    scratchForProject, null);
         }
 
         /** P1b's shape: not the scratch folder standing in for a project (OD-74.22). */
@@ -56,7 +64,7 @@ public final class LocalAgentTranscript {
         /** {@code folder} is the session's OWN launch directory, as the person should read it (review S5). */
         public Header withInit(String model, String cliVersion) {
             return new Header(model == null ? this.model : model, cliVersion == null ? this.cliVersion : cliVersion,
-                    billing, apiProvider, unclassified, folder, configuredModel, pathAdded, scratchForProject);
+                    billing, apiProvider, unclassified, folder, configuredModel, pathAdded, scratchForProject, endpoint);
         }
     }
 

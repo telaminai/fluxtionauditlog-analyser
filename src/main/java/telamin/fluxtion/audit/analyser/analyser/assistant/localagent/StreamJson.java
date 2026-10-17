@@ -81,7 +81,13 @@ public final class StreamJson {
      * {@code text} is shown only for a turn that produced no assistant text (a local command's output).
      */
     public record Result(String subtype, boolean isError, long totalCostMicros, String terminalReason,
-                         String userMessageUuid, String text, int apiErrorStatus) implements Event {
+                         String userMessageUuid, String text, int apiErrorStatus, long durationMs) implements Event {
+
+        /** P2a's shape: no duration read. */
+        public Result(String subtype, boolean isError, long totalCostMicros, String terminalReason,
+                      String userMessageUuid, String text, int apiErrorStatus) {
+            this(subtype, isError, totalCostMicros, terminalReason, userMessageUuid, text, apiErrorStatus, -1);
+        }
 
         /** An authentication failure: an invalid inherited API key, or a login that is missing or expired (§9). */
         public boolean authFailure() {
@@ -346,7 +352,9 @@ public final class StreamJson {
         long cost = m.get("total_cost_usd") instanceof Number n ? Math.round(n.doubleValue() * 1_000_000d) : -1;
         return new Result(str(m.get("subtype")), Boolean.TRUE.equals(m.get("is_error")), cost,
                 str(m.get("terminal_reason")), str(m.get("user_message_uuid")), str(m.get("result")),
-                num(m.get("api_error_status")));
+                num(m.get("api_error_status")),
+                // P2b (§5.9 per turn): the turn's time, as the CLI reports it
+                m.get("duration_ms") instanceof Number d ? d.longValue() : -1);
     }
 
     private static Event rateLimit(Map<?, ?> m) {

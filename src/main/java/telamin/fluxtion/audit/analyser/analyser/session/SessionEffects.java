@@ -363,4 +363,71 @@ public sealed interface SessionEffects {
     /** Review M6: the node's verdict on hosted call {@code call}: {@code refusal} null admits it. */
     record AnswerHostedCallEffect(long opId, long call, String refusal) implements SessionEffects {
     }
+
+    // ---- M74 P2b: propose onboarding (spec §5.6) ------------------------------------------------------------------------
+
+    /** One item to preview or apply: the node's id and what Claude named. */
+    record ProposalItemRef(String itemId, String kind, String path, String className) {
+    }
+
+    /**
+     * Check every item read-only, off the event thread (§5.6 step 5), relative to the set-up directory, and report each
+     * as {@link SessionEvents.ProposalItemPreviewed}, then {@link SessionEvents.ProposalPreviewDone}.
+     */
+    record PreviewProposalEffect(long opId, String proposalId, java.util.List<ProposalItemRef> items) implements SessionEffects {
+        public PreviewProposalEffect {
+            items = java.util.List.copyOf(items);
+        }
+    }
+
+    /**
+     * Apply ONE item through the person's own path for its kind, with person origin (§5.6 step 6). The id {@code create}
+     * is the analyser's own row: an empty project in {@code setupDir} through M73's person path. Answered with
+     * {@link SessionEvents.ProposalItemApplied}; the next is asked for only after it.
+     */
+    record ApplyProposalItemEffect(long opId, String proposalId, ProposalItemRef item, String setupDir)
+            implements SessionEffects {
+    }
+
+    /** After the last item: the analyser's own verdicts (pairing, graph–log fit), as {@link SessionEvents.ProposalChecked}. */
+    record CheckProposalOutcomeEffect(long opId, String proposalId) implements SessionEffects {
+    }
+
+    // ---- M74 P2b: a project switch while Claude Code runs ----------------------------------------------------------------
+
+    /**
+     * Show the offer (never a modal from a model call: it answers the person's own switch): "Stop, and get Start ready in
+     * the new project" / "Keep it running here" / Cancel. Answered with {@link SessionEvents.LocalAgentSwitchChosen}.
+     */
+    record OfferLocalAgentSwitchEffect(long opId, long request, String currentName, String targetName)
+            implements SessionEffects {
+    }
+
+    // ---- M74 P2b: prompt-pack example entries -----------------------------------------------------------------------------
+
+    /**
+     * Ask the person, showing the exact URL, the publisher (host / owner / repo @ short commit, marked third-party unless
+     * it is Telamin's), the pinned commit, the integrity digest when the entry has one, and a target folder they choose.
+     * Answered with {@link SessionEvents.ExampleDownloadConfirmed}.
+     */
+    record ConfirmExampleDownloadEffect(long opId, long request,
+                                        telamin.fluxtion.audit.analyser.analyser.assistant.ExampleSource source,
+                                        boolean thirdParty) implements SessionEffects {
+    }
+
+    /** Fetch {@code url} over https from an allowed host, at most {@code maxBytes}; then {@link SessionEvents.ExampleFetched}. */
+    record FetchExampleEffect(long opId, long request, String url, long maxBytes) implements SessionEffects {
+    }
+
+    /** Unpack {@code bytesRef} into {@code targetDir} through TemplateArchive, no executable bits; then {@link SessionEvents.ExampleUnpacked}. */
+    record UnpackExampleEffect(long opId, long request, long bytesRef, String targetDir) implements SessionEffects {
+    }
+
+    /** Drop the fetched bytes (refused digest, cancelled, or after the unpack). */
+    record DiscardExampleBytesEffect(long opId, long request, long bytesRef) implements SessionEffects {
+    }
+
+    /** Open the M73 project offer for {@code root} (the person's New project… path); the person confirms. */
+    record OfferExampleProjectEffect(long opId, long request, String root) implements SessionEffects {
+    }
 }

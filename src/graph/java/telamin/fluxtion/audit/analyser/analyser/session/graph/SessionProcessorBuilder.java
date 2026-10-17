@@ -140,6 +140,15 @@ public class SessionProcessorBuilder implements FluxtionGraphBuilder {
         // M74 P2 (§8.2): the open log is a JavaBean parent — what a bound draft is compared with at Send
         localAgent.setOpenLog(openLog);
         cfg.addNode(localAgent, "localAgentSession");
+        // M74 P2b (§5.6): Claude proposes, the analyser applies — the offer, the preview's verdicts, the person's answers
+        telamin.fluxtion.audit.analyser.analyser.session.node.OnboardingProposal onboarding =
+                new telamin.fluxtion.audit.analyser.analyser.session.node.OnboardingProposal(localAgent, effects);
+        cfg.addNode(onboarding, "onboardingProposal");
+        // M74 P2b (the simplified Move): a person's project switch is held while Claude Code runs, and the person asked
+        boundary.setLocalAgentSession(localAgent);
+        boundary.setOnboardingProposal(onboarding);
+        // M74 P2b (owner request 2026-10-17): a prompt pack's example entry — confirm, fetch, verify, unpack, offer
+        cfg.addNode(new telamin.fluxtion.audit.analyser.analyser.session.node.ExampleDownload(effects), "exampleDownload");
         // M74 P2 (§5.8): the start page's "What would you like to do?" — its list and where its button goes
         cfg.addNode(new telamin.fluxtion.audit.analyser.analyser.session.node.StartPagePrompt(assistantMode, localAgent,
                 openLog, effects), "startPagePrompt");

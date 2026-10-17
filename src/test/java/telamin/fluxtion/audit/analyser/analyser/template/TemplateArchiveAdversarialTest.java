@@ -130,7 +130,7 @@ class TemplateArchiveAdversarialTest {
         assertNoStaging();
     }
 
-    private static boolean executable(Path path) throws IOException {
+    static boolean executable(Path path) throws IOException {
         assertTrue(Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS), path + " should have been installed");
         try {
             return Files.getPosixFilePermissions(path).contains(PosixFilePermission.OWNER_EXECUTE);
@@ -146,7 +146,7 @@ class TemplateArchiveAdversarialTest {
         }
     }
 
-    private static byte[] zip(Map<String, byte[]> entries) throws IOException {
+    static byte[] zip(Map<String, byte[]> entries) throws IOException {
         try (ByteArrayOutputStream bytes = new ByteArrayOutputStream();
              ZipOutputStream out = new ZipOutputStream(bytes)) {
             for (var entry : entries.entrySet()) {
@@ -160,12 +160,12 @@ class TemplateArchiveAdversarialTest {
     }
 
     /** Mark every central-directory entry 0100755/Unix, leaving contents untouched. */
-    private static byte[] claimExecutable(byte[] zip) {
+    static byte[] claimExecutable(byte[] zip) {
         return withUnixMode(zip, 0100755);
     }
 
     /** Mark every central-directory entry as a Unix symbolic link (S_IFLNK | 0777). */
-    private static byte[] claimSymlink(byte[] zip) {
+    static byte[] claimSymlink(byte[] zip) {
         return withUnixMode(zip, 0120777);
     }
 

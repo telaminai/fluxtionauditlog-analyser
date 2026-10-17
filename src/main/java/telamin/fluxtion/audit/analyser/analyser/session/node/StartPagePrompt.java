@@ -35,6 +35,9 @@ public class StartPagePrompt implements EventLogSource {
     @PushReference
     private final EffectQueue effects;
 
+    /** P2b: the flow id of S2 toward Claude Code — the set-up folder's chooser (§5.6 step 1). */
+    public static final String SETUP_FLOW = "S2.setup";
+
     private EventLogger auditLog = NullEventLogger.INSTANCE;
     // Not final: node-local state (a final field is constructor-mapped by the generator).
     private boolean claudeCodeAllowed;
@@ -179,9 +182,17 @@ public class StartPagePrompt implements EventLogSource {
             return changed();
         }
         switch (id) {
-            // S2's onboarding (Claude proposes, the analyser applies, §5.6) is P2's second half: until then both columns
-            // open New project…, the person's own discovery that offers and never selects
-            case "S2" -> effects.request(new SessionEffects.RunStartPageFlowEffect(0L, e.request(), id));
+            // P2b (§5.6): toward Claude Code, S2 is onboarding — the person's chooser for the set-up folder, then the
+            // SETUP draft placed and Start armed (Claude investigates and calls propose; the analyser applies). The in-app
+            // assistant cannot read a folder, so its column opens New project…, which offers and never selects.
+            case "S2" -> {
+                if (route.toClaudeCode()) {
+                    pending.put(e.request(), new Pending(id, route, e.textRef(), popOut));
+                    effects.request(new SessionEffects.RunStartPageFlowEffect(0L, e.request(), SETUP_FLOW));
+                } else {
+                    effects.request(new SessionEffects.RunStartPageFlowEffect(0L, e.request(), id));
+                }
+            }
             case "S3", "S4" -> {
                 pending.put(e.request(), new Pending(id, route, e.textRef(), popOut));
                 effects.request(new SessionEffects.RunStartPageFlowEffect(0L, e.request(), id));

@@ -485,6 +485,54 @@ public final class VerbSchemas {
         return s;
     }
 
+    /** The one verb only the analyser's own Claude Code session (the hosted bridge) is offered (M74 §5.6). */
+    public static final String PROPOSE = "propose";
+
+    /**
+     * M74 P2 (spec §8.2 (a)): the hosted bridge's verbs — {@link #all()}'s entries in order, then {@code propose}.
+     * {@code propose} is NEVER in {@code all()}, so it is never in {@code /manifest}, {@code McpTools.list()}, the prompt's
+     * verb list, the in-app assistant's tools or a saved analysis's allowed verbs.
+     */
+    public static Map<String, Object> hosted() {
+        Map<String, Object> s = all();
+        s.put(PROPOSE, proposeSchema());
+        return s;
+    }
+
+    /** §5.6's schema for {@code propose}, exactly. */
+    static Map<String, Object> proposeSchema() {
+        Map<String, Object> item = new LinkedHashMap<>();
+        item.put("type", "object");
+        Map<String, Object> path = string();
+        path.put("maxLength", 1024);
+        Map<String, Object> className = string();
+        className.put("maxLength", 300);
+        Map<String, Object> reason = string();
+        reason.put("maxLength", 500);
+        item.put("properties", props(
+                p("kind", enumStr("sourceRoot", "processor", "graphml", "runbook", "logToOpen"), "what this item sets up"),
+                p("path", path, "sourceRoot: a directory; graphml: a .graphml file; runbook: a SKILL.md or .md file; "
+                        + "logToOpen: an audit log file; processor: the generated processor's source file, if known"),
+                p("className", className, "processor only: the fully qualified class name"),
+                p("reason", reason, "why, in one or two sentences; shown to the person as your words")));
+        item.put("required", List.of("kind", "reason"));
+        Map<String, Object> items = new LinkedHashMap<>();
+        items.put("type", "array");
+        items.put("minItems", 1);
+        items.put("maxItems", 10);
+        items.put("items", item);
+        Map<String, Object> summary = string();
+        summary.put("maxLength", 500);
+        Map<String, Object> m = schema("Hosted Claude Code only. Offer the person a project set-up. Records an offer and "
+                        + "changes NOTHING: the analyser checks each item, the person answers each one, and the analyser "
+                        + "applies the accepted ones itself. Call context afterwards to see each item's outcome. Paths are "
+                        + "relative to your working directory or absolute inside it.",
+                props(p("summary", summary, "one sentence: what this set-up is for"),
+                        p("items", items, "the set-up items, 1 to 10")),
+                req("items"));
+        return m;
+    }
+
     /** A deleted walk's name, or {@code true} to list the bin — the shape report's 'restore' has. */
     private static Map<String, Object> nameOrTrue() {
         Map<String, Object> m = new LinkedHashMap<>();

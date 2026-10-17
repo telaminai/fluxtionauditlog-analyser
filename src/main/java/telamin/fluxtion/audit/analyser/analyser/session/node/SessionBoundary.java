@@ -51,6 +51,32 @@ public class SessionBoundary implements EventLogSource {
 
     private EventLogger auditLog = NullEventLogger.INSTANCE;
 
+    /**
+     * M74 P2b (the simplified Move, owner 2026-10-17): JavaBean parents, so the generator wires them without changing the
+     * constructor. Null in a processor generated before P2b: then nothing is ever held.
+     */
+    private LocalAgentSession localAgentSession;
+    private OnboardingProposal onboardingProposal;
+    /** A person's project switch held while Claude Code runs, awaiting the person's choice; and that offer's id. */
+    private SessionEvents.OpenProjectRequested held;
+    private long heldRequest;
+
+    public LocalAgentSession getLocalAgentSession() {
+        return localAgentSession;
+    }
+
+    public void setLocalAgentSession(LocalAgentSession localAgentSession) {
+        this.localAgentSession = localAgentSession;
+    }
+
+    public OnboardingProposal getOnboardingProposal() {
+        return onboardingProposal;
+    }
+
+    public void setOnboardingProposal(OnboardingProposal onboardingProposal) {
+        this.onboardingProposal = onboardingProposal;
+    }
+
     /** The kind of the request currently awaiting its {@code ProfileLoaded}. */
     private TransitionKind inFlightKind;
     private long inFlightOpId = -1;
@@ -76,6 +102,67 @@ public class SessionBoundary implements EventLogSource {
      */
     @OnEventHandler
     public boolean onOpenProjectRequested(SessionEvents.OpenProjectRequested event) {
+        if (holds(event)) {
+            // a newer switch while one is held REPLACES its target; the offer is made again for the new one
+            held = event;
+            heldRequest++;
+            auditLog.info("decision", "holdForLocalAgent").info("kind", event.kind().name())
+                    .info("opId", event.opId()).info("request", heldRequest);
+            effects.request(new SessionEffects.OfferLocalAgentSwitchEffect(event.opId(), heldRequest,
+                    activeProject.name(), targetName(event)));
+            return true;
+        }
+        return decide(event);
+    }
+
+    /**
+     * M74 P2b: a PERSON's switch (open another project, close, create) while a Claude Code process runs is held and the
+     * person asked. An assistant's {@code open {project}} is never held; a re-open of the active project is a no-op as
+     * before; the analyser's OWN create from an onboarding proposal is never a switch (§5.6 step 7).
+     */
+    private boolean holds(SessionEvents.OpenProjectRequested event) {
+        if (localAgentSession == null || !localAgentSession.processRunning()) return false;
+        TransitionKind k = event.kind();
+        if (k != TransitionKind.EXPLICIT_SWITCH && k != TransitionKind.CLOSE && k != TransitionKind.CREATE
+                && k != TransitionKind.FORK) return false;
+        boolean person = event.audience() != null
+                && event.audience().origin() == SessionEvents.OperationOrigin.PERSON && event.assistantOrigin() == null;
+        if (!person) return false;
+        if (k.mayNoOp() && activeProject.isAt(event.profilePath())) return false;
+        return !(k == TransitionKind.CREATE && onboardingProposal != null && onboardingProposal.applyingOwnCreate());
+    }
+
+    private static String targetName(SessionEvents.OpenProjectRequested event) {
+        if (event.kind() == TransitionKind.CLOSE) return null;
+        String p = event.profilePath() == null ? "" : event.profilePath().replace('\\', '/');
+        String[] parts = p.split("/");
+        // <root>/.analyser/<file>: the project is named by its root folder
+        for (int i = parts.length - 1; i >= 0; i--) {
+            if (!parts[i].isEmpty() && !parts[i].startsWith(".") && !parts[i].endsWith(".fluxtion-settings")) return parts[i];
+        }
+        return p;
+    }
+
+    /** The person's answer to the switch offer: release the held switch (Stop, Keep) or drop it (Cancel). */
+    @OnEventHandler
+    public boolean onSwitchChosen(SessionEvents.LocalAgentSwitchChosen e) {
+        if (held == null || e.request() != heldRequest) {
+            auditLog.info("staleFact", "LocalAgentSwitchChosen").info("request", e.request());
+            return false;
+        }
+        SessionEvents.OpenProjectRequested event = held;
+        held = null;
+        auditLog.info("decision", "switchChosen").info("choice", e.choice().name()).info("opId", event.opId());
+        if (e.choice() == SessionEvents.SwitchChoice.CANCEL) {
+            effects.request(new SessionEffects.ShowStatusEffect(event.opId(),
+                    "the project switch was cancelled — Claude Code keeps running here"));
+            return true;
+        }
+        return decide(event);
+    }
+
+    /** Decision one, for a request that is not (or no longer) held. */
+    private boolean decide(SessionEvents.OpenProjectRequested event) {
         inFlightBundle = null;
         if (event.kind().mayNoOp() && activeProject.isAt(event.profilePath())) {
             inFlightKind = null;

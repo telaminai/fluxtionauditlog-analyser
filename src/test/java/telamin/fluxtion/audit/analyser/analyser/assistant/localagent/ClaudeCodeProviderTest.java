@@ -195,13 +195,14 @@ class ClaudeCodeProviderTest {
         Set<String> overlap = new HashSet<>(pre);
         overlap.retainAll(McpTools.destructiveVerbs());
         assertEquals(Set.of(), overlap, "no destructive verb is auto-approved");
-        Set<String> all = new LinkedHashSet<>(VerbSchemas.all().keySet());
+        // M74 P2b (§8.2 (a)): the hosted bridge's verbs are VerbSchemas.hosted() — all() and then propose
+        Set<String> all = new LinkedHashSet<>(VerbSchemas.hosted().keySet());
         Set<String> union = new HashSet<>(pre);
         union.addAll(LocalAgentPosture.disallowedVerbs());
         assertEquals(all, union, "every verb is either pre-allowed or hidden");
         assertEquals(List.of("read", "aggregate", "series", "context", "coverage", "source", "filter", "goto", "flag",
-                        "graph", "topology", "spotlight").stream().sorted().toList(), pre.stream().sorted().toList(),
-                "today's pre-allowed set (§3)");
+                        "graph", "topology", "spotlight", "propose").stream().sorted().toList(), pre.stream().sorted().toList(),
+                "today's pre-allowed set (§3; P2b adds propose, which only records an offer)");
         assertTrue(all.containsAll(LocalAgentPosture.PRE_ALLOWED), "every listed verb is a real verb");
 
         // the REAL inputs, with one verb more: the schema list the command line and the posture check are built from

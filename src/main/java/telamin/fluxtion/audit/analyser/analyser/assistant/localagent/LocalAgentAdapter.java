@@ -266,6 +266,9 @@ public final class LocalAgentAdapter {
         }
         run.startedAt = clock.nowMillis();
         run.folder = s.cwd().toString();
+        // P2b (§5.2): where requests go, as far as the analyser can see — the base URL it passed, host only
+        run.endpoint = removedEnv.contains("ANTHROPIC_BASE_URL") ? null : EndpointLine.of(
+                childEnv.getOrDefault("ANTHROPIC_BASE_URL", s.environment().get("ANTHROPIC_BASE_URL")));
         run.scratchForProject = env.scratchForProject();
         run.configuredModel = s.model() == null || s.model().isBlank() ? ClaudeCodeProvider.DEFAULT_MODEL : s.model().trim();
         try {
@@ -411,7 +414,7 @@ public final class LocalAgentAdapter {
                 long headerRef;
                 synchronized (run) {
                     run.header = (run.header == null ? new LocalAgentTranscript.Header(null, null, "", null, List.of(),
-                            run.folder, run.configuredModel, run.pathAdded, run.scratchForProject) : run.header)
+                            run.folder, run.configuredModel, run.pathAdded, run.scratchForProject, run.endpoint) : run.header)
                             .withInit(i.model(), i.cliVersion());
                     headerRef = store.putHeader(run.header);
                 }
@@ -478,7 +481,12 @@ public final class LocalAgentAdapter {
             case StreamJson.Hook h -> env.post(new SessionEvents.LocalAgentHookObserved(gen, run.runningTicket,
                     SessionEvents.HookEvent.of(h.event()), h.started() ? SessionEvents.HookOutcome.STARTED
                     : h.succeeded() ? SessionEvents.HookOutcome.OK : SessionEvents.HookOutcome.FAILED));
-            case StreamJson.Unknown u -> unknownEvents++;
+            case StreamJson.Unknown u -> {
+                unknownEvents++;
+                synchronized (run) {
+                    run.unknown++;
+                }
+            }
             // a replay, a tool result or the compaction summary is never the person's turn: their words are the send
             // record, so a user event is shown as nothing at all (§4.5)
             case StreamJson.UserMessage u -> {
@@ -508,13 +516,15 @@ public final class LocalAgentAdapter {
             synchronized (run) {
                 run.header = new LocalAgentTranscript.Header(null, null, billing, init.apiProvider(),
                         ClaudeCodeProvider.unclassified(init.commands()), run.folder, run.configuredModel, run.pathAdded,
-                        run.scratchForProject);
+                        run.scratchForProject, run.endpoint);
+                run.unclassified = ClaudeCodeProvider.unclassified(init.commands()).size();
                 headerRef = store.putHeader(run.header);
             }
             // how it is paid for, as an enum: a Claude plan, or an API key — never the plan's or the source's value
             SessionEvents.Billing paid = init.apiKeySource() != null ? SessionEvents.Billing.API_KEY
                     : init.subscriptionType() != null ? SessionEvents.Billing.SUBSCRIPTION : SessionEvents.Billing.UNKNOWN;
             env.post(new SessionEvents.LocalAgentInitialized(gen, init.loggedIn(), init.permissionMode(), headerRef, paid));
+            diagnostics(run);
         } else if (id.startsWith("status-" + gen + "-") && r.status() != null) {
             List<String> names = new ArrayList<>();
             String hostedStatus = null;
@@ -541,11 +551,31 @@ public final class LocalAgentAdapter {
         }
     }
 
+    /** §5.2: the diagnostics counts as a coalesced fact — posted only when one changed. */
+    private void diagnostics(Run run) {
+        int u;
+        int c;
+        int d;
+        synchronized (run) {
+            u = run.unknown;
+            c = run.unclassified;
+            d = run.dropped;
+            String now = u + "/" + c + "/" + d;
+            if (now.equals(run.reportedDiagnostics)) return;
+            run.reportedDiagnostics = now;
+        }
+        env.post(new SessionEvents.LocalAgentDiagnostics(run.generation, u, c, d));
+    }
+
     private void onResult(Run run, StreamJson.Result r) {
         long gen = run.generation;
         Long t = r.userMessageUuid() == null ? null : run.ticketByUuid.get(r.userMessageUuid());
         long ticket = t != null ? t : run.runningTicket;
-        if (r.totalCostMicros() >= 0) env.post(new SessionEvents.LocalAgentCostObserved(gen, r.totalCostMicros()));
+        // P2b (§5.9): the running total, with the turn it closes and the turn's time
+        if (r.totalCostMicros() >= 0 || r.durationMs() >= 0) {
+            env.post(new SessionEvents.LocalAgentCostObserved(gen, r.totalCostMicros(), ticket, r.durationMs()));
+        }
+        diagnostics(run);
         if (ticket == 0) return;
         boolean shown;
         synchronized (run) {
@@ -673,6 +703,13 @@ public final class LocalAgentAdapter {
         volatile String restToken;
         volatile String hosted;
         volatile String folder;
+        /** P2b (§5.2): {@code scheme://host[:port]} of the base URL passed to the child, or null. */
+        volatile String endpoint;
+        /** P2b (§5.2): this run's diagnostics counts, and what was last reported (a fact only when one changes). */
+        int unknown;
+        int unclassified;
+        int dropped;
+        String reportedDiagnostics = "0/0/0";
         volatile boolean scratchForProject;
         volatile String configuredModel;
         /** The directories appended to the child's PATH, as the header shows them (OD-74.11). */

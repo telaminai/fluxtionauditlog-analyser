@@ -104,6 +104,9 @@ public final class StartPanel extends JPanel {
         /** "← Return to main options": the person's act; the session restores the built-in list. */
         default void returnToMainOptions() { }
 
+        /** P2b: a prompt pack example entry's own Download button. */
+        default void downloadExample(int entryIndex) { }
+
     }
 
     private final JPanel recoveryOffer = new JPanel(new BorderLayout(8, 8));
@@ -153,6 +156,7 @@ public final class StartPanel extends JPanel {
                 return actions.promptPack(ref);
             }
             @Override public void returnToMainOptions() { actions.returnToMainOptions(); }
+            @Override public void downloadExample(int entryIndex) { actions.downloadExample(entryIndex); }
             @Override public void seePackFormat() { actions.openUserGuide("user-guide/start-page/#prompt-packs"); }
         };
         this.prompt = new StartPromptView(promptHost);
@@ -238,6 +242,11 @@ public final class StartPanel extends JPanel {
     public void renderPrompt(telamin.fluxtion.audit.analyser.analyser.session.StartPageState state,
                              telamin.fluxtion.audit.analyser.analyser.session.LocalAgentState agent) {
         prompt.render(state, agent);
+    }
+
+    /** M74 P2b: an example download's state, as exampleDownload decided it. */
+    public void renderExample(telamin.fluxtion.audit.analyser.analyser.session.ExampleDownloadState state) {
+        prompt.renderExample(state);
     }
 
     /** The prompt's host: its button and its fallbacks, through this page's one Actions interface. */
@@ -489,9 +498,13 @@ public final class StartPanel extends JPanel {
         // and the one sentence on the page that says what the app is for is the worst possible thing
         // to truncate
         JTextArea title = wrapping(telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.text("start.title"));
-        Font tf = UIManager.getFont("Label.font");
-        title.setFont((tf != null ? tf : title.getFont()).deriveFont(Font.BOLD,
-                (tf != null ? tf : title.getFont()).getSize2D() + 5f));
+        // M74 P2b visual fix: the title's size and weight are re-derived on every theme application, as its colour is.
+        // A JTextArea's updateUI resets its font to the look and feel's TextArea.font, so a title styled once at
+        // construction came out small and plain whenever FlatLaf was applied after the page was built (one P2a capture).
+        Runnable titleFont = () -> title.setFont(heroTitleFont(title.getFont()));
+        titleFont.run();
+        recolour.add(titleFont);
+        heroTitle = title;
         recolour.add(() -> title.setForeground(UIManager.getColor("Label.foreground")));
         inner.add(title);
         inner.add(Box.createVerticalStrut(6));
@@ -502,10 +515,25 @@ public final class StartPanel extends JPanel {
         inner.add(Box.createVerticalStrut(8));
         inner.add(body("Open evidence, return to a project, or learn with DEMO. An assistant can drive the same views through the local bridge."));
         inner.add(Box.createVerticalStrut(6));
-        inner.add(body("Drop an .fexp bundle, audit log, GraphML or Spring XML anywhere on this page. Return here from Help."));
+        inner.add(body("Drop an .fexp bundle, audit log, GraphML, Spring XML or a prompt pack (.md) anywhere on this page. "
+                + "Return here from Help."));
         band.add(inner, BorderLayout.CENTER);
         return band;      // Fluid: as wide as offered, as tall as its content currently needs
     }
+
+    /** The hero title's font: the look and feel's label font, bold, 5 points larger — the same in every theme. */
+    static Font heroTitleFont(Font fallback) {
+        Font tf = UIManager.getFont("Label.font");
+        Font base = tf != null ? tf : fallback;
+        return base.deriveFont(Font.BOLD, base.getSize2D() + 5f);
+    }
+
+    /** For the tests: the hero's title text area. */
+    JTextArea heroTitle() {
+        return heroTitle;
+    }
+
+    private JTextArea heroTitle;
 
     private JComponent footer() {
         Box p = Box.createVerticalBox();

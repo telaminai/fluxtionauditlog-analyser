@@ -477,6 +477,77 @@ class OneDispatchModelTest {
         }
     }
 
+    // ---- M74 P2b (§8.2 rule 9 inventory): propose, the switch hold and an example's download -------------------------
+
+    /**
+     * ★ Witness: let the dispatcher's propose case or the proposer call a project-changing frame method (requestProject,
+     * openFile, openGraphml, selectProcessor) — the forbidden-call assertion fails.
+     */
+    @Test
+    @DisplayName("★ M74 P2b: propose records an offer — neither the dispatcher nor the proposer applies a project change")
+    void proposeAppliesNothing() throws Exception {
+        String dispatcher = Files.readString(Path.of("src/main/java/telamin/fluxtion/audit/analyser/analyser/llm/ActionDispatcher.java"));
+        assertFalse(dispatcher.contains("MainFrame"), "the dispatcher names no frame");
+        String frame = Files.readString(UI.resolve("MainFrame.java"));
+        String proposer = bodyOf(frame, "private telamin.fluxtion.audit.analyser.analyser.llm.ActionResult proposeFromHosted(");
+        assertFalse(proposer.isBlank());
+        for (String forbidden : List.of("requestProject(", "openFile(", "openGraphml(", "selectProcessor(", "sourceRoots.add",
+                "runbooks.put", "addRunbookPointer(")) {
+            assertFalse(proposer.contains(forbidden), "the proposer must not call " + forbidden);
+        }
+        assertTrue(proposer.contains("ProposalReceived("), "the offer is a fact");
+        // the person paths are reached from ONE performer: the apply effect's (besides the menus that are their homes)
+        assertEquals(1, count(Pattern.compile("PointerDialog\\s*\\.\\s*addRunbookPointer\\("), frame),
+                "the runbook pointer path is called only by the apply performer");
+        assertTrue(bodyOf(frame, "private String[] applyProposalItemNow(").contains("addRunbookPointer("));
+    }
+
+    /** ★ Witness: open the review dialog from the banner's render (renderProposal) — a model call would raise a modal. */
+    @Test
+    @DisplayName("★ M74 P2b: the banner renders; only the person's click opens the review; the panel composes no proposal decision")
+    void theBannerOnlyRenders() throws Exception {
+        String panel = Files.readString(UI.resolve("LocalAgentPanel.java"));
+        String render = bodyOf(panel, "public void renderProposal(");
+        assertFalse(render.isBlank());
+        assertFalse(render.contains("ProposalReviewDialog"), "a render never opens the review");
+        assertFalse(render.contains("intents."), "a render asks for nothing");
+        assertFalse(panel.contains("ProposalApplyRequested"), "the panel posts no fact itself: its intents do");
+    }
+
+    /**
+     * ★ Witness: fetch or unpack from the start page or from the confirm performer — the fetch-home assertion fails.
+     */
+    @Test
+    @DisplayName("★ M74 P2b: an example is fetched only by the fetch effect's performer and unpacked only by the unpack effect's")
+    void theExampleHasOneFetchAndOneUnpack() throws Exception {
+        String frame = Files.readString(UI.resolve("MainFrame.java"));
+        assertEquals(1, count(Pattern.compile("\\.fetch\\(parsed\\.source\\(\\)"), frame), "one fetch home");
+        assertTrue(bodyOf(frame, "private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result fetchExample(")
+                .contains(".fetch(parsed.source()"));
+        assertEquals(1, count(Pattern.compile("TemplateArchive\\.forExamples\\(\\)"), frame), "one unpack home");
+        assertTrue(bodyOf(frame, "private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result unpackExample(")
+                .contains("TemplateArchive.forExamples()"));
+        String view = Files.readString(UI.resolve("StartPromptView.java"));
+        assertFalse(view.contains("ExampleArchiveClient") || view.contains("TemplateArchive"), "the view fetches nothing");
+        String download = bodyOf(frame, "private void downloadExample(");
+        assertTrue(download.contains("ExampleDownloadRequested("), "the button is a fact");
+        assertFalse(download.contains("fetch(") || download.contains("install("), "and fetches nothing itself");
+    }
+
+    /** ★ Witness: decide the switch in the frame (e.g. check localAgent().running() before requestProject) — fails. */
+    @Test
+    @DisplayName("★ M74 P2b: the project switch is held by sessionBoundary; the frame only asks and reports the choice")
+    void theSwitchIsTheNodes() throws Exception {
+        String frame = Files.readString(UI.resolve("MainFrame.java"));
+        String request = bodyOf(frame, "private boolean requestProject(Path file,\n");
+        String all = frame.substring(frame.indexOf("private boolean requestProject(Path file,"));
+        all = all.substring(0, all.indexOf("private void syncBusyWithGate()"));
+        assertFalse(all.contains("localAgent()"), "requestProject never looks at the local agent: the node holds");
+        String offer = bodyOf(frame, "private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result offerLocalAgentSwitch(");
+        assertTrue(offer.contains("LocalAgentSwitchChosen("));
+        assertFalse(offer.contains("requestProject(") || offer.contains("StopLocalAgent"), "the choice is a fact; the nodes act");
+    }
+
     private static int count(Pattern p, String s) {
         Matcher m = p.matcher(s);
         int n = 0;

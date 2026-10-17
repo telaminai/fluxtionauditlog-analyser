@@ -19,7 +19,12 @@ import java.util.regex.Pattern;
  *   title-line  := "# " title                                           (title: 1–60 characters)
  *   description := one line that is not an entry                         (1–140 characters)
  *   entry-line  := n ". **" label "** — " text                           (n = 1, 2, … in order; label 1–60; text 1–500)
+ *                | n ". **" label "** — example: " url [" sha256:" hex64] (P2b: a downloadable example, ExampleSource)
  * </pre>
+ *
+ * <p>An <b>example</b> entry (owner request 2026-10-17) names an archive of a PINNED commit on an allowed host
+ * ({@link ExampleSource}); the URL may be written bare or in angle brackets. It is the only place a pack may hold an
+ * address, and that line must be exactly this shape. Nothing is fetched when the pack is dropped or the entry chosen.
  *
  * The file is at most {@value #MAX_BYTES} bytes of UTF-8 (a byte-order mark is a hidden character, refused). No HTML, no images, no links, no
  * {@code {placeholders}}, no control, format or bidirectional characters, and no other content: each is refused with its
@@ -37,8 +42,15 @@ public final class PromptPack {
     public static final int MAX_LABEL = 60;
     public static final int MAX_TEXT = 500;
 
-    /** One entry: a label and its prompt text. */
-    public record Entry(String label, String text) {
+    /** One entry: a label and its prompt text, or (P2b) a label and the example it downloads (then {@code text} is null). */
+    public record Entry(String label, String text, ExampleSource example) {
+        public Entry(String label, String text) {
+            this(label, text, null);
+        }
+
+        public boolean isExample() {
+            return example != null;
+        }
     }
 
     /** A valid pack. */
@@ -74,7 +86,13 @@ public final class PromptPack {
         LINK("links are not allowed"),
         PLACEHOLDER("placeholders such as {log} are not allowed"),
         HIDDEN_CHARACTER("control, format and bidirectional characters are not allowed"),
-        EXTRA_CONTENT("nothing may follow the entries");
+        EXTRA_CONTENT("nothing may follow the entries"),
+        EXAMPLE_MALFORMED("an example entry is \"N. **Label** — example: https://… [sha256:<64 hex>]\" and nothing else"),
+        EXAMPLE_NOT_HTTPS("an example is downloaded only over https"),
+        EXAMPLE_HOST("an example's host must be one of " + String.join(", ", ExampleSource.ALLOWED_HOSTS)),
+        EXAMPLE_NOT_ARCHIVE("an example must be a commit archive (…/archive/<commit>.zip), with no user, port, query or fragment"),
+        EXAMPLE_MOVING_REF("an example must pin a 40-character commit, not a branch or tag"),
+        EXAMPLE_DIGEST("an example's sha256 must be 64 hexadecimal characters");
 
         public final String words;
 
@@ -102,6 +120,9 @@ public final class PromptPack {
     private static final Pattern HTML_TAG = Pattern.compile("<\\s*[/!?A-Za-z]");
     private static final Pattern PLACEHOLDER = Pattern.compile("\\{[A-Za-z_][A-Za-z0-9_]*\\}");
     private static final Pattern LINK = Pattern.compile("\\]\\(|https?://|\\bwww\\.|<https?:", Pattern.CASE_INSENSITIVE);
+    /** P2b: an entry line whose text begins "example:" — exempt from the link and HTML checks, and held to EXAMPLE. */
+    private static final Pattern EXAMPLE_LINE = Pattern.compile("^\\d{1,2}\\. \\*\\*[^*]+\\*\\* — example:.*$");
+    private static final Pattern EXAMPLE = Pattern.compile("^example: (?:<(\\S+)>|(\\S+))(?: sha256:(\\S+))?$");
 
     public static Result parse(byte[] bytes) {
         if (bytes == null || bytes.length > MAX_BYTES) return refuse(0, Cause.TOO_LARGE);
@@ -123,6 +144,7 @@ public final class PromptPack {
                 k += Character.charCount(cp);
             }
             if (l.contains("![")) return refuse(line, Cause.IMAGE);
+            if (EXAMPLE_LINE.matcher(l).matches()) continue;      // held to the example grammar below, nothing else
             if (HTML_TAG.matcher(l).find()) return refuse(line, Cause.HTML);
             if (LINK.matcher(l).find()) return refuse(line, Cause.LINK);
             if (PLACEHOLDER.matcher(l).find()) return refuse(line, Cause.PLACEHOLDER);
@@ -162,6 +184,21 @@ public final class PromptPack {
             if (length(label) > MAX_LABEL) return refuse(i + 1, Cause.LABEL_TOO_LONG);
             if (prompt.isEmpty()) return refuse(i + 1, Cause.EMPTY_TEXT);
             if (length(prompt) > MAX_TEXT) return refuse(i + 1, Cause.TEXT_TOO_LONG);
+            if (prompt.startsWith("example:")) {
+                Matcher x = EXAMPLE.matcher(prompt);
+                if (!x.matches()) return refuse(i + 1, Cause.EXAMPLE_MALFORMED);
+                ExampleSource.Parsed parsed = ExampleSource.parse(x.group(1) != null ? x.group(1) : x.group(2), x.group(3));
+                if (parsed.refusal() != null) return refuse(i + 1, switch (parsed.refusal()) {
+                    case NOT_HTTPS -> Cause.EXAMPLE_NOT_HTTPS;
+                    case HOST_NOT_ALLOWED -> Cause.EXAMPLE_HOST;
+                    case USER_INFO_OR_PORT, QUERY_OR_FRAGMENT, NOT_AN_ARCHIVE -> Cause.EXAMPLE_NOT_ARCHIVE;
+                    case MOVING_REF -> Cause.EXAMPLE_MOVING_REF;
+                    case BAD_DIGEST -> Cause.EXAMPLE_DIGEST;
+                });
+                entries.add(new Entry(label, null, parsed.source()));
+                i++;
+                continue;
+            }
             entries.add(new Entry(label, prompt));
             i++;
         }
