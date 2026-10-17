@@ -173,21 +173,23 @@ sink; that file is the one you open here.
   (`INFO`) in steady state.
 - **File sink** — the server writes records to a `---`-separated text file. Open it locally, or copy it
   to S3 and open `s3://bucket/key`.
-- **Binary file** — a Fluxtion binary audit log (`FLXA`) opens in the analyser like a text one. It is recognised by
-  its first four bytes, not its file name.
 
 !!! note "Which audit sinks the analyser reads"
     `EventLogManager` takes a `LogRecordListener`, so a processor can write its audit stream to any
     back-end sink: a text file, the binary `FLXA` file, **Chronicle**, Kafka, JDBC and so on. The analyser reads
-    the **text file** and the **binary file**. For any other sink, export to one of those, or run a file sink
+    the **text file** and the **binary file**. A Fluxtion binary audit log (`FLXA`) opens like a text one, recognised
+    by its first four bytes rather than its file name. For any other sink, export to one of those, or run a file sink
     alongside it: a file sink and a high-performance sink can run side by side on the same processor.
 
-    A binary log differs from a text one in four ways:
+    A binary log differs from a text one in five ways:
 
     - It does not carry `groupingId` or `thread`, so the analyser shows neither, rather than inventing them.
     - It cannot be followed while it is still being written: open it again to see new records.
-    - Its header must declare the time unit. A file whose header declares none is refused; declare the unit into
-      the file with the runtime's `AuditLogTool --declare-unit`.
+    - Only millisecond binary logs open. A header that states no time unit, or nanoseconds, is refused. For a file
+      whose header states no unit, write a copy that declares it with the runtime's audit tool,
+      `AuditLogTool <file> --declare-unit millis --out <copy>`, and open the copy.
+    - Its byte offsets are not positions in the file, so an agent's `read` by `byteOffset` finds nothing; read by
+      record index or time instead.
     - A cut-off tail is reported, not refused: the records before it open, and the analyser says how many bytes
       at the end formed no whole record.
 

@@ -114,6 +114,8 @@ figures below are taken from the same runs but are not checked by that test.
   not a measured result: no failure has yet been re-run with a larger model under the same conditions.
 - This choice is for **your own LLM client** (Claude Code, Codex and similar). It does not cover the analyser's
   in-app assistant, whose provider and model are set on the **Settings ▸ LLM** tab; nothing there was measured.
+- The measured runs drove Claude Code from a test harness, outside the analyser. Claude Code in the analyser, whose
+  model is set under **Settings ▸ Assistant**, was not measured separately.
 
 Paste this prompt once the client can access the project and analyser:
 

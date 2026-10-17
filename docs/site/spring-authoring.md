@@ -60,8 +60,8 @@ build a project or deploy a server.
 Which LLM can do which part:
 
 - **Full Claude Code in the analyser** edits and builds the project with your own Claude Code
-  tools, as far as your permission rules and its mode allow, and the analyser asks you
-  about each request your rules would ask about
+  tools, as far as your permission rules and its mode allow. In the modes that ask (`default`,
+  `acceptEdits`), the analyser shows you each request your rules would ask about
   ([Claude Code in the analyser](inapp/claude-code.md#full-claude-code-your-own-claude-code-by-a-second-opt-in)).
 - **A client in your terminal or IDE** (Claude Code, Codex and similar) edits and builds with its
   own tools and drives the analyser over MCP ([Connect your client](connect-an-llm.md)).

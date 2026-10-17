@@ -16,9 +16,12 @@ record. Those judgements stay with you.
 
 Write each criterion as an observable result, before the run, in words that name what the log will show:
 
-- *"Every `OrderPlaced` event is followed by exactly one `OrderAck`."*
-- *"No `RiskBreach` is logged after the first `QuoteSuspended`."*
 - *"`quoter.spread` stays between 0 and 5."*
+- *"No `RiskBreach` is logged after the first `QuoteSuspended`."*
+- *"Every `OrderPlaced` event is followed by exactly one `OrderAck`."*
+
+The first two can be checked today with one or two computed answers (step 2). The third can only be approximated
+today, by comparing two counts; a check of the "for each … exactly one" form is [planned](#planned-acceptance-checks).
 
 A criterion about something the processor does not log cannot be checked from its log. Agree the audit fields first:
 separate numeric or boolean keys, such as `quoter.spread`, can be counted and charted, while a number inside an
@@ -30,7 +33,7 @@ for a criterion: it is a statement of intent, not a result.
 
 ## 2. Turn each criterion into a computed answer
 
-Each kind of criterion has a verb that computes its answer over the whole log, never over a sample of records:
+Counts and crossings are computed over the whole log, never over a sample of records:
 
 | Criterion | Ask the analyser for | Verb |
 |---|---|---|
@@ -39,6 +42,10 @@ Each kind of criterion has a verb that computes its answer over the whole log, n
 | A relation between two values | the same, over a formula | `series {expr: "ask.price - bid.price", crossings: {below: 0}}` |
 | Which nodes logged on this run | the coverage ledger: covered, uncovered and excluded nodes, with the reasons | `coverage` |
 | Values in particular records | the named fields of those records | `read {recordIndex, fields}` |
+
+Some criteria take two steps. For *"no `RiskBreach` after the first `QuoteSuspended`"*: count the `QuoteSuspended`
+records, whose answer names the first one (`firstRecordIndex`); read that record's time; then count `RiskBreach`
+records with `filter: {from: <that time>}`. Zero is the pass, provided the first step found a `QuoteSuspended` at all.
 
 In the analyser itself the same questions are a chart with a guide line or a condition band
 ([Graphs ▸ Thresholds and condition bands](../user-guide/graphs.md#thresholds-and-condition-bands)), the
@@ -53,20 +60,26 @@ Mark the record that settles a criterion with a **flag**. A flag of kind `confir
 **Assessment**, for a criterion that holds; the default kind, `fault`, is for one that fails
 ([Investigation reports](../user-guide/reports.md#references-never-a-document)).
 
-Flags are session state: they last until another log is opened. A finding that must last goes into a report.
+Flags belong to this run, in this session: opening another log clears them, and an evidence bundle does not carry
+them. Use a flag to point at the record now; put a conclusion that must last in a report's `narrative`, a walk step's
+caption, or a report's exported PDF.
 
 ## 4. Assemble the account: a report
 
 A report keeps the check. Put the criteria in a `narrative` section, then one section per criterion:
 
-- a `finding` section for each flagged record;
 - a `table` section that stores the **query**, not its rows: an `aggregate`, a `series` with crossings, `coverage`, or
-  a `read`, with an optional row rule such as `rowWhen: "quoter.spread > 5"` printed under the table;
-- a `chart` section for a chart with its guides and bands.
+  a `read`. A `read` or crossings table can also carry a row rule, such as `rowWhen: "quoter.spread > 5"`, printed
+  under the table;
+- a `chart` section for a chart with its guides and bands;
+- a `finding` section for each flagged record. It shows the flag as it is now, so it holds only in the session where
+  the flag was made.
 
-Because a report stores references and queries, **opening it again re-runs every check against the log open now**.
+Because a report stores references and queries, **opening it again re-runs its tables and charts against the log
+open now**.
 That makes the same report a check you can repeat: record a run, open the report, change the code, record the same
-inputs again, open the same report against the new log. A report opened against a different log names the difference
+inputs again, open the same report against the new log. Its `table` and `chart` sections carry the repeatable part;
+its `finding` sections will say their flags are missing, because flags do not survive the new log. A report opened against a different log names the difference
 before any section renders, and a reference that no longer resolves is reported, never dropped
 ([Evidence re-renders live](../user-guide/reports.md#evidence-re-renders-live)).
 
@@ -86,7 +99,7 @@ is open.
 |---|---|---|
 | **Producer findings** (*Sources ▸ Open producer diagnostics…*) | The Spring XML design validates, and what the build reported ([Spring authoring](../spring-authoring.md#view-design-and-producer-findings)) | Anything about how the application behaves |
 | **Coverage** | Which nodes logged on this run | That a silent node did not run: a node can run and log nothing at its audit level |
-| **Replay compare** (`--replay-compare`) | That your build, fed the bundle's recorded inputs, writes the same log, record by record ([Evidence bundle format](../evidence-bundles/reference.md#-replay-compare-comparing-a-replayed-log)) | Whether a *changed* build is correct. A fix that changes behaviour diverges by design; the first difference it names is useful context, not a verdict |
+| **Replay compare** (`--replay-compare`) | That your build, fed the recorded inputs of a bundle captured with replay records, writes the same log, record by record ([Evidence bundle format](../evidence-bundles/reference.md#-replay-compare-comparing-a-replayed-log)) | Whether a *changed* build is correct. A fix that changes behaviour diverges by design; the first difference it names is useful context, not a verdict |
 | **A passing build or a plausible chart** | That it compiled, or that a line looks right | That any criterion holds |
 
 **"No failure" is not "covered".** An empty crossings list means the value never entered that region on this run, or

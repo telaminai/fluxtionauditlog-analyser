@@ -49,7 +49,8 @@ until you press Start or Send ([The start page](../user-guide/start-page.md)).
 - **Teach me by building an example.** Opens the sample DEMO project and drafts a lesson request: explain events,
   triggers and dispatch from the evidence. With no AI it plays the DEMO guided tour.
 - **Set up a project from my code.** For code you already have: Claude Code reads the folder and proposes the set-up
-  ([Set up a project with Claude](set-up-with-claude.md)).
+  ([Set up a project with Claude](set-up-with-claude.md)). With the in-app assistant, or no AI, it opens
+  *New project…*, which offers what it finds and lets you choose.
 
 !!! info "What these entries do today, and what is planned"
     Today these entries draft a request and open what already exists: the starter templates, the new-project dialogs
@@ -65,13 +66,20 @@ until you press Start or Send ([The start page](../user-guide/start-page.md)).
 
 **Which AI can build.** Building means editing files and running commands, so it needs an assistant with those tools:
 
-- **Full Claude Code in the analyser** can edit files and run your build, as far as your own Claude Code permission
-  rules and the mode you choose allow. The analyser asks you about each request your rules would ask about
+- **Full Claude Code in the analyser** is your own Claude Code, with your tools, run inside the analyser. It can edit
+  files and run your build, as far as your own permission rules and the mode you choose allow. In the modes that ask
+  (`default`, `acceptEdits`), the analyser shows you each request your rules would ask about
   ([Claude Code in the analyser ▸ Full Claude Code](../inapp/claude-code.md#full-claude-code-your-own-claude-code-by-a-second-opt-in)).
+  How it differs from Claude Code in a terminal is on that page.
 - **Claude Code, Codex or another client in your terminal or IDE** builds with its own tools, and drives the analyser
   over MCP ([Connect your client](../connect-an-llm.md)).
-- **Safe analysis** reads the evidence and advises. It cannot edit a file or run a command, so it cannot build.
-- **The in-app assistant** can drive the analyser's views. It cannot read your project folder.
+- **Safe analysis**, the default way Claude Code runs in the analyser, reads the evidence and the project's files and
+  can propose the analyser's set-up for the project. It cannot edit a file or run a command, so it cannot build.
+- **The in-app assistant**, which answers with your own API key, can count and summarise the log, and change the
+  views when *Settings ▸ Assistant ▸ Let the in-app assistant change the views as it answers* is on. It cannot read
+  your project folder.
+
+[Assistant profiles](../admin/profiles.md) compares the four ways the assistant can work.
 
 **What the analyser itself never does.** It does not edit your Java, run your build or start your application: an
 assistant with its own tools does that, or you do. The analyser opens the run's evidence (the audit log, the graph it
@@ -151,3 +159,11 @@ shows how to tell the two apart.
 !!! info "Further ahead: rules"
     A longer-term direction, not built: invariants written as rules, deterministic checks over the processor's
     state, deployed as Mongoose plugins and checked against the same audit.
+
+## Why it matters
+
+When a number derived from events is wrong or surprising, someone has to explain it. Without the record, that
+explanation is a plausible story pieced together from logs. With an audit written by the processor itself, the
+explanation can point at the cycle, the node and the value, and anyone can check it. Try it on the sample: open the
+[guided tour or the sample project](../start/tour-and-sample.md), or download the
+[sample audit log](../assets/sample-audit-log.yaml).
