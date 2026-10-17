@@ -603,6 +603,12 @@ class OneDispatchModelTest {
         assertEquals(1, count(apply, performer), "and it is the node's ApplyAssistantProfileEffect performer");
         assertTrue(performer.contains("LocalAgentConsentChanged(") || performer.contains("reportAssistantSettings()"),
                 "it reports the same consent facts a Settings save reports");
+        // review P3+UX S4: the write's performer posts no mode choice (the node asks for it), and reports the real save
+        assertFalse(performer.contains("AssistantModeChosen("), "the profile's performer decides no mode");
+        assertTrue(performer.contains("saveConfigReporting()") && !performer.contains("saveConfigQuietly()"),
+                "and its result is the real save result");
+        assertTrue(bodyOf(frame, "private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result chooseAssistantMode(")
+                .contains("AssistantModeChosen("), "the mode change is the node's ChooseAssistantModeEffect, performed");
         String intents = bodyOf(frame, "public void applyProfile(long request,");
         assertTrue(intents.contains("AssistantProfileChosen("), "Apply is the person's act, reported as a fact");
         assertFalse(intents.contains("AssistantProfiles"), "the intent writes nothing itself");

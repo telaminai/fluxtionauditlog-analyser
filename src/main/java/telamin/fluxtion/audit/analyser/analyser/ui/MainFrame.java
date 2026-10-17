@@ -8469,6 +8469,7 @@ public final class MainFrame extends JFrame {
             // M74 UX: the assistant profile — assistantProfile decided; the frame brings the panel forward and writes settings
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ShowAssistantProfilesEffect e -> showAssistantProfiles(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ApplyAssistantProfileEffect e -> applyAssistantProfile(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ChooseAssistantModeEffect e -> chooseAssistantMode(e);
             // M74: the local agent's effects have ONE performer, the adapter (OneDispatchModelTest pins it)
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.StartLocalAgentEffect e -> performLocalAgent(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.PollLocalAgentStatusEffect e -> performLocalAgent(e);
@@ -11024,14 +11025,20 @@ public final class MainFrame extends JFrame {
     }
 
     private void saveConfigQuietly() {
+        saveConfigReporting();   // config persistence is best-effort here
+    }
+
+    /** Save the config; null when written, else why not (review P3+UX S4: a caller that reports a result needs it). */
+    private String saveConfigReporting() {
         syncOpenGraphsIntoConfig();   // never write a stale graph list (B-M20-3)
         try {
             // while a project is open the live config holds BOTH tiers; the global file must keep the
             // user's own pre-project values, or deleting a project directory would leave them with a
             // stale project's settings as their personal ones
             configStore.save(config, project == null ? null : project.globalTier());
-        } catch (RuntimeException ignore) {
-            // config persistence is best-effort
+            return null;
+        } catch (RuntimeException ex) {
+            return rootMessage(ex);
         }
     }
 
@@ -11411,14 +11418,29 @@ public final class MainFrame extends JFrame {
      */
     private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result applyAssistantProfile(
             telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ApplyAssistantProfileEffect e) {
+        var before = telamin.fluxtion.audit.analyser.analyser.assistant.AssistantProfiles.snapshot(config);
         telamin.fluxtion.audit.analyser.analyser.assistant.AssistantProfiles.apply(e.profile(), assistantPanel.profileDetails(),
                 config);
-        saveConfigQuietly();
-        session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantModeChosen(
-                e.profile().mode(), "assistant profile"));
+        // review P3+UX S4: the result reports the REAL save — a failed write puts the previous settings back and says so;
+        // the mode change is assistantProfile's to ask for, after this fact
+        String failure = saveConfigReporting();
+        if (failure != null) {
+            telamin.fluxtion.audit.analyser.analyser.assistant.AssistantProfiles.restore(before, config);
+            return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantProfileApplied(e.opId(),
+                    e.request(), e.profile(), false, "the settings could not be saved, so nothing changed ("
+                    + telamin.fluxtion.audit.analyser.analyser.session.FactWords.withoutPaths(failure) + ")");
+        }
         reportAssistantSettings();
         return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantProfileApplied(e.opId(),
                 e.request(), e.profile(), true, "");
+    }
+
+    /** ChooseAssistantModeEffect (review P3+UX S4): the node asked for the mode; it is reported as the mode choice. */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result chooseAssistantMode(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ChooseAssistantModeEffect e) {
+        session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantModeChosen(e.mode(),
+                e.origin()));
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantProfilesShown(e.opId());
     }
 
     /** What the machine now says about the assistants — the facts a Settings save reports, and the profile in force. */

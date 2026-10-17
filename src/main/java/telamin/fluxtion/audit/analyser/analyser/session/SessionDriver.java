@@ -348,6 +348,7 @@ public final class SessionDriver {
             case SessionEffects.UnpackExampleEffect ignored -> "unpackExample";
             case SessionEffects.DiscardExampleBytesEffect ignored -> "discardExampleBytes";
             case SessionEffects.StartExampleClockEffect ignored -> "startExampleClock";
+            case SessionEffects.ChooseAssistantModeEffect ignored -> "chooseAssistantMode";
             case SessionEffects.OfferExampleProjectEffect ignored -> "offerExampleProject";
         };
     }

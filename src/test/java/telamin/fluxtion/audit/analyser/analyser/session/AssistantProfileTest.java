@@ -168,4 +168,29 @@ class AssistantProfileTest {
         d.post(new SessionEvents.AssistantProfileApplied(99, 42, AssistantProfile.FULL, true, ""));
         assertEquals(AssistantProfile.NONE, profiles(d).profile(), "an answer to another request is refused");
     }
+
+    /**
+     * ★ Review P3+UX S4 (2026-10-17): the tab's mode follows a profile because assistantProfile ASKS for it, after the
+     * settings were written — never posted by the write's performer; a failed write asks for nothing and says why.
+     * Witness: drop the ChooseAssistantModeEffect request in onProfileApplied — no mode change is asked for.
+     */
+    @Test
+    @DisplayName("★ a written profile asks for its mode; a failed write keeps the cards open, says why, and asks for nothing")
+    void theNodeAsksForTheMode() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = unchosen(a);
+        d.post(new SessionEvents.AssistantProfilesRequested("assistant header"));
+        d.post(new SessionEvents.AssistantProfileChosen(1, AssistantProfile.SAFE));
+        assertEquals(1, a.modeChoices.size());
+        assertEquals(AssistantMode.LOCAL_AGENT, a.modeChoices.get(0).mode());
+
+        FakeSessionAdapter b = new FakeSessionAdapter();
+        b.profileSaveFailure = "the settings could not be saved, so nothing changed (AccessDeniedException: …/config)";
+        SessionDriver e = unchosen(b);
+        e.post(new SessionEvents.AssistantProfilesRequested("assistant header"));
+        e.post(new SessionEvents.AssistantProfileChosen(1, AssistantProfile.FULL));
+        assertTrue(b.modeChoices.isEmpty(), "nothing was written, so the mode does not change");
+        assertTrue(e.snapshot().profiles().open(), "the cards stay open");
+        assertTrue(e.snapshot().profiles().refusal().startsWith("the settings could not be saved"));
+    }
 }

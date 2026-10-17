@@ -155,6 +155,11 @@ public class AssistantProfileChoice implements EventLogSource {
         why = "";
         refusal = "";
         auditLog.info("assistantProfileApplied", profile);
+        // review P3+UX S4: the tab follows the profile — decided here, after the settings were written, never by the
+        // performer of the write
+        if (e.profile() != null && e.profile() != AssistantProfile.NONE) {
+            effects.request(new SessionEffects.ChooseAssistantModeEffect(0L, e.profile().mode(), "assistant profile"));
+        }
         return changed();
     }
 

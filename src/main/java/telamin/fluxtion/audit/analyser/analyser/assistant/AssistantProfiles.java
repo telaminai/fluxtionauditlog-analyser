@@ -71,6 +71,34 @@ public final class AssistantProfiles {
         c.assistantProfile = profile.stored();
     }
 
+    /** Review P3+UX S4: every field {@link #apply} writes, as it was — so a failed save can put it back. */
+    public record Snapshot(boolean claudeCodeAllowed, boolean claudeCodeFull, String claudeCodeFullMode,
+                           boolean claudeCodeFullModeReadAsDefault, String claudeCodeModel, String llmProvider,
+                           String llmModel, String apiKey, String claudeCodeLastMode, String assistantProfile) {
+        @Override
+        public String toString() {             // never the key
+            return "AssistantProfiles.Snapshot[" + assistantProfile + "]";
+        }
+    }
+
+    public static Snapshot snapshot(AppConfig c) {
+        return new Snapshot(c.claudeCodeAllowed, c.claudeCodeFull, c.claudeCodeFullMode, c.claudeCodeFullModeReadAsDefault,
+                c.claudeCodeModel, c.llmProvider, c.llmModel, c.apiKey, c.claudeCodeLastMode, c.assistantProfile);
+    }
+
+    public static void restore(Snapshot s, AppConfig c) {
+        c.claudeCodeAllowed = s.claudeCodeAllowed();
+        c.claudeCodeFull = s.claudeCodeFull();
+        c.claudeCodeFullMode = s.claudeCodeFullMode();
+        c.claudeCodeFullModeReadAsDefault = s.claudeCodeFullModeReadAsDefault();
+        c.claudeCodeModel = s.claudeCodeModel();
+        c.llmProvider = s.llmProvider();
+        c.llmModel = s.llmModel();
+        c.apiKey = s.apiKey();
+        c.claudeCodeLastMode = s.claudeCodeLastMode();
+        c.assistantProfile = s.assistantProfile();
+    }
+
     private static void claudeModel(Details x, AppConfig c) {
         String m = x.claudeModel() == null ? "" : x.claudeModel().trim();
         if (!m.isEmpty() && telamin.fluxtion.audit.analyser.analyser.assistant.localagent.ClaudeCodeProvider.validModel(m)) {

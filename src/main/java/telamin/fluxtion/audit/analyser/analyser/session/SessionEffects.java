@@ -248,6 +248,15 @@ public sealed interface SessionEffects {
     record ApplyAssistantProfileEffect(long opId, long request, AssistantProfile profile) implements SessionEffects {
     }
 
+    /**
+     * Review P3+UX S4 (2026-10-17): put the tab in {@code mode} — requested by {@code assistantProfile} once a profile's
+     * settings were written, so the mode change is the node's decision; the performer reports it as the person's mode
+     * choice ({@link SessionEvents.AssistantModeChosen}), and {@code localAgentSession} and {@code assistantMode} decide what
+     * it means exactly as for the selector.
+     */
+    record ChooseAssistantModeEffect(long opId, AssistantMode mode, String origin) implements SessionEffects {
+    }
+
     // ---- M74: the local agent, decided by the localAgentSession node, performed by LocalAgentAdapter (§4.1) ----------
 
     /**
