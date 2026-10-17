@@ -341,7 +341,9 @@ public final class LocalAgentAdapter {
             run.beginTurn(e.ticket());
         }
         long ticket = e.ticket();
-        write(run, StreamJson.userLine(uuid, store.text(e.draft())),
+        // final review #12: the binding goes to the model on the line it reads; the transcript keeps the person's words
+        write(run, StreamJson.userLine(uuid, store.text(e.draft())
+                        + telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.modelBinding(e.logGeneration())),
                 () -> endTurn(run, ticket, SessionEvents.TurnOutcome.PROCESS_EXIT));
         return started(e.opId(), e.generation(), "send");
     }
@@ -449,7 +451,13 @@ public final class LocalAgentAdapter {
             case StreamJson.ControlRequest r -> onControlRequest(run, r);
             case StreamJson.ControlCancelRequest c -> {
                 // P3-2: the CLI withdrew a request itself (an interrupt while one was pending); the node closes the dialog
-                Long ref = run.permissionByRequestId.get(c.requestId() == null ? "" : c.requestId());
+                // or drops it from the queue. Final review #1: the request_id is forgotten here, at once — the CLI no
+                // longer waits for it, so no answer (above all no allow) is ever written for it, whatever is decided later
+                Long ref;
+                synchronized (run) {
+                    ref = run.permissionByRequestId.remove(c.requestId() == null ? "" : c.requestId());
+                    if (ref != null) run.pendingPermissions.remove(ref);
+                }
                 if (ref != null) env.post(new SessionEvents.LocalAgentPermissionCancelled(gen, ref));
             }
             case StreamJson.SystemInit i -> {

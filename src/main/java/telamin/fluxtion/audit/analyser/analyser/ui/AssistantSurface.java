@@ -45,6 +45,13 @@ final class AssistantSurface {
     final JLabel fullBadge = UiText.label(" ");
     /** The hint a composed draft lights the composer with. */
     final WrapLine composerHint = new WrapLine(" ");
+    /**
+     * Final review #12 (owner decision, 2026-10-17): the small muted chip that says which log the composer's drafted
+     * questions are about — "this log · opened 14:05" — in place of the "(log generation N)" the drafts used to carry.
+     * It renders the snapshot's open log against each draft's binding (the node's, carried on its prime effect); the
+     * model is told the binding with the turn it is sent.
+     */
+    final JLabel bindingChip = UiText.label(" ");
     final JButton start = new JButton("Start Claude Code");
     final JButton stop = new JButton("Stop");
     final JButton send = UiText.button("Send");
@@ -63,7 +70,7 @@ final class AssistantSurface {
      * Review S2 (P2, 2026-10-17): ALL of them, not only the newest: an earlier draft appended before a later one still
      * names records, so each is checked at Send.
      */
-    private record Bound(long draftRef, AssistantMode mode, Object highlight) { }
+    private record Bound(long draftRef, AssistantMode mode, Object highlight, long logGeneration) { }
     private final java.util.List<Bound> bound = new java.util.ArrayList<>();
 
     AssistantSurface() {
@@ -78,6 +85,9 @@ final class AssistantSurface {
         chips.getAccessibleContext().setAccessibleName("Assistant session");
         fullBadge.setVisible(false);
         composerHint.setVisible(false);
+        bindingChip.setVisible(false);
+        bindingChip.setOpaque(false);
+        bindingChip.setFont(bindingChip.getFont().deriveFont(bindingChip.getFont().getSize2D() - 1f));
         stop.setEnabled(false);
         send.addActionListener(e -> onSend.run());
         stop.addActionListener(e -> onStop.run());
@@ -90,9 +100,39 @@ final class AssistantSurface {
         draft.getActionMap().put("assistant-send", new AbstractAction() {
             @Override public void actionPerformed(ActionEvent e) {
                 if (composing()) return;
+                if (enterHeldSinceFocus) return;          // final review #7: the start page's Enter, still held
                 if (send.isEnabled()) onSend.run();
             }
         });
+        // final review #12: deleting a draft's words drops its binding, and the chip with it
+        draft.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+            @Override public void insertUpdate(javax.swing.event.DocumentEvent e) { }
+            @Override public void removeUpdate(javax.swing.event.DocumentEvent e) {
+                javax.swing.SwingUtilities.invokeLater(AssistantSurface.this::renderBindingChip);
+            }
+            @Override public void changedUpdate(javax.swing.event.DocumentEvent e) { }
+        });
+        // final review #7: an Enter whose press began before the composer had the focus (the start page's Enter that
+        // placed this draft, still held and auto-repeating) never sends; the composer's own next press does
+        HeldEnter.install();
+        draft.addFocusListener(new java.awt.event.FocusAdapter() {
+            @Override public void focusGained(java.awt.event.FocusEvent e) {
+                enterArrived(HeldEnter.down());
+            }
+        });
+        draft.addKeyListener(new java.awt.event.KeyAdapter() {
+            @Override public void keyReleased(KeyEvent e) {
+                if (e.getKeyCode() == KeyEvent.VK_ENTER) enterHeldSinceFocus = false;
+            }
+        });
+    }
+
+    /** Whether the Enter now held was pressed before the composer gained the focus (final review #7). */
+    private boolean enterHeldSinceFocus;
+
+    /** The composer gained the focus while Enter was {@code held} (or not). Package-private for the tests. */
+    void enterArrived(boolean held) {
+        enterHeldSinceFocus = held;
     }
 
     /** An input method is mid-composition: the committed text is shorter than the document. */
@@ -108,6 +148,11 @@ final class AssistantSurface {
      * @return the appended range's start
      */
     int appendDraft(AssistantMode mode, long draftRef, String text, String hint) {
+        return appendDraft(mode, draftRef, text, hint, 0);
+    }
+
+    /** As above, for a draft bound to log generation {@code logGeneration} (0: it names no log) — final review #12. */
+    int appendDraft(AssistantMode mode, long draftRef, String text, String hint, long logGeneration) {
         String was = draft.getText();
         String sep = was.isBlank() ? "" : was.endsWith("\n\n") ? "" : was.endsWith("\n") ? "\n" : "\n\n";
         if (was.isBlank()) draft.setText("");
@@ -132,14 +177,16 @@ final class AssistantSurface {
         try {
             Object highlight = draft.getHighlighter().addHighlight(from, to,
                     new DefaultHighlighter.DefaultHighlightPainter(UiTheme.accentWash(0.28f)));
-            bound.add(new Bound(draftRef, mode, highlight));
+            bound.add(new Bound(draftRef, mode, highlight, logGeneration));
         } catch (BadLocationException e) {
             throw new IllegalStateException(e);
         }
         composerHint.setText(hint == null ? " " : hint);
         composerHint.setForeground(UiTheme.noteForeground());      // review §2: a status note wears the note token
         composerHint.setVisible(hint != null && !hint.isBlank());
+        renderBindingChip();
         draft.setCaretPosition(to);
+        enterArrived(HeldEnter.down());       // final review #7: placed by a held Enter? (the focus may already be here)
         draft.requestFocusInWindow();
         return from;
     }
@@ -162,6 +209,66 @@ final class AssistantSurface {
         return out;
     }
 
+    // ---- final review #12: the binding chip ----------------------------------------------------------------------------
+
+    private boolean chipLogOpen;
+    private long chipGeneration;
+    private long chipOpenedAt;
+
+    /** The snapshot's open log — whether one is open, its generation, when it was opened (epoch millis; 0 unknown). */
+    void renderOpenLog(boolean logOpen, long generation, long openedAtMillis) {
+        chipLogOpen = logOpen;
+        chipGeneration = generation;
+        chipOpenedAt = openedAtMillis;
+        renderBindingChip();
+    }
+
+    /** The chip's words for drafts bound to {@code draftGeneration} against the open log; null when no draft is bound. */
+    static String chipText(long draftGeneration, boolean logOpen, long generation, long openedAtMillis) {
+        if (draftGeneration <= 0) return null;
+        if (!logOpen || generation != draftGeneration) return "an earlier log · Send will refuse it — ask again";
+        return openedAtMillis > 0 ? "this log · opened " + hhmm(openedAtMillis) : "this log";
+    }
+
+    /** The chip's accessible name: what a screen reader says for it — never the generation. */
+    static String chipName(long draftGeneration, boolean logOpen, long generation, long openedAtMillis) {
+        if (draftGeneration <= 0) return null;
+        if (!logOpen || generation != draftGeneration) {
+            return "The drafted question is about a log that is no longer open; Send will refuse it — ask again";
+        }
+        return "The drafted question is about the log open now" + (openedAtMillis > 0 ? ", opened at "
+                + hhmm(openedAtMillis) : "");
+    }
+
+    static String hhmm(long epochMillis) {
+        return java.time.format.DateTimeFormatter.ofPattern("HH:mm").format(
+                java.time.Instant.ofEpochMilli(epochMillis).atZone(java.time.ZoneId.systemDefault()));
+    }
+
+    /** The newest bound draft the composer still holds (any of its text remains), or 0. */
+    private long boundGeneration() {
+        java.util.List<Object> live = new java.util.ArrayList<>();
+        for (Highlighter.Highlight h : draft.getHighlighter().getHighlights()) {
+            if (h.getEndOffset() > h.getStartOffset()) live.add(h);
+        }
+        long g = 0;
+        for (Bound b : bound) if (b.logGeneration() > 0 && live.contains(b.highlight())) g = b.logGeneration();
+        return g;
+    }
+
+    void renderBindingChip() {
+        long g = boundGeneration();
+        String text = chipText(g, chipLogOpen, chipGeneration, chipOpenedAt);
+        bindingChip.setVisible(text != null);
+        bindingChip.setText(text == null ? " " : text);
+        bindingChip.setForeground(text != null && text.startsWith("an earlier") ? UiTheme.noteForeground()
+                : UiTheme.mutedForeground());
+        bindingChip.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(UiTheme.controlBorder(), 1, true),
+                BorderFactory.createEmptyBorder(1, 6, 1, 6)));
+        bindingChip.getAccessibleContext().setAccessibleName(chipName(g, chipLogOpen, chipGeneration, chipOpenedAt));
+    }
+
     /** The node accepted the send: clear the composer. Nothing else clears it (a refused draft stays editable). */
     void accepted() {
         draft.setText("");
@@ -172,6 +279,7 @@ final class AssistantSurface {
         for (Bound b : bound) draft.getHighlighter().removeHighlight(b.highlight());
         bound.clear();
         composerHint.setVisible(false);
+        renderBindingChip();
     }
 
     /** The composer's border, or the full-posture cue's accent border. */

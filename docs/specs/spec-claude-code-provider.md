@@ -1,6 +1,7 @@
 # M74 — Claude Code as the analyser's assistant: a long-running local session
 
-**Status:** DRAFT r15, 2026-10-17 — r15 fixes the findings of the independent usability review of M74
+**Status:** DRAFT r16, 2026-10-17 — r16 fixes the independent review of the r15 pass and records two owner decisions
+(see *Implementation notes (r16 final-review fixes)*). r15 fixes the findings of the independent usability review of M74
 (`docs/handoff/review_m74_usability_2026-10-17.md`, with its disposition table) and the owner's spotlight-caption
 decision, and refines OD-74.16 and OD-74.17 (marked *r15*); see *Implementation notes (r15 usability fixes)*. r14 fixed
 the three final reviews (`docs/handoff/review_m74_final_{p2,p3ux,holistic}_2026-10-17.md`) and the owner's start-page
@@ -2516,6 +2517,45 @@ change renders a snapshot or a published value.
 - The processor was regenerated for the new handlers (`onFileExchange` of `localAgentPermission`; `onProfileApplied`,
   `onProfileObserved`, `onProfilesClosed` of `startPagePrompt`); the generated header is unchanged.
 
+## Implementation notes (r16 final-review fixes, 2026-10-17)
+
+An independent review of the r15 pass found the items below; each fix has a test and every starred one a wrong-result
+witness, run (mutate, the named assertion red, restore). Rule 9 throughout.
+
+- **A withdrawn waiting request** (#1): `localAgentPermission.onCancelled` drops a QUEUED request too (WITHDRAWN,
+  nothing answered), and the adapter forgets the `request_id` on `control_cancel_request`, so no allow is ever written
+  for it. ★ `LocalAgentPermissionTest.aWithdrawnWaitingRequestIsNeverShown`, ★ `LocalAgentPermissionReplayTest.
+  aWithdrawnRequestIsNeverAnswered`.
+- **One choice of operation** (#2): `VerbOperations.report` / `.open` (the executor's own order and predicates) are used
+  by `ActionExecutor`, `MainFrame.reportVerb`, `McpTools.hostedCallKind` and `PermissionText`; `walk` uses
+  `WalkVerb.choose`. `report {name, delete: false, sections}` reads as the build it is. ★ `PermissionTextTest.
+  theSentenceIsTheExecutorsChoice`.
+- **Admission** (#3, #5): a NON_MUTATING call still goes through `gate.admit`; under `auto` and `plan`
+  `localAgentSession.onCallAdmission` refuses every askable verb (the pre-allowed shapes included), as
+  `localAgentPermission.policy()` denies their requests. ★ `HostedGrantServerTest.aNonMutatingCallStillNeedsTheSessionsAdmission`,
+  ★ `anAskedVerbIsRefusedInAModeThatDoesNotAsk`.
+- **The queue's ends** (#4): one ★ per path that denies a waiting request unseen — settings, New chat, exit — and
+  `askNext`'s staleness re-check (reached after a mode-mismatch kill).
+- **`closedForSession`** (#6) is a component of `ReleaseHostedBridgeEffect`, chosen by `actionListener`.
+- **Keys** (#7, #8): `HeldEnter` (an observe-only key dispatcher) lets the composer ignore an Enter pressed before it had
+  the focus; with a start-page entry chosen the hint says what Enter does; the page's ⌘/Alt shortcuts are disabled while
+  another text field has the focus; the input-method guards are tested (`ComposerKeysTest`).
+- **Spotlight callouts** (#9): the hover/focus targets are placed outside paint (one `layout()` for both), the expanded
+  card contains the collapsed one, and a focused callout going dark hands the focus back (`SpotlightCalloutTargetsTest`).
+- **#10** `StartPageCarryTest.onlyApplyReleasesTheCarriedQuestion` kills the review's M10. **#13** the proposal review's
+  answer column is second, so it is in view at 760 px. **#14, #15** one name in `McpBridge.NOT_RUNNING` and Settings' intro.
+- **Owner decision: drafts drop "(log generation N)"** (#12): the templates no longer say it; the binding is unchanged
+  where it is checked (S2, every draft at Send) and the MODEL still receives it — the node puts the generation the
+  message's drafts were checked against on `SendLocalAgentTurnEffect` / `PrepareAssistantContextEffect`, and the
+  adapters append `AskCatalogue.modelBinding` to the text sent (never to the transcript). The composer shows a muted
+  chip, *this log · opened HH:MM*, rendering `SessionSnapshot.logOpenedAt` (from `LogOpened.openedAtMillis`) against
+  each draft's binding carried on the prime effect.
+- **Owner feedback: posture → Work mode**: the shared canvas's posture reads *Work mode* — *Investigate* / *Build* /
+  *Guess from what is open* — in every person-visible string (AI menu, Project panel, in-app help). The API is
+  byte-identical (`open {posture}`, `context.handoff.posture`, every schema; `WorkModeKeepsTheApiTest` pins their digests
+  as of a1053178). The spotlight target `menu:AI:Posture` is external vocabulary: `MenuHints.ALIASES` resolves it to
+  `menu:AI:Work mode`. `UserVisibleJargonTest` has no shared-canvas exemption any more.
+
 ## Revision history
 
 - **r1, r2** (2026-10-16): the long-running session design; two independent reviews (`[R …]`, `[R2-n]` tags).
@@ -2629,3 +2669,8 @@ change renders a snapshot or a published value.
   OD-74.17 amended (a second request waits instead of being denied at once), both marked *r15*; §5.7's dialog title,
   denial words and one-at-a-time rule annotated; the owner's spotlight-caption decision; *Implementation notes (r15
   usability fixes)* added.
+- **r16** (2026-10-17): the independent review of the r15 pass fixed (a withdrawn waiting request, one choice of operation
+  per verb, admission under `auto`/`plan`, the queue's witnesses, keys, spotlight callout targets, the proposal review's
+  width, one name in the bridge's error); the owner's decisions that a draft no longer shows the log generation (a
+  binding chip instead, the model told) and that the shared canvas's posture reads *Work mode* for the person, the API
+  unchanged; *Implementation notes (r16 final-review fixes)* added.

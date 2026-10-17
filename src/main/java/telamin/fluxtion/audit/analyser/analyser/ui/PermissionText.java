@@ -93,67 +93,104 @@ public final class PermissionText {
         Object name = p.get("name");
         switch (verb) {
             case "walk" -> {
-                if (has(p, "reel")) return new Call("record the walk " + q(name) + " as a page, written to " + q(p.get("reel")),
-                        "It plays the walk step by step and writes one HTML page" + EXCHANGE);
-                if (has(p, "delete")) return new Call("delete the saved walk " + q(name), RESTORABLE);
-                if (has(p, "rename")) return new Call("rename the walk " + q(name) + " to " + q(p.get("rename")),
-                        "The walk keeps its steps; only its name changes.");
-                if (Boolean.TRUE.equals(p.get("restore"))) return new Call("list the deleted walks", "It changes nothing.");
-                if (has(p, "restore")) return new Call("restore the deleted walk " + q(p.get("restore")),
-                        "It comes back into this project under its name.");
-                if (Boolean.TRUE.equals(p.get("play"))) return new Call("play the walk " + q(name)
-                        + (has(p, "step") ? " from step " + q(p.get("step")) : ""),
-                        "It shows the walk's steps on the analyser; nothing saved changes.");
-                if (Boolean.TRUE.equals(p.get("end"))) return new Call("end the walk that is showing", "It changes nothing saved.");
-                if (has(p, "steps")) return new Call("save the walk " + q(name),
-                        "A saved walk of that name is replaced; a new name adds one.");
-                if (p.containsKey("conversation")) return new Call(p.get("conversation") == null
-                        ? "remove the conversation from the walk " + q(name)
-                        : "attach a conversation to the walk " + q(name), "The walk's steps do not change.");
-                return null;
+                // final review #2: the operation is WalkVerb.choose's — the executor's own choice — and a flag the
+                // executor requires to be true (delete, play, end) is judged as it judges it
+                @SuppressWarnings("unchecked")
+                WalkVerb.Chosen chosen = WalkVerb.choose((java.util.Map<String, Object>) p, () -> "");
+                if (!chosen.ok()) return null;
+                return switch (chosen.op()) {
+                    case "reel" -> new Call("record the walk " + q(name) + " as a page, written to " + q(p.get("reel")),
+                            "It plays the walk step by step and writes one HTML page" + EXCHANGE);
+                    case "delete" -> Boolean.TRUE.equals(p.get("delete"))
+                            ? new Call("delete the saved walk " + q(name), RESTORABLE) : null;
+                    case "rename" -> new Call("rename the walk " + q(name) + " to " + q(p.get("rename")),
+                            "The walk keeps its steps; only its name changes.");
+                    case "restore" -> Boolean.TRUE.equals(p.get("restore"))
+                            ? new Call("list the deleted walks", "It changes nothing.")
+                            : new Call("restore the deleted walk " + q(p.get("restore")),
+                            "It comes back into this project under its name.");
+                    case "play" -> Boolean.TRUE.equals(p.get("play")) ? new Call("play the walk " + q(name)
+                            + (has(p, "step") ? " from step " + q(p.get("step")) : ""),
+                            "It shows the walk's steps on the analyser; nothing saved changes.") : null;
+                    case "end" -> Boolean.TRUE.equals(p.get("end"))
+                            ? new Call("end the walk that is showing", "It changes nothing saved.") : null;
+                    case "steps" -> new Call("save the walk " + q(name),
+                            "A saved walk of that name is replaced; a new name adds one.");
+                    case "conversation" -> new Call(p.get("conversation") == null
+                            ? "remove the conversation from the walk " + q(name)
+                            : "attach a conversation to the walk " + q(name), "The walk's steps do not change.");
+                    default -> null;
+                };
             }
             case "report" -> {
-                if (p.get("bundle") instanceof java.util.Map<?, ?> b) {
-                    return new Call("write an evidence bundle to " + q(b.get("path")),
+                // final review #2: VerbOperations.report — the executor's own choice, so `delete: false` beside
+                // sections reads as the build it is, never as a delete
+                var chosen = telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.report(p);
+                if (!chosen.ok()) return null;
+                return switch (chosen.op()) {
+                    case BUNDLE -> new Call("write an evidence bundle to "
+                            + q(((java.util.Map<?, ?>) p.get("bundle")).get("path")),
                             "It packs the open log, its graph and this project's reports into one file" + EXCHANGE);
-                }
-                if (Boolean.TRUE.equals(p.get("restore"))) return new Call("list the deleted reports", "It changes nothing.");
-                if (has(p, "restore")) return new Call("restore the deleted report " + q(p.get("restore")),
-                        "It comes back into this project under its name.");
-                if (has(p, "delete")) return new Call("delete the report " + q(name), RESTORABLE);
-                if (has(p, "rename")) return new Call("rename the report " + q(name) + " to " + q(p.get("rename")),
-                        "The report keeps its sections; only its name changes.");
-                if (has(p, "csv")) return new Call("write table " + q(p.get("csv")) + " of the report " + q(name)
-                        + " as CSV to " + q(p.get("path")), "It writes one file" + EXCHANGE);
-                if (has(p, "sections") || has(p, "name")) {
-                    String what = "build the report " + q(name) + (has(p, "path") ? " and write it to " + q(p.get("path")) : "");
-                    return new Call(what, (has(p, "path") ? "It writes one file" + EXCHANGE + " " : "")
-                            + "A report of that name in this project is replaced; a new name adds one.");
-                }
-                if (has(p, "path")) return new Call("write a finding" + (has(p, "recordIndex") ? " for record "
-                        + q(p.get("recordIndex")) : "") + " to " + q(p.get("path")), "It writes one PDF file" + EXCHANGE);
-                return null;
+                    case LIST_DELETED -> new Call("list the deleted reports", "It changes nothing.");
+                    case RESTORE -> new Call("restore the deleted report " + q(p.get("restore")),
+                            "It comes back into this project under its name.");
+                    case DELETE -> new Call("delete the report " + q(name), RESTORABLE);
+                    case RENAME -> new Call("rename the report " + q(name) + " to " + q(p.get("rename")),
+                            "The report keeps its sections; only its name changes.");
+                    case CSV -> new Call("write table " + q(p.get("csv")) + " of the report " + q(name)
+                            + " as CSV to " + q(p.get("path")), "It writes one file" + EXCHANGE);
+                    case BUILD -> new Call("build the report " + q(name)
+                            + (has(p, "path") ? " and write it to " + q(p.get("path")) : ""),
+                            (has(p, "path") ? "It writes one file" + EXCHANGE + " " : "")
+                                    + "A report of that name in this project is replaced; a new name adds one.");
+                    case FINDING -> has(p, "path") ? new Call("write a finding" + (has(p, "recordIndex") ? " for record "
+                            + q(p.get("recordIndex")) : "") + " to " + q(p.get("path")), "It writes one PDF file" + EXCHANGE)
+                            : null;
+                    case INVALID -> null;
+                };
             }
             case "screenshot" -> {
                 return new Call("write a screenshot of " + (has(p, "scope") ? "the " + q(p.get("scope")) : "the window")
                         + " to " + q(p.get("path")), "It writes one PNG file" + EXCHANGE);
             }
             case "open" -> {
-                for (String k : new String[]{"log", "project", "bundle", "graphml", "processor", "design"}) {
-                    if (has(p, k)) {
-                        String kind = switch (k) {
-                            case "log" -> "the audit log";
-                            case "project" -> "the project";
-                            case "bundle" -> "the evidence bundle";
-                            case "graphml" -> "the graph file";
-                            case "processor" -> "the processor";
-                            default -> "the design";
-                        };
-                        return new Call("open " + kind + " " + q(p.get(k)), "What is open now is replaced.");
+                // final review #2: VerbOperations.open — the act the executor dispatches on, in its order
+                return switch (telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.open(p)) {
+                    case CREATE -> new Call((Boolean.TRUE.equals(p.get("create")) ? "preview creating a project in "
+                            : "create a project in ") + q(p.get("project")), Boolean.TRUE.equals(p.get("create"))
+                            ? "It shows what would be created and changes nothing."
+                            : "It writes a new project in that folder.");
+                    case FOLLOW -> new Call(Boolean.TRUE.equals(p.get("follow")) ? "follow the open log as it grows"
+                            : "stop following the open log", "It changes nothing saved.");
+                    case CANVAS -> new Call("change what the shared canvas shows",
+                            "It changes only the shared canvas; no file is opened.");
+                    case ANALYSIS -> new Call("run the saved analysis " + q(p.get("analysis")),
+                            "It opens what the analysis names; what is open now is replaced.");
+                    case RESTORE_SESSION -> "dismiss".equals(p.get("restore"))
+                            ? new Call("dismiss the offer to restore the last session", "It changes nothing open.")
+                            : new Call("restore the last session", "What is open now is replaced.");
+                    case BUNDLE -> new Call("open the evidence bundle " + q(p.get("bundle")), "What is open now is replaced.");
+                    case PROJECT -> new Call("open the project " + q(p.get("project")), "What is open now is replaced.");
+                    case DISCOVER -> new Call("list what could be opened beside the log",
+                            "It lists candidates and opens nothing.");
+                    case CLOSE -> new Call("close the " + q(p.get("close")), "It closes what is open now.");
+                    case FILES -> {
+                        for (String k : new String[]{"log", "logs", "graphml", "processor", "design", "diagnostics"}) {
+                            if (has(p, k)) {
+                                String kind = switch (k) {
+                                    case "log" -> "the audit log";
+                                    case "logs" -> "the audit log set";
+                                    case "graphml" -> "the graph file";
+                                    case "processor" -> "the processor";
+                                    case "diagnostics" -> "the diagnostics";
+                                    default -> "the design";
+                                };
+                                yield new Call("open " + kind + " " + q(p.get(k)), "What is open now is replaced.");
+                            }
+                        }
+                        yield null;
                     }
-                }
-                if (has(p, "close")) return new Call("close the " + q(p.get("close")), "It closes what is open now.");
-                return null;
+                };
             }
             case "source_root" -> {
                 if (has(p, "add") || has(p, "remove")) {

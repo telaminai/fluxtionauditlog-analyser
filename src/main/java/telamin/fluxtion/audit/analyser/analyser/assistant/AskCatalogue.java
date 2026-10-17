@@ -473,6 +473,16 @@ public final class AskCatalogue {
         return new Draft("FREE_TEXT", f.freeText(), null, 0);
     }
 
+    /**
+     * Final review #12 (owner decision, 2026-10-17): what the MODEL is told about a message's binding — the log generation
+     * its composed drafts were checked against at Send — appended to the text sent, never to the person's draft. Empty
+     * for 0 (no draft names a log).
+     */
+    public static String modelBinding(long generation) {
+        if (generation <= 0) return "";
+        return "\n\n" + text("binding.model", Map.of("gen", AskPointers.integer(generation)));
+    }
+
     /** The journey handoff's draft in the Claude Code mode (§5.5 Journeys), bound to the walk's log. */
     public static Draft composeJourney(String walkName, int walkPosition, AskContext c) {
         Map<String, String> v = new LinkedHashMap<>();

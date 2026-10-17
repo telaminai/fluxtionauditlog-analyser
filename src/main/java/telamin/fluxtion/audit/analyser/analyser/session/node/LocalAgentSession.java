@@ -87,6 +87,8 @@ public class LocalAgentSession implements EventLogSource {
     private boolean interruptAcked;
     private long pendingDraft;
     private long pendingRequest;
+    /** Final review #12: the bound log generation of the held draft (0: none). */
+    private long pendingLogGeneration;
     /** Review M8: the Start request whose folder confirmation is open, and the posture it was asked for. */
     private long confirmRequest;
     private String confirmPosture;
@@ -270,12 +272,22 @@ public class LocalAgentSession implements EventLogSource {
      * processed before this fact refuses it; one processed after it finds the call already admitted. The verdict
      * leaves as an effect the adapter completes; nothing on the HTTP thread decides from a snapshot.
      */
+    /** Final review #5: the server's refusal of an asked verb under a mode that does not ask. */
+    public static final String HIDDEN_IN_THIS_MODE = "`{verb}` is not available to Claude Code in this mode: the "
+            + "analyser's verbs that change what is open or write files are hidden under auto and plan";
+
     @OnEventHandler(propagate = false)
     public boolean onCallAdmission(SessionEvents.LocalAgentCallAdmissionRequested e) {
         long admitted = admittedGeneration();
         String refusal = admitted != 0 && admitted == e.generation() ? null
                 : "the Claude Code session is not connected to this analyser yet, or its set-up is not yet checked, so "
                 + "the analyser's own tools are refused for it (session " + e.generation() + ")";
+        if (refusal == null && LocalAgentPosture.askable(e.verb()) && (posture == null || !posture.asks())) {
+            // final review #5 (defence in depth, OD-74.16): under auto and plan the asked verbs are hidden, and
+            // localAgentPermission's policy denies every request for them — so the server admits none of them either,
+            // not even the sub-actions that change nothing (which reach this admission without a grant)
+            refusal = HIDDEN_IN_THIS_MODE.replace("{verb}", e.verb());
+        }
         // scorecard R1: the verb the call names and the turn it was made in, beside the verdict
         auditLog.info("localAgentCall", refusal == null ? "ADMITTED" : "REFUSED").info("generation", e.generation())
                 .info("verb", String.valueOf(e.verb())).info("ticket", openTicket);
@@ -368,13 +380,27 @@ public class LocalAgentSession implements EventLogSource {
             // accepted before the process is ready: the one draft waits for READY, it is never handed to the CLI's queue
             pendingDraft = e.draft();
             pendingRequest = e.request();
+            pendingLogGeneration = boundGeneration(e.draftBindings());
             reason = "";
             verdict = "";
             auditLog.info("localAgentDraftHeld", e.draft());
             return changed();
         }
-        sendTurn(e.draft(), e.request());
+        sendTurn(e.draft(), e.request(), boundGeneration(e.draftBindings()));
         return changed();
+    }
+
+    /**
+     * Final review #12 (owner decision, 2026-10-17): the log generation a message's composed drafts were checked against
+     * at Send — the open log's, since a stale one was refused — or 0 when none names a log. It goes to the MODEL with the
+     * turn; the person's draft no longer says it.
+     */
+    private long boundGeneration(java.util.List<Long> draftBindings) {
+        for (long draftBinding : draftBindings) {
+            String[] b = bindings.get(draftBinding);
+            if (b != null && b[0] != null) return Long.parseLong(b[1]);
+        }
+        return 0;
     }
 
     @OnEventHandler
@@ -516,7 +542,7 @@ public class LocalAgentSession implements EventLogSource {
                     if (pendingDraft != 0) {
                         long draft = pendingDraft;
                         pendingDraft = 0;
-                        sendTurn(draft, pendingRequest);
+                        sendTurn(draft, pendingRequest, pendingLogGeneration);
                     }
                 }
             }
@@ -923,7 +949,8 @@ public class LocalAgentSession implements EventLogSource {
         }
         auditLog.info("localAgentDraft", e.questionId()).info("bound", e.logIdentity() != null)
                 .info("armed", arm != null).info("origin", String.valueOf(e.origin()));
-        effects.request(new SessionEffects.PrimeLocalAgentDraftEffect(0L, e.draftRef(), true, arm));
+        effects.request(new SessionEffects.PrimeLocalAgentDraftEffect(0L, e.draftRef(), true, arm,
+                e.logIdentity() != null ? e.logGeneration() : 0));
         return changed();
     }
 
@@ -1123,7 +1150,7 @@ public class LocalAgentSession implements EventLogSource {
                 c.postureRef(), posture));
     }
 
-    private void sendTurn(long draft, long request) {
+    private void sendTurn(long draft, long request, long logGeneration) {
         ticket++;
         openTicket = ticket;
         phase = "BUSY";
@@ -1133,7 +1160,7 @@ public class LocalAgentSession implements EventLogSource {
         entries.add(new LocalAgentState.Entry(draft, LocalAgentState.USER, ticket, "SENT", "", 0));
         answer(request, true, "");
         auditLog.info("localAgentTurn", ticket).info("generation", generation);
-        effects.request(new SessionEffects.SendLocalAgentTurnEffect(0L, generation, ticket, draft));
+        effects.request(new SessionEffects.SendLocalAgentTurnEffect(0L, generation, ticket, draft, logGeneration));
     }
 
     private void endTurn(SessionEvents.TurnOutcome outcome) {

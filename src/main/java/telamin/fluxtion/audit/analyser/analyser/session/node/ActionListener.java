@@ -100,7 +100,9 @@ public class ActionListener implements EventLogSource {
         wantListen = restOn;
         wantExternal = restOn;
         auditLog.info("listenerReleased", generation).info("keep", wantListen).info("reopenExternal", reopen && restOn);
-        effects.request(new SessionEffects.ReleaseHostedBridgeEffect(0L, generation, wantListen, wantExternal));
+        // final review #6: the session that closed external access has ended, so it is open again — this node's choice
+        effects.request(new SessionEffects.ReleaseHostedBridgeEffect(0L, generation, wantListen, wantExternal,
+                closedForSession));
         changed();
     }
 

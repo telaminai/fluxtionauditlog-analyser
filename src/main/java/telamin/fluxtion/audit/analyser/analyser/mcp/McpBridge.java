@@ -79,10 +79,11 @@ public final class McpBridge {
     /** Implementation-defined JSON-RPC error: the analyser isn't reachable (MCP reserves -32000..-32019). */
     static final int ERR_ANALYSER_UNREACHABLE = -32001;
 
+    /** One name for external access (review M74 usability #13; final review #14): the words the Settings checkbox uses. */
     static final String NOT_RUNNING =
-            "analyser not running, or REST transport disabled — enable it in Settings ▸ Assistant, or start "
-                    + "the app with `java -jar fluxtion-auditlog-analyser.jar --rest` (REST on, no first-run "
-                    + "dialog; the setting persists)";
+            "analyser not running, or External MCP/REST access is off — turn it on in Settings ▸ Assistant, or start "
+                    + "the app with `java -jar fluxtion-auditlog-analyser.jar --rest` (External MCP/REST access on, no "
+                    + "first-run dialog; the setting persists)";
 
     /** An aggregate over a multi-GB log can take a while; a hung call must still eventually fail. */
     private static final Duration CALL_TIMEOUT = Duration.ofSeconds(60);

@@ -780,7 +780,7 @@ The source-root grant now covers Java, XML designs and producer JSON; project me
 `open` also writes to the **shared canvas** — state you and the AI client both see and either of you can
 set — because `open` is the verb that already means *put this in force*. Two things live there. **Posture**: whether this session is *research/support* or
 *authoring/deploy*. The analyser guesses it from what is open (a project open reads as authoring) and
-**says when it is only guessing**; `open {posture: "authoring"}` — or *AI ▸ Posture* — sets it, which
+**says when it is only guessing**; `open {posture: "authoring"}` — or *AI ▸ Work mode* — sets it, which
 matters because intent changes before any file does (*"let's build something new"*). **The authoring
 mode selector's record**: `open {record: {…}}` places the selector's `--json` output, so the modes in
 force, the figures the catalogue resolved and what is left to author sit where both of you can read

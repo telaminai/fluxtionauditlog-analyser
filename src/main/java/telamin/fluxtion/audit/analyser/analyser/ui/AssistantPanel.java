@@ -225,6 +225,8 @@ public final class AssistantPanel extends JPanel {
         surface.composerHint.setFont(surface.composerHint.getFont().deriveFont(Font.BOLD));
         above.add(surface.fullBadge);
         above.add(surface.composerHint);
+        surface.bindingChip.setAlignmentX(LEFT_ALIGNMENT);
+        above.add(surface.bindingChip);              // final review #12: which log the drafted questions are about
         composer.add(above, BorderLayout.NORTH);
         composer.add(surface.draftScroll, BorderLayout.CENTER);
         JPanel buttons = new JPanel(new WrapLayout(FlowLayout.RIGHT, 4, 0));
@@ -406,7 +408,21 @@ public final class AssistantPanel extends JPanel {
      * exactly the appended range highlighted, the composer focused and lit with {@code hint}. Nothing is sent.
      */
     public int appendDraft(long draftRef, String text, String hint) {
-        return surface.appendDraft(AssistantMode.IN_APP, draftRef, text, hint);
+        return appendDraft(draftRef, text, hint, 0);
+    }
+
+    /** Final review #12: with the log generation the node bound the draft to (0: none), for the binding chip. */
+    public int appendDraft(long draftRef, String text, String hint, long logGeneration) {
+        return surface.appendDraft(AssistantMode.IN_APP, draftRef, text, hint, logGeneration);
+    }
+
+    /** Final review #12: the snapshot's open log, rendered on the composer's binding chip. */
+    public void renderOpenLog(boolean logOpen, long generation, long openedAtMillis) {
+        surface.renderOpenLog(logOpen, generation, openedAtMillis);
+    }
+
+    JLabel bindingChip() {
+        return surface.bindingChip;
     }
 
     /** The composed draft's binding while any of its appended text remains. */

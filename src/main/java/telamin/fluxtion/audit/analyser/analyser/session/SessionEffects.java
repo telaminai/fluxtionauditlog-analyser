@@ -192,8 +192,17 @@ public sealed interface SessionEffects {
      * {@link SessionEvents.AssistantContextFailed}, carrying {@code ticket}.
      */
     record PrepareAssistantContextEffect(long opId, long ticket, long draft, boolean includeManifest,
-                                         boolean includeRecordContext, int maxActionsPerReply)
+                                         boolean includeRecordContext, int maxActionsPerReply, long logGeneration)
             implements SessionEffects {
+        /**
+         * Owner decision (2026-10-17, final review #12): {@code logGeneration} — the log generation the message's
+         * composed drafts were checked against at Send, or 0 for none — is told to the MODEL with the prompt; the
+         * person's draft no longer carries it.
+         */
+        public PrepareAssistantContextEffect(long opId, long ticket, long draft, boolean includeManifest,
+                                             boolean includeRecordContext, int maxActionsPerReply) {
+            this(opId, ticket, draft, includeManifest, includeRecordContext, maxActionsPerReply, 0);
+        }
     }
 
     /**
@@ -290,7 +299,16 @@ public sealed interface SessionEffects {
     }
 
     /** Write transcript entry {@code draft} to the CLI as one user line, with a freshly minted uuid for {@code ticket}. */
-    record SendLocalAgentTurnEffect(long opId, long generation, long ticket, long draft) implements SessionEffects {
+    record SendLocalAgentTurnEffect(long opId, long generation, long ticket, long draft, long logGeneration)
+            implements SessionEffects {
+        /**
+         * Owner decision (2026-10-17, final review #12): {@code logGeneration} — the log generation the message's
+         * composed drafts were checked against at Send, or 0 for none — is told to the MODEL on the user line; the
+         * person's words in the transcript do not carry it.
+         */
+        public SendLocalAgentTurnEffect(long opId, long generation, long ticket, long draft) {
+            this(opId, generation, ticket, draft, 0);
+        }
     }
 
     /** How a Stop is carried out. */
@@ -325,12 +343,23 @@ public sealed interface SessionEffects {
      * Start with those words (the bundle's {@code armed.*} key); nothing starts because Start is armed. Answered by
      * {@link SessionEvents.DraftPlaced}.
      */
-    record PrimeLocalAgentDraftEffect(long opId, long draftRef, boolean highlight, String armedWhy)
+    record PrimeLocalAgentDraftEffect(long opId, long draftRef, boolean highlight, String armedWhy, long logGeneration)
             implements SessionEffects {
+        /**
+         * Final review #12: {@code logGeneration} is the log generation the draft is bound to (0: it names no log) — the
+         * composer's binding chip renders it against the snapshot's open log; the draft's words no longer say it.
+         */
+        public PrimeLocalAgentDraftEffect(long opId, long draftRef, boolean highlight, String armedWhy) {
+            this(opId, draftRef, highlight, armedWhy, 0);
+        }
     }
 
     /** The same for the in-app composer: in-app transcript entry {@code draftRef}, appended and highlighted. */
-    record PrimeAssistantDraftEffect(long opId, long draftRef, boolean highlight) implements SessionEffects {
+    record PrimeAssistantDraftEffect(long opId, long draftRef, boolean highlight, long logGeneration)
+            implements SessionEffects {
+        public PrimeAssistantDraftEffect(long opId, long draftRef, boolean highlight) {
+            this(opId, draftRef, highlight, 0);
+        }
     }
 
     /**
@@ -385,12 +414,14 @@ public sealed interface SessionEffects {
     /**
      * Review H4: no Claude Code process needs the bridge any more. Review B5: whether the listener stays up
      * ({@code keepListening}: the REST switch is on) and serves external clients is actionListener's decision; the
-     * performer only makes the listener match.
+     * performer only makes the listener match. {@code closedForSession} (final review #6, rule 9): whether external
+     * access stays closed for a session — actionListener's choice too (false: the session that closed it has ended), so
+     * the performer sets no value of its own.
      */
-    record ReleaseHostedBridgeEffect(long opId, long generation, boolean keepListening, boolean external)
-            implements SessionEffects {
+    record ReleaseHostedBridgeEffect(long opId, long generation, boolean keepListening, boolean external,
+                                     boolean closedForSession) implements SessionEffects {
         public ReleaseHostedBridgeEffect(long opId, long generation) {
-            this(opId, generation, false, false);
+            this(opId, generation, false, false, false);
         }
     }
 

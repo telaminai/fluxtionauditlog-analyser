@@ -727,7 +727,10 @@ public final class ConfigPanel extends JDialog {
         c.gridx = 0; c.gridwidth = 1; c.weightx = 1; c.anchor = GridBagConstraints.LINE_START;
         c.fill = GridBagConstraints.HORIZONTAL; c.insets = new Insets(0, 0, 10, 0);
         c.gridy = 0;
-        p.add(mutedNote("Choose how the assistant works in one step from the assistant's header (<b>Assistant ▾</b>): "
+        // final review #15: the header control's label as it reads (AssistantVocabularyTest holds it to
+        // AssistantPanel.assistantControlText, so the two never drift); a literal, as every HTML door's text is
+        p.add(mutedNote("Choose how the assistant works in one step from the control at the top of the assistant's "
+                + "panel that names the profile in force (for example <b>Assistant: Safe analysis ▾</b>): "
                 + "<b>Safe analysis</b>, <b>Full Claude Code</b>, <b>In-app assistant</b> or <b>Off</b>. Every option "
                 + "those cards set is here, grouped by the profile it belongs to. All of them are this machine's and "
                 + "this user's only — never in a project, a shared settings file or a bundle; an administrator cannot "

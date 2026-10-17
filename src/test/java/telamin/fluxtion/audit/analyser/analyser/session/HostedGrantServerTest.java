@@ -201,4 +201,54 @@ class HostedGrantServerTest {
         assertEquals(403, playAndDelete.statusCode(), "a play carrying another operation's field is not a play");
         assertEquals(List.of("walk", "report"), rendered, "neither the delete nor the mixed call ran");
     }
+    static final String PLAY = Json.write(Map.of("action", "walk", "params", Map.of("name", "DEMO first breach",
+            "play", true)));
+
+    /**
+     * ★ Final review #3 (rule 8, 2026-10-17): a pre-allowed sub-action (NON_MUTATING) still goes through the session's
+     * admission — a live credential whose generation the session has not admitted is refused. Witness: {@code return
+     * null} instead of {@code gate.admit(generation, verb)} in the NON_MUTATING branch of {@code hostedRefusal} — the
+     * play is served (200) for a session that was never posture-checked.
+     */
+    @Test
+    @DisplayName("★ walk {play} with a credential whose generation is not admitted: 403, nothing reaches the dispatcher")
+    void aNonMutatingCallStillNeedsTheSessionsAdmission() throws Exception {
+        credential = credentials.mint(start.generation() + 7);      // live, but for a generation never admitted
+        HttpResponse<String> play = hostedCall(PLAY, TOOL_USE);
+        assertEquals(403, play.statusCode(), play.body());
+        assertTrue(play.body().contains("not connected to this analyser yet"), play.body());
+        assertTrue(rendered.isEmpty(), "nothing reached the dispatcher");
+    }
+
+    /**
+     * ★ Final review #5 (defence in depth, OD-74.16): under {@code auto} the asked verbs are hidden and the node's policy
+     * denies every request for them, so the session's admission refuses them too — the four pre-allowed shapes
+     * included; a pre-allowed verb is still served. Witness: drop the askable-and-not-asks check in
+     * {@code LocalAgentSession.onCallAdmission} — the play is served (200) under auto.
+     */
+    @Test
+    @DisplayName("★ under auto, walk {play} and report {restore: true} are refused by the session's admission; filter is served")
+    void anAskedVerbIsRefusedInAModeThatDoesNotAsk() throws Exception {
+        driver = sessionThread.submit(() -> LocalAgentSessionTest.driver(adapter)).get();
+        start = sessionThread.submit(() -> {
+            var s = LocalAgentFullPostureTest.startFull(driver, adapter, LocalAgentPosture.FullMode.AUTO);
+            var t = LocalAgentSessionTest.send(driver, adapter, 10,
+                    LocalAgentFullPostureTest.full(LocalAgentPosture.FullMode.AUTO));
+            driver.post(LocalAgentFullPostureTest.fullInit(s, t.ticket(), "auto", List.of(), "connected"));
+            return s;
+        }).get();
+        assertEquals(start.generation(), sessionThread.submit(() -> driver.snapshot().localAgent().admittedGeneration())
+                .get(), "the auto session is admitted");
+        credential = credentials.mint(start.generation());
+        HttpResponse<String> play = hostedCall(PLAY, TOOL_USE);
+        assertEquals(403, play.statusCode(), play.body());
+        assertTrue(play.body().contains("not available to Claude Code in this mode"), play.body());
+        HttpResponse<String> list = hostedCall(Json.write(Map.of("action", "report", "params", Map.of("restore", true))),
+                TOOL_USE);
+        assertEquals(403, list.statusCode(), list.body());
+        assertTrue(rendered.isEmpty(), "neither reached the dispatcher");
+        HttpResponse<String> filter = hostedCall(Json.write(Map.of("action", "filter", "params", Map.of("text", "x"))),
+                TOOL_USE);
+        assertEquals(200, filter.statusCode(), "control: a pre-allowed verb is served under auto: " + filter.body());
+    }
 }

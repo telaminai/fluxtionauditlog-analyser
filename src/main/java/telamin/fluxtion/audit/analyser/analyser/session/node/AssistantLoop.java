@@ -153,7 +153,7 @@ public class AssistantLoop implements EventLogSource {
         auditLog.info("assistantTurn", turn).info("ticket", ticket).info("manifest", includeManifest)
                 .info("recordContext", includeRecordContext);
         effects.request(new SessionEffects.PrepareAssistantContextEffect(0L, ticket, e.draft(), includeManifest,
-                includeRecordContext, route.maxActionsPerReply()));
+                includeRecordContext, route.maxActionsPerReply(), boundGeneration(e.draftBindings())));
         return changed();
     }
 
@@ -191,7 +191,8 @@ public class AssistantLoop implements EventLogSource {
         while (bindings.size() > 64) bindings.remove(bindings.keySet().iterator().next());
         auditLog.info("assistantDraft", e.questionId()).info("bound", e.logIdentity() != null)
                 .info("origin", String.valueOf(e.origin()));
-        effects.request(new SessionEffects.PrimeAssistantDraftEffect(0L, e.draftRef(), true));
+        effects.request(new SessionEffects.PrimeAssistantDraftEffect(0L, e.draftRef(), true,
+                e.logIdentity() != null ? e.logGeneration() : 0));
         return changed();
     }
 
@@ -200,6 +201,18 @@ public class AssistantLoop implements EventLogSource {
      * draft the composer holds is checked and ANY stale one refuses; a binding this node does not hold (evicted past the
      * bound, or placed for the other assistant) is unknown and refused too — never counted as fresh.
      */
+    /**
+     * Final review #12 (owner decision): the log generation the message's composed drafts were checked against at Send
+     * (a stale one was refused), or 0 when none names a log — told to the model with the prompt, not in the person's words.
+     */
+    private long boundGeneration(java.util.List<Long> draftBindings) {
+        for (long draftBinding : draftBindings) {
+            String[] b = bindings.get(draftBinding);
+            if (b != null && b[0] != null) return Long.parseLong(b[1]);
+        }
+        return 0;
+    }
+
     private String staleDraft(java.util.List<Long> draftBindings) {
         boolean open = openLog.isOpen();
         String now = open ? telamin.fluxtion.audit.analyser.analyser.session.LocalAgentPosture.digest(openLog.logPath()) : null;

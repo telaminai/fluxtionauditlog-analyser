@@ -46,6 +46,8 @@ public class OpenLog implements EventLogSource {
     /** M68.5: the file identity verdict for this generation, and why — null until Follow has polled. */
     private String identity;
     private String identityReason;
+    /** Final review #12: when this generation was opened (epoch millis, as the adapter reported it; 0 unknown). */
+    private long openedAt;
 
     public OpenLog(OperationGate gate) {
         this.gate = gate;
@@ -71,6 +73,7 @@ public class OpenLog implements EventLogSource {
         nodeLogsWithheld = 0;
         total = 0;
         mostVerboseLevel = null;
+        openedAt = 0;
         identity = null;                        // M68.5: a deliberate close ends the story; a later open is not a reopen
         identityReason = null;
         auditLog.info("openLog", "none").info("via", "LogClosed");
@@ -94,6 +97,7 @@ public class OpenLog implements EventLogSource {
         nodeLogsWithheld = event.nodeLogsWithheld();
         total = event.total();
         mostVerboseLevel = event.mostVerboseLevel();
+        openedAt = event.openedAtMillis();
         // M68.5: a log reopened at the SAME path because the previous content was replaced says so, whatever the
         // reload's own status line says afterwards — the announcement is state, not a transient message
         boolean reopenedAfterReplacement = "REPLACEMENT".equals(identity) && java.util.Objects.equals(previousPath, event.logPath());
@@ -124,6 +128,7 @@ public class OpenLog implements EventLogSource {
         nodeLogsWithheld = 0;
         total = 0;
         mostVerboseLevel = null;
+        openedAt = 0;
         identity = null;
         identityReason = null;
         auditLog.info("openLog", "none").info("via", "LogCleared");
@@ -201,6 +206,11 @@ public class OpenLog implements EventLogSource {
      * it was read from, so it can never be applied to a different log opened since — the same rule as
      * {@code staleResult}, applied to facts that no request id can correlate.
      */
+    /** Final review #12: when the open log was opened (epoch millis), 0 when none is open or it is not known. */
+    public long openedAtMillis() {
+        return logPath == null ? 0 : openedAt;
+    }
+
     public long generation() {
         return generation;
     }

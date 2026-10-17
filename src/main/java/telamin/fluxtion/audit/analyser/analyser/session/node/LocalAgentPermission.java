@@ -341,9 +341,26 @@ public class LocalAgentPermission implements EventLogSource {
         return changed();
     }
 
-    /** P3-2: the CLI withdrew the request itself (an interrupt); the dialog closes, nothing is answered. */
+    /**
+     * P3-2: the CLI withdrew the request itself (an interrupt); the dialog closes, nothing is answered. Final review
+     * (2026-10-17) #1: a request withdrawn while it WAITS behind the open dialog leaves the queue the same way — it is never
+     * shown, so it can never be approved, and nothing is answered for it (the CLI no longer waits for it).
+     */
     @OnEventHandler
     public boolean onCancelled(SessionEvents.LocalAgentPermissionCancelled e) {
+        for (java.util.Iterator<String[]> it = queued.iterator(); it.hasNext(); ) {
+            String[] q = it.next();
+            if (Long.parseLong(q[0]) != e.requestRef() || Long.parseLong(q[1]) != e.generation()) continue;
+            it.remove();
+            decisions++;
+            auditLog.info("localAgentPermissionAnswered", e.requestRef()).info("decision", "WITHDRAWN").info("by",
+                    PermissionBy.CANCELLED.name()).info("queued", true);
+            if (e.generation() == localAgent.currentGeneration()) {
+                localAgent.permissionNoted(Long.parseLong(q[2]), "WITHDRAWN", "Claude Code withdrew its request to use "
+                        + shown(q[3], q[4]));
+            }
+            return changed();
+        }
         if (pendingRef == 0 || e.requestRef() != pendingRef || e.generation() != pendingGeneration) return false;
         long ref = pendingRef;
         long ticket = pendingTicket;

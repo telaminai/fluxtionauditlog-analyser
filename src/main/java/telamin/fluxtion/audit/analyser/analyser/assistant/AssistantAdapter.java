@@ -141,7 +141,8 @@ public final class AssistantAdapter {
 
     private SessionEvents.Result prepare(SessionEffects.PrepareAssistantContextEffect e) {
         // captured NOW, on the event thread, as immutable values: the worker never sees a mutable config or selection
-        String question = transcript.text(e.draft());
+        // final review #12: the binding is told to the model in the prompt; the person's question stays as they read it
+        String question = transcript.text(e.draft()) + AskCatalogue.modelBinding(e.logGeneration());
         List<LogRecord> records = e.includeRecordContext() ? List.copyOf(nullToEmpty(env.selection())) : List.of();
         String fqn = env.epFqn();
         LogFileInfo file = env.fileInfo();

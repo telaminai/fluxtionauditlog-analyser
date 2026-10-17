@@ -1879,10 +1879,15 @@ public final class MainFrame extends JFrame {
         // a profile only accumulated and an assistant could not clean up after itself. Both come FIRST:
         // they take 'name' and no sections, which the build path would otherwise read as "replace with
         // an empty report" — the destroy-on-replace trap.
+        // final review #2 (2026-10-17): the operation is VerbOperations.report's — the one the approval dialog described
+        var chosen = telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.report(params);
+        if (!chosen.ok()) return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(chosen.error());
+        var op = chosen.op();
         Object restore = params.get("restore");
-        if (restore != null) {
+        if (op == telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.ReportOp.LIST_DELETED
+                || op == telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.ReportOp.RESTORE) {
             // PR #33 review (owner, 2026-09-27): a delete is recoverable; `restore: true` lists, a name restores
-            if (Boolean.TRUE.equals(restore)) {
+            if (op == telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.ReportOp.LIST_DELETED) {
                 var echo = new java.util.LinkedHashMap<String, Object>();
                 echo.put("restorable", restorableReports());
                 return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("report", "restorable", echo);
@@ -1897,7 +1902,7 @@ public final class MainFrame extends JFrame {
             echo.put("reports", reportNames());
             return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("report", "restored", echo);
         }
-        if (Boolean.TRUE.equals(params.get("delete"))) {
+        if (op == telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.ReportOp.DELETE) {
             if (name == null) {
                 return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
                         "delete needs 'name' — reports: " + reportNames());
@@ -1921,7 +1926,7 @@ public final class MainFrame extends JFrame {
             return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("report", "deleted", echo);
         }
         Object renameTo = params.get("rename");
-        if (renameTo != null) {
+        if (op == telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.ReportOp.RENAME) {
             if (name == null) {
                 return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
                         "rename needs 'name' (the report to rename) — reports: " + reportNames());
@@ -1939,7 +1944,7 @@ public final class MainFrame extends JFrame {
 
         // ---- CSV export of one table section from an EXISTING report --------------------------------
         Object csv = params.get("csv");
-        if (csv != null) {
+        if (op == telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.ReportOp.CSV) {
             Integer sectionIdx = csv instanceof Number n ? n.intValue() : null;
             if (sectionIdx == null || name == null) {
                 return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
@@ -2864,18 +2869,21 @@ public final class MainFrame extends JFrame {
         // M48.7 / R10: the session's posture is SET by either party; derivation is only the default. These
         // items are BOUND to the one handoff state (D-AI2) — painted from it each time the menu opens, the
         // same state an agent reads in context.handoff and writes with `open {posture | record}`.
+        // Owner feedback (2026-10-17): the person reads WORK MODE — Investigate / Build; the API keeps its words
+        // (open {posture: research|authoring|derived}, context.handoff.posture), and menu:AI:Posture still lights this
         ai.addSeparator();
-        JMenu postureMenu = new JMenu("Posture");
-        postureMenu.setToolTipText("What this session is for — shared with an AI client through context.handoff");
-        JRadioButtonMenuItem postureDerived = UiText.radioMenuItem("Derived");
-        postureDerived.addActionListener(e -> applyHandoffFromMenu(Map.of("posture", "derived")));
-        JRadioButtonMenuItem postureResearch = new JRadioButtonMenuItem("Research / support");
+        JMenu postureMenu = new JMenu("Work mode");
+        postureMenu.setToolTipText("What this session is for — investigating a system, or building one; an AI client "
+                + "you connect reads the same choice");
+        JRadioButtonMenuItem postureResearch = new JRadioButtonMenuItem("Investigate");
         postureResearch.addActionListener(e -> applyHandoffFromMenu(Map.of("posture", "research")));
-        JRadioButtonMenuItem postureAuthoring = new JRadioButtonMenuItem("Authoring / deploy");
+        JRadioButtonMenuItem postureAuthoring = new JRadioButtonMenuItem("Build");
         postureAuthoring.addActionListener(e -> applyHandoffFromMenu(Map.of("posture", "authoring")));
-        postureMenu.add(postureDerived);
+        JRadioButtonMenuItem postureDerived = UiText.radioMenuItem("Guess from what is open");
+        postureDerived.addActionListener(e -> applyHandoffFromMenu(Map.of("posture", "derived")));
         postureMenu.add(postureResearch);
         postureMenu.add(postureAuthoring);
+        postureMenu.add(postureDerived);
         ai.add(postureMenu);
         JMenuItem placeRecord = new JMenuItem("Place mode-selector record…");
         placeRecord.setToolTipText("Put the authoring mode selector's --json record on the shared canvas — "
@@ -2917,7 +2925,7 @@ public final class MainFrame extends JFrame {
                 // M48.7: painted from the handoff state, never remembered here (D-AI2)
                 var set = handoff.posture();
                 var derived = telamin.fluxtion.audit.analyser.analyser.llm.CanvasHandoff.derive(project.hasProject());
-                postureDerived.setText("Derived — currently " + derived.label());
+                postureDerived.setText("Guess from what is open — now " + derived.words());
                 postureDerived.setSelected(set == null);
                 postureResearch.setSelected(set != null && set.posture()
                         == telamin.fluxtion.audit.analyser.analyser.llm.CanvasHandoff.Posture.RESEARCH);
@@ -4069,8 +4077,15 @@ public final class MainFrame extends JFrame {
     private JMenuItem menuItemFor(SpotlightTarget t) {
         javax.swing.JMenu m = topLevelMenu(t.menuName());
         if (m == null) return null;
+        JMenuItem found = menuItemNamed(m, t.menuItem());
+        // owner feedback (2026-10-17): an agent's old name for a renamed item still lights it (menu:AI:Posture)
+        String alias = found == null ? MenuHints.alias(t.menuName(), t.menuItem()) : null;
+        return alias == null ? found : menuItemNamed(m, alias);
+    }
+
+    private static JMenuItem menuItemNamed(javax.swing.JMenu m, String name) {
         for (java.awt.Component c : m.getPopupMenu().getComponents()) {
-            if (c instanceof JMenuItem item && item.getText() != null && item.getText().trim().equalsIgnoreCase(t.menuItem().trim())) return item;
+            if (c instanceof JMenuItem item && item.getText() != null && item.getText().trim().equalsIgnoreCase(name.trim())) return item;
         }
         return null;
     }
@@ -5179,7 +5194,7 @@ public final class MainFrame extends JFrame {
     private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result releaseHostedBridge(
             telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ReleaseHostedBridgeEffect e) {
         String failure = matchActionListener(e.keepListening(), e.external());
-        if (actionServer != null) actionServer.setClosedForSession(false);     // the session's end reopens it
+        if (actionServer != null) actionServer.setClosedForSession(e.closedForSession());   // final review #6: the node's
         return configured(e.opId(), failure);
     }
 
@@ -5400,6 +5415,7 @@ public final class MainFrame extends JFrame {
         var agent = next.localAgent();
         assistantPanel.renderMode(agent.mode(), demo != null);
         assistantPanel.renderProfiles(next.profiles());
+        assistantPanel.renderOpenLog(next.logOpen(), next.logGeneration(), next.logOpenedAt());   // final review #12
         assistantPanel.render(state, demo);
         if (agent.answer().accepted() && agent.answer().request() == localAgentSendRequest
                 && localAgentDraftCleared != localAgentSendRequest) {
@@ -6349,7 +6365,7 @@ public final class MainFrame extends JFrame {
         boolean followable = !S3Source.isS3(location) && loaded.supportsFollow();
         driver.submit(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogOpened(opId, location, provenance,
                 arrival.ids(), arrival.scanned(), arrival.total(), level == null ? null : level.toString(),
-                provenanceSource, followable, arrival.withheld()));
+                provenanceSource, followable, arrival.withheld(), System.currentTimeMillis()));
         if (driver.processor().operationGate.accepted()) sessionLogGeneration = driver.snapshot().logGeneration();
         if (!driver.processor().operationGate.accepted()) {
             supersedeRecoveryLog(opId);
@@ -11337,7 +11353,8 @@ public final class MainFrame extends JFrame {
         String text = localAgentStore.text(e.draftRef());
         revealAssistant();
         localAgentPanel.appendDraft(e.draftRef(), text,
-                telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.text("composer.hint.CLAUDE_CODE"));
+                telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.text("composer.hint.CLAUDE_CODE"),
+                e.logGeneration());
         return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.DraftPlaced(e.opId(), e.draftRef(), true, "");
     }
 
@@ -11347,7 +11364,8 @@ public final class MainFrame extends JFrame {
         String text = assistantTranscript.text(e.draftRef());
         revealAssistant();
         assistantPanel.appendDraft(e.draftRef(), text,
-                telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.text("composer.hint.IN_APP"));
+                telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.text("composer.hint.IN_APP"),
+                e.logGeneration());
         return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.DraftPlaced(e.opId(), e.draftRef(), true, "");
     }
 
