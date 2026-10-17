@@ -58,6 +58,11 @@ public final class LocalAgentAdapter {
 
         Path userHome();
 
+        /** Whether the full-posture switch is on (part of the posture digest, review M7). */
+        default boolean fullPosture() {
+            return false;
+        }
+
         /** Report a fact to the session, on its thread. */
         void post(Object fact);
     }
@@ -165,7 +170,7 @@ public final class LocalAgentAdapter {
     private SessionEvents.Result start(SessionEffects.StartLocalAgentEffect e) {
         // captured NOW, on the session's thread, as immutable values: the worker never reads live configuration
         Spawn s = new Spawn(e, env.model(), env.workingDirectory(), env.restUrl(), env.restToken(), env.bridgeLauncher(),
-                Map.copyOf(env.environment()), env.userHome());
+                Map.copyOf(env.environment()), env.userHome(), env.fullPosture());
         Run run = new Run(e.generation(), e.sessionId(), e.nonce(), writers.get());
         runs.put(e.generation(), run);
         worker.execute(() -> spawn(run, s));
@@ -173,11 +178,19 @@ public final class LocalAgentAdapter {
     }
 
     private record Spawn(SessionEffects.StartLocalAgentEffect effect, String model, Path cwd, String restUrl,
-                         String restToken, Optional<List<String>> launcher, Map<String, String> environment, Path home) {
+                         String restToken, Optional<List<String>> launcher, Map<String, String> environment, Path home,
+                         boolean full) {
     }
 
     private void spawn(Run run, Spawn s) {
         long gen = run.generation;
+        // review M7: the node decided this spawn for the posture digest it carries, which names the REAL folder. The
+        // folder read now must digest to the same, or a project opened or closed since the decision would hand Claude
+        // a folder nobody confirmed
+        if (s.cwd() == null || !ClaudeCodeProvider.postureRef(s.cwd(), s.full()).equals(s.effect().postureRef())) {
+            fail(run, SessionEvents.SpawnFailure.FOLDER_CHANGED, 0);
+            return;
+        }
         ClaudeResolver.Resolution found = provider.resolve(s.environment(), s.home());
         if (!found.found()) {
             fail(run, SessionEvents.SpawnFailure.NOT_FOUND, store.add(LocalAgentTranscript.Kind.DETAIL, found.searchedText()));

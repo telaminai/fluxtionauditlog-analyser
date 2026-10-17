@@ -30,7 +30,7 @@ import java.util.function.UnaryOperator;
  * endpoint file. With {@link #conformInit}, each turn's {@code system/init} is rewritten to the default posture's tools
  * and server, because most P0 runs used a stub server of other names; the rule under test is then the parser's.
  */
-final class FixtureAgent implements AgentProcess.Launcher {
+public final class FixtureAgent implements AgentProcess.Launcher {
 
     static final Path FIXTURES = Path.of("docs/specs/evidence/m74-p0/fixtures");
     static final String FIXTURE_SESSION = "00000000-0000-4000-8000-000000000000";
@@ -38,23 +38,23 @@ final class FixtureAgent implements AgentProcess.Launcher {
     final List<List<String>> commands = new ArrayList<>();
     final List<Map<String, String>> environments = new ArrayList<>();
     final List<Path> workingDirs = new ArrayList<>();
-    final List<Proc> processes = new ArrayList<>();
+    public final List<Proc> processes = new ArrayList<>();
 
     private final Deque<List<String>> turns = new ArrayDeque<>();
     private final List<String> initializeLines = new ArrayList<>();
     private final Deque<String> statusLines = new ArrayDeque<>();
-    boolean conformInit;
+    public boolean conformInit;
     boolean ackInterrupts = true;
     boolean cancelOnInterrupt = true;
     boolean exitOnKill = true;
     /** Replaces the nonce the bound status reports: null keeps the endpoint file's (an exact bind). */
     UnaryOperator<String> statusVersion;
     /** Applied to every replayed line, for rewrites a test needs (an e-mail in the account, a dropped result). */
-    UnaryOperator<String> rewrite = UnaryOperator.identity();
+    public UnaryOperator<String> rewrite = UnaryOperator.identity();
     /** Given to every process started from now on: its stdin writes wait for this latch. */
     java.util.concurrent.CountDownLatch blockNewWrites;
 
-    FixtureAgent(String fixture) throws IOException {
+    public FixtureAgent(String fixture) throws IOException {
         load(fixture);
     }
 
@@ -131,14 +131,14 @@ final class FixtureAgent implements AgentProcess.Launcher {
         return processes.get(processes.size() - 1);
     }
 
-    final class Proc implements AgentProcess {
-        final List<String> stdin = new ArrayList<>();
+    public final class Proc implements AgentProcess {
+        public final List<String> stdin = new java.util.concurrent.CopyOnWriteArrayList<>();
         final CompletableFuture<Integer> exit = new CompletableFuture<>();
         final Consumer<String> out;
         final String sessionId;
         final Path endpointFile;
         String runningUuid;
-        int terminated;
+        public int terminated;
         String stderr = "";
 
         Proc(List<String> command, Consumer<String> out) {

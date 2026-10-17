@@ -126,8 +126,6 @@ public final class AppConfig {
     public boolean claudeCodeAllowed = false;
     /** <i>…with my full Claude Code permissions</i> (P1b): stored, but the switch is disabled until P1b ships. */
     public boolean claudeCodeFull = false;
-    /** <i>Start Claude Code when I open the Assistant tab</i> — only on the person's direct selection of the tab. */
-    public boolean claudeCodeWarmStart = false;
     /** The Claude Code model — its own setting, never {@link #llmModel}. */
     public String claudeCodeModel = "sonnet";
     /**

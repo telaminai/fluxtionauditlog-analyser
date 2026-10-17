@@ -45,6 +45,12 @@ public class LocalAgentSession implements EventLogSource {
     public static final String NOT_LOGGED_IN_TEXT = "Claude Code is not logged in — run `claude` once in a terminal to log in.";
     public static final String OLD_BRIDGE_TEXT = "the installed analyser bridge is older than this analyser — update it";
 
+    /**
+     * Pushed into, not read from upstream (review M2): this node decides FIRST whether the person may leave Claude Code
+     * now (not while a turn is open), and tells the mode node to keep the mode when it may not. So the edge runs
+     * localAgentSession → assistantMode → assistantLoop.
+     */
+    @PushReference
     private final AssistantModeChoice mode;
     @PushReference
     private final EffectQueue effects;
@@ -70,6 +76,9 @@ public class LocalAgentSession implements EventLogSource {
     private boolean interruptAcked;
     private long pendingDraft;
     private long pendingRequest;
+    /** Review M8: the Start request whose folder confirmation is open, and the posture it was asked for. */
+    private long confirmRequest;
+    private String confirmPosture;
     private long headerRef;
     private long headerRevision;
     private long detailRef;
@@ -96,32 +105,102 @@ public class LocalAgentSession implements EventLogSource {
 
     // ---- the person's requests ------------------------------------------------------------------------------------
 
+    /** The mode turned in the IN_APP direction while a turn is open (review M2): the reason, by name. */
+    public static final String MODE_SWITCH_REFUSED_TEXT = "Claude is still answering — Stop or wait, then switch to the "
+            + "in-app assistant.";
+
     @OnEventHandler
     public boolean onModeChosen(SessionEvents.AssistantModeChosen e) {
-        // the mode node is upstream: it already holds the new mode. Leaving the local agent stops its process.
-        if (mode.localAgent() || !running()) return changed();
-        kill("the Assistant tab was switched to the in-app assistant, so Claude Code was stopped");
+        // runs BEFORE the mode node (this node pushes into it): the mode in force is still the old one here
+        boolean leaving = e.mode() != null && e.mode() != AssistantMode.LOCAL_AGENT && mode.localAgent();
+        if (!leaving) return changed();
+        if (openTicket != 0 || "STOPPING".equals(phase) || pendingDraft != 0) {
+            // review M2: a turn in progress is never killed by a mode switch — the node refuses it, by name
+            mode.refuseThisChoice();
+            verdict = "MODE_SWITCH_REFUSED";
+            reason = MODE_SWITCH_REFUSED_TEXT;
+            auditLog.info("localAgentRefused", verdict).info("ticket", openTicket);
+            return changed();
+        }
+        if (running()) kill("the Assistant tab was switched to the in-app assistant, so Claude Code was stopped");
         return changed();
     }
 
     @OnEventHandler
     public boolean onStartRequested(SessionEvents.LocalAgentStartRequested e) {
-        if (running()) {
-            auditLog.info("noOp", "LocalAgentStartRequested").info("phase", phase);
-            if (!e.warm()) answer(e.request(), true, "");
-            return e.warm() ? false : changed();
+        return start(e.request(), e.consent());
+    }
+
+    /**
+     * Review M8: the answer to this node's own folder question. A stale answer (another request, or none open) is
+     * refused; a yes whose folder moved while the dialog was open starts nothing; a yes asks for the trust record and
+     * the start, as effects.
+     */
+    @OnEventHandler
+    public boolean onFolderAnswered(SessionEvents.LocalAgentFolderAnswered e) {
+        if (confirmRequest == 0 || e.request() != confirmRequest) {
+            auditLog.info("staleFact", "LocalAgentFolderAnswered").info("request", e.request()).info("open", confirmRequest);
+            return false;
         }
-        String refusal = startRefusal(e.consent(), e.warm(), e.request());
-        if (refusal != null) {
-            if (e.warm()) {                       // a warm start says nothing and asks nothing (OD-74.1 amendment)
-                auditLog.info("warmStartSkipped", verdictOf(refusal));
-                return false;
-            }
-            refuse(e.request(), refusal);
+        String asked = confirmPosture;
+        confirmRequest = 0;
+        confirmPosture = null;
+        if (!e.yes()) {
+            refuse(e.request(), "FOLDER_NOT_CONFIRMED: the folder was not confirmed for Claude Code, so nothing was started");
             return changed();
         }
-        spawn(e.consent());
-        answer(e.request(), true, "");
+        SessionEvents.LocalAgentConsent c = e.consent();
+        if (c == null || asked == null || !asked.equals(c.postureRef())) {
+            refuse(e.request(), "FOLDER_CHANGED: the folder changed while the confirmation was open, so nothing was "
+                    + "started — press Start again");
+            return changed();
+        }
+        effects.request(new SessionEffects.TrustLocalAgentFolderEffect(0L, e.request()));
+        start(e.request(), new SessionEvents.LocalAgentConsent(c.allowed(), true, c.bundleWorkingCopy(), c.postureRef(),
+                c.budgetMicros(), c.folder()));
+        return changed();
+    }
+
+    private boolean start(long request, SessionEvents.LocalAgentConsent consent) {
+        if (running()) {
+            auditLog.info("noOp", "LocalAgentStartRequested").info("phase", phase);
+            answer(request, true, "");
+            return changed();
+        }
+        String refusal = startRefusal(consent, request);
+        if (refusal != null) {
+            refuse(request, refusal);
+            return changed();
+        }
+        spawn(consent);
+        answer(request, true, "");
+        return changed();
+    }
+
+    /**
+     * Review M6: the hosted bridge's call is admitted HERE, on the session's thread and in its order: a posture kill
+     * processed before this fact refuses it; one processed after it finds the call already admitted. The verdict
+     * leaves as an effect the adapter completes; nothing on the HTTP thread decides from a snapshot.
+     */
+    @OnEventHandler(propagate = false)
+    public boolean onCallAdmission(SessionEvents.LocalAgentCallAdmissionRequested e) {
+        long admitted = admittedGeneration();
+        String refusal = admitted != 0 && admitted == e.generation() ? null
+                : "the Claude Code session is not bound, or its posture is not yet checked, so the hosted bridge is "
+                + "refused (generation " + e.generation() + ")";
+        auditLog.info("localAgentCall", refusal == null ? "ADMITTED" : "REFUSED").info("generation", e.generation());
+        effects.request(new SessionEffects.AnswerHostedCallEffect(0L, e.call(), refusal));
+        return false;
+    }
+
+    /** Review H4: whether the hosted bridge has a listener; without one the spawn is refused. */
+    @OnEventHandler
+    public boolean onBridgeServed(SessionEvents.LocalAgentBridgeServed e) {
+        if (stale(e.generation(), "LocalAgentBridgeServed")) return false;
+        auditLog.info("localAgentBridgeServed", e.listening()).info("hostedOnly", e.hostedOnly());
+        if (e.listening() || !"SPAWNING".equals(phase)) return false;
+        refuseSession("BRIDGE_UNAVAILABLE", "the analyser could not start the listener Claude Code's bridge reaches it "
+                + "through, so nothing was started", true);
         return changed();
     }
 
@@ -133,7 +212,7 @@ public class LocalAgentSession implements EventLogSource {
             return changed();
         }
         if (!running()) {
-            String startRefusal = startRefusal(e.consent(), false, e.request());
+            String startRefusal = startRefusal(e.consent(), e.request());
             if (startRefusal != null) {
                 refuse(e.request(), startRefusal);
                 return changed();
@@ -218,10 +297,13 @@ public class LocalAgentSession implements EventLogSource {
                 case INVALID_MODEL -> "the Claude Code model setting is not a model name (letters, digits, . _ - [ ]): "
                         + "fix it in Settings ▸ Assistant";
                 case ENDPOINT_FAILED -> "the analyser could not write the bridge's endpoint file, so nothing was started";
+                case FOLDER_CHANGED -> "the working folder changed after Start was decided (a project was opened or "
+                        + "closed), so nothing was started — press Start again";
                 default -> "Claude Code could not be started";
             };
             pendingDraft = 0;
             note(verdict, reason);
+            effects.request(new SessionEffects.ReleaseHostedBridgeEffect(0L, generation));
             auditLog.info("localAgentSpawnFailed", verdict).info("generation", generation);
             return changed();
         }
@@ -441,6 +523,7 @@ public class LocalAgentSession implements EventLogSource {
             return changed();
         }
         if (openTicket != 0) endTurn(SessionEvents.TurnOutcome.PROCESS_EXIT);
+        effects.request(new SessionEffects.ReleaseHostedBridgeEffect(0L, generation));
         phase = "OFF";
         bound = false;
         postureChecked = false;
@@ -454,8 +537,8 @@ public class LocalAgentSession implements EventLogSource {
 
     // ---- decisions --------------------------------------------------------------------------------------------------
 
-    /** Why a start cannot happen now, or null. A folder needing confirmation asks for the dialog (never when warm). */
-    private String startRefusal(SessionEvents.LocalAgentConsent c, boolean warm, long request) {
+    /** Why a start cannot happen now, or null. A folder needing confirmation asks for the dialog. */
+    private String startRefusal(SessionEvents.LocalAgentConsent c, long request) {
         if (!mode.localAgent()) return "MODE: choose Claude Code on the Assistant tab first";
         if (c == null || !c.allowed()) {
             return "SWITCHED_OFF: starting Claude Code is switched off — Settings ▸ Assistant ▸ Allow the analyser to start "
@@ -474,12 +557,12 @@ public class LocalAgentSession implements EventLogSource {
             return "BUNDLE: Start is refused in an evidence-bundle working copy — the analyser does not run anything from a "
                     + "received bundle";
         }
-        if (!c.restOn()) {
-            return "REST_OFF: Claude Code reaches the analyser through the REST transport, which is off — turn it on to "
-                    + "start Claude Code";
-        }
+        // review H4: no REST_OFF refusal — the external REST switch is the person's choice about EXTERNAL clients;
+        // spawn() asks for a hosted-only listener when it is off
         if (!c.folderConfirmed()) {
-            if (!warm) effects.request(new SessionEffects.ConfirmLocalAgentFolderEffect(0L, request));
+            confirmRequest = request;
+            confirmPosture = c.postureRef();
+            effects.request(new SessionEffects.ConfirmLocalAgentFolderEffect(0L, request));
             return "CONFIRM_FOLDER: confirm this folder for Claude Code first; nothing was started";
         }
         long remaining = c.budgetMicros() - spent();
@@ -543,6 +626,8 @@ public class LocalAgentSession implements EventLogSource {
         newChatOffered = false;
         long remaining = Math.max(0, c.budgetMicros() - spent());
         auditLog.info("localAgentSpawn", generation).info("resume", resumable).info("session", sessionRef);
+        // review H4: the listener first (hosted-only when external REST is off), then the process that connects to it
+        effects.request(new SessionEffects.ServeHostedBridgeEffect(0L, generation));
         effects.request(new SessionEffects.StartLocalAgentEffect(0L, generation, sessionId, resumable, nonce, remaining,
                 c.postureRef()));
     }
@@ -616,6 +701,7 @@ public class LocalAgentSession implements EventLogSource {
             note("STOPPED", "the turn in progress ended when Claude Code was stopped");
         }
         effects.request(new SessionEffects.StopLocalAgentEffect(0L, generation, was, SessionEffects.StopHow.KILL));
+        effects.request(new SessionEffects.ReleaseHostedBridgeEffect(0L, generation));
         phase = "OFF";
         bound = false;
         postureChecked = false;

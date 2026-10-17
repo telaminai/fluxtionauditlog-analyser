@@ -65,7 +65,9 @@ final class Harness {
         SessionDriver[] d = new SessionDriver[1];
         LocalAgentAdapter.Environment env = new LocalAgentAdapter.Environment() {
             @Override public String model() { return model; }
-            @Override public Path workingDirectory() { return home.resolve("proj"); }
+            @Override public Path workingDirectory() {
+                return workingDirectory != null ? workingDirectory : home.resolve("proj");
+            }
             @Override public String restUrl() { return "http://127.0.0.1:1"; }
             @Override public String restToken() { return "shared-rest-token"; }
             @Override public Optional<List<String>> bridgeLauncher() {
@@ -93,12 +95,17 @@ final class Harness {
         driver.post(new SessionEvents.AssistantModeChosen(AssistantMode.LOCAL_AGENT, "test"));
     }
 
-    static SessionEvents.LocalAgentConsent consent() {
-        return new SessionEvents.LocalAgentConsent(true, true, false, true, "posture-a", BUDGET);
+    /** The folder the posture is decided for; a test may move it after Start to witness review M7. */
+    volatile Path workingDirectory;
+
+    SessionEvents.LocalAgentConsent consent() {
+        // the posture digest of the folder the adapter will use, as the frame observes it (review M7)
+        return new SessionEvents.LocalAgentConsent(true, true, false,
+                ClaudeCodeProvider.postureRef(home.resolve("proj"), false), BUDGET);
     }
 
     void start() {
-        driver.post(new SessionEvents.LocalAgentStartRequested(++requests, consent(), false));
+        driver.post(new SessionEvents.LocalAgentStartRequested(++requests, consent()));
     }
 
     /** Type {@code text} and press Send: the draft goes to the store, its classification to the node. */

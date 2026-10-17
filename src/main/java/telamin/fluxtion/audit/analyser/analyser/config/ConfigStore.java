@@ -113,7 +113,8 @@ public final class ConfigStore {
         // M74 §5.1: machine tier only — this file is the one place any of them is read
         c.claudeCodeAllowed = parseBool(p.getProperty("assistant.claudeCode"), c.claudeCodeAllowed);
         c.claudeCodeFull = parseBool(p.getProperty("assistant.claudeCode.full"), c.claudeCodeFull);
-        c.claudeCodeWarmStart = parseBool(p.getProperty("assistant.claudeCode.warmStart"), c.claudeCodeWarmStart);
+        // assistant.claudeCode.warmStart: warm start was cut (owner, 2026-10-17). A stored key is ignored here, and
+        // dropped on the next write (the assistant family is owned, so it is not carried over)
         c.claudeCodeModel = p.getProperty("assistant.claudeCode.model", c.claudeCodeModel);
         c.claudeCodeBudgetUsd = parseDouble(p.getProperty("assistant.claudeCode.budgetUsd"), c.claudeCodeBudgetUsd);
         readList(p, "assistant.claudeCode.trusted", c.claudeCodeTrustedFolders);
@@ -215,7 +216,6 @@ public final class ConfigStore {
         put(p, "assistant.createProjects", Boolean.toString(c.assistantCreateProjects));
         put(p, "assistant.claudeCode", Boolean.toString(c.claudeCodeAllowed));
         put(p, "assistant.claudeCode.full", Boolean.toString(c.claudeCodeFull));
-        put(p, "assistant.claudeCode.warmStart", Boolean.toString(c.claudeCodeWarmStart));
         put(p, "assistant.claudeCode.model", c.claudeCodeModel);
         put(p, "assistant.claudeCode.budgetUsd", Double.toString(c.claudeCodeBudgetUsd));
         writeList(p, "assistant.claudeCode.trusted", c.claudeCodeTrustedFolders);

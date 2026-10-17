@@ -65,7 +65,6 @@ public final class ConfigPanel extends JDialog {
     // M74 §5.1: machine tier, all off by default; the full posture arrives in P1b and is disabled until then
     private final JCheckBox claudeCodeToggle = new JCheckBox("Allow the analyser to start Claude Code");
     private final JCheckBox claudeCodeFullToggle = new JCheckBox("…with my full Claude Code permissions");
-    private final JCheckBox claudeCodeWarmToggle = new JCheckBox("Start Claude Code when I open the Assistant tab");
     private final JTextField claudeCodeModelField = new JTextField(12);
     private final JSpinner claudeCodeBudgetSpinner = new JSpinner(new SpinnerNumberModel(5.0, 0.5, 1000.0, 0.5));
     /** #20 — the project's workspace anchor, offered as the handful of depths PathForm accepts. */
@@ -705,7 +704,7 @@ public final class ConfigPanel extends JDialog {
         return p;
     }
 
-    /** M74 §5.1: the Claude Code switches, warm start, model and budget — this machine only. */
+    /** M74 §5.1: the Claude Code switches, model and budget — this machine only. */
     private JPanel buildClaudeCodeSection() {
         JPanel box = new JPanel(new GridBagLayout());
         box.setBorder(BorderFactory.createTitledBorder("Claude Code in the Assistant tab"));
@@ -718,15 +717,12 @@ public final class ConfigPanel extends JDialog {
         claudeCodeFullToggle.setEnabled(false);
         claudeCodeFullToggle.setToolTipText("Your full Claude Code — your settings, skills, hooks and MCP servers — "
                 + "arrives in a later release; it will need its own confirmation.");
-        claudeCodeWarmToggle.setToolTipText("Only when you click or key the Assistant tab yourself, and only in a folder you "
-                + "have already confirmed. It contacts Anthropic (sign-in check, MCP connect) before your first Send.");
         g.gridy = 0; box.add(claudeCodeToggle, g);
         g.gridy = 1; box.add(claudeCodeFullToggle, g);
-        g.gridy = 2; box.add(claudeCodeWarmToggle, g);
         g.gridwidth = 1;
-        g.gridy = 3; g.gridx = 0; box.add(new JLabel("Claude Code model:"), g);
+        g.gridy = 2; g.gridx = 0; box.add(new JLabel("Claude Code model:"), g);
         g.gridx = 1; box.add(claudeCodeModelField, g);
-        g.gridy = 4; g.gridx = 0; box.add(new JLabel("Session budget (US$):"), g);
+        g.gridy = 3; g.gridx = 0; box.add(new JLabel("Session budget (US$):"), g);
         g.gridx = 1; box.add(leftWrap(claudeCodeBudgetSpinner), g);
         g.gridy = 5; g.gridx = 0; g.gridwidth = 2; g.fill = GridBagConstraints.HORIZONTAL; g.weightx = 1;
         box.add(mutedNote("Start runs <b>your own</b> <code>claude</code> CLI; the analyser never reads or stores your "
@@ -814,7 +810,6 @@ public final class ConfigPanel extends JDialog {
         createProjectsToggle.setSelected(config.assistantCreateProjects);
         claudeCodeToggle.setSelected(config.claudeCodeAllowed);
         claudeCodeFullToggle.setSelected(false);                 // P1b: never on in this release
-        claudeCodeWarmToggle.setSelected(config.claudeCodeWarmStart);
         claudeCodeModelField.setText(config.claudeCodeModel == null ? "" : config.claudeCodeModel);
         claudeCodeBudgetSpinner.setValue(Math.max(0.5, Math.min(1000.0, config.claudeCodeBudgetUsd)));
         exportDirField.setText(config.assistantExportDir == null ? "" : config.assistantExportDir);
@@ -862,7 +857,6 @@ public final class ConfigPanel extends JDialog {
         config.assistantCreateProjects = createProjectsToggle.isSelected();
         config.claudeCodeAllowed = claudeCodeToggle.isSelected();
         config.claudeCodeFull = false;                           // P1b: the switch exists, disabled
-        config.claudeCodeWarmStart = claudeCodeWarmToggle.isSelected();
         String model = claudeCodeModelField.getText().trim();
         if (telamin.fluxtion.audit.analyser.analyser.assistant.localagent.ClaudeCodeProvider.validModel(model)) {
             config.claudeCodeModel = model;

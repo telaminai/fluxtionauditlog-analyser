@@ -243,7 +243,8 @@ public sealed interface SessionEffects {
      * @param sessionId       the conversation id: {@code --session-id} when {@code resume} is false, else {@code --resume}
      * @param nonce           the binding nonce minted for THIS spawn; never reused across generations (§4.2)
      * @param maxBudgetMicros {@code --max-budget-usd}: the session budget less what the session total has spent (§4.6)
-     * @param postureRef      the posture digest this session was created under
+     * @param postureRef      the posture digest decided for THIS spawn (it names the real working directory); the adapter
+     *                        refuses to spawn when the folder it reads digests otherwise (review M7)
      */
     record StartLocalAgentEffect(long opId, long generation, String sessionId, boolean resume, String nonce,
                                  long maxBudgetMicros, String postureRef) implements SessionEffects {
@@ -274,5 +275,31 @@ public sealed interface SessionEffects {
      * the frame records the confirmation on this machine and submits a NEW Start request; it never starts anything here.
      */
     record ConfirmLocalAgentFolderEffect(long opId, long request) implements SessionEffects {
+    }
+
+    /**
+     * Review M8: the person said yes to {@code ConfirmLocalAgentFolderEffect{request}} and the node accepted it: record,
+     * on this machine, the folder that dialog named. The performer writes what it showed; it decides nothing.
+     */
+    record TrustLocalAgentFolderEffect(long opId, long request) implements SessionEffects {
+    }
+
+    /**
+     * Review H4: make sure a listener the hosted bridge can reach is up for {@code generation} — the REST server when
+     * external clients are allowed, otherwise a HOSTED-ONLY server that writes no well-known file and serves only hosted
+     * credentials. Answered with {@link SessionEvents.LocalAgentBridgeServed}.
+     */
+    record ServeHostedBridgeEffect(long opId, long generation) implements SessionEffects {
+    }
+
+    /**
+     * Review H4: no Claude Code process needs the bridge any more; a hosted-only server is stopped (the external REST
+     * server, when it is on, is the person's and stays).
+     */
+    record ReleaseHostedBridgeEffect(long opId, long generation) implements SessionEffects {
+    }
+
+    /** Review M6: the node's verdict on hosted call {@code call}: {@code refusal} null admits it. */
+    record AnswerHostedCallEffect(long opId, long call, String refusal) implements SessionEffects {
     }
 }

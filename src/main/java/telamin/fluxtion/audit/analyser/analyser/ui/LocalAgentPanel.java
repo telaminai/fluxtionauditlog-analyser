@@ -38,8 +38,6 @@ public final class LocalAgentPanel extends JPanel {
 
         void newChat();
 
-        void turnOnRest();
-
         void openSettings();
     }
 
@@ -68,7 +66,6 @@ public final class LocalAgentPanel extends JPanel {
     private final JButton stop = new JButton("Stop");
     private final JButton newChat = new JButton("New chat");
     private final JButton send = new JButton("Send");
-    private final JButton turnOnRest = new JButton("Turn on the REST transport");
     private final JButton settings = new JButton("Settings ▸ Assistant");
 
     private LocalAgentState rendered;
@@ -92,7 +89,6 @@ public final class LocalAgentPanel extends JPanel {
         actions.add(start);
         actions.add(stop);
         actions.add(newChat);
-        actions.add(turnOnRest);
         actions.add(settings);
         for (JComponent c : new JComponent[]{header, posture, lockWarning, actions, status, detail}) {
             c.setAlignmentX(LEFT_ALIGNMENT);
@@ -117,7 +113,6 @@ public final class LocalAgentPanel extends JPanel {
         start.addActionListener(e -> { if (intents != null) intents.start(); });
         stop.addActionListener(e -> { if (intents != null) intents.stop(); });
         newChat.addActionListener(e -> { if (intents != null) intents.newChat(); });
-        turnOnRest.addActionListener(e -> { if (intents != null) intents.turnOnRest(); });
         settings.addActionListener(e -> { if (intents != null) intents.openSettings(); });
         send.addActionListener(e -> onSend());
         draft.getInputMap(JComponent.WHEN_FOCUSED).put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), "local-agent-send");
@@ -130,7 +125,6 @@ public final class LocalAgentPanel extends JPanel {
                 onSend();
             }
         });
-        turnOnRest.setVisible(false);
         stop.setEnabled(false);
     }
 
@@ -187,7 +181,6 @@ public final class LocalAgentPanel extends JPanel {
         start.setText(startLabel(s));
         stop.setEnabled(s.busy() || s.starting() || s.pendingDraft() != 0);
         send.setEnabled(!s.busy() && !"STOPPING".equals(s.phase()));
-        turnOnRest.setVisible("REST_OFF".equals(s.verdict()));
         settings.setVisible("SWITCHED_OFF".equals(s.verdict()) || "BUDGET_SPENT".equals(s.verdict()));
         newChat.setText(s.newChatOffered() ? "New chat (offered)" : "New chat");
         status.setText(phaseText(s));
