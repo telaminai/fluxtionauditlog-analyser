@@ -1,0 +1,13 @@
+# Embedding the processor
+
+Deployment track: embedded in an app, no server. Entry 1 is a PLACEHOLDER (example owner, all-zero commit): pin before use.
+
+1. **Teaching example: the diamond (placeholder)** — example: https://github.com/example/fluxtion-diamond/archive/0000000000000000000000000000000000000000.zip
+2. **Embedded, with no server** — What does it mean to embed the generated processor directly in my application? What do I gain and what do I give up compared with running it inside a server such as Mongoose? Answer from the Fluxtion docs, and tell me if you can't tell from what's here.
+3. **Creating the generated processor** — Show me how my application creates and starts the generated processor: loading the class by name, calling init, registering sinks and services, then sending events. Point at this project's code if it's here, and tell me if you can't tell from what's here.
+4. **Wiring the event input** — How do events get into an embedded processor: my own code calling onEvent, or a helper such as DataFlowConnector polling a feed? Which thread runs the processor, and what do I have to make thread-safe myself? Answer from the Fluxtion docs, and tell me if you can't tell from what's here.
+5. **The lifecycle, in order** — Walk me through an embedded processor's lifecycle: construction, init, start, events, stop and teardown. When are @ServiceRegistered callbacks delivered, and why isn't the node I passed to the builder the one that runs? Answer from the Fluxtion docs, and tell me if you can't tell from what's here.
+6. **Reusing one processor** — If I reuse one processor instance for several batches of events, what does init reset and what does it leave alone? How should I clear my nodes' own state between batches? Answer from the Fluxtion docs, and tell me if you can't tell from what's here.
+7. **Testing it** — How should I unit test this processor: a fresh instance per test, a collecting sink, mocked services? Show me the pattern the Fluxtion docs describe, applied to this project, and tell me if you can't tell from what's here.
+8. **Audit output from an embedded app** — How do I get an audit log out of my embedded processor that this analyser can open: the audit level, the record listener and the separator between records? In what order should I set them up? Answer from the docs, and tell me if you can't tell from what's here.
+9. **Changing a node from outside** — Sometimes my application needs to change a node directly, for example for an operator command. What's the safe way to do that so audit and replay still hold? Answer from the Fluxtion docs, and tell me if you can't tell from what's here.

@@ -4,6 +4,26 @@ Sources, read 2026-10-17 (CLAUDE.md rule 6):
 
 - **CT** — `claude.txt`, the Fluxtion framework reference (fluxtion repo, `docs/claude.txt`, `main`). Sections are cited by heading.
 - **GP** — the golden path (fluxtion-playground.dev, `fluxtion-golden-path.md`). Sections are cited by number.
+- **FX** — the Fluxtion repo's own docs pages (`telaminai/fluxtion`, `docs/…`, `main`), cited by path:
+  `how-to/audit-logging-dataflow.md`, `how-to/unit-testing-dataflow.md`, `how-to/replay-functionality.md`,
+  `reference/sep-lifecycle.md`, `reference/flxa-format.md`, `reference/performance.md`,
+  `reference/performance-profiles.md`, `integration/dataflow-connector.md`,
+  `sample-apps/embedding-dataflow-file-feed-sink-demo.md`, `home/fluxtion-with-mongoose.md`,
+  `getting-started/run-fluxtion-in-mongoose.md`, `runtime/run-in-event-cycle.md` (by CT's pointer), and the public
+  `fluxtion-builder-api` source `FluxtionCompilerConfig.java` (its `targetId` javadoc).
+- **MG** — the Mongoose docs (`telaminai/mongoose`, `docs/…`, `main`), cited by path:
+  `overview/configuration-and-composition.md`, `overview/plugin_extension_architecture.md`,
+  `architecture/event-flow.md`, `architecture/deployment.md`, `architecture/threading-model.md`,
+  `architecture/server-control.md`, `example/plugin/writing-a-service-plugin.md`,
+  `example/how-to/how-to-using-the-scheduler-service.md`, `example/how-to/how-to-performance-monitoring.md`,
+  `example/how-to/how-to-record-and-replay-a-processor.md`.
+- **SITE** — this repo's docs site, `docs/site/`: `log-format.md`, `format-spec.md` (the audit record format
+  specification), `producing-a-log.md`, `audit-cost.md`, `evidence-bundles/*.md`, `user-guide/records-and-filtering.md`,
+  `user-guide/reports.md`, `user-guide/assistant.md`; and `tools/bench/latency-kit/cpp/README.md` for C++.
+- **PL** — the reference plugin repository `gregv12/fluxtion-server-plugins` at commit
+  `9fce03a1229b1b80dd7ef7abd4353b5c77f3a13d`: its `CLAUDE.md`, the parent `pom.xml`, and
+  `serverplugin-scheduler` (`pom.xml`, `ActionScheduler.java`, `SchedulerAction.java`, `TriggerType.java`,
+  `OutcomeLog.java`).
 - **OB** — this repo's `docs/ONBOARDING.md` ▸ *Understand Fluxtion's execution model*, which records what the
   analyser learned from the framework's author and the M21 work. Cited only where it sharpens how a prompt is
   phrased, never as the source of a concept.
@@ -19,7 +39,7 @@ generation — `FluxtionGraphBuilder`*. See README ▸ *The teaching example eac
 
 | # | Label | Concept | Source |
 |---|---|---|---|
-| 2 | What is Fluxtion, in plain words? | Events, `@OnEventHandler` entry points, `@OnTrigger` downstream reactions | CT *The mental model in 60 seconds*; CT *The authoring surfaces* (Imperative); CT *House style* |
+| 2 | What is Fluxtion, in plain words? | Events, `@OnEventHandler` handlers that receive them, `@OnTrigger` downstream reactions | CT *The mental model in 60 seconds*; CT *The authoring surfaces* (Imperative); CT *House style* |
 | 3 | Follow one event through | Events flow in a compile-time-determined dispatch order; a silent node proves nothing | CT *The mental model in 60 seconds* ("flat dispatch tree", "compile-time-determined dispatch order"); CT *You author at the logical level* ("A flat dispatch tree in topological order"). Silence: OB item 1 — check, don't assert |
 | 4 | Show me in the records | Audit records are derived from the topology; `auditLog.info(k, v)` is the business-readable part the author writes | CT *You author at the logical level* ("Per-event audit records derived from the topology, not hand-written"); GP §2 (`auditLog.info`, `cfg.addEventAudit(LogLevel.INFO)`) |
 | 5 | What I wrote versus what Fluxtion generated | The author writes specification; the compiler emits the processor and fixes the order | CT *You author at the logical level*; CT *Build-time generation*; GP §2 (`setWriteSourceToFile`) |
@@ -56,8 +76,11 @@ generation — `FluxtionGraphBuilder`*. See README ▸ *The teaching example eac
 ## Where the sources were unclear
 
 - **What the audit log records.** CT *The mental model in 60 seconds* says "Every node activation is captured";
-  OB item 1 says a node appears in a record only if it writes audit output at the level in force. The prompts
-  follow OB (silence proves nothing) and ask the assistant to say when a silent node leaves a question open.
+  OB item 1 says a node appears in a record only if it writes audit output at the level in force. FX
+  `how-to/audit-logging-dataflow.md` ▸ *Logging vs tracing* reconciles them: at INFO/DEBUG/WARN/ERROR only nodes that
+  logged appear; at TRACE every node visited does. SITE `format-spec.md` §8 adds that a record cannot itself say
+  which regime it was written under (the traced-regime marker is an open upstream ask). The prompts follow OB and §8
+  (silence proves nothing unless the record is traced) and ask the assistant to say when it cannot tell.
 - **The diamond and mixed propagation.** Neither source states how often a node with two changed parents runs in
   one cycle, nor what it observes from an unchanged parent. Entries 02/3 and 02/4 are phrased to be checked.
 - **First-event behaviour** is not described in either source. Entry 02/5 is phrased to be checked.
@@ -65,3 +88,73 @@ generation — `FluxtionGraphBuilder`*. See README ▸ *The teaching example eac
 - **"DI container" and "closed world"** are this pack's framings. The docs support the substance (constructor
   wiring, setter wiring, service injection; static analysis from roots) but not the labels, so the prompts ask
   whether the framing is fair rather than asserting it.
+
+## 04-audit-and-evidence.md — Audit logs and evidence
+
+| # | Label | Concept | Source |
+|---|---|---|---|
+| 2 | What does a record show? | One record per event cycle: event, times, thread, ordered `nodeLogs` under each node's `instanceId`; the node writes key/values, the framework the rest | SITE `log-format.md` ▸ *Field reference*; SITE `producing-a-log.md` ▸ *How a node appears in the log*; FX `how-to/audit-logging-dataflow.md` ▸ *How it works* |
+| 3 | Audit levels: INFO versus TRACE | INFO/DEBUG/WARN/ERROR record nodes that logged; TRACE records every node visited | FX `how-to/audit-logging-dataflow.md` ▸ *Logging vs tracing*, *Enabling and configuring logging*; SITE `producing-a-log.md` ▸ *Turning it on*. **Check, don't assert**: whether the level can be read off a record — SITE `format-spec.md` §8 (inferred only from `method` keys on every entry) |
+| 4 | What silence means | Absence means "did not run" or "ran and logged nothing", and the record alone cannot say which unless traced | SITE `format-spec.md` §8; OB item 1 |
+| 5 | Is the order in a record meaningful? | Fluxtion's order is compiler-derived dispatch order (`TOTAL`); another engine's adapter may declare `PARTIAL` | SITE `format-spec.md` §4; FX `how-to/audit-logging-dataflow.md` ("records are emitted in topological order") |
+| 6 | Flags, reports and walks | Flags bookmark records with a note; a report is ordered references plus labelled narrative; a walk is saved spotlight steps; flags do not travel in a bundle | SITE `user-guide/records-and-filtering.md` ▸ *Flagging & focus*; SITE `user-guide/reports.md`; SITE `user-guide/assistant.md` ▸ *Save it as a walk*; SITE `evidence-bundles/index.md` ▸ *What does not travel, and why* |
+| 7 | Packing an evidence bundle | Capture is one operation on the running analyser; what it keeps, what it leaves out, when it refuses | SITE `evidence-bundles/sending.md` ▸ *Ask for it*, *What the analyser does, and when it refuses*; SITE `evidence-bundles/index.md`. The prompt asks the assistant to explain and to ask before writing |
+| 8 | Checking a bundle I was sent | `--verify` / `--unpack`; verification detects change but does not authenticate the sender; compare the identity line; no replay by the analyser | SITE `evidence-bundles/index.md` ▸ *Two limits, stated everywhere*; SITE `evidence-bundles/opening.md`; SITE `evidence-bundles/reference.md` ▸ *Reading: three commands* |
+| 9 | Trust the evidence, not the author | A report includes findings and never authors them; narrative is labelled "the author's account, not log evidence" | SITE `user-guide/reports.md` ▸ *References, never a document*. The phrase is the owner's principle; the mechanism is the docs' |
+
+## 05-deploy-mongoose.md — Running it in Mongoose
+
+The pack never asks the analyser to deploy or control anything (README ▸ *Intent and audience*; tracker ▸ Decisions:
+server verbs never appear on the analyser's action socket).
+
+| # | Label | Concept | Source |
+|---|---|---|---|
+| 2 | Fluxtion and Mongoose: who does what? | Fluxtion owns execution semantics; Mongoose owns feeds, threads, lifecycle, scheduling, sinks | FX `home/fluxtion-with-mongoose.md` ▸ *How the responsibilities split*; FX `getting-started/run-fluxtion-in-mongoose.md` |
+| 3 | How the configuration builds my app | YAML or the builder declares feeds, processors, sinks, threads; boot binds them | MG `overview/configuration-and-composition.md` ▸ *How the config composes your app*, *Equivalent YAML sketch* |
+| 4 | How events reach my processor | Source → `EventFlowManager` → queue → `EventQueueToEventProcessor` → processor on its agent thread | MG `architecture/event-flow.md` ▸ *Event Flow Process*; MG `overview/configuration-and-composition.md` ("Always run on a processor agent thread"); CT *Required rules* 4 |
+| 5 | Lifecycle inside a server | Server lifecycle init → start → startComplete; Fluxtion's `@Initialise` / `@Start` / `@Stop` | MG `overview/configuration-and-composition.md` (step 6); FX `reference/sep-lifecycle.md`. **Check, don't assert**: no page states how the two line up exactly |
+| 6 | Sinks and services in a server | `@ServiceRegistered` injection; the node depends on interfaces; the same registration wires a test or a server | MG `overview/plugin_extension_architecture.md` ▸ *Keeping business logic separate from infrastructure*; CT *Emitting output — named sinks* ("the node code never changes") |
+| 7 | Getting its audit log into this analyser | Level and file sink are server configuration; the `---` separator rule | SITE `producing-a-log.md` ▸ *Turning it on*; MG `overview/configuration-and-composition.md` (`logLevel` on a handler); MG `architecture/deployment.md` ▸ *Logging*. **Needs owner input** (README item 6) |
+| 8 | Watching a running server | Admin commands, performance counters, audit log; the analyser reads the log only | MG `architecture/server-control.md`; MG `example/how-to/how-to-performance-monitoring.md`; SITE `producing-a-log.md` |
+
+## 06-deploy-embedded.md — Embedding the processor
+
+| # | Label | Concept | Source |
+|---|---|---|---|
+| 2 | Embedded, with no server | Fluxtion does not require Mongoose; embedding trades the managed runtime for your own wiring | FX `home/fluxtion-with-mongoose.md` ("Fluxtion does not require Mongoose"); FX `sample-apps/embedding-dataflow-file-feed-sink-demo.md` |
+| 3 | Creating the generated processor | Load by name with `Class.forName`, `init()`, `registerService`, `onEvent` | CT *Build-time generation*; GP §2 (`Main.java`) |
+| 4 | Wiring the event input | Call `onEvent` yourself, or `DataFlowConnector` polling feeds on one runner thread; sinks touching other threads must be thread-safe | FX `integration/dataflow-connector.md` ▸ *What is DataFlowConnector?*, *Threading model*; FX `how-to/unit-testing-dataflow.md` ▸ *Single-Threaded Execution* |
+| 5 | The lifecycle, in order | BUILD → CONSTRUCT → INIT → START → EVENTS → TEARDOWN; `@ServiceRegistered` may fire after `@Initialise`; the build-time instance is not the runtime one | FX `reference/sep-lifecycle.md` ▸ *The phases at a glance*, *Common gotchas* 1 and 4; CT *Compile shapes* |
+| 6 | Reusing one processor | `init()` resets only per-event machinery; clear state with `@Initialise` or `reset()` | CT *Required rules* 2; GP §5 rule 2 |
+| 7 | Testing it | Fresh instance per test, collecting sink, mocked services | GP §2 (*Test*); CT *Build-time generation* (*Tests*); FX `how-to/unit-testing-dataflow.md` |
+| 8 | Audit output from an embedded app | `addEventAudit`, `setAuditLogLevel`, `setAuditLogProcessor`, the `---` separator, level before sink | SITE `producing-a-log.md` ▸ *The shortest complete example*; GP §3 (the `setAuditLogProcessor` row); FX `how-to/audit-logging-dataflow.md` |
+| 9 | Changing a node from outside | Mutate through events; `runInEventCycle` for host actions | CT *Required rules* 5 |
+
+## 07-cpp-preview.md — C++ generation (preview)
+
+Every entry treats the target as a preview and asks for the supported subset rather than assuming Java parity
+(README ▸ *Needs owner input*, items 2 and 3).
+
+| # | Label | Concept | Source |
+|---|---|---|---|
+| 2 | What is the C++ path? | The Java generator emits C++ for a graph when the target is `cpp`; a header-only C++ runtime | FX `FluxtionCompilerConfig.java` (`targetId`, `sourceGeneratorId`); SITE `tools/bench/latency-kit/cpp/README.md` |
+| 3 | What is supported today? | Not stated publicly | **Gap** — asked, never asserted |
+| 4 | What I write and what is generated | In the public bench, each `.cpp` supplies node bodies and the driver; the processor header is generated | SITE `tools/bench/latency-kit/cpp/README.md` ▸ *What is here*. **Check, don't assert** beyond that bench |
+| 5 | Same graph, same behaviour? | The C++ audit writer is held to Java by parity tests, not by byte-equality against the corpus | FX `reference/flxa-format.md` (footnote 1, *Non-JVM readers*) |
+| 6 | Audit logs from C++ | The C++ runtime writes FLXA; no runtime record swap or live setter, settings fixed at generation | FX `reference/flxa-format.md` (introduction); FX `reference/performance-profiles.md` (the *Java runtime* behaviour paragraph); SITE `audit-cost.md` |
+| 7 | Before I depend on it | Items deferred to "the C++ round"; generator availability unstated | FX `reference/flxa-format.md` (footnote 2); FX `reference/performance.md` (the C++ control not rebuilt). **Gap** |
+
+## 08-mongoose-plugins.md — Mongoose plugins
+
+Entry 1 is a real pin (PL), not a placeholder. Nothing in the pack touches the repository's builder modules.
+
+| # | Label | Concept | Source |
+|---|---|---|---|
+| 2 | What is a plugin? | Event sources, services and sinks, wired at boot, separate from business logic | MG `overview/plugin_extension_architecture.md` ▸ *Types of plugins*; PL `CLAUDE.md` ▸ *Module Structure* |
+| 3 | A tour of the scheduler plugin | An approval-gated scheduler for admin commands: catalogue, actions, once/daily/after-restart schedules, approve/decline with expiry, outcome log | PL `serverplugin-scheduler/pom.xml` (description); PL `ActionScheduler.java` (class javadoc, `adminRegistry`); PL `TriggerType.java`; PL `SchedulerAction.java` |
+| 4 | How a plugin reaches my processor | `@ServiceRegistered` injection by type and name; admin commands registered with `AdminCommandRegistry` | PL `ActionScheduler.java` (`@ServiceRegistered adminRegistry`); MG `overview/plugin_extension_architecture.md` ▸ *Wiring plugins*; MG `architecture/server-control.md` |
+| 5 | Threads: plugin versus processor | Services may run their own threads; processors are single-threaded; work re-enters a processor through its event loop | PL `ActionScheduler.java` (its executors); MG `overview/plugin_extension_architecture.md` ▸ *Interaction model* ("prefer a trigger/event to re-enter the processor's single-threaded context"); MG `architecture/server-control.md` ▸ *Dispatching and threading model*; CT *Required rules* 4 |
+| 6 | Which server does this target? | The repository builds against `com.fluxtion:server` 0.2.16 / runtime 9.7.14, not the `com.telamin` Mongoose line | PL parent `pom.xml`; MG package names throughout. **Needs owner input** (README item 4) |
+| 7 | Adding a plugin to my server | Declare it in the server configuration as a service, feed or sink | PL `ActionScheduler.java` (the YAML in its javadoc); MG `overview/configuration-and-composition.md`; MG `example/plugin/writing-a-service-plugin.md` |
+| 8 | The scheduler's outcome log | Written "in the server's audit-record layout (`---` separated records, one `eventLogRecord` each)" | PL `OutcomeLog.java` (class javadoc); SITE `format-spec.md` §1, §2. **Check, don't assert** that the analyser reads it cleanly |
+| 9 | Writing a plugin of my own | Choose the kind; `Lifecycle`, agent-hosted work, `@ServiceRegistered`; test with in-memory doubles | MG `example/plugin/writing-a-service-plugin.md`; MG `overview/plugin_extension_architecture.md` ▸ *When to create a plugin vs. inline code*; PL `CLAUDE.md` ▸ *Adding a New Plugin* |
