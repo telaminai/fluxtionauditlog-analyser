@@ -25,7 +25,8 @@ import java.util.Map;
 /**
  * Option 2 (owner, 2026-10-18): the ONE combined review after a starter is downloaded and its skills written — what the
  * analyser will put in force when it opens the project. It RENDERS {@code starterProject}'s request (rule 9) and returns
- * the person's answers; every row starts at No, and Close opens nothing.
+ * the person's answers; every row starts at No — except the Spring design folder's when the request says so (owner,
+ * 2026-10-18: it is inside the project just created, and needed to show the design) — and Close opens nothing.
  *
  * <ul>
  *   <li>With the starter's own profile: one row opens the project, naming what its profile declares (source roots, the
@@ -53,10 +54,11 @@ public final class StarterReviewDialog {
      * @param vendored       the skills written under {@code .claude/skills} for Claude Code
      * @param designRoot     the Spring design's folder (relative) when no source root covers it, else null — its row
      *                       adds it, so the design can open now
+     * @param designDefaultYes the design row starts at Yes ({@code starterProject}'s decision, rule 9)
      */
     public record Data(String project, boolean profilePresent, List<String> declaredRoots, String processor,
                        int runbooks, List<String> roots, List<String[]> skills, List<String> graphs,
-                       List<String> vendored, String designRoot) {
+                       List<String> vendored, String designRoot, boolean designDefaultYes) {
         public Data {
             declaredRoots = List.copyOf(declaredRoots == null ? List.of() : declaredRoots);
             roots = List.copyOf(roots == null ? List.of() : roots);
@@ -80,6 +82,9 @@ public final class StarterReviewDialog {
     }
 
     static final String TITLE = "Open the new project";
+
+    /** Why the design row starts at Yes (owner, 2026-10-18). */
+    static final String DESIGN_WHY = "Pre-ticked: inside the project you just created; needed to show the Spring design.";
 
     /** The content, separable for the tests. */
     static final class Content {
@@ -130,7 +135,8 @@ public final class StarterReviewDialog {
         if (d.designRoot() != null) {
             heading(list, "The Spring design");
             c.designYes = yesNo(list, "Add " + d.designRoot() + " as a source root, so the design opens now",
-                    "Design folder " + d.designRoot());
+                    "Design folder " + d.designRoot(), d.designDefaultYes());
+            if (d.designDefaultYes()) list.add(muted(DESIGN_WHY));
         }
         heading(list, "Topology (at most one opens now)");
         for (String g : d.graphs()) {
@@ -151,7 +157,8 @@ public final class StarterReviewDialog {
         gate.run();
         c.openYes.addItemListener(e -> gate.run());
         JTextArea lede = Fluid.text("The starter is unpacked and its skills are written. Nothing has been built or run. "
-                + "Choose what the analyser puts in force; every answer starts at No.");
+                + "Choose what the analyser puts in force; every answer starts at No"
+                + (c.designYes != null && d.designDefaultYes() ? ", except the design folder's." : "."));
         c.panel.add(lede, BorderLayout.NORTH);
         JScrollPane scroll = new JScrollPane(list);
         scroll.setPreferredSize(new Dimension(640, Math.min(list.getPreferredSize().height + 16, 420)));
@@ -174,9 +181,14 @@ public final class StarterReviewDialog {
 
     /** A row with Yes / No, starting at No; returns its Yes. The words are the folder's own (plain, never markup). */
     private static JRadioButton yesNo(Box list, String words, String accessible) {
+        return yesNo(list, words, accessible, false);
+    }
+
+    /** A row with Yes / No, starting at Yes only when {@code yes}; returns its Yes. */
+    private static JRadioButton yesNo(Box list, String words, String accessible, boolean yes) {
         JPanel row = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
-        JRadioButton y = UiText.plain(new JRadioButton("Yes"));
-        JRadioButton n = UiText.plain(new JRadioButton("No", true));
+        JRadioButton y = UiText.plain(new JRadioButton("Yes", yes));
+        JRadioButton n = UiText.plain(new JRadioButton("No", !yes));
         ButtonGroup bg = new ButtonGroup();
         bg.add(y);
         bg.add(n);

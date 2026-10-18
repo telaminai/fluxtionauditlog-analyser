@@ -87,7 +87,13 @@ class StarterProposalFrameTest {
                     {"fluxtion-spring/fluxtion-authoring.json", "{\"xml\": \"src/main/fluxtion/designer/application-context.xml\"}\n"},
                     {"fluxtion-spring/src/main/fluxtion/designer/application-context.xml", design},
                     {"fluxtion-spring/src/main/java/com/example/myapp/node/MarketDataNode.java",
-                            "package com.example.myapp.node;\npublic class MarketDataNode { }\n"}}) {
+                            "package com.example.myapp.node;\npublic class MarketDataNode { }\n"},
+                    // the Spring starter's root scripts (TemplateExecutablesTest's "exec fluxtion-spring"): its first-run record
+                    {"fluxtion-spring/check-fluxtion-key.sh", "#!/bin/sh\n"},
+                    {"fluxtion-spring/setup.sh", "#!/bin/sh\n"},
+                    {"fluxtion-spring/validate.sh", "#!/bin/sh\n"},
+                    {"fluxtion-spring/generate.sh", "#!/bin/sh\n"},
+                    {"fluxtion-spring/run.sh", "#!/bin/sh\n"}}) {
                 out.putNextEntry(new ZipEntry(e[0]));
                 out.write(e[1].getBytes(StandardCharsets.UTF_8));
                 out.closeEntry();
@@ -139,7 +145,8 @@ class StarterProposalFrameTest {
     /**
      * ★ Witnesses: request the download on receipt (in {@code OnboardingProposal.onReceived}) — the "nothing downloaded
      * before Apply" assertion fails; skip the vendor step — the skills assertion fails; send the draft — the stdin
-     * assertion fails.
+     * assertion fails; start the design row at No (StarterProject.DESIGN_ROW_DEFAULT_YES false) — the pre-ticked
+     * assertion fails; skip the regeneration substitution — the add-a-node assertion fails.
      */
     @Test
     @DisplayName("★ propose → review → choose folder → Apply → files, skills, discovery, project, design, watch, draft — nothing sent")
@@ -281,13 +288,25 @@ class StarterProposalFrameTest {
             assertTrue(Files.isRegularFile(skills.resolve("spring-authoring/SKILL.md")), "★ the skills are vendored");
             assertTrue(Files.isRegularFile(skills.resolve("load-audit-log/SKILL.md")));
             assertTrue(Files.isRegularFile(skills.resolve("add-a-node/SKILL.md")));
+            // ★ add-a-node names the starter's own regeneration from its first-run record, with the key need
+            String addANode = Files.readString(skills.resolve("add-a-node/SKILL.md"));
+            assertTrue(addANode.contains("./generate.sh"), addANode);
+            assertTrue(addANode.contains(telamin.fluxtion.audit.analyser.analyser.template.StarterSkills.KEY_BUILD), addANode);
+            assertFalse(addANode.contains("TODO(bundle)"), addANode);
+            assertTrue(Files.readString(skills.resolve(".vendored.json")).contains("substituted: regeneration command"));
             onEdt(() -> words.set(text(combined)));
             assertTrue(words.get().contains("Its profile declares: source root src/main/java"), words.get());
             assertTrue(words.get().contains("spring-authoring"), "the skills written are listed: " + words.get());
             assertTrue(words.get().contains("Add src/main/fluxtion/designer as a source root"), words.get());
+            assertTrue(words.get().contains("inside the project you just created; needed to show the Spring design"),
+                    words.get());
+            onEdt(() -> {
+                assertTrue(named(combined, "Design folder src/main/fluxtion/designer: Yes").isSelected(),
+                        "★ the design folder's row starts at Yes");
+                assertTrue(named(combined, "Open the project: No").isSelected(), "★ opening (settings in force) starts at No");
+            });
             capture(visual, combined, "03-combined-review.png");
             onEdt(() -> named(combined, "Open the project: Yes").doClick());
-            onEdt(() -> named(combined, "Design folder src/main/fluxtion/designer: Yes").doClick());
             onEdt(() -> ClaudeCodeTabFrameTest.findButton(combined, "Apply chosen").doClick());
 
             // synced: the project open, its design shown, the watch armed, the draft placed and nothing sent
@@ -336,6 +355,36 @@ class StarterProposalFrameTest {
             for (Window w : Window.getWindows()) if (w instanceof JDialog d && d.isShowing()) SwingUtilities.invokeLater(d::dispose);
             if (made[0] != null) SwingUtilities.invokeAndWait(made[0]::dispose);
         }
+    }
+
+    /**
+     * ★ Witness: build the design row with {@code yesNo(…, false)} — its Yes is not selected and this fails; start any
+     * other row at Yes — its No assertion fails.
+     */
+    @Test
+    @DisplayName("★ the combined review: the design folder's row pre-ticked, every row reaching outside the project at No")
+    void theDesignRowIsPreTickedAndTheOthersAreNot() throws Exception {
+        var data = new StarterReviewDialog.Data("…/new-app", false, List.of(), null, 0, List.of("src/main/java"),
+                List.<String[]>of(new String[]{"docs/skills/x/SKILL.md", "x"}), List.of("target/x.graphml"),
+                List.of("add-a-node"), "src/main/fluxtion/designer", true);
+        AtomicReference<StarterReviewDialog.Content> made = new AtomicReference<>();
+        onEdt(() -> made.set(StarterReviewDialog.content(data)));
+        var c = made.get();
+        onEdt(() -> {
+            assertTrue(c.designYes.isSelected(), "the design folder is inside the project just created");
+            assertFalse(c.openYes.isSelected(), "opening puts settings in force beyond the new project: No");
+            for (var m : List.of(c.roots, c.skills, c.graphs)) {
+                for (var b : m.values()) assertFalse(b.isSelected(), "every other row keeps its No");
+            }
+            assertEquals(StarterReviewDialog.Answer.CLOSED, c.answer(), "pre-ticked opens nothing until the open row's Yes");
+        });
+        String shown = text(c.panel);
+        assertTrue(shown.contains(StarterReviewDialog.DESIGN_WHY), shown);
+        assertTrue(shown.contains("every answer starts at No, except the design folder's."), shown);
+        var unticked = new StarterReviewDialog.Data("…/new-app", true, List.of(), null, 0, List.of(), List.of(),
+                List.of(), List.of(), "src/main/fluxtion/designer", false);
+        onEdt(() -> made.set(StarterReviewDialog.content(unticked)));
+        onEdt(() -> assertFalse(made.get().designYes.isSelected(), "the node's decision, not the dialog's"));
     }
 
     static SessionSnapshot snapshot(MainFrame f) throws Exception {

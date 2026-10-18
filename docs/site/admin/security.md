@@ -173,7 +173,10 @@ is a request to the model, not a sandbox.
 nothing until your Apply: Claude names a catalogue id and never a path; you choose the folder in the review, which
 starts at No; only then is the starter downloaded, from the configured HTTPS origin, and unpacked with the template
 checks. Nothing is built or run. The analyser then writes the project's skills from its own jar, each checked against
-its pinned digest and never over an existing file, and opens the project after one more review, every row at No. Your
+its pinned digest and never over an existing file (the playground's design skill and contract are bundled with the publisher's permission (owner, 2026-10-18); the playground's licence statement is pending (UP-PG-10)), and opens the project after one more review. Every row in that review starts at No except the Spring
+design folder inside the new project, which is pre-ticked; opening the project still starts at No. The one change to a
+pinned file is *add-a-node*'s regeneration placeholder, filled after the pins match from the analyser's own
+first-run record for the starter; `.claude/skills/.vendored.json` records both digests. Your
 Apply is the consent, so the *Allow the assistant to create projects* switch does not gate this path.
 
 The limits the analyser states rather than hides:

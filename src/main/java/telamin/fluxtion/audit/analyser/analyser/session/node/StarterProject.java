@@ -153,6 +153,9 @@ public class StarterProject implements EventLogSource {
         return changed();
     }
 
+    /** The combined review's design-folder row starts at Yes (owner, 2026-10-18); every other row at No. */
+    public static final boolean DESIGN_ROW_DEFAULT_YES = true;
+
     public static final String BUSY = "A project is already being created from a starter — finish or cancel it first";
 
     @OnEventHandler
@@ -307,8 +310,10 @@ public class StarterProject implements EventLogSource {
         note = "Unpacked the starter into " + rootShown + " — adding its skills";
         StarterState.Entry entry = published().entry(idDigest);
         auditLog.info("starter", "VENDORING").info("profile", profilePresent);
+        // add-a-node's regeneration marker is filled from the starter's own first-run record and key declaration
+        // (owner, 2026-10-18); with no record (commandsRef 0) the marker is kept
         effects.request(new SessionEffects.VendorSkillsEffect(0L, request, rootRef, authoring,
-                entry == null ? "embedded" : entry.host()));
+                entry == null ? "embedded" : entry.host(), commandsRef, entry == null ? "" : entry.keyNeed()));
         return changed();
     }
 
@@ -344,8 +349,10 @@ public class StarterProject implements EventLogSource {
         profilePresent = e.profilePresent();
         phase = "REVIEWING";
         auditLog.info("starter", "REVIEWING").info("roots", e.roots()).info("skills", e.skills()).info("graphs", e.graphs());
+        // the design folder's row starts at Yes (owner, 2026-10-18): it is inside the project just created and is what
+        // shows the Spring design; every row that reaches outside the project, or changes settings beyond it, stays No
         effects.request(new SessionEffects.ReviewStarterProjectEffect(0L, request, rootRef, offerRef, profilePresent,
-                vendored));
+                vendored, DESIGN_ROW_DEFAULT_YES));
         return changed();
     }
 

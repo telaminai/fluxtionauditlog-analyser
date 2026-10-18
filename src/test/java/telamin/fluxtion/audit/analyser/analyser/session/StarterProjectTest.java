@@ -170,7 +170,8 @@ class StarterProjectTest {
 
     /**
      * ★ Witness: request OpenStarterProjectEffect from {@code onSkillsVendored} (skipping discovery and the review) — the
-     * effect order assertion fails.
+     * effect order assertion fails. Pass 0 for {@code commandsRef} or "" for {@code keyNeed} in {@code onInstalled}, or
+     * {@code false} for the design row's default in {@code onDiscoveryObserved} — the vendor or review assertion fails.
      */
     @Test
     @DisplayName("★ the chain: Apply → download → skills → discovery → ONE review → open → design, watch and draft")
@@ -188,16 +189,20 @@ class StarterProjectTest {
         long req = download.get(0).request();
         assertEquals(REFS.put("my-app") > 0, download.get(0).artifactRef() != 0, "the proposal's artifact name travels");
         assertEquals(ProposalState.ItemState.APPLYING, d.snapshot().proposal().items().get(0).state());
-        d.post(new SessionEvents.StarterInstalled(req, REFS.put("/work/new-app"), "…/new-app", true, 0));
+        d.post(new SessionEvents.StarterInstalled(req, REFS.put("/work/new-app"), "…/new-app", true, 41));
         var vendor = of(a, SessionEffects.VendorSkillsEffect.class);
         assertEquals("spring", vendor.get(0).authoring());
         assertEquals("embedded", vendor.get(0).host());
+        // ★ add-a-node's marker is filled from the starter's first-run record and its key declaration (owner, 2026-10-18)
+        assertEquals(41, vendor.get(0).commandsRef(), "the first-run record travels to the vendoring");
+        assertEquals("build", vendor.get(0).keyNeed(), "the template's keyNeed travels to the vendoring");
         d.post(new SessionEvents.SkillsVendored(req, List.of("load-audit-log", "spring-authoring"), List.of(), List.of(), null));
         assertEquals(1, of(a, SessionEffects.RunDiscoveryEffect.class).size());
         d.post(new SessionEvents.StarterDiscoveryObserved(req, "digest-1", 5, true, 1, 2, 0));
         var review = of(a, SessionEffects.ReviewStarterProjectEffect.class);
         assertEquals(1, review.size(), "ONE combined review");
         assertEquals(List.of("load-audit-log", "spring-authoring"), review.get(0).vendored());
+        assertTrue(review.get(0).designDefaultYes(), "★ the design folder's row starts at Yes: the node decides it");
         d.post(new SessionEvents.StarterReviewAnswered(req, true, List.of(), List.of(), 0, "digest-1"));
         var open = of(a, SessionEffects.OpenStarterProjectEffect.class);
         assertEquals(1, open.size());

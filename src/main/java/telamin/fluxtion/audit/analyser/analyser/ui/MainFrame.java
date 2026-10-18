@@ -13289,10 +13289,14 @@ public final class MainFrame extends JFrame {
     private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result vendorSkills(
             telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.VendorSkillsEffect e) {
         String root = factRefs.get(e.rootRef());
+        // the starter's first-run record, as the node named it (0: none, so add-a-node keeps its marker)
+        var firstRun = e.commandsRef() == 0 ? null : starterCommands.get(e.commandsRef());
+        var record = firstRun == null ? null
+                : new telamin.fluxtion.audit.analyser.analyser.template.StarterSkills.FirstRun(firstRun, e.keyNeed());
         Background.run(() -> {
             if (root == null) throw new IllegalStateException("the project folder is no longer held");
             return new telamin.fluxtion.audit.analyser.analyser.template.StarterSkills().vendor(Path.of(root), e.authoring(),
-                    e.host());
+                    e.host(), record);
         }, r -> session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.SkillsVendored(
                 e.request(), r.written(), r.kept(), r.digests(), r.refusal() == null ? null
                 : telamin.fluxtion.audit.analyser.analyser.session.FactWords.withoutPaths(r.refusal()))),
@@ -13321,7 +13325,10 @@ public final class MainFrame extends JFrame {
         return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterEffectStarted(e.opId(), e.request(), "discovery");
     }
 
-    /** ReviewStarterProjectEffect: the ONE combined review, every row at No; the answers are a fact. */
+    /**
+     * ReviewStarterProjectEffect: the ONE combined review, every row at No except the design folder's when the node
+     * says so; the answers are a fact.
+     */
     private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result reviewStarterProject(
             telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ReviewStarterProjectEffect e) {
         SwingUtilities.invokeLater(() -> {
@@ -13360,7 +13367,8 @@ public final class MainFrame extends JFrame {
                     processor, runbooks, offer.sourceRoots().stream().map(p -> {
                         String rel = offer.root().relativize(p).toString().replace('\\', '/');
                         return rel.isEmpty() ? "." : rel;
-                    }).toList(), skills, graphs, e.vendored(), starterDesignRoot(dir, declared, offer));
+                    }).toList(), skills, graphs, e.vendored(), starterDesignRoot(dir, declared, offer),
+                    e.designDefaultYes());
             var answer = starterReviewAsk.apply(data);
             if (answer == null) answer = StarterReviewDialog.Answer.CLOSED;
             long graphRef = answer.graph() == null ? 0 : factRefs.put(dir.resolve(answer.graph()).normalize().toString());

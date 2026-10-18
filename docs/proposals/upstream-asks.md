@@ -2144,9 +2144,11 @@ agent entry is `CLAUDE.md` → `PROJECT.md` → the runbooks. So the analyser no
 is unpacked: the `m19-skills/2` selection for the starter's authoring and host, from its own jar, and the playground's
 `spring-authoring/skill.md` and `contract.md`, bundled as verbatim copies pinned by sha-256
 (`9875abf6…929e`, `a00cfdec…f0a8`). Those two pages carry no licence statement, and the site's *Licensing* page says
-licensing is being finalised; the analyser bundles them on the owner's authority as the same publisher. The canonical
-skills' `TODO(bundle)` markers reach the project unsubstituted, because the analyser is not a bundle generator and has
-nothing to substitute them with.
+licensing is being finalised. **Licence decision (owner, 2026-10-18): ACCEPTED** — the two pages are bundled with the publisher's permission (owner, 2026-10-18); the playground's licence statement is pending (UP-PG-10). This ask stays open for a stated licence. The canonical skills' `TODO(bundle)` markers reach the project
+unsubstituted, except one: after the pins match, *add-a-node*'s regeneration marker is filled from the analyser's own
+first-run record for the starter (owner, 2026-10-18), and `.claude/skills/.vendored.json` records the pinned and
+written digests. The others stay, because the analyser is not a bundle generator and has nothing to substitute them
+with.
 
 **The ask.** (1) Every starter ships `.claude/skills/` — the `m19-skills/2` selection for its own authoring and host,
 with its `TODO(bundle)` markers substituted by the generator, and for Spring the design skill and contract — so the

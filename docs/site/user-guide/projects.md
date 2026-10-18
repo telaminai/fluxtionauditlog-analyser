@@ -89,10 +89,18 @@ creates the project itself, and it never names a folder.
    *New project from template…*. Nothing is built or run.
 3. **The skills.** The analyser writes the project's skills from its own copy — the canonical set for the starter's
    authoring and host and, for Spring, the playground's design skill and XML contract, each checked against its
-   pinned digest — under `.claude/skills/`. A file already there is never overwritten.
+   pinned digest — under `.claude/skills/`. A file already there is never overwritten. The design skill and contract
+   are bundled with the publisher's permission (owner, 2026-10-18); the playground's licence statement is pending (UP-PG-10). Once every pin has
+   matched, one thing is filled in: *add-a-node*'s placeholder for the regeneration command becomes the starter's own
+   steps from the analyser's first-run record (for the Spring starters `./check-fluxtion-key.sh`, `./setup.sh`,
+   `./validate.sh`, `./generate.sh`) and whether they need a Fluxtion API key. A starter with no such record keeps
+   the placeholder. `.claude/skills/.vendored.json` lists each file's pinned source digest and its written digest,
+   and marks the substituted file.
 4. **One review.** What opening the project puts in force: with the starter's own profile, one row opens it (its source
    roots, processor and runbooks named); without one, each discovered source root and skill is a row. Every row
-   starts at No; **Close** opens nothing and leaves the files.
+   starts at No except the Spring design folder (`src/main/fluxtion/designer`), which is pre-ticked: it is inside the
+   project you just created, and it is needed to show the Spring design. **Close** opens nothing and leaves the
+   files.
 5. **Synced.** The project opens, its Spring design is shown at once, and the analyser watches for the first build's
    GraphML and offers to open it, which pairs it with the project's logs.
 6. **Back to Claude.** The project's folder is not the folder the session started in, so the analyser offers to
