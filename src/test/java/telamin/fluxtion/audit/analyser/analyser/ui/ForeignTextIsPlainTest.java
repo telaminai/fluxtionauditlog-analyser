@@ -140,6 +140,20 @@ class ForeignTextIsPlainTest {
     private static final Pattern PLAIN_INIT = Pattern.compile("UiText\\s*\\.\\s*(plain|label|button|menuItem|menu|checkBox"
             + "|radio|checkBoxMenuItem|radioMenuItem)\\s*\\(");
 
+    /**
+     * Release CI (2026-10-18): {@link #everyDoorIsPlain()} died of a StackOverflowError on CI's Linux JVM inside
+     * {@code Source.CLASS_HEADER}, whose {@code (?:[^()]|\(…\))*} recursed once per CHARACTER of a header's arguments.
+     * Runs are now possessive, one iteration per run. Witness: put the per-character alternation back — this header's
+     * 200,000 argument characters overflow any default thread stack.
+     */
+    @Test
+    @DisplayName("a long anonymous-class header is classified without overflowing the stack")
+    void aLongHeaderDoesNotOverflowTheStack() {
+        String header = "Runnable r = new Runnable(" + "x".repeat(100_000) + "(" + "y".repeat(100_000) + "))";
+        assertTrue(Source.isClassHeader(header), "still read as a class header");
+        assertFalse(Source.isClassHeader("int x = f(" + "z".repeat(200_000) + ") + 1"), "and a plain call still is not");
+    }
+
     @Test
     @DisplayName("SF-2: every computed text reaches an HTML-interpreting Swing surface through UiText")
     void everyDoorIsPlain() throws Exception {
@@ -768,7 +782,7 @@ class ForeignTextIsPlainTest {
 
         private static final Pattern CLASS_HEADER = Pattern.compile(
                 "(?s)(?:.*\\b(?:class|interface|enum)\\s+[\\w$]+[^{};]*|.*\\brecord\\s+[\\w$]+\\s*(?:<[^>]*>)?\\s*\\(.*"
-                        + "|.*\\bnew\\s+[\\w$.]+\\s*(?:<[^;{}]*>)?\\s*\\((?:[^()]|\\((?:[^()]|\\([^()]*\\))*\\))*\\)\\s*)$");
+                        + "|.*\\bnew\\s+[\\w$.]+\\s*(?:<[^;{}]*>)?\\s*\\((?:[^()]++|\\((?:[^()]++|\\([^()]*+\\))*+\\))*+\\)\\s*)$");
 
         static boolean isClassHeader(String header) {
             return CLASS_HEADER.matcher(header).matches();

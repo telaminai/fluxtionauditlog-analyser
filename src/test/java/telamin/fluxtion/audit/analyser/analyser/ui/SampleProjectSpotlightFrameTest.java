@@ -313,6 +313,13 @@ class SampleProjectSpotlightFrameTest {
                 var answer = spotlightAsync(f, List.of(t("topology:node:riskMonitor", "the node"), t(line, "its code")));
                 await(() -> answer.isDone() || (long) field(f.frame, "javaSpotlightTicket") > before, "the spotlight to be asked");
                 await(() -> answer.isDone() || viewer.reading(), "the spotlight to be asked");
+                // the contract itself: while goto's read is outstanding the spotlight does not answer. Release CI
+                // (2026-10-18): the after-the-fact view comparison below let a no-wait mutant through on Linux, where
+                // the read happened to land before the bound view was read; this holds however the read is timed
+                long holdUntil = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(1);
+                while (System.nanoTime() < holdUntil && !answer.isDone()) Thread.sleep(20);
+                assertFalse(answer.isDone(), "the spotlight answered while goto's read was still outstanding: "
+                        + (answer.isDone() ? answer.getNow(null) : null));
                 held.release.countDown();
                 ActionResult r = answer.get(20, java.util.concurrent.TimeUnit.SECONDS);
                 assertLitOnScreen(r, line);
