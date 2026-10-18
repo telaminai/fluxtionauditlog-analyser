@@ -19,6 +19,12 @@ import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents;
  *   <li><b>When it opens.</b> On the person's click in the assistant header; and BY ITSELF only the first time the person
  *       presses Start, sends a question (either assistant) or asks one on the start page while no profile is chosen —
  *       once per session, and never again after a profile is chosen.</li>
+ *   <li><b>Full Claude Code is confirmed first</b> (review PR151 F4, owner 2026-10-18). Turning it on from the cards asks
+ *       what Settings ▸ Assistant asks — {@link SessionEffects.ConfirmFullProfileEffect}, the full warning with Cancel the
+ *       default — and only {@link SessionEvents.AssistantFullProfileAnswered} confirmed applies it. Re-applying Full while
+ *       it is already in force turns nothing on, and asks nothing.</li>
+ *   <li><b>The one status line</b> when no assistant can answer from the panel (owner, 2026-10-18): nothing chosen, or
+ *       the in-app assistant with no key.</li>
  *   <li><b>Whether Apply may be applied now.</b> Never while a turn of either assistant is in progress — refused by name,
  *       as a mode switch mid-turn is; otherwise it asks for {@link SessionEffects.ApplyAssistantProfileEffect}, whose
  *       performer writes the same machine-tier settings Settings ▸ Assistant writes and posts the same consent facts, so
@@ -45,6 +51,14 @@ public class AssistantProfileChoice implements EventLogSource {
     /** Apply refused while the in-app assistant answers. */
     public static final String BUSY_IN_APP_TEXT = "The in-app assistant is still answering — Stop or wait, then change how "
             + "the assistant works.";
+    /** Owner, 2026-10-18: the one line while nothing is chosen and the cards are open. */
+    public static final String NO_ASSISTANT_CHOOSING = "No assistant set up yet — choose one below.";
+    /** The one line while nothing is chosen and the cards are shut. */
+    public static final String NO_ASSISTANT = "No assistant set up yet — choose one with Assistant ▾ above.";
+    /** The one line for the in-app assistant with no key (or no provider that can answer). */
+    public static final String IN_APP_NO_KEY = "The in-app assistant has no API key yet, so nothing is sent — add one with "
+            + "Assistant ▾ above or in Settings ▸ Assistant.";
+
     /** The start page's note when its question opened the choices instead of an answer. */
     public static final String FIRST_USE_NOTE = StartPagePrompt.CARRIED_NOTE;
 
@@ -65,6 +79,11 @@ public class AssistantProfileChoice implements EventLogSource {
     private String refusal = "";
     /** The start-page request this node answered by opening the choices, so startPagePrompt shows no fallback for it. */
     private long interceptedStartPage;
+    /** Review PR151 F4: the Apply request whose Full Claude Code confirmation is showing; 0 for none. */
+    private long confirmingFull;
+    /** What the frame last said the in-app assistant can do (StartPageAvailability), once it has said it. */
+    private boolean inAppCanAnswer;
+    private boolean availabilityObserved;
     private ProfileState published = ProfileState.NONE;
     private boolean dirty = true;
 
@@ -91,6 +110,15 @@ public class AssistantProfileChoice implements EventLogSource {
         return changed();
     }
 
+    /** Whether the in-app assistant can answer — only for the one status line; nothing else is decided from it. */
+    @OnEventHandler
+    public boolean onAvailability(SessionEvents.StartPageAvailability e) {
+        if (availabilityObserved && e.inAppCanAnswer() == inAppCanAnswer) return false;
+        availabilityObserved = true;
+        inAppCanAnswer = e.inAppCanAnswer();
+        return changed();
+    }
+
     // ---- the person's acts ------------------------------------------------------------------------------------------
 
     @OnEventHandler
@@ -108,6 +136,7 @@ public class AssistantProfileChoice implements EventLogSource {
         open = false;
         why = "";
         refusal = "";
+        confirmingFull = 0;
         auditLog.info("assistantProfiles", "CLOSED").info("origin", String.valueOf(e.origin()));
         return changed();
     }
@@ -133,8 +162,42 @@ public class AssistantProfileChoice implements EventLogSource {
             auditLog.info("assistantProfileRefused", p.name()).info("request", e.request());
             return changed();
         }
+        if (p == AssistantProfile.FULL && !AssistantProfile.FULL.name().equals(profile)) {
+            // review PR151 F4: the same consent Settings asks for — nothing is applied until it is confirmed
+            confirmingFull = e.request();
+            auditLog.info("assistantProfileConfirm", p.name()).info("request", e.request());
+            effects.request(new SessionEffects.ConfirmFullProfileEffect(0L, e.request()));
+            return changed();
+        }
         auditLog.info("assistantProfileApply", p.name()).info("request", e.request());
         effects.request(new SessionEffects.ApplyAssistantProfileEffect(0L, e.request(), p));
+        return changed();
+    }
+
+    /**
+     * Review PR151 F4: the person answered Full Claude Code's confirmation. Confirmed: applied, if it still may be now
+     * (a turn may have begun while the warning was read); otherwise nothing changes and the cards stay open.
+     */
+    @OnEventHandler
+    public boolean onFullProfileAnswered(SessionEvents.AssistantFullProfileAnswered e) {
+        if (confirmingFull == 0 || e.request() != confirmingFull) {
+            auditLog.info("staleFact", "AssistantFullProfileAnswered").info("request", e.request()).info("open",
+                    confirmingFull);
+            return false;
+        }
+        confirmingFull = 0;
+        if (!e.confirmed() || !open) {
+            auditLog.info("assistantProfileConfirm", "CANCELLED").info("request", e.request());
+            return changed();
+        }
+        refusal = localAgent.turnInProgress() ? BUSY_LOCAL_AGENT_TEXT : assistantLoop.turnInProgress() ? BUSY_IN_APP_TEXT : "";
+        if (!refusal.isEmpty()) {
+            auditLog.info("assistantProfileRefused", AssistantProfile.FULL.name()).info("request", e.request());
+            return changed();
+        }
+        auditLog.info("assistantProfileApply", AssistantProfile.FULL.name()).info("request", e.request())
+                .info("confirmed", true);
+        effects.request(new SessionEffects.ApplyAssistantProfileEffect(0L, e.request(), AssistantProfile.FULL));
         return changed();
     }
 
@@ -240,6 +303,19 @@ public class AssistantProfileChoice implements EventLogSource {
         return AssistantProfile.valueOf(profile);
     }
 
+    /** The one status line (owner, 2026-10-18): only once the frame has reported the profile. */
+    private String status() {
+        if (!observed) return "";
+        boolean inAppCannot = availabilityObserved && !inAppCanAnswer;
+        if (AssistantProfile.NONE.name().equals(profile)) {
+            // a key stored before profiles existed still answers: then something IS set up
+            if (availabilityObserved && inAppCanAnswer) return "";
+            return open ? NO_ASSISTANT_CHOOSING : NO_ASSISTANT;
+        }
+        if (AssistantProfile.IN_APP.name().equals(profile) && inAppCannot) return IN_APP_NO_KEY;
+        return "";
+    }
+
     private boolean changed() {
         dirty = true;
         return true;
@@ -248,7 +324,8 @@ public class AssistantProfileChoice implements EventLogSource {
     /** The published state — immutable, for the snapshot, rebuilt only after a change. */
     public ProfileState state() {
         if (dirty) {
-            published = new ProfileState(AssistantProfile.valueOf(profile), open, why, request, refusal, offered);
+            published = new ProfileState(AssistantProfile.valueOf(profile), open, why, request, refusal, offered, status(),
+                    confirmingFull != 0);
             dirty = false;
         }
         return published;

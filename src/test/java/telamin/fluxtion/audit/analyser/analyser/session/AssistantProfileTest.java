@@ -197,8 +197,93 @@ class AssistantProfileTest {
         SessionDriver e = unchosen(b);
         e.post(new SessionEvents.AssistantProfilesRequested("assistant header"));
         e.post(new SessionEvents.AssistantProfileChosen(1, AssistantProfile.FULL));
+        e.post(new SessionEvents.AssistantFullProfileAnswered(1, true));      // review PR151 F4: confirmed first
+        assertEquals(1, b.profileApplies.size(), "control: the write was asked for");
         assertTrue(b.modeChoices.isEmpty(), "nothing was written, so the mode does not change");
         assertTrue(e.snapshot().profiles().open(), "the cards stay open");
         assertTrue(e.snapshot().profiles().refusal().startsWith("the settings could not be saved"));
+    }
+
+    // ---- ★ review PR151 F4: Full Claude Code from the cards is confirmed as in Settings ------------------------------
+
+    /**
+     * ★ Review PR151 F4 (owner, 2026-10-18): Apply on the Full card asks for the confirmation Settings ▸ Assistant asks
+     * for and applies nothing; Cancel leaves the profile as it was and the cards open; only a confirmed answer, for that
+     * Apply, writes it. Witness: the one-press behaviour — drop the FULL branch in {@code onProfileChosen} — the first
+     * Apply writes the full posture at once and the first assertion fails.
+     */
+    @Test
+    @DisplayName("★ Full Claude Code from the cards: nothing is applied until the person confirms the warning")
+    void fullFromTheCardsNeedsItsConfirmation() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = new SessionDriver(a);
+        d.post(new SessionEvents.AssistantProfileObserved(AssistantProfile.SAFE));
+        d.post(new SessionEvents.AssistantProfilesRequested("assistant header"));
+        d.post(new SessionEvents.AssistantProfileChosen(1, AssistantProfile.FULL));
+        assertEquals(0, a.profileApplies.size(), "Apply alone writes nothing: the warning is asked first");
+        assertEquals(1, a.fullConfirms.size(), "the confirmation is asked for");
+        assertEquals(1, a.fullConfirms.get(0).request());
+        assertTrue(profiles(d).confirming());
+        d.post(new SessionEvents.AssistantFullProfileAnswered(1, false));
+        assertEquals(0, a.profileApplies.size(), "Cancel: nothing is written");
+        assertEquals(AssistantProfile.SAFE, profiles(d).profile(), "the profile in force is unchanged");
+        assertTrue(profiles(d).open(), "the cards stay open");
+        assertFalse(profiles(d).confirming());
+        d.post(new SessionEvents.AssistantFullProfileAnswered(1, true));
+        assertEquals(0, a.profileApplies.size(), "a second answer to an answered confirmation is stale");
+
+        d.post(new SessionEvents.AssistantProfileChosen(2, AssistantProfile.FULL));
+        d.post(new SessionEvents.AssistantFullProfileAnswered(1, true));
+        assertEquals(0, a.profileApplies.size(), "an answer for another Apply is stale");
+        d.post(new SessionEvents.AssistantFullProfileAnswered(2, true));
+        assertEquals(1, a.profileApplies.size(), "confirmed: applied");
+        assertEquals(AssistantProfile.FULL, a.profileApplies.get(0).profile());
+        assertEquals(2, a.profileApplies.get(0).request());
+
+        // already in force: re-applying turns nothing on, so nothing is asked
+        d.post(new SessionEvents.AssistantProfileObserved(AssistantProfile.FULL));
+        d.post(new SessionEvents.AssistantProfilesRequested("assistant header"));
+        d.post(new SessionEvents.AssistantProfileChosen(3, AssistantProfile.FULL));
+        assertEquals(2, a.profileApplies.size(), "Full in force: a mode change applies at once");
+        assertEquals(2, a.fullConfirms.size(), "and asks nothing");
+    }
+
+    /** A confirmation answered after the cards closed applies nothing; one answered mid-turn is refused by name. */
+    @Test
+    @DisplayName("a confirmed Full after Close applies nothing; confirmed mid-turn is refused as any Apply is")
+    void aLateConfirmationAppliesNothing() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = unchosen(a);
+        d.post(new SessionEvents.AssistantProfilesRequested("assistant header"));
+        d.post(new SessionEvents.AssistantProfileChosen(1, AssistantProfile.FULL));
+        d.post(new SessionEvents.AssistantProfilesClosed("test"));
+        d.post(new SessionEvents.AssistantFullProfileAnswered(1, true));
+        assertEquals(0, a.profileApplies.size(), "closed: the answer is stale");
+        assertEquals(AssistantProfile.NONE, profiles(d).profile());
+    }
+
+    /**
+     * ★ Owner, 2026-10-18: one status line when no assistant can answer from the panel, decided here. Witness: return ""
+     * from {@code status()} — no line.
+     */
+    @Test
+    @DisplayName("★ the one status line: nothing chosen (open or shut), the in-app assistant with no key, else none")
+    void theOneStatusLine() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = new SessionDriver(a);
+        assertEquals("", profiles(d).status(), "nothing reported yet: no claim");
+        d.post(new SessionEvents.AssistantProfileObserved(AssistantProfile.NONE));
+        assertEquals(AssistantProfileChoice.NO_ASSISTANT, profiles(d).status());
+        d.post(new SessionEvents.AssistantProfilesRequested("assistant header"));
+        assertEquals(AssistantProfileChoice.NO_ASSISTANT_CHOOSING, profiles(d).status());
+        d.post(new SessionEvents.AssistantProfileObserved(AssistantProfile.IN_APP));
+        d.post(new SessionEvents.StartPageAvailability(false, false, false, false));
+        assertEquals(AssistantProfileChoice.IN_APP_NO_KEY, profiles(d).status());
+        d.post(new SessionEvents.StartPageAvailability(false, false, true, false));
+        assertEquals("", profiles(d).status(), "the in-app assistant can answer: the panel's own lines");
+        d.post(new SessionEvents.AssistantProfileObserved(AssistantProfile.SAFE));
+        assertEquals("", profiles(d).status());
+        d.post(new SessionEvents.AssistantProfileObserved(AssistantProfile.NONE));
+        assertEquals("", profiles(d).status(), "nothing chosen, but a stored key answers: something is set up");
     }
 }

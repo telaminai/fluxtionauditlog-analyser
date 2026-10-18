@@ -157,7 +157,8 @@ no file writes**. These groups of verbs go further, honestly labelled:
   your administrator*) is planned — P4 in the tracker — and not built.
 
   **Full Claude Code is a separate switch with its own warning** (*…with my full Claude Code permissions*, off; the
-  **Full Claude Code** card shows the warning in full and its button reads *Turn on full Claude Code*). It
+  **Full Claude Code** card shows the warning in full, and its button *Turn on full Claude Code* asks for the same
+  confirmation as the switch — the warning again, *Cancel* the default — before anything changes). It
   runs your own Claude Code as in a terminal, with **your settings, skills, hooks and MCP servers** (claude.ai
   connectors included), and **the folder's hooks and MCP servers run when you press Start**, before you send anything, so
   the folder is confirmed for full Claude Code separately — the dialog names the hooks and servers it found — and the

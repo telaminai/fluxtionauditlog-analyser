@@ -51,6 +51,18 @@ class ProfileOverlayFrameTest {
         throw new AssertionError(what + ": " + s.get());
     }
 
+    /** Review PR151 F4: the cards' Full Claude Code confirmation, once it is showing (modeless in the test). */
+    static SafeChoice.Asked awaitConfirmation(MainFrame f) throws Exception {
+        long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
+        AtomicReference<SafeChoice.Asked> a = new AtomicReference<>();
+        while (System.nanoTime() < until) {
+            onEdt(() -> a.set(f.fullProfileAsked != null && f.fullProfileAsked.dialog().isShowing() ? f.fullProfileAsked : null));
+            if (a.get() != null) return a.get();
+            Thread.sleep(30);
+        }
+        throw new AssertionError("the Full Claude Code confirmation never showed");
+    }
+
     static AppConfig config(MainFrame f) {
         return (AppConfig) field(f, "config");
     }
@@ -105,18 +117,43 @@ class ProfileOverlayFrameTest {
                     90, 1, new SessionEvents.AssistantRoute("anthropic", "", "", false, true, 3, 20, 30))));
             onEdt(() -> assertFalse(profiles(f.frame).open(), "chosen: the cards never open by themselves again"));
 
-            // Full Claude Code from the header, with its mode
+            // Full Claude Code from the header, with its mode — review PR151 F4: confirmed as in Settings first
+            f.frame.fullProfileConfirmModal = false;
             onEdt(() -> AssistantLiveFrameTest.panel(f.frame).profileButton().doClick());
             assertEquals(ProfileState.ASKED, await(f.frame, ProfileState::open, "the header opens the cards").why());
             onEdt(() -> {
-                ProfileOverlay o = AssistantLiveFrameTest.panel(f.frame).profileOverlay();
+                AssistantPanel a = AssistantLiveFrameTest.panel(f.frame);
+                ProfileOverlay o = a.profileOverlay();
+                assertFalse(a.composerRow().isShowing(), "owner 2026-10-18: no composer while choosing");
+                assertFalse(a.sendButton().isShowing(), "and no Send");
                 assertEquals(AssistantProfile.SAFE, o.selected(), "they open on the profile in force");
                 o.card(AssistantProfile.FULL).doClick();
-                assertEquals(ConfigPanel.FULL_POSTURE_TURN_ON, o.applyButton().getText(),
-                        "Full Claude Code's Apply is the warning's own confirmation");
+                assertEquals(ConfigPanel.FULL_POSTURE_TURN_ON, o.applyButton().getText());
                 o.fullModeCombo().setSelectedItem("acceptEdits");
                 o.applyButton().doClick();
             });
+            SafeChoice.Asked asked = awaitConfirmation(f.frame);
+            onEdt(() -> {
+                assertSame(asked.safeButton(), asked.dialog().getRootPane().getDefaultButton(), "Cancel is the default");
+                assertEquals(ConfigPanel.FULL_POSTURE_CANCEL, asked.safeButton().getText());
+                assertEquals(ConfigPanel.FULL_POSTURE_TURN_ON, asked.riskyButton().getText());
+                assertFalse(asked.riskyButton().isDefaultCapable(), "Enter can never turn it on");
+                assertTrue(profiles(f.frame).confirming(), "the node waits for the answer");
+                assertFalse(config(f.frame).claudeCodeFull, "★ nothing is applied before the person confirms");
+                assertEquals("SAFE", config(f.frame).assistantProfile);
+                // Escape chooses Cancel
+                asked.dialog().getRootPane().getActionMap().get("safe-choice").actionPerformed(
+                        new java.awt.event.ActionEvent(asked.dialog(), 0, "safe-choice"));
+            });
+            await(f.frame, s -> s.open() && !s.confirming(), "Cancel answered");
+            onEdt(() -> {
+                assertFalse(config(f.frame).claudeCodeFull, "★ Cancel leaves the posture unchanged");
+                assertEquals(AssistantProfile.SAFE, profiles(f.frame).profile());
+                f.frame.fullProfileAsked = null;
+                AssistantLiveFrameTest.panel(f.frame).profileOverlay().applyButton().doClick();
+            });
+            SafeChoice.Asked again = awaitConfirmation(f.frame);
+            onEdt(() -> again.riskyButton().doClick());
             await(f.frame, s -> !s.open() && s.profile() == AssistantProfile.FULL, "Full applied");
             onEdt(() -> {
                 AppConfig c = config(f.frame);

@@ -958,13 +958,24 @@ public final class ConfigPanel extends JDialog {
         }
     }
 
-    /** The confirmation itself: the warning in a plain-text area, [Turn on full Claude Code] [Cancel], Cancel default. */
+    static final String FULL_POSTURE_TITLE = "Full Claude Code — read this first";
+    static final String FULL_POSTURE_CANCEL = "Cancel";
+
+    /**
+     * The confirmation itself: the warning in a plain-text area, under the SafeChoice rule — <i>Turn on full Claude
+     * Code</i> alone at the left, never default-capable; Cancel at the right, the default, and Enter, Escape and closing
+     * the window choose it. Review PR151 F4: the profile cards ask through the same dialog ({@link #fullPostureDialog}).
+     */
     static boolean confirmFullPosture(java.awt.Component parent) {
-        Object[] options = {FULL_POSTURE_TURN_ON, "Cancel"};
-        JTextArea warning = fullPostureWarningArea();
-        int answer = JOptionPane.showOptionDialog(parent, warning, "Full Claude Code — read this first",
-                JOptionPane.DEFAULT_OPTION, JOptionPane.WARNING_MESSAGE, null, options, options[1]);
-        return answer == 0;
+        SafeChoice.Asked a = fullPostureDialog(parent, true);
+        a.dialog().setVisible(true);
+        return a.chosenRisky();
+    }
+
+    /** The confirmation, built and not shown; {@code modal} false is for a frame test. */
+    static SafeChoice.Asked fullPostureDialog(java.awt.Component parent, boolean modal) {
+        return SafeChoice.build(parent, FULL_POSTURE_TITLE, fullPostureWarningArea(),
+                UIManager.getIcon("OptionPane.warningIcon"), FULL_POSTURE_TURN_ON, FULL_POSTURE_CANCEL, modal);
     }
 
     static JTextArea fullPostureWarningArea() {
