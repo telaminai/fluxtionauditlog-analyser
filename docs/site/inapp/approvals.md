@@ -17,6 +17,11 @@ What is asked depends on the profile:
 The in-app assistant and outside MCP clients do not use this dialog: an outside client asks you through its own
 approval settings.
 
+In Full Claude Code, an `open` containing only existing log or GraphML files inside the session's real project folder
+needs no approval. The active analyser sample has the same exception while the session works in scratch. Its anchor
+must remain beneath the real home directory: a linked sample or analyser directory cannot turn another folder into
+the sample's allow-root. Paths leading outside an allowed root, project switches and other `open` options still ask.
+
 ![Claude Code asks for your approval: Claude Code asks to write a finding to “demo-breach-finding.pdf”, what follows from
 it, the call's input as plain text, the 120 s deadline, Allow once alone at the left, Stop Claude Code and Deny, the
 default](../assets/permission-dialog.png)

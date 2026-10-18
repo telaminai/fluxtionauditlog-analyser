@@ -67,6 +67,12 @@ public class StarterProject implements EventLogSource {
     private String offerDigest;
     private long offerRef;
     private boolean graphWatch;
+    private long offeredGraphRef;
+    private long ownProjectOp;
+    private OperationGate gate;
+
+    public OperationGate getGate() { return gate; }
+    public void setGate(OperationGate gate) { this.gate = gate; }
     private String note = "";
     private StarterState published = StarterState.IDLE;
     private boolean dirty = true;
@@ -319,8 +325,13 @@ public class StarterProject implements EventLogSource {
 
     @OnEventHandler
     public boolean onInstallFailed(SessionEvents.StarterInstallFailed e) {
-        if (stale(e.request(), "DOWNLOADING", "StarterInstallFailed")) return false;
-        end("FAILED", "The starter was not created: " + safe(e.why()));
+        // Both background adapters report this failure fact. A discovery failure happens AFTER the files were
+        // installed: settle that phase too, without claiming the download was rolled back.
+        boolean discovering = "DISCOVERING".equals(phase);
+        if (stale(e.request(), discovering ? "DISCOVERING" : "DOWNLOADING", "StarterInstallFailed")) return false;
+        end("FAILED", discovering ? "The starter was unpacked into " + rootShown
+                + ", but its project could not be reviewed: " + safe(e.why())
+                : "The starter was not created: " + safe(e.why()));
         if ("MENU".equals(origin)) effects.request(new SessionEffects.ShowWarningEffect(0L, note));
         return changed();
     }
@@ -333,7 +344,8 @@ public class StarterProject implements EventLogSource {
         // a refused skill set is said, and the project still opens: the skills are an addition, never the starter
         note = e.refusal() == null ? "Added " + vendored.size() + " skill(s) under .claude/skills"
                 + (kept.isEmpty() ? "" : "; kept " + kept.size() + " already there")
-                : "No skills were added: " + safe(e.refusal());
+                : "Adding skills was incomplete; some files may remain: " + safe(e.refusal());
+        if (e.refusal() != null) effects.request(new SessionEffects.ShowStatusEffect(0L, note));
         phase = "DISCOVERING";
         auditLog.info("starterSkills", e.refusal() == null ? "WRITTEN" : "REFUSED").info("written", vendored.size())
                 .info("kept", kept.size());
@@ -379,8 +391,32 @@ public class StarterProject implements EventLogSource {
     }
 
     /** While the analyser opens its OWN starter project — never a switch the person must be asked about. */
-    public boolean openingOwnProject() {
-        return "OPENING".equals(phase);
+    public boolean openingOwnProject(SessionEvents.OpenProjectRequested e) {
+        return permitsProjectOpen(e.starterRequest());
+    }
+
+    /** Revocable permission for an already-issued open effect when its EDT callback finally runs. */
+    public boolean permitsProjectOpen(long req) {
+        return req != 0 && req == request && "OPENING".equals(phase);
+    }
+
+    /** Called by the boundary node, never an adapter: bind our accepted open to this operation, not an ambient phase. */
+    public boolean admitProjectOpen(SessionEvents.OpenProjectRequested e) {
+        if (!openingOwnProject(e)) {
+            auditLog.info("staleFact", "starterProjectOpen").info("request", e.starterRequest());
+            return false;
+        }
+        ownProjectOp = e.opId();
+        return true;
+    }
+
+    public boolean ownsProjectOpen(long opId, long req) {
+        return req == request && opId == ownProjectOp && "OPENING".equals(phase);
+    }
+
+    /** The node's revocable read/display permission; checked on the EDT at both ends of a design read. */
+    public boolean permitsDesign(long req) {
+        return req == request && "OPEN".equals(phase);
     }
 
     @OnEventHandler
@@ -393,7 +429,7 @@ public class StarterProject implements EventLogSource {
         }
         phase = "OPEN";
         graphWatch = true;
-        note = "Opened " + rootShown + " — the design is shown; its graph is offered after the first build";
+        note = "Opened " + rootShown + " — opening its design; its graph is offered after the first build";
         auditLog.info("starter", "OPEN").info("origin", origin);
         // the analyser now shows the state the project starts in: its design at once, its graph when a build writes one
         effects.request(new SessionEffects.OpenStarterDesignEffect(0L, request, rootRef));
@@ -408,9 +444,12 @@ public class StarterProject implements EventLogSource {
 
     @OnEventHandler
     public boolean onDesignOpened(SessionEvents.StarterDesignOpened e) {
-        if (e.request() != request) return false;
+        if (stale(e.request(), "OPEN", "StarterDesignOpened")) return false;
         auditLog.info("starterDesign", e.ok()).info("why", String.valueOf(e.why()));
-        return false;
+        note = "Opened " + rootShown + (e.ok() ? " — the design is shown; its graph is offered after the first build"
+                : " — the design was not shown: " + safe(e.why()));
+        if (!e.ok()) effects.request(new SessionEffects.ShowStatusEffect(0L, note));
+        return changed();
     }
 
     @OnEventHandler
@@ -420,25 +459,41 @@ public class StarterProject implements EventLogSource {
             return false;
         }
         graphWatch = false;
+        offeredGraphRef = e.pathRef();
         auditLog.info("starterGraph", "APPEARED");
         effects.request(new SessionEffects.OfferStarterGraphEffect(0L, request, e.pathRef(), e.shown()));
         return changed();
     }
 
-    @OnEventHandler(propagate = false)
+    @OnEventHandler
     public boolean onGraphOfferAnswered(SessionEvents.StarterGraphOfferAnswered e) {
+        if (stale(e.request(), "OPEN", "StarterGraphOfferAnswered") || offeredGraphRef == 0) return false;
         auditLog.info("starterGraphOffer", e.open()).info("request", e.request());
-        return false;
+        if (e.open()) effects.request(new SessionEffects.OpenStarterGraphEffect(0L, request, offeredGraphRef));
+        offeredGraphRef = 0;
+        return changed();
     }
 
-    /** A project switch the person made after the starter opened ends the watch: its graph would be another project's. */
-    @OnEventHandler(propagate = false)
+    /** Owner decision, integration review: project switches cancel later opens/drafts, never downloaded files. */
+    @OnEventHandler
     public boolean onProfileApplied(SessionEvents.ProfileApplied e) {
-        if (!graphWatch || "OPENING".equals(phase)) return false;
+        if (!gate.accepted() || ownsProjectOpen(e.opId(), request)) return false;
+        return cancelForProject(e.opId());
+    }
+
+    @OnEventHandler
+    public boolean onSettingsRestored(SessionEvents.SettingsRestored e) {
+        return gate.accepted() && cancelForProject(e.opId());
+    }
+
+    private boolean cancelForProject(long opId) {
+        if (!busy() && !"OPEN".equals(phase)) return false;
         graphWatch = false;
-        auditLog.info("starterGraph", "UNWATCHED");
-        dirty = true;
-        return false;
+        offeredGraphRef = 0;
+        ownProjectOp = 0;
+        end("CANCELLED", "The project changed: later starter opens and drafts were cancelled; downloaded files are kept");
+        effects.request(new SessionEffects.CancelStarterWorkEffect(opId, request));
+        return changed();
     }
 
     @OnEventHandler(propagate = false)
@@ -475,6 +530,8 @@ public class StarterProject implements EventLogSource {
         offerDigest = null;
         offerRef = 0;
         graphWatch = false;
+        offeredGraphRef = 0;
+        ownProjectOp = 0;
         note = "";
     }
 

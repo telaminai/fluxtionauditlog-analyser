@@ -460,7 +460,7 @@ class AiSetupTest {
 
     /**
      * ★ Owner follow-up (2026-10-18): a Build question preselects Full in Claude Code's own {@code acceptEdits} — edits
-     * accepted by Claude Code in the folder, commands still asked — and the Apply WRITES that mode (before, the wizard's
+     * accepted by Claude Code in the folder, other approvals follow its rules — and Apply WRITES that mode (before, the wizard's
      * mode was never written, so the live authoring run asked 14 times under {@code default}). The person can still pick
      * {@code default}; a plain question is not preselected; the Full confirmation is still asked. Witnesses: (1) drop
      * {@code fullMode = AiSetupLines.BUILD_FULL_MODE} in {@code openWizard} — the mode is {@code default}; (2) pass null

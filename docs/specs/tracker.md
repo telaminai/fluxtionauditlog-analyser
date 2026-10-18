@@ -17,6 +17,16 @@ entry to one or two lines; put anything longer in the spec, an issue or an evide
 
 ## Delivery order
 
+- ◧ [INTEG-R7] Desktop acceptance remains open: complete Mac run 326/1/0/3 (T2 right-click control missing plus native skips); final ownership correction passes 21 affected cases. ▸ [review](../handoff/review_integration_2026_10_18_codex.md)
+- ☐ [INTEG-R8] Diagnose background EDT ownership exceptions in one passing grouped usability run; no proven production cause or named failing regression yet. ▸ [review](../handoff/review_integration_2026_10_18_codex.md)
+- ☐ [INTEG-R9] Owner scope needed for historical host-path redaction and stale screenshots; not introduced by this integration. Preserve evidence while planning the cleanup. ▸ [review](../handoff/review_integration_2026_10_18_codex.md)
+
+- ☑ [INTEG-R6] Partial skills writes are disclosed rather than reported as zero writes; real filesystem fault and rendered-review regressions. ▸ [evidence](../handoff/evidence/integration-review-2026-10-18/f6-partial-skills.md)
+
+- ☑ [INTEG-R5] Full/acceptEdits consent wording names automatic commands and permission rules; rendered-offer regression. ▸ [evidence](../handoff/evidence/integration-review-2026-10-18/f5-permission-wording.md)
+
+- ☑ [INTEG-R3] Project changes cancel later starter opens/drafts, retaining downloaded files (owner decision, 2026-10-18); node-owned correlation and graph-offer acceptance. ▸ [regression evidence](../handoff/evidence/integration-review-2026-10-18/f3-starter-ownership.md)
+
 _Refreshed 2026-10-06, after 1.32.0._ **Shipped since the 2026-09-27 refresh:** **1.25.0** (chart and report lifecycle,
 PR #51); **1.26.0 / 1.26.1** (M69 spotlight walks); **1.27.0** (evidence bundles, first delivery); **1.28.0** (M70
 replay, M71 Workspace Start); **1.29.0** (the onboard assistant and conversation journeys, PR #77); **1.30.0** (bundles as
@@ -278,6 +288,9 @@ hosted half, M67, M33.6, the Mongoose audit format phases 2–3, M34.4/.5 and th
   silently. [M46.4] ☐ U5–U8. [M46.8] ☐ X1–X4 doc gaps. [M46.9] ☐ H1–H2 harness. ▸ detail: *M46*.
 
 ### M47 · Start from a template
+- [INTEG-R4] ☑ Integration review: the sample pre-allow cannot expand through a linked sample/parent directory; genuine sample and home-alias controls retained. [Approval-boundary evidence](../handoff/evidence/integration-review-2026-10-18/f4-sample-anchor.md).
+- [OPT-2-R2] ☑ Integration review: starter design outcome waits for the actual read/display; a declined source root is not recorded as opened. Real-frame wrong-result witness and gates: [F2](../handoff/evidence/integration-review-2026-10-18/f2-design-outcome.md).
+- [OPT-2-R1] ☑ Integration review: a discovery failure settles the starter and its proposal; stale outcomes are ignored and another creation is admitted. Regression and executed red/green evidence: [F1](../handoff/evidence/integration-review-2026-10-18/f1-discovery.md).
 - [M47.1] ☐ Do the onboarding templates remove the four round-16 blockers structurally? ▸ detail: *M47*.
 - [OPT-2] ◐ **A starter proposed by Claude Code** (owner, 2026-10-18), draft [PR #167](https://github.com/telaminai/fluxtionauditlog-analyser/pull/167) `59220eee` with `fix/starter-followups` `3cf5beb8`, **in integration v2** (`test/usability-2026-10-18b`): `propose {kind: starter}`, `context.starters`, ONE `starterProject` chain (also *New project from template…*), the identity note, Full's docs-site WebFetch; follow-ups: add-a-node's regeneration marker filled from the first-run record, `.vendored.json` digests, the design row pre-ticked; flags 15–22 in the [review map](../handoff/review_map_integration_2026_10_18.md) §6.
   `fix/fill-skill-placeholders` (owner, 2026-10-18): every marker the first-run record can answer is filled (Mongoose start, embedded run), the rest kept with a note each (flag 22).

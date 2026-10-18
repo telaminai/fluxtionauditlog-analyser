@@ -499,6 +499,14 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
                 starterEffects.add(e);
                 yield new SessionEvents.StarterEffectStarted(e.opId(), e.request(), SessionDriver.name(e));
             }
+            case SessionEffects.OpenStarterGraphEffect e -> {
+                starterEffects.add(e);
+                yield new SessionEvents.StarterEffectStarted(e.opId(), e.request(), SessionDriver.name(e));
+            }
+            case SessionEffects.CancelStarterWorkEffect e -> {
+                starterEffects.add(e);
+                yield new SessionEvents.StarterCancelled(e.opId(), e.request());
+            }
             case SessionEffects.ArmStarterDraftEffect e -> {
                 starterEffects.add(e);
                 yield new SessionEvents.StarterEffectStarted(e.opId(), e.request(), SessionDriver.name(e));

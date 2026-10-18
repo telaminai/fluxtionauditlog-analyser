@@ -268,16 +268,16 @@ public final class AiSetupLines {
             + "you confirm it before anything is applied.";
     /**
      * Owner follow-up (2026-10-18): what {@code acceptEdits} means, under the mode choice — Claude Code accepts its own
-     * file edits in the folder; Bash (mvn, regen) still reaches the analyser's approval dialog, Deny its default.
+     * file edits and some commands can be accepted by Claude Code itself. Only requests its rules still ask about
+     * reach the analyser's approval dialog; Full mode does not promise an approval for every command.
      */
-    public static final String ACCEPT_EDITS_NOTE = "Claude edits files in this project without asking; commands still ask "
-            + "you.";
+    public static final String ACCEPT_EDITS_NOTE = "File edits and some commands can run without asking; your permission rules still apply.";
     /**
      * Owner decision 2026-10-18: the one-line offer when Full Claude Code is already in force in {@code default} and
      * Start building is pressed — the mode is the posture, so Switch begins a new chat.
      */
-    public static final String BUILD_MODE_OFFER = "Building works best when Claude edits files in this project "
-            + "without asking; commands still ask you. Switch?";
+    public static final String BUILD_MODE_OFFER = "Building: file edits and some commands can run without asking; "
+            + "your permission rules still apply. Switch?";
     public static final String BUILD_MODE_SWITCH = "Switch (new chat)";
     public static final String BUILD_MODE_KEEP = "Keep asking";
 

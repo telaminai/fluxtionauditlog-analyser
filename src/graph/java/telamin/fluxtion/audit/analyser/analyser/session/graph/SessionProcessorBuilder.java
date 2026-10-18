@@ -162,6 +162,7 @@ public class SessionProcessorBuilder implements FluxtionGraphBuilder {
         // starter item and the Project menu alike. onboardingProposal pushes an accepted starter item and its Apply here
         telamin.fluxtion.audit.analyser.analyser.session.node.StarterProject starterProject =
                 new telamin.fluxtion.audit.analyser.analyser.session.node.StarterProject(effects);
+        starterProject.setGate(gate);
         telamin.fluxtion.audit.analyser.analyser.session.node.OnboardingProposal onboarding =
                 new telamin.fluxtion.audit.analyser.analyser.session.node.OnboardingProposal(localAgent, effects,
                         starterProject);

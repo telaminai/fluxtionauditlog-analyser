@@ -113,6 +113,11 @@ public class SessionBoundary implements EventLogSource {
      */
     @OnEventHandler
     public boolean onOpenProjectRequested(SessionEvents.OpenProjectRequested event) {
+        if (event.starterRequest() != 0 && (starterProject == null || !starterProject.admitProjectOpen(event))) {
+            gate.held(event.opId()); // a cancelled continuation must not supersede an unrelated pending operation
+            auditLog.info("decision", "staleStarterOpen").info("opId", event.opId());
+            return false;
+        }
         if (holds(event)) {
             // a newer switch while one is held REPLACES its target; the offer is made again for the new one
             held = event;
@@ -144,7 +149,7 @@ public class SessionBoundary implements EventLogSource {
         // Option 2: the starter the person just confirmed opens as their Apply said; localAgentSession then offers the
         // restart in the new folder (its folder-change offer), so a running answer is never cut off by this open
         if ((k == TransitionKind.EXPLICIT_SWITCH || k == TransitionKind.CREATE) && starterProject != null
-                && starterProject.openingOwnProject()) return false;
+                && starterProject.openingOwnProject(event)) return false;
         return !(k == TransitionKind.CREATE && onboardingProposal != null && onboardingProposal.applyingOwnCreate());
     }
 

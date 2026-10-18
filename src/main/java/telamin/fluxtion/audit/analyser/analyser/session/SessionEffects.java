@@ -834,6 +834,12 @@ public sealed interface SessionEffects {
     record OfferStarterGraphEffect(long opId, long request, long pathRef, String shown) implements SessionEffects {
     }
 
+    /** The node accepted the still-owned graph offer. No dialog or deferred decision remains in the adapter. */
+    record OpenStarterGraphEffect(long opId, long request, long pathRef) implements SessionEffects { }
+
+    /** Stop the starter watch only; do not remove files or erase a person's draft. */
+    record CancelStarterWorkEffect(long opId, long request) implements SessionEffects { }
+
     /**
      * Place the pointer-only draft for Claude Code — the project and the starter by name, the files to read — and report
      * it as {@link SessionEvents.LocalAgentDraftComposed}; nothing is sent until the person presses Send.

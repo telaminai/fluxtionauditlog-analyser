@@ -44,7 +44,12 @@ public final class SessionEvents {
      */
     public record OpenProjectRequested(long opId, String profilePath, TransitionKind kind, String source,
                                        AssistantActionOrigin assistantOrigin, ProjectAudience audience,
-                                       CreateRequest create) {
+                                       CreateRequest create, long starterRequest) {
+        /** Only the starter adapter supplies a correlation; external/client project opens never do. */
+        public OpenProjectRequested(long opId, String profilePath, TransitionKind kind, String source,
+                                    AssistantActionOrigin assistantOrigin, ProjectAudience audience, CreateRequest create) {
+            this(opId, profilePath, kind, source, assistantOrigin, audience, create, 0);
+        }
         /** Every kind but {@link TransitionKind#CREATE}: there is nothing observed to carry. */
         public OpenProjectRequested(long opId, String profilePath, TransitionKind kind, String source,
                                     AssistantActionOrigin assistantOrigin, ProjectAudience audience) {
@@ -1826,6 +1831,9 @@ public final class SessionEvents {
     /** The person answered the after-build offer: open the graph (and pair it with the logs) or not now. */
     public record StarterGraphOfferAnswered(long request, boolean open) {
     }
+
+    /** Cancellation stopped the watch; already downloaded files were left untouched. */
+    public record StarterCancelled(long opId, long request) implements Result { }
 
     /** Answered at once by a starter effect whose outcome arrives later. */
     public record StarterEffectStarted(long opId, long request, String what) implements Result {

@@ -6,6 +6,18 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+- A failed skills-write step now says installation is incomplete and may have left files. The starter review no longer claims all skills were written regardless of the result.
+
+- The Full-mode Build offer now discloses that file edits and some commands can run without asking, subject to Claude Code's permission rules; it no longer promises a dialog for every command.
+
+- Switching projects cancels pending starter opens, design displays, graph offers and later drafts; downloaded files remain. A first-build graph is opened only after the session accepts its still-current offer. Cancelled queued opens never enter the shared project-request handlers.
+
+### Integration review fixes
+
+- The sample-project exception for Full Claude Code cannot widen through a linked sample or analyser directory. An unrelated log still needs approval; ordinary home-directory aliases and the genuine sample continue to work.
+- A new starter reports its design as shown only after the read and display succeed. Declining the design source root, or a failed read, now produces an honest outcome and a session-owned explanation instead of a false success.
+- A starter whose project discovery fails now settles the proposal instead of staying busy forever. The message distinguishes files already unpacked from a failed download; a later starter request can proceed.
+
 ### Added
 
 - **`source` can return the code it finds.** `source {…, text: {from, to}}` (a range) or `{…, text: {around?, context?}}` (a window around the chosen line) returns those lines as data, so Claude shows you code through the analyser instead of reading files itself, with no approval to ask. It is read-only and reads only files under your authorised source roots, by their real path (a link that leads out is refused); at most 200 lines and 32 KB a call, with any cut stated; a binary or non-UTF-8 file is refused. An optional parameter for external MCP and REST clients too: without `text`, `source` and its reply are unchanged.

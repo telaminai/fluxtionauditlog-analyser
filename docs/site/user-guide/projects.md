@@ -99,6 +99,9 @@ creates the project itself, and it never names a folder.
    and GraphML paths, the stop command, the class an embedded run starts — stay as they are, as does every
    placeholder for a starter with no record (on Windows, none has one today). `.claude/skills/.vendored.json` lists
    each file's pinned source digest and its written digest, and one note per placeholder: filled, or kept and why.
+   Filesystem writes are not transactional: a failure can leave some skill files without a new digest record.
+   The status reports incomplete installation; inspect those files before relying on the skill set. Existing files
+   and an existing digest record are never overwritten. The project review still proceeds.
 4. **One review.** What opening the project puts in force: with the starter's own profile, one row opens it (its source
    roots, processor and runbooks named); without one, each discovered source root and skill is a row. Every row
    starts at No except the Spring design folder (`src/main/fluxtion/designer`), which is pre-ticked: it is inside the
@@ -114,6 +117,10 @@ creates the project itself, and it never names a folder.
 
 Your Apply is the consent, so *Allow the assistant to create projects* does not gate this path. The same chain runs
 from *Project ▸ New project from template…*, which ends by showing the starter's own commands instead of a draft.
+
+Switching to another project, or closing the project, cancels this starter's later automatic opens and drafts,
+including an unanswered first-build graph offer. Downloaded files stay where they were written; a draft already
+placed is not erased. A failed switch or re-opening the active project leaves the starter running.
 
 ## Opening and switching
 

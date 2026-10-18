@@ -151,6 +151,67 @@ class StarterProposalFrameTest {
     @Test
     @DisplayName("★ propose → review → choose folder → Apply → files, skills, discovery, project, design, watch, draft — nothing sent")
     void aProposedStarterBecomesTheOpenProject(@TempDir Path tmp) throws Exception {
+        proposedStarter(tmp, true);
+    }
+
+    @Test
+    @DisplayName("declining the design root never records a refused design read as opened")
+    void aDeclinedDesignRootReportsTheActualReadOutcome(@TempDir Path tmp) throws Exception {
+        proposedStarter(tmp, false);
+    }
+
+    private void proposedStarter(Path tmp, boolean approveDesignRoot) throws Exception {
+        proposedStarter(tmp, approveDesignRoot, false);
+    }
+
+    @Test
+    void aProjectSwitchDuringTheGraphOfferCannotOpenTheOldGraph(@TempDir Path tmp) throws Exception {
+        proposedStarter(tmp, true, true);
+    }
+
+    @Test
+    void aCancelledQueuedStarterOpenNeverReachesTheProjectBoundary(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless(), "a real display is required");
+        Path home = Files.createDirectories(tmp.resolve("home"));
+        Path old = Files.createDirectories(tmp.resolve("DEMO-A/.analyser")).resolve("project.fluxtion-settings");
+        Path current = Files.createDirectories(tmp.resolve("DEMO-B/.analyser")).resolve("project.fluxtion-settings");
+        Files.writeString(old, "share.version=1\n");
+        Files.writeString(current, "share.version=1\n");
+        String before = System.getProperty("user.home");
+        MainFrame[] made = new MainFrame[1];
+        System.setProperty("user.home", home.toString());
+        try {
+            onEdt(() -> made[0] = new MainFrame());
+            MainFrame f = made[0];
+            var ex = (ActionExecutor) field(f, "actionExecutor");
+            onEdt(() -> render(ex, "open", Map.of("project", current.toString())));
+            SessionDriver driver = (SessionDriver) field(f, "session");
+            int[] boundary = new int[1];
+            onEdt(() -> {
+                boundary[0] = driver.auditSink().records().size();
+                var refs = (telamin.fluxtion.audit.analyser.analyser.session.FactRefs) field(f, "factRefs");
+                var effect = new telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.OpenStarterProjectEffect(
+                        0, 41, refs.put(old.getParent().getParent().toString()), 0, true, null, 0, false);
+                try {
+                    var method = MainFrame.class.getDeclaredMethod("openStarterProject", effect.getClass());
+                    method.setAccessible(true);
+                    method.invoke(f, effect);
+                } catch (ReflectiveOperationException error) { throw new AssertionError(error); }
+            });
+            onEdt(() -> { });
+            onEdt(() -> {
+                var records = driver.auditSink().records();
+                assertTrue(records.subList(boundary[0], records.size()).stream().noneMatch(r -> r.contains("OpenProjectRequested")),
+                        "a cancelled starter callback must not submit a project request");
+                assertTrue(driver.processor().activeProject.isAt(current.toString()));
+            });
+        } finally {
+            if (made[0] != null) onEdt(made[0]::dispose);
+            System.setProperty("user.home", before);
+        }
+    }
+
+    private void proposedStarter(Path tmp, boolean approveDesignRoot, boolean switchDuringGraphOffer) throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless(), "a real display is required");
         Path home = Files.createDirectories(tmp.resolve("home"));
         Path claude = Files.createDirectories(home.resolve(".local/bin")).resolve("claude");
@@ -314,6 +375,7 @@ class StarterProposalFrameTest {
             });
             capture(visual, combined, "03-combined-review.png");
             onEdt(() -> named(combined, "Open the project: Yes").doClick());
+            if (!approveDesignRoot) onEdt(() -> named(combined, "Design folder src/main/fluxtion/designer: No").doClick());
             onEdt(() -> ClaudeCodeTabFrameTest.findButton(combined, "Apply chosen").doClick());
 
             // synced: the project open, its design shown, the watch armed, the draft placed and nothing sent
@@ -325,6 +387,19 @@ class StarterProposalFrameTest {
                     || session.processor().activeProject.name().equals("new-app"), "the project is open"));
             awaitSnapshot(f, s -> s.proposal().items().get(0).state()
                     == telamin.fluxtion.audit.analyser.analyser.session.ProposalState.ItemState.APPLIED, "the row applied");
+            if (!approveDesignRoot) {
+                AtomicReference<String> result = new AtomicReference<>("");
+                awaitTrue(() -> {
+                    onEdt(() -> result.set(session.auditSink().records().stream()
+                            .filter(r -> r.contains("starterDesign:")).reduce((a, b) -> b).orElse("")));
+                    return !result.get().isEmpty();
+                }, "the design operation has reported an outcome");
+                assertTrue(result.get().contains("starterDesign: false"),
+                        "a refused source-root read must not be recorded as opened: " + result.get());
+                assertTrue(snapshot(f).starter().note().contains("design was not shown"), snapshot(f).starter().note());
+                onEdt(() -> assertNull(session.processor().designSession.document(), "the refused design is not displayed"));
+                return;
+            }
             awaitTrue(() -> {
                 String d = session.processor().designSession.path();
                 return d != null && d.endsWith("application-context.xml");
@@ -371,6 +446,30 @@ class StarterProposalFrameTest {
             var beanLit = exe.render("spotlight", java.util.Map.of("target", "source:design:bean:marketDataNode",
                     "caption", "its Spring bean"));
             assertTrue(beanLit.ok(), beanLit.toMap().toString());
+            if (switchDuringGraphOffer) {
+                Path other = Files.createDirectories(tmp.resolve("DEMO-B/.analyser")).resolve("project.fluxtion-settings");
+                Files.writeString(other, "share.version=1\n");
+                Path graph = target.resolve("first-build.graphml");
+                Files.copy(Path.of("src/test/resources/topology/demo-quote-processor.graphml"), graph);
+                onEdt(() -> {
+                    f.starterGraphOffer = shown -> {
+                        try { render(ex, "open", Map.of("project", other.toString())); }
+                        catch (Exception error) { throw new AssertionError(error); }
+                        return true;
+                    };
+                    var refs = (telamin.fluxtion.audit.analyser.analyser.session.FactRefs) field(f, "factRefs");
+                    // The watcher completion's actual fact, with the live starter request; no hand-made effect.
+                    session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterGraphmlAppeared(
+                            session.snapshot().starter().request(), refs.put(graph.toString()), "DEMO-A/first-build.graphml"));
+                });
+                onEdt(() -> { });
+                onEdt(() -> {
+                    assertTrue(session.processor().activeProject.isAt(other.toString()), "DEMO-B is active");
+                    assertFalse(session.snapshot().graphOpen(), "a superseded starter offer must not open the old graph");
+                    assertEquals("CANCELLED", session.snapshot().starter().phase());
+                });
+                assertTrue(Files.isRegularFile(target.resolve("PROJECT.md")), "downloaded files are retained");
+            }
         } finally {
             System.setProperty("user.home", before);
             for (Window w : Window.getWindows()) if (w instanceof JDialog d && d.isShowing()) SwingUtilities.invokeLater(d::dispose);
@@ -406,6 +505,8 @@ class StarterProposalFrameTest {
                 List.of(), List.of(), "src/main/fluxtion/designer", false);
         onEdt(() -> made.set(StarterReviewDialog.content(unticked)));
         onEdt(() -> assertFalse(made.get().designYes.isSelected(), "the node's decision, not the dialog's"));
+        assertFalse(text(made.get().panel).contains("its skills are written"),
+                "the review must not claim successful skills when none were written");
     }
 
     static SessionSnapshot snapshot(MainFrame f) throws Exception {

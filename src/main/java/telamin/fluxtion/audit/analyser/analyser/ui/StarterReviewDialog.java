@@ -156,7 +156,7 @@ public final class StarterReviewDialog {
         };
         gate.run();
         c.openYes.addItemListener(e -> gate.run());
-        JTextArea lede = Fluid.text("The starter is unpacked and its skills are written. Nothing has been built or run. "
+        JTextArea lede = Fluid.text("The starter is unpacked. Skills successfully added are listed below. Nothing has been built or run. "
                 + "Choose what the analyser puts in force; every answer starts at No"
                 + (c.designYes != null && d.designDefaultYes() ? ", except the design folder's." : "."));
         c.panel.add(lede, BorderLayout.NORTH);

@@ -219,6 +219,37 @@ class StarterProjectTest {
         d.post(new SessionEvents.StarterGraphmlAppeared(req, REFS.put("/work/new-app/x.graphml"), "…/x.graphml"));
         d.post(new SessionEvents.StarterGraphmlAppeared(req, REFS.put("/work/new-app/x.graphml"), "…/x.graphml"));
         assertEquals(1, of(a, SessionEffects.OfferStarterGraphEffect.class).size(), "offered once");
+        d.post(new SessionEvents.StarterGraphOfferAnswered(req, true));
+        d.post(new SessionEvents.StarterGraphOfferAnswered(req, true));
+        assertEquals(1, of(a, SessionEffects.OpenStarterGraphEffect.class).size(), "a current Yes opens exactly once");
+    }
+
+    @Test
+    @DisplayName("a discovery failure settles the proposal and permits a new starter request")
+    void discoveryFailureDoesNotStrandTheStarter() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = LocalAgentSessionTest.driver(a);
+        var start = OnboardingProposalTest.admitted(d, a);
+        catalogueRead(d);
+        String id = proposeAndPreview(d, a, start);
+        d.post(new SessionEvents.StarterDestinationChosen(id, id + ".1", REFS.put("/work/new-app"), "…/new-app"));
+        d.post(new SessionEvents.ProposalApplyRequested(id, List.of(id + ".1"), false));
+        long req = of(a, SessionEffects.DownloadStarterEffect.class).get(0).request();
+        d.post(new SessionEvents.StarterInstalled(req, REFS.put("/work/new-app"), "…/new-app", true, 0));
+        d.post(new SessionEvents.SkillsVendored(req, List.of(), List.of(), List.of(), null));
+        assertEquals("DISCOVERING", d.snapshot().starter().phase());
+        // This is the fact MainFrame.runStarterDiscovery posts when its real background reader throws.
+        d.post(new SessionEvents.StarterInstallFailed(req + 1, "a stale discovery"));
+        assertEquals("DISCOVERING", d.snapshot().starter().phase(), "another request cannot settle this one");
+        d.post(new SessionEvents.StarterInstallFailed(req, "the project folder is no longer held"));
+        assertEquals("FAILED", d.snapshot().starter().phase(), "discovery failure must not leave the chain busy");
+        assertEquals(ProposalState.ItemState.FAILED, d.snapshot().proposal().items().get(0).state());
+        assertTrue(d.snapshot().starter().note().contains("unpacked"), "the downloaded files still exist");
+        assertEquals(0, of(a, SessionEffects.OpenStarterProjectEffect.class).size());
+        d.post(new SessionEvents.StarterDiscoveryObserved(req, "late", 5, true, 1, 0, 0));
+        assertEquals("FAILED", d.snapshot().starter().phase(), "a late success must not reopen the failed chain");
+        d.post(new SessionEvents.StarterMenuRequested(91));
+        assertEquals("CATALOGUE", d.snapshot().starter().phase(), "a new creation is no longer refused as busy");
     }
 
     @Test
@@ -241,6 +272,71 @@ class StarterProjectTest {
         var item = d.snapshot().proposal().items().get(0);
         assertEquals(ProposalState.ItemState.APPLIED, item.state());
         assertTrue(item.why().contains("not opened"), item.why());
+    }
+
+    @Test
+    void aProjectSwitchCancelsEveryPendingStarterStage() {
+        for (int stage = 0; stage < 5; stage++) {
+            FakeSessionAdapter a = new FakeSessionAdapter();
+            SessionDriver d = LocalAgentSessionTest.driver(a);
+            var start = OnboardingProposalTest.admitted(d, a);
+            catalogueRead(d);
+            String id = proposeAndPreview(d, a, start);
+            d.post(new SessionEvents.StarterDestinationChosen(id, id + ".1", REFS.put("/work/DEMO-A"), "DEMO-A"));
+            d.post(new SessionEvents.ProposalApplyRequested(id, List.of(id + ".1"), false));
+            long req = of(a, SessionEffects.DownloadStarterEffect.class).get(0).request();
+            if (stage > 0) d.post(new SessionEvents.StarterInstalled(req, REFS.put("/work/DEMO-A"), "DEMO-A", true, 0));
+            if (stage > 1) d.post(new SessionEvents.SkillsVendored(req, List.of(), List.of(), List.of(), null));
+            if (stage > 2) d.post(new SessionEvents.StarterDiscoveryObserved(req, "offer", 5, true, 1, 0, 0));
+            if (stage > 3) d.post(new SessionEvents.StarterReviewAnswered(req, true, List.of(), List.of(), 0, "offer"));
+            String phase = d.snapshot().starter().phase();
+            d.submit(new SessionEvents.OpenProjectRequested(d.nextOpId(), "/work/DEMO-missing/profile",
+                    TransitionKind.EXPLICIT_SWITCH, "review"));
+            assertEquals(phase, d.snapshot().starter().phase(), "a failed switch has not changed the project");
+            a.withProfile("/work/DEMO-A/profile").withProfile("/work/DEMO-B/profile");
+            d.submit(new SessionEvents.OpenProjectRequested(d.nextOpId(), "/work/DEMO-B/profile",
+                    TransitionKind.EXPLICIT_SWITCH, "review"));
+            assertEquals("CANCELLED", d.snapshot().starter().phase(),
+                    "project switch must cancel starter continuation at stage " + stage);
+            assertFalse(d.snapshot().proposal().awaitingPerson(), "the cancelled proposal must not remain actionable");
+            int effects = a.starterEffects.size();
+            d.post(new SessionEvents.StarterInstalled(req, REFS.put("/work/DEMO-A"), "DEMO-A", true, 0));
+            d.post(new SessionEvents.SkillsVendored(req, List.of(), List.of(), List.of(), null));
+            d.post(new SessionEvents.StarterDiscoveryObserved(req, "offer", 5, true, 1, 0, 0));
+            d.post(new SessionEvents.StarterReviewAnswered(req, true, List.of(), List.of(), 0, "offer"));
+            d.post(new SessionEvents.StarterProjectOpened(req, true, null));
+            assertEquals(effects, a.starterEffects.size(), "late results must not open, watch or draft");
+            d.submit(new SessionEvents.OpenProjectRequested(d.nextOpId(), "/work/DEMO-A/profile",
+                    TransitionKind.EXPLICIT_SWITCH, "starter", null, null, null, req));
+            assertEquals("/work/DEMO-B/profile", a.appliedProfile, "a queued starter open cannot replace the new project");
+            assertTrue(d.snapshot().starter().note().contains("files"), "cancellation does not remove downloaded files");
+        }
+    }
+
+    @Test
+    void partialSkillWriteDoesNotClaimNothingWasAdded(@org.junit.jupiter.api.io.TempDir java.nio.file.Path tmp) throws Exception {
+        var skills = java.nio.file.Files.createDirectories(tmp.resolve(".claude/skills/spring-authoring"));
+        java.nio.file.Files.writeString(skills.resolve("reference"), "DEMO blocks the support directory");
+        var report = new telamin.fluxtion.audit.analyser.analyser.template.StarterSkills().vendor(tmp, "spring", "embedded");
+        assertNotNull(report.refusal(), "the real writer must encounter the blocked directory");
+        assertFalse(report.written().isEmpty(), "earlier skills really were added before the failure");
+        assertTrue(java.nio.file.Files.isRegularFile(tmp.resolve(".claude/skills/add-a-node/SKILL.md")));
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = LocalAgentSessionTest.driver(a);
+        var start = OnboardingProposalTest.admitted(d, a);
+        catalogueRead(d);
+        String id = proposeAndPreview(d, a, start);
+        d.post(new SessionEvents.StarterDestinationChosen(id, id + ".1", REFS.put("/work/DEMO"), "DEMO"));
+        d.post(new SessionEvents.ProposalApplyRequested(id, List.of(id + ".1"), false));
+        long req = of(a, SessionEffects.DownloadStarterEffect.class).get(0).request();
+        d.post(new SessionEvents.StarterInstalled(req, REFS.put("/work/DEMO"), "DEMO", true, 0));
+        d.post(new SessionEvents.SkillsVendored(req, report.written(), report.kept(), report.digests(),
+                FactWords.withoutPaths(report.refusal())));
+        assertFalse(d.snapshot().starter().note().contains("No skills were added"),
+                "a partial write must not be reported as zero writes");
+        assertTrue(d.snapshot().starter().note().contains("incomplete"), d.snapshot().starter().note());
+        assertEquals(d.snapshot().starter().note(), a.lastStatus, "the partial outcome is presented, not only stored");
+        assertEquals("DISCOVERING", d.snapshot().starter().phase(), "the existing continue-without-skills policy is unchanged");
     }
 
     /**

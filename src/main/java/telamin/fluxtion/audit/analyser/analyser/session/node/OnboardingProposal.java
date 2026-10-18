@@ -415,6 +415,17 @@ public class OnboardingProposal implements EventLogSource {
     }
 
     @OnEventHandler
+    public boolean onStarterCancelled(SessionEvents.StarterCancelled e) {
+        if (starterItem == null || e.request() != starterRequest) return false;
+        starterApplying = false;
+        ProposalState.Item x = item(starterItem);
+        if (x != null && x.state() != ProposalState.ItemState.APPLIED)
+            mark(starterItem, ProposalState.ItemState.DECLINED, "project changed; downloaded files are kept");
+        auditLog.info("starterCancelled", e.request());
+        return changed();
+    }
+
+    @OnEventHandler
     public boolean onDismissed(SessionEvents.ProposalDismissed e) {
         if (id == null || !id.equals(e.proposalId()) || applying || starterApplying) return false;
         if (starterItem != null) starter.decline(id);

@@ -48,8 +48,9 @@ import java.util.function.Function;
  * written file's digest, and one note per marker: substituted, or kept and why.
  *
  * <p><b>Never overwrite.</b> A skill whose {@code SKILL.md} is already there is kept whole; any other file that exists is
- * kept. A link anywhere on the way ({@code .claude}, {@code .claude/skills}, a skill's folder) refuses the whole set, as
- * does one resource that does not match its digest: a tampered jar writes nothing.
+ * kept. A linked {@code .claude} or {@code .claude/skills} refuses the whole set; a linked skill folder is kept
+ * without writing through it. A resource that does not match its digest refuses the whole set before any write.
+ * Filesystem writes are not transactional: a later failure can leave earlier files, without a new digest record.
  */
 public final class StarterSkills {
 
