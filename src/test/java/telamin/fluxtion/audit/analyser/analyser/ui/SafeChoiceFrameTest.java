@@ -37,9 +37,15 @@ import static telamin.fluxtion.audit.analyser.analyser.ui.AsyncOpenInterleavingF
  */
 class SafeChoiceFrameTest {
 
+    /**
+     * The dialog's choices: every showing button, except a scroll bar's arrows. CI's Linux fonts (2026-10-18) made the
+     * full-folder text scroll, and its scroll bar's two text-less arrow buttons sorted right of Don't trust
+     * ({@code [Trust for full Claude Code, Don't trust, , ]}); they are part of the text, not a choice.
+     */
     static List<AbstractButton> buttons(Container root) {
         List<AbstractButton> out = new ArrayList<>();
         for (Component c : root.getComponents()) {
+            if (c instanceof javax.swing.JScrollBar) continue;
             if (c instanceof JButton b && b.isShowing()) out.add(b);
             if (c instanceof Container k) out.addAll(buttons(k));
         }

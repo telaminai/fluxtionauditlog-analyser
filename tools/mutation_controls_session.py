@@ -94,9 +94,14 @@ CONTROLS = [
      'hostedGate.reportWritten(receipt.generation(), receipt.ownerKey(), receipt.revision());',
      'hostedGate.reportWritten(receipt.generation(), receipt.ownerKey(), scope.reports().revision(reportAdmitted.get().name()));',
      'HostedGrantServerTest#theServerRecordsTheReceiptRatherThanAnInterveningEdit'),
-    ("integration-c-sample-reader-barrier", UI_TEST + 'SampleProjectSpotlightFrameTest.java',
-     '\n        awaitSampleSources(f.frame);\n        return f.ex.render', '\n        return f.ex.render',
-     'SampleProjectSpotlightFrameTest#theSampleJourneyWaitsForItsEarlierPaneRead'),
+    # Release v5 (2026-10-18): fix/java-spotlight-supersede made the PRODUCT wait for an earlier pane read before a
+    # Java spotlight captures its view, so the test barrier integration-c-sample-reader-barrier mutated is no longer the
+    # only thing standing between that read and a "superseded" refusal (its mutant survived). The control moves to the
+    # product's wait: run the spotlight at once, without waiting, and the held-goto-read witness is refused again.
+    ("spotlight-waits-for-source-reads", UI + 'MainFrame.java',
+     '    private void whenSourceReadsSettle(Runnable then) {\n',
+     '    private void whenSourceReadsSettle(Runnable then) {\n        if (true) { then.run(); return; }\n',
+     'SampleProjectSpotlightFrameTest#aJavaSpotlightWaitsForTheSourceReadAPreviousVerbStarted'),
     ("issue84-java-apply-view-is-walk-owned", UI + 'MainFrame.java',
      '                    walkViewChangeTicket = walkTicket;',
      '                    walkViewChangeTicket = -1;',
@@ -114,9 +119,12 @@ CONTROLS = [
      '                }, ex -> result.complete(telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("Java source spotlight refused: " + ex.getMessage())));',
      '                }, ex -> { });',
      "Issue84JavaWalkFrameTest#anUnreadableResolvedClassReportsFailureInsteadOfPreparingForever"),
+    # Release v5 (2026-10-18): the Java spotlight now captures (captureLookup) only once the panes' reads settle, so a
+    # read inserted there never runs during the held original read and this mutant survived. Re-anchored by meaning:
+    # the same EDT-synchronous read at the spotlight's ENTRY, which still runs on the EDT while the original read is held.
     ("issue84-back-read-off-edt", UI + 'MainFrame.java',
-     "        var lookup = sourceService.captureLookup();\n        var capturedStore = store;",
-     "        var lookup = sourceService.captureLookup();\n        if (walkTicket >= 0) sourceService.sourceForFqn(asked.requests().stream().map(r -> SpotlightTarget.parse(r.target()).target()).filter(SpotlightTarget::javaSource).findFirst().orElseThrow().sourceFqn());\n        var capturedStore = store;",
+     "        long ticket = ++javaSpotlightTicket;\n        long deadlineNanos = System.nanoTime() + javaSourcePreparationTimeout.toNanos();",
+     "        if (walkTicket >= 0) sourceService.sourceForFqn(asked.requests().stream().map(r -> SpotlightTarget.parse(r.target()).target()).filter(SpotlightTarget::javaSource).findFirst().orElseThrow().sourceFqn());\n        long ticket = ++javaSpotlightTicket;\n        long deadlineNanos = System.nanoTime() + javaSourcePreparationTimeout.toNanos();",
      "Issue84JavaWalkFrameTest#backDuringTheOriginalReadMustNotBlockTheEventThread"),
     # Issue #84 third-review corrections, real boundary witnesses and named D-L3 mutants.
     ("issue84-aborted-plan-cannot-be-reowned", NODE + 'OpenBundle.java',

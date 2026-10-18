@@ -332,6 +332,7 @@ class AuditCompareTest(unittest.TestCase):
         ('c31-broken-value.yaml', 2, None, True),
         ('c32-record-structure.yaml', 2, None, True),
         ('c33-trace-annotation.yaml', 0, (3, 3), False),
+        ('c34-merged-entry.yaml', 0, (3, 3), False),
     ]
 
     def test_every_conformance_fixture_reads_as_pinned(self):
