@@ -100,6 +100,7 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ### Fixed
 
+- **A proposal from Claude Code can always be seen.** Its *Review…* banner was only in the assistant panel, so with the assistant behind another tab (a spotlight on Topology or Reports selects one) or in a separate window behind the main one, nothing on screen said a proposal was waiting. A strip above the start page and the workspace now says so while one waits, and its **Review…** brings the assistant into sight and opens the review. A starter proposal's banner now says it creates a new project in a folder you choose, not that it sets up the session's own folder.
 - **Java source spotlights light beside the graph.** With the Topology tab showing, every `source:java:` spotlight was refused as "no longer visible in its bound document": the embedded source pane opened in Split with the half it needed at height 0, or, in a narrow side column, with no width at all. The spotlight's half now gets room and the pane always keeps width, so in the sample project the node, its Java line and the records light together (found in the owner's hands-on test, 2026-10-18).
 - **The sample project's profile always reaches its sources.** A sample profile whose source roots do not find the shipped processor is healed on the next open (the demo folder, written project-relative); a healthy profile is not rewritten.
 - **run-mongoose-server names the start script where the starters ship it**, `./run-server.sh` at the project root, not `./scripts/run-server.sh`.

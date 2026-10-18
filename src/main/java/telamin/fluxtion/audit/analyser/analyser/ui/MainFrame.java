@@ -4965,7 +4965,13 @@ public final class MainFrame extends JFrame {
         });
         workspaceCards.add(startPanel, "start");
         workspaceCards.add(westOuter, "investigation");
-        add(workspaceCards, BorderLayout.CENTER);
+        // owner hands-on 2026-10-18b: a proposal waiting for the person is said ABOVE the start page and the workspace, so it
+        // is seen wherever the assistant is — docked behind another tab, or popped out behind this window
+        buildProposalCue();
+        JPanel workspaceArea = new JPanel(new BorderLayout());
+        workspaceArea.add(proposalCue, BorderLayout.NORTH);
+        workspaceArea.add(workspaceCards, BorderLayout.CENTER);
+        add(workspaceArea, BorderLayout.CENTER);
 
         JPanel statusBar = new JPanel(new BorderLayout());
         workspaceStatusBar = statusBar;
@@ -5693,6 +5699,7 @@ public final class MainFrame extends JFrame {
         localAgentPanel.renderListener(next.listener());   // review B2/B5: before render, which redraws the limits line
         localAgentPanel.render(agent);
         localAgentPanel.renderProposal(next.proposal());
+        renderProposalCue(next.proposal());
         localAgentPanel.renderBuildModeOffer(next.profiles());
         localAgentPanel.renderPermission(next.permission());
         LocalAgentPermissionDialog open = permissionDialogs.get(next.permission().pendingRef());
@@ -5732,6 +5739,61 @@ public final class MainFrame extends JFrame {
         });
         answerAway.add(answerAwayLine);
         answerAway.add(answerAwayBack);
+    }
+
+    /**
+     * Owner hands-on 2026-10-18b ("I can't see a prompt in the analyser"): the proposal banner lives only in the assistant
+     * panel, which can be a side tab behind Topology or Reports, or a separate window behind this one. This strip says,
+     * above the start page and the workspace, that a proposal is the person's to answer; its Review… shows the assistant
+     * and opens the same review as the banner's. Rendered from {@code onboardingProposal}'s state; it decides nothing.
+     */
+    private final JPanel proposalCue = new JPanel(new WrapLayout(FlowLayout.LEFT, 6, 2));
+    private final WrapLine proposalCueLine = new WrapLine(" ");
+    private final JButton proposalCueReview = UiText.button(PROPOSAL_CUE_REVIEW);
+    static final String PROPOSAL_CUE_REVIEW = "Review…";
+    /** The id the strip was last rendered for (null: none waiting). */
+    private String proposalCueId;
+
+    private void buildProposalCue() {
+        proposalCue.setVisible(false);
+        proposalCue.setOpaque(true);
+        proposalCue.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(0, 0, 1, 0, UiTheme.controlBorder()),
+                BorderFactory.createEmptyBorder(4, 8, 4, 8)));
+        proposalCue.getAccessibleContext().setAccessibleName("Claude Code's proposal is waiting for you");
+        proposalCueReview.getAccessibleContext().setAccessibleName("Review Claude Code's proposal");
+        proposalCueReview.addActionListener(e -> {
+            String id = proposalCueId;
+            if (id == null) return;
+            // presentation: bring the assistant into sight (the banner is there too), then the person's review
+            if (assistantWindow != null && assistantWindow.isShowing()) assistantWindow.toFront();
+            else if (sideTabs != null && assistantDock.isAncestorOf(assistantPanel)) sideTabs.setSelectedComponent(assistantDock);
+            reviewProposal(id);
+        });
+        proposalCue.add(proposalCueLine);
+        proposalCue.add(proposalCueReview);
+    }
+
+    /** The strip as the node decided it: shown exactly while the proposal is the person's to answer. */
+    private void renderProposalCue(telamin.fluxtion.audit.analyser.analyser.session.ProposalState p) {
+        boolean show = p != null && p.awaitingPerson();
+        proposalCueId = show ? p.id() : null;
+        if (show) proposalCueLine.setText(LocalAgentPanel.cueText(p));
+        proposalCue.setBackground(UiTheme.accentWash(0.14f));
+        if (show != proposalCue.isVisible()) {
+            proposalCue.setVisible(show);
+            proposalCue.revalidate();
+            proposalCue.repaint();
+        }
+    }
+
+    /** For the tests: the strip and its Review…. */
+    JPanel proposalCueBar() {
+        return proposalCue;
+    }
+
+    JButton proposalCueButton() {
+        return proposalCueReview;
     }
 
     /** Rendered from {@code AssistantState.away()}, which assistantLoop decides; nothing is decided here. */

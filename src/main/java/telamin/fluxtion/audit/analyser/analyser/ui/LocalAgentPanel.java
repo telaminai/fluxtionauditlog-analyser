@@ -804,6 +804,12 @@ public final class LocalAgentPanel extends JPanel {
 
     /** "Claude Code proposes 4 changes to set up …/medmon — Review…" (§5.6 step 4). */
     static String bannerText(telamin.fluxtion.audit.analyser.analyser.session.ProposalState p) {
+        // owner hands-on 2026-10-18b: a starter makes a NEW project in a folder the person chooses — never "set up" the
+        // hosted session's own folder, which is what the generic sentence named
+        if (starterProposal(p)) {
+            return "Claude Code proposes a new project from a starter. Nothing has been created — review it and choose "
+                    + "its folder.";
+        }
         long pending = p.count(telamin.fluxtion.audit.analyser.analyser.session.ProposalState.ItemState.PENDING);
         long n = pending + ("PENDING".equals(p.create()) ? 1 : 0);
         long shown = p.items().size() - pending;
@@ -811,6 +817,17 @@ public final class LocalAgentPanel extends JPanel {
         return "Claude Code proposes " + n + " change" + (n == 1 ? "" : "s") + " to set up " + dir
                 + (shown > 0 ? ", and " + shown + " that cannot be applied" : "")
                 + ". Nothing has been applied — review each one.";
+    }
+
+    static boolean starterProposal(telamin.fluxtion.audit.analyser.analyser.session.ProposalState p) {
+        return p.items().stream().anyMatch(i -> "starter".equals(i.kind()));
+    }
+
+    /** The frame's one-line cue for a waiting proposal, shown above the start page and the workspace. */
+    static String cueText(telamin.fluxtion.audit.analyser.analyser.session.ProposalState p) {
+        return starterProposal(p) ? "Claude Code proposes a new project from a starter — nothing is created until you review it."
+                : "Claude Code proposes a set-up for " + (p.setupDirShown() == null ? "this folder" : p.setupDirShown())
+                + " — nothing is applied until you review it.";
     }
 
     /** Render the session's decision. Unchanged input changes nothing on screen. */
