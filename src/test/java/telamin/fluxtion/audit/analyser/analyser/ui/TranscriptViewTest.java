@@ -236,6 +236,34 @@ class TranscriptViewTest {
         };
     }
 
+    /**
+     * ★ Owner, 2026-10-18: the onboard transcript read "tracing an order from   through to the risk-breach consequence" —
+     * the model wrote {@code `OrderUpdateEvent`}, a node of the demo graph, so it became a chip, and a chip was a button
+     * over a placeholder SPACE: the document (what a selection copies and a screen reader reads) lost the word. Every
+     * character of a reply with inline code, chips of each kind and Markdown-ish tokens is now the document's own text.
+     * Witness (run 2026-10-18): insert a chip's component over {@code " "} again ({@code insertComponent(doc, b, item)}
+     * in {@code chip}) — the document reads "from   through" and this fails.
+     */
+    @Test
+    @DisplayName("★ inline code, chips and Markdown-ish tokens: every character the model wrote is in the transcript's text")
+    void everyCharacterOfInlineCodeIsKept() throws Exception {
+        String source = "Tracing an order from `OrderUpdateEvent` through `riskMonitor.checkLimit()` to node riskMonitor "
+                + "— **bold**, *it* and _u_; see [docs](https://example.com/x), record #3 and the chart \"DEMO spread\"; "
+                + "a lone ` tick, <b>tags</b> and 2 * 3 stay literal.";
+        String shown = onEdt(() -> {
+            TranscriptView v = new TranscriptView();
+            v.setChips(chips(Set.of("OrderUpdateEvent", "riskMonitor"), Set.of("DEMO spread"), 10, 1));
+            v.render(List.of(answer("a", source)));
+            assertEquals(List.of("OrderUpdateEvent", "riskMonitor", "record #3", "DEMO spread"),
+                    v.chipButtons().stream().map(JButton::getText).toList(), "the chips are still chips");
+            return all(v);
+        });
+        assertTrue(shown.contains("Tracing an order from OrderUpdateEvent through riskMonitor.checkLimit() to node "
+                + "riskMonitor — bold, it and u; see docs (https://example.com/x), record #3 and the chart \"DEMO spread\"; "
+                + "a lone ` tick, <b>tags</b> and 2 * 3 stay literal."), shown);
+        assertFalse(shown.contains("from   through"), "the onboard transcript's gap");
+    }
+
     /** ★ r8 F20. Witness: chip whole words that equal a node id — the prose word "risk" becomes a chip. */
     @Test
     @DisplayName("★ chips need code formatting or the word node; prose never becomes navigation")

@@ -164,7 +164,10 @@ public final class TranscriptView extends JTextPane {
             }
 
             @Override public void mouseExited(MouseEvent e) {
-                hover(null);
+                // owner, 2026-10-18 (the Copy flickered): the view reports an exit when the pointer crosses onto one of
+                // its own components — the Copy button itself, a chip, a mark — though it never left the transcript; only
+                // a pointer outside the view's bounds is off every entry
+                if (!contains(e.getPoint())) hover(null);
             }
         });
         addMouseMotionListener(new MouseAdapter() {
@@ -528,8 +531,11 @@ public final class TranscriptView extends JTextPane {
                 go = () -> navigator.revealChart(name);
             }
             if (chipLabel == null) continue;
-            put(doc, VisibleMarks.show(text.substring(at, m.start())), a, item);
+            // a quoted chart name keeps its quotes as text around the chip: every character the model wrote stays
+            boolean quoted = m.group(3) != null;
+            put(doc, VisibleMarks.show(text.substring(at, m.start())) + (quoted ? "\"" : ""), a, item);
             chip(doc, chipLabel, tip, item, stale, go);
+            if (quoted) put(doc, "\"", a, item);
             at = m.end();
         }
         put(doc, VisibleMarks.show(text.substring(at)), a, item);
@@ -570,7 +576,10 @@ public final class TranscriptView extends JTextPane {
                 go.run();
             }
         });
-        insertComponent(doc, b, item);
+        // owner, 2026-10-18 (the onboard transcript read "tracing an order from   through to …"): the chip's characters
+        // are the document's own text under the button, never a placeholder space — so what is selected, copied or read
+        // aloud is every character the model wrote, chip or not
+        insertComponent(doc, b, item, VisibleMarks.show(label));
     }
 
     /**
@@ -727,6 +736,35 @@ public final class TranscriptView extends JTextPane {
 
     static final String UNVERIFIED_MARK = "transcript.unverified";
 
+    /**
+     * Owner, 2026-10-18 (the Copy flickered): the pointer over one of the view's own components — the Copy button, a chip,
+     * a mark, a tool line's toggle — is over that component's entry, so its Copy stays shown; the view never sees those
+     * moves. Leaving a component counts as leaving the transcript only when the pointer is outside the view as well.
+     */
+    private final MouseAdapter childHover = new MouseAdapter() {
+        @Override public void mouseEntered(MouseEvent e) { overChild(e); }
+
+        @Override public void mouseMoved(MouseEvent e) { overChild(e); }
+
+        @Override public void mouseExited(MouseEvent e) {
+            java.awt.Point at = javax.swing.SwingUtilities.convertPoint(e.getComponent(), e.getPoint(), TranscriptView.this);
+            if (!contains(at)) hover(null);
+        }
+
+        private void overChild(MouseEvent e) {
+            String key = keyOf(e.getComponent());
+            if (key != null) hover(key);
+        }
+    };
+
+    /** The client property naming the entry a component of this view belongs to. */
+    static final String ENTRY_KEY = "transcript.entry";
+
+    /** The entry a component of this view belongs to, or null. */
+    private static String keyOf(java.awt.Component c) {
+        return c instanceof JComponent j && j.getClientProperty(ENTRY_KEY) instanceof String s ? s : null;
+    }
+
     /** The pointer moved over entry {@code key} (null: off every entry): only that answer's Copy shows. */
     private void hover(String key) {
         if (Objects.equals(key, hovered)) return;
@@ -823,11 +861,23 @@ public final class TranscriptView extends JTextPane {
     }
 
     private void insertComponent(StyledDocument doc, JComponent c, Item item) throws BadLocationException {
+        insertComponent(doc, c, item, " ");
+    }
+
+    /**
+     * A component standing for {@code text} in the document: the component is drawn, and {@code text} is what the
+     * document holds for it — what a selection copies and a screen reader reads. A chip passes its own label, so the
+     * model's words are never reduced to a placeholder; the view's chrome (a Copy button, a mark) passes a space.
+     */
+    private void insertComponent(StyledDocument doc, JComponent c, Item item, String text) throws BadLocationException {
         c.setAlignmentY(0.8f);
+        c.putClientProperty(ENTRY_KEY, item.key());
+        c.addMouseListener(childHover);
+        c.addMouseMotionListener(childHover);
         SimpleAttributeSet a = new SimpleAttributeSet();
         StyleConstants.setComponent(a, c);
         a.addAttribute(ITEM_ATTR, item.key());
-        doc.insertString(doc.getLength(), " ", a);
+        doc.insertString(doc.getLength(), text == null || text.isEmpty() ? " " : text, a);
     }
 
     private void restyleKeepingTheme() {
