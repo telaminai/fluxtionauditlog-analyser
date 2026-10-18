@@ -106,6 +106,9 @@ the line under it says what it is doing: *Requesting*, *Running action n*, *Comp
 - **Budgets.** A turn stops at the per-reply action cap, the round limit, or its own per-turn action budget (Settings ▸
   Assistant), and says which.
 - **With no log open**, `context`, `topology` and the source verbs still work; verbs that read records refuse by name.
+- **Source roots inside the project only.** `source_root {add}` from the in-app assistant is refused for a folder
+  outside the open project (*"add this folder yourself in Settings ▸ Sources"*), and for any caller for your home
+  folder or a credential folder. Claude Code in the tab is asked instead, and its dialog says *"outside this project"*.
 - **No approval dialog — so what it changes can be undone.** The in-app assistant runs its verbs without asking you;
   what keeps a mistake recoverable is that a deleted chart, report or walk, and a chart whose definition a call
   replaced, go to this machine's bins: *More → Restore deleted chart…* on the Graph tab, *Restore deleted…* on the
@@ -946,7 +949,8 @@ would simply stall the session.
 `aggregate`, `read`, `series`, `context`, `coverage` and `source` are marked read-only (`source` rereads XML or Java
 under your source roots, and moves the transient source view). The verbs that only change what the app shows are
 reversible and marked accordingly. Six are marked **destructive**, so a client can prompt before running them: `open`
-replaces the loaded log (taking the session's flags with it), `source_root` writes the persisted config, `screenshot`
+replaces the loaded log (taking the session's flags with it), `source_root` writes the persisted config (never the home
+folder or a credential folder — `~/.ssh`, `~/.aws`, `~/.m2`, `~/.config`, `~/.gnupg` — whoever calls), `screenshot`
 and `report` write files, `walk` can replace a saved walk by name (and `walk {reel}` writes an HTML file), and `import`
 merges a bundle's saved state into your project. A further verb, `propose`, is offered **only** to Claude Code in the
 Assistant tab ([Set up a project with Claude](#set-up-a-project-with-claude)), never to an external client.

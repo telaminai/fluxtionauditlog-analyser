@@ -69,6 +69,7 @@ public final class ProjectAdoption {
         if (plan == null || config == null) return new Report(roots, adopted, notAdopted);
         for (String root : plan.sourceRoots()) {
             String normalized = Path.of(root).toAbsolutePath().normalize().toString();
+            if (SourceRootPolicy.tier1(Path.of(normalized), SourceRootPolicy.home()) != null) continue;   // P5
             if (!config.sourceRoots.contains(normalized)) {
                 config.sourceRoots.add(normalized);
                 roots.add(normalized);

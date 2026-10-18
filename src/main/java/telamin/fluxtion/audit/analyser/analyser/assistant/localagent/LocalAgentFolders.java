@@ -1,5 +1,6 @@
 package telamin.fluxtion.audit.analyser.analyser.assistant.localagent;
 
+import telamin.fluxtion.audit.analyser.analyser.config.SecretFolders;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FolderVerdict;
 
 import java.io.IOException;
@@ -9,8 +10,8 @@ import java.nio.file.Path;
  * Review M4/S10: which working directories may be given to Claude Code at all. {@code --restricted} confines Read, Grep
  * and Glob to the working directory — so the directory itself must not hold credentials. Refused: the home folder or
  * any folder containing it (it holds {@code ~/.ssh}, {@code ~/.claude} and the analyser's endpoint files, with the REST
- * token and the hosted credential), and anything inside {@code ~/.fluxtion-analyser}, {@code ~/.claude}, {@code ~/.ssh},
- * {@code ~/.aws}, {@code ~/.config} or {@code ~/.gnupg}. No folder
+ * token and the hosted credential), and anything inside or containing {@code ~/.fluxtion-analyser}, {@code ~/.claude},
+ * {@code ~/.ssh}, {@code ~/.aws}, {@code ~/.m2}, {@code ~/.config} or {@code ~/.gnupg} ({@link SecretFolders}). No folder
  * at all (the scratch folder could not be made) is refused too. Pure: the frame observes, the session decides.
  */
 public final class LocalAgentFolders {
@@ -20,20 +21,16 @@ public final class LocalAgentFolders {
 
     public static FolderVerdict check(Path dir, Path home) {
         if (dir == null) return FolderVerdict.UNAVAILABLE;
-        Path d = real(dir);
         if (home == null) return FolderVerdict.OK;
-        Path h = real(home);
-        // the home folder, or a folder containing it (implied by the next check too; kept for when neither settings
-        // folder can be resolved)
-        if (h.startsWith(d)) return FolderVerdict.EXPOSES_SECRETS;
-        // review R4: the credential folders a confined Read or Grep must never reach either
-        for (Path secret : new Path[]{h.resolve(".fluxtion-analyser"), h.resolve(".claude"), h.resolve(".ssh"),
-                h.resolve(".aws"), h.resolve(".config"), h.resolve(".gnupg")}) {
-            Path s = real(secret);
-            if (d.startsWith(s) || s.startsWith(d)) return FolderVerdict.EXPOSES_SECRETS;
-        }
-        return FolderVerdict.OK;
+        // the home folder or a folder containing it, and (review R4) the credential folders a confined Read or Grep must
+        // never reach — the ONE function source roots are judged by too (P5, 2026-10-18), plus the analyser's own and
+        // Claude Code's settings folders
+        return SecretFolders.exposure(dir, home, CLAUDE_CODE_ALSO_SECRET) == SecretFolders.Exposure.NONE
+                ? FolderVerdict.OK : FolderVerdict.EXPOSES_SECRETS;
     }
+
+    /** Beyond {@link SecretFolders#CREDENTIAL_FOLDERS}: the analyser's endpoint files and Claude Code's own settings. */
+    static final java.util.List<String> CLAUDE_CODE_ALSO_SECRET = java.util.List.of(".fluxtion-analyser", ".claude");
 
     /**
      * OD-74.22 (amends OD-74.5; review c7f2 F2): whether {@code projectRoot} is a folder the ANALYSER owns and never starts

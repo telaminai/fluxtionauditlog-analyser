@@ -461,6 +461,14 @@ public final class ConfigPanel extends JDialog {
 
     /** Adds a chosen folder, expanding a project dir to its detected Java source root(s). */
     private void addWithDetection(Path chosen) {
+        // P5 (owner decision 2026-10-18): never the home folder or a credential folder — refused before it is scanned
+        var verdict = telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.decide(chosen,
+                telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.home(), null,
+                telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.Caller.PERSON);
+        if (!verdict.allowed()) {
+            JOptionPane.showMessageDialog(this, UiText.inert(verdict.words()), "Source root", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
         List<Path> detected = detectSourceRoots(chosen);
         if (detected.isEmpty()) {
             JOptionPane.showMessageDialog(this,
@@ -1028,6 +1036,8 @@ public final class ConfigPanel extends JDialog {
     }
 
     private void addRoot(Path p) {
+        if (telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.tier1(p,
+                telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.home()) != null) return;   // P5
         String s = p.toString();
         if (!rootsModel.contains(s)) rootsModel.addElement(s);
     }
@@ -1085,7 +1095,11 @@ public final class ConfigPanel extends JDialog {
 
     private void saveToConfig() {
         config.sourceRoots.clear();
-        for (int i = 0; i < rootsModel.size(); i++) config.sourceRoots.add(rootsModel.get(i));
+        List<String> listed = new ArrayList<>();
+        for (int i = 0; i < rootsModel.size(); i++) listed.add(rootsModel.get(i));
+        // P5: a refused root never reaches the settings, whatever put it in the list
+        config.sourceRoots.addAll(telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.keepAllowed(listed,
+                telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.home(), null));
         // #20: refuseWorkspaceRoot is the authority and its text is shown verbatim. The combo can only
         // offer values that pass, so this fires for a hand-edited profile whose value was carried into
         // the list by withCurrent — the one path by which an unacceptable value can be selected.

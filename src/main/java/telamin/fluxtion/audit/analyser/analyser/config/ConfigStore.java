@@ -46,6 +46,10 @@ public final class ConfigStore {
         c.logFile = nz(p.getProperty("logFile"));
         c.graphmlFile = nz(p.getProperty("graphmlFile"));
         readList(p, "sourceRoot", c.sourceRoots);
+        // P5: the analyser's own settings cannot carry a tier-1 root in either (a hand edit, an older version)
+        List<String> allowed = SourceRootPolicy.keepAllowed(c.sourceRoots, SourceRootPolicy.home(), null);
+        c.sourceRoots.clear();
+        c.sourceRoots.addAll(allowed);
         c.llmProvider = p.getProperty("llmProvider", c.llmProvider);
         c.llmModel = p.getProperty("llmModel", c.llmModel);
         c.llmBaseUrl = p.getProperty("llmBaseUrl", c.llmBaseUrl);

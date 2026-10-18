@@ -1688,10 +1688,12 @@ public final class MainFrame extends JFrame {
 
     /** The configured roots plus the session's demo root(s), for the source service — config stays clean. */
     private List<String> effectiveSourceRoots() {
-        if (demoRoots.isEmpty()) return config.sourceRoots;
         List<String> all = new java.util.ArrayList<>(config.sourceRoots);
         for (String r : demoRoots) if (!all.contains(r)) all.add(r);
-        return all;
+        // P5 (owner decision 2026-10-18), the backstop: whatever registered it, a root that is the home folder or a
+        // credential folder never reaches the source service or the design files
+        return telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.keepAllowed(all,
+                telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.home(), null);
     }
 
     private telamin.fluxtion.audit.analyser.analyser.design.DesignFiles designFiles() {
@@ -8426,7 +8428,8 @@ public final class MainFrame extends JFrame {
                 // answered here rather than in the node.
                 boolean any = false;
                 var remembered = List.copyOf(config.bundleSourceRoots(e.bundleSource()));
-                for (String anchored : remembered) {
+                for (String anchored : telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.keepAllowed(
+                        remembered, telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.home(), null)) {
                     if (Files.isDirectory(Path.of(anchored)) && !config.sourceRoots.contains(anchored)) {
                         config.sourceRoots.add(anchored);
                         any = true;
@@ -9976,6 +9979,11 @@ public final class MainFrame extends JFrame {
 
 
         @Override
+        public Path projectRoot() {
+            return MainFrame.this.projectRoot();
+        }
+
+        @Override
         public boolean addSourceRoot(String path) {
             if (path == null || path.isBlank()) return false;
             Path dir = Path.of(path);
@@ -11147,7 +11155,7 @@ public final class MainFrame extends JFrame {
     private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result showPermissionDialog(
             telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ShowPermissionDialogEffect e) {
         long ref = e.requestRef();
-        var content = PermissionText.of(localAgentStore.permission(ref), e.toolClass(), e.name());
+        var content = PermissionText.of(localAgentStore.permission(ref), e.toolClass(), e.name(), projectRoot());
         SwingUtilities.invokeLater(() -> {
             if (permissionClosed.remove(ref) || session == null) return;   // answered before it could show
             Window owner = SwingUtilities.getWindowAncestor(localAgentPanel);
@@ -11819,6 +11827,13 @@ public final class MainFrame extends JFrame {
                 case "sourceRoot" -> {
                     // Settings ▸ Sources' add: the root, then the profile save the dialog performs
                     if (at == null || !Files.isDirectory(at)) return new String[]{"REFUSED", "not a directory"};
+                    // P5: a proposal cannot carry in the home folder or a credential folder (tier 1, every caller)
+                    var tier1 = telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.tier1(at,
+                            telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.home());
+                    if (tier1 != null) {
+                        return new String[]{"REFUSED",
+                                telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.words(tier1, at)};
+                    }
                     String canonical = at.toString();               // already the real path (review S3)
                     if (!config.sourceRoots.contains(canonical)) config.sourceRoots.add(canonical);
                     onConfigChanged();

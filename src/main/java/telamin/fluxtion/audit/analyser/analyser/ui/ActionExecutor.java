@@ -200,7 +200,8 @@ public final class ActionExecutor implements RenderExecutor {
                 return doOpen(params, openOp);
             }
             case "source_root" -> {
-                return onEdt(() -> doSourceRoot(params));
+                var caller = caller();   // P5: on the calling thread, before the event thread runs the verb
+                return onEdt(() -> doSourceRoot(params, caller));
             }
             case "source" -> {
                 return app == null ? ActionResult.error("source navigation is not enabled here") : app.source(params);
@@ -1525,14 +1526,28 @@ public final class ActionExecutor implements RenderExecutor {
     private static final java.util.List<String> PAIRING_KEYS = java.util.List.of(
             "pairing", "appliesToOpenLog", "loggedNodes", "declaredByGraph", "verdict");
 
-    private ActionResult doSourceRoot(Map<String, Object> params) {
+    private ActionResult doSourceRoot(Map<String, Object> params,
+                                      telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.Caller caller) {
         if (app == null) return ActionResult.error("'source_root' is not enabled here");
+        // P5 (owner decision 2026-10-18): tier 1 for every caller, tier 2 for assistants — SourceRootPolicy decides, for
+        // every folder FIRST, so a refused folder refuses the whole call before anything changes (D-E3)
+        List<String> outside = new java.util.ArrayList<>();
+        for (String path : strList(params.get("add"))) {
+            if (path == null || path.isBlank()) continue;
+            var verdict = telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.decide(java.nio.file.Path.of(path),
+                    telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.home(), app.projectRoot(), caller);
+            if (!verdict.allowed()) {
+                return ActionResult.error(verdict.words() + " Nothing was changed (reason: " + verdict.reason().name() + ").");
+            }
+            if (verdict.outsideProject()) outside.add(path);
+        }
         List<String> added = new java.util.ArrayList<>();
         List<String> rejected = new java.util.ArrayList<>();
         for (String path : strList(params.get("add"))) {
             if (app.addSourceRoot(path)) added.add(path);
             else rejected.add(path);
         }
+        outside.retainAll(added);
         List<String> removed = new java.util.ArrayList<>();
         List<String> notRemoved = new java.util.ArrayList<>();
         for (String path : strList(params.get("remove"))) {
@@ -1547,6 +1562,7 @@ public final class ActionExecutor implements RenderExecutor {
         // otherwise go on to wonder why source navigation still finds nothing
         if (!rejected.isEmpty()) echo.put("notASourceRoot", rejected);
         if (!notRemoved.isEmpty()) echo.put("notRemoved", notRemoved);
+        if (!outside.isEmpty()) echo.put("outsideProject", outside);
         return ActionResult.ok("source_root", "sourceRoots", echo);
     }
 
@@ -1943,6 +1959,21 @@ public final class ActionExecutor implements RenderExecutor {
 
     public static telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantActionOrigin assistantOrigin() {
         return ASSISTANT_ORIGIN.get();
+    }
+
+    /**
+     * P5 (owner decision 2026-10-18): who is calling, from the plumbing that already says so — the hosted bridge's
+     * credential (its dispatch marks the thread), else an in-app assistant turn (its action binds an origin), else an
+     * external MCP/REST client. The one place a verb learns its caller; read on the calling thread.
+     */
+    public static telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.Caller caller() {
+        if (telamin.fluxtion.audit.analyser.analyser.llm.ActionDispatcher.servingHosted()) {
+            return telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.Caller.HOSTED_CLAUDE_CODE;
+        }
+        if (ASSISTANT_ORIGIN.get() != null) {
+            return telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.Caller.IN_APP_ASSISTANT;
+        }
+        return telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.Caller.EXTERNAL;
     }
 
     /** Thrown inside an event-thread task whose assistant turn has ended; nothing in that task ran. */

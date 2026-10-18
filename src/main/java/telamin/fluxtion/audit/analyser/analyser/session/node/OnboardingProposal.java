@@ -200,6 +200,9 @@ public class OnboardingProposal implements EventLogSource {
                 why = switch (e.refusal()) {
                     case "NOT_FOUND" -> "it does not exist";
                     case "WRONG_TYPE" -> "it is not the kind of file or folder the item names";
+                    // P5 (owner decision 2026-10-18): tier 1 of the source-root policy, whoever proposes it
+                    case "SECRET_FOLDER" -> "it is your home folder or a credential folder (or holds one) — never a "
+                            + "source root";
                     default -> e.refusal();
                 };
             } else {

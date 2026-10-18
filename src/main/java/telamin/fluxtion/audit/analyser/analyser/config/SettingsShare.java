@@ -581,7 +581,10 @@ public final class SettingsShare {
             SavedGraphMerge.requireUniqueNames(plan.graphs());
         }
         if (selected.contains(Category.SOURCE_ROOTS) && plan.sourceRoots() != null) {
-            addAllMissing(target.sourceRoots, plan.sourceRoots());
+            // P5 (owner decision 2026-10-18): a profile or a shared settings file cannot carry in the home folder or a
+            // credential folder — tier 1 holds whatever opened it
+            addAllMissing(target.sourceRoots, SourceRootPolicy.keepAllowed(plan.sourceRoots(),
+                    homeDir.isEmpty() ? SourceRootPolicy.home() : java.nio.file.Path.of(homeDir), null));
             if (plan.workspaceRoot() != null) target.workspaceRoot = plan.workspaceRoot();   // M38.6
         }
         if (selected.contains(Category.MAVEN_REPOS) && plan.present().contains(Category.MAVEN_REPOS)) {

@@ -24,6 +24,20 @@ public final class PermissionText {
 
     /** The dialog's words for request {@code p}, of class {@code cls} with vocabulary name {@code name}. */
     public static Content of(LocalAgentTranscript.Permission p, ToolClass cls, String name) {
+        return of(p, cls, name, null, false);
+    }
+
+    /**
+     * {@link #of(LocalAgentTranscript.Permission, ToolClass, String)} with the open project's root (or null), so a
+     * {@code source_root} call can say a folder is outside this project (P5, owner decision 2026-10-18).
+     */
+    public static Content of(LocalAgentTranscript.Permission p, ToolClass cls, String name, java.nio.file.Path projectRoot) {
+        return of(p, cls, name, projectRoot, true);
+    }
+
+    /** {@code projectKnown}: whether {@code projectRoot} (null for none open) is the frame's answer, or nobody asked. */
+    private static Content of(LocalAgentTranscript.Permission p, ToolClass cls, String name, java.nio.file.Path projectRoot,
+                              boolean projectKnown) {
         String tool = p == null || p.toolName() == null ? "a tool" : visible(p.toolName()).text();
         String raw = p == null ? null : p.inputRaw();
         java.util.Map<?, ?> params = params(raw);
@@ -32,7 +46,7 @@ public final class PermissionText {
         if (cls == ToolClass.HOSTED_DESTRUCTIVE && name != null) {
             // review M74 usability #6: what THIS call does, from its own input — the verb's general rationale only when
             // the input says nothing more specific; the exact input is still shown below, unchanged
-            Call call = hostedCall(name, params);
+            Call call = hostedCall(name, params, projectRoot, projectKnown);
             title = call == null ? "Claude Code asks to run " + McpTools.PREFIX + name : "Claude Code asks to " + call.what();
             changes = call == null ? McpTools.destructiveRationale(name) : call.consequence();
         } else {
@@ -106,6 +120,10 @@ public final class PermissionText {
      * schema names; null when the input names none (the general rationale is shown then).
      */
     static Call hostedCall(String verb, java.util.Map<?, ?> p) {
+        return hostedCall(verb, p, null, false);
+    }
+
+    static Call hostedCall(String verb, java.util.Map<?, ?> p, java.nio.file.Path projectRoot, boolean projectKnown) {
         Object name = p.get("name");
         switch (verb) {
             case "graph" -> {
@@ -235,7 +253,10 @@ public final class PermissionText {
             }
             case "source_root" -> {
                 if (has(p, "add") || has(p, "remove")) {
-                    return new Call((has(p, "add") ? "add the source folder(s) " + q(p.get("add")) : "")
+                    // P5 (owner decision 2026-10-18): SourceRootPolicy's verdict for Claude Code, in the sentence — a
+                    // folder outside this project is still the person's call; a secret folder is refused whatever
+                    String where = sourceRootWhere(p.get("add"), projectRoot, projectKnown);
+                    return new Call((has(p, "add") ? "add the source folder(s) " + q(p.get("add")) + where : "")
                             + (has(p, "add") && has(p, "remove") ? " and " : "")
                             + (has(p, "remove") ? "remove the source folder(s) " + q(p.get("remove")) : ""),
                             "Saved in your settings: the analyser reads source from these folders.");
@@ -253,6 +274,24 @@ public final class PermissionText {
                 return null;
             }
         }
+    }
+
+    /** What SourceRootPolicy says of the folders a hosted {@code source_root {add}} names, as words after them. */
+    static String sourceRootWhere(Object add, java.nio.file.Path projectRoot, boolean projectKnown) {
+        if (add == null) return "";
+        java.util.List<Object> paths = add instanceof java.util.List<?> l ? new java.util.ArrayList<>(l) : java.util.List.of(add);
+        boolean outside = false;
+        boolean refused = false;
+        for (Object o : paths) {
+            if (!(o instanceof String s) || s.isBlank()) continue;
+            var v = telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.decide(java.nio.file.Path.of(s),
+                    telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.home(), projectRoot,
+                    telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.Caller.HOSTED_CLAUDE_CODE);
+            if (!v.allowed()) refused = true;
+            else if (v.outsideProject()) outside = true;
+        }
+        if (refused) return " — refused whatever you answer: your home folder or a credential folder";
+        return outside && projectKnown ? " — outside this project" : "";
     }
 
     /** A person's own tool, in words where its input says what it does; null otherwise. */
