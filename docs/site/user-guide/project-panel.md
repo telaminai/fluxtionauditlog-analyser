@@ -1,6 +1,6 @@
 # The Project panel — what is in force
 
-The **Project** panel, on the left rail under *Event types*, states the active project, audit log,
+The **Project** panel, in the left (Context) column, states the active project, audit log,
 paired topology, configured processors and source roots, plus saved charts, reports and analyses.
 It shows what is available even before a log is opened.
 

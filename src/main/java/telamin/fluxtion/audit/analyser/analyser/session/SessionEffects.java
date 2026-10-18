@@ -121,6 +121,15 @@ public sealed interface SessionEffects {
     record ScanLogEvidenceEffect(long opId, long generation) implements SessionEffects {
     }
 
+    /**
+     * Measure the Records view of {@code generation}: how many records it shows, how many each active filter hides, and
+     * each event type's shown and total counts. Decided by {@code recordsView}; the adapter counts against the view it
+     * has installed and answers {@link SessionEvents.RecordsViewMeasured} at once. The counting reads the store and the
+     * filter and changes nothing.
+     */
+    record MeasureRecordsViewEffect(long opId, long generation) implements SessionEffects {
+    }
+
     // ---- M69 spotlight walks: decided by the walkPlayback node, performed by the frame (spec §3.8) ----------
 
     /**

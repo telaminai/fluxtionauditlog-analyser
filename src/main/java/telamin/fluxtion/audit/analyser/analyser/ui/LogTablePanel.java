@@ -63,6 +63,16 @@ public final class LogTablePanel extends JPanel {
      */
     private final javax.swing.JLabel identityBanner = UiText.plain(new javax.swing.JLabel());   // SF-2: a verdict's reason names files
 
+    /** What an undo on the empty table asks for; the frame changes the filter. */
+    private Consumer<RecordsViewWords.Kind> emptyUndo = k -> { };
+
+    /**
+     * The empty table's statement: a real component (accessible, in the theme's muted ink, laid out rather than painted
+     * at a fixed spot) naming each filter that hides the records, each with its own undo. Rendered from the session's
+     * records-view counts by {@link #renderRecordsView}.
+     */
+    private final RecordsFilterBar emptyState = new RecordsFilterBar(RecordsFilterBar.Mode.EMPTY, k -> emptyUndo.accept(k));
+
     /**
      * What the table says for a file-identity verdict, or null for none. Only a CHANGE is stated: nothing observed, a
      * verified file and a log reopened after a replacement are all current.
@@ -80,6 +90,7 @@ public final class LogTablePanel extends JPanel {
         java.awt.Insets frame = scroll.getInsets();
         int h = in.top + in.bottom + frame.top + frame.bottom + MIN_VISIBLE_ROWS * table.getRowHeight();
         if (identityBanner.isVisible()) h += identityBanner.getPreferredSize().height;
+        if (emptyState.isVisible()) h += emptyState.getPreferredSize().height;
         if (table.getTableHeader() != null) h += table.getTableHeader().getPreferredSize().height;
         int view = scroll.getViewport().getWidth();
         if (view == 0 || table.getPreferredSize().width > view) h += scroll.getHorizontalScrollBar().getPreferredSize().height;
@@ -100,6 +111,22 @@ public final class LogTablePanel extends JPanel {
         revalidate();
     }
 
+    /** Render the session's records-view counts (null: no log) into the empty table's statement. Call on the EDT. */
+    void renderRecordsView(telamin.fluxtion.audit.analyser.analyser.filter.RecordsViewCounts rv, String text) {
+        emptyState.render(rv, text);
+        revalidate();
+    }
+
+    /** Where the empty table's undo buttons send their request. */
+    void setEmptyStateUndo(Consumer<RecordsViewWords.Kind> undo) {
+        this.emptyUndo = undo == null ? k -> { } : undo;
+    }
+
+    /** The empty table's statement, for the frame's theme refresh and for tests. */
+    RecordsFilterBar emptyState() {
+        return emptyState;
+    }
+
     /** The banner's text, or null while it is hidden. */
     String identityNote() {
         return identityBanner.isVisible() ? identityBanner.getText() : null;
@@ -108,18 +135,6 @@ public final class LogTablePanel extends JPanel {
     public LogTablePanel() {
         super(new java.awt.BorderLayout());
         table = new JTable() {
-            @Override
-            protected void paintComponent(Graphics g) {
-                super.paintComponent(g);
-                if (getRowCount() == 0) {
-                    g.setColor(java.awt.Color.GRAY);
-                    String msg = getModel().getRowCount() == 0
-                            ? "No log loaded — Audit log ▸ Open log…, drag a file in, or Audit log ▸ Open log from S3"
-                            : "No records match the current filter";
-                    g.drawString(msg, 24, 40);
-                }
-            }
-
             @Override
             public String getToolTipText(java.awt.event.MouseEvent e) {
                 int view = rowAtPoint(e.getPoint());
@@ -161,7 +176,11 @@ public final class LogTablePanel extends JPanel {
         identityBanner.setVisible(false);
         identityBanner.setBorder(javax.swing.BorderFactory.createEmptyBorder(4, 8, 4, 8));
         identityBanner.setForeground(UiTheme.warnForeground());       // theme-aware, light and dark
-        add(identityBanner, java.awt.BorderLayout.NORTH);
+        JPanel north = new JPanel(new java.awt.BorderLayout());
+        north.setOpaque(false);
+        north.add(identityBanner, java.awt.BorderLayout.NORTH);
+        north.add(emptyState, java.awt.BorderLayout.SOUTH);
+        add(north, java.awt.BorderLayout.NORTH);
         // the "Records" section header lives on the wrapping area (above the Search row) — see MainFrame
         javax.swing.ToolTipManager.sharedInstance().registerComponent(table);   // enable per-row note tooltips
 

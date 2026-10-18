@@ -5,13 +5,14 @@ Fluxtion audit log**: the log is the source of truth, and the table, detail view
 summary, graphs and assistant are just different lenses on it. Narrow the view once and everything
 follows.
 
-![The main log-viewing surfaces: the time-range bar, the event-type filter (left), the records table, and the record detail showing one cycle's nodeLogs](../assets/records-overview.png)
+![The main log-viewing surfaces: the time-range bar, the event-type filter, the records table, and the record detail showing one cycle's nodeLogs](../assets/records-overview.png)
 
 The main window at a glance:
 
 - **Time range** (top) — a histogram + slider that bounds the visible window.
-- **Event types** (left rail) — the dimension checklist that filters the log.
-- **Records** (centre) — one row per cycle, with the search box above it.
+- **Records** (centre) — one row per cycle, with the Search box, the **Event types** toggle and
+  **Columns** above it. The toggle shows or hides the event-type checklist between the Search row and
+  the table.
 - **Record detail** (below the table) — the selected record's `nodeLogs`.
 - **Right-hand tabs** — Summary, Source, Graph and the Analyser assistant.
 - **Status bar** (bottom) — record count, time span and the open file.
@@ -73,10 +74,41 @@ One filter scopes **every** view at once — table, summary and graphs all honou
 - **Time range** (top slider) — drag the two thumbs to bound `logTime`; drag the middle to pan the
   selection keeping its width; double-click to reset. Shrink the visible window with the **Window**
   control (All / week / day / hours / minutes) and pan it across the whole log.
-- **Event types** (left rail) — tick the dimensions to keep (an **OR**). The list is split into
-  **Event types** and **Callbacks**; use **Select all / Select none**, or right-click an entry for
-  *Only this / Add / Remove*. **Select none** clears the view; leaving everything ticked means "all".
-- **Search** — the text filter above.
+- **Event types** (the toggle on the Records row, beside Search) — the checklist starts hidden, so the
+  table keeps its rows, and stays as you last left it; tick the dimensions to keep (an
+  **OR**). The list is split into **Event types** and **Callbacks**; use **Select all / Select none**,
+  (beside the list) or right-click an entry for *Only this / Add / Remove*. **Select none** clears the view; leaving
+  everything ticked means "all". Each entry counts its records **under the other filters**: `Tick (7)`
+  when the search, the time range and *Flagged only* keep all seven, `Tick (3 / 7)` when they keep
+  three, and a muted entry when they keep none — so you can see what ticking it would bring back. The
+  entries stay in order of their totals.
+- **Search** — the text filter above. A search set by the assistant (`filter {text: …}`), a walk step
+  or the topology's node menu appears in the box too.
+- **Flagged only** (toolbar) — the flagged records only.
+
+## What is hidden, and why
+
+A filter that hides records always says so, whether or not its control is on screen:
+
+- The **Event types** toggle reads **▾ Event types** while the checklist shows and **▸ Event types**
+  while it is hidden, and carries an accent badge — **1 of 7** — whenever a type filter is in force.
+- The **Records** title gives the count: *Records: 3 of 21 shown · 18 hidden* (*Records: all 21 shown*
+  when nothing is hidden), as does *showing 3 of 21* in the Time range header.
+- A line under the title names **each filter that hides records**, with its own undo:
+  *18 hidden by event types* **Show all** · *9 hidden by search "hedging"* **×**, and likewise
+  *hidden by the time range* **Reset** and *hidden by flagged only* **Show all**. A record can fail
+  more than one filter, so these counts can add up to more than the hidden total.
+- When the filters hide **every** record, the empty table says which ones do and offers each undo:
+  *No records: event types exclude all 21* **Select all** · *search "hedging" excludes 9* **Clear**.
+  Record detail then says *the filter hides every record*.
+
+The assistant sees the same: `context` reports each filter and what it hides (`context.hidden`, with
+the excluded event types by name), and the in-app assistant's *About:* line says, for example,
+*filtered: 1 event type hidden (RiskBreachEvent), 9 of 10 shown*.
+
+These are plain components, so a screen reader reads them, and they follow the theme. So "why are
+records missing?" is answered on the Records row itself: read the line under the title and press the
+undo beside the filter you did not mean.
 
 Because there's one filter and one log, the assistant can **drive these same controls** — filter to a
 window, jump to a record, plot a series — and you see the result in the very views you're already

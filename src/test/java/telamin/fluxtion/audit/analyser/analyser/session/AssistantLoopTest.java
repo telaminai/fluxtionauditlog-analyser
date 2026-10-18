@@ -318,6 +318,34 @@ class AssistantLoopTest {
         assertEquals(1, a.assistantRequests.size(), "person's view change stops the next round");
     }
 
+    /**
+     * Robot walk of P3 (2026-10-18): asked why records were missing with a type filter on, the assistant said nothing was.
+     * The basis now says what the filter hides, from the Records view's counts. Witness: viewLabel() returning
+     * " · filtered view" again, or the onRecordsViewMeasured handler removed — the basis never names RiskBreachEvent.
+     */
+    @Test
+    void theBasisNamesWhatTheFilterHides() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = new SessionDriver(a);
+        SessionFixtures.openLog(d, a, "/f.yaml", "DECLARED", java.util.Set.of("a"), 1, 10, "TRACE");
+        long g = d.snapshot().logGeneration();
+        var types = List.of(new telamin.fluxtion.audit.analyser.analyser.filter.RecordsViewCounts.TypeCount("Tick", false, 9, 9, true),
+                new telamin.fluxtion.audit.analyser.analyser.filter.RecordsViewCounts.TypeCount("RiskBreachEvent", false, 1, 1, false));
+        a.recordsView = new telamin.fluxtion.audit.analyser.analyser.filter.RecordsViewCounts(10, 10, 0, 0, 0, 0, false, 2, 2,
+                false, 0L, false, false, types);
+        d.post(new SessionEvents.RecordsViewInstalled(g));
+        var first = sendAndPrepare(d, a, 1, 2);
+        d.post(new SessionEvents.AssistantCompletionReceived(first.ticket(), 1, 3, List.of()));
+        assertTrue(state(d).basis().endsWith(" · all 10 records shown"), state(d).basis());
+        // the person unticks RiskBreachEvent: the filter key moves, then the view is measured in a cycle of its own
+        a.recordsView = new telamin.fluxtion.audit.analyser.analyser.filter.RecordsViewCounts(10, 9, 1, 0, 0, 0, true, 1, 2,
+                false, 0L, false, false, types);
+        d.post(new SessionEvents.ViewFilterChanged("types:[Tick]"));
+        assertTrue(state(d).basis().endsWith(" · filtered: 1 event type hidden (RiskBreachEvent), 9 of 10 shown"),
+                state(d).basis());
+        assertFalse(state(d).frozen(), "an idle filter change still does not freeze the conversation");
+    }
+
     @Test
     void idleFilterChangeRefreshesTheBasisWithoutFreezingTheConversation() {
         FakeSessionAdapter a = new FakeSessionAdapter();

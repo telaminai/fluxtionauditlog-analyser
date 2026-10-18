@@ -32,6 +32,8 @@ import telamin.fluxtion.audit.analyser.analyser.topology.PairingQualifications;
  * @param profiles       M74 UX: the assistant profile and its overlay, as assistantProfile decided them
  * @param listener       review B5: the action listener (REST switch, external access, the bridge), as actionListener decided it
  * @param aiSetup        M77: Set up AI — the wizard, the first-run block, the AI line — as aiSetup decided it
+ * @param recordsView    what the Records view shows and what each filter hides, as recordsView last measured it — null
+ *                       before the first measurement of the open log, and with no log
  */
 public record SessionSnapshot(boolean logOpen, String logPath, long logGeneration, int sampled, int total,
                               boolean graphOpen, String graphPath, String graphSource, long graphRevision,
@@ -46,7 +48,8 @@ public record SessionSnapshot(boolean logOpen, String logPath, long logGeneratio
                               BundleProvenance bundle, LocalAgentState localAgent, StartPageState startPage,
                               ProposalState proposal, ExampleDownloadState example, PermissionState permission,
                               ProfileState profiles, ListenerState listener, long logOpenedAt,
-                              AiSetupState aiSetup) {
+                              AiSetupState aiSetup,
+                              telamin.fluxtion.audit.analyser.analyser.filter.RecordsViewCounts recordsView) {
 
     /**
      * Independent review R4: immutable in fact, not only by the reference that publishes it. A volatile field cannot make
@@ -75,7 +78,7 @@ public record SessionSnapshot(boolean logOpen, String logPath, long logGeneratio
                     null, null, null, null, false, null, null, false, WalkPlaybackState.IDLE, CaptureState.IDLE,
                     AssistantState.IDLE, BundleProvenance.NONE, LocalAgentState.IDLE, StartPageState.IDLE,
                     ProposalState.NONE, ExampleDownloadState.IDLE, PermissionState.NONE, ProfileState.NONE,
-                    ListenerState.NONE, 0, AiSetupState.IDLE);
+                    ListenerState.NONE, 0, AiSetupState.IDLE, null);
 
     static SessionSnapshot of(SessionProcessor p) {
         return new SessionSnapshot(p.openLog.isOpen(), p.openLog.logPath(), p.openLog.generation(),
@@ -102,7 +105,8 @@ public record SessionSnapshot(boolean logOpen, String logPath, long logGeneratio
                 p.aiSetup.state(),                  // M74 UX: the assistant profile and its overlay, as aiSetup decided them
                 p.actionListener.state(),           // review B5: the action listener, as actionListener decided it
                 p.openLog.openedAtMillis(),         // final review #12: when the open log was opened (the binding chip)
-                p.aiSetup.setupState());            // M77: Set up AI, as aiSetup decided it
+                p.aiSetup.setupState(),             // M77: Set up AI, as aiSetup decided it
+                p.recordsView.counts());            // the Records view's counts, as recordsView measured them
     }
 
     /** The verdict a surface may state as CURRENT: none while a log open is pending. */

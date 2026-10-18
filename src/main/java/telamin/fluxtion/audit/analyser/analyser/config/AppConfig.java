@@ -44,8 +44,13 @@ public final class AppConfig {
     public final List<String> hiddenColumns = new ArrayList<>(List.of(
             "eventTime", "groupingId", "eventToString", "endTime"));
     public boolean hiddenColumnsSet = false;   // distinguishes "never configured" from "user cleared all"
-    /** Event-type rail panel collapsed — it costs 240px of a window whose job is showing wide records. */
-    public boolean eventFilterCollapsed = false;
+    /**
+     * The Event types checklist collapsed. Default COLLAPSED (usability scorecard, 2026-10-18): shown, its three-row
+     * floor pushed the sample's breach record below the fold at 1200x800. Hiding it is safe because a type filter
+     * stays visible without it — the toggle's "1 of 7" badge and the hidden line under the Records title. A saved
+     * choice wins, so someone who showed the list keeps it shown. Nothing auto-expands it when a filter is applied.
+     */
+    public boolean eventFilterCollapsed = true;
     /** M37: the Project panel (what is in force) collapsed. Default SHOWN — it must be seen once to be looked for later. */
     public boolean projectPanelCollapsed = false;
     /** M37: divider of the west column's vertical split (Event types above, Project below); -1 = never dragged. */

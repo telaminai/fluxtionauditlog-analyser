@@ -39,7 +39,7 @@ public final class ContextSections {
         s.put("processors", List.of("processors", "processorDeclarations"));
         s.put("source", List.of("source"));
         s.put("topology", List.of("topology"));
-        s.put("view", List.of("filter", "showing", "selection", "flags", "spotlight"));
+        s.put("view", List.of("filter", "showing", "hidden", "selection", "flags", "spotlight"));
         s.put("charts", List.of("graphs", "graphAddresses", "graphAddressUnavailable", "graphScopes", "savedGraphs"));
         s.put("menus", List.of("menus", "menuChanges"));
         s.put("design", List.of("design", "restoration", "designSpotlights"));

@@ -492,6 +492,34 @@ public final class SessionEvents {
         public ViewFilterChanged(String filterKey) { this(filterKey, null); }
     }
 
+    // ---------------------------------------------------------------- the records view (what is shown, what is hidden)
+
+    /**
+     * The Records view of {@code generation} is installed: its store, its filter and its row filter are in place, so
+     * it can be measured. Posted once per log, at the end of the load; {@code RecordsView} asks for the first
+     * measurement on it, because a new log opened under the same (unconstrained) filter changes no filter key.
+     */
+    public record RecordsViewInstalled(long generation) {
+    }
+
+    /**
+     * The person flagged or unflagged records, or turned "flagged only" on or off. {@code flaggedOnly} is the
+     * constraint now in force and {@code flagged} how many records carry a flag. {@code RecordsView} decides whether
+     * the view must be measured again: a flag changes what is shown only while "flagged only" is on.
+     */
+    public record RecordFlagsChanged(long generation, boolean flaggedOnly, int flagged) {
+    }
+
+    /**
+     * The answer to {@code MeasureRecordsViewEffect}: the records view of {@code generation} as it stands. {@code counts}
+     * names the search text by reference and carries the log's own event-type names. It is null when the adapter had no installed view of that generation to
+     * measure — a refusal the node records, never a zero.
+     */
+    public record RecordsViewMeasured(long opId, long generation,
+                                      telamin.fluxtion.audit.analyser.analyser.filter.RecordsViewCounts counts)
+            implements Result {
+    }
+
     /**
      * M68.5 (spec-evidence-integrity D-E6): what a Follow poll established about the open log's FILE — {@code UNCHANGED},
      * {@code APPEND}, {@code REPLACEMENT} or {@code UNVERIFIED} — with its reason. Posted only when the verdict changes.

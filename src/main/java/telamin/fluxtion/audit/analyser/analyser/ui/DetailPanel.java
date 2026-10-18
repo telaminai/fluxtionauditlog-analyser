@@ -37,6 +37,10 @@ public final class DetailPanel extends JPanel {
     public void setDeclarationOpener(java.util.function.Consumer<String> opener) { declarationOpener = opener; }
 
     private static final String HINT = "  (select a record in the table above to see its nodeLogs)";
+    /** p2: what the pane says while the filters hide every record — there is nothing to select, and it says why. */
+    static final String FILTER_HINT = "  (the filter hides every record — undo a filter above the Records table to see one)";
+    /** Whether the session's records view says every record is hidden (rendered from the snapshot by the frame). */
+    private boolean filterHidesAll;
 
     private final WrapTextPane text = new WrapTextPane(false);
     private final JScrollPane scroll = new JScrollPane(text);
@@ -286,7 +290,8 @@ public final class DetailPanel extends JPanel {
         if (records == null || records.isEmpty()) {
             shownText = "";
             layout = LogicalLogView.layout(List.of());
-            renderCurrentView();
+            if (filterHidesAll) highlighter.render(text.getStyledDocument(), FILTER_HINT);
+            else renderCurrentView();
             return;
         }
         StringBuilder sb = new StringBuilder();
@@ -349,7 +354,24 @@ public final class DetailPanel extends JPanel {
         shownText = "";
         layout = LogicalLogView.layout(List.of());
         setSelectionInfo(0);
+        filterHidesAll = false;
         highlighter.render(text.getStyledDocument(), HINT);
+    }
+
+    /** p2: say that the filter hides every record while nothing is shown, and the usual hint once something is. */
+    public void setFilterHidesEverything(boolean hidesAll) {
+        if (hidesAll == filterHidesAll) return;
+        filterHidesAll = hidesAll;
+        if (shownRecords.isEmpty()) highlighter.render(text.getStyledDocument(), hidesAll ? FILTER_HINT : HINT);
+    }
+
+    /** The pane's text as shown, for tests. */
+    String paneText() {
+        try {
+            return text.getDocument().getText(0, text.getDocument().getLength());
+        } catch (javax.swing.text.BadLocationException e) {
+            return "";
+        }
     }
 
     /** Re-colour the current content (e.g. after a theme change). */

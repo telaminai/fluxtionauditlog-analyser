@@ -306,6 +306,7 @@ public final class SessionDriver {
             case SessionEffects.ShowWarningEffect ignored -> "showWarning";
             case SessionEffects.OpenLogEffect ignored -> "openLog";
             case SessionEffects.ScanLogEvidenceEffect ignored -> "scanLogEvidence";
+            case SessionEffects.MeasureRecordsViewEffect ignored -> "measureRecordsView";
             case SessionEffects.ApplyWalkViewEffect ignored -> "applyWalkView";
             case SessionEffects.LightWalkTargetsEffect ignored -> "lightWalkTargets";
             case SessionEffects.ResolveWalkTargetsEffect ignored -> "resolveWalkTargets";

@@ -122,12 +122,7 @@ public final class FilterState {
 
     /** True if the row passes every active constraint. */
     public boolean test(LogIndex idx, int row) {
-        Long lt = idx.logTime(row);
-        if (lt != null) {
-            if (fromMillis != null && lt < fromMillis) return false;
-            if (toMillis != null && lt > toMillis) return false;
-        }
-        return testExceptTime(idx, row);
+        return passesTime(idx, row) && testExceptTime(idx, row);
     }
 
     /**
@@ -136,22 +131,38 @@ public final class FilterState {
      * chart's view, so dragging the time slider never re-parses the log.
      */
     public boolean testExceptTime(LogIndex idx, int row) {
-        if (dimensions != null && !dimensions.contains(groupKey(idx, row))) return false;
-        if (!text.isEmpty()) {
-            String needle = text.toLowerCase();
-            boolean match;
-            if (textSource != null) {
-                // full-text over the raw record: covers eventToString, thread AND nodeLogs
-                String raw = textSource.apply(row);
-                match = raw != null && raw.toLowerCase().contains(needle);
-            } else {
-                String es = idx.eventToString(row);
-                String th = idx.thread(row);
-                match = (es != null && es.toLowerCase().contains(needle))
-                        || (th != null && th.toLowerCase().contains(needle));
-            }
-            if (!match) return false;
+        return passesTypes(idx, row) && passesText(idx, row);
+    }
+
+    /**
+     * The time-range constraint alone. A record without a log time is never excluded by time. One of the
+     * four predicates {@link RecordsViewCounts#measure} counts with, so the records view's "hidden by"
+     * counts are made of the same tests the table filters with.
+     */
+    public boolean passesTime(LogIndex idx, int row) {
+        Long lt = idx.logTime(row);
+        if (lt == null) return true;
+        if (fromMillis != null && lt < fromMillis) return false;
+        return toMillis == null || lt <= toMillis;
+    }
+
+    /** The event-type (dimension) constraint alone: {@code null} dimensions pass everything. */
+    public boolean passesTypes(LogIndex idx, int row) {
+        return dimensions == null || dimensions.contains(groupKey(idx, row));
+    }
+
+    /** The free-text constraint alone: an empty query passes everything. */
+    public boolean passesText(LogIndex idx, int row) {
+        if (text.isEmpty()) return true;
+        String needle = text.toLowerCase();
+        if (textSource != null) {
+            // full-text over the raw record: covers eventToString, thread AND nodeLogs
+            String raw = textSource.apply(row);
+            return raw != null && raw.toLowerCase().contains(needle);
         }
-        return true;
+        String es = idx.eventToString(row);
+        String th = idx.thread(row);
+        return (es != null && es.toLowerCase().contains(needle))
+                || (th != null && th.toLowerCase().contains(needle));
     }
 }
