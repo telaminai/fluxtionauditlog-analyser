@@ -44,7 +44,11 @@ import java.util.regex.Pattern;
  *   <li>{@link #inert(String)} — the same neutralising, for an option-pane message or option. {@code
  *       BasicOptionPaneUI} renders a String message as HTML when it merely CONTAINS {@code <html>} (it cuts out
  *       the {@code <html>…</html>} span and drops the text before it), and each newline-separated line becomes a
- *       {@code JLabel}; the static {@code JOptionPane.show…} methods give no way to set {@code html.disable}.</li>
+ *       {@code JLabel}; the static {@code JOptionPane.show…} methods give no way to set {@code html.disable}.
+ *       Also for a WINDOW TITLE ({@code new JDialog(owner, t)}, {@code new JFrame(t)}, {@code setTitle(t)},
+ *       {@code createDialog(p, t)}, an option pane's title): FlatLaf draws the title bar itself — the default on
+ *       Windows 10/11 — and its title is a {@code JLabel}, so a title that begins with {@code <html>} is rendered.
+ *       And for {@code menu.add(String)}: the item it builds does not inherit the menu's {@code html.disable}.</li>
  *   <li>{@link #escape(String)} — for the analyser's OWN {@code <html>} markup that carries a foreign word: the
  *       markup stays, the word is escaped.</li>
  * </ul>
