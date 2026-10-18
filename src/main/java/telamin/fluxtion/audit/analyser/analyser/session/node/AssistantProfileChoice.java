@@ -58,9 +58,12 @@ public class AssistantProfileChoice implements EventLogSource {
             + "placed for the assistant you choose (nothing is sent).";
     /** The one line while nothing is chosen and the cards are shut. */
     public static final String NO_ASSISTANT = "No assistant set up yet — choose one with Assistant ▾ above.";
-    /** The one line for the in-app assistant with no key (or no provider that can answer). */
-    public static final String IN_APP_NO_KEY = "The in-app assistant has no API key yet, so nothing is sent — add one with "
-            + "Assistant ▾ above or in Settings ▸ Assistant.";
+    /**
+     * The one line for the in-app assistant with no key (or no provider that can answer). Robot re-walk #4 (2026-10-18):
+     * the panel shows it with Configure provider beside it — "No API key — Configure provider" — and Send disabled; it
+     * no longer sits under a "Ready" with "Press Send to ask Claude" below it.
+     */
+    public static final String IN_APP_NO_KEY = "No API key";
 
     /** The start page's note when its question opened the choices instead of an answer. */
     public static final String FIRST_USE_NOTE = StartPagePrompt.CARRIED_NOTE;
@@ -94,6 +97,20 @@ public class AssistantProfileChoice implements EventLogSource {
     private long pendingDraft;
     private ProfileState published = ProfileState.NONE;
     private boolean dirty = true;
+
+    /**
+     * Robot re-walk #3: the hold of an evidence question asked with no log open — a JavaBean parent, upstream, so the
+     * cards never open for a press it holds. Null only in a processor generated before it existed.
+     */
+    private StartPageNoLogHint noLogHint;
+
+    public StartPageNoLogHint getNoLogHint() {
+        return noLogHint;
+    }
+
+    public void setNoLogHint(StartPageNoLogHint noLogHint) {
+        this.noLogHint = noLogHint;
+    }
 
     public AssistantProfileChoice(LocalAgentSession localAgent, AssistantLoop assistantLoop, EffectQueue effects) {
         this.localAgent = localAgent;
@@ -308,6 +325,8 @@ public class AssistantProfileChoice implements EventLogSource {
      */
     @OnEventHandler
     public boolean onStartPageSent(SessionEvents.StartPagePromptSent e) {
+        // robot re-walk #3: held for want of a log — nothing opens for it until the person acts on the page's line
+        if (noLogHint != null && noLogHint.holds(e.request())) return false;
         String id = e.entryId() == null ? "NONE" : e.entryId();
         // a flow entry (the catalogue's kind, so Build and Teach count too) is not a question
         boolean question = id.equals("NONE") ? e.textRef() != 0

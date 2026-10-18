@@ -549,19 +549,24 @@ public class LocalAgentSession implements EventLogSource {
         boolean newChat = needsNewChat(c);
         auditLog.info("localAgentRestart", "RESTART").info("offer", restartOffer).info("newChat", newChat);
         clearRestart();
-        kill(newChat ? RESTARTED_NEW_CHAT_TEXT : RESTARTED_TEXT);
+        kill(newChat ? RESTARTED_NEW_CHAT_TEXT : RESTARTED_TEXT, RESTARTED);
         if (newChat) {
             beginConversation();
             reason = RESTARTED_NEW_CHAT_TEXT;
-            note("RESTARTED", RESTARTED_NEW_CHAT_TEXT);
+            note(RESTARTED, RESTARTED_NEW_CHAT_TEXT);
         }
         start(request, c);
     }
 
-    public static final String RESTARTED_TEXT = "Claude Code was restarted to apply the changed settings; the conversation "
-            + "continues";
-    public static final String RESTARTED_NEW_CHAT_TEXT = "Claude Code was restarted to apply the changed settings — a new "
-            + "chat begins, because a conversation is never resumed under other settings";
+    /**
+     * Robot re-walk #6 (2026-10-18): the person ASKED for this restart, so its note is no alarm — no "Stopped:" label
+     * (the note's status is {@code RESTARTED}, which carries none) and a sentence short enough for the docked column.
+     */
+    public static final String RESTARTED_TEXT = "Restarted with the new settings — the conversation continues";
+    public static final String RESTARTED_NEW_CHAT_TEXT = "Restarted with the new settings — a new chat begins, because a "
+            + "conversation is never resumed under other settings";
+    /** The status of the restart's own note: a restart the person asked for, not a stop. */
+    public static final String RESTARTED = "RESTARTED";
 
     private void clearRestart() {
         restartState = "";
@@ -1495,6 +1500,11 @@ public class LocalAgentSession implements EventLogSource {
 
     /** Kill the process tree of this generation, now: the turn in progress (if any) ends with it. */
     private void kill(String why) {
+        kill(why, "STOPPED");
+    }
+
+    /** As {@link #kill(String)}, with the status of the note that says why ({@code STOPPED}, or {@link #RESTARTED}). */
+    private void kill(String why, String noteStatus) {
         clearRestart();                                  // an offer belongs to the process it was made for
         long was = openTicket;
         if (was != 0) {
@@ -1510,7 +1520,7 @@ public class LocalAgentSession implements EventLogSource {
         endAfterTurn = false;
         if (why != null) {
             reason = why;
-            note("STOPPED", why);
+            note(noteStatus, why);
         }
         auditLog.info("localAgentKill", generation);
     }
@@ -1713,12 +1723,14 @@ public class LocalAgentSession implements EventLogSource {
     // ---- robot walkthrough #3 (2026-10-18): one primary action, one instruction line -----------------------------------
 
     /** Said while not running: starting is what Send does first, and what that contacts. */
-    public static final String CONTACTS_ANTHROPIC = "Send starts Claude Code first — that contacts Anthropic (sign-in "
-            + "check, MCP connect); no record content is sent until you press Send. In full Claude Code, starting also runs "
-            + "your and the folder's hooks and connects your MCP servers.";
+    /** What starting contacts, said once; both lines below end with it (robot re-walk #6: never "Send starts" twice). */
+    static final String STARTING_CONTACTS = "that contacts Anthropic (sign-in check, MCP connect); no record content is "
+            + "sent until you press Send. In full Claude Code, starting also runs your and the folder's hooks and connects "
+            + "your MCP servers.";
+    public static final String CONTACTS_ANTHROPIC = "Send starts Claude Code first — " + STARTING_CONTACTS;
     public static final String NOT_RUNNING_TEXT = "Not running. " + CONTACTS_ANTHROPIC;
-    public static final String PLACED_NOT_RUNNING_TEXT = "Not running — your question is placed; Send starts Claude Code "
-            + "and asks it. " + CONTACTS_ANTHROPIC;
+    public static final String PLACED_NOT_RUNNING_TEXT = "Not running — your question is placed. Send starts Claude Code, "
+            + "then asks it; starting " + STARTING_CONTACTS;
 
     /**
      * The one primary action and the one instruction line for {@code s} (pure; the node publishes it, the panel renders

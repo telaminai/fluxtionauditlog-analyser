@@ -25,10 +25,23 @@ import java.util.List;
  * @param basis        a short label of the workspace this thread's turns were made against
  * @param reason       why the last request was refused, why the turn ended, or ""
  * @param answer       the answer to the last send request that carried an id
+ * @param away         robot re-walk #1 (2026-10-18): a reveal took the canvas from the docked assistant to this tab
+ *                     ("Topology"), so the conversation is behind it — the canvas offers the way back; "" otherwise
  */
 public record AssistantState(long conversation, long ticket, String phase, int round, int actionsRun, String runningVerb,
                              List<Entry> entries, boolean docked, boolean frozen, String basis, String reason,
-                             Answer answer) {
+                             Answer answer, String away) {
+
+    /** The shape before robot re-walk #1: nothing is behind another tab. */
+    public AssistantState(long conversation, long ticket, String phase, int round, int actionsRun, String runningVerb,
+                          List<Entry> entries, boolean docked, boolean frozen, String basis, String reason, Answer answer) {
+        this(conversation, ticket, phase, round, actionsRun, runningVerb, entries, docked, frozen, basis, reason, answer, "");
+    }
+
+    /** A reveal took the canvas from the docked assistant: the answer is behind tab {@link #away()}. */
+    public boolean answerBehindTab() {
+        return !away.isEmpty();
+    }
 
     /** Kinds of entry. VISIBLE kinds are rendered; hidden ones exist only for the provider history. */
     public static final String USER = "USER";
@@ -80,6 +93,7 @@ public record AssistantState(long conversation, long ticket, String phase, int r
         basis = basis == null ? "" : basis;
         reason = reason == null ? "" : reason;
         answer = answer == null ? Answer.NONE : answer;
+        away = away == null ? "" : away;
     }
 
     /** A turn is in progress: Send is not allowed, Cancel is. */

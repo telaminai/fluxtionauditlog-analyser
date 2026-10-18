@@ -68,11 +68,13 @@ import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantP
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantProfilesRequested;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantProfilesShown;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantSendRequested;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantTabShown;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleCaptureRequested;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleDeleted;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleRootsRestored;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleWriteFailed;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleWritten;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CanvasLeftAssistant;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CaptureStarted;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CloseRequested;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.DraftPlaced;
@@ -164,6 +166,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.SourceRoot
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StartPageAvailability;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StartPageEffectStarted;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StartPageFlowDone;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StartPageNoLogAnswered;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StartPagePromptSent;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StartPromptPackDropped;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StatusShown;
@@ -207,6 +210,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.node.PairingQualifier;
 import telamin.fluxtion.audit.analyser.analyser.session.node.ProjectReopenOffer;
 import telamin.fluxtion.audit.analyser.analyser.session.node.SessionBoundary;
 import telamin.fluxtion.audit.analyser.analyser.session.node.SessionRecovery;
+import telamin.fluxtion.audit.analyser.analyser.session.node.StartPageNoLogHint;
 import telamin.fluxtion.audit.analyser.analyser.session.node.StartPagePrompt;
 import telamin.fluxtion.audit.analyser.analyser.session.node.WalkPlayback;
 import telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Activated;
@@ -260,11 +264,13 @@ import telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Requ
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantProfilesRequested
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantProfilesShown
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantSendRequested
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantTabShown
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleCaptureRequested
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleDeleted
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleRootsRestored
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleWriteFailed
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleWritten
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CanvasLeftAssistant
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CaptureStarted
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CloseRequested
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.DraftPlaced
@@ -356,6 +362,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Requ
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StartPageAvailability
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StartPageEffectStarted
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StartPageFlowDone
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StartPageNoLogAnswered
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StartPagePromptSent
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StartPromptPackDropped
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StatusShown
@@ -443,9 +450,6 @@ public class SessionProcessor
   public final transient LocalAgentSession localAgentSession =
       new telamin.fluxtion.audit.analyser.analyser.session.node.LocalAgentSession(
           assistantMode, effectQueue);;
-  public final transient AssistantProfileChoice assistantProfile =
-      new telamin.fluxtion.audit.analyser.analyser.session.node.AssistantProfileChoice(
-          localAgentSession, assistantLoop, effectQueue);;
   public final transient LocalAgentPermission localAgentPermission =
       new telamin.fluxtion.audit.analyser.analyser.session.node.LocalAgentPermission(
           localAgentSession, effectQueue);;
@@ -467,6 +471,12 @@ public class SessionProcessor
   public final transient SessionBoundary sessionBoundary =
       new telamin.fluxtion.audit.analyser.analyser.session.node.SessionBoundary(
           operationGate, activeProject, openLog, openGraph, effectQueue);;
+  public final transient StartPageNoLogHint startPageNoLogHint =
+      new telamin.fluxtion.audit.analyser.analyser.session.node.StartPageNoLogHint(
+          openLog, effectQueue);;
+  public final transient AssistantProfileChoice assistantProfile =
+      new telamin.fluxtion.audit.analyser.analyser.session.node.AssistantProfileChoice(
+          localAgentSession, assistantLoop, effectQueue);;
   public final transient StartPagePrompt startPagePrompt =
       new telamin.fluxtion.audit.analyser.analyser.session.node.StartPagePrompt(
           assistantMode, localAgentSession, openLog, effectQueue);;
@@ -484,9 +494,9 @@ public class SessionProcessor
   //Measured saving on a 3-event-type graph: 0.098ns of a 5.61ns event on a JIT; nothing on native+PGO.
   private boolean callbacksPending = false;
   private final transient IdentityHashMap<Object, BooleanSupplier> dirtyFlagSupplierMap =
-      new IdentityHashMap<>(14);
+      new IdentityHashMap<>(15);
   private final transient IdentityHashMap<Object, Consumer<Boolean>> dirtyFlagUpdateMap =
-      new IdentityHashMap<>(14);
+      new IdentityHashMap<>(15);
 
   private boolean isDirty_actionListener = false;
   private boolean isDirty_activeProject = false;
@@ -502,6 +512,7 @@ public class SessionProcessor
   private boolean isDirty_openLog = false;
   private boolean isDirty_operationGate = false;
   private boolean isDirty_pairing = false;
+  private boolean isDirty_startPageNoLogHint = false;
 
   //Forked declarations
 
@@ -622,6 +633,10 @@ public class SessionProcessor
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantSendRequested",
                 false),
             new ProcessorDescriptor.Input(
+                "AssistantTabShown",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantTabShown",
+                false),
+            new ProcessorDescriptor.Input(
                 "BundleCaptureRequested",
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleCaptureRequested",
                 false),
@@ -640,6 +655,10 @@ public class SessionProcessor
             new ProcessorDescriptor.Input(
                 "BundleWritten",
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleWritten",
+                false),
+            new ProcessorDescriptor.Input(
+                "CanvasLeftAssistant",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CanvasLeftAssistant",
                 false),
             new ProcessorDescriptor.Input(
                 "CaptureStarted",
@@ -1038,6 +1057,10 @@ public class SessionProcessor
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StartPageFlowDone",
                 false),
             new ProcessorDescriptor.Input(
+                "StartPageNoLogAnswered",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StartPageNoLogAnswered",
+                false),
+            new ProcessorDescriptor.Input(
                 "StartPagePromptSent",
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StartPagePromptSent",
                 false),
@@ -1099,7 +1122,7 @@ public class SessionProcessor
           new DescriptorSupport.Meta(
               null,
               "1.0.76",
-              "689f8af1831dc50d3c618183f53bde3a3d677648e1b5c9b8624a96646a8fc409",
+              "475cba7798e3b227f5f3e9ebfb49d62690b7b482c0f2d9bf4682d92eabd3286c",
               null));
 
   @Override
@@ -1125,12 +1148,14 @@ public class SessionProcessor
     context.setClock(clock);
     serviceRegistry.setDataFlowContext(context);
     assistantLoop.setAssistantMode(assistantMode);
+    assistantProfile.setNoLogHint(startPageNoLogHint);
     effectQueue.setDataFlowContext(context);
     localAgentSession.setActionListener(actionListener);
     localAgentSession.setOpenLog(openLog);
     sessionBoundary.setLocalAgentSession(localAgentSession);
     sessionBoundary.setOnboardingProposal(onboardingProposal);
     startPagePrompt.setAssistantProfile(assistantProfile);
+    startPagePrompt.setNoLogHint(startPageNoLogHint);
     //node auditors
     initialiseAuditor(clock);
     initialiseAuditor(eventLogger);
@@ -1353,6 +1378,9 @@ public class SessionProcessor
     } else if (event instanceof AssistantSendRequested) {
       AssistantSendRequested typedEvent = (AssistantSendRequested) event;
       handleEvent(typedEvent);
+    } else if (event instanceof AssistantTabShown) {
+      AssistantTabShown typedEvent = (AssistantTabShown) event;
+      handleEvent(typedEvent);
     } else if (event instanceof BundleCaptureRequested) {
       BundleCaptureRequested typedEvent = (BundleCaptureRequested) event;
       handleEvent(typedEvent);
@@ -1367,6 +1395,9 @@ public class SessionProcessor
       handleEvent(typedEvent);
     } else if (event instanceof BundleWritten) {
       BundleWritten typedEvent = (BundleWritten) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof CanvasLeftAssistant) {
+      CanvasLeftAssistant typedEvent = (CanvasLeftAssistant) event;
       handleEvent(typedEvent);
     } else if (event instanceof CaptureStarted) {
       CaptureStarted typedEvent = (CaptureStarted) event;
@@ -1641,6 +1672,9 @@ public class SessionProcessor
     } else if (event instanceof StartPageFlowDone) {
       StartPageFlowDone typedEvent = (StartPageFlowDone) event;
       handleEvent(typedEvent);
+    } else if (event instanceof StartPageNoLogAnswered) {
+      StartPageNoLogAnswered typedEvent = (StartPageNoLogAnswered) event;
+      handleEvent(typedEvent);
     } else if (event instanceof StartPagePromptSent) {
       StartPagePromptSent typedEvent = (StartPagePromptSent) event;
       handleEvent(typedEvent);
@@ -1864,6 +1898,11 @@ public class SessionProcessor
   }
 
   @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(AssistantTabShown event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
   public void onEvent(BundleCaptureRequested event) {
     processEvent(event);
   }
@@ -1885,6 +1924,11 @@ public class SessionProcessor
 
   @OnEventHandler(failBuildIfMissingBooleanReturn = false)
   public void onEvent(BundleWritten event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(CanvasLeftAssistant event) {
     processEvent(event);
   }
 
@@ -2344,6 +2388,11 @@ public class SessionProcessor
   }
 
   @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(StartPageNoLogAnswered event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
   public void onEvent(StartPagePromptSent event) {
     processEvent(event);
   }
@@ -2776,6 +2825,18 @@ public class SessionProcessor
     afterEvent();
   }
 
+  public void handleEvent(AssistantTabShown typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(assistantLoop, "assistantLoop", "onAssistantTabShown", typedEvent);
+    isDirty_assistantLoop = assistantLoop.onAssistantTabShown(typedEvent);
+    if (guardCheck_walkPlayback()) {
+      auditInvocation(walkPlayback, "walkPlayback", "onLogChanged", typedEvent);
+      walkPlayback.onLogChanged();
+    }
+    afterEvent();
+  }
+
   public void handleEvent(BundleCaptureRequested typedEvent) {
     auditEvent(typedEvent);
     //Default, no filter methods
@@ -2813,6 +2874,18 @@ public class SessionProcessor
     //Default, no filter methods
     auditInvocation(evidenceCapture, "evidenceCapture", "onBundleWritten", typedEvent);
     evidenceCapture.onBundleWritten(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(CanvasLeftAssistant typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(assistantLoop, "assistantLoop", "onCanvasLeftAssistant", typedEvent);
+    isDirty_assistantLoop = assistantLoop.onCanvasLeftAssistant(typedEvent);
+    if (guardCheck_walkPlayback()) {
+      auditInvocation(walkPlayback, "walkPlayback", "onLogChanged", typedEvent);
+      walkPlayback.onLogChanged();
+    }
     afterEvent();
   }
 
@@ -3675,6 +3748,8 @@ public class SessionProcessor
       auditInvocation(pairingQualifier, "pairingQualifier", "onPairChanged", typedEvent);
       pairingQualifier.onPairChanged();
     }
+    auditInvocation(startPageNoLogHint, "startPageNoLogHint", "onLogOpened", typedEvent);
+    isDirty_startPageNoLogHint = startPageNoLogHint.onLogOpened(typedEvent);
     if (guardCheck_walkPlayback()) {
       auditInvocation(walkPlayback, "walkPlayback", "onLogChanged", typedEvent);
       walkPlayback.onLogChanged();
@@ -4086,9 +4161,19 @@ public class SessionProcessor
     afterEvent();
   }
 
+  public void handleEvent(StartPageNoLogAnswered typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(startPageNoLogHint, "startPageNoLogHint", "onAnswered", typedEvent);
+    isDirty_startPageNoLogHint = startPageNoLogHint.onAnswered(typedEvent);
+    afterEvent();
+  }
+
   public void handleEvent(StartPagePromptSent typedEvent) {
     auditEvent(typedEvent);
     //Default, no filter methods
+    auditInvocation(startPageNoLogHint, "startPageNoLogHint", "onSent", typedEvent);
+    isDirty_startPageNoLogHint = startPageNoLogHint.onSent(typedEvent);
     auditInvocation(assistantProfile, "assistantProfile", "onStartPageSent", typedEvent);
     isDirty_assistantProfile = assistantProfile.onStartPageSent(typedEvent);
     auditInvocation(startPagePrompt, "startPagePrompt", "onSent", typedEvent);
@@ -4485,6 +4570,11 @@ public class SessionProcessor
       isDirty_assistantProfile = assistantProfile.onAssistantSend(typedEvent);
       auditInvocation(walkPlayback, "walkPlayback", "onAssistantSendRequested", typedEvent);
       walkPlayback.onAssistantSendRequested(typedEvent);
+    } else if (event instanceof AssistantTabShown) {
+      AssistantTabShown typedEvent = (AssistantTabShown) event;
+      auditEvent(typedEvent);
+      auditInvocation(assistantLoop, "assistantLoop", "onAssistantTabShown", typedEvent);
+      isDirty_assistantLoop = assistantLoop.onAssistantTabShown(typedEvent);
     } else if (event instanceof BundleCaptureRequested) {
       BundleCaptureRequested typedEvent = (BundleCaptureRequested) event;
       auditEvent(typedEvent);
@@ -4510,6 +4600,11 @@ public class SessionProcessor
       auditEvent(typedEvent);
       auditInvocation(evidenceCapture, "evidenceCapture", "onBundleWritten", typedEvent);
       evidenceCapture.onBundleWritten(typedEvent);
+    } else if (event instanceof CanvasLeftAssistant) {
+      CanvasLeftAssistant typedEvent = (CanvasLeftAssistant) event;
+      auditEvent(typedEvent);
+      auditInvocation(assistantLoop, "assistantLoop", "onCanvasLeftAssistant", typedEvent);
+      isDirty_assistantLoop = assistantLoop.onCanvasLeftAssistant(typedEvent);
     } else if (event instanceof CaptureStarted) {
       CaptureStarted typedEvent = (CaptureStarted) event;
       auditEvent(typedEvent);
@@ -4904,6 +4999,8 @@ public class SessionProcessor
       isDirty_onboardingProposal = onboardingProposal.onLogOpened(typedEvent);
       auditInvocation(logArrival, "logArrival", "onLogOpened", typedEvent);
       logArrival.onLogOpened(typedEvent);
+      auditInvocation(startPageNoLogHint, "startPageNoLogHint", "onLogOpened", typedEvent);
+      isDirty_startPageNoLogHint = startPageNoLogHint.onLogOpened(typedEvent);
     } else if (event instanceof MembershipCompared) {
       MembershipCompared typedEvent = (MembershipCompared) event;
       auditEvent(typedEvent);
@@ -5103,9 +5200,16 @@ public class SessionProcessor
       auditEvent(typedEvent);
       auditInvocation(startPagePrompt, "startPagePrompt", "onFlowDone", typedEvent);
       startPagePrompt.onFlowDone(typedEvent);
+    } else if (event instanceof StartPageNoLogAnswered) {
+      StartPageNoLogAnswered typedEvent = (StartPageNoLogAnswered) event;
+      auditEvent(typedEvent);
+      auditInvocation(startPageNoLogHint, "startPageNoLogHint", "onAnswered", typedEvent);
+      isDirty_startPageNoLogHint = startPageNoLogHint.onAnswered(typedEvent);
     } else if (event instanceof StartPagePromptSent) {
       StartPagePromptSent typedEvent = (StartPagePromptSent) event;
       auditEvent(typedEvent);
+      auditInvocation(startPageNoLogHint, "startPageNoLogHint", "onSent", typedEvent);
+      isDirty_startPageNoLogHint = startPageNoLogHint.onSent(typedEvent);
       auditInvocation(assistantProfile, "assistantProfile", "onStartPageSent", typedEvent);
       isDirty_assistantProfile = assistantProfile.onStartPageSent(typedEvent);
       auditInvocation(startPagePrompt, "startPagePrompt", "onSent", typedEvent);
@@ -5273,6 +5377,7 @@ public class SessionProcessor
     auditor.nodeRegistered(projectReopenOffer, "projectReopenOffer");
     auditor.nodeRegistered(sessionBoundary, "sessionBoundary");
     auditor.nodeRegistered(sessionRecovery, "sessionRecovery");
+    auditor.nodeRegistered(startPageNoLogHint, "startPageNoLogHint");
     auditor.nodeRegistered(startPagePrompt, "startPagePrompt");
     auditor.nodeRegistered(walkPlayback, "walkPlayback");
   }
@@ -5354,6 +5459,7 @@ public class SessionProcessor
     isDirty_openLog = false;
     isDirty_operationGate = false;
     isDirty_pairing = false;
+    isDirty_startPageNoLogHint = false;
   }
 
   @Override
@@ -5398,6 +5504,7 @@ public class SessionProcessor
       dirtyFlagSupplierMap.put(openLog, () -> isDirty_openLog);
       dirtyFlagSupplierMap.put(operationGate, () -> isDirty_operationGate);
       dirtyFlagSupplierMap.put(pairing, () -> isDirty_pairing);
+      dirtyFlagSupplierMap.put(startPageNoLogHint, () -> isDirty_startPageNoLogHint);
     }
     return dirtyFlagSupplierMap.getOrDefault(node, DataFlow.ALWAYS_FALSE);
   }
@@ -5419,6 +5526,7 @@ public class SessionProcessor
       dirtyFlagUpdateMap.put(openLog, (b) -> isDirty_openLog = b);
       dirtyFlagUpdateMap.put(operationGate, (b) -> isDirty_operationGate = b);
       dirtyFlagUpdateMap.put(pairing, (b) -> isDirty_pairing = b);
+      dirtyFlagUpdateMap.put(startPageNoLogHint, (b) -> isDirty_startPageNoLogHint = b);
     }
     dirtyFlagUpdateMap.get(node).accept(dirtyFlag);
   }
@@ -5440,7 +5548,7 @@ public class SessionProcessor
   }
 
   private boolean guardCheck_assistantProfile() {
-    return isDirty_assistantLoop | isDirty_localAgentSession;
+    return isDirty_assistantLoop | isDirty_localAgentSession | isDirty_startPageNoLogHint;
   }
 
   private boolean guardCheck_auditInstallation() {
@@ -5524,11 +5632,16 @@ public class SessionProcessor
     return isDirty_operationGate;
   }
 
+  private boolean guardCheck_startPageNoLogHint() {
+    return isDirty_openLog;
+  }
+
   private boolean guardCheck_startPagePrompt() {
     return isDirty_assistantMode
         | isDirty_assistantProfile
         | isDirty_localAgentSession
-        | isDirty_openLog;
+        | isDirty_openLog
+        | isDirty_startPageNoLogHint;
   }
 
   private boolean guardCheck_walkPlayback() {
@@ -5615,6 +5728,8 @@ public class SessionProcessor
         return (T) sessionBoundary;
       case "sessionRecovery":
         return (T) sessionRecovery;
+      case "startPageNoLogHint":
+        return (T) startPageNoLogHint;
       case "startPagePrompt":
         return (T) startPagePrompt;
       case "walkPlayback":
@@ -5734,6 +5849,9 @@ public class SessionProcessor
     }
     if (node == sessionRecovery) {
       return "sessionRecovery";
+    }
+    if (node == startPageNoLogHint) {
+      return "startPageNoLogHint";
     }
     if (node == startPagePrompt) {
       return "startPagePrompt";

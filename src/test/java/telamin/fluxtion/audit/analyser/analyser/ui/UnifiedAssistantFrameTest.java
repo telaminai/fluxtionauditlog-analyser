@@ -7,7 +7,6 @@ import telamin.fluxtion.audit.analyser.analyser.assistant.FakeProvider;
 import telamin.fluxtion.audit.analyser.analyser.session.AssistantMode;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionDriver;
 
-import javax.swing.JLabel;
 import javax.swing.JTextArea;
 import java.awt.Component;
 import java.awt.Container;
@@ -41,7 +40,7 @@ class UnifiedAssistantFrameTest {
     }
 
     static List<String> chips(AssistantPanel a) {
-        return all(a.surface().chips, JLabel.class).stream().map(JLabel::getText).toList();
+        return all(a.surface().chips, Chip.class).stream().map(Chip::getText).toList();
     }
 
     static AssistantMode mode(MainFrame f) {

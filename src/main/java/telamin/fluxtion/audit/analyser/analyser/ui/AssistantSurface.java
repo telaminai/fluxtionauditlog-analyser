@@ -319,7 +319,8 @@ final class AssistantSurface {
         }
         composerHint.setText(hint == null ? " " : hint);
         composerHint.setForeground(UiTheme.noteForeground());      // review §2: a status note wears the note token
-        composerHint.setVisible(hint != null && !hint.isBlank());
+        hintMode = hint != null && !hint.isBlank() ? mode : null;
+        composerHint.setVisible(hintMode != null);
         renderBindingChip();
         draft.setCaretPosition(to);
         enterArrived(HeldEnter.down());       // final review #7: placed by a held Enter? (the focus may already be here)
@@ -465,8 +466,21 @@ final class AssistantSurface {
     void clearDraftMarks() {
         for (Bound b : bound) draft.getHighlighter().removeHighlight(b.highlight());
         bound.clear();
+        hintMode = null;
         composerHint.setVisible(false);
         renderBindingChip();
+    }
+
+    /** The assistant the composer's hint was placed for ("Press Send to ask Claude"), or null when none is lit. */
+    private AssistantMode hintMode;
+
+    /**
+     * Robot re-walk #4 (2026-10-18): the hint names the assistant its draft was placed for, so it shows only while THAT
+     * assistant is the one shown, and never while {@code suppressed} — a refusal, or a guide line that says Send cannot be
+     * pressed. A question placed for Claude Code kept saying "Press Send to ask Claude" after In-app was applied.
+     */
+    void renderHint(AssistantMode shown, boolean suppressed) {
+        composerHint.setVisible(hintMode != null && hintMode == shown && !suppressed);
     }
 
     /** The composer's border, or the full-posture cue's accent border. */

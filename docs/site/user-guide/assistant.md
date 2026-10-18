@@ -431,7 +431,9 @@ a copy that holds such characters says how many.
 ## No API key? Copy-prompt mode
 
 With no key the assistant sends nothing and says so, offering **Configure provider** (it opens *Settings ▸ LLM*, where
-the provider, model and API key are), **Copy prompt** and **Connect a CLI assistant**. No key, or working in a different agent (Claude Code, Claude Desktop)? Hit **Copy prompt**. The copied
+the provider, model and API key are), **Copy prompt** and **Connect a CLI assistant**. With the *In-app assistant* card
+applied and no key, the panel says exactly that in one line — *No API key — **Configure provider*** — with Send
+disabled; it does not say *Ready* or *Press Send*. No key, or working in a different agent (Claude Code, Claude Desktop)? Hit **Copy prompt**. The copied
 prompt is a complete, self-contained brief: the selected records, the node-type map, the relevant
 source, **and** the log's file path, shape and per-record **byte offsets**. The dialog that opens names every
 part it copied, in the order they appear ("the analyser's standing instructions, the glossary, the raw text of 2
@@ -604,6 +606,11 @@ out the things it is talking about, and gives each a short numbered callout. You
 
 (How an assistant answers is up to the assistant; the right-hand column is what the actions make possible,
 and what the guidance it is given asks of it.)
+
+**The answer stays one press away.** With the assistant docked in the canvas, a spotlight on another canvas tab (the
+Topology, say) shows that tab — and the canvas says *Spotlight on Topology — the answer is in Analyser assistant* with
+**↩ Back to the answer**, which you can press without putting the spotlight out first. Popped out, the answer is in its
+own window and never moves.
 
 One thing lit — here, the demo's one real finding, a node the graph declares that never wrote audit output:
 

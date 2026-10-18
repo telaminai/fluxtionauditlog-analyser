@@ -71,7 +71,9 @@ class FactFieldsTest {
                 // owner, 2026-10-18: the restart chip's origin, the analyser's own words
                 "LocalAgentRestartOfferRequested.origin",
                 // robot walkthrough #1: a question asked before any assistant was chosen — its catalogue id and origin
-                "AssistantDraftPending.questionId", "AssistantDraftPending.origin")) {
+                "AssistantDraftPending.questionId", "AssistantDraftPending.origin",
+                // robot re-walk #1: the canvas tab's own title ("Topology") and the analyser's origin word
+                "CanvasLeftAssistant.shown", "AssistantTabShown.origin")) {
             M74.put(c, Holds.VOCABULARY);
         }
         for (String c : List.of("LocalAgentConsent.postureRef", "LocalAgentConsent.folderRef", "LocalAgentStatusObserved.hostedNonceDigest",

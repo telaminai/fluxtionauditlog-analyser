@@ -3676,6 +3676,7 @@ public final class MainFrame extends JFrame {
                     try {
                         // All source/line refusals have happened BEFORE goto can relax a record filter.
                         revealRows.run();
+                        javaSpotlightTabBefore = capturedTab;
                         SourcePanel viewer = topology ? topologyPanel.ensureSourcePaneVisible() : sourcePanel;
                         if (viewer == null) throw new IllegalArgumentException("Java source viewer is unavailable");
                         selectSideTab(topology ? "topology" : "source");
@@ -4276,6 +4277,8 @@ public final class MainFrame extends JFrame {
             }
         };
         if (!applyingJavaSpotlight) javaSpotlightTicket++;
+        java.awt.Component tabBefore = applyingJavaSpotlight ? javaSpotlightTabBefore
+                : sideTabs == null ? null : sideTabs.getSelectedComponent();
         if (Boolean.TRUE.equals(params.get("clear"))) {
             boolean was;
             Object only = params.get("target");
@@ -4304,6 +4307,7 @@ public final class MainFrame extends JFrame {
             // refused: nothing new is lit. What WAS lit stays — unless the attempt's reveal hid it, in which
             // case it goes out and the refusal says so rather than leaving it pointing at a hidden tab.
             java.util.List<String> hidden = relightSpotlight();
+            reportCanvasLeftAssistant(tabBefore);           // robot re-walk #1: the reveal may have moved the canvas
             // M64.11: a menu opened for a target that was then refused must not be left hanging open
             if (names.stream().anyMatch(n -> n.regionMatches(true, 0, "menu:", 0, 5))
                     && spotlight.lit().stream().noneMatch(l -> l.target().regionMatches(true, 0, "menu:", 0, 5))) {
@@ -4326,6 +4330,7 @@ public final class MainFrame extends JFrame {
         }
         // keep-clear is measured in relightSpotlight alone: litEcho below relights synchronously, before any paint
         SwingUtilities.invokeLater(this::relightSpotlight);     // once the layout the reveal queued has run
+        reportCanvasLeftAssistant(tabBefore);               // robot re-walk #1: the answer is now behind another tab
         Map<String, Object> echo = new java.util.LinkedHashMap<>();
         echo.put("lit", litEcho(true));
         if (!wentOut.isEmpty()) echo.put("wentOut", wentOut);
@@ -4641,6 +4646,10 @@ public final class MainFrame extends JFrame {
             @Override public void pressStartPrompt(String entryId, String text) {
                 MainFrame.this.pressStartPrompt(entryId, text);
             }
+            @Override public void answerStartNoLog(long request, StartPromptView.NoLogAction c) {
+                MainFrame.this.answerStartNoLog(request,
+                        telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.NoLogChoice.valueOf(c.name()));
+            }
             @Override public void openUserGuide(String page) {
                 if (page == null || page.isBlank()) showHelp(); else openDocsPage(page);
             }
@@ -4752,13 +4761,22 @@ public final class MainFrame extends JFrame {
         }, text -> status.setText(text));
         factsColumn.add(mainSplit, BorderLayout.CENTER);
         JPanel canvasColumn = new JPanel(new BorderLayout());
-        canvasColumn.add(columnHeading("Canvas",
+        JPanel canvasNorth = new JPanel(new BorderLayout());
+        canvasNorth.add(columnHeading("Canvas",
                 "What you make of it: charts, source, topology, reports — your working views."), BorderLayout.NORTH);
+        buildAnswerAway();
+        canvasNorth.add(answerAway, BorderLayout.SOUTH);           // robot re-walk #1: the way back to the answer
+        canvasColumn.add(canvasNorth, BorderLayout.NORTH);
         canvasColumn.add(sideTabs, BorderLayout.CENTER);
         JSplitPane center = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, factsColumn, canvasColumn);
         center.setDividerSize(9);          // constant, rather than whatever the tab's content implies
         sideTabs.addChangeListener(e -> {
             reportWalkViewChanged();
+            // robot re-walk #1: the docked assistant's tab is shown again — the way back is no longer needed
+            if (session != null && sideTabs.getSelectedComponent() == assistantDock) {
+                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantTabShown(
+                        "canvas tab"));
+            }
             sourceViewportChanged();
             // read now, restore after the tab change has re-laid out
             int location = center.getDividerLocation();
@@ -5448,6 +5466,10 @@ public final class MainFrame extends JFrame {
 
     /** OA-2: the frame's overlay lets presses inside the DOCKED assistant through — so scrolling or copying there keeps a walk. */
     private java.awt.Rectangle assistantPassThrough() {
+        // robot re-walk #1: the way back to the answer is pressed through a standing spotlight, never eaten by it
+        if (answerAway.isShowing()) {
+            return SwingUtilities.convertRectangle(answerAway.getParent(), answerAway.getBounds(), spotlight);
+        }
         if (!assistantDock.isShowing() || !assistantDock.isAncestorOf(assistantPanel)) return null;
         return SwingUtilities.convertRectangle(assistantDock.getParent(), assistantDock.getBounds(), spotlight);
     }
@@ -5485,7 +5507,72 @@ public final class MainFrame extends JFrame {
         if (open != null) open.setWaiting(next.permission().queued());     // review #10c: rendered, never decided
         renderFullPostureMarkers(agent);
         renderStartPrompt(next);
+        renderAnswerAway(state);
     }
+
+    // ---- robot re-walk #1 (2026-10-18): a spotlight never hides the answer the person was reading -------------------
+
+    /** The canvas's way back to the docked assistant, shown while a spotlight has the canvas on another tab. */
+    private final JPanel answerAway = new JPanel(new WrapLayout(FlowLayout.LEFT, 6, 2));
+    private final FitLine answerAwayLine = new FitLine(" ");
+    private final FitButton answerAwayBack = UiText.plain(new FitButton());
+    static final String BACK_TO_ANSWER = "↩ Back to the answer";
+
+    static String answerAwayWords(String tab) {
+        return "Spotlight on " + tab + " — the answer is in Analyser assistant";
+    }
+
+    private void buildAnswerAway() {
+        answerAway.setVisible(false);
+        answerAway.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(0, 0, 1, 0, UiTheme.controlBorder()),
+                BorderFactory.createEmptyBorder(4, 6, 4, 6)));
+        answerAway.getAccessibleContext().setAccessibleName("Where the answer is");
+        answerAwayLine.setForeground(UiTheme.noteForeground());
+        answerAwayBack.setWords(BACK_TO_ANSWER, "↩ Answer");
+        answerAwayBack.getAccessibleContext().setAccessibleName("Back to the answer, in the Analyser assistant tab");
+        answerAwayBack.addActionListener(e -> {
+            // presentation: show the tab; the change listener reports it, and assistantLoop takes the way back down
+            if (sideTabs != null) sideTabs.setSelectedComponent(assistantDock);
+        });
+        answerAway.add(answerAwayLine);
+        answerAway.add(answerAwayBack);
+    }
+
+    /** Rendered from {@code AssistantState.away()}, which assistantLoop decides; nothing is decided here. */
+    private void renderAnswerAway(telamin.fluxtion.audit.analyser.analyser.session.AssistantState state) {
+        boolean show = state.answerBehindTab();
+        if (show) answerAwayLine.setText(answerAwayWords(state.away()));
+        if (show != answerAway.isVisible()) {
+            answerAway.setVisible(show);
+            answerAway.revalidate();
+            answerAway.repaint();
+        }
+    }
+
+    /** For the tests: the way back, and its button. */
+    JPanel answerAwayBar() {
+        return answerAway;
+    }
+
+    JButton answerAwayButton() {
+        return answerAwayBack;
+    }
+
+    /**
+     * A spotlight's reveal took the canvas from the docked assistant's tab (it was showing, and now another is): report
+     * it as the observation it is. {@code before} is the tab the canvas showed before the reveal.
+     */
+    private void reportCanvasLeftAssistant(java.awt.Component before) {
+        if (session == null || sideTabs == null || before != assistantDock || !assistantDock.isAncestorOf(assistantPanel)) return;
+        int at = sideTabs.getSelectedIndex();
+        if (at < 0 || sideTabs.getComponentAt(at) == assistantDock) return;
+        session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CanvasLeftAssistant(
+                sideTabs.getTitleAt(at)));
+    }
+
+    /** The tab the canvas showed before the Java source spotlight's own reveal (its apply runs later, off the capture). */
+    private java.awt.Component javaSpotlightTabBefore;
 
     /**
      * OA-4 (§6): while a walk with dialogue shows, the assistant host shows its conversation — a PROJECTION of walkPlayback's
@@ -8602,6 +8689,7 @@ public final class MainFrame extends JFrame {
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.PrimeAssistantDraftEffect e -> primeAssistantDraft(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.PlayDemoJourneyEffect e -> playDemoJourney(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.RunStartPageFlowEffect e -> runStartPageFlow(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ContinueStartPagePromptEffect e -> continueStartPrompt(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ShowStartPageFallbackEffect e -> showStartPageFallback(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ComposeStartPageDraftEffect e -> composeStartPageDraft(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.TrustLocalAgentFolderEffect e -> trustLocalAgentFolder(e);
@@ -11735,9 +11823,33 @@ public final class MainFrame extends JFrame {
 
     /** The start page's button: the person's act, reported with what this machine says can answer. */
     private void pressStartPrompt(String entryId, String text) {
+        // robot re-walk #3: the words are checked here, where they are; only the verdict travels
+        boolean aboutEvidence = "NONE".equals(entryId)
+                && telamin.fluxtion.audit.analyser.analyser.assistant.EvidenceQuestion.reads(text);
         session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StartPagePromptSent(
                 ++startPageRequest, entryId, startPageWord(text), localAgentConsent(), claudeFound(),
-                inAppCanAnswer(), config.assistantActionsInProcess, workspaceOpen()));
+                inAppCanAnswer(), config.assistantActionsInProcess, workspaceOpen(), aboutEvidence, false));
+    }
+
+    /** Robot re-walk #3: the person's act on the start page's "No log is open" line, reported. */
+    private void answerStartNoLog(long request,
+                                  telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.NoLogChoice choice) {
+        session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StartPageNoLogAnswered(request,
+                choice));
+    }
+
+    /**
+     * ContinueStartPagePromptEffect (robot re-walk #3): the held question is pressed again as it was asked — its entry and
+     * the same words, by reference — acknowledged, with what can answer read now. Outside the dispatch.
+     */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result continueStartPrompt(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ContinueStartPagePromptEffect e) {
+        SwingUtilities.invokeLater(() -> session().post(
+                new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StartPagePromptSent(++startPageRequest,
+                        e.entryId(), e.textRef(), localAgentConsent(), claudeFound(), inAppCanAnswer(),
+                        config.assistantActionsInProcess, workspaceOpen(), true, true)));
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StartPageEffectStarted(e.opId(),
+                e.request(), "continue");
     }
 
     /**
@@ -12200,6 +12312,11 @@ public final class MainFrame extends JFrame {
             case "S8" -> SwingUtilities.invokeLater(() -> startPageTeachFlow(request));
             case telamin.fluxtion.audit.analyser.analyser.session.node.StartPagePrompt.TEACH_TOUR_FLOW ->
                     SwingUtilities.invokeLater(() -> openSampleProject(true));
+            // robot re-walk #3: the "No log is open" line's opens — the question continues once a log has opened
+            case telamin.fluxtion.audit.analyser.analyser.session.node.StartPageNoLogHint.SAMPLE_FLOW ->
+                    SwingUtilities.invokeLater(() -> openSampleProject(false));
+            case telamin.fluxtion.audit.analyser.analyser.session.node.StartPageNoLogHint.LOG_FLOW ->
+                    SwingUtilities.invokeLater(this::chooseFile);
             default -> { }
         }
         return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StartPageEffectStarted(e.opId(), request,
