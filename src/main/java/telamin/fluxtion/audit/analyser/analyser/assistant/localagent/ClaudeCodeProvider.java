@@ -92,7 +92,7 @@ public final class ClaudeCodeProvider implements LocalAgentProvider {
         c.add("--mcp-config");
         c.add(mcpConfig(spec.bridgeLauncher(), spec.endpointFile()));
         c.add("--allowedTools");
-        c.add(toolList(LocalAgentPosture.preAllowedVerbs(schemaVerbs)));
+        c.add(toolList(posture.cliAllowedVerbs(schemaVerbs)));
         // P3 (§4.3): the default posture hides nothing today (every hosted verb is pre-allowed or asked), so the flag is
         // omitted; a verb the schema gains is still hidden (review H5). The full posture always hides the person's own
         // registration, and the destructive verbs under auto and plan (OD-74.16)

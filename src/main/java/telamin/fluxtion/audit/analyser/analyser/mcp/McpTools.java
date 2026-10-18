@@ -115,6 +115,8 @@ public final class McpTools {
             case "walk" -> "walk saves, replaces, renames, plays or deletes a saved walk, or records one as a page in the "
                     + "exchange directory";
             case "import" -> "import borrows charts, reports or walks from an evidence bundle into the open project";
+            case "graph" -> "graph deletes, renames, restores or replaces a saved chart's definition (the old definition "
+                    + "can be restored)";
             default -> "this verb changes what is open or writes files";
         };
     }
@@ -138,9 +140,49 @@ public final class McpTools {
      */
     public static telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallKind hostedCallKind(String verb,
                                                                                                              Object params) {
+        return hostedCallKind(verb, params, null);
+    }
+
+    /**
+     * Owner decision 2026-10-18: which charts exist now, open or saved — what a {@code graph} call's classification needs
+     * to tell a call that CREATES a chart from one that replaces an existing chart's definition. Absent (null), every
+     * name is taken to exist, so every definition-setting call is asked (fail-closed).
+     */
+    @FunctionalInterface
+    public interface ChartState {
+        /** Whether a chart called {@code name} exists now, open or saved. */
+        boolean holds(String name);
+    }
+
+    /**
+     * {@link #hostedCallKind(String, Object)} with the charts that exist now. For {@code graph} (owner decision
+     * 2026-10-18), judged from {@link VerbOperations#graph}, the executor's own choice:
+     *
+     * <ul>
+     *   <li>{@code NON_MUTATING} — {@code {restore: true}} (lists the chart bin).</li>
+     *   <li>{@code PRE_ALLOWED} — showing, reopening, re-extracting or closing a chart ({@code SHOW}, {@code CLOSE}: the
+     *       definition is kept), and an {@code EDIT} that CREATES a chart: {@code newTab: true} (the executor refuses a
+     *       taken name), no {@code name} (the executor adds a new chart), or a {@code name} no chart holds now — which
+     *       the server then runs as {@code newTab: true}
+     *       ({@link #hostedConstrained}), so a chart created meanwhile is refused rather than replaced.</li>
+     *   <li>{@code CHANGES} — everything else: a delete, a rename, a restore by name or id, and every {@code EDIT} of
+     *       an existing chart — a re-sent notes, series, guides or
+     *       bands set, {@code clearNotes}, a style or a pin. Each is asked; the previous definition is kept in the bin.</li>
+     * </ul>
+     */
+    public static telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallKind hostedCallKind(String verb,
+                                                                                                             Object params,
+                                                                                                             ChartState charts) {
         Map<?, ?> p = params instanceof Map<?, ?> m ? m : Map.of();
         String v = verb == null ? "" : verb;
         switch (v) {
+            case "graph" -> {
+                return switch (graphCall(p, charts)) {
+                    case LIST -> nonMutating();
+                    case SHOW, CREATE_NEW_TAB, CREATE_FREE_NAME -> preAllowed();
+                    case CHANGES -> telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallKind.CHANGES;
+                };
+            }
             case "walk" -> {
                 if (p.containsKey("reel")) return telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallKind.WRITES_FILE;
                 if (Boolean.TRUE.equals(p.get("play")) && Set.of("play", "name", "step").containsAll(keys(p))) return nonMutating();
@@ -160,6 +202,47 @@ public final class McpTools {
             default -> { }
         }
         return telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallKind.CHANGES;
+    }
+
+    /** A hosted {@code graph} call, judged: the one judgement the kind and the server's constraint share. */
+    enum GraphCall { LIST, SHOW, CREATE_NEW_TAB, CREATE_FREE_NAME, CHANGES }
+
+    static GraphCall graphCall(Map<?, ?> p, ChartState charts) {
+        VerbOperations.Chosen<VerbOperations.GraphOp> chosen = VerbOperations.graph(p);
+        if (!chosen.ok()) return GraphCall.CHANGES;
+        return switch (chosen.op()) {
+            case LIST_DELETED -> GraphCall.LIST;
+            case SHOW, CLOSE -> GraphCall.SHOW;
+            case EDIT -> {
+                if (Boolean.TRUE.equals(p.get("newTab"))) yield GraphCall.CREATE_NEW_TAB;
+                Object name = p.get("name");
+                // no name: the executor adds a new chart (graphForAction(null, …)); the server runs it as newTab anyway
+                if (name == null) yield GraphCall.CREATE_FREE_NAME;
+                if (name instanceof String n && !n.isBlank() && charts != null && !charts.holds(n.trim())) {
+                    yield GraphCall.CREATE_FREE_NAME;
+                }
+                yield GraphCall.CHANGES;
+            }
+            default -> GraphCall.CHANGES;
+        };
+    }
+
+    /**
+     * Owner decision 2026-10-18: the input the server dispatches for a hosted call it admitted. A {@code graph} call
+     * admitted without the person's approval because its {@code name} was free runs as {@code newTab: true}, so the
+     * executor refuses it if a chart of that name appeared meanwhile — it creates, or changes nothing; it never replaces.
+     * Every other call is dispatched exactly as sent.
+     */
+    @SuppressWarnings("unchecked")
+    public static Map<String, Object> hostedConstrained(String verb, Map<String, Object> params, ChartState charts) {
+        if (!"graph".equals(verb) || params == null || graphCall(params, charts) != GraphCall.CREATE_FREE_NAME) return params;
+        Map<String, Object> out = new LinkedHashMap<>(params);
+        out.put("newTab", Boolean.TRUE);
+        return out;
+    }
+
+    private static telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallKind preAllowed() {
+        return telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallKind.PRE_ALLOWED;
     }
 
     private static Set<String> keys(Map<?, ?> p) {
@@ -184,9 +267,17 @@ public final class McpTools {
      * here, not in the session package, because a persisting package may not name the overlay verb, D-SP4.)
      */
     public static final java.util.List<String> HOSTED_PRE_ALLOWED = java.util.List.of("read", "aggregate", "series",
-            "context", "coverage", "source", "filter", "goto", "flag", "graph", "topology", "spotlight",
+            "context", "coverage", "source", "filter", "goto", "flag", "topology", "spotlight",
             // M74 P2 (§5.6): non-destructive — it only records an offer; the person answers and the analyser applies
             "propose");
+
+    /**
+     * Owner decision 2026-10-18: the hosted verbs judged CALL BY CALL ({@link #hostedCallKind(String, Object, ChartState)})
+     * — {@code graph}, whose create and show calls are pre-allowed and whose delete, rename, restore and replacement of an
+     * existing chart's definition are asked. Visible in every posture; named in {@code --allowedTools} only where the
+     * mode never asks, and there the server refuses the calls that would need an approval (none can be given).
+     */
+    public static final java.util.List<String> HOSTED_PER_CALL = java.util.List.of("graph");
 
     /**
      * Read-only hint on the query verbs only. The render verbs change what the UI shows, so they are not

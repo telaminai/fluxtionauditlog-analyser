@@ -47,6 +47,7 @@ public final class GraphTabs extends JPanel {
     private final JMenuItem renameItem = new JMenuItem("Rename…");
     private final JMenuItem closeItem = new JMenuItem("Close graph");
     private final JMenuItem deleteItem = new JMenuItem("Delete chart");
+    private final JMenuItem restoreItem = new JMenuItem("Restore deleted chart…");
     private boolean syncingSelector;
     private LogStore store;
     private FilterState filter;
@@ -188,14 +189,18 @@ public final class GraphTabs extends JPanel {
         renameItem.addActionListener(e -> promptRename(tabs.getSelectedIndex()));
         closeItem.addActionListener(e -> closeCurrent());
         deleteItem.addActionListener(e -> deleteCurrent());
+        restoreItem.addActionListener(e -> restoreChosen());
+        restoreItem.setToolTipText("Bring back a deleted chart, or a chart definition a later change replaced");
         // the two buttons say which is which, because one of them is unrecoverable
         closeItem.setToolTipText("Close the graph and keep the chart — reopen it from the Project panel");
-        deleteItem.setToolTipText("Remove the chart's definition from the project, including its notes. Cannot be undone");
+        deleteItem.setToolTipText("Remove the chart from the project, including its notes. It can be restored: deleted "
+                + "charts are kept on this machine");
         JPopupMenu actions = new JPopupMenu();
         actions.add(renameItem);
         actions.add(closeItem);
         actions.addSeparator();
         actions.add(deleteItem);
+        actions.add(restoreItem);
         JButton more = new JButton("More ▾");
         more.setToolTipText("Rename, close or delete the selected graph");
         more.setComponentPopupMenu(actions);
@@ -253,6 +258,7 @@ public final class GraphTabs extends JPanel {
             renameItem.setEnabled(tabs.getSelectedIndex() >= 0);
             closeItem.setEnabled(tabs.getTabCount() > 1);
             deleteItem.setEnabled(definitionRefusal == null && tabs.getSelectedIndex() >= 0);
+            restoreItem.setEnabled(definitionRefusal == null && bin != null && !bin.listing().isEmpty());
         } finally {
             syncingSelector = false;
         }
@@ -525,19 +531,141 @@ public final class GraphTabs extends JPanel {
         for (int i = 0; i < tabs.getTabCount(); i++) {
             if (tabs.getComponentAt(i) instanceof GraphPanel gp) {
                 if (isEmptyPlaceholder(gp)) continue;   // PR #51 review: see deleteConfirmed
-                var notes = gp.notes();
-                List<GraphSpec.NoteSpec> noteSpecs = new ArrayList<>();
-                for (var n : notes.notes()) {
-                    noteSpecs.add(new GraphSpec.NoteSpec(n.atMillis(), n.text(), n.series()));
-                }
-                out.add(new GraphSpec(gp.graphName(), gp.seriesSpecs(), gp.exprSpecs(),
-                        gp.pinnedFrom(), gp.pinnedTo(), gp.caption(),
-                        notes.explanation(), noteSpecs, new ArrayList<>(gp.axes().rightSeries()),
-                        gp.guides(), gp.bandSpecs(), gp.externalSpecs(), gp.markerSpecs(),
-                        gp.styleName()));
+                out.add(specOf(gp));
             }
         }
         return out;
+    }
+
+    /** One open chart's definition, as it would be saved — the one place a panel becomes a {@link GraphSpec}. */
+    public GraphSpec specOf(GraphPanel gp) {
+        var notes = gp.notes();
+        List<GraphSpec.NoteSpec> noteSpecs = new ArrayList<>();
+        for (var n : notes.notes()) {
+            noteSpecs.add(new GraphSpec.NoteSpec(n.atMillis(), n.text(), n.series()));
+        }
+        return new GraphSpec(gp.graphName(), gp.seriesSpecs(), gp.exprSpecs(),
+                gp.pinnedFrom(), gp.pinnedTo(), gp.caption(),
+                notes.explanation(), noteSpecs, new ArrayList<>(gp.axes().rightSeries()),
+                gp.guides(), gp.bandSpecs(), gp.externalSpecs(), gp.markerSpecs(),
+                gp.styleName());
+    }
+
+    /**
+     * Owner decision 2026-10-18: where a deleted or replaced chart definition goes — the chart bin
+     * ({@code ChartBin}, machine-local, per project) — and where a restore takes one from. One port, so the Graph tab's
+     * Restore and {@code graph {restore}} are the same act.
+     */
+    public interface ChartBinPort {
+        /** Keep {@code previous}, which is about to be deleted or was just replaced. */
+        void keep(GraphSpec previous, telamin.fluxtion.audit.analyser.analyser.config.ChartBin.Reason reason);
+
+        /** The entries restorable into this project, newest first ({@code ChartBin.listing}). */
+        List<java.util.Map<String, Object>> listing();
+
+        /** Take one out by id or name, refusing a name {@code taken} says exists ({@code ChartBin.restore}). */
+        telamin.fluxtion.audit.analyser.analyser.config.ChartBin.Restored take(String idOrName,
+                                                                              java.util.function.Predicate<String> taken);
+    }
+
+    /** No bin: nothing is kept and nothing can be restored (a GraphTabs nobody wired). */
+    static final ChartBinPort NO_BIN = new ChartBinPort() {
+        @Override public void keep(GraphSpec previous, telamin.fluxtion.audit.analyser.analyser.config.ChartBin.Reason reason) { }
+        @Override public List<java.util.Map<String, Object>> listing() { return List.of(); }
+        @Override public telamin.fluxtion.audit.analyser.analyser.config.ChartBin.Restored take(String idOrName,
+                java.util.function.Predicate<String> taken) {
+            return new telamin.fluxtion.audit.analyser.analyser.config.ChartBin.Restored(null, "no chart bin here");
+        }
+    };
+
+    /** The bin of {@code config}'s active project — what the frame wires, and what a test can wire around a config. */
+    public static ChartBinPort binOver(java.util.function.Supplier<telamin.fluxtion.audit.analyser.analyser.config.AppConfig> config) {
+        return new ChartBinPort() {
+            @Override public void keep(GraphSpec previous, telamin.fluxtion.audit.analyser.analyser.config.ChartBin.Reason reason) {
+                telamin.fluxtion.audit.analyser.analyser.config.ChartBin.keep(config.get(), previous, reason,
+                        java.time.Instant.now().toString());
+            }
+            @Override public List<java.util.Map<String, Object>> listing() {
+                return telamin.fluxtion.audit.analyser.analyser.config.ChartBin.listing(config.get());
+            }
+            @Override public telamin.fluxtion.audit.analyser.analyser.config.ChartBin.Restored take(String idOrName,
+                    java.util.function.Predicate<String> taken) {
+                return telamin.fluxtion.audit.analyser.analyser.config.ChartBin.restore(config.get(), idOrName, taken);
+            }
+        };
+    }
+
+    private ChartBinPort bin = NO_BIN;
+
+    public void setChartBin(ChartBinPort port) {
+        this.bin = port == null ? NO_BIN : port;
+        syncSelectorSelection();
+    }
+
+    /** What {@code graph {restore: true}} and the Restore item list. */
+    public List<java.util.Map<String, Object>> binListing() {
+        return bin.listing();
+    }
+
+    /**
+     * Restore a chart definition from the bin by id or name, into this project under its name. The outcome carries
+     * the restored chart, or why nothing changed.
+     */
+    public telamin.fluxtion.audit.analyser.analyser.config.ChartBin.Restored restoreFromBin(String idOrName) {
+        if (definitionRefusal != null) {
+            return new telamin.fluxtion.audit.analyser.analyser.config.ChartBin.Restored(null,
+                    "nothing is restored while chart definitions are withheld: " + definitionRefusal);
+        }
+        var restored = bin.take(idOrName, this::hasDefinition);
+        if (restored.ok()) putBack(restored.chart());
+        return restored;
+    }
+
+    /** The definition the project holds for {@code name} now: the open tab's, else the saved one, else null. */
+    public GraphSpec definitionOf(String name) {
+        if (name == null) return null;
+        GraphPanel open = graphNamed(name.trim());
+        if (open != null) return specOf(open);
+        for (GraphSpec saved : savedDefinitions.get()) {
+            if (name.trim().equals(saved.name())) return saved;
+        }
+        return null;
+    }
+
+    /**
+     * After a call changed {@code panel}: when its definition is no longer {@code before}, {@code before} goes to the
+     * bin as REPLACED. A call that changed nothing (a refresh, a re-send of the same set) bins nothing; a chart that held
+     * nothing before has nothing to lose.
+     *
+     * @return whether the previous definition was kept
+     */
+    public boolean keepIfReplaced(GraphSpec before, GraphPanel panel) {
+        if (before == null || panel == null
+                || telamin.fluxtion.audit.analyser.analyser.config.ChartBin.isEmptyDefinition(before)) return false;
+        GraphSpec after = specOf(panel);
+        if (telamin.fluxtion.audit.analyser.analyser.config.ConfigStore.chartDefinitionDigest(before)
+                .equals(telamin.fluxtion.audit.analyser.analyser.config.ConfigStore.chartDefinitionDigest(
+                        after.withName(before.name())))) return false;
+        bin.keep(before, telamin.fluxtion.audit.analyser.analyser.config.ChartBin.Reason.REPLACED);
+        fireChanged();   // the bin is machine state, written with the next save — this is that save
+        return true;
+    }
+
+    /**
+     * Owner decision 2026-10-18: put a restored definition back — saved through {@code restoredListener}, then opened
+     * as a tab when a log is loaded. The caller has already taken it out of the bin and checked its name is free.
+     */
+    void putBack(GraphSpec restored) {
+        if (restored == null) return;
+        restoredListener.accept(restored);
+        if (store != null && definitionRefusal == null) openSaved(restored);
+        fireChanged();
+    }
+
+    private java.util.function.Consumer<GraphSpec> restoredListener = spec -> { };
+
+    public void setRestoredListener(java.util.function.Consumer<GraphSpec> listener) {
+        this.restoredListener = listener == null ? spec -> { } : listener;
     }
 
     /** Rebuild graphs (names + series + formulas + pin) from saved specs (used when a profile is restored). */
@@ -748,9 +876,9 @@ public final class GraphTabs extends JPanel {
     }
 
     /**
-     * 38ecc7f3 — remove the chart's DEFINITION, not just its tab. Destructive and unrecoverable (a chart
-     * carries its explanation and pinned notes, which is the part worth keeping), so it confirms first and
-     * names the chart in the question. Close is the non-destructive neighbour.
+     * 38ecc7f3 — remove the chart's DEFINITION, not just its tab. It confirms first and names the chart in the
+     * question; since 2026-10-18 the definition goes to the chart bin and can be restored. Close is the neighbour that
+     * keeps it in the project.
      */
     /**
      * Asks the person whether to delete the named chart. Replaceable so a test can answer it: the real one
@@ -765,12 +893,46 @@ public final class GraphTabs extends JPanel {
 
     private boolean askWhetherToDelete(String name) {
         return JOptionPane.showConfirmDialog(this,
-                UiText.inert("Delete the chart \"" + name + "\"?\n\n"
-                        + "This removes its definition from the project — series, formulas, notes and the\n"
-                        + "explanation written on it. It cannot be undone.\n\n"
-                        + "To put it away without losing it, use Close graph instead."),
+                UiText.inert(deleteQuestion(name)),
                 "Delete chart", JOptionPane.OK_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE)
                 == JOptionPane.OK_OPTION;
+    }
+
+    /** The delete confirmation's words (owner decision 2026-10-18: a deleted chart can be restored). */
+    static String deleteQuestion(String name) {
+        return "Delete the chart \"" + name + "\"?\n\n"
+                + "This removes it from the project — series, formulas, notes and the explanation\n"
+                + "written on it. It can be restored: deleted charts are kept on this machine (the\n"
+                + "last " + telamin.fluxtion.audit.analyser.analyser.config.ChartBin.CAPACITY
+                + "), and graph {restore} brings one back.\n\n"
+                + "To put it away without deleting it, use Close graph instead.";
+    }
+
+    /** The Restore item: choose one entry of the bin, newest first, and put it back. */
+    private void restoreChosen() {
+        List<java.util.Map<String, Object>> rows = binListing();
+        if (rows.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "No deleted or replaced charts to restore in this project.",
+                    "Restore deleted chart", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+        List<String> labels = new ArrayList<>();
+        for (var row : rows) labels.add(restoreChoice(row));
+        Object[] shown = UiText.inert(labels.toArray());   // SF-2: the choices carry chart names
+        Object choice = JOptionPane.showInputDialog(this, "Restore which chart?", "Restore deleted chart",
+                JOptionPane.QUESTION_MESSAGE, null, shown, shown[0]);
+        int picked = java.util.Arrays.asList(shown).indexOf(choice);
+        if (picked < 0) return;
+        String refused = restoreFromBin(String.valueOf(rows.get(picked).get("id"))).refusal();
+        if (refused != null) {
+            JOptionPane.showMessageDialog(this, UiText.inert(refused), "Restore deleted chart", JOptionPane.WARNING_MESSAGE);
+        }
+    }
+
+    /** One bin entry as the Restore chooser lists it. */
+    static String restoreChoice(java.util.Map<String, Object> row) {
+        return row.get("name") + " — " + ("replaced".equals(row.get("reason")) ? "an earlier definition" : "deleted")
+                + (String.valueOf(row.get("at")).isBlank() ? "" : ", " + row.get("at"));
     }
 
     private void deleteCurrent() {
@@ -813,6 +975,8 @@ public final class GraphTabs extends JPanel {
             return true;
         }
         if (!hasDefinition(target)) return false;
+        GraphSpec saved = definitionOf(target);
+        if (saved != null) bin.keep(saved, telamin.fluxtion.audit.analyser.analyser.config.ChartBin.Reason.DELETED);
         deleteListener.accept(target);   // the saved definition, which is all a closed chart is
         fireChanged();
         return true;
@@ -826,6 +990,12 @@ public final class GraphTabs extends JPanel {
     void deleteConfirmed(int i) {
         if (i < 0 || i >= tabs.getTabCount() || !(tabs.getComponentAt(i) instanceof GraphPanel gp)) return;
         String name = gp.graphName();
+        // owner decision 2026-10-18: the definition goes to the bin, not away — an unused placeholder holds nothing
+        GraphSpec previous = specOf(gp);
+        if (!isEmptyPlaceholder(gp)
+                && !telamin.fluxtion.audit.analyser.analyser.config.ChartBin.isEmptyDefinition(previous)) {
+            bin.keep(previous, telamin.fluxtion.audit.analyser.analyser.config.ChartBin.Reason.DELETED);
+        }
         gp.unbind();
         tabs.removeTabAt(i);
         syncSelectorSelection();

@@ -103,7 +103,29 @@ public final class ActionDispatcher {
     }
 
     @SuppressWarnings("unchecked")
+    /**
+     * P5 (owner decision 2026-10-18): whether the call this thread is serving came from the hosted bridge — transport
+     * metadata, set for the call's own duration; {@code ActionExecutor.caller()} turns it into the caller a policy
+     * names. Never read across threads: a verb reads it before it moves to the event thread.
+     */
+    private static final ThreadLocal<Boolean> SERVING_HOSTED = new ThreadLocal<>();
+
+    /** Whether the call this thread is dispatching is the hosted bridge's. */
+    public static boolean servingHosted() {
+        return Boolean.TRUE.equals(SERVING_HOSTED.get());
+    }
+
     private ActionResult dispatch(Map<?, ?> req, long hostedGeneration) {
+        Boolean previous = SERVING_HOSTED.get();
+        if (hostedGeneration >= 0) SERVING_HOSTED.set(Boolean.TRUE); else SERVING_HOSTED.remove();
+        try {
+            return dispatchServed(req, hostedGeneration);
+        } finally {
+            if (previous == null) SERVING_HOSTED.remove(); else SERVING_HOSTED.set(previous);
+        }
+    }
+
+    private ActionResult dispatchServed(Map<?, ?> req, long hostedGeneration) {
         Object vv = req.get("v");
         int v = vv instanceof Number n ? n.intValue() : SCHEMA_VERSION;
         if (v != SCHEMA_VERSION) return ActionResult.error("unsupported schema version " + v

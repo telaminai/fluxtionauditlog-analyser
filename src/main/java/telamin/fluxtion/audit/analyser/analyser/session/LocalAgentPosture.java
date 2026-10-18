@@ -180,15 +180,43 @@ public record LocalAgentPosture(Kind kind, FullMode fullMode) {
         return !isFull() || fullMode == FullMode.DEFAULT || fullMode == FullMode.ACCEPT_EDITS;
     }
 
-    /** Whether {@code verb} is one the person is asked about, in a posture that asks: the destructive verbs, by name. */
+    /**
+     * Whether a call of {@code verb} may be asked of the person: the destructive verbs, by name, and (owner decision
+     * 2026-10-18) the verbs judged call by call ({@link McpTools#HOSTED_PER_CALL}: {@code graph}).
+     */
     public static boolean askable(String verb) {
+        return verb != null && (McpTools.destructiveVerbs().contains(verb) || perCall(verb));
+    }
+
+    /** Owner decision 2026-10-18: whether {@code verb} is judged call by call — some of its calls asked, the rest not. */
+    public static boolean perCall(String verb) {
+        return verb != null && McpTools.HOSTED_PER_CALL.contains(verb);
+    }
+
+    /**
+     * The verbs hidden, and refused by the session, under a mode that never asks (OD-74.16): the destructive ones. A
+     * per-call verb stays visible there — its create and show calls need no approval — and the server refuses its calls
+     * that would.
+     */
+    public static boolean hiddenWhereNotAsked(String verb) {
         return verb != null && McpTools.destructiveVerbs().contains(verb);
     }
 
     /** The verbs of {@code schemaVerbs} this posture shows the model: the pre-allowed ones, and the askable ones when it asks. */
     public List<String> visibleVerbs(Collection<String> schemaVerbs) {
         List<String> out = new ArrayList<>();
-        for (String v : schemaVerbs) if (preAllowed(v) || asks() && askable(v)) out.add(v);
+        for (String v : schemaVerbs) if (preAllowed(v) || perCall(v) || asks() && askable(v)) out.add(v);
+        return List.copyOf(out);
+    }
+
+    /**
+     * {@code --allowedTools}: the pre-allowed verbs, and — only where the mode never asks — the per-call verbs, whose
+     * calls needing an approval the server then refuses. Where the mode asks, a per-call verb is left out, so every call
+     * of it reaches the analyser as a request and is judged from its input.
+     */
+    public List<String> cliAllowedVerbs(Collection<String> schemaVerbs) {
+        List<String> out = new ArrayList<>();
+        for (String v : schemaVerbs) if (preAllowed(v) || !asks() && perCall(v)) out.add(v);
         return List.copyOf(out);
     }
 
@@ -198,7 +226,7 @@ public record LocalAgentPosture(Kind kind, FullMode fullMode) {
      */
     public List<String> hiddenVerbs(Collection<String> schemaVerbs) {
         List<String> out = new ArrayList<>();
-        for (String v : schemaVerbs) if (!preAllowed(v) && !(asks() && askable(v))) out.add(v);
+        for (String v : schemaVerbs) if (!preAllowed(v) && !perCall(v) && !(asks() && askable(v))) out.add(v);
         return List.copyOf(out);
     }
 
@@ -244,6 +272,7 @@ public record LocalAgentPosture(Kind kind, FullMode fullMode) {
     public static Set<String> expectedHostedTools(Collection<String> schemaVerbs) {
         Set<String> out = new TreeSet<>();
         for (String v : preAllowedVerbs(schemaVerbs)) out.add(toolName(v));
+        for (String v : schemaVerbs) if (perCall(v)) out.add(toolName(v));   // shown in every posture (2026-10-18)
         return out;
     }
 

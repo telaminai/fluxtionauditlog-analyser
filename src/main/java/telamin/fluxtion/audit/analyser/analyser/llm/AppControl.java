@@ -207,6 +207,11 @@ public interface AppControl {
     /** Add a source root; a duplicate is a no-op. Returns false when the path is not a usable root. */
     boolean addSourceRoot(String path);
 
+    /** P5: the open project's root folder — what an assistant's source root must lie inside — or null with none open. */
+    default java.nio.file.Path projectRoot() {
+        return null;
+    }
+
     /** Remove a source root; returns false when it was not configured. */
     boolean removeSourceRoot(String path);
 

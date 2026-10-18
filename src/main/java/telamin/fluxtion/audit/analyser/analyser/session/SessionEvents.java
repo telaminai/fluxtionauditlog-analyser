@@ -1365,7 +1365,10 @@ public final class SessionEvents {
 
     /** What kind of tool a {@code can_use_tool} names — the class the policy of OD-74.16 is decided on (§5.7). */
     public enum ToolClass {
-        /** One of the analyser's hosted destructive verbs ({@code open, source_root, screenshot, report, walk, import}). */
+        /**
+         * One of the analyser's hosted ASKED verbs: the destructive ones ({@code open, source_root, screenshot, report,
+         * walk, import}) and, since 2026-10-18, {@code graph}, judged call by call.
+         */
         HOSTED_DESTRUCTIVE,
         /** Another hosted verb — pre-allowed, so a request for it is an anomaly. */
         HOSTED_OTHER,
@@ -1385,15 +1388,17 @@ public final class SessionEvents {
      * a dialog, a sub-action of an asked verb that changes nothing ({@code walk {play}}, {@code walk {end}}, the bins'
      * listings) — only ever for {@link HostedCallKind#NON_MUTATING}, and the server re-checks the call itself.
      */
-    public enum PermissionBy { PERSON, TIMEOUT, STOP, POLICY, BUSY, TOO_LARGE, CANCELLED, NON_MUTATING }
+    public enum PermissionBy { PERSON, TIMEOUT, STOP, POLICY, BUSY, TOO_LARGE, CANCELLED, NON_MUTATING, PRE_ALLOWED }
 
     /**
      * Review M74 usability #10 (2026-10-17): what a hosted call of an asked verb does, classified by the adapter from the
      * input it holds ({@code McpTools.hostedCallKind}) — never its words. {@code NON_MUTATING}: a sub-action that changes
      * nothing stored (playing or ending a walk, listing a bin); {@code WRITES_FILE}: it writes a file in the exchange
-     * folder (a screenshot, a report's PDF or CSV, a bundle, a walk's reel); {@code CHANGES}: everything else.
+     * folder (a screenshot, a report's PDF or CSV, a bundle, a walk's reel); {@code PRE_ALLOWED} (owner decision
+     * 2026-10-18): a call of a verb judged call by call ({@code graph}) that the pre-allow list covers — it creates a new
+     * chart or changes only the view, never an existing chart's stored definition; {@code CHANGES}: everything else.
      */
-    public enum HostedCallKind { CHANGES, NON_MUTATING, WRITES_FILE }
+    public enum HostedCallKind { CHANGES, NON_MUTATING, WRITES_FILE, PRE_ALLOWED }
 
     /**
      * Review M74 usability #10a: whether the assistant's file exchange (Settings ▸ Assistant) is on — the frame's

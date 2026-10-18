@@ -62,7 +62,11 @@ public final class ProposalPreview {
         boolean outside = real == null || !real.startsWith(base);
         if (outside) return new Checked(i.itemId(), "OUTSIDE", true, null);
         return switch (i.kind()) {
-            case "sourceRoot" -> Files.isDirectory(real)
+            case "sourceRoot" -> telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.tier1(real,
+                    telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.home()) != null
+                    // P5: never the home folder or a credential folder, whatever the set-up folder is
+                    ? new Checked(i.itemId(), "SECRET_FOLDER", false, "SECRET_FOLDER")
+                    : Files.isDirectory(real)
                     ? new Checked(i.itemId(), "DIRECTORY (" + javaFiles(real) + " .java files)", false, null)
                     : new Checked(i.itemId(), "NOT_A_DIRECTORY", false, "WRONG_TYPE");
             case "graphml" -> Files.isRegularFile(real) && name(real).endsWith(".graphml")

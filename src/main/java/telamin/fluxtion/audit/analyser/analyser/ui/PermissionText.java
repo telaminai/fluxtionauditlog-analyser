@@ -38,6 +38,20 @@ public final class PermissionText {
 
     /** The dialog's words for request {@code p}, of class {@code cls} with vocabulary name {@code name}. */
     public static Content of(LocalAgentTranscript.Permission p, ToolClass cls, String name) {
+        return of(p, cls, name, null, false);
+    }
+
+    /**
+     * {@link #of(LocalAgentTranscript.Permission, ToolClass, String)} with the open project's root (or null), so a
+     * {@code source_root} call can say a folder is outside this project (P5, owner decision 2026-10-18).
+     */
+    public static Content of(LocalAgentTranscript.Permission p, ToolClass cls, String name, java.nio.file.Path projectRoot) {
+        return of(p, cls, name, projectRoot, true);
+    }
+
+    /** {@code projectKnown}: whether {@code projectRoot} (null for none open) is the frame's answer, or nobody asked. */
+    private static Content of(LocalAgentTranscript.Permission p, ToolClass cls, String name, java.nio.file.Path projectRoot,
+                              boolean projectKnown) {
         if (p == null) {
             String tool = name == null ? "a tool" : cls == ToolClass.HOSTED_DESTRUCTIVE || cls == ToolClass.HOSTED_OTHER
                     ? McpTools.PREFIX + name : visible(name).text();
@@ -52,7 +66,7 @@ public final class PermissionText {
         if (cls == ToolClass.HOSTED_DESTRUCTIVE && name != null) {
             // review M74 usability #6: what THIS call does, from its own input — the verb's general rationale only when
             // the input says nothing more specific; the exact input is still shown below, unchanged
-            Call call = hostedCall(name, params);
+            Call call = hostedCall(name, params, projectRoot, projectKnown);
             title = call == null ? "Claude Code asks to run " + McpTools.PREFIX + name : "Claude Code asks to " + call.what();
             changes = call == null ? McpTools.destructiveRationale(name) : call.consequence();
         } else {
@@ -103,6 +117,22 @@ public final class PermissionText {
     }
 
     private static final String RESTORABLE = "It can be restored: it moves to this project's recently deleted list.";
+    private static final String CHART_RESTORABLE = "Its definition — series, formulas, notes and explanation — moves to "
+            + "this project's recently deleted charts; graph {restore} brings it back.";
+
+    /** The parts of a chart's definition a graph call sets, in words, in the schema's order. */
+    static String graphFields(java.util.Map<?, ?> p) {
+        java.util.List<String> parts = new java.util.ArrayList<>();
+        String[][] words = {{"series", "its series"}, {"exprs", "its formulas"}, {"style", "its style"},
+                {"explanation", "its explanation"}, {"notes", "its pinned notes"}, {"clearNotes", "its pinned notes (cleared)"},
+                {"rightAxis", "its right axis"}, {"from", "its pinned window"}, {"to", "its pinned window"},
+                {"external", "its external series"}, {"markers", "its markers"}, {"guides", "its guides"},
+                {"bands", "its bands"}, {"rationale", "its caption"}};
+        for (String[] w : words) {
+            if (p.containsKey(w[0]) && !parts.contains(w[1])) parts.add(w[1]);
+        }
+        return parts.isEmpty() ? "what the call sets" : String.join(", ", parts);
+    }
     private static final String EXCHANGE = " in the exchange folder; an existing file is never overwritten.";
 
     /**
@@ -110,8 +140,37 @@ public final class PermissionText {
      * schema names; null when the input names none (the general rationale is shown then).
      */
     static Call hostedCall(String verb, java.util.Map<?, ?> p) {
+        return hostedCall(verb, p, null, false);
+    }
+
+    static Call hostedCall(String verb, java.util.Map<?, ?> p, java.nio.file.Path projectRoot, boolean projectKnown) {
         Object name = p.get("name");
         switch (verb) {
+            case "graph" -> {
+                // owner decision 2026-10-18: VerbOperations.graph — the executor's own choice. A delete or a replacement
+                // keeps the previous definition in the chart bin, and the sentence says so
+                var chosen = telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.graph(p);
+                if (!chosen.ok()) return null;
+                String chart = name == null ? "a new chart" : "the chart " + q(name);
+                return switch (chosen.op()) {
+                    case DELETE -> new Call("delete " + chart + " (it can be restored)", CHART_RESTORABLE);
+                    case EDIT -> Boolean.TRUE.equals(p.get("newTab")) || name == null
+                            ? new Call("create " + chart, "A new chart is added; no existing chart changes.")
+                            : new Call("replace " + chart + " (its old definition can be restored)",
+                            "It changes the saved chart's definition — " + graphFields(p) + ". The definition it had "
+                                    + "before is kept in this project's recently deleted charts; graph {restore} brings "
+                                    + "it back.");
+                    case RENAME -> new Call("rename " + chart + " to " + q(p.get("rename")),
+                            "The chart keeps its definition; only its name changes.");
+                    case RESTORE -> new Call("restore the chart " + q(p.get("restore")),
+                            "It comes back into this project under its name; a chart that has the name now is never "
+                                    + "replaced.");
+                    case LIST_DELETED -> new Call("list the deleted and replaced charts", "It changes nothing.");
+                    case CLOSE -> new Call("close " + chart, "Its definition is kept; it can be reopened.");
+                    case SHOW -> new Call("show " + chart, "It changes nothing saved.");
+                    case INVALID -> null;
+                };
+            }
             case "walk" -> {
                 // final review #2: the operation is WalkVerb.choose's — the executor's own choice — and a flag the
                 // executor requires to be true (delete, play, end) is judged as it judges it
@@ -214,7 +273,10 @@ public final class PermissionText {
             }
             case "source_root" -> {
                 if (has(p, "add") || has(p, "remove")) {
-                    return new Call((has(p, "add") ? "add the source folder(s) " + q(p.get("add")) : "")
+                    // P5 (owner decision 2026-10-18): SourceRootPolicy's verdict for Claude Code, in the sentence — a
+                    // folder outside this project is still the person's call; a secret folder is refused whatever
+                    String where = sourceRootWhere(p.get("add"), projectRoot, projectKnown);
+                    return new Call((has(p, "add") ? "add the source folder(s) " + q(p.get("add")) + where : "")
                             + (has(p, "add") && has(p, "remove") ? " and " : "")
                             + (has(p, "remove") ? "remove the source folder(s) " + q(p.get("remove")) : ""),
                             "Saved in your settings: the analyser reads source from these folders.");
@@ -232,6 +294,24 @@ public final class PermissionText {
                 return null;
             }
         }
+    }
+
+    /** What SourceRootPolicy says of the folders a hosted {@code source_root {add}} names, as words after them. */
+    static String sourceRootWhere(Object add, java.nio.file.Path projectRoot, boolean projectKnown) {
+        if (add == null) return "";
+        java.util.List<Object> paths = add instanceof java.util.List<?> l ? new java.util.ArrayList<>(l) : java.util.List.of(add);
+        boolean outside = false;
+        boolean refused = false;
+        for (Object o : paths) {
+            if (!(o instanceof String s) || s.isBlank()) continue;
+            var v = telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.decide(java.nio.file.Path.of(s),
+                    telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.home(), projectRoot,
+                    telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.Caller.HOSTED_CLAUDE_CODE);
+            if (!v.allowed()) refused = true;
+            else if (v.outsideProject()) outside = true;
+        }
+        if (refused) return " — refused whatever you answer: your home folder or a credential folder";
+        return outside && projectKnown ? " — outside this project" : "";
     }
 
     /** A person's own tool, in words where its input says what it does; null otherwise. */

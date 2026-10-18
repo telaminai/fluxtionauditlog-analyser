@@ -581,7 +581,10 @@ public final class SettingsShare {
             SavedGraphMerge.requireUniqueNames(plan.graphs());
         }
         if (selected.contains(Category.SOURCE_ROOTS) && plan.sourceRoots() != null) {
-            addAllMissing(target.sourceRoots, plan.sourceRoots());
+            // P5 (owner decision 2026-10-18): a profile or a shared settings file cannot carry in the home folder or a
+            // credential folder — tier 1 holds whatever opened it
+            addAllMissing(target.sourceRoots, SourceRootPolicy.keepAllowed(plan.sourceRoots(),
+                    homeDir.isEmpty() ? SourceRootPolicy.home() : java.nio.file.Path.of(homeDir), null));
             if (plan.workspaceRoot() != null) target.workspaceRoot = plan.workspaceRoot();   // M38.6
         }
         if (selected.contains(Category.MAVEN_REPOS) && plan.present().contains(Category.MAVEN_REPOS)) {
@@ -599,6 +602,14 @@ public final class SettingsShare {
             }
         }
         if (selected.contains(Category.GRAPHS) && plan.graphs() != null) {
+            // owner decision 2026-10-18: a chart an import replaces by name keeps its previous definition in the bin
+            String now = java.time.Instant.now().toString();
+            for (GraphSpec g : plan.graphs()) {
+                GraphSpec existing = ChartBin.find(target.savedGraphs, g.name());
+                if (existing != null && !ConfigStore.chartDefinitionDigest(existing).equals(ConfigStore.chartDefinitionDigest(g))) {
+                    ChartBin.keep(target, existing, ChartBin.Reason.REPLACED, now);
+                }
+            }
             mergeGraphsByName(target.savedGraphs, plan.graphs());
         }
         if (selected.contains(Category.GRAPHS) && plan.focuses() != null) {

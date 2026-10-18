@@ -76,6 +76,14 @@ public final class LocalAgentAdapter {
          * not only the posture reference. No default: an environment must say what it trusts.
          */
         List<String> fullTrustRecords();
+
+        /**
+         * Owner decision 2026-10-18: the charts that exist now, so a {@code graph} call that creates a chart is told apart
+         * from one that replaces an existing chart's definition. The default knows none, so every such call is asked.
+         */
+        default telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.ChartState charts() {
+            return null;
+        }
     }
 
     /** Time and delays: real in the application, virtual in the tests. */
@@ -593,7 +601,7 @@ public final class LocalAgentAdapter {
         if (named.toolClass() == SessionEvents.ToolClass.HOSTED_DESTRUCTIVE && judged.showable()) {
             try {
                 kind = telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.hostedCallKind(named.name(),
-                        telamin.fluxtion.audit.analyser.analyser.llm.Json.parse(r.inputRaw()));
+                        telamin.fluxtion.audit.analyser.analyser.llm.Json.parse(r.inputRaw()), env.charts());
             } catch (RuntimeException unreadable) {
                 kind = SessionEvents.HostedCallKind.CHANGES;     // unreadable: asked, as before
             }
@@ -656,7 +664,8 @@ public final class LocalAgentAdapter {
      * analyser's node said — never "the posture". The words are also what a screen reader speaks for the line.
      */
     static String markWords(boolean allow, SessionEvents.PermissionBy by, String message) {
-        if (allow) return by == SessionEvents.PermissionBy.NON_MUTATING ? "allowed: it changes nothing" : "approved by you";
+        if (allow) return by == SessionEvents.PermissionBy.NON_MUTATING ? "allowed: it changes nothing"
+                : by == SessionEvents.PermissionBy.PRE_ALLOWED ? "allowed: it creates or shows a chart" : "approved by you";
         if ((by == null || by == SessionEvents.PermissionBy.POLICY) && message != null) {
             if (message.equals(telamin.fluxtion.audit.analyser.analyser.session.node.LocalAgentPermission.DENIED_DEFAULT_POSTURE)) {
                 return "denied: not allowed in Safe analysis";
@@ -681,7 +690,7 @@ public final class LocalAgentAdapter {
             case TOO_LARGE -> "denied: too large to show you in full";
             case CANCELLED -> "withdrawn by Claude Code";
             case POLICY -> "denied by the analyser's settings";
-            case NON_MUTATING -> "denied";
+            case NON_MUTATING, PRE_ALLOWED -> "denied";
         };
     }
 

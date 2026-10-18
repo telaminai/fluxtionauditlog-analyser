@@ -106,6 +106,13 @@ the line under it says what it is doing: *Requesting*, *Running action n*, *Comp
 - **Budgets.** A turn stops at the per-reply action cap, the round limit, or its own per-turn action budget (Settings ▸
   Assistant), and says which.
 - **With no log open**, `context`, `topology` and the source verbs still work; verbs that read records refuse by name.
+- **Source roots inside the project only.** `source_root {add}` from the in-app assistant is refused for a folder
+  outside the open project (*"add this folder yourself in Settings ▸ Sources"*), and for any caller for your home
+  folder or a credential folder. Claude Code in the tab is asked instead, and its dialog says *"outside this project"*.
+- **No approval dialog — so what it changes can be undone.** The in-app assistant runs its verbs without asking you;
+  what keeps a mistake recoverable is that a deleted chart, report or walk, and a chart whose definition a call
+  replaced, go to this machine's bins: *More → Restore deleted chart…* on the Graph tab, *Restore deleted…* on the
+  Reports tab, or `graph {restore}`, `report {restore}`, `walk {restore}`.
 - **When the workspace changes** — you open another project, log or graph — a turn in progress stops, and even a
   completed conversation is kept for reading. Start a **New chat** to ask about what is open now: its history is not sent as if
   it described the new workspace. The assistant's own `open` is expected, and continues.
@@ -198,8 +205,11 @@ administrator lock yet ([For administrators](#for-administrators)).
 - the folder's **`CLAUDE.md`**, and **Read, Grep and Glob confined to the folder** (a symbolic link pointing outside it
   is refused too);
 - the analyser's **verbs that only read or change the view** — `read`, `aggregate`, `series`, `context`, `coverage`, `source`, `filter`,
-  `goto`, `flag`, `graph`, `topology`, `spotlight` — approved without asking; deleting a chart's definition
-  (`graph {delete}`) is refused; and **`propose`**, which only Claude Code in the tab is offered: it records a set-up
+  `goto`, `flag`, `topology`, `spotlight` — approved without asking; **`graph`**, judged call by call: creating a chart
+  or showing one is approved without asking, while deleting, renaming or restoring a chart, or replacing an existing
+  chart's definition (re-sent notes, series, guides or bands; `clearNotes`) is **asked of you** — the dialog says
+  *"Delete the chart “x” (it can be restored)"* or *"Replace the chart “x” (its old definition can be restored)"*; and
+  **`propose`**, which only Claude Code in the tab is offered: it records a set-up
   offer and changes nothing ([below](#set-up-a-project-with-claude));
 - the verbs that change what is open or write files — `open`, `source_root`, `screenshot`, `report`, `walk`, `import` —
   **each call asked of you first** ([Approvals in the analyser](#approvals-in-the-analyser), below), except the few
@@ -292,8 +302,8 @@ cut — the box scrolls.
 - **An approval covers one call.** For the analyser's own verbs, *Allow once* lets exactly that call through — the same
   verb, the same input, the same turn — once, within 60 s; the analyser refuses any other call of those verbs, whoever
   approved it. The call still meets every other rule: `report` and `screenshot` write only inside the exchange
-  folder when file exchange is on, `open {project, create}` needs *Allow the assistant to create projects*, and
-  `graph {delete}` is never available.
+  folder when file exchange is on, and `open {project, create}` needs *Allow the assistant to create projects*. Under
+  a Full Claude Code mode that never asks (`auto`, `plan`), a `graph` call that would need your approval is refused.
 - **What is asked.** In Safe analysis only those verbs are ever asked (nothing else asks there). With
   full Claude Code in `default` or `acceptEdits`, whatever your Claude Code would ask you in a terminal is asked here:
   Bash commands (the command shown verbatim), file edits and writes (`acceptEdits` does not ask about edits in the
@@ -453,8 +463,12 @@ drive the same verbs:
   plots discrete events as glyphs (buys ▲ / sells ▼ on a price line) with a payload — an order id —
   on hover, and clicking a marker selects its record.
 - **graph {name, delete: true}** — remove a chart's definition. Charts accumulate the way reports
-  used to: a probe built to check an expression resolves is still in the profile a week later. Not
-  recoverable.
+  used to: a probe built to check an expression resolves is still in the profile a week later. It can
+  be restored: the definition moves to this machine's chart bin, as does the previous definition of a
+  chart a later call replaced.
+- **graph {restore: true}** / **graph {restore: "name or id"}** — list the chart bin (each entry with an
+  id, its name, whether it was deleted or replaced, and when), or bring one back into the project under its
+  name. Restoring never replaces a chart that has the name now.
 - **graph {name, close: true}** — take a chart off the screen and keep its definition, the way *Close
   graph* does. For a chart worth keeping; a closed probe still sits in the profile, so delete those.
 - **goto** — select a record (by index, byte offset or `at` time); `reveal:true` un-hides one the current filter is hiding.
@@ -942,7 +956,9 @@ would simply stall the session.
 `aggregate`, `read`, `series`, `context`, `coverage` and `source` are marked read-only (`source` rereads XML or Java
 under your source roots, and moves the transient source view). The verbs that only change what the app shows are
 reversible and marked accordingly. Six are marked **destructive**, so a client can prompt before running them: `open`
-replaces the loaded log (taking the session's flags with it), `source_root` writes the persisted config, `screenshot`
+replaces the loaded log (taking the session's flags with it), `source_root` writes the persisted config (never the home
+folder or a credential folder — `~/.ssh`, `~/.aws`, `~/.config`, `~/.gnupg`, and `~/.m2` itself but not
+`~/.m2/repository` — whoever calls), `screenshot`
 and `report` write files, `walk` can replace a saved walk by name (and `walk {reel}` writes an HTML file), and `import`
 merges a bundle's saved state into your project. A further verb, `propose`, is offered **only** to Claude Code in the
 Assistant tab ([Set up a project with Claude](#set-up-a-project-with-claude)), never to an external client.
