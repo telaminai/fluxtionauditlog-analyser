@@ -313,6 +313,32 @@ class StarterProjectTest {
         }
     }
 
+    @Test
+    void partialSkillWriteDoesNotClaimNothingWasAdded(@org.junit.jupiter.api.io.TempDir java.nio.file.Path tmp) throws Exception {
+        var skills = java.nio.file.Files.createDirectories(tmp.resolve(".claude/skills/spring-authoring"));
+        java.nio.file.Files.writeString(skills.resolve("reference"), "DEMO blocks the support directory");
+        var report = new telamin.fluxtion.audit.analyser.analyser.template.StarterSkills().vendor(tmp, "spring", "embedded");
+        assertNotNull(report.refusal(), "the real writer must encounter the blocked directory");
+        assertFalse(report.written().isEmpty(), "earlier skills really were added before the failure");
+        assertTrue(java.nio.file.Files.isRegularFile(tmp.resolve(".claude/skills/add-a-node/SKILL.md")));
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = LocalAgentSessionTest.driver(a);
+        var start = OnboardingProposalTest.admitted(d, a);
+        catalogueRead(d);
+        String id = proposeAndPreview(d, a, start);
+        d.post(new SessionEvents.StarterDestinationChosen(id, id + ".1", REFS.put("/work/DEMO"), "DEMO"));
+        d.post(new SessionEvents.ProposalApplyRequested(id, List.of(id + ".1"), false));
+        long req = of(a, SessionEffects.DownloadStarterEffect.class).get(0).request();
+        d.post(new SessionEvents.StarterInstalled(req, REFS.put("/work/DEMO"), "DEMO", true, 0));
+        d.post(new SessionEvents.SkillsVendored(req, report.written(), report.kept(), report.digests(),
+                FactWords.withoutPaths(report.refusal())));
+        assertFalse(d.snapshot().starter().note().contains("No skills were added"),
+                "a partial write must not be reported as zero writes");
+        assertTrue(d.snapshot().starter().note().contains("incomplete"), d.snapshot().starter().note());
+        assertEquals(d.snapshot().starter().note(), a.lastStatus, "the partial outcome is presented, not only stored");
+        assertEquals("DISCOVERING", d.snapshot().starter().phase(), "the existing continue-without-skills policy is unchanged");
+    }
+
     /**
      * ★ One template home. Witness: give the menu its own download (request DownloadStarterEffect from
      * {@code onMenuRequested}) — the picker and form steps are skipped and the order fails.

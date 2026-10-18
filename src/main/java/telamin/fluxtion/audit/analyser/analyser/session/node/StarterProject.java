@@ -344,7 +344,8 @@ public class StarterProject implements EventLogSource {
         // a refused skill set is said, and the project still opens: the skills are an addition, never the starter
         note = e.refusal() == null ? "Added " + vendored.size() + " skill(s) under .claude/skills"
                 + (kept.isEmpty() ? "" : "; kept " + kept.size() + " already there")
-                : "No skills were added: " + safe(e.refusal());
+                : "Adding skills was incomplete; some files may remain: " + safe(e.refusal());
+        if (e.refusal() != null) effects.request(new SessionEffects.ShowStatusEffect(0L, note));
         phase = "DISCOVERING";
         auditLog.info("starterSkills", e.refusal() == null ? "WRITTEN" : "REFUSED").info("written", vendored.size())
                 .info("kept", kept.size());

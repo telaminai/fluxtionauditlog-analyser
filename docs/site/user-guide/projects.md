@@ -96,6 +96,9 @@ creates the project itself, and it never names a folder.
    `./validate.sh`, `./generate.sh`) and whether they need a Fluxtion API key. A starter with no such record keeps
    the placeholder. `.claude/skills/.vendored.json` lists each file's pinned source digest and its written digest,
    and marks the substituted file.
+   Filesystem writes are not transactional: a failure can leave some skill files without a new digest record.
+   The status reports incomplete installation; inspect those files before relying on the skill set. Existing files
+   and an existing digest record are never overwritten. The project review still proceeds.
 4. **One review.** What opening the project puts in force: with the starter's own profile, one row opens it (its source
    roots, processor and runbooks named); without one, each discovered source root and skill is a row. Every row
    starts at No except the Spring design folder (`src/main/fluxtion/designer`), which is pre-ticked: it is inside the

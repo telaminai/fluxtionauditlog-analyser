@@ -442,6 +442,8 @@ class StarterProposalFrameTest {
                 List.of(), List.of(), "src/main/fluxtion/designer", false);
         onEdt(() -> made.set(StarterReviewDialog.content(unticked)));
         onEdt(() -> assertFalse(made.get().designYes.isSelected(), "the node's decision, not the dialog's"));
+        assertFalse(text(made.get().panel).contains("its skills are written"),
+                "the review must not claim successful skills when none were written");
     }
 
     static SessionSnapshot snapshot(MainFrame f) throws Exception {
