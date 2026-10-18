@@ -34,29 +34,32 @@ rule (#113); PR #88 bundle import off the event thread and working-copy reaping 
 #85); PR #107 MG-1 mutation-gate iteration; PR #105 EDT-fault and native-input test guards; PR #123 the assistant's
 settings-save redraw, pinned (supersedes #78). [Release receipt](../handoff/release_analyser_1_32_0_2026_10_06.md).
 
-_Refreshed 2026-10-17 for M74 (owner)._ The 2026-10-06 order above is superseded by this one.
+_Refreshed 2026-10-18 (owner)._ The 2026-10-17 order is superseded by this one. **Two tracks:** innovation now;
+thorough review and shipping later, **on the owner's schedule**. Gates: quick checks per branch, the full gates once on
+the integration branch. The stack, every branch and its evidence: [review map](../handoff/review_map_integration_2026_10_18.md).
 
-1. **Finish M74** — the owner's hands-on UI test, a final fix round, then the stacked merge #146 → #145 → #147 →
-   P2 → P3 (owner-run), and the release with the "full token no longer on the console" note for external clients.
-2. **[DOCS-IA]** the task-first docs restructure, then the **Telamin Canvas / Telamin AI rename** as one PR.
-3. **M74 follow-ups (owner-approved):** the spec split; `LocalAgentWiring`; the CLI-drift canary and managed-settings
-   probe; the Anthropic terms check (OD-74.2) and a one-page security model, both gating any customer-facing Claude
-   Code release; Windows (#148).
-4. **Virgin-LLM cycles through the M74 onboarding** (protocol on branch `docs/m74-virgin-onboarding-pack`)
-   — T4 authoring first, T5 as the external-loop regression gate.
-5. **M75** document renderer (spec r2 on branch `docs/m75-document-renderer`) once its owner decisions are answered.
-6. **Assurance debt on shipped work:** PR #70 (M70 replay's whole-feature review) and #119 (bundles on filesystems
-   without `fcntl` locks).
-7. **Owner decisions that unblock the most:** M70 vs Mongoose replay; branch protection requiring `mutation-gate`;
-   M44.6; #74; BETA-B3; M39; M34.5; AF-8/AF-9 and OD-5; O2.
-8. **Raised by M74:** M48.17 (the canvas thesis is now the product thesis — read it before the docs' *Build with
-   Claude* section); M72 (authoring token cost); M46.1 (coded diagnostics, also needed by compiler#106).
-9. **Small correctness items, ready now:** N2; OBL-1, OBL-2; #143; #149; the restart checker's path aliases; feedback
-   36 and 42; the open evidence-bundle items below.
-10. **Then the rest of the earlier order:** OA acceptance; the beta (B4, BETA-8); the tool agreement (TA-5b, TA-5c,
-    TA-9, TA-B); SG-2's hosted half, M67 (re-scope against packs first), M33.6; the Mongoose audit format phases 2–3;
-    M34.4/.5 and the small remnants; the C++ target's compiler issues (compiler#106–#109) — not analyser work, but
-    they gate a public C++ preview; and the cross-repo asks.
+1. **Integration** — one branch from P3 (`a875fcba`, [#151](https://github.com/telaminai/fluxtionauditlog-analyser/pull/151) / [#156](https://github.com/telaminai/fluxtionauditlog-analyser/pull/156)) with the four fix branches, M77-1/-2/-3/-5
+   (#157, #159, #162, #161), M78 D1 (#163), the scorecard (#160), the spec branches (`docs/m77-ai-setup-wizard`, #158,
+   #164, #154), M77-4 and M78 D2 when built; the docs restructure (#152, `b1c22704`) reconciled; the full gates once.
+2. **Owner test and review** — the owner's hands-on test of the integration build, then the integration review
+   ([brief](../handoff/brief_review_integration_2026_10_18.md)); reviewers fix unless a redesign is needed.
+3. **M79** the first minute — M79-1 … M79-5 below.
+4. **M76 slice 1** — the criterion chip and the before/after run comparison (#154).
+5. **The colleague extension of Settings share** (M79 spec §13; amends [the Settings share spec](completed/spec-settings-share.md)).
+
+**Shipping track (owner-scheduled):** the M74 stacked merge #146 → #145 → #147 → #150 → #151 (#156) and the release,
+whose notes carry the "full token no longer on the console" note and M77-3's new confirmation before external access
+turns on; [DOCS-IA], then the Telamin Canvas / Telamin AI rename as one PR; OD-74.2 and a one-page security model
+before any customer-facing Claude Code release.
+
+**Carried from the 2026-10-17 order:** M74 follow-ups (the spec split; `LocalAgentWiring`; the CLI-drift canary and
+managed-settings probe; Windows, #148) · virgin-LLM cycles (#155; T4 authoring first, T5 the external-loop gate) ·
+M75 (#153) once its owner decisions are answered · assurance debt (#70, #119) · owner decisions (M70 vs Mongoose
+replay; branch protection requiring `mutation-gate`; M44.6; #74; BETA-B3; M39; M34.5; AF-8/AF-9 and OD-5; O2) ·
+M48.17, M72, M46.1 · small correctness items (N2; OBL-1, OBL-2; #143; #149; the restart checker's path aliases;
+feedback 36 and 42; the evidence-bundle items) · then OA acceptance, the beta (B4, BETA-8), TA-5b/5c/9/B, SG-2's
+hosted half, M67, M33.6, the Mongoose audit format phases 2–3, M34.4/.5 and the C++ target's compiler issues
+(compiler#106–#109).
 
 ---
 
@@ -126,7 +129,7 @@ _Refreshed 2026-10-17 for M74 (owner)._ The 2026-10-06 order above is superseded
 - ☑ ~~**(owner)** the menu's name (shipped as `AI`)~~ — superseded by the Telamin AI rename (owner, 2026-10-17). ☐ **(owner)** D-AI9 wording addendum. ▸ detail: *M43*.
 
 ### M74 · Claude Code as the analyser's assistant ([spec](spec-claude-code-provider.md), r15)
-- [M74] ☑ P0, P0b protocol probes (2026-10-16). ◐ **P1a implemented** on `feature/claude-code-provider` (default posture, off by default; spec ▸ Implementation notes); two independent reviews closed; **live smoke passed** 2026-10-16 ([report](evidence/m74-p1a-smoke/SMOKE-report.md): bridge bound in 1.0 s, the §5.4 probes answered, two defects fixed) — **acceptance open:** Windows (§11), the owner's visual check of the tab and Settings on the built jar, the frame suites in CI. Owner decision 2026-10-16: `@path` mentions allowed, `!`/`#` kept refused. ◐ **P1b implemented** on `feature/claude-code-p1b` (full posture behind its own switch and warning; optional spend limit, off by default, OD-74.24); probes PB-1…4 run 2026-10-17 ([report](evidence/m74-p1b/PB-report.md), US$0.24: `auto` is model-dependent) live smoke 2026-10-17 ([report](evidence/m74-p1b-smoke/SMOKE-report.md)) and re-smoke after the review's 14 fixes (warm start fixed and passing live) — **acceptance open:** the owner's visual check. ◐ **P2a implemented** on `feature/claude-code-p2` (r10: the start-page prompt with the built-in list and dropped prompt packs, the Ask catalogue with no pop-up, transcript presentation, the full-posture cue; spec ▸ Implementation notes (P2a)); the configurable list is deferred by the owner until after P3. ◐ **P2b implemented** on `feature/claude-code-p2` after merging P1b (r11: `propose` onboarding, the simplified Move, conversation v2, the carried items, prompt-pack example entries OD-74.29/.30; spec ▸ Implementation notes (P2b)) — **acceptance open:** review, the owner's visual check; the handoff report and a Telamin example catalogue are deferred ◐ **P3 implemented** on `feature/claude-code-p3` (r12: probes P3-0…6 run on the real bridge, [report](evidence/m74-p3/P3-report.md); the permission dialog, single-use server-side grants, the scorecard's R1/R2/R5–R8; the preview labels removed; live smoke passed, [report](evidence/m74-p3-smoke/SMOKE-report.md)) — **acceptance open:** the owner's local UI test, then agent reviews.
+- [M74] ☑ P0, P0b protocol probes (2026-10-16). ◐ **P1a implemented** on `feature/claude-code-provider` (default posture, off by default; spec ▸ Implementation notes); two independent reviews closed; **live smoke passed** 2026-10-16 ([report](evidence/m74-p1a-smoke/SMOKE-report.md): bridge bound in 1.0 s, the §5.4 probes answered, two defects fixed) — **acceptance open:** Windows (§11), the owner's visual check of the tab and Settings on the built jar, the frame suites in CI. Owner decision 2026-10-16: `@path` mentions allowed, `!`/`#` kept refused. ◐ **P1b implemented** on `feature/claude-code-p1b` (full posture behind its own switch and warning; optional spend limit, off by default, OD-74.24); probes PB-1…4 run 2026-10-17 ([report](evidence/m74-p1b/PB-report.md), US$0.24: `auto` is model-dependent) live smoke 2026-10-17 ([report](evidence/m74-p1b-smoke/SMOKE-report.md)) and re-smoke after the review's 14 fixes (warm start fixed and passing live) — **acceptance open:** the owner's visual check. ◐ **P2a implemented** on `feature/claude-code-p2` (r10: the start-page prompt with the built-in list and dropped prompt packs, the Ask catalogue with no pop-up, transcript presentation, the full-posture cue; spec ▸ Implementation notes (P2a)); the configurable list is deferred by the owner until after P3. ◐ **P2b implemented** on `feature/claude-code-p2` after merging P1b (r11: `propose` onboarding, the simplified Move, conversation v2, the carried items, prompt-pack example entries OD-74.29/.30; spec ▸ Implementation notes (P2b)) — **acceptance open:** review, the owner's visual check; the handoff report is ☑ ~~deferred~~ **replaced by M76's investigation checkpoint** (2026-10-17); a Telamin example catalogue is deferred ◐ **P3 implemented** on `feature/claude-code-p3` (r12: probes P3-0…6 run on the real bridge, [report](evidence/m74-p3/P3-report.md); the permission dialog, single-use server-side grants, the scorecard's R1/R2/R5–R8; the preview labels removed; live smoke passed, [report](evidence/m74-p3-smoke/SMOKE-report.md)) — **acceptance open:** the owner's local UI test, then agent reviews.
 - [M74] ◐ **UX unification implemented** on `feature/claude-code-p3` (r13, owner 2026-10-17: one start-page surface, one assistant panel in two modes, the profile overlay, Settings ▸ Assistant by profile; P3 leftovers a–d; spec ▸ Implementation notes (UX)) — **acceptance open:** the owner's visual check; the docs site's screenshots regenerated (`tools/capture-docs.py`); the rename to Telamin Canvas / Telamin AI is a separate later PR · P4 managed policy · P5 conversation log.
 - [M74] ◐ **r14: the three final reviews fixed** on `feature/claude-code-p3` (disposition tables in `docs/handoff/review_m74_final_*_2026-10-17.md`; the P1a holistic review's lost findings recorded) — **acceptance open:** an independent delta review, the owner's visual check of the start page's new block grid.
 - [M74] ◐ **r15: the usability review fixed** on `feature/claude-code-p3` ([disposition](../handoff/review_m74_usability_2026-10-17.md); OD-74.16 refined, OD-74.17 amended; the owner's spotlight-caption decision) — **acceptance open:** the owner's hands-on test, an independent delta review. Owner: no per-turn bulk approval for now (revisit after the hands-on test).
@@ -136,6 +139,41 @@ _Refreshed 2026-10-17 for M74 (owner)._ The 2026-10-06 order above is superseded
 - [M74] ☐ **CLI-drift canary and managed-settings probe** (review B8): a scheduled zero-cost check that the installed `claude`'s stream shapes still match the fixtures, and a probe of what an administrator's managed settings do to the full posture.
 - [M74] ☐ **OD-74.2 terms check and a one-page security model** (review B11): before a customer release.
 - [DOCS-IA] ☐ **Docs site task-first restructure** — the owner approved the audit's nav (§5) on 2026-10-17 ([audit](../handoff/docs-audit-2026-10-17.md)); lands after M74 merges and before the Telamin Canvas rename; the M74 fix list (§4) is done on `feature/claude-code-p3`.
+
+### M74 stack — the 2026-10-18 integration ([review map](../handoff/review_map_integration_2026_10_18.md))
+- [M74-FR] ◐ **Merged into P3** (`a875fcba`), not released: `fix/first-run-polish` `dbfe6c67` (robot re-walk points #1, #3, #4, #6: the way back to the answer, the `startPageNoLogHint` node, one no-key line, nothing clipped) and `fix/event-types-min-rows` `8648b39f` (the Records table and Event types each keep three rows). Acceptance with the stack.
+- [FIX-1] ◐ **built — branch `fix/no-log-offer-cancel` `da86da42`, no PR, into integration**: a cancelled chooser offers the no-log opens again.
+- [FIX-2] ◐ **built — branch `fix/records-filter-visibility` `87551460`, no PR, into integration**: a filter that hides records says so (B1, B2, M1, M2, m6) — a `recordsView` node, the additive `context` field `hidden`, the assistant's basis names hidden types, a three-row floor at 1200×680, the search row wraps.
+- [FIX-3] ◐ **built — branch `fix/event-types-default-collapsed` `eb52bb45` (on FIX-2), no PR, into integration**: Event types starts collapsed on a fresh install; saved choices win.
+- [FIX-4] ◐ **built — branch `fix/authoring-walk-defects` `0161dab3` (on M77-2), no PR, into integration**: the authoring walk's seven defects and five follow-ons (exec bits, `STAY_IN_PROJECT_NOTE`, the narrow in-project `open` pre-allow, Build preselects Full acceptEdits, the wizard mode saved). The walk ran the full chain live (7.4 min, 14 approvals; about 3 expected now).
+- [UX-SC] ◐ **built — [PR #160](https://github.com/telaminai/fluxtionauditlog-analyser/pull/160), awaiting review**: the usability scorecard and its CI budgets; baselines `b1c22704` → `a875fcba` (SC T4 3→2 acts, SC T5 9→8; SC T1 and T2 4→5, T2 to be fixed by FIX-3); comprehension and authoring batteries in progress.
+
+### M76 · The authoring journey: build, run, explain, change, compare ([spec](spec-authoring-journey.md), r2)
+- [M76] ☐ **Specified** (r2, reviewed): the investigation checkpoint (replaces M74's handoff report), acceptance checks evaluated by the analyser, scenarios, the explanation tour, the start-page pathways S7/S8; eleven PRs A1–A8 (~44k lines, each ≤5k); OD-76.1–.19 open. [Review](../handoff/review_m76_r1_k4m9.md) folded.
+
+### M77 · Set up AI — the first-run wizard ([spec](spec-ai-setup-wizard.md), r5; OD-77.1 superseded by M79 OD-79.5)
+- [M77] ☐ **Set up AI wizard** (owner direction 2026-10-18; robot journey of the same day): one door with four choices (No AI / your own client over MCP / Claude inside, Safe or Full / both), checks with *Check again*, a live external-client check, the pending question placed at Finish; an `aiSetup` session node. Spec r2 after one independent review ([disposition](../handoff/review_m77_r1_7f3c.md): 30 findings, all folded); all 13 owner decisions accepted 2026-10-18 (spec ACCEPTED r3); 4 PRs, 15–20 days, after P-1 (SafeChoice clipping), P-2 (the pending question) and, for M77-2, P-3 (docked layout floor).
+- [M77-5] ☐ **Where data goes** ([spec §6.1a](spec-ai-setup-wizard.md), r4): a small picture under the selected Screen 1 card showing where data goes (two-way inside, one-way external, the billing named, Full in amber); OD-77.14–.21 accepted 2026-10-18; a PR stacked on M77-2, 1.5–2 days, T25–T31.
+- [M77-1] ◐ **built — [PR #157](https://github.com/telaminai/fluxtionauditlog-analyser/pull/157), awaiting review**: the `aiSetup` node and the two read-only Claude checks; the auth parse drops email and organisation.
+- [M77-2] ◐ **built — [PR #159](https://github.com/telaminai/fluxtionauditlog-analyser/pull/159) (on #157), awaiting review**: the wizard's inside path; T19 in 6 acts; the empty `selectedOptionExtra` slot for M77-5.
+- [M77-3] ◐ **built — [PR #162](https://github.com/telaminai/fluxtionauditlog-analyser/pull/162) (on #159), awaiting review**: Screen 2b; one owner of external access, a confirmation at every door; registration; the live check; the additive `X-Analyser-Client` / `X-Analyser-Probe` headers.
+- [M77-4] ◧ **in progress** — branch `feature/m77-4-coexistence` (on #162 with #161 merged; not yet pushed): the quick switch, the profile cards retired, upgraders, Connect folded, in-app behind *Other options*, the 2b diagram, the capture symlink guard.
+- [M77-5] ◐ **built — [PR #161](https://github.com/telaminai/fluxtionauditlog-analyser/pull/161) (on #159), awaiting review**: `FlowDiagram` (Full in amber, the palette, T25–T31); external access always shows OFF until M77-4 wires it.
+
+### M78 · The quiet assistant panel ([spec](spec-quiet-assistant-panel.md), ACCEPTED)
+- [M78] ☐ **Quiet assistant panel** (owner 2026-10-18: design for the 50th use): the docked panel at 1200×800 (216×431 px) cut from 33–80 chrome words per state to ≤15 (≤20 for error, no key and restart), with ≤4 controls when Ready, with the safety signals kept (◆ Full cue, *Claude · unverified*, permission dialog, Full consent); all 12 owner decisions OD-Q.1–.12 accepted. D1 after M77-2, D2 (one mode chip) with M77-4.
+- [M78-D1] ◐ **built — [PR #163](https://github.com/telaminai/fluxtionauditlog-analyser/pull/163) (on #159), awaiting review**: the quiet panel; Ready 27 → 3 words; four deviations from the spec (the review map's flag 10).
+- [M78-D2] ☐ **next**, on M77-4 + D1: the mode chip is M77-4's quick switch.
+
+### M79 · The first minute ([spec](spec-first-minute.md), r1)
+- [M79] ☐ **The first minute** (insider + stranger reviews and OD-79.1–.10, 2026-10-18; ACCEPTED r1): first launch autoplays the real-run diamond walk in the person's domain, three doors, a start page under 40 words, AI setup off the first launch; then the evidence chip, the broken-diamond quest, the docs front door, *Connect your own Claude*. 5 PRs, 17–23 days; the domain variants are pinned at `fluxtion-diamond` `24d6d74`.
+- [M79-1] ☐ The first launch: the `firstMinute` node, the diamond walk autoplayed once, three doors, a start page under 40 words (spec §5; spec under independent review on [#164](https://github.com/telaminai/fluxtionauditlog-analyser/pull/164)).
+- [M79-2] ☐ Quiet evidence wording: the verdict chip and glossary tooltips (§8).
+- [M79-3] ☐ The broken-diamond quest: works with No AI, confirmed by record digest (§9).
+- [M79-4] ☐ The docs front door and a docs/app label parity test (§10).
+- [M79-5] ☐ *Connect your own Claude*: M77-3's client path with a prompt pack; no new verb (§11).
+- [M79-D1] ☑ **The diamond domains — done in another repo**: `telaminai/fluxtion-diamond` `main` `24d6d74`, mathematics, accounting, logistics and trading beside the generic run, all real runs.
+- [M79-D2] ☑ **The broken-diamond teaching run — published**: `telaminai/fluxtion-diamond` branch `teaching/broken-diamond` `6bff0d67`, not merged to `main` on purpose; record [3], digest `sha256:7e31f039…0d11`.
 
 ## Session and dispatch
 
