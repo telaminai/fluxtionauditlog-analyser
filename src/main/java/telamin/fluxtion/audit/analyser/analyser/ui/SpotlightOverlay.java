@@ -716,7 +716,7 @@ public final class SpotlightOverlay extends JComponent {
         List<String> kept = new ArrayList<>(all.subList(0, UiTheme.CALLOUT_MAX_LINES));
         String last = kept.get(kept.size() - 1);
         int room = UiTheme.CALLOUT_LINE_CHARS - 1;
-        if (last.length() > room) last = last.substring(0, room);
+        if (last.length() > room) last = last.substring(0, graphemeCut(last, room));
         kept.set(kept.size() - 1, last.stripTrailing() + "…");
         return kept;
     }
@@ -724,6 +724,20 @@ public final class SpotlightOverlay extends JComponent {
     /** Whether {@code caption} needs more than the collapsed lines (and so expands on hover or focus). */
     static boolean calloutTruncated(String caption) {
         return wrapChars(caption == null ? "" : caption.strip(), UiTheme.CALLOUT_LINE_CHARS).size() > UiTheme.CALLOUT_MAX_LINES;
+    }
+
+    /**
+     * Review PR151 F5 (2026-10-18): where to cut {@code s} so its head is at most {@code max} chars long — the last
+     * grapheme boundary at or before {@code max}, so a surrogate pair (an emoji, an astral CJK character) or a joined
+     * sequence is never split into characters that draw as boxes. A first grapheme longer than {@code max} is kept whole.
+     */
+    static int graphemeCut(String s, int max) {
+        if (s.length() <= max) return s.length();
+        java.text.BreakIterator b = java.text.BreakIterator.getCharacterInstance();
+        b.setText(s);
+        int cut = b.preceding(max + 1);
+        if (cut <= 0) cut = b.following(0);
+        return cut <= 0 ? Math.min(max, s.length()) : cut;
     }
 
     static List<String> wrapChars(String text, int width) {
@@ -736,8 +750,9 @@ public final class SpotlightOverlay extends JComponent {
                     out.add(line.toString());
                     line.setLength(0);
                 }
-                out.add(word.substring(0, width));
-                word = word.substring(width);
+                int cut = graphemeCut(word, width);              // review PR151 F5: never inside an emoji
+                out.add(word.substring(0, cut));
+                word = word.substring(cut);
             }
             if (line.length() == 0) line.append(word);
             else if (line.length() + 1 + word.length() <= width) line.append(' ').append(word);
