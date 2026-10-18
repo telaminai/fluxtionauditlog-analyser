@@ -394,6 +394,9 @@ Flag 23 (the report pre-allow) is in §6's table. Each is a deliberate change of
 
 ### Known gaps (v3)
 
+Review follow-up: [integration v3 review and corrections](review_integration_v3_2026_10_18_codex.md).
+It reproduces the sample-reader race below and corrects the fixture barrier; the original gate numbers remain historical.
+
 - **`SampleProjectSpotlightFrameTest`'s first call can be superseded under load** (one failure in the full frame run,
   green alone twice). The refusal is the product's honest *retry* answer, so an assistant recovers; the test does not
   retry. Decide whether the test should wait for the source pane to settle or the first call should, and add the

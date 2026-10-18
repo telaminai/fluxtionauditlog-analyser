@@ -113,11 +113,11 @@ public final class SourceText {
         int to;
         if (request.range()) {
             from = request.from();
-            to = request.to() > 0 ? request.to() : from + MAX_LINES - 1;
+            to = request.to() > 0 ? request.to() : (int) Math.min(Integer.MAX_VALUE, (long) from + MAX_LINES - 1);
         } else {
             int around = request.around() > 0 ? request.around() : Math.max(1, chosenLine);
             from = Math.max(1, around - request.context());
-            to = around + request.context();
+            to = (int) Math.min(Integer.MAX_VALUE, (long) around + request.context());
             if (around > count) {
                 return new Slice(null, "text 'around' " + around + " is past the end: the file has " + count + " lines");
             }

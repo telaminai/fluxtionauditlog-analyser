@@ -1277,22 +1277,29 @@ public final class SessionEvents {
      * Owner, 2026-10-18: the action server ran a hosted {@code report} call that wrote a report of the active project
      * WITHOUT the person's approval (Full Claude Code's in-project create, or an update of a report this session wrote).
      * {@code localAgentPermission} records it for {@code generation}: a later call updating that report — while it still
-     * carries the createdAt it had after this write, so nobody replaced it meanwhile — is the session's own, and needs no
-     * approval either. The report's name is the model's words, so the fact carries digests only (spec §4.1):
-     * {@code nameDigest} of the name, {@code identity} of the name with that createdAt ({@link #of}).
+     * carries the complete revision of this write in the same project lifetime — is the session's own.
+     * The internal write receipt supplies the project/lifetime/name ownership key and revision. The fact carries
+     * digests only (spec §4.1), never the key's paths or the report's prose.
      */
     public record HostedReportWritten(long generation, String nameDigest, String identity) {
-        /** The fact for report {@code name}, which now carries {@code createdAt} (null: it is gone — nothing recorded). */
-        public static HostedReportWritten of(long generation, String name, String createdAt) {
-            return new HostedReportWritten(generation, LocalAgentPosture.digest(name),
-                    createdAt == null ? null : identity(name, createdAt));
+        /** The fact from the actual write, not a later observation of the mutable report. */
+        public static HostedReportWritten of(long generation, String ownerKey, String revision) {
+            return new HostedReportWritten(generation, LocalAgentPosture.digest(ownerKey),
+                    revision == null ? null : identity(ownerKey, revision));
         }
 
-        /** The digest a report's name and createdAt are recorded and compared as. */
-        public static String identity(String name, String createdAt) {
-            return LocalAgentPosture.digest(name + "\u0000" + createdAt);
+        /** The digest of a project-bound ownership key and the complete persisted revision. */
+        public static String identity(String ownerKey, String revision) {
+            return LocalAgentPosture.digest(ownerKey + "\u0000" + revision);
         }
     }
+
+    /** Final report-write observation. Only digests enter the session record, never paths or report prose. */
+    public record HostedReportApplyRequested(long opId, long generation, long projectGeneration,
+                                             String expectedRootDigest, String actualRootDigest, String expectedOutput,
+                                             String actualOutput, String expectedInput, String actualInput,
+                                             String nameDigest, String expectedRevision, String actualRevision,
+                                             boolean exists) { }
 
     /** Answered at once by every local-agent effect whose outcome arrives later. */
     public record LocalAgentEffectStarted(long opId, long generation, String what) implements Result {

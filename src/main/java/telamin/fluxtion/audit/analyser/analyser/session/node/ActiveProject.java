@@ -67,6 +67,8 @@ public class ActiveProject implements EventLogSource {
         return profilePath == null ? null : new BorrowBasis(profilePath, generation);
     }
 
+    public long generation() { return generation; }
+
     public boolean permitsBorrow(BorrowBasis basis) {
         return basis != null && generation == basis.generation() && isAt(basis.profilePath());
     }

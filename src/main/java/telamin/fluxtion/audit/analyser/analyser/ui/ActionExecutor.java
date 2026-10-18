@@ -296,7 +296,7 @@ public final class ActionExecutor implements RenderExecutor {
                 // M33.3: the sections form builds/replaces a NAMED report (path optional — render or
                 // CSV when given); the shipped single-record form stays below as sugar
                 // PR #33 review: 'restore' needs no name, and must not fall through to the single-record export
-                if (op != telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.ReportOp.FINDING) {
+                if (admission != null || op != telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.ReportOp.FINDING) {
                     String resolved = null;
                     if (params.get("path") != null) {
                         var out = guardedPath(params.get("path"));   // B1: same guard, same directory

@@ -46,11 +46,28 @@ class HostedGrantServerTest {
     private final List<java.util.Optional<telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.ReportAdmission>> admissions =
             new CopyOnWriteArrayList<>();
     private volatile FakeReportState fakeReports;
+    private volatile boolean editBeforeReturningReceipt;
     private final HttpClient http = HttpClient.newHttpClient();
     private SessionDriver driver;
     private ActionServer server;
     private SessionEffects.StartLocalAgentEffect start;
     private String credential;
+
+    @Test
+    void theServerRecordsTheReceiptRatherThanAnInterveningEdit(@org.junit.jupiter.api.io.TempDir java.nio.file.Path root) throws Exception {
+        var reports = new FakeReportState(root);
+        reports.driver = driver;
+        fakeReports = reports;
+        editBeforeReturningReceipt = true;
+        server.setHostedScopes(g -> new telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.OpenScope(root, true,
+                null, g, reports));
+        var result = hostedCall(Json.write(Map.of("action", "report", "params", Map.of("name", "DEMO trace"))), TOOL_USE);
+        assertEquals(200, result.statusCode(), result.body());
+        awaitRecorded(value -> driver.snapshot().permission().sessionWrote(start.generation(), "DEMO trace", value), "written-1");
+        assertEquals("person-edited", reports.reports.get("DEMO trace"), "control: the intervening edit is already visible");
+        assertFalse(driver.snapshot().permission().sessionWrote(start.generation(), "DEMO trace", "person-edited"),
+                "the HTTP thread must not attribute a later edit to the agent");
+    }
 
     @BeforeEach
     void up() throws Exception {
@@ -67,6 +84,12 @@ class HostedGrantServerTest {
             var written = fakeReports;
             if (written != null && "report".equals(action) && params.get("name") != null) {
                 written.reports.put(String.valueOf(params.get("name")), "written-" + rendered.size());
+                var a = ActionDispatcher.hostedReportAdmission();
+                if (a != null) {
+                    var receipt = new ActionResult.ReportReceipt(a.generation(), a.name(), "written-" + rendered.size());
+                    if (editBeforeReturningReceipt) written.reports.put(a.name(), "person-edited");
+                    return ActionResult.ok(action, "result", Map.of("written", "demo.pdf")).withReportReceipt(receipt);
+                }
             }
             return ActionResult.ok(action, "result", Map.of("written", "demo.pdf"));
         };
@@ -373,16 +396,16 @@ class HostedGrantServerTest {
                 Map.of("name", "DEMO trace", "sections", sections))), TOOL_USE);
         assertEquals(200, create.statusCode(), create.body());
         assertEquals(List.of("report"), rendered, "admitted with no approval");
-        assertEquals(new telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.ReportAdmission("DEMO trace", null),
-                admissions.get(0).orElseThrow(), "dispatched as a create");
+        assertEquals("DEMO trace", admissions.get(0).orElseThrow().name());
+        assertNull(admissions.get(0).orElseThrow().expectRevision(), "dispatched as a create");
         awaitRecorded(recorded, "written-1");
 
         // the session's own report: a section added needs no approval either
         HttpResponse<String> addSection = hostedCall(Json.write(Map.of("action", "report", "params",
                 Map.of("name", "DEMO trace", "sections", List.of(sections.get(0), sections.get(0))))), TOOL_USE);
         assertEquals(200, addSection.statusCode(), addSection.body());
-        assertEquals(new telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.ReportAdmission("DEMO trace", "written-1"),
-                admissions.get(1).orElseThrow(), "dispatched as an update of what the session left");
+        assertEquals("written-1", admissions.get(1).orElseThrow().expectRevision(),
+                "dispatched as an update of what the session left");
         awaitRecorded(recorded, "written-2");
 
         for (Map<String, Object> asked : List.<Map<String, Object>>of(

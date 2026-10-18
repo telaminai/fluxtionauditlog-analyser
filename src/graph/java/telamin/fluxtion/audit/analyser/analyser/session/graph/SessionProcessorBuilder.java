@@ -155,8 +155,9 @@ public class SessionProcessorBuilder implements FluxtionGraphBuilder {
         // M74 P3 (§5.7, §8.3): permission prompts in the analyser — which requests reach the person, the one dialog, the
         // single-use grants. It PUSHES into localAgentSession, so it runs first for a fact both handle: on Stop the
         // pending request is answered deny before the interrupt is asked for (§4.5)
-        cfg.addNode(new telamin.fluxtion.audit.analyser.analyser.session.node.LocalAgentPermission(localAgent, effects),
-                "localAgentPermission");
+        var permission = new telamin.fluxtion.audit.analyser.analyser.session.node.LocalAgentPermission(localAgent, effects);
+        permission.setActiveProject(activeProject);
+        cfg.addNode(permission, "localAgentPermission");
         // M74 P2b (§5.6): Claude proposes, the analyser applies — the offer, the preview's verdicts, the person's answers
         // Option 2 (owner, 2026-10-18): a project from a starter template — the catalogue, and ONE chain for Claude's
         // starter item and the Project menu alike. onboardingProposal pushes an accepted starter item and its Apply here

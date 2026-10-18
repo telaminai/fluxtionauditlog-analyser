@@ -349,18 +349,12 @@ public final class ActionServer {
             ActionResult r = hosted != null && hostedGate != null
                     ? dispatcher.dispatchHosted(body, hostedGate.generationOf(hosted), reportAdmitted.get())
                     : dispatcher.dispatch(body);
-            var admitted = reportAdmitted.get();
-            if (hosted != null && r.ok() && admitted != null && admitted.writesReport() && scope != null
-                    && scope.reports() != null) {
-                // owner 2026-10-18: the session records the report it wrote without an approval, as it is now
-                long generation = hostedGate.generationOf(hosted);
-                String createdAt;
-                try {
-                    createdAt = scope.reports().createdAt(admitted.name());
-                } catch (RuntimeException unknown) {
-                    createdAt = null;
-                }
-                hostedGate.reportWritten(generation, admitted.name(), createdAt);
+            var receipt = r.reportReceipt();
+            if (hosted != null && receipt != null && reportAdmitted.get() != null
+                    && receipt.generation() == reportAdmitted.get().generation()) {
+                // This is the revision the EDT actually stored, even if a later optional PDF failed.
+                // Never re-read mutable project/report state on the HTTP thread.
+                hostedGate.reportWritten(receipt.generation(), receipt.ownerKey(), receipt.revision());
             }
             send(ex, r.ok() ? 200 : 400, r.toJson());
         } catch (RuntimeException e) {

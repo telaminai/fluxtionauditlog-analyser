@@ -37,7 +37,7 @@ public final class FakeReportState implements ReportState {
 
     @Override public Path projectRoot() { return root; }
     @Override public boolean holds(String name) { return reports.containsKey(name); }
-    @Override public String createdAt(String name) { return reports.get(name); }
+    @Override public String revision(String name) { return reports.get(name); }
     @Override public boolean sessionWrote(long generation, String name, String createdAt) {
         if (driver != null) return driver.snapshot().permission().sessionWrote(generation, name, createdAt);
         return generation == sessionGeneration && createdAt != null && createdAt.equals(session.get(name));

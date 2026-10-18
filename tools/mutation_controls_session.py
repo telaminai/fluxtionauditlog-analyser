@@ -72,6 +72,31 @@ PROVENANCE_APPLICATION = """    @OnEventHandler
                 : BundleProvenance.NONE;"""
 
 CONTROLS = [
+    ("integration-c-source-window", J + 'design/SourceText.java',
+     'to = (int) Math.min(Integer.MAX_VALUE, (long) around + request.context());',
+     'to = around + request.context();',
+     'SourceTextTest#aLargeContextCannotWrapTheWindowIntoAnEmptySuccess'),
+    ("integration-c-report-project", NODE + 'LocalAgentPermission.java',
+     'activeProject == null || e.projectGeneration() != activeProject.generation()\n'
+     '                || e.expectedRootDigest() == null || !e.expectedRootDigest().equals(e.actualRootDigest())',
+     'false', 'ReportOwnershipFrameTest#anAdmittedReportCannotMoveToAnotherProject'),
+    ("integration-c-report-output", NODE + 'LocalAgentPermission.java',
+     '!Objects.equals(e.expectedOutput(), e.actualOutput())', 'false',
+     'ReportAdmissionGuardTest#theWriteRunsOnlyAsJudged'),
+    ("integration-c-report-full-only", NODE + 'LocalAgentPermission.java',
+     '\n                || !localAgent.state().posture().isFull()', '',
+     'ReportAdmissionGuardTest#theWriteRunsOnlyAsJudged'),
+    ("integration-c-report-revision", NODE + 'LocalAgentPermission.java',
+     'e.nameDigest() != null && (e.expectedRevision() == null ? e.exists()\n'
+     '                : !e.exists() || !e.expectedRevision().equals(e.actualRevision()))',
+     'false', 'ReportOwnershipFrameTest#anExternalRetitleRevokesAPreviouslyAdmittedOwnUpdate'),
+    ("integration-c-report-receipt", J + 'net/ActionServer.java',
+     'hostedGate.reportWritten(receipt.generation(), receipt.ownerKey(), receipt.revision());',
+     'hostedGate.reportWritten(receipt.generation(), receipt.ownerKey(), scope.reports().revision(reportAdmitted.get().name()));',
+     'HostedGrantServerTest#theServerRecordsTheReceiptRatherThanAnInterveningEdit'),
+    ("integration-c-sample-reader-barrier", UI_TEST + 'SampleProjectSpotlightFrameTest.java',
+     '\n        awaitSampleSources(f.frame);\n        return f.ex.render', '\n        return f.ex.render',
+     'SampleProjectSpotlightFrameTest#theSampleJourneyWaitsForItsEarlierPaneRead'),
     ("issue84-java-apply-view-is-walk-owned", UI + 'MainFrame.java',
      '                    walkViewChangeTicket = walkTicket;',
      '                    walkViewChangeTicket = -1;',

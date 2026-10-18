@@ -255,7 +255,7 @@ public interface AppControl {
     /**
      * Owner 2026-10-18: {@link #report(java.util.Map, String)} for a hosted call admitted without an approval
      * ({@code admission}, never null here): it may write only what was judged — the named report as a create, or over
-     * the session's own report while it still carries {@code expectCreatedAt}. The default refuses (nothing is changed).
+     * the bound project lifetime, output and complete report revision. The default refuses (nothing is changed).
      */
     default ActionResult report(java.util.Map<String, Object> params, String resolvedPath,
                                 telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.ReportAdmission admission) {

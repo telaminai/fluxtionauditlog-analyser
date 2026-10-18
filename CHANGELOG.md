@@ -17,6 +17,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 - The sample-project exception for Full Claude Code cannot widen through a linked sample or analyser directory. An unrelated log still needs approval; ordinary home-directory aliases and the genuine sample continue to work.
 - A new starter reports its design as shown only after the read and display succeed. Declining the design source root, or a failed read, now produces an honest outcome and a session-owned explanation instead of a false success.
 - A starter whose project discovery fails now settles the proposal instead of staying busy forever. The message distinguishes files already unpacked from a failed download; a later starter request can proceed.
+- Very large `source {text}` windows now return the capped lines with a truncation notice instead of overflowing into an empty successful reply.
+- Full's report permission is bound to the project lifetime, exact output and complete report revision. Project switches, destination changes and human edits revoke an earlier permission; ownership records the actual write receipt.
 
 ### Added
 

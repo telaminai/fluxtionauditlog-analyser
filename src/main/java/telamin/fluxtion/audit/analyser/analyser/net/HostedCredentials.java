@@ -48,9 +48,9 @@ public final class HostedCredentials {
 
         /**
          * Owner 2026-10-18: the server wrote report {@code name} for {@code generation} without an approval (Full's
-         * in-project write); it now carries {@code createdAt}. Reported to the session as a fact; nothing waits for it.
+         * in-project write); it now carries {@code revision}. Reported to the session as a fact; nothing waits for it.
          */
-        default void reportWritten(long generation, String name, String createdAt) {
+        default void reportWritten(long generation, String name, String revision) {
         }
     }
 
@@ -63,7 +63,7 @@ public final class HostedCredentials {
         void refused(long generation, String verb, String reason);
 
         /** Owner 2026-10-18: see {@link Gate#reportWritten}. */
-        default void reportWritten(long generation, String name, String createdAt) {
+        default void reportWritten(long generation, String name, String revision) {
         }
     }
 
@@ -114,8 +114,8 @@ public final class HostedCredentials {
                 decider.refused(generation, verb, reason);
             }
 
-            @Override public void reportWritten(long generation, String name, String createdAt) {
-                decider.reportWritten(generation, name, createdAt);
+            @Override public void reportWritten(long generation, String name, String revision) {
+                decider.reportWritten(generation, name, revision);
             }
         };
     }
