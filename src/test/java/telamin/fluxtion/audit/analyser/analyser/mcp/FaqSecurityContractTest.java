@@ -91,8 +91,16 @@ class FaqSecurityContractTest {
         assertTrue(answer.contains("`walk {reel}`") && answer.contains("writes a walk as an HTML page"),
                 "the FAQ must say walk {reel} writes a file");
         assertFalse(answer.contains("writes no file of its own"), "walk {reel} writes a file");
-        assertTrue(answer.contains("`source` can reread the XML and Java files **under the source roots you configured**"),
+        assertTrue(answer.contains("`source` can reread the XML and Java files **under the source roots**"),
                 "the FAQ must say source reads beyond the loaded log, and where");
+        // PR #152 review M1: a source root can be ANY readable folder an assistant adds, and open reads any file — the
+        // page must say so, and must never again promise "no arbitrary file reads". Witness: restore that phrase, or
+        // drop the any-folder sentence; the assertion names which.
+        assertTrue(answer.contains("`source_root` can add **any folder you can read** as a source root")
+                        && answer.contains("`open` can open any file you can read as a log"),
+                "the security page must say source_root adds any readable folder and open opens any readable file");
+        assertFalse(answer.contains("no arbitrary file reads") || answer.contains("no other file reads"),
+                "source_root + source and open reach any readable file: 'no arbitrary file reads' is an overclaim");
         assertFalse(answer.contains("nothing outside the loaded log"), "source reads the source roots");
         assertTrue(answer.contains("`propose` is offered only to Claude Code in the Assistant tab")
                         && answer.contains("never on `/manifest`") && answer.contains("**changes nothing**"),

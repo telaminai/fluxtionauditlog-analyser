@@ -68,7 +68,6 @@ given (up to 4,000 characters on screen).
 | `denied: the person's own fluxtion-analyser registration is not this analyser` | Claude tried the tools of your own `fluxtion-analyser` registration, which is not bound to this window |
 | `denied: the analyser does not recognise this tool` | Full Claude Code asked about a tool the analyser does not know |
 | `withdrawn by Claude Code` | Claude Code withdrew the request before you answered |
-| `denied by the analyser's settings` | the analyser's own rules denied it without asking, and gave no more specific reason |
 
 [Approvals](approvals.md) explains when a dialog is shown.
 
