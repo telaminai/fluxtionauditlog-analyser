@@ -366,4 +366,42 @@ class LocalAgentFullReplayTest {
         assertTrue(FullFolderTrust.dialogText(dir, FullFolderTrust.scan(dir)).contains(FullFolderTrust.ADDS_INSTRUCTION),
                 "the person is told the analyser adds it");
     }
+
+    private static String openRequest(String id, String log) {
+        return "{\"type\":\"control_request\",\"request_id\":\"" + id + "\",\"request\":{\"subtype\":\"can_use_tool\","
+                + "\"tool_name\":\"mcp__fluxtion-analyser-hosted__analyser_open\",\"input\":{\"log\":\""
+                + log.replace("\\", "\\\\") + "\"},\"tool_use_id\":\"toolu_" + id + "\"}}";
+    }
+
+    /**
+     * ★ Owner 2026-10-18, through the REAL adapter and processor: in Full, Claude Code's request to {@code analyser_open}
+     * the project's own log is judged PRE_ALLOWED (the node then allows it with no dialog — LocalAgentPermission's
+     * PRE_ALLOWED path); one outside the folder, and the same request in Safe analysis, are CHANGES (asked). Witness:
+     * pass {@code null} for the scope in the adapter's {@code hostedCallKind} call — the in-project open is CHANGES.
+     */
+    @Test
+    @DisplayName("★ Full: open of the project's own log needs no approval; outside the folder, or in Safe, it is asked")
+    void anInProjectOpenNeedsNoApprovalInFull() throws Exception {
+        Harness h = full("pb-mode-default-iso.jsonl", FullMode.DEFAULT);
+        Path log = Files.writeString(home.resolve("proj/diamond-audit.yaml"), "eventLogRecord:\n");
+        Path outside = Files.writeString(home.resolve("elsewhere.yaml"), "eventLogRecord:\n");
+        h.agent.last().emit(openRequest("in", log.toString()));
+        h.drain();
+        var in = h.facts(SessionEvents.LocalAgentPermissionRequested.class);
+        assertEquals(SessionEvents.HostedCallKind.PRE_ALLOWED, in.get(in.size() - 1).kind(), "the project's own log");
+        h.agent.last().emit(openRequest("out", outside.toString()));
+        h.drain();
+        var out = h.facts(SessionEvents.LocalAgentPermissionRequested.class);
+        assertEquals(SessionEvents.HostedCallKind.CHANGES, out.get(out.size() - 1).kind(), "outside the folder: asked");
+
+        FixtureAgent agent = new FixtureAgent("multiturn-partial-replay-midturn.jsonl");
+        agent.conformInit = true;
+        Harness safe = new Harness(agent, home.resolve("safe"));
+        safe.start();
+        Path safeLog = Files.writeString(home.resolve("safe/proj/diamond-audit.yaml"), "eventLogRecord:\n");
+        safe.agent.last().emit(openRequest("safe", safeLog.toString()));
+        safe.drain();
+        var asked = safe.facts(SessionEvents.LocalAgentPermissionRequested.class);
+        assertEquals(SessionEvents.HostedCallKind.CHANGES, asked.get(asked.size() - 1).kind(), "Safe is unchanged");
+    }
 }

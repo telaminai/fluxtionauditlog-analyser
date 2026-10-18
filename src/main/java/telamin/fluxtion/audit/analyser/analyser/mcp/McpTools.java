@@ -173,9 +173,39 @@ public final class McpTools {
     public static telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallKind hostedCallKind(String verb,
                                                                                                              Object params,
                                                                                                              ChartState charts) {
+        return hostedCallKind(verb, params, charts, null);
+    }
+
+    /**
+     * Owner, 2026-10-18: what the hosted session's {@code open} may do without asking — the session's REAL project folder
+     * and whether it runs Full Claude Code, as observed for the call's own generation. Null: unknown, so every
+     * {@code open} is asked (fail-closed). The external REST and MCP clients never have one: this is only ever judged
+     * for a hosted call.
+     */
+    public record OpenScope(java.nio.file.Path projectRoot, boolean full) {
+    }
+
+    /** The {@code open} keys a pre-allowed call may carry: a log and its GraphML, nothing else. */
+    static final Set<String> IN_PROJECT_OPEN_KEYS = Set.of("log", "graphml");
+
+    /**
+     * {@link #hostedCallKind(String, Object, ChartState)} with the hosted session's {@code scope}. Owner, 2026-10-18 (the
+     * live authoring run): in FULL Claude Code, an {@code open} of only a {@code log} and/or {@code graphml} whose REAL
+     * paths (links resolved) are existing files inside the session's real project folder is {@code PRE_ALLOWED} — it
+     * opens the project's own evidence. Everything else stays {@code CHANGES} and is asked: a project switch or close,
+     * follow, a bundle, a create, any other key, a relative or {@code ~} path, a path outside the folder or one that
+     * leads out through a link, and every {@code open} under Safe analysis.
+     */
+    public static telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallKind hostedCallKind(String verb,
+                                                                                                             Object params,
+                                                                                                             ChartState charts,
+                                                                                                             OpenScope scope) {
         Map<?, ?> p = params instanceof Map<?, ?> m ? m : Map.of();
         String v = verb == null ? "" : verb;
         switch (v) {
+            case "open" -> {
+                if (openInProject(p, scope)) return preAllowed();
+            }
             case "graph" -> {
                 return switch (graphCall(p, charts)) {
                     case LIST -> nonMutating();
@@ -202,6 +232,31 @@ public final class McpTools {
             default -> { }
         }
         return telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallKind.CHANGES;
+    }
+
+    /** Whether a hosted {@code open} only opens the project's own files (see {@link #hostedCallKind(String, Object, ChartState, OpenScope)}). */
+    static boolean openInProject(Map<?, ?> p, OpenScope scope) {
+        if (scope == null || !scope.full() || scope.projectRoot() == null) return false;
+        if (p.isEmpty() || !IN_PROJECT_OPEN_KEYS.containsAll(keys(p))) return false;
+        if (VerbOperations.open(p) != VerbOperations.OpenOp.FILES) return false;
+        java.nio.file.Path root;
+        try {
+            root = scope.projectRoot().toRealPath();
+        } catch (java.io.IOException | RuntimeException e) {
+            return false;
+        }
+        for (Object value : p.values()) {
+            if (!(value instanceof String s) || s.isBlank() || s.startsWith("~")) return false;
+            try {
+                java.nio.file.Path given = java.nio.file.Path.of(s);
+                if (!given.isAbsolute()) return false;
+                java.nio.file.Path real = given.toRealPath();
+                if (!real.startsWith(root) || !java.nio.file.Files.isRegularFile(real)) return false;
+            } catch (java.io.IOException | RuntimeException e) {
+                return false;                     // missing, unreadable or not a path: asked
+            }
+        }
+        return true;
     }
 
     /** A hosted {@code graph} call, judged: the one judgement the kind and the server's constraint share. */

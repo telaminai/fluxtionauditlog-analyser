@@ -5763,6 +5763,8 @@ public final class MainFrame extends JFrame {
             actionServer.setHostedGate(hostedCredentials.gate(hostedAdmission));
             // owner decision 2026-10-18: a hosted graph call that would replace an existing chart is asked, not pre-allowed
             actionServer.setChartState(this::chartExistsNow);
+            // owner 2026-10-18: a Full session's open of its own project's log or GraphML is judged as the adapter did
+            actionServer.setHostedScopes(g -> localAgentAdapter == null ? null : localAgentAdapter.hostedScope(g));
             // M74 P2b (§5.6): the hosted credential alone may reach `propose`; the offer is the session's to record
             d.setProposer(this::proposeFromHosted);
             actionServer.start();

@@ -270,6 +270,39 @@ class HostedGrantServerTest {
         assertEquals(403, playAndDelete.statusCode(), "a play carrying another operation's field is not a play");
         assertEquals(List.of("walk", "report"), rendered, "neither the delete nor the mixed call ran");
     }
+    /**
+     * ★ Owner 2026-10-18: the server judges a hosted {@code open} with the generation's scope as the adapter does — in
+     * Full, the project's own log is admitted with NO grant; outside the folder, {@code open {project}} and the same log
+     * under Safe analysis still need one (403). Witness: pass {@code null} for the scope in {@code hostedRefusal}'s
+     * {@code hostedCallKind} call — the in-project open is refused for want of a grant.
+     */
+    @Test
+    @DisplayName("★ server: Full's in-project open is admitted without a grant; outside, a project switch, or Safe: 403")
+    void anInProjectOpenIsAdmittedWithoutAGrantInFull(@org.junit.jupiter.api.io.TempDir java.nio.file.Path tmp)
+            throws Exception {
+        java.nio.file.Path project = java.nio.file.Files.createDirectories(tmp.resolve("diamond"));
+        java.nio.file.Path log = java.nio.file.Files.writeString(project.resolve("diamond-audit.yaml"), "eventLogRecord:\n");
+        java.nio.file.Path outside = java.nio.file.Files.writeString(tmp.resolve("elsewhere.yaml"), "eventLogRecord:\n");
+        boolean[] full = {true};
+        server.setHostedScopes(g -> g == start.generation()
+                ? new telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.OpenScope(project, full[0]) : null);
+        HttpResponse<String> in = hostedCall(Json.write(Map.of("action", "open", "params", Map.of("log", log.toString()))),
+                TOOL_USE);
+        assertEquals(200, in.statusCode(), in.body());
+        assertEquals(List.of("open"), rendered, "admitted with no approval");
+        HttpResponse<String> out = hostedCall(Json.write(Map.of("action", "open", "params",
+                Map.of("log", outside.toString()))), TOOL_USE);
+        assertEquals(403, out.statusCode(), "outside the folder: needs the person's approval");
+        HttpResponse<String> project2 = hostedCall(Json.write(Map.of("action", "open", "params",
+                Map.of("project", project.toString()))), TOOL_USE);
+        assertEquals(403, project2.statusCode(), "a project switch: needs the person's approval");
+        full[0] = false;
+        HttpResponse<String> safe = hostedCall(Json.write(Map.of("action", "open", "params", Map.of("log", log.toString()))),
+                TOOL_USE);
+        assertEquals(403, safe.statusCode(), "Safe analysis is unchanged");
+        assertEquals(List.of("open"), rendered, "none of the asked calls ran");
+    }
+
     static final String PLAY = Json.write(Map.of("action", "walk", "params", Map.of("name", "DEMO first breach",
             "play", true)));
 

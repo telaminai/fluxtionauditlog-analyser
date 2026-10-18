@@ -66,6 +66,9 @@ class FaqSecurityContractTest {
                 "the analyser does not confine it to the folder", "bypassPermissions is never offered",
                 // owner 2026-10-18: the analyser's standing instruction, said as what it is
                 "it adds one standing instruction", "a request to the model, not a sandbox",
+                // owner 2026-10-18: the one narrow open that needs no dialog, and what still asks
+                "Under **Full Claude Code only**", "inside the session's project folder",
+                "Safe analysis asks for every `open`",
                 "Start button starts full Claude Code"}) {
             assertTrue(answer.contains(claim), "the FAQ security answer must state, for full Claude Code: " + claim);
         }

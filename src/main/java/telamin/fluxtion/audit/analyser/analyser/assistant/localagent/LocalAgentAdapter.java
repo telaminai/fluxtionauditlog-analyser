@@ -147,6 +147,21 @@ public final class LocalAgentAdapter {
         return store;
     }
 
+    /**
+     * Owner 2026-10-18: the project folder and posture generation {@code generation} runs in — an observation, read by
+     * the action server so it judges a hosted {@code open} exactly as this adapter does. Null for no such run.
+     */
+    public telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.OpenScope hostedScope(long generation) {
+        Run run = runs.get(generation);
+        return run == null ? null : scopeOf(run);
+    }
+
+    private static telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.OpenScope scopeOf(Run run) {
+        String folder = run.folder;
+        return folder == null ? null
+                : new telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.OpenScope(Path.of(folder), run.full);
+    }
+
     /** How a draft reads as a command, against the CLI's last {@code initialize.commands}. */
     public LocalAgentProvider.Slash classify(String draft) {
         return provider.classify(draft, lastCommands);
@@ -316,6 +331,7 @@ public final class LocalAgentAdapter {
         }
         run.startedAt = clock.nowMillis();
         run.folder = s.cwd().toString();
+        run.full = posture.isFull();
         // P2b (§5.2): where requests go, as far as the analyser can see — the base URL it passed, host only
         run.endpoint = removedEnv.contains("ANTHROPIC_BASE_URL") ? null : EndpointLine.of(
                 childEnv.getOrDefault("ANTHROPIC_BASE_URL", s.environment().get("ANTHROPIC_BASE_URL")));
@@ -612,7 +628,7 @@ public final class LocalAgentAdapter {
         if (named.toolClass() == SessionEvents.ToolClass.HOSTED_DESTRUCTIVE && judged.showable()) {
             try {
                 kind = telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.hostedCallKind(named.name(),
-                        telamin.fluxtion.audit.analyser.analyser.llm.Json.parse(r.inputRaw()), env.charts());
+                        telamin.fluxtion.audit.analyser.analyser.llm.Json.parse(r.inputRaw()), env.charts(), scopeOf(run));
             } catch (RuntimeException unreadable) {
                 kind = SessionEvents.HostedCallKind.CHANGES;     // unreadable: asked, as before
             }
@@ -649,7 +665,9 @@ public final class LocalAgentAdapter {
             // the line is marked BEFORE the answer is written: the tool's own result can follow the answer at once
             boolean marked;
             synchronized (run) {
-                marked = run.toolMark(pending[2], markWords(allow, e.by(), e.message()), allow);
+                marked = run.toolMark(pending[2], "open".equals(e.name()) && allow
+                        && e.by() == SessionEvents.PermissionBy.PRE_ALLOWED ? OPEN_IN_PROJECT_MARK
+                        : markWords(allow, e.by(), e.message()), allow);
             }
             if (marked) textChanged(run);
             write(run, allow ? StreamJson.allow(pending[0], pending[1])
@@ -664,6 +682,9 @@ public final class LocalAgentAdapter {
         return new SessionEvents.LocalAgentPermissionAnswered(e.opId(), e.generation(), e.ticket(), e.requestRef(),
                 e.toolClass(), e.name(), e.allow() && shown && written, e.by(), written);
     }
+
+    /** Owner 2026-10-18: the mark of an {@code open} of the project's own files, allowed without asking. */
+    static final String OPEN_IN_PROJECT_MARK = "allowed: it opens this project's own files";
 
     /** §8.3 UI: the tool line's mark, by who decided. */
     static String markWords(boolean allow, SessionEvents.PermissionBy by) {
@@ -915,6 +936,8 @@ public final class LocalAgentAdapter {
         volatile String restToken;
         volatile String hosted;
         volatile String folder;
+        /** Owner 2026-10-18: this run is Full Claude Code (its in-project {@code open} needs no approval). */
+        volatile boolean full;
         /** P2b (§5.2): {@code scheme://host[:port]} of the base URL passed to the child, or null. */
         volatile String endpoint;
         /** P2b (§5.2): this run's diagnostics counts, and what was last reported (a fact only when one changes). */
