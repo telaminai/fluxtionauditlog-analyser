@@ -191,6 +191,10 @@ final class Usability {
             return sb.toString().strip();
         }
         if (c instanceof JList<?> list) return listText(list);
+        // M77-5: Set up AI's "Where data goes" picture paints its own words
+        if (c instanceof telamin.fluxtion.audit.analyser.analyser.ui.setup.FlowDiagram d) {
+            return d.model() == null ? null : String.join(" ", d.model().drawnWords());
+        }
         if (c instanceof JComboBox<?> cb) return cb.getSelectedItem() == null ? null : plain(String.valueOf(cb.getSelectedItem()));
         if (c instanceof JTextComponent t) {
             if (t.isEditable()) {
@@ -231,26 +235,16 @@ final class Usability {
         return "";
     }
 
-    /** A profile card paints its title and its line; the card's own words, or null when {@code b} is not one. */
+    /**
+     * A profile card painted its title and its line (P3). M77-4 retired the cards; no button of this build paints its
+     * own words, so this is null for every button. Kept as the one place a painted card would be read.
+     */
     static String cardText(AbstractButton b) {
-        ProfileOverlay overlay = (ProfileOverlay) SwingUtilities.getAncestorOfClass(ProfileOverlay.class, b);
-        if (overlay == null) return null;
-        for (var p : telamin.fluxtion.audit.analyser.analyser.session.AssistantProfile.values()) {
-            if (overlay.card(p) == b) {
-                return p.title() + (p == telamin.fluxtion.audit.analyser.analyser.session.AssistantProfile.SAFE ? " · default" : "")
-                        + " " + ProfileOverlay.cardLine(p);
-            }
-        }
         return null;
     }
 
-    /** The painted title of a profile card alone (its label as a target). */
+    /** The painted title of a profile card alone (its label as a target): none in this build (see {@link #cardText}). */
     static String cardTitle(AbstractButton b) {
-        ProfileOverlay overlay = (ProfileOverlay) SwingUtilities.getAncestorOfClass(ProfileOverlay.class, b);
-        if (overlay == null) return null;
-        for (var p : telamin.fluxtion.audit.analyser.analyser.session.AssistantProfile.values()) {
-            if (overlay.card(p) == b) return p.title();
-        }
         return null;
     }
 

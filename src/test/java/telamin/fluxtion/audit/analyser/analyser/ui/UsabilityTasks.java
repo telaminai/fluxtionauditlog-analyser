@@ -78,9 +78,10 @@ final class UsabilityTasks {
             this.dir = Files.createDirectories(dir);
             this.agent = agent;
             home = Files.createDirectories(dir.resolve("home"));
-            // the analyser's own search finds this claude; it is never run (the fixture agent answers)
+            // the analyser's own search finds this claude. Set up AI's two read-only checks run it (M77): it answers them
+            // as the wizard's frame test's stub does; the fixture agent answers every question
             Path claude = Files.createDirectories(home.resolve(".local/bin")).resolve("claude");
-            Files.writeString(claude, "#!/bin/sh\nexit 0\n");
+            Files.writeString(claude, AiSetupWizardFrameTest.STUB);
             Files.setPosixFilePermissions(claude, PosixFilePermissions.fromString("rwx------"));
             // an installed launcher that really starts this build's bridge, under this home (task 6 checks it)
             Path launcher = Files.createDirectories(home.resolve(".jbang/bin")).resolve("analyser");
@@ -95,6 +96,8 @@ final class UsabilityTasks {
                 ThemeManager.apply(new AppConfig().theme);   // the app's default theme, as Main applies it
                 MainFrame f = new MainFrame();
                 f.localAgentLauncher = agent;
+                // a GUI-shaped PATH (the wizard's T24): the checks find the stub in ~/.local/bin, never a real claude
+                f.setupEnvironmentForTest = Map.of("PATH", "/usr/bin:/bin:/usr/sbin:/sbin");
                 if (!startPage) workspace(f);
                 made.set(f);
             });
@@ -161,16 +164,22 @@ final class UsabilityTasks {
             return n[0];
         }
 
-        /** Precondition: the profile cards open, a profile chosen and applied, by the program (not counted). */
+        /**
+         * Precondition: a profile chosen and applied through the quick switch, by the program (not counted). M77-4: the
+         * profile cards are gone; a Set up AI window a row opened is cancelled.
+         */
         void apply(AssistantProfile p) throws Exception {
-            if (!ProfileOverlayFrameTest.profiles(frame).open()) onEdt(() -> assistant().profileButton().doClick());
-            ProfileOverlayFrameTest.await(frame, s -> s.open(), "the cards are open");
+            QuickSwitchFrameTest.choose(frame, assistant(), p);
+            QuickSwitchFrameTest.await(frame, s -> s.profile() == p, p + " applied");
             onEdt(() -> {
-                assistant().profileOverlay().card(p).doClick();
-                assistant().profileOverlay().applyButton().doClick();
+                if (frame.aiSetupWindow != null && frame.aiSetupWindow.isShowing()) frame.aiSetupWindow.cancelButton().doClick();
             });
-            ProfileOverlayFrameTest.await(frame, s -> !s.open() && s.profile() == p, p + " applied");
             Usability.settle();
+        }
+
+        /** The Set up AI window's state, as the session published it. */
+        telamin.fluxtion.audit.analyser.analyser.session.AiSetupState setup() {
+            return QuickSwitchFrameTest.setup(frame);
         }
 
         /** Precondition: Claude Code started and ready (the folder confirmed if asked). */
@@ -298,6 +307,36 @@ final class UsabilityTasks {
         if (!answerOnScreen(s)) run.clickIfShowing("back to the answer", button("Back to the answer"), 1_000);
     }
 
+    /**
+     * M77-2: the first use with nothing set up opens Set up AI at Screen 1 with Claude inside preselected (the stub
+     * claude was found). Continue runs the two checks; Finish (enabled once they pass, Safe analysis preselected)
+     * applies it and places the question. Two counted acts where the cards had one (Apply).
+     */
+    static void setUpInside(Run run, Session s) throws Exception {
+        Usability.await("Set up AI opens", () -> s.setup().open());
+        run.click("continue with Claude inside", buttonInWindow(telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.TITLE,
+                "Continue"));
+        Finder finish = buttonInWindow(telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.TITLE, "Finish");
+        run.awaitEnabled("Finish", finish);
+        run.click("finish setting up AI", finish);
+        Usability.await("Set up AI closed", () -> !s.setup().open());
+        UnifiedAssistantFrameTest.awaitMode(s.frame, AssistantMode.LOCAL_AGENT);
+    }
+
+    /** A row of the quick switch's menu (the mode chip's popup) whose text contains {@code text}. */
+    static Finder quickSwitchRow(Session s, String text) {
+        return () -> {
+            javax.swing.JPopupMenu m = s.assistant().quickSwitch().lastShown();
+            if (m == null || !m.isShowing()) return null;
+            for (Component c : m.getComponents()) {
+                if (c instanceof javax.swing.JMenuItem i && i.isShowing() && Usability.label(i).contains(text)) {
+                    return new Located(i, Usability.label(i));
+                }
+            }
+            return null;
+        };
+    }
+
     // ---- the eight tasks ------------------------------------------------------------------------------------------------------
 
     /** A task: its id, its name, its key words, and its script. */
@@ -355,7 +394,10 @@ final class UsabilityTasks {
         return run;
     }
 
-    /** T1: the start page, a question, Enter; the page offers the sample; the cards; Send; the answer on screen. */
+    /**
+     * T1: the start page, a question, Enter; the page offers the sample; Set up AI (M77-2: Continue, then Finish — the
+     * cards' Apply before); Send; the answer on screen.
+     */
     static boolean freshStartToFirstAnswer(Run run, Path dir) throws Exception {
         try (Session s = new Session(dir, answering(), true)) {
             StartPromptFrameTest.session(s.frame);
@@ -364,18 +406,16 @@ final class UsabilityTasks {
             Finder box = Usability.component(prompt::box, () -> StartPromptView.PLACEHOLDER);
             run.type("type a question in the start page's box", box, "What happened in this log?");
             run.key("press Enter", Usability.component(prompt::box, () -> prompt.keyHintLabel().getText()), KeyEvent.VK_ENTER);
-            // a build that holds a no-log question offers the sample first; an older one goes straight to the cards
+            // a build that holds a no-log question offers the sample first; an older one goes straight to the choice
             run.clickIfShowing("open the sample the page offers", button("Open the sample"), 1_500);
-            Usability.await("the cards ask", () -> ProfileOverlayFrameTest.profiles(s.frame).open());
-            run.click("apply the default assistant", button("Apply"));
-            UnifiedAssistantFrameTest.awaitMode(s.frame, AssistantMode.LOCAL_AGENT);
+            setUpInside(run, s);
             run.click("send the placed question", button("Send"));
             untilAnswered(run, s);
             return run.endScreen(answerOnScreen(s));
         }
     }
 
-    /** T2: the demo log open; right-click the breach record; Ask; the cards; Send; the answer on screen. */
+    /** T2: the demo log open; right-click the breach record; Ask; Set up AI (Continue, Finish); Send; the answer. */
     static boolean askAboutARecord(Run run, Path dir) throws Exception {
         try (Session s = new Session(dir, answering(), false)) {
             s.openDemo();
@@ -395,9 +435,7 @@ final class UsabilityTasks {
                     Usability.expectedRecordDigest(s.frame, raw -> raw.contains("RiskBreachEvent"))));
             if (!right[0]) run.notes.add("the record asked about is not the RiskBreachEvent record");
             run.click("choose Ask: What happened here?", button("What happened here?"));
-            ProfileOverlayFrameTest.await(s.frame, x -> x.open(), "the cards are open");
-            run.click("apply the default assistant", button("Apply"));
-            UnifiedAssistantFrameTest.awaitMode(s.frame, AssistantMode.LOCAL_AGENT);
+            setUpInside(run, s);
             run.click("send the placed question", button("Send"));
             untilAnswered(run, s);
             return run.endScreen(answerOnScreen(s) && right[0]);
@@ -441,15 +479,7 @@ final class UsabilityTasks {
         try (Session s = new Session(dir, answering(), false)) {
             s.openDemo();
             // precondition: RiskBreachEvent unticked, then the checklist hidden (both by the program)
-            onEdt(() -> {
-                for (JCheckBox c : all(s.frame.getRootPane(), JCheckBox.class)) {
-                    if (c.getText() != null && c.getText().startsWith("RiskBreachEvent") && c.isSelected()) c.doClick();
-                }
-            });
-            Usability.settle();
-            javax.swing.JToggleButton toggle = (javax.swing.JToggleButton) field(s.frame, "eventTypesToggle");
-            onEdt(() -> { if (toggle.isSelected()) toggle.doClick(); });
-            Usability.settle();
+            untickThenHide(s, "RiskBreachEvent");
             run.begin();
             run.click("show the event-type checklist", button("Event types"));
             Finder unticked = () -> {
@@ -473,6 +503,29 @@ final class UsabilityTasks {
         }
     }
 
+    /**
+     * The T4 precondition, by the program: {@code type} unticked, then the checklist hidden. The list is shown first:
+     * on a fresh home it starts hidden (fix/event-types-default-collapsed) and its rows are laid out only when shown.
+     * The check that the type really is unticked keeps a silent no-op from passing as a precondition.
+     */
+    static void untickThenHide(Session s, String type) throws Exception {
+        javax.swing.JToggleButton toggle = (javax.swing.JToggleButton) field(s.frame, "eventTypesToggle");
+        onEdt(() -> { if (!toggle.isSelected()) toggle.doClick(); });
+        Usability.settle();
+        onEdt(() -> {
+            for (JCheckBox c : all(s.frame.getRootPane(), JCheckBox.class)) {
+                if (c.getText() != null && c.getText().startsWith(type) && c.isSelected()) c.doClick();
+            }
+        });
+        Usability.settle();
+        boolean[] unticked = new boolean[1];
+        onEdt(() -> unticked[0] = all(s.frame.getRootPane(), JCheckBox.class).stream()
+                .anyMatch(c -> c.getText() != null && c.getText().startsWith(type) && !c.isSelected()));
+        if (!unticked[0]) throw new TaskFailed("precondition: " + type + " could not be unticked");
+        onEdt(() -> { if (toggle.isSelected()) toggle.doClick(); });
+        Usability.settle();
+    }
+
     /** The hidden type the T4 tasks set up. */
     static final String HIDDEN_TYPE = "RiskBreachEvent";
 
@@ -486,15 +539,7 @@ final class UsabilityTasks {
     static boolean whyAreRecordsMissingCorrect(Run run, Path dir) throws Exception {
         try (Session s = new Session(dir, answering(), false)) {
             s.openDemo();
-            onEdt(() -> {
-                for (JCheckBox c : all(s.frame.getRootPane(), JCheckBox.class)) {
-                    if (c.getText() != null && c.getText().startsWith(HIDDEN_TYPE) && c.isSelected()) c.doClick();
-                }
-            });
-            Usability.settle();
-            javax.swing.JToggleButton toggle = (javax.swing.JToggleButton) field(s.frame, "eventTypesToggle");
-            onEdt(() -> { if (toggle.isSelected()) toggle.doClick(); });
-            Usability.settle();
+            untickThenHide(s, HIDDEN_TYPE);
             run.begin();
             boolean[] cue = new boolean[1];
             onEdt(() -> cue[0] = Usability.chromeOnScreen().stream().map(x -> x.text().toLowerCase(java.util.Locale.ROOT))
@@ -613,36 +658,46 @@ final class UsabilityTasks {
         }
     }
 
-    /** T5: Safe analysis in force; turn on Full (its consent shown in full), then back to Safe. */
+    /**
+     * T5: Safe analysis in force; turn on Full (its consent shown in full), then back to Safe. M77-4/M78 D2: the mode
+     * chip is the quick switch — a row applies at once, Full after its confirmation (the cards' choose-then-Apply before).
+     */
     static boolean safeFullSafe(Run run, Path dir) throws Exception {
         try (Session s = new Session(dir, answering(), false)) {
             s.openDemo();
             s.apply(AssistantProfile.SAFE);
             s.selectTab("Analyser assistant");
             run.begin();
-            run.click("open the assistant chooser", button("Safe analysis ▾"));
-            ProfileOverlayFrameTest.await(s.frame, x -> x.open(), "the cards are open");
-            run.click("choose the Full Claude Code card", button("Full Claude Code"));
-            run.click("turn Full on", Usability.anyButton("Turn on Full", "Turn on full Claude Code"));
+            run.click("open the mode chip", Usability.anyButton("Safe ▾", "Safe analysis ▾"));
+            run.click("choose Full Claude Code", quickSwitchRow(s, "Full Claude Code"));
             run.click("accept the Full consent", buttonInWindow(ConfigPanel.FULL_POSTURE_TITLE, "Turn on full Claude Code"));
-            ProfileOverlayFrameTest.await(s.frame, x -> !x.open() && x.profile() == AssistantProfile.FULL, "Full applied");
-            run.click("open the assistant chooser", button("Full Claude Code ▾"));
-            ProfileOverlayFrameTest.await(s.frame, x -> x.open(), "the cards are open again");
-            run.click("choose the Safe analysis card", button("Safe analysis"));
-            run.click("apply Safe analysis", button("Apply"));
-            ProfileOverlayFrameTest.await(s.frame, x -> !x.open() && x.profile() == AssistantProfile.SAFE, "Safe applied");
+            QuickSwitchFrameTest.await(s.frame, x -> x.profile() == AssistantProfile.FULL, "Full applied");
+            run.click("open the mode chip", Usability.anyButton("Full ▾", "Full Claude Code ▾"));
+            run.click("choose Safe analysis", quickSwitchRow(s, "Safe analysis"));
+            QuickSwitchFrameTest.await(s.frame, x -> x.profile() == AssistantProfile.SAFE, "Safe applied");
             return run.endScreen(!s.config().claudeCodeFull);
         }
     }
 
-    /** T6: from the start page, the generic MCP client set-up: access on, the bridge checked. */
+    /**
+     * T6: from the start page, the generic MCP client set-up: access on, the bridge checked. M77-3/M77-4: the start
+     * page's Connect block is gone; the first-run block's <i>Your own AI client</i> opens Set up AI at Screen 2b, whose
+     * switch turns access on behind its confirmation, and the bridge check is behind its <i>More options…</i>.
+     */
     static boolean externalClient(Run run, Path dir) throws Exception {
         try (Session s = new Session(dir, answering(), true)) {
             StartPromptFrameTest.session(s.frame);
             run.begin();
-            run.click("choose Other MCP client", button("Other MCP client"));
-            run.click("turn on External MCP/REST access", button("Turn on External MCP/REST access"));
-            run.click("confirm", buttonInWindow("Turn on External MCP/REST access", "OK"));
+            String title = telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.TITLE;
+            run.click("choose your own AI client", button(telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.CLIENT_SHORT));
+            run.click("continue", button("Continue"));
+            Usability.await("Set up AI opens at your own client", () -> s.setup().open()
+                    && s.setup().step() == telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Step.CLIENT);
+            run.click("let programs on this computer reach this window",
+                    buttonInWindow(title, telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.ACCESS_SWITCH));
+            run.click("confirm", buttonInWindow(telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.ACCESS_CONFIRM_TITLE,
+                    telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.ACCESS_CONFIRM_TURN_ON));
+            run.click("more options", buttonInWindow(title, telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.MORE_OPTIONS));
             run.awaitEnabled("Check connection", button("Check connection"));
             run.click("check the connection", button("Check connection"));
             Usability.await("the bridge check reports", () -> !bridgeLine().contains("checking"));
@@ -695,7 +750,7 @@ final class UsabilityTasks {
         try (Session s = new Session(dir, answering(), true)) {
             StartPromptFrameTest.session(s.frame);
             run.begin();
-            run.click("open the sample project", button("Sample project"));
+            run.click("open the sample project", Usability.anyButton("Sample project", "Open sample project"));
             StartPromptFrameTest.awaitDemo(s.frame);
             Usability.await("the records show", () -> s.rows() > 0);
             Usability.settle();

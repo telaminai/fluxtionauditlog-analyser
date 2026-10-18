@@ -4,10 +4,12 @@ The owner approved this on 2026-10-18: usability improvement is to be **measured
 battery of eight scripted tasks and three key states, run in a real analyser window. It records numbers that a re-run
 reproduces exactly, and CI keeps those numbers from getting worse.
 
-- **Baseline:** [`baseline-a875fcba.md`](baseline-a875fcba.md) (the table and every step) and
-  [`baseline-a875fcba.json`](baseline-a875fcba.json) (one result per task and per state). It was measured on
-  `feature/usability-scorecard`. That branch's product code (`src/main`) is byte-identical to
-  `feature/claude-code-p3` @ `a875fcba`; the branch adds only test, tools, CI and docs files.
+- **Baseline:** [`baseline-integration.md`](baseline-integration.md) (the table and every step) and
+  [`baseline-integration.json`](baseline-integration.json) (one result per task and per state), measured on the
+  2026-10-18 integration branch `test/usability-2026-10-18` (section *The integration build* below). The earlier
+  baselines stay as the before points: [`baseline-a875fcba`](baseline-a875fcba.md), measured on
+  `feature/usability-scorecard` (product code byte-identical to `feature/claude-code-p3` @ `a875fcba`), and
+  [`baseline-b1c22704`](baseline-b1c22704.md).
 - **Harness:** `src/test/java/…/ui/Usability.java` (the instrument), `UsabilityTasks.java` (the scripts),
   `UsabilityBattery.java` (the runner) and `tools/usability/run.py` (the command).
 - **Budgets in CI:** `UsabilityBudgetFrameTest` with the budgets in `UsabilityBudgets.java`. The test is registered in
@@ -41,7 +43,10 @@ The runner starts the **built shaded jar**. Its classpath is the jar first, then
 and the fixture agent) and the test-scope dependencies. The product classes come from the jar, never from
 `target/classes`. The frame test runs the same scripts on the Maven classpath, and the numbers were identical.
 
-**No live model.** Each home's `PATH` holds a `claude` stub that only exits. Claude Code is the test suite's
+**No live model.** Each home's `PATH` holds a `claude` stub. Since the integration build it answers Set up AI's two
+read-only checks (`claude --version`, `claude auth status --json`) with fixed DEMO values, as the wizard's own frame test
+does, and the analyser's environment for those checks is a GUI-shaped `PATH` that cannot reach a real `claude`. Claude
+Code is the test suite's
 `FixtureAgent`, which replays recorded streams:
 
 - the M74 P0 multi-turn recording, for answers;
@@ -189,6 +194,70 @@ The robot walks are `robot-journey` and `robot-rewalk`, scratch reports from 202
 - The robot's first walk needed 16 acts, including four *Send*s that did nothing. The difference is
   `fix/assistant-ux-followups` and `fix/first-run-polish`, which are both in this baseline.
 
+## The integration build (2026-10-18): `b1c22704` → `a875fcba` → integration
+
+The integration branch `test/usability-2026-10-18` gathers M77-1–5 (Set up AI, the quick switch, your own client),
+M78 D1/D2 (the quiet panel, one mode chip), the records-filter fixes, the Event types list collapsed by default and the
+authoring-walk fixes on top of `a875fcba`. Its record is [`baseline-integration.md`](baseline-integration.md) /
+[`.json`](baseline-integration.json), from `python3 tools/usability/run.py --record --label integration` on the built
+jar; two runs gave identical JSON.
+
+| Task | Success | Acts | Hesitations | Dead ends | Words before first act | Clipped |
+|---|---|---|---|---|---|---|
+| T1 Fresh start to the first answer | yes → yes → yes | 4 → 5 → 6 | 1 → 2 → 3 | 0 → 0 → 0 | 225 → 225 → 222 | 0 → 1 → 1 |
+| T2 Right-click Ask about a record | yes → yes → yes | 4 → 5 → 5 | 2 → 2 → 3 | 0 → 0 → 0 | 265 → 273 → 262 | 6 → 4 → 4 |
+| T3 Approve a report write | yes → yes → yes | 1 → 1 → 1 | 0 → 0 → 0 | 0 → 0 → 0 | 317 → 325 → 314 | 3 → 3 → 3 |
+| T4 Find out why records are missing | yes → yes → yes | 3 → 2 → 1 | 4 → 2 → 1 | 0 → 0 → 0 | 259 → 259 → 272 | 3 → 3 → 3 |
+| T5 Switch Safe → Full → Safe | yes → yes → yes | 9 → 8 → 5 | 2 → 2 → 0 | 0 → 0 → 0 | 246 → 254 → 199 | 5 → 2 → 1 |
+| T6 Set up an external client | yes → yes → yes | 4 → 4 → 7 | 1 → 1 → 4 | 0 → 0 → 0 | 225 → 225 → 222 | 0 → 0 → 0 |
+| T7 Open the sample | yes → yes → yes | 1 → 1 → 1 | 0 → 0 → 0 | 0 → 0 → 0 | 225 → 225 → 222 | 1 → 1 → 1 |
+| T8 Load a prompt pack | yes → yes → yes | 1 → 1 → 1 | 0 → 0 → 0 | 0 → 0 → 0 | 225 → 225 → 222 | 0 → 0 → 0 |
+| A2 Teach-me diamond pack | — → yes → yes | — → 11 → 10 | — → 4 → 3 | — → 0 → 0 | — → 225 → 222 | — → 6 → 6 |
+
+| State | Chrome words | Controls | Clipped | Whole-window words |
+|---|---|---|---|---|
+| S1 Start page (fresh home) | 225 → 225 → 222 | 15 → 15 → 16 | 0 → 0 → 0 | 225 → 225 → 222 |
+| S2 Assistant Ready (Safe analysis, docked) | 32 → 31 → 6 | 6 → 6 → 4 | 2 → 0 → 0 | 224 → 229 → 195 |
+| S3 Records with the event-type list shown | 17 → 25 → 26 | 5 → 8 → 9 | 0 → 0 → 0 | 265 → 273 → 274 |
+
+T4c, the correctness target: — → **FAIL** → **pass**.
+
+**Script changes for the integration UI.** The profile cards are gone (M77-4), so the scripts take the route this
+build offers; the success criteria and the key words are unchanged.
+
+- **T1, T2:** the first use opens *Set up AI*: **Continue** (Claude inside preselected), then **Finish** once the two
+  read-only checks pass, where the cards had **Apply**.
+- **T5:** the mode chip (*Safe ▾*, *◆ Full ▾*) opens the quick switch; a row applies at once, Full after its
+  confirmation.
+- **T6:** the first-run block's *Your own AI client connects*, **Continue**, the switch *Let programs on this computer
+  reach this window*, its confirmation, then **More options…** for *Connect an AI client*'s **Check connection**; the
+  success criterion is still *"Bridge works now"*.
+- **T4's precondition** shows the checklist before unticking, since the list now starts hidden, and checks the type
+  really is unticked.
+- **The `claude` stub** answers the wizard's two checks (see *No live model*); the painted words of Set up AI's
+  *Where data goes* picture are counted as chrome.
+
+**What changed, and why** (each budget change is in `UsabilityBudgets.java` with its reason):
+
+- **Better:** T4 2 → 1 act and 2 → 1 hesitation, and **T4c passes** (the records-filter fix: the floor, the hidden
+  line, `context.hidden`). T5 8 → 5 acts, 2 → 0 hesitations (the quick switch). S2 31 → **6** words, 6 → 4 controls
+  (the quiet panel and one chip: M78 TQ1's ≤ 15 / ≤ 4 met). A2 11 → 10 (*Load this project?* is no longer asked for the
+  project already open). T2 keeps 5 acts with the wizard's extra act, because the collapsed list gives the breach
+  record its row back (no scroll). M77 T19's ≤ 6 for the newcomer path holds: T2's 5 plus *Sample project*.
+- **Worse, with a reason:**
+  - **T1 5 → 6 acts, 2 → 3 hesitations:** Continue and Finish replace Apply (M77-2, as the M77-2 target row
+    predicted). Neither label holds a key word.
+  - **T2 2 → 3 hesitations:** the same Continue and Finish.
+  - **S3 25 → 26 words:** *Records: all 10 shown* (+3) and the fourth row the floor now shows (+2), less the repeated
+    *Event types* heading (−4).
+- **A finding for the owner — T6 4 → 7 acts, 1 → 4 hesitations.** M77-4 made Set up AI the one door for your own
+  client, so the bridge check is now *Continue* → the switch → its confirmation → *More options…* (below Screen 2b's
+  fold: a scroll) → *Check connection*. Each step has a reason (the one door; the confirmation at every door, M77-3),
+  but together they make the external client the costliest task in the battery, and *More options…* is the one control
+  that names none of the task's words and sits below a fold. The budget is raised to the measure so CI holds it; it is
+  not a target. Screen 2b's own live check (*Can your client see the analyser?*) is the route the spec intends, and it
+  needs a real client to call, which the battery cannot script.
+
 ## Before → after: `b1c22704` → `a875fcba`
 
 `a875fcba` already contains the first-run polish and the Event types fixes, so this section records a true before
@@ -319,20 +388,21 @@ build is scripted and budgeted. The rest are targets, each with its success crit
 
 ## Budgets enforced in CI
 
-`UsabilityBudgetFrameTest` runs on the display, at 1200×800 and docked. The budgets are today's measured values, so
-any regression fails. A change that makes a number better lowers its budget in `UsabilityBudgets.java` in the same
+`UsabilityBudgetFrameTest` runs on the display, at 1200×800 and docked. The budgets are the integration build's
+measured values (they were `a875fcba`'s until 2026-10-18), so any regression fails. A change that makes a number better lowers its budget in `UsabilityBudgets.java` in the same
 commit. A change that needs a worse number raises it there, with the reason, where review sees it.
 
 | Budget | Value |
 |---|---|
-| S1 chrome words | ≤ 225 |
-| S2 chrome words | ≤ 31 |
-| S3 chrome words | ≤ 25 |
+| S1 chrome words | ≤ 222 (was 225) |
+| S2 chrome words | ≤ 6 (was 31) |
+| S3 chrome words | ≤ 26 (was 25) |
 | S1, S2, S3 clipped strings | 0 |
-| Acts per task (each task must also succeed) | T1 ≤ 5 · T2 ≤ 5 · T3 ≤ 1 · T4 ≤ 2 · T5 ≤ 8 · T6 ≤ 4 · T7 ≤ 1 · T8 ≤ 1 · **A2 ≤ 11** |
+| Acts per task (each task must also succeed) | T1 ≤ 6 (was 5) · T2 ≤ 5 · T3 ≤ 1 · T4 ≤ 1 (was 2) · T5 ≤ 5 (was 8) · T6 ≤ 7 (was 4) · T7 ≤ 1 · T8 ≤ 1 · **A2 ≤ 10** (was 11) |
+| T4c | must pass, 0 acts (since the integration) |
 
-Hesitations, dead ends, words before the first act and A2's milestones are recorded but not enforced. T4c is a
-target: it runs and is recorded, but is never budgeted.
+Hesitations, dead ends, words before the first act and A2's milestones are recorded but not enforced. T4c was a
+target until the records-filter fix made it pass; the budget test now runs it and requires it.
 
 ### Witnesses
 
@@ -346,6 +416,8 @@ Rule 8 requires a wrong-result witness for each budget. These were run on 2026-1
 | The right-record check tells records apart | `theRightRecordCheckTellsRecordsApart`: the first record selected, then the breach record | *not the breach record*, then *the breach record*, by digest |
 | T4c fails on this base and passes on the fix | the battery on `a875fcba`, and on `fix/records-filter-visibility` @ `87551460` (built in a scratch worktree, harness copied in) | **FAIL** here (both halves). **pass** on the fix: its *"1 hidden by event types"* line and its context's `hidden` entry |
 | A real product change: a path broken | `StartPromptView`'s Enter binding (`start-send`) removed | **red**: *"T1 … did not succeed (step 3 (open the sample the page offers): no such control on screen)"* |
+| Integration: a word more on the quiet panel | `AssistantProfile.shortTitle()` SAFE → *"Safe analysis"* (the chip reads *Safe analysis ▾*), the integration budgets | **red**: *"S2 Assistant Ready (Safe analysis, docked): 7 chrome words > budget 6"* |
+| Integration: T4c is enforced | `MainFrame`'s context assembly with its `hidden` put disabled | **red**: *"T4c … did not succeed (the end state was not reached)"* |
 
 ## Targets per milestone (listed, not yet enforced)
 

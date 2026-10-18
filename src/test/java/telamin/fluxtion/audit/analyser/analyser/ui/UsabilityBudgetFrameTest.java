@@ -66,7 +66,7 @@ class UsabilityBudgetFrameTest {
     }
 
     @Test
-    @DisplayName("★ the eight scripted tasks and the scripted authoring task succeed within their act budgets")
+    @DisplayName("★ the eight scripted tasks, T4c and the scripted authoring task succeed within their act budgets")
     void tasksStayInBudget() throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless(), "a real display is required");
         // not @TempDir: a closed project's debounced settings write may land after the frame is gone, and JUnit's
@@ -85,6 +85,7 @@ class UsabilityBudgetFrameTest {
         List<Usability.Run> runs = new ArrayList<>();
         List<UsabilityTasks.Task> all = new ArrayList<>(UsabilityTasks.tasks());
         all.addAll(UsabilityTasks.authoringTasks());
+        all.addAll(UsabilityTasks.targetTasks());          // T4c must pass since the records-filter fix (integration)
         for (UsabilityTasks.Task t : all) {
             Usability.Run r = UsabilityTasks.run(t, tmp.resolve(t.id()));
             System.out.println("[usability] " + r.toMap());
@@ -149,7 +150,7 @@ class UsabilityBudgetFrameTest {
                         run.begin();
                         run.click("click the question box first", Usability.component(() -> s.startPanel().prompt().box(),
                                 () -> StartPromptView.PLACEHOLDER));
-                        run.click("open the sample project", button("Sample project"));
+                        run.click("open the sample project", Usability.anyButton("Sample project", "Open sample project"));
                         StartPromptFrameTest.awaitDemo(s.frame);
                         return run.endScreen(true);
                     }

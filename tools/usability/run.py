@@ -11,7 +11,8 @@ Eight scripted tasks and three key states (docs/usability/scorecard.md), each in
 driven by Swing events through the test harness (src/test/java/.../ui/UsabilityTasks.java). The JVM runs under an
 ISOLATED user.home below a neutral path, so no real setting, project or path can reach a measure, and every task
 makes its own home inside it. Claude Code is the test suite's FixtureAgent (recorded streams) and the `claude` the
-analyser finds is a stub that only exits: no live prompt is ever sent, nothing is registered, no network is used.
+analyser finds is a stub that answers only Set up AI's two read-only checks (`--version`, `auth status`) with fixed DEMO
+values: no live prompt is ever sent, nothing is registered, no network is used.
 
 The classpath is the shaded jar first, then target/test-classes (the harness and the fixture agent) and the test-scope
 dependencies (JUnit, which the frame tests' helpers use). The product classes come from the jar, never target/classes.
