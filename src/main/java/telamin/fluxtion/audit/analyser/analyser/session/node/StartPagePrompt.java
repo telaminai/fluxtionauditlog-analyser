@@ -287,6 +287,8 @@ public class StartPagePrompt implements EventLogSource {
 
     @OnEventHandler
     public boolean onFlowDone(SessionEvents.StartPageFlowDone e) {
+        // a held press's open (the "No log is open" line) is startPageNoLogHint's, upstream — never placed here
+        if (noLogHint != null && noLogHint.holds(e.request())) return false;
         Pending p = pending.remove(e.request());
         if (p == null) {
             auditLog.info("staleFact", "StartPageFlowDone").info("request", e.request());

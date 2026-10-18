@@ -238,4 +238,89 @@ class FirstRunPolishFrameTest {
             }
         }
     }
+
+    /**
+     * ★ Robot walk (P3, shot 35): Open a log… then Cancel in the chooser left Open the sample and Open a log… DISABLED with
+     * the line still shown — a dead end. Now the cancel is reported, the line returns to offering, and both opens are
+     * usable: Open the sample opens it and the question goes on. Witness: drop the {@code noLogOpenEnded} report from the
+     * LOG_FLOW branch of {@code MainFrame.runStartPageFlow} — the buttons stay disabled.
+     */
+    @Test
+    @DisplayName("★ start page, no log open: Open a log… then Cancel — the line stays, both opens are enabled, Open the sample works")
+    void cancelledChooserLeavesTheOffer(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless(), "a real display is required");
+        try (AssistantFirstRunFrameTest.Fresh f = new AssistantFirstRunFrameTest.Fresh(tmp, 1200, 800)) {
+            StartPromptFrameTest.showStart(f.frame);
+            StartPromptFrameTest.session(f.frame);
+            onEdt(() -> {
+                StartPromptView prompt = StartPromptFrameTest.startPanel(f.frame).prompt();
+                prompt.box().setText("What happened here?");
+                prompt.actionButton().doClick();
+            });
+            await(f.frame, x -> x.startPage().noLogHeld() != 0, "held");
+            FirstRunLayoutFrameTest.settle();
+            StartPromptView prompt = StartPromptFrameTest.startPanel(f.frame).prompt();
+            java.util.Set<java.awt.Window> before = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
+            onEdt(() -> { for (java.awt.Window w : java.awt.Window.getWindows()) if (w.isShowing()) before.add(w); });
+            javax.swing.SwingUtilities.invokeLater(prompt.noLogButton(StartPromptView.NoLogAction.OPEN_LOG)::doClick);
+            javax.swing.JFileChooser chooser = awaitChooser(before);
+            assertTrue(snapshot(f.frame).startPage().noLogOpening(), "the chooser is up: the line says it is opening");
+            onEdtLater(chooser::cancelSelection);
+            await(f.frame, x -> x.startPage().noLogHeld() != 0 && !x.startPage().noLogOpening(),
+                    "★ the cancel returned the line to offering");
+            FirstRunLayoutFrameTest.settle();
+            onEdt(() -> {
+                assertTrue(prompt.noLogRow().isShowing(), "★ the line stays");
+                for (var a : StartPromptView.NoLogAction.values()) {
+                    JButton b = prompt.noLogButton(a);
+                    assertTrue(b.isShowing() && b.isEnabled(), "★ " + a + " is usable after the cancel");
+                }
+            });
+            assertFalse(snapshot(f.frame).logOpen(), "the cancel opened nothing");
+            onEdt(() -> prompt.noLogButton(StartPromptView.NoLogAction.OPEN_SAMPLE).doClick());
+            await(f.frame, x -> x.logOpen(), "★ Open the sample works after the cancel");
+            await(f.frame, x -> x.startPage().noLogHeld() == 0 && x.profiles().open(),
+                    "the question goes on about the sample");
+            assertEquals(0, f.agent.processes.size(), "nothing sent");
+        }
+    }
+
+    /** The new file chooser among the windows showing now. */
+    private static javax.swing.JFileChooser awaitChooser(java.util.Set<java.awt.Window> before) throws Exception {
+        long deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(10);
+        while (System.nanoTime() < deadline) {
+            Thread.sleep(20);
+            java.util.concurrent.atomic.AtomicReference<javax.swing.JFileChooser> seen =
+                    new java.util.concurrent.atomic.AtomicReference<>();
+            onEdtLater(() -> {
+                for (java.awt.Window w : java.awt.Window.getWindows()) {
+                    if (w.isShowing() && w instanceof javax.swing.JDialog d && !before.contains(d)) {
+                        javax.swing.JFileChooser c = findChooser(d.getContentPane());
+                        if (c != null) seen.set(c);
+                    }
+                }
+            });
+            if (seen.get() != null) return seen.get();
+        }
+        fail("Open a log… opened no file chooser");
+        return null;
+    }
+
+    private static javax.swing.JFileChooser findChooser(Container c) {
+        for (Component child : c.getComponents()) {
+            if (child instanceof javax.swing.JFileChooser chooser) return chooser;
+            if (child instanceof Container inner) {
+                javax.swing.JFileChooser deeper = findChooser(inner);
+                if (deeper != null) return deeper;
+            }
+        }
+        return null;
+    }
+
+    /** Runs on the EDT without blocking behind a modal dialog's nested event loop. */
+    private static void onEdtLater(Runnable r) throws Exception {
+        var task = new java.util.concurrent.FutureTask<Void>(r, null);
+        javax.swing.SwingUtilities.invokeLater(task);
+        task.get(5, java.util.concurrent.TimeUnit.SECONDS);
+    }
 }

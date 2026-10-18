@@ -90,6 +90,40 @@ class StartPageNoLogHintTest {
         }
     }
 
+    /**
+     * ★ Robot walk (P3): Open a log… then Cancel left the line's opens disabled — a dead end. A cancelled chooser is
+     * reported (StartPageFlowDone, CANCELLED) and the line returns to OFFERING: still held, not opening, and a second
+     * choice runs its open. Witness: drop {@code opening = false} from {@code StartPageNoLogHint.onFlowDone} — the page
+     * still says it is opening.
+     */
+    @Test
+    @DisplayName("★ a cancelled chooser returns the line to offering: still held, not opening, and the next choice runs")
+    void cancelledChooserOffersAgain() {
+        for (var outcome : new SessionEvents.FlowOutcome[]{SessionEvents.FlowOutcome.CANCELLED,
+                SessionEvents.FlowOutcome.FAILED}) {
+            FakeSessionAdapter a = new FakeSessionAdapter();
+            SessionDriver d = FirstRunGuideTest.unchosen(a);
+            d.post(evidence(1, false));
+            d.post(new SessionEvents.StartPageNoLogAnswered(1, SessionEvents.NoLogChoice.OPEN_LOG));
+            assertTrue(d.snapshot().startPage().noLogOpening());
+            String note = d.snapshot().startPage().note();
+            // another press's flow, and a DONE for this one, are not a cancel of this open
+            d.post(new SessionEvents.StartPageFlowDone(7, outcome, 0, 0, 0));
+            d.post(new SessionEvents.StartPageFlowDone(1, SessionEvents.FlowOutcome.DONE, 0, 0, 0));
+            assertTrue(d.snapshot().startPage().noLogOpening(), "not this open's end");
+            d.post(new SessionEvents.StartPageFlowDone(1, outcome, 0, 0, 0));
+            assertEquals(1, d.snapshot().startPage().noLogHeld(), "★ " + outcome + ": the line stays");
+            assertFalse(d.snapshot().startPage().noLogOpening(), "★ " + outcome + ": and offers its actions again");
+            assertTrue(a.startContinues.isEmpty(), "nothing continues: no log opened");
+            assertEquals(note, d.snapshot().startPage().note(), "not a start-page flow's note: the press was never placed");
+            d.post(new SessionEvents.StartPageNoLogAnswered(1, SessionEvents.NoLogChoice.OPEN_SAMPLE));
+            assertEquals(2, a.startFlows.size(), "★ the next choice runs its open");
+            assertEquals(StartPageNoLogHint.SAMPLE_FLOW, a.startFlows.get(1).entryId());
+            AskDraftSessionTest.open(d, "/logs/demo.yaml");
+            assertEquals(1, a.startContinues.size(), "and the question continues once the log opened");
+        }
+    }
+
     /** Never held: a log is open, the words are not about evidence, a stale answer. */
     @Test
     @DisplayName("not held with a log open or for a question about the tool; a stale answer changes nothing")
