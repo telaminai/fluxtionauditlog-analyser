@@ -6,10 +6,13 @@ What is asked depends on the profile:
 - **Safe analysis** asks about each call of the analyser's verbs that change what is open or write a file: `open`,
   `source_root`, `screenshot`, `report`, `walk` and `import`. Two exceptions are never asked: a sub-action that changes
   nothing stored (playing a walk, say) is allowed, and a call your settings already refuse (a file write with file
-  exchange off) is refused. Nothing else is ever asked in Safe analysis: everything else is either allowed (the verbs
-  that only read or change the view) or denied at once.
+  exchange off) is refused. `graph` is judged call by call: creating or showing a chart is allowed, while deleting,
+  renaming or restoring one, or replacing an existing chart's definition, is asked (*"Claude Code asks to delete the
+  chart “x” (it can be restored)"*). Nothing else is ever asked in Safe analysis: everything else is either allowed
+  (the verbs that only read or change the view) or denied at once.
 - **Full Claude Code** in its `default` or `acceptEdits` mode asks whatever your Claude Code would ask you in a
-  terminal, plus those same analyser verbs. In `auto` and `plan`, those analyser verbs are hidden.
+  terminal, plus those same analyser verbs. In `auto` and `plan`, those analyser verbs are hidden, and a `graph` call
+  that would need your approval is refused.
 
 The in-app assistant and outside MCP clients do not use this dialog: an outside client asks you through its own
 approval settings.
@@ -37,7 +40,11 @@ cut — the box scrolls.
   Claude Code itself would wait for ever, so this is the analyser's own limit.
 - **One at a time.** Claude Code asks one call at a time; should a second arrive while a dialog is open, it **waits**
   — the dialog says *"1 more request is waiting"* — and is shown when you have answered the first. A waiting request is
-  still denied if its turn ends, or you press Stop or New chat, before it is shown.
+  still denied if its turn ends, or you press Stop or New chat, before it is shown. A waiting request keeps its own
+  input until it is answered or withdrawn, however many other requests arrive meanwhile; should its input ever be
+  missing, the dialog says so — *"The analyser no longer holds this request's input, so it cannot be approved. Deny it;
+  Claude Code can ask again."* — and keeps **Allow once** disabled, and an allow that still arrives is sent to Claude
+  Code as a deny.
 - **Never a question the settings would refuse.** A screenshot, a report's PDF or CSV, a bundle or a walk's page is a
   file in the exchange folder: with *Allow assistant file exchange* off it is refused at once, with the reason and where
   to turn it on — never asked and then refused.
@@ -48,8 +55,8 @@ cut — the box scrolls.
 - **An approval covers one call.** For the analyser's own verbs, *Allow once* lets exactly that call through — the same
   verb, the same input, the same turn — once, within 60 s; the analyser refuses any other call of those verbs, whoever
   approved it. The call still meets every other rule: `report` and `screenshot` write only inside the exchange
-  folder when file exchange is on, `open {project, create}` needs *Allow the assistant to create projects*, and
-  `graph {delete}` is never available.
+  folder when file exchange is on, and `open {project, create}` needs *Allow the assistant to create projects*. Under
+  a Full Claude Code mode that never asks (`auto`, `plan`), a `graph` call that would need your approval is refused.
 - **What is asked.** In Safe analysis only those verbs are ever asked (nothing else asks there). With
   full Claude Code in `default` or `acceptEdits`, whatever your Claude Code would ask you in a terminal is asked here:
   Bash commands (the command shown verbatim), file edits and writes (`acceptEdits` does not ask about edits in the

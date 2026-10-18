@@ -53,6 +53,13 @@ the line under it says what it is doing: *Requesting*, *Running action n*, *Comp
 - **Budgets.** A turn stops at the per-reply action cap, the round limit, or its own per-turn action budget (Settings ▸
   Assistant), and says which.
 - **With no log open**, `context`, `topology` and the source verbs still work; verbs that read records refuse by name.
+- **Source roots inside the project only.** `source_root {add}` from the in-app assistant is refused for a folder
+  outside the open project (*"add this folder yourself in Settings ▸ Sources"*), and for any caller for your home
+  folder or a credential folder. Claude Code in the tab is asked instead, and its dialog says *"outside this project"*.
+- **No approval dialog — so what it changes can be undone.** The in-app assistant runs its verbs without asking you;
+  what keeps a mistake recoverable is that a deleted chart, report or walk, and a chart whose definition a call
+  replaced, go to this machine's bins: *More → Restore deleted chart…* on the Graph tab, *Restore deleted…* on the
+  Reports tab, or `graph {restore}`, `report {restore}`, `walk {restore}`.
 - **When the workspace changes** — you open another project, log or graph — a turn in progress stops, and even a
   completed conversation is kept for reading. Start a **New chat** to ask about what is open now: its history is not sent as if
   it described the new workspace. The assistant's own `open` is expected, and continues.

@@ -76,6 +76,14 @@ public final class LocalAgentAdapter {
          * not only the posture reference. No default: an environment must say what it trusts.
          */
         List<String> fullTrustRecords();
+
+        /**
+         * Owner decision 2026-10-18: the charts that exist now, so a {@code graph} call that creates a chart is told apart
+         * from one that replaces an existing chart's definition. The default knows none, so every such call is asked.
+         */
+        default telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.ChartState charts() {
+            return null;
+        }
     }
 
     /** Time and delays: real in the application, virtual in the tests. */
@@ -252,6 +260,12 @@ public final class LocalAgentAdapter {
                 return;
             }
         }
+        // review R1 (PR #145): the worker is a pool, so a Stop's terminate may already have run and cleaned up. A killed
+        // generation takes no lock, mints no credential, writes no endpoint file and launches nothing
+        if (run.killed) {
+            cleanup(run);
+            return;
+        }
         Path dir = LocalAgentLock.directory(s.home());
         try {
             Optional<LocalAgentLock> lock = LocalAgentLock.tryAcquire(dir, run.sessionId);
@@ -296,6 +310,10 @@ public final class LocalAgentAdapter {
                 childEnv.getOrDefault("ANTHROPIC_BASE_URL", s.environment().get("ANTHROPIC_BASE_URL")));
         run.scratchForProject = env.scratchForProject();
         run.configuredModel = s.model() == null || s.model().isBlank() ? ClaudeCodeProvider.DEFAULT_MODEL : s.model().trim();
+        if (run.killed) {                         // review R1: stopped after the credential was minted; launch nothing
+            cleanup(run);
+            return;
+        }
         try {
             AgentProcess p = launcher.start(command, childEnv, removedEnv, s.cwd(), line -> onLineGuarded(run, line));
             synchronized (run) {
@@ -458,6 +476,7 @@ public final class LocalAgentAdapter {
                     ref = run.permissionByRequestId.remove(c.requestId() == null ? "" : c.requestId());
                     if (ref != null) run.pendingPermissions.remove(ref);
                 }
+                if (ref != null) store.dropPermission(ref);       // review PR151 F1: withdrawn, its words are not needed
                 if (ref != null) env.post(new SessionEvents.LocalAgentPermissionCancelled(gen, ref));
             }
             case StreamJson.SystemInit i -> {
@@ -582,7 +601,7 @@ public final class LocalAgentAdapter {
         if (named.toolClass() == SessionEvents.ToolClass.HOSTED_DESTRUCTIVE && judged.showable()) {
             try {
                 kind = telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.hostedCallKind(named.name(),
-                        telamin.fluxtion.audit.analyser.analyser.llm.Json.parse(r.inputRaw()));
+                        telamin.fluxtion.audit.analyser.analyser.llm.Json.parse(r.inputRaw()), env.charts());
             } catch (RuntimeException unreadable) {
                 kind = SessionEvents.HostedCallKind.CHANGES;     // unreadable: asked, as before
             }
@@ -597,6 +616,9 @@ public final class LocalAgentAdapter {
      * carried, which the person was shown), or deny with the node's message. The tool line is marked with who decided.
      * A grant's 60 s are measured from here.
      */
+    /** Review PR151 F1: the deny written when an allow arrives for a request whose shown words are no longer held. */
+    static final String WORDS_NOT_HELD = "Denied: the analyser no longer holds the input it showed for this request";
+
     private SessionEvents.Result answerPermission(SessionEffects.AnswerPermissionEffect e) {
         Run run = runs.get(e.generation());
         String[] pending = null;
@@ -607,8 +629,12 @@ public final class LocalAgentAdapter {
             }
         }
         boolean written = run != null && pending != null;
+        // review PR151 F1: what the person saw is what runs, failing closed — an allow is written only while the words
+        // the dialog showed are still held; then they are dropped, the request answered
+        boolean shown = store.permission(e.requestRef()) != null;
+        store.dropPermission(e.requestRef());
         if (written) {
-            boolean allow = e.allow() && pending[1] != null && !pending[1].isBlank();
+            boolean allow = e.allow() && shown && pending[1] != null && !pending[1].isBlank();
             // the line is marked BEFORE the answer is written: the tool's own result can follow the answer at once
             boolean marked;
             synchronized (run) {
@@ -616,7 +642,8 @@ public final class LocalAgentAdapter {
             }
             if (marked) textChanged(run);
             write(run, allow ? StreamJson.allow(pending[0], pending[1])
-                    : StreamJson.deny(pending[0], e.message() == null ? "Denied in the analyser" : e.message()));
+                    : StreamJson.deny(pending[0], e.allow() && !shown ? WORDS_NOT_HELD
+                    : e.message() == null ? "Denied in the analyser" : e.message()));
             if (allow && e.grantId() != 0) {
                 long gen = e.generation();
                 long grant = e.grantId();
@@ -624,7 +651,7 @@ public final class LocalAgentAdapter {
             }
         }
         return new SessionEvents.LocalAgentPermissionAnswered(e.opId(), e.generation(), e.ticket(), e.requestRef(),
-                e.toolClass(), e.name(), e.allow() && written, e.by(), written);
+                e.toolClass(), e.name(), e.allow() && shown && written, e.by(), written);
     }
 
     /** §8.3 UI: the tool line's mark, by who decided. */
@@ -637,7 +664,8 @@ public final class LocalAgentAdapter {
      * analyser's node said — never "the posture". The words are also what a screen reader speaks for the line.
      */
     static String markWords(boolean allow, SessionEvents.PermissionBy by, String message) {
-        if (allow) return by == SessionEvents.PermissionBy.NON_MUTATING ? "allowed: it changes nothing" : "approved by you";
+        if (allow) return by == SessionEvents.PermissionBy.NON_MUTATING ? "allowed: it changes nothing"
+                : by == SessionEvents.PermissionBy.PRE_ALLOWED ? "allowed: it creates or shows a chart" : "approved by you";
         if ((by == null || by == SessionEvents.PermissionBy.POLICY) && message != null) {
             if (message.equals(telamin.fluxtion.audit.analyser.analyser.session.node.LocalAgentPermission.DENIED_DEFAULT_POSTURE)) {
                 return "denied: not allowed in Safe analysis";
@@ -662,7 +690,7 @@ public final class LocalAgentAdapter {
             case TOO_LARGE -> "denied: too large to show you in full";
             case CANCELLED -> "withdrawn by Claude Code";
             case POLICY -> "denied by the analyser's settings";
-            case NON_MUTATING -> "denied";
+            case NON_MUTATING, PRE_ALLOWED -> "denied";
         };
     }
 
@@ -847,6 +875,10 @@ public final class LocalAgentAdapter {
                     // best effort; the file names a dead process
                 }
             }
+        }
+        synchronized (run) {
+            // review PR151 F1: a request the ended process asked is never answered to it; its words go with it
+            for (Long ref : run.pendingPermissions.keySet()) store.dropPermission(ref);
         }
         runs.remove(run.generation, run);
         if (run.writer instanceof java.util.concurrent.ExecutorService es) es.shutdown();

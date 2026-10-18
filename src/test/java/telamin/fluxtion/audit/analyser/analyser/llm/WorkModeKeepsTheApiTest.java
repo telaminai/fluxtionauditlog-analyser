@@ -17,10 +17,19 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Owner feedback, 2026-10-17: the shared canvas's "posture" is "Work mode" (Investigate / Build) in everything a PERSON
- * reads. The external API does not change: the {@code open {posture}} parameter and its values, {@code context.handoff}'s
- * posture section, every MCP/REST schema, the manifests and the MCP server instructions stay byte-identical — external
- * clients use them. Each surface is pinned by the SHA-256 of its JSON, taken before the rename (the
- * API's sources are unchanged since a1053178).
+ * reads; the external API keeps saying posture. Each surface an external client reads is pinned by the SHA-256 of its
+ * JSON, taken at the rename ({@code ff478f33}).
+ *
+ * <p><b>What the pin proves</b> (review PR151 F3, 2026-10-18): from the rename on, these surfaces do not change — the
+ * MCP/REST schemas ({@code VerbSchemas}), the MCP tool lists, {@code context.handoff}, the MCP server instructions, the
+ * in-process manifest and the REST action manifest Copy prompt appends. Of these, the schemas, the tool lists and
+ * {@code context.handoff} are also unchanged across M74 P3 (their sources are not in its diff).
+ *
+ * <p><b>What it does not prove</b>: that the instructions and manifest TEXT are unchanged across M74 P3. Earlier on the
+ * same branch (before the pin) the MCP server instructions — and with them {@code /manifest}'s {@code instructions} and
+ * the spotlight guidance in the REST manifest — gained the caption-length sentence and the name "External MCP/REST
+ * access", and the bridge's not-running and the 403 texts changed; those changes are listed in CHANGELOG ▸ Unreleased.
+ * The {@code /manifest} envelope's other fields are not pinned here.
  *
  * <p>Witness: rename the parameter's description, a value, or the context note's words — the matching digest fails.
  */
@@ -42,6 +51,8 @@ class WorkModeKeepsTheApiTest {
         out.put("McpTools.hostedList", McpTools.hostedList());
         out.put("McpBridge.INSTRUCTIONS", McpBridge.INSTRUCTIONS);
         out.put("PromptBuilder.inProcessActionManifest", PromptBuilder.inProcessActionManifest(3));
+        // review PR151 F3: Copy prompt's REST manifest, for a fixed endpoint and token
+        out.put("PromptBuilder.restActionManifest", PromptBuilder.restActionManifest("http://127.0.0.1:1", "T", 3));
         out.put("context.handoff derived, project", CanvasHandoff.toContext(null, null, true));
         out.put("context.handoff derived, none", CanvasHandoff.toContext(null, null, false));
         out.put("context.handoff set research by you", CanvasHandoff.toContext(
@@ -51,18 +62,23 @@ class WorkModeKeepsTheApiTest {
         return out;
     }
 
-    /** The digests before the rename. */
-    static final Map<String, String> PINNED = Map.of(
-            "VerbSchemas.all", "93be851191d2fd8f4721be9b1da434a876e6d7eb46c1b5949f4dd396bcceaafa",
-            "VerbSchemas.hosted", "1d7f30b286cc6b9edaf44165de627661584cfc137498317ed3f327cafb89e9ca",
-            "McpTools.list", "c0c886ccbc54e31e8468dfc8a9249c8ed89bfad6aee7b0760fcd20064815a74b",
-            "McpTools.hostedList", "013b88dd2adf39047d51a88b3b4f89fef565ab5cd945d5a2407e56dbd492b632",
-            "McpBridge.INSTRUCTIONS", "fdcf8b03dab8d45d9c197d230961a41518faa0319b6f5a9cc6a51662cfdf144a",
-            "PromptBuilder.inProcessActionManifest", "65eed4b076b84e808cbb6f61e1bf980f699b3cd8834e209dbacbb2e2de138224",
-            "context.handoff derived, project", "591833ea9ec7b553f868403da4ba5d909b2e45b628c93b43fd70dcb170426bb1",
-            "context.handoff derived, none", "1623b4af915aef11455cfc7a7587804fa90504f869dde67de3f5177393a04679",
-            "context.handoff set research by you", "8037233aed4d5153383d60bb0e73e2924a0828785867e83a5d54be0becc493d1",
-            "context.handoff set authoring by socket", "6f810064351561ccd3026f4ca1f2d062e26540d4eb5d8d01dad6c05d8fedfe32");
+    /**
+     * The digests at the rename (and, for the REST manifest, at review PR151 F3 — no change since the rename) — except
+     * the five the owner decision of 2026-10-18 changed deliberately (graph {restore} added, delete's "NOT recoverable"
+     * corrected): {@link GraphRestoreApiDeltaTest} proves undoing exactly that gives the earlier pins back.
+     */
+    static final Map<String, String> PINNED = Map.ofEntries(
+            Map.entry("VerbSchemas.all", "057e731d90ba55d7d28a7f0972c237cfd2d0f420395716d43579d21d676259d4"),
+            Map.entry("VerbSchemas.hosted", "d54a546ac0ed8a2ec0b0f91fcdda320219c3da5f5e252c3409d3a205daf7e433"),
+            Map.entry("McpTools.list", "4b7a627285c8cb81a01be2566ecb6294b0feb33b789ef7f53baf6220f3b308da"),
+            Map.entry("McpTools.hostedList", "18ab09ebd59e49aa3c4005b51d4bb232e24e750f7c469a5e1682a90a48d16e44"),
+            Map.entry("McpBridge.INSTRUCTIONS", "fdcf8b03dab8d45d9c197d230961a41518faa0319b6f5a9cc6a51662cfdf144a"),
+            Map.entry("PromptBuilder.inProcessActionManifest", "2df1e7478f92c76b9bf4eef1f52f225effb09d0c552bb42f8806141d0a58d40d"),
+            Map.entry("PromptBuilder.restActionManifest", "b6a4c625c3ecba2fa55bc9001d97fe71ab53ffd899c8c4a37e4850178e99aea8"),
+            Map.entry("context.handoff derived, project", "591833ea9ec7b553f868403da4ba5d909b2e45b628c93b43fd70dcb170426bb1"),
+            Map.entry("context.handoff derived, none", "1623b4af915aef11455cfc7a7587804fa90504f869dde67de3f5177393a04679"),
+            Map.entry("context.handoff set research by you", "8037233aed4d5153383d60bb0e73e2924a0828785867e83a5d54be0becc493d1"),
+            Map.entry("context.handoff set authoring by socket", "6f810064351561ccd3026f4ca1f2d062e26540d4eb5d8d01dad6c05d8fedfe32"));
 
     @Test
     @DisplayName("★ the external API is byte-identical: schemas, MCP tools, instructions, manifest, context.handoff")
@@ -70,7 +86,7 @@ class WorkModeKeepsTheApiTest {
         for (var e : surfaces().entrySet()) {
             assertEquals(PINNED.get(e.getKey()), sha(e.getValue()), e.getKey() + " changed — an external client reads it");
         }
-        assertEquals(10, PINNED.size());
+        assertEquals(11, PINNED.size());
     }
 
     @Test

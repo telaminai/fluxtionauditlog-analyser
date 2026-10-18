@@ -77,6 +77,53 @@ public final class VerbOperations {
         return new Chosen<>(ReportOp.INVALID, why);
     }
 
+    /** A {@code graph} call's one operation (owner decision 2026-10-18), in the executor's order. */
+    public enum GraphOp {
+        /** {@code restore: true} alone: the deleted and replaced chart definitions are listed. */
+        LIST_DELETED,
+        /** {@code restore: "name or id"} alone: that definition comes back. */
+        RESTORE,
+        /** {@code close} (true) with a name: the tab closes and the definition is kept. */
+        CLOSE,
+        /** {@code delete} (true) with a name: the chart moves to the bin. */
+        DELETE,
+        /** {@code rename} present: the chart is renamed. */
+        RENAME,
+        /** Only {@code name}, {@code refresh} or {@code newTab}: a chart is shown, reopened, re-extracted or created empty. */
+        SHOW,
+        /** Anything else: the call sets part of a chart's definition — of an existing chart, or of one it creates. */
+        EDIT,
+        /** A call the executor refuses before anything changes; {@link Chosen#error()} says why. */
+        INVALID
+    }
+
+    /** The keys of a {@code graph} call that change no stored definition by themselves. */
+    static final java.util.Set<String> GRAPH_SHOW_KEYS = java.util.Set.of("name", "refresh", "newTab");
+
+    /** The operation {@code graph} performs for {@code p} — the executor's own order and predicates. */
+    public static Chosen<GraphOp> graph(Map<?, ?> p) {
+        if (p == null) p = Map.of();
+        if (p.containsKey("restore")) {
+            if (p.size() != 1) return new Chosen<>(GraphOp.INVALID, "graph 'restore' must be used alone");
+            Object restore = p.get("restore");
+            if (Boolean.TRUE.equals(restore)) return new Chosen<>(GraphOp.LIST_DELETED, null);
+            if (restore instanceof String key && !key.isBlank()) return new Chosen<>(GraphOp.RESTORE, null);
+            return new Chosen<>(GraphOp.INVALID, "graph 'restore' needs true to list, or a chart's name or id");
+        }
+        if (flag(p.get("close"))) return new Chosen<>(GraphOp.CLOSE, null);
+        if (flag(p.get("delete"))) return new Chosen<>(GraphOp.DELETE, null);
+        if (p.containsKey("rename")) return new Chosen<>(GraphOp.RENAME, null);
+        for (Object k : p.keySet()) {
+            if (!GRAPH_SHOW_KEYS.contains(String.valueOf(k))) return new Chosen<>(GraphOp.EDIT, null);
+        }
+        return new Chosen<>(GraphOp.SHOW, null);
+    }
+
+    /** The executor's boolean reading: a Boolean, or a string that reads {@code true}. */
+    public static boolean flag(Object o) {
+        return o instanceof Boolean b ? b : Boolean.parseBoolean(String.valueOf(o));
+    }
+
     /** An {@code open} call's first act — the one the executor dispatches on. */
     public enum OpenOp {
         /** {@code create} (any value): a project is created or previewed. */

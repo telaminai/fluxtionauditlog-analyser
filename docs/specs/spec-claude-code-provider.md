@@ -123,7 +123,7 @@ hand it the person's shell. [R S1, S2]
 | What loads from the folder | **only `CLAUDE.md`** of the project root (`--restricted --add-dir <root>` + `CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD=1`). No hooks, no `.mcp.json`, no user, project or local settings, none of the person's skills or commands; the CLI's bundled built-ins remain [P0-26, P0-28, P0b-1] | everything the person's Claude Code loads: user, project and local settings and permission rules, user and project `CLAUDE.md`, skills, commands, plugins, subagents, the user's and the folder's hooks and the folder's `.mcp.json`, which run at Start [P0-28] (OD-74.10) |
 | MCP servers | **only the hosted bridge** (`--strict-mcp-config`) [P0-29] | the person's own (user scope, the folder's `.mcp.json`, claude.ai connectors) plus the hosted bridge; the person's own `fluxtion-analyser` registration (M42) is hidden (`--disallowedTools mcp__fluxtion-analyser`), because it is not bound to this instance [P0-30, P0-31] |
 | Built-in tools | an **allow-list**, `--tools "Read,Grep,Glob"`: no Bash, Write, Edit, Agent, Skill or web tools, so no subagents [P0-24]. Confined to the working directories by `--restricted`, symlinks included, even against an allow rule [P0-26]; an approval cannot widen that [P0b-3] | the person's tools, under the person's rules and the chosen mode. Not confined to the folder by the analyser (OD-74.10) |
-| Analyser verbs | the hosted verb list is **`VerbSchemas.hosted()`** from P2: the public verbs plus **`propose`** (§5.6). **Pre-allowed by explicit name** (no wildcard [P0-30]) from ONE explicit list, `McpTools.HOSTED_PRE_ALLOWED` (read through `LocalAgentPosture.PRE_ALLOWED`): `read, aggregate, series, context, coverage, source, filter, goto, flag, graph, topology, spotlight` and, from P2, `propose`. A verb is pre-allowed **only if it is listed** — an allow-list, never "the hosted verbs minus the destructive ones" — so a verb added to the schema is hidden, unexpected by the posture check and refused server-side for the hosted credential until listed (review H5, r10). The destructive verbs (`open, source_root, screenshot, report, walk, import`) are **removed from the model's tools** with `--disallowedTools` until P3; from P3 they are visible and each call is asked of the person (§5.7). The analyser refuses `graph {delete}` from the hosted bridge in every phase, because `graph` is pre-allowed [R2-6]; "from the hosted bridge" means a call carrying this generation's hosted credential (§4.2) | the same pre-allow list. From P3 the destructive verbs are visible and asked **only under the modes that ask** (`default`, `acceptEdits`); under `auto` and `plan` they stay hidden (OD-74.16) |
+| Analyser verbs | the hosted verb list is **`VerbSchemas.hosted()`** from P2: the public verbs plus **`propose`** (§5.6). **Pre-allowed by explicit name** (no wildcard [P0-30]) from ONE explicit list, `McpTools.HOSTED_PRE_ALLOWED` (read through `LocalAgentPosture.PRE_ALLOWED`): `read, aggregate, series, context, coverage, source, filter, goto, flag, topology, spotlight` and, from P2, `propose` (`graph` was listed until the owner decision of 2026-10-18, below). A verb is pre-allowed **only if it is listed** — an allow-list, never "the hosted verbs minus the destructive ones" — so a verb added to the schema is hidden, unexpected by the posture check and refused server-side for the hosted credential until listed (review H5, r10). The destructive verbs (`open, source_root, screenshot, report, walk, import`) are **removed from the model's tools** with `--disallowedTools` until P3; from P3 they are visible and each call is asked of the person (§5.7). The analyser refused `graph {delete}` from the hosted bridge in every phase, because `graph` was pre-allowed [R2-6]. **Owner decision 2026-10-18 supersedes that:** `graph` is judged call by call (`McpTools.HOSTED_PER_CALL`, classified by `McpTools.hostedCallKind` over `VerbOperations.graph`) — creating a chart or only showing one is approved without asking (a create admitted by a free name runs as `newTab`, so it can never replace a chart); deleting, renaming or restoring a chart, or replacing an existing chart's stored definition, is asked of the person (§5.7), and every delete or replacement keeps the previous definition in the machine-local chart bin (`ChartBin`, `graph {restore}`); `graph` stays visible under `auto` and `plan`, where the calls that would need an approval are refused. "From the hosted bridge" means a call carrying this generation's hosted credential (§4.2) | the same pre-allow list. From P3 the destructive verbs are visible and asked **only under the modes that ask** (`default`, `acceptEdits`); under `auto` and `plan` they stay hidden (OD-74.16) |
 | Permission mode | P1a and P2: **always** `--permission-mode dontAsk --permission-prompts none`: anything not pre-allowed is denied without blocking [P0-21]. From P3: `--permission-mode default --permission-prompts host --permission-prompt-tool stdio`, the combination P0b ran, so the analyser is asked [P0b-3]. Neither inherits the person's `defaultMode` [P0-34] | an **explicit** mode the person picks in Settings (`default`, `acceptEdits`, `auto`, `plan`; `bypassPermissions` and `dontAsk` are not offered), with `--permission-prompts none` in P1b and P2 (a request that would ask is denied; probe PB-1 confirms it does not block) and the P3 triple's prompt flags from P3. The analyser never parses the person's settings to detect a mode [R2-1] |
 | Slash commands | pass through, except the §5.4 block list | same, plus the person's own commands (`builtin:false`) |
 | Budget | **optional, off by default** (OD-74.24): when a limit is set, `--max-budget-usd` per process **and** a session total the node keeps (§4.6); with none, neither | same |
@@ -1809,6 +1809,17 @@ live smoke's item 1 met the exchange directory for real.
   only the mode, the hosted tool set, the absence of the person's own analyser registration, the hosted server and the
   session id.
 - **The full posture is not confined to the folder by the analyser** (OD-74.10); the person's rules and mode decide.
+- **The full-posture trust does not cover what its files point at** (review of PR #147, finding 2, escalated to the
+  owner). It covers the three settings files, `CLAUDE.md`, `CLAUDE.local.md`, `.claude/CLAUDE.md` and everything under
+  `.claude/commands`, `skills`, `agents`, `rules`, `output-styles` and `hooks`. A hook script elsewhere in the folder,
+  the script an `.mcp.json` server runs (`node ./server.js`), a file `CLAUDE.md` imports with `@`, and nested or
+  ancestor `CLAUDE.md` files are not digested; the dialog says so for server scripts. Covering them needs a design
+  choice (digest what commands point at, or the whole repository).
+- **A mode kill is after the fact** (review of PR #147, info 11): a `system/status` mode change is acted on when its
+  fact reaches the session thread, so a tool can start under the new mode first; only the `set_permission_mode` path is
+  evidenced, and `ExitPlanMode` or a hook's `setMode` without a `status` line is caught at the next `system/init`.
+- **Switching the full posture off waits for the turn in progress** (review of PR #147, finding 5): full → default is a
+  posture change, ended after the turn; only switching Claude Code off stops it at once. Intended, and left as is (2026-10-18).
 - **The analyser cannot ask about a call the CLI does not ask about.** In the full posture the person's allow rules,
   hooks and the `auto` classifier approve calls without `can_use_tool`. For the analyser's own destructive verbs the
   server-side grant (OD-74.17) still requires the person's approval; for the person's own tools nothing in the
@@ -1861,7 +1872,12 @@ agent, and P2's start page and transcript would otherwise inherit them.
 **Untested, carried to acceptance unless noted:**
 - **Windows:** the launcher, inline-JSON quoting through `cmd.exe` versus a 0700 temp file, interrupt and tree kill
   without SIGTERM, `--restricted` with drive, UNC and junction paths, the full posture's `PATH` (OD-74.11 lists POSIX
-  directories; Windows appends `%APPDATA%\npm` only);
+  directories; Windows appends `%APPDATA%\npm` only). Recorded from the review of PR #147 (2026-10-18), not fixed:
+  `ChildPath.osDefault` hard-codes `C:\Windows` (should read `%SystemRoot%`); `ChildEnvironment.hostSession` and
+  `ChildPath`'s duplicate check compare names case-sensitively, where Windows variable names and paths are not; the
+  native installer's `%USERPROFILE%\.local\bin` is not appended; a junction under the folder is caught only by the
+  real-path comparison, which is unprobed on Windows; `ChildEnvironmentTest.theOsLauncherRemoves` assumes `/bin/sh` and
+  `HOME`;
 - managed settings precedence (P4 decides what it needs);
 - the interactive resume picker;
 - a rate-limit rejection;
@@ -2181,6 +2197,22 @@ posture's note for the full posture; FAQ — a pinned claim removed.
 - **Witnesses** (each failed at its named assertion, then passed restored): H6 — the settings files only ("a rewritten
   CLAUDE.md asks again"), and a link followed out of the folder (the outside change altered the digest); full M8 — the
   `contentUnchanged` refusal dropped (a process started).
+- **Review of PR #147 (2026-10-18).** (1) `permissions` is no longer an inert key: the dialog names the folder's
+  `allow` rules, `additionalDirectories` and `defaultMode` (*"Permissions this folder grants itself: …"*), and they are
+  never "nothing runs". (2) `.claude/rules`, `.claude/output-styles` and `.claude/hooks` join the instruction trees, and
+  the dialog says the scripts `.mcp.json` servers run are not re-checked; folders holding those trees re-ask once.
+  (3) A running full session whose `LocalAgentConsent.fullFolderConfirmed` turns false — at a Send, or on Settings
+  apply — ends with `TRUST_CHANGED` (after the turn in progress, or at once), without New chat; Start then asks through
+  `CONFIRM_FOLDER`. (4) A changed spend limit ends a running session with `BUDGET_CHANGED` the same way; Start resumes
+  under the new `--max-budget-usd`. (6) `ENABLE_IDE_INTEGRATION`, `CLAUDE_PROJECT_DIR`, `CLAUDE_ENV_FILE` and
+  `CLAUDE_PLUGIN_*` are stripped. (7) A `.claude` (or tree) whose real path leads out of the folder is named, never
+  walked. (8) The scan also bounds folders (`MAX_INSTRUCTION_DIRS`, 2,000) and says *"Over the limit"*; it stays on
+  the event thread, because the consent is observed with the Send it travels in and moving it would reorder facts, so
+  the bounds (files, folders, 8 MB, depth 12) are what keeps it short. Info: the `!BYPASS` clause is witnessed through
+  `LocalAgentPosture.modeMatches(expected, reported)`; a folder server named `fluxtion-analyser-hosted` is flagged;
+  empty and relative `PATH` entries are dropped from the child's `PATH`; the read after a size check is bounded.
+  Each has a ★ test whose witness is in its Javadoc.
+
 ## Implementation notes (P2a, 2026-10-17)
 
 P2a — the Ask catalogue (§5.5), the start-page prompt (§5.8) and transcript presentation (§5.9), with the owner's r10

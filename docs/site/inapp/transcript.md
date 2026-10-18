@@ -51,6 +51,7 @@ given (up to 4,000 characters on screen).
 | `refused` | the analyser refused it, and the line says why |
 | `approved by you · ✓` | you allowed it in the approval dialog, and it ran (`approved by you · refused` if the analyser then refused it) |
 | `allowed: it changes nothing · ✓` | a sub-action that changes nothing stored (playing a walk, say), allowed without asking, and it ran |
+| `allowed: it creates or shows a chart · ✓` | a `graph` call that creates a chart or only changes what is shown, allowed without asking, and it ran |
 | `denied by you` | you denied it in the approval dialog |
 | `denied: not answered within 120 s` | the approval dialog timed out |
 | `denied: Stop` | you pressed Stop while it waited, or as it arrived |

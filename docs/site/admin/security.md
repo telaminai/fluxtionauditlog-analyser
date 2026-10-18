@@ -37,7 +37,7 @@ An outside client is separate: it depends only on *External MCP/REST access*.
 
 | | Runs on this machine | Reads | Changes in the analyser | Writes files through the analyser |
 |---|---|---|---|---|
-| **Safe analysis** (the default) | your own installed `claude`, with Read, Grep and Glob confined to the folder | the folder, and the evidence through the analyser's verbs | views at once; what is open only after you approve each call | only after you approve each call, and only with file exchange on |
+| **Safe analysis** (the default) | your own installed `claude`, with Read, Grep and Glob confined to the folder | the folder, and the evidence through the analyser's verbs | views at once; what is open, and deleting or replacing a saved chart, only after you approve each call | only after you approve each call, and only with file exchange on |
 | **Full Claude Code** | your own Claude Code, with **your tools, including Bash**, under your rules and the mode you chose | what your tools can read | the same verbs: asked in `default` and `acceptEdits`, hidden under `auto` and `plan` | the same, plus whatever your own tools write |
 | **In-app assistant** | nothing: it is a chat with your provider | the evidence through the analyser's verbs | views and what is open, without asking, while *Let the in-app assistant change the views as it answers* is on | only with file exchange on |
 | **Off** | nothing | nothing | nothing | nothing |
@@ -47,12 +47,15 @@ An outside client is separate: it depends only on *External MCP/REST access*.
 
 Every assistant reaches the analyser through the same verbs ([Verbs](../reference/verbs.md)), and nothing more. Out of
 the box an agent can compute, filter, graph, flag and read records, and `source` can reread the XML and Java files
-**under the source roots** (to show a declaration). A source root can be any folder you can read, and `source_root`
-lets an assistant add one (see below), so this reaches any `.xml` or `.java` file you can read. There are no file
-writes outside file exchange, below. Most view changes can be reversed: a filter widened, a chart closed, a flag cleared. Two cannot. Deleting a saved chart's
-definition with `graph {delete}` cannot be undone, and it is not marked destructive for outside clients, so a client
-is not prompted to ask you first; Claude Code in the analyser **cannot delete a chart**. And a new `note` or `fix` on a
-flag replaces the old text.
+**under the source roots** (to show a declaration). A source root can be any folder you can read except your home
+folder and your credential folders, and `source_root` lets an assistant add one (see below), so this reaches the
+`.xml` and `.java` files beneath any such folder. There are no file writes outside file exchange, below. View changes
+can be reversed: a filter widened, a chart closed, a flag cleared. **A deleted chart can be restored**: `graph
+{delete}`, and a call that replaces a saved chart's definition (re-sent notes, series, guides or bands; `clearNotes`),
+keep the previous definition in this machine's chart bin, whoever made the call, and `graph {restore}` or *More →
+Restore deleted chart…* brings it back. `graph` is not marked destructive for outside clients, so a client is not
+prompted to ask you first; Claude Code in the analyser **asks you before it deletes or replaces a chart**. One change
+cannot be undone: a new `note` or `fix` on a flag replaces the old text.
 
 These groups go further, and are labelled as such:
 
@@ -62,14 +65,21 @@ These groups go further, and are labelled as such:
   you pick in a chooser yourself is readable for that session: the chooser is the grant. `walk {reel}`, which writes a
   walk as an HTML page, and `report {bundle}`, which captures an evidence bundle, are the same kind of write.
 - **`open` and `source_root` change which log, event processor or source roots are open**, the same things you change
-  through the menus. `source_root` can add **any folder you can read** as a source root, and `source` then reads any
-  `.xml` or `.java` file beneath it. That includes, for example, a Maven `settings.xml`, which can hold repository
-  credentials. `open` can open any file you can read as a log, and an `s3://` address with your own `aws` credentials.
-  The in-app assistant can do this without a dialog. Safe analysis asks you before each `source_root` and `open` call,
-  but once you allow a root, `source` reads beneath it without asking. An outside client asks only if its own settings
-  say so (both verbs are marked destructive). There is still no shell and no write outside the exchange folder, and
-  your API key is never reachable. Whether `source_root` from an assistant should be confined, for example to the
-  project folder, is an open owner decision.
+  through the menus. `source_root` can add **any folder you can read except your home folder and your credential
+  folders** as a source root, and `source` then reads any `.xml` or `.java` file beneath it. **For every caller** — you,
+  an outside client, the in-app assistant and Claude Code — a source root is never your home folder or a folder
+  containing it, and never a credential folder (`~/.ssh`, `~/.aws`, `~/.config`, `~/.gnupg`), a folder inside one, or
+  one containing one; for `~/.m2` only the folder itself is refused, because it holds `settings.xml`, which can hold
+  repository credentials, while `~/.m2/repository` and below stay allowed. Links are resolved first, and the refusal
+  says why in plain words. A project profile, a shared settings file, a set-up proposal and a bundle's remembered roots
+  cannot carry such a root in either, and one that reached the settings some other way is never read. **An assistant is
+  also held to the open project**: the in-app assistant is refused a folder outside it (*"add this folder yourself in
+  Settings ▸ Sources"*), and Claude Code's approval dialog for `source_root` says *"outside this project"*, the call
+  still yours to allow. Once a root is added, `source` reads beneath it without asking. `open` can open any file you can
+  read as a log, and an `s3://` address with your own `aws` credentials. The in-app assistant can do this without a
+  dialog. Safe analysis asks you before each `source_root` and `open` call. An outside client asks only if its own
+  settings say so (both verbs are marked destructive). There is still no shell and no write outside the exchange
+  folder, and your API key is never reachable.
 - **`walk` edits the project's saved spotlight walks**: it can save one, replace one by name, rename one, or move one
   to the recently deleted list, from which it can be restored. Its one file write is `walk {reel}`, as above.
 - **`import` borrows an evidence bundle's saved state** into the project you have: its charts and named focuses, its
@@ -121,22 +131,32 @@ what is open or write files are visible to it, but **before Claude Code runs any
 - Three refinements keep the questions to the ones that matter: a call that changes nothing stored (playing or ending
   a walk, listing deleted reports or walks) is allowed without a dialog; a file write the settings would refuse is
   refused at once with the reason; a second request waits for the open dialog, and is denied if its turn ends first.
+- **A request is approved only with its own input on screen.** A waiting request keeps its input until it is answered
+  or withdrawn; if it is ever missing, the dialog says so and keeps *Allow once* disabled, and an allow that still
+  arrives is sent to Claude Code as a deny.
+- **`graph` is judged call by call**: creating or showing a chart is allowed, while deleting, renaming or restoring a
+  chart, or replacing a saved chart's definition, is asked, and the dialog says the old definition can be restored.
 
-**Full Claude Code is a separate switch with its own warning** (*…with my full Claude Code permissions*, off). It runs
+**Full Claude Code is a separate switch with its own warning** (*…with my full Claude Code permissions*, off; the
+Full Claude Code card's *Turn on full Claude Code* asks for the same confirmation, *Cancel* the default, before
+anything changes). It runs
 your own Claude Code as in a terminal, with **your settings, skills, hooks and MCP servers**, and **the folder's hooks
 and MCP servers run when you press Start**, before you send anything. So the folder is confirmed for full Claude Code
 separately, naming the hooks and servers found, and the analyser **asks again if those files change**
 (`.claude/settings.json`, `.claude/settings.local.json`, `.mcp.json`, and the instruction files `CLAUDE.md`,
-`CLAUDE.local.md`, `.claude/CLAUDE.md`, `.claude/commands`, `.claude/skills`, `.claude/agents`). Claude Code can then use **your own
+`CLAUDE.local.md`, `.claude/CLAUDE.md`, `.claude/commands`, `.claude/skills`, `.claude/agents`, `.claude/rules`,
+`.claude/output-styles`, `.claude/hooks`); a session already running when they change is stopped (after the answer in
+progress), and Start asks again. The dialog also names the permissions the folder grants itself (allow rules,
+additional directories, a default mode). Claude Code can then use **your own
 tools, including Bash**, file edits and web access, **as far as your permission rules and the mode you chose allow**
 (`default`, `acceptEdits`, `auto` or `plan`; **bypassPermissions is never offered**, nor `dontAsk`), and the analyser
 does not confine it to the folder. Only the Start button starts full Claude Code.
 
 The limits the analyser states rather than hides:
 
-- **Not re-checked:** files a `CLAUDE.md` imports with `@path`, `CLAUDE.md` files in the folders above, and the contents
-  of the scripts a hook runs. Claude Code reads or runs them, and a change to them does not ask again; the dialog says
-  so.
+- **Not re-checked:** files a `CLAUDE.md` imports with `@path`, `CLAUDE.md` files in the folders above, the contents
+  of the scripts a hook runs from outside `.claude/hooks`, and what an MCP server's command runs (a `./server.js`).
+  Claude Code reads or runs them, and a change to them does not ask again; the dialog says so.
 - **A call your own rules or hooks approve is not asked in the analyser**, nor one that the `auto` mode's classifier
   allows. For the analyser's own verbs the analyser still refuses it without your approval in its dialog; for your own
   tools, nothing in the analyser can ask.
@@ -149,7 +169,8 @@ The limits the analyser states rather than hides:
 
 **The in-app assistant has no approval dialog.** Its actions run at once, within the switches: *Let the in-app
 assistant change the views as it answers* (on by default; off, none of its actions run), file exchange, and project
-creation. **An outside client** is asked only by its own approval settings: the analyser marks the six destructive
+creation. What keeps its mistakes recoverable is the bins: a deleted chart, report or walk, and a chart whose
+definition a call replaced, can be restored. **An outside client** is asked only by its own approval settings: the analyser marks the six destructive
 tools, and the client decides.
 
 ## Not local-only

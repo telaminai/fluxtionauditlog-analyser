@@ -31,8 +31,12 @@ drive the same verbs:
   plots discrete events as glyphs (buys ▲ / sells ▼ on a price line) with a payload — an order id —
   on hover, and clicking a marker selects its record.
 - **graph {name, delete: true}** — remove a chart's definition. Charts accumulate the way reports
-  used to: a probe built to check an expression resolves is still in the profile a week later. Not
-  recoverable.
+  used to: a probe built to check an expression resolves is still in the profile a week later. It can
+  be restored: the definition moves to this machine's chart bin, as does the previous definition of a
+  chart a later call replaced.
+- **graph {restore: true}** / **graph {restore: "name or id"}** — list the chart bin (each entry with an
+  id, its name, whether it was deleted or replaced, and when), or bring one back into the project under its
+  name. Restoring never replaces a chart that has the name now.
 - **graph {name, close: true}** — take a chart off the screen and keep its definition, the way *Close
   graph* does. For a chart worth keeping; a closed probe still sits in the profile, so delete those.
 - **goto** — select a record (by index, byte offset or `at` time); `reveal:true` un-hides one the current filter is hiding.
@@ -282,7 +286,9 @@ would simply stall the session.
 `aggregate`, `read`, `series`, `context`, `coverage` and `source` are marked read-only (`source` rereads XML or Java
 under your source roots, and moves the transient source view). The verbs that only change what the app shows are
 reversible and marked accordingly. Six are marked **destructive**, so a client can prompt before running them: `open`
-replaces the loaded log (taking the session's flags with it), `source_root` writes the persisted config, `screenshot`
+replaces the loaded log (taking the session's flags with it), `source_root` writes the persisted config (never the home
+folder or a credential folder — `~/.ssh`, `~/.aws`, `~/.config`, `~/.gnupg`, and `~/.m2` itself but not
+`~/.m2/repository` — whoever calls), `screenshot`
 and `report` write files, `walk` can replace a saved walk by name (and `walk {reel}` writes an HTML file), and `import`
 merges a bundle's saved state into your project. A further verb, `propose`, is offered **only** to Claude Code in the
 Assistant tab ([Set up a project with Claude](../build/set-up-with-claude.md)), never to an external client.
@@ -397,7 +403,8 @@ Create/append a named time-series graph, or rename, close or DELETE one. CLEAN U
 | `refresh` | boolean |  | re-extract this graph from the log now. Rarely needed: with Follow on, open graphs re-extract as records arrive. A re-send that changes nothing re-extracts nothing; this is the one word for 'do it anyway'. The echo says refreshed: "scheduled" — the walk lands after the call returns, so read fresh values with \`series\`; the chart is what lags |
 | `rename` | string |  | with {name}, rename that graph to this |
 | `close` | boolean |  | with {name}, take that chart off the screen and KEEP its definition — for a chart worth keeping; a closed probe still sits in the profile, so delete those. Goes alone; refused for the last open chart |
-| `delete` | boolean |  | with {name}, remove that chart's DEFINITION — series, formulas, pinned notes and explanation. Goes ALONE, like rename. NOT recoverable (unlike a report delete); to put a chart away without losing it, use close instead |
+| `delete` | boolean |  | with {name}, remove that chart's DEFINITION — series, formulas, pinned notes and explanation. Goes ALONE, like rename. Restorable, like a report delete: it moves to this machine's chart bin (see restore); to put a chart away without deleting it, use close instead |
+| `restore` | string or one of `true` |  | use alone: true lists the chart bin — deleted charts, and the definitions a later call replaced (re-sent notes, series, guides or bands; clearNotes), each with an id; a string restores that chart by name (its newest entry) or by id (that version), refusing a name a chart has now |
 
 ### `goto` arguments
 

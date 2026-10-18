@@ -208,6 +208,7 @@ public class ExampleDownload implements EventLogSource {
             case "EXISTS_NOT_EMPTY" -> "the chosen folder is not empty — choose a new or empty folder";
             case "NOT_A_DIRECTORY" -> "the chosen location is not a folder";
             case "NO_PARENT" -> "the chosen folder's parent does not exist";
+            case "NOT_ABSOLUTE" -> "the chosen folder is not a full path — type the whole path, or use Choose…";
             case "CONFIRM_FAILED" -> "the confirmation could not be shown";
             default -> "the chosen folder cannot be used (" + problem + ")";
         };

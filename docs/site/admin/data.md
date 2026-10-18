@@ -7,7 +7,7 @@ what a project holds, and sends nothing anywhere unless you choose an assistant 
 
 | Where | What | Written when |
 |---|---|---|
-| `~/.fluxtion-analyser/config` | Your machine settings, in **cleartext**: the in-app assistant's provider, model and **API key**; Claude Code's switches, mode, model, spend limit and the folders you confirmed; External MCP/REST access, file exchange, project creation and the exchange folder; theme, window, recent files and search history; your no-project settings | whenever a setting changes |
+| `~/.fluxtion-analyser/config` | Your machine settings, in **cleartext**: the in-app assistant's provider, model and **API key**; Claude Code's switches, mode, model, spend limit and the folders you confirmed; External MCP/REST access, file exchange, project creation and the exchange folder; theme, window, recent files and search history; your no-project settings; the bins of recently deleted reports, walks and charts (with the definitions a later call replaced), from which they can be restored | whenever a setting changes |
 | `~/.fluxtion-analyser/sessions/` | Session-recovery snapshots, one file per project: the paths of what was open and their SHA-256, and the view, including filters and flags | when you close a project or quit |
 | `~/.fluxtion-analyser/rest-endpoint` | The listener's URL, its per-run token, the process id and start time. Mode 600 | while *External MCP/REST access* is on; removed when the window closes |
 | `~/.fluxtion-analyser/demo/` | The DEMO log, graph and source, unpacked from the jar, and the sample project's profile | the first time you open the sample project, the tour or the demo |

@@ -137,7 +137,7 @@ public final class PromptPack {
         IMAGE("images are not allowed"),
         LINK("links are not allowed"),
         PLACEHOLDER("placeholders such as {log} are not allowed"),
-        HIDDEN_CHARACTER("control, format and bidirectional characters are not allowed"),
+        HIDDEN_CHARACTER("control, format, bidirectional and invisible characters are not allowed"),
         EXTRA_CONTENT("nothing may follow the entries"),
         EXAMPLE_MALFORMED("an example entry is \"N. **Label** — example: https://… [sha256:<64 hex>]\" and nothing else"),
         EXAMPLE_NOT_HTTPS("an example is downloaded only over https"),
@@ -206,6 +206,10 @@ public final class PromptPack {
             for (int k = 0; k < l.length(); ) {
                 int cp = l.codePointAt(k);
                 if (cp != '\t' && hiddenCharacter(cp)) return refuse(line, Cause.HIDDEN_CHARACTER);
+                // review PR #150 R2: a variation selector or an invisible filler — one U+FE0F after an emoji only
+                if (InvisibleCarriers.carrier(cp) && !InvisibleCarriers.permitted(l, k)) {
+                    return refuse(line, Cause.HIDDEN_CHARACTER);
+                }
                 k += Character.charCount(cp);
             }
             // forgiving: trailing spaces and tabs are removed (ASCII only — a hidden character was refused above)

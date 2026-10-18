@@ -395,7 +395,9 @@ public final class ProjectPanel extends JPanel {
         area.setCaretPosition(0);
         JScrollPane scroll = new JScrollPane(area);
         scroll.setPreferredSize(new Dimension(720, 480));
-        JDialog dialog = new JDialog(SwingUtilities.getWindowAncestor(this), title + " — " + path, java.awt.Dialog.ModalityType.MODELESS);
+        // SF-2: FlatLaf's title bar (the Windows default) is a JLabel, and the row's name and path are the profile's
+        JDialog dialog = new JDialog(SwingUtilities.getWindowAncestor(this), UiText.inert(title + " — " + path),
+                java.awt.Dialog.ModalityType.MODELESS);
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 6));
         JButton showFile = new JButton("Show file");
         showFile.addActionListener(e -> reveal(path));

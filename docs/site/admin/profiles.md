@@ -15,13 +15,19 @@ analysis](../assets/assistant-profile-cards.png)
 | Card | What it sets up |
 |---|---|
 | **Safe analysis** (the default) | Claude Code that **reads your evidence; it changes what is open or writes a file only after you approve each call**: Read, Grep and Glob in the project folder and the analyser's own views. No shell, no edits, no web, none of your own skills or servers — safe with logs you did not write. **Not local-only:** what you ask, and the evidence Claude reads through the analyser, is sent to the model provider (Anthropic, on your Claude plan or API key), as in any Claude Code session. Its detail: Claude Code's model. |
-| **Full Claude Code** | **Your own Claude Code** — your settings, skills, plugins, hooks and MCP servers, and your own tools under your rules. The card shows the warning in full and the **mode** (`default`, `acceptEdits`, `auto`, `plan`); its button reads **Turn on full Claude Code**. When Claude Code asks for approval, the analyser asks you ([Approvals](../inapp/approvals.md)). Like Safe analysis, it sends what you ask, and the evidence Claude reads, to the model provider. |
+| **Full Claude Code** | **Your own Claude Code** — your settings, skills, plugins, hooks and MCP servers, and your own tools under your rules. The card shows the warning in full and the **mode** (`default`, `acceptEdits`, `auto`, `plan`); its button **Turn on full Claude Code** opens the same confirmation as the Settings switch (the warning, *Cancel* the default) and nothing changes until you confirm. When Claude Code asks for approval, the analyser asks you ([Approvals](../inapp/approvals.md)). Like Safe analysis, it sends what you ask, and the evidence Claude reads, to the model provider. |
 | **In-app assistant** | The analyser's own assistant: a **provider**, a **model** and an **API key** (left blank, a key already stored is kept). **Not local-only:** what you ask, and the evidence the assistant reads through the analyser, is sent to the model provider you chose, on your API key. |
 | **Off** | **No assistant in the analyser.** No question is sent anywhere from the analyser; every view, chart, report and walk still works. A stored key is kept, unused. An external MCP or REST client you connected is **not** affected. |
 
 Under the cards, one line says whether **External MCP/REST access** is on or off, with a pointer to *Settings ▸
 Assistant ▸ External MCP/REST access*, where it is changed: the cards choose the assistant *in* the analyser, never the
 external loop. Each card's line is shown in full — the card grows to fit it.
+
+**The cards are a view of their own.** While they are open the composer, *Send* and the header's lines are hidden, so
+nothing else competes for the panel. The cards stack in one column when the panel is narrow (the popped-out window) and
+two when it is wide; the chosen card's details — Full Claude Code's warning included — show in full under the cards, in
+one scrolling view. With nothing set up yet the panel says so once: *No assistant set up yet — choose one below* while
+the cards are open, and *…choose one with Assistant ▾ above* when they are shut.
 
 - **Choosing a card shows only its two or three details; nothing changes until Apply.** Apply writes the same settings
   *Settings ▸ Assistant* holds — on this machine only, never in a project, a shared settings file or a bundle — and puts

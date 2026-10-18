@@ -282,7 +282,7 @@ public class LocalAgentSession implements EventLogSource {
         String refusal = admitted != 0 && admitted == e.generation() ? null
                 : "the Claude Code session is not connected to this analyser yet, or its set-up is not yet checked, so "
                 + "the analyser's own tools are refused for it (session " + e.generation() + ")";
-        if (refusal == null && LocalAgentPosture.askable(e.verb()) && (posture == null || !posture.asks())) {
+        if (refusal == null && LocalAgentPosture.hiddenWhereNotAsked(e.verb()) && (posture == null || !posture.asks())) {
             // final review #5 (defence in depth, OD-74.16): under auto and plan the asked verbs are hidden, and
             // localAgentPermission's policy denies every request for them — so the server admits none of them either,
             // not even the sub-actions that change nothing (which reach this admission without a grant)
@@ -318,7 +318,9 @@ public class LocalAgentSession implements EventLogSource {
      * Review finding 4: Settings applied while a session runs. Consent withdrawn ends it at once; a changed posture (the
      * full switch, its mode, the note, the pre-allow list) ends it after the turn in progress, or at once when none is.
      * The next Start then sees the change and offers New chat; a session is never left running under settings it was
-     * not started with.
+     * not started with. Under the same posture, a full session whose trusted folder files changed ({@code TRUST_CHANGED})
+     * or whose spend limit changed ({@code BUDGET_CHANGED}) ends the same way, without New chat: Start asks about the
+     * folder again, or applies the new limit, and resumes the conversation (review of PR #147, findings 3 and 4).
      */
     @OnEventHandler
     public boolean onConsentChanged(SessionEvents.LocalAgentConsentChanged e) {
@@ -338,7 +340,25 @@ public class LocalAgentSession implements EventLogSource {
         }
         boolean kindChanged = c.full() != posture.isFull();
         boolean refChanged = postureRef != null && !postureRef.equals(c.postureRef());
-        if (!kindChanged && !refChanged) return false;
+        if (!kindChanged && !refChanged) {
+            // review of PR #147, finding 3: the full posture's trust is bound to the folder's files; when they changed
+            // under a running session (the agent, a git pull, another process), it ends, and the next Start asks again.
+            // The conversation is unchanged, so it resumes there — no New chat.
+            if (posture.isFull() && c.full() && !c.fullFolderConfirmed()) {
+                return endUnderSamePosture("TRUST_CHANGED", "the folder's hooks, MCP servers, permissions or instruction "
+                        + "files changed since you trusted it, so the session was stopped"
+                        + (openTicket != 0 ? " after the turn in progress" : "")
+                        + "; Start asks you to confirm the folder again");
+            }
+            // review of PR #147, finding 4: the spend limit is fixed on the command line at spawn, so a changed one
+            // ends the session and Start applies it — the conversation resumes, no New chat
+            if (c.budgetMicros() != budgetMicros) {
+                return endUnderSamePosture("BUDGET_CHANGED", "the spend limit changed in Settings, so the session was "
+                        + "stopped" + (openTicket != 0 ? " after the turn in progress" : "")
+                        + "; Start resumes this conversation under the new limit");
+            }
+            return false;
+        }
         auditLog.info("localAgentConsent", "POSTURE_CHANGED");
         String why = "Settings changed how Claude Code works (Safe analysis or Full Claude Code, the mode, the folder "
                 + "or the system note) since this session started, so it was stopped" + (openTicket != 0 ? " after the turn in progress" : "")
@@ -349,6 +369,21 @@ public class LocalAgentSession implements EventLogSource {
             reason = why;
             endAfterTurn = true;
             note("POSTURE_CHANGED", why);
+        } else {
+            kill(why);
+        }
+        return true;
+    }
+
+    /** End the session (after the turn in progress, or now) when the posture is unchanged: New chat is not offered. */
+    private boolean endUnderSamePosture(String code, String why) {
+        if (endAfterTurn && code.equals(verdict)) return false;     // already ending for this reason
+        auditLog.info("localAgentConsent", code);
+        verdict = code;
+        if (openTicket != 0) {
+            reason = why;
+            endAfterTurn = true;
+            note(code, why);
         } else {
             kill(why);
         }

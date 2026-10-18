@@ -443,4 +443,86 @@ class LocalAgentFullPostureTest {
         // the REST switch is off), never a refusal for REST being off
         assertEquals(List.of("confirmFolder", "confirmFolder", "trustFolder", "serveBridge", "start"), a.agentOrder);
     }
+
+    // ---- review of PR #147 -------------------------------------------------------------------------------------------
+
+    /**
+     * ★ Finding 3. Witness: drop the {@code TRUST_CHANGED} clause in {@code endForConsent} — the Send is written to the
+     * running process and the first assertion fails; mid-turn, the session runs on after the turn.
+     */
+    @Test
+    @DisplayName("★ PR #147 #3: a running full session whose trusted files changed ends with TRUST_CHANGED; Start asks again")
+    void trustChangedEndsTheRunningSession() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = driver(a);
+        var start = startFull(d, a, FullMode.ACCEPT_EDITS);
+        d.post(fullInit(start, 0, "acceptEdits", List.of(), "connected"));
+        d.post(new SessionEvents.LocalAgentSendRequested(10, 10, SessionEvents.SlashClass.TEXT, null,
+                full(FullMode.ACCEPT_EDITS, true, false, BUDGET)));
+        assertEquals(0, a.agentSends.size(), "never written to a process started under the files trusted before");
+        assertFalse(state(d).answer().accepted());
+        assertEquals(1, kills(a).size());
+        assertEquals("TRUST_CHANGED", state(d).verdict());
+        assertFalse(state(d).newChatOffered(), "the posture is unchanged: the conversation resumes, no New chat");
+        d.post(new SessionEvents.LocalAgentStartRequested(2, full(FullMode.ACCEPT_EDITS, true, false, BUDGET)));
+        assertEquals(1, a.agentStarts.size(), "nothing starts");
+        assertEquals(1, a.agentConfirms.size(), "the full folder dialog is asked again");
+        assertEquals("CONFIRM_FOLDER", state(d).verdict());
+
+        // mid-turn (Settings applied): after the turn in progress
+        FakeSessionAdapter b = new FakeSessionAdapter();
+        SessionDriver e = driver(b);
+        var s2 = startFull(e, b, FullMode.DEFAULT);
+        e.post(fullInit(s2, 0, "default", List.of(), "connected"));
+        e.post(new SessionEvents.LocalAgentSendRequested(10, 10, SessionEvents.SlashClass.TEXT, null, full(FullMode.DEFAULT)));
+        var sent = b.agentSends.get(0);
+        e.post(new SessionEvents.LocalAgentConsentChanged(full(FullMode.DEFAULT, true, false, BUDGET)));
+        assertEquals(0, kills(b).size(), "the turn in progress finishes first");
+        assertEquals("TRUST_CHANGED", state(e).verdict());
+        e.post(new SessionEvents.LocalAgentTurnEnded(s2.generation(), sent.ticket(), SessionEvents.TurnOutcome.COMPLETED));
+        assertEquals(1, kills(b).size(), "then the session ends");
+
+        // the default posture has no content-bound trust: the flag means nothing there
+        FakeSessionAdapter c = new FakeSessionAdapter();
+        SessionDriver f = driver(c);
+        f.post(new SessionEvents.LocalAgentStartRequested(1, consent()));
+        f.post(new SessionEvents.LocalAgentConsentChanged(consent()));
+        assertEquals(0, kills(c).size());
+    }
+
+    /**
+     * ★ Finding 4. Witness: drop the {@code BUDGET_CHANGED} clause — the session runs on under the limit it was started
+     * with, and the kill assertion fails.
+     */
+    @Test
+    @DisplayName("★ PR #147 #4: a changed spend limit ends the running session; Start applies the new limit")
+    void aChangedSpendLimitApplies() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = driver(a);
+        startFull(d, a, FullMode.DEFAULT);
+        d.post(new SessionEvents.LocalAgentConsentChanged(full(FullMode.DEFAULT, true, true, 0)));
+        assertEquals(1, kills(a).size(), "idle: ended now");
+        assertEquals("BUDGET_CHANGED", state(d).verdict());
+        assertFalse(state(d).newChatOffered());
+        d.post(new SessionEvents.LocalAgentStartRequested(2, full(FullMode.DEFAULT, true, true, 1_000_000)));
+        assertEquals(2, a.agentStarts.size());
+        assertEquals(1_000_000, a.agentStarts.get(1).maxBudgetMicros(), "the new limit is on the new command line");
+    }
+
+    /**
+     * ★ Info (finding 12): the {@code !BYPASS} clause, witnessed. No posture expects bypassPermissions, so the clause is
+     * tested with the expectation as a parameter. Witness: drop {@code !BYPASS.equals(reported)} — the first assertion
+     * fails.
+     */
+    @Test
+    @DisplayName("★ PR #147 info: bypassPermissions never matches, even where it is the expected mode")
+    void bypassNeverMatches() {
+        assertFalse(LocalAgentPosture.modeMatches(LocalAgentPosture.BYPASS, LocalAgentPosture.BYPASS));
+        assertTrue(LocalAgentPosture.modeMatches("default", "default"));
+        assertFalse(LocalAgentPosture.modeMatches("default", null));
+        for (FullMode m : FullMode.values()) {
+            assertNotEquals(LocalAgentPosture.BYPASS, LocalAgentPosture.full(m).permissionMode(), m.toString());
+        }
+        assertNotEquals(LocalAgentPosture.BYPASS, LocalAgentPosture.ANALYSER_ASSISTANT.permissionMode());
+    }
 }

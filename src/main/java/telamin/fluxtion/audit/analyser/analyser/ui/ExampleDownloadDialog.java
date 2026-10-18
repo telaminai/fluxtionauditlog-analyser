@@ -42,6 +42,9 @@ public final class ExampleDownloadDialog {
     /** What is observed about a chosen folder; the node decides what it means. */
     static String targetProblem(Path target) {
         if (target == null) return "NO_PARENT";
+        // review PR #150 R6: a typed relative name would resolve against the analyser's working directory, which the
+        // person never sees — refused, so the folder unpacked into is always the one written
+        if (!target.isAbsolute()) return "NOT_ABSOLUTE";
         Path parent = target.getParent();
         if (parent == null || !Files.isDirectory(parent)) return "NO_PARENT";
         if (!Files.exists(target, LinkOption.NOFOLLOW_LINKS)) return null;

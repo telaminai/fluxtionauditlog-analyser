@@ -61,6 +61,12 @@ final class Harness {
     /** With {@code writers} the adapter's per-process stdin writers (the application's are single threads). */
     Harness(FixtureAgent agent, Path home, java.util.function.Supplier<java.util.concurrent.Executor> writers)
             throws IOException {
+        this(agent, home, writers, Runnable::run);
+    }
+
+    /** With {@code worker} the adapter's spawn/terminate worker (the application's is a cached thread pool). */
+    Harness(FixtureAgent agent, Path home, java.util.function.Supplier<java.util.concurrent.Executor> writers,
+            java.util.concurrent.Executor worker) throws IOException {
         this.agent = agent;
         this.home = home;
         Path bin = Files.createDirectories(home.resolve("bin"));
@@ -103,7 +109,7 @@ final class Harness {
                 d[0].post(fact);
             }
         };
-        this.adapter = new LocalAgentAdapter(new ClaudeCodeProvider(), agent, store, credentials, env, Runnable::run, clock,
+        this.adapter = new LocalAgentAdapter(new ClaudeCodeProvider(), agent, store, credentials, env, worker, clock,
                 writers);
         this.driver = new SessionDriver(effect -> {
             if (LocalAgentAdapter.handles(effect)) {

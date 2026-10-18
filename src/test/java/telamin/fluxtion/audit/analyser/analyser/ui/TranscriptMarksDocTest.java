@@ -105,12 +105,14 @@ class TranscriptMarksDocTest {
         // TranscriptView joins the decision and the tool's result with " · " (an allow is followed by the result)
         drawn.add(words.invoke(null, true, PermissionBy.PERSON, null) + " · ✓");
         drawn.add(words.invoke(null, true, PermissionBy.NON_MUTATING, null) + " · ✓");
+        // owner decision 2026-10-18: a graph call that creates or shows a chart is allowed without asking
+        drawn.add(words.invoke(null, true, PermissionBy.PRE_ALLOWED, null) + " · ✓");
         Set<String> policy = policyMessages();
         assertTrue(policy.size() >= 10, "the scan of LocalAgentPermission found too few policy denials: " + policy);
         for (PermissionBy by : PermissionBy.values()) {
-            // a NON_MUTATING decision is only ever an allow (LocalAgentPermission.allowWithoutAsking), and every POLICY
-            // denial carries a message (each one is fed below), so neither null-message branch is drawn
-            if (by == PermissionBy.NON_MUTATING || by == PermissionBy.POLICY) continue;
+            // a NON_MUTATING or PRE_ALLOWED decision is only ever an allow (LocalAgentPermission.allowWithoutAsking), and
+            // every POLICY denial carries a message (each one is fed below), so no such null-message branch is drawn
+            if (by == PermissionBy.NON_MUTATING || by == PermissionBy.PRE_ALLOWED || by == PermissionBy.POLICY) continue;
             drawn.add((String) words.invoke(null, false, by, null));
         }
         for (String message : policy) drawn.add((String) words.invoke(null, false, PermissionBy.POLICY, message));

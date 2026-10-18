@@ -61,7 +61,8 @@ class FaqSecurityContractTest {
                 "never reads or stores your Claude Code credentials", "before your first Send",
                 "no record content is sent until you press Send", "Read, Grep and Glob confined to the folder",
                 "no Bash", "none of your skills, hooks, settings or MCP servers",
-                "never treated as Claude Code's", "cannot delete a chart", "a bundle's working copy is refused"}) {
+                "never treated as Claude Code's", "asks you before it deletes or replaces a chart",
+                "a bundle's working copy is refused"}) {
             assertTrue(answer.contains(claim), "the FAQ security answer must state, for Claude Code: " + claim);
         }
         // M74 P1b (spec-claude-code-provider.md §7): the full posture is a separate switch, and the FAQ says what it runs,
@@ -96,9 +97,22 @@ class FaqSecurityContractTest {
         // PR #152 review M1: a source root can be ANY readable folder an assistant adds, and open reads any file — the
         // page must say so, and must never again promise "no arbitrary file reads". Witness: restore that phrase, or
         // drop the any-folder sentence; the assertion names which.
-        assertTrue(answer.contains("`source_root` can add **any folder you can read** as a source root")
+        // Owner decision 2026-10-18 (P5, restorable charts): the any-folder sentence now names its exception, the
+        // tiers are stated, and a deleted chart is restorable. Witness: restore "cannot delete a chart", "cannot be
+        // undone" for graph {delete}, or the unqualified any-folder sentence; the assertion names which.
+        assertTrue(answer.contains("`source_root` can add **any folder you can read except your home folder and your "
+                        + "credential folders** as a source root")
                         && answer.contains("`open` can open any file you can read as a log"),
-                "the security page must say source_root adds any readable folder and open opens any readable file");
+                "the security page must say what source_root may add and that open opens any readable file");
+        assertTrue(answer.contains("**For every caller**") && answer.contains("`~/.m2/repository` and below stay allowed")
+                        && answer.contains("**An assistant is also held to the open project**")
+                        && answer.contains("\"outside this project\""),
+                "the security page must state both source-root tiers and the ~/.m2/repository allowance");
+        assertTrue(answer.contains("**A deleted chart can be restored**") && answer.contains("`graph {restore}`"),
+                "the security page must say a deleted or replaced chart is restorable");
+        assertFalse(answer.contains("cannot delete a chart") || answer.contains("`graph {delete}` cannot be undone")
+                        || answer.contains("is an open owner decision"),
+                "claims the restorable-charts and P5 decisions made untrue");
         assertFalse(answer.contains("no arbitrary file reads") || answer.contains("no other file reads"),
                 "source_root + source and open reach any readable file: 'no arbitrary file reads' is an overclaim");
         assertFalse(answer.contains("nothing outside the loaded log"), "source reads the source roots");

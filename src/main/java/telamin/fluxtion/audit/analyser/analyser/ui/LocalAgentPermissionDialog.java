@@ -69,6 +69,7 @@ public final class LocalAgentPermissionDialog extends JDialog {
     private final long deadlineMs;
     private final long shownAt;
     private boolean answered;
+    private final boolean held;
 
     /**
      * @param modal true in the application (one modal, owned by the analyser window); a frame test passes false so its
@@ -79,6 +80,7 @@ public final class LocalAgentPermissionDialog extends JDialog {
         super(owner, "Claude Code asks for your approval", modal ? Dialog.ModalityType.APPLICATION_MODAL
                 : Dialog.ModalityType.MODELESS);
         this.deadlineMs = deadlineMs;
+        this.held = c.held();     // review PR151 F1: Allow is never enabled for a request whose words are not held
         this.shownAt = System.currentTimeMillis();
         setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
 
@@ -146,7 +148,7 @@ public final class LocalAgentPermissionDialog extends JDialog {
         stop.setDefaultCapable(false);
         deny.addActionListener(e -> answer(answers, false));
         allow.addActionListener(e -> {
-            if (allow.isEnabled()) answer(answers, true);
+            if (allow.isEnabled() && held) answer(answers, true);
         });
         stop.addActionListener(e -> {
             if (answered) return;
@@ -167,7 +169,7 @@ public final class LocalAgentPermissionDialog extends JDialog {
             }
         });
 
-        enable = new Timer(ALLOW_DELAY_MS, e -> allow.setEnabled(true));
+        enable = new Timer(ALLOW_DELAY_MS, e -> allow.setEnabled(held));
         enable.setRepeats(false);
         tick = new Timer(1000, e -> showCountdown());
         showCountdown();
@@ -241,6 +243,6 @@ public final class LocalAgentPermissionDialog extends JDialog {
     /** Fire the Allow delay now (the test's 500 ms). */
     void allowDelayElapsed() {
         enable.stop();
-        allow.setEnabled(true);
+        allow.setEnabled(held);
     }
 }

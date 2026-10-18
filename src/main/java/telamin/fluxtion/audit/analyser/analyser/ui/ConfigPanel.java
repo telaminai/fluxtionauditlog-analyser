@@ -461,6 +461,14 @@ public final class ConfigPanel extends JDialog {
 
     /** Adds a chosen folder, expanding a project dir to its detected Java source root(s). */
     private void addWithDetection(Path chosen) {
+        // P5 (owner decision 2026-10-18): never the home folder or a credential folder — refused before it is scanned
+        var verdict = telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.decide(chosen,
+                telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.home(), null,
+                telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.Caller.PERSON);
+        if (!verdict.allowed()) {
+            JOptionPane.showMessageDialog(this, UiText.inert(verdict.words()), "Source root", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
         List<Path> detected = detectSourceRoots(chosen);
         if (detected.isEmpty()) {
             JOptionPane.showMessageDialog(this,
@@ -958,13 +966,24 @@ public final class ConfigPanel extends JDialog {
         }
     }
 
-    /** The confirmation itself: the warning in a plain-text area, [Turn on full Claude Code] [Cancel], Cancel default. */
+    static final String FULL_POSTURE_TITLE = "Full Claude Code — read this first";
+    static final String FULL_POSTURE_CANCEL = "Cancel";
+
+    /**
+     * The confirmation itself: the warning in a plain-text area, under the SafeChoice rule — <i>Turn on full Claude
+     * Code</i> alone at the left, never default-capable; Cancel at the right, the default, and Enter, Escape and closing
+     * the window choose it. Review PR151 F4: the profile cards ask through the same dialog ({@link #fullPostureDialog}).
+     */
     static boolean confirmFullPosture(java.awt.Component parent) {
-        Object[] options = {FULL_POSTURE_TURN_ON, "Cancel"};
-        JTextArea warning = fullPostureWarningArea();
-        int answer = JOptionPane.showOptionDialog(parent, warning, "Full Claude Code — read this first",
-                JOptionPane.DEFAULT_OPTION, JOptionPane.WARNING_MESSAGE, null, options, options[1]);
-        return answer == 0;
+        SafeChoice.Asked a = fullPostureDialog(parent, true);
+        a.dialog().setVisible(true);
+        return a.chosenRisky();
+    }
+
+    /** The confirmation, built and not shown; {@code modal} false is for a frame test. */
+    static SafeChoice.Asked fullPostureDialog(java.awt.Component parent, boolean modal) {
+        return SafeChoice.build(parent, FULL_POSTURE_TITLE, fullPostureWarningArea(),
+                UIManager.getIcon("OptionPane.warningIcon"), FULL_POSTURE_TURN_ON, FULL_POSTURE_CANCEL, modal);
     }
 
     static JTextArea fullPostureWarningArea() {
@@ -1028,6 +1047,8 @@ public final class ConfigPanel extends JDialog {
     }
 
     private void addRoot(Path p) {
+        if (telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.tier1(p,
+                telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.home()) != null) return;   // P5
         String s = p.toString();
         if (!rootsModel.contains(s)) rootsModel.addElement(s);
     }
@@ -1085,7 +1106,11 @@ public final class ConfigPanel extends JDialog {
 
     private void saveToConfig() {
         config.sourceRoots.clear();
-        for (int i = 0; i < rootsModel.size(); i++) config.sourceRoots.add(rootsModel.get(i));
+        List<String> listed = new ArrayList<>();
+        for (int i = 0; i < rootsModel.size(); i++) listed.add(rootsModel.get(i));
+        // P5: a refused root never reaches the settings, whatever put it in the list
+        config.sourceRoots.addAll(telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.keepAllowed(listed,
+                telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.home(), null));
         // #20: refuseWorkspaceRoot is the authority and its text is shown verbatim. The combo can only
         // offer values that pass, so this fires for a hand-edited profile whose value was carried into
         // the list by withCurrent — the one path by which an unacceptable value can be selected.

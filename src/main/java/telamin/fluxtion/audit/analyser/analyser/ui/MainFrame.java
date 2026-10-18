@@ -330,6 +330,13 @@ public final class MainFrame extends JFrame {
         // 38ecc7f3: Close keeps a chart's definition, so removing one is an explicit act that must reach the
         // config before the change listener writes the merged list back
         graphTabs.setDeleteListener(name -> config.savedGraphs.removeIf(g -> g.name().equals(name)));
+        // owner decision 2026-10-18: a deleted or replaced definition goes to the machine-local chart bin first, as a
+        // deleted report or walk does — restorable by graph {restore} — and a restored one rejoins the saved list
+        graphTabs.setChartBin(GraphTabs.binOver(() -> config));
+        graphTabs.setRestoredListener(spec -> {
+            config.savedGraphs.removeIf(g -> g.name().equals(spec.name()));
+            config.savedGraphs.add(spec);
+        });
         // f6e8d7e0: a chart's name is its identity in the profile, so the tabs must see the names of CLOSED
         // definitions too — otherwise a generated name or a rename lands on one and the merge overwrites it
         graphTabs.setKnownNames(() -> {
@@ -1681,10 +1688,12 @@ public final class MainFrame extends JFrame {
 
     /** The configured roots plus the session's demo root(s), for the source service — config stays clean. */
     private List<String> effectiveSourceRoots() {
-        if (demoRoots.isEmpty()) return config.sourceRoots;
         List<String> all = new java.util.ArrayList<>(config.sourceRoots);
         for (String r : demoRoots) if (!all.contains(r)) all.add(r);
-        return all;
+        // P5 (owner decision 2026-10-18), the backstop: whatever registered it, a root that is the home folder or a
+        // credential folder never reaches the source service or the design files
+        return telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.keepAllowed(all,
+                telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.home(), null);
     }
 
     private telamin.fluxtion.audit.analyser.analyser.design.DesignFiles designFiles() {
@@ -5010,6 +5019,9 @@ public final class MainFrame extends JFrame {
             }
             @Override public boolean scratchForProject() { return projectRootIsAnalyserOwned(); }
             @Override public java.util.List<String> fullTrustRecords() { return config.claudeCodeTrustedFullFolders; }
+            @Override public telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.ChartState charts() {
+                return MainFrame.this::chartExistsNow;
+            }
         };
         localAgentAdapter = new telamin.fluxtion.audit.analyser.analyser.assistant.localagent.LocalAgentAdapter(
                 new telamin.fluxtion.audit.analyser.analyser.assistant.localagent.ClaudeCodeProvider(),
@@ -5529,6 +5541,8 @@ public final class MainFrame extends JFrame {
             // call is admitted (review M6)
             // M74 P3: the session decides admission, the destructive verbs' grants and records the server's refusals
             actionServer.setHostedGate(hostedCredentials.gate(hostedAdmission));
+            // owner decision 2026-10-18: a hosted graph call that would replace an existing chart is asked, not pre-allowed
+            actionServer.setChartState(this::chartExistsNow);
             // M74 P2b (§5.6): the hosted credential alone may reach `propose`; the offer is the session's to record
             d.setProposer(this::proposeFromHosted);
             actionServer.start();
@@ -7343,6 +7357,24 @@ public final class MainFrame extends JFrame {
      * same panels). Persist now, to the right tier: sync → global write (project tier shielded by the
      * session's snapshot) → debounced project write. B-M20-3.
      */
+    /**
+     * Owner decision 2026-10-18: whether a chart called {@code name} exists now, open or saved — read on the event thread
+     * (the tabs and the saved list live there). From another thread it waits briefly, and an answer it cannot get reads
+     * as "exists", so the call is asked rather than pre-allowed. A stale "free" cannot replace anything either: the server
+     * runs a call admitted that way as a create ({@code McpTools.hostedConstrained}).
+     */
+    boolean chartExistsNow(String name) {
+        if (SwingUtilities.isEventDispatchThread()) return graphTabs.hasDefinition(name);
+        var task = new java.util.concurrent.FutureTask<>(() -> graphTabs.hasDefinition(name));
+        SwingUtilities.invokeLater(task);
+        try {
+            return task.get(2, java.util.concurrent.TimeUnit.SECONDS);
+        } catch (Exception unknown) {
+            if (unknown instanceof InterruptedException) Thread.currentThread().interrupt();
+            return true;
+        }
+    }
+
     private void onGraphsEdited() {
         saveConfigQuietly();                       // syncs the open tabs first (see saveConfigQuietly)
         if (project != null) project.requestSave();
@@ -7857,7 +7889,7 @@ public final class MainFrame extends JFrame {
     private void showTemplateFailure(String title, Throwable error) {
         String message = rootMessage(error);
         status.setText(title + ": " + message);
-        JOptionPane.showMessageDialog(this, UiText.inert(message), title, JOptionPane.ERROR_MESSAGE);
+        JOptionPane.showMessageDialog(this, UiText.inert(message), UiText.inert(title), JOptionPane.ERROR_MESSAGE);
     }
 
     /** Pick a project directory rather than the profile file — the file name is always the same. */
@@ -8396,7 +8428,8 @@ public final class MainFrame extends JFrame {
                 // answered here rather than in the node.
                 boolean any = false;
                 var remembered = List.copyOf(config.bundleSourceRoots(e.bundleSource()));
-                for (String anchored : remembered) {
+                for (String anchored : telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.keepAllowed(
+                        remembered, telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.home(), null)) {
                     if (Files.isDirectory(Path.of(anchored)) && !config.sourceRoots.contains(anchored)) {
                         config.sourceRoots.add(anchored);
                         any = true;
@@ -8519,6 +8552,7 @@ public final class MainFrame extends JFrame {
             // M74 UX: the assistant profile — assistantProfile decided; the frame brings the panel forward and writes settings
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ShowAssistantProfilesEffect e -> showAssistantProfiles(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ApplyAssistantProfileEffect e -> applyAssistantProfile(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ConfirmFullProfileEffect e -> confirmFullProfile(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ChooseAssistantModeEffect e -> chooseAssistantMode(e);
             // M74: the local agent's effects have ONE performer, the adapter (OneDispatchModelTest pins it)
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.StartLocalAgentEffect e -> performLocalAgent(e);
@@ -9946,6 +9980,11 @@ public final class MainFrame extends JFrame {
 
 
         @Override
+        public Path projectRoot() {
+            return MainFrame.this.projectRoot();
+        }
+
+        @Override
         public boolean addSourceRoot(String path) {
             if (path == null || path.isBlank()) return false;
             Path dir = Path.of(path);
@@ -11117,7 +11156,7 @@ public final class MainFrame extends JFrame {
     private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result showPermissionDialog(
             telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ShowPermissionDialogEffect e) {
         long ref = e.requestRef();
-        var content = PermissionText.of(localAgentStore.permission(ref), e.toolClass(), e.name());
+        var content = PermissionText.of(localAgentStore.permission(ref), e.toolClass(), e.name(), projectRoot());
         SwingUtilities.invokeLater(() -> {
             if (permissionClosed.remove(ref) || session == null) return;   // answered before it could show
             Window owner = SwingUtilities.getWindowAncestor(localAgentPanel);
@@ -11490,6 +11529,37 @@ public final class MainFrame extends JFrame {
                 e.request(), e.profile(), true, "");
     }
 
+    /** Review PR151 F4: modal in the application; a frame test shows it modeless so its thread stays free. */
+    boolean fullProfileConfirmModal = true;
+    /** For the frame test: the confirmation last shown for the cards' Full Claude Code. */
+    SafeChoice.Asked fullProfileAsked;
+
+    /**
+     * ConfirmFullProfileEffect (review PR151 F4, owner 2026-10-18): the cards' Full Claude Code asks what Settings ▸
+     * Assistant asks — the same warning in the same dialog, Cancel the default. Shown outside the dispatch; the answer is
+     * reported as a fact, and assistantProfile decides what it means. Nothing is written here.
+     */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result confirmFullProfile(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ConfirmFullProfileEffect e) {
+        SwingUtilities.invokeLater(() -> {
+            Window owner = SwingUtilities.getWindowAncestor(assistantPanel);
+            SafeChoice.Asked asked = ConfigPanel.fullPostureDialog(owner == null ? this : owner, fullProfileConfirmModal);
+            fullProfileAsked = asked;
+            asked.dialog().addWindowListener(new java.awt.event.WindowAdapter() {
+                private boolean said;
+
+                @Override public void windowClosed(java.awt.event.WindowEvent w) {
+                    if (said || session == null) return;
+                    said = true;
+                    session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents
+                            .AssistantFullProfileAnswered(e.request(), asked.chosenRisky()));
+                }
+            });
+            asked.dialog().setVisible(true);
+        });
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantProfilesShown(e.opId());
+    }
+
     /** ChooseAssistantModeEffect (review P3+UX S4): the node asked for the mode; it is reported as the mode choice. */
     private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result chooseAssistantMode(
             telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ChooseAssistantModeEffect e) {
@@ -11789,6 +11859,13 @@ public final class MainFrame extends JFrame {
                 case "sourceRoot" -> {
                     // Settings ▸ Sources' add: the root, then the profile save the dialog performs
                     if (at == null || !Files.isDirectory(at)) return new String[]{"REFUSED", "not a directory"};
+                    // P5: a proposal cannot carry in the home folder or a credential folder (tier 1, every caller)
+                    var tier1 = telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.tier1(at,
+                            telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.home());
+                    if (tier1 != null) {
+                        return new String[]{"REFUSED",
+                                telamin.fluxtion.audit.analyser.analyser.config.SourceRootPolicy.words(tier1, at)};
+                    }
                     String canonical = at.toString();               // already the real path (review S3)
                     if (!config.sourceRoots.contains(canonical)) config.sourceRoots.add(canonical);
                     onConfigChanged();
@@ -11942,11 +12019,13 @@ public final class MainFrame extends JFrame {
                         e.request(), false, 0, null, null));
                 return;
             }
+            // review PR #150 R6: the folder is judged AS TYPED — a relative name is refused (NOT_ABSOLUTE), never resolved
+            // against the analyser's working directory, a place the person never saw
             Path abs = target.toAbsolutePath().normalize();
             session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExampleDownloadConfirmed(
                     e.request(), true, factRefs.put(abs.toString()),
                     telamin.fluxtion.audit.analyser.analyser.session.FactWords.shown(abs.toString()),
-                    ExampleDownloadDialog.targetProblem(abs)));
+                    ExampleDownloadDialog.targetProblem(target.isAbsolute() ? target.normalize() : target)));
         });
         return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExampleEffectStarted(e.opId(), e.request(), "confirm");
     }

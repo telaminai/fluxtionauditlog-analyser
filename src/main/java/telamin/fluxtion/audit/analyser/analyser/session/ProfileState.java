@@ -12,19 +12,29 @@ package telamin.fluxtion.audit.analyser.analyser.session;
  * @param request the Apply request the node last answered (0 for none)
  * @param refusal why that Apply was refused, in the node's words, or ""
  * @param offered the overlay already opened by itself once in this session (it never does again)
+ * @param status  owner, 2026-10-18: the ONE line the assistant panel shows when no assistant can answer from it —
+ *                nothing chosen, or the in-app assistant with no key — in the node's words; "" otherwise (the panel's
+ *                own lines say what the mode in force cannot do)
+ * @param confirming review PR151 F4: Full Claude Code's confirmation is showing for Apply {@code request}; nothing is
+ *                applied until it is confirmed
  */
 public record ProfileState(AssistantProfile profile, boolean open, String why, long request, String refusal,
-                           boolean offered) {
+                           boolean offered, String status, boolean confirming) {
 
     public static final String ASKED = "ASKED";
     public static final String FIRST_USE = "FIRST_USE";
 
-    public static final ProfileState NONE = new ProfileState(AssistantProfile.NONE, false, "", 0, "", false);
+    public static final ProfileState NONE = new ProfileState(AssistantProfile.NONE, false, "", 0, "", false, "", false);
 
     public ProfileState {
         profile = profile == null ? AssistantProfile.NONE : profile;
         why = why == null ? "" : why;
         refusal = refusal == null ? "" : refusal;
+        status = status == null ? "" : status;
+    }
+
+    public ProfileState(AssistantProfile profile, boolean open, String why, long request, String refusal, boolean offered) {
+        this(profile, open, why, request, refusal, offered, "", false);
     }
 
     /** No card was chosen and nothing is set up. */

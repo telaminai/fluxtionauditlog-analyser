@@ -118,8 +118,12 @@ class ClaudeCodeProviderTest {
     @DisplayName("★ the full command line is exactly §4.3 for each of the four modes: nothing confines, the registration hidden")
     void theFullCommandLine() {
         String allowed = String.join(",", LocalAgentPosture.preAllowedVerbs().stream().map(LocalAgentPosture::toolName).toList());
-        String destructive = String.join(",", VerbSchemas.hosted().keySet().stream().filter(LocalAgentPosture::askable)
-                .map(LocalAgentPosture::toolName).toList());
+        // owner decision 2026-10-18: graph is judged call by call — named in --allowedTools only where the mode never
+        // asks (the server refuses its calls that would need an approval), never hidden
+        String allowedNoAsk = String.join(",", VerbSchemas.hosted().keySet().stream()
+                .filter(v -> LocalAgentPosture.preAllowed(v) || "graph".equals(v)).map(LocalAgentPosture::toolName).toList());
+        String destructive = String.join(",", VerbSchemas.hosted().keySet().stream()
+                .filter(McpTools.destructiveVerbs()::contains).map(LocalAgentPosture::toolName).toList());
         for (LocalAgentPosture.FullMode mode : LocalAgentPosture.FullMode.values()) {
             List<String> c = new ClaudeCodeProvider().command(fullSpec(mode, 0));
             // P3 (OD-74.16): the destructive verbs are visible (and asked) only in the modes that ask
@@ -128,7 +132,7 @@ class ClaudeCodeProviderTest {
                     "--output-format", "stream-json", "--verbose", "--include-partial-messages", "--replay-user-messages",
                     "--session-id", "11111111-2222-4333-8444-555555555555", "--model", "sonnet",
                     "--mcp-config", c.get(c.indexOf("--mcp-config") + 1),
-                    "--allowedTools", allowed,
+                    "--allowedTools", asks ? allowed : allowedNoAsk,
                     "--disallowedTools", asks ? "mcp__fluxtion-analyser" : "mcp__fluxtion-analyser," + destructive,
                     "--permission-mode", mode.cli(), "--permission-prompts", "host", "--permission-prompt-tool", "stdio",
                     "--append-system-prompt", ClaudeCodeProvider.FULL_SYSTEM_NOTE);
@@ -225,10 +229,14 @@ class ClaudeCodeProviderTest {
         Set<String> union = new HashSet<>(pre);
         union.addAll(LocalAgentPosture.disallowedVerbs());
         union.addAll(McpTools.destructiveVerbs());
-        assertEquals(all, union, "every verb is pre-allowed, asked of the person (P3), or hidden");
+        union.addAll(McpTools.HOSTED_PER_CALL);
+        assertEquals(all, union, "every verb is pre-allowed, asked of the person (P3), judged call by call, or hidden");
         assertEquals(List.of("read", "aggregate", "series", "context", "coverage", "source", "filter", "goto", "flag",
-                        "graph", "topology", "spotlight", "propose").stream().sorted().toList(), pre.stream().sorted().toList(),
-                "today's pre-allowed set (§3; P2b adds propose, which only records an offer)");
+                        "topology", "spotlight", "propose").stream().sorted().toList(), pre.stream().sorted().toList(),
+                "today's pre-allowed set (§3; P2b adds propose, which only records an offer; graph is judged call by "
+                        + "call since 2026-10-18)");
+        assertEquals(List.of("graph"), McpTools.HOSTED_PER_CALL, "graph's delete and replacements are asked, its creates not");
+        assertFalse(pre.contains("graph"), "graph is not blanket-allowed: the CLI asks the analyser about every call");
         assertTrue(all.containsAll(LocalAgentPosture.PRE_ALLOWED), "every listed verb is a real verb");
 
         // the REAL inputs, with one verb more: the schema list the command line and the posture check are built from

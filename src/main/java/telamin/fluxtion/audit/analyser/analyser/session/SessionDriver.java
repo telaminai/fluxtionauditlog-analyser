@@ -320,6 +320,7 @@ public final class SessionDriver {
             case SessionEffects.ShowAssistantHostEffect ignored -> "showAssistantHost";
             case SessionEffects.ShowAssistantProfilesEffect ignored -> "showAssistantProfiles";
             case SessionEffects.ApplyAssistantProfileEffect ignored -> "applyAssistantProfile";
+            case SessionEffects.ConfirmFullProfileEffect ignored -> "confirmFullProfile";
             case SessionEffects.StartLocalAgentEffect ignored -> "startLocalAgent";
             case SessionEffects.PollLocalAgentStatusEffect ignored -> "pollLocalAgentStatus";
             case SessionEffects.SendLocalAgentTurnEffect ignored -> "sendLocalAgentTurn";

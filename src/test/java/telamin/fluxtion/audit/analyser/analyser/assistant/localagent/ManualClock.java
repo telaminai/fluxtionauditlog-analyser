@@ -13,8 +13,14 @@ final class ManualClock implements LocalAgentAdapter.Clock {
     private long now;
     private long seq;
 
+    /** Run once at the next {@link #nowMillis} read: a test's hook into a point inside a spawn. */
+    Runnable onNextRead;
+
     @Override
     public long nowMillis() {
+        Runnable hook = onNextRead;
+        onNextRead = null;
+        if (hook != null) hook.run();
         return now;
     }
 

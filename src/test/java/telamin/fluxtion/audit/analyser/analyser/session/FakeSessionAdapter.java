@@ -42,6 +42,7 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
     /** M74 UX: what assistantProfile asked for — the panel brought forward, a profile's settings written. */
     final List<SessionEffects.ShowAssistantProfilesEffect> profileShows = new ArrayList<>();
     final List<SessionEffects.ApplyAssistantProfileEffect> profileApplies = new ArrayList<>();
+    final List<SessionEffects.ConfirmFullProfileEffect> fullConfirms = new ArrayList<>();
     /** Review P3+UX S4: the mode changes assistantProfile asked for; and what a profile's apply reports (null = ok). */
     final List<SessionEffects.ChooseAssistantModeEffect> modeChoices = new ArrayList<>();
     String profileSaveFailure;
@@ -203,6 +204,10 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
                 profileApplies.add(e);
                 yield new SessionEvents.AssistantProfileApplied(e.opId(), e.request(), e.profile(), profileSaveFailure == null,
                         profileSaveFailure == null ? "" : profileSaveFailure);
+            }
+            case SessionEffects.ConfirmFullProfileEffect e -> {
+                fullConfirms.add(e);                  // the test posts the person's answer
+                yield new SessionEvents.AssistantProfilesShown(e.opId());
             }
             case SessionEffects.ChooseAssistantModeEffect e -> {
                 modeChoices.add(e);

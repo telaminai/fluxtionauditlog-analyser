@@ -64,8 +64,9 @@ removed (line 1)."*
 What is unsafe or out of bounds is still refused:
 
 - more than 16 KB, or not UTF-8; more than 9 entries; a title, description, label or prompt over its length;
-- HTML, images, links (outside an example entry), `{placeholders}`, and control, format or bidirectional characters
-  (a byte-order mark counts as one);
+- HTML, images, links (outside an example entry), `{placeholders}`, and control, format, bidirectional or invisible
+  characters — a byte-order mark counts as one, and so do variation selectors and invisible fillers such as U+3164,
+  which can carry text no one sees; one U+FE0F directly after an emoji (the emoji form of ⚠, for example) is allowed;
 - no title line, no entries, or a number out of order;
 - an example entry that is not exactly its strict shape;
 - any other line after the entries, or an unclosed `**`.

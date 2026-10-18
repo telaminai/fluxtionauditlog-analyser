@@ -96,6 +96,25 @@ class ActionServerTest {
         assertTrue(r.body().contains("\"total\""));
     }
 
+    /**
+     * ★ Review PR151 F6 (2026-10-18): an external body nested far deeper than {@code Json.MAX_DEPTH} is answered 400
+     * "malformed JSON" — the parser's own cap. Before the cap the recursive parser overflowed its stack: a
+     * StackOverflowError, which {@code handleAction}'s {@code catch (RuntimeException)} does not stop, so the exchange
+     * closed with no reply. Witness: remove the depth check from {@code Json}'s {@code parseArray} — no 400 arrives.
+     */
+    @Test
+    void aDeeplyNestedBodyIsMalformedJsonNotAStackOverflow() throws Exception {
+        String deep = "[".repeat(200_000) + "]".repeat(200_000);
+        HttpResponse<String> r = send(req("/action").header("X-Analyser-Token", "s3cr3t")
+                .POST(HttpRequest.BodyPublishers.ofString("{\"action\":\"aggregate\",\"params\":" + deep + "}"))
+                .build());
+        assertEquals(400, r.statusCode(), r.body());
+        assertTrue(r.body().contains("malformed JSON"), r.body());
+        assertEquals(200, send(req("/action").header("X-Analyser-Token", "s3cr3t")
+                .POST(HttpRequest.BodyPublishers.ofString("{\"action\":\"aggregate\"}")).build()).statusCode(),
+                "the server still answers");
+    }
+
     @Test
     void rateLimitEventuallyReturns429() throws Exception {
         int sawTooMany = 0;

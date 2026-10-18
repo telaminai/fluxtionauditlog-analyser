@@ -173,7 +173,14 @@ public class LocalAgentPermission implements EventLogSource {
         if (cls == ToolClass.HOSTED_DESTRUCTIVE && e.kind() == SessionEvents.HostedCallKind.NON_MUTATING) {
             // #10b: it changes nothing stored — allowed without asking and without a grant; the server admits only the
             // non-mutating sub-actions without one, judging the call's own input
-            allowWithoutAsking(e.generation(), e.requestRef(), e.ticket(), cls, e.name());
+            allowWithoutAsking(e.generation(), e.requestRef(), e.ticket(), cls, e.name(), PermissionBy.NON_MUTATING);
+            return changed();
+        }
+        if (cls == ToolClass.HOSTED_DESTRUCTIVE && e.kind() == SessionEvents.HostedCallKind.PRE_ALLOWED) {
+            // owner decision 2026-10-18: a graph call that creates a chart or changes only the view is what the pre-allow
+            // list covered — allowed without asking and without a grant; the server re-judges the call and runs a
+            // create as a create, so it can never replace a chart that appeared meanwhile
+            allowWithoutAsking(e.generation(), e.requestRef(), e.ticket(), cls, e.name(), PermissionBy.PRE_ALLOWED);
             return changed();
         }
         if (cls == ToolClass.HOSTED_DESTRUCTIVE && e.kind() == SessionEvents.HostedCallKind.WRITES_FILE
@@ -245,12 +252,12 @@ public class LocalAgentPermission implements EventLogSource {
     }
 
     /** #10b: an allow decided by the analyser for a call that changes nothing — recorded, never a grant. */
-    private void allowWithoutAsking(long generation, long ref, long ticket, ToolClass cls, String name) {
+    private void allowWithoutAsking(long generation, long ref, long ticket, ToolClass cls, String name, PermissionBy by) {
         decisions++;
         auditLog.info("localAgentPermissionAnswered", ref).info("decision", "ALLOW").info("by",
-                PermissionBy.NON_MUTATING.name()).info("class", cls.name()).info("ticket", ticket);
+                by.name()).info("class", cls.name()).info("ticket", ticket);
         effects.request(new SessionEffects.AnswerPermissionEffect(0L, generation, ticket, ref, true, null,
-                PermissionBy.NON_MUTATING, 0, cls, name));
+                by, 0, cls, name));
     }
 
     /** #10a: what the frame says about file exchange (Settings ▸ Assistant). */
@@ -570,6 +577,7 @@ public class LocalAgentPermission implements EventLogSource {
                     : DENIED_FILE_EXCHANGE.equals(message) ? what + FILE_EXCHANGE_NOTE
                     : what + " was denied without asking you — " + lower(message);
             case NON_MUTATING -> what + " was allowed: it changes nothing";
+            case PRE_ALLOWED -> what + " was allowed: it creates or shows a chart";
         };
         // a request of an earlier generation belongs to a conversation entry nobody is reading: no note for it
         if (generation == localAgent.currentGeneration()) {

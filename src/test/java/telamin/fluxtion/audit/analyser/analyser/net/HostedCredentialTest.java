@@ -78,10 +78,11 @@ class HostedCredentialTest {
     /**
      * ★ Witness: in {@code ActionServer.handleAction}, treat a request with only the shared token as hosted (apply
      * {@code hostedRefusal} when the header is absent) — the external client's call is refused and the first assertion
-     * fails; or drop the delete check — the hosted delete is dispatched.
+     * fails; or admit graph {delete} without the person's approval (classify it PRE_ALLOWED) — the hosted delete is
+     * dispatched. Owner decision 2026-10-18: the delete is ASKED now (it can be restored), no longer refused outright.
      */
     @Test
-    @DisplayName("★ graph {delete} from the hosted bridge is refused; the shared token alone is an external client, never hosted")
+    @DisplayName("★ graph {delete} from the hosted bridge needs the person's approval; the shared token alone is an external client")
     void hostedDeleteIsRefused() throws Exception {
         String token = credentials.mint(3);
         admitted.set(3);
@@ -90,7 +91,7 @@ class HostedCredentialTest {
         assertFalse(external.body().contains("Claude Code"), external.body());
         HttpResponse<String> hosted = post(DELETE, token);
         assertEquals(403, hosted.statusCode(), "never reached the dispatcher");
-        assertTrue(hosted.body().contains("graph {delete} is not available to Claude Code"), hosted.body());
+        assertTrue(hosted.body().contains("`graph` needs your approval in the analyser"), hosted.body());
         assertEquals(400, post(READ, token).statusCode(), "a pre-allowed verb reaches the dispatcher");
         assertEquals(403, post("{\"action\":\"graph\",\"params\":{\"name\":\"x\",\"delete\":\"true\"}}", token).statusCode(),
                 "a string true is still a delete");
@@ -254,6 +255,39 @@ class HostedCredentialTest {
         HttpResponse<String> off = post(READ, null);
         assertTrue(off.body().contains("External MCP/REST access is off"), off.body());
         server.setExternalAllowed(true);
+    }
+
+    /**
+     * ★ Review R3 (PR #145). Witness: let {@code refusedAsExternal} pass any request that merely carries the hosted
+     * header — the made-up credential reads the manifest (200) and the discovery reply (404 with the routes).
+     */
+    @Test
+    @DisplayName("★ R3: a hosted-only server answers the manifest and discovery only for a live hosted credential, not a made-up or revoked one")
+    void aHostedOnlyServerRefusesAMadeUpCredential(@org.junit.jupiter.api.io.TempDir java.nio.file.Path dir) throws Exception {
+        server.stop();
+        server = ActionServer.hostedOnly(new ActionDispatcher(false, null, () -> null, null), "shared", 20, 1000.0,
+                new RestEndpointFile(dir.resolve("rest-endpoint")));
+        server.setHostedGate(credentials.gate(g -> g == admitted.get() ? null : "not admitted"));
+        server.start();
+        String live = credentials.mint(7);
+        String revoked = credentials.mint(8);
+        credentials.revoke(8);
+        for (String path : new String[]{"/manifest", "/no-such-path"}) {
+            for (String made : new String[]{"anything", revoked}) {
+                HttpResponse<String> r = get(path, made);
+                assertEquals(403, r.statusCode(), path + " with " + (made == revoked ? "a revoked" : "a made-up")
+                        + " credential: " + r.body());
+                assertTrue(r.body().contains("External MCP/REST access is off"), r.body());
+            }
+        }
+        assertEquals(200, get("/manifest", live).statusCode(), "a live credential reads the manifest");
+        assertEquals(404, get("/no-such-path", live).statusCode(), "and is given the discovery reply");
+        assertEquals(403, post(READ, "anything").statusCode(), "a made-up credential's action is refused");
+    }
+
+    private HttpResponse<String> get(String path, String hosted) throws Exception {
+        return http.send(HttpRequest.newBuilder(URI.create(server.url() + path)).header(ActionServer.HOSTED_HEADER, hosted)
+                .GET().build(), HttpResponse.BodyHandlers.ofString());
     }
 
     @Test

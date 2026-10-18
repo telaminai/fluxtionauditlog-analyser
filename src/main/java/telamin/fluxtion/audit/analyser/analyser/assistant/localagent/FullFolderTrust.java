@@ -1,6 +1,7 @@
 package telamin.fluxtion.audit.analyser.analyser.assistant.localagent;
 
 import telamin.fluxtion.audit.analyser.analyser.llm.Json;
+import telamin.fluxtion.audit.analyser.analyser.session.LocalAgentPosture;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -29,11 +30,14 @@ import java.util.Map;
  *
  * <p><b>Review H6: instruction files are trusted content too.</b> Full Claude Code reads the folder's {@code CLAUDE.md},
  * {@code CLAUDE.local.md}, {@code .claude/CLAUDE.md} as instructions and loads {@code .claude/commands},
- * {@code .claude/skills} and {@code .claude/agents} — a {@code git pull} that rewrites one changes what the agent does as
- * surely as a new hook. So the digest is {@code <settings digest>.<instruction digest>}: the instruction part covers
+ * {@code .claude/skills}, {@code .claude/agents}, {@code .claude/rules} and {@code .claude/output-styles} (review of PR
+ * #147, finding 2: rules load as project memory, an output style changes the system prompt), and the scripts in
+ * {@code .claude/hooks} that hooks run — a {@code git pull} that rewrites one changes what the agent does as surely as a
+ * new hook. So the digest is {@code <settings digest>.<instruction digest>}: the instruction part covers
  * those files in a stable (sorted) order, bounded ({@link #MAX_INSTRUCTION_FILES} files, {@link #MAX_INSTRUCTION_BYTES}
- * read in all, each file at most {@link #MAX_BYTES}; past a bound a file counts by its size and modification time), and
- * a symbolic link is never followed out of the folder (its target's NAME is digested, and the dialog says so). When the
+ * read in all, each file at most {@link #MAX_BYTES}, {@link #MAX_INSTRUCTION_DIRS} folders walked; past a bound a file
+ * counts by its size and modification time), and a link is never followed out of the folder — whether the link is the
+ * file, the tree or {@code .claude} itself (its target's NAME is digested, and the dialog says so). When the
  * dialog asks again it says which part changed ({@link #changeNote}).
  */
 public final class FullFolderTrust {
@@ -51,11 +55,20 @@ public final class FullFolderTrust {
     public static final List<String> INSTRUCTION_FILES = List.of("CLAUDE.md", "CLAUDE.local.md", ".claude/CLAUDE.md");
 
     /** The instruction trees Claude Code loads from the folder (review H6). */
-    public static final List<String> INSTRUCTION_TREES = List.of(".claude/commands", ".claude/skills", ".claude/agents");
+    public static final List<String> INSTRUCTION_TREES = List.of(".claude/commands", ".claude/skills", ".claude/agents",
+            ".claude/rules", ".claude/output-styles", ".claude/hooks");
+
+    /** The folder whose link out of the folder means none of the instruction files under it are read (finding 7). */
+    static final String CLAUDE_DIR = ".claude";
 
     /** Bounds on the instruction scan. */
     public static final int MAX_INSTRUCTION_FILES = 1_000;
     public static final long MAX_INSTRUCTION_BYTES = 8L * 1024 * 1024;
+    /**
+     * Review of PR #147, finding 8: the folders walked are bounded too — the scan runs on the event thread at every Start,
+     * Send and Settings apply, so an empty-directory tree must not freeze the window. Past it the scan stops and says so.
+     */
+    public static final int MAX_INSTRUCTION_DIRS = 2_000;
     static final int MAX_DEPTH = 12;
 
     /**
@@ -84,7 +97,8 @@ public final class FullFolderTrust {
      * finding 5: those may run other commands, and the dialog says so rather than "nothing runs").
      */
     public record FileScan(String file, State state, Map<String, Integer> hooks, List<String> servers,
-                           List<String> plugins, List<String> marketplaces, List<String> commands, List<String> unknown) {
+                           List<String> plugins, List<String> marketplaces, List<String> commands, List<String> unknown,
+                           List<String> permissions) {
         public FileScan {
             // the file's own order, as the person would read it there
             hooks = java.util.Collections.unmodifiableMap(new LinkedHashMap<>(hooks == null ? Map.of() : hooks));
@@ -93,15 +107,17 @@ public final class FullFolderTrust {
             marketplaces = List.copyOf(marketplaces == null ? List.of() : marketplaces);
             commands = List.copyOf(commands == null ? List.of() : commands);
             unknown = List.copyOf(unknown == null ? List.of() : unknown);
+            permissions = List.copyOf(permissions == null ? List.of() : permissions);
         }
 
         FileScan(String file, State state) {
-            this(file, state, Map.of(), List.of(), List.of(), List.of(), List.of(), List.of());
+            this(file, state, Map.of(), List.of(), List.of(), List.of(), List.of(), List.of(), List.of());
         }
 
+        /** Review of PR #147, finding 1: a permission the folder grants itself is never "nothing runs". */
         boolean runsSomething() {
             return !hooks.isEmpty() || !servers.isEmpty() || !plugins.isEmpty() || !marketplaces.isEmpty()
-                    || !commands.isEmpty() || !unknown.isEmpty();
+                    || !commands.isEmpty() || !unknown.isEmpty() || !permissions.isEmpty();
         }
     }
 
@@ -109,10 +125,21 @@ public final class FullFolderTrust {
     static final List<String> COMMAND_KEYS = List.of("apiKeyHelper", "awsAuthRefresh", "awsCredentialExport",
             "otelHeadersHelper", "statusLine");
 
-    /** Settings keys the analyser understands to run nothing by themselves; anything else is named as "may run". */
-    static final java.util.Set<String> INERT_SETTINGS = java.util.Set.of("$schema", "permissions", "model", "outputStyle",
+    /**
+     * Settings keys the analyser understands to run nothing by themselves; anything else is named as "may run".
+     * {@code permissions} is NOT one (review of PR #147, finding 1): in the full posture the folder's allow rules,
+     * {@code additionalDirectories} and {@code defaultMode} apply, so they are read and named ({@link #PERMISSION_KEYS}).
+     */
+    static final java.util.Set<String> INERT_SETTINGS = java.util.Set.of("$schema", "model", "outputStyle",
             "includeCoAuthoredBy", "cleanupPeriodDays", "theme", "enableAllProjectMcpServers", "enabledMcpjsonServers",
             "disabledMcpjsonServers", "spinnerTipsEnabled");
+
+    /** Keys of {@code permissions} that only narrow what runs (deny, ask) and so are not named. */
+    static final java.util.Set<String> NARROWING_PERMISSIONS = java.util.Set.of("deny", "ask",
+            "disableBypassPermissionsMode");
+
+    /** At most this many permission entries per file are named; the rest are counted. */
+    static final int MAX_NAMED_PERMISSIONS = 20;
 
     /** The folder's three settings files, scanned, its instruction files, and the combined digest. */
     public record Scan(List<FileScan> files, InstructionScan instructions, String digest) {
@@ -217,14 +244,25 @@ public final class FullFolderTrust {
         List<String> outside = new ArrayList<>();
         boolean[] truncated = {false};
         long[] budget = {MAX_INSTRUCTION_BYTES};
+        int[] dirs = {0};
         Path root = realOrNull(dir);
+        // review of PR #147, finding 7: when .claude itself leads out of the folder (a symbolic link, or a Windows
+        // junction, which isSymbolicLink does not see), nothing under it is walked or read: it is named instead
+        Path claude = dir.resolve(CLAUDE_DIR);
+        boolean claudeOutside = Files.exists(claude, java.nio.file.LinkOption.NOFOLLOW_LINKS) && leadsOutside(claude, root);
+        if (claudeOutside) {
+            outside.add(CLAUDE_DIR);
+            entries.put(CLAUDE_DIR, outsideEntry(claude));
+        }
         for (String name : INSTRUCTION_FILES) {
+            if (claudeOutside && name.startsWith(CLAUDE_DIR + "/")) continue;
             Path f = dir.resolve(name);
             if (!Files.exists(f, java.nio.file.LinkOption.NOFOLLOW_LINKS)) continue;
             present.add(name);
             entries.put(name, entry(f, name, root, outside, budget));
         }
         for (String tree : INSTRUCTION_TREES) {
+            if (claudeOutside) break;
             Path t = dir.resolve(tree);
             if (!Files.exists(t, java.nio.file.LinkOption.NOFOLLOW_LINKS)) continue;
             if (Files.isSymbolicLink(t) || !Files.isDirectory(t, java.nio.file.LinkOption.NOFOLLOW_LINKS)) {
@@ -232,10 +270,31 @@ public final class FullFolderTrust {
                 entries.put(tree, entry(t, tree, root, outside, budget));
                 continue;
             }
+            if (leadsOutside(t, root)) {
+                // a junction or other link the last-component check misses: named, never walked
+                outside.add(tree);
+                entries.put(tree, outsideEntry(t));
+                continue;
+            }
+            if (truncated[0]) {
+                entries.put(tree, "truncated".getBytes(StandardCharsets.UTF_8));
+                continue;
+            }
             int[] count = {0};
             try {
                 Files.walkFileTree(t, java.util.EnumSet.noneOf(java.nio.file.FileVisitOption.class), MAX_DEPTH,
                         new java.nio.file.SimpleFileVisitor<>() {
+                            @Override
+                            public java.nio.file.FileVisitResult preVisitDirectory(Path d,
+                                                                                   java.nio.file.attribute.BasicFileAttributes a) {
+                                // review of PR #147, finding 8: folders count against a bound as files do
+                                if (++dirs[0] > MAX_INSTRUCTION_DIRS) {
+                                    truncated[0] = true;
+                                    return java.nio.file.FileVisitResult.TERMINATE;
+                                }
+                                return java.nio.file.FileVisitResult.CONTINUE;
+                            }
+
                             @Override
                             public java.nio.file.FileVisitResult visitFile(Path file,
                                                                            java.nio.file.attribute.BasicFileAttributes a) {
@@ -278,6 +337,45 @@ public final class FullFolderTrust {
         }
     }
 
+    /**
+     * Whether {@code p}, resolved through every link on its way (not only its last component), lies outside
+     * {@code root} — or cannot be resolved, which is never taken to be inside.
+     */
+    static boolean leadsOutside(Path p, Path root) {
+        Path real = realOrNull(p);
+        return real == null || root == null || !real.startsWith(root);
+    }
+
+    /** What an entry that leads out of the folder contributes: its link target's name, never what lies there. */
+    private static byte[] outsideEntry(Path p) {
+        String target;
+        try {
+            target = Files.isSymbolicLink(p) ? String.valueOf(Files.readSymbolicLink(p)) : String.valueOf(realOrNull(p));
+        } catch (IOException | RuntimeException e) {
+            target = "unreadable";
+        }
+        return ("outside:" + target).getBytes(StandardCharsets.UTF_8);
+    }
+
+    /**
+     * Review of PR #147, info: the bytes of {@code in}, but never more than {@code max} of them, or null when there are
+     * more — a file that grows between its size check and its read is never read unbounded.
+     */
+    static byte[] readBounded(InputStream in, int max) throws IOException {
+        byte[] out = in.readNBytes(max + 1);
+        return out.length > max ? null : out;
+    }
+
+    /** At most {@code max} bytes of {@code in} into {@code d}, whatever the size check said before. */
+    static void digestBounded(InputStream in, MessageDigest d, long max) throws IOException {
+        byte[] buf = new byte[8192];
+        long left = max;
+        for (int n; left > 0 && (n = in.read(buf, 0, (int) Math.min(buf.length, left))) > 0; ) {
+            d.update(buf, 0, n);
+            left -= n;
+        }
+    }
+
     private static Path realOrNull(Path p) {
         try {
             return p.toRealPath();
@@ -313,8 +411,7 @@ public final class FullFolderTrust {
             } else {
                 budget[0] -= size;
                 try (InputStream in = Files.newInputStream(read)) {
-                    byte[] buf = new byte[8192];
-                    for (int n; (n = in.read(buf)) > 0; ) one.update(buf, 0, n);
+                    digestBounded(in, one, size);
                 }
             }
             return one.digest();
@@ -332,7 +429,12 @@ public final class FullFolderTrust {
         try {
             if (!Files.isRegularFile(f)) return new FileScan(name, State.UNREADABLE);
             if (Files.size(f) > MAX_BYTES) return new FileScan(name, State.TOO_LARGE);
-            text = Files.readString(f, StandardCharsets.UTF_8);
+            byte[] bytes;
+            try (InputStream in = Files.newInputStream(f)) {
+                bytes = readBounded(in, MAX_BYTES);
+            }
+            if (bytes == null) return new FileScan(name, State.TOO_LARGE);   // grew past the bound since the check
+            text = new String(bytes, StandardCharsets.UTF_8);
         } catch (IOException | RuntimeException e) {
             return new FileScan(name, State.UNREADABLE);
         }
@@ -362,6 +464,7 @@ public final class FullFolderTrust {
         List<String> marketplaces = new ArrayList<>();
         List<String> commands = new ArrayList<>();
         List<String> unknown = new ArrayList<>();
+        List<String> permissions = new ArrayList<>();
         boolean mcpFile = name.equals(".mcp.json");
         for (Object k : m.keySet()) {
             String key = String.valueOf(k);
@@ -382,11 +485,43 @@ public final class FullFolderTrust {
                 else unknown.add(key);
             } else if (COMMAND_KEYS.contains(key)) {
                 commands.add(key);
+            } else if (key.equals("permissions")) {
+                permissions(v, permissions, unknown);
             } else if (!INERT_SETTINGS.contains(key)) {
                 unknown.add(key);
             }
         }
-        return new FileScan(name, State.READ, hooks, servers, plugins, marketplaces, commands, unknown);
+        return new FileScan(name, State.READ, hooks, servers, plugins, marketplaces, commands, unknown, permissions);
+    }
+
+    /**
+     * Review of PR #147, finding 1: what a settings file's {@code permissions} grants — each {@code allow} rule, each
+     * {@code additionalDirectories} entry and {@code defaultMode} — as words for the dialog. {@code deny} and {@code ask}
+     * only narrow; any other key is one the analyser does not interpret.
+     */
+    private static void permissions(Object v, List<String> out, List<String> unknown) {
+        if (!(v instanceof Map<?, ?> pm)) {
+            unknown.add("permissions");
+            return;
+        }
+        for (var e : pm.entrySet()) {
+            String k = String.valueOf(e.getKey());
+            Object x = e.getValue();
+            switch (k) {
+                case "allow" -> {
+                    if (x instanceof List<?> l) for (Object r : l) out.add("allow " + r);
+                    else unknown.add("permissions.allow");
+                }
+                case "additionalDirectories" -> {
+                    if (x instanceof List<?> l) for (Object r : l) out.add("additional directory " + r);
+                    else unknown.add("permissions.additionalDirectories");
+                }
+                case "defaultMode" -> out.add("default mode " + x);
+                default -> {
+                    if (!NARROWING_PERMISSIONS.contains(k)) unknown.add("permissions." + k);
+                }
+            }
+        }
     }
 
     /**
@@ -418,9 +553,11 @@ public final class FullFolderTrust {
     public static String dialogText(Path dir, Scan scan) {
         StringBuilder sb = new StringBuilder();
         sb.append("Full Claude Code will run this folder's hooks and connect its MCP servers when it starts, and load its ")
-                .append("settings and its instruction files (CLAUDE.md, commands, skills, agents). Your own user-level hooks ")
+                .append("settings and its instruction files (CLAUDE.md, commands, skills, agents, rules, output styles). ")
+                .append("Your own user-level hooks ")
                 .append("and servers run too.\n\n");
         boolean any = false;
+        boolean servers = false;
         for (FileScan f : scan.files()) {
             switch (f.state()) {
                 case ABSENT -> { }
@@ -446,8 +583,26 @@ public final class FullFolderTrust {
                     }
                     if (!f.servers().isEmpty()) {
                         any = true;
+                        servers = true;
                         sb.append("MCP servers in this folder: ").append(names(f.servers())).append(" — from ")
                                 .append(f.file()).append('\n');
+                        if (f.servers().contains(LocalAgentPosture.HOSTED_SERVER)) {
+                            // review of PR #147, info: a folder server under the analyser's own bridge's name
+                            sb.append("Warning: ").append(f.file()).append(" defines a server named ")
+                                    .append(LocalAgentPosture.HOSTED_SERVER).append(", the name of the analyser's own ")
+                                    .append("bridge; it is not the analyser's, which binds only to the bridge it started itself\n");
+                        }
+                    }
+                    if (!f.permissions().isEmpty()) {
+                        any = true;
+                        List<String> shown = f.permissions().size() > MAX_NAMED_PERMISSIONS
+                                ? f.permissions().subList(0, MAX_NAMED_PERMISSIONS) : f.permissions();
+                        sb.append("Permissions this folder grants itself: ").append(names(shown));
+                        if (shown.size() < f.permissions().size()) {
+                            sb.append(", and ").append(f.permissions().size() - shown.size()).append(" more");
+                        }
+                        sb.append(" — from ").append(f.file())
+                                .append(" (these apply on top of your own rules, without asking)\n");
                     }
                     if (!f.plugins().isEmpty()) {
                         any = true;
@@ -473,6 +628,11 @@ public final class FullFolderTrust {
             }
         }
         if (!any) sb.append("Nothing in this folder's settings or .mcp.json runs.\n");
+        if (servers) {
+            // review of PR #147, finding 2: what a server runs is not part of the trust
+            sb.append("Not re-checked: the scripts or programs these MCP servers run (for example node ./server.js) — a ")
+                    .append("change to them does not make the analyser ask again\n");
+        }
         InstructionScan ins = scan.instructions();
         if (ins != null && !ins.none()) {
             List<String> parts = new ArrayList<>(ins.files());
@@ -480,13 +640,19 @@ public final class FullFolderTrust {
                 parts.add(t.getKey() + " (" + t.getValue() + (t.getValue() == 1 ? " file)" : " files)"));
             }
             sb.append("Instruction files Claude Code reads from this folder: ").append(names(parts)).append('\n');
+            if (ins.linksOutside().contains(CLAUDE_DIR)) {
+                // review of PR #147, finding 7
+                sb.append("This folder's .claude leads to a folder outside it: the Claude Code configuration Start loads ")
+                        .append("lives elsewhere, and its instruction files are not read by the analyser\n");
+            }
             if (!ins.linksOutside().isEmpty()) {
                 sb.append("Links pointing out of this folder, not read by the analyser: ").append(names(ins.linksOutside()))
                         .append('\n');
             }
             if (ins.truncated()) {
-                sb.append("There are more instruction files than the analyser reads (over ").append(MAX_INSTRUCTION_FILES)
-                        .append(" files or 8 MB); the rest are checked by size and date only\n");
+                sb.append("Over the limit: there are more instruction files or folders than the analyser reads (over ")
+                        .append(MAX_INSTRUCTION_FILES).append(" files, ").append(MAX_INSTRUCTION_DIRS)
+                        .append(" folders or 8 MB); the rest are not checked, or checked by size and date only\n");
             }
         }
         // holistic review B7 (2026-10-17): what the trust does NOT cover, said plainly
@@ -514,17 +680,20 @@ public final class FullFolderTrust {
         int nd = digest.indexOf('.');
         if (pd < 0 || nd < 0) {
             return "You trusted this folder before the analyser covered its instruction files (CLAUDE.md, .claude/commands, "
-                    + ".claude/skills, .claude/agents); it asks again so you see them.";
+                    + ".claude/skills, .claude/agents, .claude/rules, .claude/output-styles, .claude/hooks); it asks again "
+                    + "so you see them.";
         }
         boolean settings = !previous.substring(0, pd).equals(digest.substring(0, nd));
         boolean instructions = !previous.substring(pd + 1).equals(digest.substring(nd + 1));
         if (settings && instructions) {
             return "Since you trusted this folder, its settings or .mcp.json AND its instruction files (CLAUDE.md, "
-                    + ".claude/commands, .claude/skills, .claude/agents) changed.";
+                    + ".claude/commands, .claude/skills, .claude/agents, .claude/rules, .claude/output-styles or "
+                    + ".claude/hooks) changed.";
         }
         if (instructions) {
             return "Since you trusted this folder, its instruction files changed (CLAUDE.md, .claude/CLAUDE.md, "
-                    + ".claude/commands, .claude/skills or .claude/agents): Claude Code would read different instructions.";
+                    + ".claude/commands, .claude/skills, .claude/agents, .claude/rules, .claude/output-styles or "
+                    + ".claude/hooks): Claude Code would read or run different instructions.";
         }
         return "Since you trusted this folder, its hooks or MCP servers changed (.claude/settings.json, "
                 + ".claude/settings.local.json or .mcp.json).";

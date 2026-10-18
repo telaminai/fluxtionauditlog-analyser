@@ -314,7 +314,7 @@ public final class PointerDialog {
     private static boolean confirm(Component parent, String title, JComponent body,
                                    java.util.function.Supplier<Optional<String>> gate, JLabel problem) {
         while (true) {
-            int choice = JOptionPane.showConfirmDialog(parent, body, title,
+            int choice = JOptionPane.showConfirmDialog(parent, body, UiText.inert(title),
                     JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
             if (choice != JOptionPane.OK_OPTION) return false;
             Optional<String> bad = gate.get();
@@ -324,7 +324,7 @@ public final class PointerDialog {
     }
 
     private static JDialog dialog(Component parent, String title) {
-        JDialog d = new JDialog(SwingUtilities.getWindowAncestor(parent), title,
+        JDialog d = new JDialog(SwingUtilities.getWindowAncestor(parent), UiText.inert(title),
                 Dialog.ModalityType.APPLICATION_MODAL);
         d.setLayout(new BorderLayout(8, 8));
         return d;
