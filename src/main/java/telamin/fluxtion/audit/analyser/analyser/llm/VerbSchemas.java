@@ -126,7 +126,8 @@ public final class VerbSchemas {
                         p("close", bool(), "with {name}, take that chart off the screen and KEEP its "
                                 + "definition — for a chart worth keeping; a closed probe still sits in the "
                                 + "profile, so delete those. Goes alone; refused for the last open chart"),
-                        p("delete", bool(), "with {name}, remove that chart's DEFINITION — series, formulas, pinned notes and explanation. Goes ALONE, like rename. NOT recoverable (unlike a report delete); to put a chart away without losing it, use close instead")),
+                        p("delete", bool(), "with {name}, remove that chart's DEFINITION — series, formulas, pinned notes and explanation. Goes ALONE, like rename. Restorable, like a report delete: it moves to this machine's chart bin (see restore); to put a chart away without deleting it, use close instead"),
+                        p("restore", nameOrTrue(), "use alone: true lists the chart bin — deleted charts, and the definitions a later call replaced (re-sent notes, series, guides or bands; clearNotes), each with an id; a string restores that chart by name (its newest entry) or by id (that version), refusing a name a chart has now")),
                 List.of()));
 
         s.put("goto", schema("Select the record containing an anchor in the table.",

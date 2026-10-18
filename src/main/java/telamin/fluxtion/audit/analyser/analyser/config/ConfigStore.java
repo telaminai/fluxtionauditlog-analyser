@@ -98,6 +98,7 @@ public final class ConfigStore {
         readRecentBundles(p, c.recentBundles);     // #73: machine-local, like the other recent lists
         readWalks(p, "walk", c.walks, null, c.walkBindingNotes);   // M69: beside reports, same tier
         readDeletedWalks(p, c.deletedWalks);       // M69: machine-local, like the report bin
+        readDeletedCharts(p, c.deletedCharts);     // 2026-10-18: machine-local, like the report and walk bins
         readRunbooks(p, c.runbooks);
         c.vocabularyPath = readVocabulary(p).orElse("");
         readEnvironments(p, c.environments);
@@ -213,6 +214,7 @@ public final class ConfigStore {
         writeRecentBundles(p, c.recentBundles);     // #73: always the machine's, never a project's or an export's
         writeWalks(p, globalTier == null ? c.walks : globalTier.walks());   // M69: the reports' tier choice
         writeDeletedWalks(p, c.deletedWalks);       // M69: always the machine's
+        writeDeletedCharts(p, c.deletedCharts);     // 2026-10-18: always the machine's
         writeRunbooks(p, globalTier == null ? c.runbooks : globalTier.runbooks());
         writeVocabulary(p, globalTier == null ? c.vocabularyPath : globalTier.vocabularyPath());
         writeEnvironments(p, globalTier == null ? c.environments : globalTier.environments(),
@@ -798,6 +800,49 @@ public final class ConfigStore {
             int i = kept.get(k);
             out.add(new DeletedWalk(p.getProperty("deletedWalk." + i + ".project", ""),
                     p.getProperty("deletedWalk." + i + ".deletedAt", ""), specs.get(k)));
+        }
+    }
+
+    /**
+     * The chart bin (owner decision 2026-10-18): machine-local, never in a profile or an export. Each entry's chart is
+     * written by the production chart serializer under {@code deletedChart.} instead of {@code graph.}, so a binned
+     * definition round-trips exactly as a saved one does.
+     */
+    static void writeDeletedCharts(Properties p, List<DeletedChart> bin) {
+        Properties charts = new Properties();
+        List<GraphSpec> specs = new ArrayList<>();
+        for (DeletedChart d : bin) specs.add(d.chart());
+        writeGraphs(charts, specs);
+        for (String key : charts.stringPropertyNames()) {
+            p.setProperty("deletedChart." + key.substring("graph.".length()), charts.getProperty(key));
+        }
+        for (int i = 0; i < bin.size(); i++) {
+            put(p, "deletedChart." + i + ".project", bin.get(i).project());
+            put(p, "deletedChart." + i + ".deletedAt", bin.get(i).deletedAt());
+            put(p, "deletedChart." + i + ".reason", bin.get(i).reason().word());
+        }
+    }
+
+    static void readDeletedCharts(Properties p, List<DeletedChart> out) {
+        out.clear();
+        Properties charts = new Properties();
+        for (String key : p.stringPropertyNames()) {
+            if (!key.startsWith("deletedChart.")) continue;
+            String rest = key.substring("deletedChart.".length());
+            String[] parts = rest.split("\\.");
+            // the bin's own per-index fields are not chart fields
+            if (parts.length == 2 && (parts[1].equals("project") || parts[1].equals("deletedAt")
+                    || parts[1].equals("reason"))) continue;
+            charts.setProperty("graph." + rest, p.getProperty(key));
+        }
+        List<GraphSpec> specs = new ArrayList<>();
+        readGraphs(charts, specs);
+        for (int i = 0; i < specs.size(); i++) {
+            GraphSpec g = specs.get(i);
+            if (g.name() == null) continue;   // a hand-edited entry with no name cannot be restored by anything
+            out.add(new DeletedChart(p.getProperty("deletedChart." + i + ".project", ""),
+                    p.getProperty("deletedChart." + i + ".deletedAt", ""),
+                    ChartBin.Reason.parse(p.getProperty("deletedChart." + i + ".reason")), g));
         }
     }
 

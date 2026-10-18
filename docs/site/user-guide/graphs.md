@@ -13,10 +13,15 @@ doubled every pin, and the plot collapsed the duplicates into a single badge tha
 `clearNotes: true` is still there, and is now only needed to drop pins *without* supplying new ones.
 
 **Removing a chart** is `graph {name, delete: true}`, or **Graph tab → More → Delete chart**. It takes the
-definition — series, formulas, pinned notes and the explanation written on it — and unlike a deleted
-report it is **not** recoverable. To put a chart away without losing it, use **More → Close graph** — or, over the
-socket, `graph {name, close: true}`; a closed chart keeps its definition and reopens from the Project
-panel or by name.
+definition — series, formulas, pinned notes and the explanation written on it — out of the project, and, like a
+deleted report, it **can be restored**: the definition moves to a bin on this machine (the last 20, per project, never
+in the profile). A call that **replaces** an existing chart's definition — re-sent `notes`, `series`, `guides` or
+`bands`, or `clearNotes` — keeps the definition it had before in the same bin, whoever made the call: you, the in-app
+assistant, Claude Code or an external client. **More → Restore deleted chart…** brings one back, as does
+`graph {restore: true}` (lists the bin, each entry with an id) and `graph {restore: "name or id"}` (a name restores its
+newest entry, an id that exact version). Restoring never replaces a chart that has the name now. To put a chart away
+without deleting it, use **More → Close graph** — or, over the socket, `graph {name, close: true}`; a closed chart
+keeps its definition and reopens from the Project panel or by name.
 
 ## Adding series
 
@@ -266,6 +271,6 @@ The current UI keeps at least one graph view: Close leaves the last open graph i
 open chart creates an empty placeholder. Closed saved definitions remain in the Project panel; the
 placeholder's name is chosen so it cannot overwrite them.
 
-Delete asks for confirmation and names the chart whose definition will be removed:
+Delete asks for confirmation, names the chart whose definition will be removed, and says it can be restored:
 
 ![Delete chart confirmation naming the chart and offering Cancel](../assets/chart-delete-confirmation.png)

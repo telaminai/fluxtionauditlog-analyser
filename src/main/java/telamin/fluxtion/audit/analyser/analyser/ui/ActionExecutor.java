@@ -315,6 +315,18 @@ public final class ActionExecutor implements RenderExecutor {
                                 str(params.get("title")), str(params.get("graph")),
                                 !params.containsKey("topology") || bool(params.get("topology"))));
             }
+            case "graph" -> {
+                // owner decision 2026-10-18: the chart bin needs no log — listing and restoring work as report's do
+                var chosen = telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.graph(params);
+                if (chosen.op() == telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.GraphOp.INVALID
+                        && params.containsKey("restore")) {
+                    return ActionResult.error(chosen.error());
+                }
+                if (chosen.op() == telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.GraphOp.LIST_DELETED
+                        || chosen.op() == telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.GraphOp.RESTORE) {
+                    return onEdt(() -> graphRestore(params));
+                }
+            }
             default -> { }
         }
         LogStore s = store.get();
@@ -473,6 +485,28 @@ public final class ActionExecutor implements RenderExecutor {
 
     // ---- graph -----------------------------------------------------------------------------------
 
+    /**
+     * Owner decision 2026-10-18: {@code graph {restore: true}} lists the chart bin; {@code graph {restore: "name or id"}}
+     * puts that definition back into this project under its name — never over a chart that has the name now.
+     */
+    private ActionResult graphRestore(Map<String, Object> p) {
+        if (Boolean.TRUE.equals(p.get("restore"))) {
+            var echo = new java.util.LinkedHashMap<String, Object>();
+            echo.put("restorable", graphTabs.binListing());
+            echo.put("note", "deleted charts, and the definitions a later call replaced, kept on this machine for this "
+                    + "project (the last " + telamin.fluxtion.audit.analyser.analyser.config.ChartBin.CAPACITY
+                    + " across projects). Restore one with graph {restore: \"<name or id>\"}; a name restores its newest "
+                    + "entry, an id that exact version.");
+            return ActionResult.ok("graph", "restorable", echo);
+        }
+        var restored = graphTabs.restoreFromBin(String.valueOf(p.get("restore")));
+        if (!restored.ok()) return ActionResult.error(restored.refusal());
+        var echo = new java.util.LinkedHashMap<String, Object>();
+        echo.put("restored", restored.chart().name());
+        echo.put("charts", graphTabs.graphNames());
+        return ActionResult.ok("graph", "restored", echo);
+    }
+
     private ActionResult doGraph(LogStore s, Map<String, Object> p) {
         // R13-4: the owner decision allows a NEW chart while definitions are withheld, and the UI does. The
         // verb refused everything, so the assistant was held to a stricter rule than the person beside it.
@@ -492,7 +526,10 @@ public final class ActionExecutor implements RenderExecutor {
         // reveal what you changed: `topology` brings its tab forward, and a plot the caller cannot see is
         // indistinguishable from one that was never drawn
         if (app != null) app.showTab("Graph");
-        if (bool(p.get("close"))) {
+        // owner decision 2026-10-18: the operation is VerbOperations.graph's — the one the hosted classification and the
+        // approval dialog judge — so what the person approved is what runs
+        var graphOp = telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.graph(p).op();
+        if (graphOp == telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.GraphOp.CLOSE) {
             // PR #51 review, on #50: the safe half of removal. Before this, delete was the only way to get
             // a chart off the screen over the socket — so "not recoverable" was not a warning a caller
             // could act on. Closing keeps the definition (ClosingAChartKeepsItsDefinitionTest), so the
@@ -517,7 +554,7 @@ public final class ActionExecutor implements RenderExecutor {
             });
         }
 
-        if (bool(p.get("delete"))) {
+        if (graphOp == telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.GraphOp.DELETE) {
             // #50: parity with report {name, delete}. Before the rename branch and before the build
             // path, for the same reason the report verb puts its delete first — this call carries a
             // name and no series, which the build path below would read as "replace with an empty
@@ -547,16 +584,16 @@ public final class ActionExecutor implements RenderExecutor {
                 var echo = new java.util.LinkedHashMap<String, Object>();
                 echo.put("deleted", target);
                 echo.put("remaining", graphTabs.chartsThatRemain());   // PR #51 review: not the blank tab a last delete opens
-                echo.put("note", "the chart DEFINITION is gone — its series, formulas, pinned notes and "
-                        + "explanation. The log is untouched, and any PNG already exported is a separate "
-                        + "file. This one is NOT recoverable — unlike report {delete}. To put a chart away "
-                        + "without losing it use graph {name, close: true}.");
+                echo.put("note", "the chart left the project — its series, formulas, pinned notes and explanation "
+                        + "are kept in this machine's chart bin: graph {restore: true} lists it, graph {restore: \""
+                        + target + "\"} brings it back. The log is untouched. To put a chart away without deleting it "
+                        + "use graph {name, close: true}.");
                 return ActionResult.ok("graph", "deleted", echo);
             });
         }
 
         // rename requires an explicit target {name, rename} — never selection-dependent
-        if (p.containsKey("rename")) {
+        if (graphOp == telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.GraphOp.RENAME) {
             String from = asText(p.get("name")), to = asText(p.get("rename"));
             if (from == null) return ActionResult.error("graph rename needs the target 'name'");
             // M68.4 (D-E3): a rename renames and does nothing else, so anything else in the call is refused with it
@@ -726,6 +763,10 @@ public final class ActionExecutor implements RenderExecutor {
                 String problem = SpotlightTarget.chartNameProblem(name);
                 if (problem != null) return ActionResult.error("graph refused, nothing created: " + problem);
             }
+            // owner decision 2026-10-18: an EXISTING chart's definition, before this call changes it — kept in the bin
+            // below when the call replaced it (notes, series, guides, bands, clearNotes…); a new chart has none
+            // (no name creates a new chart: graphForAction(null, …) adds one, so there is nothing before it)
+            var before = newTab || name == null ? null : graphTabs.definitionOf(name);
             GraphPanel panel = graphTabs.graphForAction(name, newTab);
             if (panel == null && graphTabs.definitionRefusal() != null)
                 return ActionResult.error(graphTabs.definitionRefusal());
@@ -742,7 +783,9 @@ public final class ActionExecutor implements RenderExecutor {
             List<String> annotationIssues = applyGuidesAndBands(panel, p);
             if (pinRequested) panel.pin(from, to);   // explicit range → pin (evidence artifact); else follows
             if (refresh) panel.onRecordsAppended();
+            boolean kept = graphTabs.keepIfReplaced(before, panel);
             Map<String, Object> applied = new LinkedHashMap<>();
+            if (kept) applied.put("previousDefinition", "kept — graph {restore: true} lists it");
             // "scheduled", not true: the walk lands after this call returns (debounce + off-EDT); `series` is
             // the way to READ a fresh value, the chart is what lags. false = nothing in this call re-extracts.
             applied.put("refreshed", panel.extractionRequests() > requestsBefore ? "scheduled" : Boolean.FALSE);

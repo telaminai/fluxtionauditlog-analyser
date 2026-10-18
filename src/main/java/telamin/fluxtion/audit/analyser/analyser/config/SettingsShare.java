@@ -599,6 +599,14 @@ public final class SettingsShare {
             }
         }
         if (selected.contains(Category.GRAPHS) && plan.graphs() != null) {
+            // owner decision 2026-10-18: a chart an import replaces by name keeps its previous definition in the bin
+            String now = java.time.Instant.now().toString();
+            for (GraphSpec g : plan.graphs()) {
+                GraphSpec existing = ChartBin.find(target.savedGraphs, g.name());
+                if (existing != null && !ConfigStore.chartDefinitionDigest(existing).equals(ConfigStore.chartDefinitionDigest(g))) {
+                    ChartBin.keep(target, existing, ChartBin.Reason.REPLACED, now);
+                }
+            }
             mergeGraphsByName(target.savedGraphs, plan.graphs());
         }
         if (selected.contains(Category.GRAPHS) && plan.focuses() != null) {

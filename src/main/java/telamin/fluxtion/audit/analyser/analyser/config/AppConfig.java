@@ -234,6 +234,11 @@ public final class AppConfig {
     public final transient List<String> walkBindingNotes = new ArrayList<>();
     /** M69: walks deleted from any project, restorable (see {@link WalkBin}). MACHINE tier, like the report bin. */
     public final List<DeletedWalk> deletedWalks = new ArrayList<>();
+    /**
+     * Owner decision 2026-10-18: chart definitions deleted or replaced in any project, restorable (see {@link ChartBin}).
+     * MACHINE tier, like the report and walk bins: never written to a project profile or an export.
+     */
+    public final List<DeletedChart> deletedCharts = new ArrayList<>();
     /** M38.1: runbook POINTERS — name → project-relative path (never contents). Project-scoped; see {@link Runbooks}. */
     /** M38.1/M43.2: name → pointer (path + optional description). ONE map, because a parallel
      *  description map is two things that can disagree about which runbooks exist. */

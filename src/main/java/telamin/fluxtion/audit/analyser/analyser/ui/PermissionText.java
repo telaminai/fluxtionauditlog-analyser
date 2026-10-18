@@ -83,6 +83,22 @@ public final class PermissionText {
     }
 
     private static final String RESTORABLE = "It can be restored: it moves to this project's recently deleted list.";
+    private static final String CHART_RESTORABLE = "Its definition — series, formulas, notes and explanation — moves to "
+            + "this project's recently deleted charts; graph {restore} brings it back.";
+
+    /** The parts of a chart's definition a graph call sets, in words, in the schema's order. */
+    static String graphFields(java.util.Map<?, ?> p) {
+        java.util.List<String> parts = new java.util.ArrayList<>();
+        String[][] words = {{"series", "its series"}, {"exprs", "its formulas"}, {"style", "its style"},
+                {"explanation", "its explanation"}, {"notes", "its pinned notes"}, {"clearNotes", "its pinned notes (cleared)"},
+                {"rightAxis", "its right axis"}, {"from", "its pinned window"}, {"to", "its pinned window"},
+                {"external", "its external series"}, {"markers", "its markers"}, {"guides", "its guides"},
+                {"bands", "its bands"}, {"rationale", "its caption"}};
+        for (String[] w : words) {
+            if (p.containsKey(w[0]) && !parts.contains(w[1])) parts.add(w[1]);
+        }
+        return parts.isEmpty() ? "what the call sets" : String.join(", ", parts);
+    }
     private static final String EXCHANGE = " in the exchange folder; an existing file is never overwritten.";
 
     /**
@@ -92,6 +108,31 @@ public final class PermissionText {
     static Call hostedCall(String verb, java.util.Map<?, ?> p) {
         Object name = p.get("name");
         switch (verb) {
+            case "graph" -> {
+                // owner decision 2026-10-18: VerbOperations.graph — the executor's own choice. A delete or a replacement
+                // keeps the previous definition in the chart bin, and the sentence says so
+                var chosen = telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.graph(p);
+                if (!chosen.ok()) return null;
+                String chart = name == null ? "a new chart" : "the chart " + q(name);
+                return switch (chosen.op()) {
+                    case DELETE -> new Call("delete " + chart + " (it can be restored)", CHART_RESTORABLE);
+                    case EDIT -> Boolean.TRUE.equals(p.get("newTab")) || name == null
+                            ? new Call("create " + chart, "A new chart is added; no existing chart changes.")
+                            : new Call("replace " + chart + " (its old definition can be restored)",
+                            "It changes the saved chart's definition — " + graphFields(p) + ". The definition it had "
+                                    + "before is kept in this project's recently deleted charts; graph {restore} brings "
+                                    + "it back.");
+                    case RENAME -> new Call("rename " + chart + " to " + q(p.get("rename")),
+                            "The chart keeps its definition; only its name changes.");
+                    case RESTORE -> new Call("restore the chart " + q(p.get("restore")),
+                            "It comes back into this project under its name; a chart that has the name now is never "
+                                    + "replaced.");
+                    case LIST_DELETED -> new Call("list the deleted and replaced charts", "It changes nothing.");
+                    case CLOSE -> new Call("close " + chart, "Its definition is kept; it can be reopened.");
+                    case SHOW -> new Call("show " + chart, "It changes nothing saved.");
+                    case INVALID -> null;
+                };
+            }
             case "walk" -> {
                 // final review #2: the operation is WalkVerb.choose's — the executor's own choice — and a flag the
                 // executor requires to be true (delete, play, end) is judged as it judges it

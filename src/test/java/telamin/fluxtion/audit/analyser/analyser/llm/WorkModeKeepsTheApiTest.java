@@ -51,14 +51,18 @@ class WorkModeKeepsTheApiTest {
         return out;
     }
 
-    /** The digests before the rename. */
+    /**
+     * The digests before the rename — except the five the owner decision of 2026-10-18 changed deliberately (graph
+     * {restore} added, delete's "NOT recoverable" corrected): {@link GraphRestoreApiDeltaTest} proves undoing exactly
+     * that gives the earlier pins back.
+     */
     static final Map<String, String> PINNED = Map.of(
-            "VerbSchemas.all", "93be851191d2fd8f4721be9b1da434a876e6d7eb46c1b5949f4dd396bcceaafa",
-            "VerbSchemas.hosted", "1d7f30b286cc6b9edaf44165de627661584cfc137498317ed3f327cafb89e9ca",
-            "McpTools.list", "c0c886ccbc54e31e8468dfc8a9249c8ed89bfad6aee7b0760fcd20064815a74b",
-            "McpTools.hostedList", "013b88dd2adf39047d51a88b3b4f89fef565ab5cd945d5a2407e56dbd492b632",
+            "VerbSchemas.all", "057e731d90ba55d7d28a7f0972c237cfd2d0f420395716d43579d21d676259d4",
+            "VerbSchemas.hosted", "d54a546ac0ed8a2ec0b0f91fcdda320219c3da5f5e252c3409d3a205daf7e433",
+            "McpTools.list", "4b7a627285c8cb81a01be2566ecb6294b0feb33b789ef7f53baf6220f3b308da",
+            "McpTools.hostedList", "18ab09ebd59e49aa3c4005b51d4bb232e24e750f7c469a5e1682a90a48d16e44",
             "McpBridge.INSTRUCTIONS", "fdcf8b03dab8d45d9c197d230961a41518faa0319b6f5a9cc6a51662cfdf144a",
-            "PromptBuilder.inProcessActionManifest", "65eed4b076b84e808cbb6f61e1bf980f699b3cd8834e209dbacbb2e2de138224",
+            "PromptBuilder.inProcessActionManifest", "2df1e7478f92c76b9bf4eef1f52f225effb09d0c552bb42f8806141d0a58d40d",
             "context.handoff derived, project", "591833ea9ec7b553f868403da4ba5d909b2e45b628c93b43fd70dcb170426bb1",
             "context.handoff derived, none", "1623b4af915aef11455cfc7a7587804fa90504f869dde67de3f5177393a04679",
             "context.handoff set research by you", "8037233aed4d5153383d60bb0e73e2924a0828785867e83a5d54be0becc493d1",

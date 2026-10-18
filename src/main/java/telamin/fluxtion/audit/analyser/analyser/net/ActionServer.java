@@ -156,6 +156,16 @@ public final class ActionServer {
     }
 
     /**
+     * Owner decision 2026-10-18: which charts exist now, so a hosted {@code graph} call that creates a chart is told
+     * apart from one that replaces an existing chart's definition. Unset, every name is taken to exist (fail-closed).
+     */
+    private volatile telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.ChartState chartState;
+
+    public void setChartState(telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.ChartState charts) {
+        this.chartState = charts;
+    }
+
+    /**
      * (Re)write the well-known endpoint file for this running server. Called at start, and again by the
      * owner window when the file has gone missing or names a dead process while this server is still
      * listening — the pointer is disposable, the server is not. Returns false when nothing was published
@@ -244,11 +254,14 @@ public final class ActionServer {
             }
             String body = new String(ex.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
             if (hosted != null) {
-                String refused = hostedRefusal(hostedGate, hosted, body, ex.getRequestHeaders().getFirst(TOOL_USE_HEADER));
+                var charts = chartState;
+                String refused = hostedRefusal(hostedGate, hosted, body, ex.getRequestHeaders().getFirst(TOOL_USE_HEADER),
+                        charts);
                 if (refused != null) {
                     send(ex, 403, err(refused));
                     return;
                 }
+                body = hostedConstrained(body, charts);
             }
             // M74 P2: a hosted call carries its admitted generation, the only way to reach `propose`
             ActionResult r = hosted != null && hostedGate != null
@@ -346,7 +359,7 @@ public final class ActionServer {
      * M74 §4.2 step 5 and §3: what the hosted bridge may not do, decided from its credential's generation and the
      * session's admission — never from the shared token. Null when the call may run. The admission is asked of the
      * session on ITS thread, in its order ({@link HostedCredentials.Gate#admit}, review M6), never read from a snapshot
-     * here; the cheap, local refusals (an unknown verb, {@code graph {delete}}) come first so they never wait on it.
+     * here; the cheap, local refusal (an unknown verb) comes first so it never waits on it.
      */
     static String hostedRefusal(HostedCredentials.Gate gate, String credential, String body) {
         return hostedRefusal(gate, credential, body, null);
@@ -359,6 +372,34 @@ public final class ActionServer {
      * session's thread. Everything refused here is reported to the session as a fact too (scorecard R1).
      */
     static String hostedRefusal(HostedCredentials.Gate gate, String credential, String body, String toolUseId) {
+        return hostedRefusal(gate, credential, body, toolUseId, null);
+    }
+
+    /**
+     * Owner decision 2026-10-18: the body a hosted call admitted by {@link #hostedRefusal} is dispatched with — a
+     * {@code graph} create admitted without an approval runs as a create ({@code McpTools.hostedConstrained}).
+     */
+    @SuppressWarnings("unchecked")
+    static String hostedConstrained(String body, telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.ChartState charts) {
+        Object root;
+        try {
+            root = Json.parse(body);
+        } catch (RuntimeException e) {
+            return body;
+        }
+        if (!(root instanceof Map<?, ?> m) || !(m.get("params") instanceof Map<?, ?> params)) return body;
+        String action = String.valueOf(m.get("action"));
+        Map<String, Object> constrained = telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.hostedConstrained(action,
+                (Map<String, Object>) params, charts);
+        if (constrained == params) return body;
+        Map<String, Object> out = new java.util.LinkedHashMap<>((Map<String, Object>) m);
+        out.put("params", constrained);
+        return Json.write(out);
+    }
+
+    /** {@link #hostedRefusal(HostedCredentials.Gate, String, String, String)}, judging a graph call against {@code charts}. */
+    static String hostedRefusal(HostedCredentials.Gate gate, String credential, String body, String toolUseId,
+                                telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.ChartState charts) {
         long generation = gate == null ? -1 : gate.generationOf(credential);
         if (generation < 0) {
             return BAD_HOSTED_CREDENTIAL;
@@ -383,8 +424,11 @@ public final class ActionServer {
             // review M74 usability #10b (a refinement of OD-74.16): a sub-action that changes nothing stored — playing
             // or ending a walk, listing a bin — is admitted as a pre-allowed verb is, judged from THIS call's input;
             // every other call of the verb still needs the person's grant
-            if (telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.hostedCallKind(action, params)
-                    == telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallKind.NON_MUTATING) {
+            // owner decision 2026-10-18: a graph call that creates a chart or changes only the view is admitted as the
+            // pre-allowed verbs are; one that deletes, renames, restores or replaces a chart's definition needs the grant
+            var kind = telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.hostedCallKind(action, params, charts);
+            if (kind == telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallKind.NON_MUTATING
+                    || kind == telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallKind.PRE_ALLOWED) {
                 return gate.admit(generation, verb);
             }
             String inputDigest = telamin.fluxtion.audit.analyser.analyser.llm.CanonicalJson.digest(
@@ -398,20 +442,9 @@ public final class ActionServer {
             return "`" + action + "` is not available to Claude Code in the analyser: only the pre-allowed verbs are, "
                     + "and the verbs that change what is open or write files are asked of the person";
         }
-        if (root instanceof Map<?, ?> m && "graph".equals(String.valueOf(m.get("action")))
-                && m.get("params") instanceof Map<?, ?> params && truthy(params.get("delete"))) {
-            gate.refused(generation, verb, "GRAPH_DELETE");
-            return "graph {delete} is not available to Claude Code in the analyser: a chart's definition is deleted by "
-                    + "the person (Graph tab), never by the hosted session";
-        }
+        // owner decision 2026-10-18: graph {delete} is no longer refused here — graph is judged call by call above, and
+        // a delete is asked of the person (it can be restored)
         return gate.admit(generation, verb);
-    }
-
-    private static boolean truthy(Object v) {
-        if (v == null) return false;
-        if (v instanceof Boolean b) return b;
-        String s = v.toString().trim();
-        return !(s.isEmpty() || "false".equalsIgnoreCase(s) || "0".equals(s) || "0.0".equals(s));
     }
 
     private static String err(String msg) {

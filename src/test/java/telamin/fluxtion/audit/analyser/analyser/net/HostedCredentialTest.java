@@ -78,10 +78,11 @@ class HostedCredentialTest {
     /**
      * ★ Witness: in {@code ActionServer.handleAction}, treat a request with only the shared token as hosted (apply
      * {@code hostedRefusal} when the header is absent) — the external client's call is refused and the first assertion
-     * fails; or drop the delete check — the hosted delete is dispatched.
+     * fails; or admit graph {delete} without the person's approval (classify it PRE_ALLOWED) — the hosted delete is
+     * dispatched. Owner decision 2026-10-18: the delete is ASKED now (it can be restored), no longer refused outright.
      */
     @Test
-    @DisplayName("★ graph {delete} from the hosted bridge is refused; the shared token alone is an external client, never hosted")
+    @DisplayName("★ graph {delete} from the hosted bridge needs the person's approval; the shared token alone is an external client")
     void hostedDeleteIsRefused() throws Exception {
         String token = credentials.mint(3);
         admitted.set(3);
@@ -90,7 +91,7 @@ class HostedCredentialTest {
         assertFalse(external.body().contains("Claude Code"), external.body());
         HttpResponse<String> hosted = post(DELETE, token);
         assertEquals(403, hosted.statusCode(), "never reached the dispatcher");
-        assertTrue(hosted.body().contains("graph {delete} is not available to Claude Code"), hosted.body());
+        assertTrue(hosted.body().contains("`graph` needs your approval in the analyser"), hosted.body());
         assertEquals(400, post(READ, token).statusCode(), "a pre-allowed verb reaches the dispatcher");
         assertEquals(403, post("{\"action\":\"graph\",\"params\":{\"name\":\"x\",\"delete\":\"true\"}}", token).statusCode(),
                 "a string true is still a delete");
