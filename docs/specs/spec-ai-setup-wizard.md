@@ -1,6 +1,7 @@
 # M77 — Set up AI: the first-run wizard for the shared canvas
 
-**Status:** ACCEPTED r3, 2026-10-18 — the owner accepted every recommendation of OD-77.1–.13 on 2026-10-18 (§20).
+**Status:** ACCEPTED r4, 2026-10-18 — the owner accepted every recommendation of OD-77.1–.13 on 2026-10-18, and
+OD-77.14–.21 (M77-5, the option diagram, §6.1a) the same day (§20).
 r2 folded in the independent review of r1
 ([`review_m77_r1_7f3c.md`](../handoff/review_m77_r1_7f3c.md), 3 blockers, 8 major findings, 30 in all; the
 disposition table is in that file and summarised in *Revision history*). r1 was written from the owner's direction of
@@ -179,7 +180,7 @@ Four radio cards in one column; each card is a `JRadioButton` with its sentence 
 
 - ○ **No AI** — *"Everything in {Product} works without AI: records, topology, charts, reports, walks and the tour. You
   can set AI up later from Assistant ▾ ▸ Set up AI…"*
-- ○ **Your own AI client connects to {Product}** — *"Claude Code, Codex or another MCP client in your terminal reads
+- ○ **Your own AI client connects to {Product}** — *"Claude Code, Codex or another AI app that can connect to {Product} reads
   records, draws charts and points at evidence here. You keep using it in your terminal."* Badge: *"Claude Code found"*
   / *"Codex found"* / none. While Claude inside is in force, a second line: *"This turns off Claude in the panel —
   choose Both to keep it."* (review R1-20)
@@ -199,6 +200,110 @@ register.
 
 Buttons: **Cancel** · **Continue** (disabled until a choice is made). Preselection: the choice in force (§14.1); on a
 fresh machine *Claude inside {Product}* when `claude` was found, otherwise none.
+
+### 6.1a Where data goes: the option diagram (M77-5)
+
+Accepted by the owner on 2026-10-18 (OD-77.14–.21, §20). It is a separate PR, **M77-5, stacked on M77-2** (§18).
+
+**What it is.** A small picture under the **selected** Screen 1 card only, showing where data goes for that choice.
+It has big shapes and few words (OD-77.14, variant B). Every card keeps its one sentence; the picture adds to the
+sentence and does not replace it. Only one picture is on screen at a time. M77-2 leaves an empty `selectedOptionExtra`
+slot under the selected card's title row, and M77-5 fills it. M77-3 reuses the same component beside the access switch
+on Screen 2b. The picture is **not** shown in the start-page first-run block (OD-77.19), it has **no hover preview**
+for unselected cards (OD-77.20), and it is **not** shown in the docked panel.
+
+**Two-way and one-way (owner's definition).** *Claude inside* is **two-way**. The GUI drives the assistant
+automatically, and a right-click **Ask** sends context straight into the session. An *external* client is
+**one-way**. It pulls from {Product} and lights the canvas, but it cannot receive anything from a GUI right-click, so
+the person copies and pastes.
+
+**What each option draws.** The boundary is {Product}'s machine: a washed box that holds {Product} and any local AI
+program. The services sit outside it.
+
+| Shown option | Edges (from → to: line, chip) | Sent line (exact wording) |
+|---|---|---|
+| `NO_AI` | none; a no-sign on the boundary | *"Nothing is sent to an AI."* |
+| `CLIENT` (*Your own client*) | client → {Product}: by access state, chip *"points"* when on · {Product} → client: BY_HAND, *"you copy"* · client → its service: AUTO, *"what it reads"* | *"Sent to AI: what your client reads, sent by your client."* |
+| `INSIDE` (*Claude inside*) | {Product} → Claude: AUTO, *"Ask"* (a mouse) · Claude → {Product}: AUTO, *"points"* (a target) · Claude → Claude's service: AUTO, *"what it reads"* (a page); Full adds *"+ your own tools"* | *"Sent to AI: your question + what Claude reads, to Anthropic."* Full appends *"; your own tools may send more."* |
+| `BOTH` | two rows, each with its own {Product} icon (OD-77.21): the `INSIDE` row above the `CLIENT` row | *"Sent to AI: Claude to Anthropic; your client to its own service."* |
+
+These wordings are deliberate, because each one fixes an overclaim the prototype made. *No AI* does **not** say
+"nothing leaves this computer", because {Product} fetches the project-starter catalogue. The external line says the
+**client** sends the data and does not claim anything about {Product}. No drawn string says MCP, REST or CLI. The
+chips are: mouse *"Ask"*, target *"points"*, clipboard *"you copy"*, toggle *"off"*, padlock *"closed"*, page
+*"what it reads"*, and *"+ your own tools"*.
+
+**Where Claude is billed (OD-77.16).** The Claude service node names the bill, read from the sign-in check
+(`signedIn.method`, §8.2). `CLAUDE_AI` gives *"your Claude plan"*, `API_KEY` and `API_KEY_HELPER` give *"your API
+key"*, and `OTHER` gives *"your cloud provider"*. When the verdict is not `SIGNED_IN`, the node names no bill and
+guesses nothing.
+
+**Claude Code's own usage data (OD-77.17)** is not described on the picture. Under an `INSIDE` or `BOTH` picture, a
+link goes to the FAQ entry that covers it. `FaqSecurityContractTest` pins both the link and the entry.
+
+**Card sentence (OD-77.18).** In §6.1's *Your own AI client* sentence, "another MCP client" became *"another AI app
+that can connect to {Product}"* (applied in r4). The change ships with M77-2, where the sentence is first drawn.
+
+**The component: `ui/setup/FlowDiagram extends JComponent`.**
+
+- `static Model model(AiSetupState s, Option shown)` is **pure**: it uses no Swing and no clock. It reads only the
+  shown option, `posture` and `externalAccess`.
+  - Nodes are `ANALYSER · CLAUDE · CLIENT · CLAUDE_SERVICE · CLIENT_SERVICE`. In `BOTH`, `ANALYSER` appears once per
+    row.
+  - An edge is `(from, to, line AUTO | BY_HAND | NOT_ON, tone NORMAL | ACCENT | MUTED, chip, spoken)`. The model also
+    holds the sent line and a summary.
+  - The client → {Product} edge follows `externalAccess`. `OFF` and `CONFIRMING` give NOT_ON with *"off"*. `ON` gives
+    AUTO. `CLOSED_FOR_SESSION` gives NOT_ON with *"closed"*. `OTHER_INSTANCE` gives NOT_ON with *"another window"*.
+  - {Product} → client is always BY_HAND. That is the one-way rule.
+  - Amber (Full, caution) is drawn exactly when the posture is `FULL` and the picture draws Claude (`INSIDE` or
+    `BOTH`). The Claude pair then carries a *"Full"* tag.
+- `setSnapshot` only stores the state and repaints. It decides nothing (rule 9). This adds no node, no fact and no
+  effect; the component renders `AiSetupState` only.
+- **Every word** comes from `AiSetupLines.diagram*`, which `UserVisibleJargonTest` and `FaqSecurityContractTest` cover
+  (T18).
+- **Painting** uses Java2D shapes and `drawString` only. It uses no HTML and no SVG.
+- **Sizes** derive from `Label.font`. One layout serves widths of 340 px and up. Below 400 px it uses the short labels
+  from `AiSetupLines`, and the sent line wraps.
+- **Accessibility.** The role is `LABEL` and the accessible name is *"Where data goes"*. The accessible description
+  is the summary, then each edge's spoken sentence, then the sent line. This text equivalent is what T26 holds against
+  the painted arrows.
+
+**Palette.** The palette is a set of `DiagramPalette` tokens mapped to new `UiTheme` methods (light / dark). Full mode
+is **amber** (caution), and Safe two-way arrows are the product blue: `TWO_WAY_LINE` / `TWO_WAY_TEXT` map to
+`UiTheme.accent()` / `accentText()`, which already hold these values. Full amber sits close to
+`attentionForeground()` (#8A5A00 / #E6B43C on this branch's base), so the two could be unified when M77-5 is built.
+
+| Token | Light | Dark |
+|---|---|---|
+| `ANALYSER_FILL` | #D5EFEA | #123F3A |
+| `ANALYSER_INK` | #0F6B63 | #5FD8C6 |
+| `CLAUDE_FILL` | #F9E0E6 | #4A2430 |
+| `CLAUDE_INK` | #B0405A | #F08AA0 |
+| `CLIENT_FILL` | #E2D6FA | #32264E |
+| `CLIENT_INK` | #6A3DC4 | #B8A1F4 |
+| `SERVICE_FILL` | #E2E7ED | #2A323C |
+| `SERVICE_INK` | #4B5A6A | #A8B5C3 |
+| `BOUNDARY_WASH` | #E9F5F1 | #22302D |
+| `BOUNDARY_EDGE` | #4F8F82 | #7FB5A9 |
+| `TWO_WAY_LINE` | #1F6FEB | #6CB6FF |
+| `TWO_WAY_TEXT` | #0B4FB8 | #8FC8FF |
+| `FULL_AMBER_LINE` | #C2620A | #F2A33A |
+| `FULL_AMBER_TEXT` | #9A4A05 | #F5B25A |
+| `FULL_AMBER_TAG` | #B45309 | #F2A33A |
+| `ON_FULL_AMBER_TAG` | #FFFFFF | #1C1205 |
+| `CLIENT_LINE` | #6A3DC4 | #A98CF0 |
+| `CLIENT_TEXT` | #5A31AE | #C2AEF7 |
+| `BY_HAND_LINE` | #5B636C | #A3ABB4 |
+| `BY_HAND_TEXT` | #4A5159 | #B4BBC3 |
+| `OFF_LINE` | #9AA1A9 | #6B737C |
+| `OFF_TEXT` | #5F666E | #9EA6AF |
+| `SERVICE_LINE` | #4B5A6A | #93A2B2 |
+| `NO_SIGN` | #C03A35 | #F0716A |
+
+Text must reach 4.5:1 against what it sits on. Lines, icons and the boundary must reach 3:1. The off line is
+**deliberately** below 3:1, because it always carries the word *"off"*, *"closed"* or *"another window"*. Colour is
+never the only carrier of meaning: line style (solid AUTO, dashed BY_HAND, dotted NOT_ON), chips and words carry it as
+well. Tests T25–T31 (§16) cover the diagram.
 
 ### 6.2 Screen 2a — "Claude inside {Product}" (choices 3 and 4)
 
@@ -803,6 +908,13 @@ Headless (`AiSetupTest`, `ClaudeProbeParseTest`, …) unless marked *frame* (a r
 | ★ T22 | every probe and registration process is started in a fresh empty scratch directory, never the project root or the process's cwd | S10 | start the probe in the project root |
 | ★ T23 | the panel's empty-state line and the start page's AI line come from `aiSetup` alone; with nothing set up the panel shows one line (no `NO_ASSISTANT*`, no *"no provider is configured"* beside it); a mid-turn Apply from the wizard keeps the step and shows exactly one line | R1-1(b), R1-17 | compose the refusal in the wizard view |
 | ★ T24 | a GUI-shaped `PATH` (`/usr/bin:/bin:/usr/sbin:/sbin`) with `claude` in `~/.local/bin`: Screen 1 says found AND 2b builds a register command | R1-9 | construct the client with `ClaudeMcpClient.detect()` |
+| ★ T25 | the diagram's state → arrows table (§6.1a), for every option × posture × `externalAccess` state, from `FlowDiagram.model` alone: the Ask edge exists iff the option is `INSIDE` or `BOTH`; {Product} → client is always BY_HAND; client → {Product} is AUTO iff access is `ON`; amber is used iff the posture is `FULL` (on a picture that draws Claude); nothing crosses the boundary for `NO_AI` | a picture that promises a path the state does not have | map `CLOSED_FOR_SESSION` to AUTO; or draw Ask for `CLIENT` |
+| ★ T26 | text-equivalent parity: the arrows the painter recorded while painting equal the model's edges, and the accessible description lists each edge's spoken sentence and the sent line | a screen-reader text that disagrees with the picture | paint an extra arrow |
+| ★ T27 | contrast and clipping, headless, in light and dark at 340, 430 and 560 px: every text pair ≥ 4.5:1 and every line, icon and boundary ≥ 3:1, with pairs read from the `DiagramPalette` tokens (the off line exempt, as §6.1a says); no label clipped | unreadable captions, a label cut at a narrow width | use `Label.disabledForeground` for the captions |
+| ★ T28 | the four sent lines (and Full's suffix) are pinned verbatim in `FaqSecurityContractTest`; no diagram string says MCP, REST or CLI | an overclaim coming back | restore "not the analyser's" in the external line |
+| T29 *(frame)* | Screen 1 with the diagram at 640 and 520 px, light and dark: the window is ≤ 730 px tall, and exactly one diagram is shown, under the selected card | a picture that pushes Continue off screen | show all four diagrams |
+| T30 | the capture harness gains the diagram's shots under the isolated home (demo fixture only); every shot is read before commit (rule 1) | a real name or path in a shot | — |
+| ★ T31 | colour-blind distance: under the Machado 2009 deuteranopia and protanopia simulations, the distance is ≥ 20 for amber vs grey, amber vs blue, and blue vs grey, in both themes | Full and Safe looking alike to a colour-blind reader | a teal two-way arrow |
 
 ## 17. Effort (one developer)
 
@@ -814,7 +926,8 @@ Headless (`AiSetupTest`, `ClaudeProbeParseTest`, …) unless marked *frame* (a r
 | Wizard UI: Screens 1, 2a, 2b, 3, 6.5; the start-page block and AI line; the panel's empty state; widths and themes | 3–4 |
 | Coexistence: Assistant ▾ quick switch, removing `ProfileOverlay`, the AI menu, Settings button, the start page's Connect group, the Ask items' labels | 1–1.5 |
 | Tests T1–T20, the walkthrough, capture-harness shots, docs site page, CHANGELOG | 3–4 |
-| **Total** | **15–20 days (about 3–4 weeks)** |
+| M77-5: the option diagram (§6.1a): `FlowDiagram`, its model, the palette, the words, T25–T31 | 1.5–2 |
+| **Total** | **16.5–22 days (about 3½–4½ weeks)** |
 
 The robot estimated 11–15 and r1 13–18; the difference is the parts the robot's draft did not cost — one node for the
 profile choice and the wizard (§8.1), the derived start-up mode (§8.5), the parse boundary and the empty probe folder
@@ -830,9 +943,10 @@ while it is unmerged), with its CHANGELOG lines (rule 2) and its tests green (ru
 | PR | Content | Ships behind | Est. lines |
 |---|---|---|---|
 | **M77-1 — the node and the checks** | `AssistantProfileChoice` grown into `aiSetup`; the `origin` fields; probe adapters, the parse boundary and the empty probe folder; `AssistantMode.NONE` and the derived start-up mode if P-2 lacks them; T1–T8, T12–T14, T16 (node side), T21–T23 | the window not yet reachable: first use still opens the cards until M77-2 (a one-line switch in `aiSetup`, tested both ways) | ~3,000 |
-| **M77-2 — the wizard, inside path** (after P-1, P-2 and **P-3**) | Screens 1, 2a, Summary, 6.5 (the in-app details extracted from `ProfileOverlay`); entry points 2–6; the start page's AI line and first-run block; the panel's empty state; Ask labels; first use opens the wizard. **Until M77-3, *Your own client* and *Both* open today's `McpSetupDialog`** at the chosen client, with the line *"Step-by-step set-up for your own client comes in the next update; this dialog does it today."* (review R1-11); T15, T17–T19, T24 (the Screen 1 half) | — (user-visible) | ~3,500 |
-| **M77-3 — the external path** | Screen 2b; `ExternalAccessRequested` through `actionListener` from all four doors; the access and registration confirmations; `McpSetupDialog`'s dialogs to SafeChoice; the clients built from one resolver; `ExternalClientSeen`, the bridge's probe marker and (OD-77.8) label; `McpReadinessObserved`; the timer; *Both*; T9–T11, T24 | — | ~3,200 |
+| **M77-2 — the wizard, inside path** (after P-1, P-2 and **P-3**) | Screens 1, 2a, Summary, 6.5 (the in-app details extracted from `ProfileOverlay`); entry points 2–6; the start page's AI line and first-run block; the panel's empty state; Ask labels; first use opens the wizard. **Until M77-3, *Your own client* and *Both* open today's `McpSetupDialog`** at the chosen client, with the line *"Step-by-step set-up for your own client comes in the next update; this dialog does it today."* (review R1-11); T15, T17–T19, T24 (the Screen 1 half); an empty `selectedOptionExtra` slot under the selected card's title row, for M77-5 | — (user-visible) | ~3,500 |
+| **M77-3 — the external path** | Screen 2b; `ExternalAccessRequested` through `actionListener` from all four doors; the access and registration confirmations; `McpSetupDialog`'s dialogs to SafeChoice; the clients built from one resolver; `ExternalClientSeen`, the bridge's probe marker and (OD-77.8) label; `McpReadinessObserved`; the timer; *Both*; the diagram's reuse beside 2b's access switch, if M77-5 has merged; T9–T11, T24 | — | ~3,200 |
 | **M77-4 — coexistence and docs** | Assistant ▾ quick switch; `ProfileOverlay` removed (OD-77.3); AI menu renames; Settings button; the Connect group removed; capture-harness shots; the docs site's *Set up AI* page; T20 | — | ~2,000 (net, after the overlay's ~650 lines go) |
+| **M77-5 — where data goes** (stacked on M77-2) | the option diagram (§6.1a): `ui/setup/FlowDiagram`, its pure model, `DiagramPalette` and its `UiTheme` methods, `AiSetupLines.diagram*`, the FAQ link; it fills M77-2's `selectedOptionExtra` slot; no new node, fact or effect; T25–T31 | — (user-visible) | ~1,000 |
 
 ## 19. What this does not fix (follow-ups)
 
@@ -859,6 +973,14 @@ poll makes in the view today (review R1-16 e). Each is a tracker line, not M77.
 | **OD-77.11** | Cancel after this wizard turned external access on: keep it on with a one-click **Turn it off** (§7.4), or roll back what this wizard turned on? | keep it on, offer Turn it off | **Accepted** |
 | **OD-77.12** | `McpSetupDialog`: keep it behind *More options…* (its dialogs converted to SafeChoice, §9.3), or retire it? | keep it | **Accepted** |
 | **OD-77.13** | One node: grow `AssistantProfileChoice` into `aiSetup` (§8.1), or keep two nodes with `aiSetup` downstream and request-keyed outcome facts published by `assistantProfile`? | one node | **Accepted** |
+| **OD-77.14** | The option diagram: (A) a detailed picture with labels, or (B) a big picture with little text? | B, only under the **selected** Screen 1 card; every card keeps its one sentence | **Accepted** |
+| **OD-77.15** | Colour or monochrome? | colour, with §6.1a's palette; Full is amber (caution); Safe two-way arrows are the product blue | **Accepted** |
+| **OD-77.16** | Name where Claude is billed? | yes, from the sign-in check: *"your Claude plan"*, *"your API key"* or *"your cloud provider"* | **Accepted** |
+| **OD-77.17** | Claude Code's own usage data: wording on the diagram, or a link? | an FAQ link, pinned by `FaqSecurityContractTest` | **Accepted** |
+| **OD-77.18** | The card sentence's "MCP client"? | *"another AI app that can connect to {Product}"* | **Accepted** |
+| **OD-77.19** | A picture in the start-page first-run block? | no | **Accepted** |
+| **OD-77.20** | A hover preview on unselected cards? | no | **Accepted** |
+| **OD-77.21** | *Both*: one {Product} icon in a tall column, or one per row? | two icons, one per row | **Accepted** |
 
 ## Revision history
 
@@ -882,3 +1004,10 @@ poll makes in the view today (review R1-16 e). Each is a tracker line, not M77.
   product name through a constant; the client's self-reported name shown in the live check, labelled as its claim; the
   first-run block offered once to upgraders with nothing set up; *Register for me…* first, with the exact command shown
   and confirmed; Cancel keeping access on with *Turn it off*; `McpSetupDialog` kept behind *More options…*; one node.
+- **r4, 2026-10-18** — **M77-5, where data goes** (§6.1a), accepted by the owner on 2026-10-18 (*"yes to all"*,
+  OD-77.14–.21). A small picture under the selected Screen 1 card shows where data goes. It is two-way for Claude
+  inside and one-way for an external client, it names where Claude is billed, and it uses colour with a palette in
+  which Full is amber. It keeps the prototype's corrected no-overclaim wordings. `FlowDiagram`'s model is pure and
+  renders `AiSetupState` only (no new node, fact or effect). The new tests are T25–T31. The card sentence now says
+  *"another AI app that can connect to {Product}"*. M77-5 is a fifth PR stacked on M77-2, and effort rises to 16.5–22
+  days.
