@@ -258,6 +258,38 @@ build offers; the success criteria and the key words are unchanged.
   not a target. Screen 2b's own live check (*Can your client see the analyser?*) is the route the spec intends, and it
   needs a real client to call, which the battery cannot script.
 
+## The wizard fix: integration → `regfix` (fix/wizard-scorecard-regressions)
+
+The two regressions the integration recorded, answered. The record is [`baseline-regfix.md`](baseline-regfix.md) /
+[`.json`](baseline-regfix.json); the before point is [`baseline-integration.md`](baseline-integration.md).
+
+| Task | Success | Acts | Hesitations | Dead ends | Words before first act | Clipped |
+|---|---|---|---|---|---|---|
+| T1 Fresh start to the first answer | yes → yes | 6 → 6 | 3 → **2** | 0 → 0 | 222 → 224 | 1 → 1 |
+| T2 Right-click Ask about a record | yes → yes | 5 → 5 | 3 → **2** | 0 → 0 | 262 → 262 | 4 → 4 |
+| T6 Set up an external client | yes → yes | 7 → **4** | 4 → **1** | 0 → 0 | 222 → 224 | 0 → 0 |
+| S1 Start page (fresh home), chrome words | — | — | — | — | 222 → 224 | 0 → 0 |
+
+Every other task and state is unchanged (T3–T5, T7, T8, A2's acts and hesitations; S2, S3), apart from the two words
+before the first act that S1 adds to every task starting on the start page. M77 T19 (the robot walkthrough,
+`AiSetupWizardFrameTest`) stays at **6 acts**, re-measured.
+
+- **T6 7 → 4 acts, 4 → 1 hesitations.** Screen 2b carries **Check connection** itself, under the access switch and
+  above the fold at 640×560 and 520×480; it was behind *More options…*, below the fold. With access off, its press raises
+  the **same** OD-77.4 confirmation (*Turn on External MCP/REST access?*, *Cancel* the default, its words unchanged), and
+  that confirmation's **Turn on access** also runs the check, so the switch and the check are one act. The first-run
+  block's and Screen 1's **Continue** reads **Set up my client**. The route: *Your own AI client connects* → *Set up my
+  client* → *Check connection* → *Turn on access*. The one hesitation left is *Turn on access*: the owner's
+  confirmation, kept as it is. The success criterion is now Screen 2b's own line, *"✓ Bridge works now: the command your
+  client will run reached this window."* — the same probe (`McpConnectionProbe`) the dialog ran.
+- **T1 and T2 3 → 2 hesitations.** While a question waits, the last wizard press reads **Finish, then send my
+  question** (OD-77.2 already closes the window without the Summary then; the question is placed, never sent, so the
+  label says the person sends it). Screen 1's press reads **Check Claude Code**: honest, and still none of T1's words,
+  so it stays a hesitation. No act could honestly go: Screen 1's press is the consent that starts the two checks (G7),
+  and 2a's is the Safe / Full choice and its Apply.
+- **S1 222 → 224 words, a budget raised.** The first-run block's button says what it does for the preselected choice
+  (*Check Claude Code*, three words where *Continue* was one). M79 OD-79.5 removes the block, and the two words with it.
+
 ## Before → after: `b1c22704` → `a875fcba`
 
 `a875fcba` already contains the first-run polish and the Event types fixes, so this section records a true before
@@ -394,14 +426,16 @@ commit. A change that needs a worse number raises it there, with the reason, whe
 
 | Budget | Value |
 |---|---|
-| S1 chrome words | ≤ 222 (was 225) |
+| S1 chrome words | ≤ 224 (was 222; 225 before the integration) |
 | S2 chrome words | ≤ 6 (was 31) |
 | S3 chrome words | ≤ 26 (was 25) |
 | S1, S2, S3 clipped strings | 0 |
-| Acts per task (each task must also succeed) | T1 ≤ 6 (was 5) · T2 ≤ 5 · T3 ≤ 1 · T4 ≤ 1 (was 2) · T5 ≤ 5 (was 8) · T6 ≤ 7 (was 4) · T7 ≤ 1 · T8 ≤ 1 · **A2 ≤ 10** (was 11) |
+| Acts per task (each task must also succeed) | T1 ≤ 6 (was 5) · T2 ≤ 5 · T3 ≤ 1 · T4 ≤ 1 (was 2) · T5 ≤ 5 (was 8) · **T6 ≤ 4** (was 7) · T7 ≤ 1 · T8 ≤ 1 · **A2 ≤ 10** (was 11) |
 | T4c | must pass, 0 acts (since the integration) |
+| Hesitations per task | **T1 ≤ 2 · T2 ≤ 2 · T6 ≤ 1** (since the wizard fix; the other tasks' are recorded only) |
 
-Hesitations, dead ends, words before the first act and A2's milestones are recorded but not enforced. T4c was a
+Dead ends, words before the first act, A2's milestones and the hesitations of tasks other than T1, T2 and T6 are
+recorded but not enforced. T4c was a
 target until the records-filter fix made it pass; the budget test now runs it and requires it.
 
 ### Witnesses
@@ -417,6 +451,8 @@ Rule 8 requires a wrong-result witness for each budget. These were run on 2026-1
 | T4c fails on this base and passes on the fix | the battery on `a875fcba`, and on `fix/records-filter-visibility` @ `87551460` (built in a scratch worktree, harness copied in) | **FAIL** here (both halves). **pass** on the fix: its *"1 hidden by event types"* line and its context's `hidden` entry |
 | A real product change: a path broken | `StartPromptView`'s Enter binding (`start-send`) removed | **red**: *"T1 … did not succeed (step 3 (open the sample the page offers): no such control on screen)"* |
 | Integration: a word more on the quiet panel | `AssistantProfile.shortTitle()` SAFE → *"Safe analysis"* (the chip reads *Safe analysis ▾*), the integration budgets | **red**: *"S2 Assistant Ready (Safe analysis, docked): 7 chrome words > budget 6"* |
+| Wizard fix: the old T6 route | `aBudgetCatchesAnExtraLabelAndAnExtraStep`: the switch, its confirmation, then *Check connection* | 5 acts and 2 hesitations: over T6's 4 and 1, both reported |
+| Wizard fix: a bare *Finish* again | `AiSetupLines.FINISH_THEN_SEND` set to *"Finish"*, `mvn clean`, `tasksStayInBudget` | **red**: *"T1 … 3 hesitations > budget 2"*, *"T2 … 3 hesitations > budget 2"* |
 | Integration: T4c is enforced | `MainFrame`'s context assembly with its `hidden` put disabled | **red**: *"T4c … did not succeed (the end state was not reached)"* |
 
 ## Targets per milestone (listed, not yet enforced)
