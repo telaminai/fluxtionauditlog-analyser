@@ -140,6 +140,9 @@ _Refreshed 2026-10-17 for M74 (owner)._ The 2026-10-06 order above is superseded
 ### M77 · Set up AI — the first-run wizard ([spec](spec-ai-setup-wizard.md), r2)
 - [M77] ☐ **Set up AI wizard** (owner direction 2026-10-18; robot journey of the same day): one door with four choices (No AI / your own client over MCP / Claude inside, Safe or Full / both), checks with *Check again*, a live external-client check, the pending question placed at Finish; an `aiSetup` session node. Spec r2 after one independent review ([disposition](../handoff/review_m77_r1_7f3c.md): 30 findings, all folded); all 13 owner decisions accepted 2026-10-18 (spec ACCEPTED r3); 4 PRs, 15–20 days, after P-1 (SafeChoice clipping), P-2 (the pending question) and, for M77-2, P-3 (docked layout floor).
 
+### M78 · The quiet assistant panel ([spec](spec-quiet-assistant-panel.md), ACCEPTED)
+- [M78] ☐ **Quiet assistant panel** (owner 2026-10-18: design for the 50th use): the docked panel at 1200×800 (216×431 px) cut from 33–80 chrome words per state to ≤15 (≤20 for error, no key and restart), with ≤4 controls when Ready, with the safety signals kept (◆ Full cue, *Claude · unverified*, permission dialog, Full consent); all 12 owner decisions OD-Q.1–.12 accepted. D1 after M77-2, D2 (one mode chip) with M77-4.
+
 ## Session and dispatch
 
 ### M44 · Session transitions as a Fluxtion processor ([spec](spec-session-processor.md))
