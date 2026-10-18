@@ -105,4 +105,26 @@ class LocalAgentConsentsTest {
         assertTrue(effects.stream().anyMatch(e -> e instanceof SessionEffects.ConfirmLocalAgentFolderEffect f && f.full()));
         assertTrue(effects.stream().noneMatch(SessionEffects.StartLocalAgentEffect.class::isInstance));
     }
+
+    /**
+     * ★ Owner, 2026-10-18 (the restart offer): the consent carries the model, normalised (blank is the default), and the
+     * folder as a digest — never the path. Witnesses: pass the raw model through — the blank assertion fails; put the
+     * real path in {@code folderRef} — the no-path assertion fails.
+     */
+    @Test
+    @DisplayName("★ the consent names the model (blank = the default) and the folder by digest only")
+    void theModelAndTheFolderByDigest() throws Exception {
+        Path dir = Files.createDirectories(tmp.resolve("work/other"));
+        Path home = home();
+        var blank = LocalAgentConsents.of(dir, null, home, new LocalAgentConsents.Settings(true, false, "default",
+                List.of(), List.of(), null, "  "), p -> false);
+        assertEquals(ClaudeCodeProvider.DEFAULT_MODEL, blank.model(), "★ blank is the default model");
+        var opus = LocalAgentConsents.of(dir, null, home, new LocalAgentConsents.Settings(true, false, "default",
+                List.of(), List.of(), null, " opus "), p -> false);
+        assertEquals("opus", opus.model());
+        assertEquals(LocalAgentPosture.digest(dir.toRealPath().toString()), opus.folderRef());
+        assertFalse(opus.folderRef().contains("/"), "★ never the path");
+        assertNull(of(dir, null, home, settings(false, List.of(), List.of())).model(),
+                "the older shape: the model not observed");
+    }
 }

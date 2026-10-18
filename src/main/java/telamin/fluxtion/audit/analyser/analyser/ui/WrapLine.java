@@ -23,6 +23,21 @@ final class WrapLine extends JTextArea {
         setBorder(BorderFactory.createEmptyBorder());
         Font f = UIManager.getFont("Label.font");
         if (f != null) setFont(f);
+        stillCaret();
+    }
+
+    /**
+     * Robot walkthrough #2 (2026-10-18): a line never moves its caret when its text changes, so it never scrolls a
+     * scrolling ancestor (the assistant's header) to itself — the header's top row stayed out of sight.
+     */
+    private void stillCaret() {
+        if (getCaret() instanceof javax.swing.text.DefaultCaret c) c.setUpdatePolicy(javax.swing.text.DefaultCaret.NEVER_UPDATE);
+    }
+
+    @Override
+    public void updateUI() {
+        super.updateUI();
+        stillCaret();
     }
 
     WrapLine bold() {

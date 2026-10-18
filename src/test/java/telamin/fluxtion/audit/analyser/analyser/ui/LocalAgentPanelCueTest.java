@@ -52,13 +52,16 @@ class LocalAgentPanelCueTest {
     }
 
     @Test
-    @DisplayName("an armed Start reads its words; nothing starts because it is armed")
+    @DisplayName("robot walkthrough #3: an armed Start keeps its fixed label; the one instruction says Send asks the placed question")
     void armedStart() throws Exception {
         SwingUtilities.invokeAndWait(() -> {
             LocalAgentPanel p = new LocalAgentPanel(new LocalAgentTranscript());
-            p.render(state("OFF", LocalAgentPosture.ANALYSER_ASSISTANT, null, "armed.ASK"));
-            assertEquals("Start — ask about this", p.startButton().getText());
+            LocalAgentState s = state("OFF", LocalAgentPosture.ANALYSER_ASSISTANT, null, "armed.ASK");
+            p.render(s);
+            assertEquals("Start Claude Code", p.startButton().getText(), "never \"Start — ask about this\"");
             assertTrue(p.startButton().isEnabled());
+            assertEquals(telamin.fluxtion.audit.analyser.analyser.session.node.LocalAgentSession.PLACED_NOT_RUNNING_TEXT,
+                    telamin.fluxtion.audit.analyser.analyser.session.node.LocalAgentSession.guide(s).instruction());
         });
     }
 }

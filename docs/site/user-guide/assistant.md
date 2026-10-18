@@ -40,8 +40,18 @@ plan, or an API key). Both share:
   back (the in-app assistant);
 - **one composer**, with **Send**, **Stop** and **New chat** doing what the mode in force does with them (Claude Code
   adds **Start**; the in-app assistant adds **Copy prompt**); **Enter sends and Shift+Enter starts a new line**, as in
-  the start page's box;
+  the start page's box; **↑ on the first line recalls the questions you sent** (each assistant its own), **↓ on the last
+  line walks forward**, and ↓ past the newest puts back what you were typing — as in a terminal. The history is kept in
+  memory only: it is never saved and never sent anywhere, and it is gone when the analyser closes. Shift+↑ and
+  Shift+↓ still select, and in a draft of several lines the arrows move the caret until it reaches the first or last
+  line;
 - **one row of header chips** — who answers, the model, the profile or the provider, how it is paid for;
+- **one status line and one primary action.** The status line is the one instruction — *Ready*, *Claude is answering…*,
+  or, when something was refused, the refusal itself. The primary action is **Send** (in the Claude Code mode it starts
+  Claude Code first when it is not running), or **Stop** while an answer or a start can be stopped; **Start** is a
+  secondary button with a fixed label, shown only while Claude Code is not running. What the mode cannot do, the
+  session's folder and its notes sit behind **ⓘ** beside **Pop out**; the header scrolls in a short window so the
+  conversation and the composer always keep their room;
 - **one line under the header that says what this mode cannot do** — the in-app assistant cannot read your project
   folder or use your own tools; Safe analysis has no shell, edits or web; full Claude Code's own tools are not confined
   by the analyser; with no key, or with the assistant *Off*, it says so there. It also says that **no profile is
@@ -83,9 +93,9 @@ external loop. Each card's line is shown in full — the card grows to fit it.
   the tab in that card's mode. *Settings ▸ Assistant* still has every option, grouped the same way.
 - **The cards open by themselves once**: the first time you press **Start** or ask a question — in the panel or on the
   [start page](start-page.md#which-assistant-answers) — while nothing is set up on this machine. A question asked on the
-  start page **waits for you**: after **Apply** it is placed in the composer of the assistant you chose, with **Start**
-  ready for Claude Code — you do not press the button again, and nothing is sent until you press Start or Send. Close the
-  cards instead and the question stays in the box. After a card is chosen (or if you close them), they open only from
+  start page — or from a record, a chart or the topology with *Ask the assistant* — **waits for you**: after **Apply**
+  it is placed in the composer of the assistant you chose, ready for **Send** — you do not ask again, and nothing is sent
+  until you press Send. Close the start page's cards instead and its question stays in the box. After a card is chosen (or if you close them), they open only from
   **Assistant: … ▾**. A machine that was already set up (Claude Code allowed, or an API key) counts as chosen and is never
   asked.
 - **A change while an answer is in progress is refused**, by name — *"Claude is still answering — Stop or wait, then
@@ -147,8 +157,10 @@ these rows and Explain this finding disabled, each until its condition holds](..
 
 - **The question goes into the composer, not to the model.** It is **added after** whatever you have written there,
   only the added lines are highlighted, and the line above the box says *Press Send to ask … — nothing has been sent*.
-  Nothing is sent until you press **Send**. In the Claude Code mode with no session running, **Start is armed**
-  (*Start — ask about this*); nothing starts until you press it.
+  Nothing is sent until you press **Send**; in the Claude Code mode with no session running, Send starts Claude Code
+  first. **Asking the same question again replaces it** rather than adding a second copy, and a question drafted for the
+  other assistant is replaced by the next one you ask. If you switch assistants with such a question still in the box,
+  Send says so in the status line and offers one action, **Ask again for Claude Code**, which places it for Claude Code.
 - **It names where to look, never what is there.** A question names record numbers, the log's file name, node ids,
   a chart's name and a time — never a value, a note's words or a finding's text, because those
   can carry text written to steer an AI. The assistant reads the records itself (`analyser_read`), so in the in-app mode
@@ -246,7 +258,7 @@ choose allow**. **The analyser does not confine it to the folder**; your rules a
   following a link out of the folder): **when any of them changes** (a `git pull` that adds a hook or rewrites
   `CLAUDE.md`), **Start asks again**, and the dialog says which changed; the check is made again when the process is
   started, so a change between the question and the start is refused too. A session already running when they change
-  is stopped at your next Send or Settings change (after the answer in progress), and Start asks again.
+  is stopped at once at your next Send or Settings change — mid-answer too — and Start asks again.
   **Not re-checked:** files a `CLAUDE.md` imports with `@path`, `CLAUDE.md` files in the folders above this one, and
   the contents of the scripts a hook runs from outside `.claude/hooks` — Claude Code reads or runs them, and a change to
   them does not ask again; the dialog says so. A folder confirmed for the analyser assistant is not thereby confirmed
@@ -344,9 +356,20 @@ that, run inside the analyser.
 - **Stop** interrupts the turn. If Claude Code does not acknowledge within 5 s, or the turn has not ended within 15 s,
   the analyser ends the process; your next Send resumes the same conversation in a new process.
 - **New chat** starts a new conversation. Changing the folder (opening another project), the profile or Full Claude
-  Code's mode means a New chat: a conversation is never resumed under different settings. Applying Settings while
-  Claude Code runs ends the session if the change affects it — at once when you turned Claude Code off, otherwise
-  after the turn in progress — and the next Start offers New chat.
+  Code's mode means a New chat: a conversation is never resumed under different settings.
+- **Changing a setting while Claude Code runs.** Claude Code takes its settings when it starts, so a change made in
+  Settings ▸ Assistant or with the profile cards applies at the next start. What happens to the session running now
+  depends on the change:
+
+    | Change | What happens |
+    |---|---|
+    | *Safe analysis* → *Full Claude Code*; a full mode that asks **less** (for example `default` → `acceptEdits`); the model; the spend limit; the folder | **Offered.** The panel asks *"Settings changed — restart Claude Code now to apply them?"* with **Yes, restart now** and **Later**. Nothing stops until you answer. **Yes** stops Claude Code and starts it again on the new settings — the conversation continues when only the model or the spend limit changed, and a **new chat** begins when the profile, the mode or the folder changed (the prompt says which); while Claude is answering, it restarts when that answer ends. **Later** keeps the session running on the settings it was started with and leaves a **settings changed — restart to apply** chip in the header — click it to be asked again. Putting the setting back withdraws the offer. |
+    | *Allow the analyser to start Claude Code* off (or the *In-app assistant* or *Off* card); Full Claude Code switched **off**; a full mode that asks **more** (for example `auto` → `default`, or any mode → `plan`); the folder no longer confirmed for the profile running | **Stopped at once**, mid-answer too, and never offered: each takes away something the running session can still do. The transcript says why. |
+    | External MCP/REST access, file exchange, creating projects, the in-app assistant's settings | Nothing to restart: Claude Code keeps its own connection to the analyser. |
+
+  After you choose **Keep it running here** when switching projects, the folder change is yours: it is not offered
+  again. Turning *Allow the analyser to start Claude Code* back on after it stopped a session clears the "switched off"
+  line — press Start.
 - **Slash commands** you type are sent as in a terminal — `/compact`, `/model`, `/context`, `/usage` and the like —
   except those that would change how Claude Code works here or the conversation's identity, or act outside this session: `/config`,
   `/mcp` with an argument, `/add-dir`, `/permissions` and others are refused with *"… is not available in the analyser —
@@ -371,7 +394,7 @@ that, run inside the analyser.
   it shows no dollar figure — *"usage counts against your Claude plan"*, whose own usage limits apply. With an API key
   it shows what the session has used, and, if you set one, the limit: *Settings ▸ Assistant ▸ Limit spend per session*
   is **off by default** and is meant for API-key billing; when the limit is reached the analyser stops Claude Code and
-  says so. Changing the limit while a session runs stops it (after the answer in progress); Start resumes the
+  says so. Changing the limit while a session runs offers a restart (*Yes, restart now* or *Later*); the restart resumes the
   conversation under the new limit.
 - **Switching projects while Claude Code runs.** Opening, creating or closing a project from the menus while a session
   runs asks first: **Stop, and get Start ready in the new project** (the session ends; nothing starts until you press
@@ -407,8 +430,8 @@ a copy that holds such characters says how many.
 
 ## No API key? Copy-prompt mode
 
-With no key the assistant sends nothing and says so, offering **Configure provider**, **Copy prompt** and **Connect a
-CLI assistant**. No key, or working in a different agent (Claude Code, Claude Desktop)? Hit **Copy prompt**. The copied
+With no key the assistant sends nothing and says so, offering **Configure provider** (it opens *Settings ▸ LLM*, where
+the provider, model and API key are), **Copy prompt** and **Connect a CLI assistant**. No key, or working in a different agent (Claude Code, Claude Desktop)? Hit **Copy prompt**. The copied
 prompt is a complete, self-contained brief: the selected records, the node-type map, the relevant
 source, **and** the log's file path, shape and per-record **byte offsets**. The dialog that opens names every
 part it copied, in the order they appear ("the analyser's standing instructions, the glossary, the raw text of 2

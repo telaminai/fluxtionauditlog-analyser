@@ -53,6 +53,9 @@ public class AssistantProfileChoice implements EventLogSource {
             + "the assistant works.";
     /** Owner, 2026-10-18: the one line while nothing is chosen and the cards are open. */
     public static final String NO_ASSISTANT_CHOOSING = "No assistant set up yet — choose one below.";
+    /** Robot walkthrough #1: the line while a question waits for the choice. */
+    public static final String QUESTION_WAITS = "No assistant set up yet — choose one below; your question waits and is "
+            + "placed for the assistant you choose (nothing is sent).";
     /** The one line while nothing is chosen and the cards are shut. */
     public static final String NO_ASSISTANT = "No assistant set up yet — choose one with Assistant ▾ above.";
     /** The one line for the in-app assistant with no key (or no provider that can answer). */
@@ -84,6 +87,11 @@ public class AssistantProfileChoice implements EventLogSource {
     /** What the frame last said the in-app assistant can do (StartPageAvailability), once it has said it. */
     private boolean inAppCanAnswer;
     private boolean availabilityObserved;
+    /**
+     * Robot walkthrough #1 (2026-10-18): a question asked while no assistant is chosen (by reference into the frame's
+     * store; never its words), held unbound until the person applies a profile, then placed for that profile's assistant.
+     */
+    private long pendingDraft;
     private ProfileState published = ProfileState.NONE;
     private boolean dirty = true;
 
@@ -222,6 +230,39 @@ public class AssistantProfileChoice implements EventLogSource {
         // performer of the write
         if (e.profile() != null && e.profile() != AssistantProfile.NONE) {
             effects.request(new SessionEffects.ChooseAssistantModeEffect(0L, e.profile().mode(), "assistant profile"));
+            if (pendingDraft != 0) {
+                // robot walkthrough #1: the question that waited is placed for the assistant just chosen — after the
+                // mode, so that assistant's node binds it (it was never bound to the default the mode had before)
+                auditLog.info("assistantPendingDraft", "PLACED").info("mode", e.profile().mode().name());
+                effects.request(new SessionEffects.PlacePendingDraftEffect(0L, pendingDraft, e.profile().mode()));
+                pendingDraft = 0;
+            }
+        }
+        return changed();
+    }
+
+    /**
+     * Robot walkthrough #1: a question composed while no assistant is chosen. If the in-app assistant can already answer
+     * (a key stored before profiles existed), it is placed for it now; otherwise it waits, unbound — a second question
+     * replaces the first — and the choices open, as a first question's Send opens them.
+     */
+    @OnEventHandler
+    public boolean onDraftPending(SessionEvents.AssistantDraftPending e) {
+        if (observed && !AssistantProfile.NONE.name().equals(profile) || availabilityObserved && inAppCanAnswer) {
+            auditLog.info("assistantPendingDraft", "PLACED_NOW").info("question", String.valueOf(e.questionId()));
+            effects.request(new SessionEffects.PlacePendingDraftEffect(0L, e.draftRef(),
+                    AssistantProfile.valueOf(profile).mode()));
+            return false;
+        }
+        pendingDraft = e.draftRef();
+        auditLog.info("assistantPendingDraft", "HELD").info("question", String.valueOf(e.questionId()))
+                .info("origin", String.valueOf(e.origin()));
+        if (!open) {
+            open = true;
+            why = offered ? ProfileState.ASKED : ProfileState.FIRST_USE;
+            offered = true;
+            refusal = "";
+            effects.request(new SessionEffects.ShowAssistantProfilesEffect(0L, false));
         }
         return changed();
     }
@@ -310,6 +351,7 @@ public class AssistantProfileChoice implements EventLogSource {
         if (AssistantProfile.NONE.name().equals(profile)) {
             // a key stored before profiles existed still answers: then something IS set up
             if (availabilityObserved && inAppCanAnswer) return "";
+            if (pendingDraft != 0) return QUESTION_WAITS;
             return open ? NO_ASSISTANT_CHOOSING : NO_ASSISTANT;
         }
         if (AssistantProfile.IN_APP.name().equals(profile) && inAppCannot) return IN_APP_NO_KEY;
@@ -325,7 +367,7 @@ public class AssistantProfileChoice implements EventLogSource {
     public ProfileState state() {
         if (dirty) {
             published = new ProfileState(AssistantProfile.valueOf(profile), open, why, request, refusal, offered, status(),
-                    confirmingFull != 0);
+                    confirmingFull != 0, observed, pendingDraft != 0);
             dirty = false;
         }
         return published;

@@ -108,4 +108,46 @@ class SafeChoiceFrameTest {
         });
         assertEquals(Boolean.TRUE, denied.get(), "Escape in the approval dialog denied");
     }
+
+    /**
+     * ★ Robot walkthrough #7 (2026-10-18): the Full Claude Code warning was cut off mid-sentence — "…they can read files
+     * in your home folder, including" and nothing after — because a wrapping text area was packed with no width. Every
+     * line now shows: the last character is inside the area and the area is wholly inside the dialog. Witness: drop
+     * {@code fitWrappedText(body)} from {@code SafeChoice.build} — the last character falls below the area.
+     */
+    @Test
+    @DisplayName("★ the Full Claude Code warning shows every line, the home-folder and REST-token sentence included")
+    void theFullWarningIsNeverClipped() throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless(), "a real display is required");
+        onEdt(() -> {
+            SafeChoice.Asked a = ConfigPanel.fullPostureDialog(null, false);
+            a.dialog().setVisible(true);
+            javax.swing.JTextArea text = find(a.dialog().getContentPane(), javax.swing.JTextArea.class);
+            assertNotNull(text);
+            assertTrue(text.getText().contains("the analyser's local REST token"), "the sentence that was cut");
+            try {
+                java.awt.geom.Rectangle2D end = text.modelToView2D(text.getDocument().getLength());
+                assertTrue(end.getMaxY() <= text.getHeight() + 0.5, "★ the last line is inside the text area: ends at "
+                        + end.getMaxY() + ", area " + text.getHeight());
+            } catch (javax.swing.text.BadLocationException e) {
+                throw new AssertionError(e);
+            }
+            java.awt.Rectangle visible = text.getVisibleRect();
+            assertEquals(text.getHeight(), visible.height, "★ and the whole area is visible, not clipped by the dialog");
+            Point at = SwingUtilities.convertPoint(text, 0, text.getHeight(), a.dialog().getContentPane());
+            assertTrue(at.y <= a.dialog().getContentPane().getHeight(), "inside the dialog");
+            a.dialog().dispose();
+        });
+    }
+
+    static <T> T find(Container root, Class<T> type) {
+        for (Component c : root.getComponents()) {
+            if (type.isInstance(c)) return type.cast(c);
+            if (c instanceof Container k) {
+                T t = find(k, type);
+                if (t != null) return t;
+            }
+        }
+        return null;
+    }
 }

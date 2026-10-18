@@ -245,7 +245,7 @@ public final class ConfigPanel extends JDialog {
         tabs.addTab("Source roots", buildRootsTab());
         tabs.addTab("Maven repos", buildMavenTab());
         tabs.addTab("Event processor", buildEpTab());
-        tabs.addTab("LLM", buildLlmTab());
+        tabs.addTab(PROVIDER_PAGE, buildLlmTab());
         tabs.addTab("Performance & S3", buildS3Tab());
         // M74 visual check: the tab grows when the full posture's mode and notes appear, so it scrolls rather than clips
         tabs.addTab("Assistant", scrollingTab(buildAssistantTab()));
@@ -967,6 +967,8 @@ public final class ConfigPanel extends JDialog {
     }
 
     static final String FULL_POSTURE_TITLE = "Full Claude Code — read this first";
+    /** The page holding the in-app assistant's provider, model and API key (Configure provider opens it). */
+    static final String PROVIDER_PAGE = "LLM";
     static final String FULL_POSTURE_CANCEL = "Cancel";
 
     /**

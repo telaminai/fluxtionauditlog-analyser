@@ -136,6 +136,24 @@ public class LocalAgentSession implements EventLogSource {
     private int trimmed;
     /** The node keeps at most this many entries per conversation (§4.5). */
     public static final int MAX_ENTRIES = 500;
+    /**
+     * Owner, 2026-10-18 (the restart offer): what the running process was started with — compared with every consent the
+     * frame reports, so a change is classified as one the person may defer (offered) or one that ends the session at once.
+     */
+    private String processRef;
+    private long processBudget;
+    private String processModel;
+    private String processFolder;
+    /** The offer in force: its id, its state ({@link LocalAgentState.Restart}), what changed, whether Yes begins a new chat. */
+    private long restartOffer;
+    private String restartState = "";
+    private String restartChanged = "";
+    private boolean restartNewChat;
+    /** AFTER_TURN: the Start request the restart answers, and the consent it was answered under. */
+    private long restartRequest;
+    private SessionEvents.LocalAgentConsent restartConsent;
+    /** The person chose to keep the session in its folder (the project-switch offer's Keep): a folder change is theirs. */
+    private boolean folderKept;
     private LocalAgentState published = LocalAgentState.IDLE;
     private boolean dirty = true;
 
@@ -247,7 +265,7 @@ public class LocalAgentSession implements EventLogSource {
         // the person's yes confirms the folder for the posture it was asked for (the full posture's trust is separate)
         start(e.request(), new SessionEvents.LocalAgentConsent(c.allowed(), c.full() ? c.folderConfirmed() : true,
                 c.bundleWorkingCopy(), c.postureRef(), c.budgetMicros(), c.folder(), c.full(), c.fullMode(),
-                c.full() || c.fullFolderConfirmed()));
+                c.full() || c.fullFolderConfirmed(), c.model(), c.folderRef()));
         return changed();
     }
 
@@ -315,88 +333,260 @@ public class LocalAgentSession implements EventLogSource {
     }
 
     /**
-     * Review finding 4: Settings applied while a session runs. Consent withdrawn ends it at once; a changed posture (the
-     * full switch, its mode, the note, the pre-allow list) ends it after the turn in progress, or at once when none is.
-     * The next Start then sees the change and offers New chat; a session is never left running under settings it was
-     * not started with. Under the same posture, a full session whose trusted folder files changed ({@code TRUST_CHANGED})
-     * or whose spend limit changed ({@code BUDGET_CHANGED}) ends the same way, without New chat: Start asks about the
-     * folder again, or applies the new limit, and resumes the conversation (review of PR #147, findings 3 and 4).
+     * Review finding 4, owner 2026-10-18: Settings applied while a session runs. A change that takes powers away ends the
+     * session AT ONCE, mid-turn too, and is never offered ({@link #mandatoryStop}). Any other change is OFFERED: the
+     * session keeps running on the settings it was started with until the person answers — <i>Restart now</i> or
+     * <i>Later</i> ({@link SessionEvents.LocalAgentRestartAnswered}); a session is never stopped by a change it could
+     * have waited for. A change put back before it is answered withdraws the offer. With nothing running the next Start
+     * decides with the new consent, and a stale "switched off" is cleared once Claude Code is allowed again.
      */
     @OnEventHandler
     public boolean onConsentChanged(SessionEvents.LocalAgentConsentChanged e) {
         boolean cue = observeConsent(e.consent());
-        if (!running()) return cue && changed();          // the next Start decides with the new consent
-        if (!endForConsent(e.consent())) return false;
+        if (!running()) {
+            boolean cleared = false;
+            if ("SWITCHED_OFF".equals(verdict) && e.consent() != null && e.consent().allowed()) {
+                // probe 2026-10-18: switched back on, the panel still said it was off — Start is possible again
+                verdict = "";
+                reason = ALLOWED_AGAIN_TEXT;
+                cleared = true;
+                auditLog.info("localAgentConsent", "ALLOWED_AGAIN");
+            }
+            return (cue || cleared) && changed();
+        }
+        if (!consentWhileRunning(e.consent(), true)) return cue && changed();
         return changed();
     }
 
-    /** Whether {@code c} no longer covers the running session; if so, the session is ended (now or after its turn). */
-    private boolean endForConsent(SessionEvents.LocalAgentConsent c) {
-        if (c == null || !c.allowed()) {
-            auditLog.info("localAgentConsent", "WITHDRAWN");
-            verdict = "SWITCHED_OFF";
-            kill("starting Claude Code was switched off in Settings, so the running session was stopped");
+    /** Said once Claude Code is allowed again after it was switched off (probe, owner 2026-10-18). */
+    public static final String ALLOWED_AGAIN_TEXT = "starting Claude Code is allowed again — press Send to ask";
+
+    /**
+     * Whether {@code c} changed anything for the running session, and if so what was done: a mandatory change ended it at
+     * once; another was offered (or the offer updated); a change put back withdrew the offer. {@code trust} also checks
+     * the folder's confirmation (a Settings change, not every Send: full Claude Code may edit its own folder's files).
+     */
+    private boolean consentWhileRunning(SessionEvents.LocalAgentConsent c, boolean trust) {
+        String[] stop = mandatoryStop(c, trust);
+        if (stop != null) {
+            stopNow(stop[0], stop[1], c);
             return true;
         }
-        boolean kindChanged = c.full() != posture.isFull();
-        boolean refChanged = postureRef != null && !postureRef.equals(c.postureRef());
-        if (!kindChanged && !refChanged) {
-            // review of PR #147, finding 3: the full posture's trust is bound to the folder's files; when they changed
-            // under a running session (the agent, a git pull, another process), it ends, and the next Start asks again.
-            // The conversation is unchanged, so it resumes there — no New chat.
-            if (posture.isFull() && c.full() && !c.fullFolderConfirmed()) {
-                return endUnderSamePosture("TRUST_CHANGED", "the folder's hooks, MCP servers, permissions or instruction "
-                        + "files changed since you trusted it, so the session was stopped"
-                        + (openTicket != 0 ? " after the turn in progress" : "")
-                        + "; Start asks you to confirm the folder again");
-            }
-            // review of PR #147, finding 4: the spend limit is fixed on the command line at spawn, so a changed one
-            // ends the session and Start applies it — the conversation resumes, no New chat
-            if (c.budgetMicros() != budgetMicros) {
-                return endUnderSamePosture("BUDGET_CHANGED", "the spend limit changed in Settings, so the session was "
-                        + "stopped" + (openTicket != 0 ? " after the turn in progress" : "")
-                        + "; Start resumes this conversation under the new limit");
+        java.util.List<String> changes = changes(c);
+        if (folderKept && changes.size() == 1 && changes.get(0).equals(FOLDER_WORDS)) changes = java.util.List.of();
+        if (changes.isEmpty()) {
+            if (!restartState.isEmpty()) {
+                auditLog.info("localAgentRestart", "WITHDRAWN").info("offer", restartOffer);
+                clearRestart();
+                effects.request(new SessionEffects.ShowStatusEffect(0L, WITHDRAWN_STATUS));
+                return true;
             }
             return false;
         }
-        auditLog.info("localAgentConsent", "POSTURE_CHANGED");
-        String why = "Settings changed how Claude Code works (Safe analysis or Full Claude Code, the mode, the folder "
-                + "or the system note) since this session started, so it was stopped" + (openTicket != 0 ? " after the turn in progress" : "")
-                + "; Start begins a New chat";
-        verdict = "POSTURE_CHANGED";
-        newChatOffered = true;
-        if (openTicket != 0) {
-            reason = why;
-            endAfterTurn = true;
-            note("POSTURE_CHANGED", why);
-        } else {
-            kill(why);
+        String words = String.join(", ", changes);
+        boolean newChat = needsNewChat(c);
+        if (words.equals(restartChanged) && newChat == restartNewChat && !restartState.isEmpty()) return false;
+        restartChanged = words;
+        restartNewChat = newChat;
+        if (LocalAgentState.Restart.AFTER_TURN.equals(restartState)) {
+            restartConsent = c;                       // Restart was already chosen: it applies what is in force then
+            return true;
         }
+        restartOffer++;
+        restartState = LocalAgentState.Restart.OFFERED;
+        auditLog.info("localAgentRestart", "OFFERED").info("offer", restartOffer).info("newChat", newChat)
+                .info("ticket", openTicket);
+        effects.request(new SessionEffects.OfferLocalAgentRestartEffect(0L, generation, restartOffer, RESTART_STATUS));
         return true;
     }
 
-    /** End the session (after the turn in progress, or now) when the posture is unchanged: New chat is not offered. */
-    private boolean endUnderSamePosture(String code, String why) {
-        if (endAfterTurn && code.equals(verdict)) return false;     // already ending for this reason
-        auditLog.info("localAgentConsent", code);
-        verdict = code;
-        if (openTicket != 0) {
-            reason = why;
-            endAfterTurn = true;
-            note(code, why);
-        } else {
-            kill(why);
+    /** The main window's line while an offer waits (the panel shows the offer itself). */
+    public static final String RESTART_STATUS = "Settings changed — Claude Code keeps running on the previous settings "
+            + "until you restart it: answer in the Assistant panel";
+    static final String FOLDER_WORDS = "the folder it works in";
+    /** The main window's line after Later, and after a change was put back (the offer's earlier line is then stale). */
+    public static final String LATER_STATUS = "Claude Code keeps running on the previous settings — the \"settings "
+            + "changed — restart to apply\" chip in the assistant header restarts it";
+    public static final String WITHDRAWN_STATUS = "The settings are as Claude Code was started with again — nothing to "
+            + "restart";
+
+    /**
+     * The changes that end a running session at once, never offered (owner, 2026-10-18): consent withdrawn; Full Claude
+     * Code switched off; the full mode changed to one that asks more; the folder no longer confirmed for the posture
+     * running (only with {@code trust}). Each takes away a power the running process still has, so waiting is never
+     * offered. Returns {verdict, words}, or null.
+     */
+    private String[] mandatoryStop(SessionEvents.LocalAgentConsent c, boolean trust) {
+        if (c == null || !c.allowed()) {
+            return new String[]{"SWITCHED_OFF", "starting Claude Code was switched off in Settings, so the running session "
+                    + "was stopped"};
         }
-        return true;
+        if (posture.isFull() && !c.full()) {
+            return new String[]{"FULL_OFF", "Full Claude Code was switched off in Settings, so the session running with "
+                    + "your own tools and permissions was stopped at once; Start begins Safe analysis"};
+        }
+        if (posture.isFull() && c.full() && strictness(c.fullMode()) > strictness(posture.fullMode())) {
+            return new String[]{"MODE_STRICTER", "the full Claude Code mode was changed to " + c.fullMode().cli()
+                    + ", which asks more than the " + posture.fullMode().cli() + " this session runs in, so it was "
+                    + "stopped at once"};
+        }
+        if (trust && c.full() == posture.isFull() && !folderChanged(c) && !c.confirmedForPosture()) {
+            return new String[]{"TRUST_CHANGED", posture.isFull()
+                    ? "this folder is no longer confirmed for full Claude Code (its hooks, MCP servers or instruction "
+                    + "files changed since you confirmed it), so the running session was stopped at once"
+                    : "this folder is no longer confirmed for Claude Code, so the running session was stopped at once"};
+        }
+        return null;
+    }
+
+    /** How much a full mode asks: plan asks most (nothing is changed), auto least. */
+    private static int strictness(LocalAgentPosture.FullMode m) {
+        return switch (m == null ? LocalAgentPosture.FullMode.DEFAULT : m) {
+            case PLAN -> 3;
+            case DEFAULT -> 2;
+            case ACCEPT_EDITS -> 1;
+            case AUTO -> 0;
+        };
+    }
+
+    /** The changes a running session may wait for, in words; empty when the session runs as {@code c} says. */
+    private java.util.List<String> changes(SessionEvents.LocalAgentConsent c) {
+        java.util.List<String> out = new ArrayList<>();
+        if (!posture.isFull() && c.full()) {
+            out.add("Safe analysis → Full Claude Code (" + c.fullMode().cli() + ")"
+                    + (c.confirmedForPosture() ? "" : " — Yes first asks you to confirm this folder for it"));
+        }
+        else if (posture.isFull() && c.full() && c.fullMode() != posture.fullMode()) {
+            out.add("the full Claude Code mode (" + posture.fullMode().cli() + " → " + c.fullMode().cli() + ")");
+        }
+        if (folderChanged(c)) out.add(FOLDER_WORDS);
+        String model = model(c.model());
+        if (c.model() != null && processModel != null && !model.equals(processModel)) {
+            out.add("the model (" + safe(processModel) + " → " + safe(model) + ")");
+        }
+        if (c.budgetMicros() != processBudget) out.add("the spend limit");
+        if (out.isEmpty() && processRef != null && !processRef.equals(c.postureRef())) out.add("how Claude Code works");
+        return out;
+    }
+
+    /** The folder differs from the process's: by its digest when observed, else a posture ref changed with the kind kept. */
+    private boolean folderChanged(SessionEvents.LocalAgentConsent c) {
+        if (c.folderRef() != null && processFolder != null) return !c.folderRef().equals(processFolder);
+        boolean sameKind = c.full() == posture.isFull() && (!c.full() || c.fullMode() == posture.fullMode());
+        return sameKind && processRef != null && !processRef.equals(c.postureRef());
+    }
+
+    /** Restarting under {@code c} begins a new chat: the conversation has turns and {@code c} is another posture. */
+    private boolean needsNewChat(SessionEvents.LocalAgentConsent c) {
+        return sessionId != null && resumable && postureRef != null && !postureRef.equals(c.postureRef());
+    }
+
+    private static String model(String m) {
+        return m == null || m.isBlank() ? "" : m.strip();
+    }
+
+    /** A mandatory change: the session ends now, mid-turn too, saying why; any offer goes with it. */
+    private void stopNow(String code, String words, SessionEvents.LocalAgentConsent c) {
+        auditLog.info("localAgentConsent", code);
+        boolean newChat = c != null && c.allowed() && needsNewChat(c);
+        verdict = code;
+        kill(words);
+        newChatOffered = newChat;
+    }
+
+    /**
+     * Owner, 2026-10-18: the person answered the restart offer. Later keeps the session on its old settings and leaves the
+     * chip; Restart now stops it and starts it again under what the machine says NOW — resuming the conversation when
+     * the posture is the same, else beginning a new chat — or, while Claude is answering, when that answer ends. A
+     * change that became mandatory meanwhile ends the session at once; one put back withdraws the offer.
+     */
+    @OnEventHandler
+    public boolean onRestartAnswered(SessionEvents.LocalAgentRestartAnswered e) {
+        if (restartOffer == 0 || e.offer() != restartOffer || !restartState.equals(LocalAgentState.Restart.OFFERED)
+                || !running()) {
+            auditLog.info("staleFact", "LocalAgentRestartAnswered").info("offer", e.offer()).info("open", restartOffer);
+            return false;
+        }
+        observeConsent(e.consent());
+        if (!e.restart()) {
+            restartState = LocalAgentState.Restart.DEFERRED;
+            auditLog.info("localAgentRestart", "LATER").info("offer", restartOffer);
+            effects.request(new SessionEffects.ShowStatusEffect(0L, LATER_STATUS));
+            return changed();
+        }
+        String[] stop = mandatoryStop(e.consent(), true);
+        if (stop != null) {
+            stopNow(stop[0], stop[1], e.consent());
+            return changed();
+        }
+        if (changes(e.consent()).isEmpty()) {
+            auditLog.info("localAgentRestart", "WITHDRAWN").info("offer", restartOffer);
+            clearRestart();
+            return changed();
+        }
+        if (openTicket != 0 || "STOPPING".equals(phase) || pendingDraft != 0) {
+            restartState = LocalAgentState.Restart.AFTER_TURN;
+            restartRequest = e.request();
+            restartConsent = e.consent();
+            auditLog.info("localAgentRestart", "AFTER_TURN").info("offer", restartOffer).info("ticket", openTicket);
+            return changed();
+        }
+        restartNow(e.request(), e.consent());
+        return changed();
+    }
+
+    /** The chip: the offer again (Later chosen). */
+    @OnEventHandler
+    public boolean onRestartOfferRequested(SessionEvents.LocalAgentRestartOfferRequested e) {
+        if (!LocalAgentState.Restart.DEFERRED.equals(restartState) || !running()) return false;
+        restartState = LocalAgentState.Restart.OFFERED;
+        auditLog.info("localAgentRestart", "REOFFERED").info("offer", restartOffer);
+        return changed();
+    }
+
+    /** Stop this process and start one under {@code c}: resumed when the posture is the same, else a new chat. */
+    private void restartNow(long request, SessionEvents.LocalAgentConsent c) {
+        boolean newChat = needsNewChat(c);
+        auditLog.info("localAgentRestart", "RESTART").info("offer", restartOffer).info("newChat", newChat);
+        clearRestart();
+        kill(newChat ? RESTARTED_NEW_CHAT_TEXT : RESTARTED_TEXT);
+        if (newChat) {
+            beginConversation();
+            reason = RESTARTED_NEW_CHAT_TEXT;
+            note("RESTARTED", RESTARTED_NEW_CHAT_TEXT);
+        }
+        start(request, c);
+    }
+
+    public static final String RESTARTED_TEXT = "Claude Code was restarted to apply the changed settings; the conversation "
+            + "continues";
+    public static final String RESTARTED_NEW_CHAT_TEXT = "Claude Code was restarted to apply the changed settings — a new "
+            + "chat begins, because a conversation is never resumed under other settings";
+
+    private void clearRestart() {
+        restartState = "";
+        restartChanged = "";
+        restartNewChat = false;
+        restartRequest = 0;
+        restartConsent = null;
     }
 
     @OnEventHandler
     public boolean onSendRequested(SessionEvents.LocalAgentSendRequested e) {
         observeConsent(e.consent());
-        // review finding 4: a Send re-checks the consent the running session was started under
-        if (running() && openTicket == 0 && !"STOPPING".equals(phase) && endForConsent(e.consent())) {
-            answer(e.request(), false, reason);
-            return changed();
+        // review finding 4: a Send re-checks the consent the running session was started under. Owner, 2026-10-18: only a
+        // change that takes powers away refuses it and ends the session; one the person may defer is offered, and the
+        // Send goes to the session running on its old settings. Review of PR #147, finding 3: the FULL posture's trust is
+        // bound to the folder's files, so a Send under a full session re-checks it — files changed since the person
+        // trusted them (the agent, a git pull, another process) end the session, and Start asks about the folder again
+        if (running() && openTicket == 0 && !"STOPPING".equals(phase)) {
+            String[] stop = mandatoryStop(e.consent(), posture != null && posture.isFull());
+            if (stop != null) {
+                stopNow(stop[0], stop[1], e.consent());
+                answer(e.request(), false, reason);
+                return changed();
+            }
+            consentWhileRunning(e.consent(), false);
         }
         String refusal = sendRefusal(e);
         if (refusal != null) {
@@ -464,6 +654,16 @@ public class LocalAgentSession implements EventLogSource {
     @OnEventHandler
     public boolean onNewChatRequested(SessionEvents.LocalAgentNewChatRequested e) {
         if (running()) kill("New chat: the previous conversation's process was stopped");
+        beginConversation();
+        armedWhy = null;                                 // P2: New chat replaces an armed Start
+        verdict = "";
+        reason = "a new conversation: it starts with the next Start or Send";
+        auditLog.info("localAgentConversation", conversation);
+        return changed();
+    }
+
+    /** A new conversation: a new id at the next spawn, an empty transcript. */
+    private void beginConversation() {
         conversation++;
         sessionId = null;
         resumable = false;
@@ -473,11 +673,6 @@ public class LocalAgentSession implements EventLogSource {
         entries = new ArrayList<>();
         trimmed = 0;
         turns = new LinkedHashMap<>();
-        armedWhy = null;                                 // P2: New chat replaces an armed Start
-        verdict = "";
-        reason = "a new conversation: it starts with the next Start or Send";
-        auditLog.info("localAgentConversation", conversation);
-        return changed();
     }
 
     // ---- the adapter's facts --------------------------------------------------------------------------------------
@@ -829,6 +1024,7 @@ public class LocalAgentSession implements EventLogSource {
             return changed();
         }
         if (openTicket != 0) endTurn(SessionEvents.TurnOutcome.PROCESS_EXIT);
+        clearRestart();
         releaseBridge(generation);
         phase = "OFF";
         bound = false;
@@ -895,6 +1091,7 @@ public class LocalAgentSession implements EventLogSource {
             }
             case KEEP -> {
                 if (running()) {
+                    folderKept = true;            // owner, 2026-10-18: the folder change is the person's, never re-offered
                     reason = "this session keeps working in its own folder; its context describes the previous project";
                     note("KEPT", reason);
                     return changed();
@@ -1050,8 +1247,12 @@ public class LocalAgentSession implements EventLogSource {
      * the node keeps — cannot be checked, so it is refused rather than counted as fresh.
      */
     public static final String UNKNOWN_DRAFT_WORDS = "This message holds a drafted question that cannot be checked against "
-            + "the open log (it was drafted for the other assistant, or too many questions ago) — delete it, or ask again "
-            + "from the records";
+            + "the open log (it was drafted for the other assistant, or too many questions ago) — press Ask again for "
+            + "Claude Code to place it for Claude Code, or delete it";
+    /** The in-app assistant's words for the same refusal (it has no Ask again action). */
+    public static final String UNKNOWN_DRAFT_WORDS_IN_APP = "This message holds a drafted question that cannot be checked "
+            + "against the open log (it was drafted for the other assistant, or too many questions ago) — delete it, or ask "
+            + "again from the records";
 
     /** Record the posture a consent fact names (for the full-posture cue); true when it changed. */
     private boolean observeConsent(SessionEvents.LocalAgentConsent c) {
@@ -1125,6 +1326,8 @@ public class LocalAgentSession implements EventLogSource {
         if (e.draft() <= 0) return "EMPTY: there is nothing to send";
         if (pendingDraft != 0) return "BUSY: " + BUSY_TEXT;
         String stale = staleDraft(e.draftBindings());
+        // robot walkthrough #1: a question drafted for the other assistant has its own verdict, and its one action
+        if (UNKNOWN_DRAFT_WORDS.equals(stale)) return "UNKNOWN_DRAFT: " + stale;
         if (stale != null) return "STALE_DRAFT: " + stale;
         String named = e.command() == null ? "this command" : "/" + e.command();
         return switch (e.slash() == null ? SessionEvents.SlashClass.TEXT : e.slash()) {
@@ -1156,6 +1359,13 @@ public class LocalAgentSession implements EventLogSource {
         nonce = java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 16);
         budgetMicros = c.budgetMicros();
         posture = c.posture();
+        // owner, 2026-10-18: what this process starts with, for the restart offer's comparison
+        processRef = c.postureRef();
+        processBudget = c.budgetMicros();
+        processModel = c.model() == null ? null : model(c.model());
+        processFolder = c.folderRef();
+        folderKept = false;
+        clearRestart();
         personServerStates = new ArrayList<>();
         personServers = 0;
         hookNotes = new LinkedHashMap<>();
@@ -1234,6 +1444,9 @@ public class LocalAgentSession implements EventLogSource {
         if (endAfterTurn && running()) {
             String why = reason;
             kill(why.isBlank() ? "the session no longer matched how you set Claude Code up, so it was stopped" : why);
+        } else if (LocalAgentState.Restart.AFTER_TURN.equals(restartState) && running()
+                && outcome != SessionEvents.TurnOutcome.PROCESS_EXIT) {
+            restartNow(restartRequest, restartConsent);   // owner, 2026-10-18: Restart was chosen while Claude answered
         }
     }
 
@@ -1282,6 +1495,7 @@ public class LocalAgentSession implements EventLogSource {
 
     /** Kill the process tree of this generation, now: the turn in progress (if any) ends with it. */
     private void kill(String why) {
+        clearRestart();                                  // an offer belongs to the process it was made for
         long was = openTicket;
         if (was != 0) {
             openTicket = 0;
@@ -1466,7 +1680,10 @@ public class LocalAgentSession implements EventLogSource {
                     budgetMicros, costUnderReported, newChatOffered, resumable && sessionId != null, pendingDraft,
                     entries, answer, posture, personServers, billing, armedWhy, consentPosture,
                     new LocalAgentState.Extra(setupDirRef, setupDirShown, unknownEvents, unclassifiedCommands, droppedLines, turns, trimmed,
-                            attention(verdict, detailRef, stderrRef, unknownEvents + unclassifiedCommands + droppedLines)));
+                            attention(verdict, detailRef, stderrRef, unknownEvents + unclassifiedCommands + droppedLines),
+                            new LocalAgentState.Restart(restartOffer, restartState, restartChanged, restartNewChat)));
+            // robot walkthrough #3: the one primary action and the one instruction line, decided here from the state
+            published = published.withExtra(withGuide(published.extra(), guide(published)));
             dirty = false;
         }
         return published;
@@ -1491,6 +1708,70 @@ public class LocalAgentSession implements EventLogSource {
         }
         if (stderrRef != 0 || diagnostics > 0) return LocalAgentState.Attention.WARNING;
         return LocalAgentState.Attention.NONE;
+    }
+
+    // ---- robot walkthrough #3 (2026-10-18): one primary action, one instruction line -----------------------------------
+
+    /** Said while not running: starting is what Send does first, and what that contacts. */
+    public static final String CONTACTS_ANTHROPIC = "Send starts Claude Code first — that contacts Anthropic (sign-in "
+            + "check, MCP connect); no record content is sent until you press Send. In full Claude Code, starting also runs "
+            + "your and the folder's hooks and connects your MCP servers.";
+    public static final String NOT_RUNNING_TEXT = "Not running. " + CONTACTS_ANTHROPIC;
+    public static final String PLACED_NOT_RUNNING_TEXT = "Not running — your question is placed; Send starts Claude Code "
+            + "and asks it. " + CONTACTS_ANTHROPIC;
+
+    /**
+     * The one primary action and the one instruction line for {@code s} (pure; the node publishes it, the panel renders
+     * it). While nothing runs and a reason stands, the reason IS the line — a refusal is never a suffix to a paragraph.
+     */
+    public static LocalAgentState.Guide guide(LocalAgentState s) {
+        boolean stoppable = s.busy() || s.starting() || "STOPPING".equals(s.phase()) || s.pendingDraft() != 0;
+        String primary = stoppable ? LocalAgentState.Guide.STOP : LocalAgentState.Guide.SEND;
+        String action = "UNKNOWN_DRAFT".equals(s.verdict()) ? LocalAgentState.Guide.ASK_AGAIN : "";
+        String phase = switch (s.phase()) {
+            case "SPAWNING", "HANDSHAKE" -> "Starting Claude Code…";
+            case "BINDING" -> s.bindingElapsedMs() >= 2_000 ? "connecting to the analyser bridge…" : "Starting Claude Code…";
+            case "READY" -> s.pendingDraft() != 0 ? "Sending your message…" : "Ready";
+            case "BUSY" -> "Claude is answering…";
+            case "STOPPING" -> "Stopping the turn…";
+            default -> s.armedWhy() != null ? PLACED_NOT_RUNNING_TEXT : NOT_RUNNING_TEXT;
+        };
+        // a Send refused as busy already says what is happening: one sentence, not the phase and then the refusal
+        if ("BUSY".equals(s.verdict()) && s.busy()) return new LocalAgentState.Guide(primary, s.reason(), action, true);
+        if (s.reason().isBlank()) return new LocalAgentState.Guide(primary, phase, action, false);
+        boolean refusal = !s.verdict().isBlank() && !"BOUND".equals(s.verdict()) && !"OK".equals(s.verdict());
+        if (!s.running() || refusal && !s.busy()) {
+            String r = s.reason();
+            return new LocalAgentState.Guide(primary, Character.toUpperCase(r.charAt(0)) + r.substring(1), action, refusal);
+        }
+        return new LocalAgentState.Guide(primary, phase + " — " + s.reason(), action, refusal);
+    }
+
+    private static LocalAgentState.Extra withGuide(LocalAgentState.Extra x, LocalAgentState.Guide g) {
+        return new LocalAgentState.Extra(x.setupDirRef(), x.setupDirShown(), x.unknownEvents(), x.unclassifiedCommands(),
+                x.droppedLines(), x.turns(), x.trimmed(), x.attention(), x.restart(), g);
+    }
+
+    /**
+     * Robot walkthrough #1 (2026-10-18): "Ask again for Claude Code" on a refusal that the composer holds a question this
+     * node does not know (drafted for the in-app assistant). The node asks for those questions to be composed again for
+     * Claude Code — it binds and places them as any composed draft; the placement replaces the old one.
+     */
+    @OnEventHandler
+    public boolean onAskAgain(SessionEvents.LocalAgentAskAgainRequested e) {
+        if (!mode.localAgent()) {
+            auditLog.info("noOp", "LocalAgentAskAgainRequested").info("reason", "the in-app assistant is the mode in force");
+            return false;
+        }
+        List<Long> unknown = new ArrayList<>();
+        for (long ref : e.draftBindings()) if (!bindings.containsKey(ref)) unknown.add(ref);
+        if ("UNKNOWN_DRAFT".equals(verdict)) {
+            verdict = "";
+            reason = "";
+        }
+        auditLog.info("localAgentAskAgain", unknown.size());
+        if (!unknown.isEmpty()) effects.request(new SessionEffects.RecomposeLocalAgentDraftsEffect(0L, unknown));
+        return changed();
     }
 
     /** For the adapter's tests and the posture assertion: whether the given mode is the one in force. */

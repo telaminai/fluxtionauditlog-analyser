@@ -218,7 +218,7 @@ public class AssistantLoop implements EventLogSource {
         String now = open ? telamin.fluxtion.audit.analyser.analyser.session.LocalAgentPosture.digest(openLog.logPath()) : null;
         for (long draftBinding : draftBindings) {
             String[] b = bindings.get(draftBinding);
-            if (b == null) return LocalAgentSession.UNKNOWN_DRAFT_WORDS;
+            if (b == null) return LocalAgentSession.UNKNOWN_DRAFT_WORDS_IN_APP;
             if (b[0] == null) continue;
             long was = Long.parseLong(b[1]);
             if (open && b[0].equals(now) && openLog.generation() == was) continue;
