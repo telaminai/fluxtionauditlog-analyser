@@ -1,7 +1,9 @@
 # M77 — Set up AI: the first-run wizard for the shared canvas
 
-**Status:** ACCEPTED r4, 2026-10-18 — the owner accepted every recommendation of OD-77.1–.13 on 2026-10-18, and
-OD-77.14–.21 (M77-5, the option diagram, §6.1a) the same day (§20).
+**Status:** ACCEPTED r5, 2026-10-18 — the owner accepted every recommendation of OD-77.1–.13 on 2026-10-18, and
+OD-77.14–.21 (M77-5, the option diagram, §6.1a) the same day (§20). **r5: OD-77.1 is superseded by M79 OD-79.5**
+([`spec-first-minute.md`](spec-first-minute.md)): AI setup leaves the first launch, so the start page's first-run
+block (§6.0) is not built; the AI line and every other entry stand.
 r2 folded in the independent review of r1
 ([`review_m77_r1_7f3c.md`](../handoff/review_m77_r1_7f3c.md), 3 blockers, 8 major findings, 30 in all; the
 disposition table is in that file and summarised in *Revision history*). r1 was written from the owner's direction of
@@ -87,7 +89,7 @@ test).
 
 | Decision | What it says | What this spec does |
 |---|---|---|
-| **M36 D-S1 / onboarding R6** | The start page IS the first run; no first-run dialog — an owner-directed removal (*"no config found modal popped"*) that "must not return". | **Kept by default.** First run shows the wizard's first screen *inline on the start page* (§6.0), as a state, not a window. A window that opens by itself would reverse D-S1: that is owner decision **OD-77.1**, not assumed. |
+| **M36 D-S1 / onboarding R6** | The start page IS the first run; no first-run dialog — an owner-directed removal (*"no config found modal popped"*) that "must not return". | **Kept by default.** First run shows the wizard's first screen *inline on the start page* (§6.0), as a state, not a window. A window that opens by itself would reverse D-S1: that is owner decision **OD-77.1**, not assumed. **Superseded (r5) by M79 OD-79.5:** no first-run AI block; the first launch shows the diamond ([`spec-first-minute.md`](spec-first-minute.md) §3), and the wizard opens at the first Send, Ask or Start (entry 5). |
 | **M35.7 / M35.9** | No modal in the load path; nothing fires at an empty screen. | The wizard window opens only on the person's act (§5); it is modeless; under `--rest` (nobody at the screen) nothing is offered (§5.1). |
 | **M74 r13-3** | The profile overlay (four cards) opens from the header, and by itself on the first Start or question. | **Amended:** the cards stop being the entry point (§14.3). The first Start or question opens *Set up AI* instead. |
 | **M74 r13-4** | New strings neutral; rename later. | `{Product}` constant (header). |
@@ -114,7 +116,7 @@ step (the node's `open` is the truth; the view never opens a second).
 
 | # | Entry | What the person does | What `aiSetup` decides |
 |---|---|---|---|
-| 1 | **First run** — the start page's AI block in its first-run form (§6.0) | nothing: the block is part of the no-log state; pressing a choice there and **Continue** is the act | the block's form (`firstRun` in the snapshot) when: the profile is observed `NONE`, no external client was set up (`assistant.setup.client` unset), `assistant.setup.dismissed` is false, and the process was not started with `--rest` — all reported at start-up by `AiSetupStartupObserved` (§8.3). **`assistant.rest` is ignored** (review R1-5): `--rest` persists it (`MainFrame`, M19.7) and the capture harness pre-sets it, so it says nothing about what a person chose. Continue opens the window at the next step with the choice already made. |
+| 1 | ~~**First run** — the start page's AI block in its first-run form (§6.0)~~ **Withdrawn (r5, M79 OD-79.5):** not built; entry 5 is the first-use door | nothing: the block is part of the no-log state; pressing a choice there and **Continue** is the act | the block's form (`firstRun` in the snapshot) when: the profile is observed `NONE`, no external client was set up (`assistant.setup.client` unset), `assistant.setup.dismissed` is false, and the process was not started with `--rest` — all reported at start-up by `AiSetupStartupObserved` (§8.3). **`assistant.rest` is ignored** (review R1-5): `--rest` persists it (`MainFrame`, M19.7) and the capture harness pre-sets it, so it says nothing about what a person chose. Continue opens the window at the next step with the choice already made. |
 | 2 | **Assistant ▾ → Set up AI…** | menu item | open at Screen 1, with the choice in force preselected (§14.1) |
 | 3 | **AI ▸ Set up AI…** (first item; *Connect an AI client…* becomes *Set up AI…* — §14.4) | menu item | same as 2 |
 | 4 | **The start page's AI line** — *Set up AI…* / *Change…* (§6.0) | link button | same as 2 |
@@ -145,6 +147,12 @@ earlier step already turned on stays on, the closing status line says what is in
 external access on, the line offers **Turn it off** (§7.4, review R1-19).
 
 ### 6.0 The start page's AI block (first run) and the AI line (every other time)
+
+> **Superseded in part (r5, 2026-10-18).** M79 OD-79.5 removes the first-run block below: AI setup leaves the
+> first launch, because the AI question stood between a newcomer and the picture that is the product's aha
+> ([`spec-first-minute.md`](spec-first-minute.md) §3). The block is kept here as the record of what OD-77.1 decided.
+> **The AI line stands** (*Every other time*, below) and is now the line for every launch; M79 §5.4 adds its short
+> start-page form.
 
 **First run** (entry 1). Replaces the *Connect an assistant* group (§14.4) and the "No AI assistant can answer here yet"
 fallback line, in the same place:
@@ -529,7 +537,7 @@ Enums, ids, times and the node's own words only — never a path, a key, raw CLI
 | Field | Type | Meaning |
 |---|---|---|
 | `open` | boolean | the window is open (one instance) |
-| `firstRun` | boolean | the start page shows the first-run block (§6.0) |
+| ~~`firstRun`~~ | boolean | the start page shows the first-run block (§6.0). **Withdrawn (r5, M79 OD-79.5)** |
 | `origin` | `FIRST_RUN · MENU · START_LINE · SEND · ASK · SETTINGS` | why it opened |
 | `step` | `CHOICE · INSIDE · CLIENT · OTHER · SUMMARY` | the screen |
 | `choice` | `NONE · NO_AI · CLIENT · INSIDE · BOTH · IN_APP` | the person's Screen 1 choice in this wizard |
@@ -943,7 +951,7 @@ while it is unmerged), with its CHANGELOG lines (rule 2) and its tests green (ru
 | PR | Content | Ships behind | Est. lines |
 |---|---|---|---|
 | **M77-1 — the node and the checks** | `AssistantProfileChoice` grown into `aiSetup`; the `origin` fields; probe adapters, the parse boundary and the empty probe folder; `AssistantMode.NONE` and the derived start-up mode if P-2 lacks them; T1–T8, T12–T14, T16 (node side), T21–T23 | the window not yet reachable: first use still opens the cards until M77-2 (a one-line switch in `aiSetup`, tested both ways) | ~3,000 |
-| **M77-2 — the wizard, inside path** (after P-1, P-2 and **P-3**) | Screens 1, 2a, Summary, 6.5 (the in-app details extracted from `ProfileOverlay`); entry points 2–6; the start page's AI line and first-run block; the panel's empty state; Ask labels; first use opens the wizard. **Until M77-3, *Your own client* and *Both* open today's `McpSetupDialog`** at the chosen client, with the line *"Step-by-step set-up for your own client comes in the next update; this dialog does it today."* (review R1-11); T15, T17–T19, T24 (the Screen 1 half); an empty `selectedOptionExtra` slot under the selected card's title row, for M77-5 | — (user-visible) | ~3,500 |
+| **M77-2 — the wizard, inside path** (after P-1, P-2 and **P-3**) | Screens 1, 2a, Summary, 6.5 (the in-app details extracted from `ProfileOverlay`); entry points 2–6; the start page's AI line (r5: **not** the first-run block, superseded by M79 OD-79.5); the panel's empty state; Ask labels; first use opens the wizard. **Until M77-3, *Your own client* and *Both* open today's `McpSetupDialog`** at the chosen client, with the line *"Step-by-step set-up for your own client comes in the next update; this dialog does it today."* (review R1-11); T15, T17–T19, T24 (the Screen 1 half); an empty `selectedOptionExtra` slot under the selected card's title row, for M77-5 | — (user-visible) | ~3,500 |
 | **M77-3 — the external path** | Screen 2b; `ExternalAccessRequested` through `actionListener` from all four doors; the access and registration confirmations; `McpSetupDialog`'s dialogs to SafeChoice; the clients built from one resolver; `ExternalClientSeen`, the bridge's probe marker and (OD-77.8) label; `McpReadinessObserved`; the timer; *Both*; the diagram's reuse beside 2b's access switch, if M77-5 has merged; T9–T11, T24 | — | ~3,200 |
 | **M77-4 — coexistence and docs** | Assistant ▾ quick switch; `ProfileOverlay` removed (OD-77.3); AI menu renames; Settings button; the Connect group removed; capture-harness shots; the docs site's *Set up AI* page; T20 | — | ~2,000 (net, after the overlay's ~650 lines go) |
 | **M77-5 — where data goes** (stacked on M77-2) | the option diagram (§6.1a): `ui/setup/FlowDiagram`, its pure model, `DiagramPalette` and its `UiTheme` methods, `AiSetupLines.diagram*`, the FAQ link; it fills M77-2's `selectedOptionExtra` slot; no new node, fact or effect; T25–T31 | — (user-visible) | ~1,000 |
@@ -960,7 +968,7 @@ poll makes in the view today (review R1-16 e). Each is a tracker line, not M77.
 
 | # | Question | Recommendation | Owner (2026-10-18) |
 |---|---|---|---|
-| **OD-77.1** | First run: the wizard's first screen **inline on the start page** (keeps D-S1), or a modeless window that **opens by itself** after the splash (reverses D-S1/R6)? | inline | **Accepted** |
+| **OD-77.1** | First run: the wizard's first screen **inline on the start page** (keeps D-S1), or a modeless window that **opens by itself** after the splash (reverses D-S1/R6)? | inline | **Accepted; superseded 2026-10-18 by M79 OD-79.5** (no AI at first launch; the wizard opens at the first Ask, Send or Start) |
 | **OD-77.2** | When a question is waiting, **skip the Summary** (6 acts; the summary becomes the panel's status line) or always show it (7 acts)? | skip | **Accepted** |
 | **OD-77.3** | The profile cards: **remove `ProfileOverlay`** (Assistant ▾ becomes a quick-switch menu), or keep it as an advanced view? | remove | **Accepted** |
 | **OD-77.4** | AI ▸ *External MCP/REST access*: give turning it **on** the same SafeChoice confirmation (today one click)? | yes; off stays one click | **Accepted** |
@@ -968,7 +976,7 @@ poll makes in the view today (review R1-16 e). Each is a tracker line, not M77.
 | **OD-77.6** | `AssistantMode.NONE`: land it in P-2 or in M77-1? | P-2, if it is not too late; otherwise M77-1 | **Accepted** |
 | **OD-77.7** | The product name in the wizard's copy: `{Product}` = "the analyser" until the rename PR? | yes | **Accepted** |
 | **OD-77.8** | Forward the client's self-reported name to the live check as a display label? | yes, labelled as self-reported | **Accepted** |
-| **OD-77.9** | Offer the first-run block to an upgrader whose profile is still NONE? | yes, once (it is not a modal) | **Accepted** |
+| **OD-77.9** | Offer the first-run block to an upgrader whose profile is still NONE? | yes, once (it is not a modal) | **Accepted; moot** with OD-77.1's supersession |
 | **OD-77.10** | 2b's default for Claude Code: **Register for me…** first (behind its confirmation), or **I'll run it myself** first? | Register for me… first | **Accepted** |
 | **OD-77.11** | Cancel after this wizard turned external access on: keep it on with a one-click **Turn it off** (§7.4), or roll back what this wizard turned on? | keep it on, offer Turn it off | **Accepted** |
 | **OD-77.12** | `McpSetupDialog`: keep it behind *More options…* (its dialogs converted to SafeChoice, §9.3), or retire it? | keep it | **Accepted** |
@@ -978,7 +986,7 @@ poll makes in the view today (review R1-16 e). Each is a tracker line, not M77.
 | **OD-77.16** | Name where Claude is billed? | yes, from the sign-in check: *"your Claude plan"*, *"your API key"* or *"your cloud provider"* | **Accepted** |
 | **OD-77.17** | Claude Code's own usage data: wording on the diagram, or a link? | an FAQ link, pinned by `FaqSecurityContractTest` | **Accepted** |
 | **OD-77.18** | The card sentence's "MCP client"? | *"another AI app that can connect to {Product}"* | **Accepted** |
-| **OD-77.19** | A picture in the start-page first-run block? | no | **Accepted** |
+| **OD-77.19** | A picture in the start-page first-run block? | no | **Accepted; moot** with OD-77.1's supersession |
 | **OD-77.20** | A hover preview on unselected cards? | no | **Accepted** |
 | **OD-77.21** | *Both*: one {Product} icon in a tall column, or one per row? | two icons, one per row | **Accepted** |
 
@@ -1011,3 +1019,8 @@ poll makes in the view today (review R1-16 e). Each is a tracker line, not M77.
   renders `AiSetupState` only (no new node, fact or effect). The new tests are T25–T31. The card sentence now says
   *"another AI app that can connect to {Product}"*. M77-5 is a fifth PR stacked on M77-2, and effort rises to 16.5–22
   days.
+- **r5, 2026-10-18** — **OD-77.1 superseded by M79 OD-79.5** ([`spec-first-minute.md`](spec-first-minute.md)), on the
+  owner's decision after the insider and stranger reviews of the same day: AI setup leaves the first launch, the
+  first launch shows the diamond, and the wizard opens at the first Ask, Send or Start (entry 5, unchanged). The
+  first-run block (§5 entry 1, §6.0) is withdrawn before it is built; OD-77.9 and OD-77.19 become moot; the AI line
+  stands. T15's single-line check and T20's first-run capture follow the AI line alone.
