@@ -108,6 +108,8 @@ public class StartPagePrompt implements EventLogSource {
     /** The start page's note while its question waits behind the cards. */
     public static final String CARRIED_NOTE = "Choose how the assistant works — your question waits, and is placed for "
             + "the assistant you choose when you press Apply. Nothing is sent until you press Start or Send.";
+    /** What a no-AI fallback says — once, as the fallback row's label (or the AI line), never again as the note. */
+    public static final String NO_AI_FALLBACK = "No AI assistant can answer here yet — these run without one";
     /** The note when the cards closed without Apply. */
     public static final String CARRY_DROPPED_NOTE = "The cards were closed, so your question was not placed — it is still "
             + "in the box";
@@ -256,8 +258,10 @@ public class StartPagePrompt implements EventLogSource {
                 return changed();
             }
             fallbackEntry = id;
-            note = "No AI assistant can answer here yet — these run without one";
-            effects.request(new SessionEffects.ShowStartPageFallbackEffect(0L, e.request(), id, note));
+            // authoring walk (shot 03): the fallback row's own label says this, and the AI line when it is shown — the
+            // page said it twice. The words still go with the effect, for the window over a workspace
+            note = "";
+            effects.request(new SessionEffects.ShowStartPageFallbackEffect(0L, e.request(), id, NO_AI_FALLBACK));
             return changed();
         }
         switch (id) {
@@ -313,8 +317,8 @@ public class StartPagePrompt implements EventLogSource {
         }
         if (!p.route().canAnswer()) {
             fallbackEntry = p.entryId();
-            note = "No AI assistant can answer here yet — these run without one";
-            effects.request(new SessionEffects.ShowStartPageFallbackEffect(0L, e.request(), p.entryId(), note));
+            note = "";                                // the fallback row's label says it (authoring walk, shot 03)
+            effects.request(new SessionEffects.ShowStartPageFallbackEffect(0L, e.request(), p.entryId(), NO_AI_FALLBACK));
             return changed();
         }
         compose(e.request(), p.entryId(), p.route(), e.logGeneration(), e.bundleNameRef(), e.templateNamesRef(),
@@ -374,6 +378,12 @@ public class StartPagePrompt implements EventLogSource {
         note = "";
         answered = request;
         auditLog.info("startPageCarried", "PLACED").info("route", route.name());
+        if (AiSetup.BUILD_ENTRY.equals(p.entryId())) {
+            // the build pathway, as a press would route it now: the starter catalogue is read first, then the draft
+            pending.put(request, new Pending(p.entryId(), route, p.textRef(), p.popOut()));
+            effects.request(new SessionEffects.RunStartPageFlowEffect(0L, request, "S4"));
+            return changed();
+        }
         compose(request, p.entryId(), route, openLog.isOpen() ? openLog.generation() : 0, 0, 0, p.textRef(), p.popOut());
         return changed();
     }

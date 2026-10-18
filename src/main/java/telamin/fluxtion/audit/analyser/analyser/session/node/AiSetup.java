@@ -64,6 +64,9 @@ public class AiSetup implements EventLogSource {
      */
     public static final String IN_APP_NO_KEY = "No API key";
 
+    /** The start page's Build entry (the catalogue's S7): an authoring question, which only Full Claude Code can answer. */
+    public static final String BUILD_ENTRY = "S7";
+
     /** The start page's note when its question opened the choices instead of an answer. */
     public static final String FIRST_USE_NOTE = StartPagePrompt.CARRIED_NOTE;
 
@@ -156,6 +159,11 @@ public class AiSetup implements EventLogSource {
     }
     private long finished;
     private boolean startBoxWaiting;
+    /**
+     * Authoring walk (2026-10-18): the start-box question waiting behind the wizard is a Build one (S7) — the wizard
+     * preselects Claude inside with Full Claude Code (its confirmation still asked) and says why Safe cannot do it.
+     */
+    private boolean authoringWaiting;
     private String line = "";
 
     private ProfileState published = ProfileState.NONE;
@@ -484,15 +492,24 @@ public class AiSetup implements EventLogSource {
         // robot re-walk #3: held for want of a log — nothing opens for it until the person acts on the page's line
         if (noLogHint != null && noLogHint.holds(e.request())) return false;
         String id = e.entryId() == null ? "NONE" : e.entryId();
-        // a flow entry (the catalogue's kind, so Build and Teach count too) is not a question
-        boolean question = id.equals("NONE") ? e.textRef() != 0
+        // a flow entry (the catalogue's kind, so Teach counts too) is not a question. Authoring walk (2026-10-18, shot
+        // 03): Build (S7) IS one — with nothing set up it ended in a duplicate "No AI…" line and two template buttons,
+        // a dead end for the pathway that needs an assistant most; it opens the same first-use door a Send does. Only
+        // the wizard's door: the cards (kept until M77-4) have no Full recommendation, so there Build stays a flow
+        boolean build = wizardEntry && id.equals(BUILD_ENTRY);
+        boolean question = build || (id.equals("NONE") ? e.textRef() != 0
                 : telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.byId(id)
                         .map(x -> x.kind() != telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.Kind.FLOW)
-                        .orElse(true);
+                        .orElse(true));
         if (!question) return false;
         boolean canAnswer = e.inAppCanAnswer() || (e.consent() != null && e.consent().allowed() && e.claudeCodeFound());
         if (canAnswer) return false;                  // an assistant can answer it: the question goes there
-        if (!firstUse("start page", !e.workspaceOpen())) return false;
+        boolean wasOpen = wizardOpen;
+        if (wizardEntry && !wasOpen) authoringWaiting = build;
+        if (!firstUse("start page", !e.workspaceOpen())) {
+            if (!wasOpen) authoringWaiting = false;
+            return false;
+        }
         interceptedStartPage = e.request();
         startBoxWaiting = wizardEntry;
         return true;
@@ -542,8 +559,11 @@ public class AiSetup implements EventLogSource {
         step = at;
         Choice inForce = inForce();
         choice = preselected != null ? preselected
-                : inForce != Choice.NONE ? inForce : claudeFound ? Choice.INSIDE : Choice.NONE;
+                : inForce != Choice.NONE ? inForce : claudeFound || authoringWaiting ? Choice.INSIDE : Choice.NONE;
         posture = AiSetupDerived.postureOf(AssistantProfile.valueOf(profile));
+        // a Build question waits: only Full Claude Code can write code, so it is the sub-choice preselected — its
+        // confirmation is still asked at Finish (apply's ConfirmFullProfileEffect), nothing is applied before it
+        if (authoringWaiting) posture = Posture.FULL;
         installed = AiSetupState.Check.UNCHECKED;
         signedIn = AiSetupState.Auth.UNCHECKED;
         probeInstalled = 0;
@@ -683,6 +703,7 @@ public class AiSetup implements EventLogSource {
             closeWizard();
             line = waiting && placeable ? AiSetupLines.placedLine(applied) : line;
             startBoxWaiting = false;
+            authoringWaiting = false;
             return;
         }
         step = Step.SUMMARY;
@@ -725,6 +746,7 @@ public class AiSetup implements EventLogSource {
             line = "";
         }
         startBoxWaiting = false;
+        authoringWaiting = false;
         auditLog.info("aiSetup", summary ? "DONE" : "CANCELLED").info("origin", String.valueOf(e.origin()));
         return changed();
     }
@@ -923,6 +945,12 @@ public class AiSetup implements EventLogSource {
         return true;
     }
 
+    /** The wizard's one line: the node's own words, or — while a Build question waits on its first screens — why Full. */
+    private String shownLine() {
+        if (!line.isBlank() || !authoringWaiting || !wizardOpen) return line;
+        return step == Step.CHOICE || step == Step.INSIDE ? AiSetupLines.BUILD_NEEDS_FULL : line;
+    }
+
     /** The published profile state — immutable, for the snapshot, rebuilt only after a change. */
     public ProfileState state() {
         if (dirty) {
@@ -949,7 +977,7 @@ public class AiSetup implements EventLogSource {
                 installed, signedIn,
                 confirmingFull != 0 && confirmingOrigin == ProfileOrigin.SETUP ? AiSetupState.Confirming.FULL
                         : AiSetupState.Confirming.NONE,
-                pending, finished, line,
+                pending, finished, shownLine(),
                 observed ? AiSetupLines.aiLine(inForce, p, claudeFound, inAppCanAnswer, external) : "",
                 observed ? AiSetupLines.aiLineLink(inForce) : "",
                 wizardEntry ? status() : "", claudeFound, codexFound, wizardEntry, applying, suggested());

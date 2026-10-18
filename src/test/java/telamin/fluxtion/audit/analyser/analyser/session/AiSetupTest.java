@@ -434,6 +434,79 @@ class AiSetupTest {
         assertTrue(b.pendingPlaced.isEmpty(), "a cancelled question is never placed later");
     }
 
+    /**
+     * ★ Authoring walk (2026-10-18, shots 03/15): "Start building" with nothing set up was a dead end — a second "No AI…"
+     * line and two template buttons. It now opens the wizard with the Build question waiting, the same first-use door a
+     * Send uses; the wizard says plainly that Safe cannot write code and preselects Claude inside with Full Claude Code,
+     * whose confirmation is still asked; after Finish the build pathway runs as a press would (the starter catalogue is
+     * read, then the draft is placed — never sent). Witnesses: (1) drop {@code build ||} from {@code question} in
+     * {@code AiSetup.onStartPageSent} — the wizard does not open; (2) drop the {@code authoringWaiting} preselection in
+     * {@code openWizard} — Safe analysis is selected; (3) compose S7 at once in {@code StartPagePrompt.onProfileObserved}
+     * — no catalogue read.
+     */
+    @Test
+    @DisplayName("★ Start building with nothing set up opens the wizard, Full recommended and confirmed; then the pathway runs")
+    void startBuildingOpensTheWizardWithFullRecommended() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = fresh(a, true);
+        d.post(StartPagePromptTest.press(1, "S7", 7, false, true, false, false));
+        assertTrue(setup(d).open(), "the first-use door opens for Build");
+        assertEquals(AiSetupState.PendingKind.START_BOX, setup(d).pending().kind(), "the Build question waits");
+        assertEquals(0, a.startFallbacks.size(), "no no-AI dead end beside the wizard");
+        assertEquals(Choice.INSIDE, setup(d).choice(), "Claude inside is preselected");
+        assertEquals(Posture.FULL, setup(d).posture(), "Full Claude Code is preselected: Safe cannot write code");
+        assertEquals(AiSetupLines.BUILD_NEEDS_FULL, setup(d).line(), "and the wizard says why, plainly");
+        d.post(new SessionEvents.AiSetupContinue(Step.CHOICE));
+        assertEquals(Step.INSIDE, setup(d).step());
+        assertEquals(AiSetupLines.BUILD_NEEDS_FULL, setup(d).line(), "said on the posture screen too");
+        assertTrue(a.claudeProbes.get(a.claudeProbes.size() - 1).full(), "checked in the Full environment");
+        found(d, a);
+        d.post(new SessionEvents.AiSetupContinue(Step.INSIDE));
+        assertEquals(0, a.profileApplies.size(), "★ nothing is applied before Full is confirmed");
+        assertEquals(1, a.fullConfirms.size(), "the existing confirmation is asked");
+        d.post(new SessionEvents.AssistantFullProfileAnswered(a.fullConfirms.get(0).request(), true));
+        assertEquals(List.of(AssistantProfile.FULL), a.profileApplies.stream()
+                .map(SessionEffects.ApplyAssistantProfileEffect::profile).toList());
+        StartPageCarryTest.reportedAfterApply(d, AssistantProfile.FULL, true, false);
+        assertFalse(setup(d).open(), "the window closes: a question waits, so no Summary");
+        assertEquals(0, a.startComposes.size(), "not composed before the starter catalogue is read");
+        var flow = a.startFlows.get(a.startFlows.size() - 1);
+        assertEquals("S4", flow.entryId(), "the build pathway's flow: read the starter catalogue");
+        assertEquals(1, flow.request());
+        d.post(new SessionEvents.StartPageFlowDone(1, SessionEvents.FlowOutcome.DONE, 0, 0, 11));
+        assertEquals(1, a.startComposes.size(), "then the Build draft is placed");
+        assertEquals("S7", a.startComposes.get(0).entryId());
+        assertEquals(11, a.startComposes.get(0).templateNamesRef(), "naming the catalogue's templates");
+        assertEquals(7, a.startComposes.get(0).textRef(), "with the person's words");
+        assertEquals(0, a.agentSends.size(), "placed, never sent");
+
+        // a plain question still opens the wizard with Safe as it always did: the recommendation is Build's alone
+        FakeSessionAdapter b = new FakeSessionAdapter();
+        SessionDriver e = fresh(b, true);
+        e.post(StartPagePromptTest.press(1, "NONE", 7, false, true, false, false));
+        assertEquals(Posture.SAFE, setup(e).posture());
+        assertNotEquals(AiSetupLines.BUILD_NEEDS_FULL, setup(e).line());
+    }
+
+    /**
+     * ★ Authoring walk (shot 03): a no-AI fallback says "No AI assistant can answer here yet" ONCE — as the fallback
+     * row's label — not again as the page's note. Witness: put the sentence back as {@code note} in
+     * {@code StartPagePrompt.onSent} — the note repeats it.
+     */
+    @Test
+    @DisplayName("★ the no-AI fallback is not said twice: the note stays empty, the effect carries the words")
+    void theNoAiFallbackIsSaidOnce() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = fresh(a, false);
+        d.post(new SessionEvents.AssistantProfileObserved(AssistantProfile.OFF));      // the person chose No AI
+        d.post(StartPagePromptTest.press(1, "S7", 7, false, false, false, false));
+        assertFalse(setup(d).open(), "No AI was chosen: no wizard");
+        assertEquals(1, a.startFallbacks.size(), "the build pathway's no-AI buttons");
+        assertEquals("", d.snapshot().startPage().note(), "★ not said a second time as the note");
+        assertEquals(telamin.fluxtion.audit.analyser.analyser.session.node.StartPagePrompt.NO_AI_FALLBACK,
+                a.startFallbacks.get(0).why());
+    }
+
     /** §12 for the start box: carried behind the wizard, placed only after Finish, kept in the box on Cancel. */
     @Test
     @DisplayName("★ T12: the start box's question waits behind the wizard; Cancel keeps it in the box; Finish places it")
