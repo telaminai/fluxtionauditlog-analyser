@@ -1268,6 +1268,16 @@ public final class SessionEvents {
     public record HostedCallRefusedByServer(long generation, String verb, String reason) {
     }
 
+    /**
+     * Owner, 2026-10-18: the action server ran a hosted {@code report} call that wrote report {@code name} of the active
+     * project WITHOUT the person's approval (Full Claude Code's in-project create, or an update of a report this session
+     * created), and the report now carries {@code createdAt}. {@code localAgentPermission} records it for
+     * {@code generation}: a later call updating that report — while it still carries that {@code createdAt}, so nobody
+     * replaced it meanwhile — is the session's own, and needs no approval either.
+     */
+    public record HostedReportWritten(long generation, String name, String createdAt) {
+    }
+
     /** Answered at once by every local-agent effect whose outcome arrives later. */
     public record LocalAgentEffectStarted(long opId, long generation, String what) implements Result {
     }

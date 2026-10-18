@@ -404,4 +404,46 @@ class LocalAgentFullReplayTest {
         var asked = safe.facts(SessionEvents.LocalAgentPermissionRequested.class);
         assertEquals(SessionEvents.HostedCallKind.CHANGES, asked.get(asked.size() - 1).kind(), "Safe is unchanged");
     }
+
+    private static String reportRequest(String id, String name) {
+        return "{\"type\":\"control_request\",\"request_id\":\"" + id + "\",\"request\":{\"subtype\":\"can_use_tool\","
+                + "\"tool_name\":\"mcp__fluxtion-analyser-hosted__analyser_report\",\"input\":{\"name\":\"" + name
+                + "\",\"sections\":[{\"kind\":\"narrative\",\"text\":\"DEMO\"}]},\"tool_use_id\":\"toolu_" + id + "\"}}";
+    }
+
+    /**
+     * ★ Owner 2026-10-18, through the REAL adapter and processor: in Full, Claude Code's request to {@code analyser_report}
+     * a NEW report into the active project is judged PRE_ALLOWED (the node then allows it with no dialog —
+     * {@code InProjectReportTest} and LocalAgentPermission's PRE_ALLOWED path); a request to write over the person's
+     * report, and the same create in Safe analysis, are CHANGES (asked). The tool line says why. Witness (run
+     * 2026-10-18): drop {@code env.reports()} from the adapter's {@code scopeOf} — the create is CHANGES.
+     */
+    @Test
+    @DisplayName("★ Full: a new report inside the project needs no approval; over the person's report, or in Safe, it is asked")
+    void anInProjectReportNeedsNoApprovalInFull() throws Exception {
+        Harness h = full("pb-mode-default-iso.jsonl", FullMode.DEFAULT);
+        var reports = new telamin.fluxtion.audit.analyser.analyser.session.FakeReportState(
+                Files.createDirectories(home.resolve("proj")));
+        reports.put("Person's findings", "p-1");
+        h.reports = reports;
+        h.agent.last().emit(reportRequest("new", "DEMO trace"));
+        h.drain();
+        var created = h.facts(SessionEvents.LocalAgentPermissionRequested.class);
+        assertEquals(SessionEvents.HostedCallKind.PRE_ALLOWED, created.get(created.size() - 1).kind(), "a new report");
+        assertEquals("allowed: writes a new report inside this project", LocalAgentAdapter.REPORT_IN_PROJECT_MARK);
+        h.agent.last().emit(reportRequest("over", "Person's findings"));
+        h.drain();
+        var over = h.facts(SessionEvents.LocalAgentPermissionRequested.class);
+        assertEquals(SessionEvents.HostedCallKind.CHANGES, over.get(over.size() - 1).kind(), "the person's report: asked");
+
+        FixtureAgent agent = new FixtureAgent("multiturn-partial-replay-midturn.jsonl");
+        agent.conformInit = true;
+        Harness safe = new Harness(agent, home.resolve("safe"));
+        safe.reports = reports;
+        safe.start();
+        safe.agent.last().emit(reportRequest("safe", "DEMO safe"));
+        safe.drain();
+        var asked = safe.facts(SessionEvents.LocalAgentPermissionRequested.class);
+        assertEquals(SessionEvents.HostedCallKind.CHANGES, asked.get(asked.size() - 1).kind(), "Safe is unchanged");
+    }
 }

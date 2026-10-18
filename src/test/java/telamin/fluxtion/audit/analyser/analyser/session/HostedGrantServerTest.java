@@ -43,6 +43,9 @@ class HostedGrantServerTest {
     private final HostedCredentials credentials = new HostedCredentials();
     private final List<String> rendered = new CopyOnWriteArrayList<>();
     private final List<Map<String, Object>> renderedParams = new CopyOnWriteArrayList<>();
+    private final List<java.util.Optional<telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.ReportAdmission>> admissions =
+            new CopyOnWriteArrayList<>();
+    private volatile FakeReportState fakeReports;
     private final HttpClient http = HttpClient.newHttpClient();
     private SessionDriver driver;
     private ActionServer server;
@@ -59,6 +62,12 @@ class HostedGrantServerTest {
         RenderExecutor render = (action, params) -> {
             rendered.add(action);
             renderedParams.add(params);
+            // owner 2026-10-18: what a report admitted without an approval may write, as the executor sees it
+            admissions.add(java.util.Optional.ofNullable(ActionDispatcher.hostedReportAdmission()));
+            var written = fakeReports;
+            if (written != null && "report".equals(action) && params.get("name") != null) {
+                written.reports.put(String.valueOf(params.get("name")), "written-" + rendered.size());
+            }
             return ActionResult.ok(action, "result", Map.of("written", "demo.pdf"));
         };
         server = new ActionServer(new ActionDispatcher(false, null, () -> null, null, render), "shared", 20, 1000.0);
@@ -330,6 +339,78 @@ class HostedGrantServerTest {
         HttpResponse<String> safe = hostedCall(Json.write(Map.of("action", "open", "params", Map.of("log", log.toString()))),
                 TOOL_USE);
         assertEquals(403, safe.statusCode(), "Safe analysis is unchanged");
+    }
+
+    /**
+     * ★ Owner 2026-10-18: the server judges a hosted {@code report} with the generation's scope as the adapter does — in
+     * Full, a NEW report inside the active project is admitted with NO grant, dispatched under its admission (a create),
+     * and the session records the write; the next call adding a section to that report is the session's own and is
+     * admitted the same way. The person's report, a path outside the project, a delete, and every call in Safe analysis
+     * still need a grant (403); an external caller's report is dispatched with no admission at all. Witness (run
+     * 2026-10-18): pass {@code null} for the scope in {@code hostedRefusal}'s {@code reportInProject} call — the in-project
+     * create is refused for want of a grant.
+     */
+    @Test
+    @DisplayName("★ server: Full's new in-project report is admitted without a grant and recorded; overwrite, outside, delete, Safe: 403")
+    void anInProjectReportIsAdmittedWithoutAGrantInFull() throws Exception {
+        FakeReportState reports = new FakeReportState();
+        java.nio.file.Path project = java.nio.file.Files.createTempDirectory("diamond");
+        reports.root = project;
+        reports.exchange = java.nio.file.Files.createDirectories(project.resolve("reports"));
+        reports.reports.put("Person's findings", "p-1");
+        reports.sessionGeneration = start.generation();
+        fakeReports = reports;
+        boolean[] full = {true};
+        server.setHostedScopes(g -> g == start.generation()
+                ? new telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.OpenScope(project, full[0], null, g, reports)
+                : null);
+        // the session's record, as the frame's observation reads it
+        reports.session.clear();
+        java.util.function.Supplier<String> recorded = () -> driver.snapshot().permission()
+                .sessionReport(start.generation(), "DEMO trace");
+        List<Map<String, Object>> sections = List.of(Map.of("kind", "narrative", "text", "DEMO"));
+
+        HttpResponse<String> create = hostedCall(Json.write(Map.of("action", "report", "params",
+                Map.of("name", "DEMO trace", "sections", sections))), TOOL_USE);
+        assertEquals(200, create.statusCode(), create.body());
+        assertEquals(List.of("report"), rendered, "admitted with no approval");
+        assertEquals(new telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.ReportAdmission("DEMO trace", null),
+                admissions.get(0).orElseThrow(), "dispatched as a create");
+        awaitRecorded(recorded, "written-1");
+
+        // the session's own report: a section added needs no approval either
+        reports.session.put("DEMO trace", recorded.get());
+        HttpResponse<String> addSection = hostedCall(Json.write(Map.of("action", "report", "params",
+                Map.of("name", "DEMO trace", "sections", List.of(sections.get(0), sections.get(0))))), TOOL_USE);
+        assertEquals(200, addSection.statusCode(), addSection.body());
+        assertEquals(new telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.ReportAdmission("DEMO trace", "written-1"),
+                admissions.get(1).orElseThrow(), "dispatched as an update of what the session left");
+        awaitRecorded(recorded, "written-2");
+
+        for (Map<String, Object> asked : List.<Map<String, Object>>of(
+                Map.of("name", "Person's findings", "sections", sections),
+                Map.of("name", "DEMO trace", "delete", true),
+                Map.of("name", "Other", "sections", sections, "path", "/tmp/elsewhere-demo.pdf"))) {
+            HttpResponse<String> r = hostedCall(Json.write(Map.of("action", "report", "params", asked)), TOOL_USE);
+            assertEquals(403, r.statusCode(), "needs the person's approval: " + asked);
+        }
+        full[0] = false;
+        HttpResponse<String> safe = hostedCall(Json.write(Map.of("action", "report", "params",
+                Map.of("name", "New in Safe", "sections", sections))), TOOL_USE);
+        assertEquals(403, safe.statusCode(), "Safe analysis is unchanged");
+        assertEquals(2, rendered.size(), "none of the asked calls ran");
+
+        HttpResponse<String> external = http.send(HttpRequest.newBuilder(URI.create(server.url() + "/action"))
+                .header("X-Analyser-Token", "shared").POST(HttpRequest.BodyPublishers.ofString(Json.write(Map.of(
+                        "action", "report", "params", Map.of("name", "From a client", "sections", sections))))).build(),
+                HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, external.statusCode(), external.body());
+        assertTrue(admissions.get(2).isEmpty(), "an external client's report carries no admission: unchanged");
+    }
+
+    private void awaitRecorded(java.util.function.Supplier<String> recorded, String expected) throws Exception {
+        for (int i = 0; i < 100 && !expected.equals(recorded.get()); i++) Thread.sleep(20);
+        assertEquals(expected, recorded.get(), "the session recorded the report it wrote, as it is now");
     }
 
     static final String PLAY = Json.write(Map.of("action", "walk", "params", Map.of("name", "DEMO first breach",

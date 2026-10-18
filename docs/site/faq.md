@@ -57,7 +57,9 @@ models, depends on your account; the same page says so for each plan.
 requests from web pages, and is rate-limited; it runs no shell. The verbs that replace what is open or write files are
 marked destructive, so your client can ask you first, and file writes need their own switch. The
 [security model](admin/security.md) is the full statement: what each assistant profile can do, what is asked, the
-limits that are stated rather than hidden, and what an administrator cannot yet lock.
+limits that are stated rather than hidden, and what an administrator cannot yet lock. One example of what is not asked:
+under Full Claude Code, a `report` call that writes a new report inside the open project needs no approval, while a
+write over an existing report or file, a delete, and anything outside the project are still asked.
 
 ## Why does the Graph panel say “Charts not loaded”?
 

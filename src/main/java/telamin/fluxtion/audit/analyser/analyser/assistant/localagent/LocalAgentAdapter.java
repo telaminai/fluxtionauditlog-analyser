@@ -101,6 +101,14 @@ public final class LocalAgentAdapter {
         default Path sampleProjectRoot() {
             return null;
         }
+
+        /**
+         * Owner 2026-10-18: the active project's reports as a hosted {@code report} call is judged
+         * ({@code McpTools.reportInProject}). The default knows none, so every report call is asked as before.
+         */
+        default telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.ReportState reports() {
+            return null;
+        }
     }
 
     /** Time and delays: real in the application, virtual in the tests. */
@@ -171,7 +179,10 @@ public final class LocalAgentAdapter {
         // owner hands-on test (2026-10-18): the active sample project's root, read when the call is judged — the
         // session works in a scratch folder for it, so its own files were never inside the folder
         Path sample = run.full ? env.sampleProjectRoot() : null;
-        return new telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.OpenScope(Path.of(folder), run.full, sample);
+        // owner 2026-10-18: Full's in-project report writes are judged with the active project's reports and this run's
+        // generation — the session's record of what this run wrote is per generation
+        return new telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.OpenScope(Path.of(folder), run.full, sample,
+                run.generation, run.full ? env.reports() : null);
     }
 
     /** How a draft reads as a command, against the CLI's last {@code initialize.commands}. */
@@ -702,6 +713,8 @@ public final class LocalAgentAdapter {
             synchronized (run) {
                 marked = run.toolMark(pending[2], "open".equals(e.name()) && allow
                         && e.by() == SessionEvents.PermissionBy.PRE_ALLOWED ? OPEN_IN_PROJECT_MARK
+                        : "report".equals(e.name()) && allow && e.by() == SessionEvents.PermissionBy.PRE_ALLOWED
+                        ? REPORT_IN_PROJECT_MARK
                         : markWords(allow, e.by(), e.message()), allow);
             }
             if (marked) textChanged(run);
@@ -721,6 +734,9 @@ public final class LocalAgentAdapter {
     /** Owner 2026-10-18: the mark of an {@code open} of the project's own files, allowed without asking. */
     static final String OPEN_IN_PROJECT_MARK = "allowed: it only opens a log or GraphML inside this project's folder or "
             + "the analyser's own sample";
+
+    /** Owner 2026-10-18: the mark of a Full session's in-project {@code report} write, allowed without asking. */
+    static final String REPORT_IN_PROJECT_MARK = "allowed: writes a new report inside this project";
 
     /** §8.3 UI: the tool line's mark, by who decided. */
     static String markWords(boolean allow, SessionEvents.PermissionBy by) {

@@ -45,6 +45,13 @@ public final class HostedCredentials {
         /** Scorecard R1: the server refused a hosted call itself (a code: GRAPH_DELETE, NOT_LISTED, BAD_CREDENTIAL). */
         default void refused(long generation, String verb, String reason) {
         }
+
+        /**
+         * Owner 2026-10-18: the server wrote report {@code name} for {@code generation} without an approval (Full's
+         * in-project write); it now carries {@code createdAt}. Reported to the session as a fact; nothing waits for it.
+         */
+        default void reportWritten(long generation, String name, String createdAt) {
+        }
     }
 
     /** What the session answers for the hosted bridge — implemented by the session's correlator (HostedAdmission). */
@@ -54,6 +61,10 @@ public final class HostedCredentials {
         String present(long generation, String verb, String inputDigest, String toolUseIdDigest);
 
         void refused(long generation, String verb, String reason);
+
+        /** Owner 2026-10-18: see {@link Gate#reportWritten}. */
+        default void reportWritten(long generation, String name, String createdAt) {
+        }
     }
 
     private final SecureRandom random = new SecureRandom();
@@ -101,6 +112,10 @@ public final class HostedCredentials {
 
             @Override public void refused(long generation, String verb, String reason) {
                 decider.refused(generation, verb, reason);
+            }
+
+            @Override public void reportWritten(long generation, String name, String createdAt) {
+                decider.reportWritten(generation, name, createdAt);
             }
         };
     }

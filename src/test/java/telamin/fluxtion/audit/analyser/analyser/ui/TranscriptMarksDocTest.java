@@ -107,6 +107,10 @@ class TranscriptMarksDocTest {
         drawn.add(words.invoke(null, true, PermissionBy.NON_MUTATING, null) + " · ✓");
         // owner decision 2026-10-18: a graph call that creates or shows a chart is allowed without asking
         drawn.add(words.invoke(null, true, PermissionBy.PRE_ALLOWED, null) + " · ✓");
+        // owner 2026-10-18: Full's in-project report write, allowed without asking — the adapter's own mark for it
+        var reportMark = adapter.getDeclaredField("REPORT_IN_PROJECT_MARK");
+        reportMark.setAccessible(true);
+        drawn.add(reportMark.get(null) + " · ✓");
         Set<String> policy = policyMessages();
         assertTrue(policy.size() >= 10, "the scan of LocalAgentPermission found too few policy denials: " + policy);
         for (PermissionBy by : PermissionBy.values()) {

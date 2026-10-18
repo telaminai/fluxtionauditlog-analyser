@@ -88,6 +88,12 @@ class FaqSecurityContractTest {
                 // owner 2026-10-18: the one narrow open that needs no dialog, and what still asks
                 "Under **Full Claude Code only**", "inside the session's project folder",
                 "Safe analysis asks for every `open`",
+                // owner 2026-10-18: Full's in-project report writes, and what still asks
+                "a `report` call that **writes a new report inside the active project**", "**this session wrote**",
+                "It never writes over an existing file or a report you made",
+                "refuses a report that appeared or changed meanwhile",
+                "**every `report` call in Safe analysis or from an external MCP or REST client** are asked or refused as before",
+                "*allowed: writes a new report inside this project*",
                 "Start button starts full Claude Code",
                 // owner 2026-10-18 (Option 2): the one web read Full makes without asking, and its exact rule
                 "Full may read fluxtion-playground.dev documentation without asking",
@@ -150,6 +156,10 @@ class FaqSecurityContractTest {
         assertFalse(answer.contains("REST transport that lets"), "the switch is External MCP/REST access");
         assertTrue(answer.contains("Claude Code does not need External MCP/REST access on"));
         String whole = faq.replaceAll("\\s+", " ");
+        // owner 2026-10-18: the FAQ names Full's in-project report write and what still asks
+        assertTrue(whole.contains("under Full Claude Code, a `report` call that writes a new report inside the open project "
+                + "needs no approval, while a write over an existing report or file, a delete, and anything outside the "
+                + "project are still asked"), "the FAQ states the in-project report rule");
         assertFalse(whole.contains("local transport") || whole.contains("Assistant / LLM"), "the FAQ's old switch and tab names");
         assertFalse(whole.contains("Profile…") || whole.contains("REST transport that lets"),
                 "the slimmed FAQ must not bring back the old control or switch names (phase 6 review)");

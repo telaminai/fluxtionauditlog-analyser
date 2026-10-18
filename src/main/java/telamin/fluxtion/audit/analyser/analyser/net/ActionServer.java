@@ -327,10 +327,18 @@ public final class ActionServer {
                 }
             }
             String body = new String(ex.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+            // owner 2026-10-18: a hosted report admitted without an approval runs only as it was judged, once
+            var reportAdmitted = new java.util.concurrent.atomic.AtomicReference<
+                    telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.ReportAdmission>();
+            telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.OpenScope scope = null;
             if (hosted != null) {
                 var charts = chartState;
+                var scopes = hostedScopes;
+                long generation = hostedGate.generationOf(hosted);
+                scope = scopes == null ? null : scopes.apply(generation);          // observed ONCE for this call
+                var judged = scope;
                 String refused = hostedRefusal(hostedGate, hosted, body, ex.getRequestHeaders().getFirst(TOOL_USE_HEADER),
-                        charts, hostedScopes);
+                        charts, scopes == null ? null : g -> judged, reportAdmitted);
                 if (refused != null) {
                     send(ex, 403, err(refused));
                     return;
@@ -339,8 +347,21 @@ public final class ActionServer {
             }
             // M74 P2: a hosted call carries its admitted generation, the only way to reach `propose`
             ActionResult r = hosted != null && hostedGate != null
-                    ? dispatcher.dispatchHosted(body, hostedGate.generationOf(hosted))
+                    ? dispatcher.dispatchHosted(body, hostedGate.generationOf(hosted), reportAdmitted.get())
                     : dispatcher.dispatch(body);
+            var admitted = reportAdmitted.get();
+            if (hosted != null && r.ok() && admitted != null && admitted.writesReport() && scope != null
+                    && scope.reports() != null) {
+                // owner 2026-10-18: the session records the report it wrote without an approval, as it is now
+                long generation = hostedGate.generationOf(hosted);
+                String createdAt;
+                try {
+                    createdAt = scope.reports().createdAt(admitted.name());
+                } catch (RuntimeException unknown) {
+                    createdAt = null;
+                }
+                hostedGate.reportWritten(generation, admitted.name(), createdAt);
+            }
             send(ex, r.ok() ? 200 : 400, r.toJson());
         } catch (RuntimeException e) {
             send(ex, 500, err("server error: " + e.getMessage()));
@@ -487,6 +508,18 @@ public final class ActionServer {
     static String hostedRefusal(HostedCredentials.Gate gate, String credential, String body, String toolUseId,
                                 telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.ChartState charts,
                                 java.util.function.LongFunction<telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.OpenScope> scopes) {
+        return hostedRefusal(gate, credential, body, toolUseId, charts, scopes, null);
+    }
+
+    /**
+     * {@link #hostedRefusal(HostedCredentials.Gate, String, String, String, McpTools.ChartState, java.util.function.LongFunction)};
+     * owner 2026-10-18: a {@code report} call admitted without an approval (Full's in-project write) is judged ONCE, and
+     * {@code admitted} receives how — the dispatch runs it only so ({@code McpTools.ReportAdmission}).
+     */
+    static String hostedRefusal(HostedCredentials.Gate gate, String credential, String body, String toolUseId,
+                                telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.ChartState charts,
+                                java.util.function.LongFunction<telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.OpenScope> scopes,
+                                java.util.concurrent.atomic.AtomicReference<telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.ReportAdmission> admitted) {
         long generation = gate == null ? -1 : gate.generationOf(credential);
         if (generation < 0) {
             return BAD_HOSTED_CREDENTIAL;
@@ -513,8 +546,15 @@ public final class ActionServer {
             // every other call of the verb still needs the person's grant
             // owner decision 2026-10-18: a graph call that creates a chart or changes only the view is admitted as the
             // pre-allowed verbs are; one that deletes, renames, restores or replaces a chart's definition needs the grant
-            var kind = telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.hostedCallKind(action, params, charts,
-                    scopes == null ? null : scopes.apply(generation));
+            var scope = scopes == null ? null : scopes.apply(generation);
+            // owner 2026-10-18: a report is judged once — its admission IS the classification, never re-read
+            var reportAdmission = "report".equals(action) && params instanceof Map<?, ?> rp
+                    ? telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.reportInProject(rp, scope) : null;
+            var kind = reportAdmission != null
+                    ? telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallKind.PRE_ALLOWED
+                    : telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.hostedCallKind(action, params, charts,
+                    "report".equals(action) ? null : scope);
+            if (reportAdmission != null && admitted != null) admitted.set(reportAdmission);
             if (kind == telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallKind.NON_MUTATING
                     || kind == telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallKind.PRE_ALLOWED) {
                 return gate.admit(generation, verb);

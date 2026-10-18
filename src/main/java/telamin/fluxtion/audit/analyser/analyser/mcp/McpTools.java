@@ -182,10 +182,53 @@ public final class McpTools {
      * {@code open} is asked (fail-closed). The external REST and MCP clients never have one: this is only ever judged
      * for a hosted call.
      */
-    public record OpenScope(java.nio.file.Path projectRoot, boolean full, java.nio.file.Path sampleRoot) {
+    public record OpenScope(java.nio.file.Path projectRoot, boolean full, java.nio.file.Path sampleRoot, long generation,
+                            ReportState reports) {
         /** The session's project folder only — no analyser-owned project is active. */
         public OpenScope(java.nio.file.Path projectRoot, boolean full) {
             this(projectRoot, full, null);
+        }
+
+        /** No report state: every {@code report} call is judged as before (owner 2026-10-18's pre-allow needs one). */
+        public OpenScope(java.nio.file.Path projectRoot, boolean full, java.nio.file.Path sampleRoot) {
+            this(projectRoot, full, sampleRoot, 0, null);
+        }
+    }
+
+    /**
+     * Owner 2026-10-18: what a hosted {@code report} call's classification needs, observed when the call is judged — the
+     * ACTIVE project (whose profile stores its reports), the reports it holds, the session's own writes and where a
+     * {@code path} would land. Absent (null) or unknown, every call is asked as before (fail-closed).
+     */
+    public interface ReportState {
+        /** The active project's root, or null: no project is active, and no report is written "inside" one. */
+        java.nio.file.Path projectRoot();
+
+        /** Whether a report called {@code name} exists now. */
+        boolean holds(String name);
+
+        /** The {@code createdAt} report {@code name} carries now, or null when there is none. */
+        String createdAt(String name);
+
+        /**
+         * The {@code createdAt} report {@code name} carried after hosted generation {@code generation} wrote it without an
+         * approval (the session's record, {@code PermissionState.sessionReport}), or null.
+         */
+        String sessionCreatedAt(long generation, String name);
+
+        /** Where a verb-supplied {@code path} would be written (the exchange guard's own resolution), or null if refused. */
+        java.nio.file.Path resolveOutput(String path);
+    }
+
+    /**
+     * Owner 2026-10-18: a hosted {@code report} call admitted without an approval, and what it may do — run, the server
+     * requires, only as judged: {@code name} the report it writes (null: it writes only a file), {@code expectCreatedAt}
+     * the createdAt that report must still carry (null: it must not exist — a create).
+     */
+    public record ReportAdmission(String name, String expectCreatedAt) {
+        /** Whether the call writes a report into the project's profile, not only a file. */
+        public boolean writesReport() {
+            return name != null;
         }
     }
 
@@ -229,6 +272,8 @@ public final class McpTools {
                 if (Boolean.TRUE.equals(p.get("restore")) && keys(p).equals(Set.of("restore"))) return nonMutating();
             }
             case "report" -> {
+                // owner 2026-10-18: Full's write of a NEW report (or this session's own) inside the active project
+                if (reportInProject(p, scope) != null) return preAllowed();
                 // final review #2: the operation is VerbOperations.report's — the executor's and the dialog's choice
                 VerbOperations.ReportOp op = VerbOperations.report(p).op();
                 if (op == VerbOperations.ReportOp.LIST_DELETED) return nonMutating();
@@ -270,6 +315,74 @@ public final class McpTools {
             }
         }
         return true;
+    }
+
+    /**
+     * Owner 2026-10-18: whether a hosted {@code report} call only writes something NEW inside the active project, in FULL
+     * Claude Code — and if so the {@link ReportAdmission} the server runs it under; null (asked, as before) otherwise.
+     *
+     * <ul>
+     *   <li>A build ({@code VerbOperations.ReportOp.BUILD}) of a report no report holds the name of (a create), or of a
+     *       report this session wrote without an approval that still carries the createdAt it had after that write (an
+     *       update of its own report — adding a section, retitling it).</li>
+     *   <li>The single-record finding and a CSV export, which write only a file.</li>
+     *   <li>Any {@code path} must resolve, through the exchange guard, to a file that does not exist yet, whose nearest
+     *       existing folder's REAL path (links resolved) is inside the active project's real root.</li>
+     * </ul>
+     * Everything else stays as before: a delete, a rename, a restore, a bundle, any write over an existing report the
+     * session did not make, any path outside the project or over an existing file, no active project, and every call in
+     * Safe analysis or from an external client (which never has a scope).
+     */
+    public static ReportAdmission reportInProject(Map<?, ?> p, OpenScope scope) {
+        if (scope == null || !scope.full() || scope.reports() == null || scope.generation() <= 0) return null;
+        ReportState reports = scope.reports();
+        java.nio.file.Path root;
+        try {
+            java.nio.file.Path r = reports.projectRoot();
+            if (r == null) return null;
+            root = r.toRealPath();
+        } catch (java.io.IOException | RuntimeException e) {
+            return null;
+        }
+        VerbOperations.Chosen<VerbOperations.ReportOp> chosen = VerbOperations.report(p);
+        if (!chosen.ok()) return null;
+        VerbOperations.ReportOp op = chosen.op();
+        if (op != VerbOperations.ReportOp.BUILD && op != VerbOperations.ReportOp.FINDING
+                && op != VerbOperations.ReportOp.CSV) {
+            return null;
+        }
+        Object path = p.get("path");
+        if (path != null && !newFileInside(path, reports, root)) return null;
+        if (op != VerbOperations.ReportOp.BUILD) return path == null ? null : new ReportAdmission(null, null);
+        String name = reportName(p.get("name"));
+        try {
+            if (!reports.holds(name)) return new ReportAdmission(name, null);
+            String own = reports.sessionCreatedAt(scope.generation(), name);
+            String now = reports.createdAt(name);
+            return own != null && own.equals(now) ? new ReportAdmission(name, now) : null;
+        } catch (RuntimeException unknown) {
+            return null;
+        }
+    }
+
+    /** The name a build writes, as the report's own record normalises it ({@code ReportSpec}): trimmed, "report" if blank. */
+    static String reportName(Object name) {
+        String s = name == null ? null : name.toString();
+        return s == null || s.isBlank() ? "report" : s.trim();
+    }
+
+    /** Whether {@code path} lands on a file that does not exist, under a folder whose real path is inside {@code root}. */
+    private static boolean newFileInside(Object path, ReportState reports, java.nio.file.Path root) {
+        if (!(path instanceof String s) || s.isBlank()) return false;
+        try {
+            java.nio.file.Path out = reports.resolveOutput(s);
+            if (out == null || java.nio.file.Files.exists(out, java.nio.file.LinkOption.NOFOLLOW_LINKS)) return false;
+            java.nio.file.Path ancestor = out.toAbsolutePath().normalize().getParent();
+            while (ancestor != null && !java.nio.file.Files.exists(ancestor)) ancestor = ancestor.getParent();
+            return ancestor != null && ancestor.toRealPath().startsWith(root);
+        } catch (java.io.IOException | RuntimeException e) {
+            return false;
+        }
     }
 
     /** A hosted {@code graph} call, judged: the one judgement the kind and the server's constraint share. */

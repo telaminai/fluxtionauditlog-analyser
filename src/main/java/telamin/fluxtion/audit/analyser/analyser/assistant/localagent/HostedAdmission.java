@@ -68,6 +68,12 @@ public final class HostedAdmission implements telamin.fluxtion.audit.analyser.an
         post.accept(new SessionEvents.HostedCallRefusedByServer(generation, verb, reason));
     }
 
+    /** Owner 2026-10-18: the server wrote a report without an approval — a fact for the session; nothing waits for it. */
+    @Override
+    public void reportWritten(long generation, String name, String createdAt) {
+        post.accept(new SessionEvents.HostedReportWritten(generation, name, createdAt));
+    }
+
     private String ask(long generation, java.util.function.LongFunction<Object> fact) {
         long call = calls.incrementAndGet();
         CompletableFuture<Optional<String>> answer = new CompletableFuture<>();

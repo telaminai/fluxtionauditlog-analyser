@@ -1986,7 +1986,8 @@ public final class MainFrame extends JFrame {
     }
 
     private telamin.fluxtion.audit.analyser.analyser.llm.ActionResult reportVerb(
-            java.util.Map<String, Object> params, String resolvedPath) {
+            java.util.Map<String, Object> params, String resolvedPath,
+            telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.ReportAdmission admission) {
         if (store == null) {
             return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("no log is loaded");
         }
@@ -2108,6 +2109,10 @@ public final class MainFrame extends JFrame {
         var parsed = telamin.fluxtion.audit.analyser.analyser.report.ReportVerb.parse(params, fp,
                 telamin.fluxtion.audit.analyser.analyser.report.FilterSnapshot.of(filter));
         var existing = reportByName(parsed.spec().name());
+        // owner 2026-10-18: a hosted call admitted without an approval writes only what was judged, here, on the EDT — a
+        // report that appeared or changed meanwhile is refused, never replaced
+        String unadmitted = unadmittedReportWrite(admission, parsed.spec().name(), existing);
+        if (unadmitted != null) return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(unadmitted);
         // #46: absent means UNCHANGED, not empty. Retitling a report, or adding a path to render its
         // PDF, used to wipe every section it had.
         var spec = parsed.onto(existing);
@@ -2173,6 +2178,29 @@ public final class MainFrame extends JFrame {
             echo.put("producer", producer.messages());
         }
         return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("report", "applied", echo);
+    }
+
+    /**
+     * Owner 2026-10-18: why a build admitted without an approval may not run now, or null. Its admission named the report
+     * and what it must carry: nothing (a create — no report of that name may exist) or the createdAt the session's own
+     * report had (an update — it must still carry it). A file-only admission (a finding, a CSV) writes no report.
+     */
+    static String unadmittedReportWrite(telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.ReportAdmission admission,
+                                        String name, telamin.fluxtion.audit.analyser.analyser.report.ReportSpec existing) {
+        if (admission == null) return null;
+        String again = " — the call was allowed without asking you only as a new report, so nothing was changed; ask "
+                + "again and the person is asked";
+        if (!admission.writesReport() || !admission.name().equals(name)) {
+            return "report '" + name + "' is not the report this call was allowed to write" + again;
+        }
+        if (admission.expectCreatedAt() == null && existing != null) {
+            return "a report named '" + name + "' exists now" + again;
+        }
+        if (admission.expectCreatedAt() != null
+                && (existing == null || !admission.expectCreatedAt().equals(existing.createdAt()))) {
+            return "report '" + name + "' changed since this session wrote it" + again;
+        }
+        return null;
     }
 
     /**
@@ -5208,6 +5236,9 @@ public final class MainFrame extends JFrame {
                 return MainFrame.this::chartExistsNow;
             }
             @Override public Path sampleProjectRoot() { return sampleProjectRootNow(); }
+            @Override public telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.ReportState reports() {
+                return hostedReportState;
+            }
         };
         localAgentAdapter = new telamin.fluxtion.audit.analyser.analyser.assistant.localagent.LocalAgentAdapter(
                 new telamin.fluxtion.audit.analyser.analyser.assistant.localagent.ClaudeCodeProvider(),
@@ -5313,6 +5344,52 @@ public final class MainFrame extends JFrame {
         return telamin.fluxtion.audit.analyser.analyser.assistant.localagent.LocalAgentFolders.workingDirectory(
                 projectRoot(), Path.of(System.getProperty("user.home")),
                 telamin.fluxtion.audit.analyser.bundle.EvidenceBundle::isWorkingCopy, this::localAgentScratchDirectory);
+    }
+
+    /**
+     * Owner 2026-10-18: the active project's reports, observed for a hosted {@code report} call's judgement — read on the
+     * EDT (the project and its reports are EDT state; the session's record comes from the snapshot). From another thread
+     * each read waits at most 2 s and, unanswered, is the fail-closed answer: no project, a name taken, nothing the
+     * session's, nowhere to write.
+     */
+    private final telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.ReportState hostedReportState =
+            new telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.ReportState() {
+                @Override public Path projectRoot() { return onEdtOr(MainFrame.this::projectRoot, null); }
+
+                @Override public boolean holds(String name) { return onEdtOr(() -> reportByName(name) != null, true); }
+
+                @Override public String createdAt(String name) {
+                    return onEdtOr(() -> {
+                        var r = reportByName(name);
+                        return r == null ? null : r.createdAt();
+                    }, null);
+                }
+
+                @Override public String sessionCreatedAt(long generation, String name) {
+                    return sessionSnapshot().permission().sessionReport(generation, name);
+                }
+
+                @Override public Path resolveOutput(String path) {
+                    return onEdtOr(() -> {
+                        var out = telamin.fluxtion.audit.analyser.analyser.llm.ExportGuard.resolve(path,
+                                config.assistantExports,
+                                telamin.fluxtion.audit.analyser.analyser.config.ExchangeDir.of(config).dir());
+                        return out.ok() ? out.path() : null;
+                    }, null);
+                }
+            };
+
+    /** {@code read} on the EDT; from another thread at most 2 s, else {@code otherwise}. */
+    private <T> T onEdtOr(java.util.concurrent.Callable<T> read, T otherwise) {
+        try {
+            if (SwingUtilities.isEventDispatchThread()) return read.call();
+            var task = new java.util.concurrent.FutureTask<>(read);
+            SwingUtilities.invokeLater(task);
+            return task.get(2, java.util.concurrent.TimeUnit.SECONDS);
+        } catch (Exception unknown) {
+            if (unknown instanceof InterruptedException) Thread.currentThread().interrupt();
+            return otherwise;
+        }
     }
 
     /**
@@ -10554,7 +10631,14 @@ public final class MainFrame extends JFrame {
         @Override
         public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult report(
                 java.util.Map<String, Object> params, String resolvedPath) {
-            return MainFrame.this.reportVerb(params, resolvedPath);
+            return MainFrame.this.reportVerb(params, resolvedPath, null);
+        }
+
+        @Override
+        public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult report(
+                java.util.Map<String, Object> params, String resolvedPath,
+                telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.ReportAdmission admission) {
+            return MainFrame.this.reportVerb(params, resolvedPath, admission);
         }
 
         @Override

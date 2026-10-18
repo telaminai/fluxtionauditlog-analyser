@@ -113,6 +113,9 @@ public class LocalAgentPermission implements EventLogSource {
     /** The CLI's built-in web fetch tool, by its vocabulary name. */
     static final String WEB_FETCH = "WebFetch";
 
+    /** Owner 2026-10-18: why a Full session's in-project {@code report} write was allowed without asking. */
+    public static final String REPORT_IN_PROJECT = "it writes a new report inside this project";
+
     /** Review M74 usability #10c: how many requests may wait behind an open dialog; one more is denied as busy. */
     public static final int MAX_QUEUED = 8;
 
@@ -138,6 +141,13 @@ public class LocalAgentPermission implements EventLogSource {
     private long decisions;
     /** #10c: requests waiting behind the open dialog — ref, generation, ticket, class, name, input, tool_use digests. */
     private List<String[]> queued = new ArrayList<>();
+    /**
+     * Owner 2026-10-18: the reports the current generation's session wrote in the active project without an approval —
+     * name → the createdAt the report carried after it ({@link SessionEvents.HostedReportWritten}). Another generation's
+     * fact starts the record again.
+     */
+    private long reportsGeneration;
+    private java.util.Map<String, String> sessionReports = new java.util.LinkedHashMap<>();
     /** #10a: the frame's observation of file exchange; until it reports, nothing is refused for it. */
     private boolean fileExchangeObserved;
     private boolean fileExchangeOn;
@@ -512,6 +522,26 @@ public class LocalAgentPermission implements EventLogSource {
     }
 
     /**
+     * Owner 2026-10-18: the server wrote a report for a hosted session without an approval (Full Claude Code, inside the
+     * active project; {@code McpTools.reportInProject}). Recorded for that generation only — a fact of a generation that
+     * is not the current one is stale and recorded nowhere; a new generation starts the record again. At most 64 kept.
+     */
+    @OnEventHandler(propagate = false)
+    public boolean onHostedReportWritten(SessionEvents.HostedReportWritten e) {
+        auditLog.info("localAgentHostedReport", e.generation()).info("current", localAgent.currentGeneration());
+        if (e.generation() == 0 || e.generation() != localAgent.currentGeneration() || e.name() == null) return false;
+        if (reportsGeneration != e.generation()) {
+            reportsGeneration = e.generation();
+            sessionReports = new java.util.LinkedHashMap<>();
+        }
+        sessionReports.remove(e.name());
+        if (e.createdAt() != null) sessionReports.put(e.name(), e.createdAt());
+        while (sessionReports.size() > 64) sessionReports.remove(sessionReports.keySet().iterator().next());
+        dirty = true;
+        return false;
+    }
+
+    /**
      * Holistic review B4 (2026-10-17): a hosted call gave up waiting and the server refused it. If this node admitted it
      * — consuming the person's one grant — the record must not say "admitted" alone: the call never ran. The grant stays
      * consumed (VOID: it is never restored, so a later identical call is refused as "used", consistently), the record says
@@ -598,6 +628,7 @@ public class LocalAgentPermission implements EventLogSource {
             case NON_MUTATING -> what + " was allowed: it changes nothing";
             case PRE_ALLOWED -> "open".equals(name) ? what + " was allowed: it only opens a log or GraphML inside this "
                     + "project's folder or the analyser's own sample"
+                    : "report".equals(name) ? what + " was allowed: " + REPORT_IN_PROJECT
                     : WEB_FETCH.equals(name) ? what + " was allowed: it reads the Fluxtion documentation at "
                     + telamin.fluxtion.audit.analyser.analyser.session.LocalAgentPosture.DOCS_DOMAIN
                     : what + " was allowed: it creates or shows a chart";
@@ -656,9 +687,10 @@ public class LocalAgentPermission implements EventLogSource {
     public PermissionState state() {
         if (dirty) {
             published = pendingRef == 0
-                    ? new PermissionState(0, 0, null, null, 0, liveGrants(), decisions, queued.size())
+                    ? new PermissionState(0, 0, null, null, 0, liveGrants(), decisions, queued.size(), reportsGeneration,
+                    sessionReports)
                     : new PermissionState(pendingRef, pendingGeneration, ToolClass.valueOf(pendingClass), pendingName,
-                    DEADLINE_MS, liveGrants(), decisions, queued.size());
+                    DEADLINE_MS, liveGrants(), decisions, queued.size(), reportsGeneration, sessionReports);
             dirty = false;
         }
         return published;

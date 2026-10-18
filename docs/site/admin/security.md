@@ -139,6 +139,15 @@ what is open or write files are visible to it, but **before Claude Code runs any
   the real path when the call arrives; a link changed between that check and the open is the residual. While the
   analyser's own **sample project** is the active project, its folder counts too (its session works in a scratch
   folder, so the sample's log and GraphML would otherwise always be asked); an evidence bundle's working copy does not.
+- Under **Full Claude Code only**, a `report` call that **writes a new report inside the active project** is allowed
+  without a dialog: creating a report no report holds the name of, adding a section to (or otherwise updating) a report
+  **this session wrote**, while it still carries what the session left, and a new file — the report's PDF, a
+  single-record finding, a CSV — into the exchange folder when its real path (links resolved) is inside the project. It
+  never writes over an existing file or a report you made: the analyser re-checks the name on the event thread just
+  before it writes, and refuses a report that appeared or changed meanwhile. A write over your report or an existing
+  file, a delete, a rename, a restore, an evidence bundle, any path outside the project, no project open, and **every
+  `report` call in Safe analysis or from an external MCP or REST client** are asked or refused as before. The tool line
+  reads *allowed: writes a new report inside this project*.
 - **A request is approved only with its own input on screen.** A waiting request keeps its input until it is answered
   or withdrawn; if it is ever missing, the dialog says so and keeps *Allow once* disabled, and an allow that still
   arrives is sent to Claude Code as a deny.

@@ -84,7 +84,31 @@ public final class ActionDispatcher {
      * is unknown, in the same words as any unknown verb.
      */
     public ActionResult dispatchHosted(String jsonBody, long generation) {
-        return dispatch(jsonBody, generation < 0 ? -1 : generation);
+        return dispatchHosted(jsonBody, generation, null);
+    }
+
+    /**
+     * Owner 2026-10-18: {@link #dispatchHosted(String, long)} for a {@code report} call the server admitted WITHOUT an
+     * approval: {@code admission} says what it may write, and the executor refuses anything else (a report that appeared
+     * or changed meanwhile is not replaced). Transport metadata, for the call's own duration, like {@link #servingHosted}.
+     */
+    public ActionResult dispatchHosted(String jsonBody, long generation,
+                                       telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.ReportAdmission admission) {
+        var previous = REPORT_ADMISSION.get();
+        if (admission != null) REPORT_ADMISSION.set(admission); else REPORT_ADMISSION.remove();
+        try {
+            return dispatch(jsonBody, generation < 0 ? -1 : generation);
+        } finally {
+            if (previous == null) REPORT_ADMISSION.remove(); else REPORT_ADMISSION.set(previous);
+        }
+    }
+
+    private static final ThreadLocal<telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.ReportAdmission> REPORT_ADMISSION =
+            new ThreadLocal<>();
+
+    /** The admission of the hosted {@code report} call this thread is serving without an approval, or null. */
+    public static telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.ReportAdmission hostedReportAdmission() {
+        return REPORT_ADMISSION.get();
     }
 
     private ActionResult dispatch(String jsonBody, long hostedGeneration) {

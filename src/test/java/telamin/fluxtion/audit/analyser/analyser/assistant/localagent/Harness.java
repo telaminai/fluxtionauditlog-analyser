@@ -47,6 +47,8 @@ final class Harness {
     SessionEvents.LocalAgentConsent consent;
     /** The analyser's own environment as the adapter reads it (the GUI PATH in a full-posture test). */
     Map<String, String> environment;
+    /** Owner 2026-10-18: the active project's reports as the environment reports them (null: none known). */
+    telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.ReportState reports;
 
     /** Deliver facts that arrived on other threads, on this one. */
     void drain() {
@@ -94,6 +96,7 @@ final class Harness {
             }
             @Override public Path userHome() { return home; }
             @Override public Path scratchFolder() { return scratch; }
+            @Override public telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.ReportState reports() { return reports; }
             @Override public List<String> fullTrustRecords() {
                 // review B7: the working folder is trusted as it is when first asked, unless a test set its own records
                 if (fullTrust == null) {

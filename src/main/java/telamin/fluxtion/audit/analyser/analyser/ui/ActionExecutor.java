@@ -271,6 +271,8 @@ public final class ActionExecutor implements RenderExecutor {
                 var chosen = telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.report(params);
                 if (!chosen.ok()) return ActionResult.error(chosen.error());
                 var op = chosen.op();
+                // owner 2026-10-18: read on the calling thread, before the event thread runs the verb (like caller())
+                var admission = telamin.fluxtion.audit.analyser.analyser.llm.ActionDispatcher.hostedReportAdmission();
                 // evidence bundle capture (convergence): the investigation packed as one .fexp — the session decides
                 if (op == telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.ReportOp.BUNDLE) {
                     Map<?, ?> b = (Map<?, ?>) params.get("bundle");
@@ -304,7 +306,7 @@ public final class ActionExecutor implements RenderExecutor {
                     final String rp = resolved;
                     return onEdt(() -> app == null
                             ? ActionResult.error("'report' is not enabled here")
-                            : app.report(params, rp));
+                            : admission == null ? app.report(params, rp) : app.report(params, rp, admission));
                 }
                 var out = guardedPath(params.get("path"));   // B1: opt-in + confined; verbs never write elsewhere
                 if (!out.ok()) return ActionResult.error(out.error());
