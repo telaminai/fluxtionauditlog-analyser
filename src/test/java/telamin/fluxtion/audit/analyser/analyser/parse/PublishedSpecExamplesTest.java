@@ -30,7 +30,7 @@ class PublishedSpecExamplesTest {
 
     private static final Path SPEC = Path.of("docs/site/format-spec.md");
     private static final Path DESIGN = Path.of("docs/specs/completed/spec-audit-stream-end.md");
-    private static final Path ASSISTANT = Path.of("docs/site/user-guide/assistant.md");
+    private static final Path LOG_FORMAT = Path.of("docs/site/log-format.md");   // "Is the log whole?" (docs restructure)
 
     /** Every fenced yaml block in a page that contains a stream-end key. */
     private static List<String> markerExamples(Path page) throws IOException {
@@ -103,13 +103,13 @@ class PublishedSpecExamplesTest {
      */
     @Test
     void theHumanFacingPageGivesEveryStateItsOwnRow() throws IOException {
-        String page = Files.readString(ASSISTANT, StandardCharsets.UTF_8);
+        String page = Files.readString(LOG_FORMAT, StandardCharsets.UTF_8);
         assertTrue(page.contains("log.streamEnd"),
                 "the page must name the context key a reader will search for");
         for (StreamEnd.State s : StreamEnd.State.values()) {
             String row = "| `" + s.name().toLowerCase(java.util.Locale.ROOT) + "` |";
             assertTrue(page.contains(row),
-                    () -> "state " + row + " can appear in `context` and has no row in " + ASSISTANT
+                    () -> "state " + row + " can appear in `context` and has no row in " + LOG_FORMAT
                             + "'s state table. A state a reader meets and cannot look up is worse than "
                             + "no state at all.");
         }

@@ -14,22 +14,25 @@ The main window at a glance:
   **Columns** above it. The toggle shows or hides the event-type checklist between the Search row and
   the table.
 - **Record detail** (below the table) — the selected record's `nodeLogs`.
-- **Right-hand tabs** — Summary, Source, Graph and the Analyser assistant.
+- **Right-hand tabs** — Summary, Source, Graph, Topology, Reports and the Analyser assistant.
 - **Status bar** (bottom) — record count, time span and the open file.
 
 ## The records table
 
 One row per **event cycle** (one propagation of the processor). Columns include the log time, the
-event, the callback, the thread and a node-count.
+event, the callback, the thread and a node-count. All times are shown in **UTC**.
 
 - **Sort** by clicking a column header; **show/hide** columns from the **Columns** menu.
 - **Select** a row to load it into the detail viewer; Shift/⌘-click to select several (the assistant
   sends all of them).
 - **Anomaly tints** — rows with a parse-error, a breach or a `NaN` are highlighted; jump between them
   with **⚠ Next / ⚠ Prev** (**F3 / Shift+F3**).
-- **Right-click** a row: *Diff selected two records*, the assistant's questions (*What happened here?*, *Compare these rows*, *Explain this finding* — see [Asking about what is on screen](assistant.md#asking-about-what-is-on-screen)), *Flag / unflag*.
+- **Right-click** a row: *Diff selected two records*, the assistant's questions (*What happened here?*, *Compare these rows*, *Explain this finding* — see [Asking about what is on screen](../inapp/ask.md)), *Flag / unflag*.
 - **Flag** rows with **F** to bookmark findings; *Records ▸ Show flagged only* focuses on them;
   *Records ▸ Copy selected as YAML* copies them to the clipboard.
+- **Export** the records the filter shows with **Audit log ▸ Export records (CSV)…** or **Audit log ▸ Export records
+  (YAML)…**, to a file you choose. A YAML export opens in the analyser again. A log read through the binary reader
+  cannot be exported as YAML.
 
 ## Flagging & focus
 
@@ -43,7 +46,7 @@ everything you (or the assistant) marked as relevant, while the counts and time 
 
 ![Flagged records are tinted in the table, and carry the note you filed them with](../assets/flagged-only.png)
 
-Because flagging is also one of the assistant's [actions](assistant.md), an agent's findings land here
+Because flagging is also one of the assistant's [actions](../reference/verbs.md#actions-the-assistant-can-take), an agent's findings land here
 as flags too — with a note attached — so its conclusions become a reviewable set in your own view, not
 just text in a chat.
 
@@ -53,7 +56,7 @@ Below the table, the selected record's **`nodeLogs`** in colourised YAML — the
 node that ran in that cycle and the values it logged.
 
 - **Click a nodeLog line** to open that node's source at the method that ran (needs
-  [source roots](../getting-started.md#source-roots)).
+  [source roots](../admin/settings.md#source-roots-project)).
 - **Click the event / `eventToString`** line to jump the Source view to the processor's handler for the
   cycle.
 - **Right-click anywhere on a node line** to add any of its values to a graph — current, named, or new.
@@ -112,7 +115,7 @@ undo beside the filter you did not mean.
 
 Because there's one filter and one log, the assistant can **drive these same controls** — filter to a
 window, jump to a record, plot a series — and you see the result in the very views you're already
-reading. See the [Assistant](assistant.md).
+reading. See [Ask the assistant](../inapp/ask.md).
 
 ## Summary
 

@@ -387,8 +387,8 @@ def write_page(f, turns, s, shown, verify, size, sha, members, images=True, dock
     lines += [
         "## Your own questions",
         "",
-        "The live assistant needs a provider of your own (Settings ▸ Assistant), or none at all if you connect a CLI "
-        "assistant instead — see [Connecting an LLM](../connect-an-llm.md). With no provider configured it sends "
+        "The live assistant needs a provider of your own (the *In-app assistant* card, or Settings ▸ LLM), or none at all if you connect a CLI "
+        "assistant instead — see [Connect your client](../connect-an-llm.md). With no provider configured it sends "
         "nothing, and says so:",
         "",
         "![The docked assistant with no provider configured](../assets/journeys/assistant-docked-no-provider.png)"

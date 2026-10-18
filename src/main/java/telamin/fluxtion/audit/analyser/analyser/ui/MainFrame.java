@@ -10651,7 +10651,7 @@ public final class MainFrame extends JFrame {
             // open, including "unknown" — an agent that cannot tell complete from unverified will read
             // silence as success, which is the failure the whole contract exists to prevent (D-T8).
             // Human surface: the status bar ("· complete") and the existing source-diagnostic line (the
-            // states that have something to report). Docs: user-guide/assistant.md ▸ "Is this log whole?"
+            // states that have something to report). Docs: log-format.md ▸ "Is the log whole?"
             // and site/format-spec.md §1a. The pointer said log-sources.md, which never mentioned it.
             if (!log.isEmpty() && store != null) {
                 log.put("streamEnd", streamEndFacts(store.streamEnd(), store.size()));

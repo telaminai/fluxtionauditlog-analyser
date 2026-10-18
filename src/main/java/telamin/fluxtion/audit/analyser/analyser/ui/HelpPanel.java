@@ -10,9 +10,9 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
 /**
- * Static help page (spec §8.10) rendered from the bundled {@code /help/help.html} in a read-only
- * {@link JEditorPane}. Explains the UI, Fluxtion audit logs, filtering/graphing/source and the LLM
- * workflow.
+ * Help ▸ User guide (spec §8.10): the bundled {@code /help/help.html} in a read-only {@link JEditorPane}. Since the docs
+ * restructure (2026-10-18) it is a page of deep links into the docs site, the one source of truth, with a few offline
+ * essentials; {@code DocsUrlResolutionTest.helpPageLinksResolve} checks every link.
  */
 public final class HelpPanel extends JPanel {
 

@@ -31,6 +31,8 @@ target/
 build/
 !**/src/main/**/build/
 !**/src/test/**/build/
+# the docs site's Build with Claude section (docs restructure, 2026-10-17)
+!docs/site/build/
 
 ### VS Code ###
 .vscode/

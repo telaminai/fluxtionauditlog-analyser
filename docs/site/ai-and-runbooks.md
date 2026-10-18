@@ -1,7 +1,7 @@
 # Runbooks, glossary and saved analyses — how an AI uses them
 
 A project profile carries three things an AI acts on: **runbook pointers**, a **glossary** pointer and
-**saved analyses** (*User guide ▸ Portable context*). This page is the operating manual for the AI side:
+**saved analyses** ([Portable context](user-guide/projects.md#portable-context-what-the-team-knows)). This page is the operating manual for the AI side:
 how the in-app assistant or an LLM connected over MCP **finds** them, **uses** them, and **creates or
 updates** them — and the one thing it never does.
 
@@ -131,8 +131,8 @@ sequenceDiagram
 1. Read `context.runbooks`; pick the pointer by name.
 2. **Read the file yourself** — `resolved` is the path on this machine — with your file tools.
 3. Do what it says with your own tools or through the deployment side's own MCP surface. Nothing in the
-   analyser will do it for you, by design (the analyser gains no server-side code; see *The build-with-AI
-   loop*).
+   analyser will do it for you, by design (the analyser gains no server-side code; see
+   [Build with Claude](build/index.md)).
 
 A prompt that uses this well:
 
@@ -253,17 +253,9 @@ If you are not authoring a processor with an assistant, you can ignore both.
 
 ## Is an AI client reaching this window?
 
-The status bar carries a light that answers exactly that:
-
-| Light | Means |
-|---|---|
-| **MCP ready** (green) | this window is serving — an AI client pointed here reaches *this* log |
-| **MCP elsewhere** (amber) | **another analyser window owns the endpoint**; a client using it is reading that window's log, not this one |
-| **MCP starting** (amber) | enabled, but no live endpoint published yet |
-| **MCP off** (grey) | External MCP/REST access is off — a choice, not a fault |
-
-If the window that owns the endpoint **closes**, a window with External MCP/REST access on takes the endpoint back within a few
-seconds and its light returns to **MCP ready** — a live owner is never displaced, so two windows cannot fight over it.
+The status bar carries a light that answers exactly that: **MCP ready** means this window is serving, and **MCP
+elsewhere** means another analyser window owns the endpoint, so a client is reading that window's log.
+[Troubleshooting ▸ Which window is serving](diagnose/troubleshooting.md#which-window-is-serving) has every state.
 
 *Ready* is not *connected*. This window being reachable and a client actually talking to it are two
 different facts: the first is true continuously, the second only at the moment you measure it. If you
@@ -287,9 +279,9 @@ description: Restart the quote service after a config change; when to use, what 
 Two things follow. A runbook pointer can target a skill file directly — `runbook.0.path=.claude/skills/restart/SKILL.md`
 — so one file is both the team's runbook and a Claude Code skill, and any harness that reads that shape gets
 it too. And the `description` is what lets a model decide *which* runbook is relevant before opening any
-of them; a planned slice (M38.8) surfaces it in `context.runbooks[]` as `runbook.N.description`, so
-runbooks written this way today need no rewriting then. Nothing in the analyser parses the frontmatter;
-the convention just makes the two worlds the same file.
+of them; it is surfaced in `context.runbooks[]` as `runbook.N.description`
+([The description, and where it comes from](#the-description-and-where-it-comes-from)). The analyser reads the frontmatter only to prefill the
+Add dialog; what it stores and serves is what you confirm. The convention just makes the two worlds the same file.
 
 ## What the analyser will refuse
 

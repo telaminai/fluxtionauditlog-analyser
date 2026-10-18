@@ -260,7 +260,7 @@ rung; otherwise the item is reported as *no effect shown*, not as a saving.
     `context.baselines` section, as reports and walks are) when M39 ships. `VerbSchemasTest` pins 18 verbs today (`import` included); `compare` makes 19, and a
     writing M39 `baseline` verb 20;
     each addition is a Decisions entry, because that test pins the set, and changes the tool list,
-    `/manifest`, the verb reference in `docs/site/user-guide/assistant.md` and the schemas together.
+    `/manifest`, the verb reference in `docs/site/reference/verbs.md` and the schemas together.
   - **Condition 1 — rule 9.** The second export is parsed, compared and discarded **inside the call**: no cached
     index, no "current comparison". If paging the first N differences ever needs a cache, that cache is session
     state and gets its own node, effect and fact. The chosen baseline (D-N4) comes from the `SessionSnapshot`, and

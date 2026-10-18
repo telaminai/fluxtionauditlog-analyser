@@ -10,6 +10,13 @@ edit_uri: edit/main/docs/site/
 docs_dir: docs/site
 site_dir: target/docs-site
 
+# Broken anchors fail the strict build too (MkDocs reports them only as INFO by default).
+validation:
+  omitted_files: warn
+  absolute_links: warn
+  unrecognized_links: warn
+  anchors: warn
+
 # assets/README.md is a contributor note about the screenshots, not a site page.
 exclude_docs: |
   assets/README.md
@@ -76,6 +83,17 @@ markdown_extensions:
 
 plugins:
   - search
+  # Every moved or removed page keeps its URL working: the in-app Help, the start page and
+  # links people saved still land somewhere real. DocsUrlResolutionTest checks the map.
+  - redirects:
+      redirect_maps:
+        'user-guide/index.md': 'inapp/index.md'
+        'support.md': 'diagnose/index.md'
+        'user-guide/assistant.md': 'inapp/index.md'
+        'the-loop.md': 'build/index.md'
+        'evidence-bundles/demo.md': 'evidence-bundles/index.md'
+        'user-guide/portable-context.md': 'user-guide/projects.md'
+        'user-guide/sharing-setups.md': 'user-guide/projects.md'
 
 extra:
   social:
@@ -87,51 +105,78 @@ extra:
 
 copyright: Copyright &copy; 2026 Telamin Limited
 
+# Task-first navigation (docs audit 2026-10-17, approved by the owner the same day). A page marked
+# "being written" is a placeholder that links to where its content lives until a later phase fills it.
 nav:
   - Home: index.md
-  - Working with AI:
-      - The build-with-AI loop: the-loop.md
-      - Spring authoring with an LLM: spring-authoring.md
-      - Design and "what if?" conversations: spring-authoring-conversations.md
-      - Connecting an LLM to the analyser: connect-an-llm.md
+  - Start here: start-here.md
+  - Diagnose an incident:
+      - diagnose/index.md
+      - Connect your client: connect-an-llm.md
+      - Your first diagnosis session: diagnose/first-session.md
+      - Hand the diagnosis on: diagnose/hand-off.md
+      - Scripts and CI over REST: diagnose/rest-automation.md
+      - Troubleshooting the connection: diagnose/troubleshooting.md
       - Sample conversations: sample-conversations.md
-      - Answering questions about a running system: support.md
-      - Runbooks, glossary and saved analyses with an AI: ai-and-runbooks.md
-  - Getting started:
-      - Guided start with an AI assistant: guided-start.md
+      - 'Journey: find the first recorded breach': journeys/find-the-first-recorded-breach.md
+      - Runbooks, glossary and posture: ai-and-runbooks.md
+  - Diagnose in the analyser:
+      - inapp/index.md
+      - The assistant panel: inapp/assistant-panel.md
+      - Ask the assistant: inapp/ask.md
+      - Claude Code in the analyser: inapp/claude-code.md
+      - Reading the transcript: inapp/transcript.md
+      - Approvals: inapp/approvals.md
+      - The canvas:
+          - Records, detail & filtering: user-guide/records-and-filtering.md
+          - Graphs: user-guide/graphs.md
+          - Topology & step-through: user-guide/topology.md
+          - Source navigation: user-guide/source-navigation.md
+          - Investigation reports: user-guide/reports.md
+          - The Project panel: user-guide/project-panel.md
+  - Build with Claude:
+      - build/index.md
+      - Set up a project with Claude: build/set-up-with-claude.md
+      - Check your criteria against the evidence: build/validate-intent.md
+      - Spring authoring: spring-authoring.md
       - Spring authoring step by step: spring-authoring-getting-started.md
-      - Quick start: getting-started.md
-      - Install & run: install.md
-      - Playground to analyser in 10 minutes: tutorial-playground.md
-  - User guide:
-      - user-guide/index.md
-      - The start page: user-guide/start-page.md
-      - Sample prompt pack: user-guide/sample-prompt-pack.md
-      - Records, detail & filtering: user-guide/records-and-filtering.md
-      - Graphs: user-guide/graphs.md
-      - Topology & step-through: user-guide/topology.md
-      - Analyser assistant: user-guide/assistant.md
-      - Source navigation: user-guide/source-navigation.md
-      - Working across projects: user-guide/projects.md
-      - The Project panel: user-guide/project-panel.md
-      - Portable context: user-guide/portable-context.md
-      - Investigation reports: user-guide/reports.md
-      - Sharing setups: user-guide/sharing-setups.md
-      - Log-source plugins: user-guide/plugins.md
-  - Evidence bundles:
-      - What a bundle is: evidence-bundles/index.md
-      - Sending an investigation: evidence-bundles/sending.md
-      - Opening a bundle you were sent: evidence-bundles/opening.md
-      - Commands and file format: evidence-bundles/reference.md
-      - Try it with the demo: evidence-bundles/demo.md
-  - Conversation journeys:
-      - "Find the first recorded breach": journeys/find-the-first-recorded-breach.md
-  - The audit log:
-      - Log format: log-format.md
-      - Format specification: format-spec.md
+      - Design and "what if?" conversations: spring-authoring-conversations.md
       - Producing an audit log: producing-a-log.md
-      - What does auditing cost?: audit-cost.md
       - Composing a system from supplier jars: composing-a-system.md
       - 'Integrating a vendor component: a worked example': integrating-a-vendor-component.md
+  - Get started:
+      - Install & run: install.md
+      - The start page: user-guide/start-page.md
+      - Guided tour and sample project: start/tour-and-sample.md
+      - Starter templates and examples: start/templates-and-examples.md
+      - Prompt packs: start/prompt-packs.md
+      - Sample prompt pack: user-guide/sample-prompt-pack.md
+      - Open your own log, step by step: getting-started.md
+      - Guided start with an external assistant: guided-start.md
+      - Playground to analyser in 10 minutes: tutorial-playground.md
+  - Demo and teach:
+      - Running a demo: teach/index.md
+      - Spotlights, walks and reels: teach/spotlights-walks-reels.md
+      - Evidence bundles:
+          - evidence-bundles/index.md
+          - Sending an investigation: evidence-bundles/sending.md
+          - Opening a bundle you were sent: evidence-bundles/opening.md
+  - Administer and secure:
+      - Assistant profiles: admin/profiles.md
+      - Security model and limits: admin/security.md
+      - External access (MCP / REST): admin/external-access.md
+      - Settings reference: admin/settings.md
+      - What is stored where, what leaves: admin/data.md
+      - Projects, profiles and sharing: user-guide/projects.md
+      - Log-source plugins: user-guide/plugins.md
+      - Managed policy (planned): admin/managed-policy.md
+  - Reference:
+      - Verbs: reference/verbs.md
+      - Command line: reference/cli.md
+      - Log format: log-format.md
+      - Format specification: format-spec.md
+      - Evidence bundle format: evidence-bundles/reference.md
+      - What does auditing cost?: audit-cost.md
+      - Glossary: reference/glossary.md
   - FAQ: faq.md
   - Release notes: release-notes.md

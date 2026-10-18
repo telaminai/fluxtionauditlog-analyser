@@ -4,3 +4,6 @@ mkdocs==1.6.1
 mkdocs-material==9.5.49
 pymdown-extensions==10.14.3
 Pygments==2.18.0
+# Redirects keep moved and removed page URLs working (the app opens some pages directly).
+mkdocs-redirects==1.2.2
+

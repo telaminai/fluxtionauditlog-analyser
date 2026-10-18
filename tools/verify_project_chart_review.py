@@ -229,8 +229,10 @@ CASES.extend([
     ('menu-reset-topology', 'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java',
      '            resetAll(); });', '            closeLog(); });',
      'MenuLayoutFrameTest#closeBothFromItsMenuKeepsProjectAndCharts'),
-    ('menu-help-s3', 'src/main/resources/help/help.html',
-     'Audit log → Open log from S3…', 'Audit log → Open from S3…',
+    # docs restructure phase 7: help.html became a page of links, so the documented menu path is anchored on the
+    # Settings reference, which MenuDocumentationTest checks the same way
+    ('menu-help-s3', 'docs/site/admin/settings.md',
+     'Audit log ▸ Open log from S3…', 'Audit log ▸ Open from S3…',
      'MenuDocumentationTest#documentedPathsNameExistingItems'),
 ])
 

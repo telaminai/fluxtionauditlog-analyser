@@ -20,21 +20,29 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * The governance rule from review_handoff_16_aug_2026 D2: any verb marked destructive to MCP clients
- * MUST be named in the FAQ's security answer — the sentence a security evaluator reads. This test makes
+ * MUST be named in the security statement — the page a security evaluator reads. This test makes
  * the security answer mechanically un-forgettable: add a mutating/file-writing verb without documenting
  * it there and the build fails.
+ *
+ * <p>Docs restructure, phase 6 (2026-10-18): the security answer moved from the FAQ's "Is the assistant's action
+ * socket safe to enable?" to its own page, {@code docs/site/admin/security.md}, and every pin moved with it. The FAQ
+ * keeps a short answer that links there, and its offline answer and old-name checks stay pinned here.
  */
 class FaqSecurityContractTest {
+
+    /** The security statement (B11's one-page model), where the FAQ's security answer now lives. */
+    static final Path SECURITY = Path.of("docs/site/admin/security.md");
 
     @Test
     void everyDestructiveVerbIsNamedInTheFaqSecurityAnswer() throws Exception {
         String faq = Files.readString(Path.of("docs/site/faq.md"));
-        int start = faq.indexOf("## Is the assistant's action socket safe to enable?");
-        assertTrue(start >= 0, "the FAQ security answer heading moved or was removed — update this test "
-                + "AND make sure the answer still exists; it is the user-facing security contract");
-        int end = faq.indexOf("\n## ", start + 1);
-        String answer = (end > 0 ? faq.substring(start, end) : faq.substring(start))
-                .replaceAll("\\s+", " ");   // prose reflows; the CONTRACT must survive a line-wrap
+        String page = Files.readString(SECURITY);
+        assertTrue(page.startsWith("# Security model and limits"), "the security page moved or was renamed — update this "
+                + "test AND make sure the statement still exists; it is the user-facing security contract");
+        assertTrue(faq.contains("## Is the assistant's action socket safe to enable?")
+                        && faq.contains("[security model](admin/security.md)"),
+                "the FAQ's security question must stay, and point at the security page");
+        String answer = page.replaceAll("\\s+", " ");   // prose reflows; the CONTRACT must survive a line-wrap
         // M29 D-F4 (review F1): the read rule is part of the security contract — external reads share
         // the write opt-in and its directory, and the FAQ must keep saying so
         assertTrue(answer.contains("read only from that same directory")
@@ -63,7 +71,8 @@ class FaqSecurityContractTest {
                 "never reads or stores your Claude Code credentials", "before your first Send",
                 "no record content is sent until you press Send", "Read, Grep and Glob confined to the folder",
                 "no Bash", "none of your skills, hooks, settings or MCP servers",
-                "never treated as Claude Code's", "cannot delete a chart", "a bundle's working copy is refused"}) {
+                "never treated as Claude Code's", "asks you before it deletes or replaces a chart",
+                "a bundle's working copy is refused"}) {
             assertTrue(answer.contains(claim), "the FAQ security answer must state, for Claude Code: " + claim);
         }
         // M74 P1b (spec-claude-code-provider.md §7): the full posture is a separate switch, and the FAQ says what it runs,
@@ -98,8 +107,29 @@ class FaqSecurityContractTest {
         assertTrue(answer.contains("`walk {reel}`") && answer.contains("writes a walk as an HTML page"),
                 "the FAQ must say walk {reel} writes a file");
         assertFalse(answer.contains("writes no file of its own"), "walk {reel} writes a file");
-        assertTrue(answer.contains("`source` can reread the XML and Java files **under the source roots you configured**"),
+        assertTrue(answer.contains("`source` can reread the XML and Java files **under the source roots**"),
                 "the FAQ must say source reads beyond the loaded log, and where");
+        // PR #152 review M1: a source root can be ANY readable folder an assistant adds, and open reads any file — the
+        // page must say so, and must never again promise "no arbitrary file reads". Witness: restore that phrase, or
+        // drop the any-folder sentence; the assertion names which.
+        // Owner decision 2026-10-18 (P5, restorable charts): the any-folder sentence now names its exception, the
+        // tiers are stated, and a deleted chart is restorable. Witness: restore "cannot delete a chart", "cannot be
+        // undone" for graph {delete}, or the unqualified any-folder sentence; the assertion names which.
+        assertTrue(answer.contains("`source_root` can add **any folder you can read except your home folder and your "
+                        + "credential folders** as a source root")
+                        && answer.contains("`open` can open any file you can read as a log"),
+                "the security page must say what source_root may add and that open opens any readable file");
+        assertTrue(answer.contains("**For every caller**") && answer.contains("`~/.m2/repository` and below stay allowed")
+                        && answer.contains("**An assistant is also held to the open project**")
+                        && answer.contains("\"outside this project\""),
+                "the security page must state both source-root tiers and the ~/.m2/repository allowance");
+        assertTrue(answer.contains("**A deleted chart can be restored**") && answer.contains("`graph {restore}`"),
+                "the security page must say a deleted or replaced chart is restorable");
+        assertFalse(answer.contains("cannot delete a chart") || answer.contains("`graph {delete}` cannot be undone")
+                        || answer.contains("is an open owner decision"),
+                "claims the restorable-charts and P5 decisions made untrue");
+        assertFalse(answer.contains("no arbitrary file reads") || answer.contains("no other file reads"),
+                "source_root + source and open reach any readable file: 'no arbitrary file reads' is an overclaim");
         assertFalse(answer.contains("nothing outside the loaded log"), "source reads the source roots");
         assertTrue(answer.contains("`propose` is offered only to Claude Code in the Assistant tab")
                         && answer.contains("never on `/manifest`") && answer.contains("**changes nothing**"),
@@ -113,6 +143,8 @@ class FaqSecurityContractTest {
         assertTrue(answer.contains("Claude Code does not need External MCP/REST access on"));
         String whole = faq.replaceAll("\\s+", " ");
         assertFalse(whole.contains("local transport") || whole.contains("Assistant / LLM"), "the FAQ's old switch and tab names");
+        assertFalse(whole.contains("Profile…") || whole.contains("REST transport that lets"),
+                "the slimmed FAQ must not bring back the old control or switch names (phase 6 review)");
         int offline = whole.indexOf("## Does it work offline?");
         String offlineAnswer = whole.substring(offline, whole.indexOf(" ## ", offline + 1));
         assertTrue(offlineAnswer.contains("Claude Code") && offlineAnswer.contains("contacts Anthropic"),
@@ -120,7 +152,7 @@ class FaqSecurityContractTest {
         for (String verb : McpTools.destructiveVerbs()) {
             assertTrue(answer.contains("`" + verb + "`"),
                     "destructive verb '" + verb + "' is not named in the FAQ's security answer — "
-                            + "document what it can touch (docs/site/faq.md) in the same change that adds it");
+                            + "document what it can touch (docs/site/admin/security.md) in the same change that adds it");
         }
     }
 
@@ -145,12 +177,17 @@ class FaqSecurityContractTest {
         String changelog = Files.readString(Path.of("CHANGELOG.md"));
         String unreleased = changelog.substring(changelog.indexOf("## [Unreleased]"), changelog.indexOf("\n## [", changelog
                 .indexOf("## [Unreleased]") + 1));
-        String guide = Files.readString(Path.of("docs/site/user-guide/assistant.md"));
+        // the assistant guide, split by task (docs restructure, phase 3)
+        String guide = java.util.stream.Stream.of("admin/profiles.md", "inapp/assistant-panel.md", "inapp/claude-code.md",
+                "inapp/approvals.md", "inapp/ask.md", "inapp/transcript.md", "inapp/index.md").map(f -> {
+                    try { return Files.readString(Path.of("docs/site").resolve(f)); }
+                    catch (java.io.IOException e) { throw new java.io.UncheckedIOException(e); }
+                }).collect(java.util.stream.Collectors.joining("\n"));
         assertTrue(guide.replaceAll("\\s+", " ").contains(safe), "the guide's Safe analysis row");
         String ui = "src/main/java/telamin/fluxtion/audit/analyser/analyser/";
         java.util.Map<String, String> surfaces = new java.util.LinkedHashMap<>();
         surfaces.put("CHANGELOG [Unreleased]", unreleased);
-        surfaces.put("assistant.md", guide);
+        surfaces.put("the assistant pages (inapp/, admin/profiles.md)", guide);
         for (String f : new String[]{"session/AiSetupLines.java", "ui/LocalAgentPanel.java", "ui/ConfigPanel.java",
                 "session/AssistantProfile.java"}) {
             surfaces.put(f, Files.readString(Path.of(ui + f)));
@@ -186,16 +223,19 @@ class FaqSecurityContractTest {
         about = about.substring(0, about.indexOf("\n    }\n") + 6);
         assertTrue(about.contains("out.add(limitsNow());"), "About shows the limits line (SAFE_LIMITS, with " + "CLAUDE_CODE_SENDS)");
         String faq = Files.readString(Path.of("docs/site/faq.md")).replaceAll("\\s+", " ");
-        int start = faq.indexOf("## Is the assistant's action socket safe to enable?");
-        String answer = faq.substring(start, faq.indexOf(" ## ", start + 1));
-        assertTrue(answer.contains("No assistant profile is local-only, Safe analysis included."), "the FAQ security answer");
+        String answer = Files.readString(SECURITY).replaceAll("\\s+", " ");
+        assertTrue(answer.contains("No assistant profile is local-only, Safe analysis included."), "the security page");
         assertTrue(answer.contains("is sent to the model provider (Anthropic, on your Claude plan or API key), as in any "
                 + "Claude Code session"), "…names the provider for Claude Code");
         assertTrue(answer.contains("to the model provider you chose"), "…and for the in-app assistant");
         int offline = faq.indexOf("## Does it work offline?");
         assertTrue(faq.substring(offline, faq.indexOf(" ## ", offline + 1)).contains("No assistant profile is local-only"),
                 "the offline answer");
-        String guide = Files.readString(Path.of("docs/site/user-guide/assistant.md")).replaceAll("\\s+", " ");
+        String guide = (java.util.stream.Stream.of("admin/profiles.md", "inapp/assistant-panel.md", "inapp/claude-code.md",
+                "inapp/approvals.md", "inapp/ask.md", "inapp/transcript.md", "inapp/index.md").map(f -> {
+                    try { return Files.readString(Path.of("docs/site").resolve(f)); }
+                    catch (java.io.IOException e) { throw new java.io.UncheckedIOException(e); }
+                }).collect(java.util.stream.Collectors.joining("\n"))).replaceAll("\\s+", " ");
         assertTrue(guide.contains("| **Safe analysis** (the default) |") && guide.contains("**Not local-only:** what you ask, "
                 + "and the evidence Claude reads through the analyser, is sent to the model provider (Anthropic"),
                 "the guide's Safe analysis row");
@@ -210,7 +250,10 @@ class FaqSecurityContractTest {
                 "Settings ▸ Assistant says it for Claude Code and for the in-app assistant");
         for (String untrue : new String[]{"local-only analysis", "nothing leaves this machine", "stays on your machine",
                 "never leaves your machine"}) {
-            for (String f : new String[]{"docs/site/faq.md", "docs/site/user-guide/assistant.md",
+            for (String f : new String[]{"docs/site/faq.md", "docs/site/admin/security.md", "docs/site/admin/data.md",
+                    "docs/site/admin/external-access.md", "docs/site/admin/profiles.md", "docs/site/admin/managed-policy.md",
+                    "docs/site/inapp/index.md", "docs/site/inapp/assistant-panel.md", "docs/site/inapp/claude-code.md",
+                    "docs/site/inapp/ask.md", "docs/site/inapp/transcript.md", "docs/site/inapp/approvals.md",
                     "docs/site/user-guide/start-page.md", "docs/site/getting-started.md"}) {
                 assertFalse(Files.readString(Path.of(f)).replaceAll("\\s+", " ").toLowerCase(java.util.Locale.ROOT)
                         .contains(untrue), f + " claims \"" + untrue + "\"");

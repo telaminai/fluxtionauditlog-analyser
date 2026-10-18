@@ -54,7 +54,7 @@ configuration yet, where the endpoint file is. The full token is never printed. 
 token from `~/.fluxtion-analyser/rest-endpoint`** — mode 600, `{url, token, pid, startedAt}`, rewritten with
 a fresh token on every launch — and checks that `pid` is a live process before trusting it (a crashed
 analyser can leave a stale file). An MCP client needs none of this: its bridge reads the file itself. See
-[Connecting an LLM ▸ The token, for scripts](connect-an-llm.md#the-token-for-scripts).
+[Scripts and CI over REST](diagnose/rest-automation.md).
 
 ## Plain download
 
@@ -85,5 +85,5 @@ ships in the jar, so you can be looking at real records in one click, and its AI
 with the analyser — **Set up AI…** sets up Claude inside the analyser, your own AI client (the local bridge), both, or
 none. Point it at your own source roots and event processor
 whenever you like, from **Project ▸ Settings** or a project profile — see
-[Getting started](getting-started.md). No log yet? Grab the
+[Open your own log, step by step](getting-started.md). No log yet? Grab the
 [sample audit log](assets/sample-audit-log.yaml).

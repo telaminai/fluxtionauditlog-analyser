@@ -81,8 +81,8 @@ that graph, a focus applies on the topology. A report is a navigation surface, n
 Beside the reports, the **Spotlight walks** list holds the walks saved in this project — step-by-step
 spotlights you replay with ◀ ▶. Use **Play** or select a step and choose **Play selected step**; Conversation…, **Record reel…**, Rename, Delete and
 Restore deleted… are under **More**. They are stored
-and shared the way reports are; [Save it as a walk](assistant.md#save-it-as-a-walk) says how to make one, and
-[Send it as a reel](assistant.md#send-it-as-a-reel) turns one into a page you can send to somebody without the
+and shared the way reports are; [Save it as a walk](../teach/spotlights-walks-reels.md#save-it-as-a-walk) says how to make one, and
+[Send it as a reel](../teach/spotlights-walks-reels.md#send-it-as-a-reel) turns one into a page you can send to somebody without the
 analyser — ending on the evidence bundle behind it, or on a plain statement that there is none.
 
 ## Building one
@@ -138,4 +138,4 @@ changing the report or bin. A string always names a report, including `restore: 
 
 Reports persist with your profile, travel with projects, and share under their **own category** —
 because a shared report carries narrative written about your data, which deserves its own consent
-checkbox. See [Sharing setups](sharing-setups.md).
+checkbox. See [Sharing settings with a file](projects.md#sharing-settings-with-a-file).
