@@ -96,6 +96,23 @@ public final class DetailPanel extends JPanel {
         return identityBanner.isVisible() ? identityBanner.getText() : null;
     }
 
+    /** Lines of record text the pane keeps when the Facts column is short; it is the first to give way. */
+    static final int MIN_VISIBLE_LINES = 2;
+
+    /** Its button row and {@link #MIN_VISIBLE_LINES} lines of text, in the text's own font. */
+    @Override
+    public java.awt.Dimension getMinimumSize() {
+        if (isMinimumSizeSet() || scroll == null) return super.getMinimumSize();
+        java.awt.Insets in = getInsets();
+        java.awt.Insets frame = scroll.getInsets();
+        java.awt.Insets pad = text.getInsets();
+        java.awt.Component north = ((BorderLayout) getLayout()).getLayoutComponent(BorderLayout.NORTH);
+        int line = text.getFontMetrics(text.getFont()).getHeight();
+        int h = in.top + in.bottom + (north == null ? 0 : north.getPreferredSize().height)
+                + frame.top + frame.bottom + pad.top + pad.bottom + MIN_VISIBLE_LINES * line;
+        return new java.awt.Dimension(100, h);
+    }
+
     public DetailPanel() {
         super(new BorderLayout());
         UiText.plain(identityBanner);     // SF-2: a verdict's reason names files
@@ -131,8 +148,8 @@ public final class DetailPanel extends JPanel {
         UiTheme.applySurface(scroll, text);
         setWrap(false);
         highlighter.render(text.getStyledDocument(), HINT);
-        // let the split freely resize this panel (don't let the text pane's content dictate a large min)
-        setMinimumSize(new java.awt.Dimension(100, 60));
+        // its minimum is small and computed (getMinimumSize), never the text pane's content: this is the
+        // pane that gives way first when the Facts column is short (owner, 2026-10-18)
         setBorder(UiTheme.section("Record detail"));
         setToolTipText("nodeLogs for the selected record — click a node line to open its source");
 

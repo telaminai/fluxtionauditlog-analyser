@@ -35,12 +35,14 @@ import static telamin.fluxtion.audit.analyser.analyser.ui.AsyncOpenInterleavingF
 
 /**
  * Owner, 2026-10-18: when the Event types toggle shows the checklist, it shows at least three rows (or all
- * of them, when there are fewer). The floor is the checklist's own minimum size, computed from its real
- * rows, and every route that sizes it honours that floor: dragging the checklist's divider, dragging the
- * records/detail divider above it, and a divider saved too small by an earlier version.
+ * of them, when there are fewer), and so does the records table under it; the Record detail pane is what
+ * gives way. Each floor is its panel's own minimum size, computed from its real rows, and every route that
+ * sizes the Facts column honours them: dragging the checklist's divider, dragging the records/detail
+ * divider, a divider saved too small by an earlier version, and a window made shorter.
  *
- * <p>Mutation witness: {@link EventFilterPanel#MIN_VISIBLE_ROWS} set to 0 (no row floor) fails every test
- * here — the checklist is squeezed to its Select all / none row and no row is visible.
+ * <p>Mutation witnesses: {@link EventFilterPanel#MIN_VISIBLE_ROWS} set to 0 (no checklist floor) fails every
+ * test here on the checklist's rows; {@link LogTablePanel#MIN_VISIBLE_ROWS} set to 0 (no records floor)
+ * fails every test here on the records table's rows.
  */
 class EventTypesMinRowsFrameTest {
 
@@ -78,6 +80,43 @@ class EventTypesMinRowsFrameTest {
             showChecklist(f, true);
             snapshot(f, "shown-with-divider-saved-at-12px.png");
             assertAtLeastThreeRowsVisible(f, "when shown with a divider saved at 12px");
+        }
+    }
+
+    @Test
+    void aShorterWindowShrinksTheDetailPaneNotTheLists(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless(), "a real display is required");
+        try (var f = open(tmp)) {
+            showChecklist(f, true);
+            AtomicReference<Integer> before = new AtomicReference<>();
+            onEdt(() -> before.set(((DetailPanel) field(f.frame, "detailPanel")).getHeight()));
+            onEdt(() -> { f.frame.setSize(1300, 790); f.frame.validate(); });
+            settle();
+            snapshot(f, "window-1300x790.png");
+            assertAtLeastThreeRowsVisible(f, "in a 1300x790 window");
+            onEdt(() -> {
+                DetailPanel detail = (DetailPanel) field(f.frame, "detailPanel");
+                assertTrue(detail.getHeight() < before.get(), "the detail pane gave way: " + before.get() + " -> " + detail.getHeight());
+                assertTrue(detail.getHeight() >= detail.getMinimumSize().height,
+                        "the detail pane keeps its own floor: " + detail.getHeight() + " < " + detail.getMinimumSize().height);
+            });
+        }
+    }
+
+    /** Too short for every floor: the checklist gives way, the records table never does (owner, 2026-10-18). */
+    @Test
+    void aWindowTooShortForEveryFloorKeepsTheRecordsTable(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless(), "a real display is required");
+        try (var f = open(tmp)) {
+            showChecklist(f, true);
+            onEdt(() -> { f.frame.setSize(1300, 680); f.frame.validate(); });
+            settle();
+            snapshot(f, "window-1300x680.png");
+            assertRecordsRowsVisible(f, "in a 1300x680 window");
+            onEdt(() -> {
+                EventFilterPanel panel = (EventFilterPanel) field(f.frame, "eventFilterPanel");
+                assertTrue(panel.getHeight() < panel.rowsFloor(), "this window is too short for both lists' floors");
+            });
         }
     }
 
@@ -120,7 +159,9 @@ class EventTypesMinRowsFrameTest {
         settle();
     }
 
+    /** Both lists: the checklist and the records table each show at least min(3, rows) whole rows. */
     private static void assertAtLeastThreeRowsVisible(AsyncOpenInterleavingFrameTest.Frame f, String when) throws Exception {
+        assertRecordsRowsVisible(f, when);
         onEdt(() -> {
             EventFilterPanel panel = (EventFilterPanel) field(f.frame, "eventFilterPanel");
             assertTrue(panel.isShowing(), "the checklist is showing " + when);
@@ -137,8 +178,28 @@ class EventTypesMinRowsFrameTest {
             }
             int expected = Math.min(3, rows.size());
             assertTrue(visible >= expected, when + ": " + visible + " of " + rows.size()
-                    + " rows fully visible, expected at least " + expected + " (checklist height " + panel.getHeight()
+                    + " checklist rows fully visible, expected at least " + expected + " (checklist height " + panel.getHeight()
                     + ", viewport visible " + onScreen + ")");
+        });
+    }
+
+    private static void assertRecordsRowsVisible(AsyncOpenInterleavingFrameTest.Frame f, String when) throws Exception {
+        onEdt(() -> {
+            LogTablePanel records = (LogTablePanel) field(f.frame, "tablePanel");
+            javax.swing.JTable table = records.table();
+            JViewport tableView = (JViewport) table.getParent();
+            Rectangle tableOnScreen = tableView.getVisibleRect();
+            int tableVisible = 0;
+            for (int r = 0; r < table.getRowCount(); r++) {
+                Rectangle cell = SwingUtilities.convertRectangle(table, table.getCellRect(r, 0, true), tableView);
+                cell.width = 1;                                    // vertical extent only: columns scroll sideways
+                if (tableOnScreen.contains(cell)) tableVisible++;
+            }
+            int expectedRecords = Math.min(3, table.getRowCount());
+            assertTrue(table.getRowCount() > 0, "the sample log has records");
+            assertTrue(tableVisible >= expectedRecords, when + ": " + tableVisible + " of " + table.getRowCount()
+                    + " records-table rows fully visible, expected at least " + expectedRecords
+                    + " (records panel height " + records.getHeight() + ", viewport visible " + tableOnScreen + ")");
         });
     }
 

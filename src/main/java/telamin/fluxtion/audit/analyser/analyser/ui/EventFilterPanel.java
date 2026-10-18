@@ -50,6 +50,9 @@ public final class EventFilterPanel extends JPanel {
     private final JScrollPane scroll = new JScrollPane(checks);
     private final Map<String, JCheckBox> boxes = new LinkedHashMap<>();
 
+    /** Set by the Facts column only at a window too small for every floor: see {@link #yieldTo(int)}. */
+    private int yieldTo = Integer.MAX_VALUE;
+
     private LogIndex index;
     private FilterState filter;
 
@@ -94,6 +97,18 @@ public final class EventFilterPanel extends JPanel {
     @Override
     public Dimension getMinimumSize() {
         if (isMinimumSizeSet()) return super.getMinimumSize();
+        return new Dimension(0, Math.min(rowsFloor(), yieldTo));
+    }
+
+    /**
+     * At a window too small for the checklist's three rows AND the records table's, the checklist gives way
+     * (it is a filter over the records, and its toggle hides it); the column sets the height it can have.
+     * {@link Integer#MAX_VALUE} restores the full floor.
+     */
+    void yieldTo(int height) { yieldTo = Math.max(0, height); }
+
+    /** The full three-row floor, whatever the column has asked the checklist to yield to. */
+    int rowsFloor() {
         java.awt.Insets border = getInsets();
         java.awt.Insets frame = scroll.getInsets();
         int rows = 0;
@@ -111,14 +126,13 @@ public final class EventFilterPanel extends JPanel {
         if (scroll.getViewport().getWidth() > 0 && checks.getPreferredSize().width > scroll.getViewport().getWidth()) {
             list += scroll.getHorizontalScrollBar().getPreferredSize().height;
         }
-        int height = border.top + border.bottom + top.getPreferredSize().height + frame.top + frame.bottom + list;
-        return new Dimension(0, height);
+        return border.top + border.bottom + top.getPreferredSize().height + frame.top + frame.bottom + list;
     }
 
     private void rebuildChecklist() {
-        int before = getMinimumSize().height;
+        int before = rowsFloor();
         fillChecklist();
-        firePropertyChange(FLOOR_PROPERTY, before, getMinimumSize().height);
+        firePropertyChange(FLOOR_PROPERTY, before, rowsFloor());
     }
 
     private void fillChecklist() {
