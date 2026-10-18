@@ -25,7 +25,8 @@ python3 tools/usability/run.py            # results in target/usability/usabilit
   those PNGs: they are not swept (CLAUDE.md rule 1).
 
 The command needs a display. On Linux, use `xvfb-run -a python3 tools/usability/run.py`. It takes about a minute.
-Two consecutive runs gave byte-identical JSON on 2026-10-18.
+Three consecutive runs gave byte-identical JSON on 2026-10-18. The JSON also carries the correctness target T4c
+and the authoring milestones.
 
 ## Method
 
@@ -70,13 +71,15 @@ They are set the quickest way, and sometimes that is the action socket's own exe
 | # | Task | Starts from | Key words | Success (the end state, checked) |
 |---|---|---|---|---|
 | T1 | A fresh start to the first answer | the start page of a fresh home | ask, send, question, answer | an answer from Claude Code, finished, with its transcript on screen |
-| T2 | Right-click *Ask* about a record | the demo log open; no assistant chosen yet | ask, send, question, answer | as T1 |
+| T2 | Right-click *Ask* about a record | the demo log open; no assistant chosen yet | ask, send, question, answer | as T1, **and** the record the Ask is about is the breach record, by digest (the right-record check below) |
 | T3 | Approve a report write | Safe analysis running; Claude Code's approval dialog asking to write the DEMO report | approve, allow | the CLI was told *allow*, and the dialog closed |
 | T4 | Find out why records are missing | the demo log open; `RiskBreachEvent` unticked and the event-type checklist hidden | filter, hidden, missing | the unticked type is on screen |
 | T5 | Switch Safe → Full → Safe | the demo log open; Safe analysis applied | safe, full | Safe analysis applied and Full off in the config, after Full was applied through its full consent |
 | T6 | Set up an external client | the start page of a fresh home | client, connect, mcp | the generic MCP set-up says *"Bridge works now"* |
 | T7 | Open the sample | the start page of a fresh home | sample | the sample project's log open and its records on screen |
 | T8 | Load a prompt pack | the start page of a fresh home | prompt pack | the pack's title is shown and its entries replace the list |
+
+The authoring task A2 and the correctness target T4c are described in their own sections below.
 
 The key words are the task's own words plus the one synonym the product's domain uses (*allow* for approve). They
 were written down with the tasks and are frozen with the baseline. Changing a set changes the baseline, so it is
@@ -217,6 +220,8 @@ breaks four of them: T4, T5, S2's words and S2's clipped strings.
 | S2 Assistant Ready (Safe, docked) | 32 → 31 (−1) | 6 → 6 | 2 → 0 (−2) | 224 → 229 (+5) |
 | S3 Records with the list shown | 17 → 25 (+8) | 5 → 8 (+3) | 0 → 0 | 265 → 273 (+8) |
 
+A2 and T4c were added after this before point was recorded, so `baseline-b1c22704` has neither.
+
 **What changed:**
 
 - **T4 is the real gain: 3 → 2 acts, 4 → 2 hesitations.**
@@ -248,6 +253,70 @@ same scripts. The baseline at `a875fcba` was re-run after these changes and is b
 
 **Real failures on the old UI (case b):** none. Every task completed on `b1c22704` by the route that build offered.
 
+## Correctness checks: is the RESULT right?
+
+The tasks above count acts to a UI state. These checks ask whether the state is the right one.
+
+- **T4c, the result of T4** (a target; not budgeted). It uses T4's set-up: `RiskBreachEvent` unticked and the
+  checklist hidden. Two things must both hold:
+  1. **The visible cue names the hidden filter.** Some text on screen says records are *hidden* and names the
+     event-type filter or the type. *"showing 9 of 10"* does not: it says that something is missing, not what hides it.
+  2. **The assistant's context names the excluded type.** `context`, as the action socket serves it to any assistant,
+     has a `hidden` entry naming `RiskBreachEvent`.
+
+  The check reads the context itself, not a model's answer. The FixtureAgent replays a recorded stream, so its words
+  cannot depend on this log; what an assistant can know is what `context` gives it. *"Nothing is missing"*, meaning no
+  cue or no `hidden` entry, is a **FAIL**.
+  - **On `a875fcba` it fails, as expected.** Neither half holds.
+  - **On `fix/records-filter-visibility` @ `87551460` it passes.** That run was a witness only, not a baseline.
+- **The right-record check, for M79's flag-and-select tasks.**
+  - `Usability.expectedRecordDigest(frame, rawText -> …)` names the expected record by its content.
+  - `Usability.selectedRecordDigest(frame)` gives the digest of the record the person selected.
+  - `Usability.rightRecordSelected(frame, expected)` compares the two.
+
+  The digest is the product's own record identity (`WalkIdentity.recordDigest` of the record's raw text, as a walk
+  step binds a record), so a sort or a filter cannot fool it the way a row number would. T2 uses it now: the record
+  the Ask is about must be the breach record.
+
+## The authoring battery (A-tasks)
+
+These come from the authoring walk's proposal. Only what runs deterministically with a stub assistant against this
+build is scripted and budgeted. The rest are targets, each with its success criterion.
+
+| # | Task | Status | Success criterion | Metrics | Measured at `a875fcba` |
+|---|---|---|---|---|---|
+| A1 | Build from a description, no AI | **target** | a runnable app built from the description, its log opened and paired with its graph | acts, terminal hand-offs, typed paths, dead ends | not scripted: the template download has no test transport (`MainFrame.templateClient` is fixed, and adding a seam would be a product hook), and the build and run happen in a terminal (the walk needed one) |
+| A2 | Teach-me diamond pack | **scripted, budgeted** | the example downloaded and adopted as a project; its shipped sample log open and **paired** with the project's graph (the session's pairing verdict *applies*) | acts to the project, acts to the evidence, typed paths, terminal hand-offs, failed commands | **11 acts** (8 clicks, 1 key, 1 drag, 1 scroll): **7 to the project, 11 to the evidence**; 1 typed path; 0 terminal hand-offs; 0 failed commands; 4 hesitations; 0 dead ends |
+| A3 | Set up AI for authoring | **target** | from *Start building* to a first answered Full turn in a project folder | acts, lost drafts, loops, modals | not scripted: *Start building* goes through the same template download as A1 |
+| A4 | Extend the diamond with Full | **manual, occasional** (live only) | the diamond extended by Claude Code in Full, built and re-opened, with zero terminal for the person | approvals asked (allowed / denied), model turns, terminal hand-offs | the authoring walk's live run (2026-10-18, scratch evidence, approval log `decisions.txt`): **14 approval requests, 10 allowed and 4 denied** (three reads outside the scratch folder, one environment read); the build and run were approved calls, so the person needed no terminal; model turns were not recorded |
+| A5 | Keyless change | **target**, pending compiler 1.0.80 | a change built and re-run without a Fluxtion key in the person's environment | acts, refusals | — |
+| A6 | Pair evidence after a run | **target**, M76 | from a finished run to log and graph paired in **≤ 3 acts, no typed path** | acts, typed paths | A2's project → evidence leg is the nearest measure today: 4 acts, 1 typed path |
+| A7 | Explain the change | **target** | the assistant's spotlight lands on the RIGHT record: the right-record check against the spotlit record | acts, the right-record verdict | not scripted: a recorded stream cannot point at a record of this log; needs a stub whose spotlight call is built from the log, or a live run |
+
+**How A2 runs.**
+
+- **The pack.** It is the walk's *What is Fluxtion?* pack, entries 1 and 2. Entry 1 is the published diamond, pinned
+  by commit.
+- **The download.** It goes through the frame's own **recording transport**, the `exampleClient` field the frame
+  tests already replace. It is not a new hook. The pinned GitHub address is answered with GitHub's redirect, and the
+  redirect with an archive.
+- **The archive.** It is laid out as the diamond is: a README, a source root, the generated GraphML under
+  `src/main/resources` and a shipped `sample/` log. The DEMO fixture's log and graph are inside, so nothing
+  third-party is committed and no network is used. What is measured is the analyser's route, not the diamond's bytes.
+- **The route,** each step a counted act:
+  1. drop the pack;
+  2. choose *Teaching example*;
+  3. *Download example…*;
+  4. *Download* in the confirmation;
+  5. scroll to the project's graph in the adopt dialog. It is offered **unselected** and sits below that dialog's
+     fold;
+  6. pick the graph;
+  7. *OK* (the project is open);
+  8. the toolbar's *Open*;
+  9. type the sample log's path in the file chooser;
+  10. *Open*;
+  11. *Yes* to *Load this project?* (the evidence is open and paired).
+
 ## Budgets enforced in CI
 
 `UsabilityBudgetFrameTest` runs on the display, at 1200×800 and docked. The budgets are today's measured values, so
@@ -260,9 +329,10 @@ commit. A change that needs a worse number raises it there, with the reason, whe
 | S2 chrome words | ≤ 31 |
 | S3 chrome words | ≤ 25 |
 | S1, S2, S3 clipped strings | 0 |
-| Acts per task (each task must also succeed) | T1 ≤ 5 · T2 ≤ 5 · T3 ≤ 1 · T4 ≤ 2 · T5 ≤ 8 · T6 ≤ 4 · T7 ≤ 1 · T8 ≤ 1 |
+| Acts per task (each task must also succeed) | T1 ≤ 5 · T2 ≤ 5 · T3 ≤ 1 · T4 ≤ 2 · T5 ≤ 8 · T6 ≤ 4 · T7 ≤ 1 · T8 ≤ 1 · **A2 ≤ 11** |
 
-Hesitations, dead ends and words before the first act are recorded but not enforced.
+Hesitations, dead ends, words before the first act and A2's milestones are recorded but not enforced. T4c is a
+target: it runs and is recorded, but is never budgeted.
 
 ### Witnesses
 
@@ -273,6 +343,8 @@ Rule 8 requires a wrong-result witness for each budget. These were run on 2026-1
 | A label more breaks a word budget | in the test, `aBudgetCatchesAnExtraLabelAndAnExtraStep`: a three-word `JLabel` added to the start page | S1 goes over 225, and the violation is reported |
 | A step more breaks an act budget | in the same test: T7 with one more required click (the question box first) | 2 acts, over T7's 1, and the violation is reported |
 | A real product change: more words | `StartPromptView.PLACEHOLDER` with *", then press Send"* appended, then `mvn clean` and the frame test | **red**: *"S1 Start page (fresh home): 228 chrome words > budget 225"* |
+| The right-record check tells records apart | `theRightRecordCheckTellsRecordsApart`: the first record selected, then the breach record | *not the breach record*, then *the breach record*, by digest |
+| T4c fails on this base and passes on the fix | the battery on `a875fcba`, and on `fix/records-filter-visibility` @ `87551460` (built in a scratch worktree, harness copied in) | **FAIL** here (both halves). **pass** on the fix: its *"1 hidden by event types"* line and its context's `hidden` entry |
 | A real product change: a path broken | `StartPromptView`'s Enter binding (`start-send`) removed | **red**: *"T1 … did not succeed (step 3 (open the sample the page offers): no such control on screen)"* |
 
 ## Targets per milestone (listed, not yet enforced)
@@ -281,7 +353,8 @@ Rule 8 requires a wrong-result witness for each budget. These were run on 2026-1
 |---|---|---|---|
 | **M77-2**, the Set up AI wizard's inside path; spec T19 | the newcomer path in **≤ 6 acts**: *Sample project*, right-click, *Ask (set up AI first)*, **Continue**, **Finish**, *Send* | T2: 5 acts from an open log, so 6 with the *Sample project* click | Continue and Finish replace *Apply*, one act more. Raise T2's budget to the measured value in the M77-2 PR, with its reason. T1's path changes the same way. M77-2 also rewrites the start page's AI line and first-run block, so S1 is re-baselined then |
 | **M78 D1**, the quiet assistant panel; spec TQ1 | S2: **≤ 15 chrome words, ≤ 4 controls** (Ready, Safe and Full); ≤ 15 while running, waiting or answered; ≤ 20 for an error, no key or a restart | S2: 31 words, 6 controls | D1 lowers S2's budget to its measure. TQ1's own frame test adds the other states and the dark theme |
-| **The records-filter fix** (proposed; no spec yet, so the owner should confirm the numbers) | T4: **≤ 1 act and 0 hesitations**: the Records area says, with the list hidden, that records are hidden by type, and names the type | T4: 2 acts, 2 hesitations | lower T4's budget |
+| **The records-filter fix** (`fix/records-filter-visibility`; the act numbers are proposed, so the owner should confirm them) | T4: **≤ 1 act and 0 hesitations**. **T4c passes**: the Records area says, with the list hidden, that records are hidden by the event-type filter, and `context` names the type under `hidden` | T4: 2 acts, 2 hesitations; T4c: **FAIL**, expected on `a875fcba` | T4c joins the budgeted tasks (it must pass), and T4's budget is lowered to its measure |
+| **M76**, pairing evidence after a run (A6) | from the project open to log and graph paired in **≤ 3 acts, no typed path** | A2's project → evidence: 4 acts (*Open*, the typed path, *Open*, *Yes*), 1 typed path | A2's budget is lowered, and A6 is scripted as its own task |
 
 ## SUS survey (owner; now, and after M77)
 
@@ -364,5 +437,12 @@ screen alone.
   as a red build, not silently.
 - **The fixture agent is not a model.** Answers arrive at once, so time to the first answer is not measured, and
   this scorecard has no timing at all.
+- **A2's archive is not the diamond.** It has the diamond's layout and the DEMO fixture's content. A change in the
+  real archive's layout, such as a graph that is no longer under `src/main/resources`, would not show up here.
+- **T4c reads the context, not an answer.** Whether a model then *says* the right thing needs a live run or the
+  persona run.
+- **A frame's late work still uses the JVM's `user.home`.** Each session keeps its home for 1.5 s after its window
+  closes, so a late write cannot land in the next task's fresh home. Before this grace, one of the first five runs saw T6 start
+  on a workspace that the previous task had left behind.
 - **A drop is simulated** at its `TransferHandler`. The file manager the person drags from is outside the app and is
   not counted.

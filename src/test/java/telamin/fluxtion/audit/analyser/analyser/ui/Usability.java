@@ -429,6 +429,102 @@ final class Usability {
         };
     }
 
+    /** A showing button whose visible label is exactly {@code text} (the toolbar's "Open", not "Open sample…"). */
+    static Finder buttonExactly(String text) {
+        return () -> {
+            for (Window w : windows()) {
+                Located l = exactIn(w, text);
+                if (l != null) return l;
+            }
+            return null;
+        };
+    }
+
+    private static Located exactIn(Component c, String text) {
+        if (!c.isShowing()) return null;
+        if (c instanceof AbstractButton b && text.equals(label(b))) return new Located(b, label(b));
+        if (c instanceof Container k) {
+            for (Component ch : k.getComponents()) {
+                Located l = exactIn(ch, text);
+                if (l != null) return l;
+            }
+        }
+        return null;
+    }
+
+    /** A row of a showing list whose rendered text contains {@code text}, labelled by that text. */
+    @SuppressWarnings({"rawtypes"})
+    static Finder listRow(Supplier<JList> list, String text) {
+        return () -> {
+            JList l = list.get();
+            if (l == null) return null;
+            for (int i = 0; i < l.getModel().getSize(); i++) {
+                String row = rowText(l, i);
+                if (row.contains(text)) return new Located(l, l.getCellBounds(i, i), row);
+            }
+            return null;
+        };
+    }
+
+    /** The editable text field inside the showing window titled {@code title} (a file chooser's name box). */
+    static Finder textFieldInWindow(String title) {
+        return () -> {
+            for (Window w : windows()) {
+                String t = w instanceof Frame f ? f.getTitle() : w instanceof Dialog d ? d.getTitle() : "";
+                if (!title.equals(t)) continue;
+                for (javax.swing.JTextField f : UnifiedAssistantFrameTest.all(w, javax.swing.JTextField.class)) {
+                    if (f.isShowing() && f.isEditable()) return new Located(f, "File name");
+                }
+            }
+            return null;
+        };
+    }
+
+    /** The first showing component of {@code type} in the window titled {@code title}, labelled by its text. */
+    static Finder firstInWindow(String title, Class<? extends AbstractButton> type) {
+        return () -> {
+            for (Window w : windows()) {
+                String t = w instanceof Frame f ? f.getTitle() : w instanceof Dialog d ? d.getTitle() : "";
+                if (!title.equals(t)) continue;
+                for (AbstractButton b : UnifiedAssistantFrameTest.all(w, type)) {
+                    if (b.isShowing()) return new Located(b, label(b));
+                }
+            }
+            return null;
+        };
+    }
+
+    // ---- the right record (for M79's flag-and-select tasks) -------------------------------------------------------------
+
+    /**
+     * The digest of the record the person has selected — the product's own record identity
+     * ({@code WalkIdentity.recordDigest} of its raw text, as a walk step binds a record) — or null when none is.
+     * Call on the event thread.
+     */
+    static String selectedRecordDigest(MainFrame f) {
+        var store = (telamin.fluxtion.audit.analyser.analyser.parse.LogStore) AsyncOpenInterleavingFrameTest.field(f, "store");
+        JTable t = ((LogTablePanel) AsyncOpenInterleavingFrameTest.field(f, "tablePanel")).table();
+        int view = t.getSelectedRow();
+        if (store == null || view < 0) return null;
+        return telamin.fluxtion.audit.analyser.analyser.walk.WalkIdentity.recordDigest(store.rawText(t.convertRowIndexToModel(view)));
+    }
+
+    /** The digest of the first record whose raw text satisfies {@code which}: the EXPECTED record. Event thread. */
+    static String expectedRecordDigest(MainFrame f, java.util.function.Predicate<String> which) {
+        var store = (telamin.fluxtion.audit.analyser.analyser.parse.LogStore) AsyncOpenInterleavingFrameTest.field(f, "store");
+        if (store == null) return null;
+        for (int i = 0; i < store.size(); i++) {
+            String raw = store.rawText(i);
+            if (which.test(raw)) return telamin.fluxtion.audit.analyser.analyser.walk.WalkIdentity.recordDigest(raw);
+        }
+        return null;
+    }
+
+    /** Whether the person's selection IS the expected record (by digest, never by row number). Event thread. */
+    static boolean rightRecordSelected(MainFrame f, String expectedDigest) {
+        return expectedDigest != null && expectedDigest.equals(selectedRecordDigest(f));
+    }
+
     /** A given component (an editable box, a drop zone), labelled by what the person reads on or beside it. */
     static Finder component(Supplier<? extends Component> c, Supplier<String> label) {
         return () -> {
@@ -474,6 +570,14 @@ final class Usability {
         final List<StepRecord> steps = new ArrayList<>();
         final Set<String> clippedSeen = new LinkedHashSet<>();
         final Map<ActKind, Integer> acts = new LinkedHashMap<>();
+        /** Acts counted when a named milestone was reached (A2: "project", "evidence"). */
+        final Map<String, Integer> milestones = new LinkedHashMap<>();
+        /** Paths the person had to type (a file chooser's name box). */
+        int typedPaths;
+        /** Times the task needed a terminal outside the analyser (none can be scripted; a target's metric). */
+        int terminalHandOffs;
+        /** Why a correctness check failed, in words (empty when it passed or there is none). */
+        final List<String> notes = new ArrayList<>();
         int wordsBeforeFirstAct = -1;
         boolean success;
         String failure;
@@ -628,6 +732,17 @@ final class Usability {
             settle();
         }
 
+        /** A milestone reached: the acts so far are recorded under its name. */
+        void mark(String milestone) {
+            milestones.put(milestone, totalActs());
+        }
+
+        /** The person types a PATH into a box: one key act and one typed path. */
+        void typePath(String what, Finder finder, String path) throws Exception {
+            type(what, finder, path);
+            typedPaths++;
+        }
+
         /** The person types {@code text} into a box: one act, whatever its length. */
         void type(String what, Finder finder, String text) throws Exception {
             Located l = approach(what, finder, false);
@@ -755,6 +870,10 @@ final class Usability {
             for (var e : acts.entrySet()) a.put(e.getKey().name().toLowerCase(Locale.ROOT) + "s", e.getValue());
             a.put("total", totalActs());
             m.put("acts", a);
+            if (!milestones.isEmpty()) m.put("actsTo", new LinkedHashMap<>(milestones));
+            m.put("typedPaths", typedPaths);
+            m.put("terminalHandOffs", terminalHandOffs);
+            if (!notes.isEmpty()) m.put("notes", new ArrayList<>(notes));
             m.put("hesitations", hesitations());
             m.put("deadEnds", deadEnds());
             m.put("wordsBeforeFirstAct", wordsBeforeFirstAct);

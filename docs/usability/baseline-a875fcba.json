@@ -130,6 +130,8 @@
         "scrolls": 0,
         "total": 5
       },
+      "typedPaths": 0,
+      "terminalHandOffs": 0,
       "hesitations": 2,
       "deadEnds": 0,
       "wordsBeforeFirstAct": 225,
@@ -201,6 +203,8 @@
         "scrolls": 1,
         "total": 5
       },
+      "typedPaths": 0,
+      "terminalHandOffs": 0,
       "hesitations": 2,
       "deadEnds": 0,
       "wordsBeforeFirstAct": 273,
@@ -267,6 +271,8 @@
         "scrolls": 0,
         "total": 1
       },
+      "typedPaths": 0,
+      "terminalHandOffs": 0,
       "hesitations": 0,
       "deadEnds": 0,
       "wordsBeforeFirstAct": 325,
@@ -303,6 +309,8 @@
         "scrolls": 1,
         "total": 2
       },
+      "typedPaths": 0,
+      "terminalHandOffs": 0,
       "hesitations": 2,
       "deadEnds": 0,
       "wordsBeforeFirstAct": 259,
@@ -350,6 +358,8 @@
         "scrolls": 1,
         "total": 8
       },
+      "typedPaths": 0,
+      "terminalHandOffs": 0,
       "hesitations": 2,
       "deadEnds": 0,
       "wordsBeforeFirstAct": 254,
@@ -437,6 +447,8 @@
         "scrolls": 0,
         "total": 4
       },
+      "typedPaths": 0,
+      "terminalHandOffs": 0,
       "hesitations": 1,
       "deadEnds": 0,
       "wordsBeforeFirstAct": 225,
@@ -493,6 +505,8 @@
         "scrolls": 0,
         "total": 1
       },
+      "typedPaths": 0,
+      "terminalHandOffs": 0,
       "hesitations": 0,
       "deadEnds": 0,
       "wordsBeforeFirstAct": 225,
@@ -525,6 +539,8 @@
         "scrolls": 0,
         "total": 1
       },
+      "typedPaths": 0,
+      "terminalHandOffs": 0,
       "hesitations": 0,
       "deadEnds": 0,
       "wordsBeforeFirstAct": 225,
@@ -540,6 +556,170 @@
           "deadEnd": false
         }
       ]
+    },
+    {
+      "id": "A2",
+      "task": "Teach-me diamond pack: the example downloaded, its log and graph paired",
+      "keyWords": [
+        "teaching",
+        "example",
+        "download",
+        "open",
+        "log"
+      ],
+      "success": true,
+      "acts": {
+        "clicks": 8,
+        "keys": 1,
+        "drags": 1,
+        "scrolls": 1,
+        "total": 11
+      },
+      "actsTo": {
+        "project": 7,
+        "evidence": 11
+      },
+      "typedPaths": 1,
+      "terminalHandOffs": 0,
+      "hesitations": 4,
+      "deadEnds": 0,
+      "wordsBeforeFirstAct": 225,
+      "clippedCount": 6,
+      "clipped": [
+        "JButton \"Download\" is cut at the top or bottom: shows 18 of 23 px",
+        "JButton \"Cancel\" is cut at the top or bottom: shows 18 of 23 px",
+        "JLabel \"Yours, on this machine. Never written to a profile, never shared.\" is cut at the side: shows 284 of 336 px",
+        "JCheckBox \"Scaffolding\" is cut at the side: shows 68 of 88 px",
+        "JLabel \"no log open — this graph is not compared with any run: nothing here is…\" is narrower than its text: 200 < 2380",
+        "JLabel \"every node id checked is declared (5/5)   ·   DemoQuoteProcessor.graph…\" is narrower than its text: 200 < 2037"
+      ],
+      "steps": [
+        {
+          "n": 1,
+          "act": "drag",
+          "what": "drop the teach-me pack on the start page",
+          "label": "Drop an .fexp bundle, audit log, GraphML, Spring XML or a prompt pack (.md) anywhere on th…",
+          "hesitation": [],
+          "deadEnd": false
+        },
+        {
+          "n": 2,
+          "act": "click",
+          "what": "choose the teaching example",
+          "label": "1. ⤓ Teaching example: the diamond",
+          "hesitation": [],
+          "deadEnd": false
+        },
+        {
+          "n": 3,
+          "act": "click",
+          "what": "download it",
+          "label": "Download example…",
+          "hesitation": [],
+          "deadEnd": false
+        },
+        {
+          "n": 4,
+          "act": "click",
+          "what": "confirm the download",
+          "label": "Download",
+          "hesitation": [],
+          "deadEnd": false
+        },
+        {
+          "n": 5,
+          "act": "click",
+          "what": "choose the project's graph",
+          "label": "<work>/A2/home/fluxtion-diamond-dad9b43/src/main/resources/c…",
+          "hesitation": [
+            "below_fold",
+            "label_lacks_key_word"
+          ],
+          "deadEnd": false
+        },
+        {
+          "n": 6,
+          "act": "click",
+          "what": "adopt the project",
+          "label": "OK",
+          "hesitation": [
+            "label_lacks_key_word"
+          ],
+          "deadEnd": false
+        },
+        {
+          "n": 7,
+          "act": "click",
+          "what": "open a log",
+          "label": "Open",
+          "hesitation": [],
+          "deadEnd": false
+        },
+        {
+          "n": 8,
+          "act": "key",
+          "what": "type the sample log's path",
+          "label": "File name",
+          "hesitation": [
+            "label_lacks_key_word"
+          ],
+          "deadEnd": false
+        },
+        {
+          "n": 9,
+          "act": "click",
+          "what": "open it",
+          "label": "Open",
+          "hesitation": [],
+          "deadEnd": false
+        },
+        {
+          "n": 10,
+          "act": "click",
+          "what": "load the project's settings",
+          "label": "Yes",
+          "hesitation": [
+            "label_lacks_key_word"
+          ],
+          "deadEnd": false
+        }
+      ]
+    }
+  ],
+  "targets": [
+    {
+      "id": "T4c",
+      "task": "T4 correct: the cue and the assistant's context name the hidden filter",
+      "keyWords": [
+        "filter",
+        "hidden",
+        "missing"
+      ],
+      "success": false,
+      "failure": "the end state was not reached",
+      "acts": {
+        "clicks": 0,
+        "keys": 0,
+        "drags": 0,
+        "scrolls": 0,
+        "total": 0
+      },
+      "typedPaths": 0,
+      "terminalHandOffs": 0,
+      "notes": [
+        "nothing on screen says records are hidden by the event-type filter",
+        "the assistant's context has no 'hidden' entry naming RiskBreachEvent"
+      ],
+      "hesitations": 0,
+      "deadEnds": 0,
+      "wordsBeforeFirstAct": 259,
+      "clippedCount": 3,
+      "clipped": [
+        "JLabel \"Yours, on this machine. Never written to a profile, never shared.\" is cut at the side: shows 284 of 336 px",
+        "JCheckBox \"Scaffolding\" is cut at the side: shows 68 of 88 px",
+        "JLabel \"every node id checked is declared (5/5)   ·   demo-quote-processor.gra…\" is narrower than its text: 200 < 2043"
+      ],
+      "steps": []
     }
   ]
 }

@@ -66,11 +66,26 @@ class UsabilityBudgetFrameTest {
     }
 
     @Test
-    @DisplayName("★ the eight scripted tasks succeed within their act budgets")
-    void tasksStayInBudget(@TempDir Path tmp) throws Exception {
+    @DisplayName("★ the eight scripted tasks and the scripted authoring task succeed within their act budgets")
+    void tasksStayInBudget() throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless(), "a real display is required");
+        // not @TempDir: a closed project's debounced settings write may land after the frame is gone, and JUnit's
+        // cleanup then fails on a directory that is no longer empty; this one is removed best-effort below
+        Path tmp = java.nio.file.Files.createTempDirectory("usability-tasks");
+        try {
+            runTasks(tmp);
+        } finally {
+            try (var walk = java.nio.file.Files.walk(tmp)) {
+                walk.sorted(java.util.Comparator.reverseOrder()).forEach(p -> p.toFile().delete());
+            }
+        }
+    }
+
+    private void runTasks(Path tmp) throws Exception {
         List<Usability.Run> runs = new ArrayList<>();
-        for (UsabilityTasks.Task t : UsabilityTasks.tasks()) {
+        List<UsabilityTasks.Task> all = new ArrayList<>(UsabilityTasks.tasks());
+        all.addAll(UsabilityTasks.authoringTasks());
+        for (UsabilityTasks.Task t : all) {
             Usability.Run r = UsabilityTasks.run(t, tmp.resolve(t.id()));
             System.out.println("[usability] " + r.toMap());
             runs.add(r);
@@ -79,6 +94,33 @@ class UsabilityBudgetFrameTest {
                 "every task has a budget and every budget a task");
         List<String> broken = UsabilityBudgets.violations(List.of(), runs);
         assertTrue(broken.isEmpty(), "★ over budget:\n  " + String.join("\n  ", broken));
+    }
+
+    /**
+     * ★ The right-record check (for M79's flag-and-select tasks) tells records apart by digest: with the first record
+     * selected it says "not the breach record"; with the breach record selected, it says it is. Witness: compare row
+     * numbers instead of digests and sort the table — the check follows the row, not the record.
+     */
+    @Test
+    @DisplayName("★ the right-record check compares the selected record's digest with the expected one")
+    void theRightRecordCheckTellsRecordsApart(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless(), "a real display is required");
+        try (UsabilityTasks.Session s = new UsabilityTasks.Session(tmp, UsabilityTasks.answering(), false)) {
+            s.openDemo();
+            Usability.onEdt(() -> {
+                String breach = Usability.expectedRecordDigest(s.frame, raw -> raw.contains("RiskBreachEvent"));
+                assertTrue(breach != null && !breach.isBlank(), "the expected record exists");
+                javax.swing.JTable t = s.table();
+                t.setRowSelectionInterval(0, 0);
+                assertFalse(Usability.rightRecordSelected(s.frame, breach), "★ the first record is not the breach record");
+                for (int r = 0; r < t.getRowCount(); r++) {
+                    for (int c = 0; c < t.getColumnCount(); c++) {
+                        if ("RiskBreachEvent".equals(String.valueOf(t.getValueAt(r, c)))) t.setRowSelectionInterval(r, r);
+                    }
+                }
+                assertTrue(Usability.rightRecordSelected(s.frame, breach), "★ the breach record is");
+            });
+        }
     }
 
     /**

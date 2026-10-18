@@ -17,7 +17,8 @@ final class UsabilityBudgets {
 
     /** Acts per task (clicks + keys + drags + scrolls), at most. */
     static final Map<String, Integer> ACTS = Map.of(
-            "T1", 5, "T2", 5, "T3", 1, "T4", 2, "T5", 8, "T6", 4, "T7", 1, "T8", 1);
+            "T1", 5, "T2", 5, "T3", 1, "T4", 2, "T5", 8, "T6", 4, "T7", 1, "T8", 1,
+            "A2", 11);
 
     /** Always-visible chrome words in each key state's region, at most. */
     static final Map<String, Integer> WORDS = Map.of("S1", 225, "S2", 31, "S3", 25);
@@ -28,7 +29,8 @@ final class UsabilityBudgets {
     /** The specs' act targets (not enforced yet). */
     static final Map<String, String> ACT_TARGETS = Map.of(
             "T2", "≤ 6 (M77 T19, M77-2)",
-            "T4", "≤ 1, 0 hesitations (records-filter fix, proposed)");
+            "T4", "≤ 1, 0 hesitations (records-filter fix, proposed)",
+            "A2", "≤ 3 acts project→evidence, no typed path (M76, as A6)");
 
     /** The specs' word targets (not enforced yet). */
     static final Map<String, String> WORD_TARGETS = Map.of(

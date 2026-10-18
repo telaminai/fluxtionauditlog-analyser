@@ -26,7 +26,7 @@ public final class UsabilityBattery {
     }
 
     /** Everything one run measured. */
-    record Results(List<UsabilityTasks.StateMeasure> states, List<Usability.Run> runs) {
+    record Results(List<UsabilityTasks.StateMeasure> states, List<Usability.Run> runs, List<Usability.Run> targets) {
     }
 
     static Results runAll(Path work) throws Exception {
@@ -36,7 +36,10 @@ public final class UsabilityBattery {
         states.add(UsabilityTasks.recordsWithList(work.resolve("S3")));
         List<Usability.Run> runs = new ArrayList<>();
         for (UsabilityTasks.Task t : UsabilityTasks.tasks()) runs.add(UsabilityTasks.run(t, work.resolve(t.id())));
-        return new Results(states, runs);
+        for (UsabilityTasks.Task t : UsabilityTasks.authoringTasks()) runs.add(UsabilityTasks.run(t, work.resolve(t.id())));
+        List<Usability.Run> targets = new ArrayList<>();
+        for (UsabilityTasks.Task t : UsabilityTasks.targetTasks()) targets.add(UsabilityTasks.run(t, work.resolve(t.id())));
+        return new Results(states, runs, targets);
     }
 
     public static void main(String[] args) throws Exception {
@@ -47,6 +50,7 @@ public final class UsabilityBattery {
         Path out = Files.createDirectories(Path.of(args[0]));
         String label = args[1];
         Path work = args.length > 2 ? Path.of(args[2]) : Files.createTempDirectory("usability");
+        WORK = work;
         int code = 0;
         try {
             Results r = runAll(work);
@@ -75,6 +79,9 @@ public final class UsabilityBattery {
         List<Object> tasks = new ArrayList<>();
         for (var t : r.runs()) tasks.add(t.toMap());
         m.put("tasks", tasks);
+        List<Object> targets = new ArrayList<>();
+        for (var t : r.targets()) targets.add(t.toMap());
+        m.put("targets", targets);
         return pretty(Json.write(m));
     }
 
@@ -95,6 +102,19 @@ public final class UsabilityBattery {
                     .append(" | ").append(t.wordsBeforeFirstAct).append(" | ").append(t.clippedSeen.size())
                     .append(" | ≤ ").append(UsabilityBudgets.ACTS.getOrDefault(t.id, -1))
                     .append(" | ").append(UsabilityBudgets.ACT_TARGETS.getOrDefault(t.id, "—")).append(" |\n");
+        }
+        sb.append("\n## Correctness targets (run, not budgeted)\n\n");
+        sb.append("| Task | Result | Why not |\n|---|---|---|\n");
+        for (Usability.Run t : r.targets()) {
+            sb.append("| ").append(t.id).append(" ").append(t.name).append(" | ").append(t.success ? "pass" : "**FAIL**")
+                    .append(" | ").append(t.notes.isEmpty() ? (t.failure == null ? "—" : cell(t.failure)) : cell(String.join("; ", t.notes)))
+                    .append(" |\n");
+        }
+        sb.append("\n## Authoring milestones\n\n| Task | Acts to | Typed paths | Terminal hand-offs |\n|---|---|---|---|\n");
+        for (Usability.Run t : r.runs()) {
+            if (!t.id.startsWith("A")) continue;
+            sb.append("| ").append(t.id).append(" | ").append(t.milestones).append(" | ").append(t.typedPaths)
+                    .append(" | ").append(t.terminalHandOffs).append(" |\n");
         }
         sb.append("\n## Key states\n\n");
         sb.append("| State | Region | Chrome words | Controls | Clipped | Whole-window words | Words budget | Clipped budget | Target |\n");
@@ -140,12 +160,28 @@ public final class UsabilityBattery {
     /** Machine paths out of every string: the repository, the homes, the JDK, the temp directory, any home directory. */
     static String redact(String text) {
         String t = text;
+        if (WORK != null) {
+            for (Path w : new Path[]{resolved(WORK), WORK.toAbsolutePath()}) t = t.replace(w.toString(), "<work>");
+        }
         for (String p : new String[]{Path.of("").toAbsolutePath().toString(), System.getProperty("java.home"),
                 System.getProperty("java.io.tmpdir"), System.getProperty("user.home")}) {
-            if (p != null && p.length() > 4) t = t.replace(p.endsWith("/") ? p.substring(0, p.length() - 1) : p, "<path>");
+            if (p == null || p.length() <= 4) continue;
+            String plainPath = p.endsWith("/") ? p.substring(0, p.length() - 1) : p;
+            t = t.replace(resolved(Path.of(plainPath)).toString(), "<path>").replace(plainPath, "<path>");
         }
-        t = t.replaceAll("/(Users|home)/[^/\\s\"'<>]+", "~");
+        t = t.replaceAll("(?<![\\w.<>-])/(Users|home)/[^/\\s\"'<>]+", "~");
         return t;
+    }
+
+    /** The battery's work directory (redacted from every record), or null. */
+    static Path WORK;
+
+    private static Path resolved(Path p) {
+        try {
+            return p.toRealPath();
+        } catch (java.io.IOException e) {
+            return p.toAbsolutePath();
+        }
     }
 
     /** Two-space JSON from the compact writer's output. */

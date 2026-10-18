@@ -201,13 +201,17 @@ final class UsabilityTasks {
 
         @Override
         public void close() throws Exception {
-            System.setProperty("user.home", priorHome);
             SwingUtilities.invokeAndWait(() -> {
                 for (Window w : Window.getWindows()) {
                     if (w != frame && (w.getOwner() == frame || w instanceof java.awt.Dialog && w.isShowing())) w.dispose();
                 }
                 frame.dispose();
             });
+            // a closed frame's late work (a debounced project write, a session capture) still resolves user.home: keep
+            // it on THIS session's home until that work has run, so it can never land in the next task's fresh home
+            Thread.sleep(1_500);
+            Usability.settle();
+            System.setProperty("user.home", priorHome);
         }
     }
 
@@ -320,6 +324,25 @@ final class UsabilityTasks {
         return t;
     }
 
+    /**
+     * Tasks with a correctness criterion the product does not meet yet, or that need what the battery cannot script:
+     * run and recorded, never budgeted (docs/usability/scorecard.md § Targets).
+     */
+    static List<Task> targetTasks() {
+        List<Task> t = new ArrayList<>();
+        t.add(new Task("T4c", "T4 correct: the cue and the assistant's context name the hidden filter",
+                List.of("filter", "hidden", "missing"), UsabilityTasks::whyAreRecordsMissingCorrect));
+        return t;
+    }
+
+    /** The authoring tasks that run with a stub assistant against this build, deterministically: budgeted. */
+    static List<Task> authoringTasks() {
+        List<Task> t = new ArrayList<>();
+        t.add(new Task("A2", "Teach-me diamond pack: the example downloaded, its log and graph paired",
+                List.of("teaching", "example", "download", "open", "log"), UsabilityTasks::teachMeDiamond));
+        return t;
+    }
+
     /** Runs one task to its result; never throws for a failed task. */
     static Run run(Task task, Path dir) throws Exception {
         Run run = new Run(task.id(), task.name(), task.keyWords());
@@ -366,13 +389,18 @@ final class UsabilityTasks {
                 }
                 return -1;
             }));
+            // the result must be about the RIGHT record: the selection the Ask is about is the breach record, by digest
+            boolean[] right = new boolean[1];
+            onEdt(() -> right[0] = Usability.rightRecordSelected(s.frame,
+                    Usability.expectedRecordDigest(s.frame, raw -> raw.contains("RiskBreachEvent"))));
+            if (!right[0]) run.notes.add("the record asked about is not the RiskBreachEvent record");
             run.click("choose Ask: What happened here?", button("What happened here?"));
             ProfileOverlayFrameTest.await(s.frame, x -> x.open(), "the cards are open");
             run.click("apply the default assistant", button("Apply"));
             UnifiedAssistantFrameTest.awaitMode(s.frame, AssistantMode.LOCAL_AGENT);
             run.click("send the placed question", button("Send"));
             untilAnswered(run, s);
-            return run.endScreen(answerOnScreen(s));
+            return run.endScreen(answerOnScreen(s) && right[0]);
         }
     }
 
@@ -442,6 +470,146 @@ final class UsabilityTasks {
             onEdt(() -> cause[0] = all(s.frame.getRootPane(), JCheckBox.class).stream().anyMatch(c -> c.isShowing()
                     && Usability.onScreen(c) && !c.isSelected() && c.getText() != null && c.getText().startsWith("RiskBreachEvent")));
             return run.endScreen(cause[0]);
+        }
+    }
+
+    /** The hidden type the T4 tasks set up. */
+    static final String HIDDEN_TYPE = "RiskBreachEvent";
+
+    /**
+     * T4c, the RESULT of T4: with the type unticked and the checklist hidden, (1) something on screen names the hidden
+     * filter — one visible text that says "hidden" and names the event-type filter or the type — and (2) the context an
+     * assistant reads
+     * ({@code context}, as the socket serves it) has a {@code hidden} entry naming the type. "Nothing is missing" — no
+     * cue, or no such entry — is a FAIL. No act is needed when the product says it; the check reads the first screen.
+     */
+    static boolean whyAreRecordsMissingCorrect(Run run, Path dir) throws Exception {
+        try (Session s = new Session(dir, answering(), false)) {
+            s.openDemo();
+            onEdt(() -> {
+                for (JCheckBox c : all(s.frame.getRootPane(), JCheckBox.class)) {
+                    if (c.getText() != null && c.getText().startsWith(HIDDEN_TYPE) && c.isSelected()) c.doClick();
+                }
+            });
+            Usability.settle();
+            javax.swing.JToggleButton toggle = (javax.swing.JToggleButton) field(s.frame, "eventTypesToggle");
+            onEdt(() -> { if (toggle.isSelected()) toggle.doClick(); });
+            Usability.settle();
+            run.begin();
+            boolean[] cue = new boolean[1];
+            onEdt(() -> cue[0] = Usability.chromeOnScreen().stream().map(x -> x.text().toLowerCase(java.util.Locale.ROOT))
+                    .anyMatch(x -> x.contains("hidden") && (x.contains("event type") || x.contains(HIDDEN_TYPE.toLowerCase(java.util.Locale.ROOT)))));
+            if (!cue[0]) run.notes.add("nothing on screen says records are hidden by the event-type filter");
+            AtomicReference<Object> ctx = new AtomicReference<>();
+            onEdt(() -> ctx.set(s.ex.render("context", new LinkedHashMap<>()).toMap()));
+            boolean named = hiddenNames(ctx.get(), HIDDEN_TYPE, false);
+            if (!named) run.notes.add("the assistant's context has no 'hidden' entry naming " + HIDDEN_TYPE);
+            return run.endScreen(cue[0] && named);
+        }
+    }
+
+    /** Whether a {@code hidden} key anywhere in a context map names {@code type}. */
+    static boolean hiddenNames(Object node, String type, boolean underHidden) {
+        if (node instanceof Map<?, ?> m) {
+            for (var e : m.entrySet()) {
+                if (hiddenNames(e.getValue(), type, underHidden || "hidden".equals(String.valueOf(e.getKey())))) return true;
+            }
+            return false;
+        }
+        if (node instanceof java.util.Collection<?> c) {
+            for (Object o : c) if (hiddenNames(o, type, underHidden)) return true;
+            return false;
+        }
+        return underHidden && String.valueOf(node).contains(type);
+    }
+
+    /** The Basic-track pack's entry 1, as the authoring walk dropped it (the published diamond, pinned by commit). */
+    static final String DIAMOND_COMMIT = "dad9b4382099a9ff26d9fe624f01fbbc80f67c50";
+
+    static final String DIAMOND_PACK = "# What is Fluxtion?\n\nBasic track. Entry 1 is the published diamond, pinned by commit.\n\n"
+            + "1. **Teaching example: the diamond** — example: https://github.com/telaminai/fluxtion-diamond/archive/"
+            + DIAMOND_COMMIT + ".zip\n"
+            + "2. **What is Fluxtion, in plain words?** — Using this project and the records on screen, explain an event,"
+            + " an event handler and a trigger.\n";
+
+    /**
+     * The archive the recording transport serves for the pinned address: a project laid out as the diamond is (a README,
+     * a source root, the generated GraphML, a shipped sample log), with the DEMO fixture's log and graph inside, so the
+     * battery needs no network and commits no third-party code. What is measured is the analyser's route, not the bytes.
+     */
+    static byte[] diamondLikeArchive() throws Exception {
+        String root = "fluxtion-diamond-" + DIAMOND_COMMIT + "/";
+        var bytes = new java.io.ByteArrayOutputStream();
+        try (var out = new java.util.zip.ZipOutputStream(bytes)) {
+            Map<String, byte[]> files = new LinkedHashMap<>();
+            files.put("README.md", "# DEMO teaching example\n".getBytes());
+            files.put("src/main/java/com/acme/demo/Readme.java", "package com.acme.demo;\n\nfinal class Readme {\n}\n".getBytes());
+            files.put("src/main/resources/com/acme/demo/generated/DemoQuoteProcessor.graphml",
+                    Files.readAllBytes(Path.of("src/test/resources/topology/demo-quote-processor.graphml")));
+            files.put("sample/demo-quote-audit.yaml", Files.readAllBytes(Path.of("src/test/resources/topology/demo-quote-audit.yaml")));
+            for (var e : files.entrySet()) {
+                out.putNextEntry(new java.util.zip.ZipEntry(root + e.getKey()));
+                out.write(e.getValue());
+                out.closeEntry();
+            }
+        }
+        return bytes.toByteArray();
+    }
+
+    /**
+     * A2: the teach-me pack dropped on the start page; its teaching example downloaded (a recording transport: no
+     * network), unpacked and adopted as a project; its shipped sample log opened from the toolbar's file chooser, and
+     * the log paired with the project's graph. Milestones: acts to the project, acts to the evidence; typed paths;
+     * terminal hand-offs (none: the example ships its log, so nothing is built).
+     */
+    static boolean teachMeDiamond(Run run, Path dir) throws Exception {
+        try (Session s = new Session(dir, answering(), true)) {
+            StartPromptFrameTest.session(s.frame);
+            byte[] zip = diamondLikeArchive();
+            onEdt(() -> s.frame.exampleClient = new telamin.fluxtion.audit.analyser.analyser.assistant.ExampleArchiveClient(
+                    (uri, max) -> uri.getHost().equals("github.com")
+                            ? new telamin.fluxtion.audit.analyser.analyser.assistant.ExampleArchiveClient.Reply(302,
+                            "https://codeload.github.com/telaminai/fluxtion-diamond/zip/" + DIAMOND_COMMIT, new byte[0])
+                            : new telamin.fluxtion.audit.analyser.analyser.assistant.ExampleArchiveClient.Reply(200, null, zip)));
+            Path pack = Files.writeString(dir.resolve("what-is-fluxtion.md"), DIAMOND_PACK);
+            run.begin();
+            StartPanel page = s.startPanel();
+            run.drop("drop the teach-me pack on the start page", Usability.component(() -> page, () -> {
+                for (Usability.Shown sh : Usability.chrome(page)) if (sh.text().contains("prompt pack")) return sh.text();
+                return "";
+            }), pack);
+            Usability.await("the pack was read", () -> s.frame.promptPacksRead >= 1);
+            run.click("choose the teaching example", Usability.listRow(() -> page.prompt().promptList(), "Teaching example"));
+            run.click("download it", Usability.anyButton("Download example", "Download"));
+            run.click("confirm the download", buttonInWindow(ExampleDownloadDialog.TITLE, "Download"));
+            // the topology is offered unselected ("at most one opens now"): the person picks it, then OK
+            run.click("choose the project's graph", Usability.firstInWindow("New project — what should be added?",
+                    javax.swing.JRadioButton.class));
+            run.click("adopt the project", buttonInWindow("New project — what should be added?", "OK"));
+            Usability.await("the project is open", () -> {
+                try {
+                    boolean[] open = new boolean[1];
+                    onEdt(() -> open[0] = s.frame.getTitle().contains("fluxtion-diamond"));
+                    return open[0];
+                } catch (Exception e) {
+                    return false;
+                }
+            });
+            run.mark("project");
+            run.click("open a log", Usability.buttonExactly("Open"));
+            Path log = dir.resolve("home/fluxtion-diamond-" + DIAMOND_COMMIT.substring(0, 7) + "/sample/demo-quote-audit.yaml");
+            run.typePath("type the sample log's path", Usability.textFieldInWindow("Open"), log.toString());
+            run.click("open it", buttonInWindow("Open", "Open"));
+            run.clickIfShowing("load the project's settings", buttonInWindow("Load this project?", "Yes"), 2_000);
+            Usability.await("the log is open", () -> s.rows() > 0);
+            Usability.settle();
+            run.mark("evidence");
+            var snap = new AtomicReference<telamin.fluxtion.audit.analyser.analyser.session.SessionSnapshot>();
+            onEdt(() -> snap.set(s.session().snapshot()));
+            var pairing = snap.get().publishedPairing();
+            boolean paired = snap.get().logOpen() && snap.get().graphOpen() && pairing != null && pairing.applies();
+            if (!paired) run.notes.add("log and graph not paired: " + (pairing == null ? "no verdict" : pairing.reason()));
+            return run.endScreen(paired);
         }
     }
 
@@ -638,10 +806,10 @@ final class UsabilityTasks {
     static Component recordsRegion(Session s) throws Exception {
         AtomicReference<Component> out = new AtomicReference<>();
         onEdt(() -> {
-            // the container titled "Records" (its search row, the checklist and the table)
+            // the container titled "Records…" (its search row, the checklist and the table)
             Component table = (Component) field(s.frame, "tablePanel");
             Container c = table.getParent();
-            while (c != null && !(c instanceof JComponent j && "Records".equals(Usability.borderTitle(j.getBorder())))) {
+            while (c != null && !(c instanceof JComponent j && Usability.borderTitle(j.getBorder()).startsWith("Records"))) {
                 c = c.getParent();
             }
             if (c == null) throw new AssertionError("no Records section around the table");

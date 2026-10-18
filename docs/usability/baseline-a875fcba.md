@@ -14,6 +14,19 @@ Window 1200×800, docked, Light theme; stub `claude`, recorded Claude Code strea
 | T6 Set up an external client | yes | 4 (4/0/0/0) | 1 | 0 | 225 | 0 | ≤ 4 | — |
 | T7 Open the sample | yes | 1 (1/0/0/0) | 0 | 0 | 225 | 1 | ≤ 1 | — |
 | T8 Load a prompt pack | yes | 1 (0/0/1/0) | 0 | 0 | 225 | 0 | ≤ 1 | — |
+| A2 Teach-me diamond pack: the example downloaded, its log and graph paired | yes | 11 (8/1/1/1) | 4 | 0 | 225 | 6 | ≤ 11 | ≤ 3 acts project→evidence, no typed path (M76, as A6) |
+
+## Correctness targets (run, not budgeted)
+
+| Task | Result | Why not |
+|---|---|---|
+| T4c T4 correct: the cue and the assistant's context name the hidden filter | **FAIL** | nothing on screen says records are hidden by the event-type filter; the assistant's context has no 'hidden' entry naming RiskBreachEvent |
+
+## Authoring milestones
+
+| Task | Acts to | Typed paths | Terminal hand-offs |
+|---|---|---|---|
+| A2 | {project=7, evidence=11} | 1 | 0 |
 
 ## Key states
 
@@ -121,4 +134,28 @@ Clipped on the way:
 | # | Act | What | Visible label | Hesitation | Dead end |
 |---|---|---|---|---|---|
 | 1 | drag | drop the pack on the start page | Drop an .fexp bundle, audit log, GraphML, Spring XML or a prompt pack (.md) anywhere on th… | — | — |
+
+**A2 Teach-me diamond pack: the example downloaded, its log and graph paired** — key words: teaching, example, download, open, log
+
+| # | Act | What | Visible label | Hesitation | Dead end |
+|---|---|---|---|---|---|
+| 1 | drag | drop the teach-me pack on the start page | Drop an .fexp bundle, audit log, GraphML, Spring XML or a prompt pack (.md) anywhere on th… | — | — |
+| 2 | click | choose the teaching example | 1. ⤓ Teaching example: the diamond | — | — |
+| 3 | click | download it | Download example… | — | — |
+| 4 | click | confirm the download | Download | — | — |
+| 5 | click | choose the project's graph | <work>/A2/home/fluxtion-diamond-dad9b43/src/main/resources/c… | below fold, label lacks key word | — |
+| 6 | click | adopt the project | OK | label lacks key word | — |
+| 7 | click | open a log | Open | — | — |
+| 8 | key | type the sample log's path | File name | label lacks key word | — |
+| 9 | click | open it | Open | — | — |
+| 10 | click | load the project's settings | Yes | label lacks key word | — |
+
+Clipped on the way:
+
+- JButton "Download" is cut at the top or bottom: shows 18 of 23 px
+- JButton "Cancel" is cut at the top or bottom: shows 18 of 23 px
+- JLabel "Yours, on this machine. Never written to a profile, never shared." is cut at the side: shows 284 of 336 px
+- JCheckBox "Scaffolding" is cut at the side: shows 68 of 88 px
+- JLabel "no log open — this graph is not compared with any run: nothing here is…" is narrower than its text: 200 < 2380
+- JLabel "every node id checked is declared (5/5)   ·   DemoQuoteProcessor.graph…" is narrower than its text: 200 < 2037
 
