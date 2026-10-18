@@ -420,9 +420,11 @@ build is scripted and budgeted. The rest are targets, each with its success crit
 
 ## Integration v2: `regfix` → `integration-b` (test/usability-2026-10-18b)
 
-The second integration build adds `fix/owner-test-small` and `feature/propose-starter` (draft #167) to `regfix`. The
+The second integration build adds `fix/owner-test-small`, `feature/propose-starter` (draft #167) and
+`fix/starter-followups` to `regfix`. The
 record is [`baseline-integration-b.md`](baseline-integration-b.md) / [`.json`](baseline-integration-b.json), from
-`python3 tools/usability/run.py --record --label integration-b` on the jar built at `42c5bb78`. Its JSON is
+`python3 tools/usability/run.py --record --label integration-b` on the jars built at `42c5bb78` and, with
+`fix/starter-followups`, at `ddccd5c5` (the same result). Its JSON is
 **byte-identical** to [`baseline-regfix.json`](baseline-regfix.json) apart from the label: every task, state, step,
 clipped string and T4c result is unchanged, so there is no regression and no budget moves. Neither branch touches a
 route the battery walks; in particular **no task covers the starter flow** (Claude proposes a starter, the review, the
