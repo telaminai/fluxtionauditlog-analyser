@@ -214,10 +214,14 @@ class DocsExternalAccessClaimsTest {
         String unreleased = flat(log.substring(at, log.indexOf("\n## [", at + 1)));
         for (String gone : List.of("Choose **Claude Code** at the top of the Assistant tab", "analyser-assistant posture",
                 "Or choose directly", "its switch is shown, disabled", "Profile…", "Claude Code · your plan",
-                "In-app · API key", "the questions need in-process actions")) {
+                "In-app · API key", "the questions need in-process actions",
+                // integration 2026-10-18: M77-4 retired the profile cards before they shipped; the notes say what ships
+                "**Assistant: <profile> ▾**", "opens four cards in the panel", "The Safe analysis card's promise",
+                "from the profile cards asks", "The profile cards, the assistant's limits line")) {
             assertFalse(unreleased.contains(gone), "CHANGELOG [Unreleased] still says: " + gone);
         }
-        assertTrue(unreleased.contains("**Assistant: <profile> ▾**"));
+        assertTrue(unreleased.contains("**Assistant ▾ is a quick switch.**"), "the header control as it ships");
+        assertTrue(unreleased.contains("They are set up in **Set up AI…** and switched with the assistant header's mode chip"));
         assertTrue(unreleased.contains("*Turn on External MCP/REST access…*, formerly *Enable local transport…*"));
     }
 }
