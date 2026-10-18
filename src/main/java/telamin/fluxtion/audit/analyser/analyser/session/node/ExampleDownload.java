@@ -42,6 +42,8 @@ public class ExampleDownload implements EventLogSource {
     private long rootRef;
     private long bytesRef;
     private String note = "";
+    /** Owner follow-up (2026-10-18): the files the unpack made runnable (relative paths), for the line; empty: none. */
+    private java.util.List<String> runnable = java.util.List.of();
     private String root;
     private ExampleDownloadState published = ExampleDownloadState.IDLE;
     private boolean dirty = true;
@@ -80,6 +82,7 @@ public class ExampleDownload implements EventLogSource {
         }
         source = again.source();
         phase = "CONFIRMING";
+        runnable = java.util.List.of();
         note = "";
         auditLog.info("example", "CONFIRMING").info("thirdParty", source.thirdParty())
                 .info("digest", source.sha256() != null);
@@ -155,6 +158,7 @@ public class ExampleDownload implements EventLogSource {
             return changed();
         }
         phase = "DONE";
+        runnable = e.runnable().stream().map(ExampleDownload::safe).toList();
         root = e.rootShown();
         rootRef = e.rootRef();
         note = "Unpacked " + source.publisher() + " — nothing was built or run. Confirm the project to open it.";
@@ -214,6 +218,20 @@ public class ExampleDownload implements EventLogSource {
         };
     }
 
+    /** At most this many file names in the runnable line; the rest are counted, and all are in its tooltip. */
+    public static final int RUNNABLE_SHOWN = 5;
+
+    /**
+     * Owner follow-up (2026-10-18): the one line that says which of the example's files were made runnable — "Runnable
+     * after unpacking: mvnw, regen.sh" — the first few and "and N more" past {@link #RUNNABLE_SHOWN}; "" for none.
+     */
+    public static String runnableLine(java.util.List<String> files) {
+        if (files == null || files.isEmpty()) return "";
+        int shown = files.size() > RUNNABLE_SHOWN ? RUNNABLE_SHOWN - 1 : files.size();
+        String line = "Runnable after unpacking: " + String.join(", ", files.subList(0, shown));
+        return shown < files.size() ? line + " and " + (files.size() - shown) + " more" : line;
+    }
+
     private static String safe(String s) {
         if (s == null) return "unknown";
         StringBuilder b = new StringBuilder();
@@ -228,8 +246,10 @@ public class ExampleDownload implements EventLogSource {
 
     public ExampleDownloadState state() {
         if (dirty) {
+            boolean done = "DONE".equals(phase);
             published = new ExampleDownloadState(phase, request, source == null ? "" : source.publisher(),
-                    source != null && source.thirdParty(), note, root);
+                    source != null && source.thirdParty(), note, root, done ? runnableLine(runnable) : "",
+                    done ? String.join("\n", runnable) : "");
             dirty = false;
         }
         return published;

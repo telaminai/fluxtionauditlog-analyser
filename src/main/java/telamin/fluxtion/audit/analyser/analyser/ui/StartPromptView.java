@@ -376,8 +376,13 @@ public final class StartPromptView extends JPanel {
     /** P2b: render an example download's state, as exampleDownload decided it. */
     public void renderExample(telamin.fluxtion.audit.analyser.analyser.session.ExampleDownloadState e) {
         example = e == null ? telamin.fluxtion.audit.analyser.analyser.session.ExampleDownloadState.IDLE : e;
-        exampleNote.setText(example.note().isBlank() ? " " : example.note());
-        exampleNote.setVisible(!example.note().isBlank());
+        // owner follow-up (2026-10-18): the node's runnable line under its note, every file in the tooltip
+        String shown = example.runnable().isBlank() ? example.note()
+                : example.note().isBlank() ? example.runnable() : example.note() + "\n" + example.runnable();
+        exampleNote.setText(shown.isBlank() ? " " : shown);
+        exampleNote.setToolTipText(example.runnableAll().isBlank() ? null
+                : UiText.tooltip("Runnable after unpacking:\n" + example.runnableAll()));
+        exampleNote.setVisible(!shown.isBlank());
         renderAction();
         revalidate();
         repaint();

@@ -1694,7 +1694,19 @@ public final class SessionEvents {
     }
 
     /** The unpack through the template archive machinery: the project root it made, or why not. */
-    public record ExampleUnpacked(long request, boolean ok, long rootRef, String rootShown, String failure) {
+    public record ExampleUnpacked(long request, boolean ok, long rootRef, String rootShown, String failure,
+                                  java.util.List<String> runnable) {
+        /**
+         * Owner follow-up (2026-10-18): {@code runnable} — the files the unpack gave an executable bit, relative to the
+         * project root (an observation; {@code exampleDownload} decides the words). Empty: none.
+         */
+        public ExampleUnpacked {
+            runnable = java.util.List.copyOf(runnable == null ? java.util.List.of() : runnable);
+        }
+
+        public ExampleUnpacked(long request, boolean ok, long rootRef, String rootShown, String failure) {
+            this(request, ok, rootRef, rootShown, failure, java.util.List.of());
+        }
     }
 
     /** Answered at once by each example effect. */

@@ -43,9 +43,19 @@ public final class TemplateArchive {
             "setup.sh", "validate.sh", "generate.sh",
             "run-and-export.sh", "run.sh", "setup-java.sh", "runWasm.sh");
 
-    public record Installed(Path projectRoot, Path profile, List<String> commands) {
+    /**
+     * @param runnable owner follow-up (2026-10-18): the files an example's unpack gave an executable bit, relative to the
+     *                 project root, in archive order — so the person can be told which will run. Empty for a starter
+     *                 (its fixed list is the dialog's commands) and where there is no POSIX mode.
+     */
+    public record Installed(Path projectRoot, Path profile, List<String> commands, List<String> runnable) {
         public Installed {
             commands = List.copyOf(commands == null ? List.of() : commands);
+            runnable = List.copyOf(runnable == null ? List.of() : runnable);
+        }
+
+        public Installed(Path projectRoot, Path profile, List<String> commands) {
+            this(projectRoot, profile, commands, List.of());
         }
     }
 
@@ -103,7 +113,7 @@ public final class TemplateArchive {
         Path staging = Files.createTempDirectory(parent, ".analyser-template-");
         boolean installed = false;
         try {
-            extract(zip, staging);
+            List<String> runnable = extract(zip, staging);
             Path root = soleProjectRoot(staging);
             Path profileInStage = root.resolve(ProjectProfile.CANONICAL_RELATIVE);
             boolean hasProfile = Files.isRegularFile(profileInStage, LinkOption.NOFOLLOW_LINKS);
@@ -126,7 +136,7 @@ public final class TemplateArchive {
             }
             installed = true;
             Path profile = hasProfile ? target.resolve(ProjectProfile.CANONICAL_RELATIVE) : null;
-            return new Installed(target, profile, commands);
+            return new Installed(target, profile, commands, runnable);
         } finally {
             deleteTree(staging);
             // Once the atomic move succeeds the target is the requested result, not staging debris.
@@ -137,7 +147,8 @@ public final class TemplateArchive {
         }
     }
 
-    private void extract(byte[] bytes, Path staging) throws IOException {
+    private List<String> extract(byte[] bytes, Path staging) throws IOException {
+        List<String> runnable = new ArrayList<>();
         java.util.Map<String, Integer> modes = executables ? java.util.Map.of() : unixModes(bytes);
         int entries = 0;
         long total = 0;
@@ -178,11 +189,16 @@ public final class TemplateArchive {
                         out.write(buffer, 0, read);
                     }
                 }
-                setFixedPermissions(output, entry.getName(), executables, modes.get(entry.getName()));
+                if (setFixedPermissions(output, entry.getName(), executables, modes.get(entry.getName())) && !executables) {
+                    // below the archive's one top-level folder: the path the person sees in the project
+                    String portable = entry.getName().replace('\\', '/');
+                    runnable.add(portable.substring(portable.indexOf('/') + 1));
+                }
                 input.closeEntry();
             }
         }
         if (entries == 0) throw new IOException("starter archive has no entries");
+        return runnable;
     }
 
     private static Path safeTarget(Path staging, ZipEntry entry) throws IOException {
@@ -346,7 +362,8 @@ public final class TemplateArchive {
                 | (long) (b[i + 3] & 0xff) << 24;
     }
 
-    private static void setFixedPermissions(Path file, String archiveName, boolean executables, Integer archiveMode)
+    /** @return whether the file was given an executable bit */
+    private static boolean setFixedPermissions(Path file, String archiveName, boolean executables, Integer archiveMode)
             throws IOException {
         try {
             Set<PosixFilePermission> permissions = new HashSet<>(Set.of(
@@ -367,8 +384,10 @@ public final class TemplateArchive {
                 permissions.add(PosixFilePermission.OTHERS_EXECUTE);
             }
             Files.setPosixFilePermissions(file, permissions);
+            return permissions.contains(PosixFilePermission.OWNER_EXECUTE);
         } catch (UnsupportedOperationException ignored) {
             // Windows has no POSIX mode. The archive's mode was never applied, which is the property.
+            return false;
         }
     }
 

@@ -115,6 +115,9 @@ class FactFieldsTest {
             M74.put(c, Holds.PERSON_CONFIG);
         }
         M74.put("ExampleDownloadRequested.source", Holds.PERSON_PACK);
+        // owner follow-up 2026-10-18: file names RELATIVE to the unpacked root (mvnw, regen.sh) of the archive the
+        // person's pack named — never an absolute path, never a model's words
+        M74.put("ExampleUnpacked.runnable", Holds.PERSON_PACK);
         for (String c : List.of("LocalAgentStartRequested.consent", "LocalAgentSendRequested.consent",
                 "LocalAgentConsentChanged.consent", "LocalAgentFolderAnswered.consent", "LocalAgentDraftComposed.consent",
                 "LocalAgentRestartAnswered.consent",

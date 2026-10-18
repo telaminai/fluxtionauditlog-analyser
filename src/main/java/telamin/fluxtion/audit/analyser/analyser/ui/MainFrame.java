@@ -12624,7 +12624,8 @@ public final class MainFrame extends JFrame {
             }
         }, installed -> session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExampleUnpacked(
                 e.request(), true, factRefs.put(installed.projectRoot().toString()),
-                telamin.fluxtion.audit.analyser.analyser.session.FactWords.shown(installed.projectRoot().toString()), null)),
+                telamin.fluxtion.audit.analyser.analyser.session.FactWords.shown(installed.projectRoot().toString()), null,
+                installed.runnable())),
                 err -> session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExampleUnpacked(
                         e.request(), false, 0, null,
                         telamin.fluxtion.audit.analyser.analyser.session.FactWords.withoutPaths(rootMessage(err)))));

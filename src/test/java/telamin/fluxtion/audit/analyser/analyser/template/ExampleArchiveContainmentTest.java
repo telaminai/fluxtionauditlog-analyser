@@ -78,7 +78,9 @@ class ExampleArchiveContainmentTest {
                 "diamond-dad9b43/tool", 0100755, "diamond-dad9b43/link.sh", 0120777,
                 "diamond-dad9b43/pom.xml", 0100644));
         Path dest = temp.resolve("diamond");
-        TemplateArchive.forExamples().install(zip, dest);
+        var installed = TemplateArchive.forExamples().install(zip, dest);
+        assertEquals(List.of("mvnw", "regen.sh", "tools/nested.sh"), installed.runnable(),
+                "the files made runnable, as the person will see them named");
         assertTrue(TemplateArchiveAdversarialTest.executable(dest.resolve("mvnw")), "./mvnw runs");
         assertTrue(TemplateArchiveAdversarialTest.executable(dest.resolve("regen.sh")), "./regen.sh runs");
         assertTrue(TemplateArchiveAdversarialTest.executable(dest.resolve("tools/nested.sh")), "a nested script too");
@@ -89,7 +91,7 @@ class ExampleArchiveContainmentTest {
         assertEquals(List.of(), listOutside(dest), "nothing is written outside the target");
         // an archive that records no Unix mode (as java.util.zip writes one) makes nothing runnable
         Path plain = temp.resolve("plain");
-        TemplateArchive.forExamples().install(TemplateArchiveAdversarialTest.zip(e), plain);
+        assertEquals(List.of(), TemplateArchive.forExamples().install(TemplateArchiveAdversarialTest.zip(e), plain).runnable());
         assertFalse(TemplateArchiveAdversarialTest.executable(plain.resolve("mvnw")), "no recorded mode: not runnable");
     }
 
