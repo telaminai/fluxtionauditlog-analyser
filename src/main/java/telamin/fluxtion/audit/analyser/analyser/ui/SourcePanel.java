@@ -834,6 +834,7 @@ public final class SourcePanel extends JPanel {
         pane.navigation++;
         java.awt.Window window = SwingUtilities.getWindowAncestor(this);
         if (window != null) window.validate();
+        if (giveSplitPaneRoom(pane) && window != null) window.validate();
         pane.scroll.validate(); pane.text.validate();
         int offset = line == null ? 0 : pane.text.getDocument().getDefaultRootElement().getElement(line - 1).getStartOffset();
         pane.text.setCaretPosition(Math.min(offset, pane.text.getDocument().getLength()));
@@ -845,6 +846,24 @@ public final class SourcePanel extends JPanel {
                 pane.text.scrollRectToVisible(new Rectangle(view.x, y, view.width, view.height));
             }
         } catch (BadLocationException ignored) { /* measurement refuses an unavailable band */ }
+    }
+
+    /** Below this height a split half shows no source line worth pointing at. */
+    static final int MIN_SPLIT_PANE_HEIGHT = 80;
+
+    /**
+     * Owner hands-on test (2026-10-18b): in Split, a {@code JSplitPane} whose divider was never placed sizes its top half
+     * by the PREFERRED height — the whole document — so the other half laid out at height 0 and every Java spotlight
+     * bound to it was refused as "no longer visible". A spotlight's pane must be seen: when it is squeezed below
+     * {@link #MIN_SPLIT_PANE_HEIGHT}, the divider goes to the middle. Layout only; nothing else changes.
+     *
+     * @return whether the divider moved (the caller re-validates)
+     */
+    boolean giveSplitPaneRoom(JComponent pane) {
+        if (mode != Mode.SPLIT || split.getParent() == null || split.getHeight() <= 0) return false;
+        if (pane.getHeight() >= Math.min(MIN_SPLIT_PANE_HEIGHT, split.getHeight() / 2)) return false;
+        split.setDividerLocation(Math.max(0, (split.getHeight() - split.getDividerSize()) / 2));
+        return true;
     }
 
     public Optional<JavaBand> javaBounds(JavaAnchor anchor, Integer line) {

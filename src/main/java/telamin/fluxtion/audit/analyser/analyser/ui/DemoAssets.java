@@ -135,7 +135,9 @@ public final class DemoAssets {
 
     /**
      * The sample project's profile under {@code root}: written when absent, and HEALED when it still names the
-     * placeholder processor (or none) — only the processor fields change, so a saved DEMO tour or report survives.
+     * placeholder processor (or none), or when its source roots do not reach the shipped processor's source — only the
+     * processor fields and the demo root change, so a saved DEMO tour or report survives. The root is written
+     * project-relative ({@code sourceRoot.0=.}), so a moved home still resolves it.
      *
      * @return the profile's path
      */
@@ -145,13 +147,27 @@ public final class DemoAssets {
         var sample = new telamin.fluxtion.audit.analyser.analyser.config.AppConfig();
         if (Files.isRegularFile(profile)) {
             var loaded = telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.load(profile, sample, share);
-            if (!loaded.loaded() || !needsProcessorHeal(sample)) return profile;
-        } else {
-            sample.sourceRoots.add(root.toString());
+            if (!loaded.loaded() || !needsProcessorHeal(sample) && !needsSourceRootHeal(sample, root)) return profile;
         }
+        sampleSourceRoot(sample, root);
         sampleProcessors(sample);
         telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.save(profile, sample, share);
         return profile;
+    }
+
+    /** The profile's own source roots do not find the shipped processor's source. */
+    static boolean needsSourceRootHeal(telamin.fluxtion.audit.analyser.analyser.config.AppConfig c, Path root) {
+        return new telamin.fluxtion.audit.analyser.analyser.source.SourceRootResolver(c.sourceRoots).find(PROCESSOR).isEmpty();
+    }
+
+    /** The demo folder (where {@code com/} sits) as a source root, added once. */
+    static void sampleSourceRoot(telamin.fluxtion.audit.analyser.analyser.config.AppConfig c, Path root) {
+        Path demo = root.toAbsolutePath().normalize();
+        boolean present = c.sourceRoots.stream().anyMatch(r -> {
+            try { return Path.of(r).toAbsolutePath().normalize().equals(demo); }
+            catch (RuntimeException notAPath) { return false; }
+        });
+        if (!present) c.sourceRoots.add(demo.toString());
     }
 
     /** The profile names the placeholder, or no processor at all. */

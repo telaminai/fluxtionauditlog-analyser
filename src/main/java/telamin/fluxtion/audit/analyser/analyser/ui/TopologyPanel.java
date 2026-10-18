@@ -1664,6 +1664,17 @@ public final class TopologyPanel extends JPanel {
         if (embeddedSource != null) embeddedSource.setProcessors(lastProcessorFqns, selected);
     }
 
+    /**
+     * Where the graph/source divider goes when the pane appears: half and half the first time (the graph at least 240
+     * wide), after that whatever the user dragged it to — but never so far right that the source pane has no width.
+     * Owner hands-on test (2026-10-18b): in a side column narrower than 240 the divider sat past the right edge, the
+     * pane laid out 0 px wide, and every Java spotlight in the Topology tab was refused as "no longer visible".
+     */
+    static int sourceDivider(int dividerAt, int width) {
+        int at = dividerAt > 0 ? dividerAt : Math.max(240, width / 2);
+        return width > 0 ? Math.min(at, width / 2 + Math.max(0, width / 2 - 240)) : at;
+    }
+
     private void showSourcePane(boolean show) {
         if (embeddedSource == null) return;
         sourceButton.setSelected(show);
@@ -1672,7 +1683,7 @@ public final class TopologyPanel extends JPanel {
             if (graphSplit.getRightComponent() != embeddedSource) {
                 graphSplit.setRightComponent(embeddedSource);
                 // half and half the first time; after that whatever the user dragged it to
-                graphSplit.setDividerLocation(dividerAt > 0 ? dividerAt : Math.max(240, getWidth() / 2));
+                graphSplit.setDividerLocation(sourceDivider(dividerAt, getWidth()));
             }
         } else {
             if (graphSplit.getRightComponent() != null) dividerAt = graphSplit.getDividerLocation();

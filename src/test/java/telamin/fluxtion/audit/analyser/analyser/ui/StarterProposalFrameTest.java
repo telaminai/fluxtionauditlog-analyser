@@ -360,6 +360,20 @@ class StarterProposalFrameTest {
                     after.localAgent().extra().restart().changed());
             assertEquals(1, agent.processes.size(), "nothing restarted until the person answers");
             capture(visual, f, "04-project-open-draft-placed.png");
+            // owner hands-on test (2026-10-18b): the created project's roots are in force — the profile's src/main/java and
+            // the pre-ticked design folder — and the assistant can light its Java class and its Spring bean
+            var exe = (ActionExecutor) field(f, "actionExecutor");
+            Path realTarget = target.toRealPath();
+            onEdt(() -> assertEquals(List.of(realTarget.resolve("src/main/java").toString(),
+                            realTarget.resolve("src/main/fluxtion/designer").toString()),
+                    ((telamin.fluxtion.audit.analyser.analyser.config.AppConfig) field(f, "config")).sourceRoots,
+                    "★ the starter's source roots"));
+            var javaLit = exe.render("spotlight", java.util.Map.of("target", "source:java:com.example.myapp.node.MarketDataNode",
+                    "caption", "the starter's node"));
+            assertTrue(javaLit.ok(), javaLit.toMap().toString());
+            var beanLit = exe.render("spotlight", java.util.Map.of("target", "source:design:bean:marketDataNode",
+                    "caption", "its Spring bean"));
+            assertTrue(beanLit.ok(), beanLit.toMap().toString());
         } finally {
             System.setProperty("user.home", before);
             for (Window w : Window.getWindows()) if (w instanceof JDialog d && d.isShowing()) SwingUtilities.invokeLater(d::dispose);

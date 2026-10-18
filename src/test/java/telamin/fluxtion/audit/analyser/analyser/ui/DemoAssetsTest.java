@@ -194,6 +194,62 @@ class DemoAssetsTest {
         });
     }
 
+    /**
+     * ★ Owner hands-on test (2026-10-18b): the sample profile's OWN source roots — as loaded, project-relative — reach the
+     * shipped processor and the node classes, and the root is written relative ({@code sourceRoot.0=.}). Witness: drop
+     * {@code sampleSourceRoot} from {@code ensureSampleProfile} — the fresh profile has no root and the resolver misses.
+     */
+    @Test
+    void theSampleProfilesOwnRootResolvesItsSources(@org.junit.jupiter.api.io.TempDir java.nio.file.Path home) throws Throwable {
+        underHome(home, () -> {
+            java.nio.file.Path root = DemoAssets.install();
+            java.nio.file.Path profile = DemoAssets.ensureSampleProfile(root);
+            var sample = loadSample(profile);
+            var resolver = new telamin.fluxtion.audit.analyser.analyser.source.SourceRootResolver(sample.sourceRoots);
+            for (String fqn : java.util.List.of(DemoAssets.PROCESSOR, DemoAssets.TRACED_PROCESSOR, "com.acme.demo.node.Nodes",
+                    "com.acme.demo.builder.DemoQuoteProcessorBuilder")) {
+                assertTrue(resolver.find(fqn).isPresent(), "the profile's roots reach " + fqn + ": " + sample.sourceRoots);
+            }
+            assertTrue(java.nio.file.Files.readString(profile).contains("sourceRoot.0=.\n"), "written project-relative");
+        });
+    }
+
+    /**
+     * ★ A sample profile that names the right processor but carries NO source root (or one that no longer resolves) is
+     * healed on the next open, keeping the rest. Witness: return early on {@code !needsProcessorHeal} alone (the
+     * 587c59df rule) — the root stays missing.
+     */
+    @Test
+    void aSampleProfileWithoutASourceRootIsHealed(@org.junit.jupiter.api.io.TempDir java.nio.file.Path home) throws Throwable {
+        underHome(home, () -> {
+            java.nio.file.Path root = DemoAssets.install();
+            java.nio.file.Path profile = telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.pathFor(root);
+            for (String stale : new String[]{null, home.resolve("gone").toString()}) {
+                var old = new telamin.fluxtion.audit.analyser.analyser.config.AppConfig();
+                if (stale != null) old.sourceRoots.add(stale);
+                DemoAssets.sampleProcessors(old);
+                old.hiddenColumns.clear();
+                old.hiddenColumns.add("eventTime");
+                old.hiddenColumnsSet = true;
+                java.nio.file.Files.deleteIfExists(profile);
+                telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.save(profile, old,
+                        new telamin.fluxtion.audit.analyser.analyser.config.SettingsShare());
+                assertFalse(DemoAssets.needsProcessorHeal(loadSample(profile)), "the processor is already right");
+
+                DemoAssets.ensureSampleProfile(root);
+                var healed = loadSample(profile);
+                assertTrue(new telamin.fluxtion.audit.analyser.analyser.source.SourceRootResolver(healed.sourceRoots)
+                        .find(DemoAssets.PROCESSOR).isPresent(), "healed: " + healed.sourceRoots);
+                assertEquals(java.util.List.of("eventTime"), healed.hiddenColumns, "the rest of the profile is kept");
+                assertEquals(DemoAssets.PROCESSOR, healed.selectedEventProcessor);
+
+                String before = java.nio.file.Files.readString(profile);
+                DemoAssets.ensureSampleProfile(root);
+                assertEquals(before, java.nio.file.Files.readString(profile), "a healed profile is then left alone");
+            }
+        });
+    }
+
     /** The terms of rule 1's `grep -ri "a\\|b\\|c"` sweep, parsed from CLAUDE.md so they are never spelled here. */
     private static java.util.List<String> rule1SweepTerms() {
         try {
