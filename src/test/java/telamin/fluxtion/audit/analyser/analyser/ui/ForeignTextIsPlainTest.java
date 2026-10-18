@@ -51,6 +51,7 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class ForeignTextIsPlainTest {
 
+    private static final Path MAIN = Path.of("src/main/java");
     private static final Path UI = Path.of("src/main/java/telamin/fluxtion/audit/analyser/analyser/ui");
 
     /**
@@ -112,6 +113,19 @@ class ForeignTextIsPlainTest {
     private static final Pattern CELLS = Pattern.compile(
             "new\\s+(?:javax\\.swing\\.)?(JList|JComboBox|JTable|JTree|HistoryComboBox)\\s*(?:<[^>()]*>)?\\s*\\(");
 
+    /**
+     * Review of f073d392: a window's title. FlatLaf draws a JFrame's or JDialog's title bar itself — by default on
+     * Windows 10/11 ({@code TitlePane.useWindowDecorations = true}) — and the title is a {@code JLabel} there, so a
+     * title that begins with {@code <html>} is rendered and its {@code <img>} fetched. JOptionPane's dialogs too.
+     */
+    private static final Pattern TITLE = Pattern.compile("new\\s+(?:javax\\.swing\\.)?(JDialog|JFrame)\\s*\\("
+            + "|(?<![\\w$])(setTitle)\\s*\\(|\\.\\s*(createDialog)\\s*\\("
+            + "|JOptionPane\\s*\\.\\s*(showMessageDialog|showConfirmDialog|showOptionDialog|showInputDialog)\\s*\\(");
+    /** {@code menu.add(String)} builds a JMenuItem from the String; {@code tabs.add(String, Component)} is a tab title. */
+    private static final Pattern ADD = Pattern.compile("(?<![\\w$])([\\w$]+)\\s*\\.\\s*(add|insert)\\s*\\(");
+    /** {@code label::setText} — the door with no parenthesis after it. */
+    private static final Pattern METHOD_REF = Pattern.compile("(?<![\\w$])([\\w$]+)\\s*::\\s*(setText|setToolTipText)\\b");
+
     /** Declared types whose text Swing interprets as HTML. */
     private static final Set<String> HTML_TYPES = Set.of("JLabel", "JButton", "JToggleButton", "JCheckBox", "JRadioButton",
             "JMenuItem", "JMenu", "JCheckBoxMenuItem", "JRadioButtonMenuItem", "AbstractButton", "JTabbedPane", "Card");
@@ -124,11 +138,17 @@ class ForeignTextIsPlainTest {
     void everyDoorIsPlain() throws Exception {
         List<String> offenders = new ArrayList<>();
         Set<String> used = new TreeSet<>();
-        try (var files = Files.list(UI)) {
+        Set<String> scanned = new TreeSet<>();
+        // review of f073d392: every main source that uses Swing, in any package or sub-package — not only the ui
+        // directory's top level, which a new sub-package or a dialog written elsewhere would have stepped outside
+        try (var files = Files.walk(MAIN)) {
             for (Path f : files.filter(p -> p.toString().endsWith(".java")).sorted().toList()) {
                 String name = f.getFileName().toString();
-                if (name.equals("UiText.java")) continue;            // the helper builds the doors it guards
-                for (String door : doors(name, Files.readString(f))) {
+                if (f.equals(UI.resolve("UiText.java"))) continue;   // the helper builds the doors it guards
+                String text = Files.readString(f);
+                if (!text.contains("javax.swing")) continue;
+                scanned.add(MAIN.relativize(f).toString().replace('\\', '/'));
+                for (String door : doors(name, text)) {
                     String key = REVIEWED.keySet().stream().filter(door::startsWith).findFirst().orElse(null);
                     if (key != null) used.add(key);
                     else offenders.add(door);
@@ -139,6 +159,8 @@ class ForeignTextIsPlainTest {
                 + "build it with UiText.label/button/menuItem…), the tooltip UiText.tooltip(…), the option-pane string "
                 + "UiText.inert(…), the list/combo/table UiText.plainCells(…), or escape each piece of your own <html> "
                 + "with UiText.escape(…). See the class comment of ForeignTextIsPlainTest.");
+        // the walk reaches Swing outside the ui directory (Main's start-up dialogs) — not only ui's top level
+        assertTrue(scanned.contains("telamin/fluxtion/audit/analyser/Main.java"), "the rule scans every Swing source: " + scanned);
         Set<String> stale = new TreeSet<>(REVIEWED.keySet());
         stale.removeAll(used);
         assertEquals(Set.of(), stale, "a REVIEWED door no longer exists — remove its entry");
@@ -226,6 +248,55 @@ class ForeignTextIsPlainTest {
         assertEquals(0, doors("ConfigPanel.java", "class X { void f() { p.add(mutedNote(\"<b>help</b>\")); } }").size());
     }
 
+    /**
+     * Review of f073d392: each shape below returned no door at f073d392, and each was measured to fetch an
+     * {@code <img src>} against a loopback server (a window title on a FlatLaf-decorated dialog — the Windows default —
+     * {@code menu.add(String)}, {@code tabs.add(String, Component)}, a {@code List} message, a label flagged after its
+     * text). Witness: delete the matching block in {@link #doors} and its assertions here go red.
+     */
+    @Test
+    @DisplayName("SF-2 witness: window titles, add(String), method references, typed messages and late flags are doors")
+    void theRuleSeesTheDoorsTheSecondReviewFound() {
+        // a window title: FlatLaf's title bar is a JLabel
+        assertEquals(1, doors("X.java", "class X { void f() { new JDialog(owner, title + \" — \" + path, true); } }").size(), "JDialog");
+        assertEquals(0, doors("X.java", "class X { void f() { new JDialog(owner, UiText.inert(title + \" — \" + path), true); } }").size());
+        assertEquals(0, doors("X.java", "class X { void f() { new JDialog(owner, \"Viewing \" + path, true); } }").size(),
+                "a title that starts with our own words cannot begin with <html>");
+        assertEquals(1, doors("X.java", "class X { void f() { new JFrame(name); } }").size(), "JFrame");
+        assertEquals(1, doors("X.java", "class X { void f() { setTitle(name + \" — Analyser\"); } }").size(), "setTitle");
+        assertEquals(0, doors("X.java", "class X { void f() { String base = ok ? \"Analyser — \" + name : \"Analyser\"; setTitle(base); } }").size());
+        assertEquals(1, doors("X.java", "class X { void f() { JDialog d = pane.createDialog(this, title); } }").size(), "createDialog");
+        assertEquals(1, doors("X.java", "class X { void f() { JOptionPane.showMessageDialog(this, \"Failed\", title, 0); } }").size(),
+                "an option pane's title");
+        assertEquals(0, doors("X.java", "class X { void f() { JOptionPane.showMessageDialog(this, \"Failed\", UiText.inert(title), 0); } }").size());
+        // a JMenu/JPopupMenu builds a JMenuItem from a String: the menu's own flag does not reach it
+        assertEquals(1, doors("X.java", "class X { void f(String name) { JMenu m = UiText.menu(\"m\"); m.add(name); } }").size(), "menu.add");
+        assertEquals(1, doors("X.java", "class X { void f() { JPopupMenu m = new JPopupMenu(); m.add(\"Open \" + name); } }").size());
+        assertEquals(0, doors("X.java", "class X { void f(String name) { JMenu m = UiText.menu(\"m\"); m.add(UiText.inert(name)); } }").size());
+        assertEquals(0, doors("X.java", "class X { void f() { JMenu m = UiText.menu(\"m\"); m.add(item); m.add(openItem()); } }").size(),
+                "an item or a method returning one is a component");
+        // a tab title through add(String, Component)
+        assertEquals(1, doors("X.java", "class X { void f(String name) { JTabbedPane t = new JTabbedPane(); t.add(name, panel); } }").size(), "tabs.add");
+        assertEquals(0, doors("X.java", "class X { void f(String name) { JTabbedPane t = UiText.plain(new JTabbedPane()); t.add(name, panel); } }").size());
+        // a method reference has no parenthesis after the door
+        assertEquals(1, doors("X.java", "class X { JLabel l = new JLabel(); void f() { opt.ifPresent(l::setText); } }").size(), "::setText");
+        assertEquals(0, doors("X.java", "class X { JLabel l = UiText.label(\"\"); void f() { opt.ifPresent(l::setText); } }").size());
+        assertEquals(0, doors("X.java", "class X { void f() { JTextField path = new JTextField(); opt.ifPresent(path::setText); } }").size());
+        assertEquals(1, doors("X.java", "class X { void f() { opt.ifPresent(button::setToolTipText); } }").size(), "::setToolTipText");
+        // an option-pane message that is not a component is shown as its toString
+        assertEquals(1, doors("X.java", "class X { void f(List<String> names) { JOptionPane.showMessageDialog(this, names); } }").size(), "List");
+        assertEquals(1, doors("X.java", "class X { void f(Path p) { JOptionPane.showMessageDialog(this, p); } }").size(), "Path");
+        assertEquals(0, doors("X.java", "class X { void f() { JPanel form = new JPanel(); JOptionPane.showMessageDialog(this, form); } }").size());
+        assertEquals(0, doors("X.java", "class X { void f() { JScrollPane sp = new JScrollPane(); JOptionPane.showMessageDialog(this, sp); } }").size());
+        // a local flagged AFTER its text has already fetched; a field's flag in a constructor below is still seen
+        assertEquals(1, doors("X.java", "class X { void f() { JLabel l = new JLabel(); l.setText(name); UiText.plain(l); } }").size(), "late flag");
+        assertEquals(0, doors("X.java", "class X { void f() { JLabel l = new JLabel(); UiText.plain(l); l.setText(name); } }").size());
+        assertEquals(0, doors("X.java", "class X { JLabel l = new JLabel(); void f() { l.setText(name); } X() { UiText.plain(l); } }").size());
+        // a class of the file that extends an HTML type is one
+        assertEquals(1, doors("X.java", "class S extends JLabel { } class X { void f() { S s = new S(); s.setText(name); } }").size(), "subclass");
+        assertEquals(0, doors("X.java", "class S extends JLabel { } class X { void f() { S s = UiText.plain(new S()); s.setText(name); } }").size());
+    }
+
     @Test
     @DisplayName("SF-2: the factories set html.disable before the text, so the constructor never builds an HTML view")
     void factoriesArePlainBeforeTheirText() {
@@ -253,6 +324,13 @@ class ForeignTextIsPlainTest {
         Source src = new Source(stripComments(raw));
         String s = src.text;
         List<String> out = new ArrayList<>();
+        // review of f073d392: a class of this file that extends an HTML type is an HTML type — `Status s; s.setText(…)`
+        Set<String> htmlTypes = new java.util.HashSet<>(HTML_TYPES);
+        for (boolean grew = true; grew; ) {
+            grew = false;
+            Matcher sub = Pattern.compile("\\bclass\\s+([\\w$]+)\\s*(?:<[^{]*?>)?\\s+extends\\s+(?:[\\w$]+\\.)*([\\w$]+)").matcher(s);
+            while (sub.find()) if (htmlTypes.contains(sub.group(2)) && htmlTypes.add(sub.group(1))) grew = true;
+        }
 
         Matcher m = CONSTRUCT.matcher(s);
         while (m.find()) {
@@ -336,8 +414,8 @@ class ForeignTextIsPlainTest {
                 out.add(file + ": " + door(s, start, open) + "   [receiver '" + last + "' not resolved]");
                 continue;
             }
-            if (!HTML_TYPES.contains(d.type)) continue;                          // a text component, a model, a filter
-            if (src.isPlain(last, d)) continue;
+            if (!htmlTypes.contains(d.type)) continue;                           // a text component, a model, a filter
+            if (src.isPlainBefore(last, d, m.start())) continue;
             out.add(file + ": " + door(s, start, open));
         }
 
@@ -441,6 +519,59 @@ class ForeignTextIsPlainTest {
             if (var != null && Pattern.compile(Pattern.quote(var) + "\\s*\\.\\s*set(?:Cell)?Renderer\\s*\\(\\s*UiText\\s*\\.\\s*plainRenderer")
                     .matcher(s).find()) continue;
             out.add(file + ": " + door(s, m.start(), open));
+        }
+
+        // a window's title (review of f073d392): constant, inert, or text that cannot begin with <html>
+        m = TITLE.matcher(s);
+        while (m.find()) {
+            if (isDeclaration(s, m.start())) continue;
+            int open = m.end() - 1;
+            List<String> args = args(s, open);
+            String kind = m.group(1) != null ? m.group(1) : m.group(2) != null ? m.group(2) : m.group(3) != null ? m.group(3) : m.group(4);
+            int at = switch (kind) {
+                case "JFrame", "setTitle" -> 0;
+                case "JDialog" -> 1;                                             // (owner, title, …)
+                case "createDialog" -> args.size() >= 2 ? 1 : 0;
+                case "showInputDialog" -> args.size() >= 4 ? 2 : -1;             // the short forms have no title
+                default -> args.size() >= 3 ? 2 : -1;                            // show…(parent, message, title, …)
+            };
+            if (at < 0 || args.size() <= at) continue;
+            if (!src.titleIsSafe(args.get(at), m.start())) out.add(file + ": " + door(s, m.start(), open) + "   [window title]");
+        }
+
+        // menu.add(String) and tabs.add(String, Component) (review of f073d392)
+        m = ADD.matcher(s);
+        while (m.find()) {
+            Declaration d = src.declaration(m.group(1), m.start());
+            if (d == null) continue;
+            int open = m.end() - 1;
+            List<String> args = args(s, open);
+            if (args.isEmpty()) continue;
+            if (d.type.equals("JMenu") || d.type.equals("JPopupMenu")) {
+                // the receiver's flag does not reach the item add(String) creates: the String itself must be safe
+                if (src.stringValued(args.get(0), m.start()) && !safeText(args.get(0))
+                        && !src.isInertVariable(args.get(0), m.start())) {
+                    out.add(file + ": " + door(s, m.start(), open) + "   [menu item from a String]");
+                }
+            } else if (d.type.equals("JTabbedPane") && args.size() >= 2 && !src.isPlainBefore(m.group(1), d, m.start())) {
+                for (String a : args.subList(0, 2)) {
+                    if (src.stringValued(a, m.start()) && !safeText(a) && !src.isInertVariable(a, m.start())) {
+                        out.add(file + ": " + door(s, m.start(), open) + "   [tab title]");
+                        break;
+                    }
+                }
+            }
+        }
+
+        // label::setText, c::setToolTipText (review of f073d392)
+        m = METHOD_REF.matcher(s);
+        while (m.find()) {
+            String door = file + ": " + m.group().replaceAll("\\s+", "") + "   [method reference]";
+            if (m.group(2).equals("setToolTipText")) { out.add(door); continue; }   // a tooltip ignores its owner's flag
+            Declaration d = m.group(1).equals("this") ? null : src.declaration(m.group(1), m.start());
+            if (m.group(1).equals("this")) { if (!src.classPlainsItself(m.start())) out.add(door); continue; }
+            if (d == null) { out.add(door + " [receiver '" + m.group(1) + "' not resolved]"); continue; }
+            if (htmlTypes.contains(d.type) && !src.isPlainBefore(m.group(1), d, m.start())) out.add(door);
         }
 
         for (String method : PARAMETER_DOORS.getOrDefault(file, List.of())) {
@@ -758,6 +889,64 @@ class ForeignTextIsPlainTest {
             return false;
         }
 
+        /**
+         * {@link #isPlain}, and for a LOCAL the flag must come before the door (review of f073d392): {@code setText} on a
+         * label whose flag is set afterwards has already built the HTML view and fetched. A field's flag is usually set
+         * in a constructor written below the methods that use it, so a field keeps the scope-wide check.
+         */
+        boolean isPlainBefore(String name, Declaration d, int doorAt) {
+            if (!isPlain(name, d)) return false;
+            if (PLAIN_INIT.matcher(d.initializer).find()) return true;
+            boolean field = d.scopeOpen < 0 || blocks.stream().anyMatch(b -> b.isClass && b.open == d.scopeOpen);
+            if (field) return true;
+            Matcher m = Pattern.compile("UiText\\s*\\.\\s*plain(?:Cells)?\\s*\\(\\s*" + Pattern.quote(name) + "\\s*\\)").matcher(text);
+            while (m.find()) {
+                if (m.start() <= d.scopeOpen || m.start() >= Math.min(doorAt, d.scopeClose)) continue;
+                Declaration seen = declaration(name, m.start());
+                if (seen != null && seen.at == d.at) return true;
+            }
+            return false;
+        }
+
+        /**
+         * A window title is HTML only when it BEGINS with {@code <html>} (BasicHTML.isHTMLString on FlatLaf's title
+         * label), so besides a constant or {@code UiText.inert(…)} it is safe when it starts with a non-empty literal that
+         * does not begin with {@code <} — through a ternary's branches and a local's initializer.
+         */
+        boolean titleIsSafe(String expr, int at) {
+            String e = unwrap(expr.trim());
+            if (safe(e, "UiText.inert")) return true;
+            int q = topLevel(e, '?');
+            if (q >= 0) {
+                int c = matchingColon(e, q);
+                return c > 0 && titleIsSafe(e.substring(q + 1, c), at) && titleIsSafe(e.substring(c + 1), at);
+            }
+            List<String> pieces = splitTop(e, '+');
+            String first = unwrap(pieces.get(0).trim());
+            if (first.length() > 2 && first.startsWith("\"") && literalEndsAt(first, 0) == first.length() - 1
+                    && first.charAt(1) != '<') return true;
+            if (pieces.size() == 1 && e.matches("[\\w$]+")) {
+                Declaration d = declaration(e, at);
+                if (d == null) return false;
+                if (isInertVariable(e, at)) return true;
+                return !d.initializer.isBlank() && titleIsSafe(d.initializer, d.at);
+            }
+            return pieces.size() > 1 && titleIsSafe(first, at);
+        }
+
+        /** True when {@code expr} is (or may be) a String — not a component, an Action or an Icon. */
+        boolean stringValued(String expr, int at) {
+            String e = unwrap(expr.trim());
+            if (e.startsWith("new ")) return e.matches("(?s)new\\s+(?:String|StringBuilder)\\b.*");
+            if (e.startsWith("\"") || splitTop(e, '+').size() > 1) return true;
+            if (e.matches("(?s)String\\s*\\.\\s*(format|valueOf|join)\\s*\\(.*") || e.endsWith(".toString()")) return true;
+            if (e.matches("[\\w$]+")) {
+                Declaration d = declaration(e, at);
+                return d != null && STRINGISH.contains(d.type);
+            }
+            return false;
+        }
+
         /** {@code UiText.plain(this)} directly in the class whose body holds {@code at} (not in a nested class). */
         boolean classPlainsItself(int at) {
             Block cls = innermostClass(at);
@@ -803,7 +992,10 @@ class ForeignTextIsPlainTest {
                 Matcher init = Pattern.compile("^(?:new\\s+\\w+\\s*\\[\\s*]\\s*)?\\{(.*)}$", Pattern.DOTALL).matcher(d.initializer.trim());
                 return init.find() && messageIsSafe("{" + init.group(1) + "}", d.at);
             }
-            return !d.type.equals("?") && !STRINGISH.contains(d.type);
+            // review of f073d392: only a component or an icon is added rather than parsed. Any other object is shown
+            // as its toString — a List or a Path of foreign names reads "<html>…</html>" mid-string, which JDKs that
+            // look for <html> anywhere in the message render
+            return COMPONENT_TYPE.matcher(d.type).matches();
         }
 
         /** A variable built inert ({@code UiText.inert(…)}) or from the analyser's own literals. */
@@ -823,6 +1015,10 @@ class ForeignTextIsPlainTest {
     }
 
     private static final Set<String> STRINGISH = Set.of("String", "Object", "CharSequence", "StringBuilder");
+
+    /** Declared types an option pane adds as a component (or an icon) rather than showing their toString. */
+    private static final Pattern COMPONENT_TYPE = Pattern.compile("J\\w*(?:Panel|Pane|Box|Area|Field|Label|Button"
+            + "|List|Table|Tree|Component|Bar|Slider|Spinner|Separator)|Box|Component|Container|Icon|ImageIcon");
 
     /** The type a {@code var} gets from its initializer, or "?" when that cannot be read off it. */
     static String varType(String init) {

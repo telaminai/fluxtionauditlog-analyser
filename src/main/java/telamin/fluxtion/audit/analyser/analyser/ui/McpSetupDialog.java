@@ -684,7 +684,7 @@ public final class McpSetupDialog extends JDialog {
      */
     private int showWideRegistrationConfirmation(String title, Object[] message) {
         JOptionPane pane = new JOptionPane(UiText.inert(message), JOptionPane.WARNING_MESSAGE, JOptionPane.OK_CANCEL_OPTION);
-        JDialog confirmation = pane.createDialog(this, title);
+        JDialog confirmation = pane.createDialog(this, UiText.inert(title));   // SF-2: a title bar can be a JLabel
         int screenWidth = Toolkit.getDefaultToolkit().getScreenSize().width;
         int desiredWidth = Math.min(960, Math.max(640, screenWidth - 64));
         if (confirmation.getWidth() < desiredWidth) {

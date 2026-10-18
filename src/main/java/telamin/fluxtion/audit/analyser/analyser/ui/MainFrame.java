@@ -7250,7 +7250,7 @@ public final class MainFrame extends JFrame {
     private void showTemplateFailure(String title, Throwable error) {
         String message = rootMessage(error);
         status.setText(title + ": " + message);
-        JOptionPane.showMessageDialog(this, UiText.inert(message), title, JOptionPane.ERROR_MESSAGE);
+        JOptionPane.showMessageDialog(this, UiText.inert(message), UiText.inert(title), JOptionPane.ERROR_MESSAGE);
     }
 
     /** Pick a project directory rather than the profile file — the file name is always the same. */
