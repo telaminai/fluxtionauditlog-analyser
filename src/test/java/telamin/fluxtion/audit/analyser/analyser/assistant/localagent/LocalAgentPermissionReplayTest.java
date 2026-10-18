@@ -145,6 +145,26 @@ class LocalAgentPermissionReplayTest {
     }
 
     /**
+     * ★ Review PR151 F1 (2026-10-18), the store alone: however many requests are unanswered, none loses its words by
+     * count; only {@code dropPermission} removes them. Through the processor the queue's bound keeps the store small,
+     * so this is the check that would catch an eviction coming back. Witness: restore the 64-entry eviction in
+     * {@code putPermission} — the first request's words are gone.
+     */
+    @Test
+    @DisplayName("★ the store never evicts an unanswered request's words; only an answer or a withdrawal drops them")
+    void theStoreNeverEvictsByCount() {
+        LocalAgentTranscript store = new LocalAgentTranscript();
+        long first = store.putPermission(new LocalAgentTranscript.Permission("Bash", null, "Bash", "{\"n\":0}"));
+        for (int i = 1; i < 200; i++) {
+            store.putPermission(new LocalAgentTranscript.Permission("Bash", null, "Bash", "{\"n\":" + i + "}"));
+        }
+        assertNotNull(store.permission(first), "the oldest unanswered request still has its words");
+        assertEquals("{\"n\":0}", store.permission(first).inputRaw());
+        store.dropPermission(first);
+        assertNull(store.permission(first), "answered: dropped");
+    }
+
+    /**
      * ★ Review PR151 F1 (2026-10-18), the fail-closed half: if the words the dialog shows are not held, what the person
      * saw cannot be what runs — the dialog's content says so (Allow stays disabled, {@code LocalAgentPermissionFrameTest}),
      * and an Allow that still reaches the adapter is written as a deny, never as the raw input. Witness: drop
