@@ -156,4 +156,143 @@ class SampleProjectSpotlightFrameTest {
             assertTrue(row.ok(), row.toMap().toString());
         }
     }
+    /** A topology-viewer pane read that blocks until released — the read a {@code goto} starts, landing late. */
+    static final class HeldReads implements AutoCloseable {
+        final java.util.concurrent.CountDownLatch release = new java.util.concurrent.CountDownLatch(1);
+        final java.util.concurrent.atomic.AtomicInteger held = new java.util.concurrent.atomic.AtomicInteger();
+        HeldReads(MainFrame frame) throws Exception {
+            onEdt(() -> {
+                SourcePanel viewer = topology(frame).sourceViewer();
+                var real = viewer.reader;
+                viewer.reader = (lookup, fqn) -> {
+                    held.incrementAndGet();
+                    try { release.await(30, java.util.concurrent.TimeUnit.SECONDS); }
+                    catch (InterruptedException e) { Thread.currentThread().interrupt(); }
+                    return real.apply(lookup, fqn);
+                };
+            });
+        }
+        @Override public void close() { release.countDown(); }
+    }
+
+    static TopologyPanel topology(MainFrame frame) { return (TopologyPanel) field(frame, "topologyPanel"); }
+
+    static long spotlightTicket(MainFrame frame) throws Exception {
+        long[] t = new long[1];
+        onEdt(() -> t[0] = (long) field(frame, "javaSpotlightTicket"));
+        return t[0];
+    }
+
+    /** Waits for {@code done} or the deadline, polling on the EDT; the condition, not the time, ends the wait. */
+    static void await(java.util.function.BooleanSupplier done, String what) throws Exception {
+        long end = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(20);
+        boolean[] ok = new boolean[1];
+        while (true) {
+            onEdt(() -> ok[0] = done.getAsBoolean());
+            if (ok[0]) return;
+            if (System.nanoTime() > end) throw new AssertionError("timed out waiting for " + what);
+            Thread.onSpinWait();
+        }
+    }
+
+    static java.util.concurrent.CompletableFuture<ActionResult> spotlightAsync(Frame f, List<Map<String, Object>> targets) {
+        return java.util.concurrent.CompletableFuture.supplyAsync(() -> f.ex.render("spotlight", Map.of("targets", targets)));
+    }
+
+    /**
+     * ★ The flake's cause, made deterministic: {@code goto} starts a read of the generated processor in the Topology
+     * viewer; a Java spotlight asked while that read is still outstanding must be applied AFTER it lands — not
+     * captured before it and then bounced "superseded; retry" (or knocked out) when the read installs and scrolls.
+     * Witness: make {@code MainFrame.whenSourceReadsSettle} run its argument at once — the spotlight answers while
+     * the read is held, and the read's landing moves the view the spotlight was bound to.
+     */
+    @Test
+    @DisplayName("★ a Java spotlight asked while goto's source read is outstanding applies after it lands")
+    void aJavaSpotlightWaitsForTheSourceReadAPreviousVerbStarted(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless(), "a real display is required");
+        try (var f = new Frame(tmp)) {
+            onEdt(() -> { f.frame.setSize(1200, 800); f.frame.setVisible(true); });
+            openSample(f.frame);
+            widenSideColumn(f.frame, 150);
+            assertTrue(f.ex.render("topology", Map.of("select", "riskMonitor", "scope", "neighbours", "source", true)).ok());
+            onEdt(() -> { });
+            await(() -> !topology(f.frame).sourceViewer().reading(), "the select's own reads");
+            SourcePanel viewer = topology(f.frame).sourceViewer();
+            try (var held = new HeldReads(f.frame)) {
+                assertTrue(f.ex.render("goto", Map.of("recordIndex", 6)).ok());
+                await(() -> held.held.get() > 0, "goto's processor read to start");
+                long before = spotlightTicket(f.frame);
+                String line = "source:java:com.acme.demo.node.Nodes:line:103";
+                var answer = spotlightAsync(f, List.of(t("topology:node:riskMonitor", "the node"), t(line, "its code")));
+                await(() -> answer.isDone() || (long) field(f.frame, "javaSpotlightTicket") > before, "the spotlight to be asked");
+                await(() -> answer.isDone() || viewer.reading(), "the spotlight to be asked");
+                held.release.countDown();
+                ActionResult r = answer.get(20, java.util.concurrent.TimeUnit.SECONDS);
+                assertLitOnScreen(r, line);
+                Object[] bound = new Object[1];
+                onEdt(() -> bound[0] = viewer.spotlightViewState());
+                await(() -> !viewer.reading(), "every source read to land");
+                onEdt(() -> { }); onEdt(() -> { });
+                Object[] settled = new Object[1];
+                onEdt(() -> settled[0] = viewer.spotlightViewState());
+                assertEquals(bound[0], settled[0], "nothing asked BEFORE the spotlight moved the view AFTER it answered");
+            }
+        }
+    }
+
+    /**
+     * ★ The assistant's ordinary pace, ungated: {@code topology {select, source: true}}, {@code goto}, then at once a
+     * Java spotlight, then at once a second — each answers lit, none "superseded".
+     */
+    @Test
+    @DisplayName("★ select + goto then two Java spotlights back to back all light")
+    void selectThenTwoJavaSpotlightsBackToBackAllLight(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless(), "a real display is required");
+        try (var f = new Frame(tmp)) {
+            onEdt(() -> { f.frame.setSize(1200, 800); f.frame.setVisible(true); });
+            openSample(f.frame);
+            widenSideColumn(f.frame, 150);
+            assertTrue(f.ex.render("topology", Map.of("select", "riskMonitor", "scope", "neighbours", "source", true)).ok());
+            String line = "source:java:com.acme.demo.node.Nodes:line:103";
+            assertLitOnScreen(f.ex.render("spotlight", Map.of("targets", List.of(t(line, "first")))), line);
+            assertTrue(f.ex.render("goto", Map.of("recordIndex", 6)).ok());
+            assertLitOnScreen(f.ex.render("spotlight", Map.of("targets", List.of(t(line, "second")))), line);
+            String dispatch = "source:java:" + DemoAssets.PROCESSOR + ":line:337";
+            assertLitOnScreen(f.ex.render("spotlight", Map.of("targets", List.of(t(dispatch, "third")))), dispatch);
+        }
+    }
+
+    /**
+     * ★ A GENUINE supersede still says so: a spotlight waiting on an outstanding read is replaced by a newer one,
+     * which lights; the first answers "superseded".
+     */
+    @Test
+    @DisplayName("★ a newer spotlight still supersedes one that is waiting")
+    void aNewerSpotlightStillSupersedesAWaitingOne(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless(), "a real display is required");
+        try (var f = new Frame(tmp)) {
+            onEdt(() -> { f.frame.setSize(1200, 800); f.frame.setVisible(true); });
+            openSample(f.frame);
+            widenSideColumn(f.frame, 150);
+            assertTrue(f.ex.render("topology", Map.of("select", "riskMonitor", "scope", "neighbours", "source", true)).ok());
+            onEdt(() -> { });
+            await(() -> !topology(f.frame).sourceViewer().reading(), "the select's own reads");
+            String line = "source:java:com.acme.demo.node.Nodes:line:103";
+            String dispatch = "source:java:" + DemoAssets.PROCESSOR + ":line:337";
+            try (var held = new HeldReads(f.frame)) {
+                assertTrue(f.ex.render("goto", Map.of("recordIndex", 6)).ok());
+                await(() -> held.held.get() > 0, "goto's processor read to start");
+                long before = spotlightTicket(f.frame);
+                var first = spotlightAsync(f, List.of(t(line, "first")));
+                await(() -> (long) field(f.frame, "javaSpotlightTicket") > before, "the first spotlight to be asked");
+                var second = spotlightAsync(f, List.of(t(dispatch, "second")));
+                await(() -> (long) field(f.frame, "javaSpotlightTicket") > before + 1, "the second spotlight to be asked");
+                held.release.countDown();
+                ActionResult older = first.get(20, java.util.concurrent.TimeUnit.SECONDS);
+                assertFalse(older.ok(), older.toMap().toString());
+                assertTrue(String.valueOf(older.toMap().get("error")).contains("superseded"), older.toMap().toString());
+                assertLitOnScreen(second.get(20, java.util.concurrent.TimeUnit.SECONDS), dispatch);
+            }
+        }
+    }
 }

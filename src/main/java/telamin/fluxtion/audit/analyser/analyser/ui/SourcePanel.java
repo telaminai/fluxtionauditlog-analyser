@@ -347,6 +347,7 @@ public final class SourcePanel extends JPanel {
             if (pane.source.isEmpty()) pane.renderPlain("Timed out after " + readDeadline.toMillis() + " ms reading "
                     + fqn + "; nothing was read. Navigate to it again to retry.");
             gaveUp.accept("the read of " + fqn + " timed out");
+            readSettled();
         });
         deadline.setRepeats(false);
         deadline.start();
@@ -360,11 +361,12 @@ public final class SourcePanel extends JPanel {
             if (pane.readTicket != ticket) { decisions.accept("discarded " + fqn + ": superseded or expired"); return; }
             pane.reading = false;
             if (service == null || !service.isCurrent(lookup)) {   // the switch that caused this reads anew
-                decisions.accept("discarded " + fqn + ": configuration changed"); return;
+                decisions.accept("discarded " + fqn + ": configuration changed"); readSettled(); return;
             }
             install(pane, fqn, read, lookup);
             decisions.accept("installed " + fqn);
             then.run();
+            readSettled();
         }, failure -> {
             deadline.stop();
             if (pane.readTicket != ticket) return;
@@ -372,7 +374,27 @@ public final class SourcePanel extends JPanel {
             pane.label.setText(fqn + "  —  could not read the file on disk: " + failure.getMessage()
                     + (pane.source.isEmpty() ? "" : "; the text below is unchecked"));
             gaveUp.accept("the read of " + fqn + " failed: " + failure.getMessage());
+            readSettled();
         });
+    }
+
+    private final List<Runnable> settleWaiters = new java.util.ArrayList<>();
+
+    /**
+     * Run {@code then} on the EDT once no pane read is outstanding — at once if none is. A read's landing installs
+     * text and scrolls; work that captures this view (a Java spotlight's preparation) waits for it rather than
+     * mistaking the landing for a newer navigation.
+     */
+    public void whenReadsSettle(Runnable then) {
+        if (!reading()) then.run();
+        else settleWaiters.add(then);
+    }
+
+    private void readSettled() {
+        if (reading() || settleWaiters.isEmpty()) return;
+        var waiting = List.copyOf(settleWaiters);
+        settleWaiters.clear();
+        waiting.forEach(Runnable::run);
     }
 
     /**
@@ -474,8 +496,8 @@ public final class SourcePanel extends JPanel {
         }
     }
 
-    /** True while a pane's read is outstanding — for tests. */
-    boolean reading() {
+    /** True while a pane's read is outstanding. */
+    public boolean reading() {
         return processorPane.reading || nodePane.reading;
     }
 
