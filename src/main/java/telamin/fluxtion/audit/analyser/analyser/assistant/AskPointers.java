@@ -44,8 +44,8 @@ public final class AskPointers {
 
     /**
      * Identifier text (a log, bundle, project, graph or chart NAME): printable, single line, at most {@code max}
-     * characters, quoted. Control, format and line-separator characters are dropped, a double quote becomes a single
-     * one, and an over-long name is cut with an ellipsis, so the result can never open a new line or close its quotes.
+     * characters, quoted. Control, format, line-separator and invisible ({@link InvisibleCarriers}) characters are
+     * dropped, a double quote becomes a single one, and an over-long name is cut with an ellipsis, so the result can never open a new line or close its quotes.
      */
     public static String identifierText(String s, int max) {
         if (s == null || s.isBlank()) return "\"(unnamed)\"";
@@ -63,7 +63,10 @@ public final class AskPointers {
             int t = Character.getType(cp);
             if (Character.isISOControl(cp) || t == Character.FORMAT || t == Character.LINE_SEPARATOR
                     || t == Character.PARAGRAPH_SEPARATOR || t == Character.UNASSIGNED || t == Character.PRIVATE_USE
-                    || t == Character.SURROGATE) {
+                    || t == Character.SURROGATE
+                    // review PR #150 R2: variation selectors and invisible fillers are not format characters; a run of
+                    // selectors encodes bytes no one sees in the draft. A name never needs one, so all are dropped
+                    || InvisibleCarriers.carrier(cp)) {
                 return;
             }
             sb.appendCodePoint(cp == '"' ? '\'' : cp == '`' ? '\'' : cp);
