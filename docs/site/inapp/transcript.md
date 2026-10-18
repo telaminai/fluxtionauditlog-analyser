@@ -12,14 +12,18 @@ emphasis, inline code and code blocks (lightly tinted for Java, XML, YAML and JS
 characters: HTML is shown as text, an image is *[image: …]* and its address (never fetched), nothing is run. Terminal
 escapes and invisible or direction-reversing characters are shown as marks (`␛[31m`, `⟨U+202E⟩`), so what you see is
 what you copy. Each answer has **Copy** (its words as written, never a tool line; it shows under the pointer or with the keyboard
-focus) and each code block **Copy code**; the turn's time is the answer's tooltip. A session's first note says what it
+focus, and stays shown while the pointer is anywhere over that answer, Copy included) and each code block **Copy code**;
+how long the turn took is the answer's tooltip. Each turn shows **when** it was, quietly, at the right of its header line
+(*14:02*; the first turn of a day adds the day, *Sun 18 Oct · 09:05*); hovering it, or a screen reader, gives the full
+local date and time, and a walk's recorded dialogue shows *recorded* and when. A session's first note says what it
 is and how it is paid for (*Claude Code · Safe · uses your Claude plan*), once, and again after a restart;
 a copy that holds such characters says how many.
 
 - **Links** open only when you click them and confirm a dialog showing the scheme and host on their own line, the host
   in its plain ASCII (punycode) form — so a look-alike address cannot pass — and only for `http` and `https`.
 - **Chips.** A record number (*record #12*), a node written as code or after the word *node*, or a chart's name becomes
-  a small button that **only navigates** — it selects the record, shows the node, or opens the chart. An answer written
+  a small button that **only navigates** — it selects the record, shows the node, or opens the chart; its words stay
+  part of the answer's text, so a selection you copy keeps them. An answer written
   about an earlier load of the log (before it was reloaded) shows its chips muted, and a click says why and goes
   nowhere.
 - **Tool calls** are one line each — `▸ analyser_read ✓`, `refused`, `denied by you`, `approved by you · ✓` — and a
