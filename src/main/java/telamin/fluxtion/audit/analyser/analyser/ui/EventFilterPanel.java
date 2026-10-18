@@ -36,7 +36,18 @@ import java.util.TreeMap;
  */
 public final class EventFilterPanel extends JPanel {
 
+    /**
+     * Owner, 2026-10-18: a shown checklist always shows at least this many rows (all of them when there are
+     * fewer). It is the panel's minimum size, so the split above the records and the column holding them
+     * honour it on a drag; {@link #getMinimumSize()} computes it from the real rows.
+     */
+    static final int MIN_VISIBLE_ROWS = 3;
+    /** Fired when the rows change and with them the height {@link #getMinimumSize()} asks for. */
+    static final String FLOOR_PROPERTY = "eventTypesFloor";
+
     private final JPanel checks = new JPanel();
+    private final JPanel top = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 2));
+    private final JScrollPane scroll = new JScrollPane(checks);
     private final Map<String, JCheckBox> boxes = new LinkedHashMap<>();
 
     private LogIndex index;
@@ -46,7 +57,6 @@ public final class EventFilterPanel extends JPanel {
         super(new BorderLayout());
         setBorder(UiTheme.section("Event types"));
 
-        JPanel top = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 2));
         JButton all = new JButton("Select all");
         JButton none = new JButton("Select none");
         top.add(all);
@@ -54,7 +64,7 @@ public final class EventFilterPanel extends JPanel {
         add(top, BorderLayout.NORTH);
 
         checks.setLayout(new BoxLayout(checks, BoxLayout.Y_AXIS));
-        add(new JScrollPane(checks), BorderLayout.CENTER);
+        add(scroll, BorderLayout.CENTER);
 
         all.addActionListener(e -> setAll(true));
         none.addActionListener(e -> setAll(false));
@@ -74,7 +84,44 @@ public final class EventFilterPanel extends JPanel {
         rebuildChecklist();
     }
 
+    /**
+     * The height that shows {@link #MIN_VISIBLE_ROWS} rows: the border, the Select all / none row, the scroll
+     * pane's insets, and the checklist's own components down to the bottom of its third row — so a group
+     * header or the divider above a row is counted too. Measured from the components themselves, so it
+     * follows the theme and the font size. With no log there are no rows; a stand-in check box of the
+     * current font gives the height three would take.
+     */
+    @Override
+    public Dimension getMinimumSize() {
+        if (isMinimumSizeSet()) return super.getMinimumSize();
+        java.awt.Insets border = getInsets();
+        java.awt.Insets frame = scroll.getInsets();
+        int rows = 0;
+        int list = 0;
+        for (java.awt.Component c : checks.getComponents()) {
+            if (rows >= MIN_VISIBLE_ROWS) break;
+            if (!(c instanceof JCheckBox) && !(c instanceof JLabel) && !(c instanceof JSeparator)) continue;  // the glue
+            list += c.getPreferredSize().height;
+            if (c instanceof JCheckBox) rows++;
+        }
+        if (boxes.isEmpty()) list = MIN_VISIBLE_ROWS * new JCheckBox("Event type").getPreferredSize().height;
+        java.awt.Insets checksInsets = checks.getInsets();
+        list += checksInsets.top + checksInsets.bottom;
+        // a long event name brings a horizontal scroll bar, which takes its height from the rows
+        if (scroll.getViewport().getWidth() > 0 && checks.getPreferredSize().width > scroll.getViewport().getWidth()) {
+            list += scroll.getHorizontalScrollBar().getPreferredSize().height;
+        }
+        int height = border.top + border.bottom + top.getPreferredSize().height + frame.top + frame.bottom + list;
+        return new Dimension(0, height);
+    }
+
     private void rebuildChecklist() {
+        int before = getMinimumSize().height;
+        fillChecklist();
+        firePropertyChange(FLOOR_PROPERTY, before, getMinimumSize().height);
+    }
+
+    private void fillChecklist() {
         checks.removeAll();
         boxes.clear();
         if (index == null || filter == null) {

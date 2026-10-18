@@ -884,8 +884,10 @@ public final class MainFrame extends JFrame {
     private JSplitPane eventTypesSplit;
     /** The checklist's default height when nothing has been dragged; it can be given more. */
     private static final int EVENT_TYPES_MAX_HEIGHT = 190;
-    /** Floors: neither side of the Facts column may be squeezed into uselessness. */
-    private static final int EVENT_TYPES_MIN_HEIGHT = 60;
+    /**
+     * The records' floor. The checklist's floor is its own minimum size — three rows, measured from the
+     * rows ({@link EventFilterPanel#getMinimumSize()}); a fixed 60px held only its Select all / none row.
+     */
     private static final int RECORDS_MIN_HEIGHT = 150;
 
     /** The west column, so the Records row's Event types toggle can relayout it. */
@@ -919,13 +921,14 @@ public final class MainFrame extends JFrame {
             eventTypesSplit.setBottomComponent(tablePanel);
             tableArea.add(eventTypesSplit, BorderLayout.CENTER);
             int column = tableArea.getHeight();
+            int floor = eventFilterPanel.getMinimumSize().height;
             int wanted = config.eventTypesDivider > 0
                     ? config.eventTypesDivider
-                    : Math.max(EVENT_TYPES_MIN_HEIGHT,
-                            Math.min(eventFilterPanel.getPreferredSize().height, EVENT_TYPES_MAX_HEIGHT));
+                    : Math.min(eventFilterPanel.getPreferredSize().height, EVENT_TYPES_MAX_HEIGHT);
             // never past the records' floor, however tall the checklist would like to be
             if (column > 0) wanted = Math.min(wanted, Math.max(0, column - RECORDS_MIN_HEIGHT));
-            eventTypesSplit.setDividerLocation(Math.max(0, wanted));
+            // and never under its own: a divider saved too small (or by the old 60px floor) is moved out
+            eventTypesSplit.setDividerLocation(Math.max(floor, wanted));
         } else {
             eventTypesSplit.setTopComponent(null);
             eventTypesSplit.setBottomComponent(null);
@@ -933,6 +936,29 @@ public final class MainFrame extends JFrame {
         }
         tableArea.revalidate();
         tableArea.repaint();
+    }
+
+    /**
+     * Keep a shown checklist at or above its three-row floor (owner, 2026-10-18). When the column is too
+     * short for both floors, the RECORDS' floor gives way: the split's drag limit honours both minimum sizes
+     * and, if they cannot both fit, lets the bottom one win, so the records' minimum is reduced to what is
+     * left. Then a divider placed under the floor -- saved too small, or set before the log's rows arrived --
+     * is moved out.
+     */
+    private void keepEventTypesFloor() {
+        if (eventTypesSplit == null || !eventFilterPanel.isVisible()) return;
+        int floor = eventFilterPanel.getMinimumSize().height;
+        int split = eventTypesSplit.getHeight();
+        if (split <= 0) return;
+        int records = Math.max(0, Math.min(RECORDS_MIN_HEIGHT, split - floor - eventTypesSplit.getDividerSize()));
+        if (tablePanel.getMinimumSize().height != records) tablePanel.setMinimumSize(new Dimension(100, records));
+        if (eventTypesSplit.getDividerLocation() < floor) {
+            SwingUtilities.invokeLater(() -> {
+                if (eventFilterPanel.isVisible() && eventTypesSplit.getDividerLocation() < floor) {
+                    eventTypesSplit.setDividerLocation(floor);
+                }
+            });
+        }
     }
 
     private void layoutWest(JPanel west) {
@@ -4536,7 +4562,20 @@ public final class MainFrame extends JFrame {
         // then the table. The checklist FILTERS these records, so it belongs in the Facts column with
         // them -- it sat in Context, a column away from the thing it acts on, which the column names
         // made plain the moment they went up (owner, 2026-09-30).
-        tableArea = new JPanel(new BorderLayout());
+        tableArea = new JPanel(new BorderLayout()) {
+            /**
+             * 80px, or with the checklist showing, room for its three rows over the Search row: the
+             * records/detail split above honours this on a drag, so that drag cannot squeeze the checklist.
+             */
+            @Override public Dimension getMinimumSize() {
+                if (!eventFilterPanel.isVisible() || eventTypesSplit == null) return new Dimension(100, 80);
+                java.awt.Insets in = getInsets();
+                java.awt.Component north = ((BorderLayout) getLayout()).getLayoutComponent(BorderLayout.NORTH);
+                int h = in.top + in.bottom + (north == null ? 0 : north.getPreferredSize().height)
+                        + eventFilterPanel.getMinimumSize().height + eventTypesSplit.getDividerSize();
+                return new Dimension(100, Math.max(80, h));
+            }
+        };
         tableArea.setBorder(UiTheme.section("Records"));
         tableArea.add(searchRow, BorderLayout.NORTH);
         eventFilterPanel.setVisible(!config.eventFilterCollapsed);
@@ -4550,16 +4589,24 @@ public final class MainFrame extends JFrame {
         eventTypesSplit.setBorder(BorderFactory.createEmptyBorder());
         eventTypesSplit.setContinuousLayout(true);
         eventTypesSplit.setResizeWeight(0);        // growing the window grows the TABLE
-        eventTypesSplit.setOneTouchExpandable(true);
-        eventFilterPanel.setMinimumSize(new Dimension(0, EVENT_TYPES_MIN_HEIGHT));
+        // No one-touch arrows: collapsing to nothing is what the Event types toggle is for, and the arrow
+        // ignored the checklist's three-row floor (owner, 2026-10-18).
+        // The checklist's minimum size is its own, computed from its rows -- see EventFilterPanel.
         tablePanel.setMinimumSize(new Dimension(100, RECORDS_MIN_HEIGHT));
         eventTypesSplit.addPropertyChangeListener(JSplitPane.DIVIDER_LOCATION_PROPERTY, e -> {
             if (eventFilterPanel.isVisible() && eventTypesSplit.getDividerLocation() > 0) {
                 config.eventTypesDivider = eventTypesSplit.getDividerLocation();
             }
         });
+        // A divider the person did not just drag can still sit under the checklist's floor: the floor
+        // grows when a log's rows arrive, and the column can shrink. Re-fit whenever either happens.
+        java.awt.event.ComponentAdapter refit = new java.awt.event.ComponentAdapter() {
+            @Override public void componentResized(java.awt.event.ComponentEvent e) { keepEventTypesFloor(); }
+        };
+        eventFilterPanel.addComponentListener(refit);
+        eventTypesSplit.addComponentListener(refit);
+        eventFilterPanel.addPropertyChangeListener(EventFilterPanel.FLOOR_PROPERTY, e -> keepEventTypesFloor());
         layoutEventTypes();
-        tableArea.setMinimumSize(new Dimension(100, 80));
 
         // The investigation keeps records, detail and output tabs together. The start page is a
         // separate workspace card, so its choices can use the full content width when no log is open.
