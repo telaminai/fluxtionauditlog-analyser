@@ -160,6 +160,11 @@ This display is 1920×1080 at 1x, so these images are 1680×1050 (dialogs at the
 Retina 2x. Every image was opened and its visible strings read: only DEMO, `com.acme`, `/tmp/analyser-docs/…`,
 `~/.fluxtion-analyser`, the demo file names and placeholder plan names appear.
 
+`settings-assistant.png` was regenerated again for the PR #152 review fixes (2026-10-18), with `--m74` under the
+isolated home: P3 (`0cafba96`) added the Assistant tab's sentence that a shared settings file carries only the in-app
+assistant's two action limits. Its visible strings were read: product text, `/tmp/analyser-docs/exchange` and
+`~/.fluxtion-analyser/rest-endpoint` only.
+
 Three capture-path fixes came with it. Menu shots composite the frame and its popup windows, each taken by window id
 (`tools/CompositeShot.java`) — since the M74 final-review integration there is no region capture at all, for menus or
 windows: a shot that cannot be taken by window id is reported as not captured; the window's top edge is 28 so the whole
