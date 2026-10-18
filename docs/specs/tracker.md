@@ -144,6 +144,9 @@ _Refreshed 2026-10-17 for M74 (owner)._ The 2026-10-06 order above is superseded
 ### M79 · The first minute ([spec](spec-first-minute.md), r5)
 - [M79] ☐ **The first minute** (insider + stranger reviews and OD-79.1–.10, 2026-10-18; ACCEPTED r1; r2 one independent review; r3–r4 the lead's round 2 and the owner's correction; r5 owner answers, every decision accepted): the real-run diamond walk autoplays once in the person's domain, three doors, a start page under 40 words; then a recorded teaching session in the onboard assistant that continues live, the evidence chip, the broken-diamond quest, *Start here*, and later the external teacher kit. 7 PRs, sized S/M/L; variants pinned at `fluxtion-diamond` `24d6d74`.
 
+### M78 · The quiet assistant panel ([spec](spec-quiet-assistant-panel.md), ACCEPTED)
+- [M78] ☐ **Quiet assistant panel** (owner 2026-10-18: design for the 50th use): the docked panel at 1200×800 (216×431 px) cut from 33–80 chrome words per state to ≤15 (≤20 for error, no key and restart), with ≤4 controls when Ready, with the safety signals kept (◆ Full cue, *Claude · unverified*, permission dialog, Full consent); all 12 owner decisions OD-Q.1–.12 accepted. D1 after M77-2, D2 (one mode chip) with M77-4.
+
 ## Session and dispatch
 
 ### M44 · Session transitions as a Fluxtion processor ([spec](spec-session-processor.md))
