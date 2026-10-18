@@ -218,6 +218,12 @@ public final class LocalAgentAdapter {
                 return;
             }
         }
+        // review R1 (PR #145): the worker is a pool, so a Stop's terminate may already have run and cleaned up. A killed
+        // generation takes no lock, mints no credential, writes no endpoint file and launches nothing
+        if (run.killed) {
+            cleanup(run);
+            return;
+        }
         Path dir = LocalAgentLock.directory(s.home());
         try {
             Optional<LocalAgentLock> lock = LocalAgentLock.tryAcquire(dir, run.sessionId);
@@ -258,6 +264,10 @@ public final class LocalAgentAdapter {
         run.startedAt = clock.nowMillis();
         run.folder = s.cwd().toString();
         run.configuredModel = s.model() == null || s.model().isBlank() ? ClaudeCodeProvider.DEFAULT_MODEL : s.model().trim();
+        if (run.killed) {                         // review R1: stopped after the credential was minted; launch nothing
+            cleanup(run);
+            return;
+        }
         try {
             AgentProcess p = launcher.start(command, childEnv, removedEnv, s.cwd(), line -> onLine(run, line));
             synchronized (run) {
