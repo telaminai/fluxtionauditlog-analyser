@@ -403,3 +403,66 @@ Flag 23 (the report pre-allow) is in §6's table. Each is a deliberate change of
   re-measured — v3 should lower it (no Read/grep for code, no report approval).
 - FIX-8 leaves an owner decision open: sample-session reads of the demo folder still prompt.
 - FIX-8, FIX-9 and FIX-10 have had no independent review. Everything in §6's known gaps stands.
+
+## 8. v4: `test/usability-2026-10-18d`
+
+Filled in by the integrator, 2026-10-18, for the owner's fourth hands-on test (no PR; addendum
+`USABILITY-TEST-2026-10-18d.md`, outside the repo).
+
+- **Branch and tip:** `test/usability-2026-10-18d`, from v3's `test/usability-2026-10-18c` @ `adc1e579`. All the
+  gates below ran at **`d1aa3efb`** (the merge). The commit after it changes only this section and the tracker
+  (docs only). The owner's jar was built at `d1aa3efb`.
+- **Merged:** `review-fix/integration-2026-10-18b` @ `6d56f6d3`: the first independent reviewer's fixes
+  `ddccd5c5..f8bc55a2` (seven commits, F1–F6) plus the handoff
+  ([review_integration_2026_10_18_codex.md](review_integration_2026_10_18_codex.md), evidence in
+  `evidence/integration-review-2026-10-18/`).
+- **Delta review:** an independent delta review **ACCEPTED all seven fix commits**: `be4e1738` (F1 discovery
+  failure settles), `c526fcc1` (F2 the design outcome is the real one), `f15e9d4b` (F4 the sample anchor),
+  `27667c78` and `f8bc55a2` (F3 project ownership; cancelled queued opens never reach the shared handlers),
+  `5eb46b5d` (F5 Full-mode wording), `7e826028` (F6 partial skills write disclosed). Its trial merge predicted the
+  five conflicts below and gave a headless 4231 / 0 / 0 / 335.
+
+### Merge (`git merge --no-ff`, its own merge commit `d1aa3efb`)
+
+| File | Resolution |
+|---|---|
+| `docs/site/user-guide/projects.md` | prose only. 18c's fuller placeholder paragraph is kept, and the review-fix's non-transactional skills-write note is appended. Its older paragraph is dropped because it duplicated 18c's. |
+| `SessionProcessor.java` (both copies) and `.graphml` | one side was taken temporarily, then everything was **regenerated** with `mvn -Pregen process-classes`, not hand-merged. The two `.java` copies are byte-identical and the header is kept. |
+| `StarterProposalFrameTest.java` | the two appended blocks after `04-project-open-draft-placed.png` are reordered: 18c's (the created project's source roots, then its Java and bean spotlights) runs **before** the review-fix's `switchDuringGraphOffer` block, because that block switches the active project to DEMO-B. |
+
+**Dispatch order (rule 9)** after regeneration, compared with v3. There is one new event, `StarterCancelled` →
+`onboardingProposal.onStarterCancelled`, alone. `SettingsRestored` gains `starterProject.onSettingsRestored`, after
+`assistantLoop` and after `operationGate`, which is first. `starterProject` gains `operationGate` as a parent, so its
+guard is `isDirty_onboardingProposal | isDirty_operationGate`. A script checked that in every handler calling both
+nodes, `operationGate` runs before `starterProject`. Compared with the review-fix side, the only addition is v3's
+`HostedReportWritten` → `localAgentPermission`. **CHANGELOG:** every new line is under `[Unreleased]`. **`ci.yml`:**
+the two frame lists are identical (72 suites) and name every `*FrameTest` in the tree, checked by script.
+(`BuildModeOfferPanelTest` is headless, not a frame suite.)
+
+### Gates (at `d1aa3efb`, on macOS)
+
+- ☑ `mvn -o test` (headless): **4,231 tests, 0 fail, 0 errors, 335 skipped**, the same as the trial merge.
+- ◐ Affected frame suites on the display (StarterProposal, StarterProposalVisible, SampleProjectSpotlight,
+  SourceText, TranscriptCopyHover, AiSetupWizard, UsabilityBudget, LocalAgentPermission): **23 tests, 22 pass,
+  1 fail, 0 skipped**. The failure is `SampleProjectSpotlightFrameTest.theTranscriptsSourceSpotlightLightsBesideTheGraph`,
+  *"Java source spotlight superseded; retry against the current view"*. Run alone, it passed **3 / 0 / 0 / 0**.
+- ◐ The full registered frame list once (72 suites): **333 tests, 332 pass, 1 fail, 0 errors, 0 skipped**. The failure
+  is the same `SampleProjectSpotlightFrameTest` case with the same message. Run alone, it passed **3 / 0 / 0 / 0**.
+  `UsabilityBudgetFrameTest` passed **4 / 0 / 0 / 0** in both runs. This Mac had none of v3's four focus skips this
+  time, and `TableDragCancellationFrameTest` passed 4 / 0 / 0 / 0. Read both as desktop luck, not a fix.
+- ☑ On the built jar: `verify-m46-agent-api` **16 PASS, 0 FAIL**.
+- ☑ The sweep (CLAUDE.md rule 1) prints nothing. Identities `origin/feature/claude-code-p3..HEAD`: 119 commits, only
+  `gregphiggins@gmail.com` (author and committer). `git config user.email` is the personal address.
+- ☐ Not run: `verify-session-transitions`, `verify-session-restart`, the scorecard, the mutation gate, the loop bench and `mkdocs build --strict` (mkdocs is not installed here; CI link-checks it).
+
+### Open items (v4)
+
+- **The zero-skip display CI gate has not run** on this tip. Only the local Mac display runs above exist.
+- **The UsabilityBudget / T2 one-off failure's root cause is unnamed.** The right-click control was missing once in the
+  reviewer's complete Mac run (INTEG-R7). It passed in both runs here, which does not close it.
+- **The `SampleProjectSpotlightFrameTest` flake.** The first source spotlight is superseded under suite load, now in
+  three full or grouped runs, and it is always green alone. §7's decision (does the test or the first call wait?) and
+  its rule 8 check are still open.
+- **Skill vendoring is non-transactional.** F6 discloses a partial write honestly. There is no rollback, atomic write
+  or repair, and the digest record is written only at the end.
+- Everything in §6's and §7's known gaps stands, as do INTEG-R7, R8 and R9 in the tracker.
