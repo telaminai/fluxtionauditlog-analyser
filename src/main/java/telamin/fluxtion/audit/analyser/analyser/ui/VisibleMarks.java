@@ -1,11 +1,16 @@
 package telamin.fluxtion.audit.analyser.analyser.ui;
 
+import telamin.fluxtion.audit.analyser.analyser.assistant.InvisibleCarriers;
+
+import java.text.BreakIterator;
+
 /**
  * M74 P2 (spec §5.9, r8 F16): what is seen is what is copied. A model's words can hold terminal escape sequences, C0/C1
  * control characters, bidirectional overrides and isolates and zero-width characters, any of which can make a command
  * that is SHOWN differ from what Copy puts on the clipboard. None is ever interpreted: each is shown as a visible mark —
  * ESC as {@code ␛} (so {@code ESC[31m} reads {@code ␛[31m}), everything else as {@code ⟨U+202E⟩} — in body text and code
- * blocks alike. Newline and tab are the only control characters kept as themselves.
+ * blocks alike. Newline and tab are the only control characters kept as themselves. Review PR #150 R2: variation
+ * selectors and invisible fillers ({@link InvisibleCarriers}) are marks too, except one U+FE0F directly after an emoji.
  */
 public final class VisibleMarks {
 
@@ -32,7 +37,7 @@ public final class VisibleMarks {
         for (int i = 0; i < s.length(); ) {
             int cp = s.codePointAt(i);
             int width = Character.charCount(cp);
-            if (hidden(cp)) {
+            if (hiddenAt(s, i, cp)) {
                 if (sb == null) sb = new StringBuilder(s.length() + 16).append(s, 0, i);
                 sb.append(mark(cp));
             } else if (sb != null) {
@@ -41,6 +46,34 @@ public final class VisibleMarks {
             i += width;
         }
         return sb == null ? s : sb.toString();
+    }
+
+    /** Whether the code point {@code cp} at index {@code i} of {@code s} is shown as a mark, in its context. */
+    private static boolean hiddenAt(String s, int i, int cp) {
+        return hidden(cp) || (InvisibleCarriers.carrier(cp) && !InvisibleCarriers.permitted(s, i));
+    }
+
+    /**
+     * Review PR #150 R3: the END of {@code s} as shown — hidden characters as marks — in at most {@code max} code points,
+     * an ellipsis first when cut. A path is elided from the left (its file name is what matters), and only between whole
+     * grapheme clusters, so an emoji, a surrogate pair or a mark is never split.
+     */
+    public static String tail(String s, int max) {
+        String shown = show(s);
+        if (shown.codePointCount(0, shown.length()) <= max) return shown;
+        BreakIterator clusters = BreakIterator.getCharacterInstance();
+        clusters.setText(s);
+        StringBuilder kept = new StringBuilder();
+        int used = 0;
+        for (int end = clusters.last(), start = clusters.previous(); start != BreakIterator.DONE;
+             end = start, start = clusters.previous()) {
+            String piece = show(s.substring(start, end));
+            int n = piece.codePointCount(0, piece.length());
+            if (used + n > max - 1) break;
+            kept.insert(0, piece);
+            used += n;
+        }
+        return "…" + kept;
     }
 
     /** The mark for one hidden character. */
@@ -54,7 +87,7 @@ public final class VisibleMarks {
         int n = 0;
         for (int i = 0; i < s.length(); ) {
             int cp = s.codePointAt(i);
-            if (hidden(cp)) n++;
+            if (hiddenAt(s, i, cp)) n++;
             i += Character.charCount(cp);
         }
         return n;

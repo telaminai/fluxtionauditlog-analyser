@@ -254,7 +254,10 @@ public final class WalkConversation {
         int from = all.size();
         while (from > 0 && all.size() - from < MAX_TURNS) {
             WalkSpec.Turn t = all.get(from - 1);
-            long cost = t.text().getBytes(StandardCharsets.UTF_8).length * 2L + 64;   // escaping can double a byte
+            // review PR #150 R4: the text's SERIALIZED size, as problem() measures it — a control character escapes to six
+            // bytes, so the old "twice the UTF-8" estimate let an offer through that the 512 KB check refused at save
+            long cost = telamin.fluxtion.audit.analyser.analyser.llm.Json.write(t.text())
+                    .getBytes(StandardCharsets.UTF_8).length + 64L;
             if (used + cost > budget) break;
             used += cost;
             from--;

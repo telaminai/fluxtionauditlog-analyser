@@ -22,14 +22,37 @@ public final class LinkConfirm {
 
     /** The scheme and host as the confirmation shows them: {@code https://xn--pple-43d.example:8443}, or null. */
     public static String origin(String url) {
+        String[] parts = hostAndPort(url);
+        if (parts == null) return null;
+        String scheme = parts[0];
+        String authority = parts[1];
+        String port = parts[2];
+        String host;
+        try {
+            host = IDN.toASCII(authority, IDN.ALLOW_UNASSIGNED).toLowerCase(Locale.ROOT);
+        } catch (IllegalArgumentException e) {
+            host = VisibleMarks.show(authority);
+        }
+        return scheme + "://" + host + VisibleMarks.show(port);
+    }
+
+    /**
+     * Review PR #150 R1: the scheme, the raw host and the port ({@code ":8443"} or empty) as a BROWSER reads the address,
+     * or null when it has no {@code scheme:}. For http(s) the WHATWG URL parser skips any run of {@code /} and {@code \}
+     * after the scheme — {@code https:///evil.example} reaches {@code evil.example} — and ends the authority at the first
+     * {@code / \ ? #}; user info (to the last {@code @}) is never the host.
+     */
+    static String[] hostAndPort(String url) {
         if (url == null) return null;
         String u = url.strip();
-        int sep = u.indexOf("://");
+        int sep = u.indexOf(':');
         if (sep <= 0) return null;
         String scheme = u.substring(0, sep).toLowerCase(Locale.ROOT);
-        String rest = u.substring(sep + 3);
+        int from = sep + 1;
+        while (from < u.length() && (u.charAt(from) == '/' || u.charAt(from) == '\\')) from++;
+        String rest = u.substring(from);
         int end = rest.length();
-        for (char c : new char[]{'/', '?', '#'}) {
+        for (char c : new char[]{'/', '\\', '?', '#'}) {
             int at = rest.indexOf(c);
             if (at >= 0 && at < end) end = at;
         }
@@ -38,17 +61,11 @@ public final class LinkConfirm {
         if (at >= 0) authority = authority.substring(at + 1);         // user info is never the host
         String port = "";
         int colon = authority.lastIndexOf(':');
-        if (colon > 0 && authority.indexOf(']') < colon) {
+        if (colon >= 0 && authority.indexOf(']') < colon) {
             port = authority.substring(colon);
             authority = authority.substring(0, colon);
         }
-        String host;
-        try {
-            host = IDN.toASCII(authority, IDN.ALLOW_UNASSIGNED).toLowerCase(Locale.ROOT);
-        } catch (IllegalArgumentException e) {
-            host = VisibleMarks.show(authority);
-        }
-        return scheme + "://" + host + VisibleMarks.show(port);
+        return new String[]{scheme, authority, port};
     }
 
     /** The confirmation's words (pure, for the test): the origin on its own line, then the URL with marks. */
@@ -62,12 +79,22 @@ public final class LinkConfirm {
     /** Why a link is not opened at all, or null when it may be offered. */
     public static String refusal(String url) {
         if (SafeMarkdown.openable(url)) {
+            URI uri;
             try {
-                URI.create(url.strip());
-                return null;
+                uri = URI.create(url.strip());
             } catch (IllegalArgumentException e) {
                 return "this link is not a well-formed address, so the analyser does not open it";
             }
+            // review PR #150 R1: the host line must be the host a browser opens. An empty authority (a browser skips the
+            // extra slash of "https:///evil.example") or a percent-encoded host (a browser decodes it) would show a host
+            // other than the one reached, so neither is offered — judged both as a browser reads it and as Java does.
+            String[] parts = hostAndPort(url);
+            String raw = uri.getRawAuthority();
+            if (parts == null || parts[1].isEmpty() || parts[1].contains("%") || raw == null
+                    || !raw.endsWith(parts[1] + parts[2])) {
+                return "this link names no plain host, so the analyser does not open it";
+            }
+            return null;
         }
         int colon = url == null ? -1 : url.indexOf(':');
         String scheme = colon > 0 ? url.substring(0, colon) : "(none)";

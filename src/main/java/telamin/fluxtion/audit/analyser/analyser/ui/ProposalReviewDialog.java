@@ -53,7 +53,8 @@ public final class ProposalReviewDialog {
         void showReason(int row, String text) {
             reasonRow = row;
             reasonLabel.setText(REASON_LABEL + " — item " + row);
-            reason.setText(text == null || text.isBlank() ? "(Claude gave no reason)" : text);
+            // review PR #150 R3: Claude's words, hidden characters shown as marks
+            reason.setText(text == null || text.isBlank() ? "(Claude gave no reason)" : VisibleMarks.show(text));
             reason.setCaretPosition(0);
         }
         final JButton apply = UiText.button("Apply chosen");
@@ -185,10 +186,12 @@ public final class ProposalReviewDialog {
             g.gridx = COL_WHAT;
             rows.add(UiText.label(kindWords(i.kind())), g);
             g.gridx = COL_PATH;
+            // review PR #150 R3: Claude's words, so hidden characters are marks (a bidi override cannot reverse a name),
+            // elided from the left between whole grapheme clusters
             String where = i.pathRef() != 0 ? words.apply(i.pathRef()) : i.classNameRef() != 0
                     ? words.apply(i.classNameRef()) : "";
-            JLabel path = UiText.label(where.length() > 60 ? "…" + where.substring(where.length() - 59) : where);
-            path.setToolTipText(UiText.tooltip(where));
+            JLabel path = UiText.label(VisibleMarks.tail(where, 60));
+            path.setToolTipText(UiText.tooltip(VisibleMarks.show(where)));
             rows.add(path, g);
             g.gridx = COL_CHECK;
             String check = switch (i.state()) {

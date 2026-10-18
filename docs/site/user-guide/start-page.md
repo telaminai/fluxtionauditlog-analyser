@@ -107,8 +107,9 @@ read as the next number (lines 3, 4); trailing spaces removed (line 1)."* — an
 What is unsafe or out of bounds is still **refused**:
 
 - More than 16 KB, or not UTF-8; more than 9 entries; a title, description, label or prompt over its length.
-- HTML, images, links (outside an example entry), `{placeholders}`, and control, format or bidirectional characters (a
-  byte-order mark counts as one).
+- HTML, images, links (outside an example entry), `{placeholders}`, and control, format, bidirectional or invisible
+  characters — a byte-order mark counts as one, and so do variation selectors and invisible fillers such as U+3164,
+  which can carry text no one sees. One U+FE0F directly after an emoji (the emoji form of ⚠, for example) is allowed.
 - An example entry that is not exactly its strict shape (below) — an example is never tidied.
 - Any other line after the entries, or an unclosed `**`.
 
