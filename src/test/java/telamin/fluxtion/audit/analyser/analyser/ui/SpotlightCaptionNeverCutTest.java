@@ -28,6 +28,47 @@ class SpotlightCaptionNeverCutTest {
         return String.join(" ", lines).replace("…", "").replaceAll("\\s+", " ").strip();
     }
 
+    /** No lone surrogate anywhere in {@code lines}: every high surrogate is followed by its low one. */
+    static void noSplitPair(List<String> lines) {
+        for (String l : lines) {
+            for (int i = 0; i < l.length(); i++) {
+                char c = l.charAt(i);
+                if (Character.isHighSurrogate(c)) {
+                    assertTrue(i + 1 < l.length() && Character.isLowSurrogate(l.charAt(i + 1)), "a split pair in " + l);
+                    i++;
+                } else {
+                    assertFalse(Character.isLowSurrogate(c), "a lone low surrogate in " + l);
+                }
+            }
+        }
+    }
+
+    /**
+     * ★ Review PR151 F5 (2026-10-18): a run broken at the line's width, and the collapsed last line cut before its "…",
+     * are cut between graphemes, never inside an emoji's surrogate pair. Witness: break by char ({@code substring(0,
+     * width)}) — the 40th char is the high half of an emoji, and the line ends in a lone surrogate.
+     */
+    @Test
+    @DisplayName("★ a wrap or a collapse never splits an emoji or another astral character")
+    void anEmojiIsNeverSplit() {
+        String emoji = new String(Character.toChars(0x1F600));
+        int w = UiTheme.CALLOUT_LINE_CHARS;
+        String run = "a".repeat(w - 1) + emoji + "b".repeat(w) + emoji + emoji;    // the emoji straddles the width
+        List<String> expanded = SpotlightOverlay.calloutLines(run, true);
+        noSplitPair(expanded);
+        assertEquals(run, String.join("", expanded), "every character kept, in order");
+        assertTrue(expanded.stream().allMatch(l -> l.length() <= w), expanded.toString());
+        String cjk = new String(Character.toChars(0x20000));                           // an astral CJK ideograph
+        String many = (cjk + " ").repeat(4 * w);
+        noSplitPair(SpotlightOverlay.calloutLines(many, false));
+        // the collapsed third line is r…r😀 (w chars) and is cut to w - 1 before its "…": the cut lands inside the pair
+        String third = "p".repeat(w) + " " + "q".repeat(w) + " " + "r".repeat(w - 2) + emoji + "s".repeat(10);
+        assertEquals("r".repeat(w - 2) + emoji, SpotlightOverlay.calloutLines(third, true).get(2), "the setup");
+        List<String> collapsed = SpotlightOverlay.calloutLines(third, false);
+        noSplitPair(collapsed);
+        assertEquals("r".repeat(w - 2) + "…", collapsed.get(2), "cut before the emoji, never through it");
+    }
+
     /**
      * ★ Witness: today's wrap — a pixel wrap with no limit, laid into a box the layout then clamps into the frame — let
      * a long caption run off the frame; and a word longer than the box ran out of it. Here: collapsed is at most three

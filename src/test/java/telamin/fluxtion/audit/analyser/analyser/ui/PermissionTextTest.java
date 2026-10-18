@@ -19,6 +19,23 @@ class PermissionTextTest {
     static final String RLO = new String(Character.toChars(0x202E));
     static final String ZWSP = new String(Character.toChars(0x200B));
 
+    /**
+     * ★ Review PR151 F1 (2026-10-18): a request whose words are not held is never shown as approvable — no input, the
+     * reason in their place, and {@code held} false, which keeps the dialog's Allow disabled. Witness: return
+     * {@code held = true} for a missing request — the assertion fails.
+     */
+    @Test
+    @DisplayName("★ missing words: the dialog's content says so and is not approvable")
+    void missingWordsAreNotApprovable() {
+        var c = PermissionText.of(null, ToolClass.HOSTED_DESTRUCTIVE, "walk");
+        assertFalse(c.held());
+        assertEquals("", c.input());
+        assertEquals(PermissionText.NOT_HELD, c.changes());
+        assertTrue(c.title().contains("analyser_walk"), c.title());
+        assertTrue(PermissionText.of(new LocalAgentTranscript.Permission("Bash", null, "Bash", "{\"command\":\"ls\"}"),
+                ToolClass.BUILT_IN, "Bash").held(), "control: held words are approvable");
+    }
+
     /** ★ Witness: return the input unescaped from {@code visible} — the override reaches the text area as itself. */
     @Test
     @DisplayName("★ a <html> string and a right-to-left override are shown as text and as a visible escape")

@@ -143,7 +143,9 @@ class UnifiedAssistantFrameTest {
             onEdt(() -> {
                 AssistantPanel a = AssistantLiveFrameTest.panel(f.frame);
                 line.set(a.limitsLine());
-                assertEquals(AssistantPanel.IN_APP_NO_KEY, a.limitsLine().getText());
+                // owner, 2026-10-18: nothing chosen on a fresh machine — the node's one line, not three
+                assertEquals(telamin.fluxtion.audit.analyser.analyser.session.node.AssistantProfileChoice.NO_ASSISTANT,
+                        a.limitsLine().getText());
                 a.chooseModeForTest(AssistantMode.LOCAL_AGENT);
             });
             awaitMode(f.frame, AssistantMode.LOCAL_AGENT);

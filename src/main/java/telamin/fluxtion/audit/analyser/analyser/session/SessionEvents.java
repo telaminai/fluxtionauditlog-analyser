@@ -796,6 +796,14 @@ public final class SessionEvents {
     public record AssistantProfileChosen(long request, AssistantProfile profile) {
     }
 
+    /**
+     * Review PR151 F4 (owner, 2026-10-18): the person's answer to {@code ConfirmFullProfileEffect{request}} — the full
+     * warning, as Settings ▸ Assistant shows it; {@code confirmed} only on an explicit press of <i>Turn on full Claude
+     * Code</i> (Cancel, Escape and closing the window are not).
+     */
+    public record AssistantFullProfileAnswered(long request, boolean confirmed) {
+    }
+
     /** Answers {@code ApplyAssistantProfileEffect}: the settings were written ({@code ok}) and the consent re-reported. */
     public record AssistantProfileApplied(long opId, long request, AssistantProfile profile, boolean ok, String reason)
             implements Result {

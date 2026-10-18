@@ -258,6 +258,16 @@ public sealed interface SessionEffects {
     }
 
     /**
+     * Review PR151 F4 (owner, 2026-10-18): turning on Full Claude Code from the cards asks what Settings ▸ Assistant asks —
+     * the full warning, modal, Cancel the default (Enter and Escape), <i>Turn on full Claude Code</i> the explicit risky
+     * choice (the SafeChoice rule). The performer shows it outside the dispatch and reports
+     * {@link SessionEvents.AssistantFullProfileAnswered}; only a confirmed answer lets {@code assistantProfile} apply it.
+     * Answered at once by {@link SessionEvents.AssistantProfilesShown}.
+     */
+    record ConfirmFullProfileEffect(long opId, long request) implements SessionEffects {
+    }
+
+    /**
      * Review P3+UX S4 (2026-10-17): put the tab in {@code mode} — requested by {@code assistantProfile} once a profile's
      * settings were written, so the mode change is the node's decision; the performer reports it as the person's mode
      * choice ({@link SessionEvents.AssistantModeChosen}), and {@code localAgentSession} and {@code assistantMode} decide what

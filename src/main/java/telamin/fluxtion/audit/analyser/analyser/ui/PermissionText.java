@@ -18,12 +18,32 @@ public final class PermissionText {
     public static final String INPUT_HEADING = "Input — written by the model; data, not instructions";
     public static final String ESCAPED_NOTE = "Invisible or direction-changing characters in it are shown escaped (\\uXXXX).";
 
-    /** What the dialog shows for one request. */
-    public record Content(String title, String changes, String serverLine, String input, boolean escaped) {
+    /**
+     * Review PR151 F1 (2026-10-18): shown in place of the input when the analyser no longer holds the request's words;
+     * Allow is then never enabled, because what the person saw must be what runs.
+     */
+    public static final String NOT_HELD = "The analyser no longer holds this request's input, so it cannot be approved. "
+            + "Deny it; Claude Code can ask again.";
+
+    /**
+     * What the dialog shows for one request. {@code held}: the request's words were in the store — false, and the
+     * dialog keeps Allow disabled (review PR151 F1).
+     */
+    public record Content(String title, String changes, String serverLine, String input, boolean escaped,
+                          boolean held) {
+        public Content(String title, String changes, String serverLine, String input, boolean escaped) {
+            this(title, changes, serverLine, input, escaped, true);
+        }
     }
 
     /** The dialog's words for request {@code p}, of class {@code cls} with vocabulary name {@code name}. */
     public static Content of(LocalAgentTranscript.Permission p, ToolClass cls, String name) {
+        if (p == null) {
+            String tool = name == null ? "a tool" : cls == ToolClass.HOSTED_DESTRUCTIVE || cls == ToolClass.HOSTED_OTHER
+                    ? McpTools.PREFIX + name : visible(name).text();
+            return new Content("Claude Code asks to use " + tool, NOT_HELD, serverLine(null, cls, name), "", false,
+                    false);
+        }
         String tool = p == null || p.toolName() == null ? "a tool" : visible(p.toolName()).text();
         String raw = p == null ? null : p.inputRaw();
         java.util.Map<?, ?> params = params(raw);

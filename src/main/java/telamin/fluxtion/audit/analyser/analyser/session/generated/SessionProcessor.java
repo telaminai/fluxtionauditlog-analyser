@@ -52,6 +52,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantC
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantDraftComposed;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantEffectStarted;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantFileExchangeObserved;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantFullProfileAnswered;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantHandoffRequested;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantHostRequested;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantHostShown;
@@ -239,6 +240,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Requ
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantDraftComposed
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantEffectStarted
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantFileExchangeObserved
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantFullProfileAnswered
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantHandoffRequested
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantHostRequested
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantHostShown
@@ -546,6 +548,10 @@ public class SessionProcessor
             new ProcessorDescriptor.Input(
                 "AssistantFileExchangeObserved",
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantFileExchangeObserved",
+                false),
+            new ProcessorDescriptor.Input(
+                "AssistantFullProfileAnswered",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantFullProfileAnswered",
                 false),
             new ProcessorDescriptor.Input(
                 "AssistantHandoffRequested",
@@ -1069,7 +1075,7 @@ public class SessionProcessor
           new DescriptorSupport.Meta(
               null,
               "1.0.76",
-              "70da51689d4d29f14a2b7ea613677e717c4d494f80d5130bcb945813fd97c0fe",
+              "6d4ca7f04bbcbad0bc7b20130fe076dd130857412e5b0c510672fce6a6003fac",
               null));
 
   @Override
@@ -1274,6 +1280,9 @@ public class SessionProcessor
       handleEvent(typedEvent);
     } else if (event instanceof AssistantFileExchangeObserved) {
       AssistantFileExchangeObserved typedEvent = (AssistantFileExchangeObserved) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof AssistantFullProfileAnswered) {
+      AssistantFullProfileAnswered typedEvent = (AssistantFullProfileAnswered) event;
       handleEvent(typedEvent);
     } else if (event instanceof AssistantHandoffRequested) {
       AssistantHandoffRequested typedEvent = (AssistantHandoffRequested) event;
@@ -1735,6 +1744,11 @@ public class SessionProcessor
 
   @OnEventHandler(failBuildIfMissingBooleanReturn = false)
   public void onEvent(AssistantFileExchangeObserved event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(AssistantFullProfileAnswered event) {
     processEvent(event);
   }
 
@@ -2525,6 +2539,14 @@ public class SessionProcessor
     //Default, no filter methods
     auditInvocation(localAgentPermission, "localAgentPermission", "onFileExchange", typedEvent);
     isDirty_localAgentPermission = localAgentPermission.onFileExchange(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(AssistantFullProfileAnswered typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(assistantProfile, "assistantProfile", "onFullProfileAnswered", typedEvent);
+    isDirty_assistantProfile = assistantProfile.onFullProfileAnswered(typedEvent);
     afterEvent();
   }
 
@@ -3941,6 +3963,8 @@ public class SessionProcessor
   public void handleEvent(StartPageAvailability typedEvent) {
     auditEvent(typedEvent);
     //Default, no filter methods
+    auditInvocation(assistantProfile, "assistantProfile", "onAvailability", typedEvent);
+    isDirty_assistantProfile = assistantProfile.onAvailability(typedEvent);
     auditInvocation(startPagePrompt, "startPagePrompt", "onAvailability", typedEvent);
     startPagePrompt.onAvailability(typedEvent);
     afterEvent();
@@ -4263,6 +4287,11 @@ public class SessionProcessor
       auditEvent(typedEvent);
       auditInvocation(localAgentPermission, "localAgentPermission", "onFileExchange", typedEvent);
       isDirty_localAgentPermission = localAgentPermission.onFileExchange(typedEvent);
+    } else if (event instanceof AssistantFullProfileAnswered) {
+      AssistantFullProfileAnswered typedEvent = (AssistantFullProfileAnswered) event;
+      auditEvent(typedEvent);
+      auditInvocation(assistantProfile, "assistantProfile", "onFullProfileAnswered", typedEvent);
+      isDirty_assistantProfile = assistantProfile.onFullProfileAnswered(typedEvent);
     } else if (event instanceof AssistantHandoffRequested) {
       AssistantHandoffRequested typedEvent = (AssistantHandoffRequested) event;
       auditEvent(typedEvent);
@@ -4939,6 +4968,8 @@ public class SessionProcessor
     } else if (event instanceof StartPageAvailability) {
       StartPageAvailability typedEvent = (StartPageAvailability) event;
       auditEvent(typedEvent);
+      auditInvocation(assistantProfile, "assistantProfile", "onAvailability", typedEvent);
+      isDirty_assistantProfile = assistantProfile.onAvailability(typedEvent);
       auditInvocation(startPagePrompt, "startPagePrompt", "onAvailability", typedEvent);
       startPagePrompt.onAvailability(typedEvent);
     } else if (event instanceof StartPageEffectStarted) {

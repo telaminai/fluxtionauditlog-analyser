@@ -111,6 +111,87 @@ class LocalAgentPermissionReplayTest {
         assertTrue(text.contains("approved by you"), text);
     }
 
+    /**
+     * ★ Review PR151 F1 (2026-10-18): the words of a request waiting behind the open dialog are what its dialog will show
+     * when its turn comes, and its Allow echoes them. The store kept the last 64 requests of any kind, so a burst of
+     * other requests (each answered at once) evicted a waiting one, and its dialog then showed no input while Allow
+     * still allowed and granted that input. Now a request's words leave the store when it is answered or withdrawn, so
+     * only the unanswered ones occupy it. Witness: drop {@code store.dropPermission} from the adapter's answer — the
+     * waiting request's words are gone after the burst.
+     */
+    @Test
+    @DisplayName("★ a request waiting behind the open dialog keeps its words however many other requests come and go")
+    void aWaitingRequestKeepsItsWords() throws Exception {
+        Harness h = bound("p3-0-default-real.jsonl");
+        h.send("deny it");
+        assertEquals(1, dialogs(h).size(), "the first request is shown");
+        h.agent.last().emit("{\"type\":\"control_request\",\"request_id\":\"req-waiting\",\"request\":{\"subtype\":"
+                + "\"can_use_tool\",\"tool_name\":\"mcp__fluxtion-analyser-hosted__analyser_walk\",\"input\":"
+                + "{\"name\":\"DEMO waiting\",\"delete\":true},\"tool_use_id\":\"toolu_waiting\"}}");
+        h.drain();
+        var waiting = h.facts(SessionEvents.LocalAgentPermissionRequested.class).get(1);
+        assertEquals(1, h.driver.snapshot().permission().queued(), "the second waits behind the open dialog");
+        for (int i = 0; i < 80; i++) {          // each denied at once in Safe analysis, with no dialog
+            h.agent.last().emit("{\"type\":\"control_request\",\"request_id\":\"req-burst-" + i + "\",\"request\":"
+                    + "{\"subtype\":\"can_use_tool\",\"tool_name\":\"Bash\",\"input\":{\"command\":\"true\"}}}");
+            h.drain();
+        }
+        assertEquals(1, dialogs(h).size(), "the burst opened no dialog");
+        LocalAgentTranscript.Permission words = h.store.permission(waiting.requestRef());
+        assertNotNull(words, "the waiting request's words are still held for its dialog");
+        assertTrue(words.inputRaw().contains("DEMO waiting"), words.inputRaw());
+        assertTrue(h.store.permission(h.facts(SessionEvents.LocalAgentPermissionRequested.class).get(5).requestRef())
+                == null, "an answered request's words are not kept");
+    }
+
+    /**
+     * ★ Review PR151 F1 (2026-10-18), the store alone: however many requests are unanswered, none loses its words by
+     * count; only {@code dropPermission} removes them. Through the processor the queue's bound keeps the store small,
+     * so this is the check that would catch an eviction coming back. Witness: restore the 64-entry eviction in
+     * {@code putPermission} — the first request's words are gone.
+     */
+    @Test
+    @DisplayName("★ the store never evicts an unanswered request's words; only an answer or a withdrawal drops them")
+    void theStoreNeverEvictsByCount() {
+        LocalAgentTranscript store = new LocalAgentTranscript();
+        long first = store.putPermission(new LocalAgentTranscript.Permission("Bash", null, "Bash", "{\"n\":0}"));
+        for (int i = 1; i < 200; i++) {
+            store.putPermission(new LocalAgentTranscript.Permission("Bash", null, "Bash", "{\"n\":" + i + "}"));
+        }
+        assertNotNull(store.permission(first), "the oldest unanswered request still has its words");
+        assertEquals("{\"n\":0}", store.permission(first).inputRaw());
+        store.dropPermission(first);
+        assertNull(store.permission(first), "answered: dropped");
+    }
+
+    /**
+     * ★ Review PR151 F1 (2026-10-18), the fail-closed half: if the words the dialog shows are not held, what the person
+     * saw cannot be what runs — the dialog's content says so (Allow stays disabled, {@code LocalAgentPermissionFrameTest}),
+     * and an Allow that still reaches the adapter is written as a deny, never as the raw input. Witness: drop
+     * {@code shown} from the adapter's allow condition — the raw input is written back as an allow.
+     */
+    @Test
+    @DisplayName("★ a request whose shown words are not held is denied, even on Allow once; its dialog cannot allow")
+    void missingWordsFailClosed() throws Exception {
+        Harness h = bound("p3-0-default-real.jsonl");
+        h.send("deny it");
+        var requested = h.facts(SessionEvents.LocalAgentPermissionRequested.class).get(0);
+        assertEquals(1, dialogs(h).size(), "the request is shown");
+        h.store.dropPermission(requested.requestRef());     // the words are gone, however that came about
+        var content = telamin.fluxtion.audit.analyser.analyser.ui.PermissionText.of(
+                h.store.permission(requested.requestRef()), requested.toolClass(), requested.name());
+        assertFalse(content.held(), "the dialog is told the words are not held, so it keeps Allow disabled");
+        h.driver.post(new SessionEvents.LocalAgentPermissionChosen(requested.requestRef(), true));
+        h.drain();
+        String answer = answers(h).get(0);
+        assertTrue(answer.contains("\"behavior\":\"deny\""), answer);
+        assertTrue(answer.contains(LocalAgentAdapter.WORDS_NOT_HELD), answer);
+        assertFalse(answer.contains("updatedInput"), "the raw input is never echoed as an allow");
+        var answered = answered(h).get(0);
+        assertTrue(answered.written());
+        assertFalse(answered.allow(), "the fact says what was written: a deny");
+    }
+
     /** The answers as the adapter wrote them (R8: the result of each AnswerPermissionEffect, recorded as a fact). */
     private static List<SessionEvents.LocalAgentPermissionAnswered> answered(Harness h) {
         return h.results.stream().filter(SessionEvents.LocalAgentPermissionAnswered.class::isInstance)

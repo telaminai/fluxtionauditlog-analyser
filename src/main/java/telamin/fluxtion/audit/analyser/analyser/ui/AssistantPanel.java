@@ -129,6 +129,13 @@ public final class AssistantPanel extends JPanel {
     private final JButton askAboutEvidence = new JButton("Ask about this evidence");
     private final JPanel composer = new JPanel(new BorderLayout(4, 4));
     private final JPanel noProvider = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
+    private final JLabel noProviderLine = UiText.label("No provider is configured — nothing is sent from here.");
+    /** The composer, the no-provider bar and the demonstration bar: hidden while the profile cards are open. */
+    private final JPanel south = new JPanel(new BorderLayout(4, 4));
+    /** Owner, 2026-10-18: the cards are open — a focused view: no composer, no header lines but the one status line. */
+    private boolean profilesOpen;
+    /** The node's one status line when no assistant can answer from here ({@link ProfileState#status()}). */
+    private String profileStatus = "";
     private final JPanel demoBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
     /** OA-4 (§6.2): Show / Hide conversation is presentation only; the strip still names the journey and its mode. */
     private final JCheckBox showConversation = new JCheckBox("Show conversation");
@@ -236,7 +243,7 @@ public final class AssistantPanel extends JPanel {
         buttons.add(surface.stop);
         buttons.add(surface.send);
         composer.add(buttons, BorderLayout.SOUTH);
-        noProvider.add(UiText.label("No provider is configured — nothing is sent from here."));
+        noProvider.add(noProviderLine);
         noProvider.add(configure);
         noProvider.add(connectCli);
         demoBar.add(askAboutEvidence);
@@ -248,7 +255,6 @@ public final class AssistantPanel extends JPanel {
         showConversation.addActionListener(e -> { rendered = null; render(lastState, lastDemo); });
         demoBar.add(showConversation);
         demoBar.add(new JLabel("Not live: nothing here is sent anywhere."));
-        JPanel south = new JPanel(new BorderLayout(4, 4));
         south.add(noProvider, BorderLayout.NORTH);
         south.add(composer, BorderLayout.CENTER);
         south.add(demoBar, BorderLayout.SOUTH);
@@ -380,7 +386,28 @@ public final class AssistantPanel extends JPanel {
         profileButton.getAccessibleContext().setAccessibleName(assistantControlName(profile));
         profiles.render(st);
         centerLayout.show(center, st.open() ? "PROFILES" : "TRANSCRIPT");
+        profilesOpen = st.open();
+        profileStatus = st.status();
         renderLimits();
+        renderFocus();
+    }
+
+    /**
+     * Owner, 2026-10-18: choosing a profile is a focused view. While the cards are open the composer and Send, the chips
+     * and the mode's lines are hidden — only the Assistant control, the host buttons and the one status line stay. Rendered
+     * from {@link ProfileState}; nothing is decided here.
+     */
+    private void renderFocus() {
+        surface.chips.setVisible(!profilesOpen);
+        details.setVisible(!profilesOpen);
+        south.setVisible(!profilesOpen);
+        revalidate();
+        repaint();
+    }
+
+    /** For the frame tests: the composer's row (Send, Stop, Copy prompt) and its parent. */
+    JPanel composerRow() {
+        return composer;
     }
 
     /** Whether a usable provider is configured, read when rendering (it is configuration, not a session decision). */
@@ -512,7 +539,9 @@ public final class AssistantPanel extends JPanel {
         mode.setText(inDemo ? demo.mode() : " ");
         mode.setVisible(inDemo);
         mode.getAccessibleContext().setAccessibleDescription(mode.getText());
-        route.setVisible(!inDemo);                    // a demonstration has no provider: nothing is sent from it
+        // a demonstration has no provider: nothing is sent from it; and where the node's one status line says no assistant
+        // can answer here, the route does not say it a second time (owner, 2026-10-18)
+        route.setVisible(!inDemo && profileStatus.isBlank());
         basis.setText(inDemo ? demo.walkTitle() : (state.basis().isBlank() ? " " : "About: " + state.basis()));
         status.setText(inDemo ? demo.status() : phaseLine(state));
         composer.setVisible(!inDemo);
@@ -520,6 +549,8 @@ public final class AssistantPanel extends JPanel {
         profileButton.setEnabled(!inDemo);
         boolean claude = claudeCodeShown();
         noProvider.setVisible(!inDemo && !claude && !configured && profile != AssistantProfile.OFF);
+        noProviderLine.setVisible(profileStatus.isBlank());   // its buttons stay; the one status line says it (2026-10-18)
+        renderFocus();
         renderLimits();
         if (claude) {                                     // Claude Code draws the shared parts while it is shown
             rendered = state;
@@ -555,6 +586,10 @@ public final class AssistantPanel extends JPanel {
             words = OFF_LIMITS;
         } else if (demoShowing) {
             words = " ";
+        } else if (!profileStatus.isBlank() && (profilesOpen || !claudeCodeShown())) {
+            words = profileStatus;            // owner, 2026-10-18: the ONE line, in the node's words
+        } else if (profilesOpen) {
+            words = " ";                      // a focused view: the cards say what each profile does
         } else if (claudeCodeShown()) {
             words = localAgent.limitsNow();   // review B2: says when external access is open to a full session's tools
         } else {

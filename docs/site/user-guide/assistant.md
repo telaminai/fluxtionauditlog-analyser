@@ -70,7 +70,7 @@ analysis](../assets/assistant-profile-cards.png)
 | Card | What it sets up |
 |---|---|
 | **Safe analysis** (the default) | Claude Code that **reads your evidence; it changes what is open or writes a file only after you approve each call**: Read, Grep and Glob in the project folder and the analyser's own views. No shell, no edits, no web, none of your own skills or servers — safe with logs you did not write. **Not local-only:** what you ask, and the evidence Claude reads through the analyser, is sent to the model provider (Anthropic, on your Claude plan or API key), as in any Claude Code session. Its detail: Claude Code's model. |
-| **Full Claude Code** | **Your own Claude Code** — your settings, skills, plugins, hooks and MCP servers, and your own tools under your rules. The card shows the warning in full and the **mode** (`default`, `acceptEdits`, `auto`, `plan`); its button reads **Turn on full Claude Code**. When Claude Code asks for approval, the analyser asks you ([Approvals](#approvals-in-the-analyser)). Like Safe analysis, it sends what you ask, and the evidence Claude reads, to the model provider. |
+| **Full Claude Code** | **Your own Claude Code** — your settings, skills, plugins, hooks and MCP servers, and your own tools under your rules. The card shows the warning in full and the **mode** (`default`, `acceptEdits`, `auto`, `plan`); its button **Turn on full Claude Code** opens the same confirmation as the Settings switch (the warning, *Cancel* the default) and nothing changes until you confirm. When Claude Code asks for approval, the analyser asks you ([Approvals](#approvals-in-the-analyser)). Like Safe analysis, it sends what you ask, and the evidence Claude reads, to the model provider. |
 | **In-app assistant** | The analyser's own assistant: a **provider**, a **model** and an **API key** (left blank, a key already stored is kept). **Not local-only:** what you ask, and the evidence the assistant reads through the analyser, is sent to the model provider you chose, on your API key. |
 | **Off** | **No assistant in the analyser.** No question is sent anywhere from the analyser; every view, chart, report and walk still works. A stored key is kept, unused. An external MCP or REST client you connected is **not** affected. |
 
@@ -211,8 +211,9 @@ administrator lock yet ([For administrators](#for-administrators)).
 
 **Full Claude Code — your own Claude Code, by a second opt-in.** The **Full Claude Code** card, or *Settings ▸
 Assistant ▸ Full Claude Code ▸ …with my full Claude Code permissions* (off, and only available while Claude Code is
-allowed), runs your own Claude Code in the tab as it runs in a terminal. The card shows the warning in full and its
-button reads *Turn on full Claude Code*; the Settings switch shows the same warning first, with *Cancel* as its default. It loads **your settings and permission rules, skills, commands, plugins,
+allowed), runs your own Claude Code in the tab as it runs in a terminal. The card shows the warning in full; its
+button, *Turn on full Claude Code*, and the Settings switch both show the same warning as a confirmation first, with
+*Cancel* as its default — Enter and Escape cancel, and nothing changes until you press *Turn on full Claude Code* in it. It loads **your settings and permission rules, skills, commands, plugins,
 subagents, hooks and MCP servers** (claude.ai connectors included), and the folder's own hooks and `.mcp.json`, and
 Claude Code can use **your own tools — Bash, file edits, web access — as far as your permission rules and the mode you
 choose allow**. **The analyser does not confine it to the folder**; your rules and the mode do.

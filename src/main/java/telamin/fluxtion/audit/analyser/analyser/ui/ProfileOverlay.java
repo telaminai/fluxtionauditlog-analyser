@@ -24,6 +24,11 @@ import java.util.function.Supplier;
  * choosing a start-page entry is (r8 F10). Whether an Apply may be applied now is {@code assistantProfile}'s; what it
  * writes is {@link AssistantProfiles#apply}'s, called by the frame with {@link #details()}. No API key or model the person
  * types ever leaves this component except through that effect's performer.
+ *
+ * <p><b>Layout</b> (owner hands-on feedback, 2026-10-18 — "lots of clipping and non-obvious expansion"): ONE scroll pane
+ * for the whole chooser and none inside it; the cards are as tall as their text at their width, in one column below
+ * {@link #TWO_COLUMNS_MIN} and two above it; the chosen card's details, the full warning included, show in full under
+ * the cards. The assistant panel hides its composer and header lines while the chooser is open.
  */
 public final class ProfileOverlay extends JPanel {
 
@@ -125,8 +130,11 @@ public final class ProfileOverlay extends JPanel {
     final WrapLine external = new WrapLine(" ");
     private final Map<AssistantProfile, Card> cards = new EnumMap<>(AssistantProfile.class);
     private final ButtonGroup group = new ButtonGroup();
-    private final CardLayout detailLayout = new CardLayout();
-    private final JPanel details = new JPanel(detailLayout);
+    /** Each card's details; only the chosen one is visible (a CardLayout would be as tall as the tallest). */
+    private final Map<AssistantProfile, JComponent> detailPanels = new EnumMap<>(AssistantProfile.class);
+    private final JPanel details = new JPanel();
+    /** The one scroll pane: the whole chooser scrolls; nothing inside it does. */
+    private final JScrollPane scroll;
     private final WrapLine refusal = new WrapLine(" ");
     private final JButton apply = UiText.button("Apply");
     private final JButton close = UiText.button("Close");
@@ -137,11 +145,11 @@ public final class ProfileOverlay extends JPanel {
     private final JTextField fullModel = new JTextField(12);
     private final JComboBox<String> fullMode = UiText.plainCells(new JComboBox<>(
             telamin.fluxtion.audit.analyser.analyser.config.ConfigStore.FULL_MODES.toArray(new String[0])));
-    private final JTextArea fullModeNote = note();
+    private final WrapLine fullModeNote = new WrapLine(" ");
     private final JComboBox<String> provider = UiText.plainCells(new JComboBox<>(new String[]{"anthropic", "openai"}));
     private final JTextField model = new JTextField(16);
     private final JPasswordField apiKey = new JPasswordField(24);
-    private final JLabel keyNote = UiText.label(" ");
+    private final WrapLine keyNote = new WrapLine(" ");
 
     private AssistantProfile selected = AssistantProfile.SAFE;
     private boolean shown;
@@ -149,23 +157,21 @@ public final class ProfileOverlay extends JPanel {
     private ProfileState last = ProfileState.NONE;
     private final java.util.List<Runnable> recolour = new java.util.ArrayList<>();
 
+    /** Two columns of cards only when each can be at least this wide (the narrow pop-out has one). */
+    static final int CARD_MIN_WIDTH = 260;
+    static final int TWO_COLUMNS_MIN = 2 * CARD_MIN_WIDTH + UiTheme.SPACE_SM;
+
     public ProfileOverlay() {
-        super(new BorderLayout(8, 8));
-        setBorder(BorderFactory.createEmptyBorder(12, 14, 12, 14));
+        super(new BorderLayout(0, UiTheme.SPACE_SM));
+        setBorder(BorderFactory.createEmptyBorder(UiTheme.SPACE_MD, UiTheme.SPACE_MD, UiTheme.SPACE_MD, UiTheme.SPACE_MD));
         getAccessibleContext().setAccessibleName("How the assistant works");
 
-        Box head = Box.createVerticalBox();
+        Body body = new Body();
+        body.setLayout(new BoxLayout(body, BoxLayout.Y_AXIS));
         Font base = UIManager.getFont("Label.font");
         if (base != null) title.setFont(base.deriveFont(Font.BOLD, base.getSize2D() + 3f));
-        title.setAlignmentX(LEFT_ALIGNMENT);
-        why.setAlignmentX(LEFT_ALIGNMENT);
-        head.add(title);
-        head.add(Box.createVerticalStrut(4));
-        head.add(why);
-        head.add(Box.createVerticalStrut(10));
-        JPanel row = new JPanel(new GridLayout(0, 2, 8, 8));
+        JPanel row = new JPanel(new CardGrid());
         row.setOpaque(false);
-        row.setAlignmentX(LEFT_ALIGNMENT);
         for (AssistantProfile p : CARDS) {
             Card c = new Card(p);
             cards.put(p, c);
@@ -173,36 +179,51 @@ public final class ProfileOverlay extends JPanel {
             row.add(c);
             c.addActionListener(e -> choose(p));
         }
-        head.add(row);
-        head.add(Box.createVerticalStrut(6));
-        external.setAlignmentX(LEFT_ALIGNMENT);
-        external.getAccessibleContext().setAccessibleName("External access");
-        head.add(external);
-        add(head, BorderLayout.NORTH);
-
+        details.setLayout(new BoxLayout(details, BoxLayout.Y_AXIS));
         details.setOpaque(false);
-        for (AssistantProfile p : CARDS) details.add(detailFor(p), p.name());
-        JScrollPane detailScroll = new JScrollPane(details, ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
+        for (AssistantProfile p : CARDS) {
+            JComponent d = detailFor(p);
+            d.setAlignmentX(LEFT_ALIGNMENT);
+            detailPanels.put(p, d);
+            details.add(d);
+        }
+        external.getAccessibleContext().setAccessibleName("External access");
+        body.add(title);
+        body.add(Box.createVerticalStrut(UiTheme.SPACE_XS));
+        body.add(why);
+        body.add(Box.createVerticalStrut(UiTheme.SPACE_MD));
+        body.add(row);
+        body.add(Box.createVerticalStrut(UiTheme.SPACE_MD));
+        body.add(details);
+        body.add(Box.createVerticalStrut(UiTheme.SPACE_MD));
+        body.add(external);
+        for (Component c : body.getComponents()) ((JComponent) c).setAlignmentX(LEFT_ALIGNMENT);
+        scroll = new JScrollPane(body, ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
                 ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-        detailScroll.setBorder(BorderFactory.createEmptyBorder());
-        add(detailScroll, BorderLayout.CENTER);
+        scroll.setBorder(BorderFactory.createEmptyBorder());
+        scroll.setOpaque(false);
+        scroll.getViewport().setOpaque(false);
+        scroll.getVerticalScrollBar().setUnitIncrement(16);
+        add(scroll, BorderLayout.CENTER);
 
-        JPanel foot = new JPanel(new BorderLayout(6, 4));
+        JPanel foot = new JPanel();
+        foot.setLayout(new BoxLayout(foot, BoxLayout.Y_AXIS));
         foot.setOpaque(false);
         refusal.setVisible(false);
-        foot.add(refusal, BorderLayout.NORTH);
-        JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        JPanel buttons = new JPanel(new WrapLayout(FlowLayout.RIGHT, UiTheme.SPACE_SM, UiTheme.SPACE_XS));
+        buttons.setOpaque(false);
+        buttons.add(close);
+        buttons.add(apply);
+        JPanel left = new JPanel(new WrapLayout(FlowLayout.LEFT, 0, 0));
         left.setOpaque(false);
         settings.setBorderPainted(false);
         settings.setContentAreaFilled(false);
         settings.setMargin(new Insets(0, 0, 0, 0));
         left.add(settings);
-        foot.add(left, BorderLayout.WEST);
-        JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
-        buttons.setOpaque(false);
-        buttons.add(close);
-        buttons.add(apply);
-        foot.add(buttons, BorderLayout.EAST);
+        for (JComponent c : new JComponent[]{refusal, buttons, left}) {
+            c.setAlignmentX(LEFT_ALIGNMENT);
+            foot.add(c);
+        }
         add(foot, BorderLayout.SOUTH);
 
         apply.addActionListener(e -> {
@@ -247,6 +268,8 @@ public final class ProfileOverlay extends JPanel {
         boolean refused = st.open() && !st.refusal().isBlank() && st.request() == request;
         refusal.setText(refused ? st.refusal() : " ");
         refusal.setVisible(refused);
+        // review PR151 F4: while Full Claude Code's warning is being read, a second Apply cannot be pressed
+        apply.setEnabled(!st.confirming());
     }
 
     private void load(Defaults d) {
@@ -269,7 +292,8 @@ public final class ProfileOverlay extends JPanel {
         selected = p;
         Card c = cards.get(p);
         if (c != null && !c.isSelected()) c.setSelected(true);
-        detailLayout.show(details, p.name());
+        for (var d : detailPanels.entrySet()) d.getValue().setVisible(d.getKey() == p);
+        details.revalidate();
         apply.setText(p == AssistantProfile.FULL ? ConfigPanel.FULL_POSTURE_TURN_ON : "Apply — " + p.title());
         apply.getAccessibleContext().setAccessibleName("Apply " + p.title());
         for (Card k : cards.values()) k.repaint();
@@ -326,103 +350,158 @@ public final class ProfileOverlay extends JPanel {
     // ---- the details ----------------------------------------------------------------------------------------------
 
     private JComponent detailFor(AssistantProfile p) {
-        JPanel box = new JPanel(new GridBagLayout());
+        JPanel box = new JPanel();
+        box.setLayout(new BoxLayout(box, BoxLayout.Y_AXIS));
         box.setOpaque(false);
-        GridBagConstraints g = new GridBagConstraints();
-        g.gridx = 0;
-        g.gridwidth = 2;
-        g.anchor = GridBagConstraints.LINE_START;
-        g.fill = GridBagConstraints.HORIZONTAL;
-        g.weightx = 1;
-        g.insets = new Insets(2, 0, 2, 0);
-        int y = 0;
-        JLabel heading = UiText.label(p.title());
-        Font f = UIManager.getFont("Label.font");
-        if (f != null) heading.setFont(f.deriveFont(Font.BOLD));
-        g.gridy = y++;
-        box.add(heading, g);
-        for (String line : detailLines(p)) {
-            g.gridy = y++;
-            box.add(bullet(line), g);
-        }
-        g.gridwidth = 1;
-        g.weightx = 0;
-        g.fill = GridBagConstraints.NONE;
-        g.insets = new Insets(6, 0, 2, 8);
+        WrapLine heading = new WrapLine(p.title()).bold();
+        box.add(heading);
+        box.add(Box.createVerticalStrut(UiTheme.SPACE_XS));
+        for (String line : detailLines(p)) box.add(bullet(line));
         switch (p) {
-            case SAFE -> y = field(box, g, y, "Claude Code model:", safeModel);
+            case SAFE -> box.add(field("Claude Code model:", safeModel));
             case FULL -> {
-                g.gridx = 0;
-                g.gridy = y++;
-                g.gridwidth = 2;
-                g.fill = GridBagConstraints.BOTH;
-                g.weightx = 1;
-                JTextArea warning = ConfigPanel.fullPostureWarningArea();
-                warning.setRows(7);
-                JScrollPane ws = new JScrollPane(warning);
-                ws.setPreferredSize(new Dimension(420, 120));
-                ws.getAccessibleContext().setAccessibleName("Full Claude Code warning");
-                box.add(ws, g);
-                g.gridwidth = 1;
-                g.weightx = 0;
-                g.fill = GridBagConstraints.NONE;
-                y = field(box, g, y, "Mode:", fullMode);
-                g.gridx = 0;
-                g.gridy = y++;
-                g.gridwidth = 2;
-                g.fill = GridBagConstraints.HORIZONTAL;
-                g.weightx = 1;
-                box.add(fullModeNote, g);
-                g.gridwidth = 1;
-                g.weightx = 0;
-                g.fill = GridBagConstraints.NONE;
-                y = field(box, g, y, "Claude Code model:", fullModel);
+                // the warning in full, as text — never a small scroll strip (owner, 2026-10-18); the confirmation that
+                // Apply opens shows it again, with Cancel the default (review PR151 F4)
+                box.add(Box.createVerticalStrut(UiTheme.SPACE_SM));
+                WrapLine warning = new WrapLine(ConfigPanel.FULL_POSTURE_WARNING);
+                warning.getAccessibleContext().setAccessibleName("Full Claude Code warning");
+                box.add(warning);
+                box.add(field("Mode:", fullMode));
+                box.add(fullModeNote);
+                box.add(field("Claude Code model:", fullModel));
             }
             case IN_APP -> {
-                y = field(box, g, y, "Provider:", provider);
-                y = field(box, g, y, "Model:", model);
-                y = field(box, g, y, "API key:", apiKey);
-                g.gridx = 1;
-                g.gridy = y++;
-                box.add(keyNote, g);
+                box.add(field("Provider:", provider));
+                box.add(field("Model:", model));
+                box.add(field("API key:", apiKey));
+                box.add(keyNote);
             }
             default -> { }
         }
-        g.gridx = 0;
-        g.gridy = y;
-        g.weighty = 1;
-        g.gridwidth = 2;
-        box.add(Box.createGlue(), g);
+        for (Component c : box.getComponents()) ((JComponent) c).setAlignmentX(LEFT_ALIGNMENT);
         return box;
     }
 
-    private static int field(JPanel box, GridBagConstraints g, int y, String label, JComponent field) {
-        g.gridx = 0;
-        g.gridy = y;
-        g.anchor = GridBagConstraints.LINE_END;
-        box.add(UiText.label(label), g);
-        g.gridx = 1;
-        g.anchor = GridBagConstraints.LINE_START;
-        box.add(field, g);
-        return y + 1;
+    /** A label and its field on one row, as tall as they are. */
+    private static JComponent field(String label, JComponent field) {
+        JPanel row = new JPanel(new WrapLayout(FlowLayout.LEFT, UiTheme.SPACE_SM, UiTheme.SPACE_XS)) {
+            @Override public Dimension getMaximumSize() {
+                return new Dimension(Integer.MAX_VALUE, getPreferredSize().height);
+            }
+        };
+        row.setOpaque(false);
+        row.add(UiText.label(label));
+        row.add(field);
+        return row;
     }
 
     private JComponent bullet(String text) {
-        JTextArea a = note();
-        a.setText("•  " + text);
+        WrapLine a = new WrapLine("•  " + text);
         recolour.add(() -> a.setForeground(UIManager.getColor("Label.foreground")));
         return a;
     }
 
-    private static JTextArea note() {
-        JTextArea a = new JTextArea(1, 30);
-        a.setEditable(false);
-        a.setLineWrap(true);
-        a.setWrapStyleWord(true);
-        a.setOpaque(false);
-        a.setFocusable(false);
-        a.setFont(UIManager.getFont("Label.font"));
-        return a;
+    /** For the frame tests: the one scroll pane. */
+    JScrollPane scrollPane() {
+        return scroll;
+    }
+
+    /** For the frame tests: the chosen card's details. */
+    JComponent detailPanel(AssistantProfile p) {
+        return detailPanels.get(p);
+    }
+
+    /** The chooser's content: as wide as the viewport, so every line wraps to it and nothing scrolls sideways. */
+    private static final class Body extends JPanel implements Scrollable {
+        Body() {
+            setOpaque(false);
+        }
+
+        @Override public Dimension getPreferredScrollableViewportSize() {
+            return getPreferredSize();
+        }
+
+        @Override public int getScrollableUnitIncrement(Rectangle r, int orientation, int direction) {
+            return 16;
+        }
+
+        @Override public int getScrollableBlockIncrement(Rectangle r, int orientation, int direction) {
+            return Math.max(16, r.height - 32);
+        }
+
+        @Override public boolean getScrollableTracksViewportWidth() {
+            return true;
+        }
+
+        @Override public boolean getScrollableTracksViewportHeight() {
+            return false;
+        }
+    }
+
+    /**
+     * The cards: one column below {@link #TWO_COLUMNS_MIN}, two above; each row as tall as its tallest card's text at the
+     * column's width (owner, 2026-10-18: no fixed height, no text running to the edge).
+     */
+    static final class CardGrid implements LayoutManager {
+        @Override public void addLayoutComponent(String name, Component comp) { }
+
+        @Override public void removeLayoutComponent(Component comp) { }
+
+        static int columns(int width) {
+            return width >= TWO_COLUMNS_MIN ? 2 : 1;
+        }
+
+        private static int width(Container parent) {
+            Insets in = parent.getInsets();
+            int w = parent.getWidth() - in.left - in.right;
+            if (w <= 0 && parent.getParent() != null) {
+                Insets pin = parent.getParent().getInsets();
+                w = parent.getParent().getWidth() - pin.left - pin.right;
+            }
+            return w > 0 ? w : TWO_COLUMNS_MIN;
+        }
+
+        private static int[] rowHeights(Container parent, int cols, int colW) {
+            int n = parent.getComponentCount();
+            int[] rows = new int[(n + cols - 1) / cols];
+            for (int i = 0; i < n; i++) {
+                Component c = parent.getComponent(i);
+                int h = c instanceof Card k ? k.heightFor(colW) : c.getPreferredSize().height;
+                rows[i / cols] = Math.max(rows[i / cols], h);
+            }
+            return rows;
+        }
+
+        @Override public Dimension preferredLayoutSize(Container parent) {
+            int w = width(parent);
+            int cols = columns(w);
+            int colW = (w - (cols - 1) * UiTheme.SPACE_SM) / cols;
+            int h = 0;
+            int[] rows = rowHeights(parent, cols, colW);
+            for (int r : rows) h += r;
+            h += Math.max(0, rows.length - 1) * UiTheme.SPACE_SM;
+            Insets in = parent.getInsets();
+            return new Dimension(w + in.left + in.right, h + in.top + in.bottom);
+        }
+
+        @Override public Dimension minimumLayoutSize(Container parent) {
+            return new Dimension(CARD_MIN_WIDTH, preferredLayoutSize(parent).height);
+        }
+
+        @Override public void layoutContainer(Container parent) {
+            Insets in = parent.getInsets();
+            int w = parent.getWidth() - in.left - in.right;
+            int cols = columns(w);
+            int colW = (w - (cols - 1) * UiTheme.SPACE_SM) / cols;
+            int[] rows = rowHeights(parent, cols, colW);
+            int y = in.top;
+            for (int i = 0; i < parent.getComponentCount(); i++) {
+                int col = i % cols;
+                int row = i / cols;
+                if (col == 0 && row > 0) y += rows[row - 1] + UiTheme.SPACE_SM;
+                parent.getComponent(i).setBounds(in.left + col * (colW + UiTheme.SPACE_SM), y, colW, rows[row]);
+            }
+        }
     }
 
     private void applyColours() {
@@ -461,23 +540,18 @@ public final class ProfileOverlay extends JPanel {
         /** Review M74 usability #1: the card is as tall as its text needs at its width — the line is never cut. */
         @Override
         public Dimension getPreferredSize() {
+            int width = getWidth() > 0 ? getWidth() : 300;
+            return new Dimension(CARD_MIN_WIDTH, heightFor(width));
+        }
+
+        /** The height this card's title and whole line need at {@code width} (owner, 2026-10-18: never a fixed one). */
+        int heightFor(int width) {
             Font f = UIManager.getFont("Label.font");
             if (f == null) f = getFont();
             FontMetrics big = getFontMetrics(f.deriveFont(Font.BOLD, f.getSize2D() + 0.5f));
             FontMetrics sm = getFontMetrics(f.deriveFont(Font.PLAIN, f.getSize2D() - 1f));
-            int width = getWidth() > 0 ? getWidth() : 300;
-            int lines = Math.max(2, wrap(sm, cardLine(profile), width - 2 * TEXT_INSET, 0).size());
-            return new Dimension(220, 10 + big.getHeight() + 4 + lines * sm.getHeight() + 12);
-        }
-
-        @Override
-        public void setBounds(int x, int y, int w, int h) {
-            int was = getWidth();
-            super.setBounds(x, y, w, h);
-            // a new width can change how many lines the text needs: ask the grid again (it settles: the height follows)
-            if (was != w && getParent() != null) SwingUtilities.invokeLater(() -> {
-                if (getParent() != null && getPreferredSize().height != getHeight()) getParent().revalidate();
-            });
+            int lines = Math.max(1, wrap(sm, cardLine(profile), width - 2 * TEXT_INSET, 0).size());
+            return 10 + big.getHeight() + 4 + lines * sm.getHeight() + 12;
         }
 
         @Override
@@ -512,8 +586,17 @@ public final class ProfileOverlay extends JPanel {
             FontMetrics fm = g.getFontMetrics();
             int x = TEXT_INSET, y = 10 + fm.getAscent();
             g.setColor(on ? UiTheme.accentText() : UIManager.getColor("Label.foreground"));
-            String head = (on ? "✓ " : "") + profile.title() + (profile == AssistantProfile.SAFE ? "  · default" : "");
-            g.drawString(head, x, y);
+            // the tick is drawn on its own, in the logical Dialog font: in one string with the title, macOS's font
+            // cascade dropped glyphs of the title ("afe anal sis" for "Safe analysis", seen 2026-10-18)
+            if (on) {
+                Font tickFont = new Font(Font.DIALOG, Font.BOLD, Math.round(bold.getSize2D()));
+                g.setFont(tickFont);
+                g.drawString("✓", x, y);
+                x += g.getFontMetrics().stringWidth("✓ ");
+                g.setFont(bold);
+            }
+            g.drawString(profile.title() + (profile == AssistantProfile.SAFE ? "  · default" : ""), x, y);
+            x = TEXT_INSET;
             g.setFont(small);
             FontMetrics sm = g.getFontMetrics();
             g.setColor(UiTheme.mutedForeground());

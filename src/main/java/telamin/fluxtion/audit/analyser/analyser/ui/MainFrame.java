@@ -8519,6 +8519,7 @@ public final class MainFrame extends JFrame {
             // M74 UX: the assistant profile — assistantProfile decided; the frame brings the panel forward and writes settings
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ShowAssistantProfilesEffect e -> showAssistantProfiles(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ApplyAssistantProfileEffect e -> applyAssistantProfile(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ConfirmFullProfileEffect e -> confirmFullProfile(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ChooseAssistantModeEffect e -> chooseAssistantMode(e);
             // M74: the local agent's effects have ONE performer, the adapter (OneDispatchModelTest pins it)
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.StartLocalAgentEffect e -> performLocalAgent(e);
@@ -11488,6 +11489,37 @@ public final class MainFrame extends JFrame {
         reportAssistantSettings();
         return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantProfileApplied(e.opId(),
                 e.request(), e.profile(), true, "");
+    }
+
+    /** Review PR151 F4: modal in the application; a frame test shows it modeless so its thread stays free. */
+    boolean fullProfileConfirmModal = true;
+    /** For the frame test: the confirmation last shown for the cards' Full Claude Code. */
+    SafeChoice.Asked fullProfileAsked;
+
+    /**
+     * ConfirmFullProfileEffect (review PR151 F4, owner 2026-10-18): the cards' Full Claude Code asks what Settings ▸
+     * Assistant asks — the same warning in the same dialog, Cancel the default. Shown outside the dispatch; the answer is
+     * reported as a fact, and assistantProfile decides what it means. Nothing is written here.
+     */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result confirmFullProfile(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ConfirmFullProfileEffect e) {
+        SwingUtilities.invokeLater(() -> {
+            Window owner = SwingUtilities.getWindowAncestor(assistantPanel);
+            SafeChoice.Asked asked = ConfigPanel.fullPostureDialog(owner == null ? this : owner, fullProfileConfirmModal);
+            fullProfileAsked = asked;
+            asked.dialog().addWindowListener(new java.awt.event.WindowAdapter() {
+                private boolean said;
+
+                @Override public void windowClosed(java.awt.event.WindowEvent w) {
+                    if (said || session == null) return;
+                    said = true;
+                    session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents
+                            .AssistantFullProfileAnswered(e.request(), asked.chosenRisky()));
+                }
+            });
+            asked.dialog().setVisible(true);
+        });
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantProfilesShown(e.opId());
     }
 
     /** ChooseAssistantModeEffect (review P3+UX S4): the node asked for the mode; it is reported as the mode choice. */
