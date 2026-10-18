@@ -489,6 +489,55 @@ class AiSetupTest {
     }
 
     /**
+     * ★ Owner follow-up (2026-10-18): a Build question preselects Full in Claude Code's own {@code acceptEdits} — edits
+     * accepted by Claude Code in the folder, commands still asked — and the Apply WRITES that mode (before, the wizard's
+     * mode was never written, so the live authoring run asked 14 times under {@code default}). The person can still pick
+     * {@code default}; a plain question is not preselected; the Full confirmation is still asked. Witnesses: (1) drop
+     * {@code fullMode = AiSetupLines.BUILD_FULL_MODE} in {@code openWizard} — the mode is {@code default}; (2) pass null
+     * for the mode in {@code onFullProfileAnswered}'s Apply — the written mode is lost.
+     */
+    @Test
+    @DisplayName("★ a Build question preselects Full acceptEdits, applied as chosen; default still pickable; a plain one is not")
+    void buildPreselectsAcceptEdits() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = fresh(a, true);
+        d.post(StartPagePromptTest.press(1, "S7", 7, false, true, false, false));
+        assertEquals(Posture.FULL, setup(d).posture());
+        assertEquals("acceptEdits", setup(d).fullMode(), "Claude Code's own acceptEdits is preselected");
+        d.post(new SessionEvents.AiSetupContinue(Step.CHOICE));
+        found(d, a);
+        d.post(new SessionEvents.AiSetupContinue(Step.INSIDE));
+        assertEquals(0, a.profileApplies.size(), "the Full confirmation is still asked first");
+        d.post(new SessionEvents.AssistantFullProfileAnswered(a.fullConfirms.get(0).request(), true));
+        assertEquals("acceptEdits", a.profileApplies.get(0).fullMode(), "★ the mode is written as chosen");
+
+        // the person may still pick default
+        FakeSessionAdapter b = new FakeSessionAdapter();
+        SessionDriver e = fresh(b, true);
+        e.post(StartPagePromptTest.press(1, "S7", 7, false, true, false, false));
+        e.post(new SessionEvents.AiSetupContinue(Step.CHOICE));
+        e.post(new SessionEvents.AiSetupPostureChosen(Posture.FULL, "default"));
+        assertEquals("default", setup(e).fullMode());
+        found(e, b);
+        e.post(new SessionEvents.AiSetupContinue(Step.INSIDE));
+        e.post(new SessionEvents.AssistantFullProfileAnswered(b.fullConfirms.get(0).request(), true));
+        assertEquals("default", b.profileApplies.get(0).fullMode());
+
+        // a plain question: no preselection, and not after a cancelled Build either
+        FakeSessionAdapter c = new FakeSessionAdapter();
+        SessionDriver f = fresh(c, true);
+        f.post(StartPagePromptTest.press(1, "NONE", 7, false, true, false, false));
+        assertEquals("default", setup(f).fullMode());
+        FakeSessionAdapter g = new FakeSessionAdapter();
+        SessionDriver h = fresh(g, true);
+        h.post(StartPagePromptTest.press(1, "S7", 7, false, true, false, false));
+        h.post(new SessionEvents.AiSetupCancelled("test"));
+        h.post(StartPagePromptTest.press(2, "NONE", 7, false, true, false, false));
+        assertEquals(Posture.SAFE, setup(h).posture());
+        assertEquals("default", setup(h).fullMode(), "a plain question never inherits Build's preselection");
+    }
+
+    /**
      * ★ Authoring walk (shot 03): a no-AI fallback says "No AI assistant can answer here yet" ONCE — as the fallback
      * row's label — not again as the page's note. Witness: put the sentence back as {@code note} in
      * {@code StartPagePrompt.onSent} — the note repeats it.

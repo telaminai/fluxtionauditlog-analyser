@@ -255,9 +255,19 @@ public sealed interface SessionEffects {
      * Answered by {@link SessionEvents.AssistantProfileApplied}.
      */
     record ApplyAssistantProfileEffect(long opId, long request, AssistantProfile profile,
-                                       SessionEvents.ProfileOrigin origin) implements SessionEffects {
+                                       SessionEvents.ProfileOrigin origin, String fullMode) implements SessionEffects {
+        /**
+         * Owner follow-up (2026-10-18): {@code fullMode} — the full posture's mode the deciding node chose (the wizard's
+         * sub-choice), or null for the surface's own details. Before it, the wizard's mode was never written: a Full
+         * applied from Set up AI always ran {@code default}.
+         */
         public ApplyAssistantProfileEffect {
             origin = origin == null ? SessionEvents.ProfileOrigin.CARDS : origin;
+        }
+
+        public ApplyAssistantProfileEffect(long opId, long request, AssistantProfile profile,
+                                           SessionEvents.ProfileOrigin origin) {
+            this(opId, request, profile, origin, null);
         }
 
         /** The cards' Apply (the shape before M77). */

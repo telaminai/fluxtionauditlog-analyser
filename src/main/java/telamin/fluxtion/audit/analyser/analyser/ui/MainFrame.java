@@ -11807,7 +11807,13 @@ public final class MainFrame extends JFrame {
             telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ApplyAssistantProfileEffect e) {
         var before = telamin.fluxtion.audit.analyser.analyser.assistant.AssistantProfiles.snapshot(config);
         // the details are those of the surface that asked: the wizard's (M77-2) or the cards'
-        telamin.fluxtion.audit.analyser.analyser.assistant.AssistantProfiles.apply(e.profile(), profileDetailsFor(e.origin()),
+        var details = profileDetailsFor(e.origin());
+        if (e.fullMode() != null) {
+            // the full mode the node decided (the wizard's sub-choice), with the surface's other details
+            details = new telamin.fluxtion.audit.analyser.analyser.assistant.AssistantProfiles.Details(e.fullMode(),
+                    details.claudeModel(), details.provider(), details.model(), details.apiKey());
+        }
+        telamin.fluxtion.audit.analyser.analyser.assistant.AssistantProfiles.apply(e.profile(), details,
                 config);
         // review P3+UX S4: the result reports the REAL save — a failed write puts the previous settings back and says so;
         // the mode change is assistantProfile's to ask for, after this fact

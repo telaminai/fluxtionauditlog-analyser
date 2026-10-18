@@ -422,6 +422,7 @@ final class AiSetupWindow extends JDialog {
             JComponent modeRow = InAppDetails.field("Mode:", mode);
             ((JComponent) modeRow).setBorder(BorderFactory.createEmptyBorder(0, 22, 0, 0));
             content.add(modeRow);
+            if (AiSetupLines.BUILD_FULL_MODE.equals(s.fullMode())) content.add(indented(AiSetupLines.ACCEPT_EDITS_NOTE));
         }
         if (claudeModel != null && !claudeModel.isBlank()) content.add(muted("Model: " + claudeModel
                 + " (change it in Settings ▸ Assistant)"));

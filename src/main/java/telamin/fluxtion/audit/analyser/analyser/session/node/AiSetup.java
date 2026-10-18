@@ -164,6 +164,8 @@ public class AiSetup implements EventLogSource {
      * preselects Claude inside with Full Claude Code (its confirmation still asked) and says why Safe cannot do it.
      */
     private boolean authoringWaiting;
+    /** The wizard's full mode is Build's preselection (acceptEdits), not one the person chose. */
+    private boolean buildModePreselected;
     private String line = "";
 
     private ProfileState published = ProfileState.NONE;
@@ -305,7 +307,7 @@ public class AiSetup implements EventLogSource {
             return changed();
         }
         auditLog.info("assistantProfileApply", p.name()).info("request", req).info("origin", from.name());
-        effects.request(new SessionEffects.ApplyAssistantProfileEffect(0L, req, p, from));
+        effects.request(new SessionEffects.ApplyAssistantProfileEffect(0L, req, p, from, modeFor(p, from)));
         return changed();
     }
 
@@ -356,7 +358,8 @@ public class AiSetup implements EventLogSource {
         }
         auditLog.info("assistantProfileApply", AssistantProfile.FULL.name()).info("request", e.request())
                 .info("confirmed", true);
-        effects.request(new SessionEffects.ApplyAssistantProfileEffect(0L, e.request(), AssistantProfile.FULL, from));
+        effects.request(new SessionEffects.ApplyAssistantProfileEffect(0L, e.request(), AssistantProfile.FULL, from,
+                modeFor(AssistantProfile.FULL, from)));
         return changed();
     }
 
@@ -562,8 +565,17 @@ public class AiSetup implements EventLogSource {
                 : inForce != Choice.NONE ? inForce : claudeFound || authoringWaiting ? Choice.INSIDE : Choice.NONE;
         posture = AiSetupDerived.postureOf(AssistantProfile.valueOf(profile));
         // a Build question waits: only Full Claude Code can write code, so it is the sub-choice preselected — its
-        // confirmation is still asked at Finish (apply's ConfirmFullProfileEffect), nothing is applied before it
-        if (authoringWaiting) posture = Posture.FULL;
+        // confirmation is still asked at Finish (apply's ConfirmFullProfileEffect), nothing is applied before it.
+        // Owner follow-up (2026-10-18): in Claude Code's own acceptEdits mode, so an authoring run does not ask for every
+        // edit (the live walk: 14 approvals under default); commands still ask, and the person may pick default
+        if (authoringWaiting) {
+            posture = Posture.FULL;
+            fullMode = AiSetupLines.BUILD_FULL_MODE;
+            buildModePreselected = true;
+        } else if (buildModePreselected) {
+            fullMode = "default";                     // a plain question never inherits Build's preselection
+            buildModePreselected = false;
+        }
         installed = AiSetupState.Check.UNCHECKED;
         signedIn = AiSetupState.Auth.UNCHECKED;
         probeInstalled = 0;
@@ -602,6 +614,7 @@ public class AiSetup implements EventLogSource {
         boolean postureChanged = next != posture;
         if (!postureChanged && mode.equals(fullMode)) return false;
         posture = next;
+        if (!mode.equals(fullMode)) buildModePreselected = false;     // the person's own choice from now on
         fullMode = mode;
         auditLog.info("aiSetupPosture", posture.name());
         if (postureChanged) startInstalledProbe();     // the probes' environment follows the sub-choice (R1-15)
@@ -943,6 +956,11 @@ public class AiSetup implements EventLogSource {
     private boolean changed() {
         dirty = true;
         return true;
+    }
+
+    /** The full mode the wizard's Apply writes (its sub-choice); null for any other surface, which keeps its own. */
+    private String modeFor(AssistantProfile p, ProfileOrigin from) {
+        return p == AssistantProfile.FULL && from == ProfileOrigin.SETUP ? fullMode : null;
     }
 
     /** The wizard's one line: the node's own words, or — while a Build question waits on its first screens — why Full. */
