@@ -248,16 +248,13 @@ class StarterProposalFrameTest {
             assertTrue(stub.requests.stream().noneMatch(r -> r.startsWith("download")), "★ nothing downloaded before Apply");
             String proposalId = offered.proposal().id();
 
-            // the review: the banner's Review… (the person's click), the row at No, Apply disabled until a folder
-            SwingUtilities.invokeLater(() -> {
-                try {
-                    var m = MainFrame.class.getDeclaredMethod("reviewProposal", String.class);
-                    m.setAccessible(true);
-                    m.invoke(f, proposalId);
-                } catch (ReflectiveOperationException e) {
-                    throw new AssertionError(e);
-                }
-            });
+            // the review: a Review… ON SCREEN (the person's click), the row at No, Apply disabled until a folder. Until
+            // 2026-10-18b this called reviewProposal directly and so never saw that nothing on screen offered it
+            // (StarterProposalVisibleFrameTest holds that); the frame's strip is showing whichever tab is selected
+            AtomicReference<AbstractButton> onScreen = new AtomicReference<>();
+            onEdt(() -> onScreen.set(StarterProposalVisibleFrameTest.showingButton(f, MainFrame.PROPOSAL_CUE_REVIEW)));
+            assertNotNull(onScreen.get(), "a Review… is on screen for " + proposalId);
+            SwingUtilities.invokeLater(() -> onScreen.get().doClick(0));
             JDialog review = ClaudeCodeTabFrameTest.awaitDialog(REVIEW_TITLE);
             AtomicReference<String> words = new AtomicReference<>();
             onEdt(() -> words.set(text(review)));
