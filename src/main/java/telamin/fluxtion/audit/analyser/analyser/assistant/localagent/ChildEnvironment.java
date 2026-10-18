@@ -26,15 +26,21 @@ public final class ChildEnvironment {
     private ChildEnvironment() {
     }
 
+    /**
+     * Review of PR #147, finding 6: {@code ENABLE_IDE_INTEGRATION} (the partner of {@code CLAUDE_CODE_SSE_PORT}: it would
+     * connect the child to a running IDE) and what Claude Code sets for a hook or plugin script it runs —
+     * {@code CLAUDE_PROJECT_DIR}, {@code CLAUDE_ENV_FILE} and {@code CLAUDE_PLUGIN_*} (in {@link #PREFIXES}).
+     */
     static final Set<String> EXACT = Set.of("CLAUDECODE", "CLAUDE_PID", "CLAUDE_EFFORT", "CLAUDE_SESSION_ID",
-            "CLAUDE_BG_SESSION_PERMISSION_RULES");
+            "CLAUDE_BG_SESSION_PERMISSION_RULES", "ENABLE_IDE_INTEGRATION", "CLAUDE_PROJECT_DIR", "CLAUDE_ENV_FILE");
 
     /** After {@code CLAUDE_CODE_}: a host session's identity, transport or launch, never the person's configuration. */
     static final List<String> CODE_SESSION_PARTS = List.of("SESSION_", "MESSAGING_", "BRIDGE_", "REMOTE", "HOST_SESSION",
             "CLOUD_SESSION", "PROJECTS_SESSION", "RESUME_FROM", "TMUX_SESSION", "CHILD_SESSION", "ENTRYPOINT", "EXECPATH",
             "SSE_PORT");
 
-    static final List<String> PREFIXES = List.of("CLAUDE_BRIDGE_", "CLAUDE_REMOTE_", "CLAUDE_RUNNER_", "CLAUDE_AGENT_SDK_");
+    static final List<String> PREFIXES = List.of("CLAUDE_BRIDGE_", "CLAUDE_REMOTE_", "CLAUDE_RUNNER_", "CLAUDE_AGENT_SDK_",
+            "CLAUDE_PLUGIN_");
 
     /** Whether {@code name} belongs to a host Claude Code session (removed in both postures). */
     public static boolean hostSession(String name) {

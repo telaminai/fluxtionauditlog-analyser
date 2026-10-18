@@ -114,12 +114,16 @@ choose allow**. **The analyser does not confine it to the folder**; your rules a
   never offered; a hand-edited setting naming either reads as `default`, and Settings says so.
 - **The folder is confirmed separately for full Claude Code**, because Start itself **runs the folder's hooks and
   connects its MCP servers**, before you send anything. The dialog names what it found — *"Hooks in this folder:
-  SessionStart (1) — from .claude/settings.json"*, *"MCP servers in this folder: db-tools — from .mcp.json"*, or that a
-  file could not be read — and never shows the commands. The confirmation is tied to the content of
+  SessionStart (1) — from .claude/settings.json"*, *"MCP servers in this folder: db-tools — from .mcp.json"*, the
+  permissions the folder grants itself (*"allow Bash"*, an additional directory, a default mode), or that a
+  file could not be read — and never shows the hook or server commands. What an MCP server's command runs (a
+  `./server.js`) is not checked, and the dialog says so. The confirmation is tied to the content of
   `.claude/settings.json`, `.claude/settings.local.json` and `.mcp.json`, and of the folder's **instruction files**
-  (`CLAUDE.md`, `CLAUDE.local.md`, `.claude/CLAUDE.md`, and everything under `.claude/commands`, `.claude/skills` and
-  `.claude/agents`, read up to a bound and without following a link out of the folder): **when any of them changes**
-  (a `git pull` that adds a hook or rewrites `CLAUDE.md`), **Start asks again**, and the dialog says which changed. A folder confirmed for the analyser assistant is not thereby confirmed for
+  (`CLAUDE.md`, `CLAUDE.local.md`, `.claude/CLAUDE.md`, and everything under `.claude/commands`, `.claude/skills`,
+  `.claude/agents`, `.claude/rules`, `.claude/output-styles` and `.claude/hooks`, read up to a bound and without
+  following a link out of the folder): **when any of them changes** (a `git pull` that adds a hook or rewrites
+  `CLAUDE.md`), **Start asks again**, and the dialog says which changed. A session already running when they change
+  is stopped at your next Send or Settings change (after the answer in progress), and Start asks again. A folder confirmed for the analyser assistant is not thereby confirmed for
   full Claude Code.
 - **What the tab shows.** Each hook's event and outcome is a status line (*"Hook SessionStart: 1 ran"*, or that one
   failed), never its output. The header says *"full Claude Code (preview, <mode>) — your settings, skills, hooks and n MCP
@@ -160,7 +164,8 @@ answers as the model's words, and check them against what the analyser shows.
   it shows no dollar figure — *"usage counts against your Claude plan"*, whose own usage limits apply. With an API key
   it shows what the session has used, and, if you set one, the limit: *Settings ▸ Assistant ▸ Limit spend per session*
   is **off by default** and is meant for API-key billing; when the limit is reached the analyser stops Claude Code and
-  says so.
+  says so. Changing the limit while a session runs stops it (after the answer in progress); Start resumes the
+  conversation under the new limit.
 - **Don't resume this conversation in a terminal while it is open here** — the history would fork. A second analyser
   window cannot open it either: *"This conversation is open in another analyser window."*
 
