@@ -469,8 +469,10 @@ class LocalAgentPermissionTest {
 
     /**
      * ★ Witnesses: check without consuming (leave the grant in {@code consume}) — the identical second call is admitted;
-     * drop the input-digest comparison — another input is admitted; drop the ticket comparison — the next turn's call is
-     * admitted.
+     * drop the input-digest comparison — another input is admitted; drop the turn-end removal of grants — the next turn's
+     * call is admitted. (Review PR151 F2: the ticket comparison in {@code consume} is NOT witnessed here — the turn-end
+     * removal drops the grant first, so deleting the comparison survives this test; {@code LocalAgentPermissionTicketTest}
+     * holds it.)
      */
     @Test
     @DisplayName("★ grants: an allowed report is admitted once; another verb, input, tool_use_id, ticket or generation is refused")
