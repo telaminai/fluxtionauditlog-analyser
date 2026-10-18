@@ -37,7 +37,7 @@ route. XML validation itself is keyless.
 
 ## 1. Download a project
 
-In the analyser, choose **Project ▸ New project from template…** (or **Create from template** on
+In the analyser, choose **Project ▸ New project from template…** (or **From template**, under *Create*, on
 the start page). Choose **Fluxtion Spring XML**, read its prerequisites, and download into an
 empty directory. A shipped profile opens automatically. The analyser does not build it for you.
 

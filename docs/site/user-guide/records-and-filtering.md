@@ -13,7 +13,7 @@ The main window at a glance:
 - **Event types** (left rail) — the dimension checklist that filters the log.
 - **Records** (centre) — one row per cycle, with the search box above it.
 - **Record detail** (below the table) — the selected record's `nodeLogs`.
-- **Right-hand tabs** — Summary, Source, Graph and the Analyser assistant.
+- **Right-hand tabs** — Summary, Source, Graph, Topology, Reports and the Analyser assistant.
 - **Status bar** (bottom) — record count, time span and the open file.
 
 ## The records table

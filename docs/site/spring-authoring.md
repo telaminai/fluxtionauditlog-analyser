@@ -288,8 +288,9 @@ After a change, run the workflow again and inspect the diff and these files:
 
 Old output files can survive a failed attempt. Check the run receipt before using
 them. Re-run the agreed scenarios and load the matching new graph and log into the
-analyser. The analyser has one active log at a time; save the investigation report
-before moving to the next run when you need to retain the earlier findings.
+analyser. The analyser has one active log at a time. A saved report re-runs against
+whichever log is open; to keep an earlier run's numbers, export its PDF
+(**Export PDF…** on the Reports tab) while that run's log is open.
 
 ## Resume the collaboration in another session
 

@@ -24,6 +24,10 @@ class ShareDisclosureContractTest {
 
     private static final Path DOC = Path.of("docs/site/user-guide/projects.md");
 
+    /** The admin pages that restate what a shared settings file carries (PR #152 review B1). */
+    private static final java.util.List<String> ADMIN_PAGES = java.util.List.of(
+            "security.md", "settings.md", "profiles.md", "external-access.md", "managed-policy.md");
+
     /**
      * Only the page's sharing section counts: projects.md is long, and "provenance" or "focus" elsewhere on it (the
      * environments section, say) must not satisfy a disclosure the category table has to make (phase 6 review).
@@ -82,7 +86,7 @@ class ShareDisclosureContractTest {
     }
 
     /**
-     * Docs restructure, phase 6: the ASSISTANT category carries the External MCP/REST access switch (assistant.rest) and the
+     * Docs restructure, phase 6 (before P3 made the switches machine tier): the ASSISTANT category carried the External MCP/REST access switch (assistant.rest) and the
      * in-app view switch, not only the caps the old page named. Importing it can open the endpoint an outside client uses,
      * so the page must say so where the categories are listed. Witness: drop "External MCP/REST access" from the page's
      * Assistant row and warning, or stop exporting assistant.rest — the first assertion names which surface moved.
@@ -104,6 +108,22 @@ class ShareDisclosureContractTest {
         } else {
             assertTrue(!doc.contains("A shared settings file can turn on External MCP/REST access"),
                     "assistant.rest no longer travels: remove the warning from " + DOC);
+            assertTrue(!doc.contains("carries External MCP/REST access")
+                            && !doc.contains("| Assistant | *External MCP/REST access*"),
+                    "assistant.rest no longer travels: " + DOC + "'s Assistant limits row must not name it");
+            // PR #152 review B1: the admin pages restate the sharing rule, so they drift with it. Each must not say a
+            // shared settings file can turn a switch on, nor that its category carries External MCP/REST access.
+            for (String page : ADMIN_PAGES) {
+                Path at = Path.of("docs/site/admin", page);
+                String text = Files.readString(at).replaceAll("\\s+", " ");
+                // "can turn" only where a settings file is the subject: "any user can turn it on for themselves" is true
+                for (String stale : java.util.List.of("settings file can turn", "carries External MCP/REST access",
+                        "carries *External MCP/REST access*", "One exception travels",
+                        "can come from a shared settings file")) {
+                    assertTrue(!text.contains(stale), "assistant.rest no longer travels: " + at + " still says '"
+                            + stale + "' — a shared settings file carries only the two assistant limits");
+                }
+            }
         }
     }
 

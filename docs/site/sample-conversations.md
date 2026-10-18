@@ -377,7 +377,7 @@ Ten records in the snapshot, including the EOF record without a closing separato
     ```
 
 
-The deploy itself happens **outside the analyser**: the agent reads `ops/restart-quote-service.md` with its own file tool and acts through the deployment side's own MCP surface (*The build-with-AI loop*). Nothing in the analyser can run a runbook, by design. When the UAT run has produced a log, the analyser's part begins — proving it.
+The deploy itself happens **outside the analyser**: the agent reads `ops/restart-quote-service.md` with its own file tool and acts through the deployment side's own MCP surface ([Build with Claude](build/index.md)). Nothing in the analyser can run a runbook, by design. When the UAT run has produced a log, the analyser's part begins — proving it.
 
 
 ??? example "→ `analyser_open`"

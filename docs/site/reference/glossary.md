@@ -148,4 +148,5 @@ Words these docs use with a fixed meaning.
 
 **Working copy**
 :   The disposable folder an evidence bundle is unpacked into, under `~/.fluxtion-analyser/bundles/`. Claude Code is
-    refused there.
+    never started inside it: with a bundle open it works in an empty scratch folder, and the working copy's `CLAUDE.md`
+    is never loaded.

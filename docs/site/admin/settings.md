@@ -60,10 +60,10 @@ managed from **AI ▸ Fluxtion API key…**, and is not an analyser setting.
 ## Assistant (machine), by profile
 
 Every option the four profile cards set is on this tab, grouped by the profile it belongs to. **All of them are this
-machine's and this user's only**, except *Exchange folder (this project)*, which the open project stores: never in a
-project profile or an evidence bundle, and an administrator cannot lock them yet ([Managed policy](managed-policy.md)).
-One exception travels: a settings file exported with its *Assistant* category carries the four settings marked †
-below, External MCP/REST access among them, and importing that category applies them
+machine's and this user's only**, never in a project profile or an evidence bundle, except *Exchange folder (this
+project)*, which the open project stores; and an administrator cannot lock them yet ([Managed policy](managed-policy.md)).
+Only the two limits marked † below can be shared: a settings file exported with its *Assistant limits* category
+carries them, and never an access switch. An import that finds a switch says it was ignored
 ([Projects, profiles and sharing](../user-guide/projects.md#what-is-kept-where)).
 
 ![Settings ▸ Assistant, grouped by profile: Safe analysis, Full Claude Code, In-app assistant and Every assistant, with
@@ -89,7 +89,7 @@ Connect an AI client…, External MCP/REST access and the exchange folders](../a
 | Control | Default | What it does |
 |---|---|---|
 | **In-app assistant: provider, model and key…** | — | Opens the **LLM** tab |
-| **Let the in-app assistant change the views as it answers** † | **on** | Lets it filter, chart, go to a record and flag as it answers. The Ask questions need it |
+| **Let the in-app assistant change the views as it answers** | **on** | Lets it filter, chart, go to a record and flag as it answers. The Ask questions need it |
 | **Max action rounds** † | 3 | How many rounds of actions one answer may take |
 | **Max actions per reply** † | 20 | Actions in one reply |
 | **…per turn, across its rounds** | 30 | The budget for one question; when it is spent the turn ends and says so |
@@ -99,13 +99,13 @@ Connect an AI client…, External MCP/REST access and the exchange folders](../a
 | Control | Default | What it does |
 |---|---|---|
 | **Connect an AI client…** | — | Registers Codex, Claude Code or another MCP client with this analyser ([Connect your client](../connect-an-llm.md)) |
-| **External MCP/REST access (for an AI client on this machine)** † | off | Opens the loopback-only endpoint an outside client uses, with a per-run token. `--rest` turns it on and it stays on ([External access](external-access.md)) |
+| **External MCP/REST access (for an AI client on this machine)** | off | Opens the loopback-only endpoint an outside client uses, with a per-run token. `--rest` turns it on and it stays on ([External access](external-access.md)) |
 | **Allow assistant file exchange (screenshot/report writes, external-series reads)** | off | Lets an assistant write screenshots, PDFs, CSVs, reels and bundles, and read external CSV series, **only inside the exchange folder**, and never over an existing file |
 | **Allow the assistant to create projects** | off | Lets an assistant create a project with `open {project, create}`, never over an existing one. *Project ▸ New project…* is never gated by it |
 | **Exchange folder (this machine)** | empty | Where file exchange reads and writes. Empty means no folder, so nothing is written |
 | **Exchange folder (this project)** | empty | A project-relative folder the open project prefers, stored in the project. No `..`, no absolute path; empty means the machine's folder |
 
-† Carried by an exported settings file's *Assistant* category; see above.
+† Carried by an exported settings file's *Assistant limits* category, the only settings on this tab that travel; see above.
 
 ## History (machine)
 

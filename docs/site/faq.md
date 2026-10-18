@@ -25,7 +25,7 @@ validates or redisplays it. See [What is stored where](admin/data.md).
 
 Yes. Everything except the optional assistant, and the buttons that fetch a template or an example, is local.
 **No assistant profile is local-only — Safe analysis included:** what you ask, and the evidence an assistant reads, goes
-to its model provider. Claude Code in the Assistant tab contacts Anthropic when you press **Start** (its sign-in check
+to its model provider. Claude Code in the Analyser assistant tab contacts Anthropic when you press **Start** (its sign-in check
 and the bridge connection), before your first Send. With the assistant **Off**, and External MCP/REST access off,
 nothing in the analyser goes on the network unless you open from S3 or fetch a template or an example. [What leaves the machine](admin/data.md#what-leaves-the-machine) has the
 full list.

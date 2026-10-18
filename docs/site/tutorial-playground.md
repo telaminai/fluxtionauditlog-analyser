@@ -209,7 +209,9 @@ that variable alone cannot satisfy regeneration. The ordinary build and run rema
 Reopen the exported YAML and examine the new cycles. The analyser has one active log at a time; it does
 not compare two complete runs side by side. A report whose tables and charts you made on the first run re-runs
 against the new log when you open it, which is one way to compare
-([Check your criteria against the evidence](build/validate-intent.md)).
+([Check your criteria against the evidence](build/validate-intent.md)). Because it re-runs, it no longer shows the
+first run's numbers; to keep them, export the report's PDF (**Export PDF…** on the Reports tab) while the first
+run's log is still open.
 
 ## Do this on your own system
 

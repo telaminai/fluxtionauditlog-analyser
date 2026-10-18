@@ -34,8 +34,8 @@ directly with the Explore DEMO, Open, Create, Connect an assistant and Settings 
   right edge.
 - **The button never starts Claude Code.** A draft for Claude Code is placed in its composer and **Start is armed**
   (*Start — ask your question*); you press Start, and the folder confirmation and the profile in force apply. Start is
-  armed only when it would be accepted: in an evidence bundle's working copy, for example, the draft is still placed and
-  the tab says why Start is refused.
+  armed only when it would be accepted: with *Allow the analyser to start Claude Code* switched off, for example, the
+  draft is still placed and the tab says why Start is refused.
 - **With nothing open**, the assistant opens in its own window with the draft in its composer, so you can see where
   your question went. Over an open workspace it returns there and shows the docked tab.
 - **The sample project and a bundle's working copy** are folders the analyser owns, so a Claude Code session for them
@@ -53,7 +53,10 @@ Entries 2 and 3 lead into building and learning.
   yourself. [Build with Claude](../build/index.md) is the path in full, and
   [Check your criteria against the evidence](../build/validate-intent.md) the last step.
 - **Teach me by building an example** starts the learning path in the sample DEMO project, where every concept the
-  assistant explains can be pointed at in a real record. With no AI it plays the guided tour
+  assistant explains can be pointed at in a real record. Building the example, writing and running its code, needs an
+  assistant that can edit files and run commands, such as Full Claude Code or a client in your terminal; in Safe
+  analysis, or with the in-app assistant, the lesson explains from the sample project's evidence instead and writes no
+  file. With no AI it plays the guided tour
   ([Guided tour and sample project](../start/tour-and-sample.md)). To run a session for others, see
   [Running a demo](../teach/index.md).
 

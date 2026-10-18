@@ -99,7 +99,7 @@ is open.
 |---|---|---|
 | **Producer findings** (*Sources ▸ Open producer diagnostics…*) | The Spring XML design validates, and what the build reported ([Spring authoring](../spring-authoring.md#view-design-and-producer-findings)) | Anything about how the application behaves |
 | **Coverage** | Which nodes logged on this run | That a silent node did not run: a node can run and log nothing at its audit level |
-| **Replay compare** (`--replay-compare`) | That your build, fed the recorded inputs of a bundle captured with replay records, writes the same log, record by record ([Evidence bundle format](../evidence-bundles/reference.md#-replay-compare-comparing-a-replayed-log)) | Whether a *changed* build is correct. A fix that changes behaviour diverges by design; the first difference it names is useful context, not a verdict |
+| **Replay compare** (`--replay-compare`) | That your build, fed the recorded inputs of a bundle captured with replay records, writes the same log, record by record, except each record's `endTime` and `thread` lines (when and where a cycle ran) ([Evidence bundle format](../evidence-bundles/reference.md#-replay-compare-comparing-a-replayed-log)) | Whether a *changed* build is correct. A fix that changes behaviour diverges by design; the first difference it names is useful context, not a verdict |
 | **A passing build or a plausible chart** | That it compiled, or that a line looks right | That any criterion holds |
 
 **"No failure" is not "covered".** An empty crossings list means the value never entered that region on this run, or

@@ -54,7 +54,7 @@ given (up to 4,000 characters on screen).
 | `denied by you` | you denied it in the approval dialog |
 | `denied: not answered within 120 s` | the approval dialog timed out |
 | `denied: Stop` | you pressed Stop while it waited, or as it arrived |
-| `denied: another approval was waiting` | a second request arrived while one was open, and its turn ended first |
+| `denied: another approval was waiting` | eight requests were already waiting behind the open dialog, so this one was not queued |
 | `denied: too large to show you in full` | the request could not be shown in full, so it was not asked |
 | `denied: not allowed in Safe analysis` | Safe analysis does not offer the tool |
 | `denied: not available in this Full Claude Code mode` | the mode in force hides the tool |
@@ -68,6 +68,7 @@ given (up to 4,000 characters on screen).
 | `denied: the person's own fluxtion-analyser registration is not this analyser` | Claude tried the tools of your own `fluxtion-analyser` registration, which is not bound to this window |
 | `denied: the analyser does not recognise this tool` | Full Claude Code asked about a tool the analyser does not know |
 | `withdrawn by Claude Code` | Claude Code withdrew the request before you answered |
+| `denied by the analyser's settings` | the analyser's own rules denied it without asking, and gave no more specific reason |
 
 [Approvals](approvals.md) explains when a dialog is shown.
 

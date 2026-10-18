@@ -32,7 +32,7 @@ cycle shaded](assets/screenshot-dark.png)
     ---
 
     You state the intent and the acceptance criteria. The AI structures the components, Fluxtion writes the
-    mechanics, and the recorded evidence checks your criteria for the runs you recorded. Whether the criteria
+    mechanics, and you check your criteria against the recorded evidence of your runs. Whether the criteria
     capture what you meant stays your judgement.
 
     [:octicons-arrow-right-24: Build with Claude](build/index.md)

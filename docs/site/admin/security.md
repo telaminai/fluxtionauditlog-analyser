@@ -27,8 +27,8 @@ flowchart LR
 | **Claude Code's private bridge** | Its own **per-session credential**: a call carrying only the REST token is never treated as Claude Code's, and the per-session file the bridge reads carries only that session's credential, not the REST token. It is served only the verbs on an explicit list, so a verb added in a later release stays refused until it is listed. It has its own rate limit. With external access off, its listener serves only that session, refuses every outside client and publishes no endpoint file |
 | **Folder trust**, for Claude Code in the analyser | Each folder is confirmed once on this machine before Start. Full Claude Code confirms the folder separately, because Start runs the folder's hooks and connects its MCP servers ([Approvals and their limits](#approvals-and-their-limits)) |
 | **The model provider** | Only the assistant you choose sends anything, and only what you ask and the evidence it reads ([Not local-only](#not-local-only)) |
-| **Files you are sent** | An evidence bundle is verified before it is opened, and opens as a disposable working copy. Claude Code is never started in that folder: with a bundle open it works in an empty scratch folder and reads the evidence only through the verbs. A project profile carries pointers, never instructions. No assistant switch is read from a project or a bundle ([one exception](#what-is-stored-where)) |
-| **Log-source plugins** | A plugin is a jar you install yourself: **installing a jar is arbitrary code execution**. Nothing is bundled or downloaded. With no plugin installed, no third-party code runs; without plugins this application is byte-identical to a plain build. A plugin can only ever be a log *reader*: it **cannot add verbs** to the action socket, so the verb list below stays complete with or without plugins |
+| **Files you are sent** | An evidence bundle is verified before it is opened, and opens as a disposable working copy. Claude Code is never started in that folder: with a bundle open it works in an empty scratch folder and reads the evidence only through the verbs. A project profile carries pointers, never instructions. No assistant switch is read from a project, a shared settings file or a bundle |
+| **Log-source plugins** | A plugin is a jar you install yourself: **installing a jar is arbitrary code execution**. Nothing is bundled or downloaded. With no plugin installed, no plugin code runs; without plugins this application is byte-identical to a plain build. A plugin can only ever be a log *reader*: it **cannot add verbs** to the action socket, so the verb list below stays complete with or without plugins |
 
 ## What each profile can and cannot do
 
@@ -47,8 +47,9 @@ An outside client is separate: it depends only on *External MCP/REST access*.
 
 Every assistant reaches the analyser through the same verbs ([Verbs](../reference/verbs.md)), and nothing more. Out of
 the box an agent can compute, filter, graph, flag and read records, and `source` can reread the XML and Java files
-**under the source roots you configured** (to show a declaration): no other file reads, and no file writes. Most view
-changes can be reversed: a filter widened, a chart closed, a flag cleared. Two cannot. Deleting a saved chart's
+**under the source roots** (to show a declaration). A source root can be any folder you can read, and `source_root`
+lets an assistant add one (see below), so this reaches any `.xml` or `.java` file you can read. There are no file
+writes outside file exchange, below. Most view changes can be reversed: a filter widened, a chart closed, a flag cleared. Two cannot. Deleting a saved chart's
 definition with `graph {delete}` cannot be undone, and it is not marked destructive for outside clients, so a client
 is not prompted to ask you first; Claude Code in the analyser **cannot delete a chart**. And a new `note` or `fix` on a
 flag replaces the old text.
@@ -61,8 +62,14 @@ These groups go further, and are labelled as such:
   you pick in a chooser yourself is readable for that session: the chooser is the grant. `walk {reel}`, which writes a
   walk as an HTML page, and `report {bundle}`, which captures an evidence bundle, are the same kind of write.
 - **`open` and `source_root` change which log, event processor or source roots are open**, the same things you change
-  through the menus. Still nothing outside the analyser: no shell, no arbitrary file reads, and your API key is never
-  reachable.
+  through the menus. `source_root` can add **any folder you can read** as a source root, and `source` then reads any
+  `.xml` or `.java` file beneath it. That includes, for example, a Maven `settings.xml`, which can hold repository
+  credentials. `open` can open any file you can read as a log, and an `s3://` address with your own `aws` credentials.
+  The in-app assistant can do this without a dialog. Safe analysis asks you before each `source_root` and `open` call,
+  but once you allow a root, `source` reads beneath it without asking. An outside client asks only if its own settings
+  say so (both verbs are marked destructive). There is still no shell and no write outside the exchange folder, and
+  your API key is never reachable. Whether `source_root` from an assistant should be confined, for example to the
+  project folder, is an open owner decision.
 - **`walk` edits the project's saved spotlight walks**: it can save one, replace one by name, rename one, or move one
   to the recently deleted list, from which it can be restored. Its one file write is `walk {reel}`, as above.
 - **`import` borrows an evidence bundle's saved state** into the project you have: its charts and named focuses, its
@@ -159,10 +166,9 @@ is on [What is stored where, what leaves](data.md).
 Settings are in your own `~/.fluxtion-analyser/config`, in cleartext, including the in-app assistant's API key; this is
 a single-user tool. **Every switch is per user**: *Allow the analyser to start Claude Code*, Full Claude Code,
 External MCP/REST access, file exchange and project creation live in each user's own config, and any user can turn
-them on for themselves. The switches and the confirmed folders are never in a project profile or an evidence bundle.
-
-One exception: a **shared settings file** exported with its *Assistant* category (ticked by default) carries External
-MCP/REST access and the in-app assistant's view switch, and importing it applies them
+them on for themselves. The switches and the confirmed folders are never in a project profile, a shared settings file
+or an evidence bundle: a shared settings file's *Assistant limits* category carries only the in-app assistant's two
+action limits, and an import that finds a switch ignores it and says so
 ([Projects, profiles and sharing](../user-guide/projects.md#what-is-kept-where)). [What is stored where, what
 leaves](data.md) lists every file.
 

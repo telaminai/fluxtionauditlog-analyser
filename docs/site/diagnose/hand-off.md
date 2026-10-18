@@ -59,7 +59,7 @@ node log, a picture of the topology and an optional chart to a PDF. An illustrat
   flag.
 - **`scope: "routes"` on a node that everything feeds comes back bounded, and says so.** On a large graph where every
   route would cover more than half of it, the answer stops at three hops each way, and the echo carries
-  `routeBound: true` and a `scopeNote`. Pass `routeBound: false` for every route; it is the same switch as the
+  `scopeBounded: 3` and a `scopeNote`. Pass `routeBound: false` for every route; it is the same switch as the
   **≤3 hops** checkbox on the Topology tab.
 - For more than one record, the investigation form, `report {name, sections}`, builds a named report you can keep,
   re-open and render with `path`. A finding section renders what `flag` wrote, and the report verb cannot change that

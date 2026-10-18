@@ -79,7 +79,7 @@ bytes in their own analyser ([Evidence bundles](../evidence-bundles/index.md)).
 
 To show the receiving side, download the DEMO journey's bundle from
 [Journey: find the first recorded breach](../journeys/find-the-first-recorded-breach.md), check it with
-`analyser --verify` (or `java -jar fluxtion-auditlog-analyser.jar --verify`), and drop it on the start page. To show both sides with two analysers in one command, run the
+`analyser --verify` (or `java -jar fluxtion-auditlog-analyser-<version>.jar --verify`), and drop it on the start page. To show both sides with two analysers in one command, run the
 [round-trip demo](../evidence-bundles/index.md#try-it-with-the-demo) from the source repository.
 
 ## After the demo

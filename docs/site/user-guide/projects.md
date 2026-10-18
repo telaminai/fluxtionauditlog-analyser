@@ -30,7 +30,8 @@ is in both, so there is no rule about which wins.
 | Environments | project | Environments (on) | no |
 | Saved analyses | project | Saved analyses (on) | no |
 | Report destinations, and the project's exchange folder | project | Report destinations (**off**); the exchange folder only in a project profile | no |
-| The in-app assistant's caps, *Let the in-app assistant change the views as it answers*, and **External MCP/REST access** | machine | **Assistant (on)**: see the warning below | no |
+| The in-app assistant's two action limits (*Max action rounds* and *Max actions per reply*) | machine | Assistant limits (on) | no |
+| **External MCP/REST access**, *Let the in-app assistant change the views as it answers*, and the in-app assistant's per-turn budget | machine | never: an import that finds one of the two switches names it and ignores it | never |
 | The in-app assistant's provider, model and base URL | machine | LLM provider/model/base-URL (never the API key) (**off**) | no |
 | The in-app assistant's **API key** | machine | never | never |
 | Claude Code's switches, mode, model and spend limit; confirmed folders; file exchange; project creation; the machine's exchange folder | machine | never | never |
@@ -42,12 +43,14 @@ The **Fluxtion build key**, for regenerating a processor, is not an analyser set
 file or a bundle. The Project panel says whether that file has a key; it cannot know whether a build will be given an
 overriding `-Dfluxtion.apiKey`, and says so.
 
-!!! warning "A shared settings file can turn on External MCP/REST access"
-    The *Assistant* category of a shared settings file carries *External MCP/REST access*, *Let the in-app assistant
-    change the views as it answers* and the in-app assistant's caps, and it is ticked by default on export and on
-    import. Importing a file with that category ticked applies those switches to this machine, which can open the
-    endpoint an outside client uses. Untick *Assistant* when you import a file you did not make, and check
-    *Settings ▸ Assistant* afterwards. A project profile never carries these switches.
+!!! note "A shared settings file cannot turn on External MCP/REST access"
+    The *Assistant limits* category carries only the in-app assistant's two action limits, *Max action rounds* and
+    *Max actions per reply*. No access switch is ever exported, applied on import or kept in a project profile:
+    *External MCP/REST access*, *Let the in-app assistant change the views as it answers*, file exchange, project
+    creation and the Claude Code switches are set on each machine. A file that carries one anyway (made by an older
+    analyser, or by hand) has it ignored, and the import summary says so, for example *"External MCP/REST access is
+    set on this machine only — this file's value was ignored"*. To turn external access on for a team, each person
+    ticks it once on their own machine.
 
 A generated project may also carry `skills.provenance`, a value-free identity such as `canonical@<revision>` saying
 which vendored skill snapshot it received. The Project panel shows it as a fact; the analyser never fetches anything
@@ -646,7 +649,7 @@ without a project; to give them the project itself, commit its profile.
 | Graphs and named focuses | named charts (series, formulas, resolve policy, pinned windows, notes, guides, condition bands, external-CSV definitions, marker definitions: never their extracted values) and named topology focuses (node sets and rationale) |
 | Investigation reports and spotlight walks | report and walk **definitions**: section references, table column specs, the authoring context (log fingerprint and filter, **including any `provenance` string naming the system the log came from**, such as `risk-engine · localhost:8081 · ~/dev/risk`), walk steps and their conversations, and any **narrative text the author (often an agent) wrote about your data**. Never log records: evidence re-renders from the recipient's own log. Narrative is why this is its own checkbox |
 | View | hidden columns |
-| Assistant | *External MCP/REST access*, *Let the in-app assistant change the views as it answers*, the round limit and the per-reply cap. See the warning in [What is kept where](#what-is-kept-where) |
+| Assistant limits | the round limit and the per-reply cap only; never an access switch. See [What is kept where](#what-is-kept-where) |
 | LLM provider/model/base-URL (never the API key) | the in-app assistant's provider, model and base URL, and **never the API key** |
 | Runbook LOCATIONS and descriptions | name, project-relative path and one-line description, such as `deploy → ops/deploy.md`: a **pointer** into your repository, never its contents ([A runbook is a pointer](#a-runbook-is-a-pointer)) |
 | Domain glossary LOCATION | the `vocabulary=docs/glossary.md` pointer, never the file's contents |
@@ -665,8 +668,9 @@ Then **Copy to clipboard**, **Save file…** (a `.fluxtion-settings` file, revea
 
 ### What is never shared
 
-Your **API key**, AWS profile and region, recent files, search history, window and theme, Claude Code's settings and
-your confirmed folders are never exported, and the same whitelist is enforced on **import**, so a hand-made file
+Your **API key**, AWS profile and region, recent files, search history, window and theme, *External MCP/REST
+access*, *Let the in-app assistant change the views as it answers*, file exchange, project creation, Claude Code's
+settings and your confirmed folders are never exported, and the same whitelist is enforced on **import**, so a hand-made file
 cannot plant or overwrite a secret. Paths under your home are written `~`-relative so they survive a move to another
 machine. A runbook's **contents** never travel, and a value shaped like a command is refused, with a reason, on
 export and import.
@@ -681,10 +685,11 @@ export and import.
 | **Open as project (replace)** | *Replaces* the project tier and makes the file the active project | The file is a project, and you want to work in it |
 
 A merge shows a per-category **summary** (what is new, what would be replaced) before anything changes. Untick any
-category you do not want; untick *Assistant* for a file you did not make. On apply:
+category you do not want. A switch the file carries that is set on each machine is listed as ignored, never
+applied. On apply:
 
 - **Lists merge** (source roots, Maven repos, event processors): nothing local is deleted.
 - **Charts merge by name**: an incoming chart replaces a same-named local one; new names are added.
-- **Single values** (the active processor, the assistant switches and caps, the LLM fields) are overwritten only when
+- **Single values** (the active processor, the assistant's two action limits, the LLM fields) are overwritten only when
   present and ticked.
 

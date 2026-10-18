@@ -131,8 +131,8 @@ sequenceDiagram
 1. Read `context.runbooks`; pick the pointer by name.
 2. **Read the file yourself** — `resolved` is the path on this machine — with your file tools.
 3. Do what it says with your own tools or through the deployment side's own MCP surface. Nothing in the
-   analyser will do it for you, by design (the analyser gains no server-side code; see *The build-with-AI
-   loop*).
+   analyser will do it for you, by design (the analyser gains no server-side code; see
+   [Build with Claude](build/index.md)).
 
 A prompt that uses this well:
 
@@ -279,8 +279,8 @@ Two things follow. A runbook pointer can target a skill file directly — `runbo
 — so one file is both the team's runbook and a Claude Code skill, and any harness that reads that shape gets
 it too. And the `description` is what lets a model decide *which* runbook is relevant before opening any
 of them; it is surfaced in `context.runbooks[]` as `runbook.N.description`
-([The description, and where it comes from](#the-description-and-where-it-comes-from)). Nothing in the analyser parses the frontmatter;
-the convention just makes the two worlds the same file.
+([The description, and where it comes from](#the-description-and-where-it-comes-from)). The analyser reads the frontmatter only to prefill the
+Add dialog; what it stores and serves is what you confirm. The convention just makes the two worlds the same file.
 
 ## What the analyser will refuse
 

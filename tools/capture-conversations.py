@@ -293,7 +293,7 @@ def main():
     t.you("Deploy the spread fix to UAT using the team's runbook, then show me the UAT run is healthy.")
     t.context(["environments", "runbooks", "provenanceSource"])
     t.prose("The deploy itself happens **outside the analyser**: the agent reads `ops/restart-quote-service.md` with "
-            "its own file tool and acts through the deployment side's own MCP surface (*The build-with-AI loop*). "
+            "its own file tool and acts through the deployment side's own MCP surface ([Build with Claude](build/index.md)). "
             "Nothing in the analyser can run a runbook, by design. When the UAT run has produced a log, the analyser's "
             "part begins — proving it.")
     uat_log = cd.DEMO_PROJECT / "logs" / "uat" / "quote-service-uat.yaml"

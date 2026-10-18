@@ -51,7 +51,7 @@ If jbang itself is missing, tell me and stop — installing it is my decision to
 STEP 2 — start it.
 Run (new shell, or the full path from above):
     analyser --rest
-This starts the analyser with its local socket enabled and opens its window.
+This starts the analyser with External MCP/REST access on and opens its window.
 It BLOCKS, so run it in the background or a second terminal.
 
 STEP 3 — connect yourself to it.

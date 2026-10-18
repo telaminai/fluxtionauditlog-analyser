@@ -24,7 +24,7 @@ it. In order of likelihood:
 ## While Claude Code runs in the analyser
 
 The analyser can run Claude Code in its own assistant panel
-([Claude Code in the Assistant tab](../inapp/claude-code.md)). That session has its
+([Claude Code in the Analyser assistant tab](../inapp/claude-code.md)). That session has its
 own private bridge, and it changes what an outside client can reach.
 
 **External MCP/REST access is off.** Claude Code in the panel still works: the analyser opens a private listener that

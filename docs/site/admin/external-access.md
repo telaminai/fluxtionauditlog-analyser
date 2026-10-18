@@ -28,6 +28,8 @@ creation ([Security model ▸ What an assistant can do](security.md#what-an-assi
 - **AI ▸ External MCP/REST access**, a checkbox; or
 - **Settings ▸ Assistant ▸ Every assistant ▸ External MCP/REST access (for an AI client on this machine)**, the same
   setting; or
+- **AI ▸ Connect an AI client…**, which offers *Turn on External MCP/REST access…* when it is off, and asks you to
+  confirm; or
 - start the analyser with **`--rest`** (`analyser --rest`, or `java -jar fluxtion-auditlog-analyser.jar --rest`). This
   turns the switch on **and keeps it on**: the setting persists, so later launches without the flag still have it
   on. Turn it off in Settings or the AI menu.
@@ -36,11 +38,12 @@ The status bar says *External MCP/REST access is on: listening on http://127.0.0
 the light beside it reads **MCP ready**. The console prints the URL and only the token's **first 8 characters**; the
 full token is never printed.
 
-!!! warning "A shared settings file can turn it on"
-    A settings file exported with its *Assistant* category carries this switch, and importing that category applies it
-    to your machine. Untick *Assistant* when you import a file you did not make
-    ([Projects, profiles and sharing](../user-guide/projects.md#what-is-kept-where)). A project profile and an
-    evidence bundle never carry it.
+!!! note "A shared settings file cannot turn it on"
+    This switch is set on each machine only. It is never exported, never applied on import and never in a project
+    profile or an evidence bundle. A file that carries it anyway has it ignored, and the import summary says *"External
+    MCP/REST access is set on this machine only — this file's value was ignored"*
+    ([Projects, profiles and sharing](../user-guide/projects.md#what-is-kept-where)). To turn it on for a team, each
+    person ticks it once on their own machine.
 
 ## The endpoint file
 

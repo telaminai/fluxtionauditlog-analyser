@@ -53,7 +53,8 @@ Three names, three jobs, so none of them needs renaming:
 
 ### 1. Turn on External MCP/REST access
 
-Start the analyser and tick **AI ▸ External MCP/REST access**. It is remembered, and it is the same setting as
+Start the analyser and tick **AI ▸ External MCP/REST access**. It is remembered, on this machine only (a shared
+settings file never carries it), and it is the same setting as
 *Settings ▸ Assistant ▸ External MCP/REST access (for an AI client on this machine)*. Or start the analyser with the
 flag that turns it on and keeps it on:
 
@@ -142,6 +143,7 @@ Claude Code session runs ([below](#while-claude-code-runs-in-the-analyser)). Usu
 
 **Does your client see the tools?** In Claude Code, `/mcp` should show the server connected with **18 tools**. In
 Codex, `codex mcp get fluxtion-analyser` shows the registration; then ask it to call `analyser_context` (below).
+The block below is illustrative: it shows what to look for, not Claude Code's exact layout.
 
 ```text
 > /mcp
@@ -185,7 +187,7 @@ The records table narrows and a flagged row appears, in your window, as you watc
 ## While Claude Code runs in the analyser
 
 The analyser can also run Claude Code inside its own assistant panel
-([Claude Code in the Assistant tab](inapp/claude-code.md)). That session has its own
+([Claude Code in the Analyser assistant tab](inapp/claude-code.md)). That session has its own
 private bridge and credential, and it changes what an outside client can reach:
 
 - **External MCP/REST access off.** Claude Code in the panel still works, through a private listener that serves only

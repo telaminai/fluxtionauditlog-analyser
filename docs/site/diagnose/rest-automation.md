@@ -28,7 +28,7 @@ against the file below. The full token is never printed.
 [analyser] assistant REST: http://127.0.0.1:52041  (token 1a2b3c4d…)
 ```
 
-On a first run, with no configuration yet, the console also names the endpoint file. The analyser is a desktop
+On a first run started with `--rest`, with no configuration yet, the console also names the endpoint file. The analyser is a desktop
 application: it needs a desktop session, and does not start over a headless SSH shell.
 
 ## Read the endpoint file

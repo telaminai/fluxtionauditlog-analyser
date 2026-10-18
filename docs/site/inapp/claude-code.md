@@ -1,6 +1,6 @@
 # Claude Code in the analyser
 
-If you have [Claude Code](https://docs.claude.com/en/docs/claude-code/setup) installed and logged in, the Assistant tab
+If you have [Claude Code](https://docs.claude.com/en/docs/claude-code/setup) installed and logged in, the **Analyser assistant** tab
 can host **one long-running Claude Code session** instead of the in-app assistant: you type into it here, and it drives
 the analyser through the same verbs an external client uses. It is **off by default**.
 
@@ -26,7 +26,8 @@ Press **Start Claude Code**. What happens:
   for Claude Code in the analyser?"* — **Trust this folder** or **Don't trust** (the default, at the right, as in every
   consent dialog here). Your answer is remembered on this machine. With no project open — or with the sample project or
   a bundle open — Claude Code works in a private, empty scratch folder instead, and the question says so in words before
-  its path. Start is refused outright in an evidence bundle's working copy.
+  its path. Claude Code is never started inside a bundle's working copy: with a bundle open it works in an empty
+  scratch folder, and the working copy's `CLAUDE.md` is never loaded.
 - Claude Code does **not** need *External MCP/REST access* turned on. With it off, the analyser opens a private listener that
   serves only this Claude Code session — it refuses every external client, even one holding the REST token, and
   publishes no endpoint file for other tools to find — and closes it when the session stops. With it on, the session
@@ -84,7 +85,7 @@ choose allow**. **The analyser does not confine it to the folder**; your rules a
   **Not re-checked:** files a `CLAUDE.md` imports with `@path`, `CLAUDE.md` files in the folders above this one, and
   the contents of the scripts a hook runs — Claude Code reads or runs them, and a change to them does not ask again; the
   dialog says so. A folder confirmed for the analyser assistant is not thereby confirmed for full Claude Code.
-- **What the tab shows.** Each hook's event and outcome is a status line (*"Hook SessionStart: 1 ran"*, or that one
+- **What the tab shows.** Each hook's event and outcome is a status line (*"SessionStart: 1 ran"*, or that one
   failed), never its output. The header says *"Full Claude Code (<mode>) — your settings, skills, hooks and n MCP
   servers are loaded"*, and an environment line under **Details**, *"PATH: inherited, plus ~/.local/bin, /opt/homebrew/bin"*: an analyser
   started from the Finder or the Dock has a minimal `PATH`, where your hooks and `npx` servers would not start, so the
