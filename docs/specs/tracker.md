@@ -17,6 +17,10 @@ entry to one or two lines; put anything longer in the spec, an issue or an evide
 
 ## Delivery order
 
+- ◧ [INTEG-R7] Desktop acceptance remains open: complete Mac run 326/1/0/3 (T2 right-click control missing plus native skips); final ownership correction passes 21 affected cases. ▸ [review](../handoff/review_integration_2026_10_18_codex.md)
+- ☐ [INTEG-R8] Diagnose background EDT ownership exceptions in one passing grouped usability run; no proven production cause or named failing regression yet. ▸ [review](../handoff/review_integration_2026_10_18_codex.md)
+- ☐ [INTEG-R9] Owner scope needed for historical host-path redaction and stale screenshots; not introduced by this integration. Preserve evidence while planning the cleanup. ▸ [review](../handoff/review_integration_2026_10_18_codex.md)
+
 - ☑ [INTEG-R6] Partial skills writes are disclosed rather than reported as zero writes; real filesystem fault and rendered-review regressions. ▸ [evidence](../handoff/evidence/integration-review-2026-10-18/f6-partial-skills.md)
 
 - ☑ [INTEG-R5] Full/acceptEdits consent wording names automatic commands and permission rules; rendered-offer regression. ▸ [evidence](../handoff/evidence/integration-review-2026-10-18/f5-permission-wording.md)
