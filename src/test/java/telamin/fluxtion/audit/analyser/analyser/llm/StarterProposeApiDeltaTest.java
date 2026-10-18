@@ -92,8 +92,11 @@ class StarterProposeApiDeltaTest {
     @Test
     @DisplayName("★ the hosted propose gains only the starter kind and its fields: undone, both hosted surfaces are as before")
     void theOnlyDeltaIsTheStarterKind() throws Exception {
-        assertEquals(BEFORE.get("VerbSchemas.hosted"), WorkModeKeepsTheApiTest.sha(revertSchemas(VerbSchemas.hosted())));
-        assertEquals(BEFORE.get("McpTools.hostedList"), WorkModeKeepsTheApiTest.sha(revertTools(McpTools.hostedList())));
+        // owner 2026-10-18: source {text} is its own later delta (SourceTextApiDeltaTest), undone first
+        assertEquals(BEFORE.get("VerbSchemas.hosted"), WorkModeKeepsTheApiTest.sha(revertSchemas(
+                SourceTextApiDeltaTest.revertSchemas(VerbSchemas.hosted()))));
+        assertEquals(BEFORE.get("McpTools.hostedList"), WorkModeKeepsTheApiTest.sha(revertTools(
+                SourceTextApiDeltaTest.revertTools(McpTools.hostedList()))));
     }
 
     @Test

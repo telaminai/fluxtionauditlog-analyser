@@ -80,11 +80,79 @@ class CustomerApiKeysTest {
             "project", List.of("proposals", "starters"), // M74 P2b: Claude Code's set-up proposal; Option 2: the starters
             "view", List.of("hidden"));               // the records-filter fix: what each filter hides
 
+    /**
+     * Owner, 2026-10-18: every verb's top-level parameters as released in 1.35.1 ({@code main}), in order — a customer's
+     * call names them. {@code WorkModeKeepsTheApiTest} pins the schemas whole by digest; this says, by name, what a
+     * change may do: keep every released parameter, and add only the ones listed in {@link #VERB_PARAMS_ADDITIVE}.
+     */
+    static final Map<String, List<String>> VERB_PARAMS_RELEASED;
+    static {
+        Map<String, List<String>> v = new LinkedHashMap<>();
+        v.put("aggregate", List.of("metric", "groupBy", "filter", "limit"));
+        v.put("series", List.of("expr", "resolve", "filter", "crossings", "limit", "buckets"));
+        v.put("read", List.of("recordIndex", "byteOffset", "file", "at", "count", "before", "after", "fields"));
+        v.put("filter", List.of("from", "to", "dimensions", "text"));
+        v.put("graph", List.of("name", "series", "exprs", "style", "explanation", "notes", "clearNotes", "rightAxis",
+                "from", "to", "newTab", "external", "markers", "guides", "bands", "rationale", "refresh", "rename",
+                "close", "delete"));
+        v.put("goto", List.of("byteOffset", "file", "recordIndex", "at", "reveal"));
+        v.put("flag", List.of("byteOffsets", "recordIndexes", "kind", "note", "fix"));
+        v.put("coverage", List.of("filtered", "limit"));
+        v.put("report", List.of("bundle", "name", "delete", "restore", "rename", "title", "notes", "sections", "csv",
+                "path", "recordIndex", "graph", "topology"));
+        v.put("context", List.of("sections"));
+        v.put("topology", List.of("select", "scope", "routeBound", "focus", "pop", "saveFocusAs", "rationale",
+                "scaffolding", "step", "recordIndex", "source", "sync", "orientation", "fit", "callout", "showAll"));
+        v.put("screenshot", List.of("path", "scope"));
+        v.put("import", List.of("bundle", "categories"));
+        v.put("open", List.of("follow", "restore", "log", "design", "diagnostics", "logs", "graphml", "processor",
+                "format", "discover", "provenance", "posture", "record", "close", "bundle", "project", "create",
+                "analysis", "bind"));
+        v.put("source", List.of("file", "bean", "line", "fqn", "method"));
+        v.put("source_root", List.of("add", "remove"));
+        v.put("spotlight", List.of("target", "caption", "targets", "add", "clear"));
+        v.put("walk", List.of("name", "title", "steps", "conversation", "through", "delete", "rename", "restore",
+                "play", "step", "reel", "end"));
+        VERB_PARAMS_RELEASED = java.util.Collections.unmodifiableMap(v);
+    }
+
+    /** The parameters added since 1.35.1, by verb — optional, additive: nothing released changed for them. */
+    static final Map<String, List<String>> VERB_PARAMS_ADDITIVE = Map.of(
+            "graph", List.of("restore"),   // owner 2026-10-18: a deleted or replaced chart can be restored
+            "source", List.of("text"));    // owner 2026-10-18: the requested lines as data (read-only, capped)
+
     /** The headers 1.35.1's bridge sent on every {@code /action} call. */
     static final Set<String> HEADERS_RELEASED = Set.of("Content-Type", "X-Analyser-Token");
 
     /** The headers added since, sent only when they apply (M77-3, OD-77.8). */
     static final Set<String> HEADERS_ADDITIVE = Set.of("X-Analyser-Client", "X-Analyser-Probe");
+
+    /**
+     * ★ Owner, 2026-10-18. Before: {@code source} took {@code file, bean, line, fqn, method}. After: the same five, then
+     * {@code text}. Witness (run 2026-10-18): remove {@code "text"} from {@link #VERB_PARAMS_ADDITIVE} — the source row
+     * fails, naming {@code text}; rename {@code method} in {@code VerbSchemas} — the released-parameter row fails.
+     */
+    @Test
+    @DisplayName("★ verbs: every released parameter is still there, in order; the only new ones are the listed additive ones")
+    @SuppressWarnings("unchecked")
+    void verbsKeepTheirReleasedParameters() {
+        Map<String, Object> now = telamin.fluxtion.audit.analyser.analyser.llm.VerbSchemas.all();
+        assertEquals(VERB_PARAMS_RELEASED.keySet(), new LinkedHashSet<>(now.keySet()), "the released verbs, no more");
+        for (var e : VERB_PARAMS_RELEASED.entrySet()) {
+            List<String> params = List.copyOf(((Map<String, Object>) ((Map<String, Object>) now.get(e.getKey()))
+                    .get("properties")).keySet());
+            List<String> kept = new ArrayList<>(params);
+            kept.retainAll(e.getValue());
+            assertEquals(e.getValue(), kept, "★ " + e.getKey() + " keeps every released parameter, in order");
+            List<String> added = new ArrayList<>(params);
+            added.removeAll(e.getValue());
+            assertEquals(VERB_PARAMS_ADDITIVE.getOrDefault(e.getKey(), List.of()), added,
+                    "the parameters added to " + e.getKey() + " since 1.35.1 must be listed in VERB_PARAMS_ADDITIVE");
+        }
+        assertEquals(List.of("file", "bean", "line", "fqn", "method", "text"),
+                List.copyOf(((Map<String, Object>) ((Map<String, Object>) now.get("source")).get("properties")).keySet()),
+                "★ source: before, file, bean, line, fqn, method; after, the same and text");
+    }
 
     @Test
     @DisplayName("★ context: every released section and key is unchanged; the only new keys are the listed additive ones")

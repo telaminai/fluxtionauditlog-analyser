@@ -78,14 +78,18 @@ class GraphRestoreApiDeltaTest {
     @Test
     @DisplayName("★ the external API gains only graph {restore} (and delete's corrected words): undone, every surface is as before")
     void theOnlyDeltaIsTheRestoreForm() throws Exception {
-        assertEquals(BEFORE.get("VerbSchemas.all"), WorkModeKeepsTheApiTest.sha(revertSchemas(VerbSchemas.all())));
+        // owner 2026-10-18: source {text} is its own later delta (SourceTextApiDeltaTest), undone first everywhere
+        assertEquals(BEFORE.get("VerbSchemas.all"), WorkModeKeepsTheApiTest.sha(revertSchemas(
+                SourceTextApiDeltaTest.revertSchemas(VerbSchemas.all()))));
         // Option 2: the hosted propose's starter kind is its own delta (StarterProposeApiDeltaTest), undone first
         assertEquals(BEFORE.get("VerbSchemas.hosted"), WorkModeKeepsTheApiTest.sha(revertSchemas(
-                StarterProposeApiDeltaTest.revertSchemas(VerbSchemas.hosted()))));
-        assertEquals(BEFORE.get("McpTools.list"), WorkModeKeepsTheApiTest.sha(revertTools(McpTools.list())));
+                StarterProposeApiDeltaTest.revertSchemas(SourceTextApiDeltaTest.revertSchemas(VerbSchemas.hosted())))));
+        assertEquals(BEFORE.get("McpTools.list"), WorkModeKeepsTheApiTest.sha(revertTools(
+                SourceTextApiDeltaTest.revertTools(McpTools.list()))));
         assertEquals(BEFORE.get("McpTools.hostedList"), WorkModeKeepsTheApiTest.sha(revertTools(
-                StarterProposeApiDeltaTest.revertTools(McpTools.hostedList()))));
-        String manifest = PromptBuilder.inProcessActionManifest(3);
+                StarterProposeApiDeltaTest.revertTools(SourceTextApiDeltaTest.revertTools(McpTools.hostedList())))));
+        String manifest = PromptBuilder.inProcessActionManifest(3).replace(
+                "  source {file, bean, line, fqn, method, text} -> ", "  source {file, bean, line, fqn, method} -> ");
         assertTrue(manifest.contains(NEW_MANIFEST), "the in-process manifest says a chart can be restored");
         assertEquals(BEFORE.get("PromptBuilder.inProcessActionManifest"),
                 WorkModeKeepsTheApiTest.sha(manifest.replace(NEW_MANIFEST, OLD_MANIFEST)));

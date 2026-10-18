@@ -47,7 +47,9 @@ Claude Code here has:
 - the folder's **`CLAUDE.md`**, and **Read, Grep and Glob confined to the folder** (a symbolic link pointing outside it
   is refused too);
 - the analyser's **verbs that only read or change the view** — `read`, `aggregate`, `series`, `context`, `coverage`, `source`, `filter`,
-  `goto`, `flag`, `topology`, `spotlight` — approved without asking; **`graph`**, judged call by call: creating a chart
+  `goto`, `flag`, `topology`, `spotlight` — approved without asking (to show you code, `source {…, text}` returns the
+  lines from your source roots as data, at most 200 lines a call, so Claude does not need to read the files itself);
+  **`graph`**, judged call by call: creating a chart
   or showing one is approved without asking, while deleting, renaming or restoring a chart, or replacing an existing
   chart's definition (re-sent notes, series, guides or bands; `clearNotes`) is **asked of you** — the dialog says
   *"Claude Code asks to delete the chart “x” (it can be restored)"* or *"…to replace the chart “x” (its old definition

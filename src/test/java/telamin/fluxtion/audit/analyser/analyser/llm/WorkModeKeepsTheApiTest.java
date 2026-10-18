@@ -67,15 +67,18 @@ class WorkModeKeepsTheApiTest {
      * the five the owner decision of 2026-10-18 changed deliberately (graph {restore} added, delete's "NOT recoverable"
      * corrected): {@link GraphRestoreApiDeltaTest} proves undoing exactly that gives the earlier pins back.
      */
+    // owner 2026-10-18: source {text} — one optional read-only parameter and one sentence — moved the two schema maps,
+    // the two tool lists and the in-process manifest; SourceTextApiDeltaTest proves undoing exactly that gives the pins
+    // before it back (its BEFORE), and holds the pins after (its AFTER)
     static final Map<String, String> PINNED = Map.ofEntries(
-            Map.entry("VerbSchemas.all", "057e731d90ba55d7d28a7f0972c237cfd2d0f420395716d43579d21d676259d4"),
+            Map.entry("VerbSchemas.all", "7c0cfc883f7b0dbb52a94f972f4b676d0cdeb7541ae40d30a4096459e5e93772"),
             // Option 2 (owner, 2026-10-18): the HOSTED propose gained the starter kind — never an external client's
             // surface (propose is hosted-only); StarterProposeApiDeltaTest proves undoing it gives the earlier pins back
-            Map.entry("VerbSchemas.hosted", "27f0694acacfa40a9afdce46e97e6ab37cfe7a1d239b95da96cdbdc83c408ebd"),
-            Map.entry("McpTools.list", "4b7a627285c8cb81a01be2566ecb6294b0feb33b789ef7f53baf6220f3b308da"),
-            Map.entry("McpTools.hostedList", "099c47f18645d90e517b910246cc55287dced8a875abff19716ac973f4038a0b"),
+            Map.entry("VerbSchemas.hosted", "e939a7ab31794f339718b9cf03e9d2b31c8257fee288eab5293039f86f5d40ce"),
+            Map.entry("McpTools.list", "ee123c503dc3225505b0bacccb0f24335617bf0698a138801cfc6ea76f4c79b3"),
+            Map.entry("McpTools.hostedList", "e4d2cb45af519154c41289bc5d564bc183bc8ac202681f13bc88253d667cc251"),
             Map.entry("McpBridge.INSTRUCTIONS", "fdcf8b03dab8d45d9c197d230961a41518faa0319b6f5a9cc6a51662cfdf144a"),
-            Map.entry("PromptBuilder.inProcessActionManifest", "2df1e7478f92c76b9bf4eef1f52f225effb09d0c552bb42f8806141d0a58d40d"),
+            Map.entry("PromptBuilder.inProcessActionManifest", "01a161d22a7ea6dca8d83a0e4a0446d68236028603112c7597b989b49d3cae7e"),
             Map.entry("PromptBuilder.restActionManifest", "b6a4c625c3ecba2fa55bc9001d97fe71ab53ffd899c8c4a37e4850178e99aea8"),
             Map.entry("context.handoff derived, project", "591833ea9ec7b553f868403da4ba5d909b2e45b628c93b43fd70dcb170426bb1"),
             Map.entry("context.handoff derived, none", "1623b4af915aef11455cfc7a7587804fa90504f869dde67de3f5177393a04679"),

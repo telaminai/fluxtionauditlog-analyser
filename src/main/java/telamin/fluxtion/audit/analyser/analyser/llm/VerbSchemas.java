@@ -382,12 +382,20 @@ public final class VerbSchemas {
 
         s.put("source", schema("Read-only source glance; rereads XML or Java under authorised source roots. "
                         + "Exclusive selectors: {file}, {file,line}, {line}, {bean}, {file,bean}, {fqn}, {fqn,method}. "
-                        + "A glance never replaces open.design. Bean matches aid navigation, not evidence; relationship to the loaded run remains unverified.",
+                        + "A glance never replaces open.design. Bean matches aid navigation, not evidence; relationship to the loaded run remains unverified. "
+                        + "To SHOW code, add text and the lines come back as data (read-only, the same roots, at most "
+                        + telamin.fluxtion.audit.analyser.analyser.design.SourceText.MAX_LINES + " lines and "
+                        + telamin.fluxtion.audit.analyser.analyser.design.SourceText.MAX_BYTES / 1024 + " KB, a cut is stated) "
+                        + "— use it instead of reading the files yourself.",
                 props(p("file", string(), "Project-relative or absolute path under an authorised source root"),
                         p("bean", string(), "Bean id in the session design, or the specified XML file; duplicates are refused"),
                         p("line", integer(), "One-based line in file or session design"),
                         p("fqn", string(), "Java class under authorised source roots"),
-                        p("method", string(), "Method name, only with fqn")), List.of()));
+                        p("method", string(), "Method name, only with fqn"),
+                        // owner 2026-10-18: additive and opt-in — without it the call and its reply are unchanged
+                        p("text", sourceTextObject(), "Also return the file's lines as data: {from, to?} a range, or "
+                                + "{around?, context?} a window (around defaults to the chosen line, context to "
+                                + telamin.fluxtion.audit.analyser.analyser.design.SourceText.DEFAULT_CONTEXT + ")")), List.of()));
 
         s.put("source_root", schema("Inspect or change the configured source roots. Reaches the "
                         + "FILESYSTEM: a root grants Java, XML design and producer-result reading beneath it.",
@@ -758,6 +766,18 @@ public final class VerbSchemas {
                 p("payload", string(), "optional column whose text rides each point (an order id)"),
                 p("offsetMillis", integer(), "deliberate clock correction, always shown on the stamp")));
         m.put("required", List.of("path", "time", "timeFormat"));
+        return m;
+    }
+
+    /** Owner 2026-10-18: {@code source}'s {@code text} — which lines to return. */
+    private static Map<String, Object> sourceTextObject() {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("type", "object");
+        m.put("properties", props(
+                p("from", integer(), "first line of a range (1-based)"),
+                p("to", integer(), "last line of the range; default: as many as the cap allows"),
+                p("around", integer(), "the line a window centres on; default: the line source chose"),
+                p("context", integer(), "lines each side of 'around'")));
         return m;
     }
 

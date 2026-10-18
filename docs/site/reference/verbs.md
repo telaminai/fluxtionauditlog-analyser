@@ -135,6 +135,15 @@ session design; `open {diagnostics}` explicitly replaces its producer findings a
 Both work without a log. See [Source navigation](../user-guide/source-navigation.md#spring-design-and-file-glances).
 The source-root grant now covers Java, XML designs and producer JSON; project membership alone is not a grant.
 
+Add `text` to get the file's lines back as data, so an assistant can show code without reading files itself:
+`{fqn: "com.acme.demo.node.Nodes", text: {from: 40, to: 80}}` returns a range, and
+`{fqn: "…", method: "checkLimit", text: {context: 15}}` a window around the line `source` chose (`around` names
+another line; `context` defaults to 20). It is read-only and reads only what `source` already may: a file under an
+authorised source root, by its real path, so a link that leads out of a root is refused. One call returns at most
+200 lines and 32 KB; a cut says so and where to continue (`text: {from: N}`). A file holding NUL characters, or one that
+is not UTF-8, is refused. The reply's `text` is `{from, to, fileLines, content, truncated?, note}`; without `text` the
+reply is exactly as before.
+
 ### open
 
 `open` also writes to the **shared canvas** — state you and the AI client both see and either of you can
@@ -557,7 +566,7 @@ Open an audit log and/or a processor .graphml — or CLOSE what is open. Reaches
 
 MCP tool `analyser_source`.
 
-Read-only source glance; rereads XML or Java under authorised source roots. Exclusive selectors: {file}, {file,line}, {line}, {bean}, {file,bean}, {fqn}, {fqn,method}. A glance never replaces open.design. Bean matches aid navigation, not evidence; relationship to the loaded run remains unverified.
+Read-only source glance; rereads XML or Java under authorised source roots. Exclusive selectors: {file}, {file,line}, {line}, {bean}, {file,bean}, {fqn}, {fqn,method}. A glance never replaces open.design. Bean matches aid navigation, not evidence; relationship to the loaded run remains unverified. To SHOW code, add text and the lines come back as data (read-only, the same roots, at most 200 lines and 32 KB, a cut is stated) — use it instead of reading the files yourself.
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
@@ -566,6 +575,7 @@ Read-only source glance; rereads XML or Java under authorised source roots. Excl
 | `line` | integer |  | One-based line in file or session design |
 | `fqn` | string |  | Java class under authorised source roots |
 | `method` | string |  | Method name, only with fqn |
+| `text` | object (`from`, `to`, `around`, `context`) |  | Also return the file's lines as data: {from, to?} a range, or {around?, context?} a window (around defaults to the chosen line, context to 20) |
 
 ### `source_root` arguments
 

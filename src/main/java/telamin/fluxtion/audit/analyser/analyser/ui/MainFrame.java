@@ -9641,18 +9641,42 @@ public final class MainFrame extends JFrame {
         }
 
         @Override public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult source(Map<String, Object> params) {
-            return readDesign("source", workspace -> workspace.source(params), prepared -> {
+            // owner 2026-10-18: {…, text} also returns the chosen lines as data — read-only, the same root check, capped;
+            // without it the call and its reply are exactly as before
+            boolean lines = params.containsKey("text");
+            telamin.fluxtion.audit.analyser.analyser.design.SourceText.Request wanted = null;
+            Map<String, Object> selectors = params;
+            if (lines) {
+                var parsed = telamin.fluxtion.audit.analyser.analyser.design.SourceText.parse(params.get("text"));
+                if (!parsed.ok()) return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(parsed.error());
+                wanted = parsed.request();
+                selectors = new java.util.LinkedHashMap<>(params);
+                selectors.remove("text");
+            }
+            final Map<String, Object> select = selectors;
+            final telamin.fluxtion.audit.analyser.analyser.design.SourceText.Request request = wanted;
+            return readDesign("source", workspace -> workspace.source(select, lines), prepared -> {
                 clearSpotlightHere();
                 if (!prepared.error().isEmpty()) {
-                    String reason = prepared.error() + graphNodeHint(params) + "; roots: " + designFiles().roots()
+                    String reason = prepared.error() + graphNodeHint(select) + "; roots: " + designFiles().roots()
                             + "; accepted selectors: " + telamin.fluxtion.audit.analyser.analyser.design.DesignWorkspace.SHAPES;
                     sourcePanel.navigationFailed();
                     status.setText(reason);
                     return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(reason);
                 }
                 var view = prepared.value();
+                telamin.fluxtion.audit.analyser.analyser.design.SourceText.Slice slice = null;
+                if (request != null) {
+                    slice = telamin.fluxtion.audit.analyser.analyser.design.SourceText.slice(view.text(), request, view.line());
+                    if (!slice.ok()) {
+                        sourcePanel.navigationFailed();
+                        status.setText(slice.error());
+                        return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(slice.error());
+                    }
+                }
                 sourcePanel.showFile(view, designViewNote(view), true); selectSideTab("source");
                 Map<String, Object> echo = view.echo();
+                if (slice != null) echo.put("text", slice.echo());
                 if (view.bean() != null) {
                     echo.put("nodeId", view.bean()); echo.put("recordsRelationship", "unverified");
                     String fqn = view.document().beans(view.bean()).getFirst().attr("class");

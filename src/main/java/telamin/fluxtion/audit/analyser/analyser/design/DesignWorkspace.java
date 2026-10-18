@@ -80,6 +80,14 @@ public final class DesignWorkspace {
     public void clear(String reason) { dispatch.accept(new DesignEvents.Cleared(reason)); }
 
     public View source(Map<String, Object> params) throws IOException {
+        return source(params, false);
+    }
+
+    /**
+     * {@link #source(Map)}; {@code lines}: the call asked for the file's TEXT ({@code source {…, text}}, owner 2026-10-18),
+     * so a file that is not UTF-8 is refused in words — the lines cannot be returned — rather than as the decoder's.
+     */
+    public View source(Map<String, Object> params, boolean lines) throws IOException {
         Set<String> keys = params.keySet();
         if (!List.of(Set.of("file"), Set.of("file", "line"), Set.of("line"), Set.of("bean"), Set.of("file", "bean"), Set.of("fqn"), Set.of("fqn", "method")).contains(keys))
             throw new IOException("accepted source selectors: " + SHAPES);
@@ -88,7 +96,13 @@ public final class DesignWorkspace {
         if (!keys.contains("fqn") && !keys.contains("file") && state.get().path() == null) throw new IOException(NO_DESIGN);
         Path path = keys.contains("fqn") ? access.fqn(str(params.get("fqn")))
                 : access.resolve(keys.contains("file") ? str(params.get("file")) : state.get().path());
-        String text = access.read(path);
+        String text;
+        try {
+            text = access.read(path);
+        } catch (java.nio.charset.CharacterCodingException e) {
+            if (lines) throw new IOException("the file is not UTF-8 text, so its lines are not returned: " + path);
+            throw e;
+        }
         int line = 1;
         if (keys.contains("line")) {
             Object n = params.get("line");

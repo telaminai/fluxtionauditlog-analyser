@@ -31,6 +31,23 @@ class VerbSchemasTest {
         return ((Map<String, Object>) schema(verb).get("properties")).keySet();
     }
 
+    /**
+     * Owner 2026-10-18: {@code source {text}} is one optional object of four optional line numbers, and the description
+     * says to use it to show code. Before: source had five parameters and no text; after, six.
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    void sourceTextIsAnOptionalObjectOfLineNumbers() {
+        assertEquals(List.of("file", "bean", "line", "fqn", "method", "text"), List.copyOf(props("source")));
+        var text = (Map<String, Object>) ((Map<String, Object>) schema("source").get("properties")).get("text");
+        assertEquals("object", text.get("type"));
+        var fields = (Map<String, Object>) text.get("properties");
+        assertEquals(List.of("from", "to", "around", "context"), List.copyOf(fields.keySet()));
+        for (Object f : fields.values()) assertEquals("integer", ((Map<String, Object>) f).get("type"));
+        assertNull(text.get("required"), "every field optional");
+        assertTrue(String.valueOf(schema("source").get("description")).contains("instead of reading the files yourself"));
+    }
+
     @Test
     void coversEveryDispatchedVerb() {
         // must stay in step with ActionDispatcher / ActionServer's verb list
