@@ -397,6 +397,121 @@ public final class UiTheme {
         }
     }
 
+    // ---- M77-5: the option diagram's palette (spec-ai-setup-wizard.md §6.1a) --------------------------------------
+    // Each DiagramPalette token maps to one method here, light and dark. TWO_WAY_LINE / TWO_WAY_TEXT are accent() /
+    // accentText(), the product blue. Full's amber is its OWN set, deliberately not attentionForeground() (#8A5A00 /
+    // #E6B43C): the diagram's amber is a line, a tag and its words, each checked against the wash it sits on.
+
+    /** The diagram: the product's icon body. */
+    public static Color diagramAnalyserFill(boolean dark) {
+        return new Color(dark ? 0x123F3A : 0xD5EFEA);
+    }
+
+    /** The diagram: the product's outline, glyph and label. */
+    public static Color diagramAnalyserInk(boolean dark) {
+        return new Color(dark ? 0x5FD8C6 : 0x0F6B63);
+    }
+
+    /** The diagram: Claude's bubble (a warm rose, well apart from Full's amber). */
+    public static Color diagramClaudeFill(boolean dark) {
+        return new Color(dark ? 0x4A2430 : 0xF9E0E6);
+    }
+
+    /** The diagram: Claude's outline and label. */
+    public static Color diagramClaudeInk(boolean dark) {
+        return new Color(dark ? 0xF08AA0 : 0xB0405A);
+    }
+
+    /** The diagram: your own client's terminal. */
+    public static Color diagramClientFill(boolean dark) {
+        return new Color(dark ? 0x32264E : 0xE2D6FA);
+    }
+
+    /** The diagram: your own client's outline and label. */
+    public static Color diagramClientInk(boolean dark) {
+        return new Color(dark ? 0xB8A1F4 : 0x6A3DC4);
+    }
+
+    /** The diagram: an AI service's cloud. */
+    public static Color diagramServiceFill(boolean dark) {
+        return new Color(dark ? 0x2A323C : 0xE2E7ED);
+    }
+
+    /** The diagram: an AI service's outline and label. */
+    public static Color diagramServiceInk(boolean dark) {
+        return new Color(dark ? 0xA8B5C3 : 0x4B5A6A);
+    }
+
+    /** The diagram: the machine boundary's wash. */
+    public static Color diagramBoundaryWash(boolean dark) {
+        return new Color(dark ? 0x22302D : 0xE9F5F1);
+    }
+
+    /** The diagram: the machine boundary's dashed edge (3:1 on the panel: it is meaning). */
+    public static Color diagramBoundaryEdge(boolean dark) {
+        return new Color(dark ? 0x7FB5A9 : 0x4F8F82);
+    }
+
+    /** The diagram: Full Claude Code's arrows (caution). */
+    public static Color diagramFullAmberLine(boolean dark) {
+        return new Color(dark ? 0xF2A33A : 0xC2620A);
+    }
+
+    /** The diagram: Full Claude Code's chip words. */
+    public static Color diagramFullAmberText(boolean dark) {
+        return new Color(dark ? 0xF5B25A : 0x9A4A05);
+    }
+
+    /** The diagram: the Full tag's fill. */
+    public static Color diagramFullAmberTag(boolean dark) {
+        return new Color(dark ? 0xF2A33A : 0xB45309);
+    }
+
+    /** The diagram: the Full tag's word. */
+    public static Color diagramOnFullAmberTag(boolean dark) {
+        return new Color(dark ? 0x1C1205 : 0xFFFFFF);
+    }
+
+    /** The diagram: your client's arrow into the product. */
+    public static Color diagramClientLine(boolean dark) {
+        return new Color(dark ? 0xA98CF0 : 0x6A3DC4);
+    }
+
+    /** The diagram: your client's chip words. */
+    public static Color diagramClientText(boolean dark) {
+        return new Color(dark ? 0xC2AEF7 : 0x5A31AE);
+    }
+
+    /** The diagram: an arrow you carry by hand (dashed). */
+    public static Color diagramByHandLine(boolean dark) {
+        return new Color(dark ? 0xA3ABB4 : 0x5B636C);
+    }
+
+    /** The diagram: its chip words. */
+    public static Color diagramByHandText(boolean dark) {
+        return new Color(dark ? 0xB4BBC3 : 0x4A5159);
+    }
+
+    /** The diagram: a path that is not on (dotted; deliberately below 3:1, it always carries its word). */
+    public static Color diagramOffLine(boolean dark) {
+        return new Color(dark ? 0x6B737C : 0x9AA1A9);
+    }
+
+    /** The diagram: that path's word. */
+    public static Color diagramOffText(boolean dark) {
+        return new Color(dark ? 0x9EA6AF : 0x5F666E);
+    }
+
+    /** The diagram: an arrow out to an AI service. */
+    public static Color diagramServiceLine(boolean dark) {
+        return new Color(dark ? 0x93A2B2 : 0x4B5A6A);
+    }
+
+    /** The diagram: No AI's no-sign. */
+    public static Color diagramNoSign(boolean dark) {
+        return new Color(dark ? 0xF0716A : 0xC03A35);
+    }
+
     private static Color or(Color c, Color fallback) {
         return c != null ? c : fallback;
     }

@@ -33,6 +33,7 @@ class UserVisibleJargonTest {
     static final List<String> SHOWN_ELSEWHERE = List.of(
             "session/node/LocalAgentSession.java", "session/node/LocalAgentPermission.java",
             "session/node/AiSetup.java", "session/AiSetupLines.java", "session/node/StartPagePrompt.java",
+            "ui/setup/FlowDiagram.java", "ui/setup/DiagramPalette.java",
             "session/node/ActionListener.java", "session/LocalAgentPosture.java",
             "assistant/localagent/LocalAgentAdapter.java", "assistant/localagent/StreamJson.java");
 

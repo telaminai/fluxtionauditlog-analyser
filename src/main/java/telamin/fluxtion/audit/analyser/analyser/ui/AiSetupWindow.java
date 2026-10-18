@@ -7,6 +7,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Choice;
 import telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Posture;
 import telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Step;
 import telamin.fluxtion.audit.analyser.analyser.session.AssistantProfile;
+import telamin.fluxtion.audit.analyser.analyser.ui.setup.FlowDiagram;
 
 import javax.swing.AbstractAction;
 import javax.swing.BorderFactory;
@@ -96,12 +97,24 @@ final class AiSetupWindow extends JDialog {
 
         /** What a client called itself, by reference (OD-77.8); null when unknown. */
         default String clientLabel(long ref) { return null; }
+
+        /** Open a page of the docs site (OD-77.17: the FAQ entry on Claude Code's own usage data). */
+        default void openDocs(String page) {
+            try {
+                java.awt.Desktop.getDesktop().browse(java.net.URI.create(
+                        telamin.fluxtion.audit.analyser.analyser.assistant.AskPointers.DOCS_URL + page));
+            } catch (Exception ignored) {
+                // no browser: the link is a convenience, the FAQ is on the docs site
+            }
+        }
     }
 
     static final int DEFAULT_WIDTH = 640;
     static final int DEFAULT_HEIGHT = 560;
     static final int MIN_WIDTH = 520;
     static final int MIN_HEIGHT = 480;
+    /** The FAQ link's text lines up with the picture's own margin. */
+    private static final int PAD_LINK = 6;
 
     /** The first three sentences of the Full warning, by reference (§6.2). */
     static List<String> fullWarningBullets() {
@@ -120,8 +133,8 @@ final class AiSetupWindow extends JDialog {
     private final WrapLine line = new WrapLine(" ");
     private final JLabel footer = UiText.label(AiSetupLines.FOOTER);
     /**
-     * M77-5's slot: an empty container under the SELECTED option's title row, above its sentence, for the diagram PR to
-     * fill. Empty, it has no visible size. It moves with the selection; its contents are kept across renders.
+     * M77-5's slot under the SELECTED option's title row, above its sentence: <i>Where data goes</i> (§6.1a). It moves
+     * with the selection; its contents are kept across renders. Empty, it would have no visible size.
      */
     final JPanel selectedOptionExtra = new JPanel(new BorderLayout()) {
         @Override public Dimension getPreferredSize() {
@@ -150,6 +163,11 @@ final class AiSetupWindow extends JDialog {
     /** Screen 2b: the command is shown collapsed to its first words until the person asks for all of it (view only). */
     private boolean commandExpanded;
 
+    /** M77-5 (§6.1a): the selected option's picture, and (Claude inside / Both) the FAQ link on Claude Code's own data. */
+    final FlowDiagram diagram = new FlowDiagram();
+    final JButton usageLink = link(AiSetupLines.DIAGRAM_USAGE_LINK);
+    private final JPanel picture = new JPanel();
+
     /** The in-app details keep what the person typed across renders. */
     final InAppDetails inApp = new InAppDetails();
     private AiSetupState state = AiSetupState.IDLE;
@@ -167,6 +185,17 @@ final class AiSetupWindow extends JDialog {
             }
         });
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
+        picture.setLayout(new BoxLayout(picture, BoxLayout.Y_AXIS));
+        picture.setOpaque(false);
+        picture.setBorder(BorderFactory.createEmptyBorder(UiTheme.SPACE_XS, 28, UiTheme.SPACE_XS, 0));
+        diagram.setAlignmentX(LEFT_ALIGNMENT);
+        usageLink.setAlignmentX(LEFT_ALIGNMENT);
+        usageLink.setBorder(BorderFactory.createEmptyBorder(0, PAD_LINK, 0, 0));
+        usageLink.getAccessibleContext().setAccessibleName(AiSetupLines.DIAGRAM_USAGE_LINK);
+        usageLink.addActionListener(e -> host.openDocs(AiSetupLines.DIAGRAM_USAGE_PAGE));
+        picture.add(diagram);
+        picture.add(usageLink);
+        selectedOptionExtra.add(picture, BorderLayout.CENTER);
         content.setBorder(BorderFactory.createEmptyBorder(UiTheme.SPACE_LG, UiTheme.SPACE_LG, UiTheme.SPACE_MD,
                 UiTheme.SPACE_LG));
         JPanel holder = new AssistantPanel.WidthTrackingPanel();
@@ -238,6 +267,9 @@ final class AiSetupWindow extends JDialog {
                 SwingUtilities.updateComponentTreeUI(c);
             }
             footer.setForeground(UiTheme.mutedForeground());
+            SwingUtilities.updateComponentTreeUI(picture);
+            usageLink.setBorder(BorderFactory.createEmptyBorder(0, PAD_LINK, 0, 0));
+            usageLink.setForeground(UiTheme.accentText());
             renderedKey = "";
             render(state, lastModel, lastProvider, lastInAppModel, lastKeyStored);
         });
@@ -336,8 +368,12 @@ final class AiSetupWindow extends JDialog {
             }
             card.add(top);
             if (s.choice() == c) {
-                // M77-5's slot (owner, 2026-10-18): the selected option's data-flow diagram goes here, between its
-                // title row and its sentence; empty, it takes no space. The sentence stays visible on every card.
+                // M77-5 (§6.1a, OD-77.14): the selected option's picture, between its title row and its sentence; only
+                // one picture is on screen, and the sentence stays visible on every card. The picture renders the
+                // state; it decides nothing (rule 9).
+                FlowDiagram.Option shown = FlowDiagram.Option.of(c);
+                diagram.setSnapshot(s, shown);
+                usageLink.setVisible(diagram.model().usageLink());
                 selectedOptionExtra.setAlignmentX(LEFT_ALIGNMENT);
                 card.add(selectedOptionExtra);
             }
