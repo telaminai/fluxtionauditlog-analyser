@@ -91,11 +91,14 @@ creates the project itself, and it never names a folder.
    authoring and host and, for Spring, the playground's design skill and XML contract, each checked against its
    pinned digest — under `.claude/skills/`. A file already there is never overwritten. The design skill and contract
    are bundled with the publisher's permission (owner, 2026-10-18); the playground's licence statement is pending (UP-PG-10). Once every pin has
-   matched, one thing is filled in: *add-a-node*'s placeholder for the regeneration command becomes the starter's own
-   steps from the analyser's first-run record (for the Spring starters `./check-fluxtion-key.sh`, `./setup.sh`,
-   `./validate.sh`, `./generate.sh`) and whether they need a Fluxtion API key. A starter with no such record keeps
-   the placeholder. `.claude/skills/.vendored.json` lists each file's pinned source digest and its written digest,
-   and marks the substituted file.
+   matched, the placeholders the analyser's first-run record for the starter can answer are filled in, and nothing
+   else: *add-a-node*'s regeneration command becomes the starter's own steps (for the Spring starters
+   `./check-fluxtion-key.sh`, `./setup.sh`, `./validate.sh`, `./generate.sh`) and whether they need a Fluxtion API
+   key; *run-mongoose-server*'s start command becomes `./run-server.sh` and *run-embedded*'s becomes `./run.sh`, each
+   with the steps the record runs before it. The placeholders the record cannot answer — the export command, the log
+   and GraphML paths, the stop command, the class an embedded run starts — stay as they are, as does every
+   placeholder for a starter with no record (on Windows, none has one today). `.claude/skills/.vendored.json` lists
+   each file's pinned source digest and its written digest, and one note per placeholder: filled, or kept and why.
 4. **One review.** What opening the project puts in force: with the starter's own profile, one row opens it (its source
    roots, processor and runbooks named); without one, each discovered source root and skill is a row. Every row
    starts at No except the Spring design folder (`src/main/fluxtion/designer`), which is pre-ticked: it is inside the

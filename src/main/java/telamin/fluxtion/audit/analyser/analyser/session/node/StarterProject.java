@@ -310,8 +310,8 @@ public class StarterProject implements EventLogSource {
         note = "Unpacked the starter into " + rootShown + " — adding its skills";
         StarterState.Entry entry = published().entry(idDigest);
         auditLog.info("starter", "VENDORING").info("profile", profilePresent);
-        // add-a-node's regeneration marker is filled from the starter's own first-run record and key declaration
-        // (owner, 2026-10-18); with no record (commandsRef 0) the marker is kept
+        // the skills' markers are filled from the starter's own first-run record and key declaration where those
+        // answer them (owner, 2026-10-18); with no record (commandsRef 0) every marker is kept
         effects.request(new SessionEffects.VendorSkillsEffect(0L, request, rootRef, authoring,
                 entry == null ? "embedded" : entry.host(), commandsRef, entry == null ? "" : entry.keyNeed()));
         return changed();

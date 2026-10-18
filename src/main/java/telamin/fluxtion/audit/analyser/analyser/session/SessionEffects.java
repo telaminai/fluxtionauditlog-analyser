@@ -786,8 +786,9 @@ public sealed interface SessionEffects {
      * Write the starter's skills — the canonical set for its authoring and host and, for Spring, the pinned playground
      * design skill and contract — from the analyser's own jar under {@code <root>/.claude/skills/}, never overwriting a
      * file; answer {@link SessionEvents.SkillsVendored}. {@code commandsRef} is the starter's first-run record (the
-     * post-install command list; 0 when none) and {@code keyNeed} the template's key declaration: {@code add-a-node}'s
-     * regeneration marker is substituted from those two, after the pins are checked, or kept when there is no record.
+     * post-install command list; 0 when none) and {@code keyNeed} the template's key declaration: after the pins are
+     * checked, every skill marker those two can answer ({@code add-a-node}'s regeneration, the run skills' start
+     * command) is substituted from them, and every other marker is kept — all of them when there is no record.
      */
     record VendorSkillsEffect(long opId, long request, long rootRef, String authoring, String host, long commandsRef,
                               String keyNeed) implements SessionEffects {

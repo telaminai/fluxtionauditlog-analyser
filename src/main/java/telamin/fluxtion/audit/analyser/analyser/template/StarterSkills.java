@@ -36,13 +36,16 @@ import java.util.function.Function;
  *       permission (owner, 2026-10-18); the playground's licence statement is pending (UP-PG-10).</li>
  * </ul>
  *
- * <p><b>One substitution, after the pins (owner, 2026-10-18).</b> {@code add-a-node} carries the bundle marker that asks for
- * this project's regeneration command and its key need ({@link #REGENERATION_MARKER}). Once every selected byte matched
- * its pin, that ONE fenced block — and nothing else — is replaced by fixed text built from the analyser's own
- * first-run record for the starter ({@code TemplateArchive.commandsFor}, the post-install command list) and the
- * template's {@code keyNeed} ({@link #regenerationBlock}). With no record naming {@code ./generate.sh}, the marker is
- * kept as it is. {@code .claude/skills/.vendored.json} ({@link #RECORD}) lists, for every file written, the pinned
- * source digest and the written file's digest, and says which file was substituted.
+ * <p><b>Marker substitution, after the pins (owner, 2026-10-18).</b> The selected canonical skills carry bundle markers
+ * ({@link #MARKERS}: each file, its whole block byte for byte, what fills it). Once every selected byte matched its pin,
+ * each marker block the analyser's own first-run record for the starter can answer — and nothing else — is replaced by
+ * fixed text: the record ({@code TemplateArchive.commandsFor}, the post-install command list) contributes only known
+ * command strings, the template's {@code keyNeed} only one of four fixed key notes. That is {@code add-a-node}'s
+ * regeneration ({@link #regenerationBlock}), {@code run-mongoose-server}'s start command ({@link #mongooseStartBlock}) and
+ * {@code run-embedded}'s run command ({@link #embeddedRunBlock}). A marker the record cannot answer — the export command,
+ * log and GraphML paths, the stop command, or any marker with no record (Windows today) — is kept as it is.
+ * {@code .claude/skills/.vendored.json} ({@link #RECORD}) lists, for every file written, the pinned source digest and the
+ * written file's digest, and one note per marker: substituted, or kept and why.
  *
  * <p><b>Never overwrite.</b> A skill whose {@code SKILL.md} is already there is kept whole; any other file that exists is
  * kept. A link anywhere on the way ({@code .claude}, {@code .claude/skills}, a skill's folder) refuses the whole set, as
@@ -103,7 +106,77 @@ public final class StarterSkills {
     /** The digest record, under {@code .claude/skills}: never overwritten. */
     public static final String RECORD = ".vendored.json";
     public static final String SUBSTITUTED = "substituted: regeneration command";
+    public static final String SUBSTITUTED_START = "substituted: start command";
+    public static final String SUBSTITUTED_RUN = "substituted: run command";
     public static final String MARKER_KEPT = "marker kept: no first-run record for this starter";
+    public static final String KEPT_NO_GENERATE = "marker kept: the first-run record names no ./generate.sh";
+    public static final String KEPT_NO_RUN_SERVER = "marker kept: the first-run record names no ./run-server.sh";
+    public static final String KEPT_NO_RUN = "marker kept: the first-run record names no ./run.sh";
+    public static final String KEPT_LOAD = "marker kept: the first-run record names no export command, log path or "
+            + "GraphML path";
+    public static final String KEPT_EXPORT = "marker kept: the first-run record names no export command or export file";
+    public static final String KEPT_STOP = "marker kept: the first-run record names no stop command";
+    public static final String KEPT_NOT_ONCE = "marker kept: the marker block is not in the file exactly once";
+
+    /** The canonical skills that carry the other bundle markers. */
+    public static final String LOAD_AUDIT_LOG = "common/load-audit-log/SKILL.md";
+    public static final String RUN_MONGOOSE = "mongoose/run-mongoose-server/SKILL.md";
+    public static final String RUN_EMBEDDED = "embedded/run-embedded/SKILL.md";
+
+    /** {@code load-audit-log}'s marker: the export command, YAML and GraphML paths — never in the first-run record. */
+    public static final String LOAD_MARKER = """
+               ```
+               TODO(bundle): substitute the bundle's exact export command (where required), concrete YAML-export path and GraphML path here.
+               ```
+            """;
+
+    /** {@code run-mongoose-server} step 1: the start command, with the line it asks to be corrected. */
+    public static final String MONGOOSE_START_MARKER = """
+               ```
+               ./scripts/run-server.sh              # the starter's entry point
+               ```
+
+               TODO(bundle): if this project names it differently, correct this line when the bundle is generated.
+            """;
+
+    /** {@code run-mongoose-server} step 3: the export command and its file — never in the first-run record. */
+    public static final String MONGOOSE_EXPORT_MARKER = """
+               ```
+               TODO(bundle): substitute the exact export command and its concrete ./logs/audit-<name>.yaml target.
+               ```
+            """;
+
+    /** {@code run-mongoose-server} step 5: the clean-stop command — never in the first-run record. */
+    public static final String MONGOOSE_STOP_MARKER = """
+               TODO(bundle): substitute the exact clean-stop command; do not assume a stop script exists.
+            """;
+
+    /** {@code run-embedded} step 2: the entry point's class and command. */
+    public static final String EMBEDDED_START_MARKER = """
+               TODO(bundle): name the class and command. An embedded host has no standard main; do not invent one.
+            """;
+
+    /**
+     * One bundle marker in a selected canonical skill: the file, the whole block (byte for byte as pinned), the fixed
+     * text that replaces it from a first-run record (null: this record cannot answer), the note when it is replaced,
+     * and the note when the record exists but cannot answer it. {@code fromRecord} is false for a marker no first-run
+     * record can ever answer, whose kept note is then the same with or without a record.
+     */
+    record Marker(String path, String block, Function<FirstRun, String> fill, String filled, String kept,
+                  boolean fromRecord) {
+    }
+
+    /** Every bundle marker in a skill the analyser can select ({@code replay-a-run} is never selected), in file order. */
+    static final List<Marker> MARKERS = List.of(
+            new Marker(LOAD_AUDIT_LOG, LOAD_MARKER, r -> null, null, KEPT_LOAD, false),
+            new Marker(ADD_A_NODE, REGENERATION_MARKER, StarterSkills::regenerationBlock, SUBSTITUTED,
+                    KEPT_NO_GENERATE, true),
+            new Marker(RUN_MONGOOSE, MONGOOSE_START_MARKER, StarterSkills::mongooseStartBlock, SUBSTITUTED_START,
+                    KEPT_NO_RUN_SERVER, true),
+            new Marker(RUN_MONGOOSE, MONGOOSE_EXPORT_MARKER, r -> null, null, KEPT_EXPORT, false),
+            new Marker(RUN_MONGOOSE, MONGOOSE_STOP_MARKER, r -> null, null, KEPT_STOP, false),
+            new Marker(RUN_EMBEDDED, EMBEDDED_START_MARKER, StarterSkills::embeddedRunBlock, SUBSTITUTED_RUN,
+                    KEPT_NO_RUN, true));
 
     /**
      * The first-run steps that regenerate, in the record's order: fixed analyser strings, the only command tokens the
@@ -153,7 +226,7 @@ public final class StarterSkills {
     }
 
     /** One file to write: its bytes, where they came from, the pinned digest of that source (null: the analyser's own). */
-    record Source(byte[] bytes, String from, String pinned, String note) {
+    record Source(byte[] bytes, String from, String pinned, List<String> notes) {
     }
 
     /** One skill to write: its name (the folder under {@code .claude/skills}) and its files, relative to that folder. */
@@ -192,7 +265,7 @@ public final class StarterSkills {
         return out;
     }
 
-    /** Write the starter's skills with no first-run record: the regeneration marker is kept. */
+    /** Write the starter's skills with no first-run record: every marker is kept. */
     public Report vendor(Path projectRoot, String authoring, String host) {
         return vendor(projectRoot, authoring, host, null);
     }
@@ -203,12 +276,7 @@ public final class StarterSkills {
      */
     public static String regenerationBlock(FirstRun record) {
         if (record == null) return null;
-        List<String> steps = new ArrayList<>();
-        for (String command : record.firstRun()) {
-            for (String known : REGENERATION_STEPS) {
-                if (known.equals(command) && !steps.contains(known)) steps.add(known);    // the fixed string, never the input
-            }
-        }
+        List<String> steps = known(record, REGENERATION_STEPS);
         if (!steps.contains("./generate.sh")) return null;
         String key = switch (record.keyNeed()) {
             case "build" -> KEY_BUILD;
@@ -223,9 +291,93 @@ public final class StarterSkills {
     }
 
     /**
+     * The fixed text that replaces {@link #MONGOOSE_START_MARKER}: {@code ./run-server.sh} and the record's known steps
+     * before it — or null when the record names no {@code ./run-server.sh}.
+     */
+    public static String mongooseStartBlock(FirstRun record) {
+        return runBlock(record, "./run-server.sh", "This is this project's start command, from the analyser's "
+                + "first-run record for its starter.", "");
+    }
+
+    /**
+     * The fixed text that replaces {@link #EMBEDDED_START_MARKER}: {@code ./run.sh} and the record's known steps before
+     * it, and that the record does not name the class — or null when the record names no {@code ./run.sh}.
+     */
+    public static String embeddedRunBlock(FirstRun record) {
+        return runBlock(record, "./run.sh", "This is this project's run script, from the analyser's first-run record "
+                + "for its starter.", "\n   The record does not name the class it starts: read it from `run.sh`, do not "
+                + "invent one.");
+    }
+
+    /** A run command as the record gives it, indented for a list item; the known steps the record runs first. */
+    private static String runBlock(FirstRun record, String run, String says, String tail) {
+        if (record == null) return null;
+        List<String> vocabulary = new ArrayList<>(REGENERATION_STEPS);
+        vocabulary.add(run);
+        List<String> steps = known(record, vocabulary);
+        if (!steps.contains(run)) return null;
+        List<String> before = new ArrayList<>();
+        for (String step : steps) {
+            if (step.equals(run)) break;          // the record's own order: only what it runs BEFORE the command
+            before.add("`" + step + "`");
+        }
+        String first = before.isEmpty() ? "" : "\n   On a first run that record runs " + String.join(", ", before)
+                + " before it.";
+        return "   ```\n   " + run + "\n   ```\n\n   " + says + first + tail + "\n";
+    }
+
+    /** The record's commands that are in {@code vocabulary}, in the record's order, as the FIXED strings. */
+    private static List<String> known(FirstRun record, List<String> vocabulary) {
+        List<String> steps = new ArrayList<>();
+        for (String command : record.firstRun()) {
+            for (String known : vocabulary) {
+                if (known.equals(command) && !steps.contains(known)) steps.add(known);    // the fixed string, never the input
+            }
+        }
+        return steps;
+    }
+
+    /**
+     * One pinned file with its markers applied: each block must occur exactly once in the pinned text, and only the
+     * blocks the record answers are replaced; every other byte is the pinned one. Null when the file carries none.
+     */
+    static Source substitute(Source pinnedFile, String path, FirstRun record) {
+        List<Marker> mine = new ArrayList<>();
+        for (Marker m : MARKERS) if (m.path().equals(path)) mine.add(m);
+        if (mine.isEmpty()) return null;
+        String text = new String(pinnedFile.bytes(), StandardCharsets.UTF_8);
+        boolean noRecord = record == null || record.firstRun().isEmpty();
+        java.util.TreeMap<Integer, String[]> replace = new java.util.TreeMap<>();      // at → {block, text}
+        List<String> notes = new ArrayList<>();
+        for (Marker m : mine) {
+            int at = text.indexOf(m.block());
+            if (at < 0 || text.indexOf(m.block(), at + 1) >= 0) {
+                notes.add(KEPT_NOT_ONCE);
+                continue;
+            }
+            String fill = noRecord ? null : m.fill().apply(record);
+            if (fill != null) {
+                replace.put(at, new String[]{m.block(), fill});
+                notes.add(m.filled());
+            } else {
+                notes.add(noRecord && m.fromRecord() ? MARKER_KEPT : m.kept());
+            }
+        }
+        StringBuilder out = new StringBuilder();
+        int from = 0;
+        for (var e : replace.entrySet()) {
+            out.append(text, from, e.getKey()).append(e.getValue()[1]);
+            from = e.getKey() + e.getValue()[0].length();
+        }
+        out.append(text.substring(from));
+        byte[] bytes = replace.isEmpty() ? pinnedFile.bytes() : out.toString().getBytes(StandardCharsets.UTF_8);
+        return new Source(bytes, pinnedFile.from(), pinnedFile.pinned(), notes);
+    }
+
+    /**
      * Write the starter's skills into {@code projectRoot}; never throws for a refusal — the report says it. Every
-     * selected byte is checked against its pin first; only then is {@code add-a-node}'s marker substituted from
-     * {@code record} (null: no first-run record, the marker kept).
+     * selected byte is checked against its pin first; only then are the markers ({@link #MARKERS}) substituted from
+     * {@code record} (null: no first-run record, every marker kept).
      */
     @SuppressWarnings("unchecked")
     public Report vendor(Path projectRoot, String authoring, String host, FirstRun record) {
@@ -236,6 +388,7 @@ public final class StarterSkills {
             Map<String, Object> index = (Map<String, Object>) Json.parse(new String(indexBytes, StandardCharsets.UTF_8));
             Map<String, Object> pinned = (Map<String, Object>) index.get("sha256");
             Map<String, Map<String, Source>> byName = new LinkedHashMap<>();
+            Map<String, String> pathOf = new LinkedHashMap<>();        // skill/file -> index path
             for (String path : selection(index, authoring, host)) {
                 byte[] bytes = resources.apply(path);
                 Object want = pinned == null ? null : pinned.get(path);
@@ -247,29 +400,20 @@ public final class StarterSkills {
                 // <tier>/<skill>/<file>: the skill's folder is its own name, as a harness loads it
                 if (parts.length != 3) return refused("an unexpected skill path: " + path);
                 byName.computeIfAbsent(parts[1], k -> new LinkedHashMap<>()).put(parts[2],
-                        new Source(bytes, INDEX + " " + path, w, null));
+                        new Source(bytes, INDEX + " " + path, w, List.of()));
+                pathOf.put(parts[1] + "/" + parts[2], path);
             }
-            // the pins all held: now, and only now, the one marker block — never anything else
-            String block = regenerationBlock(record);
-            Map<String, Source> addANode = byName.get("add-a-node");
-            Source pinnedSkill = addANode == null ? null : addANode.get("SKILL.md");
-            if (pinnedSkill != null && pinnedSkill.from().endsWith(" " + ADD_A_NODE)) {
-                String text = new String(pinnedSkill.bytes(), StandardCharsets.UTF_8);
-                int at = text.indexOf(REGENERATION_MARKER);
-                boolean once = at >= 0 && text.indexOf(REGENERATION_MARKER, at + 1) < 0;
-                if (block != null && once) {
-                    byte[] out = (text.substring(0, at) + block + text.substring(at + REGENERATION_MARKER.length()))
-                            .getBytes(StandardCharsets.UTF_8);
-                    addANode.put("SKILL.md", new Source(out, pinnedSkill.from(), pinnedSkill.pinned(), SUBSTITUTED));
-                } else if (once) {
-                    addANode.put("SKILL.md", new Source(pinnedSkill.bytes(), pinnedSkill.from(), pinnedSkill.pinned(),
-                            MARKER_KEPT));
+            // the pins all held: now, and only now, the named marker blocks — never anything else
+            for (var skill : byName.entrySet()) {
+                for (var file : skill.getValue().entrySet()) {
+                    Source done = substitute(file.getValue(), pathOf.get(skill.getKey() + "/" + file.getKey()), record);
+                    if (done != null) file.setValue(done);
                 }
             }
             if (Starters.SPRING.equals(authoring)) {
                 Map<String, Source> files = new LinkedHashMap<>();
                 files.put("SKILL.md", new Source(SPRING_AUTHORING_SKILL.getBytes(StandardCharsets.UTF_8),
-                        "the analyser's own introduction", null, null));
+                        "the analyser's own introduction", null, List.of()));
                 for (var e : PLAYGROUND.entrySet()) {
                     byte[] bytes = resources.apply(e.getValue()[1]);
                     if (bytes == null) return refused("a bundled playground page is missing: " + e.getValue()[0]);
@@ -277,7 +421,7 @@ public final class StarterSkills {
                         return refused("a bundled playground page does not match its pinned digest: " + e.getValue()[0]);
                     }
                     files.put(e.getKey().substring("spring-authoring/".length()),
-                            new Source(bytes, e.getValue()[0], e.getValue()[2], null));
+                            new Source(bytes, e.getValue()[0], e.getValue()[2], List.of()));
                 }
                 byName.put("spring-authoring", files);
             }
@@ -333,9 +477,9 @@ public final class StarterSkills {
                         row.put("source", src.from());
                         row.put("pinnedSha256", src.pinned());
                         row.put("writtenSha256", writtenDigest);
-                        if (src.note() != null) {
-                            row.put("note", src.note());
-                            notes.add(s.name() + "/" + f.getKey() + ": " + src.note());
+                        if (!src.notes().isEmpty()) {
+                            row.put("notes", src.notes());          // one per marker: substituted, or kept and why
+                            for (String note : src.notes()) notes.add(s.name() + "/" + f.getKey() + ": " + note);
                         }
                         record.add(row);
                         any = true;

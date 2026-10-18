@@ -293,7 +293,17 @@ class StarterProposalFrameTest {
             assertTrue(addANode.contains("./generate.sh"), addANode);
             assertTrue(addANode.contains(telamin.fluxtion.audit.analyser.analyser.template.StarterSkills.KEY_BUILD), addANode);
             assertFalse(addANode.contains("TODO(bundle)"), addANode);
-            assertTrue(Files.readString(skills.resolve(".vendored.json")).contains("substituted: regeneration command"));
+            String vendored = Files.readString(skills.resolve(".vendored.json"));
+            assertTrue(vendored.contains("substituted: regeneration command"), vendored);
+            // ★ run-embedded names the starter's own run script from the same record; load-audit-log's marker, which
+            // the record cannot answer, is kept and the record says why
+            String runEmbedded = Files.readString(skills.resolve("run-embedded/SKILL.md"));
+            assertTrue(runEmbedded.contains("   ./run.sh\n"), runEmbedded);
+            assertFalse(runEmbedded.contains("TODO(bundle)"), runEmbedded);
+            assertTrue(vendored.contains("substituted: run command"), vendored);
+            assertTrue(Files.readString(skills.resolve("load-audit-log/SKILL.md")).contains("TODO(bundle)"));
+            assertTrue(vendored.contains(
+                    telamin.fluxtion.audit.analyser.analyser.template.StarterSkills.KEPT_LOAD), vendored);
             onEdt(() -> words.set(text(combined)));
             assertTrue(words.get().contains("Its profile declares: source root src/main/java"), words.get());
             assertTrue(words.get().contains("spring-authoring"), "the skills written are listed: " + words.get());

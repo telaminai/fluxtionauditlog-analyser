@@ -277,6 +277,7 @@ hosted half, M67, M33.6, the Mongoose audit format phases 2–3, M34.4/.5 and th
 ### M47 · Start from a template
 - [M47.1] ☐ Do the onboarding templates remove the four round-16 blockers structurally? ▸ detail: *M47*.
 - [OPT-2] ◐ **A starter proposed by Claude Code** (owner, 2026-10-18), draft [PR #167](https://github.com/telaminai/fluxtionauditlog-analyser/pull/167) `59220eee` with `fix/starter-followups` `3cf5beb8`, **in integration v2** (`test/usability-2026-10-18b`): `propose {kind: starter}`, `context.starters`, ONE `starterProject` chain (also *New project from template…*), the identity note, Full's docs-site WebFetch; follow-ups: add-a-node's regeneration marker filled from the first-run record, `.vendored.json` digests, the design row pre-ticked; flags 15–22 in the [review map](../handoff/review_map_integration_2026_10_18.md) §6.
+  `fix/fill-skill-placeholders` (owner, 2026-10-18): every marker the first-run record can answer is filled (Mongoose start, embedded run), the rest kept with a note each (flag 22).
   **Acceptance open:** review, the owner's hands-on test (the first live run), a scorecard task; UP-PG-10 (the pages bundled with the publisher's permission, owner 2026-10-18; a stated licence pending).
 
 ### M48 · Authoring modes ([spec](spec-authoring-modes.md)) — .1–.4, .7, .11 shipped
