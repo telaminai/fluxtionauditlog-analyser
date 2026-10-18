@@ -1,8 +1,8 @@
 # Independent review — the 2026-10-18 integration
 
-_The integration branch and tip are filled in (2026-10-18). **v2:** review `test/usability-2026-10-18b`, which adds `fix/wizard-scorecard-regressions`, `fix/owner-test-small`, `feature/propose-starter` (draft #167) and `fix/starter-followups`; its full gate ran at `ddccd5c5` (review map §6), and the commits after it change only the review documents. v1 (`test/usability-2026-10-18`, gated at `5971608c`) is §5._
+_The integration branch and tip are filled in (2026-10-18). **v3:** review `test/usability-2026-10-18c`, which adds `fix/fill-skill-placeholders`, `fix/project-source-roots`, `feature/source-text-and-report-allow` and `fix/starter-proposal-visible` to v2; its full gate ran at `1c06f146` (review map §7), and the commit after it changes only the review documents. **v2:** review `test/usability-2026-10-18b`, which adds `fix/wizard-scorecard-regressions`, `fix/owner-test-small`, `feature/propose-starter` (draft #167) and `fix/starter-followups`; its full gate ran at `ddccd5c5` (review map §6), and the commits after it change only the review documents. v1 (`test/usability-2026-10-18`, gated at `5971608c`) is §5._
 
-Review the integration branch **`test/usability-2026-10-18b` at its tip** (gated at `ddccd5c5`) together with the PRs it gathers. It is M74's P3
+Review the integration branch **`test/usability-2026-10-18c` at its tip** (gated at `1c06f146`) together with the PRs it gathers. It is M74's P3
 plus seven fix branches, Option 2 (a starter proposed by Claude Code, draft #167), M77-1 to M77-5, M78 D1 and D2, the usability scorecard and the spec branches. Use a separate
 worktree and your own review branch; the owner's checkout and other sessions stay untouched. This brief does not
 permit you to merge, release, rebase or force-push.
@@ -18,7 +18,7 @@ Read, in order:
 4. The specs, for the parts you judge: `spec-claude-code-provider.md` (M74), `spec-ai-setup-wizard.md` (M77 r5),
    `spec-quiet-assistant-panel.md` (M78), `spec-first-minute.md` (M79, for what M77 must leave room for), and
    `docs/usability/scorecard.md`.
-5. The diff: `git diff a875fcba..origin/test/usability-2026-10-18b` (v2 alone: `git diff origin/test/usability-2026-10-18..origin/test/usability-2026-10-18b`), then each PR's own diff for anything the seams point you to.
+5. The diff: `git diff a875fcba..origin/test/usability-2026-10-18c` (v3 alone: `git diff origin/test/usability-2026-10-18b..origin/test/usability-2026-10-18c`; v2 alone: `git diff origin/test/usability-2026-10-18..origin/test/usability-2026-10-18b`), then each PR's own diff for anything the seams point you to.
 
 ## What to attack
 

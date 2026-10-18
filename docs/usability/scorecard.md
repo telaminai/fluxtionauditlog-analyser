@@ -431,6 +431,16 @@ route the battery walks; in particular **no task covers the starter flow** (Clau
 open), so the battery cannot see OPT-2 yet. The review map's §6 has the three-column table (integration → `regfix` →
 `integration-b`).
 
+## Integration v3: `integration-b` → `integration-c` (test/usability-2026-10-18c)
+
+The third integration build adds `fix/fill-skill-placeholders`, `fix/project-source-roots`,
+`feature/source-text-and-report-allow` and `fix/starter-proposal-visible` to `integration-b`. The record is
+[`baseline-integration-c.md`](baseline-integration-c.md) / [`.json`](baseline-integration-c.json), from
+`python3 tools/usability/run.py --record --label integration-c` on the jar built at `1c06f146`. Its JSON is
+**identical** to [`baseline-integration-b.json`](baseline-integration-b.json) apart from the label: no regression and no
+budget moves. The proposal strip is hidden unless a proposal waits, the turn times sit inside the transcript (outside
+the chrome count), and no task covers `source {text}`, the report pre-allow or the starter flow.
+
 ## Budgets enforced in CI
 
 `UsabilityBudgetFrameTest` runs on the display, at 1200×800 and docked. The budgets are the integration build's
