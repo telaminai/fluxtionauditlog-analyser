@@ -222,6 +222,34 @@ class StarterProjectTest {
     }
 
     @Test
+    @DisplayName("a discovery failure settles the proposal and permits a new starter request")
+    void discoveryFailureDoesNotStrandTheStarter() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = LocalAgentSessionTest.driver(a);
+        var start = OnboardingProposalTest.admitted(d, a);
+        catalogueRead(d);
+        String id = proposeAndPreview(d, a, start);
+        d.post(new SessionEvents.StarterDestinationChosen(id, id + ".1", REFS.put("/work/new-app"), "…/new-app"));
+        d.post(new SessionEvents.ProposalApplyRequested(id, List.of(id + ".1"), false));
+        long req = of(a, SessionEffects.DownloadStarterEffect.class).get(0).request();
+        d.post(new SessionEvents.StarterInstalled(req, REFS.put("/work/new-app"), "…/new-app", true, 0));
+        d.post(new SessionEvents.SkillsVendored(req, List.of(), List.of(), List.of(), null));
+        assertEquals("DISCOVERING", d.snapshot().starter().phase());
+        // This is the fact MainFrame.runStarterDiscovery posts when its real background reader throws.
+        d.post(new SessionEvents.StarterInstallFailed(req + 1, "a stale discovery"));
+        assertEquals("DISCOVERING", d.snapshot().starter().phase(), "another request cannot settle this one");
+        d.post(new SessionEvents.StarterInstallFailed(req, "the project folder is no longer held"));
+        assertEquals("FAILED", d.snapshot().starter().phase(), "discovery failure must not leave the chain busy");
+        assertEquals(ProposalState.ItemState.FAILED, d.snapshot().proposal().items().get(0).state());
+        assertTrue(d.snapshot().starter().note().contains("unpacked"), "the downloaded files still exist");
+        assertEquals(0, of(a, SessionEffects.OpenStarterProjectEffect.class).size());
+        d.post(new SessionEvents.StarterDiscoveryObserved(req, "late", 5, true, 1, 0, 0));
+        assertEquals("FAILED", d.snapshot().starter().phase(), "a late success must not reopen the failed chain");
+        d.post(new SessionEvents.StarterMenuRequested(91));
+        assertEquals("CATALOGUE", d.snapshot().starter().phase(), "a new creation is no longer refused as busy");
+    }
+
+    @Test
     @DisplayName("Close in the combined review opens nothing; the files stay and the row says so")
     void closingTheReviewOpensNothing() {
         FakeSessionAdapter a = new FakeSessionAdapter();

@@ -275,6 +275,7 @@ hosted half, M67, M33.6, the Mongoose audit format phases 2–3, M34.4/.5 and th
   silently. [M46.4] ☐ U5–U8. [M46.8] ☐ X1–X4 doc gaps. [M46.9] ☐ H1–H2 harness. ▸ detail: *M46*.
 
 ### M47 · Start from a template
+- [OPT-2-R1] ☑ Integration review: a discovery failure settles the starter and its proposal; stale outcomes are ignored and another creation is admitted. Regression and executed red/green evidence: [F1](../handoff/evidence/integration-review-2026-10-18/f1-discovery.md).
 - [M47.1] ☐ Do the onboarding templates remove the four round-16 blockers structurally? ▸ detail: *M47*.
 - [OPT-2] ◐ **A starter proposed by Claude Code** (owner, 2026-10-18), draft [PR #167](https://github.com/telaminai/fluxtionauditlog-analyser/pull/167) `59220eee` with `fix/starter-followups` `3cf5beb8`, **in integration v2** (`test/usability-2026-10-18b`): `propose {kind: starter}`, `context.starters`, ONE `starterProject` chain (also *New project from template…*), the identity note, Full's docs-site WebFetch; follow-ups: add-a-node's regeneration marker filled from the first-run record, `.vendored.json` digests, the design row pre-ticked; flags 15–22 in the [review map](../handoff/review_map_integration_2026_10_18.md) §6.
   **Acceptance open:** review, the owner's hands-on test (the first live run), a scorecard task; UP-PG-10 (the pages bundled with the publisher's permission, owner 2026-10-18; a stated licence pending).

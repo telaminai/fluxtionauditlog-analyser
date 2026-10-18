@@ -319,8 +319,13 @@ public class StarterProject implements EventLogSource {
 
     @OnEventHandler
     public boolean onInstallFailed(SessionEvents.StarterInstallFailed e) {
-        if (stale(e.request(), "DOWNLOADING", "StarterInstallFailed")) return false;
-        end("FAILED", "The starter was not created: " + safe(e.why()));
+        // Both background adapters report this failure fact. A discovery failure happens AFTER the files were
+        // installed: settle that phase too, without claiming the download was rolled back.
+        boolean discovering = "DISCOVERING".equals(phase);
+        if (stale(e.request(), discovering ? "DISCOVERING" : "DOWNLOADING", "StarterInstallFailed")) return false;
+        end("FAILED", discovering ? "The starter was unpacked into " + rootShown
+                + ", but its project could not be reviewed: " + safe(e.why())
+                : "The starter was not created: " + safe(e.why()));
         if ("MENU".equals(origin)) effects.request(new SessionEffects.ShowWarningEffect(0L, note));
         return changed();
     }

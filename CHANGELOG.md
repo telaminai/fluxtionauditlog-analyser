@@ -6,6 +6,10 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Integration review fixes
+
+- A starter whose project discovery fails now settles the proposal instead of staying busy forever. The message distinguishes files already unpacked from a failed download; a later starter request can proceed.
+
 ### Added
 
 - **Create a project from a starter with the assistant.** Claude Code in the analyser can list the analyser's starter templates (`context.starters`: id, name, description, how the graph is authored, where it runs, whether its build needs a Fluxtion key — Spring first and recommended) and propose one (`propose {kind: starter}`, hosted-only). The review shows one row — *Create a project from starter **Fluxtion Spring XML** (Spring XML · embedded · AOT · build needs a Fluxtion key; none found on this machine)*, Claude's reason, a **Folder** with **Choose…** and *Downloads from fluxtion-playground.dev; nothing is built or run* — starting at No, with *Apply chosen* disabled until a new or empty folder is chosen. Claude never names a path. Only your Apply downloads; the analyser then writes the project's skills, discovers, asks one more review (every row at No), opens the project and its Spring design, watches for the first build's GraphML to offer it, and offers to restart Claude Code in the project's folder with a short pointer-only draft placed — nothing is sent until you press Send. Your Apply is the consent, so *Allow the assistant to create projects* does not gate this path.
