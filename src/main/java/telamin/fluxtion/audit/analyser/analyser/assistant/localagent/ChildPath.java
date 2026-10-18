@@ -33,16 +33,33 @@ public final class ChildPath {
      * The extended value, the environment key it belongs under (the inherited one's spelling: {@code Path} on Windows),
      * and exactly what was appended, in order (the header's environment line names them).
      */
-    public record Extension(String key, String path, List<String> appended) {
+    public record Extension(String key, String path, List<String> appended, List<String> dropped) {
         public Extension {
             appended = List.copyOf(appended);
+            dropped = List.copyOf(dropped == null ? List.of() : dropped);
             key = key == null ? "PATH" : key;
+        }
+
+        public Extension(String key, String path, List<String> appended) {
+            this(key, path, appended, List.of());
         }
 
         /** Whether the child's PATH differs from the analyser's own. */
         public boolean changed() {
-            return !appended.isEmpty();
+            return !appended.isEmpty() || !dropped.isEmpty();
         }
+    }
+
+    /**
+     * Review of PR #147, info: whether a PATH entry names a directory by itself. An empty or relative entry would resolve
+     * against the child's working folder — the folder the agent works in, which the person may not trust — so it is
+     * dropped from the child's PATH.
+     */
+    static boolean absolute(String entry, boolean windows) {
+        String e = entry.trim();
+        if (e.isEmpty()) return false;
+        if (!windows) return e.startsWith("/");
+        return e.matches("^[A-Za-z]:[\\\\/].*") || e.startsWith("\\\\");
     }
 
     /** What a process gets with no PATH at all (review finding 7): the OS's own default, never "nothing". */
@@ -70,9 +87,22 @@ public final class ChildPath {
         String path = inherited == null ? null : inherited.get(key);
         if (path == null || path.isEmpty()) path = osDefault(windows);
         Set<String> present = new LinkedHashSet<>();
-        if (path != null && !path.isEmpty()) {
-            for (String entry : path.split(Pattern.quote(separator))) {
-                if (!entry.isEmpty()) present.add(normal(entry));
+        List<String> kept = new ArrayList<>();
+        List<String> dropped = new ArrayList<>();
+        // -1: a trailing empty entry (which also means the working folder) is seen and dropped too
+        for (String entry : path.split(Pattern.quote(separator), -1)) {
+            if (!absolute(entry, windows)) {
+                dropped.add(entry);
+                continue;
+            }
+            kept.add(entry);
+            present.add(normal(entry));
+        }
+        if (kept.isEmpty()) {
+            // nothing usable left: the OS default, never an empty PATH
+            for (String entry : osDefault(windows).split(Pattern.quote(separator))) {
+                kept.add(entry);
+                present.add(normal(entry));
             }
         }
         List<String> appended = new ArrayList<>();
@@ -89,12 +119,12 @@ public final class ChildPath {
             present.add(normal(c));
             appended.add(c);
         }
-        StringBuilder out = new StringBuilder(path);
+        StringBuilder out = new StringBuilder(dropped.isEmpty() ? path : String.join(separator, kept));
         for (String a : appended) {
             if (!out.isEmpty()) out.append(separator);
             out.append(a);
         }
-        return new Extension(key, out.toString(), appended);
+        return new Extension(key, out.toString(), appended, dropped);
     }
 
     /**

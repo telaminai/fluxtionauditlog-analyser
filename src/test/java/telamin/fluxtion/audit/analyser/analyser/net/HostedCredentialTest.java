@@ -208,6 +208,39 @@ class HostedCredentialTest {
         assertEquals(400, post(READ, token).statusCode(), "while the hosted bridge keeps its listener");
     }
 
+    /**
+     * ★ Review R3 (PR #145). Witness: let {@code refusedAsExternal} pass any request that merely carries the hosted
+     * header — the made-up credential reads the manifest (200) and the discovery reply (404 with the routes).
+     */
+    @Test
+    @DisplayName("★ R3: a hosted-only server answers the manifest and discovery only for a live hosted credential, not a made-up or revoked one")
+    void aHostedOnlyServerRefusesAMadeUpCredential(@org.junit.jupiter.api.io.TempDir java.nio.file.Path dir) throws Exception {
+        server.stop();
+        server = ActionServer.hostedOnly(new ActionDispatcher(false, null, () -> null, null), "shared", 20, 1000.0,
+                new RestEndpointFile(dir.resolve("rest-endpoint")));
+        server.setHostedGate(credentials.gate(g -> g == admitted.get() ? null : "not admitted"));
+        server.start();
+        String live = credentials.mint(7);
+        String revoked = credentials.mint(8);
+        credentials.revoke(8);
+        for (String path : new String[]{"/manifest", "/no-such-path"}) {
+            for (String made : new String[]{"anything", revoked}) {
+                HttpResponse<String> r = get(path, made);
+                assertEquals(403, r.statusCode(), path + " with " + (made == revoked ? "a revoked" : "a made-up")
+                        + " credential: " + r.body());
+                assertTrue(r.body().contains("for external clients is off"), r.body());
+            }
+        }
+        assertEquals(200, get("/manifest", live).statusCode(), "a live credential reads the manifest");
+        assertEquals(404, get("/no-such-path", live).statusCode(), "and is given the discovery reply");
+        assertEquals(403, post(READ, "anything").statusCode(), "a made-up credential's action is refused");
+    }
+
+    private HttpResponse<String> get(String path, String hosted) throws Exception {
+        return http.send(HttpRequest.newBuilder(URI.create(server.url() + path)).header(ActionServer.HOSTED_HEADER, hosted)
+                .GET().build(), HttpResponse.BodyHandlers.ofString());
+    }
+
     @Test
     @DisplayName("a credential is minted per generation, maps to it only, and minting again replaces it")
     void mintingAndRevocation() {
