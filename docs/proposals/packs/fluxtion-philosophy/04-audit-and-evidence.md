@@ -1,8 +1,8 @@
 # Audit logs and evidence
 
-Audit and evidence track. Entry 1 is a PLACEHOLDER (example owner, all-zero commit): pin a real commit before use.
+Audit and evidence track. Entry 1 is the published diamond, pinned by commit.
 
-1. **Teaching example: the diamond (placeholder)** — example: https://github.com/example/fluxtion-diamond/archive/0000000000000000000000000000000000000000.zip
+1. **Teaching example: the diamond** — example: https://github.com/telaminai/fluxtion-diamond/archive/dad9b4382099a9ff26d9fe624f01fbbc80f67c50.zip
 2. **What does a record show?** — Pick one record on screen and explain each part: the event, the times, the thread and the node logs. Which values did a node write itself, and which did the framework add? Please use the analyser's log format pages and the Fluxtion audit docs, and tell me if you can't tell from what's here.
 3. **Audit levels: INFO versus TRACE** — What does the audit level change about what gets written? At the level this log was written at, would a node that ran but logged nothing appear at all? Can you tell from these records which level was in force? Check against the docs and the records, and tell me if you can't tell from what's here.
 4. **What silence means** — Which nodes never appear in this log? For each one, can you say it didn't run, or only that it may have run without logging? Explain from what the records carry and the format specification, and tell me if you can't tell from what's here.

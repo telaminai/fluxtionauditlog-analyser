@@ -1,8 +1,8 @@
 # What is Fluxtion?
 
-Basic track. Entry 1 is a PLACEHOLDER (example owner, all-zero commit): pin a real commit before use.
+Basic track. Entry 1 is the published diamond, pinned by commit.
 
-1. **Teaching example: the diamond (placeholder)** — example: https://github.com/example/fluxtion-diamond/archive/0000000000000000000000000000000000000000.zip
+1. **Teaching example: the diamond** — example: https://github.com/telaminai/fluxtion-diamond/archive/dad9b4382099a9ff26d9fe624f01fbbc80f67c50.zip
 2. **What is Fluxtion, in plain words?** — I'm new to Fluxtion. Using this project and the records on screen, explain in plain words what an event, an event handler and a trigger are, and point at one of each in this project. Please answer from what's here and the Fluxtion docs, not from general knowledge, and tell me if you can't tell from what's here.
 3. **Follow one event through** — Pick one event in this log and walk me through it: which handler received it first, which nodes ran after it, and in what order. Show me in the records. If a node wrote nothing to the log, please say whether that means it didn't run or only that you can't tell from what's here.
 4. **Show me in the records** — Open one audit record and tell me what each part means. Which values did my own code write, and which did Fluxtion add by itself? If a field's meaning isn't clear from the record or the docs, tell me if you can't tell from what's here rather than guessing.

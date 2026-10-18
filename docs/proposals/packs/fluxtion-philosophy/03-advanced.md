@@ -1,8 +1,8 @@
 # Thinking in Fluxtion
 
-Advanced track. Entry 1 is a PLACEHOLDER (example owner, all-zero commit): pin a real commit before use.
+Advanced track. Entry 1 is the published diamond, pinned by commit.
 
-1. **Teaching example: the diamond (placeholder)** — example: https://github.com/example/fluxtion-diamond/archive/0000000000000000000000000000000000000000.zip
+1. **Teaching example: the diamond** — example: https://github.com/telaminai/fluxtion-diamond/archive/dad9b4382099a9ff26d9fe624f01fbbc80f67c50.zip
 2. **The closed-world build step** — At build time the compiler sees my registered roots and follows constructor references to find the rest. What does it assume about my objects while it does that? Which nodes can a given event reach here, and where is that visible in the generated code? Answer from the docs and what's on screen, and tell me if you can't tell from what's here.
 3. **Source generation is serialisation** — The docs say source generation is serialisation. Using one of my nodes, show me how its fields reappear in the generated processor. Which fields would not survive, what does @FluxtionIgnore change, and why might the instance I hold not be the one that runs? Tell me if you can't tell from what's here.
 4. **Hidden shared state** — Suppose B and C both read and write a static map that neither declares. What can the compiler see, and what happens to ordering, the audit records and replay? Point at where this project would change, say which parts the docs state and which you're inferring, and tell me if you can't tell from what's here.

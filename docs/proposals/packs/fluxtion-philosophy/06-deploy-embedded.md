@@ -1,8 +1,8 @@
 # Embedding the processor
 
-Deployment track: embedded in an app, no server. Entry 1 is a PLACEHOLDER (example owner, all-zero commit): pin before use.
+Deployment track: embedded in an app, no server. Entry 1 is the published diamond, pinned by commit.
 
-1. **Teaching example: the diamond (placeholder)** — example: https://github.com/example/fluxtion-diamond/archive/0000000000000000000000000000000000000000.zip
+1. **Teaching example: the diamond** — example: https://github.com/telaminai/fluxtion-diamond/archive/dad9b4382099a9ff26d9fe624f01fbbc80f67c50.zip
 2. **Embedded, with no server** — What does it mean to embed the generated processor directly in my application? What do I gain and what do I give up compared with running it inside a server such as Mongoose? Answer from the Fluxtion docs, and tell me if you can't tell from what's here.
 3. **Creating the generated processor** — Show me how my application creates and starts the generated processor: loading the class by name, calling init, registering sinks and services, then sending events. Point at this project's code if it's here, and tell me if you can't tell from what's here.
 4. **Wiring the event input** — How do events get into an embedded processor: my own code calling onEvent, or a helper such as DataFlowConnector polling a feed? Which thread runs the processor, and what do I have to make thread-safe myself? Answer from the Fluxtion docs, and tell me if you can't tell from what's here.

@@ -1,8 +1,8 @@
 # Local knowledge, global behaviour
 
-Intermediate track. Entry 1 is a PLACEHOLDER (example owner, all-zero commit): pin a real commit before use.
+Intermediate track. Entry 1 is the published diamond, pinned by commit.
 
-1. **Teaching example: the diamond (placeholder)** — example: https://github.com/example/fluxtion-diamond/archive/0000000000000000000000000000000000000000.zip
+1. **Teaching example: the diamond** — example: https://github.com/telaminai/fluxtion-diamond/archive/dad9b4382099a9ff26d9fe624f01fbbc80f67c50.zip
 2. **A node only knows its parents** — Look at node D's source. What does D know about the rest of the graph? If it only knows its parents, who decided that it runs after both B and C? Show me where that order is fixed, in the generated code or the graph, and tell me if you can't tell from what's here.
 3. **The diamond: how often does D run?** — Here A feeds B and C, and both feed D. When one event changes A, how many times does D run in that cycle, and where does it sit relative to B and C? Please check this against the records and the generated code rather than answering from general knowledge, and tell me if you can't tell from what's here.
 4. **When only one side changes** — Find a cycle where one branch reported a change and the other did not, if there is one. Which branch was it? Did D still run, and what did it see from the branch that didn't change? Check it in the records and the generated code. If no such cycle is on screen, or a silent node leaves it open, tell me if you can't tell from what's here.
