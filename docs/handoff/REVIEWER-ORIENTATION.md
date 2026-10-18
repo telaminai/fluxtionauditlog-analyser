@@ -156,9 +156,11 @@ composes a status line where an event happens. Rule 6: read the generated dispat
 
 External clients (the customer's developers and their agents) read the MCP/REST schemas, tool lists, server
 instructions, manifests and `context`. `WorkModeKeepsTheApiTest` pins those surfaces by SHA-256; its digests must not
-move on integration. It does **not** cover `context`'s view fields or HTTP headers, so check by reading: `hidden` is
-additive (FIX-2, `ContextSections`), and `X-Analyser-Client` / `X-Analyser-Probe` are additive (M77-3, `McpBridge`,
-`ActionServer`). Anything that renames, removes or re-types an existing field is a blocker.
+move on integration. It does **not** cover `context`'s keys or HTTP headers; **`CustomerApiKeysTest`** (added on the
+integration) does: `context`'s sections and keys and `hidden`'s own shape, and the bridge's request headers, each against
+1.35.1 with the additions listed by name — `hidden` (FIX-2, `ContextSections`) and `X-Analyser-Client` /
+`X-Analyser-Probe` (M77-3, `McpBridge`). Read `ActionServer`'s handling of the new headers yourself. Anything that
+renames, removes or re-types an existing field is a blocker.
 
 ### 6.5 The safety surfaces
 

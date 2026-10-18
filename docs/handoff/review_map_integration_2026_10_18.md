@@ -27,6 +27,7 @@ PR links: `#N` means `https://github.com/telaminai/fluxtionauditlog-analyser/pul
 | `fix/records-filter-visibility` | `87551460` | `8648b39f` | usability review of the Event types list (B1, B2, M1, M2, m6) + robot walk of P3 | a `recordsView` node decides when the view is measured; `context` gains `hidden` (additive); the assistant's basis names hidden types; search text in facts by `FactRefs` reference; three-row floor at 1200×680; the search row wraps; regenerated processor | `RecordsViewTest`, `RecordsViewWordsTest`, `RecordsFilterVisibilityFrameTest`, `AssistantLoopTest`, `OneDispatchModelTest`, `FactFieldsTest`; scorecard row SC T4 |
 | `fix/event-types-default-collapsed` | `eb52bb45` | `87551460` | — | the Event types list starts collapsed on a fresh install (`AppConfig` default); saved choices win | `EventTypesStartCollapsedFrameTest`; expected to fix scorecard row SC T2 |
 | `fix/authoring-walk-defects` | `0161dab3` | `c0b1b3bc` (M77-2) | M74 spec OD-74.16 and the examples rule (amended); `upstream-asks.md` UP-PG-09 | seven defects from the live authoring walk (no-project Full starts in the empty scratch folder; the draft held through folder trust; *Start building* opens Set up AI with Full recommended; `mvnw`/`*.sh` keep the executable bit; milestone ids out of the template dialog; GraphML found in `src/main/resources`; real-path project compare); plus a runnable-files line, Build preselects Full acceptEdits, the wizard's mode is saved (bug), `STAY_IN_PROJECT_NOTE`, the narrow in-project `open` pre-allow | `AiSetupTest`, `ExampleDownloadTest`, `ExampleArchiveContainmentTest`, `InProjectOpenTest`, `HostedGrantServerTest`, `GraphmlDiscoveryTest`, `ProjectAutoDetectTest`, `LocalAgentFullReplayTest`, `FaqSecurityContractTest`, `UserVisibleJargonTest`; the live walk (7.4 min, 14 approvals) |
+| `fix/merged-nodelog-entries` | `e46c5836` | `a875fcba` | format spec §3/§8; `upstream-asks.md` UP-FLX-56–58 | test and docs only: how a merged duplicate-key `nodeLogs` entry is read (conformance C34); the format spec's wording; UP-FLX-56, 57 and 58, filed as [telaminai/fluxtion#46](https://github.com/telaminai/fluxtion/issues/46) | `FormatConformanceTest` (C34), `src/test/resources/conformance/c34-merged-entry.yaml` |
 
 ### Feature PRs (stacked)
 
@@ -37,9 +38,9 @@ PR links: `#N` means `https://github.com/telaminai/fluxtionauditlog-analyser/pul
 | [#161](https://github.com/telaminai/fluxtionauditlog-analyser/pull/161) | `feature/m77-5-option-diagram` | `d3a5c8ff` | #159 | M77 §6.1a (OD-77.14–.21) | `FlowDiagram`: where data goes, Full in amber, the palette; no node, fact or effect | `FlowDiagramTest`, `OptionDiagramFrameTest` (T25–T31), `FaqSecurityContractTest` |
 | [#162](https://github.com/telaminai/fluxtionauditlog-analyser/pull/162) | `feature/m77-3-external-path` | `5da42f16` | #159 | M77 §6 (Screen 2b), §13, §18 | Screen 2b; one owner of external access (`ExternalAccessRequested` through `actionListener`); confirmations at every door; registration; the live check; additive `X-Analyser-Client` / `X-Analyser-Probe` headers; regenerated processor | `AiSetupExternalTest`, `AiSetupClientFrameTest`, `ActionServerLiveCheckTest`, `McpRegistrarTest`, `OneDispatchModelTest` |
 | [#163](https://github.com/telaminai/fluxtionauditlog-analyser/pull/163) | `feature/m78-d1-quiet-panel` | `993c0b0c` | #159 | `spec-quiet-assistant-panel.md` §4–§6, §10 (D1) | the quiet panel; Ready 27 → 3 words; the safety signals kept | `QuietPanelTest`, `QuietPanelSessionTest`, `AssistantChromeBudgetFrameTest`, `LocalAgentPanelCueTest`, `LocalAgentDetailsDisclosureTest`, `BindingChipTest` |
-| [#160](https://github.com/telaminai/fluxtionauditlog-analyser/pull/160) | `feature/usability-scorecard` | `e4c8568a` (more commits expected) | P3 | `docs/usability/scorecard.md` | a measured task battery with CI budgets; baselines at `b1c22704` and `a875fcba` | `UsabilityBudgetFrameTest`; `docs/usability/baseline-*.{json,md}`; `tools/usability/run.py` |
+| [#160](https://github.com/telaminai/fluxtionauditlog-analyser/pull/160) | `feature/usability-scorecard` | `017bef66` | P3 | `docs/usability/scorecard.md` | a measured task battery with CI budgets; baselines at `b1c22704` and `a875fcba` | `UsabilityBudgetFrameTest`; `docs/usability/baseline-*.{json,md}`; `tools/usability/run.py` |
 | [#165](https://github.com/telaminai/fluxtionauditlog-analyser/pull/165) | `feature/m77-4-coexistence` | `43b7ce8f` (merge of #161 at `3ad0896a`) | #162 | M77 §14, §18 | the Assistant ▾ quick switch (`QuickSwitch`); the profile cards retired (`ProfileOverlay` deleted); Connect folded into one door; the first-run block offered once; the diagram on Screen 2b; T20 (`tools/capture-docs.py --setup-ai`); the symlinked-home capture guard; regenerated processor | `QuickSwitchTest`, `QuickSwitchFrameTest`, `CaptureHomeGuardTest`, `AiSetupWizardFrameTest`, `AiSetupClientFrameTest`, `OneDispatchModelTest`, `DocsExternalAccessClaimsTest` |
-| — | `feature/m78-d2-one-chip` | not pushed; PR to come | M77-4 + a merge of #163 | M78 §10 (D2) | the mode chip is M77-4's quick switch | in progress |
+| [#166](https://github.com/telaminai/fluxtionauditlog-analyser/pull/166) | `feature/m78-d2-one-chip` | `209bf46c` (the integration's base) | M77-4 + a merge of #163 | M78 §10 (D2) | the mode chip is M77-4's quick switch | `QuietPanelTest`, `QuickSwitchFrameTest`, `AssistantChromeBudgetFrameTest`; scorecard S2 (6 words, 4 controls) |
 
 ### Spec PRs (docs only)
 
@@ -76,8 +77,8 @@ Each is a deliberate change of behaviour or contract. Judge it; do not assume it
 | 3 | `STAY_IN_PROJECT_NOTE` is a request to the model, not a sandbox; disclosed in the trust dialog and FAQ | `fix/authoring-walk-defects` (`e37743f2`) | `ClaudeCodeProvider`, `FullFolderTrust`; `docs/site/faq.md`; `FaqSecurityContractTest` |
 | 4 | Build preselects Full acceptEdits; the fix that saves the wizard's mode changes behaviour | `fix/authoring-walk-defects` (`4d44528e`) | `AiSetup`, `AssistantProfileChoice`, `ConfigStore`; `AiSetupTest` |
 | 5 | A new confirmation before external access turns on — the customer's developers will see it; it goes in the release notes | #162 | `ExternalAccessDoor`, `SetupConfirmations`, `ActionListener`; `CHANGELOG.md` ▸ Unreleased |
-| 6 | The bridge sends `X-Analyser-Client` / `X-Analyser-Probe` (additive) | #162 | `McpBridge`, `ActionServer`, `McpConnectionProbe`; `ActionServerLiveCheckTest` |
-| 7 | `context` gains `hidden` (additive); the `WorkModeKeepsTheApiTest` digests did not move | `fix/records-filter-visibility` | `MainFrame` context assembly, `ContextSections`; run `WorkModeKeepsTheApiTest` on the merged tree |
+| 6 | The bridge sends `X-Analyser-Client` / `X-Analyser-Probe` (additive) | #162 | `McpBridge`, `ActionServer`, `McpConnectionProbe`; `ActionServerLiveCheckTest`; now pinned by `CustomerApiKeysTest` (integration) |
+| 7 | `context` gains `hidden` (additive); the `WorkModeKeepsTheApiTest` digests did not move | `fix/records-filter-visibility` | `MainFrame` context assembly, `ContextSections`; run `WorkModeKeepsTheApiTest` on the merged tree; now pinned by `CustomerApiKeysTest` (integration) |
 | 8 | Search text in facts is stored by `FactRefs` reference, never as words | `fix/records-filter-visibility` | `session/FactRefs`, `RecordsViewCounts`; `FactFieldsTest` |
 | 9 | The Event types list starts collapsed by default (a UI preference; saved choices win) | `fix/event-types-default-collapsed` | `AppConfig`; `EventTypesStartCollapsedFrameTest` |
 | 10 | M78 D1 deviations from the spec: the *"starting…"* chip word; Details opens only when pressed; `shortTitle` labels; a Restart button on the error banner | #163 | `LocalAgentState.CHIP_STARTING`, `LocalAgentSession`; M78 spec §4–§5; `QuietPanelTest` |
@@ -98,13 +99,13 @@ Each is a deliberate change of behaviour or contract. Judge it; do not assume it
 
 ## 4. Known gaps
 
-- **No full gate has run on any of this yet.** Each branch had quick checks; the frame suites, mutation shards and
-  loop bench run once, on integration (section 5).
-- **M78 D2 is in progress** (`feature/m78-d2-one-chip`, not pushed). M77-4 is built (#165).
+- **The full gate ran once, on the integration** (section 5). The mutation shards and the loop bench were not part of
+  that run.
+- **M78 D2 is built** (#166, `209bf46c`, the integration's base). M77-4 is built (#165).
 - **M77-4's doc screenshots are not regenerated** (no Screen Recording grant on the capture machine):
   `start-page.png` and `settings-assistant.png` are stale; regenerate with `tools/capture-docs.py` (and `--setup-ai`)
   under the isolated home before release.
-- **M74's `[Unreleased]` CHANGELOG lines still describe the profile cards** that M77-4 retires; fold them at release.
+- **M74's card-era `[Unreleased]` CHANGELOG lines are folded** on the integration (`fe3286ab`); re-read them at release.
 - **`StartWorkspaceFrameTest.nativeFileDropOnHeroTextOpensAuditLog` is flaky under load.** A failure on integration
   is not a pass to skip; re-run it alone and report it separately.
 - **M78 D1 (#163) edits `ProfileOverlayFrameTest`, which M77-4 (#165) deletes**: a modify/delete conflict, resolved by
@@ -122,14 +123,89 @@ Each is a deliberate change of behaviour or contract. Judge it; do not assume it
 
 ## 5. Integration tip and full-gate results
 
-_To be filled in by the integrator._
+Filled in by the integrator, 2026-10-18.
 
-- Integration branch and tip: ☐
-- Merge order and any conflict resolutions (tracker, CHANGELOG, generated processor, `docs/site/`): ☐
-- `mvn test` (headless): ☐ passes / ☐ skips, reported separately
-- Registered frame suites under Xvfb (no skips): ☐
-- Mutation gate and loop bench: ☐
-- `WorkModeKeepsTheApiTest` digests unchanged: ☐
-- `mkdocs build --strict`: ☐
-- The public-repo sweep (CLAUDE.md rule 1) and the screenshots read: ☐
-- Scorecard re-run on the integration jar: ☐
+- **Integration branch and tip:** `test/usability-2026-10-18` (no PR). The full gate ran at **`5971608c`**; the commit
+  after it adds only this section and the brief's placeholders (docs only, no product or test change). Product code is
+  unchanged from `5971608c` to the tip.
+- **Base:** `feature/m78-d2-one-chip` @ `209bf46c` (#166), which already holds P3 `a875fcba`, M77-1/2/3/5/4 and M78 D1/D2.
+
+### Merge order (each `git merge --no-ff`, its own merge commit)
+
+| # | Merged | Tip | Merge commit | Conflicts and resolution |
+|---|---|---|---|---|
+| 1 | `fix/no-log-offer-cancel` | `da86da42` | `5a3d76c6` | generated processor only (taken as HEAD, regenerated at merge 2) |
+| 2 | `fix/event-types-default-collapsed` (with `fix/records-filter-visibility`) | `eb52bb45` | `2fc94b50` | `SessionSnapshot` (both components, `aiSetup` then `recordsView`); `ci.yml` (union of both frame lists, identical); CHANGELOG (both); generated processor **regenerated** |
+| — | follow-up | | `5c08656d` | FIX-1's new frame test awaited the retired cards (`profiles().open()`); it now awaits the wizard, as its sibling does |
+| 3 | `fix/authoring-walk-defects` (with `fix/template-exec-bits`) | `0161dab3` | `4cac9eb7` | built on M77-2; its `AiSetup`, `SessionEffects`, `StartPagePrompt`, `MainFrame` edits re-applied on M77-4's shape (no `wizardEntry`, no cards); both tests kept in `FaqSecurityContractTest` and `FactFieldsTest`; regenerated: **byte-identical** (no handler added) |
+| 4 | `fix/merged-nodelog-entries` | `e46c5836` | `ba85dd73` | CHANGELOG only |
+| — | follow-up | | `21da8077` | UP-FLX-56/57/58 marked filed (telaminai/fluxtion#46) |
+| 5 | `feature/usability-scorecard` (#160) | `017bef66` | `d4975bc5` | `ci.yml` (union; `UsabilityBudgetFrameTest` in both lists); the harness drove the retired cards — ported and re-baselined in `b2ac2098` (Test B below) |
+| 6 | `docs/m79-first-minute` (#164, with the M77 spec r5) | `6ca55014` | `39979050` | none |
+| 7 | `docs/quiet-assistant-panel` (#158) | `d46fc534` | `a9c6aa00` | `docs/specs/README.md`: the M77 row keeps r5, the M78 row added, both stating what the integration holds |
+| 8 | `docs/tracker-review-2026-10-18` | `4067a4f9` | `218c824d` | `tracker.md`: the duplicate M77/M78/M79 blocks reduced to one each; every line brought up to the integration |
+| 9 | `docs/site-restructure` (#152) | `b1c22704` | `2c2f0c21` | 13 files; the restructure's information architecture kept and every branch's `docs/site/` content carried into it (see the merge commit): `user-guide/assistant.md` deleted as the restructure split it, its later edits ported to `inapp/*`, `admin/profiles.md` (Set up AI, the quick switch), `admin/security.md`, `teach/spotlights-walks-reels.md`; every *Connect an AI client…* door rewritten to Set up AI; `ProfileCardsWordsTest` and `assistant-profile-cards.png` stay deleted |
+| — | follow-ups | | `fe3286ab`, `60889e55`, `a601de1f`, `6f4b6f9a`, `5971608c` | the card-era CHANGELOG fold; Test A; the tracker's DOCS-IA line; the changelog-coherence test and the M76 links; three frame tests the stack had left stale (below) |
+
+**The generated session processor** was never hand-merged: regenerated (`mvn -Pregen process-classes`) at merges 2
+and 3 and again at the tip, where it is a fixpoint (byte-identical). The header is unchanged (api 1.1.0, analyser
+1.0.76, target generator 1.0.79). The dispatch order read from the generated `handleEvent` methods:
+`AssistantProfileApplied` → `localAgentSession`, `aiSetup`, `startPagePrompt`; `RestSwitchObserved` →
+`actionListener`, `aiSetup`; `RecordsViewMeasured` → `recordsView`, `assistantLoop`; `StartPagePromptSent` →
+`startPageNoLogHint`, `aiSetup`, `startPagePrompt`; `StartPageFlowDone` → `startPageNoLogHint`, `startPagePrompt`. Each
+new node reads its parents after they handled the fact (M77 §8.1).
+
+### Gates (run once, at `5971608c`, on macOS)
+
+- ☑ `mvn -o clean test` (headless): **580 suites, 4,131 tests, 3,808 pass, 0 fail, 0 errors**. **Skipped 323**, reported
+  separately: 319 in `*FrameTest` suites (no display), 4 others (`MouseTraceTest` 2, `FlowDiagramTest` 1,
+  `TemplateRootWindowsTest` 1; display- or Windows-only).
+- ☑ The registered frame suites on the display (67 suites, the two `ci.yml` lists identical): **320 tests, 311 pass,
+  0 fail, 4 errors, 5 skipped**. The errors are the Mac baseline, `TableDragCancellationFrameTest`'s four native-press
+  cases (*the desktop dropped all three presses*). Skips (focus/native on this Mac): `AssistantNativeFrameTest` 2,
+  `PersonAtTheScreenFrameTest` 1, `StartWorkspaceFrameTest.nativeFileDropOnHeroTextOpensAuditLog` 1,
+  `WalkArrowKeysFrameTest` 1. These run under Xvfb in CI, which rejects skips.
+  The first full run found four failures outside the baseline, in three suites. Bisected over the stack's tips, each
+  already failed on #166's tip and passes on P3: `DuplicateChartRepairFrameTest` ×2 (since M77-4, #165: the first-run
+  write at start-up), `StartPromptFrameTest.claudeCodeArmsStart` (since M78 D1, #163: Start moved into ⋯),
+  `AssistantLiveFrameTest.savingProviderSettingsRefreshesAssistant` (since M78 D2, #166: the no-key banner only for
+  the in-app assistant in force). Each test asserted the UI its own PR changed by design; fixed in `5971608c`.
+- ☐ Mutation gate and loop bench: not run in this pass.
+- ☑ `WorkModeKeepsTheApiTest` digests unchanged (in the headless run), and **`CustomerApiKeysTest`** (new) pins
+  `context`'s sections and keys and the bridge's request headers against 1.35.1, the additions listed by name.
+- ☑ `python3 tools/test_project_chart_review.py`: 5 tests, OK.
+- ☑ On the built jar: `verify-m46-agent-api` (16 PASS, *all M46 agent-API checks pass*), `verify-session-transitions`
+  (*ALL PASS*), `verify-session-restart` (PASS).
+- ☑ `mkdocs build --strict`: passes.
+- ☑ The public-repo sweep (CLAUDE.md rule 1): prints nothing. Commit identities `feature/claude-code-p3..HEAD`: only the
+  personal address. No screenshot was added or regenerated by the integration (M77-4's stale `start-page.png` and
+  `settings-assistant.png` remain, a known gap).
+- ☑ Scorecard re-run on the integration jar (`python3 tools/usability/run.py --record --label integration`; a second
+  run at `5971608c` gave identical JSON). Budgets re-baselined in `UsabilityBudgets.java`, one reason per change.
+
+### Scorecard: `b1c22704` → `a875fcba` → integration
+
+| Task | Success | Acts | Hesitations | Dead ends | Words before first act | Clipped |
+|---|---|---|---|---|---|---|
+| T1 Fresh start to the first answer | yes → yes → yes | 4 → 5 → 6 | 1 → 2 → 3 | 0 → 0 → 0 | 225 → 225 → 222 | 0 → 1 → 1 |
+| T2 Right-click Ask about a record | yes → yes → yes | 4 → 5 → 5 | 2 → 2 → 3 | 0 → 0 → 0 | 265 → 273 → 262 | 6 → 4 → 4 |
+| T3 Approve a report write | yes → yes → yes | 1 → 1 → 1 | 0 → 0 → 0 | 0 → 0 → 0 | 317 → 325 → 314 | 3 → 3 → 3 |
+| T4 Find out why records are missing | yes → yes → yes | 3 → 2 → 1 | 4 → 2 → 1 | 0 → 0 → 0 | 259 → 259 → 272 | 3 → 3 → 3 |
+| T5 Switch Safe → Full → Safe | yes → yes → yes | 9 → 8 → 5 | 2 → 2 → 0 | 0 → 0 → 0 | 246 → 254 → 199 | 5 → 2 → 1 |
+| T6 Set up an external client | yes → yes → yes | 4 → 4 → 7 | 1 → 1 → 4 | 0 → 0 → 0 | 225 → 225 → 222 | 0 → 0 → 0 |
+| T7 Open the sample | yes → yes → yes | 1 → 1 → 1 | 0 → 0 → 0 | 0 → 0 → 0 | 225 → 225 → 222 | 1 → 1 → 1 |
+| T8 Load a prompt pack | yes → yes → yes | 1 → 1 → 1 | 0 → 0 → 0 | 0 → 0 → 0 | 225 → 225 → 222 | 0 → 0 → 0 |
+| A2 Teach-me diamond pack | — → yes → yes | — → 11 → 10 | — → 4 → 3 | — → 0 → 0 | — → 225 → 222 | — → 6 → 6 |
+
+| State | Chrome words | Controls | Clipped | Whole-window words |
+|---|---|---|---|---|
+| S1 Start page (fresh home) | 225 → 225 → 222 | 15 → 15 → 16 | 0 → 0 → 0 | 225 → 225 → 222 |
+| S2 Assistant Ready (Safe analysis, docked) | 32 → 31 → 6 | 6 → 6 → 4 | 2 → 0 → 0 | 224 → 229 → 195 |
+| S3 Records with the event-type list shown | 17 → 25 → 26 | 5 → 8 → 9 | 0 → 0 → 0 | 265 → 273 → 274 |
+
+T4c (the result of T4): — → **FAIL** → **pass**, now enforced. **Finding for the owner:** SC T6 4 → 7 acts and 1 → 4
+hesitations — the one door for your own client puts the bridge check behind *Continue*, the access confirmation and
+*More options…* (below Screen 2b's fold). Each step has a reason; together they make T6 the battery's costliest task.
+Also worse with a reason: SC T1 5 → 6 acts (Continue and Finish replace Apply), SC T1/T2 one more hesitation each, S3
+25 → 26 words. Better: SC T4, SC T5 8 → 5, S2 31 → 6 words, A2 11 → 10. Details: `docs/usability/scorecard.md` ▸ *The
+integration build*.

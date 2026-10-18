@@ -1,9 +1,9 @@
-# Independent review — the 2026-10-18 integration (DRAFT)
+# Independent review — the 2026-10-18 integration
 
-_Draft. The owner fills in the integration branch and tip before sending._
+_The integration branch and tip are filled in (2026-10-18). The full gate ran at `5971608c`; the tip adds only the review documents._
 
-Review the integration branch **`<integration branch>` at `<tip>`** together with the PRs it gathers. It is M74's P3
-plus four fix branches, M77-1 to M77-5, M78 D1 (and D2 if merged), the usability scorecard and the spec branches. Use a separate
+Review the integration branch **`test/usability-2026-10-18` at its tip** (gated at `5971608c`) together with the PRs it gathers. It is M74's P3
+plus five fix branches, M77-1 to M77-5, M78 D1 and D2, the usability scorecard and the spec branches. Use a separate
 worktree and your own review branch; the owner's checkout and other sessions stay untouched. This brief does not
 permit you to merge, release, rebase or force-push.
 
@@ -18,7 +18,7 @@ Read, in order:
 4. The specs, for the parts you judge: `spec-claude-code-provider.md` (M74), `spec-ai-setup-wizard.md` (M77 r5),
    `spec-quiet-assistant-panel.md` (M78), `spec-first-minute.md` (M79, for what M77 must leave room for), and
    `docs/usability/scorecard.md`.
-5. The diff: `git diff a875fcba..<tip>`, then each PR's own diff for anything the seams point you to.
+5. The diff: `git diff a875fcba..origin/test/usability-2026-10-18`, then each PR's own diff for anything the seams point you to.
 
 ## What to attack
 
