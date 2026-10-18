@@ -38,21 +38,24 @@ plan, or an API key). Both share:
   and chart names as small buttons that take you there; and every action as one compact tool line — `▸ analyser_read`
   and its mark: `✓`, `refused`, `denied`, `approved by you` — that opens to show what was sent (Claude Code) or what came
   back (the in-app assistant);
-- **one composer**, with **Send**, **Stop** and **New chat** doing what the mode in force does with them (Claude Code
-  adds **Start**; the in-app assistant adds **Copy prompt**); **Enter sends and Shift+Enter starts a new line**, as in
+- **one composer**, with **Send** — or **Stop** in its place while an answer runs — doing what the mode in force does
+  with it (the in-app assistant adds **Copy prompt**); it reads *Ask about this log…* while empty, and its tooltip has
+  the keys; **Enter sends and Shift+Enter starts a new line**, as in
   the start page's box; **↑ on the first line recalls the questions you sent** (each assistant its own), **↓ on the last
   line walks forward**, and ↓ past the newest puts back what you were typing — as in a terminal. The history is kept in
   memory only: it is never saved and never sent anywhere, and it is gone when the analyser closes. Shift+↑ and
   Shift+↓ still select, and in a draft of several lines the arrows move the caret until it reaches the first or last
   line;
-- **one row of header chips** — who answers, the model, the profile or the provider, how it is paid for;
-- **one status line and one primary action.** The status line is the one instruction — *Ready*, *Claude is answering…*,
-  or, when something was refused, the refusal itself. The primary action is **Send** (in the Claude Code mode it starts
-  Claude Code first when it is not running), or **Stop** while an answer or a start can be stopped; **Start** is a
-  secondary button with a fixed label, shown only while Claude Code is not running. What the mode cannot do, the
-  session's folder and its notes sit behind **ⓘ** beside **Pop out**; the header scrolls in a short window so the
-  conversation and the composer always keep their room;
-- **one line under the header that says what this mode cannot do** — the in-app assistant cannot read your project
+- **one header row** — the **Assistant ▾** control, **✎** (New chat) and **⋯**. The control carries the state in one or
+  two words — *answering…*, *needs you*, *starting…*, *stopped*, nothing when ready — and ◆ when full Claude Code is in
+  force. **⋯** holds *New chat*, *Pop out*, **About this session…**, *Switch assistant…*, *Start / Resume Claude Code*,
+  *Set up a project with Claude…* and *Settings…*;
+- **one primary action.** **Send** (in the Claude Code mode it starts Claude Code first when it is not running), or
+  **Stop** in the same place while an answer or a start can be stopped. A refusal or an exit is one banner with
+  **Restart** and **Details** (Details only when something needs attention), and a settings change Claude Code has not
+  taken is *Settings changed — restart Claude Code now?* with **Restart** / **Later**;
+- **About this session…** — the model, the profile, how it is paid for, the folder, what the profile loads, the
+  fork warning and what this mode cannot do — the in-app assistant cannot read your project
   folder or use your own tools; Safe analysis has no shell, edits or web; full Claude Code's own tools are not confined
   by the analyser; with no key, or with the assistant *Off*, it says so there. It also says that **no profile is
   local-only**: what you ask, and the evidence Claude reads through the analyser, is sent to the model provider
@@ -189,7 +192,7 @@ the line under it says what it is doing: *Requesting*, *Running action n*, *Comp
   different view. After a turn completes, changing the filter keeps the conversation usable; the next **Send**
   prepares context under the current filter. A filter change made by the assistant's own action can continue to
   its next action.
-- **Pop out.** **Pop out** moves the assistant into its own window, so the conversation stays beside you while the
+- **Pop out.** **⋯ ▸ Pop out** moves the assistant into its own window, so the conversation stays beside you while the
   analyser changes views; **Dock** (or closing the window) puts it back. It is the same conversation, draft and request
   in either place, and moving it never sends again. The tab says where it went. Scrolling or copying in the docked
   assistant does not end a showing walk.
@@ -215,7 +218,8 @@ in the Claude Code mode, *Ask the assistant: …* in the in-app one:
 these rows and Explain this finding disabled, each until its condition holds](../assets/ask-menu.png)
 
 - **The question goes into the composer, not to the model.** It is **added after** whatever you have written there,
-  only the added lines are highlighted, and the line above the box says *Press Send to ask … — nothing has been sent*.
+  only the added lines are highlighted, and the line above the box says *Draft — not sent* (for Claude Code; the in-app assistant's says *Press Send to ask the
+  assistant — nothing has been sent*).
   Nothing is sent until you press **Send**; in the Claude Code mode with no session running, Send starts Claude Code
   first. **Asking the same question again replaces it** rather than adding a second copy, and a question drafted for the
   other assistant is replaced by the next one you ask. If you switch assistants with such a question still in the box,
@@ -225,9 +229,9 @@ these rows and Explain this finding disabled, each until its condition holds](..
   can carry text written to steer an AI. The assistant reads the records itself (`analyser_read`), so in the in-app mode
   the questions need *Settings ▸ Assistant ▸ Let the in-app assistant change the views as it answers*; with them off, the items say so and are disabled. A
   question's draft never carries the raw text of your current selection.
-- **A chip by the composer says which log the drafted questions are about** — *this log · opened 14:05*, small and
-  muted. The question's own words do not name a load; the analyser tells the model which log it checked when it
-  sends the message.
+- **A chip by the composer warns when a drafted question is about an earlier log** — and shows nothing while it is
+  about the log open now. The question's own words do not name a load; the analyser tells the model which log it
+  checked when it sends the message.
 - **If the log changes before you Send** — you reopen or reload it — the chip reads *an earlier log · Send will refuse it — ask again*, and a question that names its records is refused,
   *"This question names records of a log that has been reloaded since it was drafted (load 3 → 4) — ask again from the
   records"*, and stays editable. Deleting the whole question from the box drops that check.
@@ -389,8 +393,9 @@ cut — the box scrolls.
 - **The transcript says what happened.** The call's line reads `approved by you · ✓`, `denied by you`, `denied: not
   answered within 120 s` or `denied: not allowed in Safe analysis` — and a screen reader hears those same words — with
   the input as Claude Code sent it (an integer
-  reads `3`, as in the dialog), and a short note under it names the decision; while a
-  dialog is open the status line says *"Claude Code is waiting for your answer"*. The session's own record keeps that
+  reads `3`, as in the dialog); a denial, a request not answered or a request withdrawn also gets a short note under it
+  (an approval does not: the line says it). While a dialog is open the Assistant control says *needs you* and the
+  call's line ends *— approve?*. The session's own record keeps that
   a call of `report` was approved, by whom, in which turn — never what its input said.
 
 Claude Code is told that record content is data, not instructions — a weak protection, stated as such: treat its
@@ -422,7 +427,7 @@ that, run inside the analyser.
 
     | Change | What happens |
     |---|---|
-    | *Safe analysis* → *Full Claude Code*; a full mode that asks **less** (for example `default` → `acceptEdits`); the model; the spend limit; the folder | **Offered.** The panel asks *"Settings changed — restart Claude Code now to apply them?"* with **Yes, restart now** and **Later**. Nothing stops until you answer. **Yes** stops Claude Code and starts it again on the new settings — the conversation continues when only the model or the spend limit changed, and a **new chat** begins when the profile, the mode or the folder changed (the prompt says which); while Claude is answering, it restarts when that answer ends. **Later** keeps the session running on the settings it was started with and leaves a **settings changed — restart to apply** chip in the header — click it to be asked again. Putting the setting back withdraws the offer. |
+    | *Safe analysis* → *Full Claude Code*; a full mode that asks **less** (for example `default` → `acceptEdits`); the model; the spend limit; the folder | **Offered.** The panel asks *"Settings changed — restart Claude Code now to apply them?"* with **Restart** and **Later**. Nothing stops until you answer. **Yes** stops Claude Code and starts it again on the new settings — the conversation continues when only the model or the spend limit changed, and a **new chat** begins when the profile, the mode or the folder changed (the prompt says which); while Claude is answering, it restarts when that answer ends. **Later** keeps the session running on the settings it was started with and leaves a **settings changed — restart to apply** chip in the header — click it to be asked again. Putting the setting back withdraws the offer. |
     | *Allow the analyser to start Claude Code* off (or the *In-app assistant* or *Off* profile); Full Claude Code switched **off**; a full mode that asks **more** (for example `auto` → `default`, or any mode → `plan`); the folder no longer confirmed for the profile running | **Stopped at once**, mid-answer too, and never offered: each takes away something the running session can still do. The transcript says why. |
     | External MCP/REST access, file exchange, creating projects, the in-app assistant's settings | Nothing to restart: Claude Code keeps its own connection to the analyser. |
 
@@ -453,7 +458,7 @@ that, run inside the analyser.
   it shows no dollar figure — *"usage counts against your Claude plan"*, whose own usage limits apply. With an API key
   it shows what the session has used, and, if you set one, the limit: *Settings ▸ Assistant ▸ Limit spend per session*
   is **off by default** and is meant for API-key billing; when the limit is reached the analyser stops Claude Code and
-  says so. Changing the limit while a session runs offers a restart (*Yes, restart now* or *Later*); the restart resumes the
+  says so. Changing the limit while a session runs offers a restart (*Restart* or *Later*); the restart resumes the
   conversation under the new limit.
 - **Switching projects while Claude Code runs.** Opening, creating or closing a project from the menus while a session
   runs asks first: **Stop, and get Start ready in the new project** (the session ends; nothing starts until you press
@@ -464,12 +469,14 @@ that, run inside the analyser.
 - **Don't resume this conversation in a terminal while it is open here** — the history would fork. A second analyser
   window cannot open it either: *"This conversation is open in another analyser window."*
 
-**How the conversation is drawn.** Your turns sit on a band marked *You*; Claude's are marked *Claude Code* with *the
-model's words, not a verified result*. Claude's words are shown as **safe Markdown** — headings, lists, quotes,
+**How the conversation is drawn.** Your turns sit on a band marked *You*; Claude's are headed *Claude · unverified* —
+the full *the model's words, not a verified result* is its tooltip and what a screen reader reads. Claude's words are shown as **safe Markdown** — headings, lists, quotes,
 emphasis, inline code and code blocks (lightly tinted for Java, XML, YAML and JSON) — and everything else as its
 characters: HTML is shown as text, an image is *[image: …]* and its address (never fetched), nothing is run. Terminal
 escapes and invisible or direction-reversing characters are shown as marks (`␛[31m`, `⟨U+202E⟩`), so what you see is
-what you copy. Each answer has **Copy** (its words as written, never a tool line) and each code block **Copy code**;
+what you copy. Each answer has **Copy** (its words as written, never a tool line; it shows under the pointer or with the keyboard
+focus) and each code block **Copy code**; the turn's time is the answer's tooltip. A session's first note says what it
+is and how it is paid for (*Claude Code · Safe · uses your Claude plan*), once, and again after a restart;
 a copy that holds such characters says how many.
 
 - **Links** open only when you click them and confirm a dialog showing the scheme and host on their own line, the host
@@ -480,11 +487,11 @@ a copy that holds such characters says how many.
   nowhere.
 - **Tool calls** are one line each — `▸ analyser_read ✓`, `refused`, `denied by you`, `approved by you · ✓` — and a
   click on `▸` (a 24-pixel target) shows the call's input. A screen reader hears the line's own words. **Alt+↑ / Alt+↓** move between turns. Light and dark themes both work.
-- **When your full Claude Code is in force**, the composer has a coloured border and the badge *◆ Full Claude Code
-  (\<mode\>) — on: it runs at the next Start · your tools and permissions* (then *— running*): the state first, so a
-  narrow tab never hides it — with ◆◆ and a stronger colour for `acceptEdits` and `auto`, which ask about fewer actions.
-  That colour is full Claude Code's alone: a denied call is a neutral ink with its words, a status note its own colour.
-  **Send** reads *Send to full Claude Code*, and the tab and the assistant's own window carry the same ◆ marker. The
+- **When your full Claude Code is in force**, the composer has a coloured border, the Assistant control reads
+  *◆ Full Claude Code ▾* (its tooltip: *Full Claude Code (\<mode\>) — on: it runs at the next Start · your tools and
+  permissions*, then *— running*) — with ◆◆ and a stronger colour for `acceptEdits` and `auto`, which ask about fewer
+  actions. That colour is full Claude Code's alone: a denied call is a neutral ink with its words, a status note its own
+  colour. **Send** reads *◆ Send* (named *Send to full Claude Code*), the composer *Ask full Claude Code…*, and the tab and the assistant's own window carry the same ◆ marker. The
   marker follows the session, so it appears and goes with what the analyser actually started.
 
 ## No API key? Copy-prompt mode

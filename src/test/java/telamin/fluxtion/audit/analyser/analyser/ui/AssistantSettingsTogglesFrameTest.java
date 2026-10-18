@@ -221,9 +221,11 @@ class AssistantSettingsTogglesFrameTest {
         try (Session s = new Session(tmp, false)) {
             s.settings(c -> c.claudeCodeModel = "opus");
             onEdt(() -> {
-                assertTrue(s.panel.restartText().getText().startsWith("Settings changed — restart Claude Code now to "
-                        + "apply them?"), s.panel.restartText().getText());
-                assertTrue(s.panel.restartText().getText().contains("the model (sonnet → opus)"));
+                // M78 D1 (§4.1 item 25): a few words on the banner, the whole offer in its tooltip and description
+                assertTrue(s.panel.restartText().getText().startsWith("Settings changed — restart Claude Code now?"),
+                        s.panel.restartText().getText());
+                assertTrue(s.panel.restartBanner().getAccessibleContext().getAccessibleDescription()
+                        .contains("the model (sonnet → opus)"));
                 assertEquals(LocalAgentSession.RESTART_STATUS, ((javax.swing.JLabel) field(s.frame, "status")).getText(),
                         "the main window says where to answer");
                 s.panel.restartLaterButton().doClick();

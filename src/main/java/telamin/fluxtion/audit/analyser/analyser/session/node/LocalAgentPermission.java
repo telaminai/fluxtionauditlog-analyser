@@ -334,8 +334,8 @@ public class LocalAgentPermission implements EventLogSource {
         effects.request(new SessionEffects.AnswerPermissionEffect(0L, gen, ticket, ref, true, null, PermissionBy.PERSON,
                 grant, ToolClass.valueOf(cls), name));
         effects.request(new SessionEffects.ClosePermissionDialogEffect(0L, ref));
-        localAgent.permissionNoted(ticket, "APPROVED", "You allowed " + shown(cls, name) + " — once"
-                + (grant != 0 ? "; the analyser will run exactly this call" : ""));
+        // M78 D1 (spec-quiet-assistant-panel.md §5.3): no Approved note — the tool line's "approved by you" says it
+        // (defect 5); a Denied, Not answered or Withdrawn note is still noted, because nothing else says those
         askNext();
         return changed();
     }
@@ -619,6 +619,7 @@ public class LocalAgentPermission implements EventLogSource {
 
     private boolean changed() {
         dirty = true;
+        localAgent.permissionWaiting(pendingRef != 0);      // M78 D1 §5.1: the header's "needs you" is the node's
         return true;
     }
 

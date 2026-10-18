@@ -171,6 +171,13 @@ class FaqSecurityContractTest {
                 + "provider (Anthropic, on your Claude plan or API key), as in any Claude Code session"), cc);
         assertTrue(inApp.contains("is sent to the model provider you chose"), inApp);
         assertTrue(telamin.fluxtion.audit.analyser.analyser.ui.LocalAgentPanel.SAFE_LIMITS.contains(cc), "the limits line");
+        // M78 D1 (spec-quiet-assistant-panel.md TQ7): the limits line moved to About this session…; the test follows the
+        // sentence there — the panel's About lines carry the same pinned constants
+        String panel = Files.readString(Path.of(
+                "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/LocalAgentPanel.java"));
+        String about = panel.substring(panel.indexOf("java.util.List<String> aboutLines()"));
+        about = about.substring(0, about.indexOf("\n    }\n") + 6);
+        assertTrue(about.contains("out.add(limitsNow());"), "About shows the limits line (SAFE_LIMITS, with " + "CLAUDE_CODE_SENDS)");
         String faq = Files.readString(Path.of("docs/site/faq.md")).replaceAll("\\s+", " ");
         int start = faq.indexOf("## Is the assistant's action socket safe to enable?");
         String answer = faq.substring(start, faq.indexOf(" ## ", start + 1));

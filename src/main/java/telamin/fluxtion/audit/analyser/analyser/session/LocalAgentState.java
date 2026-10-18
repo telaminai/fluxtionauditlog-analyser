@@ -118,17 +118,39 @@ public record LocalAgentState(AssistantMode mode, long conversation, long genera
      * @param instruction the one status line: the phase, or — while a refusal stands — the refusal alone
      * @param action      {@link #ASK_AGAIN} when the composer holds a question drafted for the other assistant, else ""
      * @param refusal     the instruction is a refusal (the composer's "Press Send" hint is then not shown beside it)
+     * @param chipWord    M78 D1 (spec-quiet-assistant-panel.md §5.1): the one or two words the header's mode control
+     *                    carries — {@link #CHIP_READY} (nothing), {@link #CHIP_STARTING}, {@link #CHIP_ANSWERING},
+     *                    {@link #CHIP_NEEDS_YOU} or {@link #CHIP_STOPPED}; a closed set, chosen here, never by the panel
+     * @param banner      M78 D1 (§2.3): the words of the conditional banner — a refusal or an end that the person must
+     *                    read — or "" when there is none. The routine phase ("Ready", "Claude is answering…", "Not
+     *                    running …") is never a banner: the chip word carries it
      */
-    public record Guide(String primary, String instruction, String action, boolean refusal) {
+    public record Guide(String primary, String instruction, String action, boolean refusal, String chipWord,
+                        String banner) {
         public static final String SEND = "SEND";
         public static final String STOP = "STOP";
         public static final String ASK_AGAIN = "ASK_AGAIN";
+        /** M78 D1 §5.1: the chip words, a closed set. Ready says nothing. */
+        public static final String CHIP_READY = "";
+        public static final String CHIP_STARTING = "starting…";
+        public static final String CHIP_ANSWERING = "answering…";
+        public static final String CHIP_NEEDS_YOU = "needs you";
+        public static final String CHIP_STOPPED = "stopped";
+        public static final java.util.List<String> CHIP_WORDS = java.util.List.of(CHIP_READY, CHIP_STARTING,
+                CHIP_ANSWERING, CHIP_NEEDS_YOU, CHIP_STOPPED);
         public static final Guide NONE = new Guide(SEND, "", "", false);
 
         public Guide {
             primary = primary == null ? SEND : primary;
             instruction = instruction == null ? "" : instruction;
             action = action == null ? "" : action;
+            chipWord = chipWord == null ? CHIP_READY : chipWord;
+            banner = banner == null ? "" : banner;
+        }
+
+        /** The shape before M78 D1: no chip word, no banner. */
+        public Guide(String primary, String instruction, String action, boolean refusal) {
+            this(primary, instruction, action, refusal, CHIP_READY, "");
         }
     }
 

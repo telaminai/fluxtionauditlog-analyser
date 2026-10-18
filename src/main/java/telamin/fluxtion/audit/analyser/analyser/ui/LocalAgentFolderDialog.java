@@ -31,7 +31,7 @@ public final class LocalAgentFolderDialog {
 
     /** With the folder's earlier full-posture trust records: a re-ask says what changed (review H6). */
     static JComponent content(Path dir, FullFolderTrust.Scan scan, java.util.List<String> records, String realPath) {
-        JTextArea a = new JTextArea(FullFolderTrust.dialogText(dir, scan, records, realPath), 12, 64);
+        JTextArea a = new JTextArea(FullFolderTrust.dialogText(dir, scan, records, realPath) + "\n\n" + STARTING, 12, 64);
         a.setEditable(false);
         a.setLineWrap(true);
         a.setWrapStyleWord(true);
@@ -72,11 +72,17 @@ public final class LocalAgentFolderDialog {
                 + "the evidence through the analyser's own tools, not from this folder.\n\n"
                 : "Claude Code will read this folder's CLAUDE.md as instructions.\n\n";
         return what + "Trust " + dir + " for Claude Code in the analyser?\n\nRemembered on this machine only; never in a "
-                + "project, a shared settings file or a bundle.";
+                + "project, a shared settings file or a bundle.\n\n" + STARTING;
     }
 
+    /**
+     * M78 D1 (OD-Q.9): what starting contacts — the sentence that sat in the panel before every first Send — said once,
+     * here, in the first-Start folder question, where it is read. The node's constant, unchanged.
+     */
+    static final String STARTING = telamin.fluxtion.audit.analyser.analyser.session.node.LocalAgentSession.CONTACTS_ANTHROPIC;
+
     static JComponent safeContent(Path dir, boolean scratch) {
-        JTextArea a = new JTextArea(safeText(dir, scratch), 6, 56);
+        JTextArea a = new JTextArea(safeText(dir, scratch), 9, 56);
         a.setEditable(false);
         a.setLineWrap(true);
         a.setWrapStyleWord(true);

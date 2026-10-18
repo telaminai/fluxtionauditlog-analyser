@@ -140,8 +140,20 @@ public final class TranscriptStyle {
         };
     }
 
-    /** The muted line once per answer (§5.9). */
+    /**
+     * The sentence once per answer (§5.9). M78 D1 (OD-Q.4): shown as {@link #UNVERIFIED} beside the speaker; this whole
+     * sentence is that word's tooltip and accessible description.
+     */
     public static final String NOT_VERIFIED = "the model's words, not a verified result";
+    /** M78 D1 (OD-Q.4): the word on every answer — "Claude · unverified". */
+    public static final String UNVERIFIED = "unverified";
+    /** M78 D1: the speaker an answer is headed with — "Claude" for Claude Code (the CLI is not the speaker). */
+    public static final String CLAUDE_ANSWER = "Claude";
+
+    /** The name an answer is headed with: {@link #CLAUDE_ANSWER} for Claude Code, else the speaker as given. */
+    public static String answerName(String speaker) {
+        return speaker == null || speaker.equals(marker(Role.CLAUDE)) ? CLAUDE_ANSWER : speaker;
+    }
 
     /** A role's text colour on its own background. */
     public static Color foreground(Role role, boolean dark) {
