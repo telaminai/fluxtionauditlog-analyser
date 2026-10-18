@@ -78,7 +78,7 @@ looks.
 ## The rule these files must obey
 
 **Describe the project's own entry points; never invent a CLI.** A skill saying *"run
-`./scripts/run-server.sh`"* is true of the project that ships it. A skill that invents a command is
+`./run-server.sh`"* is true of the project that ships it. A skill that invents a command is
 fiction that fails on first use, and an agent cannot tell the difference — it will simply report that the
 tool is broken.
 
