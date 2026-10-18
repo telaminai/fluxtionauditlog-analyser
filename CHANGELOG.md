@@ -13,6 +13,7 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ### Changed
 
 - Claude Code in the Assistant tab (review fixes, before release): only the analyser verbs on its explicit list are served to it, so a verb added later stays refused until listed; it has its own rate limit, separate from external clients; the folder question's answer and each of its tool calls are decided in the session's own order, so a call is refused once the session has been stopped for a posture mismatch; and it never starts in a folder other than the one confirmed, even when a project is opened during Start. The *Turn on the REST transport* button and the *warm start* setting are gone; a stored warm-start setting is ignored.
+- Claude Code in the Assistant tab (second review fixes): pressing Stop while Claude Code is still connecting now starts nothing, where before the start could carry on and launch it briefly, leaving the conversation reported as open in another window; with the REST switch off, the analyser's listener answers only the running Claude Code session, not any request that claims to be it.
 - The analyser no longer prints the full REST token to its console when the REST transport starts; the token hint is shown, and the endpoint file (mode 600) and *Copy prompt* carry the token.
 
 ## [1.35.1] - 2026-10-16

@@ -244,9 +244,15 @@ public final class ActionServer {
         sendDiscovery(ex);
     }
 
-    /** H4: in hosted-only mode, a request without a hosted credential is refused before anything else is said. */
+    /**
+     * H4: in hosted-only mode, a request without a LIVE hosted credential is refused before anything else is said. The
+     * header merely being present is not enough (review R3, PR #145): a made-up or revoked value is an external client.
+     */
     private boolean refusedAsExternal(HttpExchange ex) throws IOException {
-        if (externalAllowed || ex.getRequestHeaders().containsKey(HOSTED_HEADER)) return false;
+        if (externalAllowed) return false;
+        HostedCredentials.Gate gate = hostedGate;
+        String hosted = ex.getRequestHeaders().getFirst(HOSTED_HEADER);
+        if (gate != null && hosted != null && gate.generationOf(hosted) >= 0) return false;
         send(ex, 403, err(EXTERNAL_OFF));
         return true;
     }
