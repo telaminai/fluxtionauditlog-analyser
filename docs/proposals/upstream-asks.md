@@ -556,7 +556,7 @@ cannot recover what the record would have said; only the writer can.
 ### UP-FLX-56 ☐ DOC — `claude.txt` lists `@AfterEvent` as a trigger annotation that propagates; it does not
 
 **Target** `fluxtion` (docs: `docs/claude.txt`, the framework reference agents read first) · **Priority** high —
-it is the reference CLAUDE.md rule 6 sends every session to · _Not filed yet (2026-10-18)._
+it is the reference CLAUDE.md rule 6 sends every session to · Filed: telaminai/fluxtion#46 (2026-10-18)
 
 **Evidence: measured** on a probe processor (fluxtion-runtime 1.1.2, builder 1.0.79), and read in the processor it
 generated. `claude.txt` line 206, *Bridging DSL flows into imperative `@OnTrigger` nodes*, says: "A node only
@@ -578,7 +578,7 @@ never fires, silently — the failure the section exists to prevent.
 ### UP-FLX-57 ☐ DOC — the `@AfterTrigger` javadoc's conditions are not what 1.0.79 generates
 
 **Target** `fluxtion` (runtime: the `AfterTrigger` annotation's javadoc) · **Priority** medium ·
-_Not filed yet (2026-10-18)._
+Filed: telaminai/fluxtion#46 (2026-10-18)
 
 **Evidence: measured** on the same probe. The javadoc says an `@AfterTrigger` method is called only if "an event in
 phase handler is present in the same instance" and "an event in phase handler is on the current execution path".
@@ -594,7 +594,7 @@ javadoc states the intended rule, report the generator's behaviour as the bug. E
 ### UP-FLX-58 ☐ QUESTION — one `nodeLogs` entry can hold two callbacks' writes, with repeated keys. Intended?
 
 **Target** `fluxtion` (runtime: `LogRecord`, the YAML audit record writer) · **Priority** medium — the analyser
-already reads it correctly; the question is what the record means · _Not filed yet (2026-10-18)._
+already reads it correctly; the question is what the record means · Filed: telaminai/fluxtion#46 (2026-10-18)
 
 **Evidence: measured and read.** fluxtion-runtime 1.1.2 `LogRecord.addSourceId` opens a new `- id: {` entry only
 when the writing node differs from the last one; `addTrace` (invocation tracing) is the only other thing that starts
