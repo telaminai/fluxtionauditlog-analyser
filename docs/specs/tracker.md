@@ -137,8 +137,8 @@ _Refreshed 2026-10-17 for M74 (owner)._ The 2026-10-06 order above is superseded
 - [M74] ☐ **OD-74.2 terms check and a one-page security model** (review B11): before a customer release.
 - [DOCS-IA] ☐ **Docs site task-first restructure** — the owner approved the audit's nav (§5) on 2026-10-17 ([audit](../handoff/docs-audit-2026-10-17.md)); lands after M74 merges and before the Telamin Canvas rename; the M74 fix list (§4) is done on `feature/claude-code-p3`.
 
-### M77 · Set up AI — the first-run wizard ([spec](spec-ai-setup-wizard.md), r1)
-- [M77] ☐ **Set up AI wizard** (owner direction 2026-10-18; robot journey of the same day): one door with four choices (No AI / your own client over MCP / Claude inside, Safe or Full / both), checks with *Check again*, a live external-client check, the pending question placed at Finish; an `aiSetup` session node. Spec drafted; review pending; 10 owner decisions (OD-77.1–.10); 4 PRs, 13–18 days, after P-1 (SafeChoice clipping) and P-2 (the pending question).
+### M77 · Set up AI — the first-run wizard ([spec](spec-ai-setup-wizard.md), r2)
+- [M77] ☐ **Set up AI wizard** (owner direction 2026-10-18; robot journey of the same day): one door with four choices (No AI / your own client over MCP / Claude inside, Safe or Full / both), checks with *Check again*, a live external-client check, the pending question placed at Finish; an `aiSetup` session node. Spec r2 after one independent review ([disposition](../handoff/review_m77_r1_7f3c.md): 30 findings, all folded); 13 owner decisions open (OD-77.1–.13); 4 PRs, 15–20 days, after P-1 (SafeChoice clipping), P-2 (the pending question) and, for M77-2, P-3 (docked layout floor).
 
 ## Session and dispatch
 

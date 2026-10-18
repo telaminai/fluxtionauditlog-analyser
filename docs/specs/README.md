@@ -35,7 +35,7 @@ line, and update this index in the same change.
 |---|---|---|
 | [spec-onboard-assistant-journeys.md](spec-onboard-assistant-journeys.md) | released in 1.29.0; acceptance open | Onboard assistant and conversation journeys |
 | [spec-assistant-actions-mcp.md](spec-assistant-actions-mcp.md) | M13.1–13.4 shipped; only M13.5 open | M13 |
-| [spec-ai-setup-wizard.md](spec-ai-setup-wizard.md) | DRAFT r1 (2026-10-18); review pending; 10 owner decisions | M77 |
+| [spec-ai-setup-wizard.md](spec-ai-setup-wizard.md) | DRAFT r2 (2026-10-18), one independent review folded; 13 owner decisions open | M77 |
 
 ## Authoring
 
