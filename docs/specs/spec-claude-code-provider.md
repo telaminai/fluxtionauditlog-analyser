@@ -1809,6 +1809,17 @@ live smoke's item 1 met the exchange directory for real.
   only the mode, the hosted tool set, the absence of the person's own analyser registration, the hosted server and the
   session id.
 - **The full posture is not confined to the folder by the analyser** (OD-74.10); the person's rules and mode decide.
+- **The full-posture trust does not cover what its files point at** (review of PR #147, finding 2, escalated to the
+  owner). It covers the three settings files, `CLAUDE.md`, `CLAUDE.local.md`, `.claude/CLAUDE.md` and everything under
+  `.claude/commands`, `skills`, `agents`, `rules`, `output-styles` and `hooks`. A hook script elsewhere in the folder,
+  the script an `.mcp.json` server runs (`node ./server.js`), a file `CLAUDE.md` imports with `@`, and nested or
+  ancestor `CLAUDE.md` files are not digested; the dialog says so for server scripts. Covering them needs a design
+  choice (digest what commands point at, or the whole repository).
+- **A mode kill is after the fact** (review of PR #147, info 11): a `system/status` mode change is acted on when its
+  fact reaches the session thread, so a tool can start under the new mode first; only the `set_permission_mode` path is
+  evidenced, and `ExitPlanMode` or a hook's `setMode` without a `status` line is caught at the next `system/init`.
+- **Switching the full posture off waits for the turn in progress** (review of PR #147, finding 5): full → default is a
+  posture change, ended after the turn; only switching Claude Code off stops it at once. Intended, and left as is (2026-10-18).
 - **The analyser cannot ask about a call the CLI does not ask about.** In the full posture the person's allow rules,
   hooks and the `auto` classifier approve calls without `can_use_tool`. For the analyser's own destructive verbs the
   server-side grant (OD-74.17) still requires the person's approval; for the person's own tools nothing in the
@@ -1861,7 +1872,12 @@ agent, and P2's start page and transcript would otherwise inherit them.
 **Untested, carried to acceptance unless noted:**
 - **Windows:** the launcher, inline-JSON quoting through `cmd.exe` versus a 0700 temp file, interrupt and tree kill
   without SIGTERM, `--restricted` with drive, UNC and junction paths, the full posture's `PATH` (OD-74.11 lists POSIX
-  directories; Windows appends `%APPDATA%\npm` only);
+  directories; Windows appends `%APPDATA%\npm` only). Recorded from the review of PR #147 (2026-10-18), not fixed:
+  `ChildPath.osDefault` hard-codes `C:\Windows` (should read `%SystemRoot%`); `ChildEnvironment.hostSession` and
+  `ChildPath`'s duplicate check compare names case-sensitively, where Windows variable names and paths are not; the
+  native installer's `%USERPROFILE%\.local\bin` is not appended; a junction under the folder is caught only by the
+  real-path comparison, which is unprobed on Windows; `ChildEnvironmentTest.theOsLauncherRemoves` assumes `/bin/sh` and
+  `HOME`;
 - managed settings precedence (P4 decides what it needs);
 - the interactive resume picker;
 - a rate-limit rejection;
@@ -2181,6 +2197,22 @@ posture's note for the full posture; FAQ — a pinned claim removed.
 - **Witnesses** (each failed at its named assertion, then passed restored): H6 — the settings files only ("a rewritten
   CLAUDE.md asks again"), and a link followed out of the folder (the outside change altered the digest); full M8 — the
   `contentUnchanged` refusal dropped (a process started).
+- **Review of PR #147 (2026-10-18).** (1) `permissions` is no longer an inert key: the dialog names the folder's
+  `allow` rules, `additionalDirectories` and `defaultMode` (*"Permissions this folder grants itself: …"*), and they are
+  never "nothing runs". (2) `.claude/rules`, `.claude/output-styles` and `.claude/hooks` join the instruction trees, and
+  the dialog says the scripts `.mcp.json` servers run are not re-checked; folders holding those trees re-ask once.
+  (3) A running full session whose `LocalAgentConsent.fullFolderConfirmed` turns false — at a Send, or on Settings
+  apply — ends with `TRUST_CHANGED` (after the turn in progress, or at once), without New chat; Start then asks through
+  `CONFIRM_FOLDER`. (4) A changed spend limit ends a running session with `BUDGET_CHANGED` the same way; Start resumes
+  under the new `--max-budget-usd`. (6) `ENABLE_IDE_INTEGRATION`, `CLAUDE_PROJECT_DIR`, `CLAUDE_ENV_FILE` and
+  `CLAUDE_PLUGIN_*` are stripped. (7) A `.claude` (or tree) whose real path leads out of the folder is named, never
+  walked. (8) The scan also bounds folders (`MAX_INSTRUCTION_DIRS`, 2,000) and says *"Over the limit"*; it stays on
+  the event thread, because the consent is observed with the Send it travels in and moving it would reorder facts, so
+  the bounds (files, folders, 8 MB, depth 12) are what keeps it short. Info: the `!BYPASS` clause is witnessed through
+  `LocalAgentPosture.modeMatches(expected, reported)`; a folder server named `fluxtion-analyser-hosted` is flagged;
+  empty and relative `PATH` entries are dropped from the child's `PATH`; the read after a size check is bounded.
+  Each has a ★ test whose witness is in its Javadoc.
+
 ## Implementation notes (P2a, 2026-10-17)
 
 P2a — the Ask catalogue (§5.5), the start-page prompt (§5.8) and transcript presentation (§5.9), with the owner's r10

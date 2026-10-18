@@ -100,4 +100,22 @@ class ChildPathTest {
         assertEquals("~/.local/bin", ChildPath.shown(home.resolve(".local/bin").toString(), home));
         assertEquals("/opt/homebrew/bin", ChildPath.shown("/opt/homebrew/bin", home));
     }
+
+    /**
+     * ★ Review of PR #147, info. Witness: keep every entry (the P1b split) — ".", "bin" and the empty entries stay in the
+     * child's PATH, where they resolve inside the working folder.
+     */
+    @Test
+    @DisplayName("★ PR #147: empty and relative PATH entries are dropped from the child's PATH")
+    void relativeEntriesAreDropped() {
+        var x = ChildPath.extend(Map.of("PATH", ".:bin::/usr/bin:"), HOME, false, ":", p -> false);
+        assertEquals("/usr/bin", x.path());
+        assertEquals(List.of(".", "bin", "", ""), x.dropped());
+        assertTrue(x.changed(), "the child's PATH differs, so it is written");
+        var only = ChildPath.extend(Map.of("PATH", "./node_modules/.bin"), HOME, false, ":", p -> false);
+        assertEquals(GUI, only.path(), "nothing usable left: the OS default, never an empty PATH");
+        var w = ChildPath.extend(Map.of("Path", "C:\\Windows;.\\tools;\\\\server\\share"), Path.of("C:\\Users\\u"),
+                true, ";", p -> false);
+        assertEquals("C:\\Windows;\\\\server\\share", w.path());
+    }
 }
