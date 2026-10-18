@@ -1,0 +1,545 @@
+{
+  "scorecard": "usability",
+  "label": "a875fcba",
+  "window": "1200x800",
+  "states": [
+    {
+      "id": "S1",
+      "state": "Start page (fresh home)",
+      "region": "the start page",
+      "words": 225,
+      "controls": 15,
+      "clippedCount": 0,
+      "clipped": [],
+      "windowWords": 225,
+      "windowClippedCount": 0,
+      "windowClipped": [],
+      "window": "Fluxtion Audit Log Analyser",
+      "counted": [
+        "6 · What would you like to do?",
+        "19 · Choose an example, or write your own question. Nothing is sent, opened or started until yo…",
+        "58 · 1. Run me through a demo 2. Build a new application with me 3. Teach me by building an exa…",
+        "9 · Ask about a log, or choose an entry above",
+        "1 · Send",
+        "8 · Enter sends · Shift+Enter starts a new line",
+        "11 · No AI assistant can answer here yet — these run without one:",
+        "2 · User guide",
+        "21 · Open evidence, return to a project, or learn with DEMO. An assistant can drive the same vi…",
+        "22 · Drop an .fexp bundle, audit log, GraphML, Spring XML or a prompt pack (.md) anywhere on th…",
+        "3 · Or open directly",
+        "2 · Explore DEMO",
+        "2 · Guided tour",
+        "2 · Sample project",
+        "1 · Open",
+        "1 · Project",
+        "2 · Evidence bundle",
+        "2 · Audit log",
+        "1 · GraphML",
+        "1 · Create",
+        "2 · Project profile",
+        "2 · From template",
+        "3 · Connect an assistant",
+        "1 · Codex",
+        "1 · Claude",
+        "3 · Other MCP client",
+        "18 · Connect your CLI assistant to query records, draw charts and spotlight evidence here — the…",
+        "1 · Settings",
+        "1 · Settings",
+        "2 · Fluxtion key",
+        "16 · Source settings apply to the open project, or to global defaults when no project is open.",
+        "1 · Recent"
+      ]
+    },
+    {
+      "id": "S2",
+      "state": "Assistant Ready (Safe analysis, docked)",
+      "region": "the assistant panel",
+      "words": 31,
+      "controls": 6,
+      "clippedCount": 0,
+      "clipped": [],
+      "windowWords": 229,
+      "windowClippedCount": 1,
+      "windowClipped": [
+        "JLabel \"Yours, on this machine. Never written to a profile, never shared.\" is cut at the side: shows 284 of 336 px"
+      ],
+      "window": "Fluxtion Audit Log Analyser",
+      "counted": [
+        "3 · Assistant: Safe analysis ▾",
+        "2 · New chat",
+        "2 · Pop out",
+        "0 · ⓘ",
+        "2 · Claude Code",
+        "7 · model: sonnet (confirmed after the first turn)",
+        "2 · Safe analysis",
+        "1 · <subscription>",
+        "6 · usage counts against your Claude plan",
+        "4 · Your question — Enter sends,",
+        "1 · Stop",
+        "1 · Send"
+      ]
+    },
+    {
+      "id": "S3",
+      "state": "Records with the event-type list shown",
+      "region": "the Records section",
+      "words": 25,
+      "controls": 8,
+      "clippedCount": 0,
+      "clipped": [],
+      "windowWords": 273,
+      "windowClippedCount": 3,
+      "windowClipped": [
+        "JLabel \"Yours, on this machine. Never written to a profile, never shared.\" is cut at the side: shows 284 of 336 px",
+        "JCheckBox \"Scaffolding\" is cut at the side: shows 68 of 88 px",
+        "JLabel \"every node id checked is declared (5/5)   ·   demo-quote-processor.gra…\" is narrower than its text: 200 < 2043"
+      ],
+      "window": "Fluxtion Audit Log Analyser",
+      "counted": [
+        "1 · Records",
+        "1 · Search:",
+        "2 · Event types",
+        "1 · Columns",
+        "2 · Clear history",
+        "2 · Event types",
+        "2 · Select all",
+        "2 · Select none",
+        "2 · Event types",
+        "2 · OrderUpdateEvent (4)",
+        "2 · MarketDataEvent (3)",
+        "2 · ExportFunctionAuditEvent (2)",
+        "4 · logTime event callback thread"
+      ]
+    }
+  ],
+  "tasks": [
+    {
+      "id": "T1",
+      "task": "Fresh start to the first answer",
+      "keyWords": [
+        "ask",
+        "send",
+        "question",
+        "answer"
+      ],
+      "success": true,
+      "acts": {
+        "clicks": 3,
+        "keys": 2,
+        "drags": 0,
+        "scrolls": 0,
+        "total": 5
+      },
+      "hesitations": 2,
+      "deadEnds": 0,
+      "wordsBeforeFirstAct": 225,
+      "clippedCount": 1,
+      "clipped": [
+        "JLabel \"Yours, on this machine. Never written to a profile, never shared.\" is cut at the side: shows 284 of 336 px"
+      ],
+      "steps": [
+        {
+          "n": 1,
+          "act": "key",
+          "what": "type a question in the start page's box",
+          "label": "Ask about a log, or choose an entry above",
+          "hesitation": [],
+          "deadEnd": false
+        },
+        {
+          "n": 2,
+          "act": "key",
+          "what": "press Enter",
+          "label": "Enter sends · Shift+Enter starts a new line",
+          "hesitation": [],
+          "deadEnd": false
+        },
+        {
+          "n": 3,
+          "act": "click",
+          "what": "open the sample the page offers",
+          "label": "Open the sample",
+          "hesitation": [
+            "label_lacks_key_word"
+          ],
+          "deadEnd": false
+        },
+        {
+          "n": 4,
+          "act": "click",
+          "what": "apply the default assistant",
+          "label": "Apply",
+          "hesitation": [
+            "label_lacks_key_word"
+          ],
+          "deadEnd": false
+        },
+        {
+          "n": 5,
+          "act": "click",
+          "what": "send the placed question",
+          "label": "Send",
+          "hesitation": [],
+          "deadEnd": false
+        }
+      ]
+    },
+    {
+      "id": "T2",
+      "task": "Right-click Ask about a record",
+      "keyWords": [
+        "ask",
+        "send",
+        "question",
+        "answer"
+      ],
+      "success": true,
+      "acts": {
+        "clicks": 4,
+        "keys": 0,
+        "drags": 0,
+        "scrolls": 1,
+        "total": 5
+      },
+      "hesitations": 2,
+      "deadEnds": 0,
+      "wordsBeforeFirstAct": 273,
+      "clippedCount": 4,
+      "clipped": [
+        "JLabel \"Yours, on this machine. Never written to a profile, never shared.\" is cut at the side: shows 284 of 336 px",
+        "JCheckBox \"Scaffolding\" is cut at the side: shows 68 of 88 px",
+        "JLabel \"every node id checked is declared (5/5)   ·   demo-quote-processor.gra…\" is narrower than its text: 200 < 2043",
+        "JLabel \"every node id checked is declared (5/5)   ·   RiskBreachEvent — 1 node…\" is narrower than its text: 200 < 2066"
+      ],
+      "steps": [
+        {
+          "n": 1,
+          "act": "click",
+          "what": "right-click the RiskBreachEvent record",
+          "label": "2026-01-01 09:00:00.300 RiskBreachEvent  com.acme.demo.GenerateFixtures.main() 1 node",
+          "hesitation": [
+            "below_fold",
+            "behind_menu",
+            "label_lacks_key_word"
+          ],
+          "deadEnd": false
+        },
+        {
+          "n": 2,
+          "act": "click",
+          "what": "choose Ask: What happened here?",
+          "label": "Ask the assistant: What happened here?",
+          "hesitation": [],
+          "deadEnd": false
+        },
+        {
+          "n": 3,
+          "act": "click",
+          "what": "apply the default assistant",
+          "label": "Apply",
+          "hesitation": [
+            "label_lacks_key_word"
+          ],
+          "deadEnd": false
+        },
+        {
+          "n": 4,
+          "act": "click",
+          "what": "send the placed question",
+          "label": "Send",
+          "hesitation": [],
+          "deadEnd": false
+        }
+      ]
+    },
+    {
+      "id": "T3",
+      "task": "Approve a report write",
+      "keyWords": [
+        "approve",
+        "allow"
+      ],
+      "success": true,
+      "acts": {
+        "clicks": 1,
+        "keys": 0,
+        "drags": 0,
+        "scrolls": 0,
+        "total": 1
+      },
+      "hesitations": 0,
+      "deadEnds": 0,
+      "wordsBeforeFirstAct": 325,
+      "clippedCount": 3,
+      "clipped": [
+        "JLabel \"Yours, on this machine. Never written to a profile, never shared.\" is cut at the side: shows 284 of 336 px",
+        "JCheckBox \"Scaffolding\" is cut at the side: shows 68 of 88 px",
+        "JLabel \"every node id checked is declared (5/5)   ·   demo-quote-processor.gra…\" is narrower than its text: 200 < 2043"
+      ],
+      "steps": [
+        {
+          "n": 1,
+          "act": "click",
+          "what": "allow the report write once",
+          "label": "Allow once",
+          "hesitation": [],
+          "deadEnd": false
+        }
+      ]
+    },
+    {
+      "id": "T4",
+      "task": "Find out why records are missing (a type filter on, the list hidden)",
+      "keyWords": [
+        "filter",
+        "hidden",
+        "missing"
+      ],
+      "success": true,
+      "acts": {
+        "clicks": 1,
+        "keys": 0,
+        "drags": 0,
+        "scrolls": 1,
+        "total": 2
+      },
+      "hesitations": 2,
+      "deadEnds": 0,
+      "wordsBeforeFirstAct": 259,
+      "clippedCount": 3,
+      "clipped": [
+        "JLabel \"Yours, on this machine. Never written to a profile, never shared.\" is cut at the side: shows 284 of 336 px",
+        "JCheckBox \"Scaffolding\" is cut at the side: shows 68 of 88 px",
+        "JLabel \"every node id checked is declared (5/5)   ·   demo-quote-processor.gra…\" is narrower than its text: 200 < 2043"
+      ],
+      "steps": [
+        {
+          "n": 1,
+          "act": "click",
+          "what": "show the event-type checklist",
+          "label": "Event types",
+          "hesitation": [
+            "label_lacks_key_word"
+          ],
+          "deadEnd": false
+        },
+        {
+          "n": 2,
+          "act": "none",
+          "what": "find the unticked type",
+          "label": "RiskBreachEvent (1)",
+          "hesitation": [
+            "below_fold"
+          ],
+          "deadEnd": false
+        }
+      ]
+    },
+    {
+      "id": "T5",
+      "task": "Switch Safe → Full → Safe",
+      "keyWords": [
+        "safe",
+        "full"
+      ],
+      "success": true,
+      "acts": {
+        "clicks": 7,
+        "keys": 0,
+        "drags": 0,
+        "scrolls": 1,
+        "total": 8
+      },
+      "hesitations": 2,
+      "deadEnds": 0,
+      "wordsBeforeFirstAct": 254,
+      "clippedCount": 2,
+      "clipped": [
+        "JLabel \"Yours, on this machine. Never written to a profile, never shared.\" is cut at the side: shows 284 of 336 px",
+        "JLabel \"◆ Full Claude Code (default) — on: it runs at the next Start · your to…\" is narrower than its text: 200 < 544"
+      ],
+      "steps": [
+        {
+          "n": 1,
+          "act": "click",
+          "what": "open the assistant chooser",
+          "label": "Assistant: Safe analysis ▾",
+          "hesitation": [],
+          "deadEnd": false
+        },
+        {
+          "n": 2,
+          "act": "click",
+          "what": "choose the Full Claude Code card",
+          "label": "Full Claude Code",
+          "hesitation": [
+            "below_fold"
+          ],
+          "deadEnd": false
+        },
+        {
+          "n": 3,
+          "act": "click",
+          "what": "turn Full on",
+          "label": "Turn on Full",
+          "hesitation": [],
+          "deadEnd": false
+        },
+        {
+          "n": 4,
+          "act": "click",
+          "what": "accept the Full consent",
+          "label": "Turn on full Claude Code",
+          "hesitation": [],
+          "deadEnd": false
+        },
+        {
+          "n": 5,
+          "act": "click",
+          "what": "open the assistant chooser",
+          "label": "Full Claude Code ▾",
+          "hesitation": [],
+          "deadEnd": false
+        },
+        {
+          "n": 6,
+          "act": "click",
+          "what": "choose the Safe analysis card",
+          "label": "Safe analysis",
+          "hesitation": [],
+          "deadEnd": false
+        },
+        {
+          "n": 7,
+          "act": "click",
+          "what": "apply Safe analysis",
+          "label": "Apply",
+          "hesitation": [
+            "label_lacks_key_word"
+          ],
+          "deadEnd": false
+        }
+      ]
+    },
+    {
+      "id": "T6",
+      "task": "Set up an external client",
+      "keyWords": [
+        "client",
+        "connect",
+        "mcp"
+      ],
+      "success": true,
+      "acts": {
+        "clicks": 4,
+        "keys": 0,
+        "drags": 0,
+        "scrolls": 0,
+        "total": 4
+      },
+      "hesitations": 1,
+      "deadEnds": 0,
+      "wordsBeforeFirstAct": 225,
+      "clippedCount": 0,
+      "clipped": [],
+      "steps": [
+        {
+          "n": 1,
+          "act": "click",
+          "what": "choose Other MCP client",
+          "label": "Other MCP client",
+          "hesitation": [],
+          "deadEnd": false
+        },
+        {
+          "n": 2,
+          "act": "click",
+          "what": "turn on External MCP/REST access",
+          "label": "Turn on External MCP/REST access…",
+          "hesitation": [],
+          "deadEnd": false
+        },
+        {
+          "n": 3,
+          "act": "click",
+          "what": "confirm",
+          "label": "OK",
+          "hesitation": [
+            "label_lacks_key_word"
+          ],
+          "deadEnd": false
+        },
+        {
+          "n": 4,
+          "act": "click",
+          "what": "check the connection",
+          "label": "Check connection",
+          "hesitation": [],
+          "deadEnd": false
+        }
+      ]
+    },
+    {
+      "id": "T7",
+      "task": "Open the sample",
+      "keyWords": [
+        "sample"
+      ],
+      "success": true,
+      "acts": {
+        "clicks": 1,
+        "keys": 0,
+        "drags": 0,
+        "scrolls": 0,
+        "total": 1
+      },
+      "hesitations": 0,
+      "deadEnds": 0,
+      "wordsBeforeFirstAct": 225,
+      "clippedCount": 1,
+      "clipped": [
+        "JLabel \"Yours, on this machine. Never written to a profile, never shared.\" is cut at the side: shows 284 of 336 px"
+      ],
+      "steps": [
+        {
+          "n": 1,
+          "act": "click",
+          "what": "open the sample project",
+          "label": "Sample project",
+          "hesitation": [],
+          "deadEnd": false
+        }
+      ]
+    },
+    {
+      "id": "T8",
+      "task": "Load a prompt pack",
+      "keyWords": [
+        "prompt pack"
+      ],
+      "success": true,
+      "acts": {
+        "clicks": 0,
+        "keys": 0,
+        "drags": 1,
+        "scrolls": 0,
+        "total": 1
+      },
+      "hesitations": 0,
+      "deadEnds": 0,
+      "wordsBeforeFirstAct": 225,
+      "clippedCount": 0,
+      "clipped": [],
+      "steps": [
+        {
+          "n": 1,
+          "act": "drag",
+          "what": "drop the pack on the start page",
+          "label": "Drop an .fexp bundle, audit log, GraphML, Spring XML or a prompt pack (.md) anywhere on th…",
+          "hesitation": [],
+          "deadEnd": false
+        }
+      ]
+    }
+  ]
+}
