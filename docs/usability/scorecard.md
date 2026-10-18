@@ -418,6 +418,17 @@ build is scripted and budgeted. The rest are targets, each with its success crit
   10. *Open*;
   11. *Yes* to *Load this project?* (the evidence is open and paired).
 
+## Integration v2: `regfix` → `integration-b` (test/usability-2026-10-18b)
+
+The second integration build adds `fix/owner-test-small` and `feature/propose-starter` (draft #167) to `regfix`. The
+record is [`baseline-integration-b.md`](baseline-integration-b.md) / [`.json`](baseline-integration-b.json), from
+`python3 tools/usability/run.py --record --label integration-b` on the jar built at `42c5bb78`. Its JSON is
+**byte-identical** to [`baseline-regfix.json`](baseline-regfix.json) apart from the label: every task, state, step,
+clipped string and T4c result is unchanged, so there is no regression and no budget moves. Neither branch touches a
+route the battery walks; in particular **no task covers the starter flow** (Claude proposes a starter, the review, the
+open), so the battery cannot see OPT-2 yet. The review map's §6 has the three-column table (integration → `regfix` →
+`integration-b`).
+
 ## Budgets enforced in CI
 
 `UsabilityBudgetFrameTest` runs on the display, at 1200×800 and docked. The budgets are the integration build's

@@ -209,3 +209,109 @@ hesitations — the one door for your own client puts the bridge check behind *C
 Also worse with a reason: SC T1 5 → 6 acts (Continue and Finish replace Apply), SC T1/T2 one more hesitation each, S3
 25 → 26 words. Better: SC T4, SC T5 8 → 5, S2 31 → 6 words, A2 11 → 10. Details: `docs/usability/scorecard.md` ▸ *The
 integration build*.
+
+## 6. v2: `test/usability-2026-10-18b`
+
+Filled in by the integrator, 2026-10-18, for the owner's second hands-on test (no PR).
+
+- **Branch and tip:** `test/usability-2026-10-18b`. The full gate ran at **`42c5bb78`** (the merge below); the commit
+  after it adds only this section, the brief's tip, the tracker lines and the scorecard record
+  (`baseline-integration-b.{json,md}`). Docs are test inputs, so the headless suite, `mkdocs build --strict` and the
+  sweep were run again at the tip. Product code is unchanged from `42c5bb78` to the tip.
+- **Base:** `fix/owner-test-small` @ `1f445e78`, which already holds v1 (`54b3da26`) and
+  `fix/wizard-scorecard-regressions` (`c07eaccc`).
+
+### What v2 adds
+
+| Branch | Tip | Base | Claims | Evidence |
+|---|---|---|---|---|
+| `fix/wizard-scorecard-regressions` (FIX-7, no PR) | `c07eaccc` | v1 `54b3da26` | Set up AI's buttons say what they do (*Check Claude Code*, *Set up my client*, *Finish, then send my question*); **Check connection** on Screen 2b above the fold, its confirmation also running the check | `AiSetupWordingTest`, `AiSetupClientFrameTest`, `UsabilityBudgetFrameTest`; scorecard ▸ *The wizard fix* (T6 7→4 acts) |
+| `fix/owner-test-small` (FIX-6, no PR) | `1f445e78` | `c07eaccc` | from the owner's first hands-on test: the sample selects its shipped processor; `processors[].from` and `source {bean}` with no design say the truth; permission dialogs come forward and a timeout says do not retry; Full opens the active sample's own log and GraphML without asking; a key named as a `context` section is refused with its section; Start building offers `acceptEdits` when Full is in `default` (one new handler, `aiSetup.onBuildModeAnswered`) | `DemoAssetsTest`, `ProcessorFromTest`, `DesignWorkspaceTest`, `LocalAgentPermissionTest`, `LocalAgentPermissionFrameTest`, `InProjectOpenTest`, `HostedGrantServerTest`, `ContextSectionsTest`, `AiSetupTest`, `BuildModeOfferPanelTest` |
+| `feature/propose-starter` — draft [#167](https://github.com/telaminai/fluxtionauditlog-analyser/pull/167) (OPT-2) | `59220eee` | `c07eaccc` | Claude proposes a starter (`propose {kind: starter}`), `context.starters`; ONE `starterProject` chain for the proposal and *New project from template…*: download after Apply, skills from the jar, discovery, one review (rows at No, incl. the design folder), open, Spring design, GraphML watch, draft; the identity note; Full's docs-site `WebFetch` | `ProposeShapeStarterTest`, `StarterProposeApiDeltaTest`, `StarterProjectTest`, `StarterSkillsTest`, `StarterProposalFrameTest`, `ClaudeCodeProviderTest`, `CustomerApiKeysTest`, `OneDispatchModelTest` |
+
+### Merge (`git merge --no-ff`, its own merge commit)
+
+| Merged | Tip | Merge commit | Conflicts and resolution |
+|---|---|---|---|
+| `feature/propose-starter` (#167) | `59220eee` | `42c5bb78` | **CHANGELOG**: both sides' `[Unreleased]` ▸ *Changed* lines kept (union); every new line of either side is under `[Unreleased]`, checked by script. **`LocalAgentPermission`**: the `PRE_ALLOWED` note keeps FIX-6's open wording (*inside this project's folder or the analyser's own sample*, which `LocalAgentAdapter.OPEN_IN_PROJECT_MARK` matches) and adds #167's `WebFetch` line. **Generated session processor** (java, its resources copy, the GraphML): not hand-merged, regenerated. Auto-merged and checked line by line (every added line of either side present): `MainFrame`, `LocalAgentPanel` (FIX-6's Build-mode banner and #167's *About this session* note both kept; #167 adds no banner), `LocalAgentAdapter`, `ContextSections`, `SessionEvents`, `LocalAgentPermissionTest`, `security.md`, `build/index.md`, `verbs.md`. `ci.yml`: only #167 changed it; the two frame lists are identical (68 suites) and name every `*FrameTest` in the tree (`StarterProposalFrameTest`, `LocalAgentPermissionFrameTest` included). `SessionSnapshot`: only #167 changed it (the `starter` component). |
+
+**The generated session processor** was regenerated with `mvn -Pregen process-classes` (bootstrapped from #167's
+copy, which compiles against the merged nodes) and is a fixpoint: a second regeneration is byte-identical. The header
+is kept. Read from the generated `handleEvent` methods: every handler both sides have dispatches exactly as #167's
+does, and FIX-6's order is preserved within it; the only handler not in #167 is FIX-6's
+`AiSetupBuildModeAnswered` → `aiSetup.onBuildModeAnswered`; #167's seventeen starter facts dispatch as #167 generated
+them (e.g. `StarterChosen` → `starterProject`; `StarterReviewAnswered` → `onboardingProposal`, then
+`starterProject`), and `sessionBoundary` is given `starterProject`.
+
+### Gates (at `42c5bb78`, on macOS)
+
+- ☑ `mvn -o clean test` (headless): **587 suites, 4,179 tests, 0 fail, 0 errors, 326 skipped** (frame suites with no
+  display, plus `MouseTraceTest` 2, `FlowDiagramTest` 1, `TemplateRootWindowsTest` 1). Re-run at the tip after the
+  docs commit, below.
+- ☑ The registered frame suites on the display (68 suites, the two `ci.yml` lists identical): **323 tests, 321 pass,
+  0 fail, 0 errors, 2 skipped**. Skips (focus/native on this Mac):
+  `PersonAtTheScreenFrameTest.escapeWithTheSearchHistoryPopupFocused_putsSeveralSpotlightsOut` and
+  `StartWorkspaceFrameTest.nativeFileDropOnHeroTextOpensAuditLog`. `TableDragCancellationFrameTest`'s four
+  native-press cases, the Mac baseline's errors, **passed** in this run, as did the `AssistantNativeFrameTest` and
+  `WalkArrowKeysFrameTest` cases v1 skipped; desktop luck, not a fix — read them as the baseline still.
+- ☑ `python3 tools/test_project_chart_review.py`: OK.
+- ☑ On the built jar: `verify-m46-agent-api` (16 PASS, 0 FAIL), `verify-session-transitions` (*ALL PASS*; its one
+  line containing "FAILED" is the check *a FAILED switch must close nothing*), `verify-session-restart` (PASS);
+  `tools/test_analyser_session_watch.py`: OK.
+- ☑ `mkdocs build --strict`: passes.
+- ☑ The sweep (CLAUDE.md rule 1) prints nothing. Identities `origin/feature/claude-code-p3..HEAD`: only
+  `gregphiggins@gmail.com` (author and committer). No screenshot added or regenerated.
+- ☐ Mutation gate and loop bench: not run.
+
+### Scorecard: integration → `regfix` → `integration-b`
+
+`python3 tools/usability/run.py --record --label integration-b` on the jar built at `42c5bb78`. The JSON is
+byte-identical to `baseline-regfix.json` apart from its label: **no regression, and no change** — FIX-6 and #167 add
+nothing to the battery's routes.
+
+| Task | Success | Acts | Hesitations | Dead ends | Words before first act | Clipped |
+|---|---|---|---|---|---|---|
+| T1 Fresh start to the first answer | yes → yes → yes | 6 → 6 → 6 | 3 → 2 → 2 | 0 → 0 → 0 | 222 → 224 → 224 | 1 → 1 → 1 |
+| T2 Right-click Ask about a record | yes → yes → yes | 5 → 5 → 5 | 3 → 2 → 2 | 0 → 0 → 0 | 262 → 262 → 262 | 4 → 4 → 4 |
+| T3 Approve a report write | yes → yes → yes | 1 → 1 → 1 | 0 → 0 → 0 | 0 → 0 → 0 | 314 → 314 → 314 | 3 → 3 → 3 |
+| T4 Find out why records are missing | yes → yes → yes | 1 → 1 → 1 | 1 → 1 → 1 | 0 → 0 → 0 | 272 → 272 → 272 | 3 → 3 → 3 |
+| T5 Switch Safe → Full → Safe | yes → yes → yes | 5 → 5 → 5 | 0 → 0 → 0 | 0 → 0 → 0 | 199 → 199 → 199 | 1 → 1 → 1 |
+| T6 Set up an external client | yes → yes → yes | 7 → 4 → 4 | 4 → 1 → 1 | 0 → 0 → 0 | 222 → 224 → 224 | 0 → 0 → 0 |
+| T7 Open the sample | yes → yes → yes | 1 → 1 → 1 | 0 → 0 → 0 | 0 → 0 → 0 | 222 → 224 → 224 | 1 → 1 → 1 |
+| T8 Load a prompt pack | yes → yes → yes | 1 → 1 → 1 | 0 → 0 → 0 | 0 → 0 → 0 | 222 → 224 → 224 | 0 → 0 → 0 |
+| A2 Teach-me diamond pack | yes → yes → yes | 10 → 10 → 10 | 3 → 3 → 3 | 0 → 0 → 0 | 222 → 224 → 224 | 6 → 6 → 6 |
+
+| State | Chrome words | Controls | Clipped | Whole-window words |
+|---|---|---|---|---|
+| S1 Start page (fresh home) | 222 → 224 → 224 | 16 → 16 → 16 | 0 → 0 → 0 | 222 → 224 → 224 |
+| S2 Assistant Ready (Safe analysis, docked) | 6 → 6 → 6 | 4 → 4 → 4 | 0 → 0 → 0 | 195 → 195 → 195 |
+| S3 Records with the event-type list shown | 26 → 26 → 26 | 9 → 9 → 9 | 0 → 0 → 0 | 274 → 274 → 274 |
+
+T4c passes in all three. The S1 +2 words are FIX-7's, with their reason in *The wizard fix*.
+
+### Flags for v2
+
+Each is a deliberate change of behaviour or contract. Judge it; do not assume it is right because it is listed.
+
+| # | Flag | Branch | Where to look |
+|---|---|---|---|
+| 15 | The `propose` verb gains a `starter` kind (with `starter`, `reason` and optional `artifact`, `group`, `basePackage`), **hosted only**: alone in its proposal, no path; the external MCP/REST `propose` is unchanged | #167 | `ProposeShape`, `VerbSchemas`; `ProposeShapeStarterTest`, `StarterProposeApiDeltaTest` (undone, both hosted surfaces give their old pins) |
+| 16 | `context.starters` in the `project` section (additive: id, name, description, authoring, host, key need; Spring first), rendered from the snapshot, never fetched | #167 | `ContextSections`, `StarterState`, `MainFrame` context assembly; `CustomerApiKeysTest` (`CONTEXT_ADDITIVE`) |
+| 17 | Full pre-allows `WebFetch(domain:fluxtion-playground.dev)`: one fixed rule on the CLI's command line, and the analyser's own approval allows without a dialog only an https fetch of exactly that host; any other fetch is asked; Safe has no web tool | #167 | `LocalAgentPosture.DOCS_DOMAIN` / `docsFetch`, `LocalAgentPermission` (the `WEB_FETCH` branch), `FullFolderTrust.DOCS_FETCH`; `docs/site/admin/security.md` |
+| 18 | Full pre-allows `open` of the **active sample project's** own log and GraphML (its session works in a scratch folder, so flag 2's in-project rule never matched): a second root with the same real-path, key and Full-only checks; external REST/MCP never has one | FIX-6 (`62e1971a`) | `McpTools.OpenScope.sampleRoot`, `LocalAgentFolders.sampleRoot`; `InProjectOpenTest`, `HostedGrantServerTest` |
+| 19 | The identity note begins both postures' system notes (Full adds the starter rule), so `postureRef` changes: **sessions from before this build are not resumed**; they begin a new chat | #167 | `ClaudeCodeProvider` (the note and `postureRef`), `LocalAgentAdapter`; `ClaudeCodeProviderTest`; `docs/site/inapp/claude-code.md` |
+| 20 | Skills are vendored from **jar resources** (`docs/skills` m19-skills/2 selection, digest-checked against the index, never overwriting), including the **pinned playground Spring pages** `spring-authoring/skill.md` and `contract.md`, which carry **no stated licence** — bundled on the owner's authority as the same publisher (UP-PG-10 asks the playground to state it) | #167 | `StarterSkills`, `pom.xml` resources, `src/main/resources/starter-skills/playground/`; `StarterSkillsTest`, `CanonicalSkillsTest`; `upstream-asks.md` ▸ UP-PG-10 |
+| 21 | The combined review has a row that adds the Spring design's folder as a source root when no discovered source root covers it; it starts at No like every row | #167 | `StarterReviewDialog`, `StarterProject`; `StarterProjectTest`, `StarterProposalFrameTest` |
+| 22 | The vendored canonical skills reach the project with their **`TODO(bundle)` markers unsubstituted**: the analyser is not a bundle generator, and the playground bundle gate rejects those markers in a generated bundle | #167 | `docs/skills/*/SKILL.md`, `StarterSkills`; UP-PG-10 (ship the skills inside the starters, substituted) |
+
+### Known gaps (v2)
+
+- **OPT-2 is not accepted**: draft #167 has had no independent review, and the live chain (a real model proposing, the
+  real playground download, a first build with the key, the restart and the draft) was not run here; the frame and
+  node tests stub the network and the model. The owner's hands-on test (`USABILITY-TEST-2026-10-18b.md`) is the first
+  live run.
+- **The scorecard has no starter task**, so the battery cannot see OPT-2; the authoring battery's approval count (14
+  on the first walk, about 3 predicted with FIX-4 and FIX-6) is still not re-measured.
+- Flags 20 and 22 rest on UP-PG-10, which is filed, not answered.
+- The stale screenshots of §4 remain; v2 regenerated none.
+- Mutation shards and the loop bench were not run; Windows (#148) and OD-74.2 are open, as in §4.
