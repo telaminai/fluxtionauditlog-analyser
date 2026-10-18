@@ -199,6 +199,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StartPageF
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StartPageNoLogAnswered;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StartPagePromptSent;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StartPromptPackDropped;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterCancelled;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterCatalogueObserved;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterChosen;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterConfigured;
@@ -443,6 +444,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Requ
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StartPageNoLogAnswered
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StartPagePromptSent
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StartPromptPackDropped
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterCancelled
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterCatalogueObserved
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterChosen
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterConfigured
@@ -1289,6 +1291,10 @@ public class SessionProcessor
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StartPromptPackDropped",
                 false),
             new ProcessorDescriptor.Input(
+                "StarterCancelled",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterCancelled",
+                false),
+            new ProcessorDescriptor.Input(
                 "StarterCatalogueObserved",
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterCatalogueObserved",
                 false),
@@ -1406,7 +1412,7 @@ public class SessionProcessor
           new DescriptorSupport.Meta(
               null,
               "1.0.76",
-              "600edf43ae87f54169e66b0a7f5e458c794f90e1d95dea3411b5b34c3081acdf",
+              "72ee297c7e107f4fcab2e3ce80402a5355590d97059b030edbb20851ec31dbfc",
               null));
 
   @Override
@@ -1444,6 +1450,7 @@ public class SessionProcessor
     sessionBoundary.setStarterProject(starterProject);
     startPagePrompt.setAiSetup(aiSetup);
     startPagePrompt.setNoLogHint(startPageNoLogHint);
+    starterProject.setGate(operationGate);
     //node auditors
     initialiseAuditor(clock);
     initialiseAuditor(eventLogger);
@@ -2058,6 +2065,9 @@ public class SessionProcessor
       handleEvent(typedEvent);
     } else if (event instanceof StartPromptPackDropped) {
       StartPromptPackDropped typedEvent = (StartPromptPackDropped) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof StarterCancelled) {
+      StarterCancelled typedEvent = (StarterCancelled) event;
       handleEvent(typedEvent);
     } else if (event instanceof StarterCatalogueObserved) {
       StarterCatalogueObserved typedEvent = (StarterCatalogueObserved) event;
@@ -2975,6 +2985,11 @@ public class SessionProcessor
 
   @OnEventHandler(failBuildIfMissingBooleanReturn = false)
   public void onEvent(StartPromptPackDropped event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(StarterCancelled event) {
     processEvent(event);
   }
 
@@ -5220,6 +5235,8 @@ public class SessionProcessor
     }
     auditInvocation(assistantLoop, "assistantLoop", "onSettingsRestored", typedEvent);
     isDirty_assistantLoop = assistantLoop.onSettingsRestored(typedEvent);
+    auditInvocation(starterProject, "starterProject", "onSettingsRestored", typedEvent);
+    isDirty_starterProject = starterProject.onSettingsRestored(typedEvent);
     if (guardCheck_walkPlayback()) {
       auditInvocation(walkPlayback, "walkPlayback", "onLogChanged", typedEvent);
       walkPlayback.onLogChanged();
@@ -5296,6 +5313,14 @@ public class SessionProcessor
     //Default, no filter methods
     auditInvocation(startPagePrompt, "startPagePrompt", "onPackDropped", typedEvent);
     startPagePrompt.onPackDropped(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(StarterCancelled typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(onboardingProposal, "onboardingProposal", "onStarterCancelled", typedEvent);
+    isDirty_onboardingProposal = onboardingProposal.onStarterCancelled(typedEvent);
     afterEvent();
   }
 
@@ -6596,6 +6621,8 @@ public class SessionProcessor
       isDirty_openBundle = openBundle.onSettingsRestored(typedEvent);
       auditInvocation(assistantLoop, "assistantLoop", "onSettingsRestored", typedEvent);
       isDirty_assistantLoop = assistantLoop.onSettingsRestored(typedEvent);
+      auditInvocation(starterProject, "starterProject", "onSettingsRestored", typedEvent);
+      isDirty_starterProject = starterProject.onSettingsRestored(typedEvent);
     } else if (event instanceof SkillsVendored) {
       SkillsVendored typedEvent = (SkillsVendored) event;
       auditEvent(typedEvent);
@@ -6644,6 +6671,11 @@ public class SessionProcessor
       auditEvent(typedEvent);
       auditInvocation(startPagePrompt, "startPagePrompt", "onPackDropped", typedEvent);
       startPagePrompt.onPackDropped(typedEvent);
+    } else if (event instanceof StarterCancelled) {
+      StarterCancelled typedEvent = (StarterCancelled) event;
+      auditEvent(typedEvent);
+      auditInvocation(onboardingProposal, "onboardingProposal", "onStarterCancelled", typedEvent);
+      isDirty_onboardingProposal = onboardingProposal.onStarterCancelled(typedEvent);
     } else if (event instanceof StarterCatalogueObserved) {
       StarterCatalogueObserved typedEvent = (StarterCatalogueObserved) event;
       auditEvent(typedEvent);
@@ -7177,7 +7209,7 @@ public class SessionProcessor
   }
 
   private boolean guardCheck_starterProject() {
-    return isDirty_onboardingProposal;
+    return isDirty_onboardingProposal | isDirty_operationGate;
   }
 
   private boolean guardCheck_walkPlayback() {

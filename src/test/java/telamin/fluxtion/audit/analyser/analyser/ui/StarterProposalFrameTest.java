@@ -161,6 +161,15 @@ class StarterProposalFrameTest {
     }
 
     private void proposedStarter(Path tmp, boolean approveDesignRoot) throws Exception {
+        proposedStarter(tmp, approveDesignRoot, false);
+    }
+
+    @Test
+    void aProjectSwitchDuringTheGraphOfferCannotOpenTheOldGraph(@TempDir Path tmp) throws Exception {
+        proposedStarter(tmp, true, true);
+    }
+
+    private void proposedStarter(Path tmp, boolean approveDesignRoot, boolean switchDuringGraphOffer) throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless(), "a real display is required");
         Path home = Files.createDirectories(tmp.resolve("home"));
         Path claude = Files.createDirectories(home.resolve(".local/bin")).resolve("claude");
@@ -374,6 +383,30 @@ class StarterProposalFrameTest {
                     after.localAgent().extra().restart().changed());
             assertEquals(1, agent.processes.size(), "nothing restarted until the person answers");
             capture(visual, f, "04-project-open-draft-placed.png");
+            if (switchDuringGraphOffer) {
+                Path other = Files.createDirectories(tmp.resolve("DEMO-B/.analyser")).resolve("project.fluxtion-settings");
+                Files.writeString(other, "share.version=1\n");
+                Path graph = target.resolve("first-build.graphml");
+                Files.copy(Path.of("src/test/resources/topology/demo-quote-processor.graphml"), graph);
+                onEdt(() -> {
+                    f.starterGraphOffer = shown -> {
+                        try { render(ex, "open", Map.of("project", other.toString())); }
+                        catch (Exception error) { throw new AssertionError(error); }
+                        return true;
+                    };
+                    var refs = (telamin.fluxtion.audit.analyser.analyser.session.FactRefs) field(f, "factRefs");
+                    // The watcher completion's actual fact, with the live starter request; no hand-made effect.
+                    session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterGraphmlAppeared(
+                            session.snapshot().starter().request(), refs.put(graph.toString()), "DEMO-A/first-build.graphml"));
+                });
+                onEdt(() -> { });
+                onEdt(() -> {
+                    assertTrue(session.processor().activeProject.isAt(other.toString()), "DEMO-B is active");
+                    assertFalse(session.snapshot().graphOpen(), "a superseded starter offer must not open the old graph");
+                    assertEquals("CANCELLED", session.snapshot().starter().phase());
+                });
+                assertTrue(Files.isRegularFile(target.resolve("PROJECT.md")), "downloaded files are retained");
+            }
         } finally {
             System.setProperty("user.home", before);
             for (Window w : Window.getWindows()) if (w instanceof JDialog d && d.isShowing()) SwingUtilities.invokeLater(d::dispose);

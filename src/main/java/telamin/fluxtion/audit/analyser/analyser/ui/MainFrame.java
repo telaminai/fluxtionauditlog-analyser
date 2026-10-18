@@ -1842,7 +1842,8 @@ public final class MainFrame extends JFrame {
             designExplicitReads--;
             var current = session().processor().designSession;
             var files = designFiles();
-            if (current.generation() != captured.state().generation()
+            if ((allowed instanceof StarterDesignGuard && !allowed.getAsBoolean())
+                    || current.generation() != captured.state().generation()
                     || (allowed instanceof RecoveryReadGuard && (session().processor().sessionRecovery.generation() != captured.recoveryGeneration()
                         || session().processor().operationGate.expectedOpId() != captured.operationId()))
                     || !files.roots().equals(captured.files().roots()) || !java.util.Objects.equals(files.project(), captured.files().project()))
@@ -1854,6 +1855,12 @@ public final class MainFrame extends JFrame {
             if (allowed instanceof RecoveryReadGuard guard) guard.completed(current.generation());
             return result;
         });
+    }
+
+    private final class StarterDesignGuard implements java.util.function.BooleanSupplier {
+        private final long request;
+        StarterDesignGuard(long request) { this.request = request; }
+        public boolean getAsBoolean() { return session().processor().starterProject.permitsDesign(request); }
     }
 
     private final class RecoveryReadGuard implements java.util.function.BooleanSupplier {
@@ -8416,22 +8423,31 @@ public final class MainFrame extends JFrame {
                                    telamin.fluxtion.audit.analyser.analyser.session.TransitionKind kind,
                                    String source, boolean interactive,
                                    telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CreateRequest create) {
+        return requestProject(file, kind, source, interactive, create, 0);
+    }
+
+    private boolean requestProject(Path file,
+                                   telamin.fluxtion.audit.analyser.analyser.session.TransitionKind kind,
+                                   String source, boolean interactive,
+                                   telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CreateRequest create,
+                                   long starterRequest) {
         if (recovery != null) recovery.capture();
         sessionInteractive = interactive;
         sessionClosed.clear();
         sessionProblem = null;
         sessionCreated = null;
         var driver = session();
+        long opId = driver.nextOpId();
         driver.submit(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents
-                .OpenProjectRequested(driver.nextOpId(), file.toString(), kind, source, ActionExecutor.assistantOrigin(),
+                .OpenProjectRequested(opId, file.toString(), kind, source, ActionExecutor.assistantOrigin(),
                         new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProjectAudience(
                                 interactive ? telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.OperationOrigin.PERSON
                                         : telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.OperationOrigin.MACHINE,
-                                offersAllowed()), create));
+                                offersAllowed()), create, starterRequest));
         syncBusyWithGate();
         projectDesignChanged();
         if (sessionProblem == null && recovery != null) recovery.activate(project.activeFile(), project.activeNonce(), null);
-        return sessionProblem == null;
+        return sessionProblem == null && (starterRequest == 0 || driver.processor().starterProject.ownsProjectOpen(opId, starterRequest));
     }
 
     /**
@@ -8993,6 +9009,15 @@ public final class MainFrame extends JFrame {
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.OpenStarterDesignEffect e -> openStarterDesign(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.WatchStarterGraphmlEffect e -> watchStarterGraphml(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.OfferStarterGraphEffect e -> offerStarterGraph(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.OpenStarterGraphEffect e -> {
+                String path = factRefs.get(e.pathRef());
+                if (path != null) openGraphml(path);
+                yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterEffectStarted(opId, e.request(), "openGraph");
+            }
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.CancelStarterWorkEffect e -> {
+                if (starterWatch != null) starterWatch.stop();
+                yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterCancelled(opId, e.request());
+            }
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ArmStarterDraftEffect e -> armStarterDraft(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ShowStarterCommandsEffect e -> showStarterCommands(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ShowStatusEffect e -> {
@@ -13476,13 +13501,13 @@ public final class MainFrame extends JFrame {
                 Path profile = telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.pathFor(dir);
                 if (e.profilePresent()) {
                     ok = requestProject(profile, telamin.fluxtion.audit.analyser.analyser.session.TransitionKind.EXPLICIT_SWITCH,
-                            "starter");
+                            "starter", true, null, e.request());
                 } else {
                     var offer = starterOffers.get(e.offerRef());
                     var request = new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CreateRequest(
                             CreateProjectObservation.facts(dir, offer, config), e.selection());
                     ok = requestProject(profile, telamin.fluxtion.audit.analyser.analyser.session.TransitionKind.CREATE,
-                            "starter", true, request) && sessionCreated != null;
+                            "starter", true, request, e.request()) && sessionCreated != null;
                 }
                 if (!ok) why = sessionProblem == null ? "the project did not open" : sessionProblem;
                 // the review's Yes: the design's folder through the person's own Sources add, so the design can open now
@@ -13513,7 +13538,7 @@ public final class MainFrame extends JFrame {
         Background.run(() -> {
             Path design = root == null ? null : starterDesignFile(Path.of(root));
             return design == null ? telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("the starter has no Spring design")
-                    : actionControl.openDesign(design.toString());
+                    : ((AppControlAdapter) actionControl).openDesign(design.toString(), new StarterDesignGuard(e.request()));
         }, result -> session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterDesignOpened(
                 e.request(), result.ok(), result.ok() ? null
                 : telamin.fluxtion.audit.analyser.analyser.session.FactWords.withoutPaths(result.error()))),
@@ -13567,11 +13592,6 @@ public final class MainFrame extends JFrame {
         boolean[] scanning = {false};
         javax.swing.Timer[] timer = new javax.swing.Timer[1];
         timer[0] = new javax.swing.Timer(starterWatchMillis, ev -> {
-            Path active = projectRoot();
-            if (active == null || !CreateProjectObservation.realDir(active).equals(CreateProjectObservation.realDir(root))) {
-                timer[0].stop();                                // another project now: its graph would not be this one
-                return;
-            }
             if (scanning[0]) return;
             scanning[0] = true;
             Background.run(() -> {
@@ -13618,7 +13638,6 @@ public final class MainFrame extends JFrame {
         SwingUtilities.invokeLater(() -> {
             String path = factRefs.get(e.pathRef());
             boolean open = path != null && starterGraphOffer.test(e.shown());
-            if (open) openGraphml(path);                      // the graph pairs with the project's logs as any open does
             session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StarterGraphOfferAnswered(
                     e.request(), open));
         });

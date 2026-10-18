@@ -219,6 +219,9 @@ class StarterProjectTest {
         d.post(new SessionEvents.StarterGraphmlAppeared(req, REFS.put("/work/new-app/x.graphml"), "…/x.graphml"));
         d.post(new SessionEvents.StarterGraphmlAppeared(req, REFS.put("/work/new-app/x.graphml"), "…/x.graphml"));
         assertEquals(1, of(a, SessionEffects.OfferStarterGraphEffect.class).size(), "offered once");
+        d.post(new SessionEvents.StarterGraphOfferAnswered(req, true));
+        d.post(new SessionEvents.StarterGraphOfferAnswered(req, true));
+        assertEquals(1, of(a, SessionEffects.OpenStarterGraphEffect.class).size(), "a current Yes opens exactly once");
     }
 
     @Test
@@ -269,6 +272,45 @@ class StarterProjectTest {
         var item = d.snapshot().proposal().items().get(0);
         assertEquals(ProposalState.ItemState.APPLIED, item.state());
         assertTrue(item.why().contains("not opened"), item.why());
+    }
+
+    @Test
+    void aProjectSwitchCancelsEveryPendingStarterStage() {
+        for (int stage = 0; stage < 5; stage++) {
+            FakeSessionAdapter a = new FakeSessionAdapter();
+            SessionDriver d = LocalAgentSessionTest.driver(a);
+            var start = OnboardingProposalTest.admitted(d, a);
+            catalogueRead(d);
+            String id = proposeAndPreview(d, a, start);
+            d.post(new SessionEvents.StarterDestinationChosen(id, id + ".1", REFS.put("/work/DEMO-A"), "DEMO-A"));
+            d.post(new SessionEvents.ProposalApplyRequested(id, List.of(id + ".1"), false));
+            long req = of(a, SessionEffects.DownloadStarterEffect.class).get(0).request();
+            if (stage > 0) d.post(new SessionEvents.StarterInstalled(req, REFS.put("/work/DEMO-A"), "DEMO-A", true, 0));
+            if (stage > 1) d.post(new SessionEvents.SkillsVendored(req, List.of(), List.of(), List.of(), null));
+            if (stage > 2) d.post(new SessionEvents.StarterDiscoveryObserved(req, "offer", 5, true, 1, 0, 0));
+            if (stage > 3) d.post(new SessionEvents.StarterReviewAnswered(req, true, List.of(), List.of(), 0, "offer"));
+            String phase = d.snapshot().starter().phase();
+            d.submit(new SessionEvents.OpenProjectRequested(d.nextOpId(), "/work/DEMO-missing/profile",
+                    TransitionKind.EXPLICIT_SWITCH, "review"));
+            assertEquals(phase, d.snapshot().starter().phase(), "a failed switch has not changed the project");
+            a.withProfile("/work/DEMO-A/profile").withProfile("/work/DEMO-B/profile");
+            d.submit(new SessionEvents.OpenProjectRequested(d.nextOpId(), "/work/DEMO-B/profile",
+                    TransitionKind.EXPLICIT_SWITCH, "review"));
+            assertEquals("CANCELLED", d.snapshot().starter().phase(),
+                    "project switch must cancel starter continuation at stage " + stage);
+            assertFalse(d.snapshot().proposal().awaitingPerson(), "the cancelled proposal must not remain actionable");
+            int effects = a.starterEffects.size();
+            d.post(new SessionEvents.StarterInstalled(req, REFS.put("/work/DEMO-A"), "DEMO-A", true, 0));
+            d.post(new SessionEvents.SkillsVendored(req, List.of(), List.of(), List.of(), null));
+            d.post(new SessionEvents.StarterDiscoveryObserved(req, "offer", 5, true, 1, 0, 0));
+            d.post(new SessionEvents.StarterReviewAnswered(req, true, List.of(), List.of(), 0, "offer"));
+            d.post(new SessionEvents.StarterProjectOpened(req, true, null));
+            assertEquals(effects, a.starterEffects.size(), "late results must not open, watch or draft");
+            d.submit(new SessionEvents.OpenProjectRequested(d.nextOpId(), "/work/DEMO-A/profile",
+                    TransitionKind.EXPLICIT_SWITCH, "starter", null, null, null, req));
+            assertEquals("/work/DEMO-B/profile", a.appliedProfile, "a queued starter open cannot replace the new project");
+            assertTrue(d.snapshot().starter().note().contains("files"), "cancellation does not remove downloaded files");
+        }
     }
 
     /**

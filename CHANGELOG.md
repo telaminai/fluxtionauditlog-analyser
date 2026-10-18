@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+- Switching projects cancels pending starter opens, design displays, graph offers and later drafts; downloaded files remain. A first-build graph is opened only after the session accepts its still-current offer.
+
 ### Integration review fixes
 
 - The sample-project exception for Full Claude Code cannot widen through a linked sample or analyser directory. An unrelated log still needs approval; ordinary home-directory aliases and the genuine sample continue to work.

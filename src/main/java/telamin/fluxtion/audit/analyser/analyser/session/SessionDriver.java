@@ -388,6 +388,8 @@ public final class SessionDriver {
             case SessionEffects.OpenStarterDesignEffect ignored -> "openStarterDesign";
             case SessionEffects.WatchStarterGraphmlEffect ignored -> "watchStarterGraphml";
             case SessionEffects.OfferStarterGraphEffect ignored -> "offerStarterGraph";
+            case SessionEffects.OpenStarterGraphEffect ignored -> "openStarterGraph";
+            case SessionEffects.CancelStarterWorkEffect ignored -> "cancelStarterWork";
             case SessionEffects.ArmStarterDraftEffect ignored -> "armStarterDraft";
             case SessionEffects.ShowStarterCommandsEffect ignored -> "showStarterCommands";
         };

@@ -112,6 +112,10 @@ creates the project itself, and it never names a folder.
 Your Apply is the consent, so *Allow the assistant to create projects* does not gate this path. The same chain runs
 from *Project ▸ New project from template…*, which ends by showing the starter's own commands instead of a draft.
 
+Switching to another project, or closing the project, cancels this starter's later automatic opens and drafts,
+including an unanswered first-build graph offer. Downloaded files stay where they were written; a draft already
+placed is not erased. A failed switch or re-opening the active project leaves the starter running.
+
 ## Opening and switching
 
 ![The Project menu, including New project from template and project settings](../assets/projects-file-menu.png)
