@@ -29,7 +29,6 @@ package telamin.fluxtion.audit.analyser.analyser.session;
  * @param panelLine   the assistant panel's one line while nothing can answer from it (§6.6), or ""
  * @param claudeFound the resolver found {@code claude} (a file check; nothing was run)
  * @param codexFound  the resolver found {@code codex} (a file check; nothing was run)
- * @param wizardEntry the first use opens this wizard (M77-2) rather than the profile cards (M77-1)
  * @param applying    an Apply asked for by this wizard is in flight (its result has not arrived)
  * @param suggested   the Summary's one suggested first action (§6.4, §7.3), chosen by the node
  * @param external    Screen 2b (M77-3): the client, external access, the registration and the live check
@@ -37,8 +36,8 @@ package telamin.fluxtion.audit.analyser.analyser.session;
 public record AiSetupState(boolean open, boolean firstRun, Origin origin, Step step, Choice choice, Choice inForce,
                            Posture posture, String fullMode, Check installed, Auth signedIn, Confirming confirming,
                            Pending pending, long finished, String line, String aiLine, String aiLineLink,
-                           String panelLine, boolean claudeFound, boolean codexFound, boolean wizardEntry,
-                           boolean applying, Suggested suggested, External external) {
+                           String panelLine, boolean claudeFound, boolean codexFound, boolean applying,
+                           Suggested suggested, External external) {
 
     /**
      * The Summary's one suggested first action (§6.4). Nothing it does sends anything: it opens the sample, starts the
@@ -46,8 +45,12 @@ public record AiSetupState(boolean open, boolean firstRun, Origin origin, Step s
      */
     public enum Suggested { NONE, OPEN_SAMPLE, RIGHT_CLICK, TOUR, COPY_QUESTION }
 
-    /** Why the wizard opened (§8.2). */
-    public enum Origin { NONE, FIRST_RUN, MENU, START_LINE, SEND, ASK, SETTINGS }
+    /**
+     * Why the wizard opened (§8.2). {@link #CONNECT} (M77-4, §14.4) is a door about your own client — AI ▸ Set up AI…,
+     * the panel's <i>Connect a CLI assistant</i>, a start-page <i>Connect</i> fallback: it opens at Screen 2b when the
+     * choice in force includes a client.
+     */
+    public enum Origin { NONE, FIRST_RUN, MENU, START_LINE, SEND, ASK, SETTINGS, CONNECT }
 
     /** The screen (§6). */
     public enum Step { CHOICE, INSIDE, CLIENT, OTHER, SUMMARY }
@@ -226,7 +229,7 @@ public record AiSetupState(boolean open, boolean firstRun, Origin origin, Step s
 
     public static final AiSetupState IDLE = new AiSetupState(false, false, Origin.NONE, Step.CHOICE, Choice.NONE,
             Choice.NONE, Posture.SAFE, "default", Check.UNCHECKED, Auth.UNCHECKED, Confirming.NONE, Pending.NONE, 0, "",
-            "", "", "", false, false, false, false, Suggested.NONE, External.NONE);
+            "", "", "", false, false, false, Suggested.NONE, External.NONE);
 
     /** Whether the primary button of Screen 2a may be pressed: <i>Installed</i> passed (§6.2). */
     public boolean insideMayProceed() {

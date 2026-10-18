@@ -17,13 +17,16 @@ Usage
     python3 tools/capture-docs.py --start-page # regenerate only the no-log start page
     python3 tools/capture-docs.py --mcp      # regenerate only the MCP setup/dialog shots
     python3 tools/capture-docs.py --tutorial-demo  # tutorial-cycle/-source from the DEMO fixture (no bundle, no key)
-    python3 tools/capture-docs.py --m74      # the assistant panel (both modes), cards, approval, proposal, Settings, Ask menu
+    python3 tools/capture-docs.py --m74      # the assistant panel (both modes), Assistant ▾, approval, proposal, Settings, Ask menu
+    python3 tools/capture-docs.py --setup-ai # Set up AI (M77-4, T20): the first-run block and the wizard's screens, fresh home
     python3 tools/capture-docs.py --spotlight  # regenerate only the spotlight shots (light AND dark)
     python3 tools/capture-docs.py --projects-menu     # Project, Sources, Audit log + the tutorial's ringed Project shot
     python3 tools/capture-docs.py --template-picker   # the template picker + the tutorial's ringed copy of it
     python3 tools/capture-docs.py --keep     # leave the app running afterwards
 
-Runs the app under an isolated home (/tmp/analyser-docs/home) so no real setting can reach a shot.
+Runs the app under an isolated home (/tmp/analyser-docs/home, by its REAL path — /private/tmp/… on macOS) so no real
+setting can reach a shot. A home that is, or runs through, a symbolic link is refused (require_real_home): the analyser
+resolves user.home to its real path, so a symlinked home put the account's scratch path into dialogs (found 2026-10-18).
 Requires: a built jar (`mvn package`), and macOS `screencapture` with Screen Recording permission for
 the invoking terminal — a native capture is what gives the window its title bar.
 
@@ -39,6 +42,7 @@ write is one no human approved, and "the docs script is inconvenienced" is not a
 an arbitrary path. Regeneration is the script's problem to solve, and it solves it by managing its own
 filenames on this side of the socket.
 """
+import getpass
 import json
 import os
 import pathlib
@@ -73,7 +77,8 @@ TUTORIAL_GRAPHML = TUTORIAL_PROJECT / "src/main/resources/com/example/myapp/gene
 # the site. Caught by READING the images, which is
 # the rule; fixed here by construction: an isolated user.home has only what this script puts in it, so
 # "loaded only with the demo fixture" is finally true of the configuration as well as the log.
-CAPTURE_ROOT = pathlib.Path("/tmp/analyser-docs")
+# By its REAL path (M77-4): on macOS /tmp is a symbolic link to /private/tmp, and a home under a link is refused below.
+CAPTURE_ROOT = pathlib.Path(os.path.realpath("/tmp")) / "analyser-docs"
 HOME = CAPTURE_ROOT / "home"
 CONFIG = HOME / ".fluxtion-analyser" / "config"
 ENDPOINT = HOME / ".fluxtion-analyser" / "rest-endpoint"
@@ -90,6 +95,30 @@ _capture_process = None
 # screen: at y=60 a 1050-high window overruns a 1080-line display (2026-10-17). Every shot is now taken by window id,
 # which does not care; just under the macOS menu bar still keeps the whole window on a 1080p screen.
 WINDOW_Y = "28"
+
+
+def require_real_home(home):
+    """Refuse a capture home that is, or runs through, a symbolic link — or that names this account.
+
+    The analyser resolves user.home to its real path (java.nio toRealPath), so a home under a link shows the link's
+    TARGET: a walk on 2026-10-18 ran the analyser under a symlinked home and the account's scratch path, with the account
+    name in it, reached the dialogs. Rule 1 (the sweep cannot read an image) makes that a leak, so the harness refuses
+    the home instead of hoping. Returns the home as a string for -Duser.home.
+    """
+    given = os.path.abspath(str(home))
+    real = os.path.realpath(given)
+    if real != given:
+        sys.exit(f"refusing to capture: user.home {given} is a symbolic link or runs through one (it is {real}); "
+                 "use a real, neutral directory")
+    account = getpass.getuser()
+    if account and len(account) > 2 and account in pathlib.Path(given).parts:
+        sys.exit(f"refusing to capture: user.home {given} names this account")
+    return given
+
+
+def home_arg(home=None):
+    """-Duser.home=… for a capture JVM, after require_real_home (every launch goes through here)."""
+    return "-Duser.home=" + require_real_home(HOME if home is None else home)
 
 
 def jar():
@@ -282,7 +311,7 @@ def launch(theme, project=None, mcp_setup=False):
     if mcp_setup:
         env = os.environ.copy()
         env["PATH"] = str(CAPTURE_BIN) + os.pathsep + env.get("PATH", "")
-    _capture_process = subprocess.Popen(["java", f"-Duser.home={HOME}", "-jar", str(launch_jar), str(LOG)],
+    _capture_process = subprocess.Popen(["java", home_arg(), "-jar", str(launch_jar), str(LOG)],
                                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=env)
     for _ in range(40):
         time.sleep(1)
@@ -503,8 +532,54 @@ def capture_mcp_setup():
         return
     env = os.environ.copy()
     env["PATH"] = str(CAPTURE_BIN) + os.pathsep + env.get("PATH", "")
-    run_shot_program(["java", f"-Duser.home={HOME}", "-cp", str(classes) + os.pathsep + str(CAPTURE_JAR),
+    run_shot_program(["java", home_arg(), "-cp", str(classes) + os.pathsep + str(CAPTURE_JAR),
                       "McpSetupDocCapture", str(ASSETS)], names, env=env)
+
+
+SETUP_AI_NAMES = ["setup-ai-first-run.png", "setup-ai-choice.png", "setup-ai-inside.png", "setup-ai-client.png"]
+# the stub claude Set up AI's two read-only checks run: a version and a signed-in status, nothing else, no network
+SETUP_AI_CLAUDE = """#!/bin/sh
+case "$1" in
+  --version) echo "2.1.282 (Claude Code)" ;;
+  auth) echo '{"loggedIn":true,"authMethod":"claude.ai","subscriptionType":"max"}' ;;
+  *) exit 0 ;;
+esac
+"""
+
+
+def capture_setup_ai():
+    """M77-4 (T20): Set up AI on a FRESH isolated home — no log, no assistant.rest — so the first-run block is real.
+
+    The analyser runs from a jar copied under the capture root (review R1-27: Screen 2b shows the exact registration
+    command, which names the launcher's path), with a stub claude answering the two read-only checks. Light theme.
+    """
+    print("Set up AI (first run, wizard)")
+    stop_capture_app()
+    shutil.rmtree(CAPTURE_ROOT, ignore_errors=True)
+    HOME.mkdir(parents=True)
+    if EXPORT_DIR.exists():
+        shutil.rmtree(EXPORT_DIR)
+    EXPORT_DIR.mkdir(parents=True)
+    # NOT assistant.rest, and no setup key: a first run, as a new person meets it
+    set_config(**{"theme": "Light", "windowX": "60", "windowY": WINDOW_Y, "windowW": "1200", "windowH": "800"})
+    stage_mcp_setup_launchers()
+    claude = HOME / ".local" / "bin" / "claude"
+    claude.parent.mkdir(parents=True, exist_ok=True)
+    claude.write_text(SETUP_AI_CLAUDE)
+    claude.chmod(0o700)
+    classes = CAPTURE_ROOT / "classes"
+    result = subprocess.run(["javac", "-cp", str(CAPTURE_JAR), "-d", str(classes), str(REPO / "tools" / "DocShot.java"),
+                             str(REPO / "tools" / "AiSetupDocCapture.java")], capture_output=True, text=True)
+    if result.returncode != 0:
+        print(f"  ! could not compile the Set up AI capture: {result.stderr.strip()}")
+        _attempted.extend(SETUP_AI_NAMES)
+        _failed.extend(SETUP_AI_NAMES)
+        return
+    env = os.environ.copy()
+    env["PATH"] = str(claude.parent) + os.pathsep + env.get("PATH", "")   # the stub first
+    run_shot_program(["java", home_arg(), "-cp", str(classes) + os.pathsep + str(CAPTURE_JAR),
+                      "telamin.fluxtion.audit.analyser.analyser.ui.AiSetupDocCapture"], SETUP_AI_NAMES, env=env,
+                     cwd=CAPTURE_ROOT)
 
 
 def capture_template_picker():
@@ -524,7 +599,7 @@ def capture_template_picker():
         print(f"  ! could not compile template-picker capture: {result.stderr.strip()}")
         _failed.append(name)
         return
-    result = subprocess.run(["java", f"-Duser.home={HOME}", "-cp",
+    result = subprocess.run(["java", home_arg(), "-cp",
                              str(classes) + os.pathsep + str(CAPTURE_JAR),
                              "telamin.fluxtion.audit.analyser.analyser.ui.TemplatePickerDocCapture", str(ASSETS)],
                             capture_output=True, text=True)
@@ -685,7 +760,7 @@ def test_classpath():
     return os.pathsep.join([str(REPO / "target/classes"), str(REPO / "target/test-classes"), out.read_text().strip()])
 
 
-M74_NAMES = ["assistant-profile-cards.png", "assistant-in-app.png", "ask-menu.png", "permission-dialog.png",
+M74_NAMES = ["assistant-quick-switch.png", "assistant-in-app.png", "ask-menu.png", "permission-dialog.png",
              "assistant-claude-code.png", "proposal-review.png", "settings-assistant.png"]
 
 
@@ -727,7 +802,7 @@ def capture_m74():
         return
     env = os.environ.copy()
     env["PATH"] = str(claude.parent) + os.pathsep + env.get("PATH", "")
-    run_shot_program(["java", f"-Duser.home={HOME}", "-cp", str(classes) + os.pathsep + cp,
+    run_shot_program(["java", home_arg(), "-cp", str(classes) + os.pathsep + cp,
                       "telamin.fluxtion.audit.analyser.analyser.ui.M74DocCapture", str(profile), str(LOG), str(GRAPHML),
                       str(fixture)], M74_NAMES, env=env, cwd=REPO)
 
@@ -986,6 +1061,11 @@ def main():
 
     if "--mcp" in sys.argv:
         capture_mcp_setup()
+        finish_capture()
+        return
+
+    if "--setup-ai" in sys.argv:
+        capture_setup_ai()
         finish_capture()
         return
 

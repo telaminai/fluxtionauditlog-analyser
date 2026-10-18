@@ -267,7 +267,8 @@ seconds and its light returns to **MCP ready** — a live owner is never displac
 
 *Ready* is not *connected*. This window being reachable and a client actually talking to it are two
 different facts: the first is true continuously, the second only at the moment you measure it. If you
-want the second, *AI ▸ Connect an AI client…* runs a real probe and tells you when it ran.
+want the second, *AI ▸ Set up AI…* ▸ *Your own AI client* says when a client with this window's key reached it (and
+its *More options… ▸ Check connection* runs a bridge probe and tells you when it ran).
 
 ## Write runbooks in the skill shape
 

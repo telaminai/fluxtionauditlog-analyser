@@ -28,8 +28,8 @@ venue disconnected here", it can plot that series and flag those cycles, and you
 
 The **Analyser assistant** tab is one panel, whichever assistant answers in it. At its top, **one control** names how
 the assistant works on this machine — **Assistant: Safe analysis ▾**, *Full Claude Code*, *In-app assistant*, *Off* or
-*Not chosen* — and opens the [four cards](#choose-how-the-assistant-works); the card you apply also chooses who answers:
-your own installed Claude Code ([below](#claude-code-in-the-assistant-tab)) for *Safe analysis* and *Full Claude Code*,
+*Not chosen* — and opens the [quick switch](#choose-how-the-assistant-works); the profile you choose also chooses who
+answers: your own installed Claude Code ([below](#claude-code-in-the-assistant-tab)) for *Safe analysis* and *Full Claude Code*,
 or the analyser's own assistant with a provider you configure. How it is paid for is a chip in the header (your Claude
 plan, or an API key). Both share:
 
@@ -71,13 +71,15 @@ permissions and approvals. Changing how the assistant works is refused while an 
 
 ## Set up AI
 
-**Set up AI…** is the one place to choose how AI works with the analyser. It is in the assistant's header, first in
-the **AI** menu, at the top of *Settings ▸ Assistant*, and on the start page's AI line. On a first run the start page
-asks the same question inline, as part of the page: **How do you want AI to work with the analyser?**
+**Set up AI…** is the one place to choose how AI works with the analyser. It is the last item of **Assistant: … ▾**,
+first in the **AI** menu (which opens it at *Your own AI client* when one is set up), at the top of *Settings ▸
+Assistant*, and on the start page's AI line. On a first run the start page asks the same question inline, as part of
+the page: **How do you want AI to work with the analyser?** It is offered once — to a new installation and to one
+upgraded with nothing set up alike; after that the page shows the one AI line, which keeps the same door.
 
 - **No AI**: everything works without AI — records, topology, charts, reports, walks and the tour.
-- **Your own AI client connects**: Claude Code, Codex or another MCP client in your terminal drives the analyser
-  (see [Your own client, step by step](#your-own-client-step-by-step) below).
+- **Your own AI client connects**: Claude Code, Codex or another AI app that can connect to the analyser, in your
+  terminal, drives the analyser (see [Your own client, step by step](#your-own-client-step-by-step) below).
 - **Claude inside the analyser**: the same Claude Code, run by the analyser in this panel.
 - **Both**: Claude in the panel, and your terminal client too.
 
@@ -86,7 +88,8 @@ For **Claude inside**, the window first checks this machine by running `claude -
 e-mail or organisation from the answer is kept. Each check says what failed and has **Check again**. An API key is
 reported as *uses an API key* and never as *signed in*: Claude Code checks a key only when it starts. You then choose
 **Safe analysis** (recommended) or **Full Claude Code**. Full asks for the same confirmation as the Settings switch,
-with *Cancel* as the default. **Other options** sets up the in-app assistant with your own API key.
+with *Cancel* as the default. The in-app assistant with your own API key is behind **Other options** on the first
+screen; it is no longer one of the first choices.
 
 ### Your own client, step by step
 
@@ -97,7 +100,8 @@ saying what it checked:
 2. **Let your client reach this window** — the *External MCP/REST access* switch. Turning it on asks first, with
    **Cancel** as the default: only programs on this computer that have this run's key can connect, the endpoint listens
    on 127.0.0.1 only, and a Full Claude Code session in the panel can use it too. The AI menu's checkbox, *Settings ▸
-   Assistant* and *Connect an AI client* ask the same question; turning access off never asks.
+   Assistant* and the *Connect an AI client* dialog ask the same question; turning access off never asks. Beside the
+   switch, the *Where data goes* picture shows the path it opens: your client's arrow is solid only while access is on.
 3. **Register the analyser with your client.** The exact command is shown. **Register for me…** runs it only after a
    confirmation that shows the full command (*Cancel* the default); **I'll run it myself** copies it; **Check
    registration** asks your client. Nothing runs before you press one of them, and the analyser never reads or edits your
@@ -106,8 +110,9 @@ saying what it checked:
    what is open.* When a call with this window's key arrives, the step says when, and the name the client gives itself
    — its own claim, shown as such. If another analyser window holds the connection, or access is off, it says so.
 
-**Finish** is enabled once access is on (the last check is never required). **More options…** opens *Connect an AI
-client* for the rest (project-scope command, remove, *Check connection*). If you **Cancel** after this window turned
+**Finish** is enabled once access is on (the last check is never required). **More options…** opens the *Connect an
+AI client* dialog for the rest (project-scope command, remove, Claude Desktop's note, *Check connection*); it is the
+only way to that dialog. If you **Cancel** after this window turned
 access on, access stays on and the closing line offers **Turn it off**. Choosing **No AI** while access is on offers a
 ticked box, *Also turn off External MCP/REST access*.
 
@@ -119,41 +124,45 @@ and leaves one line, *AI: not set up — Set up AI…*. Both the block and the l
 
 ## Choose how the assistant works
 
-**Assistant: … ▾** in the assistant's header (it names the profile in force, e.g. *Assistant: Safe analysis ▾*) shows four cards in the panel — not a chain of dialogs:
+**Assistant: … ▾** in the assistant's header (it names the profile in force, e.g. *Assistant: Safe analysis ▾*) is a
+quick switch — a short menu, not a set of cards:
 
-![The four cards in the assistant panel — Safe analysis (the default, selected, with its model), Full Claude Code, In-app
-assistant and Off — the External MCP/REST access line under them, and Close / Apply — Safe
-analysis](../assets/assistant-profile-cards.png)
+> ✓ **Safe analysis** · **◆ Full Claude Code…** · **In-app assistant** · **Off** · ─── · **Set up AI…**
 
-| Card | What it sets up |
+The profile in force is ticked, and said in words to a screen reader (*Safe analysis, in force*). Each row's tooltip
+says what it sets up and where your words go.
+
+| Profile | What it sets up |
 |---|---|
-| **Safe analysis** (the default) | Claude Code that **reads your evidence; it changes what is open or writes a file only after you approve each call**: Read, Grep and Glob in the project folder and the analyser's own views. No shell, no edits, no web, none of your own skills or servers — safe with logs you did not write. **Not local-only:** what you ask, and the evidence Claude reads through the analyser, is sent to the model provider (Anthropic, on your Claude plan or API key), as in any Claude Code session. Its detail: Claude Code's model. |
-| **Full Claude Code** | **Your own Claude Code** — your settings, skills, plugins, hooks and MCP servers, and your own tools under your rules. The card shows the warning in full and the **mode** (`default`, `acceptEdits`, `auto`, `plan`); its button **Turn on full Claude Code** opens the same confirmation as the Settings switch (the warning, *Cancel* the default) and nothing changes until you confirm. When Claude Code asks for approval, the analyser asks you ([Approvals](#approvals-in-the-analyser)). Like Safe analysis, it sends what you ask, and the evidence Claude reads, to the model provider. |
-| **In-app assistant** | The analyser's own assistant: a **provider**, a **model** and an **API key** (left blank, a key already stored is kept). **Not local-only:** what you ask, and the evidence the assistant reads through the analyser, is sent to the model provider you chose, on your API key. |
+| **Safe analysis** (the default) | Claude Code that **reads your evidence; it changes what is open or writes a file only after you approve each call**: Read, Grep and Glob in the project folder and the analyser's own views. No shell, no edits, no web, none of your own skills or servers — safe with logs you did not write. **Not local-only:** what you ask, and the evidence Claude reads through the analyser, is sent to the model provider (Anthropic, on your Claude plan or API key), as in any Claude Code session. |
+| **◆ Full Claude Code** | **Your own Claude Code** — your settings, skills, plugins, hooks and MCP servers, and your own tools under your rules, in the **mode** *Settings ▸ Assistant* holds (`default`, `acceptEdits`, `auto`, `plan`). Choosing it opens the same confirmation as the Settings switch (the warning, *Cancel* the default) and nothing changes until you confirm; while it is showing, the menu's rows are disabled. When Claude Code asks for approval, the analyser asks you ([Approvals](#approvals-in-the-analyser)). Like Safe analysis, it sends what you ask, and the evidence Claude reads, to the model provider. |
+| **In-app assistant** | The analyser's own assistant: a **provider**, a **model** and an **API key**. **Not local-only:** what you ask, and the evidence the assistant reads through the analyser, is sent to the model provider you chose, on your API key. |
 | **Off** | **No assistant in the analyser.** No question is sent anywhere from the analyser; every view, chart, report and walk still works. A stored key is kept, unused. An external MCP or REST client you connected is **not** affected. |
 
-Under the cards, one line says whether **External MCP/REST access** is on or off, with a pointer to *Settings ▸
-Assistant ▸ External MCP/REST access*, where it is changed: the cards choose the assistant *in* the analyser, never the
-external loop. Each card's line is shown in full — the card grows to fit it.
-
-- **Choosing a card shows only its two or three details; nothing changes until Apply.** Apply writes the same settings
-  *Settings ▸ Assistant* holds — on this machine only, never in a project, a shared settings file or a bundle — and puts
-  the tab in that card's mode. *Settings ▸ Assistant* still has every option, grouped the same way.
-- **With nothing set up, a Send, a Start or an Ask opens [Set up AI](#set-up-ai)** rather than the cards, every
-  time, and the question waits for it. The cards stay available from **Assistant: … ▾**. (Before Set up AI, the cards
-  opened by themselves once: the first time you pressed **Start** or asked a question — in the panel or on the
-  [start page](start-page.md#which-assistant-answers) — while nothing was set up on this machine.) A question asked on the
-  start page — or from a record, a chart or the topology with *Ask the assistant* — **waits for you**: after **Apply**
-  it is placed in the composer of the assistant you chose, ready for **Send** — you do not ask again, and nothing is sent
-  until you press Send. Close the start page's cards instead and its question stays in the box. After a card is chosen (or if you close them), they open only from
-  **Assistant: … ▾**. A machine that was already set up (Claude Code allowed, or an API key) counts as chosen and is never
-  asked.
+- **A switch applies at once** — on this machine only, never in a project, a shared settings file or a bundle — and
+  puts the tab in that profile's mode. It writes the same settings *Settings ▸ Assistant* holds; *Settings ▸ Assistant*
+  still has every option (the models, Full's mode, the spend limit, the provider and key), grouped the same way.
+- **A switch that cannot work as it stands opens [Set up AI](#set-up-ai) at the screen that finishes it**, and changes
+  nothing: *Safe analysis* or *Full Claude Code* while Claude Code was not found on this machine opens *Claude inside*,
+  which checks for it; *In-app assistant* with no API key stored opens *Other options*, at the key field.
+- **With nothing set up, a Send, a Start or an Ask opens Set up AI**, every time, and the question waits for it. A
+  question asked on the [start page](start-page.md#which-assistant-answers) — or from a record, a chart or the topology
+  with *Ask the assistant* — is placed in the composer of the assistant you set up when you press **Finish**, ready
+  for **Send** — you do not ask again, and nothing is sent until you press Send. **Cancel** and the start page's
+  question stays in the box. A machine that was already set up (Claude Code allowed, or an API key) counts as set up
+  and is never asked.
 - **A change while an answer is in progress is refused**, by name — *"Claude is still answering — Stop or wait, then
-  change how the assistant works."* — as a mode switch is.
+  change how the assistant works."* — in the status bar, as a mode switch is.
+- **External MCP/REST access is not part of the switch.** The switch chooses the assistant *in* the analyser, never the
+  external loop: that is Set up AI's *Your own AI client* screen, the **AI** menu's checkbox, or *Settings ▸ Assistant ▸
+  External MCP/REST access*.
+
+(Before M77, these were four cards in the panel that opened by themselves on the first question; *Set up AI* and this
+switch replaced them.)
 
 ## The in-app assistant
 
-With the **In-app assistant** card applied, the panel is a live chat with the provider you configure. Its header says
+With the **In-app assistant** profile in force, the panel is a live chat with the provider you configure. Its header says
 what it is — **Assistant: In-app assistant ▾**, the provider and model it sends to, and the workspace it is about — and
 the line under it says what it is doing: *Requesting*, *Running action n*, *Complete*, *Cancelled*, *Superseded*, *Limit reached* or *Failed*.
 
@@ -232,7 +241,7 @@ If you have [Claude Code](https://docs.claude.com/en/docs/claude-code/setup) ins
 can host **one long-running Claude Code session** instead of the in-app assistant: you type into it here, and it drives
 the analyser through the same verbs an external client uses. It is **off by default**.
 
-**Turn it on.** Choose the **Safe analysis** card (**Assistant: … ▾** in the assistant's header), or *Settings ▸ Assistant
+**Turn it on.** Choose **Safe analysis** in **Set up AI…** or the quick switch (**Assistant: … ▾** in the assistant's header), or *Settings ▸ Assistant
 ▸ Safe analysis ▸ Allow the analyser to start Claude Code*. One assistant drives the tab at a time; switching back stops
 an idle Claude Code, and is refused while Claude is answering (*"Claude is still answering — Stop or wait, then change
 how the assistant works."*). These settings — both switches, Full Claude Code's mode, the model, the spend limit and the
@@ -281,10 +290,10 @@ administrator lock yet ([For administrators](#for-administrators)).
   else is denied at once, without asking you. The header names it *Safe analysis* and says *"Safe analysis — your own
   skills, hooks and MCP servers are not loaded"*. Your full Claude Code is a separate opt-in, below.
 
-**Full Claude Code — your own Claude Code, by a second opt-in.** The **Full Claude Code** card, or *Settings ▸
+**Full Claude Code — your own Claude Code, by a second opt-in.** **◆ Full Claude Code** (in Set up AI or the quick switch), or *Settings ▸
 Assistant ▸ Full Claude Code ▸ …with my full Claude Code permissions* (off, and only available while Claude Code is
-allowed), runs your own Claude Code in the tab as it runs in a terminal. The card shows the warning in full; its
-button, *Turn on full Claude Code*, and the Settings switch both show the same warning as a confirmation first, with
+allowed), runs your own Claude Code in the tab as it runs in a terminal. Set up AI shows the warning's first three sentences;
+choosing it there, in the quick switch, or with the Settings switch shows the same warning as a confirmation first, with
 *Cancel* as its default — Enter and Escape cancel, and nothing changes until you press *Turn on full Claude Code* in it. It loads **your settings and permission rules, skills, commands, plugins,
 subagents, hooks and MCP servers** (claude.ai connectors included), and the folder's own hooks and `.mcp.json`, and
 Claude Code can use **your own tools — Bash, file edits, web access — as far as your permission rules and the mode you
@@ -389,13 +398,13 @@ answers as the model's words, and check them against what the analyser shows.
 
 ### For administrators
 
-**Every switch is per user, on each machine.** The profile cards and *Settings ▸ Assistant* write the user's own
+**Every switch is per user, on each machine.** Set up AI, the quick switch and *Settings ▸ Assistant* write the user's own
 `~/.fluxtion-analyser/config`: *Allow the analyser to start Claude Code*, *Full Claude Code* and its mode, *External
 MCP/REST access*, *Allow assistant file exchange* and *Allow the assistant to create projects*. None of them can come
 from a project, a shared settings file or a bundle — so a repository or a received bundle cannot turn one on — but
 equally **there is no central lock yet**: any user can turn Full Claude Code on for themselves, and nothing an
-administrator sets today prevents it. A **managed policy** that can (a machine-wide setting the cards read, with the
-card showing *Disabled by your administrator*) is planned (P4 in the tracker) and not built. Until then, decide whether
+administrator sets today prevents it. A **managed policy** that can (a machine-wide setting the analyser reads, with the
+choice showing *Disabled by your administrator*) is planned (P4 in the tracker) and not built. Until then, decide whether
 Full Claude Code is acceptable on a machine the way you would decide about the person's own terminal Claude Code: it is
 that, run inside the analyser.
 
@@ -408,13 +417,13 @@ that, run inside the analyser.
 - **New chat** starts a new conversation. Changing the folder (opening another project), the profile or Full Claude
   Code's mode means a New chat: a conversation is never resumed under different settings.
 - **Changing a setting while Claude Code runs.** Claude Code takes its settings when it starts, so a change made in
-  Settings ▸ Assistant or with the profile cards applies at the next start. What happens to the session running now
+  Settings ▸ Assistant, Set up AI or the quick switch applies at the next start. What happens to the session running now
   depends on the change:
 
     | Change | What happens |
     |---|---|
     | *Safe analysis* → *Full Claude Code*; a full mode that asks **less** (for example `default` → `acceptEdits`); the model; the spend limit; the folder | **Offered.** The panel asks *"Settings changed — restart Claude Code now to apply them?"* with **Yes, restart now** and **Later**. Nothing stops until you answer. **Yes** stops Claude Code and starts it again on the new settings — the conversation continues when only the model or the spend limit changed, and a **new chat** begins when the profile, the mode or the folder changed (the prompt says which); while Claude is answering, it restarts when that answer ends. **Later** keeps the session running on the settings it was started with and leaves a **settings changed — restart to apply** chip in the header — click it to be asked again. Putting the setting back withdraws the offer. |
-    | *Allow the analyser to start Claude Code* off (or the *In-app assistant* or *Off* card); Full Claude Code switched **off**; a full mode that asks **more** (for example `auto` → `default`, or any mode → `plan`); the folder no longer confirmed for the profile running | **Stopped at once**, mid-answer too, and never offered: each takes away something the running session can still do. The transcript says why. |
+    | *Allow the analyser to start Claude Code* off (or the *In-app assistant* or *Off* profile); Full Claude Code switched **off**; a full mode that asks **more** (for example `auto` → `default`, or any mode → `plan`); the folder no longer confirmed for the profile running | **Stopped at once**, mid-answer too, and never offered: each takes away something the running session can still do. The transcript says why. |
     | External MCP/REST access, file exchange, creating projects, the in-app assistant's settings | Nothing to restart: Claude Code keeps its own connection to the analyser. |
 
   After you choose **Keep it running here** when switching projects, the folder change is yours: it is not offered
@@ -481,8 +490,8 @@ a copy that holds such characters says how many.
 ## No API key? Copy-prompt mode
 
 With no key the assistant sends nothing and says so, offering **Configure provider** (it opens *Settings ▸ LLM*, where
-the provider, model and API key are), **Copy prompt** and **Connect a CLI assistant**. With the *In-app assistant* card
-applied and no key, the panel says exactly that in one line — *No API key — **Configure provider*** — with Send
+the provider, model and API key are), **Copy prompt** and **Connect a CLI assistant** (it opens Set up AI at *Your own AI client*). With the *In-app assistant*
+in force and no key, the panel says exactly that in one line — *No API key — **Configure provider*** — with Send
 disabled; it does not say *Ready* or *Press Send*. No key, or working in a different agent (Claude Code, Claude Desktop)? Hit **Copy prompt**. The copied
 prompt is a complete, self-contained brief: the selected records, the node-type map, the relevant
 source, **and** the log's file path, shape and per-record **byte offsets**. The dialog that opens names every
@@ -498,7 +507,7 @@ left out entirely: every action call needs it. The box appears only while *Exter
 
 ## Setup
 
-The **In-app assistant** card (**Assistant: … ▾**) sets the provider, model and key in one step. Or open
+Set up AI's **Other options** sets the provider, model and key in one step (the quick switch's **In-app assistant** opens it there when no key is stored). Or open
 **Settings ▸ LLM** (provider, model, key and base URL; *Settings ▸ Assistant ▸ In-app assistant* holds its action
 switch and limits):
 
@@ -843,7 +852,7 @@ have to show rather than tell, record it as a **reel**: one self-contained HTML 
 
 If your agent speaks **MCP** (Model Context Protocol), it can drive the analyser with **no prompting and
 no copied token**. The application supplies the local bridge command, ending in `--mcp`, through
-**Connect an AI client**; it is an installed JBang launcher or the exact Java-and-jar vector for this
+Set up AI's **Your own AI client** screen (and the *Connect an AI client* dialog behind its *More options…*); it is an installed JBang launcher or the exact Java-and-jar vector for this
 machine, not a command you need to reconstruct.
 
 The client discovers one tool per verb — `analyser_aggregate`, `analyser_read`, `analyser_series`,
@@ -1088,9 +1097,10 @@ file's path on a first run; a script reads the token from `~/.fluxtion-analyser/
 
 ### Set up an MCP client in the app
 
-Open **Connect an AI client** from **AI ▸ Connect an AI client…**, the Start page's *Connect an assistant* block
-(**Codex**, **Claude**, **Other MCP client**), or *Settings ▸ Assistant ▸ Every assistant ▸ Connect an AI client…*. Opening the
-screen only inspects this analyser; it does not change a client configuration. Its **Bridge command** is
+The step-by-step way is **AI ▸ Set up AI…** ▸ *Your own AI client* ([above](#your-own-client-step-by-step)). For what
+it does not do, open the **Connect an AI client** dialog from its **More options…** — the dialog's only door since M77-4
+(the AI menu's *Connect an AI client…*, the start page's *Connect an assistant* block and the Settings button it
+replaced are gone). Opening the screen only inspects this analyser; it does not change a client configuration. Its **Bridge command** is
 the exact local launcher this installation can use — the installed JBang launcher or the current packaged
 application, including an absolute Java path where one is required. Do not shorten, split or substitute
 that command.
@@ -1152,7 +1162,7 @@ That first message is the whole handshake on your side. You mention the server b
 reaches for these tools rather than, say, grepping your filesystem; after that it just uses them. There's
 no path to give it and no token to paste — it's already pointed at whatever log you have open.
 
-If `/mcp` shows nothing, the client never started the bridge: re-check the registration from **AI ▸ Connect an AI client…** above.
+If `/mcp` shows nothing, the client never started the bridge: re-check the registration from **AI ▸ Set up AI…** ▸ *Your own AI client* ▸ **Check registration**, or the dialog behind its **More options…** above.
 If it shows *connected* but a call comes back **"analyser not running"**, the bridge is fine and the
 **app** is the missing half — open it and turn on *External MCP/REST access*.
 
@@ -1237,7 +1247,7 @@ the toolbar, so the screen and the socket never disagree about what is being sho
 ### Let your agent set it up
 
 An agent can help with an explicit client-CLI registration, but the analyser is the source of the
-launch command: install it with JBang, open the app, then use **Connect an AI client**. It presents the
+launch command: install it with JBang, open the app, then use **AI ▸ Set up AI…** ▸ *Your own AI client*. It presents the
 exact bridge vector for this machine and asks before it invokes either supported client CLI. For an
 unknown client, copy or save the Generic MCP record and apply it only where that client's documentation
 says. An MCP client must still ask for approval for its own tools; the analyser cannot grant that approval
@@ -1301,7 +1311,7 @@ Two things follow, both useful:
   Claude Code runs in the analyser's Assistant tab with external access off or closed for that session
   ([While Claude Code runs in the analyser](../connect-an-llm.md#while-claude-code-runs-in-the-analyser)). The same message appears if the app was
   killed, because the bridge checks the recorded process is still alive before trying to connect.
-- **The server won't start at all** — reopen **Connect an AI client** and use the exact bridge command
+- **The server won't start at all** — reopen **AI ▸ Set up AI…** ▸ *Your own AI client* and use the exact bridge command
   it resolves for this installation. It should sit and wait for input rather than exit when run from a
   terminal.
 - **Claude Desktop**: per-server logs are at `~/Library/Logs/Claude/mcp-server-fluxtion-analyser.log`

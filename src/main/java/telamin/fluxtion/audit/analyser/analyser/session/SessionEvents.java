@@ -796,31 +796,23 @@ public final class SessionEvents {
     public record AssistantProfileObserved(AssistantProfile profile) {
     }
 
-    /** The person opened the profile choices (the assistant header's button). */
-    public record AssistantProfilesRequested(String origin) {
-    }
-
-    /** The person closed the profile choices without applying (Close, Escape). */
-    public record AssistantProfilesClosed(String origin) {
-    }
-
     /**
      * M77 (spec-ai-setup-wizard.md §8.3, review R1-14): which surface asked for a profile — the Set up AI wizard, the
-     * Assistant ▾ quick switch, Settings, or the profile cards (kept until M77-4 retires them). The Full guard reads the
-     * surface that asked: the wizard's {@code open} for {@link #SETUP}, the cards' for {@link #CARDS}, nothing for
-     * {@link #MENU}, whose confirmation is the whole interaction.
+     * Assistant ▾ quick switch, or Settings. The Full guard reads the surface that asked: the wizard's {@code open} for
+     * {@link #SETUP}, nothing for {@link #MENU}, whose confirmation is the whole interaction. (M77-4 retired the profile
+     * cards, and their origin with them.)
      */
-    public enum ProfileOrigin { SETUP, MENU, SETTINGS, CARDS }
+    public enum ProfileOrigin { SETUP, MENU, SETTINGS }
 
-    /** The person pressed Apply on a card: the node decides whether it may be applied now. */
+    /** The person chose a profile (the wizard's Apply, a quick-switch item): the node decides whether it applies now. */
     public record AssistantProfileChosen(long request, AssistantProfile profile, ProfileOrigin origin) {
         public AssistantProfileChosen {
-            origin = origin == null ? ProfileOrigin.CARDS : origin;
+            origin = origin == null ? ProfileOrigin.MENU : origin;
         }
 
-        /** The cards' Apply (the shape before M77). */
+        /** A quick-switch press (the Assistant ▾ menu). */
         public AssistantProfileChosen(long request, AssistantProfile profile) {
-            this(request, profile, ProfileOrigin.CARDS);
+            this(request, profile, ProfileOrigin.MENU);
         }
     }
 
@@ -836,16 +828,16 @@ public final class SessionEvents {
     public record AssistantProfileApplied(long opId, long request, AssistantProfile profile, boolean ok, String reason,
                                           ProfileOrigin origin) implements Result {
         public AssistantProfileApplied {
-            origin = origin == null ? ProfileOrigin.CARDS : origin;
+            origin = origin == null ? ProfileOrigin.MENU : origin;
         }
 
-        /** The shape before M77: an Apply from the cards. */
+        /** An Apply the quick switch asked for. */
         public AssistantProfileApplied(long opId, long request, AssistantProfile profile, boolean ok, String reason) {
-            this(opId, request, profile, ok, reason, ProfileOrigin.CARDS);
+            this(opId, request, profile, ok, reason, ProfileOrigin.MENU);
         }
     }
 
-    /** Answers {@code ShowAssistantProfilesEffect}: the assistant was made visible for the choices. */
+    /** Answers {@code ChooseAssistantModeEffect}: the mode the node asked for was chosen. */
     public record AssistantProfilesShown(long opId) implements Result {
     }
 
@@ -1449,10 +1441,17 @@ public final class SessionEvents {
     /**
      * What can answer on the start page, observed by the frame (OD-74.23): the switch, whether the resolver finds
      * {@code claude} (a file check, nothing run), whether the in-app assistant has a provider that can answer, and whether
-     * in-process actions are on (the catalogue needs them in-app, r8 F4).
+     * in-process actions are on (the catalogue needs them in-app, r8 F4). M77-4: and whether an in-app API key is stored
+     * at all ({@code inAppKeyStored}) — under Off nothing can answer though a key may be stored, and the quick switch's
+     * In-app needs a key, not an answer, to apply (§14.3). Never the key itself.
      */
     public record StartPageAvailability(boolean claudeCodeAllowed, boolean claudeCodeFound, boolean inAppCanAnswer,
-                                        boolean inProcessActions) {
+                                        boolean inProcessActions, boolean inAppKeyStored) {
+        /** The shape before M77-4: a key is taken to be stored exactly when the in-app assistant can answer. */
+        public StartPageAvailability(boolean claudeCodeAllowed, boolean claudeCodeFound, boolean inAppCanAnswer,
+                                     boolean inProcessActions) {
+            this(claudeCodeAllowed, claudeCodeFound, inAppCanAnswer, inProcessActions, inAppCanAnswer);
+        }
     }
 
     /**

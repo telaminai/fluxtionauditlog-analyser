@@ -30,18 +30,6 @@ import static telamin.fluxtion.audit.analyser.analyser.session.AiSetupTest.toIns
  */
 class AiSetupExternalTest {
 
-    private boolean before;
-
-    @BeforeEach
-    void remember() {
-        before = AiSetup.wizardForFirstUse();
-        AiSetup.useWizardForFirstUse(true);
-    }
-
-    @AfterEach
-    void restore() {
-        AiSetup.useWizardForFirstUse(before);
-    }
 
     /** What the SetExternalAccessEffect performer does: the setting written, and the switch reported. */
     static void written(SessionDriver d, FakeSessionAdapter a) {

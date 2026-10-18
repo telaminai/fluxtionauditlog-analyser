@@ -45,9 +45,6 @@ public final class StartPanel extends JPanel {
          */
         void openSettings();
 
-        /** Open local AI-client setup; each card is a normal navigation action, never a first-run modal. */
-        void openMcpSetup(McpSetupDialog.Target target);
-
         /** Manage the builder key in its canonical file; this page never receives the value. */
         void openFluxtionKey();
 
@@ -124,6 +121,12 @@ public final class StartPanel extends JPanel {
 
         /** The AI line's Set up AI… / Change…. */
         default void openSetUpAi() { }
+
+        /**
+         * M77-4 (§14.4, OD-77.12): a door about your own AI client — a no-AI fallback's <i>Connect</i> button. It opens
+         * Set up AI (at Your own AI client when one is set up); the client dialog is behind its More options….
+         */
+        default void openClientSetUp() { openSetUpAi(); }
 
         /** OD-77.5 (M77-3): the first-run block's box under No AI. */
         default void setUpAiAlsoTurnOff(boolean on) { }
@@ -245,16 +248,8 @@ public final class StartPanel extends JPanel {
                         actions::newProjectFromTemplate)));
         fluxtionKeyCard = chip("", "", "", actions::openFluxtionKey);
         refreshFluxtionKeyStatus();
-        directStrip.add(group("Connect an assistant",
-                // the help sentence is this group's caption, not a full-width line (owner UI feedback)
-                "Connect your CLI assistant to query records, draw charts and spotlight evidence here — the analyser "
-                        + "bridge is local.",
-                chip("Connect Codex", "Codex", "Set up the local bridge Codex will use.",
-                        () -> actions.openMcpSetup(McpSetupDialog.Target.CODEX)),
-                chip("Connect Claude", "Claude", "Set up the local bridge for Claude.",
-                        () -> actions.openMcpSetup(McpSetupDialog.Target.CLAUDE_CODE)),
-                chip("Other MCP client — set up", "Other MCP client", "Prepare this analyser for another MCP client.",
-                        () -> actions.openMcpSetup(McpSetupDialog.Target.GENERIC))));
+        // M77-4 (§14.4): the Connect an assistant group is gone — the AI block (first run) or the AI line above is the
+        // one door, Set up AI…, and its Your own AI client screen says what the group's buttons did
         directStrip.add(group("Settings",
                 "Source settings apply to the open project, or to global defaults when no project is open.",
                 chip("Settings — source and assistant…", "Settings",
@@ -345,7 +340,7 @@ public final class StartPanel extends JPanel {
         }
         switch (f) {
             case ASSISTANT_SETTINGS -> actions.openSettings();
-            case CONNECT -> actions.openMcpSetup(McpSetupDialog.Target.CLAUDE_CODE);
+            case CONNECT -> actions.openClientSetUp();
             case COPY_PROMPT -> actions.copyStartPrompt(entryId, text);
             case NEW_PROJECT -> actions.newProject();
             case BUNDLE_GUIDE -> actions.openUserGuide("evidence-bundles/opening/");
@@ -1212,10 +1207,6 @@ public final class StartPanel extends JPanel {
                 icon.fillOval(1, 1, 5, 5);
                 icon.fillOval(11, 3, 5, 5);
                 icon.fillOval(5, 11, 5, 5);
-            } else if (t.startsWith("Connect") || t.startsWith("Other MCP")) {
-                icon.drawRoundRect(0, 4, 6, 9, 2, 2);
-                icon.drawRoundRect(11, 4, 6, 9, 2, 2);
-                icon.drawLine(6, 8, 11, 8);
             } else if (t.startsWith("Open project")) {
                 icon.drawPolyline(new int[]{1, 1, 6, 8, 16, 16, 1},
                         new int[]{14, 3, 3, 5, 5, 14, 14}, 7);

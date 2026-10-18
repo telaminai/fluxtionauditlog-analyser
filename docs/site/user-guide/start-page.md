@@ -56,19 +56,18 @@ reads **Ask with Claude Code** (or **Ask the in-app assistant**) and pressing it
 
 **Set up AI on the start page.** Under the box, the start page has one line about AI. On a first run this line is
 the question *How do you want AI to work with the analyser?* — No AI, your own client, Claude inside or both — with
-**Continue** and **Not now**. After that it is one line, such as *AI: not set up · Claude Code found — Set up AI…* or
-*AI: Claude inside the analyser (Safe analysis) — Change…*. See [Set up AI](assistant.md#set-up-ai).
+**Continue** and **Not now**. It is offered once — on a new installation, and on one upgraded with nothing set up —
+and after that it is one line, such as *AI: not set up · Claude Code found — Set up AI…* or *AI: Claude inside the
+analyser (Safe analysis) — Change…*. This block and line replace the *Connect an assistant* buttons the page used to
+have: your own client is one of the block's four choices, and Set up AI's *Your own AI client* screen does what those
+buttons did, step by step. See [Set up AI](assistant.md#set-up-ai).
 
-**The first question with nothing set up** now opens [Set up AI](assistant.md#set-up-ai); the question waits there
-and is placed for the assistant you set up when you press Finish. The rest of this paragraph is how it worked before Set up AI, when the same question opened the
-[four cards](assistant.md#choose-how-the-assistant-works) (*Safe analysis*, *Full Claude Code*, *In-app assistant*,
-*Off*) in the assistant's own window instead of an answer, and the start page says *Choose how the assistant works —
-your question waits, and is placed for the assistant you choose when you press Apply.* After **Apply** your question
-is placed for that assistant — in Claude Code's composer with **Start** armed, or in the in-app composer — **without
-pressing the button again**; nothing is sent until you press Start or Send, and Claude Code still asks about the folder
-when it applies. Choose *Off*, or close the cards, and your words stay in the box. This happens once: after a card is
-chosen, or if you close the cards without choosing, the page never opens them by itself again. The flows (the demo, build, teach, set-up, a
-bundle, the templates, a log) never open them: they work with no AI.
+**The first question with nothing set up** opens [Set up AI](assistant.md#set-up-ai) instead of an answer, and the
+page says *Your question waits, and is placed for the assistant you set up — nothing is sent.* After **Finish** your
+question is placed for that assistant — in Claude Code's composer, or in the in-app composer — **without pressing the
+button again**; nothing is sent until you press Send, and Claude Code still asks about the folder when it applies.
+Choose *No AI*, or **Cancel**, and your words stay in the box. Every such question opens it again while nothing is set
+up. The flows (the demo, build, teach, set-up, a bundle, the templates, a log) never open it: they work with no AI.
 
 **A question about evidence with no log open** — *What happened here?*, *Why did the breach fire?* — would get a general
 answer, so the page says so first: *No log is open — the answer will be general.* with **Open the sample**, **Open a
@@ -77,12 +76,14 @@ question goes on as if you had just asked it, now about that log; close the choo
 A question about the tool itself (*What can this tool do?*) is not held.
 
 With **no AI configured**, every entry still ends somewhere: the demo plays, a bundle or log still opens, and each entry
-offers buttons that run what you would otherwise do yourself — *Assistant settings*, *Connect an AI client…*, *New
+offers buttons that run what you would otherwise do yourself — *Assistant settings*, *Connect an AI client…* (it opens
+Set up AI at *Your own AI client*), *New
 project…*, *New project from template…*, *Evidence bundles guide*, *User guide* — and **Copy prompt**. The start page's
 *Copy prompt* copies **your question only**: no record text, no glossary, never your REST token. If Claude Code is
 switched on but not found, the page lists every place it looked and offers *Install Claude Code*.
 
-When your **full Claude Code** is in force (the *Full Claude Code* card, or its switch in *Settings ▸ Assistant*), the
+When your **full Claude Code** is in force (*◆ Full Claude Code* in Set up AI or the quick switch, or its switch in
+*Settings ▸ Assistant*), the
 box carries the same marker as the assistant's composer: a coloured border and the badge *◆ Full Claude Code (\<mode\>)
 — on: it runs at the next Start · your tools and permissions* (◆◆ for `acceptEdits` and `auto`, which ask about fewer
 actions).
@@ -162,9 +163,9 @@ stay **strict**: numbered, a bold label, the em dash and `example:`, exactly as 
 ## Or open directly
 
 Under the question, every action the analyser offers without typing is one button — an icon and a short label — in
-five small titled blocks, each heading above its buttons. The blocks sit five across on a wide window and wrap to three,
-two and one as it narrows; the *Connect an assistant* and *Settings* blocks carry a one-line caption under their
-buttons. Hover one for what it does (the sentence the old card carried); each is reachable with
+four small titled blocks, each heading above its buttons. The blocks sit four across on a wide window and wrap to three,
+two and one as it narrows; the *Settings* block carries a one-line caption under its buttons. (The *Connect an
+assistant* block is gone: the AI block or line above is the one door, *Set up AI…*.) Hover one for what it does (the sentence the old card carried); each is reachable with
 **Tab** and pressed with **Space** or **Enter**, and each does exactly what its card did.
 
 | Group | Buttons |
@@ -172,7 +173,6 @@ buttons. Hover one for what it does (the sentence the old card carried); each is
 | Explore DEMO | **Guided tour** (four spotlight stops in the local DEMO project) · **Sample project** (the same DEMO log, topology and source, at your own pace) |
 | Open | **Project** · **Evidence bundle** (verified, then a disposable copy; no replay) · **Audit log** · **GraphML** |
 | Create | **Project profile** (settings for existing source; no code generated) · **From template** |
-| Connect an assistant | **Codex** · **Claude** · **Other MCP client** — the local bridge set-up for each |
 | Settings | **Settings** (source and assistant settings: the open project's, or the global defaults) · **Fluxtion key** (present or not; needed only to regenerate a processor) |
 
 You can also drop an `.fexp` bundle, an audit log, a GraphML file, a Spring XML design or a prompt pack (`.md`)

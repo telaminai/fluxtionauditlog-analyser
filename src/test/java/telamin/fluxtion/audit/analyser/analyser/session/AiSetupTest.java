@@ -1,7 +1,5 @@
 package telamin.fluxtion.audit.analyser.analyser.session;
 
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Choice;
@@ -21,24 +19,8 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * M77 (spec-ai-setup-wizard.md §16) — {@code aiSetup} on the REAL generated processor: facts in, the effects asked for
  * and the snapshot out. Each ★ test names its witness: the mutation of the node that turns it red.
- *
- * <p>The wizard's entry is the M77-1/M77-2 switch ({@link AiSetup#useWizardForFirstUse}); each test sets it and the
- * switch is put back after.
  */
 class AiSetupTest {
-
-    private boolean before;
-
-    @BeforeEach
-    void remember() {
-        before = AiSetup.wizardForFirstUse();
-        AiSetup.useWizardForFirstUse(true);
-    }
-
-    @AfterEach
-    void restore() {
-        AiSetup.useWizardForFirstUse(before);
-    }
 
     static AiSetupState setup(SessionDriver d) {
         return d.snapshot().aiSetup();
@@ -149,12 +131,9 @@ class AiSetupTest {
         assertEquals(AssistantProfile.FULL, AiSetupDerived.profileFor(Choice.BOTH, Posture.FULL));
     }
 
-    // ---- ★ T2: the first use opens the wizard, not the cards; tested both ways -----------------------------------------
+    // ---- ★ T2: the first use opens the wizard (M77-4: the cards are gone) ------------------------------------------
 
-    /**
-     * ★ T2. Witness: open the cards from first use (keep {@code ShowAssistantProfilesEffect} under the wizard switch), or
-     * ignore {@code AssistantDraftPending} — the wizard assertions fail.
-     */
+    /** ★ T2. Witness: make {@code firstUse} return false, or ignore {@code AssistantDraftPending} — the wizard stays shut. */
     @Test
     @DisplayName("★ T2: a Send, a Start, a start-page question or a record's Ask with nothing set up opens Set up AI")
     void theFirstUseOpensTheWizard() {
@@ -165,7 +144,6 @@ class AiSetupTest {
         assertTrue(setup(d).open(), "the wizard opens");
         assertEquals(Origin.SEND, setup(d).origin());
         assertEquals(Choice.INSIDE, setup(d).choice(), "Claude inside preselected: claude was found");
-        assertEquals(0, a.profileShows.size(), "never the cards");
         assertEquals(1, a.setupShows.size());
         d.post(new SessionEvents.AiSetupCancelled("test"));
         d.post(new SessionEvents.LocalAgentStartRequested(2, LocalAgentSessionTest.consent(false, true, false, "p", 0)));
@@ -186,15 +164,6 @@ class AiSetupTest {
         e.post(new SessionEvents.AssistantSendRequested(1, 1, AssistantLoopTest.route(true, 3, 20)));
         assertFalse(setup(e).open());
         assertEquals(Choice.IN_APP, setup(e).inForce(), "a stored key IS set up");
-
-        // the switch off (M77-1): the cards, as before
-        AiSetup.useWizardForFirstUse(false);
-        FakeSessionAdapter c = new FakeSessionAdapter();
-        SessionDriver f = fresh(c, true);
-        f.post(new SessionEvents.AssistantSendRequested(1, 1, AssistantLoopTest.route(false, 3, 20)));
-        assertEquals(1, c.profileShows.size(), "M77-1: the first use still opens the cards");
-        assertEquals(0, c.setupShows.size());
-        assertFalse(setup(f).open());
     }
 
     // ---- ★ T3 / T4: Full from the wizard is confirmed, and only while the wizard is open ---------------------------------
@@ -530,8 +499,8 @@ class AiSetupTest {
     // ---- ★ T23 and the lines: one owner ------------------------------------------------------------------------------
 
     /**
-     * ★ T23. Witness: keep the cards' {@code NO_ASSISTANT} line under the wizard; or compose the mid-turn refusal outside
-     * the node (the wizard's line stays empty).
+     * ★ T23. Witness: return "" from {@code status()}; or compose the mid-turn refusal outside the node (the wizard's line
+     * stays empty).
      */
     @Test
     @DisplayName("★ T23: one line with nothing set up; a mid-turn Apply keeps the step and shows exactly one line")
@@ -540,7 +509,6 @@ class AiSetupTest {
         SessionDriver d = fresh(a, true);
         assertEquals(AiSetupLines.PANEL_NOTHING_SET_UP, setup(d).panelLine());
         assertEquals(AiSetupLines.PANEL_NOTHING_SET_UP, d.snapshot().profiles().status(), "the chip's line is the same one");
-        assertNotEquals(AiSetup.NO_ASSISTANT, d.snapshot().profiles().status());
 
         FakeSessionAdapter b = new FakeSessionAdapter();
         SessionDriver e = new SessionDriver(b);
@@ -554,7 +522,6 @@ class AiSetupTest {
         assertEquals(0, b.profileApplies.size(), "nothing written mid-turn");
         assertEquals(Step.INSIDE, setup(e).step(), "the step does not advance");
         assertEquals(AiSetup.BUSY_IN_APP_TEXT, setup(e).line(), "★ the ONE line, the node's words");
-        assertEquals("", e.snapshot().profiles().refusal(), "and not a second copy on the cards' state");
         assertFalse(setup(e).applying());
     }
 

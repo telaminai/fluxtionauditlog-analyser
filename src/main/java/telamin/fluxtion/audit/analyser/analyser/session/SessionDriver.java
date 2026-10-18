@@ -318,7 +318,6 @@ public final class SessionDriver {
             case SessionEffects.RunAssistantActionEffect ignored -> "runAssistantAction";
             case SessionEffects.CancelAssistantTransportEffect ignored -> "cancelAssistantTransport";
             case SessionEffects.ShowAssistantHostEffect ignored -> "showAssistantHost";
-            case SessionEffects.ShowAssistantProfilesEffect ignored -> "showAssistantProfiles";
             case SessionEffects.ApplyAssistantProfileEffect ignored -> "applyAssistantProfile";
             case SessionEffects.ConfirmFullProfileEffect ignored -> "confirmFullProfile";
             case SessionEffects.ShowAiSetupEffect ignored -> "showAiSetup";

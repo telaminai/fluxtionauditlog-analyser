@@ -81,8 +81,9 @@ java -jar target/fluxtion-auditlog-analyser-*.jar [optional-log-file]
 - Pass a path (local or `s3://…`) as the first command-line argument.
 
 **First run:** the **start page** opens — no configuration dialog appears. It offers a demo set that
-ships in the jar, so you can be looking at real records in one click, and its *Connect an assistant* buttons set up
-the local bridge when you want an LLM driving the analyser. Point it at your own source roots and event processor
+ships in the jar, so you can be looking at real records in one click, and its AI block asks how you want AI to work
+with the analyser — **Set up AI…** sets up Claude inside the analyser, your own AI client (the local bridge), both, or
+none. Point it at your own source roots and event processor
 whenever you like, from **Project ▸ Settings** or a project profile — see
 [Getting started](getting-started.md). No log yet? Grab the
 [sample audit log](assets/sample-audit-log.yaml).

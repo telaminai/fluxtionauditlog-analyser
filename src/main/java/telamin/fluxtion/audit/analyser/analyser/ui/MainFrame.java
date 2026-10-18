@@ -2913,17 +2913,13 @@ public final class MainFrame extends JFrame {
     private JMenu buildAiMenu() {
         JMenu ai = new JMenu("AI");
 
-        // M77-2 (spec-ai-setup-wizard.md §5 entry 3): the one door, first
+        // M77-2 (spec-ai-setup-wizard.md §5 entry 3): the one door, first. M77-4 (§14.4): it replaces Connect an AI
+        // client…, and opens at Your own AI client when one is set up; the client dialog is behind its More options…
         JMenuItem setUpAi = new JMenuItem(telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.SET_UP_LINK);
         setUpAi.setToolTipText("Choose how AI works here: no AI, your own client, Claude inside, or both");
         setUpAi.addActionListener(e -> session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents
-                .AiSetupRequested(telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Origin.MENU)));
+                .AiSetupRequested(telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Origin.CONNECT)));
         ai.add(setUpAi);
-
-        JMenuItem connect = new JMenuItem("Connect an AI client…");
-        connect.setToolTipText("Register this analyser with Claude Code, Codex or any MCP client");
-        connect.addActionListener(e -> openMcpSetup());
-        ai.add(connect);
 
         // BOUND, not copied: it reads the same field Settings ▸ Assistant renders. M77-3 (§9.2, OD-77.4): a press is the
         // person's ask, reported; actionListener decides — on asks for the confirmation first, off is at once
@@ -4527,13 +4523,6 @@ public final class MainFrame extends JFrame {
         refreshProjectPanel();
     }
 
-    private void openMcpSetup() {
-        McpSetupDialog.show(this, config, () -> {
-            onConfigChanged();
-            refreshMcpIndicator();
-        }, McpSetupDialog.Target.fromPersisted(config.mcpSetupTarget, McpSetupDialog.Target.GENERIC), false);
-    }
-
     /** One key owner, reached from the AI menu and Start Page; no key value returns from the dialog. */
     private void openFluxtionKeyDialog() {
         if (FluxtionKeyDialog.show(this, fluxtionKeyStore)) {
@@ -4721,9 +4710,6 @@ public final class MainFrame extends JFrame {
                 ConfigPanel.show(MainFrame.this, config, MainFrame.this::onConfigChanged,
                         MainFrame.this::readerSummaries);
             }
-            @Override public void openMcpSetup(McpSetupDialog.Target target) {
-                McpSetupDialog.show(MainFrame.this, config, MainFrame.this::onConfigChanged, target, false);
-            }
             @Override public void openFluxtionKey() { openFluxtionKeyDialog(); }
             // M74 P2 (§5.8): the prompt's button and the no-AI fallbacks, through the page's one Actions interface
             @Override public void pressStartPrompt(String entryId, String text) {
@@ -4758,6 +4744,9 @@ public final class MainFrame extends JFrame {
             }
             @Override public void openSetUpAi() {
                 session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupRequested(telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Origin.START_LINE));
+            }
+            @Override public void openClientSetUp() {
+                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupRequested(telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Origin.CONNECT));
             }
             @Override public void setUpAiTurnOffAccess() {
                 requestExternalAccess(false, telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AccessOrigin.SETUP);
@@ -5075,7 +5064,11 @@ public final class MainFrame extends JFrame {
                 ConfigPanel.show(MainFrame.this, config, MainFrame.this::onConfigChanged, MainFrame.this::readerSummaries,
                         ConfigPanel.PROVIDER_PAGE);
             }
-            @Override public void connectCliAssistant() { openMcpSetup(); }
+            // M77-4 (OD-77.12): the client dialog is behind Set up AI ▸ More options…; this door opens Set up AI at 2b
+            @Override public void connectCliAssistant() {
+                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupRequested(
+                        telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Origin.CONNECT));
+            }
             @Override public void showAnalyser() { toFront(); requestFocus(); }
             @Override public void askAboutEvidence() {
                 var walk = sessionSnapshot().walkPlayback();
@@ -5097,15 +5090,7 @@ public final class MainFrame extends JFrame {
                 session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantModeChosen(mode,
                         "assistant tab"));
             }
-            // M74 UX: the profile cards — the person's acts, reported; assistantProfile decides
-            @Override public void openProfiles() {
-                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantProfilesRequested(
-                        "assistant header"));
-            }
-            @Override public void closeProfiles() {
-                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantProfilesClosed(
-                        "assistant panel"));
-            }
+            // M77-4: the Assistant ▾ quick switch and Set up AI… — the person's acts, reported; aiSetup decides
             @Override public void openSetUpAi() {
                 session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupRequested(
                         telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Origin.MENU));
@@ -5113,14 +5098,9 @@ public final class MainFrame extends JFrame {
             @Override public void applyProfile(long request,
                                                telamin.fluxtion.audit.analyser.analyser.session.AssistantProfile profile) {
                 session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantProfileChosen(
-                        request, profile));
+                        request, profile, telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileOrigin.MENU));
             }
         });
-        // what the cards start from: this machine's settings as they are (read, never decided, here)
-        assistantPanel.setProfileDefaults(() -> new ProfileOverlay.Defaults(
-                telamin.fluxtion.audit.analyser.analyser.assistant.AssistantProfiles.inForce(config), config.claudeCodeModel,
-                config.claudeCodeFullMode, config.llmProvider, config.llmModel,
-                config.apiKey != null && !config.apiKey.isBlank(), config.assistantActionsRest));
         installLocalAgent();
         // M77-2: Settings ▸ Assistant ▸ Set up AI… is the person's act, reported like every other door
         // M77-3 (§9.2): Settings ▸ Assistant on save and the client dialog ask for external access through the one owner
@@ -8792,7 +8772,6 @@ public final class MainFrame extends JFrame {
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.CancelAssistantTransportEffect e -> assistantAdapter.perform(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ShowAssistantHostEffect e -> assistantAdapter.perform(e);
             // M74 UX: the assistant profile — assistantProfile decided; the frame brings the panel forward and writes settings
-            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ShowAssistantProfilesEffect e -> showAssistantProfiles(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ApplyAssistantProfileEffect e -> applyAssistantProfile(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ConfirmFullProfileEffect e -> confirmFullProfile(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ChooseAssistantModeEffect e -> chooseAssistantMode(e);
@@ -11521,7 +11500,7 @@ public final class MainFrame extends JFrame {
     private String askCue() {
         if (session == null) return "";
         var s = sessionSnapshot().aiSetup();
-        return s.wizardEntry() && s.nothingSetUp() ? telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.ASK_CUE : "";
+        return s.nothingSetUp() ? telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.ASK_CUE : "";
     }
 
     /** The registry's items for {@code surface}: the label in the mode in force, disabled with the reason. */
@@ -11818,20 +11797,8 @@ public final class MainFrame extends JFrame {
     // ---- M74 UX: the assistant profile — assistantProfile decides when its cards open and whether Apply applies now;
     // the frame performs: it brings the panel forward, and writes the same settings Settings ▸ Assistant writes ---------
 
-    /** ShowAssistantProfilesEffect: the panel in its own window when nothing is open, else the docked tab revealed. */
-    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result showAssistantProfiles(
-            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ShowAssistantProfilesEffect e) {
-        if (e.popOut()) {
-            session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantHostRequested(
-                    false, "assistant profiles"));
-        } else {
-            revealAssistant();
-        }
-        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantProfilesShown(e.opId());
-    }
-
     /**
-     * ApplyAssistantProfileEffect: the node accepted the person's Apply. The card's details (the overlay holds them; no
+     * ApplyAssistantProfileEffect: the node accepted the person's Apply. The surface's details (the wizard holds them; no
      * fact does) are written to this machine's settings by {@code AssistantProfiles.apply} — the same fields Settings ▸
      * Assistant writes — and then reported exactly as a Settings save reports them: the mode, the consent, what can
      * answer, and the profile in force. localAgentSession and assistantLoop decide what the new settings mean.
@@ -11839,7 +11806,7 @@ public final class MainFrame extends JFrame {
     private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result applyAssistantProfile(
             telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ApplyAssistantProfileEffect e) {
         var before = telamin.fluxtion.audit.analyser.analyser.assistant.AssistantProfiles.snapshot(config);
-        // the details are those of the surface that asked: the wizard's (M77-2) or the cards'
+        // the details are those of the surface that asked: the wizard's (M77-2), or none for the quick switch
         telamin.fluxtion.audit.analyser.analyser.assistant.AssistantProfiles.apply(e.profile(), profileDetailsFor(e.origin()),
                 config);
         // review P3+UX S4: the result reports the REAL save — a failed write puts the previous settings back and says so;
@@ -11856,14 +11823,19 @@ public final class MainFrame extends JFrame {
                 e.request(), e.profile(), true, "", e.origin());
     }
 
-    /** The details of the surface whose Apply this is (M77-1: only the cards hold any). */
+    /**
+     * The details of the surface whose Apply this is: the wizard's (Screen 2a's mode, Other options' key), or — for the
+     * Assistant ▾ quick switch, which asks for none (M77-4) — this machine's own, so a switch keeps Full's mode and the
+     * models as Settings ▸ Assistant set them.
+     */
     telamin.fluxtion.audit.analyser.analyser.assistant.AssistantProfiles.Details profileDetailsFor(
             telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileOrigin origin) {
         if (origin == telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileOrigin.SETUP
                 && aiSetupWindow != null) {
             return aiSetupWindow.details();      // Other options: the in-app details the person typed in the wizard
         }
-        return assistantPanel.profileDetails();
+        return new telamin.fluxtion.audit.analyser.analyser.assistant.AssistantProfiles.Details(config.claudeCodeFullMode,
+                null, null, null, null);
     }
 
     /** Review PR151 F4: modal in the application; a frame test shows it modeless so its thread stays free. */
@@ -12114,7 +12086,10 @@ public final class MainFrame extends JFrame {
                 "persistClient");
     }
 
-    /** M77-2's interim client path (review R1-11): today's dialog, at the chosen client, outside the dispatch. */
+    /**
+     * Screen 2b's More options… (OD-77.12, M77-4): today's client dialog, at the chosen client — reachable only from
+     * here, for what the wizard does not do (project-scope copy, remove, Claude Desktop's note, Check connection).
+     */
     private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result openClientSetup(
             telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.OpenClientSetupEffect e) {
         McpSetupDialog.Target target = switch (e.client() == null
@@ -12462,7 +12437,8 @@ public final class MainFrame extends JFrame {
         session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantFileExchangeObserved(
                 config.assistantExports));
         session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StartPageAvailability(
-                config.claudeCodeAllowed, claudeFound(), inAppCanAnswer(), config.assistantActionsInProcess));
+                config.claudeCodeAllowed, claudeFound(), inAppCanAnswer(), config.assistantActionsInProcess,
+                telamin.fluxtion.audit.analyser.analyser.assistant.AssistantProfiles.inAppReady(config)));
     }
 
     /** Test seam: what the resolver would say (a frame test has no {@code claude} installed). Null: ask the resolver. */

@@ -459,6 +459,52 @@ public final class AiSetupLines {
         return "Set up: " + what + ". Your question is below — press Send.";
     }
 
+    // ---- the Assistant ▾ quick switch (§14.3, M77-4) -----------------------------------------------------------------
+    // Rendered from ProfileState by ui/setup/QuickSwitch; a press is AssistantProfileChosen(origin=MENU), and aiSetup
+    // decides — the menu decides nothing (review R1-24).
+
+    /** The quick switch's accessible name. */
+    public static final String QUICK_SWITCH_NAME = "How the assistant works";
+    /** The glyph Full Claude Code carries everywhere it is in force (the tab title, the badge), and in the menu. */
+    public static final String FULL_GLYPH = "◆";
+    /**
+     * The quick switch's tooltips carry what the four cards' lines carried (review P3+UX S3, holistic B6): what each
+     * profile does, and the "not local-only" sentence where something is sent — pinned in FaqSecurityContractTest.
+     */
+    public static final String QUICK_SAFE_TIP = "Claude Code reads your evidence; it changes what is open or writes a "
+            + "file only after you approve each call. No shell — safe with logs you did not write. "
+            + telamin.fluxtion.audit.analyser.analyser.assistant.AssistantProfiles.CARD_SENDS + "Anthropic.";
+    public static final String QUICK_FULL_TIP = "Your own Claude Code set-up, skills and tools. When Claude Code asks for "
+            + "approval, " + PRODUCT + " asks you. You confirm a warning before it is turned on. "
+            + telamin.fluxtion.audit.analyser.analyser.assistant.AssistantProfiles.CARD_SENDS + "Anthropic.";
+    public static final String QUICK_IN_APP_TIP = productCapitalised() + "'s own assistant, with your API key and model "
+            + "(with no key stored, Set up AI asks for one). "
+            + telamin.fluxtion.audit.analyser.analyser.assistant.AssistantProfiles.CARD_SENDS + "the provider you chose.";
+    /** Review B6: Off is about the assistant IN the product; an external MCP or REST client is another matter. */
+    public static final String QUICK_OFF_TIP = "No assistant in " + PRODUCT + ". Everything else still works; external "
+            + "MCP and REST clients are not affected.";
+    public static final String QUICK_SET_UP_TIP = "Choose how AI works with " + PRODUCT + ", step by step.";
+    /** A quick-switch press with no profile (none to choose). */
+    public static final String CHOOSE_FIRST = "Choose how AI works first — Set up AI…";
+
+    /** The quick switch's label for a profile: Full carries its glyph, and "…" while choosing it asks first. */
+    public static String quickLabel(AssistantProfile p, boolean inForce) {
+        AssistantProfile q = p == null ? AssistantProfile.NONE : p;
+        if (q == AssistantProfile.FULL) return FULL_GLYPH + " " + q.title() + (inForce ? "" : "…");
+        return q.title();
+    }
+
+    /** The quick switch's tooltip for a profile. */
+    public static String quickTip(AssistantProfile p) {
+        return switch (p == null ? AssistantProfile.NONE : p) {
+            case SAFE -> QUICK_SAFE_TIP;
+            case FULL -> QUICK_FULL_TIP;
+            case IN_APP -> QUICK_IN_APP_TIP;
+            case OFF -> QUICK_OFF_TIP;
+            case NONE -> QUICK_SET_UP_TIP;
+        };
+    }
+
     // ---- the node's status lines (§6.0, §6.6, §7.4) -----------------------------------------------------------------
 
     /** The panel's empty state (§6.6): one line, and the Set up AI… button beside it. */

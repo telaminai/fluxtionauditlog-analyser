@@ -223,8 +223,8 @@ class AiSetupWizardFrameTest {
      * ★ T19 — the newcomer's path in ≤ 6 acts with no dead end: (1) Sample project; (2) right-click a record; (3) its
      * <i>Ask: What happened here? (set up AI first)</i> — the wizard opens at Screen 1 with Claude inside preselected;
      * (4) Continue — both checks ✓ (the stub answered), Safe preselected; (5) Finish — the window closes, the question
-     * is placed once and bound; (6) Send — a turn starts and the fixture's answer streams. Witness: show the cards on
-     * (3) ({@code AiSetup.useWizardForFirstUse(false)}) — the wizard never opens.
+     * is placed once and bound; (6) Send — a turn starts and the fixture's answer streams. Witness: open nothing on
+     * (3) (drop {@code openWizard} from {@code AiSetup.onDraftPending}) — the wizard never opens.
      */
     @Test
     @DisplayName("★ T19: Sample → right-click → Ask → Continue → Finish → Send, in ≤ 6 acts at 1200×800 with no dead end")
@@ -273,7 +273,6 @@ class AiSetupWizardFrameTest {
             assertEquals(Step.CHOICE, opened.step());
             assertEquals(Choice.INSIDE, opened.choice(), "Claude inside preselected: claude was found (T24's half)");
             assertEquals(AiSetupState.PendingKind.ASK_DRAFT, opened.pending().kind(), "the question waits");
-            assertFalse(ProfileOverlayFrameTest.profiles(r.frame).open(), "never the cards");
             AiSetupWindow w = r.window();
             assertNotNull(w);
             onEdt(() -> assertWhollyInside(w.primaryButton(), w));
@@ -398,14 +397,18 @@ class AiSetupWizardFrameTest {
             onEdt(() -> r.window().cancelButton().doClick());
             r.await(s -> !s.open(), "Cancel");
 
-            // Assistant ▾ ▸ Set up AI… (until M77-4 makes Assistant ▾ a quick switch, the door is in its panel)
+            // Assistant ▾ ▸ Set up AI… — M77-4: the quick switch's last row
             onEdt(() -> r.assistant().profileButton().doClick());
-            ProfileOverlayFrameTest.await(r.frame, x -> x.open(), "Assistant ▾ is open");
-            onEdt(() -> r.assistant().profileOverlay().setUpAiButton().doClick());
+            onEdt(() -> {
+                JPopupMenu quick = r.assistant().quickSwitch().lastShown();
+                assertNotNull(quick, "Assistant ▾ shows the quick switch");
+                JMenuItem setUp = QuickSwitchFrameTest.setUpItem(quick);
+                quick.setVisible(false);
+                setUp.doClick();
+            });
             r.await(AiSetupState::open, "★ Assistant ▾ ▸ Set up AI…");
             onEdt(() -> r.window().cancelButton().doClick());
             r.await(s -> !s.open(), "Cancel");
-            onEdt(() -> r.assistant().profileOverlay().closeButton().doClick());
 
             // the panel: one line and the button
             onEdt(() -> {

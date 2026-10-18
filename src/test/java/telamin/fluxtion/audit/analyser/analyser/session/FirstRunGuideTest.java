@@ -19,24 +19,11 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class FirstRunGuideTest {
 
-    /** M77-2: these are the profile cards' first-use tests — the cards stay reachable until M77-4; pinned to them. */
-    private boolean wizardBefore;
-
-    @org.junit.jupiter.api.BeforeEach
-    void cardsForFirstUse() {
-        wizardBefore = telamin.fluxtion.audit.analyser.analyser.session.node.AiSetup.wizardForFirstUse();
-        telamin.fluxtion.audit.analyser.analyser.session.node.AiSetup.useWizardForFirstUse(false);
-    }
-
-    @org.junit.jupiter.api.AfterEach
-    void restoreFirstUse() {
-        telamin.fluxtion.audit.analyser.analyser.session.node.AiSetup.useWizardForFirstUse(wizardBefore);
-    }
 
     static SessionDriver unchosen(FakeSessionAdapter a) {
         SessionDriver d = new SessionDriver(a);
         d.post(new SessionEvents.AssistantProfileObserved(AssistantProfile.NONE));
-        d.post(new SessionEvents.StartPageAvailability(false, false, false, false));
+        d.post(new SessionEvents.StartPageAvailability(false, true, false, false));
         return d;
     }
 
@@ -45,14 +32,14 @@ class FirstRunGuideTest {
      * {@code PlacePendingDraftEffect} request in {@code onProfileApplied} — nothing is placed.
      */
     @Test
-    @DisplayName("★ asked before any assistant is chosen: held unbound, the cards open, and Apply places it for Claude Code")
+    @DisplayName("★ asked before any assistant is chosen: held unbound, Set up AI opens, and Apply places it for Claude Code")
     void aQuestionWaitsForTheChoice() {
         FakeSessionAdapter a = new FakeSessionAdapter();
         SessionDriver d = unchosen(a);
         d.post(new SessionEvents.AssistantDraftPending(7, "Q1", "ask Q1 from records"));
-        assertTrue(d.snapshot().profiles().open(), "the choices open");
+        assertTrue(d.snapshot().aiSetup().open(), "Set up AI opens");
         assertTrue(d.snapshot().profiles().questionWaits());
-        assertEquals(AiSetup.QUESTION_WAITS, d.snapshot().profiles().status(), "the one line says it waits");
+        assertEquals(AiSetupLines.QUESTION_WAITS, d.snapshot().profiles().status(), "the one line says it waits");
         assertTrue(a.pendingPlaced.isEmpty(), "nothing is placed for the mode's default");
         assertTrue(a.assistantPrimes.isEmpty() && a.agentPrimes.isEmpty(), "nor bound to anyone");
         // a second question replaces the first
@@ -77,7 +64,7 @@ class FirstRunGuideTest {
         d.post(new SessionEvents.AssistantDraftPending(9, "Q1", "ask"));
         assertEquals(1, a.pendingPlaced.size());
         assertEquals(AssistantMode.IN_APP, a.pendingPlaced.get(0).mode());
-        assertFalse(d.snapshot().profiles().open(), "nothing to choose");
+        assertFalse(d.snapshot().aiSetup().open(), "nothing to choose");
     }
 
     /**

@@ -77,7 +77,7 @@ def launch(popped_out):
                      "assistant.window.poppedOut": "true" if popped_out else "false",
                      "assistant.window.x": str(max(60, 1900 - SIDE_W)), "assistant.window.y": "60",
                      "assistant.window.w": str(SIDE_W), "assistant.window.h": str(MAIN_H)})
-    proc = subprocess.Popen(["java", f"-Duser.home={cd.HOME}", "-jar", str(cd.jar())],
+    proc = subprocess.Popen(["java", cd.home_arg(), "-jar", str(cd.jar())],
                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     cd._capture_process = proc
     for _ in range(40):
@@ -182,7 +182,7 @@ def open_received(ep, bundle):
     """Open a bundle as a recipient does (the evidence-bundle guide): --unpack, then the project, then log and graph."""
     work = ROOT / "received"
     work.mkdir(parents=True, exist_ok=True)
-    r = subprocess.run(["java", f"-Duser.home={cd.HOME}", "-jar", str(cd.jar()), "--unpack", str(bundle), "--into", str(work)],
+    r = subprocess.run(["java", cd.home_arg(), "-jar", str(cd.jar()), "--unpack", str(bundle), "--into", str(work)],
                        capture_output=True, text=True)
     if r.returncode != 0:
         sys.exit("the journey bundle was refused on unpack:\n" + r.stdout + r.stderr)

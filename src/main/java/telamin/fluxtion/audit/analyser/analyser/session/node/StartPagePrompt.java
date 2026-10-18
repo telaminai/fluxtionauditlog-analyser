@@ -102,15 +102,6 @@ public class StartPagePrompt implements EventLogSource {
     private telamin.fluxtion.audit.analyser.analyser.session.AssistantProfile carriedProfile;
     /** Apply succeeded; the machine's new facts (consent, what can answer, the profile) follow as their own operations. */
     private boolean carriedAwaitingObservation;
-    /** M77: the question waits behind the Set up AI wizard (not the cards): placed only after its Finish (§12). */
-    private boolean carriedBySetup;
-
-    /** The start page's note while its question waits behind the cards. */
-    public static final String CARRIED_NOTE = "Choose how the assistant works — your question waits, and is placed for "
-            + "the assistant you choose when you press Apply. Nothing is sent until you press Start or Send.";
-    /** The note when the cards closed without Apply. */
-    public static final String CARRY_DROPPED_NOTE = "The cards were closed, so your question was not placed — it is still "
-            + "in the box";
 
     public StartPagePrompt(AssistantModeChoice mode, LocalAgentSession localAgent, OpenLog openLog, EffectQueue effects) {
         this.mode = mode;
@@ -230,9 +221,8 @@ public class StartPagePrompt implements EventLogSource {
             carriedRequest = e.request();
             carriedProfile = null;
             carriedAwaitingObservation = false;
-            carriedBySetup = AiSetup.wizardForFirstUse();
-            note = carriedBySetup ? telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.QUESTION_WAITS
-                    : CARRIED_NOTE;
+            // M77: the question waits behind the Set up AI wizard, placed only after its Finish (§12)
+            note = telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.QUESTION_WAITS;
             auditLog.info("startPageRoute", "PROFILE_CHOICES").info("carried", true);
             return changed();
         }
@@ -328,7 +318,7 @@ public class StartPagePrompt implements EventLogSource {
     @OnEventHandler
     public boolean onProfileApplied(SessionEvents.AssistantProfileApplied e) {
         if (carried == null || !e.ok()) return false;              // a refused Apply leaves the cards open, still carried
-        if (carriedBySetup && (e.origin() != telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileOrigin.SETUP
+        if ((e.origin() != telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileOrigin.SETUP
                 || aiSetup == null || aiSetup.finished() != e.request())) {
             // M77 §12 (review R1-2): placement waits for the wizard's Finish, its Apply, the observation and the mode —
             // an Apply from elsewhere, or one the wizard has not finished on (Both's first half), places nothing yet
@@ -357,8 +347,7 @@ public class StartPagePrompt implements EventLogSource {
         carriedProfile = null;
         if (profile == null || profile == telamin.fluxtion.audit.analyser.analyser.session.AssistantProfile.NONE
                 || profile == telamin.fluxtion.audit.analyser.analyser.session.AssistantProfile.OFF) {
-            note = carriedBySetup ? telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.CANNOT_ANSWER_BOX
-                    : "The assistant is off, so your question was not placed — it is still in the box";
+            note = telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.CANNOT_ANSWER_BOX;
             auditLog.info("startPageCarried", "OFF");
             return changed();
         }
@@ -378,22 +367,11 @@ public class StartPagePrompt implements EventLogSource {
         return changed();
     }
 
-    /** The cards closed without Apply: the carried question is dropped; the box still has its words. */
-    @OnEventHandler
-    public boolean onProfilesClosed(SessionEvents.AssistantProfilesClosed e) {
-        if (carried == null || carriedAwaitingObservation) return false;
-        carried = null;
-        note = CARRY_DROPPED_NOTE;
-        auditLog.info("startPageCarried", "DROPPED");
-        return changed();
-    }
-
     /** M77 §7.4: the wizard was cancelled before its Apply: the question stays in the box, and the page says so. */
     @OnEventHandler
     public boolean onSetupCancelled(SessionEvents.AiSetupCancelled e) {
-        if (carried == null || !carriedBySetup || carriedAwaitingObservation) return false;
+        if (carried == null || carriedAwaitingObservation) return false;
         carried = null;
-        carriedBySetup = false;
         note = telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.CANCELLED_BOX;
         auditLog.info("startPageCarried", "CANCELLED");
         return changed();

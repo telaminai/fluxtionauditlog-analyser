@@ -167,9 +167,14 @@ class AiSetupClientFrameTest {
                     assertFalse(w instanceof McpSetupDialog && w.isShowing(), "no interim dialog");
                 }
                 assertFalse(r.window().primaryButton().isEnabled(), "Finish needs part 2 on");
+                // M77-4: M77-5's picture fills the slot, with the switch — Your own AI client, its arrow not on yet
                 JComponent slot = r.window().accessDiagramSlot();
-                assertNotNull(slot.getParent(), "the diagram's slot is beside the switch (M77-4 fills it)");
-                assertEquals(0, slot.getWidth(), "empty: no visible size");
+                assertTrue(slot.isShowing() && slot.getWidth() > 0, "★ the picture is on Screen 2b, with the switch");
+                assertSame(r.window().accessDiagram, slot.getComponent(0));
+                assertEquals(telamin.fluxtion.audit.analyser.analyser.ui.setup.FlowDiagram.Option.CLIENT,
+                        r.window().accessDiagram.model().option());
+                assertEquals(telamin.fluxtion.audit.analyser.analyser.ui.setup.FlowDiagram.Line.NOT_ON,
+                        clientArrow(r.window()), "access is off: the client's arrow is not on");
             });
 
             // part 2: the switch asks; Escape on the confirmation turns nothing on
@@ -196,6 +201,8 @@ class AiSetupClientFrameTest {
             onEdt(() -> second.riskyButton().doClick());
             r.await(s -> s.external().access() == Access.ON, "★ confirmed: on");
             onEdt(() -> assertTrue(w.primaryButton().isEnabled(), "Finish is enabled once part 2 is on"));
+            onEdt(() -> assertEquals(telamin.fluxtion.audit.analyser.analyser.ui.setup.FlowDiagram.Line.AUTO,
+                    clientArrow(w), "★ M77-4: the picture follows the switch — the client's arrow is on"));
 
             // part 3: Register for me — the verbatim vector, Cancel the default; the vector run is the vector shown
             onEdt(() -> button(w.contentPanel(), AiSetupLines.REGISTER_FOR_ME).doClick());
@@ -250,6 +257,14 @@ class AiSetupClientFrameTest {
                 for (Window x : Window.getWindows()) SwingUtilities.updateComponentTreeUI(x);
             });
         }
+    }
+
+    /** The picture's client → product arrow on Screen 2b, as drawn. */
+    static telamin.fluxtion.audit.analyser.analyser.ui.setup.FlowDiagram.Line clientArrow(AiSetupWindow w) {
+        return w.accessDiagram.model().edges().stream()
+                .filter(e -> e.from() == telamin.fluxtion.audit.analyser.analyser.ui.setup.FlowDiagram.NodeId.CLIENT
+                        && e.to() == telamin.fluxtion.audit.analyser.analyser.ui.setup.FlowDiagram.NodeId.ANALYSER)
+                .findFirst().orElseThrow().line();
     }
 
     /**

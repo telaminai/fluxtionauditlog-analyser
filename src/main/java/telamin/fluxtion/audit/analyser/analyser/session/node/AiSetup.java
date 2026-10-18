@@ -28,14 +28,16 @@ import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileOri
  *
  * <p><b>Kept from the cards.</b> The observed profile; what the in-app assistant can do; the Apply decision with its
  * mid-turn refusals; Full's confirmation; the applied result, which asks for the mode; the first-use handlers; the
- * start-page interception; {@link ProfileState} in the snapshot (the header chip renders it).
+ * start-page interception; {@link ProfileState} in the snapshot (the header chip and the quick switch render it).
  *
  * <p><b>Added.</b> The wizard's steps and choice ({@link AiSetupState}); the two checks — {@code claude --version} and
  * {@code claude auth status --json} — asked for as effects and reported back as facts, each with its probe id so a late
  * result is stale; the first-run block and the AI line; the two machine-tier keys.
  *
- * <p><b>The first use</b> opens the wizard instead of the cards once {@link #wizardEntry} is on — the one switch between
- * M77-1 (the node and the checks, the window not yet reachable) and M77-2 (the wizard).
+ * <p><b>M77-4: the cards are gone</b> (OD-77.3). The first use opens the wizard; the person's other door to the profile
+ * is the Assistant ▾ quick switch, whose press is {@code AssistantProfileChosen(origin=MENU)} — decided here like every
+ * Apply, and opening the wizard at the screen that can finish it when it cannot be applied as it stands (§14.3: Claude
+ * inside while {@code claude} was not found; the in-app assistant with no stored key).
  *
  * <p><b>Order.</b> Downstream of {@code localAgentSession} and {@code assistantLoop} (it reads whether a turn is open
  * after they handled the fact), and of {@code actionListener} and {@code openLog} (JavaBean parents); upstream of
@@ -57,38 +59,12 @@ public class AiSetup implements EventLogSource {
     /** Apply refused while the in-app assistant answers. */
     public static final String BUSY_IN_APP_TEXT = "The in-app assistant is still answering — Stop or wait, then change how "
             + "the assistant works.";
-    /** Owner, 2026-10-18: the one line while nothing is chosen and the cards are open. */
-    public static final String NO_ASSISTANT_CHOOSING = "No assistant set up yet — choose one below.";
-    /** Robot walkthrough #1: the line while a question waits for the choice. */
-    public static final String QUESTION_WAITS = "No assistant set up yet — choose one below; your question waits and is "
-            + "placed for the assistant you choose (nothing is sent).";
-    /** The one line while nothing is chosen and the cards are shut. */
-    public static final String NO_ASSISTANT = "No assistant set up yet — choose one with Assistant ▾ above.";
     /**
      * The one line for the in-app assistant with no key (or no provider that can answer). Robot re-walk #4 (2026-10-18):
      * the panel shows it with Configure provider beside it — "No API key — Configure provider" — and Send disabled; it
      * no longer sits under a "Ready" with "Press Send to ask Claude" below it.
      */
     public static final String IN_APP_NO_KEY = "No API key";
-
-    /** The start page's note when its question opened the choices instead of an answer. */
-    public static final String FIRST_USE_NOTE = StartPagePrompt.CARRIED_NOTE;
-
-    /**
-     * The switch between M77-1 and M77-2 (spec §18): whether the first use — a Send, a Start, a start-page question or a
-     * record's Ask with nothing set up — opens the Set up AI wizard ({@code true}) or the profile cards ({@code false}).
-     * Read once per decision; tested both ways. M77-2: on.
-     */
-    private static volatile boolean wizardEntry = true;
-
-    /** For the tests, and the one line M77-2 changes: whether the first use opens the wizard. */
-    public static void useWizardForFirstUse(boolean on) {
-        wizardEntry = on;
-    }
-
-    public static boolean wizardForFirstUse() {
-        return wizardEntry;
-    }
 
     private final LocalAgentSession localAgent;
     private final AssistantLoop assistantLoop;
@@ -105,19 +81,17 @@ public class AiSetup implements EventLogSource {
     private String profile = AssistantProfile.NONE.name();
     /** The frame has reported the profile at least once: "not chosen" is a FACT, never this node's default. */
     private boolean observed;
-    private boolean open;
-    private String why = "";
-    private boolean offered;
     private long request;
-    private String refusal = "";
     /** The start-page request this node answered by opening the choices, so startPagePrompt shows no fallback for it. */
     private long interceptedStartPage;
     /** Review PR151 F4: the Apply request whose Full Claude Code confirmation is showing; 0 for none. */
     private long confirmingFull;
     /** M77: which surface asked for the Full confirmation that is showing (the guard reads that surface). */
-    private ProfileOrigin confirmingOrigin = ProfileOrigin.CARDS;
+    private ProfileOrigin confirmingOrigin = ProfileOrigin.MENU;
     /** What the frame last said the in-app assistant can do (StartPageAvailability), once it has said it. */
     private boolean inAppCanAnswer;
+    /** M77-4: an in-app key is stored (it may not answer, under Off) — the quick switch's In-app needs only this. */
+    private boolean inAppKeyStored;
     private boolean availabilityObserved;
     /**
      * Robot walkthrough #1 (2026-10-18): a question asked while no assistant is chosen (by reference into the frame's
@@ -129,6 +103,8 @@ public class AiSetup implements EventLogSource {
     private boolean wizardOpen;
     private boolean startupObserved;
     private boolean firstRunDismissed;
+    /** OD-77.9 (M77-4): the first-run block was offered in this run — recorded once, so the next run shows the AI line. */
+    private boolean firstRunOffered;
     private boolean restLaunch;
     private AiSetupState.Client setupClient = AiSetupState.Client.NONE;
     private boolean claudeFound;
@@ -231,20 +207,24 @@ public class AiSetup implements EventLogSource {
         observed = true;
         profile = next;
         auditLog.info("assistantProfile", profile);
+        noteFirstRunOffered();
         return changed();
     }
 
     /** What can answer, and whether the resolver found {@code claude} (a file check; nothing run). */
     @OnEventHandler
     public boolean onAvailability(SessionEvents.StartPageAvailability e) {
-        if (availabilityObserved && e.inAppCanAnswer() == inAppCanAnswer && e.claudeCodeFound() == claudeFound) {
+        if (availabilityObserved && e.inAppCanAnswer() == inAppCanAnswer && e.claudeCodeFound() == claudeFound
+                && e.inAppKeyStored() == inAppKeyStored) {
             return false;
         }
         availabilityObserved = true;
         inAppCanAnswer = e.inAppCanAnswer();
+        inAppKeyStored = e.inAppKeyStored();
         claudeFound = e.claudeCodeFound();
         // §6.0: the first-run block preselects Claude inside when claude was found (a file check; Continue only checks)
         if (!wizardOpen && choice == Choice.NONE && claudeFound) choice = Choice.INSIDE;
+        noteFirstRunOffered();
         return changed();
     }
 
@@ -271,7 +251,21 @@ public class AiSetup implements EventLogSource {
         restLaunch = e.restLaunch();
         auditLog.info("aiSetupStartup", setupClient.name()).info("dismissed", firstRunDismissed)
                 .info("restLaunch", restLaunch);
+        noteFirstRunOffered();
         return changed();
+    }
+
+    /**
+     * OD-77.9 (M77-4): the first-run block is offered ONCE — to a new person and to an upgrader whose profile is still
+     * NONE alike. The first time this node decides to show it, the offer is recorded (the machine-tier
+     * {@code assistant.setup.dismissed}), so the next run shows the AI line; in this run the block stays until the
+     * person answers it. It is not a modal, so nothing is lost: the AI line's Set up AI… is the same door.
+     */
+    private void noteFirstRunOffered() {
+        if (firstRunOffered || !firstRun()) return;
+        firstRunOffered = true;
+        auditLog.info("aiSetup", "FIRST_RUN_OFFERED");
+        effects.request(new SessionEffects.PersistSetupDismissedEffect(0L));
     }
 
     /** The listener's state changed (external access on or off): the AI line, part 2 and the live check follow it. */
@@ -322,37 +316,39 @@ public class AiSetup implements EventLogSource {
         return changed();
     }
 
-    // ---- the person's acts: the profile cards (kept until M77-4) --------------------------------------------------------
+    // ---- the person's acts: an Apply, from the wizard or the Assistant ▾ quick switch -----------------------------
 
-    @OnEventHandler
-    public boolean onProfilesRequested(SessionEvents.AssistantProfilesRequested e) {
-        open = true;
-        why = ProfileState.ASKED;
-        refusal = "";
-        auditLog.info("assistantProfiles", "OPEN").info("origin", String.valueOf(e.origin()));
-        return changed();
-    }
-
-    @OnEventHandler
-    public boolean onProfilesClosed(SessionEvents.AssistantProfilesClosed e) {
-        if (!open) return false;
-        open = false;
-        why = "";
-        refusal = "";
-        if (confirmingOrigin == ProfileOrigin.CARDS) confirmingFull = 0;
-        auditLog.info("assistantProfiles", "CLOSED").info("origin", String.valueOf(e.origin()));
-        return changed();
-    }
-
-    /** Apply: never mid-turn (refused by name, the surface stays open); otherwise the settings are written by effect. */
+    /**
+     * Apply: never mid-turn (refused by name); otherwise the settings are written by effect. M77-4 (§14.3, review R1-24):
+     * the quick switch's press is decided here, not by the menu — Claude inside while {@code claude} was not found (the
+     * resolver's file check), or the in-app assistant with no stored key, cannot be applied as it stands, so the wizard
+     * opens at the screen that can finish it instead.
+     */
     @OnEventHandler
     public boolean onProfileChosen(SessionEvents.AssistantProfileChosen e) {
         AssistantProfile p = e.profile() == null ? AssistantProfile.NONE : e.profile();
         request = e.request();
         if (p == AssistantProfile.NONE) {
-            refusal = "choose how the assistant works first";
+            line = AiSetupLines.CHOOSE_FIRST;
             auditLog.info("assistantProfileRefused", "NONE");
             return changed();
+        }
+        if (e.origin() == ProfileOrigin.MENU && !AssistantProfile.valueOf(profile).equals(p)) {
+            if (p.claudeCode() && !claudeFound) {
+                auditLog.info("aiSetup", "QUICK_SWITCH_NEEDS_CLAUDE").info("profile", p.name());
+                openWizard(Origin.MENU, setupClient != AiSetupState.Client.NONE ? Choice.BOTH : Choice.INSIDE,
+                        Step.INSIDE);
+                if (wizardOpen && step == Step.INSIDE) {
+                    posture = AiSetupDerived.postureOf(p);
+                    startInstalledProbe();            // the person's press on Claude inside is the act (§6.2)
+                }
+                return changed();
+            }
+            if (p == AssistantProfile.IN_APP && !(availabilityObserved && inAppKeyStored)) {
+                auditLog.info("aiSetup", "QUICK_SWITCH_NEEDS_KEY");
+                openWizard(Origin.MENU, Choice.IN_APP, Step.OTHER);
+                return changed();
+            }
         }
         return apply(e.request(), p, e.origin());
     }
@@ -361,11 +357,7 @@ public class AiSetup implements EventLogSource {
     private boolean apply(long req, AssistantProfile p, ProfileOrigin from) {
         request = req;
         String busy = busy();
-        if (from == ProfileOrigin.SETUP) {
-            line = busy;
-        } else {
-            refusal = busy;
-        }
+        line = busy;                                  // the ONE line: the wizard's, or the status bar's for the menu
         if (!busy.isEmpty()) {
             auditLog.info("assistantProfileRefused", p.name()).info("request", req).info("origin", from.name());
             if (from == ProfileOrigin.SETUP) applying = false;
@@ -406,7 +398,6 @@ public class AiSetup implements EventLogSource {
         confirmingFull = 0;
         boolean surfaceOpen = switch (from) {
             case SETUP -> wizardOpen;
-            case CARDS -> open;
             case MENU, SETTINGS -> true;
         };
         if (!e.confirmed() || !surfaceOpen) {
@@ -422,8 +413,7 @@ public class AiSetup implements EventLogSource {
             return changed();
         }
         String busy = busy();
-        if (from == ProfileOrigin.SETUP) line = busy;
-        else refusal = busy;
+        line = busy;
         if (!busy.isEmpty()) {
             auditLog.info("assistantProfileRefused", AssistantProfile.FULL.name()).info("request", e.request());
             if (from == ProfileOrigin.SETUP) applying = false;
@@ -445,21 +435,13 @@ public class AiSetup implements EventLogSource {
         boolean fromWizard = e.origin() == ProfileOrigin.SETUP && e.request() == wizardRequest;
         if (!e.ok()) {
             String reason = e.reason() == null || e.reason().isBlank() ? "the settings could not be written" : e.reason();
-            if (fromWizard) {
-                line = reason;
-                applying = false;
-            } else {
-                refusal = reason;
-            }
+            line = reason;
+            if (fromWizard) applying = false;
             auditLog.info("assistantProfileApplied", "FAILED");
             return changed();
         }
         if (e.profile() != null) profile = e.profile().name();
-        if (!fromWizard) {
-            open = false;
-            why = "";
-            refusal = "";
-        }
+        if (!fromWizard) line = "";
         auditLog.info("assistantProfileApplied", profile).info("origin", e.origin().name());
         // review P3+UX S4: the tab follows the profile — decided here, after the settings were written, never by the
         // performer of the write
@@ -496,7 +478,7 @@ public class AiSetup implements EventLogSource {
     /**
      * Robot walkthrough #1: a question composed while no assistant is chosen. If the in-app assistant can already answer
      * (a key stored before profiles existed), it is placed for it now; otherwise it waits, unbound — a second question
-     * replaces the first — and the choices open (the wizard, M77; the cards before it), as a first Send opens them.
+     * replaces the first — and the wizard opens, as a first Send opens it.
      */
     @OnEventHandler
     public boolean onDraftPending(SessionEvents.AssistantDraftPending e) {
@@ -509,27 +491,18 @@ public class AiSetup implements EventLogSource {
         pendingDraft = e.draftRef();
         auditLog.info("assistantPendingDraft", "HELD").info("question", String.valueOf(e.questionId()))
                 .info("origin", String.valueOf(e.origin()));
-        if (wizardEntry) {
-            openWizard(Origin.ASK, null, Step.CHOICE);
-            return changed();
-        }
-        if (!open) {
-            open = true;
-            why = offered ? ProfileState.ASKED : ProfileState.FIRST_USE;
-            offered = true;
-            refusal = "";
-            effects.request(new SessionEffects.ShowAssistantProfilesEffect(0L, false));
-        }
+        openWizard(Origin.ASK, null, Step.CHOICE);
         return changed();
     }
 
+    /** The mode the node asked for was chosen (the answer to {@code ChooseAssistantModeEffect}). */
     @OnEventHandler(propagate = false)
     public boolean onProfilesShown(SessionEvents.AssistantProfilesShown e) {
-        auditLog.info("assistantProfilesShown", e.opId());
+        auditLog.info("assistantModeChosen", e.opId());
         return false;
     }
 
-    // ---- the first use: Set up AI (M77-2) or the cards (M77-1), while nothing is set up --------------------------------
+    // ---- the first use: Set up AI, while nothing is set up ----------------------------------------------------------
 
     /**
      * The first Start: only when {@code localAgentSession} — which handled it first — did not accept it. An assistant that
@@ -538,20 +511,20 @@ public class AiSetup implements EventLogSource {
     @OnEventHandler
     public boolean onStartRequested(SessionEvents.LocalAgentStartRequested e) {
         if (accepted(localAgent.state().answer(), e.request())) return false;
-        return firstUse("start", false);
+        return firstUse("start");
     }
 
     @OnEventHandler
     public boolean onLocalAgentSend(SessionEvents.LocalAgentSendRequested e) {
         if (accepted(localAgent.state().answer(), e.request())) return false;
-        return firstUse("claude code send", false);
+        return firstUse("claude code send");
     }
 
     @OnEventHandler
     public boolean onAssistantSend(SessionEvents.AssistantSendRequested e) {
         var a = assistantLoop.state().answer();
         if (a.request() == e.request() && a.accepted()) return false;
-        return firstUse("in-app send", false);
+        return firstUse("in-app send");
     }
 
     private static boolean accepted(telamin.fluxtion.audit.analyser.analyser.session.LocalAgentState.Answer a, long request) {
@@ -575,41 +548,41 @@ public class AiSetup implements EventLogSource {
         if (!question) return false;
         boolean canAnswer = e.inAppCanAnswer() || (e.consent() != null && e.consent().allowed() && e.claudeCodeFound());
         if (canAnswer) return false;                  // an assistant can answer it: the question goes there
-        if (!firstUse("start page", !e.workspaceOpen())) return false;
+        if (!firstUse("start page")) return false;
         interceptedStartPage = e.request();
-        startBoxWaiting = wizardEntry;
+        startBoxWaiting = true;
         return true;
     }
 
     /**
-     * Nothing is set up (§5): the profile observed NONE and no stored in-app key that can answer. Under the wizard, every
-     * press reopens it (no once-per-session latch — the latch is what made the cards' second press silent); under the
-     * cards, once per session as M74 decided.
+     * Nothing is set up (§5): the profile observed NONE and no stored in-app key that can answer. Every press reopens the
+     * wizard (no once-per-session latch — the latch is what made the cards' second press silent).
      */
-    private boolean firstUse(String from, boolean popOut) {
+    private boolean firstUse(String from) {
         if (!observed || !AssistantProfile.NONE.name().equals(profile)) return false;
-        if (wizardEntry) {
-            if (availabilityObserved && inAppCanAnswer) return false;
-            auditLog.info("aiSetup", "FIRST_USE").info("origin", from);
-            openWizard(Origin.SEND, null, Step.CHOICE);
-            return changed();
-        }
-        if (offered) return false;
-        offered = true;
-        open = true;
-        why = ProfileState.FIRST_USE;
-        refusal = "";
-        auditLog.info("assistantProfiles", "FIRST_USE").info("origin", from);
-        effects.request(new SessionEffects.ShowAssistantProfilesEffect(0L, popOut));
+        if (availabilityObserved && inAppCanAnswer) return false;
+        auditLog.info("aiSetup", "FIRST_USE").info("origin", from);
+        openWizard(Origin.SEND, null, Step.CHOICE);
         return changed();
     }
 
     // ---- M77: the wizard ------------------------------------------------------------------------------------------------
 
-    /** The person asked for Set up AI (a menu, the start page's link, Settings): Screen 1, the choice in force selected. */
+    /**
+     * The person asked for Set up AI (a menu, the start page's link, Settings): Screen 1, the choice in force selected.
+     * M77-4 (§14.4): a door about your own client ({@link Origin#CONNECT} — AI ▸ Set up AI…, the panel's Connect a CLI
+     * assistant) opens at Screen 2b when the choice in force includes a client, and at Screen 1 otherwise.
+     */
     @OnEventHandler
     public boolean onSetupRequested(SessionEvents.AiSetupRequested e) {
-        openWizard(e.origin() == null ? Origin.MENU : e.origin(), null, Step.CHOICE);
+        Origin why = e.origin() == null ? Origin.MENU : e.origin();
+        Choice inForce = inForce();
+        if (why == Origin.CONNECT && !wizardOpen && (inForce == Choice.CLIENT || inForce == Choice.BOTH)) {
+            openWizard(why, inForce, Step.CLIENT);
+            enterClient();
+            return changed();
+        }
+        openWizard(why, null, Step.CHOICE);
         return changed();
     }
 
@@ -689,7 +662,7 @@ public class AiSetup implements EventLogSource {
                 if (fromFirstRun) {
                     // the block has done its job: the AI line takes its place from now on (OD-77.9: offered once)
                     firstRunDismissed = true;
-                    effects.request(new SessionEffects.PersistSetupDismissedEffect(0L));
+                    if (!firstRunOffered) effects.request(new SessionEffects.PersistSetupDismissedEffect(0L));
                 }
                 switch (choice) {
                     case NONE -> {
@@ -840,6 +813,8 @@ public class AiSetup implements EventLogSource {
         probeAuth = 0;
         if (installed.verdict() == AiSetupState.Installed.RUNNING) installed = AiSetupState.Check.UNCHECKED;
         if (signedIn.verdict() == AiSetupState.SignedIn.RUNNING) signedIn = AiSetupState.Auth.UNCHECKED;
+        // M77-4: Both opened straight at 2b (a client door) has not checked Claude yet — 2a checks when it is reached
+        if (step == Step.INSIDE && installed.verdict() == AiSetupState.Installed.UNCHECKED) startInstalledProbe();
         line = "";
         return changed();
     }
@@ -912,7 +887,8 @@ public class AiSetup implements EventLogSource {
         if (firstRunDismissed) return false;
         firstRunDismissed = true;
         auditLog.info("aiSetup", "FIRST_RUN_DISMISSED");
-        effects.request(new SessionEffects.PersistSetupDismissedEffect(0L));
+        // OD-77.9: already recorded when it was offered; written here only for a block offered before that existed
+        if (!firstRunOffered) effects.request(new SessionEffects.PersistSetupDismissedEffect(0L));
         return changed();
     }
 
@@ -1288,8 +1264,7 @@ public class AiSetup implements EventLogSource {
 
     /** §6.0: the first-run block — offered once, while nothing is set up, never to a process an agent started. */
     private boolean firstRun() {
-        return wizardEntry && startupObserved && !firstRunDismissed && !restLaunch && observed
-                && inForce() == Choice.NONE;
+        return startupObserved && !firstRunDismissed && !restLaunch && observed && inForce() == Choice.NONE;
     }
 
     /** The one status line of the panel (owner, 2026-10-18): only once the frame has reported the profile. */
@@ -1298,12 +1273,8 @@ public class AiSetup implements EventLogSource {
         boolean inAppCannot = availabilityObserved && !inAppCanAnswer;
         if (AssistantProfile.NONE.name().equals(profile)) {
             if (availabilityObserved && inAppCanAnswer) return "";
-            if (wizardEntry) {
-                // §6.6 (review R1-17): one owner, one line — the cards' words point at cards that are not the entry
-                return pendingDraft != 0 ? AiSetupLines.QUESTION_WAITS : AiSetupLines.PANEL_NOTHING_SET_UP;
-            }
-            if (pendingDraft != 0) return QUESTION_WAITS;
-            return open ? NO_ASSISTANT_CHOOSING : NO_ASSISTANT;
+            // §6.6 (review R1-17): one owner, one line
+            return pendingDraft != 0 ? AiSetupLines.QUESTION_WAITS : AiSetupLines.PANEL_NOTHING_SET_UP;
         }
         if (AssistantProfile.IN_APP.name().equals(profile) && inAppCannot) return IN_APP_NO_KEY;
         return "";
@@ -1317,7 +1288,7 @@ public class AiSetup implements EventLogSource {
     /** The published profile state — immutable, for the snapshot, rebuilt only after a change. */
     public ProfileState state() {
         if (dirty) {
-            published = new ProfileState(AssistantProfile.valueOf(profile), open, why, request, refusal, offered, status(),
+            published = new ProfileState(AssistantProfile.valueOf(profile), status(),
                     confirmingFull != 0 && confirmingOrigin != ProfileOrigin.SETUP, observed, pendingDraft != 0);
             dirty = false;
         }
@@ -1351,6 +1322,6 @@ public class AiSetup implements EventLogSource {
                 observed ? AiSetupLines.aiLine(inForce, p, claudeFound, inAppCanAnswer, external,
                         access == AiSetupState.Access.OTHER_INSTANCE) : "",
                 observed ? AiSetupLines.aiLineLink(inForce) : "",
-                wizardEntry ? status() : "", claudeFound, codexFound, wizardEntry, applying, suggested(), ext);
+                status(), claudeFound, codexFound, applying, suggested(), ext);
     }
 }

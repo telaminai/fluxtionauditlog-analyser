@@ -242,14 +242,6 @@ public sealed interface SessionEffects {
     }
 
     /**
-     * M74 UX: make the assistant visible for its profile choices — in its own window when nothing is open
-     * ({@code popOut}, as the start page's drafts are), else the docked tab revealed. The overlay itself is rendered from
-     * {@link ProfileState}; this only brings its host forward. Answered by {@link SessionEvents.AssistantProfilesShown}.
-     */
-    record ShowAssistantProfilesEffect(long opId, boolean popOut) implements SessionEffects {
-    }
-
-    /**
      * M74 UX: write {@code profile} to this machine's settings — the same machine-tier fields Settings ▸ Assistant writes,
      * with the details the overlay holds — then report the consent and availability as every settings change does.
      * Answered by {@link SessionEvents.AssistantProfileApplied}.
@@ -257,12 +249,12 @@ public sealed interface SessionEffects {
     record ApplyAssistantProfileEffect(long opId, long request, AssistantProfile profile,
                                        SessionEvents.ProfileOrigin origin) implements SessionEffects {
         public ApplyAssistantProfileEffect {
-            origin = origin == null ? SessionEvents.ProfileOrigin.CARDS : origin;
+            origin = origin == null ? SessionEvents.ProfileOrigin.MENU : origin;
         }
 
-        /** The cards' Apply (the shape before M77). */
+        /** A quick-switch Apply. */
         public ApplyAssistantProfileEffect(long opId, long request, AssistantProfile profile) {
-            this(opId, request, profile, SessionEvents.ProfileOrigin.CARDS);
+            this(opId, request, profile, SessionEvents.ProfileOrigin.MENU);
         }
     }
 

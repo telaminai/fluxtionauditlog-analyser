@@ -1,6 +1,5 @@
 package telamin.fluxtion.audit.analyser.analyser.ui;
 
-import telamin.fluxtion.audit.analyser.analyser.assistant.AssistantProfiles;
 import telamin.fluxtion.audit.analyser.analyser.assistant.AssistantTranscript;
 import telamin.fluxtion.audit.analyser.analyser.session.AssistantMode;
 import telamin.fluxtion.audit.analyser.analyser.session.AssistantProfile;
@@ -25,8 +24,8 @@ import java.util.function.Supplier;
  * single selector, the same tool-line marks, and one place that says what the mode in force cannot do.
  *
  * <p>It RENDERS the session's {@link AssistantState} (in-app), {@code LocalAgentState} (through Claude Code's part,
- * {@link LocalAgentPanel}) and {@link ProfileState} (the profile overlay), and the words those states name in their
- * stores; it REPORTS what the person did — Send, Stop, New chat, the mode, Pop out/Dock, the profile's Apply — as
+ * {@link LocalAgentPanel}) and {@link ProfileState} (the Assistant ▾ quick switch, M77-4), and the words those states
+ * name in their stores; it REPORTS what the person did — Send, Stop, New chat, the mode, Pop out/Dock, a quick switch — as
  * intents. Whether any of that may happen is the session's ({@code assistantLoop}, {@code localAgentSession},
  * {@code assistantProfile}); each mode keeps its own rules (in-app actions and the round limit; Claude Code's posture,
  * permissions and approvals).
@@ -72,15 +71,7 @@ public final class AssistantPanel extends JPanel {
         default void chooseMode(AssistantMode mode) {
         }
 
-        /** M74 UX: the header's Profile… — the person opens the four cards. */
-        default void openProfiles() {
-        }
-
-        /** M74 UX: the cards were closed without applying. */
-        default void closeProfiles() {
-        }
-
-        /** M74 UX: Apply on a card; the details stay in the overlay ({@link #profileDetails()}). */
+        /** M77-4: a quick-switch press (Assistant ▾); {@code aiSetup} decides whether it applies. */
         default void applyProfile(long request, AssistantProfile profile) {
         }
 
@@ -90,8 +81,8 @@ public final class AssistantPanel extends JPanel {
     }
 
     /**
-     * Review M74 usability #8: ONE control for how the assistant works — it names the profile in force and opens the four
-     * cards. The mode selector it replaces chose the same thing a second way (the profile includes the mode), and its
+     * Review M74 usability #8: ONE control for how the assistant works — it names the profile in force and opens the
+     * Assistant ▾ quick switch (M77-4; the four cards are gone). The mode selector it replaces chose the same thing a second way (the profile includes the mode), and its
      * fixed "your plan" was wrong on API-key billing; the billing chip says which applies.
      */
     static String assistantControlText(AssistantProfile p) {
@@ -151,10 +142,8 @@ public final class AssistantPanel extends JPanel {
     private final JPanel noProvider = new JPanel(new WrapLayout(FlowLayout.LEFT, 4, 0));
     static final String NO_PROVIDER_LINE = "No provider is configured — nothing is sent from here.";
     private final FitLine noProviderLine = new FitLine(NO_PROVIDER_LINE);
-    /** The composer, the no-provider bar and the demonstration bar: hidden while the profile cards are open. */
+    /** The composer, the no-provider bar and the demonstration bar. */
     private final JPanel south = new JPanel(new BorderLayout(4, 4));
-    /** Owner, 2026-10-18: the cards are open — a focused view: no composer, no header lines but the one status line. */
-    private boolean profilesOpen;
     /** The node's one status line when no assistant can answer from here ({@link ProfileState#status()}). */
     private String profileStatus = "";
     /** Robot re-walk #4: the in-app assistant is in force with no key ({@link ProfileState#inAppNeedsKey()}). */
@@ -181,10 +170,23 @@ public final class AssistantPanel extends JPanel {
         }
     };
     private final JPanel inAppLines = new JPanel();
-    /** The transcript, or the profile overlay in its place. */
-    private final CardLayout centerLayout = new CardLayout();
-    private final JPanel center = new JPanel(centerLayout);
-    private final ProfileOverlay profiles = new ProfileOverlay();
+    /** The transcript. */
+    private final JPanel center = new JPanel(new BorderLayout());
+    /**
+     * M77-4 (§14.3): the Assistant ▾ quick switch, rendered from the last {@link ProfileState}. A reusable component
+     * ({@link telamin.fluxtion.audit.analyser.analyser.ui.setup.QuickSwitch}): M78 D2 hosts the same switch on the mode chip.
+     */
+    private final telamin.fluxtion.audit.analyser.analyser.ui.setup.QuickSwitch quickSwitch =
+            new telamin.fluxtion.audit.analyser.analyser.ui.setup.QuickSwitch(
+                    new telamin.fluxtion.audit.analyser.analyser.ui.setup.QuickSwitch.Host() {
+                        @Override public void choose(long request, AssistantProfile p) {
+                            if (intents != null) intents.applyProfile(request, p);
+                        }
+                        @Override public void setUpAi() {
+                            if (intents != null) intents.openSetUpAi();
+                        }
+                    });
+    private ProfileState lastProfiles = ProfileState.NONE;
 
     private AssistantState lastState = AssistantState.IDLE;
     private Demo lastDemo;
@@ -216,8 +218,8 @@ public final class AssistantPanel extends JPanel {
         profileButton.setWords(assistantControlText(AssistantProfile.NONE), assistantControlBrief(AssistantProfile.NONE));
         profileButton.getAccessibleContext().setAccessibleName(assistantControlName(AssistantProfile.NONE));
         profileButton.setToolTipText(UiText.tooltip("How the assistant works: Safe analysis, Full Claude Code, In-app "
-                + "assistant or Off"));
-        profileButton.addActionListener(e -> { if (intents != null) intents.openProfiles(); });
+                + "assistant or Off — or Set up AI…"));
+        quickSwitch.attach(profileButton, () -> lastProfiles);
         mode.setFont(mode.getFont().deriveFont(Font.BOLD));
         mode.getAccessibleContext().setAccessibleName("Assistant mode, in words");
         route.getAccessibleContext().setAccessibleName("Assistant provider");
@@ -273,10 +275,9 @@ public final class AssistantPanel extends JPanel {
         }
         details.add(inAppLines, AssistantMode.IN_APP.name());
 
-        // ---- the one transcript, or the profile cards in its place ---------------------------------------------------
+        // ---- the one transcript ----------------------------------------------------------------------------------------
         surface.view.setSpeaker("Assistant", "result");
-        center.add(surface.viewScroll, "TRANSCRIPT");
-        center.add(profiles, "PROFILES");
+        center.add(surface.viewScroll, BorderLayout.CENTER);
         add(center, BorderLayout.CENTER);
 
         // ---- the one composer --------------------------------------------------------------------------------------
@@ -329,12 +330,6 @@ public final class AssistantPanel extends JPanel {
         configure.addActionListener(e -> { if (intents != null) intents.configureProvider(); });
         connectCli.addActionListener(e -> { if (intents != null) intents.connectCliAssistant(); });
         askAboutEvidence.addActionListener(e -> { if (intents != null) intents.askAboutEvidence(); });
-        profiles.setHost(new ProfileOverlay.Host() {
-            @Override public void apply(long request, AssistantProfile p) { if (intents != null) intents.applyProfile(request, p); }
-            @Override public void close() { if (intents != null) intents.closeProfiles(); }
-            @Override public void openSettings() { if (intents != null) intents.configureProvider(); }
-            @Override public void openSetUpAi() { if (intents != null) intents.openSetUpAi(); }
-        });
         renderMode(AssistantMode.IN_APP, false);
     }
 
@@ -347,18 +342,9 @@ public final class AssistantPanel extends JPanel {
         return surface;
     }
 
-    /** M74 UX: the profile overlay's details for the card being applied — read by the performer of the node's effect. */
-    public AssistantProfiles.Details profileDetails() {
-        return profiles.details();
-    }
-
-    /** M74 UX: what the cards start from when they open (the frame reads this machine's settings). */
-    public void setProfileDefaults(Supplier<ProfileOverlay.Defaults> defaults) {
-        profiles.setDefaults(defaults);
-    }
-
-    ProfileOverlay profileOverlay() {
-        return profiles;
+    /** M77-4: the Assistant ▾ quick switch this panel hosts (M78 D2 moves it onto the mode chip). */
+    public telamin.fluxtion.audit.analyser.analyser.ui.setup.QuickSwitch quickSwitch() {
+        return quickSwitch;
     }
 
     /** M74: Claude Code's part — its own lines here; it draws the shared transcript and composer while it is shown. */
@@ -444,7 +430,7 @@ public final class AssistantPanel extends JPanel {
 
     /** M77-2: Set up AI, as aiSetup decided it — the chips' "No assistant set up" while nothing is. */
     public void renderSetup(telamin.fluxtion.audit.analyser.analyser.session.AiSetupState s) {
-        boolean next = s != null && s.wizardEntry() && s.nothingSetUp();
+        boolean next = s != null && s.nothingSetUp();
         // §6.6: the panel's empty state is one line and one button; once something is set up, the door is Assistant ▾
         // ▸ Set up AI… (the header keeps its row: the transcript's floor at 1200×800, P-3)
         setUpAi.setVisible(next);
@@ -457,38 +443,22 @@ public final class AssistantPanel extends JPanel {
         return setUpAi;
     }
 
-    /** M74 UX: the profile in force and its overlay, as assistantProfile decided them. */
+    /** M74 UX: the profile in force, as aiSetup decided it — the header control and the quick switch render it. */
     public void renderProfiles(ProfileState s) {
         ProfileState st = s == null ? ProfileState.NONE : s;
+        lastProfiles = st;
         profile = st.profile();
         profileButton.setWords(assistantControlText(profile), assistantControlBrief(profile));
         profileButton.getAccessibleContext().setAccessibleName(assistantControlName(profile));
-        profiles.render(st);
-        centerLayout.show(center, st.open() ? "PROFILES" : "TRANSCRIPT");
-        profilesOpen = st.open();
         profileStatus = st.status();
         boolean keyWas = needsKey;
         needsKey = st.inAppNeedsKey();
         renderLimits();
         renderGuide();
-        renderFocus();
         if (keyWas != needsKey && !claudeCodeShown()) {        // Send follows the guide line
             rendered = null;
             render(lastState, lastDemo);
         }
-    }
-
-    /**
-     * Owner, 2026-10-18: choosing a profile is a focused view. While the cards are open the composer and Send, the chips
-     * and the mode's lines are hidden — only the Assistant control, the host buttons and the one status line stay. Rendered
-     * from {@link ProfileState}; nothing is decided here.
-     */
-    private void renderFocus() {
-        surface.chips.setVisible(!profilesOpen);
-        details.setVisible(!profilesOpen);
-        south.setVisible(!profilesOpen);
-        revalidate();
-        repaint();
     }
 
     /** For the frame tests: the composer's row (Send, Stop, Copy prompt) and its parent. */
@@ -636,7 +606,6 @@ public final class AssistantPanel extends JPanel {
         setUpAi.setEnabled(!inDemo);            // §5.1: never during the scripted demo
         boolean claude = claudeCodeShown();
         renderGuide();
-        renderFocus();
         renderLimits();
         if (claude) {                                     // Claude Code draws the shared parts while it is shown
             rendered = state;
@@ -644,7 +613,7 @@ public final class AssistantPanel extends JPanel {
             return;
         }
         surface.newChat.setEnabled(!inDemo);
-        // with nothing chosen Send stays pressable: the first question opens the profile cards (assistantProfile)
+        // with nothing chosen Send stays pressable: the first question opens Set up AI (aiSetup)
         surface.send.setEnabled(!inDemo && (configured || profile == AssistantProfile.NONE) && !needsKey && !state.busy()
                 && !state.frozen());
         surface.stop.setEnabled(!inDemo && state.busy());
@@ -672,20 +641,17 @@ public final class AssistantPanel extends JPanel {
             words = OFF_LIMITS;
         } else if (demoShowing) {
             words = " ";
-        } else if (needsKey && !profilesOpen && !claudeCodeShown()) {
+        } else if (needsKey && !claudeCodeShown()) {
             words = IN_APP_NO_KEY;            // robot re-walk #4: the guide row says it; ⓘ says what that means
-        } else if (!profileStatus.isBlank() && (profilesOpen || !claudeCodeShown())) {
+        } else if (!profileStatus.isBlank() && !claudeCodeShown()) {
             words = profileStatus;            // owner, 2026-10-18: the ONE line, in the node's words
-        } else if (profilesOpen) {
-            words = " ";                      // a focused view: the cards say what each profile does
         } else if (claudeCodeShown()) {
             words = localAgent.limitsNow();   // review B2: says when external access is open to a full session's tools
         } else {
             words = Boolean.TRUE.equals(providerConfiguredSupplier.get()) ? IN_APP_LIMITS : IN_APP_NO_KEY;
         }
         limits.setText(words == null ? " " : words);
-        boolean statusLine = profile == AssistantProfile.OFF || !profileStatus.isBlank() && (profilesOpen || !claudeCodeShown())
-                && !(needsKey && !profilesOpen);
+        boolean statusLine = profile == AssistantProfile.OFF || !profileStatus.isBlank() && !claudeCodeShown() && !needsKey;
         limits.setVisible(words != null && !words.isBlank() && (statusLine || aboutOpen));
     }
 

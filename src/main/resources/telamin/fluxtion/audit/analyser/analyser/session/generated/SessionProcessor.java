@@ -81,8 +81,6 @@ import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantO
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantProfileApplied;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantProfileChosen;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantProfileObserved;
-import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantProfilesClosed;
-import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantProfilesRequested;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantProfilesShown;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantSendRequested;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantTabShown;
@@ -303,8 +301,6 @@ import telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Requ
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantProfileApplied
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantProfileChosen
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantProfileObserved
- *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantProfilesClosed
- *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantProfilesRequested
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantProfilesShown
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantSendRequested
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantTabShown
@@ -735,14 +731,6 @@ public class SessionProcessor
             new ProcessorDescriptor.Input(
                 "AssistantProfileObserved",
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantProfileObserved",
-                false),
-            new ProcessorDescriptor.Input(
-                "AssistantProfilesClosed",
-                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantProfilesClosed",
-                false),
-            new ProcessorDescriptor.Input(
-                "AssistantProfilesRequested",
-                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantProfilesRequested",
                 false),
             new ProcessorDescriptor.Input(
                 "AssistantProfilesShown",
@@ -1278,7 +1266,7 @@ public class SessionProcessor
           new DescriptorSupport.Meta(
               null,
               "1.0.76",
-              "43cc8640451ad71a3188859aed733ead3e35fc489c747d7bb134fa3b3b0d9308",
+              "55b4e46daa83436ee20235cef1a8db406ba9db84a5352f6cb5c7d86fd3536b56",
               null));
 
   @Override
@@ -1574,12 +1562,6 @@ public class SessionProcessor
       handleEvent(typedEvent);
     } else if (event instanceof AssistantProfileObserved) {
       AssistantProfileObserved typedEvent = (AssistantProfileObserved) event;
-      handleEvent(typedEvent);
-    } else if (event instanceof AssistantProfilesClosed) {
-      AssistantProfilesClosed typedEvent = (AssistantProfilesClosed) event;
-      handleEvent(typedEvent);
-    } else if (event instanceof AssistantProfilesRequested) {
-      AssistantProfilesRequested typedEvent = (AssistantProfilesRequested) event;
       handleEvent(typedEvent);
     } else if (event instanceof AssistantProfilesShown) {
       AssistantProfilesShown typedEvent = (AssistantProfilesShown) event;
@@ -2195,16 +2177,6 @@ public class SessionProcessor
 
   @OnEventHandler(failBuildIfMissingBooleanReturn = false)
   public void onEvent(AssistantProfileObserved event) {
-    processEvent(event);
-  }
-
-  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
-  public void onEvent(AssistantProfilesClosed event) {
-    processEvent(event);
-  }
-
-  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
-  public void onEvent(AssistantProfilesRequested event) {
     processEvent(event);
   }
 
@@ -3284,24 +3256,6 @@ public class SessionProcessor
     isDirty_aiSetup = aiSetup.onProfileObserved(typedEvent);
     auditInvocation(startPagePrompt, "startPagePrompt", "onProfileObserved", typedEvent);
     startPagePrompt.onProfileObserved(typedEvent);
-    afterEvent();
-  }
-
-  public void handleEvent(AssistantProfilesClosed typedEvent) {
-    auditEvent(typedEvent);
-    //Default, no filter methods
-    auditInvocation(aiSetup, "aiSetup", "onProfilesClosed", typedEvent);
-    isDirty_aiSetup = aiSetup.onProfilesClosed(typedEvent);
-    auditInvocation(startPagePrompt, "startPagePrompt", "onProfilesClosed", typedEvent);
-    startPagePrompt.onProfilesClosed(typedEvent);
-    afterEvent();
-  }
-
-  public void handleEvent(AssistantProfilesRequested typedEvent) {
-    auditEvent(typedEvent);
-    //Default, no filter methods
-    auditInvocation(aiSetup, "aiSetup", "onProfilesRequested", typedEvent);
-    isDirty_aiSetup = aiSetup.onProfilesRequested(typedEvent);
     afterEvent();
   }
 
@@ -5223,18 +5177,6 @@ public class SessionProcessor
       isDirty_aiSetup = aiSetup.onProfileObserved(typedEvent);
       auditInvocation(startPagePrompt, "startPagePrompt", "onProfileObserved", typedEvent);
       startPagePrompt.onProfileObserved(typedEvent);
-    } else if (event instanceof AssistantProfilesClosed) {
-      AssistantProfilesClosed typedEvent = (AssistantProfilesClosed) event;
-      auditEvent(typedEvent);
-      auditInvocation(aiSetup, "aiSetup", "onProfilesClosed", typedEvent);
-      isDirty_aiSetup = aiSetup.onProfilesClosed(typedEvent);
-      auditInvocation(startPagePrompt, "startPagePrompt", "onProfilesClosed", typedEvent);
-      startPagePrompt.onProfilesClosed(typedEvent);
-    } else if (event instanceof AssistantProfilesRequested) {
-      AssistantProfilesRequested typedEvent = (AssistantProfilesRequested) event;
-      auditEvent(typedEvent);
-      auditInvocation(aiSetup, "aiSetup", "onProfilesRequested", typedEvent);
-      isDirty_aiSetup = aiSetup.onProfilesRequested(typedEvent);
     } else if (event instanceof AssistantProfilesShown) {
       AssistantProfilesShown typedEvent = (AssistantProfilesShown) event;
       auditEvent(typedEvent);

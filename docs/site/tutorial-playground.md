@@ -157,7 +157,7 @@ too when you tick **Include my local REST token** in its dialog.
 
 ![The AI menu with External MCP/REST access, client setup and project runbooks available](assets/ai-menu.png)
 
-To let an MCP client work in this analyser window, use **AI ▸ Connect an AI client…**. The dialog
+To let an MCP client work in this analyser window, use **AI ▸ Set up AI…** ▸ *Your own AI client*. It
 resolves the launcher for this installation and provides the exact client record; do not reconstruct a
 hard-coded command from this tutorial. Which model to run that client with is measured in
 [Model choice](spring-authoring-getting-started.md#model-choice).

@@ -98,10 +98,10 @@ record, trace it to the exact source method.
 See the [Assistant guide](user-guide/assistant.md) for the full workflow.
 
 !!! tip "Connect your own AI client"
-    The Start page's *Connect an assistant* block has **Codex**, **Claude** and **Other MCP client** buttons (also
-    **AI ▸ Connect an AI client…**). They take you to the live-session setup screen, where you turn on External
-    MCP/REST access, test the exact bridge
-    command, and either explicitly register a supported CLI client or copy the generic no-token JSON.
+    **AI ▸ Set up AI…** (also the start page's AI line) ▸ *Your own AI client connects* walks you through it: choose
+    Claude Code, Codex or another client, turn on External MCP/REST access (confirmed first), register the exact
+    bridge command with your client (or copy the generic no-token JSON), and see the moment your client reaches this
+    window.
     See [Connecting an LLM to the analyser](connect-an-llm.md).
 
 ## Get going

@@ -149,9 +149,10 @@ no file writes**. These groups of verbs go further, honestly labelled:
   through the analyser, is sent to the model provider (Anthropic, on your Claude plan or API key), as in any Claude
   Code session. The in-app assistant sends what you ask, and the evidence it reads, to the model provider you chose,
   on your API key. *Safe* describes what Claude Code may do on this machine, not where your words go.
-- **Claude Code in the Assistant tab is off by default.** The assistant header's **Assistant: … ▾** control (it names
-  the profile in force, e.g. *Assistant: Safe analysis ▾*) opens the cards that turn it on in
-  one step — **Safe analysis** for what is described below, **Full Claude Code** for yours — and write the same switches.
+- **Claude Code in the Assistant tab is off by default.** **Set up AI…** (in the assistant header's **Assistant: … ▾**
+  control, the AI menu and the start page) turns it on — **Safe analysis** for what is described below, **Full Claude
+  Code** for yours — after checking that Claude Code is installed, and the **Assistant: … ▾** quick switch changes it
+  later in one step; both write the same switches.
   *Allow the analyser to start Claude Code* (Settings ▸ Assistant) lets the tab's **Start** button run **your own installed `claude`**, logged in as you; the
   analyser never reads or stores your Claude Code credentials. Start contacts Anthropic (the sign-in check and the
   bridge connection) **before your first Send**; no record content is sent until you press Send. By default Claude
@@ -179,11 +180,11 @@ no file writes**. These groups of verbs go further, honestly labelled:
   **Every switch is per user.** *Allow the analyser to start Claude Code*, Full Claude Code, External MCP/REST access,
   file exchange and project creation live in each user's own `~/.fluxtion-analyser/config`, and any user can turn them
   on for themselves. **There is no central administrator lock yet**: an organisation cannot today forbid Full Claude
-  Code for everyone from one place. A managed policy that can (a machine-wide file the cards read, showing *Disabled by
+  Code for everyone from one place. A managed policy that can (a machine-wide file the analyser reads, showing *Disabled by
   your administrator*) is planned — P4 in the tracker — and not built.
 
   **Full Claude Code is a separate switch with its own warning** (*…with my full Claude Code permissions*, off; the
-  **Full Claude Code** card shows the warning in full, and its button *Turn on full Claude Code* asks for the same
+  **Full Claude Code** choice in Set up AI and the quick switch's *◆ Full Claude Code…* ask for the same
   confirmation as the switch — the warning again, *Cancel* the default — before anything changes). It
   runs your own Claude Code as in a terminal, with **your settings, skills, hooks and MCP servers** (claude.ai
   connectors included), and **the folder's hooks and MCP servers run when you press Start**, before you send anything, so
@@ -217,10 +218,12 @@ no file writes**. These groups of verbs go further, honestly labelled:
 
 ## How do I connect Codex, Claude Code or another MCP client?
 
-With the analyser open, use **AI ▸ Connect an AI client…**, the Start page's **Connect an assistant** block (**Codex**,
-**Claude**, **Other MCP client**), or *Settings ▸ Assistant ▸ Every assistant ▸ Connect an AI client…*.
-Turn on **External MCP/REST access** (the screen's *Turn on External MCP/REST access…* button) and use **Check
-connection** to prove the local bridge reaches this live window.
+With the analyser open, use **AI ▸ Set up AI…** and choose *Your own AI client connects* (it opens there when a
+client is already set up): choose the client, turn on **External MCP/REST access** (confirmed first), register the
+analyser with your client, and its last step says when a client actually reached this window. The same door is the
+start page's AI line and *Settings ▸ Assistant ▸ Set up AI…*. The **Connect an AI client** dialog is behind that
+screen's **More options…** (its only door since M77-4), for a project-scope command, removing a registration, Claude
+Desktop's note and **Check connection**, which proves the local bridge reaches this live window.
 The screen can explicitly register Codex or user-scoped Claude Code when their CLIs are available. For
 Claude Desktop and any other client, **Generic MCP setup** supplies the exact no-token stdio JSON for you
 to copy or save to a file you choose; it never guesses or edits a client configuration location. See

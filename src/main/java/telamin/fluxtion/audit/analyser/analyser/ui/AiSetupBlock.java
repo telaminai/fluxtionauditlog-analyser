@@ -153,7 +153,7 @@ final class AiSetupBlock extends JPanel {
         AiSetupState st = s == null ? AiSetupState.IDLE : s;
         rendering = true;
         try {
-            boolean any = st.wizardEntry() && (st.firstRun() || !st.aiLine().isBlank() || st.external().offerTurnOff());
+            boolean any = (st.firstRun() || !st.aiLine().isBlank() || st.external().offerTurnOff());
             setVisible(any);
             firstRun.setVisible(st.firstRun());
             lineRow.setVisible(!st.firstRun() && !st.aiLine().isBlank());

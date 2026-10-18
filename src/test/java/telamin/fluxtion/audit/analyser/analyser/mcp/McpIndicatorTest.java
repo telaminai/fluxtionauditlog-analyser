@@ -50,7 +50,7 @@ class McpIndicatorTest {
         // colouring a deliberate decision as an error teaches people to ignore the light
         var v = view(McpSetupState.LocalStatus.OFF);
         assertEquals(McpIndicator.Level.NEUTRAL, v.level());
-        assertTrue(v.detail().contains("Connect an AI client"), "say how to turn it on: " + v.detail());
+        assertTrue(v.detail().contains("AI \u25b8 Set up AI"), "say how to turn it on (M77-4: the one door): " + v.detail());
         assertTrue(v.detail().contains("Nothing is wrong"),
                 "off is a CHOICE — an indicator that alarms about a decision gets ignored: " + v.detail());
     }

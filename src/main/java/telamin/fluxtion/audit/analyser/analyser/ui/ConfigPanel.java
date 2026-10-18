@@ -872,14 +872,8 @@ public final class ConfigPanel extends JDialog {
         GridBagConstraints c = new GridBagConstraints();
         c.gridx = 0; c.anchor = GridBagConstraints.LINE_START; c.fill = GridBagConstraints.NONE;
         c.gridwidth = 2; c.insets = new Insets(3, 4, 3, 4);
-        JButton connect = new JButton("Connect an AI client…");
-        connect.addActionListener(e -> McpSetupDialog.show(this, config, () -> {
-            // The nested setup may persistently enable REST. Mirror that direct state change into this
-            // still-open Settings form, or a later OK would write its stale unchecked value back over it.
-            actionsRest.setSelected(config.assistantActionsRest);
-            if (onSaved != null) onSaved.run();
-        }, McpSetupDialog.Target.fromPersisted(config.mcpSetupTarget, McpSetupDialog.Target.GENERIC), true));
-        c.gridy = 0; box.add(connect, c);
+        // M77-4 (OD-77.12): no Connect an AI client… here — Set up AI… at the top of this page is the door, and the
+        // client dialog is behind its Your own AI client ▸ More options…
         c.gridy = 1; box.add(actionsRest, c);
         c.gridy = 2; box.add(exportsToggle, c);
         createProjectsToggle.setToolTipText("Lets an assistant (MCP/REST or the in-app one) create a project with "

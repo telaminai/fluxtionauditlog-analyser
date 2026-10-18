@@ -140,8 +140,9 @@ different homes and purposes.
 Grouped by profile: **Safe analysis** (*Allow the analyser to start Claude Code*, its model), **Full Claude Code**
 (*…with my full Claude Code permissions*, its mode and the optional spend limit), **In-app assistant** (*Let the
 in-app assistant change the views as it answers*, **max action rounds** and **max actions per reply**), and **Every
-assistant**: *Connect an AI client…*, **External MCP/REST access (for an AI client on this machine)** (off by
-default), *Allow assistant file exchange* with its exchange folder, and *Allow the assistant to create projects*.
+assistant**: **External MCP/REST access (for an AI client on this machine)** (off by default), *Allow assistant file
+exchange* with its exchange folder, and *Allow the assistant to create projects*. **Set up AI…** at the top of the page is the step-by-step way to set up Claude inside the analyser or your own AI client (M77-4: the
+*Connect an AI client…* button that was here is behind Set up AI's *More options…*).
 
 ![Settings ▸ Assistant, grouped by profile: Safe analysis, Full Claude Code, In-app assistant and Every assistant, with
 Connect an AI client…, External MCP/REST access and the exchange folders](assets/settings-assistant.png)

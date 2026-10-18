@@ -21,19 +21,18 @@ class StartPageNoLogHintTest {
 
     /**
      * ★ Held: nothing opens, nothing is placed or sent, and the page has its one line. Witnesses: drop the
-     * {@code holds} check from {@code AiSetup.onStartPageSent} — the cards open; drop it from
+     * {@code holds} check from {@code AiSetup.onStartPageSent} — the wizard opens; drop it from
      * {@code StartPagePrompt.onSent} — with an assistant that can answer, a draft is composed.
      */
     @Test
-    @DisplayName("★ an evidence question with no log open is held: no cards, no draft, nothing sent — the page shows its line")
+    @DisplayName("★ an evidence question with no log open is held: no wizard, no draft, nothing sent — the page shows its line")
     void heldBeforeAnythingSeesIt() {
         FakeSessionAdapter a = new FakeSessionAdapter();
         SessionDriver d = FirstRunGuideTest.unchosen(a);
         d.post(evidence(1, false));
         assertEquals(1, d.snapshot().startPage().noLogHeld(), "★ the page shows the line for press 1");
-        assertFalse(d.snapshot().profiles().open(), "★ the cards do not open for it yet");
-        assertFalse(d.snapshot().aiSetup().open(), "★ nor the Set up AI wizard (M77)");
-        assertTrue(a.profileShows.isEmpty());
+        assertFalse(d.snapshot().aiSetup().open(), "★ the Set up AI wizard does not open for it yet");
+        assertTrue(a.setupShows.isEmpty());
         assertTrue(a.startComposes.isEmpty() && a.startFlows.isEmpty() && a.startFallbacks.isEmpty(), "★ nothing placed");
         assertTrue(a.startContinues.isEmpty());
         // an assistant that can answer: still held, never composed
@@ -50,11 +49,8 @@ class StartPageNoLogHintTest {
     @Test
     @DisplayName("★ Ask anyway continues the question as it was asked; pressed again acknowledged, it is never held again")
     void askAnywayContinues() {
-        boolean before = telamin.fluxtion.audit.analyser.analyser.session.node.AiSetup.wizardForFirstUse();
-        try {
-            // M77: the first-use door is the wizard (M77-2) or the profile cards (M77-1) — the hint comes first either way
-            for (boolean wizard : new boolean[]{false, true}) {
-                telamin.fluxtion.audit.analyser.analyser.session.node.AiSetup.useWizardForFirstUse(wizard);
+        {
+            {
                 FakeSessionAdapter a = new FakeSessionAdapter();
                 SessionDriver d = FirstRunGuideTest.unchosen(a);
                 d.post(evidence(1, false));
@@ -68,11 +64,8 @@ class StartPageNoLogHintTest {
                 // what the performer posts: the same question, acknowledged — now the first-use door opens
                 d.post(evidence(2, true));
                 assertEquals(0, d.snapshot().startPage().noLogHeld(), "★ never held twice");
-                if (wizard) assertTrue(d.snapshot().aiSetup().open(), "the first question opens the wizard (M77-2)");
-                else assertTrue(d.snapshot().profiles().open(), "the first question opens the cards, as it always did");
+                assertTrue(d.snapshot().aiSetup().open(), "the first question opens the wizard");
             }
-        } finally {
-            telamin.fluxtion.audit.analyser.analyser.session.node.AiSetup.useWizardForFirstUse(before);
         }
     }
 

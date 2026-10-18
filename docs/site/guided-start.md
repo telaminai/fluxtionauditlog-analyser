@@ -47,7 +47,7 @@ This starts the analyser with its local socket enabled and opens its window.
 It BLOCKS, so run it in the background or a second terminal.
 
 STEP 3 — connect yourself to it.
-In the analyser window, I will use  AI ▸ Connect an AI client…  and follow it for my assistant.
+In the analyser window, I will use  AI ▸ Set up AI…  ▸ Your own AI client and follow it for my assistant.
 Tell me when you are ready for me to do that, wait for me to confirm, then verify by calling
 analyser_context and telling me what it reports. If you have no analyser tools after I confirm,
 say so plainly rather than pretending — we will fix it before going on.

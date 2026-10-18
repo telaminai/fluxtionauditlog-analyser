@@ -82,7 +82,7 @@ Start the [released analyser](install.md). If you downloaded outside the analyse
 and **No graph**. A declared processor and a source shell are not proof of a successful build.
 
 Open your LLM client in the same project directory. In the analyser, use
-**AI ▸ Connect an AI client…** and follow the instructions for that client.
+**AI ▸ Set up AI…** ▸ *Your own AI client* and follow the steps for that client.
 See [Connecting an LLM](connect-an-llm.md). The download does not contain a machine-specific MCP
 endpoint: configure the actual running analyser, then have the client call `analyser_context`.
 

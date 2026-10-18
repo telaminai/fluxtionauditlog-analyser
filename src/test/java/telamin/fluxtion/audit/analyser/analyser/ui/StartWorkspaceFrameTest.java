@@ -79,7 +79,8 @@ class StartWorkspaceFrameTest {
     /** M74 UX (owner, 2026-10-17): the strip's actions, by accessible name — the old cards' titles. */
     static final List<String> DIRECT = List.of("Take a guided tour", "Open sample project", "Open project",
             "Open evidence bundle", "Open audit log", "Open GraphML", "Create project profile", "Create from template",
-            "Connect Codex", "Connect Claude", "Other MCP client — set up", "Settings — source and assistant…",
+            // M77-4 (§14.4): the Connect an assistant group is gone; the AI block or line is the door
+            "Settings — source and assistant…",
             "Fluxtion key — not found");
 
     /**
@@ -158,13 +159,14 @@ class StartWorkspaceFrameTest {
     /**
      * Owner UI feedback (2026-10-17): each group is a titled block — heading ABOVE its buttons, the buttons left-aligned
      * in one column, wholly inside the block — and the blocks sit in a grid of at least {@code minColumns} across with
-     * even gutters and no overlap; the Connect block carries the help sentence as its caption. Witness: the squashed
+     * even gutters and no overlap; the Settings block carries its help sentence as its caption (M77-4: the Connect block,
+     * which carried one too, is gone — the AI block or line is the door). Witness: the squashed
      * strip (a FlowLayout of inline groups, the heading beside the first chip) — the heading-above and the grid
      * assertions fail.
      */
     static void assertBlocksAndGrid(StartPanel start, int minColumns) {
         var blocks = start.directBlocks();
-        assertEquals(5, blocks.size(), "five groups");
+        assertEquals(4, blocks.size(), "four groups: Explore DEMO, Open, Create, Settings");
         java.awt.Rectangle strip = SwingUtilities.convertRectangle(start.directStrip().getParent(),
                 start.directStrip().getBounds(), start);
         int firstRowY = blocks.get(0).getY();
@@ -191,11 +193,11 @@ class StartWorkspaceFrameTest {
                 assertEquals(left, c.getX(), "left-aligned in one column: " + chip.title());
             }
         }
-        JComponent connect = blocks.get(3);
-        java.awt.Component last = connect.getComponent(connect.getComponentCount() - 1);
-        assertInstanceOf(javax.swing.JTextArea.class, last, "the Connect block ends with its caption");
-        assertTrue(((javax.swing.JTextArea) last).getText().startsWith("Connect your CLI assistant"));
-        assertTrue(last.getWidth() <= connect.getWidth(), "a caption under the group, not a full-width line");
+        JComponent settings = blocks.get(3);
+        java.awt.Component last = settings.getComponent(settings.getComponentCount() - 1);
+        assertInstanceOf(javax.swing.JTextArea.class, last, "the Settings block ends with its caption");
+        assertTrue(((javax.swing.JTextArea) last).getText().startsWith("Source settings apply"));
+        assertTrue(last.getWidth() <= settings.getWidth(), "a caption under the group, not a full-width line");
     }
 
     @Test void droppingSpringDesignThenGraphAndLogOpensTheirRealViews() throws Exception {

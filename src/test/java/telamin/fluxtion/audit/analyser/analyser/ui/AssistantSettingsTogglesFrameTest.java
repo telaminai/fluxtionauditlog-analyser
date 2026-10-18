@@ -264,21 +264,15 @@ class AssistantSettingsTogglesFrameTest {
     }
 
     /**
-     * ★ The profile cards are a settings change too: Off stops at once (never offered). Witness: offer withdrawal of
-     * consent — the kill assertion fails.
+     * ★ The quick switch is a settings change too (M77-4: the cards' Off row): Off stops at once (never offered).
+     * Witness: offer withdrawal of consent — the kill assertion fails.
      */
     @Test
-    @DisplayName("★ the Off card stops a running session at once, with no offer")
-    void theOffCardStopsAtOnce(@TempDir Path tmp) throws Exception {
+    @DisplayName("★ Assistant ▾ ▸ Off stops a running session at once, with no offer")
+    void theOffRowStopsAtOnce(@TempDir Path tmp) throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless(), "a real display is required");
         try (Session s = new Session(tmp, false)) {
-            onEdt(() -> AssistantLiveFrameTest.panel(s.frame).profileButton().doClick());
-            ProfileOverlayFrameTest.await(s.frame, x -> x.open(), "the cards");
-            onEdt(() -> {
-                ProfileOverlay o = AssistantLiveFrameTest.panel(s.frame).profileOverlay();
-                o.card(AssistantProfile.OFF).doClick();
-                o.applyButton().doClick();
-            });
+            QuickSwitchFrameTest.choose(s.frame, AssistantLiveFrameTest.panel(s.frame), AssistantProfile.OFF);
             LocalAgentState off = ClaudeCodeTabFrameTest.awaitState(s.frame, x -> "OFF".equals(x.phase()), "stopped");
             assertEquals(1, s.terminated(), "★ stopped at once");
             assertFalse(off.extra().restart().any(), "never offered");

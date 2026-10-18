@@ -164,14 +164,23 @@ class DocsExternalAccessClaimsTest {
     }
 
     @Test
-    @DisplayName("★ Connect an AI client is where the code puts it: the AI menu and Settings ▸ Assistant ▸ Every assistant")
+    @DisplayName("★ M77-4 (OD-77.12): Connect an AI client is behind Set up AI ▸ More options…, as the code puts it")
     void whereConnectLives() throws Exception {
-        assertTrue(read(SRC.resolve("ui/ConfigPanel.java")).contains("group(\"Every assistant — the bridge, files and projects\")"));
-        assertTrue(read(SRC.resolve("ui/ConfigPanel.java")).contains("new JButton(\"Connect an AI client…\")"));
+        String config = read(SRC.resolve("ui/ConfigPanel.java"));
+        assertTrue(config.contains("group(\"Every assistant — the bridge, files and projects\")"));
+        assertFalse(config.contains("new JButton(\"Connect an AI client…\")"), "★ no second door in Settings");
+        assertFalse(config.contains("McpSetupDialog.show("), "Settings does not open the client dialog");
+        assertFalse(read(SRC.resolve("ui/StartPanel.java")).contains("McpSetupDialog"), "nor the start page");
+        String frame = read(SRC.resolve("ui/MainFrame.java"));
+        assertEquals(1, frame.split("McpSetupDialog\\.show\\(", -1).length - 1,
+                "★ one door in the frame: Screen 2b's More options… (OpenClientSetupEffect's performer)");
+        assertFalse(frame.contains("new JMenuItem(\"Connect an AI client…\")"), "the AI menu's item is Set up AI…");
         for (String page : List.of("connect-an-llm.md", "faq.md", "user-guide/assistant.md")) {
             String text = flat(read(SITE.resolve(page)));
-            assertTrue(text.contains("AI ▸ Connect an AI client…"), page);
-            assertTrue(text.contains("Settings ▸ Assistant ▸ Every assistant ▸ Connect an AI client…"), page);
+            assertTrue(text.contains("AI ▸ Set up AI…"), page);
+            assertTrue(text.contains("More options…"), page + " says where the client dialog went");
+            assertFalse(text.contains("AI ▸ Connect an AI client…"), page + " names a menu item that is gone");
+            assertFalse(text.contains("Every assistant ▸ Connect an AI client…"), page + " names a button that is gone");
         }
     }
 

@@ -184,3 +184,19 @@ The release preflight also regenerated the seven-scenario sample-conversation tr
 five native `conv-*.png` captures against the same DEMO jar. Each image and the transcript diff
 were inspected; the authored timestamps now match the refreshed DEMO fixture, and temporary
 exchange paths are neutralized in the published echoes.
+
+## M77-4 — Set up AI and the quick switch (2026-10-18): to regenerate
+
+`assistant-profile-cards.png` is removed: the profile cards are gone (OD-77.3), and no page shows them.
+`tools/M74DocCapture.java` now takes `assistant-quick-switch.png` (Assistant ▾ open over the panel) in its place, and
+`python3 tools/capture-docs.py --setup-ai` (T20) takes `setup-ai-first-run.png`, `setup-ai-choice.png`,
+`setup-ai-inside.png` and `setup-ai-client.png` on a fresh isolated home with no log and no `assistant.rest`, from a
+jar copied under the capture root, with a stub `claude`. Neither set is committed yet: the session that wrote M77-4
+had no Screen Recording grant, so the harness drove every screen to its state and took no image. Until they are
+regenerated, `start-page.png` still shows the retired *Connect an assistant* block and `settings-assistant.png` its
+*Connect an AI client…* button. Regenerate with `--start-page`, `--m74` and `--setup-ai`, read every string, and only
+then reference the new images from the pages.
+
+The harness now refuses a capture home that is, or runs through, a symbolic link (`require_real_home`,
+`DocShot.requireRealHome`): the analyser resolves `user.home` to its real path, and a walk under a symlinked home showed
+the account's scratch path in dialogs. On macOS `/tmp` is a link, so the capture root is `/private/tmp/analyser-docs`.

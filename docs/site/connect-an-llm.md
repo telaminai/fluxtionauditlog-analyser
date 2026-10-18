@@ -20,7 +20,7 @@ Three parts, and it matters which is which:
 2. **External MCP/REST access inside the app** (a loopback REST listener). Off by default. When it is on, the app listens on
    `127.0.0.1` on an ephemeral port with a per-run token, and publishes both to
    `~/.fluxtion-analyser/rest-endpoint` (mode 600) so nothing has to be copied into a prompt.
-3. **The bridge.** Your MCP client launches the exact local command shown by **Connect an AI client**
+3. **The bridge.** Your MCP client launches the exact local command shown on Set up AI's **Your own AI client** screen
    (an installed JBang launcher or an absolute Java-and-jar command, followed by `--mcp`) and talks MCP
    to it over stdio. The bridge is headless; it reads the endpoint file and forwards each tool call to
    the running app. It does **not** start the app — the point is to drive *your* live session, not a
@@ -59,14 +59,19 @@ the registration does not require an executable rename.
     the setting on, and names the endpoint file only on a first run (no configuration yet). Neither route
     puts the per-run token in client configuration — see [The token, for scripts](#the-token-for-scripts).
 
-![The AI menu: connect a client, the External MCP/REST access toggle, runbook and glossary pointers, the exchange directory](assets/ai-menu.png)
+![The AI menu: Set up AI, the External MCP/REST access toggle, runbook and glossary pointers, the exchange directory](assets/ai-menu.png)
 
-2. **Set up the bridge from the analyser.** **AI ▸ Connect an AI client…** — reachable at any time,
-   including with a log open, which is usually when the thought occurs. The same screen is on the Start
-   page's *Connect an assistant* block (**Codex**, **Claude**, **Other MCP client**) and at
-   *Settings ▸ Assistant ▸ Every assistant ▸ Connect an AI client…*.
-   It shows the *resolved*, absolute bridge command for this installation rather than a command you have
-   to reconstruct.
+2. **Set up the bridge from the analyser.** **AI ▸ Set up AI…** — reachable at any time, including with a log open,
+   which is usually when the thought occurs — opens *Set up AI* at **Your own AI client** when one is set up (Screen 1
+   otherwise: choose *Your own AI client connects*). Its four steps — which client, *Let your client reach this
+   window* (external access, confirmed first), the exact registration command, and a live check that a client
+   reached this window — are in [Your own client, step by step](user-guide/assistant.md#your-own-client-step-by-step).
+   The same door is the start page's AI line and *Settings ▸ Assistant ▸ Set up AI…*.
+   For what the steps do not do — a project-scope command, removing a registration, Claude Desktop's note, *Check
+   connection* — **More options…** on that screen opens the **Connect an AI client** dialog. It is the dialog's only
+   door (since M77-4: the AI menu's *Connect an AI client…*, the start page's *Connect an assistant* block and the
+   Settings button are gone). It shows the *resolved*, absolute bridge command for this installation rather than a
+   command you have to reconstruct.
 
     - **Codex** and **Claude Code** offer explicit, confirmed CLI registration. Claude Code's automatic
       route is user-scoped; its project command is deliberately copy-only, so run it yourself from the
@@ -130,8 +135,9 @@ seconds and its light returns to **MCP ready** — a live owner is never displac
 facts, and only the second needs a probe. **MCP elsewhere** is the one that quietly wastes time — two
 analysers open, and the answers are about the other one.
 
-**Does the bridge reach this app?** The quickest normal check is **AI ▸ Connect an AI client… ▸ Check
-connection**. It runs the exact command shown on that screen and makes the read-only `analyser_context`
+**Does the bridge reach this app?** The quickest normal check is Set up AI's own last step: ask your client *Use
+analyser_context and tell me what is open* and the step says when a call with this window's key arrived. The bridge-only
+check is **AI ▸ Set up AI… ▸ More options… ▸ Check connection**. It runs the exact command shown on that screen and makes the read-only `analyser_context`
 call. It is deliberately a bridge check, not an imitation of Codex, Claude Code or another client.
 
 For a technical check, the endpoint file exists while the analyser is listening and names a URL:
@@ -238,7 +244,7 @@ credential, and it changes what an *external* client can reach:
 | Tools listed, every call says *not running* | app closed, or External MCP/REST access off | start the app; *AI ▸ External MCP/REST access*, or `--rest` |
 | *not running* while the analyser is plainly open, and its Assistant tab runs Claude Code | External MCP/REST access is off: Claude Code's private listener serves only that session and publishes no endpoint file (a script holding an old token is told *External MCP/REST access is off in this analyser*) | *AI ▸ External MCP/REST access* on, then call again |
 | *not running* although *AI ▸ External MCP/REST access* is ticked, while Claude Code runs in the tab | the person chose *Close external access while this session runs*; the endpoint file is withdrawn until that session ends (a script holding the token is told *external access is closed while an in-app Claude Code session runs*) | wait for that Claude Code session to end, or ask them to stop it; the setting stays on |
-| Server never appears in the client | stale launcher or client not reloaded | reopen **AI ▸ Connect an AI client…**, use its resolved registration/JSON, then restart or reload the client if required |
+| Server never appears in the client | stale launcher or client not reloaded | reopen **AI ▸ Set up AI…** (or its **More options…**), use its resolved registration/JSON, then restart or reload the client if required |
 | Calls time out on a very large log | an `aggregate` over millions of records | raise the client's tool timeout (Codex: `tool_timeout_sec`) |
 | `screenshot` / `report` refused | file exchange is opt-in | Settings ▸ Assistant ▸ *Allow assistant file exchange*, and pick the directory |
 | The AI opened a log but `context` shows nothing yet | opening is asynchronous | ask for `context` again — it reports the log, its time-order report and any offers once the load lands |

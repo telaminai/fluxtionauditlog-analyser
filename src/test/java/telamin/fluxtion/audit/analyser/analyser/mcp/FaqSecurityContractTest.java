@@ -125,15 +125,15 @@ class FaqSecurityContractTest {
     @Test
     void theProfileClaimsSayWhatP3MadeTrue() throws Exception {
         String safe = "reads your evidence; it changes what is open or writes a file only after you approve each call";
-        assertTrue(telamin.fluxtion.audit.analyser.analyser.ui.ProfileOverlay.SAFE_CARD_LINE.contains(safe),
-                "the Safe analysis card");
+        assertTrue(telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.QUICK_SAFE_TIP.contains(safe),
+                "the quick switch's Safe analysis (M77-4: the card's line)");
         assertTrue(telamin.fluxtion.audit.analyser.analyser.ui.LocalAgentPanel.SAFE_LIMITS.contains(safe),
                 "the Safe analysis limits line");
-        assertTrue(telamin.fluxtion.audit.analyser.analyser.ui.ProfileOverlay.FULL_CARD_LINE
-                .contains("When Claude Code asks for approval, the analyser asks you"), "the Full Claude Code card");
-        assertTrue(telamin.fluxtion.audit.analyser.analyser.ui.ProfileOverlay.OFF_CARD_LINE
+        assertTrue(telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.QUICK_FULL_TIP
+                .contains("When Claude Code asks for approval, the analyser asks you"), "the quick switch's Full Claude Code");
+        assertTrue(telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.QUICK_OFF_TIP
                 .startsWith("No assistant in the analyser"), "Off is about the assistant in the analyser (B6)");
-        assertTrue(telamin.fluxtion.audit.analyser.analyser.ui.ProfileOverlay.OFF_CARD_LINE
+        assertTrue(telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.QUICK_OFF_TIP
                 .contains("external MCP and REST clients are not affected"), "…and says the external loop is apart");
         String changelog = Files.readString(Path.of("CHANGELOG.md"));
         String unreleased = changelog.substring(changelog.indexOf("## [Unreleased]"), changelog.indexOf("\n## [", changelog
@@ -144,7 +144,7 @@ class FaqSecurityContractTest {
         java.util.Map<String, String> surfaces = new java.util.LinkedHashMap<>();
         surfaces.put("CHANGELOG [Unreleased]", unreleased);
         surfaces.put("assistant.md", guide);
-        for (String f : new String[]{"ui/ProfileOverlay.java", "ui/LocalAgentPanel.java", "ui/ConfigPanel.java",
+        for (String f : new String[]{"session/AiSetupLines.java", "ui/LocalAgentPanel.java", "ui/ConfigPanel.java",
                 "session/AssistantProfile.java"}) {
             surfaces.put(f, Files.readString(Path.of(ui + f)));
         }

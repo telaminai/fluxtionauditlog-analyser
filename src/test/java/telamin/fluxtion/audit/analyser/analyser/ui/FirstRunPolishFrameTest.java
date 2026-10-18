@@ -28,23 +28,25 @@ import static telamin.fluxtion.audit.analyser.analyser.ui.AsyncOpenInterleavingF
  */
 class FirstRunPolishFrameTest {
 
-    /**
-     * M77-2: these are the profile cards' first-run tests — the cards stay reachable until M77-4; pinned to them (the
-     * wizard's own first use is AiSetupWizardFrameTest's; the no-log line before the wizard is pinned below too).
-     */
-    private boolean wizardBefore;
-
-    @org.junit.jupiter.api.BeforeEach
-    void cardsForFirstUse() {
-        wizardBefore = telamin.fluxtion.audit.analyser.analyser.session.node.AiSetup.wizardForFirstUse();
-        telamin.fluxtion.audit.analyser.analyser.session.node.AiSetup.useWizardForFirstUse(false);
+    /** The in-app assistant in force with no key, as a Settings ▸ Assistant save reaches it: saved, then reported. */
+    static void inAppWithNoKeyFromSettings(MainFrame f) throws Exception {
+        onEdt(() -> {
+            telamin.fluxtion.audit.analyser.analyser.config.AppConfig c =
+                    (telamin.fluxtion.audit.analyser.analyser.config.AppConfig) field(f, "config");
+            c.claudeCodeAllowed = false;
+            c.claudeCodeFull = false;
+            c.apiKey = null;
+            c.assistantProfile = AssistantProfile.IN_APP.stored();
+            try {
+                var save = MainFrame.class.getDeclaredMethod("onConfigChanged");
+                save.setAccessible(true);
+                save.invoke(f);
+            } catch (ReflectiveOperationException e) {
+                throw new AssertionError(e);
+            }
+            AssistantLiveFrameTest.panel(f).chooseModeForTest(AssistantMode.IN_APP);
+        });
     }
-
-    @org.junit.jupiter.api.AfterEach
-    void restoreFirstUse() {
-        telamin.fluxtion.audit.analyser.analyser.session.node.AiSetup.useWizardForFirstUse(wizardBefore);
-    }
-
 
     /** Every visible string under {@code root}: labels, buttons and read-only text. */
     static List<String> visibleWords(Component root) {
@@ -65,7 +67,8 @@ class FirstRunPolishFrameTest {
 
     /**
      * ★ #4: the in-app assistant with no key — the robot's path: a question placed for Claude Code (Safe analysis), then
-     * the In-app card applied with no key. The ONE guide line is "No API key — Configure provider", Send is disabled, and
+     * the in-app assistant in force with no key (M77-4: the quick switch sends that to Set up AI's key field, so the
+     * state is reached as Settings ▸ Assistant reaches it — the profile saved, then reported). The ONE guide line is "No API key — Configure provider", Send is disabled, and
      * nothing says "Ready" or "Press Send". Witnesses: show the composer's hint whatever assistant it was placed for
      * ({@code renderHint} ignoring {@code hintMode}) — "Press Send to ask Claude" is still on screen; drop
      * {@code renderGuide}'s status rule — "Ready" shows above the line.
@@ -83,10 +86,9 @@ class FirstRunPolishFrameTest {
             onEdt(() -> assertTrue(f.assistant().composerHint().isShowing()
                     && f.assistant().composerHint().getText().startsWith("Press Send to ask Claude"),
                     "the question is placed for Claude Code, and the hint says so"));
-            onEdt(() -> f.assistant().profileButton().doClick());
-            f.applyProfile(AssistantProfile.IN_APP);
+            inAppWithNoKeyFromSettings(f.frame);
             UnifiedAssistantFrameTest.awaitMode(f.frame, AssistantMode.IN_APP);
-            var profile = ProfileOverlayFrameTest.await(f.frame, x -> x.inAppNeedsKey(), "the in-app assistant has no key");
+            var profile = QuickSwitchFrameTest.await(f.frame, x -> x.inAppNeedsKey(), "the in-app assistant has no key");
             assertEquals(AiSetup.IN_APP_NO_KEY, profile.status());
             FirstRunLayoutFrameTest.settle();
             onEdt(() -> {
@@ -186,19 +188,17 @@ class FirstRunPolishFrameTest {
     /**
      * ★ #3: a start-page question about evidence with no log open — nothing opens and nothing is placed; the page says
      * "No log is open — the answer will be general" with Open the sample, Open a log… and Ask anyway. Ask anyway goes on
-     * as before (the cards, as for any first question); Open the sample opens it and then goes on. Witness: drop the
-     * {@code holds} check from {@code AiSetup.onStartPageSent} — the cards open at the first press.
+     * as before (Set up AI, as for any first question); Open the sample opens it and then goes on. Witness: drop the
+     * {@code holds} check from {@code AiSetup.onStartPageSent} — the wizard opens at the first press.
      */
     @Test
     @DisplayName("★ start page, no log open, \"What happened here?\": one line with three actions; nothing placed until one is pressed")
     void noLogOpenSaysSoFirst(@TempDir Path tmp) throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless(), "a real display is required");
-        // M77-2: the same order whether the first-use door is the cards or the Set up AI wizard — the no-log line first
-        for (boolean wizard : new boolean[]{false, true})
+        // the no-log line first, then the Set up AI wizard
         for (StartPromptView.NoLogAction act : new StartPromptView.NoLogAction[]{StartPromptView.NoLogAction.ASK_ANYWAY,
                 StartPromptView.NoLogAction.OPEN_SAMPLE}) {
-            telamin.fluxtion.audit.analyser.analyser.session.node.AiSetup.useWizardForFirstUse(wizard);
-            Path dir = java.nio.file.Files.createDirectories(tmp.resolve(act.name() + (wizard ? "-wizard" : "-cards")));
+            Path dir = java.nio.file.Files.createDirectories(tmp.resolve(act.name()));
             try (AssistantFirstRunFrameTest.Fresh f = new AssistantFirstRunFrameTest.Fresh(dir, 1200, 800)) {
                 StartPromptFrameTest.showStart(f.frame);
                 StartPromptFrameTest.session(f.frame);
@@ -220,21 +220,17 @@ class FirstRunPolishFrameTest {
                     assertTrue(f.assistant().draftText().isBlank(), "★ nothing is placed");
                 });
                 var held = snapshot(f.frame);
-                assertFalse(held.profiles().open(), "★ the cards do not open before the person acts");
-                assertFalse(held.aiSetup().open(), "★ nor the Set up AI wizard");
+                assertFalse(held.aiSetup().open(), "★ the Set up AI wizard does not open before the person acts");
                 assertEquals(0, f.agent.processes.size(), "★ nothing started, nothing sent");
                 onEdt(() -> prompt.noLogButton(act).doClick());
                 if (act == StartPromptView.NoLogAction.OPEN_SAMPLE) {
                     await(f.frame, x -> x.logOpen(), "the sample's log opened");
                 }
-                await(f.frame, x -> x.startPage().noLogHeld() == 0 && (wizard ? x.aiSetup().open() : x.profiles().open()),
-                        act + ": the question goes on — the " + (wizard ? "wizard" : "cards")
-                                + " open for it, as for any first question");
-                if (wizard) {
-                    assertEquals(telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.PendingKind.START_BOX,
-                            snapshot(f.frame).aiSetup().pending().kind(), "★ the question waits behind the wizard");
-                    assertTrue(f.assistant().draftText().isBlank(), "★ placed only after Finish");
-                }
+                await(f.frame, x -> x.startPage().noLogHeld() == 0 && x.aiSetup().open(),
+                        act + ": the question goes on — the wizard opens for it, as for any first question");
+                assertEquals(telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.PendingKind.START_BOX,
+                        snapshot(f.frame).aiSetup().pending().kind(), "★ the question waits behind the wizard");
+                assertTrue(f.assistant().draftText().isBlank(), "★ placed only after Finish");
                 assertEquals(act == StartPromptView.NoLogAction.OPEN_SAMPLE, snapshot(f.frame).logOpen(),
                         "Ask anyway opens nothing; Open the sample opens it");
                 assertEquals(0, f.agent.processes.size(), "still nothing sent");

@@ -40,11 +40,11 @@ class AssistantVocabularyTest {
      * fixed "your plan" with it.
      */
     @Test
-    @DisplayName("★ one control in the header names the profile in force and opens the cards; no mode selector, no 'your plan'")
+    @DisplayName("★ one control in the header names the profile in force and opens the quick switch; no mode selector, no 'your plan'")
     void oneControlForHowTheAssistantWorks() throws Exception {
         TranscriptViewTest.onEdt(() -> {
             AssistantPanel a = new AssistantPanel(new AssistantTranscript());
-            a.renderProfiles(new ProfileState(AssistantProfile.SAFE, false, "", 0, "", false));
+            a.renderProfiles(ProfileState.of(AssistantProfile.SAFE));
             assertEquals("Assistant: Safe analysis ▾", a.profileButton().getText());
             String name = a.profileButton().getAccessibleContext().getAccessibleName();
             assertTrue(name.startsWith("Assistant: Safe analysis"), "the name starts with the visible label: " + name);
@@ -61,7 +61,7 @@ class AssistantVocabularyTest {
                     assertFalse(b.getText().startsWith("Profile"), "the old Profile… button is gone: " + b.getText());
                 }
             }
-            a.renderProfiles(new ProfileState(AssistantProfile.IN_APP, false, "", 0, "", false));
+            a.renderProfiles(ProfileState.of(AssistantProfile.IN_APP));
             assertEquals("Assistant: In-app assistant ▾", a.profileButton().getText());
             return null;
         });
@@ -103,19 +103,19 @@ class AssistantVocabularyTest {
         assertTrue(bridge.contains("\"analyser not running, or External MCP/REST access is off"), "the one name");
     }
 
-    /** ★ #13. Witness: keep the old Settings checkbox label — the cards' name is not on it. */
+    /** ★ #13. Witness: keep the old Settings checkbox label — the one name is not on it. */
     @Test
-    @DisplayName("★ one name for external access: the cards, the Settings checkbox, the AI menu and the limits line agree")
+    @DisplayName("★ one name for external access: Set up AI, the Settings checkbox, the AI menu and the limits line agree")
     void oneNameForExternalAccess() throws Exception {
         String name = "External MCP/REST access";
-        assertTrue(ProfileOverlay.externalLine(true).startsWith(name));
-        assertTrue(ProfileOverlay.externalLine(false).startsWith(name));
+        assertEquals(name, telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.ACCESS_SETTING_NAME,
+                "Screen 2b's secondary label (M77-4: the cards' line went with the cards)");
         assertTrue(Files.readString(CONFIG_PANEL).contains("new JCheckBox(\"" + name), "the Settings checkbox");
         assertTrue(Files.readString(Path.of("src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java"))
                 .contains("new JCheckBoxMenuItem(\"" + name + "\")"), "the AI menu item");
         assertTrue(LocalAgentPanel.EXTERNAL_CLOSED_FOR_SESSION.contains(name));
         assertTrue(LocalAgentPanel.EXTERNAL_OPEN_TO_TOOLS.contains(name));
-        for (Path p : List.of(CONFIG_PANEL, Path.of("src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/ProfileOverlay.java"))) {
+        for (Path p : List.of(CONFIG_PANEL, Path.of("src/main/java/telamin/fluxtion/audit/analyser/analyser/session/AiSetupLines.java"))) {
             String s = Files.readString(p);
             assertFalse(s.contains("MCP / REST access"), p + " uses the old spelling");
             assertFalse(s.contains("drive the UI over localhost"), p + " uses the old checkbox words");
@@ -139,24 +139,27 @@ class AssistantVocabularyTest {
     }
 
     /**
-     * External utility review (2026-10-17): every card and every limits line says the profile is not local-only.
-     * Witness: drop {@code CLAUDE_CODE_SENDS} from the Full card's details, or the provider clause from a limits line.
+     * External utility review (2026-10-17): every quick-switch row (M77-4: the cards' lines) and every limits line says
+     * the profile is not local-only, and Set up AI's screens show the full sentences. Witness: drop {@code CARD_SENDS}
+     * from the Full row's tooltip, or the provider clause from a limits line.
      */
     @Test
-    @DisplayName("★ every card and every limits line says where your words and evidence go")
+    @DisplayName("★ every quick-switch row and every limits line says where your words and evidence go")
     void everyProfileSaysItIsNotLocalOnly() {
         String cc = telamin.fluxtion.audit.analyser.analyser.assistant.AssistantProfiles.CLAUDE_CODE_SENDS;
         String inApp = telamin.fluxtion.audit.analyser.analyser.assistant.AssistantProfiles.IN_APP_SENDS;
         for (AssistantProfile p : List.of(AssistantProfile.SAFE, AssistantProfile.FULL)) {
-            assertTrue(ProfileOverlay.cardLine(p).contains("Not local-only") && ProfileOverlay.cardLine(p).contains("Anthropic"),
-                    p + " card line: " + ProfileOverlay.cardLine(p));
-            assertTrue(ProfileOverlay.detailLines(p).contains(cc), p + " details");
+            String tip = telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.quickTip(p);
+            assertTrue(tip.contains("Not local-only") && tip.contains("Anthropic"), p + " row: " + tip);
         }
-        assertTrue(ProfileOverlay.cardLine(AssistantProfile.IN_APP).contains("Not local-only"), "in-app card line");
-        assertTrue(ProfileOverlay.detailLines(AssistantProfile.IN_APP).contains(inApp), "in-app details");
+        assertTrue(telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.quickTip(AssistantProfile.IN_APP)
+                .contains("Not local-only"), "in-app row");
+        assertEquals(cc, telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.SENDS, "Screen 2a's honesty line");
+        assertEquals(inApp, telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.IN_APP_SENDS, "Other options' line");
         assertTrue(LocalAgentPanel.SAFE_LIMITS.endsWith(cc), "Safe limits");
         assertTrue(LocalAgentPanel.FULL_LIMITS.endsWith(cc), "Full limits");
         assertTrue(AssistantPanel.IN_APP_LIMITS.endsWith(inApp), "in-app limits");
-        assertFalse(ProfileOverlay.cardLine(AssistantProfile.OFF).contains("Not local-only"), "Off sends nothing");
+        assertFalse(telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.quickTip(AssistantProfile.OFF)
+                .contains("Not local-only"), "Off sends nothing");
     }
 }

@@ -173,12 +173,19 @@ public final class FlowDiagram extends JComponent {
     }
 
     /**
-     * External access as the state publishes it. {@link AiSetupState} gains {@code externalAccess} with Screen 2b
-     * (M77-3, §8.2); until then this state carries no access verdict, so the picture draws the path as not on — the
-     * client's arrow then always carries its word, and the sent line is true either way.
+     * External access as the state publishes it (M77-3's {@code external.access}, §8.2: from {@code actionListener}'s
+     * state and the readiness poll). M77-4 wires it: the client's arrow is solid only while access is on, and carries
+     * "off", "closed" or "another window" otherwise. Pure.
      */
     static Access externalAccess(AiSetupState s) {
-        return Access.OFF;
+        if (s == null) return Access.OFF;
+        return switch (s.external().access()) {
+            case OFF -> Access.OFF;
+            case CONFIRMING -> Access.CONFIRMING;
+            case ON -> Access.ON;
+            case CLOSED_FOR_SESSION -> Access.CLOSED_FOR_SESSION;
+            case OTHER_INSTANCE -> Access.OTHER_INSTANCE;
+        };
     }
 
     /** The pure core: every option × posture × access × sign-in (★ T25 walks it). */

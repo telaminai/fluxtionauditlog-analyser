@@ -26,7 +26,8 @@ import static telamin.fluxtion.audit.analyser.analyser.ui.AsyncOpenInterleavingF
 import static telamin.fluxtion.audit.analyser.analyser.ui.AsyncOpenInterleavingFrameTest.render;
 
 /**
- * The M74 documentation captures: the assistant panel in both modes, the profile cards, an approval dialog, the set-up
+ * The M74 documentation captures: the assistant panel in both modes, the Assistant ▾ quick switch (M77-4: the profile
+ * cards are gone), an approval dialog, the set-up
  * proposal review, Settings ▸ Assistant and the records' right-click Ask menu — in the REAL frame, with no live
  * {@code claude} and no network.
  *
@@ -44,6 +45,7 @@ public final class M74DocCapture {
     }
 
     public static void main(String[] args) throws Exception {
+        telamin.fluxtion.audit.analyser.analyser.ui.DocShot.requireRealHome();   // M77-4: never under a symlinked home
         if (args.length != 4) throw new IllegalArgumentException("need: project-profile log graphml docs-fixture.jsonl");
         Path profile = Path.of(args[0]);
         Path log = Path.of(args[1]);
@@ -84,19 +86,15 @@ public final class M74DocCapture {
             AssistantLiveFrameTest.configure(f, provider);
             onEdt(() -> ((AppConfig) field(f, "config")).llmModel = "demo-model");
 
-            // 1. the profile cards, from the header, with Safe analysis's details shown
+            // 1. Assistant ▾, the quick switch, open over the panel (M77-4)
             AssistantPanel a = AssistantLiveFrameTest.panel(f);
             onEdt(() -> a.profileButton().doClick());
-            ProfileOverlayFrameTest.await(f, s -> s.open(), "the cards open");
-            onEdt(() -> a.profileOverlay().card(AssistantProfile.SAFE).doClick());
-            DocShot.window(f, "assistant-profile-cards.png");
+            DocShot.withPopups(f, "assistant-quick-switch.png");
+            onEdt(() -> a.quickSwitch().lastShown().setVisible(false));
 
             // 2. the in-app assistant: one question, an answer in safe Markdown, one tool line
-            onEdt(() -> {
-                a.profileOverlay().card(AssistantProfile.IN_APP).doClick();
-                a.profileOverlay().applyButton().doClick();
-            });
-            ProfileOverlayFrameTest.await(f, s -> !s.open() && s.profile() == AssistantProfile.IN_APP, "In-app applied");
+            QuickSwitchFrameTest.choose(f, a, AssistantProfile.IN_APP);
+            QuickSwitchFrameTest.await(f, s -> s.profile() == AssistantProfile.IN_APP, "In-app applied");
             UnifiedAssistantFrameTest.awaitMode(f, AssistantMode.IN_APP);
             provider.replies.add(FakeProvider.action("{\"action\":\"read\",\"params\":{\"recordIndex\":7,\"count\":2}}"));
             provider.replies.add("## What happened in record #7\n"
@@ -124,13 +122,8 @@ public final class M74DocCapture {
             onEdt(() -> javax.swing.MenuSelectionManager.defaultManager().clearSelectedPath());
 
             // 4. Claude Code, Safe analysis: Start, the folder question, then a call that needs your approval
-            onEdt(() -> a.profileButton().doClick());
-            ProfileOverlayFrameTest.await(f, s -> s.open(), "the cards open again");
-            onEdt(() -> {
-                a.profileOverlay().card(AssistantProfile.SAFE).doClick();
-                a.profileOverlay().applyButton().doClick();
-            });
-            ProfileOverlayFrameTest.await(f, s -> !s.open() && s.profile() == AssistantProfile.SAFE, "Safe applied");
+            QuickSwitchFrameTest.choose(f, a, AssistantProfile.SAFE);
+            QuickSwitchFrameTest.await(f, s -> s.profile() == AssistantProfile.SAFE, "Safe applied");
             UnifiedAssistantFrameTest.awaitMode(f, AssistantMode.LOCAL_AGENT);
             LocalAgentPanel panel = (LocalAgentPanel) field(f, "localAgentPanel");
             onEdt(() -> ((JButton) field(panel, "start")).doClick());

@@ -66,8 +66,6 @@ class FactFieldsTest {
                 "ProposalChecked.fit", "ProposalEffectStarted.what", "LocalAgentPermissionRequested.name",
                 "LocalAgentPermissionAnswered.name", "HostedCallPresented.verb", "ExampleDownloadConfirmed.targetProblem",
                 "ExampleEffectStarted.what", "ExampleDeadlinePassed.phase",
-                // M74 UX: the assistant profile's facts — who opened or closed the cards (an origin word)
-                "AssistantProfilesRequested.origin", "AssistantProfilesClosed.origin",
                 // owner, 2026-10-18: the restart chip's origin, the analyser's own words
                 "LocalAgentRestartOfferRequested.origin",
                 // robot walkthrough #1: a question asked before any assistant was chosen — its catalogue id and origin

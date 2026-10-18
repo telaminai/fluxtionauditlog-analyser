@@ -581,22 +581,32 @@ class OneDispatchModelTest {
     }
 
     /**
-     * ★ M74 UX (owner, 2026-10-17; rule 9): the ONE assistant panel and the profile cards render and report — they post no
-     * fact, name no session event and write no setting — and the settings a profile means are written in one place, the
-     * performer of {@code assistantProfile}'s {@code ApplyAssistantProfileEffect}. Witness: write the profile from the
-     * overlay's Apply (call {@code AssistantProfiles.apply} in {@code ProfileOverlay}), or apply it in the frame's intent
-     * instead of posting {@code AssistantProfileChosen} — each fails its named assertion.
+     * ★ M74 UX (owner, 2026-10-17; rule 9), M77-4: the ONE assistant panel and the Assistant ▾ quick switch (which
+     * replaced the profile cards) render and report — they post no fact, name no session event and write no setting —
+     * and the settings a profile means are written in one place, the performer of {@code aiSetup}'s
+     * {@code ApplyAssistantProfileEffect}. The quick switch also decides nothing (review R1-24): it reads no setting and
+     * no "found" or "can answer" fact, so whether a press applies or opens Set up AI is the node's. Witness: write the
+     * profile from the switch (call {@code AssistantProfiles.apply} in {@code QuickSwitch}), decide in the switch
+     * (read {@code claudeFound} there), or apply it in the frame's intent instead of posting
+     * {@code AssistantProfileChosen} — each fails its named assertion.
      */
     @Test
-    @DisplayName("★ M74 UX: the one assistant panel and the profile cards only render and report; one place writes a profile")
+    @DisplayName("★ the one assistant panel and the quick switch only render and report; one place writes a profile")
     void theProfileIsWrittenOnlyByItsEffect() throws Exception {
-        for (String file : List.of("AssistantPanel.java", "ProfileOverlay.java", "AssistantSurface.java")) {
+        for (String file : List.of("AssistantPanel.java", "setup/QuickSwitch.java", "AssistantSurface.java")) {
             String src = Files.readString(UI.resolve(file));
             for (String never : List.of(".post(", "SessionEvents", "SessionEffects", "SessionDriver", "AssistantProfiles.apply(",
                     "saveConfig", "ConfigStore.save", "LocalAgentAdapter")) {
                 assertFalse(src.contains(never), file + " must not use " + never);
             }
         }
+        String quick = Files.readString(UI.resolve("setup/QuickSwitch.java"));
+        for (String never : List.of("AppConfig", "claudeFound", "inAppCanAnswer", "apiKey", "AiSetupState", "Desktop")) {
+            assertFalse(quick.contains(never), "the quick switch decides nothing: it must not read " + never);
+        }
+        assertTrue(Files.readString(UI.resolve("AssistantPanel.java")).contains("quickSwitch.attach(profileButton"),
+                "the header control IS the quick switch (the cards are gone)");
+        assertFalse(Files.exists(UI.resolve("ProfileOverlay.java")), "OD-77.3: the profile cards are removed");
         String frame = Files.readString(UI.resolve("MainFrame.java"));
         Pattern apply = Pattern.compile("AssistantProfiles\\s*\\.\\s*apply\\(");
         assertEquals(1, count(apply, frame), "one place in the frame writes a profile");

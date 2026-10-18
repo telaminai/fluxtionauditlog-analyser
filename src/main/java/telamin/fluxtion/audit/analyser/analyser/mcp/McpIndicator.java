@@ -60,7 +60,7 @@ public final class McpIndicator {
             // grey, not red: not set up is a state to act on, not a fault to alarm about, so the
             // tooltip carries the REMEDY rather than a diagnosis
             case OFF -> new View(Level.NEUTRAL, "MCP off", readiness.detail()
-                    + " Nothing is wrong — set it up with AI \u25b8 Connect an AI client.");
+                    + " Nothing is wrong — set it up with AI \u25b8 Set up AI\u2026");
         };
     }
 }

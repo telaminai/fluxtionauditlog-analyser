@@ -148,8 +148,8 @@ final class AiSetupWindow extends JDialog {
     };
 
     /**
-     * M77-3: the slot beside Screen 2b's access switch, for the option diagram (M77-4 fills it with M77-5's component).
-     * Empty, it has no visible size.
+     * M77-3: the slot beside Screen 2b's access switch; M77-4 fills it with M77-5's picture ({@link #accessDiagram}), so
+     * the person sees the one-way path the switch opens. Empty, it has no visible size.
      */
     final JPanel accessDiagramSlot = new JPanel(new BorderLayout()) {
         @Override public Dimension getPreferredSize() {
@@ -165,6 +165,11 @@ final class AiSetupWindow extends JDialog {
 
     /** M77-5 (§6.1a): the selected option's picture, and (Claude inside / Both) the FAQ link on Claude Code's own data. */
     final FlowDiagram diagram = new FlowDiagram();
+    /**
+     * M77-4 (§6.1a, §18): the same picture on Screen 2b, beside the access switch — Your own AI client (or Both), drawn
+     * from the published state, so its client arrow follows external access as the switch changes it.
+     */
+    final FlowDiagram accessDiagram = new FlowDiagram();
     final JButton usageLink = link(AiSetupLines.DIAGRAM_USAGE_LINK);
     private final JPanel picture = new JPanel();
 
@@ -196,6 +201,9 @@ final class AiSetupWindow extends JDialog {
         picture.add(diagram);
         picture.add(usageLink);
         selectedOptionExtra.add(picture, BorderLayout.CENTER);
+        accessDiagram.setAlignmentX(LEFT_ALIGNMENT);
+        accessDiagramSlot.setBorder(BorderFactory.createEmptyBorder(UiTheme.SPACE_XS, 22, UiTheme.SPACE_XS, 0));
+        accessDiagramSlot.add(accessDiagram, BorderLayout.CENTER);
         content.setBorder(BorderFactory.createEmptyBorder(UiTheme.SPACE_LG, UiTheme.SPACE_LG, UiTheme.SPACE_MD,
                 UiTheme.SPACE_LG));
         JPanel holder = new AssistantPanel.WidthTrackingPanel();
@@ -268,6 +276,7 @@ final class AiSetupWindow extends JDialog {
             }
             footer.setForeground(UiTheme.mutedForeground());
             SwingUtilities.updateComponentTreeUI(picture);
+            SwingUtilities.updateComponentTreeUI(accessDiagramSlot);
             usageLink.setBorder(BorderFactory.createEmptyBorder(0, PAD_LINK, 0, 0));
             usageLink.setForeground(UiTheme.accentText());
             renderedKey = "";
@@ -608,11 +617,14 @@ final class AiSetupWindow extends JDialog {
             host.access(want);
         });
         switchRow.add(access, BorderLayout.WEST);
-        accessDiagramSlot.setOpaque(false);
-        switchRow.add(accessDiagramSlot, BorderLayout.EAST);   // M77-4: the option diagram, beside the switch
         content.add(switchRow);
         content.add(indentedMuted(AiSetupLines.ACCESS_SETTING_NAME));
         content.add(indented(AiSetupLines.ACCESS_LINE));
+        // M77-4: the picture of the path the switch opens, with the switch and its words (the picture needs 340 px, so it
+        // sits under the switch's lines rather than squeezed to their right at 520–640 px). It renders the state only.
+        accessDiagram.setSnapshot(s, s.choice() == Choice.BOTH ? FlowDiagram.Option.BOTH : FlowDiagram.Option.CLIENT);
+        accessDiagramSlot.setOpaque(false);
+        content.add(accessDiagramSlot);
         String accessState = switch (x.access()) {
             case ON, OTHER_INSTANCE -> AiSetupLines.ACCESS_ON;
             case CONFIRMING -> AiSetupLines.ACCESS_CONFIRMING;

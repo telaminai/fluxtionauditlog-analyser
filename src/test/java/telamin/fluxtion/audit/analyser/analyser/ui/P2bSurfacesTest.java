@@ -250,7 +250,6 @@ class P2bSurfacesTest {
                 public void showTab(String n) { }
                 public void openOwnLog() { }
                 public void openSettings() { }
-                public void openMcpSetup(McpSetupDialog.Target t) { }
                 public void openFluxtionKey() { }
                 public boolean fluxtionKeyPresent() { return false; }
                 public void backToRecords() { }

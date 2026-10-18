@@ -17,7 +17,6 @@ class ProjectLandingTest {
                 public void showTab(String n) { }
                 public void openOwnLog() { calls.add("log"); }
                 public void openSettings() { }
-                public void openMcpSetup(McpSetupDialog.Target t) { }
                 public void openFluxtionKey() { }
                 public boolean fluxtionKeyPresent() { return false; }
                 public void backToRecords() { }
@@ -55,7 +54,6 @@ class ProjectLandingTest {
                 public void showTab(String n) { }
                 public void openOwnLog() { calls.add("log"); }
                 public void openSettings() { }
-                public void openMcpSetup(McpSetupDialog.Target t) { }
                 public void openFluxtionKey() { }
                 public boolean fluxtionKeyPresent() { return false; }
                 public void backToRecords() { calls.add("back"); }

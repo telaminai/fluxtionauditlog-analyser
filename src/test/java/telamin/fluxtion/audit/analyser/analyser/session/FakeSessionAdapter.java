@@ -40,7 +40,6 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
     final List<SessionEffects.CancelAssistantTransportEffect> assistantCancels = new ArrayList<>();
     final List<SessionEffects.ShowAssistantHostEffect> assistantHosts = new ArrayList<>();
     /** M74 UX: what assistantProfile asked for — the panel brought forward, a profile's settings written. */
-    final List<SessionEffects.ShowAssistantProfilesEffect> profileShows = new ArrayList<>();
     final List<SessionEffects.ApplyAssistantProfileEffect> profileApplies = new ArrayList<>();
     final List<SessionEffects.ConfirmFullProfileEffect> fullConfirms = new ArrayList<>();
     /** Review P3+UX S4: the mode changes assistantProfile asked for; and what a profile's apply reports (null = ok). */
@@ -226,10 +225,6 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
             case SessionEffects.ShowAssistantHostEffect e -> {
                 assistantHosts.add(e);
                 yield new SessionEvents.AssistantHostShown(e.opId(), e.docked(), true, "");
-            }
-            case SessionEffects.ShowAssistantProfilesEffect e -> {
-                profileShows.add(e);
-                yield new SessionEvents.AssistantProfilesShown(e.opId());
             }
             case SessionEffects.ApplyAssistantProfileEffect e -> {
                 profileApplies.add(e);

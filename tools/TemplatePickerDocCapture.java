@@ -19,6 +19,7 @@ public final class TemplatePickerDocCapture {
     private TemplatePickerDocCapture() { }
 
     public static void main(String[] args) throws Exception {
+        telamin.fluxtion.audit.analyser.analyser.ui.DocShot.requireRealHome();   // M77-4: never under a symlinked home
         if (args.length != 1) throw new IllegalArgumentException("need the documentation asset directory");
         Path assets = Path.of(args[0]);
         Files.createDirectories(assets);

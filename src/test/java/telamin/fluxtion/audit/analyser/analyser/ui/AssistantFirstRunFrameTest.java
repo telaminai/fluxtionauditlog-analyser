@@ -34,24 +34,12 @@ import static telamin.fluxtion.audit.analyser.analyser.ui.AsyncOpenInterleavingF
  * A robot walked a newcomer's first run (2026-10-18; problems #1, #2, #3, #6). In the REAL frame at the default
  * 1200×800, with a FAKE Claude Code ({@link FixtureAgent}; no live {@code claude}) and an isolated home: a question asked
  * from a record before any assistant is chosen reaches Claude Code after Apply — Safe analysis (it took the robot 16
- * acts and four dead Sends); the docked panel keeps Send and the transcript visible; Configure provider opens the page
+ * acts and four dead Sends; M77-4: the profile is chosen with the Assistant ▾ quick switch while Set up AI holds the
+ * question); the docked panel keeps Send and the transcript visible; Configure provider opens the page
  * that holds the provider.
  */
 class AssistantFirstRunFrameTest {
 
-    /** M77-2: these are the profile cards' first-use tests — the cards stay reachable until M77-4; pinned to them. */
-    private boolean wizardBefore;
-
-    @org.junit.jupiter.api.BeforeEach
-    void cardsForFirstUse() {
-        wizardBefore = telamin.fluxtion.audit.analyser.analyser.session.node.AiSetup.wizardForFirstUse();
-        telamin.fluxtion.audit.analyser.analyser.session.node.AiSetup.useWizardForFirstUse(false);
-    }
-
-    @org.junit.jupiter.api.AfterEach
-    void restoreFirstUse() {
-        telamin.fluxtion.audit.analyser.analyser.session.node.AiSetup.useWizardForFirstUse(wizardBefore);
-    }
 
     static final class Fresh implements AutoCloseable {
         final MainFrame frame;
@@ -125,14 +113,18 @@ class AssistantFirstRunFrameTest {
             onEdt(() -> { });
         }
 
+        /**
+         * M77-4: the profile chosen with the Assistant ▾ quick switch (the cards are gone). A question waiting behind Set
+         * up AI is placed by the switch's Apply; the wizard, its job done, is closed.
+         */
         void applyProfile(AssistantProfile p) throws Exception {
-            ProfileOverlayFrameTest.await(frame, x -> x.open(), "the cards are open");
+            QuickSwitchFrameTest.choose(frame, assistant(), p);
+            QuickSwitchFrameTest.await(frame, x -> x.profile() == p, p + " applied");
             onEdt(() -> {
-                ProfileOverlay o = assistant().profileOverlay();
-                o.card(p).doClick();
-                o.applyButton().doClick();
+                if (frame.aiSetupWindow != null && frame.aiSetupWindow.isShowing()) {
+                    frame.aiSetupWindow.cancelButton().doClick();
+                }
             });
-            ProfileOverlayFrameTest.await(frame, x -> !x.open() && x.profile() == p, p + " applied");
             onEdt(() -> { });
         }
 
@@ -151,7 +143,8 @@ class AssistantFirstRunFrameTest {
 
     /**
      * ★ Problem #1, the robot's path (16 acts, four Sends that did nothing) in its few real steps: sample log, the
-     * record's Ask, the cards, Apply — Safe analysis, Send. The question reaches Claude Code. Witness (today's behaviour
+     * record's Ask (Set up AI opens, the question held), Assistant ▾ ▸ Safe analysis, Send. The question reaches Claude
+     * Code. Witness (the behaviour
      * before this change): compose the question for the mode's default in {@code composeDraft} (drop the
      * {@code observedNone()} branch) — Send is refused UNKNOWN_DRAFT and no turn starts.
      */
@@ -164,14 +157,8 @@ class AssistantFirstRunFrameTest {
             f.askFromTheRecord();
             Thread.sleep(300);
             onEdt(() -> { });
-            if (!ProfileOverlayFrameTest.profiles(f.frame).open()) {
-                // the robot's path before this change: the draft was placed for the in-app assistant, and Send opened
-                // the cards
-                onEdt(() -> f.assistant().sendButton().doClick());
-            }
-            var waiting = ProfileOverlayFrameTest.await(f.frame, x -> x.open(), "the cards are open");
-            assertTrue(waiting.questionWaits() || waiting.why().equals(telamin.fluxtion.audit.analyser.analyser.session
-                    .ProfileState.FIRST_USE), "the question waits for the choice");
+            var waiting = QuickSwitchFrameTest.await(f.frame, x -> x.questionWaits(), "the question waits for the choice");
+            assertTrue(QuickSwitchFrameTest.setup(f.frame).open(), "Set up AI opened for it");
             f.applyProfile(AssistantProfile.SAFE);
             UnifiedAssistantFrameTest.awaitMode(f.frame, AssistantMode.LOCAL_AGENT);
             String[] draft = new String[1];

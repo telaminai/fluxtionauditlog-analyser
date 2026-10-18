@@ -64,7 +64,7 @@ class StartPanelNamesTest {
             public void showTab(String n) { }
             public void openOwnLog() { }
             public void openSettings() { calls.add("settings"); }
-            public void openMcpSetup(McpSetupDialog.Target t) { calls.add("mcp:" + t.name()); }
+            public void openClientSetUp() { calls.add("client"); }   // M77-4: Set up AI, at the client screen
             public void openFluxtionKey() { }
             public boolean fluxtionKeyPresent() { return false; }
             public void backToRecords() { }
@@ -81,7 +81,7 @@ class StartPanelNamesTest {
         }
         StartPanel.runFallback(actions, telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.Fallback.CONNECT,
                 "INSTALL", "");
-        assertEquals(List.of("settings", "mcp:CLAUDE_CODE", "copy:S6:q", "new", "guide:evidence-bundles/opening/",
+        assertEquals(List.of("settings", "client", "copy:S6:q", "new", "guide:evidence-bundles/opening/",
                 "template", "guide:", "tour", "sample", "install"), calls);
     }
 
@@ -101,7 +101,6 @@ class StartPanelNamesTest {
                 public void showTab(String n) { }
                 public void openOwnLog() { }
                 public void openSettings() { }
-                public void openMcpSetup(McpSetupDialog.Target t) { }
                 public void openFluxtionKey() { }
                 public boolean fluxtionKeyPresent() { return false; }
                 public void backToRecords() { }

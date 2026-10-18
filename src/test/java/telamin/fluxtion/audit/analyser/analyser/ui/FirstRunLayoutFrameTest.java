@@ -30,24 +30,6 @@ import static telamin.fluxtion.audit.analyser.analyser.ui.AsyncOpenInterleavingF
  */
 class FirstRunLayoutFrameTest {
 
-    /**
-     * M77-2: these are the profile cards' first-run tests — the cards stay reachable until M77-4; pinned to them (the
-     * wizard's own first use is AiSetupWizardFrameTest's).
-     */
-    private boolean wizardBefore;
-
-    @org.junit.jupiter.api.BeforeEach
-    void cardsForFirstUse() {
-        wizardBefore = telamin.fluxtion.audit.analyser.analyser.session.node.AiSetup.wizardForFirstUse();
-        telamin.fluxtion.audit.analyser.analyser.session.node.AiSetup.useWizardForFirstUse(false);
-    }
-
-    @org.junit.jupiter.api.AfterEach
-    void restoreFirstUse() {
-        telamin.fluxtion.audit.analyser.analyser.session.node.AiSetup.useWizardForFirstUse(wizardBefore);
-    }
-
-
     /** The assistant window's width when it first pops out (the robot's 520×720). */
     static final int POP_OUT_WIDTH = 520;
 
@@ -90,33 +72,6 @@ class FirstRunLayoutFrameTest {
         List<String>[] found = new List[1];
         onEdt(() -> found[0] = TextFit.problems(root));
         assertTrue(found[0].isEmpty(), "★ clipped text " + where + ":\n  " + String.join("\n  ", found[0]));
-    }
-
-    /**
-     * ★ The cards open on In-app, then Full — the whole panel, their details and buttons too — docked at 1200×800 and
-     * popped out. Witnesses: drop {@code reflow} from
-     * {@link WrapLine#setBounds} — a bullet keeps the height of an earlier, wider layout and its last line is drawn under
-     * the next ("shorter than its wrapped text"); give Apply no brief words — "Apply — In-app assistant" is cut at the
-     * docked column's edge.
-     */
-    @Test
-    @DisplayName("★ the In-app and Full bullets, and the cards' buttons, are shown whole, docked at 1200×800 and popped out")
-    void cardDetailsFit(@TempDir Path tmp) throws Exception {
-        assumeFalse(GraphicsEnvironment.isHeadless(), "a real display is required");
-        try (AssistantFirstRunFrameTest.Fresh f = new AssistantFirstRunFrameTest.Fresh(tmp, 1200, 800)) {
-            f.openSampleLog(tmp);
-            f.askFromTheRecord();
-            ProfileOverlayFrameTest.await(f.frame, x -> x.open(), "the cards are open");
-            select(f.frame, "Analyser assistant");
-            for (boolean docked : new boolean[]{true, false}) {
-                if (!docked) popOut(f.frame);
-                for (AssistantProfile p : new AssistantProfile[]{AssistantProfile.IN_APP, AssistantProfile.FULL}) {
-                    onEdt(() -> f.assistant().profileOverlay().card(p).doClick());
-                    settle();
-                    assertFits(f.assistant(), p + (docked ? " docked at 1200×800" : " popped out at " + POP_OUT_WIDTH));
-                }
-            }
-        }
     }
 
     /**

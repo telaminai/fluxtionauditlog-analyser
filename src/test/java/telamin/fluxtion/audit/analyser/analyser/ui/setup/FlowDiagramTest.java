@@ -149,12 +149,36 @@ class FlowDiagramTest {
         AiSetupState full = new AiSetupState(true, false, AiSetupState.Origin.MENU, AiSetupState.Step.CHOICE,
                 AiSetupState.Choice.INSIDE, AiSetupState.Choice.NONE, Posture.FULL, "default",
                 AiSetupState.Check.UNCHECKED, PLAN, AiSetupState.Confirming.NONE, AiSetupState.Pending.NONE, 0, "", "", "",
-                "", true, false, true, false, AiSetupState.Suggested.NONE, AiSetupState.External.NONE);
+                "", true, false, false, AiSetupState.Suggested.NONE, AiSetupState.External.NONE);
         Model m = FlowDiagram.model(full, Option.INSIDE);
         assertTrue(m.amber());
         assertEquals("your Claude plan", m.node(NodeId.CLAUDE_SERVICE, 0).caption());
         assertEquals(AiSetupLines.diagramSentInside(true), m.sent());
         assertFalse(FlowDiagram.model(full, Option.CLIENT).amber(), "a client-only picture is never amber");
+    }
+
+    /**
+     * ★ M77-4: the picture reads external access from the published state (M77-3's {@code external.access}); until M77-4
+     * {@code externalAccess} always said OFF, so the client's arrow said "off" with access on. Witness: return
+     * {@code Access.OFF} from {@code externalAccess} — the ON row is not AUTO.
+     */
+    @Test
+    @DisplayName("★ M77-4: the client arrow follows the state's external access — solid only while it is on")
+    void theClientArrowFollowsThePublishedAccess() {
+        for (AiSetupState.Access a : AiSetupState.Access.values()) {
+            AiSetupState.External x = new AiSetupState.External(AiSetupState.Client.CLAUDE_CODE, a,
+                    AiSetupState.Registration.UNCHECKED, AiSetupState.Live.IDLE, true, false, true, false);
+            AiSetupState s = new AiSetupState(true, false, AiSetupState.Origin.MENU, AiSetupState.Step.CLIENT,
+                    AiSetupState.Choice.CLIENT, AiSetupState.Choice.NONE, Posture.SAFE, "default",
+                    AiSetupState.Check.UNCHECKED, UNCHECKED, AiSetupState.Confirming.NONE, AiSetupState.Pending.NONE, 0, "",
+                    "", "", "", true, false, false, AiSetupState.Suggested.NONE, x);
+            assertEquals(Access.valueOf(a.name()), FlowDiagram.externalAccess(s), "★ " + a);
+            Model m = FlowDiagram.model(s, Option.CLIENT);
+            Edge in = m.edges().stream().filter(e -> e.from() == NodeId.CLIENT && e.to() == NodeId.ANALYSER)
+                    .findFirst().orElseThrow();
+            assertEquals(a == AiSetupState.Access.ON ? Line.AUTO : Line.NOT_ON, in.line(), "★ client → product, " + a);
+        }
+        assertEquals(Access.OFF, FlowDiagram.externalAccess(null));
     }
 
     // ---- painting helpers -------------------------------------------------------------------------------------------
@@ -163,7 +187,7 @@ class FlowDiagramTest {
         FlowDiagram d = new FlowDiagram();
         AiSetupState s = new AiSetupState(true, false, AiSetupState.Origin.MENU, AiSetupState.Step.CHOICE,
                 AiSetupState.Choice.NONE, AiSetupState.Choice.NONE, p, "default", AiSetupState.Check.UNCHECKED, auth,
-                AiSetupState.Confirming.NONE, AiSetupState.Pending.NONE, 0, "", "", "", "", true, false, true, false,
+                AiSetupState.Confirming.NONE, AiSetupState.Pending.NONE, 0, "", "", "", "", true, false, false,
                 AiSetupState.Suggested.NONE, AiSetupState.External.NONE);
         d.setSnapshot(s, o);
         d.setSize(width, 10);
