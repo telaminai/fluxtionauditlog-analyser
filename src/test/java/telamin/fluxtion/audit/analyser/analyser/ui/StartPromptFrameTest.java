@@ -18,6 +18,7 @@ import java.awt.Window;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -112,7 +113,7 @@ class StartPromptFrameTest {
      * starts. Witness: arm whatever the consent (REST off) — the armed Start would then be one the node refuses.
      */
     @Test
-    @DisplayName("★ Claude Code with nothing open: the draft placed, Start armed and visible, and no process started")
+    @DisplayName("★ Claude Code with nothing open: the draft placed, Start armed (⋯, and Send starts it), and no process started")
     void claudeCodeArmsStart(@TempDir Path tmp) throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless(), "a real display is required");
         try (var f = new AsyncOpenInterleavingFrameTest.Frame(tmp)) {
@@ -150,14 +151,18 @@ class StartPromptFrameTest {
             AtomicReference<String> start = new AtomicReference<>();
             AtomicReference<String> composer = new AtomicReference<>();
             AtomicReference<Boolean> visible = new AtomicReference<>();
+            AtomicReference<List<String>> more = new AtomicReference<>();
             onEdt(() -> {
                 start.set(agent.startButton().getText());
-                visible.set(agent.startButton().isShowing());
+                // M78 D1 (§2.2): Start / Resume Claude Code moved into ⋯; Send, in the primary place, starts it
+                visible.set(agent.sendButton().isShowing() && agent.sendButton().isEnabled());
+                more.set(QuietPanelTest.moreItems(AssistantLiveFrameTest.panel(f.frame)));
                 composer.set(agent.composerArea().getText());
             });
             // robot walkthrough #3: Start keeps its fixed label; the one instruction says Send asks the placed question
             assertEquals("Start Claude Code", start.get(), "Start is offered, with its fixed label");
-            assertTrue(visible.get(), "and visible");
+            assertTrue(more.get().contains("Start Claude Code"), "★ in ⋯ (M78 D1): " + more.get());
+            assertTrue(visible.get(), "and Send, which starts it, is showing and enabled");
             assertEquals(telamin.fluxtion.audit.analyser.analyser.session.node.LocalAgentSession.PLACED_NOT_RUNNING_TEXT,
                     d.snapshot().localAgent().extra().guide().instruction(), "the one line: the question is placed");
             assertEquals("Which node writes the spread?", composer.get());

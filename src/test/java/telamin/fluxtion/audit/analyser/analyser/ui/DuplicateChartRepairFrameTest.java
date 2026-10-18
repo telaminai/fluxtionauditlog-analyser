@@ -46,6 +46,9 @@ class DuplicateChartRepairFrameTest {
         Files.createDirectories(config.getParent());
         var store = new ConfigStore(config);
         var cfg = new telamin.fluxtion.audit.analyser.analyser.config.AppConfig();
+        // a returning user: M77-4 offers the start page's first-run block once and records that it was offered
+        // (assistant.setup.dismissed) at the first start, a write of its own that "writes nothing" is not about
+        cfg.assistantSetupDismissed = true;
         cfg.savedGraphs.add(chart("Same", "the first one"));
         cfg.savedGraphs.add(chart("Same", "the second one"));
         store.save(cfg);

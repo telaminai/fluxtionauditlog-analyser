@@ -40,9 +40,12 @@ class AssistantLiveFrameTest {
         try (var f = new AsyncOpenInterleavingFrameTest.Frame(tmp)) {
             f.dialogs.stop();
             onEdt(() -> { f.frame.setSize(1200, 800); f.frame.setVisible(true); });
+            // M78 D2 (§4.1 item 26): the no-key banner belongs to the in-app assistant IN FORCE with no key; with nothing
+            // set up the chip is Set up AI… and there is no banner. Put the in-app assistant in force, as Settings does
+            FirstRunPolishFrameTest.inAppWithNoKeyFromSettings(f.frame);
             AssistantPanel assistant = panel(f.frame);
             onEdt(() -> {
-                assertTrue(((JPanel) field(assistant, "noProvider")).isVisible());
+                assertTrue(((JPanel) field(assistant, "noProvider")).isVisible(), "the one no-key banner, with Add key…");
                 SwingUtilities.invokeLater(((JButton) field(assistant, "configure"))::doClick);
             });
             ConfigPanel settings = null;
