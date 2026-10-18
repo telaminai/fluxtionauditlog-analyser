@@ -142,7 +142,7 @@ _Refreshed 2026-10-17 for M74 (owner)._ The 2026-10-06 order above is superseded
 - [M77-5] ☐ **Where data goes** ([spec §6.1a](spec-ai-setup-wizard.md), r4): a small picture under the selected Screen 1 card showing where data goes (two-way inside, one-way external, the billing named, Full in amber); OD-77.14–.21 accepted 2026-10-18; a PR stacked on M77-2, 1.5–2 days, T25–T31.
 
 ### M79 · The first minute ([spec](spec-first-minute.md), r5)
-- [M79] ☐ **The first minute** (insider + stranger reviews and OD-79.1–.10, 2026-10-18; ACCEPTED r1; r2 one independent review; r3–r4 the lead's round 2 and the owner's correction; r5 owner answers, every decision accepted): the real-run diamond walk autoplays once in the person's domain, three doors, a start page under 40 words; then a recorded teaching session in the onboard assistant that continues live, the evidence chip, the broken-diamond quest, *Start here*, and later the external teacher kit. 7 PRs, sized S/M/L; variants pinned at `fluxtion-diamond` `24d6d74`.
+- [M79] ☐ **The first minute** (insider + stranger reviews and OD-79.1–.10, 2026-10-18; ACCEPTED r1; r2 one independent review; r3–r4 the lead's round 2 and the owner's correction; r5 owner answers; r6 the second review, OD-79.20–.25 accepted): the real-run diamond walk autoplays once, its Spring XML beside the topology, three doors, a start page under 40 words; then a recorded, composition-first teaching conversation in the onboard assistant that continues live, the evidence chip, the broken-diamond quest, *Start here*, and later the external teacher kit. 8 PRs, sized S/M/L; variants pinned at `fluxtion-diamond` `24d6d74`.
 
 ## Session and dispatch
 
