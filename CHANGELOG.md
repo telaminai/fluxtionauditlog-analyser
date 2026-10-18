@@ -7,6 +7,7 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ## [Unreleased]
 
 - Very large `source {text}` windows now return the capped lines with a truncation notice instead of overflowing into an empty successful reply.
+- Full's report permission is bound to the project lifetime, exact output and complete report revision. Project switches, destination changes and human edits revoke an earlier permission; ownership records the actual write receipt.
 
 ### Added
 

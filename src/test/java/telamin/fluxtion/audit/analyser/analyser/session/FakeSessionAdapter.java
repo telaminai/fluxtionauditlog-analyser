@@ -181,6 +181,8 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
     public SessionEvents.Result perform(SessionEffects effect) throws Exception {
         performed.add(effect);
         return switch (effect) {
+            case SessionEffects.AnswerHostedReportApplyEffect e -> new SessionEvents.LocalAgentEffectStarted(
+                    e.opId(), 0, "answerHostedReportApply");
             case SessionEffects.PrepareBundleEffect e -> new SessionEvents.Pending(e.opId(), "verifying " + e.bundlePath());
             case SessionEffects.ShowProjectReopenEffect e -> new SessionEvents.ProjectReopenPresented(e.opId(), true);
             case SessionEffects.OpenBundleEvidenceEffect e -> new SessionEvents.Pending(e.opId(), "opening " + e.plan().logPath());

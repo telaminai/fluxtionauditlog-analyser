@@ -144,7 +144,11 @@ what is open or write files are visible to it, but **before Claude Code runs any
   **this session wrote**, while it still carries what the session left, and a new file — the report's PDF, a
   single-record finding, a CSV — into the exchange folder when its real path (links resolved) is inside the project. It
   never writes over an existing file or a report you made: the analyser re-checks the name on the event thread just
-  before it writes, and refuses a report that appeared or changed meanwhile. A write over your report or an existing
+  before it writes, and refuses a report that appeared or changed meanwhile. Permission is bound to the project
+  lifetime (switching away and back requires a fresh check), the exact request and the resolved output. Titles,
+  notes and sections all belong to the checked revision; the authoring timestamp alone is not an ownership proof.
+  The session records the revision actually written, so an intervening human edit cannot become the agent's own.
+  A write over your report or an existing
   file, a delete, a rename, a restore, an evidence bundle, any path outside the project, no project open, and **every
   `report` call in Safe analysis or from an external MCP or REST client** are asked or refused as before. The tool line
   reads *allowed: writes a new report inside this project*.

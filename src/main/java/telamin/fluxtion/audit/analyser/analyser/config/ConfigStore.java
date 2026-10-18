@@ -348,6 +348,20 @@ public final class ConfigStore {
         }
     }
 
+    /** Content revision of the persisted definition, not its display-only authoring time. */
+    public static String reportRevision(telamin.fluxtion.audit.analyser.analyser.report.ReportSpec report) {
+        if (report == null) return null;
+        Properties p = new Properties();
+        writeReports(p, List.of(report));
+        try {
+            String canonical = telamin.fluxtion.audit.analyser.analyser.llm.CanonicalJson.canonical(p);
+            return java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256")
+                    .digest(canonical.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+        } catch (java.security.NoSuchAlgorithmException impossible) {
+            throw new IllegalStateException(impossible);
+        }
+    }
+
     static void writeReports(Properties p,
                              List<telamin.fluxtion.audit.analyser.analyser.report.ReportSpec> reports) {
         writeReports(p, "report", reports);

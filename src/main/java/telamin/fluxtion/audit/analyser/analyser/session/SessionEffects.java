@@ -17,6 +17,9 @@ public sealed interface SessionEffects {
     /** The operation this effect belongs to; the answering result must carry the same id. */
     long opId();
 
+    /** Answer the final, EDT-confined report-write check. The adapter acts only on this verdict. */
+    record AnswerHostedReportApplyEffect(long opId, String refusal) implements SessionEffects { }
+
     /** Read the profile file at this path and report {@link SessionEvents.ProfileLoaded}. */
     record LoadProfileEffect(long opId, String profilePath, String expectedDigest) implements SessionEffects {
         public LoadProfileEffect(long opId, String profilePath) { this(opId, profilePath, null); }

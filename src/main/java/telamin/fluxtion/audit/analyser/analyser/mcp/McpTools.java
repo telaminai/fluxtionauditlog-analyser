@@ -201,31 +201,38 @@ public final class McpTools {
      * {@code path} would land. Absent (null) or unknown, every call is asked as before (fail-closed).
      */
     public interface ReportState {
+        /** One coherent observation. The frame overrides this to read everything in one EDT turn. */
+        default ReportObservation observe(long generation, String name, String path) {
+            String revision = revision(name);
+            return new ReportObservation(projectRoot(), 0, holds(name), revision,
+                    sessionWrote(generation, name, revision), path == null ? null : resolveOutput(path));
+        }
         /** The active project's root, or null: no project is active, and no report is written "inside" one. */
         java.nio.file.Path projectRoot();
 
         /** Whether a report called {@code name} exists now. */
         boolean holds(String name);
 
-        /** The {@code createdAt} report {@code name} carries now, or null when there is none. */
-        String createdAt(String name);
+        /** Digest of the complete persisted definition, or null when absent. Authoring time is display-only. */
+        String revision(String name);
 
         /**
          * Whether hosted generation {@code generation} wrote report {@code name} without an approval and left it carrying
-         * {@code createdAt} (the session's record, {@code PermissionState.sessionWrote}).
+         * {@code revision} in this project lifetime (the session's record, {@code PermissionState.sessionWrote}).
          */
-        boolean sessionWrote(long generation, String name, String createdAt);
+        boolean sessionWrote(long generation, String name, String revision);
 
         /** Where a verb-supplied {@code path} would be written (the exchange guard's own resolution), or null if refused. */
         java.nio.file.Path resolveOutput(String path);
     }
 
-    /**
-     * Owner 2026-10-18: a hosted {@code report} call admitted without an approval, and what it may do — run, the server
-     * requires, only as judged: {@code name} the report it writes (null: it writes only a file), {@code expectCreatedAt}
-     * the createdAt that report must still carry (null: it must not exist — a create).
-     */
-    public record ReportAdmission(String name, String expectCreatedAt) {
+    /** The frame observes these together on the EDT, including the node-owned project lifetime. */
+    public record ReportObservation(java.nio.file.Path root, long projectGeneration, boolean exists,
+                                    String revision, boolean owned, java.nio.file.Path output) { }
+
+    /** Bound capability: project lifetime, exact request, complete report revision and canonical new output. */
+    public record ReportAdmission(String name, String expectRevision, String projectRoot, long projectGeneration,
+                                  long generation, String output, String inputDigest) {
         /** Whether the call writes a report into the project's profile, not only a file. */
         public boolean writesReport() {
             return name != null;
@@ -323,7 +330,7 @@ public final class McpTools {
      *
      * <ul>
      *   <li>A build ({@code VerbOperations.ReportOp.BUILD}) of a report no report holds the name of (a create), or of a
-     *       report this session wrote without an approval that still carries the createdAt it had after that write (an
+     *       report this session wrote without an approval that still carries the complete revision of that write (an
      *       update of its own report — adding a section, retitling it).</li>
      *   <li>The single-record finding and a CSV export, which write only a file.</li>
      *   <li>Any {@code path} must resolve, through the exchange guard, to a file that does not exist yet, whose nearest
@@ -336,9 +343,14 @@ public final class McpTools {
     public static ReportAdmission reportInProject(Map<?, ?> p, OpenScope scope) {
         if (scope == null || !scope.full() || scope.reports() == null || scope.generation() <= 0) return null;
         ReportState reports = scope.reports();
+        String name = reportName(p.get("name"));
+        Object path = p.get("path");
+        if (path != null && (!(path instanceof String s) || s.isBlank())) return null;
+        ReportObservation observed;
         java.nio.file.Path root;
         try {
-            java.nio.file.Path r = reports.projectRoot();
+            observed = reports.observe(scope.generation(), name, (String) path);
+            java.nio.file.Path r = observed.root();
             if (r == null) return null;
             root = r.toRealPath();
         } catch (java.io.IOException | RuntimeException e) {
@@ -351,17 +363,15 @@ public final class McpTools {
                 && op != VerbOperations.ReportOp.CSV) {
             return null;
         }
-        Object path = p.get("path");
-        if (path != null && !newFileInside(path, reports, root)) return null;
-        if (op != VerbOperations.ReportOp.BUILD) return path == null ? null : new ReportAdmission(null, null);
-        String name = reportName(p.get("name"));
-        try {
-            if (!reports.holds(name)) return new ReportAdmission(name, null);
-            String now = reports.createdAt(name);
-            return now != null && reports.sessionWrote(scope.generation(), name, now) ? new ReportAdmission(name, now) : null;
-        } catch (RuntimeException unknown) {
-            return null;
-        }
+        String output = path == null ? null : newFileInside(observed.output(), root);
+        if (path != null && output == null) return null;
+        if (op != VerbOperations.ReportOp.BUILD && path == null) return null;
+        if (op == VerbOperations.ReportOp.BUILD && observed.exists()
+                && (observed.revision() == null || !observed.owned())) return null;
+        return new ReportAdmission(op == VerbOperations.ReportOp.BUILD ? name : null,
+                op == VerbOperations.ReportOp.BUILD && observed.exists() ? observed.revision() : null,
+                root.toString(), observed.projectGeneration(), scope.generation(), output,
+                telamin.fluxtion.audit.analyser.analyser.llm.CanonicalJson.digest(p));
     }
 
     /** The name a build writes, as the report's own record normalises it ({@code ReportSpec}): trimmed, "report" if blank. */
@@ -371,16 +381,16 @@ public final class McpTools {
     }
 
     /** Whether {@code path} lands on a file that does not exist, under a folder whose real path is inside {@code root}. */
-    private static boolean newFileInside(Object path, ReportState reports, java.nio.file.Path root) {
-        if (!(path instanceof String s) || s.isBlank()) return false;
+    public static String newFileInside(java.nio.file.Path out, java.nio.file.Path root) {
         try {
-            java.nio.file.Path out = reports.resolveOutput(s);
-            if (out == null || java.nio.file.Files.exists(out, java.nio.file.LinkOption.NOFOLLOW_LINKS)) return false;
-            java.nio.file.Path ancestor = out.toAbsolutePath().normalize().getParent();
+            if (out == null || root == null || java.nio.file.Files.exists(out, java.nio.file.LinkOption.NOFOLLOW_LINKS)) return null;
+            out = out.toAbsolutePath().normalize();
+            java.nio.file.Path ancestor = out.getParent();
             while (ancestor != null && !java.nio.file.Files.exists(ancestor)) ancestor = ancestor.getParent();
-            return ancestor != null && ancestor.toRealPath().startsWith(root);
+            if (ancestor == null || !ancestor.toRealPath().startsWith(root.toRealPath())) return null;
+            return ancestor.toRealPath().resolve(ancestor.relativize(out)).normalize().toString();
         } catch (java.io.IOException | RuntimeException e) {
-            return false;
+            return null;
         }
     }
 

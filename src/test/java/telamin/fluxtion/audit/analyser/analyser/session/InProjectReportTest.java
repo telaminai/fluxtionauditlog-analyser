@@ -59,14 +59,17 @@ class InProjectReportTest {
     void anInProjectCreateIsPreAllowed() throws Exception {
         FakeReportState r = reports();
         assertEquals(HostedCallKind.PRE_ALLOWED, kind(Map.of("name", "DEMO trace", "sections", SECTIONS), full(r)));
-        assertEquals(new ReportAdmission("DEMO trace", null), McpTools.reportInProject(Map.of("name", "DEMO trace",
-                "sections", SECTIONS), full(r)), "a create: no report of that name may exist when it runs");
+        var create = McpTools.reportInProject(Map.of("name", "DEMO trace", "sections", SECTIONS), full(r));
+        assertEquals("DEMO trace", create.name());
+        assertNull(create.expectRevision(), "a create: no report may exist when it runs");
+        assertEquals(r.root.toRealPath().toString(), create.projectRoot());
         assertEquals(HostedCallKind.PRE_ALLOWED, kind(Map.of("name", "DEMO trace", "sections", SECTIONS,
                 "path", "demo-trace.pdf"), full(r)), "with a new file inside the project");
         assertEquals(HostedCallKind.PRE_ALLOWED, kind(Map.of("path", "finding.pdf", "recordIndex", 3), full(r)),
                 "the single-record finding: a new file inside the project");
-        assertEquals(new ReportAdmission(null, null), McpTools.reportInProject(Map.of("path", "finding.pdf"), full(r)),
-                "a file output writes no report");
+        var file = McpTools.reportInProject(Map.of("path", "finding.pdf"), full(r));
+        assertFalse(file.writesReport(), "a file output writes no report");
+        assertEquals(r.exchange.toRealPath().resolve("finding.pdf").toString(), file.output());
     }
 
     @Test
@@ -79,8 +82,8 @@ class InProjectReportTest {
         r.sessionGeneration = 7;
         r.session.put("DEMO trace", "2026-10-18T10:00:00.123Z");
         assertEquals(HostedCallKind.PRE_ALLOWED, kind(addSection, full(r)));
-        assertEquals(new ReportAdmission("DEMO trace", "2026-10-18T10:00:00.123Z"), McpTools.reportInProject(addSection,
-                full(r)), "an update: the report must still carry what the session left");
+        assertEquals("2026-10-18T10:00:00.123Z", McpTools.reportInProject(addSection,
+                full(r)).expectRevision(), "an update: the report must still carry what the session left");
         r.reports.put("DEMO trace", "2026-10-18T11:30:00Z");          // the person rebuilt it meanwhile
         assertEquals(HostedCallKind.CHANGES, kind(addSection, full(r)), "replaced by someone else: asked");
         r.reports.put("DEMO trace", "2026-10-18T10:00:00.123Z");

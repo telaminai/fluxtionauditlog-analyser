@@ -116,6 +116,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphOpene
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallAbandoned;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallPresented;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallRefusedByServer;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedReportApplyRequested;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedReportWritten;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentAskAgainRequested;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentBridgeServed;
@@ -361,6 +362,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Requ
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallAbandoned
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallPresented
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallRefusedByServer
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedReportApplyRequested
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedReportWritten
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentAskAgainRequested
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentBridgeServed
@@ -939,6 +941,10 @@ public class SessionProcessor
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallRefusedByServer",
                 false),
             new ProcessorDescriptor.Input(
+                "HostedReportApplyRequested",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedReportApplyRequested",
+                false),
+            new ProcessorDescriptor.Input(
                 "HostedReportWritten",
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedReportWritten",
                 false),
@@ -1412,7 +1418,7 @@ public class SessionProcessor
           new DescriptorSupport.Meta(
               null,
               "1.0.76",
-              "1914ab736f7b230f01fd95e95e316a49e9de1152c7a281d0580995a2d3e5ab1b",
+              "c364043db1ec119cb3841fe4acda6d5c6547f4149b066f0d891d92226ae7c82d",
               null));
 
   @Override
@@ -1443,6 +1449,7 @@ public class SessionProcessor
     assistantLoop.setAssistantMode(assistantMode);
     assistantLoop.setRecordsView(recordsView);
     effectQueue.setDataFlowContext(context);
+    localAgentPermission.setActiveProject(activeProject);
     localAgentSession.setActionListener(actionListener);
     localAgentSession.setOpenLog(openLog);
     sessionBoundary.setLocalAgentSession(localAgentSession);
@@ -1815,6 +1822,9 @@ public class SessionProcessor
       handleEvent(typedEvent);
     } else if (event instanceof HostedCallRefusedByServer) {
       HostedCallRefusedByServer typedEvent = (HostedCallRefusedByServer) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof HostedReportApplyRequested) {
+      HostedReportApplyRequested typedEvent = (HostedReportApplyRequested) event;
       handleEvent(typedEvent);
     } else if (event instanceof HostedReportWritten) {
       HostedReportWritten typedEvent = (HostedReportWritten) event;
@@ -2569,6 +2579,11 @@ public class SessionProcessor
 
   @OnEventHandler(failBuildIfMissingBooleanReturn = false)
   public void onEvent(HostedCallRefusedByServer event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(HostedReportApplyRequested event) {
     processEvent(event);
   }
 
@@ -4078,6 +4093,15 @@ public class SessionProcessor
     //Default, no filter methods
     auditInvocation(localAgentSession, "localAgentSession", "onHostedRefusedByServer", typedEvent);
     isDirty_localAgentSession = localAgentSession.onHostedRefusedByServer(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(HostedReportApplyRequested typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(
+        localAgentPermission, "localAgentPermission", "onHostedReportApply", typedEvent);
+    isDirty_localAgentPermission = localAgentPermission.onHostedReportApply(typedEvent);
     afterEvent();
   }
 
@@ -6124,6 +6148,12 @@ public class SessionProcessor
       auditInvocation(
           localAgentSession, "localAgentSession", "onHostedRefusedByServer", typedEvent);
       isDirty_localAgentSession = localAgentSession.onHostedRefusedByServer(typedEvent);
+    } else if (event instanceof HostedReportApplyRequested) {
+      HostedReportApplyRequested typedEvent = (HostedReportApplyRequested) event;
+      auditEvent(typedEvent);
+      auditInvocation(
+          localAgentPermission, "localAgentPermission", "onHostedReportApply", typedEvent);
+      isDirty_localAgentPermission = localAgentPermission.onHostedReportApply(typedEvent);
     } else if (event instanceof HostedReportWritten) {
       HostedReportWritten typedEvent = (HostedReportWritten) event;
       auditEvent(typedEvent);
@@ -7129,6 +7159,10 @@ public class SessionProcessor
 
   private boolean guardCheck_evidenceCapture() {
     return isDirty_openLog | isDirty_operationGate;
+  }
+
+  private boolean guardCheck_localAgentPermission() {
+    return isDirty_activeProject;
   }
 
   private boolean guardCheck_localAgentSession() {

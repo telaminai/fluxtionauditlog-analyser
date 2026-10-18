@@ -18,6 +18,9 @@ entry to one or two lines; put anything longer in the spec, an issue or an evide
 ## Delivery order
 
 - ☑ INTEG-C1 (FIX-9): source-text window arithmetic cannot overflow into an empty success; `SourceTextTest.aLargeContextCannotWrapTheWindowIntoAnEmptySuccess` failed at `to = 0` before the correction (expected 200).
+- ☑ INTEG-C2 (FIX-8): the sample spotlight fixture waits for its earlier pane navigation to finish; the held-reader `SampleProjectSpotlightFrameTest.theSampleJourneyWaitsForItsEarlierPaneRead` reproduces the exact superseded refusal without this barrier. Product supersession is unchanged.
+- ☑ INTEG-C3 (FIX-9): report admission is bound to the node's project lifetime and exact output; `ReportOwnershipFrameTest` pins project/destination switches and link replacement. See the [v3 review](../handoff/review_integration_v3_2026_10_18_codex.md).
+- ☑ INTEG-C4 (FIX-9): complete report revisions replace timestamp ownership; internal write receipts prevent attribution of later edits. Guards: `ReportRevisionTest`, `ReportOwnershipFrameTest`, `HostedGrantServerTest.theServerRecordsTheReceiptRatherThanAnInterveningEdit`.
 
 _Refreshed 2026-10-06, after 1.32.0._ **Shipped since the 2026-09-27 refresh:** **1.25.0** (chart and report lifecycle,
 PR #51); **1.26.0 / 1.26.1** (M69 spotlight walks); **1.27.0** (evidence bundles, first delivery); **1.28.0** (M70

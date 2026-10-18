@@ -1988,6 +1988,10 @@ public final class MainFrame extends JFrame {
     private telamin.fluxtion.audit.analyser.analyser.llm.ActionResult reportVerb(
             java.util.Map<String, Object> params, String resolvedPath,
             telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.ReportAdmission admission) {
+        if (admission != null) {
+            String refusal = admitReportWrite(params, resolvedPath, admission);
+            if (refusal != null) return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(refusal);
+        }
         if (store == null) {
             return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("no log is loaded");
         }
@@ -2004,6 +2008,13 @@ public final class MainFrame extends JFrame {
         var chosen = telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.report(params);
         if (!chosen.ok()) return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(chosen.error());
         var op = chosen.op();
+        if (op == telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.ReportOp.FINDING) {
+            return exportFinding(resolvedPath,
+                    params.get("recordIndex") instanceof Number n ? n.intValue() : null,
+                    params.get("title") instanceof String s ? s : null,
+                    params.get("graph") instanceof String s ? s : null,
+                    !params.containsKey("topology") || Boolean.TRUE.equals(params.get("topology")), admission);
+        }
         Object restore = params.get("restore");
         if (op == telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.ReportOp.LIST_DELETED
                 || op == telamin.fluxtion.audit.analyser.analyser.mcp.VerbOperations.ReportOp.RESTORE) {
@@ -2090,9 +2101,9 @@ public final class MainFrame extends JFrame {
                     .assembleTable(spec.sections().get(sectionIdx), store, this::coverageForReport);
             try {
                 Path out = Path.of(resolvedPath);
-                if (out.getParent() != null) Files.createDirectories(out.getParent());
-                Files.writeString(out, telamin.fluxtion.audit.analyser.analyser.export.RecordExporter
-                        .tableToCsv(assembled.table().columns(), assembled.table().rows()));
+                writeReportOutput(out, telamin.fluxtion.audit.analyser.analyser.export.RecordExporter
+                        .tableToCsv(assembled.table().columns(), assembled.table().rows())
+                        .getBytes(java.nio.charset.StandardCharsets.UTF_8), admission);
                 Map<String, Object> echo = new java.util.LinkedHashMap<>();
                 echo.put("path", out.toAbsolutePath().toString());
                 echo.put("rows", assembled.table().rows().size());
@@ -2111,13 +2122,14 @@ public final class MainFrame extends JFrame {
         var existing = reportByName(parsed.spec().name());
         // owner 2026-10-18: a hosted call admitted without an approval writes only what was judged, here, on the EDT — a
         // report that appeared or changed meanwhile is refused, never replaced
-        String unadmitted = unadmittedReportWrite(admission, parsed.spec().name(), existing);
-        if (unadmitted != null) return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(unadmitted);
         // #46: absent means UNCHANGED, not empty. Retitling a report, or adding a path to render its
         // PDF, used to wipe every section it had.
         var spec = parsed.onto(existing);
         boolean replaced = existing != null;
         putReport(spec);
+        var receipt = admission == null ? null : new telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ReportReceipt(
+                admission.generation(), reportOwnerKey(spec.name()),
+                telamin.fluxtion.audit.analyser.analyser.config.ConfigStore.reportRevision(spec));
         // reveal what was just built, exactly as the graph verb reveals the Graph tab: the report is
         // a navigation surface and the human should see what the agent assembled
         if (reportsPanel != null) {
@@ -2160,14 +2172,13 @@ public final class MainFrame extends JFrame {
             if (render != null) {
                 try {
                     Path out = Path.of(resolvedPath);
-                    if (out.getParent() != null) Files.createDirectories(out.getParent());
-                    Files.write(out, render);
+                    writeReportOutput(out, render, admission);
                     echo.put("path", out.toAbsolutePath().toString());
                 } catch (java.io.IOException e) {
                     // M68.4 (D-E3): the report WAS saved above — say so, so a refusal is not read as "nothing happened"
                     return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
                             "report '" + spec.name() + "' was saved, but could not write " + resolvedPath + ": "
-                                    + e.getMessage());
+                                    + e.getMessage()).withReportReceipt(receipt);
                 }
             }
         }
@@ -2177,30 +2188,65 @@ public final class MainFrame extends JFrame {
         if (store != null && producer != null && !producer.isClean()) {
             echo.put("producer", producer.messages());
         }
-        return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("report", "applied", echo);
+        return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("report", "applied", echo)
+                .withReportReceipt(receipt);
     }
 
-    /**
-     * Owner 2026-10-18: why a build admitted without an approval may not run now, or null. Its admission named the report
-     * and what it must carry: nothing (a create — no report of that name may exist) or the createdAt the session's own
-     * report had (an update — it must still carry it). A file-only admission (a finding, a CSV) writes no report.
-     */
-    static String unadmittedReportWrite(telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.ReportAdmission admission,
-                                        String name, telamin.fluxtion.audit.analyser.analyser.report.ReportSpec existing) {
-        if (admission == null) return null;
-        String again = " — the call was allowed without asking you only as a new report, so nothing was changed; ask "
-                + "again and the person is asked";
-        if (!admission.writesReport() || !admission.name().equals(name)) {
-            return "report '" + name + "' is not the report this call was allowed to write" + again;
+    private long reportApplyAnswer;
+    private String reportApplyRefusal;
+
+    /** Observe together, then ask the processor. No nested event loop occurs between its answer and the write. */
+    private String admitReportWrite(Map<String, Object> params, String resolvedPath,
+            telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.ReportAdmission a) {
+        var driver = session();
+        String name = a.name() == null ? "report" : a.name();
+        String requested = params.get("path") instanceof String p ? p : null;
+        var now = hostedReportState.observe(a.generation(), name, requested);
+        if (now == null) return "the project could not be observed for report admission";
+        String actualRoot = null;
+        try { if (now.root() != null) actualRoot = now.root().toRealPath().toString(); }
+        catch (java.io.IOException ignored) { }
+        String output = requested == null ? null
+                : telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.newFileInside(now.output(), now.root());
+        // The executor's resolved path must also be the bound destination; never trust a previous config read.
+        if (requested != null && (resolvedPath == null || !Path.of(resolvedPath).toAbsolutePath().normalize()
+                .equals(now.output() == null ? null : now.output().toAbsolutePath().normalize()))) output = null;
+        long op = driver.nextOpId();
+        reportApplyAnswer = 0;
+        reportApplyRefusal = "the session did not answer the report admission";
+        driver.submit(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedReportApplyRequested(
+                op, a.generation(), a.projectGeneration(), digestOrNull(a.projectRoot()), digestOrNull(actualRoot),
+                digestOrNull(a.output()), digestOrNull(output), a.inputDigest(),
+                telamin.fluxtion.audit.analyser.analyser.llm.CanonicalJson.digest(params),
+                digestOrNull(a.name()), a.expectRevision(), now.revision(), now.exists()));
+        return reportApplyAnswer == op ? reportApplyRefusal : "the session did not answer the report admission";
+    }
+
+    private static String digestOrNull(String value) {
+        return value == null ? null : telamin.fluxtion.audit.analyser.analyser.session.LocalAgentPosture.digest(value);
+    }
+
+    private String reportOwnerKey(String name) {
+        try {
+            return projectRoot().toRealPath() + "\u0000" + session().processor().activeProject.generation() + "\u0000" + name;
+        } catch (java.io.IOException | RuntimeException unknown) { return null; }
+    }
+
+    /** CREATE_NEW closes the last-component overwrite race for pre-allowed exports. */
+    private void writeReportOutput(Path out, byte[] bytes,
+            telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.ReportAdmission admission) throws java.io.IOException {
+        if (admission == null) {
+            if (out.getParent() != null) Files.createDirectories(out.getParent());
+            Files.write(out, bytes); return;
         }
-        if (admission.expectCreatedAt() == null && existing != null) {
-            return "a report named '" + name + "' exists now" + again;
-        }
-        if (admission.expectCreatedAt() != null
-                && (existing == null || !admission.expectCreatedAt().equals(existing.createdAt()))) {
-            return "report '" + name + "' changed since this session wrote it" + again;
-        }
-        return null;
+        String current = telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.newFileInside(out, projectRoot());
+        if (!java.util.Objects.equals(admission.output(), current) || current == null)
+            throw new java.io.IOException("the admitted report output is no longer a new in-project file");
+        Path bound = Path.of(current);
+        Files.createDirectories(bound.getParent());
+        if (!current.equals(telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.newFileInside(bound, projectRoot())))
+            throw new java.io.IOException("the admitted report output changed before writing");
+        Files.write(bound, bytes, java.nio.file.StandardOpenOption.CREATE_NEW, java.nio.file.StandardOpenOption.WRITE);
     }
 
     /**
@@ -2357,6 +2403,12 @@ public final class MainFrame extends JFrame {
      */
     private telamin.fluxtion.audit.analyser.analyser.llm.ActionResult exportFinding(
             String path, Integer recordIndex, String title, String graphName, boolean withTopology) {
+        return exportFinding(path, recordIndex, title, graphName, withTopology, null);
+    }
+
+    private telamin.fluxtion.audit.analyser.analyser.llm.ActionResult exportFinding(
+            String path, Integer recordIndex, String title, String graphName, boolean withTopology,
+            telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.ReportAdmission admission) {
         if (path == null || path.isBlank()) {
             return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("'path' is required");
         }
@@ -2459,8 +2511,7 @@ public final class MainFrame extends JFrame {
 
         try {
             Path out = Path.of(path);
-            if (out.getParent() != null) Files.createDirectories(out.getParent());
-            Files.write(out, telamin.fluxtion.audit.analyser.analyser.report.FindingReport.render(evidence));
+            writeReportOutput(out, telamin.fluxtion.audit.analyser.analyser.report.FindingReport.render(evidence), admission);
             Map<String, Object> echo = new java.util.LinkedHashMap<>();
             echo.put("path", out.toAbsolutePath().toString());
             echo.put("recordIndex", row);
@@ -5360,19 +5411,31 @@ public final class MainFrame extends JFrame {
      */
     private final telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.ReportState hostedReportState =
             new telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.ReportState() {
+                @Override public telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.ReportObservation observe(
+                        long generation, String name, String path) {
+                    return onEdtOr(() -> {
+                        var driver = session();
+                        var r = reportByName(name);
+                        String revision = telamin.fluxtion.audit.analyser.analyser.config.ConfigStore.reportRevision(r);
+                        return new telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.ReportObservation(
+                                projectRoot(), driver.processor().activeProject.generation(), r != null, revision,
+                                driver.snapshot().permission().sessionWrote(generation, reportOwnerKey(name), revision),
+                                path == null ? null : resolveOutput(path));
+                    }, null);
+                }
                 @Override public Path projectRoot() { return onEdtOr(MainFrame.this::projectRoot, null); }
 
                 @Override public boolean holds(String name) { return onEdtOr(() -> reportByName(name) != null, true); }
 
-                @Override public String createdAt(String name) {
+                @Override public String revision(String name) {
                     return onEdtOr(() -> {
                         var r = reportByName(name);
-                        return r == null ? null : r.createdAt();
+                        return telamin.fluxtion.audit.analyser.analyser.config.ConfigStore.reportRevision(r);
                     }, null);
                 }
 
-                @Override public boolean sessionWrote(long generation, String name, String createdAt) {
-                    return sessionSnapshot().permission().sessionWrote(generation, name, createdAt);
+                @Override public boolean sessionWrote(long generation, String name, String revision) {
+                    return onEdtOr(() -> sessionSnapshot().permission().sessionWrote(generation, reportOwnerKey(name), revision), false);
                 }
 
                 @Override public Path resolveOutput(String path) {
@@ -9112,6 +9175,12 @@ public final class MainFrame extends JFrame {
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ReleaseHostedBridgeEffect e -> releaseHostedBridge(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ConfigureActionListenerEffect e -> configureActionListener(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.AnswerHostedCallEffect e -> hostedAdmission.answer(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.AnswerHostedReportApplyEffect e -> {
+                reportApplyAnswer = e.opId();
+                reportApplyRefusal = e.refusal();
+                yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentEffectStarted(
+                        e.opId(), 0, "answerHostedReportApply");
+            }
             // M74 P2b: onboarding, the switch offer and an example's download — the nodes decided; the frame performs
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.PreviewProposalEffect e -> previewProposal(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ApplyProposalItemEffect e -> applyProposalItem(e);

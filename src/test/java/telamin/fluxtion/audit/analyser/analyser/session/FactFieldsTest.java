@@ -98,7 +98,12 @@ class FactFieldsTest {
                 "LocalAgentAskAgainRequested.draftBindings",
                 // owner 2026-10-18: a report the hosted session wrote without an approval — its name is the model's, so
                 // the fact carries the digest of the name and of the name with its createdAt, never either
-                "HostedReportWritten.nameDigest", "HostedReportWritten.identity")) {
+                "HostedReportWritten.nameDigest", "HostedReportWritten.identity",
+                "HostedReportApplyRequested.expectedRootDigest", "HostedReportApplyRequested.actualRootDigest",
+                "HostedReportApplyRequested.expectedOutput", "HostedReportApplyRequested.actualOutput",
+                "HostedReportApplyRequested.expectedInput", "HostedReportApplyRequested.actualInput",
+                "HostedReportApplyRequested.nameDigest", "HostedReportApplyRequested.expectedRevision",
+                "HostedReportApplyRequested.actualRevision")) {
             M74.put(c, Holds.DIGEST);
         }
         for (String c : List.of("ProposalPreviewDone.setupDirShown", "LocalAgentSetupDirectoryChosen.dirShown",

@@ -70,8 +70,8 @@ public final class HostedAdmission implements telamin.fluxtion.audit.analyser.an
 
     /** Owner 2026-10-18: the server wrote a report without an approval — a fact for the session; nothing waits for it. */
     @Override
-    public void reportWritten(long generation, String name, String createdAt) {
-        post.accept(SessionEvents.HostedReportWritten.of(generation, name, createdAt));
+    public void reportWritten(long generation, String name, String revision) {
+        post.accept(SessionEvents.HostedReportWritten.of(generation, name, revision));
     }
 
     private String ask(long generation, java.util.function.LongFunction<Object> fact) {

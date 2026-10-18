@@ -143,7 +143,7 @@ public class LocalAgentPermission implements EventLogSource {
     private List<String[]> queued = new ArrayList<>();
     /**
      * Owner 2026-10-18: the reports the current generation's session wrote in the active project without an approval —
-     * the name's digest → the digest of the name with the createdAt it carried after the write
+     * the project/lifetime/name key's digest → the digest of that key with the complete revision written
      * ({@link SessionEvents.HostedReportWritten}; digests only). Another generation's fact starts the record again.
      */
     private long reportsGeneration;
@@ -153,6 +153,33 @@ public class LocalAgentPermission implements EventLogSource {
     private boolean fileExchangeOn;
     private PermissionState published = PermissionState.NONE;
     private boolean dirty = true;
+
+    private ActiveProject activeProject;
+    public ActiveProject getActiveProject() { return activeProject; }
+    public void setActiveProject(ActiveProject value) { activeProject = value; }
+
+    /** The write and these observations share one EDT turn; no UI event may interleave after this answer. */
+    @OnEventHandler(propagate = false)
+    public boolean onHostedReportApply(SessionEvents.HostedReportApplyRequested e) {
+        String refused = null;
+        if (e.generation() <= 0 || e.generation() != localAgent.admittedGeneration()
+                || !localAgent.state().posture().isFull()) {
+            refused = "the Full session that admitted this report is no longer active";
+        } else if (activeProject == null || e.projectGeneration() != activeProject.generation()
+                || e.expectedRootDigest() == null || !e.expectedRootDigest().equals(e.actualRootDigest())) {
+            refused = "the project changed after this report was admitted";
+        } else if (!Objects.equals(e.expectedOutput(), e.actualOutput())) {
+            refused = "the report output changed or is no longer a new in-project file";
+        } else if (e.expectedInput() == null || !e.expectedInput().equals(e.actualInput())) {
+            refused = "the report call changed after it was admitted";
+        } else if (e.nameDigest() != null && (e.expectedRevision() == null ? e.exists()
+                : !e.exists() || !e.expectedRevision().equals(e.actualRevision()))) {
+            refused = "the report changed after this call was admitted";
+        }
+        auditLog.info("hostedReportApply", refused == null ? "ADMITTED" : "REFUSED");
+        effects.request(new SessionEffects.AnswerHostedReportApplyEffect(e.opId(), refused));
+        return false;
+    }
 
     public LocalAgentPermission(LocalAgentSession localAgent, EffectQueue effects) {
         this.localAgent = localAgent;
