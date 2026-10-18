@@ -71,6 +71,14 @@ public final class LocalAgentAdapter {
         }
 
         /**
+         * Authoring walk (2026-10-18): the analyser's own private scratch folder, or null — the spawn re-checks the full
+         * posture's trust by the consent's rule ({@link FullFolderTrust#confirmedFull}), which exempts it while empty.
+         */
+        default Path scratchFolder() {
+            return null;
+        }
+
+        /**
          * Holistic review B7 (2026-10-17): this machine's full-posture trust records ({@code <real path>|<digest>}), read
          * at Start — so the spawn can check the folder's FULL trust digest (settings, .mcp.json and instruction files),
          * not only the posture reference. No default: an environment must say what it trusts.
@@ -199,7 +207,7 @@ public final class LocalAgentAdapter {
         // captured NOW, on the session's thread, as immutable values: the worker never reads live configuration
         Spawn s = new Spawn(e, env.model(), env.workingDirectory(), env.restUrl(), env.restToken(), env.bridgeLauncher(),
                 Map.copyOf(env.environment()), env.userHome(),
-                List.copyOf(env.fullTrustRecords() == null ? List.of() : env.fullTrustRecords()));
+                List.copyOf(env.fullTrustRecords() == null ? List.of() : env.fullTrustRecords()), env.scratchFolder());
         Run run = new Run(e.generation(), e.sessionId(), e.nonce(), writers.get());
         runs.put(e.generation(), run);
         worker.execute(() -> spawn(run, s));
@@ -208,7 +216,7 @@ public final class LocalAgentAdapter {
 
     private record Spawn(SessionEffects.StartLocalAgentEffect effect, String model, Path cwd, String restUrl,
                          String restToken, Optional<List<String>> launcher, Map<String, String> environment, Path home,
-                         List<String> fullTrust) {
+                         List<String> fullTrust, Path scratch) {
     }
 
     private void spawn(Run run, Spawn s) {
@@ -222,9 +230,12 @@ public final class LocalAgentAdapter {
         }
         // holistic review B7: the full posture runs the folder's hooks, servers and instructions — the folder read NOW must
         // still be the one the person trusted, by its FULL digest (a hook added after the confirmation is refused here)
-        if (s.effect().posture() != null && s.effect().posture().isFull() && !FullFolderTrust.confirms(s.fullTrust(),
-                ClaudeCodeProvider.realPath(s.cwd()), FullFolderTrust.digest(s.cwd()))) {
-            fail(run, SessionEvents.SpawnFailure.TRUST_CHANGED, 0);
+        // — by the consent's own rule (authoring walk, 2026-10-18: the scratch folder, exempt there, was refused here)
+        if (s.effect().posture() != null && s.effect().posture().isFull()
+                && !FullFolderTrust.confirmedFull(s.fullTrust(), s.cwd(), s.scratch())) {
+            // a folder no record names was never trusted: that is a question for the next Start, not a change
+            fail(run, FullFolderTrust.namesFolder(s.fullTrust(), ClaudeCodeProvider.realPath(s.cwd()))
+                    ? SessionEvents.SpawnFailure.TRUST_CHANGED : SessionEvents.SpawnFailure.TRUST_NEEDED, 0);
             return;
         }
         ClaudeResolver.Resolution found = provider.resolve(s.environment(), s.home());

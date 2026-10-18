@@ -5140,6 +5140,7 @@ public final class MainFrame extends JFrame {
             }
             @Override public boolean scratchForProject() { return projectRootIsAnalyserOwned(); }
             @Override public java.util.List<String> fullTrustRecords() { return config.claudeCodeTrustedFullFolders; }
+            @Override public Path scratchFolder() { return localAgentScratch; }
             @Override public telamin.fluxtion.audit.analyser.analyser.mcp.McpTools.ChartState charts() {
                 return MainFrame.this::chartExistsNow;
             }

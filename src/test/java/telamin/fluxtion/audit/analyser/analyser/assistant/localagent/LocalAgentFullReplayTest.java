@@ -224,4 +224,67 @@ class LocalAgentFullReplayTest {
         assertTrue(FullFolderTrust.dialogText(dir, FullFolderTrust.scan(dir)).contains(FullFolderTrust.NOT_RECHECKED),
                 "the dialog says plainly what the trust does not cover");
     }
+
+    /**
+     * ★ Authoring walk (2026-10-18, shots 36/37): Full Claude Code with NO project open works in the analyser's own empty
+     * scratch folder — confirmed by the consent's rule (review finding 3) and, now, by the spawn's re-check too. It was
+     * refused TRUST_CHANGED ("changed after you confirmed it") at every Start, though nothing had ever been confirmed.
+     * Witness: make {@code FullFolderTrust.confirmedFull} ignore {@code scratch} (records only) — the consent asks a
+     * question the person never needed, and the spawn is refused.
+     */
+    @Test
+    @DisplayName("★ Full with no project: the empty scratch folder starts, by the same rule the consent used")
+    void fullWithNoProjectStartsInTheEmptyScratchFolder() throws Exception {
+        FixtureAgent agent = new FixtureAgent(FixtureAgent.PB_FIXTURES, "pb-mode-default-iso.jsonl");
+        agent.rewrite = LOGGED_IN;
+        agent.conformHostedTools = true;
+        Harness h = new Harness(agent, home);
+        Path scratch = Files.createDirectories(home.resolve("scratch"));
+        h.scratch = scratch;
+        h.workingDirectory = scratch;
+        h.fullTrust = new java.util.ArrayList<>();                         // nothing was ever trusted
+        h.environment = Map.of("PATH", "/usr/bin:/bin:/usr/sbin:/sbin:" + home.resolve("bin"));
+        h.consent = LocalAgentConsents.of(scratch, scratch, home,
+                new LocalAgentConsents.Settings(true, true, "default", List.of(), List.of(), null), p -> false);
+        assertTrue(h.consent.confirmedForPosture(), "the consent exempts the empty scratch folder");
+        h.start();
+        var spawned = h.facts(SessionEvents.LocalAgentSpawned.class);
+        assertFalse(spawned.isEmpty(), "a spawn was attempted");
+        assertEquals(SessionEvents.SpawnFailure.NONE, spawned.get(spawned.size() - 1).failure(), h.state().reason());
+        assertFalse(agent.processes.isEmpty(), "Claude Code was started in the scratch folder");
+        assertFalse(h.state().reason().contains("changed after you confirmed it"), h.state().reason());
+    }
+
+    /**
+     * ★ Authoring walk: a project folder never trusted for Full is ASKED about at Start — the consent says it is not
+     * confirmed, so the node asks for the folder dialog; and should a spawn ever meet a folder no record names, it is
+     * TRUST_NEEDED ("not trusted … yet"), never TRUST_CHANGED. Witness: report TRUST_CHANGED whatever
+     * {@code namesFolder} says — the spawn's verdict is TRUST_CHANGED.
+     */
+    @Test
+    @DisplayName("★ a folder never trusted for Full is asked about, never reported as changed")
+    void aFolderNeverTrustedIsAskedNotChanged() throws Exception {
+        FixtureAgent agent = new FixtureAgent(FixtureAgent.PB_FIXTURES, "pb-mode-default-iso.jsonl");
+        agent.rewrite = LOGGED_IN;
+        agent.conformHostedTools = true;
+        Harness h = new Harness(agent, home);
+        Path dir = home.resolve("proj");
+        h.fullTrust = new java.util.ArrayList<>();
+        h.environment = Map.of("PATH", "/usr/bin:/bin:/usr/sbin:/sbin:" + home.resolve("bin"));
+        // what the frame observes: not confirmed, so Start asks
+        h.consent = LocalAgentConsents.of(dir, home.resolve("elsewhere"), home,
+                new LocalAgentConsents.Settings(true, true, "default", List.of(), List.of(), null), p -> false);
+        assertFalse(h.consent.confirmedForPosture());
+        h.start();
+        assertTrue(h.others.stream().anyMatch(e -> e instanceof telamin.fluxtion.audit.analyser.analyser.session
+                .SessionEffects.ConfirmLocalAgentFolderEffect c && c.full()), "Start asks about the folder: " + h.others);
+        assertTrue(agent.processes.isEmpty(), "nothing was started before the answer");
+        // a consent that claimed it (a record removed between the observation and the spawn): not "changed"
+        h.consent = h.fullConsent(FullMode.DEFAULT);
+        h.start();
+        var spawned = h.facts(SessionEvents.LocalAgentSpawned.class);
+        assertEquals(SessionEvents.SpawnFailure.TRUST_NEEDED, spawned.get(spawned.size() - 1).failure());
+        assertTrue(h.state().reason().contains("not trusted for full Claude Code yet"), h.state().reason());
+        assertTrue(agent.processes.isEmpty(), "nothing was started");
+    }
 }

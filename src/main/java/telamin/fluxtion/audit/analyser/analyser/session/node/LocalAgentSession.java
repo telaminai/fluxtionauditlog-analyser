@@ -708,6 +708,8 @@ public class LocalAgentSession implements EventLogSource {
                 case ENDPOINT_FAILED -> "the analyser could not write the bridge's endpoint file, so nothing was started";
                 case TRUST_CHANGED -> "the folder's settings, hooks, MCP servers or instruction files changed after you "
                         + "confirmed it for full Claude Code, so nothing was started — press Start to see what changed";
+                case TRUST_NEEDED -> "this folder is not trusted for full Claude Code yet, so nothing was started — "
+                        + "press Start to see what it loads and choose whether to trust it";
                 case FOLDER_CHANGED -> "the working folder changed after Start was decided (a project was opened or "
                         + "closed), so nothing was started — press Start again";
                 default -> "Claude Code could not be started";

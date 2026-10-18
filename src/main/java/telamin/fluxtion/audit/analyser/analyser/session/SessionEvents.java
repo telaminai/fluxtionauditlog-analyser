@@ -1160,7 +1160,12 @@ public final class SessionEvents {
         /** The working directory at spawn is not the one the posture was decided for (review M7). */
         FOLDER_CHANGED,
         /** Review B7: in the full posture, the folder's full trust digest at spawn is not one the person confirmed. */
-        TRUST_CHANGED }
+        TRUST_CHANGED,
+        /**
+         * Authoring walk (2026-10-18): in the full posture, no record names the folder at all — it was never trusted, so
+         * nothing "changed"; the next Start asks about it.
+         */
+        TRUST_NEEDED }
 
     /** The process for {@code generation} started ({@code failure} NONE), or did not; {@code detailRef} names the words. */
     public record LocalAgentSpawned(long generation, SpawnFailure failure, long detailRef) {

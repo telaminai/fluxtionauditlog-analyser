@@ -715,6 +715,27 @@ public final class FullFolderTrust {
     }
 
     /** Whether {@code records} confirm {@code realPath} with exactly {@code digest} — never the path alone. */
+    /**
+     * Authoring walk (2026-10-18, shots 36/37): the ONE full-posture confirmation rule, read by the consent the session
+     * decides from AND by the spawn's re-check (holistic review B7) — the analyser's own scratch folder counts as
+     * confirmed while it holds none of the files Start would load (review finding 3); any other folder by its record.
+     * The two had drifted: the consent exempted the scratch folder, the spawn did not, and Full with no project open
+     * was refused "changed after you confirmed it" at every Start, though nothing had ever been confirmed.
+     */
+    public static boolean confirmedFull(List<String> records, Path dir, Path scratch) {
+        if (dir == null) return false;
+        Scan scan = scan(dir);
+        return dir.equals(scratch) && scan.allAbsent()
+                || confirms(records, ClaudeCodeProvider.realPath(dir), scan.digest());
+    }
+
+    /** Whether any record names {@code realPath} — a folder trusted once, whatever its content was then. */
+    public static boolean namesFolder(List<String> records, String realPath) {
+        if (records == null || realPath == null) return false;
+        for (String r : records) if (r != null && r.startsWith(realPath + "|")) return true;
+        return false;
+    }
+
     public static boolean confirms(List<String> records, String realPath, String digest) {
         if (records == null || realPath == null || digest == null) return false;
         return records.contains(record(realPath, digest));

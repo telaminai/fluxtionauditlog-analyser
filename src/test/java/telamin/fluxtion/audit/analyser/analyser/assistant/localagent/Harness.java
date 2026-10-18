@@ -32,6 +32,8 @@ final class Harness {
     final List<SessionEffects> others = new ArrayList<>();
     /** Review B7: the full-posture trust records the environment reports; null until first asked (then the folder as-is). */
     List<String> fullTrust;
+    /** Authoring walk: the analyser's own scratch folder the environment reports (null: none). */
+    Path scratch;
     /** P3: what the adapter answered each effect with (an AnswerPermissionEffect's result is the answer as written). */
     final List<SessionEvents.Result> results = new ArrayList<>();
     final Path home;
@@ -91,6 +93,7 @@ final class Harness {
                 return environment != null ? environment : Map.of("PATH", bin.toString());
             }
             @Override public Path userHome() { return home; }
+            @Override public Path scratchFolder() { return scratch; }
             @Override public List<String> fullTrustRecords() {
                 // review B7: the working folder is trusted as it is when first asked, unless a test set its own records
                 if (fullTrust == null) {
