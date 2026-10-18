@@ -1,6 +1,7 @@
 # M77 — Set up AI: the first-run wizard for the shared canvas
 
-**Status:** DRAFT r2, 2026-10-18 — r2 folds in the independent review of r1
+**Status:** ACCEPTED r3, 2026-10-18 — the owner accepted every recommendation of OD-77.1–.13 on 2026-10-18 (§20).
+r2 folded in the independent review of r1
 ([`review_m77_r1_7f3c.md`](../handoff/review_m77_r1_7f3c.md), 3 blockers, 8 major findings, 30 in all; the
 disposition table is in that file and summarised in *Revision history*). r1 was written from the owner's direction of
 2026-10-18 and the first-time-user robot walk of the same day (built on `review-fix/pr-151` @ `79cb0f43`, restated in
@@ -843,21 +844,21 @@ poll makes in the view today (review R1-16 e). Each is a tracker line, not M77.
 
 ## 20. Open owner decisions
 
-| # | Question | Recommendation |
-|---|---|---|
-| **OD-77.1** | First run: the wizard's first screen **inline on the start page** (keeps D-S1), or a modeless window that **opens by itself** after the splash (reverses D-S1/R6)? | inline |
-| **OD-77.2** | When a question is waiting, **skip the Summary** (6 acts; the summary becomes the panel's status line) or always show it (7 acts)? | skip |
-| **OD-77.3** | The profile cards: **remove `ProfileOverlay`** (Assistant ▾ becomes a quick-switch menu), or keep it as an advanced view? | remove |
-| **OD-77.4** | AI ▸ *External MCP/REST access*: give turning it **on** the same SafeChoice confirmation (today one click)? | yes; off stays one click |
-| **OD-77.5** | *No AI* while external access is on: also turn access off? | ask with a ticked box *"Also turn off External MCP/REST access"* on Screen 1 (turning off is the safe direction) |
-| **OD-77.6** | `AssistantMode.NONE`: land it in P-2 or in M77-1? | P-2, if it is not too late; otherwise M77-1 |
-| **OD-77.7** | The product name in the wizard's copy: `{Product}` = "the analyser" until the rename PR? | yes |
-| **OD-77.8** | Forward the client's self-reported name to the live check as a display label? | yes, labelled as self-reported |
-| **OD-77.9** | Offer the first-run block to an upgrader whose profile is still NONE? | yes, once (it is not a modal) |
-| **OD-77.10** | 2b's default for Claude Code: **Register for me…** first (behind its confirmation), or **I'll run it myself** first? | Register for me… first |
-| **OD-77.11** | Cancel after this wizard turned external access on: keep it on with a one-click **Turn it off** (§7.4), or roll back what this wizard turned on? | keep it on, offer Turn it off |
-| **OD-77.12** | `McpSetupDialog`: keep it behind *More options…* (its dialogs converted to SafeChoice, §9.3), or retire it? | keep it |
-| **OD-77.13** | One node: grow `AssistantProfileChoice` into `aiSetup` (§8.1), or keep two nodes with `aiSetup` downstream and request-keyed outcome facts published by `assistantProfile`? | one node |
+| # | Question | Recommendation | Owner (2026-10-18) |
+|---|---|---|---|
+| **OD-77.1** | First run: the wizard's first screen **inline on the start page** (keeps D-S1), or a modeless window that **opens by itself** after the splash (reverses D-S1/R6)? | inline | **Accepted** |
+| **OD-77.2** | When a question is waiting, **skip the Summary** (6 acts; the summary becomes the panel's status line) or always show it (7 acts)? | skip | **Accepted** |
+| **OD-77.3** | The profile cards: **remove `ProfileOverlay`** (Assistant ▾ becomes a quick-switch menu), or keep it as an advanced view? | remove | **Accepted** |
+| **OD-77.4** | AI ▸ *External MCP/REST access*: give turning it **on** the same SafeChoice confirmation (today one click)? | yes; off stays one click | **Accepted** |
+| **OD-77.5** | *No AI* while external access is on: also turn access off? | ask with a ticked box *"Also turn off External MCP/REST access"* on Screen 1 (turning off is the safe direction) | **Accepted** |
+| **OD-77.6** | `AssistantMode.NONE`: land it in P-2 or in M77-1? | P-2, if it is not too late; otherwise M77-1 | **Accepted** |
+| **OD-77.7** | The product name in the wizard's copy: `{Product}` = "the analyser" until the rename PR? | yes | **Accepted** |
+| **OD-77.8** | Forward the client's self-reported name to the live check as a display label? | yes, labelled as self-reported | **Accepted** |
+| **OD-77.9** | Offer the first-run block to an upgrader whose profile is still NONE? | yes, once (it is not a modal) | **Accepted** |
+| **OD-77.10** | 2b's default for Claude Code: **Register for me…** first (behind its confirmation), or **I'll run it myself** first? | Register for me… first | **Accepted** |
+| **OD-77.11** | Cancel after this wizard turned external access on: keep it on with a one-click **Turn it off** (§7.4), or roll back what this wizard turned on? | keep it on, offer Turn it off | **Accepted** |
+| **OD-77.12** | `McpSetupDialog`: keep it behind *More options…* (its dialogs converted to SafeChoice, §9.3), or retire it? | keep it | **Accepted** |
+| **OD-77.13** | One node: grow `AssistantProfileChoice` into `aiSetup` (§8.1), or keep two nodes with `aiSetup` downstream and request-keyed outcome facts published by `assistantProfile`? | one node | **Accepted** |
 
 ## Revision history
 
@@ -874,3 +875,10 @@ poll makes in the view today (review R1-16 e). Each is a tracker line, not M77.
   for external access across four doors, and Settings' missing confirmation corrected (R1-7, R1-8); one resolver
   (R1-9); P-3 a hard gate of M77-2 and the interim routing of the client choices (R1-10, R1-11); copy, keyboard and
   test-witness fixes (R1-12–R1-30). Effort 15–20 days; three owner decisions added (OD-77.11–.13).
+- **r3, 2026-10-18** — **ACCEPTED.** The owner accepted every recommendation of OD-77.1–.13: the first run inline on
+  the start page; the Summary skipped when a question is waiting; the profile cards retired as the entry (Assistant ▾
+  a quick switch plus *Set up AI…*); a confirmation before turning External MCP/REST access on from the AI menu and
+  Settings; *No AI* offering a ticked box to turn external access off; NONE placed with P-2's first-run fixes; the
+  product name through a constant; the client's self-reported name shown in the live check, labelled as its claim; the
+  first-run block offered once to upgraders with nothing set up; *Register for me…* first, with the exact command shown
+  and confirmed; Cancel keeping access on with *Turn it off*; `McpSetupDialog` kept behind *More options…*; one node.
