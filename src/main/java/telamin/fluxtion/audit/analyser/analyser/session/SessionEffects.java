@@ -785,10 +785,12 @@ public sealed interface SessionEffects {
     /**
      * Write the starter's skills — the canonical set for its authoring and host and, for Spring, the pinned playground
      * design skill and contract — from the analyser's own jar under {@code <root>/.claude/skills/}, never overwriting a
-     * file; answer {@link SessionEvents.SkillsVendored}.
+     * file; answer {@link SessionEvents.SkillsVendored}. {@code commandsRef} is the starter's first-run record (the
+     * post-install command list; 0 when none) and {@code keyNeed} the template's key declaration: {@code add-a-node}'s
+     * regeneration marker is substituted from those two, after the pins are checked, or kept when there is no record.
      */
-    record VendorSkillsEffect(long opId, long request, long rootRef, String authoring, String host)
-            implements SessionEffects {
+    record VendorSkillsEffect(long opId, long request, long rootRef, String authoring, String host, long commandsRef,
+                              String keyNeed) implements SessionEffects {
     }
 
     /** Day-two discovery in the new project; answer {@link SessionEvents.StarterDiscoveryObserved}. */
@@ -797,10 +799,12 @@ public sealed interface SessionEffects {
 
     /**
      * The ONE combined review: the starter profile's declared roots and processor, the discovered skills and graphs,
-     * every row at No; answered by {@link SessionEvents.StarterReviewAnswered}.
+     * every row at No except the Spring design's folder when {@code designDefaultYes} (owner, 2026-10-18: it is inside
+     * the project just created, and needed to show the design); answered by {@link SessionEvents.StarterReviewAnswered}.
      */
     record ReviewStarterProjectEffect(long opId, long request, long rootRef, long offerRef, boolean profilePresent,
-                                      java.util.List<String> vendored) implements SessionEffects {
+                                      java.util.List<String> vendored, boolean designDefaultYes)
+            implements SessionEffects {
         public ReviewStarterProjectEffect {
             vendored = java.util.List.copyOf(vendored == null ? java.util.List.of() : vendored);
         }
