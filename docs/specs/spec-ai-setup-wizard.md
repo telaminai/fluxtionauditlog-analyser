@@ -12,8 +12,9 @@ and in §17's effort row. **`assistant.setup.dismissed` has no writer left** (on
 it is not added: `AiSetupStartupObserved` loses `dismissed`, and `AiSetupFirstRunDismissed`,
 `PersistSetupDismissedEffect` and the key's half of T14 are withdrawn; the wizard adds one machine-tier key,
 `assistant.setup.client`. The capture harness needs no dismissed pin. M79 also amends three places here: T15
-(below), §6.4's *your own client* row (M79-5), and `origin` (a `START_CONNECT` value for M79-5's *Connect your own
-Claude*, which opens at Screen 2b with Claude Code chosen).
+(below), §6.4's *your own client* row (M79-6), and `origin` (a `START_CONNECT` value for M79-6's *Connect your own
+Claude*, which opens at Screen 2b with Claude Code chosen, and a `LESSON` value for M79-2's *Continue with Claude*
+after a recorded lesson, with nothing set up).
 r2 folded in the independent review of r1
 ([`review_m77_r1_7f3c.md`](../handoff/review_m77_r1_7f3c.md), 3 blockers, 8 major findings, 30 in all; the
 disposition table is in that file and summarised in *Revision history*). r1 was written from the owner's direction of
@@ -429,7 +430,7 @@ at 6 acts (§16).
 | Claude inside (or Both), no log open | **Open the sample and ask what happened** | opens the demo sample (the start page's *Sample project* action), selects the demo manifest's breach record **by its record id, never a row number**, and places *"What happened here?"* bound for Claude Code, focus on Send |
 | Claude inside (or Both), a log open, a record selected | **Ask about the selected record** | places the Ask catalogue's *What happened here?* for that record, focus on Send |
 | Claude inside, a log open, nothing selected | — | the line *"Right-click any record and choose Ask… to ask about it."* and **Done** |
-| Your own client only | **Copy a first question** | copies *"Use analyser_context, then tell me what happened in the open log."*; the line *"Ask it in your terminal."* **r5 (M79-5):** when the wizard was opened by *Connect your own Claude* (`origin` `START_CONNECT`) the action is **Copy the first prompt**, the first entry of the shipped pack *Your project, for your own Claude* (M79 §11) |
+| Your own client only | **Copy a first question** | copies *"Use analyser_context, then tell me what happened in the open log."*; the line *"Ask it in your terminal."* **r5 (M79-6):** when the wizard was opened by *Connect your own Claude* (`origin` `START_CONNECT`) the action is **Copy the first prompt**, the first entry of the shipped pack *Your project, for your own Claude* (M79 §11) |
 | In-app with a key | as the Claude rows | for the in-app assistant |
 | No AI | **Take the guided tour** | starts `DemoTour` |
 
@@ -548,7 +549,7 @@ Enums, ids, times and the node's own words only — never a path, a key, raw CLI
 |---|---|---|
 | `open` | boolean | the window is open (one instance) |
 | ~~`firstRun`~~ | boolean | the start page shows the first-run block (§6.0). **Withdrawn (r5, M79 OD-79.5)** |
-| `origin` | ~~`FIRST_RUN`~~ `· MENU · START_LINE · SEND · ASK · SETTINGS · START_CONNECT` | why it opened. r5: `FIRST_RUN` withdrawn (OD-79.5); `START_CONNECT` added for M79-5 (*Connect your own Claude*, at 2b with Claude Code chosen) |
+| `origin` | ~~`FIRST_RUN`~~ `· MENU · START_LINE · SEND · ASK · SETTINGS · START_CONNECT · LESSON` | why it opened. r5: `FIRST_RUN` withdrawn (OD-79.5); `START_CONNECT` added for M79-6 (*Connect your own Claude*, at 2b with Claude Code chosen); `LESSON` for M79-2 (*Continue with Claude* after a recorded lesson) |
 | `step` | `CHOICE · INSIDE · CLIENT · OTHER · SUMMARY` | the screen |
 | `choice` | `NONE · NO_AI · CLIENT · INSIDE · BOTH · IN_APP` | the person's Screen 1 choice in this wizard |
 | `inForce` | same enum | the choice in force, DERIVED (§14.1) — what Screen 1 preselects and the AI line says |
