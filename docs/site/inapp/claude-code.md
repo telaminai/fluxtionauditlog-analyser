@@ -73,10 +73,11 @@ Claude Code can use **your own tools — Bash, file edits, web access — as far
 choose allow**. **The analyser does not confine it to the folder**; your rules and the mode do.
 
 - **The mode** (shown under the switch when it is on): `default` asks before anything your rules don't allow — the
-  analyser shows each request in its approval dialog ([Approvals](approvals.md)); `acceptEdits` edits files in the folder without asking,
-  otherwise as `default`; `auto` lets Claude Code's own safety classifier approve or block each action without asking you — it needs
+  analyser shows each request in its approval dialog ([Approvals](approvals.md)); `acceptEdits` can accept file edits
+  and some filesystem commands without asking. Commands already allowed by your rules also need no dialog.
+  `auto` lets Claude Code's own safety classifier approve or block each action without asking you — it needs
   a model that supports it (sonnet or opus): with another, Claude Code starts in `default` instead, and the analyser
-  stops it and says so; `plan` reads and plans, and edits and runs nothing. `bypassPermissions` and `dontAsk` are
+  stops it and says so; `plan` reads and plans without editing, but permitted read-only commands may run. `bypassPermissions` and `dontAsk` are
   never offered; a hand-edited setting naming either reads as `default`, and Settings says so.
 - **The folder is confirmed separately for full Claude Code**, because Start itself **runs the folder's hooks and
   connects its MCP servers**, before you send anything. The dialog names what it found — *"Hooks in this folder:

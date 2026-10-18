@@ -75,8 +75,8 @@ until you press Start or Send ([The start page](../user-guide/start-page.md)).
   (`default`, `acceptEdits`), the analyser shows you each request your rules would ask about
   ([Claude Code in the analyser ▸ Full Claude Code](../inapp/claude-code.md#full-claude-code-your-own-claude-code-by-a-second-opt-in)).
   How it differs from Claude Code in a terminal is on that page. If Full Claude Code is already set up in `default`,
-  **Start building** offers one line on the Claude Code tab — *Building works best when Claude edits files in this
-  project without asking; commands still ask you. Switch?* — **Switch (new chat)** sets the mode to `acceptEdits` and
+  **Start building** offers one line on the Claude Code tab — *Building: file edits and some commands can run without
+  asking; your permission rules still apply. Switch?* — **Switch (new chat)** sets the mode to `acceptEdits` and
   restarts Claude Code; **Keep asking** leaves it as it is. Nothing switches unless you press it.
 - **Claude Code, Codex or another client in your terminal or IDE** builds with its own tools, and drives the analyser
   over MCP ([Connect your client](../connect-an-llm.md)).

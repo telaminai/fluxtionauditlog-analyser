@@ -49,7 +49,12 @@ class BuildModeOfferPanelTest {
             assertTrue(p.buildModeBanner().isVisible());
             assertEquals(AiSetupLines.BUILD_MODE_SWITCH, p.buildModeSwitchButton().getText());
             assertEquals(AiSetupLines.BUILD_MODE_KEEP, p.buildModeKeepButton().getText());
-            assertTrue(AiSetupLines.BUILD_MODE_OFFER.contains("commands still ask you"), AiSetupLines.BUILD_MODE_OFFER);
+            String shown = StarterProposalFrameTest.text(p.buildModeBanner());
+            assertTrue(shown.contains("some commands can run without asking"),
+                    "the mode offer must not promise approval for every command: " + shown);
+            assertTrue(shown.contains("permission rules"), "the rendered offer must name the actual permission boundary");
+            assertTrue(AiSetupLines.ACCEPT_EDITS_NOTE.contains("some commands can run without asking"),
+                    "the wizard must disclose the same automatic-command behaviour");
             p.buildModeKeepButton().doClick();
             p.buildModeSwitchButton().doClick();
             assertEquals(List.of("5:keep", "5:switch"), said);

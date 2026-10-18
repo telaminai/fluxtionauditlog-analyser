@@ -693,7 +693,7 @@ public class AiSetup implements EventLogSource {
         // a Build question waits: only Full Claude Code can write code, so it is the sub-choice preselected — its
         // confirmation is still asked at Finish (apply's ConfirmFullProfileEffect), nothing is applied before it.
         // Owner follow-up (2026-10-18): in Claude Code's own acceptEdits mode, so an authoring run does not ask for every
-        // edit (the live walk: 14 approvals under default); commands still ask, and the person may pick default
+        // edit (the live walk: 14 approvals under default); command approvals follow the CLI's rules and mode
         if (authoringWaiting) {
             posture = Posture.FULL;
             fullMode = AiSetupLines.BUILD_FULL_MODE;
