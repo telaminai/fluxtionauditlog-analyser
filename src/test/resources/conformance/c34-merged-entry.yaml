@@ -1,0 +1,51 @@
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1792332320249
+    groupingId: null
+    event: EventLogControlEvent
+    eventToString: EventLogConfig{level=null, logRecordProcessor=com.acme.demo.ProbeMain$$Lambda@1, sourceId=null, groupId=null}
+    thread: main
+    nodeLogs: 
+        - pe: { cb: AfterEvent, n: 1}
+        - pc: { cb: AfterEvent, n: 1}
+        - pb: { cb: AfterEvent, n: 1}
+        - pa: { cb: AfterEvent, n: 1}
+    endTime: 1792332320252
+---
+eventLogRecord: 
+    eventTime: 1792332320254
+    logTime: 1792332320254
+    groupingId: null
+    event: LifecycleEvent
+    eventToString: Init
+    thread: main
+    nodeLogs: 
+        - pa: { cb: Initialise, n: 1}
+        - pc: { cb: Initialise, n: 1}
+        - pe: { cb: Initialise, n: 1, cb: AfterEvent, n: 2}
+        - pc: { cb: AfterEvent, n: 2}
+        - pb: { cb: AfterEvent, n: 2}
+        - pa: { cb: AfterEvent, n: 2}
+    endTime: 1792332320254
+---
+eventLogRecord: 
+    eventTime: 1792332320260
+    logTime: 1792332320260
+    groupingId: null
+    event: X
+    eventToString: X[value=1]
+    thread: main
+    nodeLogs: 
+        - pa: { thread: main, method: onX, annotation: OnEventHandler, cb: onX(changed=true), n: 1}
+        - pb: { thread: main, method: onTrigger, annotation: OnTrigger, cb: OnTrigger, n: 1}
+        - pc: { thread: main, method: onTrigger, annotation: OnTrigger, cb: OnTrigger, n: 1}
+        - pe: { cb: AfterTrigger, n: 1}
+        - pc: { cb: AfterTrigger, n: 1}
+        - pb: { cb: AfterTrigger, n: 1}
+        - pa: { cb: AfterTrigger, n: 1}
+        - pe: { cb: AfterEvent, n: 3}
+        - pc: { cb: AfterEvent, n: 3}
+        - pb: { cb: AfterEvent, n: 3}
+        - pa: { cb: AfterEvent, n: 3}
+    endTime: 1792332320260

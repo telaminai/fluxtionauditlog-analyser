@@ -553,6 +553,72 @@ escapes is enough, and Format 1 readers already read quoted values.
 names it (`BROKEN_VALUE`, Format specification §2), so the text can no longer appear as a node or an event type. It
 cannot recover what the record would have said; only the writer can.
 
+### UP-FLX-56 ☐ DOC — `claude.txt` lists `@AfterEvent` as a trigger annotation that propagates; it does not
+
+**Target** `fluxtion` (docs: `docs/claude.txt`, the framework reference agents read first) · **Priority** high —
+it is the reference CLAUDE.md rule 6 sends every session to · _Not filed yet (2026-10-18)._
+
+**Evidence: measured** on a probe processor (fluxtion-runtime 1.1.2, builder 1.0.79), and read in the processor it
+generated. `claude.txt` line 206, *Bridging DSL flows into imperative `@OnTrigger` nodes*, says: "A node only
+propagates change to its dependents if it has at least one trigger annotation (`@OnEventHandler`, `@OnTrigger`,
+`@AfterEvent`)." In the probe, node `pe` has only `@AfterEvent`, `@AfterTrigger`, `@Initialise` and `@Start`, and
+its child `pf` has an `@OnTrigger`:
+- the generated processor has no dirty flag for `pe` (`isDirty_pa`, `isDirty_pb`, `isDirty_pc` only);
+- `pf`'s `@OnTrigger` appears nowhere in the generated dispatch: it is never called;
+- `pe.afterEvent()` runs at the end of every event and lifecycle phase, and changes nothing downstream.
+
+So `@AfterEvent` is not a trigger annotation in the sense that sentence uses: it gives a node no dirty state and
+its dependents no trigger.
+
+**Ask.** Drop `@AfterEvent` from that list, and say what it is instead: a callback that runs on every node at the end
+of every handled event and lifecycle phase, regardless of dirty state, in reverse topological order, and that never
+propagates. An author who reads the current sentence builds an `@AfterEvent`-only bridge node and gets a child that
+never fires, silently — the failure the section exists to prevent.
+
+### UP-FLX-57 ☐ DOC — the `@AfterTrigger` javadoc's conditions are not what 1.0.79 generates
+
+**Target** `fluxtion` (runtime: the `AfterTrigger` annotation's javadoc) · **Priority** medium ·
+_Not filed yet (2026-10-18)._
+
+**Evidence: measured** on the same probe. The javadoc says an `@AfterTrigger` method is called only if "an event in
+phase handler is present in the same instance" and "an event in phase handler is on the current execution path".
+Node `pe` has NO event-in-phase handler (no `@OnEventHandler`, no `@OnTrigger`), yet builder 1.0.79 generates
+`if (isDirty_pa) { pe.afterTrigger(); }`, and the log shows `- pe: { cb: AfterTrigger, n: 1}` on every event that
+made its parent `pa` dirty, and on no other. The condition actually generated is: the node's parent was dirty in this
+event. (The javadoc also still calls the method an "OnEventComplete method", a name the annotation no longer has.)
+
+**Ask.** Rewrite the conditions to the generated rule — runs in the after-event phase, in reverse topological order,
+when a parent of the node was dirty in this cycle, whether or not the node has an event-in-phase handler — or, if the
+javadoc states the intended rule, report the generator's behaviour as the bug. Either way the two must agree.
+
+### UP-FLX-58 ☐ QUESTION — one `nodeLogs` entry can hold two callbacks' writes, with repeated keys. Intended?
+
+**Target** `fluxtion` (runtime: `LogRecord`, the YAML audit record writer) · **Priority** medium — the analyser
+already reads it correctly; the question is what the record means · _Not filed yet (2026-10-18)._
+
+**Evidence: measured and read.** fluxtion-runtime 1.1.2 `LogRecord.addSourceId` opens a new `- id: {` entry only
+when the writing node differs from the last one; `addTrace` (invocation tracing) is the only other thing that starts
+one. So a node that logs in two consecutive callbacks with no other node writing between them writes ONE entry. On
+the probe, `pe`'s `@Initialise` and `@AfterEvent` writes give:
+
+    - pe: { cb: Initialise, n: 1, cb: AfterEvent, n: 2}
+
+and the same happens for `@Start` then `@AfterEvent`. Two consequences:
+- The record cannot say where the first callback ended. Untraced callbacks (lifecycle, `@AfterTrigger`,
+  `@AfterEvent`, and every callback when tracing is off) leave no boundary, so "one entry per invocation" holds only
+  for traced dispatch callbacks.
+- The entry has duplicate mapping keys, which YAML 1.2 forbids. A strict YAML parser rejects the record; a lenient
+  one keeps one value per key and silently loses the other callback's writes. The analyser keeps every pair
+  (Format specification §3, fixture C34), but any other consumer that treats the record as YAML loses data.
+
+**Ask.** Say whether this is intended. If it is, document that an entry is one run of writes by one node, not one
+callback, so no reader assumes otherwise. If it is not, close the entry at each callback boundary (each callback
+starts its own entry, as `addTrace` does for traced invocations), so the record is valid YAML and each callback's
+writes are their own entry. Either answer is cheap to honour on the analyser side; the second would also let
+`nodeLogs` counts mean callbacks.
+
+**Not a blocker.** The analyser reads the merged entry losslessly today and says so in the specification.
+
 ---
 
 ## 1c · Fluxtion compiler — diagnostics measured by the experience loop
