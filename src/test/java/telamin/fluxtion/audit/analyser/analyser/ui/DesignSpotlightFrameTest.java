@@ -14,13 +14,16 @@ import static org.junit.jupiter.api.Assumptions.assumeFalse;
 import static telamin.fluxtion.audit.analyser.analyser.ui.AsyncOpenInterleavingFrameTest.*;
 
 class DesignSpotlightFrameTest {
-    @Test void sourceViewportRefusesHiddenLinesAndAddReportsDepartures(@TempDir Path tmp) throws Exception {
+    @Test void sourceViewportRefusesHiddenLinesAndAddReportsDepartures(@TempDir Path base) throws Exception {
+        // P5: the frame's isolated home is base/home, so base itself contains the home folder and is refused as a
+        // source root; the design lives in a sibling folder, which is allowed
+        Path tmp=Files.createDirectories(base.resolve("design"));
         assumeFalse(GraphicsEnvironment.isHeadless());
         Path xml=tmp.resolve("design.xml");
         var text=new StringBuilder("<beans>\n");
         for (int i=2;i<=150;i++) text.append("  <bean id=\"node").append(i).append("\" class=\"com.acme.Node\"/>\n");
         text.append("</beans>\n");Files.writeString(xml,text);
-        try(var f=new Frame(tmp)) {
+        try(var f=new Frame(base)) {
             onEdt(() -> {
                 ((AppConfig)field(f.frame,"config")).sourceRoots.add(tmp.toString());
                 f.frame.setSize(1300,850);f.frame.setVisible(true);f.frame.validate();
@@ -63,10 +66,13 @@ class DesignSpotlightFrameTest {
             }
         }
     }
-    @Test void viewportMovementExtinguishesPartiallyVisibleDesignBand(@TempDir Path tmp) throws Exception {
+    @Test void viewportMovementExtinguishesPartiallyVisibleDesignBand(@TempDir Path base) throws Exception {
+        // P5: the frame's isolated home is base/home, so base itself contains the home folder and is refused as a
+        // source root; the design lives in a sibling folder, which is allowed
+        Path tmp=Files.createDirectories(base.resolve("design"));
         assumeFalse(GraphicsEnvironment.isHeadless());
         Path xml=Files.writeString(tmp.resolve("design.xml"),"<beans>\n"+"  <!-- context -->\n".repeat(150)+"</beans>\n");
-        try(var f=new Frame(tmp)) {
+        try(var f=new Frame(base)) {
             onEdt(()->{((AppConfig)field(f.frame,"config")).sourceRoots.add(tmp.toString());f.frame.setSize(1300,850);f.frame.setVisible(true);});
             assertTrue(f.ex.render("open",Map.of("design",xml.toString())).ok());
             onEdt(()->{
@@ -104,14 +110,17 @@ class DesignSpotlightFrameTest {
      * overflows by construction — 200 lines — and the XML must keep usable height with the target line on screen.
      * Measured before any spotlight: a design reveal re-renders the note, which would put the short one back.
      */
-    @Test void anOverflowingStatusNoteLeavesTheXmlItsHeight(@TempDir Path tmp) throws Exception {
+    @Test void anOverflowingStatusNoteLeavesTheXmlItsHeight(@TempDir Path base) throws Exception {
+        // P5: the frame's isolated home is base/home, so base itself contains the home folder and is refused as a
+        // source root; the design lives in a sibling folder, which is allowed
+        Path tmp=Files.createDirectories(base.resolve("design"));
         assumeFalse(GraphicsEnvironment.isHeadless());
         Path xml=Files.writeString(tmp.resolve("application-context.xml"),"<beans>\n"
                 +"  <bean id=\"rootNode\" class=\"com.example.RootNode\"/>\n"
                 +"  <bean id=\"riskCheck\" class=\"com.example.RiskCheck\"/>\n"
                 +"  <bean id=\"csvRejections\" class=\"com.example.CsvRejections\"/>\n</beans>\n");
         var defaults=new AppConfig();
-        try(var f=new Frame(tmp)) {
+        try(var f=new Frame(base)) {
             onEdt(() -> {
                 ((AppConfig)field(f.frame,"config")).sourceRoots.add(tmp.toString());
                 f.frame.setSize(defaults.windowW,defaults.windowH);f.frame.setVisible(true);f.frame.validate();
@@ -139,7 +148,10 @@ class DesignSpotlightFrameTest {
      * bean list left the XML ~2 px, so every bean and line target was refused as "session design is unavailable"
      * while context listed the bean. Measured here at the window size a first start gets.
      */
-    @Test void atTheDefaultWindowSizeTheXmlIsReadableAndABeanCanBeLit(@TempDir Path tmp) throws Exception {
+    @Test void atTheDefaultWindowSizeTheXmlIsReadableAndABeanCanBeLit(@TempDir Path base) throws Exception {
+        // P5: the frame's isolated home is base/home, so base itself contains the home folder and is refused as a
+        // source root; the design lives in a sibling folder, which is allowed
+        Path tmp=Files.createDirectories(base.resolve("design"));
         assumeFalse(GraphicsEnvironment.isHeadless());
         Path xml=Files.writeString(tmp.resolve("application-context.xml"),"<beans>\n"
                 +"  <bean id=\"rootNode\" class=\"com.example.RootNode\"/>\n"
@@ -147,7 +159,7 @@ class DesignSpotlightFrameTest {
                 +"  <bean id=\"csvRejections\" class=\"com.example.CsvRejections\"/>\n"
                 +"  <bean id=\"perfMon\" class=\"com.example.PerfMon\"/>\n</beans>\n");
         var defaults=new AppConfig();
-        try(var f=new Frame(tmp)) {
+        try(var f=new Frame(base)) {
             onEdt(() -> {
                 ((AppConfig)field(f.frame,"config")).sourceRoots.add(tmp.toString());
                 f.frame.setSize(defaults.windowW,defaults.windowH);f.frame.setVisible(true);f.frame.validate();
