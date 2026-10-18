@@ -148,6 +148,16 @@ and either a stop at once, a withdrawal, AFTER_TURN (mid-turn) or a kill and a S
 unchanged, else a new conversation first, so the "posture change needs New chat" rule holds. A change put back
 withdraws the offer; after Keep on a project switch, a folder-only change is the person's and is not offered.
 
+**First run (robot walkthrough, 2026-10-18).** A question composed while the frame reports no profile chosen is reported
+as `AssistantDraftPending` (its words stay in the frame); `assistantProfile` holds it unbound — or places it at once for
+an in-app assistant that can already answer — and on a successful Apply asks for `PlacePendingDraftEffect` after
+`ChooseAssistantModeEffect`, so the chosen assistant's node binds it. A Send naming a draft `localAgentSession` does not
+know is refused `UNKNOWN_DRAFT` (no longer `STALE_DRAFT`), and the published `LocalAgentState.Guide` carries the one
+action `ASK_AGAIN`; `LocalAgentAskAgainRequested` → `RecomposeLocalAgentDraftsEffect` composes exactly the unknown drafts
+again for Claude Code. The composer replaces an identical composed draft, or one placed for the other assistant, instead
+of appending. The node also publishes the panel's one primary action (Send, or Stop while something can be stopped) and
+its one instruction line; while nothing runs, a standing reason is the line on its own.
+
 **What the full posture changes about the threat model, stated.** Record text can contain words written to steer an
 AI. In the default posture the most such words can reach is the twelve pre-allowed verbs and three read-only tools in
 one folder. In the full posture they reach an agent with the person's shell, subject only to the person's rules and

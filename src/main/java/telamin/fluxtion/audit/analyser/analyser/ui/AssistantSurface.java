@@ -288,6 +288,7 @@ final class AssistantSurface {
 
     /** As above, for a draft bound to log generation {@code logGeneration} (0: it names no log) — final review #12. */
     int appendDraft(AssistantMode mode, long draftRef, String text, String hint, long logGeneration) {
+        replaceEarlier(mode, text);
         String was = draft.getText();
         String sep = was.isBlank() ? "" : was.endsWith("\n\n") ? "" : was.endsWith("\n") ? "\n" : "\n\n";
         if (was.isBlank()) draft.setText("");
@@ -324,6 +325,47 @@ final class AssistantSurface {
         enterArrived(HeldEnter.down());       // final review #7: placed by a held Enter? (the focus may already be here)
         draft.requestFocusInWindow();
         return from;
+    }
+
+    /**
+     * Robot walkthrough #1 (2026-10-18): asking again REPLACES rather than appends. Before a draft is placed, an earlier
+     * composed draft with the same words, and any composed draft placed for the OTHER assistant (which this one can never
+     * send — it would be refused as unknown), are taken out of the composer; the person's own words stay.
+     */
+    private void replaceEarlier(AssistantMode mode, String text) {
+        String words = text == null ? "" : text.strip();
+        for (Bound b : java.util.List.copyOf(bound)) {
+            Highlighter.Highlight h = live(b.highlight());
+            if (h == null) continue;
+            int from = h.getStartOffset();
+            int to = h.getEndOffset();
+            String held;
+            try {
+                held = draft.getText(from, to - from);
+            } catch (BadLocationException e) {
+                continue;
+            }
+            if (b.mode() == mode && !held.strip().equals(words)) continue;
+            draft.getHighlighter().removeHighlight(b.highlight());
+            bound.remove(b);
+            try {
+                // the separator the earlier placement put before it goes with it
+                int cut = from;
+                String before = draft.getText(0, from);
+                while (cut > 0 && before.charAt(cut - 1) == '\n') cut--;
+                draft.getDocument().remove(cut, to - cut);
+            } catch (BadLocationException e) {
+                throw new IllegalStateException(e);
+            }
+        }
+        if (draft.getText().isBlank()) draft.setText("");
+    }
+
+    private Highlighter.Highlight live(Object highlight) {
+        for (Highlighter.Highlight h : draft.getHighlighter().getHighlights()) {
+            if (h == highlight && h.getEndOffset() > h.getStartOffset()) return h;
+        }
+        return null;
     }
 
     /**

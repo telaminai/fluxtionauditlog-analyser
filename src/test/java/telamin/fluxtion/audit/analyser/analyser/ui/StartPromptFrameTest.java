@@ -151,8 +151,11 @@ class StartPromptFrameTest {
                 visible.set(agent.startButton().isShowing());
                 composer.set(agent.composerArea().getText());
             });
-            assertEquals(AskCatalogue.text("armed.START_PAGE"), start.get(), "Start is armed");
+            // robot walkthrough #3: Start keeps its fixed label; the one instruction says Send asks the placed question
+            assertEquals("Start Claude Code", start.get(), "Start is offered, with its fixed label");
             assertTrue(visible.get(), "and visible");
+            assertEquals(telamin.fluxtion.audit.analyser.analyser.session.node.LocalAgentSession.PLACED_NOT_RUNNING_TEXT,
+                    d.snapshot().localAgent().extra().guide().instruction(), "the one line: the question is placed");
             assertEquals("Which node writes the spread?", composer.get());
             assertEquals(0, d.snapshot().localAgent().generation(), "no process was started: an armed Start starts nothing");
         }

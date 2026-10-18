@@ -242,7 +242,8 @@ class AskDraftSessionTest {
         d.post(new SessionEvents.LocalAgentSendRequested(9, 30, SessionEvents.SlashClass.TEXT, null,
                 LocalAgentSessionTest.consent(), 100));
         assertEquals(0, a.agentSends.size(), "draft 100 was evicted: it cannot be checked, so it is not sent");
-        assertEquals("STALE_DRAFT", d.snapshot().localAgent().verdict());
+        // robot walkthrough #1: an unknown binding has its own verdict, whose one action is Ask again for Claude Code
+        assertEquals("UNKNOWN_DRAFT", d.snapshot().localAgent().verdict());
         assertTrue(d.snapshot().localAgent().reason().contains("cannot be checked"), d.snapshot().localAgent().reason());
         d.post(new SessionEvents.LocalAgentSendRequested(10, 31, SessionEvents.SlashClass.TEXT, null,
                 LocalAgentSessionTest.consent(), 164));

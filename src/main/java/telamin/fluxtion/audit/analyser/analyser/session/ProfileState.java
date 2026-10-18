@@ -17,14 +17,22 @@ package telamin.fluxtion.audit.analyser.analyser.session;
  *                own lines say what the mode in force cannot do)
  * @param confirming review PR151 F4: Full Claude Code's confirmation is showing for Apply {@code request}; nothing is
  *                applied until it is confirmed
+ * @param observed the frame has reported the profile at least once, so {@code profile} NONE is a fact, not a default
+ * @param questionWaits robot walkthrough #1: a question asked before any assistant was chosen waits for the choice
  */
 public record ProfileState(AssistantProfile profile, boolean open, String why, long request, String refusal,
-                           boolean offered, String status, boolean confirming) {
+                           boolean offered, String status, boolean confirming, boolean observed, boolean questionWaits) {
 
     public static final String ASKED = "ASKED";
     public static final String FIRST_USE = "FIRST_USE";
 
     public static final ProfileState NONE = new ProfileState(AssistantProfile.NONE, false, "", 0, "", false, "", false);
+
+    /** The shape before walkthrough #1: not observed, no question waiting. */
+    public ProfileState(AssistantProfile profile, boolean open, String why, long request, String refusal, boolean offered,
+                        String status, boolean confirming) {
+        this(profile, open, why, request, refusal, offered, status, confirming, false, false);
+    }
 
     public ProfileState {
         profile = profile == null ? AssistantProfile.NONE : profile;
@@ -35,6 +43,11 @@ public record ProfileState(AssistantProfile profile, boolean open, String why, l
 
     public ProfileState(AssistantProfile profile, boolean open, String why, long request, String refusal, boolean offered) {
         this(profile, open, why, request, refusal, offered, "", false);
+    }
+
+    /** Robot walkthrough #1: the frame reported the profile and none is chosen — a question asked now waits for one. */
+    public boolean observedNone() {
+        return observed && profile == AssistantProfile.NONE;
     }
 
     /** No card was chosen and nothing is set up. */

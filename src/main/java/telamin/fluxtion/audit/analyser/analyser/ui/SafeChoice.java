@@ -156,9 +156,46 @@ public final class SafeChoice {
         body.add(buttonRow(risky, safe), BorderLayout.SOUTH);
         d.setContentPane(body);
         safeByDefault(d, safe);
+        fitWrappedText(body);
         d.pack();
         d.setLocationRelativeTo(owner);
         return asked;
+    }
+
+    /** The tallest a fitted text area grows before it scrolls instead (most of a laptop screen). */
+    static final int MAX_TEXT_HEIGHT = 560;
+
+    /**
+     * Robot walkthrough #7 (2026-10-18): a wrapping {@link javax.swing.JTextArea} packed with no width reports the height
+     * of its row count, not of its wrapped text, so the dialog cut the full-posture warning off mid-sentence — the
+     * sentence about the home folder and the REST token. Each wrapping area under {@code c} is laid out at the width it
+     * will be shown at and given the height its text needs, so {@code pack()} shows every line; past
+     * {@link #MAX_TEXT_HEIGHT} it is given that height inside a scroll pane, never clipped.
+     */
+    static void fitWrappedText(java.awt.Container c) {
+        for (Component k : c.getComponents()) {
+            if (k instanceof javax.swing.JTextArea a && a.getLineWrap()) {
+                int width = a.getPreferredSize().width;
+                a.setSize(width, Short.MAX_VALUE);                   // lays the text out at its shown width
+                int height = a.getUI().getPreferredSize(a).height;
+                a.setPreferredSize(new java.awt.Dimension(width, height));
+                if (height > MAX_TEXT_HEIGHT && !(a.getParent() instanceof javax.swing.JViewport)) {
+                    java.awt.Container parent = a.getParent();
+                    Object constraint = parent.getLayout() instanceof BorderLayout bl ? bl.getConstraints(a) : null;
+                    int at = java.util.Arrays.asList(parent.getComponents()).indexOf(a);
+                    parent.remove(a);
+                    javax.swing.JScrollPane scroll = new javax.swing.JScrollPane(a,
+                            javax.swing.ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
+                            javax.swing.ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+                    scroll.setBorder(BorderFactory.createEmptyBorder());
+                    scroll.setPreferredSize(new java.awt.Dimension(width + 16, MAX_TEXT_HEIGHT));
+                    if (constraint != null) parent.add(scroll, constraint);
+                    else parent.add(scroll, at);
+                }
+            } else if (k instanceof java.awt.Container inner) {
+                fitWrappedText(inner);
+            }
+        }
     }
 
     /** Ask, modally; true only on the person's explicit press of the risky choice. */

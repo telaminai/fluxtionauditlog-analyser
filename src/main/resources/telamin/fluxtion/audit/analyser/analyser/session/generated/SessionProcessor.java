@@ -50,6 +50,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantC
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantContextFailed;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantContextPrepared;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantDraftComposed;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantDraftPending;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantEffectStarted;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantFileExchangeObserved;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantFullProfileAnswered;
@@ -91,6 +92,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphOpene
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallAbandoned;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallPresented;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallRefusedByServer;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentAskAgainRequested;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentBridgeServed;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentCallAdmissionRequested;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentConsentChanged;
@@ -240,6 +242,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Requ
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantContextFailed
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantContextPrepared
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantDraftComposed
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantDraftPending
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantEffectStarted
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantFileExchangeObserved
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantFullProfileAnswered
@@ -281,6 +284,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Requ
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallAbandoned
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallPresented
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallRefusedByServer
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentAskAgainRequested
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentBridgeServed
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentCallAdmissionRequested
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentConsentChanged
@@ -546,6 +550,10 @@ public class SessionProcessor
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantDraftComposed",
                 false),
             new ProcessorDescriptor.Input(
+                "AssistantDraftPending",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantDraftPending",
+                false),
+            new ProcessorDescriptor.Input(
                 "AssistantEffectStarted",
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantEffectStarted",
                 false),
@@ -720,6 +728,10 @@ public class SessionProcessor
             new ProcessorDescriptor.Input(
                 "HostedCallRefusedByServer",
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.HostedCallRefusedByServer",
+                false),
+            new ProcessorDescriptor.Input(
+                "LocalAgentAskAgainRequested",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentAskAgainRequested",
                 false),
             new ProcessorDescriptor.Input(
                 "LocalAgentBridgeServed",
@@ -1087,7 +1099,7 @@ public class SessionProcessor
           new DescriptorSupport.Meta(
               null,
               "1.0.76",
-              "241d03a6cf2ceb49976dfcf448e4778e5268abefec246b60cee5b96e3f35a5b4",
+              "689f8af1831dc50d3c618183f53bde3a3d677648e1b5c9b8624a96646a8fc409",
               null));
 
   @Override
@@ -1287,6 +1299,9 @@ public class SessionProcessor
     } else if (event instanceof AssistantDraftComposed) {
       AssistantDraftComposed typedEvent = (AssistantDraftComposed) event;
       handleEvent(typedEvent);
+    } else if (event instanceof AssistantDraftPending) {
+      AssistantDraftPending typedEvent = (AssistantDraftPending) event;
+      handleEvent(typedEvent);
     } else if (event instanceof AssistantEffectStarted) {
       AssistantEffectStarted typedEvent = (AssistantEffectStarted) event;
       handleEvent(typedEvent);
@@ -1409,6 +1424,9 @@ public class SessionProcessor
       handleEvent(typedEvent);
     } else if (event instanceof HostedCallRefusedByServer) {
       HostedCallRefusedByServer typedEvent = (HostedCallRefusedByServer) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof LocalAgentAskAgainRequested) {
+      LocalAgentAskAgainRequested typedEvent = (LocalAgentAskAgainRequested) event;
       handleEvent(typedEvent);
     } else if (event instanceof LocalAgentBridgeServed) {
       LocalAgentBridgeServed typedEvent = (LocalAgentBridgeServed) event;
@@ -1756,6 +1774,11 @@ public class SessionProcessor
   }
 
   @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(AssistantDraftPending event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
   public void onEvent(AssistantEffectStarted event) {
     processEvent(event);
   }
@@ -1957,6 +1980,11 @@ public class SessionProcessor
 
   @OnEventHandler(failBuildIfMissingBooleanReturn = false)
   public void onEvent(HostedCallRefusedByServer event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(LocalAgentAskAgainRequested event) {
     processEvent(event);
   }
 
@@ -2554,6 +2582,14 @@ public class SessionProcessor
     afterEvent();
   }
 
+  public void handleEvent(AssistantDraftPending typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(assistantProfile, "assistantProfile", "onDraftPending", typedEvent);
+    isDirty_assistantProfile = assistantProfile.onDraftPending(typedEvent);
+    afterEvent();
+  }
+
   public void handleEvent(AssistantEffectStarted typedEvent) {
     auditEvent(typedEvent);
     //Default, no filter methods
@@ -3040,6 +3076,18 @@ public class SessionProcessor
     //Default, no filter methods
     auditInvocation(localAgentSession, "localAgentSession", "onHostedRefusedByServer", typedEvent);
     isDirty_localAgentSession = localAgentSession.onHostedRefusedByServer(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(LocalAgentAskAgainRequested typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(localAgentSession, "localAgentSession", "onAskAgain", typedEvent);
+    isDirty_localAgentSession = localAgentSession.onAskAgain(typedEvent);
+    if (guardCheck_walkPlayback()) {
+      auditInvocation(walkPlayback, "walkPlayback", "onLogChanged", typedEvent);
+      walkPlayback.onLogChanged();
+    }
     afterEvent();
   }
 
@@ -4329,6 +4377,11 @@ public class SessionProcessor
       auditEvent(typedEvent);
       auditInvocation(assistantLoop, "assistantLoop", "onDraftComposed", typedEvent);
       isDirty_assistantLoop = assistantLoop.onDraftComposed(typedEvent);
+    } else if (event instanceof AssistantDraftPending) {
+      AssistantDraftPending typedEvent = (AssistantDraftPending) event;
+      auditEvent(typedEvent);
+      auditInvocation(assistantProfile, "assistantProfile", "onDraftPending", typedEvent);
+      isDirty_assistantProfile = assistantProfile.onDraftPending(typedEvent);
     } else if (event instanceof AssistantEffectStarted) {
       AssistantEffectStarted typedEvent = (AssistantEffectStarted) event;
       auditEvent(typedEvent);
@@ -4580,6 +4633,11 @@ public class SessionProcessor
       auditInvocation(
           localAgentSession, "localAgentSession", "onHostedRefusedByServer", typedEvent);
       isDirty_localAgentSession = localAgentSession.onHostedRefusedByServer(typedEvent);
+    } else if (event instanceof LocalAgentAskAgainRequested) {
+      LocalAgentAskAgainRequested typedEvent = (LocalAgentAskAgainRequested) event;
+      auditEvent(typedEvent);
+      auditInvocation(localAgentSession, "localAgentSession", "onAskAgain", typedEvent);
+      isDirty_localAgentSession = localAgentSession.onAskAgain(typedEvent);
     } else if (event instanceof LocalAgentBridgeServed) {
       LocalAgentBridgeServed typedEvent = (LocalAgentBridgeServed) event;
       auditEvent(typedEvent);

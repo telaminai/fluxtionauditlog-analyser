@@ -4930,7 +4930,9 @@ public final class MainFrame extends JFrame {
                 session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantHostRequested(docked, "assistant panel"));
             }
             @Override public void configureProvider() {
-                ConfigPanel.show(MainFrame.this, config, MainFrame.this::onConfigChanged, MainFrame.this::readerSummaries);
+                // robot walkthrough #6 (2026-10-18): on the page that holds the provider, model and key — not the first tab
+                ConfigPanel.show(MainFrame.this, config, MainFrame.this::onConfigChanged, MainFrame.this::readerSummaries,
+                        ConfigPanel.PROVIDER_PAGE);
             }
             @Override public void connectCliAssistant() { openMcpSetup(); }
             @Override public void showAnalyser() { toFront(); requestFocus(); }
@@ -5063,6 +5065,10 @@ public final class MainFrame extends JFrame {
             @Override public void answerRestart(long offer, boolean restart) {
                 session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentRestartAnswered(
                         ++localAgentRequest, offer, restart, localAgentConsent()));
+            }
+            @Override public void askAgain(java.util.List<Long> bindings) {
+                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentAskAgainRequested(
+                        ++localAgentRequest, bindings));
             }
             @Override public void reopenRestartOffer() {
                 session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents
@@ -8556,6 +8562,8 @@ public final class MainFrame extends JFrame {
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ClosePermissionDialogEffect e -> closePermissionDialog(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ConfirmLocalAgentFolderEffect e -> confirmLocalAgentFolder(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.OfferLocalAgentRestartEffect e -> offerLocalAgentRestart(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.PlacePendingDraftEffect e -> placePendingDraft(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.RecomposeLocalAgentDraftsEffect e -> recomposeLocalAgentDrafts(e);
             // M74 P2: the Ask catalogue's drafts and the start page — the nodes decided; the frame performs and reports
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.PrimeLocalAgentDraftEffect e -> primeLocalAgentDraft(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.PrimeAssistantDraftEffect e -> primeAssistantDraft(e);
@@ -11374,17 +11382,69 @@ public final class MainFrame extends JFrame {
     /** A composed draft into the store of the assistant in force, reported as a fact. The words never enter it. */
     private void composeDraft(telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.Draft d, String origin) {
         if (d == null) return;
-        if (askMode() == telamin.fluxtion.audit.analyser.analyser.assistant.AskContext.Mode.CLAUDE_CODE) {
+        if (session != null && sessionSnapshot().profiles().observedNone()) {
+            // robot walkthrough #1 (2026-10-18): no assistant is chosen, so the question is not composed for the mode's
+            // silent default — it is REPORTED as waiting; assistantProfile decides where it goes once one is chosen
+            long ref = ++pendingDraftRef;
+            pendingDrafts.put(ref, new ComposedDraft(d, origin));
+            session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantDraftPending(ref,
+                    d.questionId(), origin));
+            return;
+        }
+        composeFor(askMode() == telamin.fluxtion.audit.analyser.analyser.assistant.AskContext.Mode.CLAUDE_CODE, d, origin);
+    }
+
+    /** A draft into the store of {@code claude} (Claude Code) or the in-app assistant, reported as composed for it. */
+    private void composeFor(boolean claude, telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.Draft d,
+                            String origin) {
+        if (claude) {
             long ref = localAgentStore.add(
                     telamin.fluxtion.audit.analyser.analyser.assistant.localagent.LocalAgentTranscript.Kind.USER, d.text());
+            composedDrafts.put(ref, new ComposedDraft(d, origin));
             session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentDraftComposed(ref,
                     d.questionId(), d.logIdentity(), d.generation(), localAgentConsent(), origin));
         } else {
             long ref = assistantTranscript.add(
                     telamin.fluxtion.audit.analyser.analyser.assistant.AssistantTranscript.Kind.USER, d.text());
+            composedDrafts.put(ref, new ComposedDraft(d, origin));
             session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantDraftComposed(ref,
                     d.questionId(), d.logIdentity(), d.generation(), origin));
         }
+        while (composedDrafts.size() > 64) composedDrafts.remove(composedDrafts.keySet().iterator().next());
+    }
+
+    /** What a composed draft was, by its reference — to compose it again for the other assistant (walkthrough #1). */
+    private record ComposedDraft(telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.Draft draft, String origin) {
+    }
+
+    private final java.util.Map<Long, ComposedDraft> pendingDrafts = new java.util.LinkedHashMap<>();
+    private final java.util.Map<Long, ComposedDraft> composedDrafts = new java.util.LinkedHashMap<>();
+    private long pendingDraftRef;
+
+    /** PlacePendingDraftEffect: assistantProfile chose where the waiting question goes; it is composed for that assistant. */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result placePendingDraft(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.PlacePendingDraftEffect e) {
+        ComposedDraft c = pendingDrafts.remove(e.draftRef());
+        if (c != null) {
+            composeFor(e.mode() == telamin.fluxtion.audit.analyser.analyser.session.AssistantMode.LOCAL_AGENT, c.draft(),
+                    c.origin() + ", placed after the assistant was chosen");
+        }
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.DraftPlaced(e.opId(), e.draftRef(),
+                c != null, c != null ? "" : "the question is no longer held");
+    }
+
+    /** RecomposeLocalAgentDraftsEffect: localAgentSession asked for these questions again, composed for Claude Code. */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result recomposeLocalAgentDrafts(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.RecomposeLocalAgentDraftsEffect e) {
+        int placed = 0;
+        for (long ref : e.draftRefs()) {
+            ComposedDraft c = composedDrafts.get(ref);
+            if (c == null) continue;
+            composeFor(true, c.draft(), c.origin() + ", asked again for Claude Code");
+            placed++;
+        }
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.DraftPlaced(e.opId(), 0, placed > 0,
+                placed > 0 ? "" : "the question could not be composed again — ask it again from the records");
     }
 
     /** PrimeLocalAgentDraftEffect: reveal the assistant (programmatically: warm start never fires), append, light. */

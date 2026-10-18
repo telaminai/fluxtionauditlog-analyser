@@ -1221,6 +1221,25 @@ public final class SessionEvents {
                                          String origin) {
     }
 
+    /**
+     * Robot walkthrough #1 (2026-10-18): a question was composed (an Ask from a record, a chart, the topology) while NO
+     * assistant is chosen — reported instead of a draft for the assistant the mode silently defaults to. Its words are in
+     * the frame's store under {@code draftRef}, never here. {@code assistantProfile} holds it, unbound, and asks for it to
+     * be placed for the assistant the person applies; the node in force then binds it.
+     */
+    public record AssistantDraftPending(long draftRef, String questionId, String origin) {
+    }
+
+    /**
+     * Robot walkthrough #1: the person pressed "Ask again for Claude Code" on a refusal that the composer holds a question
+     * drafted for the other assistant. {@code draftBindings} is every composed draft the composer holds.
+     */
+    public record LocalAgentAskAgainRequested(long request, java.util.List<Long> draftBindings) {
+        public LocalAgentAskAgainRequested {
+            draftBindings = java.util.List.copyOf(draftBindings == null ? java.util.List.of() : draftBindings);
+        }
+    }
+
     /** A prime effect was performed: the draft is in the composer (or {@code ok} false and why). */
     public record DraftPlaced(long opId, long draftRef, boolean ok, String reason) implements Result {
     }

@@ -71,11 +71,19 @@ public record LocalAgentState(AssistantMode mode, long conversation, long genera
      *                           the person said about restarting for it — the node's decision; the panel renders it
      */
     public record Extra(long setupDirRef, String setupDirShown, int unknownEvents, int unclassifiedCommands, int droppedLines,
-                        java.util.Map<Long, Turn> turns, int trimmed, Attention attention, Restart restart) {
+                        java.util.Map<Long, Turn> turns, int trimmed, Attention attention, Restart restart, Guide guide) {
         public Extra {
             turns = java.util.Map.copyOf(turns == null ? java.util.Map.of() : turns);
             attention = attention == null ? Attention.NONE : attention;
             restart = restart == null ? Restart.NONE : restart;
+            guide = guide == null ? Guide.NONE : guide;
+        }
+
+        /** The shape before the one primary action and instruction (robot walkthrough #3). */
+        public Extra(long setupDirRef, String setupDirShown, int unknownEvents, int unclassifiedCommands, int droppedLines,
+                     java.util.Map<Long, Turn> turns, int trimmed, Attention attention, Restart restart) {
+            this(setupDirRef, setupDirShown, unknownEvents, unclassifiedCommands, droppedLines, turns, trimmed, attention,
+                    restart, Guide.NONE);
         }
 
         /** The shape before the restart offer: nothing waits for a restart. */
@@ -98,6 +106,38 @@ public record LocalAgentState(AssistantMode mode, long conversation, long genera
         public boolean diagnostics() {
             return unknownEvents > 0 || unclassifiedCommands > 0 || droppedLines > 0;
         }
+    }
+
+    /**
+     * Robot walkthrough #3 (2026-10-18): what the panel tells the person to do — ONE primary action and ONE instruction
+     * line, decided by {@code localAgentSession}. It replaced four cues that disagreed ("press Start, then Send", "Press
+     * Send", "Start — ask your question", a disabled "Running…" beside "Ready"). Send alone starts Claude Code when it is
+     * not running, so Send is the primary action unless a turn or a start can be stopped.
+     *
+     * @param primary     {@link #SEND} or {@link #STOP}
+     * @param instruction the one status line: the phase, or — while a refusal stands — the refusal alone
+     * @param action      {@link #ASK_AGAIN} when the composer holds a question drafted for the other assistant, else ""
+     * @param refusal     the instruction is a refusal (the composer's "Press Send" hint is then not shown beside it)
+     */
+    public record Guide(String primary, String instruction, String action, boolean refusal) {
+        public static final String SEND = "SEND";
+        public static final String STOP = "STOP";
+        public static final String ASK_AGAIN = "ASK_AGAIN";
+        public static final Guide NONE = new Guide(SEND, "", "", false);
+
+        public Guide {
+            primary = primary == null ? SEND : primary;
+            instruction = instruction == null ? "" : instruction;
+            action = action == null ? "" : action;
+        }
+    }
+
+    /** A copy with {@code extra} — the node publishes the guide computed from the state it describes. */
+    public LocalAgentState withExtra(Extra extra) {
+        return new LocalAgentState(mode, conversation, generation, phase, verdict, reason, openTicket, admittedGeneration,
+                headerRef, headerRevision, detailRef, stderrRef, bindingElapsedMs, spentMicros, budgetMicros,
+                costUnderReported, newChatOffered, resumable, pendingDraft, entries, answer, posture, personServers, billing,
+                armedWhy, consentPosture, extra);
     }
 
     /**

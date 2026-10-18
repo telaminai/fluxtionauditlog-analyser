@@ -374,6 +374,27 @@ public sealed interface SessionEffects {
         }
     }
 
+    /**
+     * Robot walkthrough #1 (2026-10-18): {@code assistantProfile} decided where the question held while no assistant was
+     * chosen goes — the assistant of {@code mode}. The performer reports it composed for that assistant
+     * ({@code LocalAgentDraftComposed} / {@code AssistantDraftComposed}), whose node binds and places it. Answered by
+     * {@link SessionEvents.DraftPlaced}.
+     */
+    record PlacePendingDraftEffect(long opId, long draftRef, AssistantMode mode) implements SessionEffects {
+    }
+
+    /**
+     * Robot walkthrough #1: {@code localAgentSession} decided to place again, for Claude Code, the composer's questions it
+     * does not know ({@code draftRefs}: drafted for the in-app assistant). The performer composes each again from what it
+     * composed before and reports {@code LocalAgentDraftComposed}; the placement replaces the old draft. Answered by
+     * {@link SessionEvents.DraftPlaced}.
+     */
+    record RecomposeLocalAgentDraftsEffect(long opId, java.util.List<Long> draftRefs) implements SessionEffects {
+        public RecomposeLocalAgentDraftsEffect {
+            draftRefs = java.util.List.copyOf(draftRefs == null ? java.util.List.of() : draftRefs);
+        }
+    }
+
     /** The same for the in-app composer: in-app transcript entry {@code draftRef}, appended and highlighted. */
     record PrimeAssistantDraftEffect(long opId, long draftRef, boolean highlight, long logGeneration)
             implements SessionEffects {

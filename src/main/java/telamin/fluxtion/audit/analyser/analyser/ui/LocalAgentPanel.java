@@ -69,6 +69,9 @@ public final class LocalAgentPanel extends JPanel {
 
         /** Owner, 2026-10-18: the "settings changed — restart to apply" chip was clicked. */
         default void reopenRestartOffer() { }
+
+        /** Robot walkthrough #1: "Ask again for Claude Code" — the composer's drafts, by binding. */
+        default void askAgain(java.util.List<Long> draftBindings) { }
     }
 
     /**
@@ -79,9 +82,6 @@ public final class LocalAgentPanel extends JPanel {
     /** §4.8: an external terminal is invisible to the lock. */
     static final String LOCK_WARNING = "Don't resume this conversation in a terminal while it is open here — the history "
             + "would fork.";
-    static final String CONTACTS_ANTHROPIC = "Start contacts Anthropic (sign-in check, MCP connect) before your first Send; "
-            + "no record content is sent until you press Send. In full Claude Code, Start also runs your and the folder's "
-            + "hooks and connects your MCP servers.";
     /** On a Claude plan a dollar figure means nothing to the person (owner, 2026-10-17). */
     static final String PLAN_USAGE = "usage counts against your Claude plan";
     /** OD-74.22: the header line when the session works in the scratch folder for an analyser-owned project. */
@@ -144,6 +144,9 @@ public final class LocalAgentPanel extends JPanel {
     static final String RESTART_YES = "Yes, restart now";
     static final String RESTART_LATER = "Later";
     static final String RESTART_CHIP = "settings changed — restart to apply";
+    /** Robot walkthrough #1: the one action beside a refusal that the composer holds the other assistant's question. */
+    private final JButton askAgain = UiText.button(ASK_AGAIN);
+    static final String ASK_AGAIN = "Ask again for Claude Code";
     private final WrapLine diagnostics = new WrapLine(" ");
     private final WrapLine endpoint = new WrapLine(" ");
     /**
@@ -165,6 +168,12 @@ public final class LocalAgentPanel extends JPanel {
 
     private LocalAgentState rendered;
     private String renderedHeader;
+    /**
+     * Robot walkthrough #2 (2026-10-18): the session's folder, its posture note, the fork warning and Set up a project sit
+     * behind the one panel's ⓘ disclosure; a standalone panel shows them, as before.
+     */
+    private boolean aboutOpen;
+    private boolean folderKnown;
 
     public LocalAgentPanel(LocalAgentTranscript store) {
         this(store, new AssistantSurface(), true);
@@ -180,6 +189,7 @@ public final class LocalAgentPanel extends JPanel {
         this.store = store;
         this.surface = surface;
         this.standalone = standalone;
+        this.aboutOpen = standalone;
         this.chips = surface.chips;
         this.view = surface.view;
         this.viewScroll = surface.viewScroll;
@@ -249,6 +259,13 @@ public final class LocalAgentPanel extends JPanel {
         });
         restartChip.addActionListener(e -> { if (intents != null && restart.deferred()) intents.reopenRestartOffer(); });
         restartChip.getAccessibleContext().setAccessibleName("Settings changed: restart Claude Code to apply them");
+        askAgain.setVisible(false);
+        askAgain.addActionListener(e -> {
+            if (intents != null && rendered != null
+                    && LocalAgentState.Guide.ASK_AGAIN.equals(rendered.extra().guide().action())) {
+                intents.askAgain(currentBinding());
+            }
+        });
         closeExternal.setVisible(false);
         closeExternal.setToolTipText(UiText.tooltip("While this session runs, refuse external MCP/REST clients — "
                 + "including this session's own tools, which could otherwise reach the analyser through the endpoint "
@@ -285,7 +302,7 @@ public final class LocalAgentPanel extends JPanel {
         java.util.List<JComponent> lines = new java.util.ArrayList<>();
         if (standalone) lines.add(chips);
         lines.addAll(java.util.List.of(header, posture, lockWarning, actions, closeExternal, restartBanner,
-                proposalBanner, status, detailsToggle, detailsBody));
+                proposalBanner, status, askAgain, detailsToggle, detailsBody));
         for (JComponent c : lines) {
             c.setAlignmentX(LEFT_ALIGNMENT);
             top.add(c);
@@ -317,6 +334,11 @@ public final class LocalAgentPanel extends JPanel {
             surface.historyMode(telamin.fluxtion.audit.analyser.analyser.session.AssistantMode.LOCAL_AGENT);
         }
         settings.addActionListener(e -> { if (intents != null) intents.openSettings(); });
+        if (!standalone) {                // robot walkthrough #2: behind the one panel's ⓘ until it is opened
+            header.setVisible(false);
+            posture.setVisible(false);
+            setUp.setVisible(false);
+        }
     }
 
     /** M74 UX: whether this mode is the one the panel shows (only then does it draw the shared parts). */
@@ -332,6 +354,23 @@ public final class LocalAgentPanel extends JPanel {
 
     boolean active() {
         return active;
+    }
+
+    /** Robot walkthrough #2: the one panel's ⓘ disclosure opened or closed. */
+    void setAboutOpen(boolean open) {
+        if (aboutOpen == open) return;
+        aboutOpen = open;
+        if (rendered != null) showAbout(rendered);
+        revalidate();
+        repaint();
+    }
+
+    private void showAbout(LocalAgentState s) {
+        header.setVisible(aboutOpen && folderKnown);
+        posture.setVisible(aboutOpen);
+        // holistic review L-e: the fork warning only when there IS a conversation a terminal could resume
+        lockWarning.setVisible(aboutOpen && s.resumable());
+        setUp.setVisible(aboutOpen);
     }
 
     /** Whether the Details disclosure is open: the person's choice in this run, else the node's attention. */
@@ -559,9 +598,12 @@ public final class LocalAgentPanel extends JPanel {
         if (was != waitingForApproval && rendered != null) status.setText(statusText(rendered, waitingForApproval));
     }
 
-    /** The status line: the phase, or, while a permission dialog is open, that Claude Code is waiting for the person. */
+    /**
+     * The status line: the node's one instruction (robot walkthrough #3), or, while a permission dialog is open, that
+     * Claude Code is waiting for the person (the permission node's state).
+     */
     static String statusText(LocalAgentState s, boolean waiting) {
-        return waiting ? WAITING_TEXT : phaseText(s);
+        return waiting ? WAITING_TEXT : s.extra().guide().instruction();
     }
 
     static final String WAITING_TEXT = "Claude Code is waiting for your answer — the analyser's dialog shows what it asks "
@@ -651,7 +693,7 @@ public final class LocalAgentPanel extends JPanel {
         header.setText(folder == null || folder.isBlank() ? " " : "Folder: " + shortFolder(folder)
                 + (h.scratchForProject() ? " — " + SCRATCH_NOTE : ""));
         header.setToolTipText(folder == null ? null : UiText.tooltip(folder));
-        header.setVisible(folder != null && !folder.isBlank());
+        folderKnown = folder != null && !folder.isBlank();
         String postureWords = postureLine(h, s);
         int nl = postureWords.indexOf('\n');
         posture.setText(nl < 0 ? postureWords : postureWords.substring(0, nl));
@@ -663,7 +705,7 @@ public final class LocalAgentPanel extends JPanel {
         cliLine.setVisible(cli != null);
         // holistic review L-e (2026-10-17): the fork warning only when there IS a conversation a terminal could resume —
         // never always-on, where it was noise before the first turn
-        lockWarning.setVisible(s.resumable());
+        showAbout(s);
         String ep = endpointText(h, s);
         endpoint.setText(ep == null ? " " : ep);
         endpoint.setVisible(ep != null);
@@ -671,18 +713,27 @@ public final class LocalAgentPanel extends JPanel {
         diagnostics.setText(diag == null ? " " : diag);
         diagnostics.setVisible(diag != null);
         boolean running = s.running();
+        LocalAgentState.Guide guide = s.extra().guide();
         if (active) {
-            // the shared parts are drawn by the mode the panel shows (M74 UX: one composer, one Start/Stop/Send)
+            // the shared parts are drawn by the mode the panel shows (M74 UX: one composer, one Start/Stop/Send).
+            // Robot walkthrough #3: ONE primary action — Send, which starts Claude Code when it is not running, or Stop.
+            // Start is secondary, its label fixed, and it is not shown while Claude Code runs (no disabled "Running…")
+            start.setVisible(!running);
             start.setEnabled(!running);
             start.setText(UiText.inert(startLabel(s)));
             stop.setEnabled(s.busy() || s.starting() || s.pendingDraft() != 0);
             send.setEnabled(!s.busy() && !"STOPPING".equals(s.phase()));
+            emphasise(send, LocalAgentState.Guide.SEND.equals(guide.primary()));
+            emphasise(stop, LocalAgentState.Guide.STOP.equals(guide.primary()));
+            // a refusal is the one line: the composer's "Press Send" hint is not shown beside it
+            if (guide.refusal()) composerHint.setVisible(false);
             newChat.setText(s.newChatOffered() ? "New chat (offered)" : "New chat");
             renderFullCue(s);
         }
         settings.setVisible("SWITCHED_OFF".equals(s.verdict()) || "BUDGET_SPENT".equals(s.verdict()));
         renderRestart(s);
         status.setText(statusText(s, waitingForApproval));
+        askAgain.setVisible(LocalAgentState.Guide.ASK_AGAIN.equals(guide.action()));
         revalidate();
         String words = s.detailRef() != 0 ? store.text(s.detailRef()) : s.stderrRef() != 0
                 ? "Claude Code's last error line: " + store.text(s.stderrRef()) : "";
@@ -993,28 +1044,26 @@ public final class LocalAgentPanel extends JPanel {
         return s == null ? "" : s.replace(' ', '\u00A0');
     }
 
-    /** The Start button says what pressing it would do, that it is ARMED, or that there is nothing to press. */
+    /**
+     * Start's label, fixed (robot walkthrough #3): what pressing it does — start, or resume the conversation. It is not
+     * shown while Claude Code runs, and an armed Start no longer has its own words: Send asks the question.
+     */
     static String startLabel(LocalAgentState s) {
-        if (s.starting()) return "Starting…";
-        if (s.running()) return "Running…";
-        if (s.armedWhy() != null) return AskCatalogue.text(s.armedWhy());
         return s.resumable() ? "Resume Claude Code" : "Start Claude Code";
     }
 
-    static String phaseText(LocalAgentState s) {
-        String phase = switch (s.phase()) {
-            case "SPAWNING", "HANDSHAKE" -> "Starting Claude Code…";
-            case "BINDING" -> s.bindingElapsedMs() >= 2_000 ? "connecting to the analyser bridge…" : "Starting Claude Code…";
-            case "READY" -> s.pendingDraft() != 0 ? "Sending your message…" : "Ready";
-            case "BUSY" -> "Claude is answering…";
-            case "STOPPING" -> "Stopping the turn…";
-            default -> s.armedWhy() != null ? "Not running — your question is placed; press Start, then Send. "
-                    + CONTACTS_ANTHROPIC : "Not running. " + CONTACTS_ANTHROPIC;
-        };
-        // a Send refused as busy already says what is happening: one sentence, not the phase and then the refusal
-        if ("BUSY".equals(s.verdict()) && s.busy()) return s.reason();
-        String why = s.reason().isBlank() ? "" : " — " + s.reason();
-        return phase + why;
+    /** The primary action wears the default button's weight; the other does not. */
+    private static void emphasise(JButton b, boolean primary) {
+        Font f = b.getFont();
+        if (f != null && f.isBold() != primary) b.setFont(f.deriveFont(primary ? Font.BOLD : Font.PLAIN));
+    }
+
+    JButton askAgainButton() {
+        return askAgain;
+    }
+
+    WrapLine instructionLine() {
+        return status;
     }
 
     private static String usd(long micros) {

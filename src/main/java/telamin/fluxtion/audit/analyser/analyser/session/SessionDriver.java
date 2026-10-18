@@ -327,6 +327,8 @@ public final class SessionDriver {
             case SessionEffects.StopLocalAgentEffect ignored -> "stopLocalAgent";
             case SessionEffects.ConfirmLocalAgentFolderEffect ignored -> "confirmLocalAgentFolder";
             case SessionEffects.OfferLocalAgentRestartEffect ignored -> "offerLocalAgentRestart";
+            case SessionEffects.PlacePendingDraftEffect ignored -> "placePendingDraft";
+            case SessionEffects.RecomposeLocalAgentDraftsEffect ignored -> "recomposeLocalAgentDrafts";
             case SessionEffects.PrimeLocalAgentDraftEffect ignored -> "primeLocalAgentDraft";
             case SessionEffects.PrimeAssistantDraftEffect ignored -> "primeAssistantDraft";
             case SessionEffects.PlayDemoJourneyEffect ignored -> "playDemoJourney";

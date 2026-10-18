@@ -46,6 +46,12 @@ plan, or an API key). Both share:
   Shift+↓ still select, and in a draft of several lines the arrows move the caret until it reaches the first or last
   line;
 - **one row of header chips** — who answers, the model, the profile or the provider, how it is paid for;
+- **one status line and one primary action.** The status line is the one instruction — *Ready*, *Claude is answering…*,
+  or, when something was refused, the refusal itself. The primary action is **Send** (in the Claude Code mode it starts
+  Claude Code first when it is not running), or **Stop** while an answer or a start can be stopped; **Start** is a
+  secondary button with a fixed label, shown only while Claude Code is not running. What the mode cannot do, the
+  session's folder and its notes sit behind **ⓘ** beside **Pop out**; the header scrolls in a short window so the
+  conversation and the composer always keep their room;
 - **one line under the header that says what this mode cannot do** — the in-app assistant cannot read your project
   folder or use your own tools; Safe analysis has no shell, edits or web; full Claude Code's own tools are not confined
   by the analyser; with no key, or with the assistant *Off*, it says so there. It also says that **no profile is
@@ -87,9 +93,9 @@ external loop. Each card's line is shown in full — the card grows to fit it.
   the tab in that card's mode. *Settings ▸ Assistant* still has every option, grouped the same way.
 - **The cards open by themselves once**: the first time you press **Start** or ask a question — in the panel or on the
   [start page](start-page.md#which-assistant-answers) — while nothing is set up on this machine. A question asked on the
-  start page **waits for you**: after **Apply** it is placed in the composer of the assistant you chose, with **Start**
-  ready for Claude Code — you do not press the button again, and nothing is sent until you press Start or Send. Close the
-  cards instead and the question stays in the box. After a card is chosen (or if you close them), they open only from
+  start page — or from a record, a chart or the topology with *Ask the assistant* — **waits for you**: after **Apply**
+  it is placed in the composer of the assistant you chose, ready for **Send** — you do not ask again, and nothing is sent
+  until you press Send. Close the start page's cards instead and its question stays in the box. After a card is chosen (or if you close them), they open only from
   **Assistant: … ▾**. A machine that was already set up (Claude Code allowed, or an API key) counts as chosen and is never
   asked.
 - **A change while an answer is in progress is refused**, by name — *"Claude is still answering — Stop or wait, then
@@ -144,8 +150,10 @@ these rows and Explain this finding disabled, each until its condition holds](..
 
 - **The question goes into the composer, not to the model.** It is **added after** whatever you have written there,
   only the added lines are highlighted, and the line above the box says *Press Send to ask … — nothing has been sent*.
-  Nothing is sent until you press **Send**. In the Claude Code mode with no session running, **Start is armed**
-  (*Start — ask about this*); nothing starts until you press it.
+  Nothing is sent until you press **Send**; in the Claude Code mode with no session running, Send starts Claude Code
+  first. **Asking the same question again replaces it** rather than adding a second copy, and a question drafted for the
+  other assistant is replaced by the next one you ask. If you switch assistants with such a question still in the box,
+  Send says so in the status line and offers one action, **Ask again for Claude Code**, which places it for Claude Code.
 - **It names where to look, never what is there.** A question names record numbers, the log's file name, node ids,
   a chart's name and a time — never a value, a note's words or a finding's text, because those
   can carry text written to steer an AI. The assistant reads the records itself (`analyser_read`), so in the in-app mode
@@ -406,8 +414,8 @@ a copy that holds such characters says how many.
 
 ## No API key? Copy-prompt mode
 
-With no key the assistant sends nothing and says so, offering **Configure provider**, **Copy prompt** and **Connect a
-CLI assistant**. No key, or working in a different agent (Claude Code, Claude Desktop)? Hit **Copy prompt**. The copied
+With no key the assistant sends nothing and says so, offering **Configure provider** (it opens *Settings ▸ LLM*, where
+the provider, model and API key are), **Copy prompt** and **Connect a CLI assistant**. No key, or working in a different agent (Claude Code, Claude Desktop)? Hit **Copy prompt**. The copied
 prompt is a complete, self-contained brief: the selected records, the node-type map, the relevant
 source, **and** the log's file path, shape and per-record **byte offsets**. The dialog that opens names every
 part it copied, in the order they appear ("the analyser's standing instructions, the glossary, the raw text of 2

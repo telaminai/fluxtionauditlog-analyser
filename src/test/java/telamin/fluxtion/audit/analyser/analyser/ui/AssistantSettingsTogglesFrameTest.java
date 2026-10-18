@@ -169,7 +169,8 @@ class AssistantSettingsTogglesFrameTest {
                 assertFalse(off.extra().restart().any(), "never offered" + when);
                 s.settings(c -> c.claudeCodeAllowed = true);
                 assertEquals("", s.state().verdict(), "★ allowed again: no longer said to be switched off" + when);
-                assertTrue(s.statusLine().contains(LocalAgentSession.ALLOWED_AGAIN_TEXT), s.statusLine());
+                assertEquals(s.state().extra().guide().instruction(), s.statusLine(), "the one line");
+                assertTrue(s.statusLine().toLowerCase(java.util.Locale.ROOT).contains("allowed again"), s.statusLine());
             }
 
             for (Toggle t : java.util.List.of(

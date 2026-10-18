@@ -12,6 +12,7 @@ import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.FlowLayout;
 import java.awt.Font;
+import java.awt.Rectangle;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
@@ -164,6 +165,13 @@ public final class AssistantPanel extends JPanel {
     private AssistantState lastState = AssistantState.IDLE;
     private Demo lastDemo;
     private AssistantMode shownMode = AssistantMode.IN_APP;
+    /**
+     * Robot walkthrough #2 (2026-10-18): what the mode cannot do, the session's folder and its notes sit behind one ⓘ
+     * disclosure, closed by default — the header keeps one status line. Presentation only; kept for this run.
+     */
+    private final JButton aboutToggle = UiText.button("ⓘ");
+    static final String ABOUT = "About this assistant";
+    private boolean aboutOpen;
     private boolean demoShowing;
     private AssistantProfile profile = AssistantProfile.NONE;
 
@@ -175,7 +183,7 @@ public final class AssistantPanel extends JPanel {
     private Supplier<Boolean> providerConfiguredSupplier = () -> false;
 
     public AssistantPanel(AssistantTranscript transcript) {
-        super(new BorderLayout(4, 4));
+        super(new FloorLayout());
         this.transcript = transcript;
         setBorder(UiTheme.pad());
         getAccessibleContext().setAccessibleName("Analyser assistant");
@@ -193,23 +201,38 @@ public final class AssistantPanel extends JPanel {
         limits.getAccessibleContext().setAccessibleName("What this mode cannot do");
         limits.setForeground(UiTheme.mutedForeground());
 
-        JPanel top = new JPanel();
+        JPanel top = new WidthTrackingPanel();
         top.setLayout(new BoxLayout(top, BoxLayout.Y_AXIS));
-        JPanel bar = new JPanel(new BorderLayout(6, 0));
-        JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
-        left.add(profileButton);
-        left.add(mode);
-        bar.add(left, BorderLayout.WEST);
-        JPanel hostActions = new JPanel(new WrapLayout(FlowLayout.RIGHT, 4, 0));
-        hostActions.add(surface.newChat);
-        hostActions.add(showAnalyser);
-        hostActions.add(hostButton);
-        bar.add(hostActions, BorderLayout.CENTER);
-        for (JComponent c : new JComponent[]{bar, surface.chips, details, limits}) {
+        // robot walkthrough #2 (2026-10-18): one wrapping row, so New chat and Pop out wrap below the Assistant control in
+        // a narrow column instead of being clipped off its right edge
+        JPanel bar = new JPanel(new WrapLayout(FlowLayout.LEFT, 4, 2));
+        bar.add(profileButton);
+        bar.add(mode);
+        bar.add(surface.newChat);
+        bar.add(showAnalyser);
+        bar.add(hostButton);
+        bar.add(aboutToggle);
+        aboutToggle.setToolTipText(UiText.tooltip("What this assistant can and cannot do, where your questions go, and the "
+                + "session's folder"));
+        aboutToggle.getAccessibleContext().setAccessibleName(ABOUT);
+        aboutToggle.addActionListener(e -> {
+            aboutOpen = !aboutOpen;
+            renderAbout();
+        });
+        for (JComponent c : new JComponent[]{surface.chips, details, limits}) {
             c.setAlignmentX(LEFT_ALIGNMENT);
             top.add(c);
         }
-        add(top, BorderLayout.NORTH);
+        // the header scrolls inside its share of the panel; the transcript and the composer keep a floor beneath it
+        javax.swing.JScrollPane topScroll = new javax.swing.JScrollPane(top,
+                javax.swing.ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
+                javax.swing.ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        topScroll.setBorder(BorderFactory.createEmptyBorder());
+        topScroll.getVerticalScrollBar().setUnitIncrement(16);
+        topScroll.setViewportBorder(null);
+        top.setOpaque(false);
+        // the Assistant control, New chat and Pop out stay in sight above the scrolling part
+        add(new HeaderPanel(bar, topScroll), BorderLayout.NORTH);
 
         inAppLines.setLayout(new BoxLayout(inAppLines, BoxLayout.Y_AXIS));
         for (JComponent c : new JComponent[]{route, basis, status}) {
@@ -310,6 +333,7 @@ public final class AssistantPanel extends JPanel {
         this.localAgent = panel;
         details.add(panel, AssistantMode.LOCAL_AGENT.name());
         panel.setActive(shownMode == AssistantMode.LOCAL_AGENT && !demoShowing);
+        panel.setAboutOpen(aboutOpen);
     }
 
     private boolean claudeCodeShown() {
@@ -346,10 +370,14 @@ public final class AssistantPanel extends JPanel {
         shownMode = m;
         this.demoShowing = demoShowing;
         boolean claude = claudeCodeShown();
+        // robot walkthrough #3: the in-app assistant's provider buttons are not Claude Code's
+        if (claude) noProvider.setVisible(false);
         // owner, 2026-10-18: ↑ recalls the questions of the assistant the panel shows
         surface.historyMode(claude ? AssistantMode.LOCAL_AGENT : AssistantMode.IN_APP);
         detailsLayout.show(details, (claude ? AssistantMode.LOCAL_AGENT : AssistantMode.IN_APP).name());
-        surface.start.setVisible(claude);
+        // robot walkthrough #3: Start is not shown while Claude Code runs (the local agent's last render says)
+        surface.start.setVisible(claude && (localAgent == null || localAgent.lastState() == null
+                || !localAgent.lastState().running()));
         copyPrompt.setVisible(!claude);
         if (localAgent != null) localAgent.setActive(claude);
         if (changed && !claude) {
@@ -598,7 +626,116 @@ public final class AssistantPanel extends JPanel {
             words = Boolean.TRUE.equals(providerConfiguredSupplier.get()) ? IN_APP_LIMITS : IN_APP_NO_KEY;
         }
         limits.setText(words == null ? " " : words);
-        limits.setVisible(words != null && !words.isBlank());
+        boolean statusLine = profile == AssistantProfile.OFF || !profileStatus.isBlank() && (profilesOpen || !claudeCodeShown());
+        limits.setVisible(words != null && !words.isBlank() && (statusLine || aboutOpen));
+    }
+
+    /** Robot walkthrough #2: open or close the ⓘ disclosure — this panel's limits line and Claude Code's notes. */
+    private void renderAbout() {
+        aboutToggle.setText(aboutOpen ? "ⓘ ▾" : "ⓘ");
+        aboutToggle.getAccessibleContext().setAccessibleDescription(aboutOpen ? "expanded" : "collapsed");
+        if (localAgent != null) localAgent.setAboutOpen(aboutOpen);
+        renderLimits();
+        revalidate();
+        repaint();
+    }
+
+    boolean aboutOpen() {
+        return aboutOpen;
+    }
+
+    JButton aboutToggle() {
+        return aboutToggle;
+    }
+
+    /**
+     * Robot walkthrough #2: the header takes what is left after the transcript's and the composer's floors, and scrolls;
+     * the transcript is never squeezed below {@link #TRANSCRIPT_FLOOR} by prose above it (at 1200×800 it was given a
+     * negative height and Start and Send fell off the panel).
+     */
+    static final int TRANSCRIPT_FLOOR = 120;
+
+    /** The header inside its scroll pane: as wide as the panel, so its rows wrap instead of running off the right edge. */
+    static final class WidthTrackingPanel extends JPanel implements javax.swing.Scrollable {
+        @Override public java.awt.Dimension getPreferredScrollableViewportSize() { return getPreferredSize(); }
+        @Override public int getScrollableUnitIncrement(Rectangle r, int o, int d) { return 16; }
+        @Override public int getScrollableBlockIncrement(Rectangle r, int o, int d) { return Math.max(16, r.height - 16); }
+        @Override public boolean getScrollableTracksViewportWidth() { return true; }
+        @Override public boolean getScrollableTracksViewportHeight() { return false; }
+    }
+
+    /** The fixed button row over the scrolling header; its preferred height is both at the width it is laid out at. */
+    static final class HeaderPanel extends JPanel {
+        private final JComponent bar;
+        private final javax.swing.JScrollPane scroll;
+
+        HeaderPanel(JComponent bar, javax.swing.JScrollPane scroll) {
+            super(new BorderLayout(0, 2));
+            this.bar = bar;
+            this.scroll = scroll;
+            add(bar, BorderLayout.NORTH);
+            add(scroll, BorderLayout.CENTER);
+        }
+
+        /** The height wanted at width {@code w}: the row's wrapped height and the whole scrolling header's. */
+        int wanted(int w) {
+            bar.setSize(w, Math.max(1, bar.getHeight()));
+            java.awt.Component v = scroll.getViewport().getView();
+            v.setSize(w, Math.max(1, v.getHeight()));
+            v.doLayout();
+            return bar.getPreferredSize().height + 2 + v.getPreferredSize().height;
+        }
+
+        /** The least it takes: the button row, which never scrolls away. */
+        int least(int w) {
+            bar.setSize(w, Math.max(1, bar.getHeight()));
+            return bar.getPreferredSize().height + 2;
+        }
+    }
+
+    static final class FloorLayout extends BorderLayout {
+        FloorLayout() {
+            super(4, 4);
+        }
+
+        @Override
+        public void layoutContainer(java.awt.Container parent) {
+            synchronized (parent.getTreeLock()) {
+                java.awt.Insets in = parent.getInsets();
+                int x = in.left;
+                int w = parent.getWidth() - in.left - in.right;
+                int h = parent.getHeight() - in.top - in.bottom;
+                java.awt.Component north = getLayoutComponent(NORTH);
+                java.awt.Component center = getLayoutComponent(CENTER);
+                java.awt.Component south = getLayoutComponent(SOUTH);
+                int gap = getVgap();
+                int southH = south != null && south.isVisible() ? preferredHeight(south, w) : 0;
+                southH = Math.min(southH, Math.max(0, h - TRANSCRIPT_FLOOR - 2 * gap));
+                int northWanted = north == null || !north.isVisible() ? 0
+                        : north instanceof HeaderPanel hp ? hp.wanted(w) : preferredHeight(north, w);
+                int northLeast = north instanceof HeaderPanel hp && north.isVisible() ? hp.least(w) : 0;
+                int northH = Math.max(northLeast, Math.min(northWanted, h - southH - TRANSCRIPT_FLOOR - 2 * gap));
+                int centerH = Math.max(0, h - northH - southH - 2 * gap);
+                int y = in.top;
+                if (north != null) north.setBounds(x, y, w, northH);
+                y += northH + gap;
+                if (center != null) center.setBounds(x, y, w, centerH);
+                y += centerH + gap;
+                if (south != null) south.setBounds(x, y, w, southH);
+            }
+        }
+
+        /** The preferred height at width {@code w}: wrapping rows and lines report it only once they know their width. */
+        private static int preferredHeight(java.awt.Component c, int w) {
+            if (c instanceof javax.swing.JScrollPane sp && sp.getViewport().getView() != null) {
+                java.awt.Component v = sp.getViewport().getView();
+                v.setSize(w, Math.max(1, v.getHeight()));
+                v.doLayout();
+                return v.getPreferredSize().height;
+            }
+            c.setSize(w, Math.max(1, c.getHeight()));
+            return c.getPreferredSize().height;
+        }
     }
 
     /** The in-app header's chips: who answers, the provider and model, the key, and the action budget. */

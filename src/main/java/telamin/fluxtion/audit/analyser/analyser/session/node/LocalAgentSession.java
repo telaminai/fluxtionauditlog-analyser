@@ -359,7 +359,7 @@ public class LocalAgentSession implements EventLogSource {
     }
 
     /** Said once Claude Code is allowed again after it was switched off (probe, owner 2026-10-18). */
-    public static final String ALLOWED_AGAIN_TEXT = "starting Claude Code is allowed again — press Start";
+    public static final String ALLOWED_AGAIN_TEXT = "starting Claude Code is allowed again — press Send to ask";
 
     /**
      * Whether {@code c} changed anything for the running session, and if so what was done: a mandatory change ended it at
@@ -1245,8 +1245,12 @@ public class LocalAgentSession implements EventLogSource {
      * the node keeps — cannot be checked, so it is refused rather than counted as fresh.
      */
     public static final String UNKNOWN_DRAFT_WORDS = "This message holds a drafted question that cannot be checked against "
-            + "the open log (it was drafted for the other assistant, or too many questions ago) — delete it, or ask again "
-            + "from the records";
+            + "the open log (it was drafted for the other assistant, or too many questions ago) — press Ask again for "
+            + "Claude Code to place it for Claude Code, or delete it";
+    /** The in-app assistant's words for the same refusal (it has no Ask again action). */
+    public static final String UNKNOWN_DRAFT_WORDS_IN_APP = "This message holds a drafted question that cannot be checked "
+            + "against the open log (it was drafted for the other assistant, or too many questions ago) — delete it, or ask "
+            + "again from the records";
 
     /** Record the posture a consent fact names (for the full-posture cue); true when it changed. */
     private boolean observeConsent(SessionEvents.LocalAgentConsent c) {
@@ -1320,6 +1324,8 @@ public class LocalAgentSession implements EventLogSource {
         if (e.draft() <= 0) return "EMPTY: there is nothing to send";
         if (pendingDraft != 0) return "BUSY: " + BUSY_TEXT;
         String stale = staleDraft(e.draftBindings());
+        // robot walkthrough #1: a question drafted for the other assistant has its own verdict, and its one action
+        if (UNKNOWN_DRAFT_WORDS.equals(stale)) return "UNKNOWN_DRAFT: " + stale;
         if (stale != null) return "STALE_DRAFT: " + stale;
         String named = e.command() == null ? "this command" : "/" + e.command();
         return switch (e.slash() == null ? SessionEvents.SlashClass.TEXT : e.slash()) {
@@ -1674,6 +1680,8 @@ public class LocalAgentSession implements EventLogSource {
                     new LocalAgentState.Extra(setupDirRef, setupDirShown, unknownEvents, unclassifiedCommands, droppedLines, turns, trimmed,
                             attention(verdict, detailRef, stderrRef, unknownEvents + unclassifiedCommands + droppedLines),
                             new LocalAgentState.Restart(restartOffer, restartState, restartChanged, restartNewChat)));
+            // robot walkthrough #3: the one primary action and the one instruction line, decided here from the state
+            published = published.withExtra(withGuide(published.extra(), guide(published)));
             dirty = false;
         }
         return published;
@@ -1698,6 +1706,70 @@ public class LocalAgentSession implements EventLogSource {
         }
         if (stderrRef != 0 || diagnostics > 0) return LocalAgentState.Attention.WARNING;
         return LocalAgentState.Attention.NONE;
+    }
+
+    // ---- robot walkthrough #3 (2026-10-18): one primary action, one instruction line -----------------------------------
+
+    /** Said while not running: starting is what Send does first, and what that contacts. */
+    public static final String CONTACTS_ANTHROPIC = "Send starts Claude Code first — that contacts Anthropic (sign-in "
+            + "check, MCP connect); no record content is sent until you press Send. In full Claude Code, starting also runs "
+            + "your and the folder's hooks and connects your MCP servers.";
+    public static final String NOT_RUNNING_TEXT = "Not running. " + CONTACTS_ANTHROPIC;
+    public static final String PLACED_NOT_RUNNING_TEXT = "Not running — your question is placed; Send starts Claude Code "
+            + "and asks it. " + CONTACTS_ANTHROPIC;
+
+    /**
+     * The one primary action and the one instruction line for {@code s} (pure; the node publishes it, the panel renders
+     * it). While nothing runs and a reason stands, the reason IS the line — a refusal is never a suffix to a paragraph.
+     */
+    public static LocalAgentState.Guide guide(LocalAgentState s) {
+        boolean stoppable = s.busy() || s.starting() || "STOPPING".equals(s.phase()) || s.pendingDraft() != 0;
+        String primary = stoppable ? LocalAgentState.Guide.STOP : LocalAgentState.Guide.SEND;
+        String action = "UNKNOWN_DRAFT".equals(s.verdict()) ? LocalAgentState.Guide.ASK_AGAIN : "";
+        String phase = switch (s.phase()) {
+            case "SPAWNING", "HANDSHAKE" -> "Starting Claude Code…";
+            case "BINDING" -> s.bindingElapsedMs() >= 2_000 ? "connecting to the analyser bridge…" : "Starting Claude Code…";
+            case "READY" -> s.pendingDraft() != 0 ? "Sending your message…" : "Ready";
+            case "BUSY" -> "Claude is answering…";
+            case "STOPPING" -> "Stopping the turn…";
+            default -> s.armedWhy() != null ? PLACED_NOT_RUNNING_TEXT : NOT_RUNNING_TEXT;
+        };
+        // a Send refused as busy already says what is happening: one sentence, not the phase and then the refusal
+        if ("BUSY".equals(s.verdict()) && s.busy()) return new LocalAgentState.Guide(primary, s.reason(), action, true);
+        if (s.reason().isBlank()) return new LocalAgentState.Guide(primary, phase, action, false);
+        boolean refusal = !s.verdict().isBlank() && !"BOUND".equals(s.verdict()) && !"OK".equals(s.verdict());
+        if (!s.running() || refusal && !s.busy()) {
+            String r = s.reason();
+            return new LocalAgentState.Guide(primary, Character.toUpperCase(r.charAt(0)) + r.substring(1), action, refusal);
+        }
+        return new LocalAgentState.Guide(primary, phase + " — " + s.reason(), action, refusal);
+    }
+
+    private static LocalAgentState.Extra withGuide(LocalAgentState.Extra x, LocalAgentState.Guide g) {
+        return new LocalAgentState.Extra(x.setupDirRef(), x.setupDirShown(), x.unknownEvents(), x.unclassifiedCommands(),
+                x.droppedLines(), x.turns(), x.trimmed(), x.attention(), x.restart(), g);
+    }
+
+    /**
+     * Robot walkthrough #1 (2026-10-18): "Ask again for Claude Code" on a refusal that the composer holds a question this
+     * node does not know (drafted for the in-app assistant). The node asks for those questions to be composed again for
+     * Claude Code — it binds and places them as any composed draft; the placement replaces the old one.
+     */
+    @OnEventHandler
+    public boolean onAskAgain(SessionEvents.LocalAgentAskAgainRequested e) {
+        if (!mode.localAgent()) {
+            auditLog.info("noOp", "LocalAgentAskAgainRequested").info("reason", "the in-app assistant is the mode in force");
+            return false;
+        }
+        List<Long> unknown = new ArrayList<>();
+        for (long ref : e.draftBindings()) if (!bindings.containsKey(ref)) unknown.add(ref);
+        if ("UNKNOWN_DRAFT".equals(verdict)) {
+            verdict = "";
+            reason = "";
+        }
+        auditLog.info("localAgentAskAgain", unknown.size());
+        if (!unknown.isEmpty()) effects.request(new SessionEffects.RecomposeLocalAgentDraftsEffect(0L, unknown));
+        return changed();
     }
 
     /** For the adapter's tests and the posture assertion: whether the given mode is the one in force. */

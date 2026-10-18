@@ -40,24 +40,27 @@ class LocalAgentHeaderTest {
         assertTrue(after.contains("claude-haiku-4-5") && !after.contains("confirmed after"), after);
     }
 
-    /** ★ Witness: label Start "(resume)" whatever the phase — the running and starting assertions fail. */
+    /**
+     * ★ Robot walkthrough #3 (2026-10-18): Start's label is fixed — Start or Resume — and Start is not shown while Claude
+     * Code runs, so there is no disabled "Running…" beside "Ready". Witness: label Start "(resume)" whatever the
+     * conversation — the first assertion fails.
+     */
     @Test
-    @DisplayName("★ Start says what it would do: Start, Resume, Starting…, Running…")
+    @DisplayName("★ Start says what it would do: Start or Resume, nothing else")
     void startLabels() {
         assertEquals("Start Claude Code", LocalAgentPanel.startLabel(state("OFF", 0)));
         assertEquals("Resume Claude Code", LocalAgentPanel.startLabel(state("OFF", 0, "", "", 0, true)));
-        assertEquals("Starting…", LocalAgentPanel.startLabel(state("BINDING", 0, "", "", 0, true)));
-        assertEquals("Running…", LocalAgentPanel.startLabel(state("READY", 1, "", "", 0, true)));
-        assertEquals("Running…", LocalAgentPanel.startLabel(state("BUSY", 1, "", "", 3, true)));
     }
 
-    /** ★ Witness: drop the single-sentence case in {@code phaseText} — the phase and the refusal both appear. */
+    /** ★ Witness: drop the single-sentence case in {@code LocalAgentSession.guide} — the phase and the refusal both appear. */
     @Test
     @DisplayName("★ a busy refusal is one sentence on the status line")
     void busyIsOneSentence() {
-        String line = LocalAgentPanel.phaseText(state("BUSY", 1, "BUSY", "Claude is still answering — Stop or wait.", 3, true));
+        String line = telamin.fluxtion.audit.analyser.analyser.session.node.LocalAgentSession.guide(
+                state("BUSY", 1, "BUSY", "Claude is still answering — Stop or wait.", 3, true)).instruction();
         assertEquals("Claude is still answering — Stop or wait.", line);
-        assertEquals("Claude is answering…", LocalAgentPanel.phaseText(state("BUSY", 1, "", "", 3, true)));
+        assertEquals("Claude is answering…", telamin.fluxtion.audit.analyser.analyser.session.node.LocalAgentSession
+                .guide(state("BUSY", 1, "", "", 3, true)).instruction());
     }
 
     /** ★ Witness: make {@code WrapLine} a plain one-line label (no wrapping) — the narrow height does not grow. */
