@@ -21,6 +21,7 @@ Usage
     python3 tools/capture-docs.py --spotlight  # regenerate only the spotlight shots (light AND dark)
     python3 tools/capture-docs.py --projects-menu     # Project, Sources, Audit log + the tutorial's ringed Project shot
     python3 tools/capture-docs.py --template-picker   # the template picker + the tutorial's ringed copy of it
+    python3 tools/capture-docs.py --chart-delete      # the Graph tab's delete confirmation (its real words)
     python3 tools/capture-docs.py --keep     # leave the app running afterwards
 
 Runs the app under an isolated home (/tmp/analyser-docs/home) so no real setting can reach a shot.
@@ -552,6 +553,29 @@ def capture_template_picker():
         _failed.append(name)
 
 
+def capture_chart_delete():
+    """The Graph tab's delete confirmation, from the product's own question (tools/ChartDeleteDocCapture.java)."""
+    print("chart delete confirmation")
+    stop_capture_app()
+    shutil.rmtree(CAPTURE_ROOT, ignore_errors=True)
+    HOME.mkdir(parents=True)
+    if EXPORT_DIR.exists():
+        shutil.rmtree(EXPORT_DIR)
+    EXPORT_DIR.mkdir(parents=True)
+    classes = CAPTURE_ROOT / "classes"
+    names = ["chart-delete-confirmation.png"]
+    result = subprocess.run(["javac", "-cp", str(jar()), "-d", str(classes),
+                             str(REPO / "tools" / "DocShot.java"), str(REPO / "tools" / "ChartDeleteDocCapture.java")],
+                            capture_output=True, text=True)
+    if result.returncode != 0:
+        print(f"  ! could not compile the chart-delete capture: {result.stderr.strip()}")
+        _attempted.extend(names)
+        _failed.extend(names)
+        return
+    run_shot_program(["java", f"-Duser.home={HOME}", "-cp", str(classes) + os.pathsep + str(jar()),
+                      "telamin.fluxtion.audit.analyser.analyser.ui.ChartDeleteDocCapture"], names)
+
+
 def run_shot_program(cmd, names, env=None, cwd=None):
     """Run a Java capture program that speaks tools/DocShot.java's protocol, taking each image by WINDOW ID.
 
@@ -976,6 +1000,11 @@ def main():
 
     if "--template-picker" in sys.argv:
         capture_template_picker()
+        finish_capture()
+        return
+
+    if "--chart-delete" in sys.argv:
+        capture_chart_delete()
         finish_capture()
         return
 
