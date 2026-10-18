@@ -11942,11 +11942,13 @@ public final class MainFrame extends JFrame {
                         e.request(), false, 0, null, null));
                 return;
             }
+            // review PR #150 R6: the folder is judged AS TYPED — a relative name is refused (NOT_ABSOLUTE), never resolved
+            // against the analyser's working directory, a place the person never saw
             Path abs = target.toAbsolutePath().normalize();
             session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExampleDownloadConfirmed(
                     e.request(), true, factRefs.put(abs.toString()),
                     telamin.fluxtion.audit.analyser.analyser.session.FactWords.shown(abs.toString()),
-                    ExampleDownloadDialog.targetProblem(abs)));
+                    ExampleDownloadDialog.targetProblem(target.isAbsolute() ? target.normalize() : target)));
         });
         return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExampleEffectStarted(e.opId(), e.request(), "confirm");
     }
