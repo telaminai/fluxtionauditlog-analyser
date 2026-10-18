@@ -55,7 +55,7 @@ line, and update this index in the same change.
 |---|---|---|
 | [spec-onboarding-example.md](spec-onboarding-example.md) | M19 in progress; most slices archived | M19 |
 | [spec-project-starter-journey.md](spec-project-starter-journey.md) | analyser half shipped in 1.16.0; producer and download acceptance open | M47, M19.23 |
-| [spec-first-minute.md](spec-first-minute.md) | ACCEPTED r1 (2026-10-18); not yet independently reviewed; not started | M79 |
+| [spec-first-minute.md](spec-first-minute.md) | ACCEPTED r1 (2026-10-18); r2 folds one independent review, OD-79.11–.16 open; not started | M79 |
 | [spec-extension-tour.md](spec-extension-tour.md) | specified and unblocked; not started | M67 |
 | [spec-agent-brokered-dev-loop.md](spec-agent-brokered-dev-loop.md) | accepted v2 (replaced M18); the reference the bootstrap artefacts anchor to | M19; delivery order item 10 |
 | [mongoose-bootstrap-artefacts/](mongoose-bootstrap-artefacts/README.md) | review snapshot of the starter's bootstrap files | delivery order item 10 |

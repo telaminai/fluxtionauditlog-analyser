@@ -4,6 +4,16 @@
 OD-77.14–.21 (M77-5, the option diagram, §6.1a) the same day (§20). **r5: OD-77.1 is superseded by M79 OD-79.5**
 ([`spec-first-minute.md`](spec-first-minute.md)): AI setup leaves the first launch, so the start page's first-run
 block (§6.0) is not built; the AI line and every other entry stand.
+**Reading r5** (completed by the M79 independent review, 2026-10-18). Every remaining mention of the first-run
+block is withdrawn with it, wherever it still appears: G1's *reachable from first run*; N6's first-run dismissal
+key; §5.1's harness run *for the first-run block*; §6.1a's OD-77.19 sentence; §7's *(and the first-run block's)*;
+§8.1's decision list; the `FIRST_RUN` value of `origin`; §14.4's *the AI block or line*; the start-page block in §16
+and in §17's effort row. **`assistant.setup.dismissed` has no writer left** (only *Not now* in the block wrote it), so
+it is not added: `AiSetupStartupObserved` loses `dismissed`, and `AiSetupFirstRunDismissed`,
+`PersistSetupDismissedEffect` and the key's half of T14 are withdrawn; the wizard adds one machine-tier key,
+`assistant.setup.client`. The capture harness needs no dismissed pin. M79 also amends three places here: T15
+(below), §6.4's *your own client* row (M79-5), and `origin` (a `START_CONNECT` value for M79-5's *Connect your own
+Claude*, which opens at Screen 2b with Claude Code chosen).
 r2 folded in the independent review of r1
 ([`review_m77_r1_7f3c.md`](../handoff/review_m77_r1_7f3c.md), 3 blockers, 8 major findings, 30 in all; the
 disposition table is in that file and summarised in *Revision history*). r1 was written from the owner's direction of
@@ -419,7 +429,7 @@ at 6 acts (§16).
 | Claude inside (or Both), no log open | **Open the sample and ask what happened** | opens the demo sample (the start page's *Sample project* action), selects the demo manifest's breach record **by its record id, never a row number**, and places *"What happened here?"* bound for Claude Code, focus on Send |
 | Claude inside (or Both), a log open, a record selected | **Ask about the selected record** | places the Ask catalogue's *What happened here?* for that record, focus on Send |
 | Claude inside, a log open, nothing selected | — | the line *"Right-click any record and choose Ask… to ask about it."* and **Done** |
-| Your own client only | **Copy a first question** | copies *"Use analyser_context, then tell me what happened in the open log."*; the line *"Ask it in your terminal."* |
+| Your own client only | **Copy a first question** | copies *"Use analyser_context, then tell me what happened in the open log."*; the line *"Ask it in your terminal."* **r5 (M79-5):** when the wizard was opened by *Connect your own Claude* (`origin` `START_CONNECT`) the action is **Copy the first prompt**, the first entry of the shipped pack *Your project, for your own Claude* (M79 §11) |
 | In-app with a key | as the Claude rows | for the in-app assistant |
 | No AI | **Take the guided tour** | starts `DemoTour` |
 
@@ -538,7 +548,7 @@ Enums, ids, times and the node's own words only — never a path, a key, raw CLI
 |---|---|---|
 | `open` | boolean | the window is open (one instance) |
 | ~~`firstRun`~~ | boolean | the start page shows the first-run block (§6.0). **Withdrawn (r5, M79 OD-79.5)** |
-| `origin` | `FIRST_RUN · MENU · START_LINE · SEND · ASK · SETTINGS` | why it opened |
+| `origin` | ~~`FIRST_RUN`~~ `· MENU · START_LINE · SEND · ASK · SETTINGS · START_CONNECT` | why it opened. r5: `FIRST_RUN` withdrawn (OD-79.5); `START_CONNECT` added for M79-5 (*Connect your own Claude*, at 2b with Claude Code chosen) |
 | `step` | `CHOICE · INSIDE · CLIENT · OTHER · SUMMARY` | the screen |
 | `choice` | `NONE · NO_AI · CLIENT · INSIDE · BOTH · IN_APP` | the person's Screen 1 choice in this wizard |
 | `inForce` | same enum | the choice in force, DERIVED (§14.1) — what Screen 1 preselects and the AI line says |
@@ -906,7 +916,7 @@ Headless (`AiSetupTest`, `ClaudeProbeParseTest`, …) unless marked *frame* (a r
 | ★ T12 | pending question: Ask before set-up → wizard → Finish(Safe) → exactly one draft in the composer, **bound in `localAgentSession.bindings`**; Send starts a turn (not `STALE_DRAFT`); in *Both*, nothing is placed until 2b's Finish; Cancel returns it (§7.4) | robot #1's dead end, a duplicated draft | place on Finish alone (r1's rule); or append instead of replace |
 | ★ T13 | the wizard never posts a folder-trust fact or writes `assistant.claudeCode.trusted*` | S6 | the wizard posts a folder-confirmed fact |
 | ★ T14 | `assistant.setup.dismissed` and every key the wizard writes are machine-tier: an exported profile, share or bundle holds none | S9 | put the key in the project tier |
-| ★ T15 | the AI line (§6.0) for every row of its table, from the node; the start page shows exactly one AI line (no "No AI assistant can answer here yet" beside it) | robot #5's contradiction | compose the line in `StartPanel` |
+| ★ T15 | the AI line (§6.0) for every row of its table, from the node (r5: on the start page in M79 §5.4's short form, the long form being the line's tooltip and the Context column row; both are asserted); the start page shows exactly one AI line (no "No AI assistant can answer here yet" beside it) | robot #5's contradiction | compose the line in `StartPanel` |
 | ★ T16 | `OneDispatchModelTest` gains rules: the wizard view posts facts and renders `AiSetupState` only; **no `assistantActionsRest` write anywhere but `SetExternalAccessEffect`'s performer** (and M19.7's `--rest` start-up write); no `ClaudeMcpClient`/`CodexMcpClient`/`claude` process outside the performers; no status line composed outside `AiSetupLines` | hand-placed dispatch | write `assistant.rest` in the AI menu's listener (today's code) |
 | ★ T17 *(frame)* | each screen at 640 and 520 px in light and dark: no clipped text (every wrapping area's preferred height covers its lines), primary button visible, focus order as §15 | layout regressions | today's `SafeChoice.build` packing a wrapping `JTextArea` with no width (robot D/02b) |
 | ★ T18 | `FaqSecurityContractTest` and `UserVisibleJargonTest` include the wizard's strings; `{Product}` is the only spelling of the product | an unpinned "local-only" claim, jargon | spell "Canvas" in a literal |
