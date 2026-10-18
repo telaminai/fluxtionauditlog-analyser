@@ -233,7 +233,16 @@ public record LocalAgentPosture(Kind kind, FullMode fullMode) {
 
     /** Whether {@code reported} is the mode this posture expects (never {@code bypassPermissions}, in any posture). */
     public boolean modeMatches(String reported) {
-        return reported != null && !BYPASS.equals(reported) && permissionMode().equals(reported);
+        return modeMatches(permissionMode(), reported);
+    }
+
+    /**
+     * The rule itself, for any expected mode (review of PR #147, info): {@code bypassPermissions} never matches, EVEN
+     * when it is what was expected. No posture expects it today ({@link FullMode} has no such value), so this clause is
+     * defence in depth, and taking the expectation as a parameter is what lets a test witness it.
+     */
+    static boolean modeMatches(String expected, String reported) {
+        return reported != null && !BYPASS.equals(reported) && reported.equals(expected);
     }
 
     /** The default posture's check: kept for the P1a call sites and fixtures. */
