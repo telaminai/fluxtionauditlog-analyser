@@ -279,8 +279,8 @@ class FirstRunPolishFrameTest {
             assertFalse(snapshot(f.frame).logOpen(), "the cancel opened nothing");
             onEdt(() -> prompt.noLogButton(StartPromptView.NoLogAction.OPEN_SAMPLE).doClick());
             await(f.frame, x -> x.logOpen(), "★ Open the sample works after the cancel");
-            await(f.frame, x -> x.startPage().noLogHeld() == 0 && x.profiles().open(),
-                    "the question goes on about the sample");
+            await(f.frame, x -> x.startPage().noLogHeld() == 0 && x.aiSetup().open(),
+                    "the question goes on about the sample — the wizard opens for it (M77-4: the cards are gone)");
             assertEquals(0, f.agent.processes.size(), "nothing sent");
         }
     }
