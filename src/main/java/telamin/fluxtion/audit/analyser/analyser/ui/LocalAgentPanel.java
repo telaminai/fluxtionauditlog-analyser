@@ -141,7 +141,7 @@ public final class LocalAgentPanel extends JPanel {
     /** The chip shown after Later: clicking it shows the offer again. */
     private final JButton restartChip = UiText.button(RESTART_CHIP);
     private LocalAgentState.Restart restart = LocalAgentState.Restart.NONE;
-    static final String RESTART_YES = "Yes, restart now";
+    static final String RESTART_YES = "Restart";
     static final String RESTART_LATER = "Later";
     static final String RESTART_CHIP = "settings changed — restart to apply";
     /** Robot walkthrough #1: the one action beside a refusal that the composer holds the other assistant's question. */
@@ -156,6 +156,10 @@ public final class LocalAgentPanel extends JPanel {
      * The person's own choice is kept for this run of the analyser, never saved.
      */
     private final JButton detailsToggle = UiText.button(DETAILS);
+    /** M78 D1 (§4.2): the stopped session's banner actions — Restart and Details. */
+    private final JPanel bannerRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
+    private final JButton restartAfterExit = UiText.button(RESTART_AFTER_EXIT);
+    static final String RESTART_AFTER_EXIT = "Restart";
     private final JPanel detailsBody = new JPanel();
     private final WrapLine cliLine = new WrapLine(" ");
     private final WrapLine pathLine = new WrapLine(" ");
@@ -290,19 +294,23 @@ public final class LocalAgentPanel extends JPanel {
         detailsBody.setVisible(false);
         detailsBody.getAccessibleContext().setAccessibleName("Claude Code details");
         detailsToggle.setVisible(false);
-        detailsToggle.setBorderPainted(false);
-        detailsToggle.setContentAreaFilled(false);
-        detailsToggle.setHorizontalAlignment(SwingConstants.LEFT);
-        detailsToggle.setToolTipText(UiText.tooltip("The CLI version, where requests go, the PATH, diagnostics and the "
-                + "last error. Opens by itself when something needs your attention."));
         detailsToggle.addActionListener(e -> {
             detailsChosen = !detailsBody.isVisible();
             showDetails();
         });
+        // M78 D1 (§4.2): the stopped session's banner — its words, then [Restart] [Details]
+        bannerRow.setOpaque(false);
+        bannerRow.add(restartAfterExit);
+        bannerRow.add(detailsToggle);
+        bannerRow.setVisible(false);
+        restartAfterExit.setVisible(false);
+        restartAfterExit.setToolTipText(UiText.tooltip("Start Claude Code again; the conversation is resumed"));
+        restartAfterExit.getAccessibleContext().setAccessibleName("Restart Claude Code");
+        restartAfterExit.addActionListener(e -> onStart());
         java.util.List<JComponent> lines = new java.util.ArrayList<>();
         if (standalone) lines.add(chips);
         lines.addAll(java.util.List.of(header, posture, lockWarning, actions, closeExternal, restartBanner,
-                proposalBanner, status, askAgain, detailsToggle, detailsBody));
+                proposalBanner, status, askAgain, bannerRow, detailsBody));
         for (JComponent c : lines) {
             c.setAlignmentX(LEFT_ALIGNMENT);
             top.add(c);
@@ -373,9 +381,13 @@ public final class LocalAgentPanel extends JPanel {
         setUp.setVisible(aboutOpen);
     }
 
-    /** Whether the Details disclosure is open: the person's choice in this run, else the node's attention. */
+    /**
+     * Whether the Details disclosure is open: the person's choice in this run. M78 D1 (§4.2, the error state): Details is
+     * the banner's button — the banner says what happened in a few words, and the operator lines open when asked for, so
+     * a stopped session stays within its word budget (§6); the node's attention decides that the button is THERE.
+     */
     boolean detailsOpen() {
-        return detailsChosen != null ? detailsChosen : detailsAttention != LocalAgentState.Attention.NONE;
+        return detailsChosen != null && detailsChosen;
     }
 
     JButton detailsToggle() {
@@ -386,26 +398,36 @@ public final class LocalAgentPanel extends JPanel {
         return detailsBody;
     }
 
-    /** The disclosure's label: ▸ closed, ▾ open, and what needs attention when the node says something does. */
+    /** The disclosure's label: ▸ closed, ▾ open. M78 D1: what needs attention is its tooltip and description. */
     static String detailsLabel(boolean open, LocalAgentState.Attention a) {
-        String why = switch (a == null ? LocalAgentState.Attention.NONE : a) {
+        return (open ? "▾ " : "▸ ") + DETAILS;
+    }
+
+    /** What needs attention, in words, when the node says something does ("" for nothing). */
+    static String attentionWords(LocalAgentState.Attention a) {
+        return switch (a == null ? LocalAgentState.Attention.NONE : a) {
             case NONE -> "";
-            case WARNING -> " — needs attention: Claude Code reported something unexpected";
-            case REFUSAL -> " — needs attention: Claude Code could not start, or was refused";
-            case MISMATCH -> " — needs attention: the session did not match how Claude Code was set up";
+            case WARNING -> "needs attention: Claude Code reported something unexpected";
+            case REFUSAL -> "needs attention: Claude Code could not start, or was refused";
+            case MISMATCH -> "needs attention: the session did not match how Claude Code was set up";
         };
-        return (open ? "▾ " : "▸ ") + DETAILS + why;
     }
 
     private void showDetails() {
         boolean any = cliLine.isVisible() || endpoint.isVisible() || pathLine.isVisible() || diagnostics.isVisible()
                 || detail.isVisible();
-        boolean open = any && detailsOpen();
-        detailsToggle.setVisible(any);
+        // M78 D1 (§4.1 items 17–18): the disclosure is conditional — only while the node says something needs attention;
+        // otherwise the same lines are in About this session…
+        boolean attention = detailsAttention != LocalAgentState.Attention.NONE;
+        boolean open = any && attention && detailsOpen();
+        detailsToggle.setVisible(any && attention);
         detailsToggle.setText(detailsLabel(open, detailsAttention));
         detailsToggle.getAccessibleContext().setAccessibleName(DETAILS);
         detailsToggle.getAccessibleContext().setAccessibleDescription((open ? "expanded" : "collapsed")
-                + (detailsAttention == LocalAgentState.Attention.NONE ? "" : "; needs attention"));
+                + (detailsAttention == LocalAgentState.Attention.NONE ? "" : "; " + attentionWords(detailsAttention)));
+        detailsToggle.setToolTipText(UiText.tooltip("The CLI version, where requests go, the PATH, diagnostics and the "
+                + "last error" + (attention ? " — " + attentionWords(detailsAttention) : "")));
+        bannerRow.setVisible(detailsToggle.isVisible() || restartAfterExit.isVisible());
         detailsBody.setVisible(open);
         revalidate();
         repaint();
@@ -453,6 +475,36 @@ public final class LocalAgentPanel extends JPanel {
         return limitsText(rendered, listener);
     }
 
+    /**
+     * M78 D1 (spec-quiet-assistant-panel.md §4.3): what <i>About this session…</i> shows for Claude Code — everything the
+     * header used to repeat: the assistant, model, posture, CLI, billing and plan or spend, provider; the session's
+     * folder and the fork warning; what the posture loads; the limits (with the not-local-only sentence and, for a full
+     * session, whether external access is open to its tools); and the operator details. The same words the panel
+     * rendered; nothing new is decided here.
+     */
+    java.util.List<String> aboutLines() {
+        java.util.List<String> out = new java.util.ArrayList<>();
+        LocalAgentState s = rendered;
+        if (s == null) {
+            out.add(limitsNow());
+            return out;
+        }
+        LocalAgentTranscript.Header h = shownHeader(s, store);
+        out.add(headerLine(h, s));
+        if (h != null && h.scratchForProject()) out.add(SCRATCH_NOTE);
+        out.add(postureLine(h, s));
+        if (s.resumable()) out.add(LOCK_WARNING);
+        out.add(limitsNow());
+        String ep = endpointText(h, s);
+        if (ep != null) out.add(ep);
+        String diag = diagnosticsText(s, h);
+        if (diag != null) out.add(diag);
+        String words = s.detailRef() != 0 ? store.text(s.detailRef()) : s.stderrRef() != 0
+                ? "Claude Code's last error line: " + store.text(s.stderrRef()) : "";
+        if (!words.isBlank()) out.add(words);
+        return out;
+    }
+
     /** Review B2/B5: render actionListener's decision — the offer to close external access, and the limits line. */
     public void renderListener(telamin.fluxtion.audit.analyser.analyser.session.ListenerState l) {
         listener = l == null ? telamin.fluxtion.audit.analyser.analyser.session.ListenerState.NONE : l;
@@ -461,6 +513,11 @@ public final class LocalAgentPanel extends JPanel {
 
     JButton closeExternalButton() {
         return closeExternal;
+    }
+
+    /** M78 D1: ⋯ ▸ Settings… while Claude Code is shown. */
+    void openSettingsIntent() {
+        if (intents != null) intents.openSettings();
     }
 
     void onStart() {
@@ -593,23 +650,18 @@ public final class LocalAgentPanel extends JPanel {
      */
     /** P3 (§8.3 UI): the permission prompt as the session decided it — the status line says Claude Code is waiting. */
     public void renderPermission(telamin.fluxtion.audit.analyser.analyser.session.PermissionState p) {
-        boolean was = waitingForApproval;
-        waitingForApproval = p != null && p.waiting();
-        if (was != waitingForApproval && rendered != null) status.setText(statusText(rendered, waitingForApproval));
+        // M78 D1 (§4.1 item 16): the 25-word waiting sentence is gone — the header carries the session's chip word (which
+        // localAgentPermission's state decides) and the tool line ends "— approve?"; the dialog says the rest
     }
 
     /**
-     * The status line: the node's one instruction (robot walkthrough #3), or, while a permission dialog is open, that
-     * Claude Code is waiting for the person (the permission node's state).
+     * The status line: the node's one instruction (robot walkthrough #3). M78 D1: it is shown only as the conditional
+     * banner — {@link LocalAgentState.Guide#banner()} — and the routine phase is the header's chip word.
      */
-    static String statusText(LocalAgentState s, boolean waiting) {
-        return waiting ? WAITING_TEXT : s.extra().guide().instruction();
+    static String statusText(LocalAgentState s) {
+        LocalAgentState.Guide g = s.extra().guide();
+        return g.banner().isEmpty() ? g.instruction() : g.banner();
     }
-
-    static final String WAITING_TEXT = "Claude Code is waiting for your answer — the analyser's dialog shows what it asks "
-            + "to run; Deny is the default, and Stop ends the turn";
-
-    private boolean waitingForApproval;
 
     public void renderProposal(telamin.fluxtion.audit.analyser.analyser.session.ProposalState p) {
         proposal = p == null ? telamin.fluxtion.audit.analyser.analyser.session.ProposalState.NONE : p;
@@ -631,13 +683,25 @@ public final class LocalAgentPanel extends JPanel {
         restartLater.setVisible(restart.offered());
         restartBanner.setBackground(UiTheme.accentWash(0.14f));
         restartBanner.setVisible(show);
-        restartBanner.getAccessibleContext().setAccessibleDescription(show ? words : null);
+        String detail = restartDetail(restart, s.busy() || "STOPPING".equals(s.phase()));
+        restartBanner.getAccessibleContext().setAccessibleDescription(show ? detail : null);
+        restartText.setToolTipText(show ? UiText.tooltip(detail) : null);
         restartChip.setToolTipText(restart.deferred() ? UiText.tooltip("Claude Code is running on the settings it was "
                 + "started with. Click to restart it now and apply the change: " + restart.changed()) : null);
     }
 
-    /** The prompt's words, or null when there is none (pinned by the restart-offer tests). */
+    /**
+     * The prompt's words, or null when there is none (pinned by the restart-offer tests). M78 D1 (§4.1 item 25): a few
+     * words on the banner; the whole explanation is {@link #restartDetail} — its tooltip and accessible description.
+     */
     static String restartWords(LocalAgentState.Restart r, boolean answering) {
+        if (r == null || (!r.offered() && !r.afterTurn())) return null;
+        if (r.afterTurn()) return "Restarts when this answer ends" + (r.newChat() ? " (new chat)." : ".");
+        return "Settings changed — restart Claude Code now?" + (r.newChat() ? " (new chat)" : "");
+    }
+
+    /** The restart offer in full — what changed, what restarting does — for the banner's tooltip. */
+    static String restartDetail(LocalAgentState.Restart r, boolean answering) {
         if (r == null || (!r.offered() && !r.afterTurn())) return null;
         if (r.afterTurn()) {
             return "Claude Code restarts with the changed settings when this answer ends"
@@ -718,21 +782,35 @@ public final class LocalAgentPanel extends JPanel {
             // the shared parts are drawn by the mode the panel shows (M74 UX: one composer, one Start/Stop/Send).
             // Robot walkthrough #3: ONE primary action — Send, which starts Claude Code when it is not running, or Stop.
             // Start is secondary, its label fixed, and it is not shown while Claude Code runs (no disabled "Running…")
-            start.setVisible(!running);
+            // M78 D1 (§4.1 item 39): Start / Resume is in ⋯ in the one panel — Send is the one primary action
+            start.setVisible(!running && standalone);
             start.setEnabled(!running);
             start.setText(UiText.inert(startLabel(s)));
             stop.setEnabled(s.busy() || s.starting() || s.pendingDraft() != 0);
             send.setEnabled(!s.busy() && !"STOPPING".equals(s.phase()));
+            // M78 D1 (§4.1 item 40): Stop REPLACES Send, in the same slot, while the node's primary action is Stop
+            boolean stopSlot = LocalAgentState.Guide.STOP.equals(guide.primary());
+            stop.setVisible(stopSlot);
+            send.setVisible(!stopSlot);
             emphasise(send, LocalAgentState.Guide.SEND.equals(guide.primary()));
-            emphasise(stop, LocalAgentState.Guide.STOP.equals(guide.primary()));
-            // a refusal is the one line: the composer's "Press Send" hint is not shown beside it
+            emphasise(stop, stopSlot);
+            // a refusal is the one line: the composer's "Draft — not sent" hint is not shown beside it
             surface.renderHint(telamin.fluxtion.audit.analyser.analyser.session.AssistantMode.LOCAL_AGENT, guide.refusal());
-            newChat.setText(s.newChatOffered() ? "New chat (offered)" : "New chat");
+            String newChatName = s.newChatOffered() ? AssistantSurface.NEW_CHAT + " (offered)" : AssistantSurface.NEW_CHAT;
+            newChat.setText(UiText.inert(standalone ? newChatName : AssistantSurface.NEW_CHAT_ICON));
+            newChat.getAccessibleContext().setAccessibleName(newChatName);
+            newChat.setToolTipText(UiText.tooltip(newChatName));
+            emphasise(newChat, s.newChatOffered());
             renderFullCue(s);
         }
         settings.setVisible("SWITCHED_OFF".equals(s.verdict()) || "BUDGET_SPENT".equals(s.verdict()));
         renderRestart(s);
-        status.setText(statusText(s, waitingForApproval));
+        // M78 D1 (§2.3): the line shows only as the node's conditional banner; the routine phase is the chip word
+        status.setText(statusText(s));
+        status.setVisible(!guide.banner().isEmpty());
+        // the banner's Restart: only where the node says the session stopped and starting again is the answer
+        restartAfterExit.setVisible(!running && LocalAgentState.Guide.CHIP_STOPPED.equals(guide.chipWord())
+                && !settings.isVisible());
         askAgain.setVisible(LocalAgentState.Guide.ASK_AGAIN.equals(guide.action()));
         revalidate();
         String words = s.detailRef() != 0 ? store.text(s.detailRef()) : s.stderrRef() != 0
@@ -750,9 +828,40 @@ public final class LocalAgentPanel extends JPanel {
             view.setSpeaker(TranscriptStyle.marker(TranscriptStyle.Role.CLAUDE), "input");
             view.render(items(s));
             if (follow) view.setCaretPosition(view.getDocument().getLength());
+            // robot walk (2026-10-18): when a turn ends, the transcript shows the answer's FIRST line, not its end
+            String ended = endedAnswer(s);
+            if (ended != null && !ended.equals(scrolledTo)) {
+                scrolledTo = ended;
+                surface.scrollToLastAnswer();
+            }
         }
         rendered = s;
         renderedHeader = headerText;
+        if (active && headerListener != null) headerListener.run();
+    }
+
+    /** The newest answer that has finished (its conversation and ticket), or null while it streams or there is none. */
+    static String endedAnswer(LocalAgentState s) {
+        for (int i = s.entries().size() - 1; i >= 0; i--) {
+            LocalAgentState.Entry e = s.entries().get(i);
+            if (!LocalAgentState.ANSWER.equals(e.kind())) continue;
+            return "STREAMING".equals(e.status()) ? null : s.conversation() + ":" + e.ticket();
+        }
+        return null;
+    }
+
+    /** The answer last scrolled to its first line. */
+    private String scrolledTo;
+    /** M78 D1: the one panel's header (its mode control) follows this mode's chip word and full cue. */
+    private Runnable headerListener;
+
+    void setHeaderListener(Runnable r) {
+        this.headerListener = r;
+    }
+
+    /** "↩ Back to the answer": the newest answer, from its first line. */
+    public void showLatestAnswer() {
+        surface.scrollToLastAnswer();
     }
 
     /** A theme change: the transcript re-styles (the one full re-render besides New chat and a trim). */
@@ -773,11 +882,14 @@ public final class LocalAgentPanel extends JPanel {
                         store.text(e.id()), e.status(), 0, 0, false));
                 case LocalAgentState.ANSWER -> {
                     boolean stopped = "CANCELLED".equals(e.status()) || "PROCESS_EXIT".equals(e.status());
-                    out.add(new TranscriptView.Item(key, stopped ? TranscriptStyle.Role.STOPPED : TranscriptStyle.Role.CLAUDE,
-                            store.text(e.id()), e.status(), e.revision(), e.logGeneration(), "STREAMING".equals(e.status())));
+                    // M78 D1 (OD-Q.8): the turn's time (and an API key's cost) is the answer's tooltip, not a line
                     String turn = "STREAMING".equals(e.status()) ? null : turnText(s, e.ticket());
-                    if (turn != null) out.add(new TranscriptView.Item(key + ":turn", TranscriptStyle.Role.NOTE,
-                            "Turn: " + turn, "TURN", 0, 0, false));
+                    // M78 D1 (§3): while the node says a permission waits, the streaming answer's open tool line asks
+                    boolean asks = "STREAMING".equals(e.status()) && e.ticket() == s.openTicket()
+                            && LocalAgentState.Guide.CHIP_NEEDS_YOU.equals(s.extra().guide().chipWord());
+                    out.add(new TranscriptView.Item(key, stopped ? TranscriptStyle.Role.STOPPED : TranscriptStyle.Role.CLAUDE,
+                            store.text(e.id()), asks ? TranscriptView.AWAITING_APPROVAL : e.status(), e.revision(),
+                            e.logGeneration(), "STREAMING".equals(e.status()), turn == null ? null : TURN_TIP + turn));
                 }
                 case LocalAgentState.NOTE -> out.add(new TranscriptView.Item(key, TranscriptStyle.Role.NOTE,
                         noteLabel(e.status()) + e.detail(), e.status(), 0, 0, false));
@@ -791,11 +903,13 @@ public final class LocalAgentPanel extends JPanel {
      * Review M74 usability #4: a note's label in words — never its status code ("[posture changed]" read as the app's
      * own vocabulary leaking). A code with no word here shows no label: the note's own sentence says what happened.
      */
+    /** The answer's tooltip: its turn's time, and its cost with an API key. */
+    static final String TURN_TIP = "Turn: ";
+
     static String noteLabel(String code) {
         String w = switch (code == null ? "" : code) {
             case "DENIED" -> "Denied";
             case "TIMED_OUT" -> "Not answered";
-            case "APPROVED" -> "Approved";
             case "WITHDRAWN" -> "Withdrawn";
             case "ABANDONED" -> "Did not run";
             case "COMPACTED" -> "Compacted";
@@ -815,27 +929,17 @@ public final class LocalAgentPanel extends JPanel {
 
     // ---- the header as chips (§5.9) -----------------------------------------------------------------------------------
 
+    /**
+     * M78 D1 (§4.1 items 5–10): the header carries no chips — the CLI, the model, the posture, the billing, the plan and
+     * the provider are in About this session… (the posture is the mode control, the plan the PLAN note). The one chip
+     * left is conditional: the restart chip after Later.
+     */
     private void renderChips(LocalAgentTranscript.Header h, LocalAgentState s, String headerText) {
         chips.removeAll();
         chips.getAccessibleContext().setAccessibleDescription(headerText);
-        chips.add(chip("Claude Code", true));
-        if (h == null) {
-            chips.add(chip(s.running() ? "starting" : "not running", false));
-        } else {
-            if (h.model() != null) chips.add(chip(h.model(), false));
-            else if (h.configuredModel() != null && !h.configuredModel().isBlank()) {
-                chips.add(chip("model: " + h.configuredModel() + " (confirmed after the first turn)", false));
-            }
-            chips.add(chip(s.posture().label(), s.posture().isFull()));
-            if (h.billing() != null && !h.billing().isBlank()) chips.add(chip(h.billing(), false));
-            String cost = costText(s);
-            if (!cost.isEmpty()) chips.add(chip(cost, false));
-            // the CLI version is an operator line: it is under Details (external utility review, 2026-10-17)
-            // P2b visual fix: "firstParty" is the CLI's own word for Anthropic's API — internal jargon, not shown as a chip
-            String provider = providerWords(h.apiProvider());
-            if (provider != null) chips.add(chip(provider, false));
-        }
-        if (s.extra().restart().deferred()) chips.add(styledChip(restartChip));   // owner, 2026-10-18: after Later
+        boolean restartChipShown = s.extra().restart().deferred();
+        if (restartChipShown) chips.add(styledChip(restartChip));   // owner, 2026-10-18: after Later
+        chips.setVisible(restartChipShown);
         chips.revalidate();
         chips.repaint();
     }
@@ -948,29 +1052,46 @@ public final class LocalAgentPanel extends JPanel {
                 + (strong ? " In this mode fewer actions are asked about." : "");
     }
 
-    /** Send's label: it names the full posture whenever the cue is shown. */
+    /** Send's label (M78 D1, §3): "◆ Send" whenever the full cue is shown — ◆◆ for the modes that ask least. */
     static String sendLabel(LocalAgentState s) {
-        return s.fullCue() == LocalAgentState.FullCue.NONE ? "Send" : "Send to full Claude Code";
+        if (s.fullCue() == LocalAgentState.FullCue.NONE) return SEND;
+        return cueMark(s) + " " + SEND;
     }
 
+    static final String SEND = "Send";
+    /** Send's accessible name under the full cue: it says where the question goes. */
+    static final String SEND_TO_FULL = "Send to full Claude Code";
+
+    /** The cue's mark: ◆, or ◆◆ for {@code acceptEdits} and {@code auto}; "" with no cue. */
+    static String cueMark(LocalAgentState s) {
+        if (s == null || s.fullCue() == LocalAgentState.FullCue.NONE) return "";
+        return s.strongCue() ? "◆◆" : "◆";
+    }
+
+    /**
+     * M78 D1 (§3): the full cue is ◆ on the mode control, the accent border on the composer and "◆ Send" — all visible in
+     * the narrow dock. The 13-word badge is gone; its sentence is the mode control's tooltip and accessible name.
+     */
     private void renderFullCue(LocalAgentState s) {
         String badge = fullBadgeText(s);
         boolean dark = ThemeManager.isDark();
         send.setText(sendLabel(s));
+        fullBadge.setVisible(false);
+        surface.placeholder(badge != null);
         if (badge == null) {
-            fullBadge.setVisible(false);
             surface.cueBorder(null, 0);
             send.setToolTipText(null);
+            send.setForeground(null);
+            send.getAccessibleContext().setAccessibleName(SEND);
             return;
         }
         Color c = TranscriptStyle.fullPosture(s.strongCue(), dark);
-        fullBadge.setText((s.strongCue() ? "◆◆ " : "◆ ") + badge);
-        fullBadge.setForeground(c);
-        fullBadge.setToolTipText(UiText.tooltip(fullBadgeTip(s)));
+        fullBadge.setText(cueMark(s) + " " + badge);
         fullBadge.getAccessibleContext().setAccessibleName(badge);
         fullBadge.getAccessibleContext().setAccessibleDescription(fullBadgeTip(s));
-        fullBadge.setVisible(true);
         surface.cueBorder(c, s.strongCue() ? 3 : 2);
+        send.setForeground(c);
+        send.getAccessibleContext().setAccessibleName(SEND_TO_FULL);
         send.setToolTipText(UiText.tooltip("Sends to your full Claude Code (" + s.cuePosture().fullMode().cli() + ")"));
     }
 

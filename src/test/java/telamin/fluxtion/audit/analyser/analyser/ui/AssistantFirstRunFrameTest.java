@@ -207,7 +207,7 @@ class AssistantFirstRunFrameTest {
      * assertion fails.
      */
     @Test
-    @DisplayName("★ at 1200×800 the docked assistant keeps Send, Pop out and a transcript of positive height")
+    @DisplayName("★ at 1200×800 the docked assistant keeps Send, ⋯ and a transcript of positive height")
     void theDockedPanelFitsTheDefaultWindow(@TempDir Path tmp) throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless(), "a real display is required");
         try (Fresh f = new Fresh(tmp, 1200, 800)) {
@@ -220,7 +220,8 @@ class AssistantFirstRunFrameTest {
                 assertTrue(transcript.isShowing(), "the transcript is shown");
                 assertTrue(transcript.getHeight() >= AssistantPanel.TRANSCRIPT_FLOOR, "★ the transcript keeps its floor: "
                         + transcript.getHeight());
-                for (JButton b : new JButton[]{a.sendButton(), (JButton) field(a, "hostButton")}) {
+                // M78 D1: Pop out is in ⋯ (OD-Q.10) — the header's ⋯ and the composer's Send are what must fit
+                for (JButton b : new JButton[]{a.sendButton(), a.moreButton()}) {
                     assertTrue(b.isShowing(), b.getText() + " is shown");
                     Rectangle r = SwingUtilities.convertRectangle(b.getParent(), b.getBounds(), a);
                     assertTrue(new Rectangle(0, 0, a.getWidth(), a.getHeight()).contains(r),
@@ -228,7 +229,10 @@ class AssistantFirstRunFrameTest {
                     Rectangle visible = b.getVisibleRect();
                     assertEquals(b.getWidth(), visible.width, b.getText() + " is not clipped");
                 }
-                assertFalse(a.aboutOpen(), "the notes sit behind ⓘ until asked for");
+                // M78 D1 (§4.3): the notes are in ⋯ ▸ About this session…, never on the panel
+                assertTrue(java.util.Arrays.stream(a.moreMenu().getComponents())
+                        .anyMatch(c -> c instanceof javax.swing.JMenuItem m && AssistantPanel.ABOUT.equals(m.getText())),
+                        "About this session… is in ⋯");
             });
         }
     }

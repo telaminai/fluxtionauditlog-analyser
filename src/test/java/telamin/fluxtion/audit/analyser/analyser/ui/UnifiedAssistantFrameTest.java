@@ -97,8 +97,8 @@ class UnifiedAssistantFrameTest {
                 assertTrue(shown.contains("• nothing is open"), "a list is a list: " + shown);
                 assertEquals("In-app assistant", chips(a).get(0), "the header's chips: " + chips(a));
                 assertTrue(chips(a).contains("API key"), chips(a).toString());
-                assertTrue(a.profileButton().getText().startsWith("Assistant: "), "one control for how the assistant "
-                        + "works: " + a.profileButton().getText());
+                assertTrue(a.profileButton().fullWords().startsWith("Assistant: "), "one control for how the assistant "
+                        + "works: " + a.profileButton().fullWords());
                 assertEquals(AssistantPanel.IN_APP_LIMITS, a.limitsLine().getText(), "what in-app cannot do, said");
                 assertTrue(((javax.swing.JButton) field(a, "copyPrompt")).isVisible());
                 assertFalse(a.surface().start.isVisible(), "in-app has no Start");
@@ -108,8 +108,11 @@ class UnifiedAssistantFrameTest {
             onEdt(() -> {
                 AssistantPanel a = AssistantLiveFrameTest.panel(f.frame);
                 assertEquals(List.of(a.conversationView()), all(a, TranscriptView.class), "still one transcript");
-                assertEquals("Claude Code", chips(a).get(0), "the same chips row, Claude Code's: " + chips(a));
-                assertTrue(a.surface().start.isVisible(), "Start, in the one composer's row");
+                // M78 D1 (§4.1 items 5–10, 39): Claude Code's header has no chips, and Start / Resume is in ⋯
+                assertEquals(List.of(), chips(a), "the same chips row, empty for Claude Code: " + chips(a));
+                assertFalse(a.surface().start.isVisible(), "Start is in ⋯; Send is the one primary action");
+                assertTrue(java.util.Arrays.stream(a.moreMenu().getComponents()).anyMatch(c ->
+                        c instanceof javax.swing.JMenuItem m && m.getText().endsWith("Claude Code")), "Start in ⋯");
                 assertFalse(((javax.swing.JButton) field(a, "copyPrompt")).isVisible(), "Copy prompt is the in-app mode's");
                 assertEquals(LocalAgentPanel.OFF_LIMITS.equals(a.limitsLine().getText()) || LocalAgentPanel.SAFE_LIMITS
                         .equals(a.limitsLine().getText()), true, "Claude Code's limits, in the same place: "

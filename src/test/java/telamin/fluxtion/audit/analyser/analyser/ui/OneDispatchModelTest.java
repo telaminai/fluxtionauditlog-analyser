@@ -708,6 +708,35 @@ class OneDispatchModelTest {
         assertEquals(List.of(), offenders, "Set up AI: one home for each");
     }
 
+    /**
+     * ★ M78 D1 (spec-quiet-assistant-panel.md §5, TQ6): the header's chip word, the PLAN note and the Approved note are
+     * the session's. No panel class spells a chip word (it joins the node's {@code Guide.chipWord}), filters a note by its
+     * status, or composes the PLAN line. Witnesses: write {@code "needs you"} in {@code LocalAgentPanel}; or skip
+     * {@code "APPROVED"} notes in {@code items} — each names its file here.
+     */
+    @Test
+    @DisplayName("★ M78 TQ6: no chip-word literals, no note filtering and no PLAN line in the panel classes")
+    void theQuietPanelOnlyRenders() throws Exception {
+        List<String> offenders = new ArrayList<>();
+        for (String file : List.of("LocalAgentPanel.java", "AssistantPanel.java", "AssistantSurface.java",
+                "TranscriptView.java", "AboutSessionDialog.java")) {
+            String src = Files.readString(UI.resolve(file));
+            for (String word : telamin.fluxtion.audit.analyser.analyser.session.LocalAgentState.Guide.CHIP_WORDS) {
+                if (word.isEmpty()) continue;
+                if (src.contains("\"" + word + "\"")) offenders.add(file + " spells the chip word \"" + word + "\"");
+            }
+            for (String filter : List.of("\"APPROVED\".equals", "equals(\"APPROVED\")", "\"PLAN\".equals",
+                    "equals(\"PLAN\")", "uses your Claude plan", "uses your API key")) {
+                if (src.contains(filter)) offenders.add(file + " decides a note itself: " + filter);
+            }
+        }
+        assertEquals(List.of(), offenders, "the panel renders the node's words");
+        String node = Files.readString(Path.of(
+                "src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/LocalAgentPermission.java"));
+        assertFalse(node.contains("permissionNoted(ticket, \"APPROVED\""), "the Approved note is dropped by the node");
+        assertTrue(node.contains("localAgent.permissionWaiting("), "the permission node's waiting state is the chip's");
+    }
+
     private static int count(Pattern p, String s) {
         Matcher m = p.matcher(s);
         int n = 0;

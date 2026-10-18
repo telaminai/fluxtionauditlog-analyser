@@ -5,6 +5,7 @@ import telamin.fluxtion.audit.analyser.analyser.assistant.AssistantTranscript;
 import telamin.fluxtion.audit.analyser.analyser.session.AssistantMode;
 import telamin.fluxtion.audit.analyser.analyser.session.AssistantProfile;
 import telamin.fluxtion.audit.analyser.analyser.session.AssistantState;
+import telamin.fluxtion.audit.analyser.analyser.session.LocalAgentState;
 import telamin.fluxtion.audit.analyser.analyser.session.ProfileState;
 
 import javax.swing.*;
@@ -111,6 +112,32 @@ public final class AssistantPanel extends JPanel {
         return "Assistant: " + (p == null ? AssistantProfile.NONE : p).title() + " — choose how the assistant works";
     }
 
+    /**
+     * M78 D1 (§5.1): the control's words with the session's chip word and the full cue — "Assistant: Safe analysis ·
+     * needs you ▾", "◆ Full Claude Code ▾". The panel JOINS the node's word to the mode's title; it never picks the
+     * word. {@code mark} is the cue's ◆ ("" for none).
+     */
+    static String assistantControlText(AssistantProfile p, String mark, String chipWord) {
+        return "Assistant: " + prefixed(mark, (p == null ? AssistantProfile.NONE : p).title()) + joined(chipWord) + " ▾";
+    }
+
+    static String assistantControlBrief(AssistantProfile p, String mark, String chipWord) {
+        return prefixed(mark, (p == null ? AssistantProfile.NONE : p).title()) + joined(chipWord) + " ▾";
+    }
+
+    /** The briefest: the mode word — "Safe · needs you ▾", "◆ Full · stopped ▾" — for the narrowest dock. */
+    static String assistantControlTiny(AssistantProfile p, String mark, String chipWord) {
+        return prefixed(mark, (p == null ? AssistantProfile.NONE : p).shortTitle()) + joined(chipWord) + " ▾";
+    }
+
+    private static String prefixed(String mark, String title) {
+        return mark == null || mark.isEmpty() ? title : mark + " " + title;
+    }
+
+    private static String joined(String chipWord) {
+        return chipWord == null || chipWord.isEmpty() ? "" : " · " + chipWord;
+    }
+
     /** What the in-app mode cannot do, said where Claude Code's limits are said. */
     static final String IN_APP_LIMITS = "In-app cannot read your project folder, set up a project or use your own "
             + "tools — Claude Code can. "
@@ -193,9 +220,15 @@ public final class AssistantPanel extends JPanel {
      * Robot walkthrough #2 (2026-10-18): what the mode cannot do, the session's folder and its notes sit behind one ⓘ
      * disclosure, closed by default — the header keeps one status line. Presentation only; kept for this run.
      */
-    private final JButton aboutToggle = UiText.button("ⓘ");
-    static final String ABOUT = "About this assistant";
-    private boolean aboutOpen;
+    /** M78 D1 (§2.2): ⋯ — what is used occasionally: New chat, Pop out, About, Switch, Start / Resume, Set up, Settings. */
+    private final JButton more = new IconButton("⋯");
+    static final String MORE = "More: New chat, Pop out, About this session, Switch assistant, Settings";
+    static final String ABOUT = "About this session…";
+    static final String SWITCH = "Switch assistant…";
+    static final String SET_UP_PROJECT = "Set up a project with Claude…";
+    static final String SETTINGS = "Settings…";
+    /** Never true since M78 D1: what ⓘ disclosed is in About this session…, a dialog. */
+    private final boolean aboutOpen = false;
     private boolean demoShowing;
     private AssistantProfile profile = AssistantProfile.NONE;
 
@@ -228,28 +261,33 @@ public final class AssistantPanel extends JPanel {
 
         JPanel top = new WidthTrackingPanel();
         top.setLayout(new BoxLayout(top, BoxLayout.Y_AXIS));
-        // robot walkthrough #2 (2026-10-18): one wrapping row, so New chat and Pop out wrap below the Assistant control in
-        // a narrow column instead of being clipped off its right edge
-        JPanel bar = new JPanel(new WrapLayout(FlowLayout.LEFT, 4, 2));
-        bar.add(profileButton);
+        // M78 D1 (spec-quiet-assistant-panel.md §4.2): ONE header row — the mode control on the left, ✎ and ⋯ on the right.
+        // Pop out, About, Start / Resume, Set up a project and Settings are in ⋯ (OD-Q.10, items 3, 4, 23, 39)
+        JPanel bar = new JPanel(new BorderLayout(4, 0));
+        JPanel left = new JPanel(new WrapLayout(FlowLayout.LEFT, 4, 2));
+        JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 2));
+        bar.add(left, BorderLayout.CENTER);
+        bar.add(right, BorderLayout.EAST);
+        left.add(profileButton);
+        // M78 D1: the narrow dock's room goes to the control's words, not the look and feel's minimum button width
+        profileButton.compact(true);
+        profileButton.setMargin(new java.awt.Insets(2, 4, 2, 4));
         setUpAi.getAccessibleContext().setAccessibleName("Set up AI");
         setUpAi.setToolTipText(UiText.tooltip("Choose how AI works with "
                 + telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.PRODUCT + ": no AI, your own client, Claude "
                 + "inside, or both"));
         setUpAi.addActionListener(e -> { if (intents != null) intents.openSetUpAi(); });
         setUpAi.setVisible(false);
-        bar.add(setUpAi);
-        bar.add(mode);
-        bar.add(surface.newChat);
-        bar.add(showAnalyser);
-        bar.add(hostButton);
-        bar.add(aboutToggle);
-        aboutToggle.setToolTipText(UiText.tooltip("What this assistant can and cannot do, where your questions go, and the "
-                + "session's folder"));
-        aboutToggle.getAccessibleContext().setAccessibleName(ABOUT);
-        aboutToggle.addActionListener(e -> {
-            aboutOpen = !aboutOpen;
-            renderAbout();
+        left.add(setUpAi);
+        left.add(mode);
+        right.add(surface.newChat);
+        right.add(showAnalyser);
+        right.add(more);
+        more.setToolTipText(UiText.tooltip(MORE));
+        more.getAccessibleContext().setAccessibleName(MORE);
+        more.addActionListener(e -> {
+            JPopupMenu menu = moreMenu();
+            menu.show(more, more.getWidth() - menu.getPreferredSize().width, more.getHeight());
         });
         for (JComponent c : new JComponent[]{surface.chips, details, limits}) {
             c.setAlignmentX(LEFT_ALIGNMENT);
@@ -324,6 +362,7 @@ public final class AssistantPanel extends JPanel {
         surface.onNewChat = this::dispatchNewChat;
         surface.onStart = () -> { if (localAgent != null) localAgent.onStart(); };
         copyPrompt.addActionListener(e -> { if (intents != null) intents.copyPrompt(surface.draft.getText().trim()); });
+        // M78 D1 (OD-Q.10): Pop out / Dock is an item in ⋯; this button is not on screen, it carries the same intent
         hostButton.addActionListener(e -> { if (intents != null) intents.host(!docked); });
         showAnalyser.addActionListener(e -> { if (intents != null) intents.showAnalyser(); });
         configure.addActionListener(e -> { if (intents != null) intents.configureProvider(); });
@@ -367,6 +406,7 @@ public final class AssistantPanel extends JPanel {
         details.add(panel, AssistantMode.LOCAL_AGENT.name());
         panel.setActive(shownMode == AssistantMode.LOCAL_AGENT && !demoShowing);
         panel.setAboutOpen(aboutOpen);
+        panel.setHeaderListener(this::renderControl);
     }
 
     private boolean claudeCodeShown() {
@@ -409,24 +449,28 @@ public final class AssistantPanel extends JPanel {
         // owner, 2026-10-18: ↑ recalls the questions of the assistant the panel shows
         surface.historyMode(claude ? AssistantMode.LOCAL_AGENT : AssistantMode.IN_APP);
         detailsLayout.show(details, (claude ? AssistantMode.LOCAL_AGENT : AssistantMode.IN_APP).name());
-        // robot walkthrough #3: Start is not shown while Claude Code runs (the local agent's last render says)
-        surface.start.setVisible(claude && (localAgent == null || localAgent.lastState() == null
-                || !localAgent.lastState().running()));
+        // M78 D1 (§4.1 item 39): Start / Resume is in ⋯ — Send is the one primary action, and starts Claude Code
+        surface.start.setVisible(false);
         copyPrompt.setVisible(!claude);
         if (localAgent != null) localAgent.setActive(claude);
         if (changed && !claude) {
             surface.fullBadge.setVisible(false);          // the full-posture cue is Claude Code's alone
             surface.cueBorder(null, 0);
+            surface.placeholder(false);
             surface.send.setText("Send");
             surface.send.setToolTipText(null);
-            surface.newChat.setText("New chat");
+            surface.send.setForeground(null);
+            surface.send.getAccessibleContext().setAccessibleName("Send");
+            surface.newChat.setText(AssistantSurface.NEW_CHAT_ICON);
+            surface.newChat.getAccessibleContext().setAccessibleName(AssistantSurface.NEW_CHAT);
             rendered = null;
             render(lastState, lastDemo);
         }
         renderLimits();
+        renderControl();
     }
 
-    JButton profileButton() {
+    FitButton profileButton() {
         return profileButton;
     }
 
@@ -446,8 +490,10 @@ public final class AssistantPanel extends JPanel {
     public void renderSetup(telamin.fluxtion.audit.analyser.analyser.session.AiSetupState s) {
         boolean next = s != null && s.wizardEntry() && s.nothingSetUp();
         // §6.6: the panel's empty state is one line and one button; once something is set up, the door is Assistant ▾
-        // ▸ Set up AI… (the header keeps its row: the transcript's floor at 1200×800, P-3)
+        // ▸ Set up AI… (the header keeps its row: the transcript's floor at 1200×800, P-3). M78 D1 (defect 4): with
+        // nothing set up the control reads Set up AI… alone — no "Not chosen ▾" beside it, no chip below it
         setUpAi.setVisible(next);
+        profileButton.setVisible(!next);
         if (next == nothingSetUp) return;
         nothingSetUp = next;
         rendered = null;                          // the chips follow on the next render
@@ -461,8 +507,7 @@ public final class AssistantPanel extends JPanel {
     public void renderProfiles(ProfileState s) {
         ProfileState st = s == null ? ProfileState.NONE : s;
         profile = st.profile();
-        profileButton.setWords(assistantControlText(profile), assistantControlBrief(profile));
-        profileButton.getAccessibleContext().setAccessibleName(assistantControlName(profile));
+        renderControl();
         profiles.render(st);
         centerLayout.show(center, st.open() ? "PROFILES" : "TRANSCRIPT");
         profilesOpen = st.open();
@@ -629,6 +674,8 @@ public final class AssistantPanel extends JPanel {
         // can answer here, the route does not say it a second time (owner, 2026-10-18)
         route.setVisible(!inDemo && profileStatus.isBlank());
         basis.setText(inDemo ? demo.walkTitle() : (state.basis().isBlank() ? " " : "About: " + state.basis()));
+        // M78 D1 (§4.1 item 13): the basis is in About this session…; a demonstration's line is its walk's title
+        basis.setVisible(inDemo);
         status.setText(inDemo ? demo.status() : phaseLine(state));
         composer.setVisible(!inDemo);
         demoBar.setVisible(inDemo);
@@ -648,6 +695,9 @@ public final class AssistantPanel extends JPanel {
         surface.send.setEnabled(!inDemo && (configured || profile == AssistantProfile.NONE) && !needsKey && !state.busy()
                 && !state.frozen());
         surface.stop.setEnabled(!inDemo && state.busy());
+        // M78 D1 (§4.1 item 40): Stop takes Send's slot while a turn runs, in both modes
+        surface.stop.setVisible(!inDemo && state.busy());
+        surface.send.setVisible(!(!inDemo && state.busy()));
         copyPrompt.setEnabled(!inDemo && !state.busy());
         renderChips(state, configured, inDemo);
 
@@ -722,22 +772,89 @@ public final class AssistantPanel extends JPanel {
         return needsKey ? words + " " + configure.getText() : words;
     }
 
-    /** Robot walkthrough #2: open or close the ⓘ disclosure — this panel's limits line and Claude Code's notes. */
-    private void renderAbout() {
-        aboutToggle.setText(aboutOpen ? "ⓘ ▾" : "ⓘ");
-        aboutToggle.getAccessibleContext().setAccessibleDescription(aboutOpen ? "expanded" : "collapsed");
-        if (localAgent != null) localAgent.setAboutOpen(aboutOpen);
-        renderLimits();
-        revalidate();
-        repaint();
+    // ---- M78 D1: the mode control's words, ⋯ and About this session… ------------------------------------------------
+
+    /**
+     * The mode control: the profile in force, the session's chip word and the full cue, while Claude Code is shown
+     * (the in-app assistant keeps its words until M77-4, OD-Q.12). Rendered from ProfileState and LocalAgentState.
+     */
+    private void renderControl() {
+        boolean claude = claudeCodeShown();
+        LocalAgentState s = claude ? localAgent.lastState() : null;
+        String mark = LocalAgentPanel.cueMark(s);
+        String word = s == null ? "" : s.extra().guide().chipWord();
+        profileButton.setWords(assistantControlText(profile, mark, word), assistantControlBrief(profile, mark, word),
+                assistantControlTiny(profile, mark, word));
+        String name = assistantControlName(profile);
+        String badge = s == null ? null : LocalAgentPanel.fullBadgeText(s);
+        profileButton.getAccessibleContext().setAccessibleName(badge == null ? name : name + ". " + mark + " " + badge);
+        profileButton.getAccessibleContext().setAccessibleDescription(word.isEmpty() ? null : word);
+        profileButton.setToolTipText(UiText.tooltip(badge != null ? LocalAgentPanel.fullBadgeTip(s)
+                : "How the assistant works: Safe analysis, Full Claude Code, In-app assistant or Off"));
+        if (badge != null) profileButton.setForeground(TranscriptStyle.fullPosture(s.strongCue(), ThemeManager.isDark()));
+        else profileButton.setForeground(null);
     }
 
-    boolean aboutOpen() {
-        return aboutOpen;
+    JButton moreButton() {
+        return more;
     }
 
-    JButton aboutToggle() {
-        return aboutToggle;
+    /** ⋯'s items, built on each press so each says what it does now. */
+    JPopupMenu moreMenu() {
+        JPopupMenu menu = new JPopupMenu();
+        boolean claude = claudeCodeShown();
+        JMenuItem newChat = new JMenuItem(AssistantSurface.NEW_CHAT);
+        newChat.setEnabled(surface.newChat.isEnabled());
+        newChat.addActionListener(e -> dispatchNewChat());
+        menu.add(newChat);
+        JMenuItem host = new JMenuItem(docked ? "Pop out" : "Dock");
+        host.addActionListener(e -> { if (intents != null) intents.host(!docked); });
+        menu.add(host);
+        menu.addSeparator();
+        JMenuItem about = new JMenuItem(ABOUT);
+        about.addActionListener(e -> AboutSessionDialog.show(this, aboutText()));
+        menu.add(about);
+        JMenuItem change = new JMenuItem(SWITCH);
+        change.setEnabled(profileButton.isEnabled());
+        change.addActionListener(e -> { if (intents != null) intents.openProfiles(); });
+        menu.add(change);
+        if (claude) {
+            LocalAgentState s = localAgent.lastState();
+            if (s == null || !s.running()) {
+                JMenuItem start = UiText.menuItem(s == null ? "Start Claude Code" : LocalAgentPanel.startLabel(s));
+                start.addActionListener(e -> localAgent.onStart());
+                menu.add(start);
+            }
+            JMenuItem setUp = new JMenuItem(SET_UP_PROJECT);
+            setUp.addActionListener(e -> localAgent.setUpButton().doClick());
+            menu.add(setUp);
+        }
+        menu.addSeparator();
+        JMenuItem settings = new JMenuItem(SETTINGS);
+        settings.addActionListener(e -> {
+            if (claude) localAgent.openSettingsIntent();
+            else if (intents != null) intents.configureProvider();
+        });
+        menu.add(settings);
+        return menu;
+    }
+
+    /**
+     * M78 D1 (§4.3): <i>About this session…</i> — what the header used to repeat, for the assistant shown: Claude Code's
+     * lines, or the in-app route and limits; and the basis (the project, log, graph and view the question is about).
+     */
+    String aboutText() {
+        java.util.List<String> lines = new java.util.ArrayList<>();
+        if (claudeCodeShown()) {
+            lines.addAll(localAgent.aboutLines());
+        } else {
+            if (!route.getText().isBlank()) lines.add(route.getText());
+            lines.add(limits.getText().isBlank() ? (Boolean.TRUE.equals(providerConfiguredSupplier.get()) ? IN_APP_LIMITS
+                    : IN_APP_NO_KEY) : limits.getText());
+        }
+        String b = lastState.basis();
+        if (b != null && !b.isBlank()) lines.add("About: " + b);
+        return String.join("\n\n", lines);
     }
 
     /**

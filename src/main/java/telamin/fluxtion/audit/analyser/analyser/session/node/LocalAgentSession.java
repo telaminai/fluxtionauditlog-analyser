@@ -154,6 +154,10 @@ public class LocalAgentSession implements EventLogSource {
     private SessionEvents.LocalAgentConsent restartConsent;
     /** The person chose to keep the session in its folder (the project-switch offer's Keep): a folder change is theirs. */
     private boolean folderKept;
+    /** M78 D1 (§5.1): a permission dialog is open (localAgentPermission's state), for the header's "needs you". */
+    private boolean permissionWaiting;
+    /** M78 D1 (§5.2): the process generation whose first READY appended the PLAN note (0: none yet). */
+    private long planNoted;
     private LocalAgentState published = LocalAgentState.IDLE;
     private boolean dirty = true;
 
@@ -774,6 +778,7 @@ public class LocalAgentSession implements EventLogSource {
                     verdict = "BOUND";
                     reason = "";
                     auditLog.info("localAgentBound", generation);
+                    notePlan();
                     if (pendingDraft != 0) {
                         long draft = pendingDraft;
                         pendingDraft = 0;
@@ -1541,6 +1546,34 @@ public class LocalAgentSession implements EventLogSource {
         if (request != 0) answer = new LocalAgentState.Answer(request, accepted, why);
     }
 
+    /**
+     * M78 D1 (spec-quiet-assistant-panel.md §5.2): ONE {@link #PLAN} note on a session's first READY — a session is a
+     * process generation, so a restart (a new generation) notes it again, and a turn's return to READY never does. It
+     * says what the session is and how it is paid for; it never carries a cost (a cost note is the BUDGET one, at the
+     * limit).
+     */
+    private void notePlan() {
+        if (planNoted == generation) return;
+        planNoted = generation;
+        note(PLAN, planLine(posture, billing));
+    }
+
+    /** The PLAN note's status: the panel gives it no label, so its sentence stands alone. */
+    public static final String PLAN = "PLAN";
+    public static final String PLAN_SUBSCRIPTION = "uses your Claude plan";
+    public static final String PLAN_API_KEY = "uses your API key";
+
+    /** "Claude Code · Safe · uses your Claude plan", "Claude Code · Full (default) · your tools · uses your API key". */
+    public static String planLine(LocalAgentPosture p, SessionEvents.Billing billing) {
+        LocalAgentPosture posture = p == null ? LocalAgentPosture.ANALYSER_ASSISTANT : p;
+        String line = "Claude Code · " + (posture.isFull() ? "Full (" + posture.fullMode().cli() + ") · your tools" : "Safe");
+        return switch (billing == null ? SessionEvents.Billing.UNKNOWN : billing) {
+            case SUBSCRIPTION -> line + " · " + PLAN_SUBSCRIPTION;
+            case API_KEY -> line + " · " + PLAN_API_KEY;
+            case UNKNOWN -> line;
+        };
+    }
+
     private void note(String status, String detail) {
         entries.add(new LocalAgentState.Entry(0, LocalAgentState.NOTE, openTicket, status, detail, 0));
     }
@@ -1677,6 +1710,16 @@ public class LocalAgentSession implements EventLogSource {
         changed();
     }
 
+    /**
+     * M78 D1 (§5.1): whether {@code localAgentPermission} holds a permission dialog open — the header's "needs you".
+     * Called by that node earlier in the same cycle, as {@link #permissionNoted} is; a change re-publishes the state.
+     */
+    public void permissionWaiting(boolean waiting) {
+        if (waiting == permissionWaiting) return;
+        permissionWaiting = waiting;
+        dirty = true;
+    }
+
     /** The generation whose hosted calls are admitted: bound, and its first turn's posture checked. */
     public long admittedGeneration() {
         return bound && postureChecked && running() ? generation : 0;
@@ -1693,7 +1736,7 @@ public class LocalAgentSession implements EventLogSource {
                             attention(verdict, detailRef, stderrRef, unknownEvents + unclassifiedCommands + droppedLines),
                             new LocalAgentState.Restart(restartOffer, restartState, restartChanged, restartNewChat)));
             // robot walkthrough #3: the one primary action and the one instruction line, decided here from the state
-            published = published.withExtra(withGuide(published.extra(), guide(published)));
+            published = published.withExtra(withGuide(published.extra(), guide(published, permissionWaiting)));
             dirty = false;
         }
         return published;
@@ -1736,7 +1779,7 @@ public class LocalAgentSession implements EventLogSource {
      * The one primary action and the one instruction line for {@code s} (pure; the node publishes it, the panel renders
      * it). While nothing runs and a reason stands, the reason IS the line — a refusal is never a suffix to a paragraph.
      */
-    public static LocalAgentState.Guide guide(LocalAgentState s) {
+    public static LocalAgentState.Guide guide(LocalAgentState s, boolean waiting) {
         boolean stoppable = s.busy() || s.starting() || "STOPPING".equals(s.phase()) || s.pendingDraft() != 0;
         String primary = stoppable ? LocalAgentState.Guide.STOP : LocalAgentState.Guide.SEND;
         String action = "UNKNOWN_DRAFT".equals(s.verdict()) ? LocalAgentState.Guide.ASK_AGAIN : "";
@@ -1749,14 +1792,42 @@ public class LocalAgentSession implements EventLogSource {
             default -> s.armedWhy() != null ? PLACED_NOT_RUNNING_TEXT : NOT_RUNNING_TEXT;
         };
         // a Send refused as busy already says what is happening: one sentence, not the phase and then the refusal
-        if ("BUSY".equals(s.verdict()) && s.busy()) return new LocalAgentState.Guide(primary, s.reason(), action, true);
-        if (s.reason().isBlank()) return new LocalAgentState.Guide(primary, phase, action, false);
+        if ("BUSY".equals(s.verdict()) && s.busy()) {
+            return guide(s, primary, s.reason(), action, true, "", waiting);
+        }
+        if (s.reason().isBlank()) return guide(s, primary, phase, action, false, "", waiting);
         boolean refusal = !s.verdict().isBlank() && !"BOUND".equals(s.verdict()) && !"OK".equals(s.verdict());
         if (!s.running() || refusal && !s.busy()) {
             String r = s.reason();
-            return new LocalAgentState.Guide(primary, Character.toUpperCase(r.charAt(0)) + r.substring(1), action, refusal);
+            String line = Character.toUpperCase(r.charAt(0)) + r.substring(1);
+            // M78 D1: a refusal or an end the person must read is the panel's one conditional banner
+            return guide(s, primary, line, action, refusal, line, waiting);
         }
-        return new LocalAgentState.Guide(primary, phase + " — " + s.reason(), action, refusal);
+        return guide(s, primary, phase + " — " + s.reason(), action, refusal, "", waiting);
+    }
+
+    /** As {@link #guide(LocalAgentState)} with no permission dialog open (the node's tests and the panel's). */
+    public static LocalAgentState.Guide guide(LocalAgentState s) {
+        return guide(s, false);
+    }
+
+    private static LocalAgentState.Guide guide(LocalAgentState s, String primary, String instruction, String action,
+                                               boolean refusal, String banner, boolean waiting) {
+        return new LocalAgentState.Guide(primary, instruction, action, refusal, chipWord(s, banner, waiting), banner);
+    }
+
+    /**
+     * M78 D1 (spec-quiet-assistant-panel.md §5.1): the header's one or two words, from the closed set — "needs you" while
+     * {@code localAgentPermission} holds a dialog open ({@code waiting}), "answering…" while a turn runs, is held or is
+     * being stopped, "starting…" while a start is under way, "stopped" when nothing runs and a banner stands, and nothing
+     * when Claude Code is ready or simply not started. Pure; the panel only joins it to the mode word.
+     */
+    public static String chipWord(LocalAgentState s, String banner, boolean waiting) {
+        if (waiting) return LocalAgentState.Guide.CHIP_NEEDS_YOU;
+        if (s.busy() || s.pendingDraft() != 0 || "STOPPING".equals(s.phase())) return LocalAgentState.Guide.CHIP_ANSWERING;
+        if (s.starting()) return LocalAgentState.Guide.CHIP_STARTING;
+        if (!s.running() && banner != null && !banner.isEmpty()) return LocalAgentState.Guide.CHIP_STOPPED;
+        return LocalAgentState.Guide.CHIP_READY;
     }
 
     private static LocalAgentState.Extra withGuide(LocalAgentState.Extra x, LocalAgentState.Guide g) {

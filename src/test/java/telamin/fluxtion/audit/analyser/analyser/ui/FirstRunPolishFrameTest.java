@@ -81,7 +81,7 @@ class FirstRunPolishFrameTest {
             UnifiedAssistantFrameTest.awaitMode(f.frame, AssistantMode.LOCAL_AGENT);
             FirstRunLayoutFrameTest.select(f.frame, "Analyser assistant");
             onEdt(() -> assertTrue(f.assistant().composerHint().isShowing()
-                    && f.assistant().composerHint().getText().startsWith("Press Send to ask Claude"),
+                    && f.assistant().composerHint().getText().equals("Draft — not sent"),     // M78 D1 item 37
                     "the question is placed for Claude Code, and the hint says so"));
             onEdt(() -> f.assistant().profileButton().doClick());
             f.applyProfile(AssistantProfile.IN_APP);
@@ -96,7 +96,7 @@ class FirstRunPolishFrameTest {
                 assertTrue(configure.isShowing(), "Configure provider is on the line");
                 assertFalse(a.sendButton().isEnabled(), "★ Send cannot be pressed");
                 List<String> words = visibleWords(a);
-                assertTrue(words.stream().noneMatch(w -> w.contains("Press Send")), "★ no \"Press Send\": " + words);
+                assertTrue(words.stream().noneMatch(w -> w.contains("Press Send") || w.contains("Draft — not sent")), "★ no Claude Code draft hint: " + words);
                 assertTrue(words.stream().noneMatch(w -> w.strip().equals("Ready")), "★ no \"Ready\": " + words);
                 assertEquals(1, words.stream().filter(w -> w.contains("No API key")).count(),
                         "★ said once: " + words);

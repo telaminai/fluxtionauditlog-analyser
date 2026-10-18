@@ -244,7 +244,12 @@ class LocalAgentPermissionFrameTest {
                         && !l.contains("run analyser_report")), "this call's own sentence: " + labels(d1));
                 assertTrue(d1.inputArea().getText().contains("\"title\": \"p3-zero-deny\""), d1.inputArea().getText());
             });
-            assertTrue(statusText(panel).startsWith("Claude Code is waiting for your answer"), statusText(panel));
+            // M78 D1 (§4.1 item 16): the header's chip word says it — the waiting sentence is gone
+            ClaudeCodeTabFrameTest.awaitState(f, s -> LocalAgentState.Guide.CHIP_NEEDS_YOU.equals(
+                    s.extra().guide().chipWord()), "the chip says needs you");
+            onEdt(() -> assertTrue(assistant.profileButton().getText().contains(LocalAgentState.Guide.CHIP_NEEDS_YOU),
+                    assistant.profileButton().getText()));
+            onEdt(() -> assertFalse(((JTextArea) field(panel, "status")).isVisible(), "no status sentence beside it"));
             onEdt(() -> d1.getRootPane().getActionMap().get("deny").actionPerformed(new java.awt.event.ActionEvent(d1, 0, "deny")));
             awaitTurnEnded(f, 1);
             assertTrue(stdin(agent).stream().anyMatch(l -> l.contains("\"behavior\":\"deny\"")
@@ -262,7 +267,9 @@ class LocalAgentPermissionFrameTest {
             String transcript = awaitTranscript(panel, "approved by you");
             assertTrue(transcript.contains("denied by you"), transcript);
             assertTrue(transcript.contains("approved by you"), transcript);
-            assertTrue(transcript.contains("You allowed analyser_report"), transcript);
+            // M78 D1 (§5.3): the Approved note is dropped by the node; the Denied note of turn 1 is kept
+            assertFalse(transcript.contains("You allowed analyser_report"), transcript);
+            assertTrue(transcript.contains("Denied: "), transcript);
 
             // turn 3: Stop, from the dialog, denies the request before the interrupt
             agent.last().resumeOnAnswer = false;

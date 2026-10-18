@@ -72,49 +72,52 @@ class LocalAgentDetailsDisclosureTest {
     }
 
     /**
-     * ★ The panel renders. Witness: show {@code detailsBody} whatever the attention (the old always-visible lines) — the
-     * "collapsed by default" assertion fails; or ignore the attention — the "opens by itself" assertion fails.
+     * ★ The panel renders. M78 D1 (spec-quiet-assistant-panel.md §4.1 items 17–18, §4.2, TQ5): the disclosure is
+     * CONDITIONAL — the banner's Details button exists only while the node says something needs attention, and opens
+     * when the person asks; otherwise the same lines are in About this session…. Witnesses: show the button whatever the
+     * attention (the old always-there "▸ Details") — the "not without attention" assertion fails; or ignore the
+     * attention — the "button is there" assertion fails.
      */
     @Test
-    @DisplayName("★ collapsed by default; opens by itself on attention; the person's choice is kept for the run")
+    @DisplayName("★ no Details without attention (the lines are in About); the banner's Details on attention, opened when asked")
     void collapsedUntilSomethingNeedsAttention() throws Exception {
         TranscriptViewTest.onEdt(() -> {
             LocalAgentTranscript store = new LocalAgentTranscript();
             long ref = store.putHeader(HEADER);
             LocalAgentPanel p = new LocalAgentPanel(store);
             p.render(state(ref, "OK", LocalAgentState.Attention.NONE, 0));
-            assertTrue(p.detailsToggle().isVisible(), "there are details to show");
-            assertFalse(p.detailsBody().isVisible(), "collapsed by default");
+            assertFalse(p.detailsToggle().isVisible(), "★ no Details while nothing needs attention");
+            assertFalse(p.detailsBody().isVisible());
             assertFalse(p.detailsOpen());
-            assertEquals("▸ Details", p.detailsToggle().getText());
-            assertTrue(p.detailsToggle().isFocusable(), "keyboard-reachable: Tab reaches it, Space opens it");
-            assertEquals("Details", p.detailsToggle().getAccessibleContext().getAccessibleName());
-            assertEquals("collapsed", p.detailsToggle().getAccessibleContext().getAccessibleDescription());
-            List<String> body = texts(p.detailsBody());
-            assertTrue(body.contains("Claude Code CLI 2.1.282"), "the CLI version is a detail: " + body);
-            assertTrue(body.stream().anyMatch(t -> t.contains("requests go to https://proxy.example:8443")), body.toString());
+            String about = String.join("\n", p.aboutLines());
+            assertTrue(about.contains("CLI 2.1.282"), "the CLI version is in About: " + about);
+            assertTrue(about.contains("requests go to https://proxy.example:8443"), about);
             for (String t : texts(p)) assertFalse(t.startsWith("CLI "), "the CLI version is no longer a chip: " + t);
 
+            p.render(state(ref, "OK", LocalAgentState.Attention.WARNING, 2));   // the node: something unexpected
+            assertTrue(p.detailsToggle().isVisible(), "the banner's Details");
+            assertTrue(p.detailsToggle().isFocusable(), "keyboard-reachable: Tab reaches it, Space opens it");
+            assertEquals("Details", p.detailsToggle().getAccessibleContext().getAccessibleName());
+            assertFalse(p.detailsBody().isVisible(), "M78 D1: the banner's Details opens when asked for");
+            assertEquals("▸ Details", p.detailsToggle().getText());
+            assertEquals("collapsed; needs attention: Claude Code reported something unexpected",
+                    p.detailsToggle().getAccessibleContext().getAccessibleDescription(), "what needs attention, said");
             p.detailsToggle().doClick();                         // the person opens it
             assertTrue(p.detailsBody().isVisible());
             assertEquals("▾ Details", p.detailsToggle().getText());
-            assertEquals("expanded", p.detailsToggle().getAccessibleContext().getAccessibleDescription());
-            p.render(state(2, ref, "OK", LocalAgentState.Attention.NONE, 0));
+            List<String> body = texts(p.detailsBody());
+            assertTrue(body.contains("Claude Code CLI 2.1.282"), "the CLI version is a detail: " + body);
+            assertTrue(body.stream().anyMatch(t -> t.startsWith("Diagnostics: 2 unknown stream events")), body.toString());
+            p.render(state(2, ref, "OK", LocalAgentState.Attention.WARNING, 3));
             assertTrue(p.detailsBody().isVisible(), "kept open across renders in this run");
             p.detailsToggle().doClick();                         // and shuts it
             assertFalse(p.detailsBody().isVisible());
-
-            p.render(state(ref, "OK", LocalAgentState.Attention.WARNING, 2));   // the node: something unexpected
-            assertTrue(p.detailsBody().isVisible(), "opens by itself when the node says it needs attention");
-            assertTrue(p.detailsToggle().getText().startsWith("▾ Details — needs attention"), p.detailsToggle().getText());
-            assertTrue(texts(p.detailsBody()).stream().anyMatch(t -> t.startsWith("Diagnostics: 2 unknown stream events")));
-            p.detailsToggle().doClick();                         // the person may still close it
-            assertFalse(p.detailsBody().isVisible());
-            p.render(state(ref, "OK", LocalAgentState.Attention.WARNING, 3));
-            assertFalse(p.detailsBody().isVisible(), "the same attention does not reopen what the person closed");
             p.render(state(ref, "TOOLS_MISMATCH", LocalAgentState.Attention.MISMATCH, 3));
-            assertTrue(p.detailsBody().isVisible(), "a new attention does");
-            assertTrue(p.detailsToggle().getText().contains("did not match"), p.detailsToggle().getText());
+            assertTrue(p.detailsToggle().isVisible(), "a new attention: the button is there");
+            assertTrue(p.detailsToggle().getAccessibleContext().getAccessibleDescription().contains("did not match"),
+                    p.detailsToggle().getAccessibleContext().getAccessibleDescription());
+            p.render(state(ref, "OK", LocalAgentState.Attention.NONE, 0));
+            assertFalse(p.detailsToggle().isVisible(), "★ attention cleared: Details goes with it");
             return null;
         });
     }

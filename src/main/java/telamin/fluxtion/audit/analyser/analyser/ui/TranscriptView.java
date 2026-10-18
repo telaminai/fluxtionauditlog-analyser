@@ -58,10 +58,16 @@ public final class TranscriptView extends JTextPane {
 
     /** One entry as the panel hands it over: words from the store, state from the snapshot. */
     public record Item(String key, TranscriptStyle.Role role, String text, String status, long revision,
-                       long logGeneration, boolean streaming) {
+                       long logGeneration, boolean streaming, String tip) {
         public Item {
             text = text == null ? "" : text;
             status = status == null ? "" : status;
+        }
+
+        /** An entry with no tooltip of its own. */
+        public Item(String key, TranscriptStyle.Role role, String text, String status, long revision, long logGeneration,
+                    boolean streaming) {
+            this(key, role, text, status, revision, logGeneration, streaming, null);
         }
     }
 
@@ -150,16 +156,23 @@ public final class TranscriptView extends JTextPane {
         setEditable(false);
         setMargin(new Insets(8, 10, 8, 10));
         getAccessibleContext().setAccessibleName("Claude Code conversation");
+        javax.swing.ToolTipManager.sharedInstance().registerComponent(this);   // M78 D1: an answer's turn time
         addMouseListener(new MouseAdapter() {
             @Override public void mouseClicked(MouseEvent e) {
                 String url = linkAt(viewToModel2D(e.getPoint()));
                 if (url != null) navigator.say(LinkConfirm.click(TranscriptView.this, url, asker, opener));
             }
+
+            @Override public void mouseExited(MouseEvent e) {
+                hover(null);
+            }
         });
         addMouseMotionListener(new MouseAdapter() {
             @Override public void mouseMoved(MouseEvent e) {
-                boolean link = linkAt(viewToModel2D(e.getPoint())) != null;
+                int pos = viewToModel2D(e.getPoint());
+                boolean link = linkAt(pos) != null;
                 setCursor(Cursor.getPredefinedCursor(link ? Cursor.HAND_CURSOR : Cursor.TEXT_CURSOR));
+                hover(itemAt(pos));
             }
         });
         // Alt+↑ / Alt+↓ move between turns (§5.9 accessibility)
@@ -240,6 +253,7 @@ public final class TranscriptView extends JTextPane {
                     lastEdits++;
                 }
                 rendered.clear();
+                hoverCopies.clear();
                 renderedDark = dark;
                 setBackground(TranscriptStyle.palette(dark).background());
             }
@@ -317,9 +331,13 @@ public final class TranscriptView extends JTextPane {
         TranscriptStyle.Palette p = TranscriptStyle.palette(dark);
         boolean stopped = item.role() == TranscriptStyle.Role.STOPPED;
         SimpleAttributeSet head = bold(base(p.link(), dark));
-        put(doc, speaker, head, item);
+        // M78 D1 (OD-Q.4): "Claude · unverified" on every answer — the full sentence is the word's tooltip and its
+        // accessible description, so the signal stays on screen in two words and is read whole when asked for
+        put(doc, TranscriptStyle.answerName(speaker), head, item);
         SimpleAttributeSet note = smaller(base(p.muted(), dark));
-        put(doc, "  " + TranscriptStyle.NOT_VERIFIED + "\n", note, item);
+        put(doc, " · ", note, item);
+        insertComponent(doc, unverifiedMark(p), item);
+        put(doc, "\n", note, item);
         Color ink = stopped ? p.muted() : p.body();
         boolean stale = item.logGeneration() != 0 && chips.generation() != 0 && item.logGeneration() != chips.generation();
         int[] candidates = {0};
@@ -327,11 +345,14 @@ public final class TranscriptView extends JTextPane {
         // the answer is text blocks and the adapter's one-line tool records (▸ name {input} — outcome), in order
         StringBuilder prose = new StringBuilder();
         int toolIndex = 0;
-        for (String line : lines) {
+        int lastTool = -1;
+        for (int i = 0; i < lines.size(); i++) if (lines.get(i).startsWith("▸ ")) lastTool = i;
+        for (int i = 0; i < lines.size(); i++) {
+            String line = lines.get(i);
             if (line.startsWith("▸ ")) {
                 renderMarkdown(doc, prose.toString(), item, ink, dark, stale, candidates, item.streaming());
                 prose.setLength(0);
-                renderTool(doc, line, item, toolIndex++, dark);
+                renderTool(doc, line, item, toolIndex++, dark, i == lastTool && AWAITING_APPROVAL.equals(item.status()));
             } else {
                 if (!prose.isEmpty()) prose.append('\n');
                 prose.append(line);
@@ -345,8 +366,10 @@ public final class TranscriptView extends JTextPane {
         }
         if (!item.streaming() && !proseOf(item.text()).isBlank()) {
             put(doc, "\n", base(ink, dark), item);
-            insertButton(doc, "Copy", "Copy this answer's text (Markdown source; never a tool line)", item, () -> copy(
-                    proseOf(item.text())));
+            // M78 D1 (OD-Q.11): the answer's Copy shows under the pointer or with the keyboard focus only
+            JButton copy = insertButton(doc, "Copy", "Copy this answer's text (Markdown source; never a tool line)", item,
+                    () -> copy(proseOf(item.text())), true);
+            hoverCopies.put(item.key(), copy);
         }
         put(doc, "\n\n", base(ink, dark), item);
     }
@@ -550,7 +573,19 @@ public final class TranscriptView extends JTextPane {
         insertComponent(doc, b, item);
     }
 
+    /**
+     * M78 D1 (§3): the status an answer carries while the session says a permission waits for the person — its open tool
+     * line then ends "— approve?" (the dialog, unchanged, asks the question).
+     */
+    static final String AWAITING_APPROVAL = "AWAITING_APPROVAL";
+    static final String APPROVE = "— approve?";
+
     private void renderTool(StyledDocument doc, String line, Item item, int index, boolean dark) throws BadLocationException {
+        renderTool(doc, line, item, index, dark, false);
+    }
+
+    private void renderTool(StyledDocument doc, String line, Item item, int index, boolean dark, boolean asks)
+            throws BadLocationException {
         TranscriptStyle.Palette p = TranscriptStyle.palette(dark);
         String body = line.substring(2);
         // the adapter appends one " — outcome" per step: P3's decision ("approved by you", "denied by you", …) and then
@@ -589,7 +624,13 @@ public final class TranscriptView extends JTextPane {
         SimpleAttributeSet m = mono(base(p.body(), dark));
         put(doc, " " + VisibleMarks.show(name), m, item);
         SimpleAttributeSet markStyle = mono(bold(base(TranscriptStyle.mark(mark, dark), dark)));
-        put(doc, "  " + (mark == TranscriptStyle.Mark.PENDING ? mark.words : VisibleMarks.show(outcome)) + "\n", markStyle, item);
+        if (asks && mark == TranscriptStyle.Mark.PENDING) {
+            SimpleAttributeSet ask = mono(bold(base(UiTheme.noteForeground(), dark)));
+            put(doc, " " + APPROVE + "\n", ask, item);
+        } else {
+            put(doc, "  " + (mark == TranscriptStyle.Mark.PENDING ? mark.words : VisibleMarks.show(outcome)) + "\n",
+                    markStyle, item);
+        }
         if (open && !input.isBlank()) {
             SimpleAttributeSet code = mono(base(p.codeText(), dark));
             StyleConstants.setBackground(code, p.codeBackground());
@@ -648,9 +689,14 @@ public final class TranscriptView extends JTextPane {
         navigator.say(VisibleMarks.copiedWords(source));
     }
 
-    private void insertButton(StyledDocument doc, String label, String tip, Item item, Runnable action)
+    private JButton insertButton(StyledDocument doc, String label, String tip, Item item, Runnable action)
             throws BadLocationException {
-        JButton b = UiText.button(label);
+        return insertButton(doc, label, tip, item, action, false);
+    }
+
+    private JButton insertButton(StyledDocument doc, String label, String tip, Item item, Runnable action, boolean onHover)
+            throws BadLocationException {
+        JButton b = onHover ? new HoverButton(label) : UiText.button(label);
         b.setToolTipText(UiText.tooltip(tip));
         b.getAccessibleContext().setAccessibleName(tip);
         b.setMargin(new Insets(0, 4, 0, 4));
@@ -658,6 +704,111 @@ public final class TranscriptView extends JTextPane {
         atLeastTarget(b);
         b.addActionListener(e -> action.run());
         insertComponent(doc, b, item);
+        return b;
+    }
+
+    // ---- M78 D1: the quiet answer — "Claude · unverified", Copy on hover or focus, the turn time as a tooltip ---------
+
+    /** Each answer's Copy, by entry key: shown only for the answer under the pointer, or while it has the focus. */
+    private final java.util.Map<String, JButton> hoverCopies = new java.util.HashMap<>();
+    private String hovered;
+
+    /** "unverified": a word in the line, the whole {@link TranscriptStyle#NOT_VERIFIED} as its tip and description. */
+    private javax.swing.JLabel unverifiedMark(TranscriptStyle.Palette p) {
+        javax.swing.JLabel l = UiText.label(TranscriptStyle.UNVERIFIED);
+        l.setForeground(p.muted());
+        l.setFont(getFont().deriveFont((float) Math.max(9, fontSize() - 2)));
+        l.setToolTipText(UiText.tooltip(TranscriptStyle.NOT_VERIFIED));
+        l.getAccessibleContext().setAccessibleName(TranscriptStyle.UNVERIFIED);
+        l.getAccessibleContext().setAccessibleDescription(TranscriptStyle.NOT_VERIFIED);
+        l.putClientProperty(UNVERIFIED_MARK, Boolean.TRUE);
+        return l;
+    }
+
+    static final String UNVERIFIED_MARK = "transcript.unverified";
+
+    /** The pointer moved over entry {@code key} (null: off every entry): only that answer's Copy shows. */
+    private void hover(String key) {
+        if (Objects.equals(key, hovered)) return;
+        JButton was = hovered == null ? null : hoverCopies.get(hovered);
+        hovered = key;
+        JButton now = key == null ? null : hoverCopies.get(key);
+        if (was != null) was.repaint();
+        if (now != null) now.repaint();
+    }
+
+    /** For the tests: hover the pointer over entry {@code index} (-1: off the transcript). */
+    void hoverForTest(int index) {
+        hover(index < 0 ? null : rendered.get(index).item().key());
+    }
+
+    /** Whether entry {@code key}'s Copy is painted now (under the pointer, or focused). */
+    boolean copyShown(String key) {
+        JButton b = hoverCopies.get(key);
+        return b instanceof HoverButton h && h.shown();
+    }
+
+    /** A Copy that keeps its place and its focus, and is painted only on hover or focus (OD-Q.11). */
+    private final class HoverButton extends JButton {
+        HoverButton(String label) {
+            super(label);
+            UiText.plain(this);
+            addFocusListener(new java.awt.event.FocusAdapter() {
+                @Override public void focusGained(java.awt.event.FocusEvent e) { repaint(); }
+                @Override public void focusLost(java.awt.event.FocusEvent e) { repaint(); }
+            });
+        }
+
+        boolean shown() {
+            if (isFocusOwner()) return true;
+            for (var e : hoverCopies.entrySet()) if (e.getValue() == this) return e.getKey().equals(hovered);
+            return false;
+        }
+
+        @Override public void paint(java.awt.Graphics g) {
+            if (shown()) super.paint(g);
+        }
+    }
+
+    /** The entry key at document position {@code pos}, or null. */
+    private String itemAt(int pos) {
+        if (pos < 0) return null;
+        Object k = getStyledDocument().getCharacterElement(pos).getAttributes().getAttribute(ITEM_ATTR);
+        return k instanceof String s ? s : null;
+    }
+
+    /** M78 D1 (OD-Q.8): an entry's own tooltip — an answer's turn time — wherever the pointer is over its words. */
+    @Override
+    public String getToolTipText(MouseEvent e) {
+        String key = itemAt(viewToModel2D(e.getPoint()));
+        if (key != null) {
+            for (Rendered r : rendered) {
+                if (r.item().key().equals(key)) return r.item().tip() == null ? null : UiText.tooltip(r.item().tip());
+            }
+        }
+        return null;
+    }
+
+    /** The document offset where the newest answer begins (its "Claude · unverified" line), or -1 for none. */
+    int lastAnswerStart() {
+        for (int i = rendered.size() - 1; i >= 0; i--) {
+            TranscriptStyle.Role r = rendered.get(i).item().role();
+            if (r == TranscriptStyle.Role.CLAUDE || r == TranscriptStyle.Role.STOPPED) return rendered.get(i).start();
+        }
+        return -1;
+    }
+
+    /** For the tests: every "unverified" mark in the document, in order. */
+    List<javax.swing.JLabel> unverifiedMarks() {
+        List<javax.swing.JLabel> out = new ArrayList<>();
+        StyledDocument doc = getStyledDocument();
+        for (int i = 0; i < doc.getLength(); i++) {
+            Object c = StyleConstants.getComponent(doc.getCharacterElement(i).getAttributes());
+            if (c instanceof javax.swing.JLabel l && l.getClientProperty(UNVERIFIED_MARK) != null && !out.contains(l)) {
+                out.add(l);
+            }
+        }
+        return out;
     }
 
     /** The least size of a target in the transcript (WCAG 2.5.8 minimum: 24×24 CSS px). */

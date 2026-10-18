@@ -35,11 +35,28 @@ final class AssistantSurface {
     final JTextArea draft = new JTextArea(3, 40) {
         @Override protected void paintComponent(java.awt.Graphics g) {
             super.paintComponent(g);
-            UiTheme.paintPlaceholder(this, g, COMPOSER_PLACEHOLDER);
+            UiTheme.paintPlaceholder(this, g, placeholder);
         }
     };
-    /** Review M74 usability #15: the composer's keys, said where they apply while it is empty. */
-    static final String COMPOSER_PLACEHOLDER = "Your question — Enter sends, Shift+Enter starts a new line";
+    /**
+     * M78 D1 (§4.1 item 36): the composer's words while it is empty — what it is for, in three words; the keys are its
+     * tooltip ({@link StartPromptView#KEY_HINT}). Full Claude Code says whom it asks.
+     */
+    static final String COMPOSER_PLACEHOLDER = "Ask about this log…";
+    static final String FULL_PLACEHOLDER = "Ask full Claude Code…";
+    private String placeholder = COMPOSER_PLACEHOLDER;
+
+    /** The placeholder for the mode shown: {@code full} while full Claude Code's cue is shown. */
+    void placeholder(boolean full) {
+        String next = full ? FULL_PLACEHOLDER : COMPOSER_PLACEHOLDER;
+        if (next.equals(placeholder)) return;
+        placeholder = next;
+        draft.repaint();
+    }
+
+    String placeholder() {
+        return placeholder;
+    }
     final JScrollPane draftScroll = new JScrollPane(draft);
     /** The full-posture badge above the composer (owner request, OD-74.27). */
     final JLabel fullBadge = UiText.label(" ");
@@ -55,7 +72,10 @@ final class AssistantSurface {
     final JButton start = new JButton("Start Claude Code");
     final JButton stop = new JButton("Stop");
     final JButton send = UiText.button("Send");
-    final JButton newChat = new JButton("New chat");
+    /** M78 D1 (OD-Q.1): New chat is the ✎ icon in the header (and an item in ⋯); its name says what it does. */
+    final JButton newChat = new IconButton(NEW_CHAT_ICON);
+    static final String NEW_CHAT_ICON = "✎";
+    static final String NEW_CHAT = "New chat";
     /** The header's chips: model, posture, billing, provider — whichever mode is in force. */
     final JPanel chips = new JPanel(new WrapLayout(FlowLayout.LEFT, 4, 3));
     final Border draftBorder;
@@ -79,6 +99,9 @@ final class AssistantSurface {
         draft.getAccessibleContext().setAccessibleName("Your message to the assistant");
         // review M74 usability #15: the same keys as the start page's box, said where they apply
         draft.getAccessibleContext().setAccessibleDescription(StartPromptView.KEY_HINT);
+        draft.setToolTipText(UiText.tooltip(StartPromptView.KEY_HINT));
+        newChat.setToolTipText(UiText.tooltip(NEW_CHAT));
+        newChat.getAccessibleContext().setAccessibleName(NEW_CHAT);
 
         draftBorder = draftScroll.getBorder();
         chips.setOpaque(false);
@@ -405,7 +428,8 @@ final class AssistantSurface {
     static String chipText(long draftGeneration, boolean logOpen, long generation, long openedAtMillis) {
         if (draftGeneration <= 0) return null;
         if (!logOpen || generation != draftGeneration) return "an earlier log · Send will refuse it — ask again";
-        return openedAtMillis > 0 ? "this log · opened " + hhmm(openedAtMillis) : "this log";
+        // M78 D1 (OD-Q.2): on a match there is nothing to warn about, so nothing is shown; the chip IS the warning
+        return null;
     }
 
     /** The chip's accessible name: what a screen reader says for it — never the generation. */
@@ -481,6 +505,26 @@ final class AssistantSurface {
      */
     void renderHint(AssistantMode shown, boolean suppressed) {
         composerHint.setVisible(hintMode != null && hintMode == shown && !suppressed);
+    }
+
+    /**
+     * M78 D1 (robot walk, 2026-10-18): put the newest answer's FIRST line at the top of the transcript — when a turn ends,
+     * and on "↩ Back to the answer" — so the person starts reading where it starts, not at its end. Presentation only.
+     */
+    void scrollToLastAnswer() {
+        javax.swing.SwingUtilities.invokeLater(() -> {
+            int start = view.lastAnswerStart();
+            if (start < 0) return;
+            try {
+                java.awt.geom.Rectangle2D r = view.modelToView2D(Math.min(start, view.getDocument().getLength()));
+                if (r == null) return;
+                javax.swing.JViewport port = viewScroll.getViewport();
+                int max = Math.max(0, view.getHeight() - port.getExtentSize().height);
+                port.setViewPosition(new java.awt.Point(0, Math.max(0, Math.min((int) r.getY() - 4, max))));
+            } catch (BadLocationException ignored) {
+                // the document changed under the queued scroll: the next render scrolls again
+            }
+        });
     }
 
     /** The composer's border, or the full-posture cue's accent border. */

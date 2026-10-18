@@ -123,7 +123,7 @@ class ProfileOverlayFrameTest {
                 assertEquals("SAFE", c.assistantProfile);
                 assertEquals(AssistantMode.LOCAL_AGENT, UnifiedAssistantFrameTest.mode(f.frame), "the tab is in Claude Code mode");
                 assertTrue(AssistantLiveFrameTest.panel(f.frame).conversationView().isShowing(), "the transcript is back");
-                assertEquals("Assistant: Safe analysis ▾", AssistantLiveFrameTest.panel(f.frame).profileButton().getText());
+                assertEquals("Assistant: Safe analysis ▾", AssistantLiveFrameTest.panel(f.frame).profileButton().fullWords(), "its words with room (M78 D1: the dock may show \"Safe ▾\")");
             });
 
             // no auto-open once a profile is chosen: another refused question leaves the cards shut

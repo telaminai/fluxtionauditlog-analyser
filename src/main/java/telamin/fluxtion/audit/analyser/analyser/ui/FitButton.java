@@ -15,6 +15,8 @@ import java.awt.FontMetrics;
 final class FitButton extends JButton {
     private String full = "";
     private String brief = "";
+    /** M78 D1: the briefest form, for a row too narrow even for {@link #brief} ("" for none). */
+    private String tiny = "";
 
     FitButton() {
         UiText.plain(this);                  // SF-2: its words may be computed (a profile's title); never markup
@@ -22,8 +24,14 @@ final class FitButton extends JButton {
 
     /** The words with room, and the brief form ("" for none: the full words always). */
     void setWords(String full, String brief) {
+        setWords(full, brief, "");
+    }
+
+    /** As {@link #setWords(String, String)}, with a third, briefest form for the narrowest row. */
+    void setWords(String full, String brief, String tiny) {
         this.full = full == null ? "" : full;
         this.brief = brief == null ? "" : brief;
+        this.tiny = tiny == null ? "" : tiny;
         setText(wordsFor(rowWidth()));
         revalidate();
     }
@@ -33,14 +41,27 @@ final class FitButton extends JButton {
         return full;
     }
 
+    /** M78 D1: measured by its words and insets alone — no look-and-feel minimum width (FlatLaf's 72 px). */
+    private boolean compact;
+
+    void compact(boolean on) {
+        compact = on;
+        revalidate();
+    }
+
     private int widthOf(String words) {
         FontMetrics fm = getFontMetrics(getFont());
+        if (compact) {
+            java.awt.Insets in = getInsets();
+            return in.left + in.right + fm.stringWidth(words) + 2;
+        }
         String now = getText() == null ? "" : getText();
         return super.getPreferredSize().width - fm.stringWidth(now) + fm.stringWidth(words);
     }
 
     private String wordsFor(int row) {
-        return row > 0 && !brief.isEmpty() && widthOf(full) > row ? brief : full;
+        if (row <= 0 || brief.isEmpty() || widthOf(full) <= row) return full;
+        return tiny.isEmpty() || widthOf(brief) <= row ? brief : tiny;
     }
 
     /** The width a row of the parent's flow offers one component (0 before the parent is laid out). */

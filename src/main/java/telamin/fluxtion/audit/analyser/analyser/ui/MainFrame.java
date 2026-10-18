@@ -1096,6 +1096,14 @@ public final class MainFrame extends JFrame {
      */
     private void addRecordActions(java.awt.Container into) {
         boolean haveSelection = !selectedRecords.isEmpty();
+        // M78 D1 (spec-quiet-assistant-panel.md OD-Q.7): on the records' right-click the Ask group comes FIRST — it is
+        // what the menu is opened for most often; the flow behind each item is unchanged
+        if (into instanceof JPopupMenu) {
+            java.util.List<JMenuItem> asks = askItems(
+                    telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.Surface.RECORDS_MENU, askContext().build());
+            for (JMenuItem ask : asks) into.add(ask);
+            if (!asks.isEmpty()) addSeparator(into);
+        }
 
         JMenuItem flag = new JMenuItem("Flag / unflag selected  (F)");
         flag.setEnabled(haveSelection);
@@ -1150,11 +1158,13 @@ public final class MainFrame extends JFrame {
         diff.addActionListener(e -> diffSelected());
         into.add(diff);
 
-        // M74 P2 (§5.5, r8 F12): the questions come from the ONE registry — the right-click menu and its menu-bar copy
-        for (JMenuItem ask : askItems(into instanceof JMenu
-                ? telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.Surface.AUDIT_LOG_MENU
-                : telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.Surface.RECORDS_MENU, askContext().build())) {
-            into.add(ask);
+        // M74 P2 (§5.5, r8 F12): the questions come from the ONE registry — the menu-bar copy keeps them here; the
+        // right-click menu has them FIRST (M78 OD-Q.7, below)
+        if (into instanceof JMenu) {
+            for (JMenuItem ask : askItems(telamin.fluxtion.audit.analyser.analyser.assistant.AskCatalogue.Surface.AUDIT_LOG_MENU,
+                    askContext().build())) {
+                into.add(ask);
+            }
         }
 
         addSeparator(into);
@@ -5637,6 +5647,8 @@ public final class MainFrame extends JFrame {
         answerAwayBack.addActionListener(e -> {
             // presentation: show the tab; the change listener reports it, and assistantLoop takes the way back down
             if (sideTabs != null) sideTabs.setSelectedComponent(assistantDock);
+            // M78 D1 (robot walk): back at the answer's FIRST line, not its end
+            localAgentPanel.showLatestAnswer();
         });
         answerAway.add(answerAwayLine);
         answerAway.add(answerAwayBack);

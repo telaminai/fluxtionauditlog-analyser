@@ -45,6 +45,20 @@ public enum AssistantProfile {
         };
     }
 
+    /**
+     * M78 D1 (spec-quiet-assistant-panel.md §4.1 item 1): the mode word — what the header's control says when the dock is
+     * too narrow for {@link #title()} ("Safe", "Full", "In-app").
+     */
+    public String shortTitle() {
+        return switch (this) {
+            case NONE -> "Choose";
+            case SAFE -> "Safe";
+            case FULL -> "Full";
+            case IN_APP -> "In-app";
+            case OFF -> "Off";
+        };
+    }
+
     /** The stored value ({@code assistant.claudeCode.profile}), or null for {@link #NONE}. */
     public String stored() {
         return this == NONE ? null : name();

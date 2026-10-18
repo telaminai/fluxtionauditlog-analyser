@@ -620,7 +620,10 @@ class LocalAgentAdapterReplayTest {
         assertEquals(home.resolve("proj").toString(), c.get(c.indexOf("--add-dir") + 1));
         Map<?, ?> mcp = (Map<?, ?>) Json.parse(c.get(c.indexOf("--mcp-config") + 1));
         assertEquals(1, ((Map<?, ?>) mcp.get("mcpServers")).size(), "only the hosted bridge");
-        assertTrue(h.state().entries().stream().noneMatch(e -> LocalAgentState.NOTE.equals(e.kind())), h.state().entries().toString());
+        // M78 D1 (§5.2): the one note a clean start makes is the session's PLAN note
+        assertTrue(h.state().entries().stream().noneMatch(e -> LocalAgentState.NOTE.equals(e.kind())
+                && !telamin.fluxtion.audit.analyser.analyser.session.node.LocalAgentSession.PLAN.equals(e.status())),
+                h.state().entries().toString());
     }
 
     /**
