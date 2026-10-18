@@ -35,6 +35,7 @@ line, and update this index in the same change.
 |---|---|---|
 | [spec-onboard-assistant-journeys.md](spec-onboard-assistant-journeys.md) | released in 1.29.0; acceptance open | Onboard assistant and conversation journeys |
 | [spec-assistant-actions-mcp.md](spec-assistant-actions-mcp.md) | M13.1–13.4 shipped; only M13.5 open | M13 |
+| [spec-ai-setup-wizard.md](spec-ai-setup-wizard.md) | ACCEPTED r5 (2026-10-18); OD-77.1 superseded by M79 OD-79.5; not started | M77 |
 
 ## Authoring
 
@@ -54,6 +55,7 @@ line, and update this index in the same change.
 |---|---|---|
 | [spec-onboarding-example.md](spec-onboarding-example.md) | M19 in progress; most slices archived | M19 |
 | [spec-project-starter-journey.md](spec-project-starter-journey.md) | analyser half shipped in 1.16.0; producer and download acceptance open | M47, M19.23 |
+| [spec-first-minute.md](spec-first-minute.md) | ACCEPTED r1 (2026-10-18); r5 (one independent review, the lead's round 2, the owner's correction and answers), every owner decision accepted; not started | M79 |
 | [spec-extension-tour.md](spec-extension-tour.md) | specified and unblocked; not started | M67 |
 | [spec-agent-brokered-dev-loop.md](spec-agent-brokered-dev-loop.md) | accepted v2 (replaced M18); the reference the bootstrap artefacts anchor to | M19; delivery order item 10 |
 | [mongoose-bootstrap-artefacts/](mongoose-bootstrap-artefacts/README.md) | review snapshot of the starter's bootstrap files | delivery order item 10 |
