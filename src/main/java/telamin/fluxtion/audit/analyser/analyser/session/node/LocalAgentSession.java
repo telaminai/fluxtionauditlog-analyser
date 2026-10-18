@@ -92,6 +92,13 @@ public class LocalAgentSession implements EventLogSource {
     /** Review M8: the Start request whose folder confirmation is open, and the posture it was asked for. */
     private long confirmRequest;
     private String confirmPosture;
+    /**
+     * Authoring walk (2026-10-18, shot 54): the question a Send carried when it opened the folder confirmation, and the
+     * log generation it was checked against — held (by reference) while the dialog is open, sent once after a yes, and
+     * dropped on a no (the composer still has it: a refused Send never clears it). 0: none.
+     */
+    private long confirmDraft;
+    private long confirmDraftLogGeneration;
     private long headerRef;
     private long headerRevision;
     private long detailRef;
@@ -242,8 +249,12 @@ public class LocalAgentSession implements EventLogSource {
             return false;
         }
         String asked = confirmPosture;
+        long draft = confirmDraft;
+        long draftLogGeneration = confirmDraftLogGeneration;
         confirmRequest = 0;
         confirmPosture = null;
+        confirmDraft = 0;
+        confirmDraftLogGeneration = 0;
         if (!e.yes()) {
             refuse(e.request(), "FOLDER_NOT_CONFIRMED: the folder was not confirmed for Claude Code, so nothing was started");
             return changed();
@@ -263,9 +274,18 @@ public class LocalAgentSession implements EventLogSource {
         }
         effects.request(new SessionEffects.TrustLocalAgentFolderEffect(0L, e.request()));
         // the person's yes confirms the folder for the posture it was asked for (the full posture's trust is separate)
+        boolean wasRunning = running();
         start(e.request(), new SessionEvents.LocalAgentConsent(c.allowed(), c.full() ? c.folderConfirmed() : true,
                 c.bundleWorkingCopy(), c.postureRef(), c.budgetMicros(), c.folder(), c.full(), c.fullMode(),
                 c.full() || c.fullFolderConfirmed(), c.model(), c.folderRef()));
+        if (draft != 0 && !wasRunning && running() && pendingDraft == 0) {
+            // the Send that asked: its question waits for READY, as any Send accepted before the process is ready does —
+            // the composer is cleared by this request's acceptance, and the question is sent once
+            pendingDraft = draft;
+            pendingRequest = e.request();
+            pendingLogGeneration = draftLogGeneration;
+            auditLog.info("localAgentDraftHeld", draft).info("after", "folderConfirmed");
+        }
         return changed();
     }
 
@@ -601,6 +621,11 @@ public class LocalAgentSession implements EventLogSource {
         if (!running()) {
             String startRefusal = startRefusal(e.consent(), e.request());
             if (startRefusal != null) {
+                if (confirmRequest == e.request()) {
+                    // the Send opened the folder question: its question is held for the answer (shot 54)
+                    confirmDraft = e.draft();
+                    confirmDraftLogGeneration = boundGeneration(e.draftBindings());
+                }
                 refuse(e.request(), startRefusal);
                 return changed();
             }
@@ -1304,6 +1329,8 @@ public class LocalAgentSession implements EventLogSource {
         if (!c.confirmedForPosture()) {
             confirmRequest = request;
             confirmPosture = c.postureRef();
+            confirmDraft = 0;                     // a Start asks with no question; a Send sets its own after this
+            confirmDraftLogGeneration = 0;
             effects.request(new SessionEffects.ConfirmLocalAgentFolderEffect(0L, request, c.full()));
             return c.full()
                     ? "CONFIRM_FOLDER: confirm this folder for full Claude Code first — its hooks, MCP servers and "

@@ -287,4 +287,54 @@ class LocalAgentFullReplayTest {
         assertTrue(h.state().reason().contains("not trusted for full Claude Code yet"), h.state().reason());
         assertTrue(agent.processes.isEmpty(), "nothing was started");
     }
+
+    /**
+     * ★ Authoring walk (2026-10-18, shot 54): a question SENT while Full asks for folder trust is not lost. Send opens the
+     * folder question; Trust starts Claude Code and the question is sent once, at READY. Don't trust starts nothing, and
+     * the question is not accepted (the composer keeps it). Witness: drop the hold in {@code onFolderAnswered} (never set
+     * {@code pendingDraft} there) — "Ready" with nothing sent.
+     */
+    @Test
+    @DisplayName("★ a Send that asks for folder trust is sent once after Trust, and kept on Don't trust")
+    void aSendThatAsksForTrustIsSentOnceAfterIt() throws Exception {
+        Harness h = untrustedFull(home);
+        h.send("build me a diamond");
+        var asked = h.others.stream().filter(e -> e instanceof telamin.fluxtion.audit.analyser.analyser.session
+                .SessionEffects.ConfirmLocalAgentFolderEffect).map(e -> (telamin.fluxtion.audit.analyser.analyser.session
+                .SessionEffects.ConfirmLocalAgentFolderEffect) e).toList();
+        assertEquals(1, asked.size(), "Send asks about the folder: " + h.others);
+        assertFalse(h.state().answer().accepted(), "nothing is accepted before the answer");
+        h.driver.post(new SessionEvents.LocalAgentFolderAnswered(asked.get(0).request(), true, true, h.consent));
+        assertEquals("READY", h.state().phase(), h.state().reason());
+        assertTrue(h.state().answer().accepted(), "the Send's request is accepted: the composer clears");
+        assertEquals(asked.get(0).request(), h.state().answer().request());
+        assertEquals(List.of("build me a diamond"), h.userTurns(), "the question was sent, once");
+        assertEquals(1, h.agent.last().stdin.stream().filter(l -> l.contains("build me a diamond")).count(),
+                "and reached Claude Code once");
+        assertEquals(0, h.state().pendingDraft());
+
+        Harness no = untrustedFull(home.resolve("no"));
+        no.send("build me a diamond");
+        var askedNo = no.others.stream().filter(e -> e instanceof telamin.fluxtion.audit.analyser.analyser.session
+                .SessionEffects.ConfirmLocalAgentFolderEffect).map(e -> (telamin.fluxtion.audit.analyser.analyser.session
+                .SessionEffects.ConfirmLocalAgentFolderEffect) e).toList();
+        no.driver.post(new SessionEvents.LocalAgentFolderAnswered(askedNo.get(0).request(), false, true, no.consent));
+        assertFalse(no.state().answer().accepted(), "declined: the question stays in the composer");
+        assertTrue(no.agent.processes.isEmpty(), "nothing was started");
+        assertEquals(List.of(), no.userTurns());
+        assertEquals(0, no.state().pendingDraft(), "and nothing waits to be sent later");
+    }
+
+    /** Full Claude Code in a project folder the person has not yet trusted for it (the consent the frame observes). */
+    private Harness untrustedFull(Path at) throws Exception {
+        FixtureAgent agent = new FixtureAgent(FixtureAgent.PB_FIXTURES, "pb-mode-default-iso.jsonl");
+        agent.rewrite = LOGGED_IN;
+        agent.conformHostedTools = true;
+        Files.createDirectories(at);
+        Harness h = new Harness(agent, at);
+        h.environment = Map.of("PATH", "/usr/bin:/bin:/usr/sbin:/sbin:" + at.resolve("bin"));
+        h.consent = new SessionEvents.LocalAgentConsent(true, false, false, ClaudeCodeProvider.postureRef(at.resolve("proj"),
+                LocalAgentPosture.full(FullMode.DEFAULT)), 0, SessionEvents.FolderVerdict.OK, true, FullMode.DEFAULT, false);
+        return h;
+    }
 }

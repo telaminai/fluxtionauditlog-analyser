@@ -64,6 +64,7 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ### Fixed
 
+- A question sent while Claude Code asks you to trust the folder is no longer lost: after **Trust** Claude Code starts and the question is sent once; after **Don't trust** it stays in the box. Before, the box was emptied and the panel said *Ready* with nothing sent.
 - **Full Claude Code with no project open starts** in the analyser's own empty scratch folder. Every Start and Send was refused *"The folder's settings, hooks, MCP servers or instruction files changed after you confirmed it…"* although no folder had ever been confirmed, and *Start Claude Code* then did nothing: the start-time re-check now uses the same rule as the decision (the scratch folder counts as confirmed while it holds none of the files Start would load). A folder that was never trusted is asked about, never reported as changed.
 - A downloaded example's `mvnw` and `*.sh` scripts keep the executable bit their archive records, so `./mvnw` and the example's own scripts run as its README says (they failed with *permission denied*). No other file is made executable, a script the archive marks `0644` or as a link stays plain, and the analyser itself still never runs an example.
 - The template dialog no longer shows an internal milestone id in a template's description (*"The M19 onboarding bundle…"* now reads *"The onboarding bundle…"*); a check keeps such ids out of the shown descriptions and the start page's words.
