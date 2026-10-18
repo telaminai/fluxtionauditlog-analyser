@@ -120,6 +120,18 @@ public final class CodexMcpClient {
                 "Codex did not add the registration; the analyser settings were not changed.");
     }
 
+    /**
+     * M77-3 (spec-ai-setup-wizard.md §9.3, S5): run EXACTLY {@code vector} — the argument vector the person's confirmation
+     * showed, never re-rendered. Refused (nothing started) unless it is this client's own executable.
+     */
+    public Result run(List<String> vector) {
+        if (vector == null || vector.isEmpty() || !executable.toString().equals(vector.get(0))) {
+            return new Result(Status.LAUNCH_FAILED, "Not this client's command; nothing was run.");
+        }
+        return result(invoke(List.copyOf(vector)), "Codex ran the confirmed command.",
+                "Codex did not accept the command; the analyser settings were not changed.");
+    }
+
     /** Replace only the exact named registration: remove it through Codex, then add the new command through Codex. */
     public Result replace(McpLaunchCommand bridge) {
         Outcome removed = invoke(removeCommand());

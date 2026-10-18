@@ -45,9 +45,9 @@ import java.util.List;
  * window. It RENDERS {@link AiSetupState} and reports the person's acts through {@link Host}; it decides nothing (rule 9,
  * {@code OneDispatchModelTest}). Every sentence is {@link AiSetupLines}'.
  *
- * <p>Screens: 1 (the four choices), 2a (Claude inside: the two checks and the Safe / Full sub-choice), Other options
- * (the in-app assistant) and the Summary. Screen 2b (your own client) is M77-3; until then <i>Your own client</i> and
- * <i>Both</i> open today's {@code McpSetupDialog} (review R1-11).
+ * <p>Screens: 1 (the four choices), 2a (Claude inside: the two checks and the Safe / Full sub-choice), 2b (your own
+ * client, M77-3: which client, external access, the registration and the live check), Other options (the in-app
+ * assistant) and the Summary. Today's {@code McpSetupDialog} stays behind 2b's <i>More options…</i> (OD-77.12).
  */
 final class AiSetupWindow extends JDialog {
 
@@ -73,6 +73,29 @@ final class AiSetupWindow extends JDialog {
 
         /** Where a check found claude, shortened to {@code ~} — by reference; null when unknown. */
         String shownPath(long ref);
+
+        // ---- M77-3: Screen 2b
+        default void client(AiSetupState.Client client) { }
+
+        /** The access switch: an ask — actionListener decides (on: the confirmation first). */
+        default void access(boolean on) { }
+
+        default void copy(telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CopyWhat what) { }
+
+        default void register() { }
+
+        default void moreOptions() { }
+
+        /** OD-77.5: the box under No AI. */
+        default void alsoTurnOff(boolean on) { }
+
+        default void saveSnippet() { }
+
+        /** The command (or another client's configuration) as the person reads it; "" when there is none. */
+        default String commandText(AiSetupState.Client client) { return ""; }
+
+        /** What a client called itself, by reference (OD-77.8); null when unknown. */
+        default String clientLabel(long ref) { return null; }
     }
 
     static final int DEFAULT_WIDTH = 640;
@@ -110,6 +133,22 @@ final class AiSetupWindow extends JDialog {
                     : new Dimension(Integer.MAX_VALUE, super.getPreferredSize().height);
         }
     };
+
+    /**
+     * M77-3: the slot beside Screen 2b's access switch, for the option diagram (M77-4 fills it with M77-5's component).
+     * Empty, it has no visible size.
+     */
+    final JPanel accessDiagramSlot = new JPanel(new BorderLayout()) {
+        @Override public Dimension getPreferredSize() {
+            return getComponentCount() == 0 ? new Dimension(0, 0) : super.getPreferredSize();
+        }
+
+        @Override public Dimension getMaximumSize() {
+            return getComponentCount() == 0 ? new Dimension(0, 0) : super.getMaximumSize();
+        }
+    };
+    /** Screen 2b: the command is shown collapsed to its first words until the person asks for all of it (view only). */
+    private boolean commandExpanded;
 
     /** The in-app details keep what the person typed across renders. */
     final InAppDetails inApp = new InAppDetails();
@@ -228,7 +267,7 @@ final class AiSetupWindow extends JDialog {
         String key = next.step() + "|" + next.choice() + "|" + next.inForce() + "|" + next.posture() + "|"
                 + next.fullMode() + "|" + next.installed() + "|" + next.signedIn() + "|" + next.confirming() + "|"
                 + next.applying() + "|" + next.claudeFound() + "|" + next.codexFound() + "|" + next.suggested() + "|"
-                + next.origin() + "|" + claudeModel;
+                + next.origin() + "|" + claudeModel + "|" + next.external() + "|" + commandExpanded;
         boolean stepChanged = next.step() != shownStep;
         shownStep = next.step();
         line.setText(next.line().isBlank() ? " " : next.line());
@@ -243,7 +282,7 @@ final class AiSetupWindow extends JDialog {
             case INSIDE -> insideScreen(next, claudeModel);
             case OTHER -> otherScreen(next);
             case SUMMARY -> summaryScreen(next);
-            case CLIENT -> content.add(text(AiSetupLines.CLIENT_INTERIM));
+            case CLIENT -> clientScreen(next);
         }
         for (Component c : content.getComponents()) ((JComponent) c).setAlignmentX(LEFT_ALIGNMENT);
         buttons(next);
@@ -316,6 +355,15 @@ final class AiSetupWindow extends JDialog {
             content.add(Box.createVerticalStrut(UiTheme.SPACE_SM));
         }
         if (focusFirst == null && group.getElements().hasMoreElements()) focusFirst = group.getElements().nextElement();
+        if (s.external().offerAlsoTurnOff()) {
+            // OD-77.5: No AI while external access is on — ticked by default (turning off is the safe direction)
+            javax.swing.JCheckBox off = UiText.checkBox(AiSetupLines.ALSO_TURN_OFF_ACCESS);
+            off.setSelected(s.external().alsoTurnOff());
+            off.setBorder(BorderFactory.createEmptyBorder(0, 24, 0, 0));
+            off.addActionListener(e -> host.alsoTurnOff(off.isSelected()));
+            off.putClientProperty("aiSetup.alsoTurnOff", Boolean.TRUE);
+            content.add(off);
+        }
         JButton other = link(AiSetupLines.OTHER_OPTIONS_LINK);
         other.addActionListener(e -> {
             host.choose(Choice.IN_APP);
@@ -450,12 +498,252 @@ final class AiSetupWindow extends JDialog {
             case NO_AI -> AssistantProfile.OFF;
             default -> AssistantProfile.NONE;
         };
-        content.add(text("• " + AiSetupLines.summaryLine(s.inForce(), p, s.installed(), s.signedIn())));
+        if (s.inForce() != Choice.CLIENT) {
+            content.add(text("• " + AiSetupLines.summaryLine(s.inForce(), p, s.installed(), s.signedIn())));
+        }
+        if (s.inForce() == Choice.CLIENT || s.inForce() == Choice.BOTH) {
+            content.add(text("• " + AiSetupLines.clientSummary(s.external(), hhmm(s.external().live().at()))));
+        }
         content.add(text("• " + AiSetupLines.SUMMARY_CHANGE));
         content.add(Box.createVerticalStrut(UiTheme.SPACE_MD));
         if (s.suggested() == AiSetupState.Suggested.RIGHT_CLICK) {
             content.add(text(AiSetupLines.RIGHT_CLICK_TO_ASK));
         }
+        if (s.suggested() == AiSetupState.Suggested.COPY_QUESTION) {
+            content.add(text(AiSetupLines.ASK_IN_TERMINAL));
+        }
+    }
+
+    /**
+     * Screen 2b (§6.3): four numbered parts on one scrolling screen — which client, the access switch, the registration
+     * and the live check. Every word is the node's ({@link AiSetupLines}); every act is reported through {@link Host}.
+     */
+    private void clientScreen(AiSetupState s) {
+        AiSetupState.External x = s.external();
+        if (s.choice() == Choice.BOTH) content.add(muted(AiSetupLines.CLIENT_STEP_BOTH));
+        content.add(heading(AiSetupLines.CLIENT_SCREEN_TITLE));
+        content.add(Box.createVerticalStrut(UiTheme.SPACE_SM));
+
+        // 1. Which client?
+        content.add(bold(AiSetupLines.PART_WHICH));
+        ButtonGroup which = new ButtonGroup();
+        for (AiSetupState.Client c : List.of(AiSetupState.Client.CLAUDE_CODE, AiSetupState.Client.CODEX,
+                AiSetupState.Client.GENERIC)) {
+            String title = switch (c) {
+                case CLAUDE_CODE -> AiSetupLines.CLIENT_CLAUDE_CODE;
+                case CODEX -> AiSetupLines.CLIENT_CODEX;
+                default -> AiSetupLines.CLIENT_GENERIC;
+            };
+            JRadioButton r = UiText.radio(title);
+            r.setSelected(x.client() == c);
+            r.putClientProperty("aiSetup.client", c);
+            r.addActionListener(e -> host.client(c));
+            which.add(r);
+            JPanel row = new JPanel(new WrapLayout(FlowLayout.LEFT, UiTheme.SPACE_SM, 0));
+            row.setOpaque(false);
+            row.add(r);
+            String badge = c == AiSetupState.Client.CLAUDE_CODE && s.claudeFound() ? AiSetupLines.CLAUDE_FOUND
+                    : c == AiSetupState.Client.CODEX && s.codexFound() ? AiSetupLines.CODEX_FOUND : null;
+            if (badge != null) {
+                JComponent b = AssistantPanel.chip(badge, false);
+                b.setToolTipText(UiText.tooltip(AiSetupLines.FOUND_TOOLTIP));
+                row.add(b);
+            }
+            content.add(row);
+            if (x.client() == c) focusFirst = r;
+        }
+        if (x.client() == AiSetupState.Client.GENERIC) content.add(indented(AiSetupLines.GENERIC_COVERS_DESKTOP));
+        content.add(Box.createVerticalStrut(UiTheme.SPACE_MD));
+
+        // 2. Let your client reach this window.
+        content.add(bold(AiSetupLines.PART_REACH));
+        JPanel switchRow = new JPanel(new BorderLayout(UiTheme.SPACE_SM, 0));
+        switchRow.setOpaque(false);
+        javax.swing.JCheckBox access = UiText.checkBox(AiSetupLines.ACCESS_SWITCH);
+        boolean on = x.access() != AiSetupState.Access.OFF && x.access() != AiSetupState.Access.CONFIRMING;
+        access.setSelected(on);
+        access.getAccessibleContext().setAccessibleName(AiSetupLines.ACCESS_SWITCH);
+        access.getAccessibleContext().setAccessibleDescription(AiSetupLines.ACCESS_SETTING_NAME + ". "
+                + AiSetupLines.ACCESS_LINE);
+        access.putClientProperty("aiSetup.access", Boolean.TRUE);
+        access.addActionListener(e -> {
+            boolean want = access.isSelected();
+            access.setSelected(on);                   // the switch follows the setting; the press is only an ask
+            host.access(want);
+        });
+        switchRow.add(access, BorderLayout.WEST);
+        accessDiagramSlot.setOpaque(false);
+        switchRow.add(accessDiagramSlot, BorderLayout.EAST);   // M77-4: the option diagram, beside the switch
+        content.add(switchRow);
+        content.add(indentedMuted(AiSetupLines.ACCESS_SETTING_NAME));
+        content.add(indented(AiSetupLines.ACCESS_LINE));
+        String accessState = switch (x.access()) {
+            case ON, OTHER_INSTANCE -> AiSetupLines.ACCESS_ON;
+            case CONFIRMING -> AiSetupLines.ACCESS_CONFIRMING;
+            case CLOSED_FOR_SESSION -> AiSetupLines.ACCESS_CLOSED;
+            case OFF -> "";
+        };
+        if (!accessState.isEmpty()) content.add(indented(accessState));
+        if (!on && focusFirst == null) focusFirst = access;
+        content.add(Box.createVerticalStrut(UiTheme.SPACE_MD));
+
+        // 3. Register the analyser with your client.
+        content.add(bold(AiSetupLines.PART_REGISTER));
+        if (x.registration() == AiSetupState.Registration.NO_LAUNCHER) {
+            content.add(indented(AiSetupLines.NO_LAUNCHER));
+            JPanel actions = row();
+            JButton how = enterPresses(UiText.button(AiSetupLines.HOW_TO_INSTALL));
+            how.addActionListener(e -> host.installHelp());
+            actions.add(how);
+            content.add(actions);
+        } else if (x.client() == AiSetupState.Client.GENERIC) {
+            content.add(indented(AiSetupLines.GENERIC_INTRO));
+            content.add(commandBox(host.commandText(x.client()), true));
+            JPanel actions = row();
+            JButton copy = enterPresses(UiText.button(AiSetupLines.COPY_CONFIGURATION));
+            copy.addActionListener(e -> host.copy(telamin.fluxtion.audit.analyser.analyser.session.SessionEvents
+                    .CopyWhat.GENERIC_CONFIG));
+            JButton save = enterPresses(UiText.button(AiSetupLines.SAVE_SNIPPET));
+            save.addActionListener(e -> host.saveSnippet());
+            actions.add(copy);
+            actions.add(save);
+            content.add(actions);
+            String reg = AiSetupLines.registrationText(x.registration());
+            if (!reg.isEmpty()) content.add(indented(reg));
+        } else {
+            content.add(indented(AiSetupLines.REGISTER_INTRO));
+            String command = host.commandText(x.client());
+            content.add(commandBox(commandExpanded ? command : collapsed(command), commandExpanded));
+            JPanel shown = row();
+            JButton full = enterPresses(UiText.button(commandExpanded ? AiSetupLines.SHOW_LESS
+                    : AiSetupLines.SHOW_FULL_COMMAND));
+            full.addActionListener(e -> {
+                commandExpanded = !commandExpanded;
+                renderedKey = "";
+                render(state, lastModel, lastProvider, lastInAppModel, lastKeyStored);
+            });
+            JButton copyCmd = enterPresses(UiText.button(AiSetupLines.COPY));
+            copyCmd.addActionListener(e -> host.copy(telamin.fluxtion.audit.analyser.analyser.session.SessionEvents
+                    .CopyWhat.REGISTER_COMMAND));
+            shown.add(full);
+            shown.add(copyCmd);
+            content.add(shown);
+            // OD-77.10: Register for me… first, behind its confirmation; then I'll run it myself; then the check
+            JPanel actions = row();
+            boolean present = x.registration() == AiSetupState.Registration.PRESENT;
+            JButton register = enterPresses(UiText.button(present ? AiSetupLines.REPLACE_REGISTRATION
+                    : AiSetupLines.REGISTER_FOR_ME));
+            boolean found = x.client() == AiSetupState.Client.CODEX ? s.codexFound() : s.claudeFound();
+            register.setEnabled(found && x.registration() != AiSetupState.Registration.RUNNING);
+            register.putClientProperty("aiSetup.register", Boolean.TRUE);
+            register.addActionListener(e -> host.register());
+            JButton myself = enterPresses(UiText.button(AiSetupLines.RUN_IT_MYSELF));
+            myself.addActionListener(e -> host.copy(telamin.fluxtion.audit.analyser.analyser.session.SessionEvents
+                    .CopyWhat.REGISTER_COMMAND));
+            JButton check = enterPresses(UiText.button(AiSetupLines.CHECK_REGISTRATION));
+            check.setEnabled(found && x.registration() != AiSetupState.Registration.RUNNING);
+            check.addActionListener(e -> host.checkAgain(AiSetupState.CheckKind.REGISTRATION));
+            actions.add(register);
+            actions.add(myself);
+            actions.add(check);
+            content.add(actions);
+            String reg = AiSetupLines.registrationText(x.registration());
+            if (!reg.isEmpty()) {
+                JComponent r = statusRow("Registration", reg);
+                content.add(r);
+            }
+            if (on && focusFirst == null && !x.registered()) focusFirst = register.isEnabled() ? register : myself;
+        }
+        content.add(Box.createVerticalStrut(UiTheme.SPACE_MD));
+
+        // 4. Can your client see the analyser?
+        content.add(bold(AiSetupLines.PART_LIVE));
+        AiSetupState.Live live = x.live();
+        switch (live.verdict()) {
+            case IDLE -> content.add(indentedMuted(x.registration() == AiSetupState.Registration.ABSENT
+                    ? AiSetupLines.LIVE_NOT_REGISTERED : AiSetupLines.LIVE_NOT_YET));
+            case WAITING, WAITING_LONG -> {
+                content.add(indented(AiSetupLines.LIVE_ASK));
+                content.add(commandBox(AiSetupLines.LIVE_QUESTION, true));
+                JPanel actions = row();
+                JButton copyQ = enterPresses(UiText.button(AiSetupLines.COPY_THE_QUESTION));
+                copyQ.addActionListener(e -> host.copy(telamin.fluxtion.audit.analyser.analyser.session.SessionEvents
+                        .CopyWhat.LIVE_QUESTION));
+                actions.add(copyQ);
+                content.add(actions);
+                content.add(statusRow("Live check", AiSetupLines.LIVE_WAITING));
+                if (live.verdict() == AiSetupState.LiveVerdict.WAITING_LONG) {
+                    content.add(indentedMuted("• " + AiSetupLines.LIVE_TIP_RESTART));
+                    content.add(indentedMuted("• " + AiSetupLines.LIVE_TIP_ACCESS));
+                }
+            }
+            case SEEN -> {
+                String words = AiSetupLines.liveSeen(hhmm(live.at()));
+                String said = AiSetupLines.selfReported(host.clientLabel(live.labelRef()));
+                if (!said.isEmpty()) words += " " + said;
+                if (live.fullSessionSeen()) words += " " + AiSetupLines.LIVE_FULL_SESSION;
+                content.add(statusRow("Live check", words));
+            }
+            case OTHER_INSTANCE, ACCESS_OFF -> {
+                content.add(statusRow("Live check", live.verdict() == AiSetupState.LiveVerdict.OTHER_INSTANCE
+                        ? AiSetupLines.LIVE_OTHER_INSTANCE : AiSetupLines.LIVE_ACCESS_OFF));
+                JPanel actions = row();
+                JButton again = enterPresses(UiText.button(AiSetupLines.CHECK_AGAIN));
+                again.getAccessibleContext().setAccessibleName("Check again: live check");
+                again.addActionListener(e -> host.checkAgain(AiSetupState.CheckKind.LIVE));
+                actions.add(again);
+                content.add(actions);
+            }
+        }
+        content.add(Box.createVerticalStrut(UiTheme.SPACE_SM));
+        JButton more = link(AiSetupLines.MORE_OPTIONS);
+        enterPresses(more);
+        more.addActionListener(e -> host.moreOptions());
+        content.add(more);
+    }
+
+    /** §6.3: the command collapsed to its first words ("claude mcp add --scope user fluxtion-analyser …"). */
+    static String collapsed(String command) {
+        if (command == null || command.isBlank()) return "";
+        int at = command.indexOf(" -- ");
+        return at < 0 ? command : command.substring(0, at) + " …";
+    }
+
+    /** "14:02": when the live check saw a client, in this machine's time zone. */
+    static String hhmm(long epochMillis) {
+        if (epochMillis <= 0) return null;
+        return java.time.format.DateTimeFormatter.ofPattern("HH:mm").format(
+                java.time.Instant.ofEpochMilli(epochMillis).atZone(java.time.ZoneId.systemDefault()));
+    }
+
+    /** A command or configuration: selectable, monospaced, wrapping inside its own box (§15: never widens the window). */
+    private static JComponent commandBox(String text, boolean wrap) {
+        javax.swing.JTextArea a = new javax.swing.JTextArea(UiText.inert(text == null ? "" : text));
+        a.setEditable(false);
+        a.setLineWrap(true);
+        a.setWrapStyleWord(!wrap);
+        java.awt.Font base = javax.swing.UIManager.getFont("TextField.font");
+        if (base == null) base = a.getFont();
+        a.setFont(new java.awt.Font(java.awt.Font.MONOSPACED, java.awt.Font.PLAIN, base.getSize()));
+        a.setBorder(BorderFactory.createCompoundBorder(javax.swing.UIManager.getBorder("TextField.border"),
+                BorderFactory.createEmptyBorder(4, 6, 4, 6)));
+        a.getAccessibleContext().setAccessibleName("The exact command");
+        JPanel holder = new JPanel(new BorderLayout());
+        holder.setOpaque(false);
+        holder.setBorder(BorderFactory.createEmptyBorder(UiTheme.SPACE_XS, 28, UiTheme.SPACE_XS, 0));
+        holder.add(a, BorderLayout.CENTER);
+        return holder;
+    }
+
+    /** §6 (review R1-29): Enter on a focused button presses THAT button — Enter on Register for me… never Finishes. */
+    private static JButton enterPresses(JButton b) {
+        b.getInputMap(JComponent.WHEN_FOCUSED).put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), "press-focused");
+        b.getActionMap().put("press-focused", new AbstractAction() {
+            @Override public void actionPerformed(ActionEvent e) {
+                if (b.isEnabled()) b.doClick();
+            }
+        });
+        return b;
     }
 
     /**
@@ -480,7 +768,7 @@ final class AiSetupWindow extends JDialog {
     private JButton suggestedButton;
 
     private void buttons(AiSetupState s) {
-        back.setVisible(s.step() == Step.INSIDE || s.step() == Step.OTHER);
+        back.setVisible(s.step() == Step.INSIDE || s.step() == Step.OTHER || s.step() == Step.CLIENT);
         cancel.setVisible(s.step() != Step.SUMMARY);
         String label = switch (s.step()) {
             case CHOICE -> "Continue";
@@ -488,7 +776,11 @@ final class AiSetupWindow extends JDialog {
                     : s.choice() == Choice.BOTH ? "Continue" : "Finish";
             case OTHER -> "Finish";
             case SUMMARY -> AiSetupLines.DONE;
-            case CLIENT -> "Finish";
+            case CLIENT -> s.external().registration() == AiSetupState.Registration.NO_LAUNCHER
+                    ? AiSetupLines.FINISH_WITHOUT_CLIENT
+                    : s.external().live().verdict() == AiSetupState.LiveVerdict.WAITING
+                    || s.external().live().verdict() == AiSetupState.LiveVerdict.WAITING_LONG
+                    ? AiSetupLines.FINISH_WITHOUT_CHECKING : "Finish";
         };
         primary.setText(label);
         primary.getAccessibleContext().setAccessibleName(label);
@@ -496,7 +788,7 @@ final class AiSetupWindow extends JDialog {
             case CHOICE -> s.choice() != Choice.NONE;
             case INSIDE -> s.insideMayProceed() && !s.applying() && s.confirming() == AiSetupState.Confirming.NONE;
             case OTHER, SUMMARY -> !s.applying();
-            case CLIENT -> false;
+            case CLIENT -> s.clientMayFinish();
         };
         primary.setEnabled(enabled);
         // the Summary's one suggested action is the default; Done closes
@@ -506,6 +798,7 @@ final class AiSetupWindow extends JDialog {
         String suggested = switch (s.suggested()) {
             case OPEN_SAMPLE -> AiSetupLines.SUGGEST_SAMPLE;
             case TOUR -> AiSetupLines.SUGGEST_TOUR;
+            case COPY_QUESTION -> AiSetupLines.SUGGEST_COPY_QUESTION;
             default -> null;
         };
         if (suggested != null) {
@@ -535,6 +828,11 @@ final class AiSetupWindow extends JDialog {
 
     JButton suggestedButton() {
         return suggestedButton;
+    }
+
+    /** M77-3: the slot beside 2b's access switch (empty until M77-4). */
+    JPanel accessDiagramSlot() {
+        return accessDiagramSlot;
     }
 
     /** M77-5: the selected option's slot (empty in M77-2). */
@@ -574,7 +872,8 @@ final class AiSetupWindow extends JDialog {
             case INSIDE -> s.choice() == Choice.BOTH ? AiSetupLines.INSIDE_STEP_BOTH : "Step 2 · " + AiSetupLines.INSIDE_TITLE;
             case OTHER -> "Step 2 · " + AiSetupLines.OTHER_TITLE;
             case SUMMARY -> AiSetupLines.SUMMARY_TITLE;
-            case CLIENT -> AiSetupLines.CLIENT_TITLE;
+            case CLIENT -> s.choice() == Choice.BOTH ? AiSetupLines.CLIENT_STEP_BOTH
+                    : "Step 2 · " + AiSetupLines.CLIENT_SCREEN_TITLE;
         };
     }
 
@@ -596,6 +895,36 @@ final class AiSetupWindow extends JDialog {
             case NOT_SIGNED_IN -> "✗";
             case UNKNOWN -> "?";
         };
+    }
+
+    /** A 2b status line (its glyph is in its words): one focusable, wrapping line whose accessible name is the sentence. */
+    private static JComponent statusRow(String check, String words) {
+        // the glyph (✓ ✗ ⏳ ?) in its own label, as Screen 2a's rows: an emoji glyph inside wrapping text is measured
+        // with the wrong advance and paints over the first letter of the word after it
+        String glyph = "";
+        String text = words;
+        for (String g : List.of("⏳ ", "✓ ", "✗ ", "? ")) {
+            if (words.startsWith(g)) {
+                glyph = g.trim();
+                text = words.substring(g.length());
+            }
+        }
+        JPanel row = new JPanel(new BorderLayout(UiTheme.SPACE_XS, 0));
+        row.setOpaque(false);
+        row.setBorder(BorderFactory.createEmptyBorder(0, 28, 0, 0));
+        if (!glyph.isEmpty()) {
+            JLabel g = UiText.label(glyph);
+            g.setVerticalAlignment(JLabel.TOP);
+            row.add(g, BorderLayout.WEST);
+        }
+        JPanel holder = new JPanel(new BorderLayout());   // the line measures itself at ITS width, not the row's
+        holder.setOpaque(false);
+        holder.add(new WrapLine(text), BorderLayout.CENTER);
+        row.add(holder, BorderLayout.CENTER);
+        row.setFocusable(true);
+        row.getAccessibleContext().setAccessibleName(AiSetupLines.accessible(check, words));
+        row.putClientProperty("aiSetup.check", check);
+        return row;
     }
 
     /** One check: glyph and words in one focusable row whose accessible name is the whole sentence (§15). */
@@ -643,6 +972,12 @@ final class AiSetupWindow extends JDialog {
     private static WrapLine indented(String s) {
         WrapLine w = new WrapLine(s);
         w.setBorder(BorderFactory.createEmptyBorder(0, 28, 0, 0));
+        return w;
+    }
+
+    private static WrapLine indentedMuted(String s) {
+        WrapLine w = indented(s);
+        w.setForeground(UiTheme.mutedForeground());
         return w;
     }
 

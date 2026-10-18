@@ -429,11 +429,12 @@ class AiSetupWizardFrameTest {
     }
 
     /**
-     * OD-77.12: <i>Your own client</i> still reaches today's {@code McpSetupDialog} (until M77-3). Witness: drop the
-     * {@code OpenClientSetupEffect} performer's dialog — no MCP set-up window appears.
+     * OD-77.12 (M77-3): <i>Your own client</i> opens Screen 2b, and today's {@code McpSetupDialog} stays behind its
+     * <i>More options…</i>. Witness: drop the {@code OpenClientSetupEffect} performer's dialog — no MCP set-up window
+     * appears.
      */
     @Test
-    @DisplayName("★ Your own client opens today's MCP set-up dialog, with the interim line (OD-77.12)")
+    @DisplayName("★ Your own client opens Screen 2b; today's MCP set-up dialog stays behind More options… (OD-77.12)")
     void yourOwnClientKeepsTodaysDialog(@TempDir Path tmp) throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless(), "a real display is required");
         try (Robot r = new Robot(tmp, 1200, 800)) {
@@ -443,17 +444,19 @@ class AiSetupWizardFrameTest {
             onEdt(() -> r.window().choiceRadio(Choice.CLIENT).doClick());
             r.await(s -> s.choice() == Choice.CLIENT, "chosen");
             onEdt(() -> r.window().primaryButton().doClick());
+            r.await(s -> s.step() == Step.CLIENT, "Screen 2b");
+            onEdt(() -> button(r.window().contentPanel(), AiSetupLines.MORE_OPTIONS).doClick());
             McpSetupDialog dialog = null;
             long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
             while (dialog == null && System.nanoTime() < until) {
                 for (Window w : Window.getWindows()) if (w instanceof McpSetupDialog d && d.isShowing()) dialog = d;
                 Thread.sleep(40);
             }
-            assertNotNull(dialog, "★ today's dialog opened");
+            assertNotNull(dialog, "★ today's dialog opened from More options…");
             McpSetupDialog d = dialog;
             onEdt(d::dispose);
-            assertEquals(AiSetupLines.CLIENT_INTERIM, r.setup().line());
-            assertFalse(r.setup().open());
+            assertTrue(r.setup().open(), "the wizard stays open behind it");
+            assertEquals(Step.CLIENT, r.setup().step());
         }
     }
 

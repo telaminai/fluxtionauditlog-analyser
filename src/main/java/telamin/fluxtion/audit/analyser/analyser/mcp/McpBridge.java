@@ -98,9 +98,18 @@ public final class McpBridge {
     /** The suffix that carries the binding nonce in {@code serverInfo.version}. */
     public static final String BIND_MARK = "+bind.";
 
+    /**
+     * M77-3 (spec-ai-setup-wizard.md §9.4): the environment variable the analyser's own connection probe sets on the
+     * bridge it starts; the bridge then marks its calls ({@code X-Analyser-Probe}) so the live check never counts them.
+     */
+    public static final String PROBE_ENV = "FLUXTION_ANALYSER_PROBE";
+
     private final RestEndpointFile endpointFile;
     private final boolean hosted;
     private final HttpClient http;
+    /** OD-77.8: what the client called itself at {@code initialize} — forwarded as a display label only. */
+    private volatile String clientLabel;
+    private final boolean probe = System.getenv(PROBE_ENV) != null;
 
     public McpBridge() {
         this(RestEndpointFile.wellKnown());
@@ -205,6 +214,7 @@ public final class McpBridge {
      * the newest we do speak and the client decides whether it can continue.
      */
     private String initialize(Object id, Map<?, ?> params) {
+        rememberClient(params);
         Object asked = params.get("protocolVersion");
         String negotiated = asked != null && LEGACY.contains(asked.toString())
                 ? asked.toString()
@@ -216,6 +226,15 @@ public final class McpBridge {
         result.put("serverInfo", serverInfo());
         result.put("instructions", INSTRUCTIONS);
         return response(id, result);
+    }
+
+    /** OD-77.8: the client's self-reported name, from the legacy handshake or the modern {@code _meta}. */
+    private void rememberClient(Map<?, ?> params) {
+        Object info = params.get("clientInfo");
+        if (!(info instanceof Map<?, ?>) && params.get("_meta") instanceof Map<?, ?> meta) {
+            info = meta.get("io.modelcontextprotocol/clientInfo");
+        }
+        if (info instanceof Map<?, ?> m && m.get("name") instanceof String name && !name.isBlank()) clientLabel = name;
     }
 
     /**
@@ -299,6 +318,14 @@ public final class McpBridge {
             // single-use grant can be matched to exactly this call (OD-74.17)
             String toolUse = hosted ? toolUseIdOf(params) : null;
             if (toolUse != null) builder.header(TOOL_USE_HEADER, toolUse);
+            // M77-3 (§9.4, OD-77.8): an external bridge says who its client claims to be (a display label only), and
+            // the analyser's own probe marks its calls so the live check never counts them
+            if (!hosted) {
+                if (probe) builder.header("X-Analyser-Probe", "1");
+                if (params.get("_meta") instanceof Map<?, ?> callMeta) rememberClient(Map.of("_meta", callMeta));
+                String label = clientLabel;
+                if (label != null) builder.header("X-Analyser-Client", asciiLabel(label));
+            }
             // the shared token only when the file has one: the hosted per-instance file does not (review finding 6)
             if (endpoint.token() != null) builder.header("X-Analyser-Token", endpoint.token());
             HttpRequest request = builder.build();
@@ -311,6 +338,16 @@ public final class McpBridge {
             Thread.currentThread().interrupt();
             return error(id, ERR_ANALYSER_UNREACHABLE, "interrupted while calling the analyser", null);
         }
+    }
+
+    /** A header-safe form of the client's name: printable ASCII, at most 40 characters (the server sanitises again). */
+    static String asciiLabel(String raw) {
+        StringBuilder b = new StringBuilder();
+        for (int i = 0; i < raw.length() && b.length() < 40; i++) {
+            char c = raw.charAt(i);
+            if (c >= 0x20 && c < 0x7f) b.append(c);
+        }
+        return b.toString().trim();
     }
 
     /**

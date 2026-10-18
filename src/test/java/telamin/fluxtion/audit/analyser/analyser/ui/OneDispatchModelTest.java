@@ -327,9 +327,10 @@ class OneDispatchModelTest {
         }
         // review S8: the ProcessBuilder rule covers the whole main tree, not only the localagent package — every process the
         // analyser can build is in a named home, so a second agent launcher anywhere fails here
-        // M77 (★ T16): ClaudeProbes is the one home of Set up AI's two read-only checks (claude --version, auth status)
+        // M77 (★ T16): ClaudeProbes is the one home of Set up AI's two read-only checks (claude --version, auth status);
+        // M77-3: McpRegistrar is the one home of Set up AI's registration processes (mcp get / mcp add, in an empty folder)
         java.util.Set<String> processHomes = java.util.Set.of("OsAgentLauncher.java", "S3Source.java", "CodexMcpClient.java",
-                "McpConnectionProbe.java", "ClaudeMcpClient.java", "ClaudeProbes.java");
+                "McpConnectionProbe.java", "ClaudeMcpClient.java", "ClaudeProbes.java", "McpRegistrar.java");
         Pattern newProcess = Pattern.compile("new\\s+ProcessBuilder\\s*\\(|Runtime\\.getRuntime\\(\\)\\s*\\.\\s*exec\\s*\\(");
         try (var files = Files.walk(Path.of("src/main/java"))) {
             for (Path f : files.filter(p -> p.toString().endsWith(".java")).sorted().toList()) {
@@ -706,6 +707,78 @@ class OneDispatchModelTest {
             assertFalse(body.contains("AiSetupLines"), performer + " composes no line: the node does");
         }
         assertEquals(List.of(), offenders, "Set up AI: one home for each");
+    }
+
+    /**
+     * ★ M77-3 (spec-ai-setup-wizard.md T16, §9.2, §9.3): external access has ONE writer and ONE decider. No source writes
+     * {@code assistantActionsRest} but {@code SetExternalAccessEffect}'s performer (and M19.7's {@code --rest} start-up
+     * write, before the session exists; the config loader reads it); every door — the AI menu's checkbox, Settings ▸
+     * Assistant, the client dialog, the wizard — reports an {@code ExternalAccessRequested}. Registration runs only
+     * through the registrar the frame builds in one place; the client dialog's confirmations are SafeChoice, never a
+     * stock OK-default {@code JOptionPane}. Witnesses: put back today's {@code config.assistantActionsRest =
+     * transport.isSelected()} in the AI menu's listener, or Settings' {@code = actionsRest.isSelected()} — each is listed.
+     */
+    @Test
+    @DisplayName("★ M77-3 T16: assistant.rest has one writer; every door asks actionListener; registration has one home")
+    void externalAccessHasOneWriter() throws Exception {
+        Pattern write = Pattern.compile("assistantActionsRest\\s*=(?!=)");
+        List<String> offenders = new ArrayList<>();
+        try (var files = Files.walk(Path.of("src/main/java"))) {
+            for (Path f : files.filter(p -> p.toString().endsWith(".java")).sorted().toList()) {
+                String name = f.getFileName().toString();
+                if (name.equals("ConfigStore.java") || name.equals("AppConfig.java")) continue;   // load / declare
+                String src = Files.readString(f);
+                int n = count(write, src);
+                if (name.equals("MainFrame.java")) {
+                    String performer = bodyOf(src, "private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents"
+                            + ".Result setExternalAccess(");
+                    assertEquals(1, count(write, performer), "the performer writes it");
+                    // M19.7: --rest persists it at start-up, before the session exists (nobody is at the screen)
+                    int at = src.indexOf("if (Boolean.getBoolean(telamin.fluxtion.audit.analyser.Main.REST_PROPERTY) "
+                            + "&& !config.assistantActionsRest)");
+                    assertTrue(at > 0, "the --rest start-up write is where M19.7 put it");
+                    assertEquals(1, count(write, src.substring(at, src.indexOf('}', at))), "the --rest start-up write");
+                    n -= 2;
+                }
+                if (n != 0) offenders.add(name + " writes assistant.rest " + n + " time(s)");
+            }
+        }
+        assertEquals(List.of(), offenders, "only SetExternalAccessEffect's performer writes assistant.rest");
+
+        String frame = Files.readString(UI.resolve("MainFrame.java"));
+        String menu = bodyOf(frame, "private JMenu buildAiMenu(");
+        assertTrue(menu.contains("requestExternalAccess(transport.isSelected()"), "the AI menu's checkbox asks");
+        String config = Files.readString(UI.resolve("ConfigPanel.java"));
+        assertTrue(bodyOf(config, "private void saveToConfig(").contains("ExternalAccessDoor.request("),
+                "Settings asks on save");
+        String dialog = Files.readString(UI.resolve("McpSetupDialog.java"));
+        assertTrue(bodyOf(dialog, "private void confirmEnableTransport(").contains("ExternalAccessDoor.request(true"),
+                "the client dialog asks");
+        for (String stock : List.of("showConfirmDialog(", "OK_CANCEL_OPTION", "showWideRegistrationConfirmation")) {
+            assertFalse(dialog.contains(stock), "the client dialog's confirmations are SafeChoice: " + stock);
+        }
+        String door = bodyOf(frame, "void requestExternalAccess(boolean on,");
+        assertTrue(door.contains("ExternalAccessRequested("), "every door's ask is the one fact");
+
+        // registration: the clients only through the registrar the frame builds in ONE place, run by the performers
+        Pattern registrar = Pattern.compile("new\\s+telamin\\.fluxtion\\.audit\\.analyser\\.analyser\\.mcp\\.McpRegistrar\\(");
+        assertEquals(1, count(registrar, frame), "the registrar is built once");
+        assertEquals(1, count(registrar, bodyOf(frame,
+                "telamin.fluxtion.audit.analyser.analyser.mcp.McpRegistrar mcpRegistrar(")), "in mcpRegistrar()");
+        for (String f : List.of("MainFrame.java", "AiSetupWindow.java", "SetupConfirmations.java")) {
+            String src = Files.readString(UI.resolve(f));
+            assertFalse(src.contains("ClaudeMcpClient.detect") || src.contains("CodexMcpClient.detect"),
+                    f + " never resolves a client from the inherited PATH (R1-9)");
+        }
+        assertTrue(bodyOf(frame, "private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result "
+                + "registerMcp(").contains("registerVectors.remove(e.request())"), "★ S5: the run is the shown vectors");
+        assertFalse(bodyOf(frame, "private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result "
+                + "registerMcp(").contains(".vectors("), "★ S5: never re-rendered for the run");
+
+        // the wizard's view posts nothing and writes nothing itself: it reports through its Host
+        String window = Files.readString(UI.resolve("AiSetupWindow.java"));
+        assertFalse(window.contains("session().post") || Pattern.compile("(?<![.\\w])config\\.").matcher(window).find(),
+                "the wizard only renders");
     }
 
     private static int count(Pattern p, String s) {

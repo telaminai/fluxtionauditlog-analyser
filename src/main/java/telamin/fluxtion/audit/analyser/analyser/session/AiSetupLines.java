@@ -155,10 +155,134 @@ public final class AiSetupLines {
             + "instead.";
     public static final String ADD_A_KEY = "Add a key, or choose another option.";
 
-    // ---- the interim client path (M77-2 until M77-3, review R1-11) ----------------------------------------------------
+    // ---- Screen 2b, your own client (§6.3, M77-3) ----------------------------------------------------------------------
 
-    public static final String CLIENT_INTERIM = "Step-by-step set-up for your own client comes in the next update; this "
-            + "dialog does it today.";
+    public static final String CLIENT_STEP_BOTH = "Step 3 of 3 · your own client";
+    public static final String CLIENT_SCREEN_TITLE = "Your own AI client";
+    public static final String PART_WHICH = "1. Which client?";
+    public static final String CLIENT_CLAUDE_CODE = "Claude Code";
+    public static final String CLIENT_CODEX = "Codex";
+    public static final String CLIENT_GENERIC = "Another MCP client";
+    /** Claude Desktop is covered by the generic choice, with today's sentence (no extension is offered). */
+    public static final String GENERIC_COVERS_DESKTOP = "This covers Claude Desktop too: no extension is offered for it, "
+            + "so add the copied configuration instead.";
+
+    public static final String PART_REACH = "2. Let your client reach this window.";
+    public static final String ACCESS_SWITCH = "Let programs on this computer reach this window";
+    /** The setting's own name, as Settings and the AI menu spell it, so either can be found from here. */
+    public static final String ACCESS_SETTING_NAME = "External MCP/REST access";
+    public static final String ACCESS_LINE = "Only programs on this computer that have this run's key can connect. "
+            + "Nothing leaves this computer.";
+    public static final String ACCESS_ON = "✓ On.";
+    public static final String ACCESS_CONFIRMING = "Waiting for your answer…";
+    public static final String ACCESS_CLOSED = "Closed while the Full Claude Code session in the panel runs — it opens "
+            + "again when that session ends.";
+
+    public static final String PART_REGISTER = "3. Register " + PRODUCT + " with your client.";
+    public static final String REGISTER_INTRO = "Your client needs to know how to start " + PRODUCT + "'s bridge. This "
+            + "is the exact command:";
+    public static final String SHOW_FULL_COMMAND = "Show the full command";
+    public static final String SHOW_LESS = "Show less";
+    public static final String COPY = "Copy";
+    public static final String REGISTER_FOR_ME = "Register for me…";
+    public static final String REPLACE_REGISTRATION = "Replace…";
+    public static final String RUN_IT_MYSELF = "I'll run it myself";
+    public static final String CHECK_REGISTRATION = "Check registration";
+    public static final String GENERIC_INTRO = "Add it to your client's MCP settings, then restart the client.";
+    public static final String COPY_CONFIGURATION = "Copy configuration";
+    public static final String SAVE_SNIPPET = "Save snippet…";
+    public static final String NO_LAUNCHER = "✗ This copy of " + PRODUCT + " cannot be registered: it was not started "
+            + "with java -jar or the JBang install.";
+    public static final String FINISH_WITHOUT_CLIENT = "Finish without a client";
+
+    /** Part 3's line for what is known of the registration ("" when nothing is). */
+    public static String registrationText(AiSetupState.Registration r) {
+        return switch (r == null ? AiSetupState.Registration.UNCHECKED : r) {
+            case UNCHECKED -> "";
+            case RUNNING -> "⏳ Asking your client…";
+            case PRESENT -> "✓ Already registered";
+            case ABSENT -> "✗ Not registered yet";
+            case UNKNOWN -> "? Could not tell — your client's configuration was not changed.";
+            case NO_LAUNCHER -> NO_LAUNCHER;
+            case COPIED -> "✓ Copied — run it in a terminal";
+            case REGISTERED -> "✓ Registered (for this copy of " + PRODUCT + ")";
+            case FAILED -> "✗ Your client did not accept the registration. Copy the command and run it in a terminal to "
+                    + "see why.";
+        };
+    }
+
+    public static final String PART_LIVE = "4. Can your client see " + PRODUCT + "?";
+    public static final String LIVE_ASK = "Start a new session of your client and ask it:";
+    /** The question the person asks their client: a read-only tool call, the earliest honest proof (§9.4). */
+    public static final String LIVE_QUESTION = "Use analyser_context and tell me what is open.";
+    public static final String LIVE_WAITING = "⏳ Waiting…";
+    public static final String COPY_THE_QUESTION = "Copy the question";
+    public static final String LIVE_NOT_YET = "Do parts 2 and 3 first; then this waits for your client.";
+    public static final String LIVE_TIP_RESTART = "Restart your client after registering — in Claude Code, /mcp should "
+            + "list fluxtion-analyser.";
+    public static final String LIVE_TIP_ACCESS = "Check that External MCP/REST access is on (part 2).";
+    public static final String LIVE_OTHER_INSTANCE = "✗ Another " + PRODUCT + " window owns the client connection, so "
+            + "your client is reading that window's log. Close it, or set up from it.";
+    public static final String LIVE_ACCESS_OFF = "✗ Access is off, so your client cannot reach this window.";
+    public static final String LIVE_NOT_REGISTERED = "✗ Your client has no registration named fluxtion-analyser.";
+    public static final String LIVE_FULL_SESSION = "A Full Claude Code session ran in the panel while this was checked; "
+            + "this check cannot tell them apart.";
+    public static final String FINISH_WITHOUT_CHECKING = "Finish without checking";
+    public static final String MORE_OPTIONS = "More options…";
+
+    /** ✓ part 4: honest words — a client with this window's key reached this window, not which client (§9.4). */
+    public static String liveSeen(String hhmm) {
+        return "✓ A client reached this window through the bridge at " + hhmm + ".";
+    }
+
+    /** OD-77.8: the client's self-reported name, labelled as its claim. */
+    public static String selfReported(String label) {
+        return label == null || label.isBlank() ? "" : "It calls itself \"" + label + "\".";
+    }
+
+    /** The client's name in a sentence. */
+    public static String clientName(AiSetupState.Client c) {
+        return switch (c == null ? AiSetupState.Client.NONE : c) {
+            case CLAUDE_CODE -> CLIENT_CLAUDE_CODE;
+            case CODEX -> CLIENT_CODEX;
+            case GENERIC, NONE -> "your MCP client";
+        };
+    }
+
+    // ---- the two confirmations (§9.2, §9.3), under the SafeChoice rule -----------------------------------------------
+
+    public static final String ACCESS_CONFIRM_TITLE = "Turn on External MCP/REST access?";
+    public static final String ACCESS_CONFIRM_TEXT = "An MCP client or a REST caller on this machine that has this run's "
+            + "token can then read the open log and change what " + PRODUCT + " shows. The endpoint listens on this machine "
+            + "only (127.0.0.1) and the token is new each run. A Full Claude Code session in the panel can use it too (it "
+            + "can read the token file in your home folder).";
+    public static final String ACCESS_CONFIRM_TURN_ON = "Turn on access";
+    public static final String CANCEL = "Cancel";
+
+    public static String registerTitle(AiSetupState.Client c) {
+        return "Register " + PRODUCT + " with " + clientName(c);
+    }
+
+    public static final String REGISTER_RUNS = "This runs, on this machine:";
+    public static final String REPLACE_RUNS = "This runs, on this machine, in this order (the old registration is "
+            + "removed, then the new one added):";
+
+    public static String registerAfter(AiSetupState.Client c) {
+        return c == AiSetupState.Client.CODEX
+                ? "It adds fluxtion-analyser to your Codex settings. " + productCapitalised() + " does not read or edit "
+                + "that file itself."
+                : "It adds fluxtion-analyser to your user-level Claude Code settings. " + productCapitalised()
+                + " does not read or edit that file itself.";
+    }
+
+    public static final String REGISTER_BUTTON = "Register";
+    public static final String REPLACE_BUTTON = "Replace";
+
+    /** OD-77.11: the closing line after a Cancel, when this wizard turned access on. */
+    public static final String ACCESS_STILL_ON = "External access is still on — Turn it off";
+    /** The same words before the one-click button, where the button itself says "Turn it off". */
+    public static final String ACCESS_STILL_ON_LEAD = "External access is still on —";
+    public static final String TURN_IT_OFF = "Turn it off";
 
     // ---- the Summary (§6.4) ------------------------------------------------------------------------------------------
 
@@ -170,6 +294,25 @@ public final class AiSetupLines {
     public static final String SUGGEST_SAMPLE = "Open the sample project";
     public static final String SUGGEST_TOUR = "Take the guided tour";
     public static final String RIGHT_CLICK_TO_ASK = "Right-click any record and choose Ask… to ask about it.";
+    public static final String SUGGEST_COPY_QUESTION = "Copy a first question";
+    /** §6.4: the first question for your own client — copied, never sent. */
+    public static final String FIRST_QUESTION = "Use analyser_context, then tell me what happened in the open log.";
+    public static final String ASK_IN_TERMINAL = "Ask it in your terminal.";
+
+    /** The Summary's line for your own client: the client, the registration and the live check. */
+    public static String clientSummary(AiSetupState.External e, String hhmm) {
+        String reg = switch (e.registration()) {
+            case PRESENT -> "registered";
+            case REGISTERED -> "registered (for this copy of " + PRODUCT + ")";
+            case COPIED -> "command copied";
+            case NO_LAUNCHER -> "not registered (this copy cannot be)";
+            default -> "registration not checked";
+        };
+        String live = e.live().verdict() == AiSetupState.LiveVerdict.SEEN && hhmm != null
+                ? "connected at " + hhmm : "connection not checked";
+        String name = e.client() == AiSetupState.Client.GENERIC ? CLIENT_GENERIC : clientName(e.client());
+        return "Your own client: " + name + " · " + reg + " · " + live;
+    }
     public static final String NEW_CONVERSATION = "Your next question starts a new conversation.";
 
     /** The Summary's line for what is in force. */
@@ -220,6 +363,16 @@ public final class AiSetupLines {
             + "set up.";
     public static final String QUESTION_WAITS = "Your question waits, and is placed for the assistant you set up — "
             + "nothing is sent.";
+
+    /** The start page's AI line (§6.0) — with the readiness: another window may hold the client connection. */
+    public static String aiLine(Choice inForce, AssistantProfile profile, boolean claudeFound, boolean inAppCanAnswer,
+                                boolean externalOn, boolean otherInstance) {
+        if (externalOn && otherInstance) {
+            return aiLine(inForce, profile, claudeFound, inAppCanAnswer, false)
+                    + " · another " + PRODUCT + " window holds the client connection";
+        }
+        return aiLine(inForce, profile, claudeFound, inAppCanAnswer, externalOn);
+    }
 
     /** The start page's AI line (§6.0), without its link. */
     public static String aiLine(Choice inForce, AssistantProfile profile, boolean claudeFound, boolean inAppCanAnswer,

@@ -32,18 +32,19 @@ package telamin.fluxtion.audit.analyser.analyser.session;
  * @param wizardEntry the first use opens this wizard (M77-2) rather than the profile cards (M77-1)
  * @param applying    an Apply asked for by this wizard is in flight (its result has not arrived)
  * @param suggested   the Summary's one suggested first action (§6.4, §7.3), chosen by the node
+ * @param external    Screen 2b (M77-3): the client, external access, the registration and the live check
  */
 public record AiSetupState(boolean open, boolean firstRun, Origin origin, Step step, Choice choice, Choice inForce,
                            Posture posture, String fullMode, Check installed, Auth signedIn, Confirming confirming,
                            Pending pending, long finished, String line, String aiLine, String aiLineLink,
                            String panelLine, boolean claudeFound, boolean codexFound, boolean wizardEntry,
-                           boolean applying, Suggested suggested) {
+                           boolean applying, Suggested suggested, External external) {
 
     /**
      * The Summary's one suggested first action (§6.4). Nothing it does sends anything: it opens the sample, starts the
      * guided tour, or only says where to ask.
      */
-    public enum Suggested { NONE, OPEN_SAMPLE, RIGHT_CLICK, TOUR }
+    public enum Suggested { NONE, OPEN_SAMPLE, RIGHT_CLICK, TOUR, COPY_QUESTION }
 
     /** Why the wizard opened (§8.2). */
     public enum Origin { NONE, FIRST_RUN, MENU, START_LINE, SEND, ASK, SETTINGS }
@@ -149,6 +150,61 @@ public record AiSetupState(boolean open, boolean firstRun, Origin origin, Step s
         }
     }
 
+    /**
+     * External MCP/REST access as Screen 2b and the AI line show it (§8.2, review R1-18): from {@code actionListener}'s
+     * state and the readiness poll.
+     */
+    public enum Access { OFF, CONFIRMING, ON, CLOSED_FOR_SESSION, OTHER_INSTANCE }
+
+    /** Screen 2b part 3: what is known of the client's registration. */
+    public enum Registration { UNCHECKED, RUNNING, PRESENT, ABSENT, UNKNOWN, NO_LAUNCHER, COPIED, REGISTERED, FAILED }
+
+    /** Screen 2b part 4: the live check (§9.4). */
+    public enum LiveVerdict { IDLE, WAITING, WAITING_LONG, SEEN, OTHER_INSTANCE, ACCESS_OFF }
+
+    /**
+     * The live check: its verdict; when a client was seen (epoch millis) and its self-reported name by reference; and
+     * whether a Full Claude Code session ran in the panel while it was checked (the check cannot tell them apart).
+     */
+    public record Live(LiveVerdict verdict, long at, long labelRef, boolean fullSessionSeen) {
+        public static final Live IDLE = new Live(LiveVerdict.IDLE, 0, 0, false);
+
+        public Live {
+            verdict = verdict == null ? LiveVerdict.IDLE : verdict;
+        }
+    }
+
+    /**
+     * Screen 2b (M77-3) and the external-access parts of Screen 1 and the closing line.
+     *
+     * @param client           part 1's client
+     * @param access           part 2: external access now
+     * @param registration     part 3
+     * @param live             part 4
+     * @param launcher         this copy can be registered (a supported launcher was found)
+     * @param offerTurnOff     OD-77.11: this wizard turned access on and was cancelled — the closing line offers Turn it off
+     * @param alsoTurnOff      OD-77.5: the box under No AI is ticked
+     * @param offerAlsoTurnOff OD-77.5: the box is shown (No AI chosen while access is on)
+     */
+    public record External(Client client, Access access, Registration registration, Live live, boolean launcher,
+                           boolean offerTurnOff, boolean alsoTurnOff, boolean offerAlsoTurnOff) {
+        public static final External NONE = new External(Client.CLAUDE_CODE, Access.OFF, Registration.UNCHECKED,
+                Live.IDLE, true, false, true, false);
+
+        public External {
+            client = client == null || client == Client.NONE ? Client.CLAUDE_CODE : client;
+            access = access == null ? Access.OFF : access;
+            registration = registration == null ? Registration.UNCHECKED : registration;
+            live = live == null ? Live.IDLE : live;
+        }
+
+        /** Part 3 is done: the client knows how to start the bridge (or the person copied it to run it themselves). */
+        public boolean registered() {
+            return registration == Registration.PRESENT || registration == Registration.REGISTERED
+                    || registration == Registration.COPIED;
+        }
+    }
+
     public AiSetupState {
         origin = origin == null ? Origin.NONE : origin;
         step = step == null ? Step.CHOICE : step;
@@ -165,15 +221,22 @@ public record AiSetupState(boolean open, boolean firstRun, Origin origin, Step s
         aiLineLink = aiLineLink == null ? "" : aiLineLink;
         panelLine = panelLine == null ? "" : panelLine;
         suggested = suggested == null ? Suggested.NONE : suggested;
+        external = external == null ? External.NONE : external;
     }
 
     public static final AiSetupState IDLE = new AiSetupState(false, false, Origin.NONE, Step.CHOICE, Choice.NONE,
             Choice.NONE, Posture.SAFE, "default", Check.UNCHECKED, Auth.UNCHECKED, Confirming.NONE, Pending.NONE, 0, "",
-            "", "", "", false, false, false, false, Suggested.NONE);
+            "", "", "", false, false, false, false, Suggested.NONE, External.NONE);
 
     /** Whether the primary button of Screen 2a may be pressed: <i>Installed</i> passed (§6.2). */
     public boolean insideMayProceed() {
         return installed.verdict() == Installed.FOUND;
+    }
+
+    /** Screen 2b's Finish may be pressed: part 2 is on, or this copy cannot be registered (Finish without a client). */
+    public boolean clientMayFinish() {
+        return !applying && confirming == Confirming.NONE && (external.access() != Access.OFF
+                && external.access() != Access.CONFIRMING || external.registration() == Registration.NO_LAUNCHER);
     }
 
     /** Nothing is set up: the derived choice is {@link Choice#NONE}. */

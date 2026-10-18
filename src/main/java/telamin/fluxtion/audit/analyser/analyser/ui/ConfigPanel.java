@@ -1095,6 +1095,7 @@ public final class ConfigPanel extends JDialog {
         memThresholdSpinner.setValue(config.memoryThresholdMb);
         actionsInProcess.setSelected(config.assistantActionsInProcess);
         actionsRest.setSelected(config.assistantActionsRest);
+        loadedRest = config.assistantActionsRest;
         exportsToggle.setSelected(config.assistantExports);
         createProjectsToggle.setSelected(config.assistantCreateProjects);
         claudeCodeToggle.setSelected(config.claudeCodeAllowed);
@@ -1117,6 +1118,9 @@ public final class ConfigPanel extends JDialog {
         maxActionsSpinner.setValue(config.maxActionsPerReply);
         maxTurnActionsSpinner.setValue(config.maxActionsPerTurn);
     }
+
+    /** M77-3: the external access box as Settings opened with it — a save asks only when the person changed it. */
+    private boolean loadedRest;
 
     /** What Settings shows of the assistant's switches when it opened, to tell whether a save changed any. */
     private java.util.List<Object> loadedAssistant = java.util.List.of();
@@ -1163,7 +1167,14 @@ public final class ConfigPanel extends JDialog {
         config.awsRegion = awsRegionField.getText().trim();
         config.memoryThresholdMb = (Integer) memThresholdSpinner.getValue();
         config.assistantActionsInProcess = actionsInProcess.isSelected();
-        config.assistantActionsRest = actionsRest.isSelected();
+        // M77-3 (spec-ai-setup-wizard.md §9.2, OD-77.4, review R1-8): a changed external access box is the person's ASK,
+        // decided by actionListener — on asks for the same confirmation as every other door (it shows once Settings has
+        // closed); off is at once. Settings never writes the setting itself.
+        if (actionsRest.isSelected() != loadedRest) {
+            ExternalAccessDoor.request(actionsRest.isSelected(),
+                    telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AccessOrigin.SETTINGS);
+            loadedRest = actionsRest.isSelected();
+        }
         config.assistantExports = exportsToggle.isSelected();
         config.assistantCreateProjects = createProjectsToggle.isSelected();
         config.claudeCodeAllowed = claudeCodeToggle.isSelected();

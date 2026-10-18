@@ -76,8 +76,8 @@ the **AI** menu, at the top of *Settings ▸ Assistant*, and on the start page's
 asks the same question inline, as part of the page: **How do you want AI to work with the analyser?**
 
 - **No AI**: everything works without AI — records, topology, charts, reports, walks and the tour.
-- **Your own AI client connects**: Claude Code, Codex or another MCP client in your terminal drives the analyser. For
-  now this opens [Connect an AI client](#setup); step-by-step set-up comes in the next update.
+- **Your own AI client connects**: Claude Code, Codex or another MCP client in your terminal drives the analyser
+  (see [Your own client, step by step](#your-own-client-step-by-step) below).
 - **Claude inside the analyser**: the same Claude Code, run by the analyser in this panel.
 - **Both**: Claude in the panel, and your terminal client too.
 
@@ -87,6 +87,29 @@ e-mail or organisation from the answer is kept. Each check says what failed and 
 reported as *uses an API key* and never as *signed in*: Claude Code checks a key only when it starts. You then choose
 **Safe analysis** (recommended) or **Full Claude Code**. Full asks for the same confirmation as the Settings switch,
 with *Cancel* as the default. **Other options** sets up the in-app assistant with your own API key.
+
+### Your own client, step by step
+
+For **Your own AI client** (and the second half of **Both**, after Claude inside) one screen takes four steps, each
+saying what it checked:
+
+1. **Which client?** Claude Code, Codex, or another MCP client (Claude Desktop included: copy the configuration).
+2. **Let your client reach this window** — the *External MCP/REST access* switch. Turning it on asks first, with
+   **Cancel** as the default: only programs on this computer that have this run's key can connect, the endpoint listens
+   on 127.0.0.1 only, and a Full Claude Code session in the panel can use it too. The AI menu's checkbox, *Settings ▸
+   Assistant* and *Connect an AI client* ask the same question; turning access off never asks.
+3. **Register the analyser with your client.** The exact command is shown. **Register for me…** runs it only after a
+   confirmation that shows the full command (*Cancel* the default); **I'll run it myself** copies it; **Check
+   registration** asks your client. Nothing runs before you press one of them, and the analyser never reads or edits your
+   client's settings file.
+4. **Can your client see the analyser?** Start a new session of your client and ask it *Use analyser_context and tell me
+   what is open.* When a call with this window's key arrives, the step says when, and the name the client gives itself
+   — its own claim, shown as such. If another analyser window holds the connection, or access is off, it says so.
+
+**Finish** is enabled once access is on (the last check is never required). **More options…** opens *Connect an AI
+client* for the rest (project-scope command, remove, *Check connection*). If you **Cancel** after this window turned
+access on, access stays on and the closing line offers **Turn it off**. Choosing **No AI** while access is on offers a
+ticked box, *Also turn off External MCP/REST access*.
 
 Nothing is sent from the window. If a question is waiting — you asked from a record, the start page or the panel
 before anything was set up — **Finish** closes the window and puts the question in the composer of the assistant you

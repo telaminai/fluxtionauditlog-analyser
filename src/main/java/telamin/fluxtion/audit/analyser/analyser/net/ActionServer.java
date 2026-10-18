@@ -53,6 +53,57 @@ public final class ActionServer {
      */
     public static final String TOOL_USE_HEADER = "X-Analyser-Tool-Use";
 
+    /**
+     * M77-3 (spec-ai-setup-wizard.md §9.4): set by the analyser's OWN connection probe ({@code McpConnectionProbe}, the
+     * client dialog's <i>Check connection</i>) through its bridge child — a marked call never counts as an external
+     * client reaching this window. An external caller can set it too: that only hides it from the live check (a false
+     * negative, never a false positive).
+     */
+    public static final String PROBE_HEADER = "X-Analyser-Probe";
+
+    /**
+     * M77-3 (OD-77.8): the client's self-reported name ({@code clientInfo.name}), forwarded by the bridge as a display
+     * label only — ASCII, at most {@value #LABEL_LIMIT} characters, never trusted for anything else.
+     */
+    public static final String CLIENT_LABEL_HEADER = "X-Analyser-Client";
+    static final int LABEL_LIMIT = 40;
+
+    /** M77-3 (§9.4): the live check's one-shot report — the first counted external call after it was armed. */
+    @FunctionalInterface
+    public interface ClientWatch {
+        /** {@code label}: the client's self-reported name, sanitised, or "" when it gave none. */
+        void seen(String label);
+    }
+
+    private final java.util.concurrent.atomic.AtomicReference<ClientWatch> clientWatch =
+            new java.util.concurrent.atomic.AtomicReference<>();
+
+    /**
+     * Arm the live check: the FIRST request to {@code /action} after this that carries no hosted credential, passed the
+     * shared-token check and the rate limit, and is not the analyser's own probe, is reported once — then the watch is
+     * gone. Not {@code /manifest}, not a refused (401/403/429) call; a 400 from the dispatcher still counts (the client
+     * reached this window). Replaces a watch already armed.
+     */
+    public void watchExternalClient(ClientWatch watch) {
+        clientWatch.set(watch);
+    }
+
+    /** Disarm the live check: a later call is not reported. */
+    public void unwatchExternalClient() {
+        clientWatch.set(null);
+    }
+
+    /** OD-77.8: a display label from what a client said of itself — printable ASCII only, trimmed and cut short. */
+    static String sanitisedLabel(String raw) {
+        if (raw == null) return "";
+        StringBuilder b = new StringBuilder();
+        for (int i = 0; i < raw.length() && b.length() < LABEL_LIMIT; i++) {
+            char c = raw.charAt(i);
+            if (c >= 0x20 && c < 0x7f && c != '"' && c != '\\' && c != '<' && c != '>') b.append(c);
+        }
+        return b.toString().trim();
+    }
+
     /** Null until the local agent is installed: then every hosted credential is unknown and refused. */
     private volatile HostedCredentials.Gate hostedGate;
 
@@ -251,6 +302,17 @@ public final class ActionServer {
             if (!(hosted != null ? hostedLimiter : limiter).tryAcquire()) {   // L2: separate buckets
                 send(ex, 429, err("rate limited (" + ratePerSec + "/s)"));
                 return;
+            }
+            if (hosted == null && !ex.getRequestHeaders().containsKey(PROBE_HEADER)) {
+                // M77-3 (§9.4): an authenticated external call reached THIS window — reported once to an armed watch
+                ClientWatch w = clientWatch.getAndSet(null);
+                if (w != null) {
+                    try {
+                        w.seen(sanitisedLabel(ex.getRequestHeaders().getFirst(CLIENT_LABEL_HEADER)));
+                    } catch (RuntimeException ignored) {
+                        // the report is the watcher's; a failure there never fails the client's call
+                    }
+                }
             }
             String body = new String(ex.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
             if (hosted != null) {

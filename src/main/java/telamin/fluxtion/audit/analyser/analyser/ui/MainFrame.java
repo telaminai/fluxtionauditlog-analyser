@@ -773,6 +773,7 @@ public final class MainFrame extends JFrame {
             readiness = telamin.fluxtion.audit.analyser.analyser.mcp.McpSetupState.classify(
                     config.assistantActionsRest, endpoint, endpoint != null && endpoint.alive(), pid);
         }
+        reportReadiness(readiness.status());   // M77-3: the observation, on change; aiSetup decides what it means
         var view = telamin.fluxtion.audit.analyser.analyser.mcp.McpIndicator.of(readiness);
         mcpLight.setText("\u25cf " + view.label());
         mcpLight.setToolTipText("<html><body style='width:320px'>" + UiText.escape(view.detail()) + "</body></html>");
@@ -2924,12 +2925,13 @@ public final class MainFrame extends JFrame {
         connect.addActionListener(e -> openMcpSetup());
         ai.add(connect);
 
-        // BOUND, not copied: it reads and writes the same field Settings ▸ Assistant renders
+        // BOUND, not copied: it reads the same field Settings ▸ Assistant renders. M77-3 (§9.2, OD-77.4): a press is the
+        // person's ask, reported; actionListener decides — on asks for the confirmation first, off is at once
         JCheckBoxMenuItem transport = new JCheckBoxMenuItem("External MCP/REST access");
         transport.addActionListener(e -> {
-            config.assistantActionsRest = transport.isSelected();
-            onConfigChanged();
-            refreshMcpIndicator();
+            requestExternalAccess(transport.isSelected(),
+                    telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AccessOrigin.MENU);
+            transport.setSelected(config.assistantActionsRest);   // the box follows the setting, never the press
         });
         ai.add(transport);
 
@@ -4757,6 +4759,12 @@ public final class MainFrame extends JFrame {
             @Override public void openSetUpAi() {
                 session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupRequested(telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Origin.START_LINE));
             }
+            @Override public void setUpAiTurnOffAccess() {
+                requestExternalAccess(false, telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AccessOrigin.SETUP);
+            }
+            @Override public void setUpAiAlsoTurnOff(boolean on) {
+                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupAlsoTurnOffChosen(on));
+            }
             @Override public boolean fluxtionKeyPresent() { return fluxtionKeyStore.keyPresent(); }
             @Override public void backToRecords() { syncRecordsCard(); }
             @Override public void openProjectDesign() { chooseDesignFile(false); }
@@ -4914,7 +4922,19 @@ public final class MainFrame extends JFrame {
                         statusLine != null ? statusLine : java.awt.Color.GRAY),
                 BorderFactory.createEmptyBorder(4, 8, 4, 8)));
         UiTheme.status(status);
-        statusBar.add(status, BorderLayout.WEST);
+        // M77-3 (OD-77.11): the closing line's one-click "Turn it off", shown only while aiSetup offers it
+        JPanel statusWest = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 0, 0));
+        statusWest.setOpaque(false);
+        statusWest.add(status);
+        aiSetupTurnOff.setVisible(false);
+        aiSetupTurnOff.setBorderPainted(false);
+        aiSetupTurnOff.setContentAreaFilled(false);
+        aiSetupTurnOff.setMargin(new java.awt.Insets(0, 6, 0, 0));
+        aiSetupTurnOff.setForeground(UiTheme.accentText());
+        aiSetupTurnOff.addActionListener(e -> requestExternalAccess(false,
+                telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AccessOrigin.SETUP));
+        statusWest.add(aiSetupTurnOff);
+        statusBar.add(statusWest, BorderLayout.WEST);
         statusBar.add(mcpLight, BorderLayout.CENTER);      // D-AI9: is an AI client reaching THIS window?
         progress.setIndeterminate(true);
         progress.setVisible(false);
@@ -5103,6 +5123,8 @@ public final class MainFrame extends JFrame {
                 config.apiKey != null && !config.apiKey.isBlank(), config.assistantActionsRest));
         installLocalAgent();
         // M77-2: Settings ▸ Assistant ▸ Set up AI… is the person's act, reported like every other door
+        // M77-3 (§9.2): Settings ▸ Assistant on save and the client dialog ask for external access through the one owner
+        ExternalAccessDoor.install(this::requestExternalAccess);
         ConfigPanel.setUpAi = () -> session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents
                 .AiSetupRequested(telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Origin.SETTINGS));
     }
@@ -5765,6 +5787,7 @@ public final class MainFrame extends JFrame {
             // M74 P2b (§5.6): the hosted credential alone may reach `propose`; the offer is the session's to record
             d.setProposer(this::proposeFromHosted);
             actionServer.start();
+            applyClientWatch();          // M77-3 (R1-18): an armed live check survives a rebuilt server
             restUrl = actionServer.url();
             restToken = actionToken;
             if (external) {
@@ -8782,6 +8805,17 @@ public final class MainFrame extends JFrame {
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.PersistSetupClientEffect e -> persistSetupClient(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.OpenClientSetupEffect e -> openClientSetup(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.RunSuggestedActionEffect e -> runSuggestedAction(e);
+            // M77-3: the external client path — actionListener / aiSetup decided; the frame performs and reports facts
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ConfirmExternalAccessEffect e -> confirmExternalAccess(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.SetExternalAccessEffect e -> setExternalAccess(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.RequestExternalAccessEffect e -> requestExternalAccessFor(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.CheckMcpRegistrationEffect e -> checkMcpRegistration(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ConfirmRegisterEffect e -> confirmRegister(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.RegisterMcpEffect e -> registerMcp(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.CopyToClipboardEffect e -> copyForSetup(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.WatchExternalClientEffect e -> watchExternalClient(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.UnwatchExternalClientEffect e -> unwatchExternalClient(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.AiSetupTimerEffect e -> startSetupTimer(e);
             // M74: the local agent's effects have ONE performer, the adapter (OneDispatchModelTest pins it)
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.StartLocalAgentEffect e -> performLocalAgent(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.PollLocalAgentStatusEffect e -> performLocalAgent(e);
@@ -11929,6 +11963,36 @@ public final class MainFrame extends JFrame {
                 @Override public String shownPath(long ref) {
                     return AiSetupWindow.shorten(setupPath(ref), Path.of(System.getProperty("user.home")));
                 }
+                // ---- M77-3: Screen 2b — the person's acts, reported; aiSetup and actionListener decide
+                @Override public void client(telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Client c) {
+                    session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupClientChosen(c));
+                }
+                @Override public void access(boolean on) {
+                    requestExternalAccess(on, telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AccessOrigin.SETUP);
+                }
+                @Override public void copy(telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CopyWhat what) {
+                    session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupCopyRequested(what));
+                }
+                @Override public void register() {
+                    session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupRegisterRequested());
+                }
+                @Override public void moreOptions() {
+                    session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupMoreOptions());
+                }
+                @Override public void alsoTurnOff(boolean on) {
+                    session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupAlsoTurnOffChosen(on));
+                }
+                @Override public void saveSnippet() {
+                    saveGenericSnippet();
+                }
+                @Override public String commandText(telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Client c) {
+                    return c == telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Client.GENERIC
+                            ? mcpRegistrar().genericConfiguration()
+                            : mcpRegistrar().copyCommand(c == telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Client.CODEX);
+                }
+                @Override public String clientLabel(long ref) {
+                    return setupLabels.get(ref);
+                }
             });
             renderAiSetupWindow(sessionSnapshot().aiSetup());
         }
@@ -11947,6 +12011,7 @@ public final class MainFrame extends JFrame {
         // §7.4: the closing line names what is in force — the node's words, shown once when they change
         if (!s.open() && !s.line().isBlank() && !s.line().equals(aiSetupLineShown)) status.setText(s.line());
         aiSetupLineShown = s.line();
+        aiSetupTurnOff.setVisible(s.external().offerTurnOff());   // OD-77.11: rendered from the node's offer only
     }
 
     private String aiSetupLineShown = "";
@@ -11983,28 +12048,14 @@ public final class MainFrame extends JFrame {
         postStartAvailability();
         session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiClientsObserved(
                 telamin.fluxtion.audit.analyser.analyser.assistant.localagent.ClaudeResolver.resolveCodex(
-                        setupEnvironment(), Path.of(System.getProperty("user.home"))).found()));
+                        setupEnvironment(), Path.of(System.getProperty("user.home"))).found(),
+                launchCommand().isPresent()));
         return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupEffectStarted(e.opId(),
                 "observeClients");
     }
 
     private telamin.fluxtion.audit.analyser.analyser.assistant.setup.ClaudeProbes setupProbes() {
-        java.util.function.Supplier<Path> root = () -> {
-            if (setupProbeRoot == null) {
-                try {
-                    setupProbeRoot = java.nio.file.Files.createTempDirectory("analyser-setup-",
-                            java.nio.file.attribute.PosixFilePermissions.asFileAttribute(
-                                    java.nio.file.attribute.PosixFilePermissions.fromString("rwx------")));
-                } catch (UnsupportedOperationException | java.io.IOException notPosix) {
-                    try {
-                        setupProbeRoot = java.nio.file.Files.createTempDirectory("analyser-setup-");
-                    } catch (java.io.IOException ex) {
-                        throw new java.io.UncheckedIOException(ex);
-                    }
-                }
-            }
-            return setupProbeRoot;
-        };
+        java.util.function.Supplier<Path> root = this::setupScratchRoot;   // the private scratch area (S10)
         return setupRunnerForTest != null
                 ? new telamin.fluxtion.audit.analyser.analyser.assistant.setup.ClaudeProbes(setupRunnerForTest, root)
                 : telamin.fluxtion.audit.analyser.analyser.assistant.setup.ClaudeProbes.system(root);
@@ -12078,6 +12129,298 @@ public final class MainFrame extends JFrame {
         }, target, false));
         return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupEffectStarted(e.opId(),
                 "openClientSetup");
+    }
+
+    // ---- M77-3: the external client path (spec-ai-setup-wizard.md §6.3, §9) — the nodes decide; these perform ----------
+
+    /** For the frame tests: confirmations shown modeless, so the test thread stays free. */
+    boolean setupConfirmModal = true;
+    /** For the frame tests: the external-access and registration confirmations last shown. */
+    SafeChoice.Asked externalAccessAsked;
+    SafeChoice.Asked registerAsked;
+    /** For the frame tests: the registrar (null: the real clients, resolved by the one resolver). */
+    telamin.fluxtion.audit.analyser.analyser.mcp.McpRegistrar mcpRegistrarForTest;
+    /** For the frame tests: the launcher (null: the JBang install or the running jar, as M42 finds them). */
+    java.util.Optional<telamin.fluxtion.audit.analyser.analyser.mcp.McpLaunchCommand> launchCommandForTest;
+    /** For the frame tests: what the last Copy put on the clipboard. */
+    String setupCopiedForTest;
+    /** For the frame tests: the 2-minute tip, in milliseconds (null: two minutes). */
+    Integer setupTimerMillisForTest;
+    /** The verbatim vectors each registration confirmation showed — the ones its RegisterMcpEffect runs (S5). */
+    private final java.util.Map<Long, java.util.List<java.util.List<String>>> registerVectors = new java.util.HashMap<>();
+    /** What a client called itself, by reference (OD-77.8): the view renders it, the snapshot never carries it. */
+    private final java.util.Map<Long, String> setupLabels = new java.util.LinkedHashMap<>();
+    private long setupLabelNext = 1;
+    /** The live check's armed watch (0: none) — held here so a rebuilt server gets it again (R1-18). */
+    private long armedClientWatch;
+    private long externalAccessRequestNext;
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.McpReadiness readinessReported;
+    /** OD-77.11: the status bar's one-click "Turn it off" after a cancelled wizard turned access on. */
+    final JButton aiSetupTurnOff = UiText.button(telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.TURN_IT_OFF);
+
+    /** Every door's ask for external access (§9.2): reported as one fact; actionListener decides. */
+    void requestExternalAccess(boolean on, telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AccessOrigin origin) {
+        session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExternalAccessRequested(
+                ++externalAccessRequestNext, on, origin));
+    }
+
+    java.util.Optional<telamin.fluxtion.audit.analyser.analyser.mcp.McpLaunchCommand> launchCommand() {
+        if (launchCommandForTest != null) return launchCommandForTest;
+        var jbang = telamin.fluxtion.audit.analyser.analyser.mcp.McpLaunchCommand.installedJbang(
+                Path.of(System.getProperty("user.home")));
+        return jbang.isPresent() ? jbang : telamin.fluxtion.audit.analyser.analyser.mcp.McpLaunchCommand.runningJar();
+    }
+
+    /** The registrar: the one resolver's client, run in a fresh empty folder under the private scratch area (S10). */
+    telamin.fluxtion.audit.analyser.analyser.mcp.McpRegistrar mcpRegistrar() {
+        if (mcpRegistrarForTest != null) return mcpRegistrarForTest;
+        return new telamin.fluxtion.audit.analyser.analyser.mcp.McpRegistrar(setupEnvironment(),
+                Path.of(System.getProperty("user.home")), launchCommand(), this::setupScratchRoot);
+    }
+
+    private Path setupScratchRoot() {
+        if (setupProbeRoot == null) {
+            try {
+                setupProbeRoot = java.nio.file.Files.createTempDirectory("analyser-setup-",
+                        java.nio.file.attribute.PosixFilePermissions.asFileAttribute(
+                                java.nio.file.attribute.PosixFilePermissions.fromString("rwx------")));
+            } catch (UnsupportedOperationException | java.io.IOException notPosix) {
+                try {
+                    setupProbeRoot = java.nio.file.Files.createTempDirectory("analyser-setup-");
+                } catch (java.io.IOException ex) {
+                    throw new java.io.UncheckedIOException(ex);
+                }
+            }
+        }
+        return setupProbeRoot;
+    }
+
+    /** ConfirmExternalAccessEffect (§9.2): the SafeChoice — Cancel the default; the answer is a fact. Nothing is written. */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result confirmExternalAccess(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ConfirmExternalAccessEffect e) {
+        SwingUtilities.invokeLater(() -> {
+            Window owner = aiSetupWindow != null && aiSetupWindow.isVisible() ? aiSetupWindow
+                    : java.awt.KeyboardFocusManager.getCurrentKeyboardFocusManager().getActiveWindow();
+            SafeChoice.Asked asked = SetupConfirmations.externalAccess(owner == null ? this : owner, setupConfirmModal);
+            externalAccessAsked = asked;
+            asked.dialog().addWindowListener(new java.awt.event.WindowAdapter() {
+                private boolean said;
+
+                @Override public void windowClosed(java.awt.event.WindowEvent w) {
+                    if (said || session == null) return;
+                    said = true;
+                    session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents
+                            .ExternalAccessAnswered(e.request(), asked.chosenRisky()));
+                }
+            });
+            asked.dialog().setVisible(true);
+        });
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupEffectStarted(e.opId(),
+                "confirmExternalAccess");
+    }
+
+    /**
+     * SetExternalAccessEffect: the ONE writer of {@code assistant.rest} (besides M19.7's {@code --rest} start-up write) —
+     * write, save, report the switch. actionListener decided; this decides nothing.
+     */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result setExternalAccess(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.SetExternalAccessEffect e) {
+        config.assistantActionsRest = e.on();
+        saveConfigQuietly();
+        reportRestSwitch();
+        SwingUtilities.invokeLater(this::refreshMcpIndicator);
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupEffectStarted(e.opId(),
+                "setExternalAccess");
+    }
+
+    /** RequestExternalAccessEffect (OD-77.5): aiSetup's ask, made as a door makes it. */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result requestExternalAccessFor(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.RequestExternalAccessEffect e) {
+        session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExternalAccessRequested(
+                e.request(), e.on(), telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AccessOrigin.SETUP));
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupEffectStarted(e.opId(),
+                "requestExternalAccess");
+    }
+
+    private static boolean codex(telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Client c) {
+        return c == telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Client.CODEX;
+    }
+
+    /** CheckMcpRegistrationEffect: the client's own mcp get, off the event thread, in an empty folder. */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result checkMcpRegistration(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.CheckMcpRegistrationEffect e) {
+        var registrar = mcpRegistrar();
+        Background.run(() -> registrar.check(codex(e.client())), found -> session().post(
+                new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.McpRegistrationObserved(e.probe(),
+                        e.client(), switch (found) {
+                            case PRESENT -> telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.RegistrationOutcome.PRESENT;
+                            case ABSENT -> telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.RegistrationOutcome.ABSENT;
+                            case INDETERMINATE -> telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.RegistrationOutcome.INDETERMINATE;
+                        })),
+                err -> session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.McpRegistrationObserved(
+                        e.probe(), e.client(),
+                        telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.RegistrationOutcome.INDETERMINATE)));
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupEffectStarted(e.opId(),
+                "checkMcpRegistration");
+    }
+
+    /** ConfirmRegisterEffect (§9.3): the verbatim vectors, kept for the request, shown under the SafeChoice rule. */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result confirmRegister(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ConfirmRegisterEffect e) {
+        java.util.List<java.util.List<String>> vectors = mcpRegistrar().vectors(codex(e.client()), e.replace());
+        registerVectors.put(e.request(), vectors);
+        SwingUtilities.invokeLater(() -> {
+            if (vectors.isEmpty()) {     // nothing could be shown, so nothing may run
+                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.RegisterAnswered(
+                        e.request(), false));
+                return;
+            }
+            Window owner = aiSetupWindow != null && aiSetupWindow.isVisible() ? aiSetupWindow : this;
+            SafeChoice.Asked asked = SetupConfirmations.register(owner, e.client(), e.replace(), vectors,
+                    setupConfirmModal);
+            registerAsked = asked;
+            asked.dialog().addWindowListener(new java.awt.event.WindowAdapter() {
+                private boolean said;
+
+                @Override public void windowClosed(java.awt.event.WindowEvent w) {
+                    if (said || session == null) return;
+                    said = true;
+                    if (!asked.chosenRisky()) registerVectors.remove(e.request());
+                    session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.RegisterAnswered(
+                            e.request(), asked.chosenRisky()));
+                }
+            });
+            asked.dialog().setVisible(true);
+        });
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupEffectStarted(e.opId(),
+                "confirmRegister");
+    }
+
+    /** RegisterMcpEffect (S5): run THE vectors the confirmation showed — never re-rendered. */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result registerMcp(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.RegisterMcpEffect e) {
+        java.util.List<java.util.List<String>> shown = registerVectors.remove(e.request());
+        var registrar = mcpRegistrar();
+        if (shown == null) {
+            session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.McpRegistrationChanged(
+                    e.request(), e.client(), false));
+        } else {
+            Background.run(() -> registrar.run(codex(e.client()), shown), ok -> session().post(
+                    new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.McpRegistrationChanged(e.request(),
+                            e.client(), ok)),
+                    err -> session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents
+                            .McpRegistrationChanged(e.request(), e.client(), false)));
+        }
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupEffectStarted(e.opId(),
+                "registerMcp");
+    }
+
+    /** CopyToClipboardEffect: the text for {@code what}; nothing is run or sent. */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result copyForSetup(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.CopyToClipboardEffect e) {
+        String text = switch (e.what()) {
+            case REGISTER_COMMAND -> mcpRegistrar().copyCommand(codex(e.client()));
+            case GENERIC_CONFIG -> mcpRegistrar().genericConfiguration();
+            case LIVE_QUESTION -> telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.LIVE_QUESTION;
+            case FIRST_QUESTION -> telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines.FIRST_QUESTION;
+        };
+        setupCopiedForTest = text;
+        try {
+            java.awt.Toolkit.getDefaultToolkit().getSystemClipboard().setContents(
+                    new java.awt.datatransfer.StringSelection(text), null);
+        } catch (IllegalStateException | java.awt.HeadlessException noClipboard) {
+            // the text is still shown on screen to select by hand
+        }
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupEffectStarted(e.opId(), "copy");
+    }
+
+    /** Save snippet… for another MCP client: the person chooses the file; no client configuration is inferred. */
+    private void saveGenericSnippet() {
+        String text = mcpRegistrar().genericConfiguration();
+        if (text.isBlank()) return;
+        JFileChooser chooser = new JFileChooser();
+        chooser.setDialogTitle("Save the MCP configuration snippet");
+        chooser.setSelectedFile(new java.io.File("fluxtion-analyser-mcp.json"));
+        Window owner = aiSetupWindow != null && aiSetupWindow.isVisible() ? aiSetupWindow : this;
+        if (chooser.showSaveDialog(owner) != JFileChooser.APPROVE_OPTION) return;
+        Path selected = chooser.getSelectedFile().toPath();
+        if (java.nio.file.Files.exists(selected) && !SafeChoice.ask(owner, "Replace the file?",
+                SetupConfirmations.plain("Replace " + selected.getFileName() + "? Only this MCP snippet is written."),
+                "Replace", "Cancel")) {
+            return;
+        }
+        try {
+            java.nio.file.Files.writeString(selected, text + System.lineSeparator());
+        } catch (java.io.IOException ex) {
+            JOptionPane.showMessageDialog(owner, "Could not save the snippet. Choose another file.", "Save snippet",
+                    JOptionPane.WARNING_MESSAGE);
+        }
+    }
+
+    /** WatchExternalClientEffect (§9.4): hold the watch and give it to the server, now and after any rebuild. */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result watchExternalClient(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.WatchExternalClientEffect e) {
+        armedClientWatch = e.watch();
+        applyClientWatch();
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupEffectStarted(e.opId(), "watch");
+    }
+
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result unwatchExternalClient(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.UnwatchExternalClientEffect e) {
+        if (armedClientWatch == e.watch()) {
+            armedClientWatch = 0;
+            if (actionServer != null) actionServer.unwatchExternalClient();
+        }
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupEffectStarted(e.opId(), "unwatch");
+    }
+
+    /** The server reports once, on its own thread; the sighting is posted on the event thread as a fact. */
+    private void applyClientWatch() {
+        if (actionServer == null) return;
+        long w = armedClientWatch;
+        if (w == 0) {
+            actionServer.unwatchExternalClient();
+            return;
+        }
+        actionServer.watchExternalClient(label -> {
+            long at = System.currentTimeMillis();
+            SwingUtilities.invokeLater(() -> {
+                if (armedClientWatch == w) armedClientWatch = 0;
+                long ref = 0;
+                if (label != null && !label.isBlank()) {
+                    ref = setupLabelNext++;
+                    setupLabels.put(ref, label);
+                    while (setupLabels.size() > 16) setupLabels.remove(setupLabels.keySet().iterator().next());
+                }
+                session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExternalClientSeen(w,
+                        at, ref));
+            });
+        });
+    }
+
+    /** AiSetupTimerEffect: time reported as a fact for the node's watch — the timer decides nothing. */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result startSetupTimer(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.AiSetupTimerEffect e) {
+        int millis = setupTimerMillisForTest != null ? setupTimerMillisForTest : e.seconds() * 1000;
+        javax.swing.Timer t = new javax.swing.Timer(millis, x -> session().post(
+                new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupTimerFired(e.watch())));
+        t.setRepeats(false);
+        t.start();
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupEffectStarted(e.opId(), "timer");
+    }
+
+    /** The readiness poll's observation, posted on change (M77-3); the poll still paints the light as before. */
+    private void reportReadiness(telamin.fluxtion.audit.analyser.analyser.mcp.McpSetupState.LocalStatus status) {
+        if (session == null || status == null) return;
+        var r = switch (status) {
+            case OFF -> telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.McpReadiness.OFF;
+            case STARTING -> telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.McpReadiness.STARTING;
+            case READY -> telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.McpReadiness.READY;
+            case OTHER_INSTANCE -> telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.McpReadiness.OTHER_INSTANCE;
+        };
+        if (r == readinessReported) return;
+        readinessReported = r;
+        session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.McpReadinessObserved(r));
     }
 
     /** What the machine now says about the assistants — the facts a Settings save reports, and the profile in force. */

@@ -54,6 +54,17 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
     final List<SessionEffects.PersistSetupDismissedEffect> dismissedWrites = new ArrayList<>();
     final List<SessionEffects.PersistSetupClientEffect> clientWrites = new ArrayList<>();
     final List<SessionEffects.OpenClientSetupEffect> clientSetups = new ArrayList<>();
+    // M77-3: the external client path — what the nodes asked; the test posts the facts that answer them
+    final List<SessionEffects.ConfirmExternalAccessEffect> accessConfirms = new ArrayList<>();
+    final List<SessionEffects.SetExternalAccessEffect> accessWrites = new ArrayList<>();
+    final List<SessionEffects.RequestExternalAccessEffect> accessAsks = new ArrayList<>();
+    final List<SessionEffects.CheckMcpRegistrationEffect> registrationChecks = new ArrayList<>();
+    final List<SessionEffects.ConfirmRegisterEffect> registerConfirms = new ArrayList<>();
+    final List<SessionEffects.RegisterMcpEffect> registerRuns = new ArrayList<>();
+    final List<SessionEffects.CopyToClipboardEffect> copies = new ArrayList<>();
+    final List<SessionEffects.WatchExternalClientEffect> watches = new ArrayList<>();
+    final List<SessionEffects.UnwatchExternalClientEffect> unwatches = new ArrayList<>();
+    final List<SessionEffects.AiSetupTimerEffect> setupTimers = new ArrayList<>();
     final List<SessionEffects.RunSuggestedActionEffect> suggestedRuns = new ArrayList<>();
     /** The verb each action entry names, as the real adapter would read it from the block. */
     final java.util.Map<Long, String> assistantVerbs = new java.util.HashMap<>();
@@ -155,6 +166,10 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
     FakeSessionAdapter withProfile(String path) {
         loadable.add(path);
         return this;
+    }
+
+    private static SessionEvents.Result started(SessionEffects e) {
+        return new SessionEvents.AiSetupEffectStarted(e.opId(), SessionDriver.name(e));
     }
 
     @Override
@@ -259,6 +274,16 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
                 clientSetups.add(e);
                 yield new SessionEvents.AiSetupEffectStarted(e.opId(), "openClientSetup");
             }
+            case SessionEffects.ConfirmExternalAccessEffect e -> { accessConfirms.add(e); yield started(e); }
+            case SessionEffects.SetExternalAccessEffect e -> { accessWrites.add(e); yield started(e); }
+            case SessionEffects.RequestExternalAccessEffect e -> { accessAsks.add(e); yield started(e); }
+            case SessionEffects.CheckMcpRegistrationEffect e -> { registrationChecks.add(e); yield started(e); }
+            case SessionEffects.ConfirmRegisterEffect e -> { registerConfirms.add(e); yield started(e); }
+            case SessionEffects.RegisterMcpEffect e -> { registerRuns.add(e); yield started(e); }
+            case SessionEffects.CopyToClipboardEffect e -> { copies.add(e); yield started(e); }
+            case SessionEffects.WatchExternalClientEffect e -> { watches.add(e); yield started(e); }
+            case SessionEffects.UnwatchExternalClientEffect e -> { unwatches.add(e); yield started(e); }
+            case SessionEffects.AiSetupTimerEffect e -> { setupTimers.add(e); yield started(e); }
             case SessionEffects.ChooseAssistantModeEffect e -> {
                 modeChoices.add(e);
                 agentOrder.add("chooseMode");

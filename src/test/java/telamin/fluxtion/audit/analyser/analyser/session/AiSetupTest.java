@@ -104,24 +104,25 @@ class AiSetupTest {
         assertEquals(Step.SUMMARY, setup(e).step());
         assertTrue(setup(e).open());
 
-        // Both: Claude inside, then (M77-2's interim) today's client dialog; the window closes
+        // Both: Claude inside, then (M77-3) Screen 2b — the window stays open
         FakeSessionAdapter c = new FakeSessionAdapter();
         SessionDriver f = fresh(c, true);
         toInside(f, c, Choice.BOTH);
         f.post(new SessionEvents.AiSetupContinue(Step.INSIDE));
         assertEquals(AssistantProfile.SAFE, c.profileApplies.get(0).profile());
-        assertEquals(1, c.clientSetups.size(), "the client half opens today's dialog");
-        assertFalse(setup(f).open());
+        assertEquals(0, c.clientSetups.size(), "M77-3: Screen 2b, not today's dialog");
+        assertEquals(Step.CLIENT, setup(f).step());
+        assertTrue(setup(f).open());
 
-        // Your own client: (interim) the dialog, and no profile written by the wizard
+        // Your own client: (M77-3) Screen 2b; nothing is written until its Finish (AiSetupExternalTest)
         FakeSessionAdapter g = new FakeSessionAdapter();
         SessionDriver h = fresh(g, true);
         h.post(new SessionEvents.AiSetupRequested(Origin.MENU));
         h.post(new SessionEvents.AiSetupChoiceMade(Choice.CLIENT));
         h.post(new SessionEvents.AiSetupContinue(Step.CHOICE));
         assertEquals(0, g.profileApplies.size());
-        assertEquals(1, g.clientSetups.size());
-        assertEquals(AiSetupLines.CLIENT_INTERIM, setup(h).line());
+        assertEquals(0, g.clientSetups.size());
+        assertEquals(Step.CLIENT, setup(h).step());
 
         // Other options: the in-app assistant, refused with no key at all
         FakeSessionAdapter k = new FakeSessionAdapter();

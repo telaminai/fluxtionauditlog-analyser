@@ -24,6 +24,13 @@ import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents;
  * while the switch is on, unless the person closed it for the session that runs now. B2: when a FULL session starts with
  * external access open, its own tools can drive the analyser as an external client (the well-known endpoint file), so
  * the panel says so and offers to close it — the person's choice, decided here.
+ *
+ * <p><b>M77-3 (spec-ai-setup-wizard.md §9.2, review R1-7, OD-77.4): the one owner of turning access on or off.</b> Every
+ * door — the Set up AI wizard, the AI menu's checkbox, Settings ▸ Assistant on save and the client dialog — posts
+ * {@link SessionEvents.ExternalAccessRequested}. Turning ON asks for the confirmation first
+ * ({@link SessionEffects.ConfirmExternalAccessEffect}); only a confirmed answer for that request writes the setting
+ * ({@link SessionEffects.SetExternalAccessEffect}). Turning OFF writes it at once. So <i>when to confirm</i> is decided
+ * here, for every door, never in a view. ({@code --rest} stays M19.7's start-up write: nobody is at the screen.)
  */
 public class ActionListener implements EventLogSource {
 
@@ -41,6 +48,10 @@ public class ActionListener implements EventLogSource {
     private boolean external;
     private boolean wantListen;
     private boolean wantExternal;
+    /** M77-3: the turn-on request whose confirmation is showing; 0 for none. */
+    private long confirming;
+    /** M77-3: how many Full sessions have needed the bridge (a watch compares counts, §9.4). */
+    private long fullSessions;
     private ListenerState published = ListenerState.NONE;
     private boolean dirty = true;
 
@@ -79,6 +90,7 @@ public class ActionListener implements EventLogSource {
     public void need(long generation, boolean full) {
         bridgeFor = generation;
         fullSession = full;
+        if (full) fullSessions++;
         closedForSession = false;
         wantListen = true;
         wantExternal = restOn;
@@ -117,6 +129,49 @@ public class ActionListener implements EventLogSource {
         closedForSession = e.closeWhileSession();
         auditLog.info("externalClosedForSession", closedForSession);
         decide();
+        return changed();
+    }
+
+    /**
+     * M77-3 (§9.2, OD-77.4): a door asked to turn external access on or off. On: the confirmation first, never the
+     * write. Off: at once, needing no confirmation (turning off is the safe direction). A request that changes nothing
+     * (already on, already off) asks for nothing.
+     */
+    @OnEventHandler
+    public boolean onExternalAccessRequested(SessionEvents.ExternalAccessRequested e) {
+        auditLog.info("externalAccessRequested", e.on()).info("request", e.request()).info("origin", e.origin().name());
+        if (e.on()) {
+            if (restObserved && restOn) {
+                auditLog.info("externalAccess", "ALREADY_ON");
+                return false;
+            }
+            if (confirming != 0) {
+                // one confirmation at a time: a second door's press while it shows changes nothing
+                auditLog.info("externalAccess", "ALREADY_CONFIRMING").info("open", confirming);
+                return false;
+            }
+            confirming = e.request();
+            effects.request(new SessionEffects.ConfirmExternalAccessEffect(0L, e.request()));
+            return changed();
+        }
+        boolean wasConfirming = confirming != 0;
+        confirming = 0;
+        if (!restOn) return wasConfirming && changed();
+        auditLog.info("externalAccess", "OFF").info("request", e.request());
+        effects.request(new SessionEffects.SetExternalAccessEffect(0L, e.request(), false));
+        return changed();
+    }
+
+    /** M77-3: the person's answer. Only a confirmed answer for the request that is showing turns access on. */
+    @OnEventHandler
+    public boolean onExternalAccessAnswered(SessionEvents.ExternalAccessAnswered e) {
+        if (confirming == 0 || e.request() != confirming) {
+            auditLog.info("staleFact", "ExternalAccessAnswered").info("request", e.request()).info("open", confirming);
+            return false;
+        }
+        confirming = 0;
+        auditLog.info("externalAccessAnswered", e.confirmed()).info("request", e.request());
+        if (e.confirmed()) effects.request(new SessionEffects.SetExternalAccessEffect(0L, e.request(), true));
         return changed();
     }
 
@@ -174,7 +229,8 @@ public class ActionListener implements EventLogSource {
     public ListenerState state() {
         if (dirty) {
             boolean offer = bridgeFor != 0 && fullSession && external && !closedForSession;
-            published = new ListenerState(restOn, listening, external, bridgeFor, fullSession, closedForSession, offer);
+            published = new ListenerState(restOn, listening, external, bridgeFor, fullSession, closedForSession, offer,
+                    confirming != 0, fullSessions);
             dirty = false;
         }
         return published;

@@ -907,7 +907,11 @@ public final class SessionEvents {
     }
 
     /** What the resolver says about Codex (file existence only; nothing run). Claude's is in StartPageAvailability. */
-    public record AiClientsObserved(boolean codexFound) {
+    public record AiClientsObserved(boolean codexFound, boolean launcher) {
+        /** The shape before M77-3: a launcher assumed (the client path was today's dialog then). */
+        public AiClientsObserved(boolean codexFound) {
+            this(codexFound, true);
+        }
     }
 
     /** How {@code claude --version} went. */
@@ -934,6 +938,81 @@ public final class SessionEvents {
 
     /** Answered at once by each of aiSetup's effects whose outcome arrives later (or is the window itself). */
     public record AiSetupEffectStarted(long opId, String what) implements Result {
+    }
+
+    // ---- M77-3 (spec-ai-setup-wizard.md §6.3, §8.3, §9): the external client path ---------------------------------
+
+    /** Which door asked to turn External MCP/REST access on or off (§9.2): every one is decided by actionListener. */
+    public enum AccessOrigin { SETUP, MENU, SETTINGS, MCP_DIALOG }
+
+    /**
+     * The person asked to turn External MCP/REST access on or off, at {@code origin} (the wizard's switch, the AI menu's
+     * checkbox, Settings ▸ Assistant on save, the client dialog). {@code actionListener} decides: on asks for the
+     * confirmation first; off is applied at once. {@code request} is minted by the door.
+     */
+    public record ExternalAccessRequested(long request, boolean on, AccessOrigin origin) {
+        public ExternalAccessRequested {
+            origin = origin == null ? AccessOrigin.MENU : origin;
+        }
+    }
+
+    /** The person's answer to {@code ConfirmExternalAccessEffect{request}}: confirmed only on <i>Turn on access</i>. */
+    public record ExternalAccessAnswered(long request, boolean confirmed) {
+    }
+
+    /** What the 5 s readiness poll says (posted on change): the observation that feeds the MCP light. */
+    public enum McpReadiness { OFF, STARTING, READY, OTHER_INSTANCE }
+
+    public record McpReadinessObserved(McpReadiness status) {
+        public McpReadinessObserved {
+            status = status == null ? McpReadiness.OFF : status;
+        }
+    }
+
+    /** What the client's own CLI says of the registration named fluxtion-analyser (the client classes' enums). */
+    public enum RegistrationOutcome { PRESENT, ABSENT, INDETERMINATE }
+
+    /** {@code mcp get} for probe {@code probe} — run only on <i>Check registration</i>. */
+    public record McpRegistrationObserved(long probe, AiSetupState.Client client, RegistrationOutcome status) {
+    }
+
+    /** The person's answer to {@code ConfirmRegisterEffect{request}}: confirmed only on <i>Register</i>. */
+    public record RegisterAnswered(long request, boolean confirmed) {
+    }
+
+    /** The confirmed registration ran: the client's CLI said it succeeded ({@code ok}) or not. */
+    public record McpRegistrationChanged(long request, AiSetupState.Client client, boolean ok) {
+    }
+
+    /**
+     * The action server saw the first counted {@code /action} after watch {@code watch} was armed (§9.4): at {@code at}
+     * (epoch millis), with the client's self-reported name by reference ({@code labelRef}, 0 for none; OD-77.8 — a
+     * display label, never trusted).
+     */
+    public record ExternalClientSeen(long watch, long at, long labelRef) {
+    }
+
+    /** The live check's 2-minute tip is due for watch {@code watch} (time is a fact, never a Swing timer that decides). */
+    public record AiSetupTimerFired(long watch) {
+    }
+
+    /** What a Copy button on Screen 2b or the Summary copies. */
+    public enum CopyWhat { REGISTER_COMMAND, GENERIC_CONFIG, LIVE_QUESTION, FIRST_QUESTION }
+
+    /** A Copy button was pressed on Screen 2b (or the Summary): the node decides what it means for the step. */
+    public record AiSetupCopyRequested(CopyWhat what) {
+    }
+
+    /** <i>Register for me…</i> (or <i>Replace…</i>) was pressed on Screen 2b. */
+    public record AiSetupRegisterRequested() {
+    }
+
+    /** <i>More options…</i> on Screen 2b: today's client dialog, for what the wizard does not do (OD-77.12). */
+    public record AiSetupMoreOptions() {
+    }
+
+    /** OD-77.5: the box "Also turn off External MCP/REST access" under No AI, ticked or not. */
+    public record AiSetupAlsoTurnOffChosen(boolean turnOff) {
     }
 
     /**

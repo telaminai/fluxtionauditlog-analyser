@@ -44,16 +44,22 @@ import telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ReadRequeste
 import telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ResultReadCompleted;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ActionListenerConfigured;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiClientsObserved;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupAlsoTurnOffChosen;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupBack;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupCancelled;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupCheckAgain;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupChoiceMade;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupClientChosen;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupContinue;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupCopyRequested;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupFirstRunDismissed;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupMoreOptions;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupPostureChosen;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupRegisterRequested;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupRequested;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupStartupObserved;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupSuggestedTaken;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupTimerFired;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantActionFinished;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantCancelRequested;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantCompletionFailed;
@@ -98,7 +104,10 @@ import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExampleDow
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExampleEffectStarted;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExampleFetched;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExampleUnpacked;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExternalAccessAnswered;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExternalAccessChosen;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExternalAccessRequested;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExternalClientSeen;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FollowSet;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FollowToggled;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphCleared;
@@ -151,6 +160,9 @@ import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogContent
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogIdentityObserved;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogOpenFailed;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogOpened;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.McpReadinessObserved;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.McpRegistrationChanged;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.McpRegistrationObserved;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.MembershipCompared;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.OpenLogRequested;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.OpenProjectRequested;
@@ -171,6 +183,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProposalIt
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProposalItemPreviewed;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProposalPreviewDone;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProposalReceived;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.RegisterAnswered;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.RestSwitchObserved;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ReturnToMainOptions;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ScanScheduled;
@@ -253,16 +266,22 @@ import telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Requ
  *   <li>telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ResultReadCompleted
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ActionListenerConfigured
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiClientsObserved
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupAlsoTurnOffChosen
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupBack
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupCancelled
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupCheckAgain
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupChoiceMade
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupClientChosen
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupContinue
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupCopyRequested
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupFirstRunDismissed
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupMoreOptions
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupPostureChosen
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupRegisterRequested
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupRequested
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupStartupObserved
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupSuggestedTaken
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupTimerFired
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantActionFinished
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantCancelRequested
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AssistantCompletionFailed
@@ -307,7 +326,10 @@ import telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Requ
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExampleEffectStarted
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExampleFetched
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExampleUnpacked
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExternalAccessAnswered
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExternalAccessChosen
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExternalAccessRequested
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExternalClientSeen
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FollowSet
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FollowToggled
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphCleared
@@ -360,6 +382,9 @@ import telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Requ
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogIdentityObserved
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogOpenFailed
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogOpened
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.McpReadinessObserved
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.McpRegistrationChanged
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.McpRegistrationObserved
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.MembershipCompared
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.OpenLogRequested
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.OpenProjectRequested
@@ -380,6 +405,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Requ
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProposalItemPreviewed
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProposalPreviewDone
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProposalReceived
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.RegisterAnswered
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.RestSwitchObserved
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ReturnToMainOptions
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ScanScheduled
@@ -563,6 +589,10 @@ public class SessionProcessor
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiClientsObserved",
                 false),
             new ProcessorDescriptor.Input(
+                "AiSetupAlsoTurnOffChosen",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupAlsoTurnOffChosen",
+                false),
+            new ProcessorDescriptor.Input(
                 "AiSetupBack",
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupBack",
                 false),
@@ -579,16 +609,32 @@ public class SessionProcessor
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupChoiceMade",
                 false),
             new ProcessorDescriptor.Input(
+                "AiSetupClientChosen",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupClientChosen",
+                false),
+            new ProcessorDescriptor.Input(
                 "AiSetupContinue",
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupContinue",
+                false),
+            new ProcessorDescriptor.Input(
+                "AiSetupCopyRequested",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupCopyRequested",
                 false),
             new ProcessorDescriptor.Input(
                 "AiSetupFirstRunDismissed",
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupFirstRunDismissed",
                 false),
             new ProcessorDescriptor.Input(
+                "AiSetupMoreOptions",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupMoreOptions",
+                false),
+            new ProcessorDescriptor.Input(
                 "AiSetupPostureChosen",
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupPostureChosen",
+                false),
+            new ProcessorDescriptor.Input(
+                "AiSetupRegisterRequested",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupRegisterRequested",
                 false),
             new ProcessorDescriptor.Input(
                 "AiSetupRequested",
@@ -601,6 +647,10 @@ public class SessionProcessor
             new ProcessorDescriptor.Input(
                 "AiSetupSuggestedTaken",
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupSuggestedTaken",
+                false),
+            new ProcessorDescriptor.Input(
+                "AiSetupTimerFired",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AiSetupTimerFired",
                 false),
             new ProcessorDescriptor.Input(
                 "AssistantActionFinished",
@@ -787,8 +837,20 @@ public class SessionProcessor
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExampleUnpacked",
                 false),
             new ProcessorDescriptor.Input(
+                "ExternalAccessAnswered",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExternalAccessAnswered",
+                false),
+            new ProcessorDescriptor.Input(
                 "ExternalAccessChosen",
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExternalAccessChosen",
+                false),
+            new ProcessorDescriptor.Input(
+                "ExternalAccessRequested",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExternalAccessRequested",
+                false),
+            new ProcessorDescriptor.Input(
+                "ExternalClientSeen",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ExternalClientSeen",
                 false),
             new ProcessorDescriptor.Input(
                 "Finished",
@@ -1003,6 +1065,18 @@ public class SessionProcessor
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogOpened",
                 false),
             new ProcessorDescriptor.Input(
+                "McpReadinessObserved",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.McpReadinessObserved",
+                false),
+            new ProcessorDescriptor.Input(
+                "McpRegistrationChanged",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.McpRegistrationChanged",
+                false),
+            new ProcessorDescriptor.Input(
+                "McpRegistrationObserved",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.McpRegistrationObserved",
+                false),
+            new ProcessorDescriptor.Input(
                 "MembershipCompared",
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.MembershipCompared",
                 false),
@@ -1093,6 +1167,10 @@ public class SessionProcessor
             new ProcessorDescriptor.Input(
                 "ReadRequested",
                 "telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ReadRequested",
+                false),
+            new ProcessorDescriptor.Input(
+                "RegisterAnswered",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.RegisterAnswered",
                 false),
             new ProcessorDescriptor.Input(
                 "Requested",
@@ -1200,7 +1278,7 @@ public class SessionProcessor
           new DescriptorSupport.Meta(
               null,
               "1.0.76",
-              "0a138cfe1b6d9fb06b7dbe9ad45ab2ed9d065ebbf2c5f06060adac25d33677a2",
+              "43cc8640451ad71a3188859aed733ead3e35fc489c747d7bb134fa3b3b0d9308",
               null));
 
   @Override
@@ -1386,6 +1464,9 @@ public class SessionProcessor
     } else if (event instanceof AiClientsObserved) {
       AiClientsObserved typedEvent = (AiClientsObserved) event;
       handleEvent(typedEvent);
+    } else if (event instanceof AiSetupAlsoTurnOffChosen) {
+      AiSetupAlsoTurnOffChosen typedEvent = (AiSetupAlsoTurnOffChosen) event;
+      handleEvent(typedEvent);
     } else if (event instanceof AiSetupBack) {
       AiSetupBack typedEvent = (AiSetupBack) event;
       handleEvent(typedEvent);
@@ -1398,14 +1479,26 @@ public class SessionProcessor
     } else if (event instanceof AiSetupChoiceMade) {
       AiSetupChoiceMade typedEvent = (AiSetupChoiceMade) event;
       handleEvent(typedEvent);
+    } else if (event instanceof AiSetupClientChosen) {
+      AiSetupClientChosen typedEvent = (AiSetupClientChosen) event;
+      handleEvent(typedEvent);
     } else if (event instanceof AiSetupContinue) {
       AiSetupContinue typedEvent = (AiSetupContinue) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof AiSetupCopyRequested) {
+      AiSetupCopyRequested typedEvent = (AiSetupCopyRequested) event;
       handleEvent(typedEvent);
     } else if (event instanceof AiSetupFirstRunDismissed) {
       AiSetupFirstRunDismissed typedEvent = (AiSetupFirstRunDismissed) event;
       handleEvent(typedEvent);
+    } else if (event instanceof AiSetupMoreOptions) {
+      AiSetupMoreOptions typedEvent = (AiSetupMoreOptions) event;
+      handleEvent(typedEvent);
     } else if (event instanceof AiSetupPostureChosen) {
       AiSetupPostureChosen typedEvent = (AiSetupPostureChosen) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof AiSetupRegisterRequested) {
+      AiSetupRegisterRequested typedEvent = (AiSetupRegisterRequested) event;
       handleEvent(typedEvent);
     } else if (event instanceof AiSetupRequested) {
       AiSetupRequested typedEvent = (AiSetupRequested) event;
@@ -1415,6 +1508,9 @@ public class SessionProcessor
       handleEvent(typedEvent);
     } else if (event instanceof AiSetupSuggestedTaken) {
       AiSetupSuggestedTaken typedEvent = (AiSetupSuggestedTaken) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof AiSetupTimerFired) {
+      AiSetupTimerFired typedEvent = (AiSetupTimerFired) event;
       handleEvent(typedEvent);
     } else if (event instanceof AssistantActionFinished) {
       AssistantActionFinished typedEvent = (AssistantActionFinished) event;
@@ -1548,8 +1644,17 @@ public class SessionProcessor
     } else if (event instanceof ExampleUnpacked) {
       ExampleUnpacked typedEvent = (ExampleUnpacked) event;
       handleEvent(typedEvent);
+    } else if (event instanceof ExternalAccessAnswered) {
+      ExternalAccessAnswered typedEvent = (ExternalAccessAnswered) event;
+      handleEvent(typedEvent);
     } else if (event instanceof ExternalAccessChosen) {
       ExternalAccessChosen typedEvent = (ExternalAccessChosen) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof ExternalAccessRequested) {
+      ExternalAccessRequested typedEvent = (ExternalAccessRequested) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof ExternalClientSeen) {
+      ExternalClientSeen typedEvent = (ExternalClientSeen) event;
       handleEvent(typedEvent);
     } else if (event instanceof FollowSet) {
       FollowSet typedEvent = (FollowSet) event;
@@ -1707,6 +1812,15 @@ public class SessionProcessor
     } else if (event instanceof LogOpened) {
       LogOpened typedEvent = (LogOpened) event;
       handleEvent(typedEvent);
+    } else if (event instanceof McpReadinessObserved) {
+      McpReadinessObserved typedEvent = (McpReadinessObserved) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof McpRegistrationChanged) {
+      McpRegistrationChanged typedEvent = (McpRegistrationChanged) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof McpRegistrationObserved) {
+      McpRegistrationObserved typedEvent = (McpRegistrationObserved) event;
+      handleEvent(typedEvent);
     } else if (event instanceof MembershipCompared) {
       MembershipCompared typedEvent = (MembershipCompared) event;
       handleEvent(typedEvent);
@@ -1766,6 +1880,9 @@ public class SessionProcessor
       handleEvent(typedEvent);
     } else if (event instanceof ProposalReceived) {
       ProposalReceived typedEvent = (ProposalReceived) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof RegisterAnswered) {
+      RegisterAnswered typedEvent = (RegisterAnswered) event;
       handleEvent(typedEvent);
     } else if (event instanceof RestSwitchObserved) {
       RestSwitchObserved typedEvent = (RestSwitchObserved) event;
@@ -1897,6 +2014,11 @@ public class SessionProcessor
   }
 
   @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(AiSetupAlsoTurnOffChosen event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
   public void onEvent(AiSetupBack event) {
     processEvent(event);
   }
@@ -1917,7 +2039,17 @@ public class SessionProcessor
   }
 
   @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(AiSetupClientChosen event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
   public void onEvent(AiSetupContinue event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(AiSetupCopyRequested event) {
     processEvent(event);
   }
 
@@ -1927,7 +2059,17 @@ public class SessionProcessor
   }
 
   @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(AiSetupMoreOptions event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
   public void onEvent(AiSetupPostureChosen event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(AiSetupRegisterRequested event) {
     processEvent(event);
   }
 
@@ -1943,6 +2085,11 @@ public class SessionProcessor
 
   @OnEventHandler(failBuildIfMissingBooleanReturn = false)
   public void onEvent(AiSetupSuggestedTaken event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(AiSetupTimerFired event) {
     processEvent(event);
   }
 
@@ -2167,7 +2314,22 @@ public class SessionProcessor
   }
 
   @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(ExternalAccessAnswered event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
   public void onEvent(ExternalAccessChosen event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(ExternalAccessRequested event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(ExternalClientSeen event) {
     processEvent(event);
   }
 
@@ -2432,6 +2594,21 @@ public class SessionProcessor
   }
 
   @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(McpReadinessObserved event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(McpRegistrationChanged event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(McpRegistrationObserved event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
   public void onEvent(MembershipCompared event) {
     processEvent(event);
   }
@@ -2528,6 +2705,11 @@ public class SessionProcessor
 
   @OnEventHandler(failBuildIfMissingBooleanReturn = false)
   public void onEvent(ProposalReceived event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(RegisterAnswered event) {
     processEvent(event);
   }
 
@@ -2739,6 +2921,14 @@ public class SessionProcessor
     afterEvent();
   }
 
+  public void handleEvent(AiSetupAlsoTurnOffChosen typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(aiSetup, "aiSetup", "onAlsoTurnOff", typedEvent);
+    isDirty_aiSetup = aiSetup.onAlsoTurnOff(typedEvent);
+    afterEvent();
+  }
+
   public void handleEvent(AiSetupBack typedEvent) {
     auditEvent(typedEvent);
     //Default, no filter methods
@@ -2773,11 +2963,27 @@ public class SessionProcessor
     afterEvent();
   }
 
+  public void handleEvent(AiSetupClientChosen typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(aiSetup, "aiSetup", "onClientChosen", typedEvent);
+    isDirty_aiSetup = aiSetup.onClientChosen(typedEvent);
+    afterEvent();
+  }
+
   public void handleEvent(AiSetupContinue typedEvent) {
     auditEvent(typedEvent);
     //Default, no filter methods
     auditInvocation(aiSetup, "aiSetup", "onContinue", typedEvent);
     isDirty_aiSetup = aiSetup.onContinue(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(AiSetupCopyRequested typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(aiSetup, "aiSetup", "onCopyRequested", typedEvent);
+    isDirty_aiSetup = aiSetup.onCopyRequested(typedEvent);
     afterEvent();
   }
 
@@ -2789,11 +2995,27 @@ public class SessionProcessor
     afterEvent();
   }
 
+  public void handleEvent(AiSetupMoreOptions typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(aiSetup, "aiSetup", "onMoreOptions", typedEvent);
+    isDirty_aiSetup = aiSetup.onMoreOptions(typedEvent);
+    afterEvent();
+  }
+
   public void handleEvent(AiSetupPostureChosen typedEvent) {
     auditEvent(typedEvent);
     //Default, no filter methods
     auditInvocation(aiSetup, "aiSetup", "onPostureChosen", typedEvent);
     isDirty_aiSetup = aiSetup.onPostureChosen(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(AiSetupRegisterRequested typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(aiSetup, "aiSetup", "onRegisterRequested", typedEvent);
+    isDirty_aiSetup = aiSetup.onRegisterRequested(typedEvent);
     afterEvent();
   }
 
@@ -2818,6 +3040,14 @@ public class SessionProcessor
     //Default, no filter methods
     auditInvocation(aiSetup, "aiSetup", "onSuggestedTaken", typedEvent);
     isDirty_aiSetup = aiSetup.onSuggestedTaken(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(AiSetupTimerFired typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(aiSetup, "aiSetup", "onTimerFired", typedEvent);
+    isDirty_aiSetup = aiSetup.onTimerFired(typedEvent);
     afterEvent();
   }
 
@@ -3300,15 +3530,53 @@ public class SessionProcessor
     afterEvent();
   }
 
+  public void handleEvent(ExternalAccessAnswered typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(actionListener, "actionListener", "onExternalAccessAnswered", typedEvent);
+    isDirty_actionListener = actionListener.onExternalAccessAnswered(typedEvent);
+    auditInvocation(aiSetup, "aiSetup", "onExternalAccessAnswered", typedEvent);
+    isDirty_aiSetup = aiSetup.onExternalAccessAnswered(typedEvent);
+    if (guardCheck_walkPlayback()) {
+      auditInvocation(walkPlayback, "walkPlayback", "onLogChanged", typedEvent);
+      walkPlayback.onLogChanged();
+    }
+    afterEvent();
+  }
+
   public void handleEvent(ExternalAccessChosen typedEvent) {
     auditEvent(typedEvent);
     //Default, no filter methods
     auditInvocation(actionListener, "actionListener", "onExternalChosen", typedEvent);
     isDirty_actionListener = actionListener.onExternalChosen(typedEvent);
+    auditInvocation(aiSetup, "aiSetup", "onExternalChosen", typedEvent);
+    isDirty_aiSetup = aiSetup.onExternalChosen(typedEvent);
     if (guardCheck_walkPlayback()) {
       auditInvocation(walkPlayback, "walkPlayback", "onLogChanged", typedEvent);
       walkPlayback.onLogChanged();
     }
+    afterEvent();
+  }
+
+  public void handleEvent(ExternalAccessRequested typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(actionListener, "actionListener", "onExternalAccessRequested", typedEvent);
+    isDirty_actionListener = actionListener.onExternalAccessRequested(typedEvent);
+    auditInvocation(aiSetup, "aiSetup", "onExternalAccessRequested", typedEvent);
+    isDirty_aiSetup = aiSetup.onExternalAccessRequested(typedEvent);
+    if (guardCheck_walkPlayback()) {
+      auditInvocation(walkPlayback, "walkPlayback", "onLogChanged", typedEvent);
+      walkPlayback.onLogChanged();
+    }
+    afterEvent();
+  }
+
+  public void handleEvent(ExternalClientSeen typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(aiSetup, "aiSetup", "onClientSeen", typedEvent);
+    isDirty_aiSetup = aiSetup.onClientSeen(typedEvent);
     afterEvent();
   }
 
@@ -4047,6 +4315,30 @@ public class SessionProcessor
     afterEvent();
   }
 
+  public void handleEvent(McpReadinessObserved typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(aiSetup, "aiSetup", "onReadiness", typedEvent);
+    isDirty_aiSetup = aiSetup.onReadiness(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(McpRegistrationChanged typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(aiSetup, "aiSetup", "onRegistrationChanged", typedEvent);
+    isDirty_aiSetup = aiSetup.onRegistrationChanged(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(McpRegistrationObserved typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(aiSetup, "aiSetup", "onRegistrationObserved", typedEvent);
+    isDirty_aiSetup = aiSetup.onRegistrationObserved(typedEvent);
+    afterEvent();
+  }
+
   public void handleEvent(MembershipCompared typedEvent) {
     auditEvent(typedEvent);
     //Default, no filter methods
@@ -4359,6 +4651,14 @@ public class SessionProcessor
     //Default, no filter methods
     auditInvocation(onboardingProposal, "onboardingProposal", "onReceived", typedEvent);
     isDirty_onboardingProposal = onboardingProposal.onReceived(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(RegisterAnswered typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(aiSetup, "aiSetup", "onRegisterAnswered", typedEvent);
+    isDirty_aiSetup = aiSetup.onRegisterAnswered(typedEvent);
     afterEvent();
   }
 
@@ -4724,6 +5024,11 @@ public class SessionProcessor
       auditEvent(typedEvent);
       auditInvocation(aiSetup, "aiSetup", "onClientsObserved", typedEvent);
       isDirty_aiSetup = aiSetup.onClientsObserved(typedEvent);
+    } else if (event instanceof AiSetupAlsoTurnOffChosen) {
+      AiSetupAlsoTurnOffChosen typedEvent = (AiSetupAlsoTurnOffChosen) event;
+      auditEvent(typedEvent);
+      auditInvocation(aiSetup, "aiSetup", "onAlsoTurnOff", typedEvent);
+      isDirty_aiSetup = aiSetup.onAlsoTurnOff(typedEvent);
     } else if (event instanceof AiSetupBack) {
       AiSetupBack typedEvent = (AiSetupBack) event;
       auditEvent(typedEvent);
@@ -4746,21 +5051,41 @@ public class SessionProcessor
       auditEvent(typedEvent);
       auditInvocation(aiSetup, "aiSetup", "onChoiceMade", typedEvent);
       isDirty_aiSetup = aiSetup.onChoiceMade(typedEvent);
+    } else if (event instanceof AiSetupClientChosen) {
+      AiSetupClientChosen typedEvent = (AiSetupClientChosen) event;
+      auditEvent(typedEvent);
+      auditInvocation(aiSetup, "aiSetup", "onClientChosen", typedEvent);
+      isDirty_aiSetup = aiSetup.onClientChosen(typedEvent);
     } else if (event instanceof AiSetupContinue) {
       AiSetupContinue typedEvent = (AiSetupContinue) event;
       auditEvent(typedEvent);
       auditInvocation(aiSetup, "aiSetup", "onContinue", typedEvent);
       isDirty_aiSetup = aiSetup.onContinue(typedEvent);
+    } else if (event instanceof AiSetupCopyRequested) {
+      AiSetupCopyRequested typedEvent = (AiSetupCopyRequested) event;
+      auditEvent(typedEvent);
+      auditInvocation(aiSetup, "aiSetup", "onCopyRequested", typedEvent);
+      isDirty_aiSetup = aiSetup.onCopyRequested(typedEvent);
     } else if (event instanceof AiSetupFirstRunDismissed) {
       AiSetupFirstRunDismissed typedEvent = (AiSetupFirstRunDismissed) event;
       auditEvent(typedEvent);
       auditInvocation(aiSetup, "aiSetup", "onFirstRunDismissed", typedEvent);
       isDirty_aiSetup = aiSetup.onFirstRunDismissed(typedEvent);
+    } else if (event instanceof AiSetupMoreOptions) {
+      AiSetupMoreOptions typedEvent = (AiSetupMoreOptions) event;
+      auditEvent(typedEvent);
+      auditInvocation(aiSetup, "aiSetup", "onMoreOptions", typedEvent);
+      isDirty_aiSetup = aiSetup.onMoreOptions(typedEvent);
     } else if (event instanceof AiSetupPostureChosen) {
       AiSetupPostureChosen typedEvent = (AiSetupPostureChosen) event;
       auditEvent(typedEvent);
       auditInvocation(aiSetup, "aiSetup", "onPostureChosen", typedEvent);
       isDirty_aiSetup = aiSetup.onPostureChosen(typedEvent);
+    } else if (event instanceof AiSetupRegisterRequested) {
+      AiSetupRegisterRequested typedEvent = (AiSetupRegisterRequested) event;
+      auditEvent(typedEvent);
+      auditInvocation(aiSetup, "aiSetup", "onRegisterRequested", typedEvent);
+      isDirty_aiSetup = aiSetup.onRegisterRequested(typedEvent);
     } else if (event instanceof AiSetupRequested) {
       AiSetupRequested typedEvent = (AiSetupRequested) event;
       auditEvent(typedEvent);
@@ -4776,6 +5101,11 @@ public class SessionProcessor
       auditEvent(typedEvent);
       auditInvocation(aiSetup, "aiSetup", "onSuggestedTaken", typedEvent);
       isDirty_aiSetup = aiSetup.onSuggestedTaken(typedEvent);
+    } else if (event instanceof AiSetupTimerFired) {
+      AiSetupTimerFired typedEvent = (AiSetupTimerFired) event;
+      auditEvent(typedEvent);
+      auditInvocation(aiSetup, "aiSetup", "onTimerFired", typedEvent);
+      isDirty_aiSetup = aiSetup.onTimerFired(typedEvent);
     } else if (event instanceof AssistantActionFinished) {
       AssistantActionFinished typedEvent = (AssistantActionFinished) event;
       auditEvent(typedEvent);
@@ -5022,11 +5352,32 @@ public class SessionProcessor
       auditEvent(typedEvent);
       auditInvocation(exampleDownload, "exampleDownload", "onUnpacked", typedEvent);
       exampleDownload.onUnpacked(typedEvent);
+    } else if (event instanceof ExternalAccessAnswered) {
+      ExternalAccessAnswered typedEvent = (ExternalAccessAnswered) event;
+      auditEvent(typedEvent);
+      auditInvocation(actionListener, "actionListener", "onExternalAccessAnswered", typedEvent);
+      isDirty_actionListener = actionListener.onExternalAccessAnswered(typedEvent);
+      auditInvocation(aiSetup, "aiSetup", "onExternalAccessAnswered", typedEvent);
+      isDirty_aiSetup = aiSetup.onExternalAccessAnswered(typedEvent);
     } else if (event instanceof ExternalAccessChosen) {
       ExternalAccessChosen typedEvent = (ExternalAccessChosen) event;
       auditEvent(typedEvent);
       auditInvocation(actionListener, "actionListener", "onExternalChosen", typedEvent);
       isDirty_actionListener = actionListener.onExternalChosen(typedEvent);
+      auditInvocation(aiSetup, "aiSetup", "onExternalChosen", typedEvent);
+      isDirty_aiSetup = aiSetup.onExternalChosen(typedEvent);
+    } else if (event instanceof ExternalAccessRequested) {
+      ExternalAccessRequested typedEvent = (ExternalAccessRequested) event;
+      auditEvent(typedEvent);
+      auditInvocation(actionListener, "actionListener", "onExternalAccessRequested", typedEvent);
+      isDirty_actionListener = actionListener.onExternalAccessRequested(typedEvent);
+      auditInvocation(aiSetup, "aiSetup", "onExternalAccessRequested", typedEvent);
+      isDirty_aiSetup = aiSetup.onExternalAccessRequested(typedEvent);
+    } else if (event instanceof ExternalClientSeen) {
+      ExternalClientSeen typedEvent = (ExternalClientSeen) event;
+      auditEvent(typedEvent);
+      auditInvocation(aiSetup, "aiSetup", "onClientSeen", typedEvent);
+      isDirty_aiSetup = aiSetup.onClientSeen(typedEvent);
     } else if (event instanceof FollowSet) {
       FollowSet typedEvent = (FollowSet) event;
       auditEvent(typedEvent);
@@ -5360,6 +5711,21 @@ public class SessionProcessor
       logArrival.onLogOpened(typedEvent);
       auditInvocation(startPageNoLogHint, "startPageNoLogHint", "onLogOpened", typedEvent);
       isDirty_startPageNoLogHint = startPageNoLogHint.onLogOpened(typedEvent);
+    } else if (event instanceof McpReadinessObserved) {
+      McpReadinessObserved typedEvent = (McpReadinessObserved) event;
+      auditEvent(typedEvent);
+      auditInvocation(aiSetup, "aiSetup", "onReadiness", typedEvent);
+      isDirty_aiSetup = aiSetup.onReadiness(typedEvent);
+    } else if (event instanceof McpRegistrationChanged) {
+      McpRegistrationChanged typedEvent = (McpRegistrationChanged) event;
+      auditEvent(typedEvent);
+      auditInvocation(aiSetup, "aiSetup", "onRegistrationChanged", typedEvent);
+      isDirty_aiSetup = aiSetup.onRegistrationChanged(typedEvent);
+    } else if (event instanceof McpRegistrationObserved) {
+      McpRegistrationObserved typedEvent = (McpRegistrationObserved) event;
+      auditEvent(typedEvent);
+      auditInvocation(aiSetup, "aiSetup", "onRegistrationObserved", typedEvent);
+      isDirty_aiSetup = aiSetup.onRegistrationObserved(typedEvent);
     } else if (event instanceof MembershipCompared) {
       MembershipCompared typedEvent = (MembershipCompared) event;
       auditEvent(typedEvent);
@@ -5507,6 +5873,11 @@ public class SessionProcessor
       auditEvent(typedEvent);
       auditInvocation(onboardingProposal, "onboardingProposal", "onReceived", typedEvent);
       isDirty_onboardingProposal = onboardingProposal.onReceived(typedEvent);
+    } else if (event instanceof RegisterAnswered) {
+      RegisterAnswered typedEvent = (RegisterAnswered) event;
+      auditEvent(typedEvent);
+      auditInvocation(aiSetup, "aiSetup", "onRegisterAnswered", typedEvent);
+      isDirty_aiSetup = aiSetup.onRegisterAnswered(typedEvent);
     } else if (event instanceof RestSwitchObserved) {
       RestSwitchObserved typedEvent = (RestSwitchObserved) event;
       auditEvent(typedEvent);

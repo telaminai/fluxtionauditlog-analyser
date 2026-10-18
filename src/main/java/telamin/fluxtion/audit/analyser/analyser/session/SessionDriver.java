@@ -328,6 +328,16 @@ public final class SessionDriver {
             case SessionEffects.PersistSetupDismissedEffect ignored -> "persistSetupDismissed";
             case SessionEffects.PersistSetupClientEffect ignored -> "persistSetupClient";
             case SessionEffects.OpenClientSetupEffect ignored -> "openClientSetup";
+            case SessionEffects.ConfirmExternalAccessEffect ignored -> "confirmExternalAccess";
+            case SessionEffects.SetExternalAccessEffect ignored -> "setExternalAccess";
+            case SessionEffects.RequestExternalAccessEffect ignored -> "requestExternalAccess";
+            case SessionEffects.CheckMcpRegistrationEffect ignored -> "checkMcpRegistration";
+            case SessionEffects.ConfirmRegisterEffect ignored -> "confirmRegister";
+            case SessionEffects.RegisterMcpEffect ignored -> "registerMcp";
+            case SessionEffects.CopyToClipboardEffect ignored -> "copyToClipboard";
+            case SessionEffects.WatchExternalClientEffect ignored -> "watchExternalClient";
+            case SessionEffects.UnwatchExternalClientEffect ignored -> "unwatchExternalClient";
+            case SessionEffects.AiSetupTimerEffect ignored -> "aiSetupTimer";
             case SessionEffects.RunSuggestedActionEffect ignored -> "runSuggestedAction";
             case SessionEffects.StartLocalAgentEffect ignored -> "startLocalAgent";
             case SessionEffects.PollLocalAgentStatusEffect ignored -> "pollLocalAgentStatus";

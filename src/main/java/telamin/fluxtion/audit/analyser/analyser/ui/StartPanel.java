@@ -125,6 +125,12 @@ public final class StartPanel extends JPanel {
         /** The AI line's Set up AI… / Change…. */
         default void openSetUpAi() { }
 
+        /** OD-77.5 (M77-3): the first-run block's box under No AI. */
+        default void setUpAiAlsoTurnOff(boolean on) { }
+
+        /** OD-77.11 (M77-3): Turn it off, from the AI line. */
+        default void setUpAiTurnOffAccess() { }
+
     }
 
     private final JPanel recoveryOffer = new JPanel(new BorderLayout(8, 8));
@@ -193,6 +199,8 @@ public final class StartPanel extends JPanel {
             @Override public void proceed() { actions.setUpAiContinue(); }
             @Override public void notNow() { actions.setUpAiNotNow(); }
             @Override public void open() { actions.openSetUpAi(); }
+            @Override public void alsoTurnOff(boolean on) { actions.setUpAiAlsoTurnOff(on); }
+            @Override public void turnOffAccess() { actions.setUpAiTurnOffAccess(); }
         });
         setOpaque(true);
 

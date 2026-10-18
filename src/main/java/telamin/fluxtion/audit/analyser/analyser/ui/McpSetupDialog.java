@@ -117,6 +117,12 @@ public final class McpSetupDialog extends JDialog {
         setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
         buildUi();
         refreshReadiness();
+        // M77-3: access is turned on behind a confirmation the session raises; read the state again on the way back
+        addWindowFocusListener(new java.awt.event.WindowAdapter() {
+            @Override public void windowGainedFocus(java.awt.event.WindowEvent e) {
+                refreshReadiness();
+            }
+        });
         pack();
         // Keep the registration/naming disclosure in the first view on ordinary displays. The body remains
         // scrollable when a short screen cannot accommodate this height.
@@ -402,11 +408,11 @@ public final class McpSetupDialog extends JDialog {
         }
         JTextArea exact = confirmationCommandBox();
         exact.setText(String.join("\n", commands));
-        int choice = showWideRegistrationConfirmation("Confirm Codex registration", new Object[]{
-                        "Codex will " + verb + " only the registration named fluxtion-analyser in its shared local "
-                                + "configuration. The bridge discovers the per-run endpoint and token itself; neither is in this command.",
-                        "Cancel means Codex is not started and no configuration is written.", exact});
-        if (choice != JOptionPane.OK_OPTION) return;
+        boolean confirmed = confirmRegistrationChange("Confirm Codex registration", verbButton(verb),
+                "Codex will " + verb + " only the registration named fluxtion-analyser in its shared local "
+                        + "configuration. The bridge discovers the per-run endpoint and token itself; neither is in this command.",
+                "Cancel means Codex is not started and no configuration is written.", exact);
+        if (!confirmed) return;
         rememberSetup();
         setClientActionsEnabled(false);
         clientStatus.setText("Codex is applying the confirmed registration change…");
@@ -561,11 +567,11 @@ public final class McpSetupDialog extends JDialog {
         }
         JTextArea exact = confirmationCommandBox();
         exact.setText(String.join("\n", commands));
-        int choice = showWideRegistrationConfirmation("Confirm Claude Code registration", new Object[]{
-                        "Claude Code will " + verb + " only the user-scoped registration named fluxtion-analyser. "
-                                + "The bridge discovers the per-run endpoint and token itself; neither is in this command.",
-                        "Cancel means Claude Code is not started and no configuration is written.", exact});
-        if (choice != JOptionPane.OK_OPTION) return;
+        boolean confirmed = confirmRegistrationChange("Confirm Claude Code registration", verbButton(verb),
+                "Claude Code will " + verb + " only the user-scoped registration named fluxtion-analyser. "
+                        + "The bridge discovers the per-run endpoint and token itself; neither is in this command.",
+                "Cancel means Claude Code is not started and no configuration is written.", exact);
+        if (!confirmed) return;
         rememberSetup();
         setClientActionsEnabled(false);
         clientStatus.setText("Claude Code is applying the confirmed user registration change…");
@@ -663,11 +669,11 @@ public final class McpSetupDialog extends JDialog {
         if (chooser.showSaveDialog(this) != JFileChooser.APPROVE_OPTION) return;
         Path selected = chooser.getSelectedFile().toPath();
         if (Files.exists(selected)) {
-            int replace = JOptionPane.showConfirmDialog(this,
-                    UiText.inert("Replace the selected file?\n\n" + selected.getFileName() + "\n\n"
-                            + "Only this generic MCP snippet will be written. No client configuration location is inferred."),
-                    "Replace snippet", JOptionPane.OK_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE);
-            if (replace != JOptionPane.OK_OPTION) return;
+            // M77-3 (§9.3): a SafeChoice — Cancel the default, Replace alone at the left
+            boolean replace = confirm("Replace snippet", SetupConfirmations.plain("Replace the selected file?\n\n"
+                    + selected.getFileName() + "\n\nOnly this generic MCP snippet will be written. No client configuration "
+                    + "location is inferred."), "Replace");
+            if (!replace) return;
         }
         try {
             Files.writeString(selected, genericConfiguration.getText() + System.lineSeparator());
@@ -678,35 +684,60 @@ public final class McpSetupDialog extends JDialog {
     }
 
     /**
-     * A registration command is a consent surface, so give the person a desktop-width view rather than
-     * relying on JOptionPane's compact default. The field itself is also wide enough to keep a Java/jar
-     * vector legible; both Codex and Claude Code use this same disclosure.
+     * A registration command is a consent surface (M77-3, §9.3: converted from a stock OK-default {@code JOptionPane} to
+     * the SafeChoice rule — the change alone at the left, never default; Cancel the default). The exact field stays wide
+     * enough to keep a Java/jar vector legible; both Codex and Claude Code use this same disclosure.
      */
-    private int showWideRegistrationConfirmation(String title, Object[] message) {
-        JOptionPane pane = new JOptionPane(UiText.inert(message), JOptionPane.WARNING_MESSAGE, JOptionPane.OK_CANCEL_OPTION);
-        JDialog confirmation = pane.createDialog(this, UiText.inert(title));   // SF-2: a title bar can be a JLabel
-        int screenWidth = Toolkit.getDefaultToolkit().getScreenSize().width;
-        int desiredWidth = Math.min(960, Math.max(640, screenWidth - 64));
-        if (confirmation.getWidth() < desiredWidth) {
-            confirmation.setSize(desiredWidth, confirmation.getHeight());
-        }
-        confirmation.setLocationRelativeTo(this);
-        confirmation.setVisible(true);
-        Object choice = pane.getValue();
-        return choice instanceof Integer value ? value : JOptionPane.CLOSED_OPTION;
+    private boolean confirmRegistrationChange(String title, String riskyLabel, String what, String cancelMeans,
+                                              JTextArea exact) {
+        JPanel message = new JPanel();
+        message.setOpaque(false);
+        message.setLayout(new BoxLayout(message, BoxLayout.Y_AXIS));
+        message.add(SetupConfirmations.plain(what));
+        message.add(Box.createVerticalStrut(6));
+        message.add(SetupConfirmations.plain(cancelMeans));
+        message.add(Box.createVerticalStrut(6));
+        message.add(exact);
+        for (java.awt.Component c : message.getComponents()) ((JComponent) c).setAlignmentX(LEFT_ALIGNMENT);
+        return confirm(title, message, riskyLabel);
     }
 
+    /** For the frame tests: the SafeChoice dialogs are shown modeless so the test thread stays free. */
+    static volatile boolean confirmModal = true;
+    /** For the frame tests: the last confirmation this dialog built, and the answer a non-modal one reports. */
+    static volatile SafeChoice.Asked lastConfirmation;
+    static volatile java.util.function.Consumer<SafeChoice.Asked> confirmationShown;
+
+    private boolean confirm(String title, JComponent message, String riskyLabel) {
+        SafeChoice.Asked asked = SafeChoice.build(this, title, message, UIManager.getIcon("OptionPane.warningIcon"),
+                riskyLabel, "Cancel", confirmModal);
+        lastConfirmation = asked;
+        if (!confirmModal) {
+            var shown = confirmationShown;
+            if (shown != null) shown.accept(asked);
+            return false;                              // a test reads the dialog; nothing runs from it
+        }
+        asked.dialog().setVisible(true);
+        return asked.chosenRisky();
+    }
+
+    private static String verbButton(String verb) {
+        return Character.toUpperCase(verb.charAt(0)) + verb.substring(1);
+    }
+
+    /**
+     * M77-3 (spec-ai-setup-wizard.md §9.2, review R1-8): the ask goes to the ONE owner — actionListener raises the
+     * SafeChoice confirmation (Cancel the default) and writes the setting only if it is confirmed. This dialog writes
+     * nothing; it re-reads the readiness when it has the focus back.
+     */
     private void confirmEnableTransport() {
-        int choice = JOptionPane.showConfirmDialog(this,
-                "Turn on External MCP/REST access for this analyser?\n\n"
-                        + "This saves the setting (Settings ▸ Assistant ▸ External MCP/REST access) and starts a loopback-only endpoint with a fresh "
-                        + "per-run token. The token is not copied into client configuration.",
-                "Turn on External MCP/REST access", JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
-        if (choice != JOptionPane.OK_OPTION) return;
-        config.assistantActionsRest = true;
-        if (!rememberSetup()) onConfigurationChanged.run();
-        bridgeStatus.setText("Bridge: External MCP/REST access is on; waiting for this analyser's endpoint.");
-        refreshReadiness();
+        if (!ExternalAccessDoor.request(true,
+                telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.AccessOrigin.MCP_DIALOG)) {
+            bridgeStatus.setText("Bridge: turn on External MCP/REST access from Settings ▸ Assistant.");
+            return;
+        }
+        rememberSetup();
+        bridgeStatus.setText("Bridge: answer the confirmation to turn on External MCP/REST access.");
     }
 
     private void checkBridge() {

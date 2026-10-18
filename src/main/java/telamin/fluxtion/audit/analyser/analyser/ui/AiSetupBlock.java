@@ -35,6 +35,12 @@ final class AiSetupBlock extends JPanel {
         void notNow();
 
         void open();
+
+        /** OD-77.5 (M77-3): the box under No AI. */
+        default void alsoTurnOff(boolean on) { }
+
+        /** OD-77.11 (M77-3): the one-click Turn it off after a cancelled wizard turned access on. */
+        default void turnOffAccess() { }
     }
 
     private final Host host;
@@ -42,11 +48,17 @@ final class AiSetupBlock extends JPanel {
     private final JPanel lineRow = new JPanel(new WrapLayout(FlowLayout.LEFT, UiTheme.SPACE_SM, 0));
     private final JLabel line = UiText.label(" ");
     private final JButton link = UiText.button(AiSetupLines.SET_UP_LINK);
+    /** OD-77.11 (M77-3): shown only while the node offers it — the start page hides the status bar. */
+    private final JButton turnOff = UiText.button(AiSetupLines.TURN_IT_OFF);
+    private final JPanel offerRow = new JPanel(new WrapLayout(FlowLayout.LEFT, UiTheme.SPACE_SM, 0));
+    private final JLabel offerLine = UiText.label(AiSetupLines.ACCESS_STILL_ON_LEAD);
     private final Map<Choice, JRadioButton> radios = new LinkedHashMap<>();
     private final WrapLine sentence = new WrapLine(" ");
     private final JButton proceed = UiText.button("Continue");
     private final JButton notNow = UiText.button(AiSetupLines.NOT_NOW);
     private final ButtonGroup group = new ButtonGroup();
+    /** OD-77.5 (M77-3): shown under No AI while external access is on; ticked by default. */
+    private final javax.swing.JCheckBox alsoTurnOff = UiText.checkBox(AiSetupLines.ALSO_TURN_OFF_ACCESS);
     private JLabel footer;
     private boolean rendering;
 
@@ -80,6 +92,10 @@ final class AiSetupBlock extends JPanel {
         firstRun.add(choices);
         sentence.setForeground(UiTheme.mutedForeground());
         firstRun.add(sentence);
+        alsoTurnOff.setOpaque(false);
+        alsoTurnOff.setVisible(false);
+        alsoTurnOff.addActionListener(e -> { if (!rendering) host.alsoTurnOff(alsoTurnOff.isSelected()); });
+        firstRun.add(alsoTurnOff);
         JPanel buttons = new JPanel(new WrapLayout(FlowLayout.LEFT, UiTheme.SPACE_SM, UiTheme.SPACE_XS));
         buttons.setOpaque(false);
         proceed.addActionListener(e -> host.proceed());
@@ -101,11 +117,18 @@ final class AiSetupBlock extends JPanel {
         lineRow.add(line);
         link.addActionListener(e -> host.open());
         lineRow.add(link);
+        turnOff.addActionListener(e -> host.turnOffAccess());
+        offerRow.setOpaque(false);
+        offerRow.add(offerLine);
+        offerRow.add(turnOff);
+        offerRow.setVisible(false);
 
         firstRun.setAlignmentX(LEFT_ALIGNMENT);
         lineRow.setAlignmentX(LEFT_ALIGNMENT);
+        offerRow.setAlignmentX(LEFT_ALIGNMENT);
         add(firstRun);
         add(lineRow);
+        add(offerRow);
         setVisible(false);
     }
 
@@ -130,7 +153,7 @@ final class AiSetupBlock extends JPanel {
         AiSetupState st = s == null ? AiSetupState.IDLE : s;
         rendering = true;
         try {
-            boolean any = st.wizardEntry() && (st.firstRun() || !st.aiLine().isBlank());
+            boolean any = st.wizardEntry() && (st.firstRun() || !st.aiLine().isBlank() || st.external().offerTurnOff());
             setVisible(any);
             firstRun.setVisible(st.firstRun());
             lineRow.setVisible(!st.firstRun() && !st.aiLine().isBlank());
@@ -139,9 +162,12 @@ final class AiSetupBlock extends JPanel {
             String words = AiSetupLines.sentenceFor(st.choice());
             sentence.setText(words.isEmpty() ? " " : words);
             proceed.setEnabled(st.choice() != Choice.NONE);
+            alsoTurnOff.setVisible(st.firstRun() && st.external().offerAlsoTurnOff());
+            alsoTurnOff.setSelected(st.external().alsoTurnOff());
             line.setText(st.aiLine().isBlank() ? " " : st.aiLine());
             link.setText(st.aiLineLink().isBlank() ? AiSetupLines.SET_UP_LINK : st.aiLineLink());
             link.getAccessibleContext().setAccessibleName(link.getText().replace("…", "") + " AI");
+            offerRow.setVisible(st.external().offerTurnOff());
         } finally {
             rendering = false;
         }
@@ -157,6 +183,14 @@ final class AiSetupBlock extends JPanel {
 
     JButton proceedButton() {
         return proceed;
+    }
+
+    javax.swing.JCheckBox alsoTurnOffBox() {
+        return alsoTurnOff;
+    }
+
+    JButton turnOffButton() {
+        return turnOff;
     }
 
     JButton notNowButton() {

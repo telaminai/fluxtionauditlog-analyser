@@ -79,7 +79,17 @@ public final class McpConnectionProbe {
 
     public McpConnectionProbe(McpLaunchCommand command, RestEndpointFile endpointFile) {
         this(command, endpointFile::read, RestEndpointFile.Endpoint::alive,
-                () -> ProcessHandle.current().pid(), c -> new ProcessBuilder(c).start(), DEFAULT_TIMEOUT);
+                () -> ProcessHandle.current().pid(), McpConnectionProbe::startMarked, DEFAULT_TIMEOUT);
+    }
+
+    /**
+     * M77-3 (spec-ai-setup-wizard.md §9.4): the probe's bridge marks its calls, so this analyser's own check is never
+     * mistaken for an external client reaching the window.
+     */
+    static Process startMarked(List<String> command) throws IOException {
+        ProcessBuilder pb = new ProcessBuilder(command);
+        pb.environment().put(McpBridge.PROBE_ENV, "1");
+        return pb.start();
     }
 
     McpConnectionProbe(McpLaunchCommand command, EndpointSource endpoints, EndpointLiveness liveness,

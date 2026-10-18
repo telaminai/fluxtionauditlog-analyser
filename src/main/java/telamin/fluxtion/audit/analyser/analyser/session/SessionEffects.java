@@ -319,6 +319,72 @@ public sealed interface SessionEffects {
     record OpenClientSetupEffect(long opId, AiSetupState.Client client) implements SessionEffects {
     }
 
+    // ---- M77-3 (spec-ai-setup-wizard.md §8.4, §9): the external client path ------------------------------------------
+
+    /**
+     * Requested by {@code actionListener} (§9.2): ask the person whether to turn External MCP/REST access on, under the
+     * SafeChoice rule (<i>Turn on access</i> at the left, never default; <i>Cancel</i> the default). Reports
+     * {@link SessionEvents.ExternalAccessAnswered}. Answered at once by {@link SessionEvents.AiSetupEffectStarted}.
+     */
+    record ConfirmExternalAccessEffect(long opId, long request) implements SessionEffects {
+    }
+
+    /**
+     * Requested by {@code actionListener} ONLY: write {@code assistant.rest}, save, and report
+     * {@link SessionEvents.RestSwitchObserved} — the one writer of the setting (besides M19.7's {@code --rest} start-up
+     * write, before the session exists). Answered at once by {@link SessionEvents.AiSetupEffectStarted}.
+     */
+    record SetExternalAccessEffect(long opId, long request, boolean on) implements SessionEffects {
+    }
+
+    /**
+     * Requested by {@code aiSetup} for the box under No AI (OD-77.5): ask {@code actionListener} to turn access off, as a
+     * door does — the performer posts {@link SessionEvents.ExternalAccessRequested} with origin SETUP.
+     */
+    record RequestExternalAccessEffect(long opId, long request, boolean on) implements SessionEffects {
+    }
+
+    /**
+     * <i>Check registration</i>: the client's own {@code mcp get} (Claude Code's may health-check the server), in a fresh
+     * empty scratch folder (S10), with the client resolved by the one resolver. Reports
+     * {@link SessionEvents.McpRegistrationObserved}.
+     */
+    record CheckMcpRegistrationEffect(long opId, long probe, AiSetupState.Client client) implements SessionEffects {
+    }
+
+    /**
+     * <i>Register for me…</i>: show, under the SafeChoice rule, the verbatim argument vector(s) that will run ({@code
+     * replace}: the remove, then the add). The vectors are kept for {@code request}; {@link RegisterMcpEffect} runs THOSE
+     * (S5). Reports {@link SessionEvents.RegisterAnswered}.
+     */
+    record ConfirmRegisterEffect(long opId, long request, AiSetupState.Client client, boolean replace)
+            implements SessionEffects {
+    }
+
+    /** Run the vectors the confirmation for {@code request} showed — never re-rendered. Reports McpRegistrationChanged. */
+    record RegisterMcpEffect(long opId, long request, AiSetupState.Client client) implements SessionEffects {
+    }
+
+    /** Put {@code what} on the clipboard ({@code client} picks the register command or the configuration). */
+    record CopyToClipboardEffect(long opId, SessionEvents.CopyWhat what, AiSetupState.Client client)
+            implements SessionEffects {
+    }
+
+    /**
+     * Arm the live check (§9.4): the action server reports the first counted external {@code /action} once, as
+     * {@link SessionEvents.ExternalClientSeen} for {@code watch}. The adapter re-applies the watch to a rebuilt server.
+     */
+    record WatchExternalClientEffect(long opId, long watch) implements SessionEffects {
+    }
+
+    /** Disarm watch {@code watch} (a later sighting is not reported). */
+    record UnwatchExternalClientEffect(long opId, long watch) implements SessionEffects {
+    }
+
+    /** Report {@link SessionEvents.AiSetupTimerFired} for {@code watch} after {@code seconds}. */
+    record AiSetupTimerEffect(long opId, long watch, int seconds) implements SessionEffects {
+    }
+
     /**
      * Review PR151 F4 (owner, 2026-10-18): turning on Full Claude Code from the cards asks what Settings ▸ Assistant asks —
      * the full warning, modal, Cancel the default (Enter and Escape), <i>Turn on full Claude Code</i> the explicit risky

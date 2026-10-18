@@ -13,6 +13,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Origin;
 import telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Posture;
 import telamin.fluxtion.audit.analyser.analyser.session.AiSetupState.Step;
 import telamin.fluxtion.audit.analyser.analyser.session.AssistantProfile;
+import telamin.fluxtion.audit.analyser.analyser.session.ListenerState;
 import telamin.fluxtion.audit.analyser.analyser.session.ProfileState;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEffects;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents;
@@ -39,6 +40,12 @@ import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileOri
  * <p><b>Order.</b> Downstream of {@code localAgentSession} and {@code assistantLoop} (it reads whether a turn is open
  * after they handled the fact), and of {@code actionListener} and {@code openLog} (JavaBean parents); upstream of
  * {@code startPagePrompt}, which reads {@link #interceptedStartPage} and {@link #finished}.
+ *
+ * <p><b>M77-3: Screen 2b, your own client.</b> Which client; whether external access is on (read from
+ * {@code actionListener}, which alone decides turning it on or off, §9.2); the client's registration (checked and run
+ * only on the person's explicit press, behind a confirmation that shows the exact command); and the live check — a watch
+ * on the action server, armed only while part 4 is current and access is on, reporting the first external call once
+ * (§9.4). Every probe, request and watch carries an id this node minted; a fact for an old one is stale.
  *
  * <p><b>What it never holds.</b> A key, a model the person typed, a path, raw CLI output, an e-mail or an organisation.
  */
@@ -141,6 +148,33 @@ public class AiSetup implements EventLogSource {
     private long nextWizardRequest;
     private boolean applying;
 
+    // ---- M77-3: Screen 2b ---------------------------------------------------------------------------------------------
+    /** A supported launcher was found (this copy can be registered); reported with the clients' badges. */
+    private boolean launcher = true;
+    private AiSetupState.Client client = AiSetupState.Client.CLAUDE_CODE;
+    private AiSetupState.Registration registration = AiSetupState.Registration.UNCHECKED;
+    private long registrationProbe;
+    private long registerRequest;
+    private boolean confirmingRegister;
+    private long watch;
+    private AiSetupState.LiveVerdict liveVerdict = AiSetupState.LiveVerdict.IDLE;
+    private long liveAt;
+    private long liveLabelRef;
+    private boolean liveFull;
+    /** A Full session was running when the watch was armed, and the count of Full sessions then (§9.4). */
+    private boolean fullAtArm;
+    private long fullMark;
+    private SessionEvents.McpReadiness readiness = SessionEvents.McpReadiness.OFF;
+    /** The wizard's own turn-on request, while it waits for its answer; 0 for none. */
+    private long wizardAccessRequest;
+    /** OD-77.11: this wizard turned external access on (confirmed) since it opened. */
+    private boolean accessTurnedOnHere;
+    /** OD-77.11: the closing line offers Turn it off. */
+    private boolean offerTurnOff;
+    /** OD-77.5: the box under No AI — ticked by default (turning off is the safe direction). */
+    private boolean alsoTurnOff = true;
+    private long nextAccessRequest;
+
     /**
      * Robot re-walk #3: the hold of an evidence question asked with no log open — a JavaBean parent, upstream, so neither
      * the wizard nor the cards open for a press it holds. Null only in a processor generated before it existed.
@@ -216,8 +250,15 @@ public class AiSetup implements EventLogSource {
 
     @OnEventHandler
     public boolean onClientsObserved(SessionEvents.AiClientsObserved e) {
-        if (e.codexFound() == codexFound) return false;
+        if (e.codexFound() == codexFound && e.launcher() == launcher) return false;
         codexFound = e.codexFound();
+        launcher = e.launcher();
+        if (wizardOpen && step == Step.CLIENT) {
+            // §6.3: no supported launcher — parts 3 and 4 cannot be done; Finish without a client is offered
+            if (!launcher) registration = AiSetupState.Registration.NO_LAUNCHER;
+            else if (registration == AiSetupState.Registration.NO_LAUNCHER) registration = AiSetupState.Registration.UNCHECKED;
+            rearm();
+        }
         return changed();
     }
 
@@ -233,9 +274,51 @@ public class AiSetup implements EventLogSource {
         return changed();
     }
 
-    /** The listener's state changed (external access on or off): the AI line follows it. */
+    /** The listener's state changed (external access on or off): the AI line, part 2 and the live check follow it. */
     @OnEventHandler
     public boolean onRestSwitch(SessionEvents.RestSwitchObserved e) {
+        if (!e.on() && offerTurnOff) {
+            offerTurnOff = false;                      // OD-77.11: it is off now; the offer has done its job
+            if (AiSetupLines.ACCESS_STILL_ON.equals(line)) line = "";
+        }
+        rearm();
+        return changed();
+    }
+
+    // ---- M77-3: external access, as actionListener decided it (§9.2) ---------------------------------------------------
+
+    /** A door asked: the wizard remembers its own turn-on request, to know later whether IT turned access on. */
+    @OnEventHandler
+    public boolean onExternalAccessRequested(SessionEvents.ExternalAccessRequested e) {
+        if (e.origin() == SessionEvents.AccessOrigin.SETUP && e.on() && wizardOpen) wizardAccessRequest = e.request();
+        rearm();
+        return changed();
+    }
+
+    @OnEventHandler
+    public boolean onExternalAccessAnswered(SessionEvents.ExternalAccessAnswered e) {
+        if (wizardAccessRequest != 0 && e.request() == wizardAccessRequest) {
+            if (e.confirmed()) accessTurnedOnHere = true;
+            wizardAccessRequest = 0;
+        }
+        rearm();
+        return changed();
+    }
+
+    /** Review B2's choice to close external access while a Full session runs: the live check is disarmed (R1-18). */
+    @OnEventHandler
+    public boolean onExternalChosen(SessionEvents.ExternalAccessChosen e) {
+        rearm();
+        return changed();
+    }
+
+    /** The readiness poll: another window may own the client connection (§9.4 OTHER_INSTANCE). */
+    @OnEventHandler
+    public boolean onReadiness(SessionEvents.McpReadinessObserved e) {
+        if (e.status() == readiness) return false;
+        readiness = e.status();
+        auditLog.info("mcpReadiness", readiness.name());
+        rearm();
         return changed();
     }
 
@@ -551,6 +634,10 @@ public class AiSetup implements EventLogSource {
         finished = 0;
         applying = false;
         line = "";
+        accessTurnedOnHere = false;
+        offerTurnOff = false;
+        wizardAccessRequest = 0;
+        alsoTurnOff = true;
         auditLog.info("aiSetup", "OPEN").info("origin", why.name()).info("choice", choice.name());
         // Screen 1's badges: file existence only, no process (S2, ★ T6)
         effects.request(new SessionEffects.ObserveAiClientsEffect(0L));
@@ -612,6 +699,12 @@ public class AiSetup implements EventLogSource {
                         // nothing to guide: Off at once, and no external client is set up any more
                         if (fromFirstRun) origin = Origin.FIRST_RUN;
                         applyFromWizard(AssistantProfile.OFF);
+                        // OD-77.5: the ticked box also turns external access off — asked of actionListener, as a door
+                        if (alsoTurnOff && restOn()) {
+                            auditLog.info("aiSetup", "ALSO_TURN_OFF_ACCESS");
+                            effects.request(new SessionEffects.RequestExternalAccessEffect(0L, -(++nextAccessRequest),
+                                    false));
+                        }
                     }
                     case INSIDE, BOTH -> {
                         if (fromFirstRun) openWizard(Origin.FIRST_RUN, choice, Step.INSIDE);
@@ -619,11 +712,10 @@ public class AiSetup implements EventLogSource {
                         startInstalledProbe();        // the person's Continue on the choice that needs it is the act
                     }
                     case CLIENT -> {
-                        // M77-2's interim (review R1-11): today's dialog does it, until M77-3 builds Screen 2b
-                        auditLog.info("aiSetup", "CLIENT_INTERIM");
-                        effects.request(new SessionEffects.OpenClientSetupEffect(0L, AiSetupState.Client.CLAUDE_CODE));
-                        closeWizard();
-                        line = AiSetupLines.CLIENT_INTERIM;
+                        // M77-3: Screen 2b (it replaces M77-2's interim dialog)
+                        if (fromFirstRun) openWizard(Origin.FIRST_RUN, choice, Step.CLIENT);
+                        step = Step.CLIENT;
+                        enterClient();
                     }
                     case IN_APP -> {
                         if (fromFirstRun) openWizard(Origin.FIRST_RUN, choice, Step.OTHER);
@@ -647,10 +739,43 @@ public class AiSetup implements EventLogSource {
             }
             case SUMMARY -> closeWizard();
             case CLIENT -> {
-                return false;                         // M77-3
+                // §6.3 Finish: enabled once part 2 is on (the live check is never a gate), or without a client when this
+                // copy cannot be registered. §7.2: the client is remembered, and the panel follows the choice
+                boolean noLauncher = registration == AiSetupState.Registration.NO_LAUNCHER;
+                AiSetupState.Access a = access();
+                if (!noLauncher && (a == AiSetupState.Access.OFF || a == AiSetupState.Access.CONFIRMING)
+                        || confirmingRegister) {
+                    auditLog.info("aiSetupRefused", "ACCESS_OFF");
+                    return false;                     // the button is disabled; the node says no too
+                }
+                disarm();
+                if (!noLauncher) {
+                    setupClient = client;
+                    effects.request(new SessionEffects.PersistSetupClientEffect(0L, client));
+                }
+                // Both re-applies 2a's profile (Full in force asks nothing again), so the question waits for THIS Finish
+                applyFromWizard(choice == Choice.BOTH ? AiSetupDerived.profileFor(Choice.BOTH, posture)
+                        : AssistantProfile.OFF);
             }
         }
         return changed();
+    }
+
+    /** Screen 2b opens: the client set up before (or the one found), its registration not yet checked, no watch. */
+    private void enterClient() {
+        client = setupClient != AiSetupState.Client.NONE ? setupClient
+                : claudeFound ? AiSetupState.Client.CLAUDE_CODE
+                : codexFound ? AiSetupState.Client.CODEX : AiSetupState.Client.CLAUDE_CODE;
+        registration = launcher ? AiSetupState.Registration.UNCHECKED : AiSetupState.Registration.NO_LAUNCHER;
+        registrationProbe = 0;
+        registerRequest = 0;
+        confirmingRegister = false;
+        liveVerdict = AiSetupState.LiveVerdict.IDLE;
+        liveAt = 0;
+        liveLabelRef = 0;
+        liveFull = false;
+        auditLog.info("aiSetup", "CLIENT").info("client", client.name()).info("launcher", launcher);
+        rearm();
     }
 
     /** The wizard's Apply: one request id of its own (negative: never one a card or the menu minted). */
@@ -666,18 +791,20 @@ public class AiSetup implements EventLogSource {
      * is placed — after the mode, so the assistant now in force binds it (§12). Otherwise the Summary.
      */
     private void finishWizard(AssistantProfile applied) {
+        if (choice == Choice.BOTH && step == Step.INSIDE) {
+            // M77-3: Both — Claude inside is applied; Screen 2b next. Nothing is placed until 2b's Finish (§12)
+            step = Step.CLIENT;
+            enterClient();
+            return;
+        }
         finished = wizardRequest;
         if (choice == Choice.NO_AI) {
             setupClient = AiSetupState.Client.NONE;
             effects.request(new SessionEffects.PersistSetupClientEffect(0L, AiSetupState.Client.NONE));
         }
-        if (choice == Choice.BOTH) {
-            // M77-2's interim: the client half is today's dialog (review R1-11)
-            effects.request(new SessionEffects.OpenClientSetupEffect(0L, AiSetupState.Client.CLAUDE_CODE));
-        }
         boolean waiting = pendingDraft != 0 || startBoxWaiting;
         auditLog.info("aiSetupFinished", String.valueOf(applied)).info("waiting", waiting);
-        if (waiting || !wizardOpen || choice == Choice.BOTH) {
+        if (waiting || !wizardOpen) {
             boolean placeable = applied != null && applied != AssistantProfile.OFF && applied != AssistantProfile.NONE;
             placeOrReturnPending(applied);
             closeWizard();
@@ -695,10 +822,18 @@ public class AiSetup implements EventLogSource {
             return false;
         }
         Step back = switch (step) {
-            case INSIDE, OTHER, CLIENT -> Step.CHOICE;
+            case INSIDE, OTHER -> Step.CHOICE;
+            case CLIENT -> choice == Choice.BOTH ? Step.INSIDE : Step.CHOICE;   // one screen back; it undoes nothing
             case CHOICE, SUMMARY -> null;
         };
         if (back == null) return false;
+        if (step == Step.CLIENT) {
+            disarm();
+            registrationProbe = 0;                    // a check still running answers a screen that is gone: stale
+            if (registration == AiSetupState.Registration.RUNNING && registerRequest == 0) {
+                registration = AiSetupState.Registration.UNCHECKED;
+            }
+        }
         step = back;
         // Back undoes nothing; a check still running answers a screen that is no longer shown — stale
         probeInstalled = 0;
@@ -718,11 +853,14 @@ public class AiSetup implements EventLogSource {
         if (!wizardOpen) return false;
         boolean summary = step == Step.SUMMARY;
         closeWizard();
+        // OD-77.11 (§7.4): what this wizard turned on stays on, and the closing line offers to turn it off
+        boolean stillOn = !summary && accessTurnedOnHere && restOn();
+        offerTurnOff = stillOn;
         if (pendingDraft != 0) {
             pendingDraft = 0;
-            line = AiSetupLines.CANCELLED_ASK;
+            line = stillOn ? AiSetupLines.CANCELLED_ASK + " " + AiSetupLines.ACCESS_STILL_ON : AiSetupLines.CANCELLED_ASK;
         } else {
-            line = "";
+            line = stillOn ? AiSetupLines.ACCESS_STILL_ON : "";
         }
         startBoxWaiting = false;
         auditLog.info("aiSetup", summary ? "DONE" : "CANCELLED").info("origin", String.valueOf(e.origin()));
@@ -730,6 +868,7 @@ public class AiSetup implements EventLogSource {
     }
 
     private void closeWizard() {
+        disarm();
         wizardOpen = false;
         probeInstalled = 0;
         probeAuth = 0;
@@ -746,7 +885,11 @@ public class AiSetup implements EventLogSource {
             return false;
         }
         auditLog.info("aiSetupSuggested", want.name());
-        effects.request(new SessionEffects.RunSuggestedActionEffect(0L, want));
+        if (want == AiSetupState.Suggested.COPY_QUESTION) {
+            effects.request(new SessionEffects.CopyToClipboardEffect(0L, SessionEvents.CopyWhat.FIRST_QUESTION, client));
+        } else {
+            effects.request(new SessionEffects.RunSuggestedActionEffect(0L, want));
+        }
         closeWizard();
         line = "";
         return changed();
@@ -759,7 +902,8 @@ public class AiSetup implements EventLogSource {
             case INSIDE, BOTH, IN_APP -> openLog != null && openLog.isOpen() ? AiSetupState.Suggested.RIGHT_CLICK
                     : AiSetupState.Suggested.OPEN_SAMPLE;
             case NO_AI -> AiSetupState.Suggested.TOUR;
-            case CLIENT, NONE -> AiSetupState.Suggested.NONE;
+            case CLIENT -> AiSetupState.Suggested.COPY_QUESTION;   // §6.4: your own client only
+            case NONE -> AiSetupState.Suggested.NONE;
         };
     }
 
@@ -774,7 +918,9 @@ public class AiSetup implements EventLogSource {
 
     @OnEventHandler
     public boolean onCheckAgain(SessionEvents.AiSetupCheckAgain e) {
-        if (!wizardOpen || step != Step.INSIDE || e.check() == null) return false;
+        if (!wizardOpen || e.check() == null) return false;
+        if (step == Step.CLIENT) return checkAgainClient(e.check());
+        if (step != Step.INSIDE) return false;
         switch (e.check()) {
             case INSTALLED -> {
                 if (installed.verdict() == AiSetupState.Installed.RUNNING) {
@@ -865,6 +1011,251 @@ public class AiSetup implements EventLogSource {
         return changed();
     }
 
+    // ---- M77-3: Screen 2b (§6.3, §9.3, §9.4) ----------------------------------------------------------------------------
+
+    /** Part 1: which client. Its registration is not known for the new client; the watch starts again. */
+    @OnEventHandler
+    public boolean onClientChosen(SessionEvents.AiSetupClientChosen e) {
+        if (!wizardOpen || step != Step.CLIENT || confirmingRegister || e.client() == null
+                || e.client() == AiSetupState.Client.NONE) {
+            auditLog.info("staleFact", "AiSetupClientChosen");
+            return false;
+        }
+        if (e.client() == client) return false;
+        client = e.client();
+        disarm();
+        registration = launcher ? AiSetupState.Registration.UNCHECKED : AiSetupState.Registration.NO_LAUNCHER;
+        registrationProbe = 0;
+        registerRequest = 0;
+        if (liveVerdict != AiSetupState.LiveVerdict.SEEN) liveVerdict = AiSetupState.LiveVerdict.IDLE;
+        line = "";
+        auditLog.info("aiSetupClient", client.name());
+        rearm();
+        return changed();
+    }
+
+    /** A Copy button: the command or configuration copied counts as part 3 done ("Copied — run it in a terminal"). */
+    @OnEventHandler
+    public boolean onCopyRequested(SessionEvents.AiSetupCopyRequested e) {
+        if (!wizardOpen || step != Step.CLIENT || e.what() == null || e.what() == SessionEvents.CopyWhat.FIRST_QUESTION) {
+            auditLog.info("staleFact", "AiSetupCopyRequested");
+            return false;
+        }
+        boolean config = e.what() == SessionEvents.CopyWhat.REGISTER_COMMAND
+                || e.what() == SessionEvents.CopyWhat.GENERIC_CONFIG;
+        if (config && !launcher) return false;        // nothing to copy: this copy cannot be registered
+        auditLog.info("aiSetupCopy", e.what().name());
+        effects.request(new SessionEffects.CopyToClipboardEffect(0L, e.what(), client));
+        if (config && registration != AiSetupState.Registration.PRESENT
+                && registration != AiSetupState.Registration.REGISTERED
+                && registration != AiSetupState.Registration.RUNNING) {
+            registration = AiSetupState.Registration.COPIED;
+        }
+        rearm();
+        return changed();
+    }
+
+    /** <i>Register for me…</i> (OD-77.10): never run before the confirmation that shows the exact command (S5). */
+    @OnEventHandler
+    public boolean onRegisterRequested(SessionEvents.AiSetupRegisterRequested e) {
+        if (!wizardOpen || step != Step.CLIENT || !launcher || client == AiSetupState.Client.GENERIC
+                || confirmingRegister || registration == AiSetupState.Registration.RUNNING) {
+            auditLog.info("staleFact", "AiSetupRegisterRequested");
+            return false;
+        }
+        registerRequest = ++nextProbe;
+        confirmingRegister = true;
+        boolean replace = registration == AiSetupState.Registration.PRESENT;
+        auditLog.info("aiSetupRegister", "CONFIRM").info("request", registerRequest).info("replace", replace);
+        effects.request(new SessionEffects.ConfirmRegisterEffect(0L, registerRequest, client, replace));
+        return changed();
+    }
+
+    @OnEventHandler
+    public boolean onRegisterAnswered(SessionEvents.RegisterAnswered e) {
+        if (!confirmingRegister || e.request() != registerRequest) {
+            auditLog.info("staleFact", "RegisterAnswered").info("request", e.request()).info("open", registerRequest);
+            return false;
+        }
+        confirmingRegister = false;
+        if (!e.confirmed() || !wizardOpen) {
+            auditLog.info("aiSetupRegister", "CANCELLED").info("request", e.request());
+            registerRequest = 0;
+            return changed();
+        }
+        disarm();                                     // never while the live check is armed (§9.4)
+        registration = AiSetupState.Registration.RUNNING;
+        auditLog.info("aiSetupRegister", "RUN").info("request", e.request());
+        effects.request(new SessionEffects.RegisterMcpEffect(0L, e.request(), client));
+        return changed();
+    }
+
+    @OnEventHandler
+    public boolean onRegistrationChanged(SessionEvents.McpRegistrationChanged e) {
+        if (registerRequest == 0 || e.request() != registerRequest || !wizardOpen) {
+            auditLog.info("staleFact", "McpRegistrationChanged").info("request", e.request()).info("open", registerRequest);
+            return false;
+        }
+        registerRequest = 0;
+        registration = e.ok() ? AiSetupState.Registration.REGISTERED : AiSetupState.Registration.FAILED;
+        auditLog.info("aiSetupRegistered", registration.name());
+        rearm();
+        return changed();
+    }
+
+    @OnEventHandler
+    public boolean onRegistrationObserved(SessionEvents.McpRegistrationObserved e) {
+        if (registrationProbe == 0 || e.probe() != registrationProbe || !wizardOpen) {
+            auditLog.info("staleFact", "McpRegistrationObserved").info("probe", e.probe()).info("current",
+                    registrationProbe);
+            return false;
+        }
+        registrationProbe = 0;
+        registration = switch (e.status() == null ? SessionEvents.RegistrationOutcome.INDETERMINATE : e.status()) {
+            case PRESENT -> AiSetupState.Registration.PRESENT;
+            case ABSENT -> AiSetupState.Registration.ABSENT;
+            case INDETERMINATE -> AiSetupState.Registration.UNKNOWN;
+        };
+        auditLog.info("aiSetupRegistration", registration.name());
+        rearm();
+        return changed();
+    }
+
+    /** The action server saw the first counted external call after this watch was armed (S8). */
+    @OnEventHandler
+    public boolean onClientSeen(SessionEvents.ExternalClientSeen e) {
+        if (watch == 0 || e.watch() != watch || !wizardOpen) {
+            auditLog.info("staleFact", "ExternalClientSeen").info("watch", e.watch()).info("current", watch);
+            return false;
+        }
+        watch = 0;                                    // the server reports once, then disarms itself
+        ListenerState ls = actionListener == null ? ListenerState.NONE : actionListener.state();
+        liveVerdict = AiSetupState.LiveVerdict.SEEN;
+        liveAt = e.at();
+        liveLabelRef = e.labelRef();
+        // §9.4 (review B2, R1-18): a Full session in the panel can reach the endpoint too — say so if one ran meanwhile
+        liveFull = fullAtArm || ls.fullSession() || ls.fullSessions() > fullMark;
+        auditLog.info("aiSetupLive", "SEEN").info("fullSession", liveFull);
+        return changed();
+    }
+
+    @OnEventHandler
+    public boolean onTimerFired(SessionEvents.AiSetupTimerFired e) {
+        if (watch == 0 || e.watch() != watch || liveVerdict != AiSetupState.LiveVerdict.WAITING) {
+            auditLog.info("staleFact", "AiSetupTimerFired").info("watch", e.watch()).info("current", watch);
+            return false;
+        }
+        liveVerdict = AiSetupState.LiveVerdict.WAITING_LONG;   // the tips appear; the wait continues
+        return changed();
+    }
+
+    /** <i>More options…</i> (OD-77.12): today's client dialog, for what the wizard does not do. */
+    @OnEventHandler
+    public boolean onMoreOptions(SessionEvents.AiSetupMoreOptions e) {
+        if (!wizardOpen || step != Step.CLIENT) return false;
+        effects.request(new SessionEffects.OpenClientSetupEffect(0L, client));
+        return false;
+    }
+
+    /** OD-77.5: the box under No AI. */
+    @OnEventHandler
+    public boolean onAlsoTurnOff(SessionEvents.AiSetupAlsoTurnOffChosen e) {
+        if (alsoTurnOff == e.turnOff()) return false;
+        alsoTurnOff = e.turnOff();
+        return changed();
+    }
+
+    private boolean checkAgainClient(AiSetupState.CheckKind k) {
+        switch (k) {
+            case REGISTRATION -> {
+                if (!launcher || client == AiSetupState.Client.GENERIC || confirmingRegister) return false;
+                if (registration == AiSetupState.Registration.RUNNING) {
+                    line = AiSetupLines.ALREADY_CHECKING;
+                    return changed();
+                }
+                disarm();                             // mcp get never runs while the live check is armed (§9.4)
+                registrationProbe = ++nextProbe;
+                registration = AiSetupState.Registration.RUNNING;
+                auditLog.info("aiSetupProbe", "REGISTRATION").info("probe", registrationProbe);
+                effects.request(new SessionEffects.CheckMcpRegistrationEffect(0L, registrationProbe, client));
+            }
+            case LIVE, READINESS -> {
+                if (liveVerdict == AiSetupState.LiveVerdict.SEEN || liveVerdict == AiSetupState.LiveVerdict.ACCESS_OFF
+                        || liveVerdict == AiSetupState.LiveVerdict.OTHER_INSTANCE) {
+                    liveVerdict = AiSetupState.LiveVerdict.IDLE;
+                }
+                rearm();
+            }
+            default -> {
+                return false;
+            }
+        }
+        line = "";
+        return changed();
+    }
+
+    /** External access as Screen 2b shows it — from actionListener's state and the readiness poll (R1-18). */
+    private AiSetupState.Access access() {
+        if (actionListener == null) return AiSetupState.Access.OFF;
+        ListenerState ls = actionListener.state();
+        if (ls.confirming()) return AiSetupState.Access.CONFIRMING;
+        if (!ls.restOn()) return AiSetupState.Access.OFF;
+        if (ls.closedForSession()) return AiSetupState.Access.CLOSED_FOR_SESSION;
+        if (readiness == SessionEvents.McpReadiness.OTHER_INSTANCE) return AiSetupState.Access.OTHER_INSTANCE;
+        return AiSetupState.Access.ON;
+    }
+
+    private boolean restOn() {
+        return actionListener != null && actionListener.state().restOn();
+    }
+
+    /**
+     * §9.4: the watch is armed only while part 4 is current — Screen 2b, part 3 done, no registration running — AND
+     * access is on for external clients; it is disarmed otherwise. One rule, run after every fact that can change it.
+     */
+    private void rearm() {
+        boolean wasArmed = watch != 0;
+        AiSetupState.Access a = access();
+        boolean part3 = registration == AiSetupState.Registration.PRESENT
+                || registration == AiSetupState.Registration.REGISTERED
+                || registration == AiSetupState.Registration.COPIED;
+        boolean want = wizardOpen && step == Step.CLIENT && a == AiSetupState.Access.ON && part3 && !confirmingRegister
+                && liveVerdict != AiSetupState.LiveVerdict.SEEN;
+        if (want && watch == 0) {
+            ListenerState ls = actionListener.state();
+            watch = ++nextProbe;
+            fullAtArm = ls.fullSession();
+            fullMark = ls.fullSessions();
+            liveVerdict = AiSetupState.LiveVerdict.WAITING;
+            auditLog.info("aiSetupWatch", "ARMED").info("watch", watch);
+            effects.request(new SessionEffects.WatchExternalClientEffect(0L, watch));
+            effects.request(new SessionEffects.AiSetupTimerEffect(0L, watch, LIVE_TIP_SECONDS));
+            return;
+        }
+        if (!want) {
+            disarm();
+            if (wizardOpen && step == Step.CLIENT && liveVerdict != AiSetupState.LiveVerdict.SEEN) {
+                if (a == AiSetupState.Access.OTHER_INSTANCE) liveVerdict = AiSetupState.LiveVerdict.OTHER_INSTANCE;
+                else if (a == AiSetupState.Access.OFF && (wasArmed
+                        || liveVerdict == AiSetupState.LiveVerdict.ACCESS_OFF)) {
+                    liveVerdict = AiSetupState.LiveVerdict.ACCESS_OFF;
+                } else {
+                    liveVerdict = AiSetupState.LiveVerdict.IDLE;
+                }
+            }
+        }
+    }
+
+    /** The 2-minute tip (§6.3 part 4). */
+    public static final int LIVE_TIP_SECONDS = 120;
+
+    private void disarm() {
+        if (watch == 0) return;
+        auditLog.info("aiSetupWatch", "DISARMED").info("watch", watch);
+        effects.request(new SessionEffects.UnwatchExternalClientEffect(0L, watch));
+        watch = 0;
+    }
+
     // ---- what children read -----------------------------------------------------------------------------------------
 
     /** Whether this node answered start-page request {@code request} by opening the choices (read by startPagePrompt). */
@@ -940,18 +1331,26 @@ public class AiSetup implements EventLogSource {
     public AiSetupState setupState() {
         Choice inForce = inForce();
         boolean external = actionListener != null && actionListener.state().external();
+        AiSetupState.Access access = access();
+        AiSetupState.Confirming confirming = confirmingFull != 0 && confirmingOrigin == ProfileOrigin.SETUP
+                ? AiSetupState.Confirming.FULL
+                : confirmingRegister ? AiSetupState.Confirming.REGISTER
+                : wizardOpen && access == AiSetupState.Access.CONFIRMING ? AiSetupState.Confirming.EXTERNAL
+                : AiSetupState.Confirming.NONE;
+        AiSetupState.External ext = new AiSetupState.External(client, access, registration,
+                new AiSetupState.Live(liveVerdict, liveAt, liveLabelRef, liveFull), launcher, offerTurnOff, alsoTurnOff,
+                choice == Choice.NO_AI && restOn());
         AiSetupState.Pending pending = pendingDraft != 0
                 ? new AiSetupState.Pending(AiSetupState.PendingKind.ASK_DRAFT, pendingDraft)
                 : startBoxWaiting ? new AiSetupState.Pending(AiSetupState.PendingKind.START_BOX, interceptedStartPage)
                 : AiSetupState.Pending.NONE;
         AssistantProfile p = AssistantProfile.valueOf(profile);
         return new AiSetupState(wizardOpen, firstRun(), origin, step, choice, inForce, posture, fullMode,
-                installed, signedIn,
-                confirmingFull != 0 && confirmingOrigin == ProfileOrigin.SETUP ? AiSetupState.Confirming.FULL
-                        : AiSetupState.Confirming.NONE,
+                installed, signedIn, confirming,
                 pending, finished, line,
-                observed ? AiSetupLines.aiLine(inForce, p, claudeFound, inAppCanAnswer, external) : "",
+                observed ? AiSetupLines.aiLine(inForce, p, claudeFound, inAppCanAnswer, external,
+                        access == AiSetupState.Access.OTHER_INSTANCE) : "",
                 observed ? AiSetupLines.aiLineLink(inForce) : "",
-                wizardEntry ? status() : "", claudeFound, codexFound, wizardEntry, applying, suggested());
+                wizardEntry ? status() : "", claudeFound, codexFound, wizardEntry, applying, suggested(), ext);
     }
 }
