@@ -831,10 +831,24 @@ public final class SessionEvents {
      * @param fullFolderConfirmed a FULL-posture trust record exists for the folder AND its digest equals the digest of
      *                            the folder's files Start would load (OD-74.12, review H6); the scratch folder counts,
      *                            holding nothing to run
+     * @param model               the configured Claude Code model, normalised (blank means the default); null when not
+     *                            observed — owner, 2026-10-18: a change of it while a session runs is offered as a
+     *                            restart, where it used to take effect silently only at the next Start
+     * @param folderRef           a digest of the real working folder (never the path); null when not observed — tells a
+     *                            folder change apart from a change of the posture's kind or mode
      */
     public record LocalAgentConsent(boolean allowed, boolean folderConfirmed, boolean bundleWorkingCopy,
                                     String postureRef, long budgetMicros, FolderVerdict folder, boolean full,
-                                    LocalAgentPosture.FullMode fullMode, boolean fullFolderConfirmed) {
+                                    LocalAgentPosture.FullMode fullMode, boolean fullFolderConfirmed, String model,
+                                    String folderRef) {
+        /** The shape before the restart offer (owner, 2026-10-18): neither the model nor the folder observed. */
+        public LocalAgentConsent(boolean allowed, boolean folderConfirmed, boolean bundleWorkingCopy,
+                                 String postureRef, long budgetMicros, FolderVerdict folder, boolean full,
+                                 LocalAgentPosture.FullMode fullMode, boolean fullFolderConfirmed) {
+            this(allowed, folderConfirmed, bundleWorkingCopy, postureRef, budgetMicros, folder, full, fullMode,
+                    fullFolderConfirmed, null, null);
+        }
+
         /** The default posture, with a folder verdict. */
         public LocalAgentConsent(boolean allowed, boolean folderConfirmed, boolean bundleWorkingCopy,
                                  String postureRef, long budgetMicros, FolderVerdict folder) {
@@ -922,6 +936,19 @@ public final class SessionEvents {
 
     /** Stop pressed: interrupt the one open turn. */
     public record LocalAgentStopRequested(String origin) {
+    }
+
+    /**
+     * Owner, 2026-10-18: the person's answer to the restart offer {@code offer} ({@code LocalAgentState.Restart}) —
+     * {@code restart} for <i>Restart now</i>, false for <i>Later</i>. {@code request} is the frame's id for the Start a
+     * restart may need (a folder confirmation answers it); {@code consent} is what the machine says NOW. The node decides
+     * whether the offer still stands and what Yes does.
+     */
+    public record LocalAgentRestartAnswered(long request, long offer, boolean restart, LocalAgentConsent consent) {
+    }
+
+    /** Owner, 2026-10-18: the person clicked the "settings changed — restart to apply" chip: show the offer again. */
+    public record LocalAgentRestartOfferRequested(String origin) {
     }
 
     /** New chat under the local agent: end any process, and the next Start begins a new conversation id. */
@@ -1192,6 +1219,25 @@ public final class SessionEvents {
     /** The same for the in-app assistant: entry {@code draftRef} of the in-app transcript. */
     public record AssistantDraftComposed(long draftRef, String questionId, String logIdentity, long logGeneration,
                                          String origin) {
+    }
+
+    /**
+     * Robot walkthrough #1 (2026-10-18): a question was composed (an Ask from a record, a chart, the topology) while NO
+     * assistant is chosen — reported instead of a draft for the assistant the mode silently defaults to. Its words are in
+     * the frame's store under {@code draftRef}, never here. {@code assistantProfile} holds it, unbound, and asks for it to
+     * be placed for the assistant the person applies; the node in force then binds it.
+     */
+    public record AssistantDraftPending(long draftRef, String questionId, String origin) {
+    }
+
+    /**
+     * Robot walkthrough #1: the person pressed "Ask again for Claude Code" on a refusal that the composer holds a question
+     * drafted for the other assistant. {@code draftBindings} is every composed draft the composer holds.
+     */
+    public record LocalAgentAskAgainRequested(long request, java.util.List<Long> draftBindings) {
+        public LocalAgentAskAgainRequested {
+            draftBindings = java.util.List.copyOf(draftBindings == null ? java.util.List.of() : draftBindings);
+        }
     }
 
     /** A prime effect was performed: the draft is in the composer (or {@code ok} false and why). */

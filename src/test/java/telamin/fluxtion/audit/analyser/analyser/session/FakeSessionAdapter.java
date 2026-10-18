@@ -54,6 +54,11 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
     final List<SessionEffects.SendLocalAgentTurnEffect> agentSends = new ArrayList<>();
     final List<SessionEffects.StopLocalAgentEffect> agentStops = new ArrayList<>();
     final List<SessionEffects.ConfirmLocalAgentFolderEffect> agentConfirms = new ArrayList<>();
+    /** Owner, 2026-10-18: every restart offer the node asked to show. */
+    final List<SessionEffects.OfferLocalAgentRestartEffect> restartOffers = new ArrayList<>();
+    /** Robot walkthrough #1: the pending drafts placed, and the drafts composed again. */
+    final List<SessionEffects.PlacePendingDraftEffect> pendingPlaced = new ArrayList<>();
+    final List<SessionEffects.RecomposeLocalAgentDraftsEffect> recomposed = new ArrayList<>();
     /** M74 P2: what the Ask catalogue and the start page asked the adapter to do, in order. */
     final List<SessionEffects.PrimeLocalAgentDraftEffect> agentPrimes = new ArrayList<>();
     final List<SessionEffects.PrimeAssistantDraftEffect> assistantPrimes = new ArrayList<>();
@@ -211,6 +216,7 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
             }
             case SessionEffects.ChooseAssistantModeEffect e -> {
                 modeChoices.add(e);
+                agentOrder.add("chooseMode");
                 yield new SessionEvents.AssistantProfilesShown(e.opId());
             }
             // M74: the local agent's effects are recorded and answered at once; the test posts the CLI's facts
@@ -236,6 +242,20 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
                 agentConfirms.add(e);
                 agentOrder.add("confirmFolder");
                 yield new SessionEvents.LocalAgentEffectStarted(e.opId(), 0, "confirmFolder");
+            }
+            case SessionEffects.PlacePendingDraftEffect e -> {
+                pendingPlaced.add(e);
+                agentOrder.add("placePending");
+                yield new SessionEvents.DraftPlaced(e.opId(), e.draftRef(), true, "");
+            }
+            case SessionEffects.RecomposeLocalAgentDraftsEffect e -> {
+                recomposed.add(e);
+                yield new SessionEvents.DraftPlaced(e.opId(), 0, true, "");
+            }
+            case SessionEffects.OfferLocalAgentRestartEffect e -> {
+                restartOffers.add(e);
+                agentOrder.add("offerRestart");
+                yield new SessionEvents.LocalAgentEffectStarted(e.opId(), e.generation(), "offerRestart");
             }
             case SessionEffects.PrimeLocalAgentDraftEffect e -> {
                 agentPrimes.add(e);

@@ -89,7 +89,7 @@ choose allow**. **The analyser does not confine it to the folder**; your rules a
   following a link out of the folder): **when any of them changes** (a `git pull` that adds a hook or rewrites
   `CLAUDE.md`), **Start asks again**, and the dialog says which changed; the check is made again when the process is
   started, so a change between the question and the start is refused too. A session already running when they change
-  is stopped at your next Send or Settings change (after the answer in progress), and Start asks again.
+  is stopped at once at your next Send or Settings change — mid-answer too — and Start asks again.
   **Not re-checked:** files a `CLAUDE.md` imports with `@path`, `CLAUDE.md` files in the folders above this one, and
   the contents of the scripts a hook runs from outside `.claude/hooks` — Claude Code reads or runs them, and a change to
   them does not ask again; the dialog says so. A folder confirmed for the analyser assistant is not thereby confirmed
@@ -116,9 +116,20 @@ reaches an agent that may have your shell, and the analyser cannot limit what yo
 - **Stop** interrupts the turn. If Claude Code does not acknowledge within 5 s, or the turn has not ended within 15 s,
   the analyser ends the process; your next Send resumes the same conversation in a new process.
 - **New chat** starts a new conversation. Changing the folder (opening another project), the profile or Full Claude
-  Code's mode means a New chat: a conversation is never resumed under different settings. Applying Settings while
-  Claude Code runs ends the session if the change affects it — at once when you turned Claude Code off, otherwise
-  after the turn in progress — and the next Start offers New chat.
+  Code's mode means a New chat: a conversation is never resumed under different settings.
+- **Changing a setting while Claude Code runs.** Claude Code takes its settings when it starts, so a change made in
+  Settings ▸ Assistant or with the profile cards applies at the next start. What happens to the session running now
+  depends on the change:
+
+    | Change | What happens |
+    |---|---|
+    | *Safe analysis* → *Full Claude Code*; a full mode that asks **less** (for example `default` → `acceptEdits`); the model; the spend limit; the folder | **Offered.** The panel asks *"Settings changed — restart Claude Code now to apply them?"* with **Yes, restart now** and **Later**. Nothing stops until you answer. **Yes** stops Claude Code and starts it again on the new settings — the conversation continues when only the model or the spend limit changed, and a **new chat** begins when the profile, the mode or the folder changed (the prompt says which); while Claude is answering, it restarts when that answer ends. **Later** keeps the session running on the settings it was started with and leaves a **settings changed — restart to apply** chip in the header — click it to be asked again. Putting the setting back withdraws the offer. |
+    | *Allow the analyser to start Claude Code* off (or the *In-app assistant* or *Off* card); Full Claude Code switched **off**; a full mode that asks **more** (for example `auto` → `default`, or any mode → `plan`); the folder no longer confirmed for the profile running | **Stopped at once**, mid-answer too, and never offered: each takes away something the running session can still do. The transcript says why. |
+    | External MCP/REST access, file exchange, creating projects, the in-app assistant's settings | Nothing to restart: Claude Code keeps its own connection to the analyser. |
+
+  After you choose **Keep it running here** when switching projects, the folder change is yours: it is not offered
+  again. Turning *Allow the analyser to start Claude Code* back on after it stopped a session clears the "switched off"
+  line — press Start.
 - **Slash commands** you type are sent as in a terminal — `/compact`, `/model`, `/context`, `/usage` and the like —
   except those that would change how Claude Code works here or the conversation's identity, or act outside this session: `/config`,
   `/mcp` with an argument, `/add-dir`, `/permissions` and others are refused with *"… is not available in the analyser —
@@ -143,7 +154,7 @@ reaches an agent that may have your shell, and the analyser cannot limit what yo
   it shows no dollar figure — *"usage counts against your Claude plan"*, whose own usage limits apply. With an API key
   it shows what the session has used, and, if you set one, the limit: *Settings ▸ Assistant ▸ Limit spend per session*
   is **off by default** and is meant for API-key billing; when the limit is reached the analyser stops Claude Code and
-  says so. Changing the limit while a session runs stops it (after the answer in progress); Start resumes the
+  says so. Changing the limit while a session runs offers a restart (*Yes, restart now* or *Later*); the restart resumes the
   conversation under the new limit.
 - **Switching projects while Claude Code runs.** Opening, creating or closing a project from the menus while a session
   runs asks first: **Stop, and get Start ready in the new project** (the session ends; nothing starts until you press

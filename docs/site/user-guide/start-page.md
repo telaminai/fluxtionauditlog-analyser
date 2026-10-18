@@ -32,10 +32,9 @@ directly with the Explore DEMO, Open, Create, Connect an assistant and Settings 
 - **Enter presses the button; Shift+Enter starts a new line** — the same keys as the assistant's composer, and the line
   under the box says so. The button is the page's main action: accent-coloured while it can be pressed, at the box's
   right edge.
-- **The button never starts Claude Code.** A draft for Claude Code is placed in its composer and **Start is armed**
-  (*Start — ask your question*); you press Start, and the folder confirmation and the profile in force apply. Start is
-  armed only when it would be accepted: with *Allow the analyser to start Claude Code* switched off, for example, the
-  draft is still placed and the tab says why Start is refused.
+- **The button never starts Claude Code.** A draft for Claude Code is placed in its composer, ready for **Send**;
+  Send starts Claude Code, and the folder confirmation and the profile in force apply. With *Allow the analyser to start
+  Claude Code* switched off, for example, the draft is still placed and the status line says why Send is refused.
 - **With nothing open**, the assistant opens in its own window with the draft in its composer, so you can see where
   your question went. Over an open workspace it returns there and shows the docked tab.
 - **The sample project and a bundle's working copy** are folders the analyser owns, so a Claude Code session for them

@@ -100,6 +100,30 @@ class LocalAgentSwitchTest {
         assertTrue(d.snapshot().localAgent().reason().contains("its own folder"));
     }
 
+    /**
+     * ★ Owner probe 2026-10-18: after Keep, the next Settings save reported the NEW project's folder, and the kept session
+     * was stopped as "Settings changed". The folder is the person's choice, so it is neither a stop nor an offer. Witness:
+     * drop {@code folderKept = true} in onSwitchChosen — the restart is offered.
+     */
+    @Test
+    @DisplayName("★ Keep: a later Settings save naming the new folder neither stops the kept session nor offers a restart")
+    void keepSurvivesTheNextSettingsSave() {
+        FakeSessionAdapter a = new FakeSessionAdapter().withProfile(TARGET);
+        SessionDriver d = LocalAgentSessionTest.driver(a);
+        LocalAgentSessionTest.startToReady(d, a);
+        personSwitch(d);
+        d.post(new SessionEvents.LocalAgentSwitchChosen(a.switchOffers.get(0).request(), SessionEvents.SwitchChoice.KEEP));
+        d.post(new SessionEvents.LocalAgentConsentChanged(LocalAgentSessionTest.consent(true, true, false,
+                "posture-in-the-new-folder", LocalAgentSessionTest.BUDGET)));
+        assertTrue(d.snapshot().localAgent().running(), "the kept session runs on");
+        assertTrue(LocalAgentSessionTest.kills(a).isEmpty());
+        assertTrue(a.restartOffers.isEmpty(), "★ and the folder the person kept is not offered back to them");
+        // a change that is not the folder still is
+        d.post(new SessionEvents.LocalAgentConsentChanged(LocalAgentSessionTest.consent(true, true, false,
+                "posture-in-the-new-folder", 1_000_000)));
+        assertEquals(1, a.restartOffers.size(), "the spend limit is offered");
+    }
+
     /** ★ Witness: release on Cancel too — the cancelled switch loads. */
     @Test
     @DisplayName("★ Cancel drops the switch: nothing loads and the session runs on; a stale answer is refused")

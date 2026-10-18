@@ -334,6 +334,16 @@ public sealed interface SessionEffects {
     }
 
     /**
+     * Owner, 2026-10-18: {@code localAgentSession} decided that a settings change can wait for the person — the running
+     * session keeps its old settings until they answer offer {@code offer} (rendered from {@code LocalAgentState.Restart}).
+     * The performer makes the assistant panel visible and says {@code status} on the main window's status line; it
+     * decides nothing. The answer arrives as {@link SessionEvents.LocalAgentRestartAnswered}. Answered at once by
+     * {@link SessionEvents.LocalAgentEffectStarted}.
+     */
+    record OfferLocalAgentRestartEffect(long opId, long generation, long offer, String status) implements SessionEffects {
+    }
+
+    /**
      * Ask the person, outside the dispatch, whether this working directory may be used by Claude Code (OD-74.5). On yes
      * the frame records the confirmation on this machine and submits a NEW Start request; it never starts anything here.
      * {@code full} (OD-74.12): the full-posture dialog, which reads the folder's three files (bounded, names only), names
@@ -361,6 +371,27 @@ public sealed interface SessionEffects {
          */
         public PrimeLocalAgentDraftEffect(long opId, long draftRef, boolean highlight, String armedWhy) {
             this(opId, draftRef, highlight, armedWhy, 0);
+        }
+    }
+
+    /**
+     * Robot walkthrough #1 (2026-10-18): {@code assistantProfile} decided where the question held while no assistant was
+     * chosen goes — the assistant of {@code mode}. The performer reports it composed for that assistant
+     * ({@code LocalAgentDraftComposed} / {@code AssistantDraftComposed}), whose node binds and places it. Answered by
+     * {@link SessionEvents.DraftPlaced}.
+     */
+    record PlacePendingDraftEffect(long opId, long draftRef, AssistantMode mode) implements SessionEffects {
+    }
+
+    /**
+     * Robot walkthrough #1: {@code localAgentSession} decided to place again, for Claude Code, the composer's questions it
+     * does not know ({@code draftRefs}: drafted for the in-app assistant). The performer composes each again from what it
+     * composed before and reports {@code LocalAgentDraftComposed}; the placement replaces the old draft. Answered by
+     * {@link SessionEvents.DraftPlaced}.
+     */
+    record RecomposeLocalAgentDraftsEffect(long opId, java.util.List<Long> draftRefs) implements SessionEffects {
+        public RecomposeLocalAgentDraftsEffect {
+            draftRefs = java.util.List.copyOf(draftRefs == null ? java.util.List.of() : draftRefs);
         }
     }
 

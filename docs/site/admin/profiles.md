@@ -34,9 +34,9 @@ the cards are open, and *…choose one with Assistant ▾ above* when they are s
   the tab in that card's mode. *Settings ▸ Assistant* still has every option, grouped the same way.
 - **The cards open by themselves once**: the first time you press **Start** or ask a question — in the panel or on the
   [start page](../user-guide/start-page.md#which-assistant-answers) — while nothing is set up on this machine. A question asked on the
-  start page **waits for you**: after **Apply** it is placed in the composer of the assistant you chose, with **Start**
-  ready for Claude Code — you do not press the button again, and nothing is sent until you press Start or Send. Close the
-  cards instead and the question stays in the box. After a card is chosen (or if you close them), they open only from
+  start page — or from a record, a chart or the topology with *Ask the assistant* — **waits for you**: after **Apply**
+  it is placed in the composer of the assistant you chose, ready for **Send** — you do not ask again, and nothing is sent
+  until you press Send. Close the start page's cards instead and its question stays in the box. After a card is chosen (or if you close them), they open only from
   **Assistant: … ▾**. A machine that was already set up (Claude Code allowed, or an API key) counts as chosen and is never
   asked.
 - **A change while an answer is in progress is refused**, by name — *"Claude is still answering — Stop or wait, then

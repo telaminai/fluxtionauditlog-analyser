@@ -17,8 +17,10 @@ these rows and Explain this finding disabled, each until its condition holds](..
 
 - **The question goes into the composer, not to the model.** It is **added after** whatever you have written there,
   only the added lines are highlighted, and the line above the box says *Press Send to ask … — nothing has been sent*.
-  Nothing is sent until you press **Send**. In the Claude Code mode with no session running, **Start is armed**
-  (*Start — ask about this*); nothing starts until you press it.
+  Nothing is sent until you press **Send**; in the Claude Code mode with no session running, Send starts Claude Code
+  first. **Asking the same question again replaces it** rather than adding a second copy, and a question drafted for the
+  other assistant is replaced by the next one you ask. If you switch assistants with such a question still in the box,
+  Send says so in the status line and offers one action, **Ask again for Claude Code**, which places it for Claude Code.
 - **It names where to look, never what is there.** A question names record numbers, the log's file name, node ids,
   a chart's name and a time — never a value, a note's words or a finding's text, because those
   can carry text written to steer an AI. The assistant reads the records itself (`analyser_read`), so in the in-app mode

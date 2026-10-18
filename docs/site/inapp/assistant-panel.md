@@ -19,8 +19,18 @@ plan, or an API key). Both share:
   back (the in-app assistant);
 - **one composer**, with **Send**, **Stop** and **New chat** doing what the mode in force does with them (Claude Code
   adds **Start**; the in-app assistant adds **Copy prompt**); **Enter sends and Shift+Enter starts a new line**, as in
-  the start page's box;
+  the start page's box; **↑ on the first line recalls the questions you sent** (each assistant its own), **↓ on the last
+  line walks forward**, and ↓ past the newest puts back what you were typing — as in a terminal. The history is kept in
+  memory only: it is never saved and never sent anywhere, and it is gone when the analyser closes. Shift+↑ and
+  Shift+↓ still select, and in a draft of several lines the arrows move the caret until it reaches the first or last
+  line;
 - **one row of header chips** — who answers, the model, the profile or the provider, how it is paid for;
+- **one status line and one primary action.** The status line is the one instruction — *Ready*, *Claude is answering…*,
+  or, when something was refused, the refusal itself. The primary action is **Send** (in the Claude Code mode it starts
+  Claude Code first when it is not running), or **Stop** while an answer or a start can be stopped; **Start** is a
+  secondary button with a fixed label, shown only while Claude Code is not running. What the mode cannot do, the
+  session's folder and its notes sit behind **ⓘ** beside **Pop out**; the header scrolls in a short window so the
+  conversation and the composer always keep their room;
 - **one line under the header that says what this mode cannot do** — the in-app assistant cannot read your project
   folder or use your own tools; Safe analysis has no shell, edits or web; full Claude Code's own tools are not confined
   by the analyser; with no key, or with the assistant *Off*, it says so there. It also says that **no profile is
@@ -91,8 +101,8 @@ The panel says why it will not do something, in these words:
 
 ## No API key? Copy-prompt mode
 
-With no key the assistant sends nothing and says so, offering **Configure provider**, **Copy prompt** and **Connect a
-CLI assistant**. No key, or working in a different agent (Claude Code, Claude Desktop)? Hit **Copy prompt**. The copied
+With no key the assistant sends nothing and says so, offering **Configure provider** (it opens *Settings ▸ LLM*, where
+the provider, model and API key are), **Copy prompt** and **Connect a CLI assistant**. No key, or working in a different agent (Claude Code, Claude Desktop)? Hit **Copy prompt**. The copied
 prompt is a complete, self-contained brief: the selected records, the node-type map, the relevant
 source, **and** the log's file path, shape and per-record **byte offsets**. The dialog that opens names every
 part it copied, in the order they appear ("the analyser's standing instructions, the glossary, the raw text of 2
