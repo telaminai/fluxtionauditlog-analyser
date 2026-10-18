@@ -1,9 +1,9 @@
 # M79 — The first minute: the diamond, then three doors
 
 **Status:** ACCEPTED r1, 2026-10-18; **r2 the same day folds in the first independent review** (corrections and code
-facts in place; new questions for the owner, OD-79.11–.19, §16, open; effort 29–37 days in r4, §17). The
+facts in place; owner questions OD-79.11–.19, §16: all accepted; effort as relative sizes, §17). The
 owner accepted OD-79.1–.6 on 2026-10-18, then OD-79.7 and the three decisions on the colleague follow-on (OD-79.8–.10,
-recorded as an extension of M15 Settings share, §13) the same day (§16). **r3, the same day, folds in the lead's creative round 2**: the teacher path moves to phase 2 with a
+recorded as an extension of M15 Settings share, §13) the same day (§16). **r5, the same day**: the owner accepted every open decision, OD-79.11–.19, and decided the key questions. **r3, the same day, folds in the lead's creative round 2**: the teacher path moves to phase 2 with a
 teacher kit (§11.6), the chip has three states (OQ-1), domain tiles, one caption template, the tooltips cut, the docs
 slice narrowed, SC-T11; OD-79.17–.18 and two key questions are open. **r4, the same day, the owner's correction**: phase 2 is the teaching session in the onboard assistant (§11), the external teacher kit becomes M79-6; OD-79.19 is open. Each phase PR gets its own review (the
 reviewed-PR rule).
@@ -79,8 +79,8 @@ teach it again.
 - No change to the investigation layout. The records table stays the main view for investigation; the graph is centre
   stage only during walks and first contact (OD-79.7).
 - No new AI path. M79-6 composes M77-3's client path with a prompt pack; it adds no verb and no transport.
-- Not M79: the criterion chip (M76 slice 1), the before/after run comparison, keyless authoring through pre-generated
-  variants, and the colleague extension of Settings share (§13). Each is a follow-on (§14).
+- Not M79: the criterion chip (M76 slice 1), the before/after run comparison, the teaching-scoped hosted key, and the
+  colleague extension of Settings share (§13). There are no keyless runs (owner, §16). Each is a follow-on (§14).
 
 ## 3. Standing decisions this touches
 
@@ -567,11 +567,11 @@ bundles* page's definition of a `.fexp`, which says it is unsigned). (r2 had ren
   recording which. M79-4 therefore routes flags through the session first (rule 9): a `FlagToggled(generation,
   row, recordDigest, source)` fact posted by both entrances, the digest computed from `LogStore.rawText(row)` in the
   same EDT turn, and a node that owns the flag set the table renders. That is a migration of an existing surface the
-  customer uses daily, so it is sized as one (§17) and carries its own no-change checks (below). `quest` compares the two. **Teacher mode** (§11.6 d, pending OD-79.17): only a flag from this window
+  customer uses daily, so it is sized as one (§17) and carries its own no-change checks (below). `quest` compares the two. **Teacher mode** (§11.6 d, OD-79.17, **accepted**; both routes): only a flag from this window
   publishes *Solved*, naming the record; a flag over the socket on the answer record shows *"Your AI client flagged
   this — try it yourself"* and leaves the quest open (the session records *socket*: it cannot tell an AI client from
-  a script). If the owner declines teacher mode, either flag solves it, attributed *this window* or *over the
-  socket*. **A model's words never complete it.** An assistant that says "solved" changes nothing; only the flag on the
+  a script). This covers the onboard session as well as an external client: the onboard Claude Code session flags
+  through the hosted bridge, which is the socket entrance. **A model's words never complete it.** An assistant that says "solved" changes nothing; only the flag on the
   right record does.
 - **Works with No AI.** No step needs an assistant, a key or a network. A1-style tests run with the profile `OFF`.
 - **Rule 9:** a `quest` node, with parents `openBundle` and `openLog`. Its facts are `QuestStarted(questId)`,
@@ -673,7 +673,7 @@ secondary route, for people who prefer it (§11.6, phase M79-6).
   lesson: <lesson id>`, naming a lesson **shipped in the jar** and recognised by digest, as the diamond assets are
   (E6). A pack dropped from elsewhere may name a shipped lesson, but cannot bring its own recorded conversation in
   v1: a conversation inside an untrusted file would carry the exporter's *Recorded* claim, which {Product} cannot
-  check (OD-79.19).
+  check (OD-79.19, **accepted**: a pack's own recorded conversations come later, with signing).
 - **The hand-off to live.** `AssistantHandoffRequested` today ends the demonstration and opens a fresh **in-app**
   thread (`assistantLoop`). *Continue with Claude* posts it with `origin=LESSON`, and M79-2 adds the Claude Code side
   (`localAgentSession` starts or attaches) and the nothing-set-up branch (the M77 wizard, then the hand-off). Which
@@ -742,14 +742,18 @@ every session (owner direction). Draft:
 
 > *Call analyser_context first: it names the project, its runbooks and what the log covers. Reading rules: a node
 > with no entry did not run only in a traced record; otherwise it may have run silently. A handler's boolean
-> controls propagation: true runs its @OnTrigger children, and @OnTrigger(dirty=false) runs on false. @AfterEvent and
-> lifecycle callbacks run without propagation. Reference: telaminai/fluxtion docs/claude.txt.*
+> controls propagation: true runs its @OnTrigger children, and @OnTrigger(dirty=false) runs on false. Reference:
+> telaminai/fluxtion docs/claude.txt.*
+
+The third reading rule (*@AfterEvent and lifecycle callbacks run without propagation*) is **not in this text**: it is
+**pending empirical confirmation** (below) and joins the paragraph, within the word cap, only when the result lands.
 
 - **Rule 6 before it ships.** The first two rules are the format spec's (§8, traced records) and `claude.txt`'s
   (*Conditional dispatch*). **The third is not stated in `claude.txt`**, whose *propagation* paragraph lists
-  `@AfterEvent` among the trigger annotations through which a node propagates. The implementer confirms it against
-  the framework reference and the generated dispatcher (D-6) and words it exactly as they say, or drops it from the
-  instructions and keeps it in the skill until it is confirmed. No rule is inferred.
+  `@AfterEvent` among the trigger annotations through which a node propagates. The owner's answer is *test it*: an
+  empirical probe (a generated graph and its audit log) is running. **Until its result lands, the rule is marked
+  *pending empirical confirmation*, stays out of `INSTRUCTIONS` and out of the skill's text**, and is then worded
+  exactly as the generated dispatcher and the log show, or dropped. No rule is inferred.
 - **Pinned** in a new `BridgeInstructionsTest`: the paragraph is present, under a word cap (70), and the rest of the
   text is byte-identical to today's, so the customer's client reads one added paragraph and nothing changed.
 - **This is the one M79 change the customer's external Claude sees** (OD-79.12): it changes no verb, field or reply.
@@ -757,7 +761,7 @@ every session (owner direction). Draft:
 **(b) A `teach-fluxtion` skill**, `docs/skills/common/teach-fluxtion/SKILL.md`, shipped through the existing skill
 distribution: `common/` skills are baked into every generated project's `.claude/skills/`, published to the website,
 and served by name and description in `context.runbooks[]` (M43); for a project that already exists, *AI ▸ Find
-skills…* offers it. The full rules live here, not in the instructions. Its procedure:
+skills…* offers it. The full rules live here, not in the instructions (the third reading rule only once the empirical probe confirms it). Its procedure:
 1. play the diamond walk (`walk`), one step at a time;
 2. before each of records [3] and [5], ask the person in chat to predict which nodes run, then check the prediction
    with `goto` and `spotlight` on the record, never by assertion;
@@ -773,11 +777,11 @@ quest, started, hints shown, solved and by whom. The **Project panel gets a *Lea
 snapshot (the human-surface rule: what a client can read, a person can see). **Both are omitted when empty**, so a
 developer who never touches the first minute or a quest gets a byte-identical `context` reply (A6.3).
 
-**(d) Teacher mode: only the person's own flag solves the quest** (lead's recommendation; **pending the owner,
-OD-79.17**). A flag from this window solves it. A flag from the socket does not; the quest card reads *"Your AI client
+**(d) Teacher mode: only the person's own flag solves the quest** (OD-79.17, **accepted** by the owner,
+2026-10-18; it applies on both routes, onboard and external). A flag from this window solves it. A flag from the socket does not; the quest card reads *"Your AI client
 flagged this — try it yourself."* The socket cannot tell an AI client from a script, so the words name the client
-because that is the case the quest is for, and the session records only *socket*. If the owner declines, either
-flag solves it, attributed (§9.2).
+because that is the case the quest is for, and the session records only *socket*. The onboard session's flags
+arrive by the same entrance and read the same (§9.2, A4.5).
 
 **(e) MCP prompts: later, not M79.** Offering the teaching steps as server-side MCP prompts is gated on rule 6: a
 live check of which clients actually show a server's prompts, which is research in progress.
@@ -803,7 +807,7 @@ out what to do, and an act that leads nowhere.
 | SC-E1 | Auditor-prose hesitations on the first view | the stranger's F5 | **0**; F5's sentence not visible without a click | M79-3 |
 | SC-D1 | Docs/app label mismatches on the pages M79-5 touches (*Start here* and the start-page pages) | F2's pairs | **0** (the nav's page count is DOCS-IA's, not M79's) | M79-5 |
 | SC-T10 *(new)* | **Connect your own Claude:** from the start page to the person's client making its first `context` call, with `claude` installed | the M77-3 count (not yet measured: M77-3 is unbuilt) | **≤ 5 acts in {Product}, 0 dead ends**; the acts in the person's own client (opening it, pasting the prompt) are counted separately, since M77-3's own confirmations (external access, then registration) already use two | M79-6 |
-| **SC-T11** *(new)* | **The teacher:** with the person's own Claude and the `teach-fluxtion` skill, solve the broken diamond | — | measured, not yet targeted: **minutes** to *Solved*; **solved by the person's own flag** (yes/no); **the client's claims graded against the three reading rules** (§11.6 a) from the transcript, captured by the `capture-conversations` harness under an isolated home. **Witness:** a run in which only the client flags the answer record must score *not solved* | M79-6 (skill), M79-4 (quest) |
+| **SC-T11** *(new)* | **The teacher:** with the person's own Claude and the `teach-fluxtion` skill, solve the broken diamond | — | measured, not yet targeted: **minutes** to *Solved*; **solved by the person's own flag** (yes/no); **the client's claims graded against the confirmed reading rules** (§11.6 a; the third only once the probe confirms it) from the transcript, captured by the `capture-conversations` harness under an isolated home. **Witness:** a run in which only the client flags the answer record must score *not solved* | M79-6 (skill), M79-4 (quest) |
 | **SC-T12** *(new)* | **The onboard lesson, then live:** follow the teaching pack in the docked assistant panel to its end, press *Continue with Claude*, and ask one question live | — | measured, not yet targeted: **acts** from the pack entry to the first live answer; **the hand-off works** (a live turn completes, and its opening context carries the fixed basis sentence); **the recorded turns are never resent**: none of their text appears in any request the session sends (the in-app request, or the stream written to Claude Code). **Witness:** a build that appends the passive log to the request must score *resent* | M79-2 |
 
 **Who scores what** (lead's decision, creative round 2). The comprehension tasks, **SC-C1 and SC-C2, are scored
@@ -895,16 +899,20 @@ categories.
 
 - **The criterion chip** (M76 slice 1), and **the before/after run comparison**: the diamond is their natural first
   fixture.
-- **Keyless authoring through pre-generated variants:** the domain variants show that a set of real, pre-generated
-  runs can stand in for a compile the person cannot run without a key.
+- **No keyless runs** (owner, 2026-10-18): interpreted Fluxtion also needs the key, so the keyless authoring
+  options are withdrawn. **A teaching-scoped hosted key** is the preferred entry to paid usage and the route by which
+  a newcomer first generates their own diamond; it is a commercial follow-on for the owner's gateway / RapidAPI work.
 - **More domains:** each is a new real run under §6. None may be added by relabelling.
-- **N2 — a recorded diagnosis session of the broken diamond** (pending the owner's confirmation): a real session,
+- **N2 — a recorded diagnosis session of the broken diamond** (**accepted**, OD-79.18; one live capture run on the
+  owner's plan, under an isolated home): a real session,
   captured, replayable, and labelled *"recorded session · not live"*, as conversation journeys label recorded
   dialogue (OA-D4).
 - **N3 — *Share what you proved*:** a bundle of a green criterion chip with its deciding record and a two-step walk;
   after M76 slice 1.
-- ***Make the diamond yours*:** the Build door's first authoring step.
-- **A keyless analogy legend** beside the real names (for example *a = "the input"*), never replacing them (E2).
+- ***Make the diamond yours*:** the Build door's first authoring step. **It needs a key**: the teaching-scoped hosted
+  key above is its intended route.
+- **An analogy legend** beside the real names (for example *a = "the input"*), never replacing them (E2). It is
+  allowed without a key only because it runs nothing.
 - **MCP prompts** for the teaching steps (§11.6 e), gated on rule 6.
 - **Conversation journeys** (`spec-onboard-assistant-journeys.md`, OA-D4–D6) already ship a walk with pre-authored
   digests inside a verified `.fexp`, built from a real run by `tools/capture-journey.py`, with a catalogue page whose
@@ -960,7 +968,7 @@ Headless unless marked *frame* (a registered frame suite under Xvfb in CI). Each
 | ★ A4.2 | the teaching label appears only when the bundle's SHA-256 matches the quest manifest; an edited copy is an ordinary bundle | a label taken from the bundle's own notes | read the label from the notes |
 | ★ A4.3 | the whole quest with the profile `OFF` and no network | a hidden AI or network dependency | require an assistant for hint 3 |
 | ★ A4.4 | the manifest does not name the answer's index; the answer is salted and equals `883c529b…`; the manifest's log SHA-256 equals `8a2817ee…` | a spoiler in the jar, a re-run substituted for the pinned one | store the unsalted digest; or ship a re-run log |
-| ★ A4.5 | teacher mode on the onboard route: a flag on the answer record made by the onboard Claude Code session (through the hosted bridge, which reaches the socket entrance) leaves the quest open and shows *"Your AI client flagged this — try it yourself"*; the person's own flag then solves it (pending OD-79.17) | the onboard teacher solving the learner's quest | let a bridge flag solve it |
+| ★ A4.5 | teacher mode on the onboard route: a flag on the answer record made by the onboard Claude Code session (through the hosted bridge, which reaches the socket entrance) leaves the quest open and shows *"Your AI client flagged this — try it yourself"*; the person's own flag then solves it (OD-79.17) | the onboard teacher solving the learner's quest | let a bridge flag solve it |
 
 **M79-5**
 
@@ -976,9 +984,9 @@ Headless unless marked *frame* (a registered frame suite under Xvfb in CI). Each
 |---|---|---|---|
 | ★ A6.1 | **Connect your own Claude** opens the wizard at 2b with Claude Code chosen and nothing applied; it shows the same confirmations as M77-3 (no consent skipped) | a shortcut around M77's consents | apply external access on the button press |
 | ★ A6.2 | after the live check ✓, the Summary's first action is the pack's first entry; the pack is words only (`PromptPack` parses it, with no example entry) | a pack that runs something | an entry with a link |
-| ★ A6.3 | `BridgeInstructionsTest`: the added paragraph says to call `analyser_context` first and carries the reading rules confirmed under rule 6, within 70 words; the rest of `INSTRUCTIONS` is byte-identical to today's; `context` with no learning activity is byte-identical to today's reply | the teacher not pointed at the project; a token-heavy or drifting instruction; a protocol change leaking to the customer | drop the sentence; or emit an empty `learning` object |
+| ★ A6.3 | `BridgeInstructionsTest`: the added paragraph says to call `analyser_context` first and carries the confirmed reading rules (the first two now; the third only once the probe confirms it), within 70 words; the rest of `INSTRUCTIONS` is byte-identical to today's; `context` with no learning activity is byte-identical to today's reply | the teacher not pointed at the project; a token-heavy or drifting instruction; a protocol change leaking to the customer | drop the sentence; or emit an empty `learning` object |
 | ★ A6.4 | `teach-fluxtion` skill: frontmatter served in `context.runbooks[]`; its prediction step checks with `goto`/`spotlight`, never by assertion (the capture-conversations harness transcript, SC-T11) | a teacher that tells instead of checking | a skill step that states record [3]'s answer |
-| ★ A6.5 | learner progress: `context.learning` and the *Learning* row render the same snapshot; a socket flag on the answer record leaves the quest unsolved and shows *"Your AI client flagged this — try it yourself"* (pending OD-79.17; the same rule for the onboard route, A4.5) | a client completing the learner's quest | let a socket flag solve it |
+| ★ A6.5 | learner progress: `context.learning` and the *Learning* row render the same snapshot; a socket flag on the answer record leaves the quest unsolved and shows *"Your AI client flagged this — try it yourself"* (OD-79.17; the same rule for the onboard route, A4.5) | a client completing the learner's quest | let a socket flag solve it |
 
 ## 16. Owner decisions
 
@@ -1011,40 +1019,48 @@ Headless unless marked *frame* (a registered frame suite under Xvfb in CI). Each
 
 **Raised by the review, for the owner** (none blocks writing M79-1's node; each blocks the part it names):
 
-| # | Question | Recommendation |
-|---|---|---|
-| **OD-79.11** | The *Start here* page's doors (§10) against the approved DOCS-IA nav, which already has a `start-here.md` with four or five doors: M79's three, or DOCS-IA's? (The page count is no longer M79's question: the restructure is DOCS-IA's.) | map onto DOCS-IA (it is approved and its audit is the newer evidence about the docs); keep *Learn / Investigate / Build* as the app's words and make DOCS-IA's *Diagnose* door read *Investigate* |
-| **OD-79.12** | M79-6's added sentence in the bridge `instructions`, which the customer's external Claude reads at every connect (§11) | add it; it changes no verb or reply, and it is what their developers' prompts already do |
-| **OD-79.13** | Should the Investigate and Build doors also set *Work mode* (§5.4)? | not in M79; a door opens a thing, the posture stays the person's |
-| **OD-79.14** | Step 4's *"That is proof, not silence"* against M76's ban on *proof* (D-7) | keep it, conditioned: M76's rule becomes *absence is proof only in a traced record*, which is the format spec's rule |
-| **OD-79.15** | The first-run condition (§5.1): a fresh config **and** no recent project, file or bundle, not *no recent project* alone | yes; it is what protects the paying customer's developers on upgrade |
-| **OD-79.16** | A first-minute-only session is not offered for recovery (§5.1) | yes |
-| **OD-79.17** | Teacher mode: only the person's own flag solves the quest; a client's flag shows *"Your AI client flagged this — try it yourself"* (§11.6 d) | yes (the lead's recommendation) |
-| **OD-79.19** | May a dropped pack carry its own recorded conversation, or only name a lesson shipped in the jar (§11.3)? | only a shipped lesson in v1: an untrusted file's *Recorded* label is the exporter's claim, which {Product} cannot check; a pack's own conversation, if allowed later, plays as *declared recorded* |
-| **OD-79.18** | N2, a recorded diagnosis session of the broken diamond, as a follow-on (§14) | — (the lead proposes it) |
+| # | Question | Recommendation | Owner (2026-10-18) |
+|---|---|---|---|
+| **OD-79.11** | The *Start here* page's doors (§10) against the approved DOCS-IA nav, which already has a `start-here.md` with four or five doors: M79's three, or DOCS-IA's? (The page count is no longer M79's question: the restructure is DOCS-IA's.) | map onto DOCS-IA (it is approved and its audit is the newer evidence about the docs); keep *Learn / Investigate / Build* as the app's words and make DOCS-IA's *Diagnose* door read *Investigate* | **Accepted** (owner, 2026-10-18): the doors map onto DOCS-IA's |
+| **OD-79.12** | M79-6's added sentence in the bridge `instructions`, which the customer's external Claude reads at every connect (§11) | add it; it changes no verb or reply, and it is what their developers' prompts already do | **Accepted**: the ~60-word addition, with the third reading rule held out until the empirical probe confirms it (§11.6 a) |
+| **OD-79.13** | Should the Investigate and Build doors also set *Work mode* (§5.4)? | not in M79; a door opens a thing, the posture stays the person's | **Accepted**: doors do not set the work mode |
+| **OD-79.14** | Step 4's *"That is proof, not silence"* against M76's ban on *proof* (D-7) | keep it, conditioned: M76's rule becomes *absence is proof only in a traced record*, which is the format spec's rule | **Accepted**: keep *proof*, for traced records only |
+| **OD-79.15** | The first-run condition (§5.1): a fresh config **and** no recent project, file or bundle, not *no recent project* alone | yes; it is what protects the paying customer's developers on upgrade | **Accepted**: the stricter first-run condition is confirmed |
+| **OD-79.16** | A first-minute-only session is not offered for recovery (§5.1) | yes | **Accepted**: no recovery offer for a diamond-only session |
+| **OD-79.17** | Teacher mode: only the person's own flag solves the quest; a client's flag shows *"Your AI client flagged this — try it yourself"* (§11.6 d) | yes (the lead's recommendation) | **Accepted**: only the person's own flag solves the quest; a flag from an AI client or the onboard session reads *"your AI client flagged this — try it yourself"*; both routes |
+| **OD-79.19** | May a dropped pack carry its own recorded conversation, or only name a lesson shipped in the jar (§11.3)? | only a shipped lesson in v1: an untrusted file's *Recorded* label is the exporter's claim, which {Product} cannot check; a pack's own conversation, if allowed later, plays as *declared recorded* | **Accepted**: in v1 a pack may only name a lesson shipped in the jar; a pack's own recorded conversations come later, with signing |
+| **OD-79.18** | N2, a recorded diagnosis session of the broken diamond, as a follow-on (§14) | — (the lead proposes it) | **Accepted**: it needs one live capture run on the owner's plan, under an isolated home |
 
-**Open owner questions, recorded** (creative round 2; no recommendation yet):
-- Does **interpreted (non-AOT) Fluxtion** need the Fluxtion key? If not, keyless authoring (§14) may not need
-  pre-generated variants at all.
-- Is a **teaching-only hosted key** possible, scoped to the teaching examples?
+**The key questions, decided** (owner, 2026-10-18):
+- **Interpreted (non-AOT) Fluxtion also requires the key. There are no keyless runs**: that is the commercial moat.
+  The keyless authoring option through interpreted mode is removed. The shipped diamonds are pre-generated runs that
+  the person *reads*; nothing in M79 compiles or runs a processor without a key.
+- **A teaching-scoped hosted key is the owner's preferred entry path to paid usage.** It is the route by which a
+  newcomer first generates their *own* diamond (*Make the diamond yours*, §14), and a commercial follow-on for the
+  owner's gateway / RapidAPI work, outside M79.
 
-## 17. Phasing and effort — one PR each, under about 5,000 hand-written lines
+## 17. Phasing and size — one PR each, under about 5,000 hand-written lines
 
 Generated `SessionProcessor` lines are not counted. Each PR is a reviewed feature branch with its CHANGELOG lines
 (rule 2), its tests green (rule 4), and its scorecard run recorded (§12).
 
-| PR | Content | After | Est. days | Est. lines |
-|---|---|---|---|---|
-| **M79-1a — the first minute** | `firstMinute` (with `sessionRecovery` as a parent); `Launch.FIRST_MINUTE`; `stage`, `origin`, autoplay advance, the record-basis caption rule and first contact in `walkPlayback`; the **new topology-centre layout** (the canvas moves out of the right-hand tabs); `WalkReelRecorder` onto the advance effect; the diamond set, its manifest and digest-checked extraction; one caption template filled per domain, played through the generalised journey effect; the five tiles; the end card; no recovery offer for a first-minute session; A1.1–A1.5, A1.7–A1.10 | D-1, D-6, D-7 | 8–10 | ~3,500 |
-| **M79-1b — the start page** | the start page under 40 words (`StartPanel`, 1,322 lines today), the collapse, the visible-label changes and constants, the short AI line (or D-3's fallback); A1.6 | M79-1a; coordinate with M77-2 and M77-4, which change the same page | 2–3 | ~900 |
-| **M79-2 — the teaching session in the onboard assistant** (phase 2, owner) | the lesson as a shipped walk with a recorded conversation, its real capture (the `capture-conversations` extension) and its re-derivation test; the pack's `lesson:` entry; *Continue with Claude* (`AssistantHandoffRequested(origin=LESSON)` for in-app and Claude Code, the wizard branch); `LessonLog` and its read-only band; the basis sentence; A2.1–A2.6 | M79-1a; M77-2 for the wizard branch (D-4) | 5–7 | ~2,000 |
-| **M79-3 — quiet evidence wording** | the three-state chip, `EvidenceChipLines`, the details popover; **the metadata observation moved into the session** (§8.1, rule 9); the accessible descriptions (tooltips cut); A3.1–A3.4 | — | 2.5–3.5 | ~1,000 |
-| **M79-4 — the broken-diamond quest** | the teaching bundle and quest manifest; **flags routed through the session** (a fact, a node, both entrances; §9.2); the `quest` node with teacher mode (OD-79.17); the quest card; A4.1–A4.5 | D-2 (published), M79-1a | 6.5–8.5 | ~2,800 |
-| **M79-5 — the docs front door** | *Start here*, its GIF and `DocsLabelParityTest` only (the restructure is DOCS-IA's); A5.1–A5.3 | M79-1b (labels, GIF); OD-79.11 | 1.5–2 | docs, plus ~300 of test |
-| **M79-6 — the external teacher kit** (phase 3 or later) | *Connect your own Claude* and its wizard `origin` (`START_CONNECT`); the shipped pack and its load fact; the Summary's first action (M77 §6.4 amended); the instructions paragraph after its rule-6 check and `BridgeInstructionsTest`; the `teach-fluxtion` skill (its quest step once M79-4 has merged); `context.learning` and the *Learning* row; A6.1–A6.5 | M79-2; **M77-3**; OD-79.12 | 3–4 | ~1,100 |
-| **Total** | | | **29–37 days (about 6–7½ weeks)**; r1 said 17–23, r2 24–32, r3 25–31 | |
+| PR | Content | After | Size |
+|---|---|---|---|
+| **M79-1a — the first minute** | `firstMinute` (with `sessionRecovery` as a parent); `Launch.FIRST_MINUTE`; `stage`, `origin`, autoplay advance, the record-basis caption rule and first contact in `walkPlayback`; the **new topology-centre layout** (the canvas moves out of the right-hand tabs); `WalkReelRecorder` onto the advance effect; the diamond set, its manifest and digest-checked extraction; one caption template filled per domain, played through the generalised journey effect; the five tiles; the end card; no recovery offer for a first-minute session; A1.1–A1.5, A1.7–A1.10 | D-1, D-6, D-7 | **L** |
+| **M79-1b — the start page** | the start page under 40 words (`StartPanel`, 1,322 lines today), the collapse, the visible-label changes and constants, the short AI line (or D-3's fallback); A1.6 | M79-1a; coordinate with M77-2 and M77-4, which change the same page | **M** |
+| **M79-2 — the teaching session in the onboard assistant** (phase 2, owner) | the lesson as a shipped walk with a recorded conversation, its real capture (the `capture-conversations` extension) and its re-derivation test; the pack's `lesson:` entry; *Continue with Claude* (`AssistantHandoffRequested(origin=LESSON)` for in-app and Claude Code, the wizard branch); `LessonLog` and its read-only band; the basis sentence; A2.1–A2.6 | M79-1a; M77-2 for the wizard branch (D-4) | **L** |
+| **M79-3 — quiet evidence wording** | the three-state chip, `EvidenceChipLines`, the details popover; **the metadata observation moved into the session** (§8.1, rule 9); the accessible descriptions (tooltips cut); A3.1–A3.4 | — | **M** |
+| **M79-4 — the broken-diamond quest** | the teaching bundle and quest manifest; **flags routed through the session** (a fact, a node, both entrances; §9.2); the `quest` node with teacher mode (OD-79.17); the quest card; A4.1–A4.5 | D-2 (published), M79-1a | **L** |
+| **M79-5 — the docs front door** | *Start here*, its GIF and `DocsLabelParityTest` only (the restructure is DOCS-IA's); A5.1–A5.3 | M79-1b (labels, GIF); OD-79.11 | **S** |
+| **M79-6 — the external teacher kit** (phase 3 or later) | *Connect your own Claude* and its wizard `origin` (`START_CONNECT`); the shipped pack and its load fact; the Summary's first action (M77 §6.4 amended); the instructions paragraph after its rule-6 check and `BridgeInstructionsTest`; the `teach-fluxtion` skill (its quest step once M79-4 has merged); `context.learning` and the *Learning* row; A6.1–A6.5 | M79-2; **M77-3**; OD-79.12 | **M** |
+| **Total** | **7 PRs**, in the order below | | |
 
-**Why the estimate rose** (review, 2026-10-18). r1 assumed three things the code does not have: a stage (the
+**Sizes, not days** (owner, 2026-10-18). S, M and L are relative: an L carries a new node or a migration of a
+surface the customer uses, an M extends existing nodes and surfaces, an S is docs and tests. Calendar-day estimates
+are left out on purpose: at today's agent-assisted pace (M77-1…5 and M78 D1 were built in about a day), a day count
+misleads more than it informs. What the sizes do say is where review effort goes.
+
+**Why the work grew** (review, 2026-10-18). r1 assumed three things the code does not have: a stage (the
 topology is a right-hand tab, so centre stage is a new layout), a flag fact (flags are frame state; making them the
 session's is a rule-9 migration of a surface the customer uses daily), and a session-held metadata verdict (it is
 computed in the frame). It also put the start-page rewrite, which collides with M77-2 and M77-4 on the same page,
@@ -1110,3 +1126,13 @@ then M79-6 (phase 3 or later, any time after M79-2).
   the witness) and §11.3 the three gaps (a pack that names a lesson, the hand-off, the passive log). The external
   teacher kit of r3 becomes **M79-6** (phase 3 or later), its tests A6.1–A6.5; teacher mode applies to both routes
   (A4.5). SC-T12 added. OD-79.19 (a pack's own conversation) open.
+- **r5, 2026-10-18** — **owner answers.** OD-79.11–.16 accepted as recommended (doors mapped onto DOCS-IA; the
+  instructions addition, gated on rule 6; doors do not set the work mode; *proof* only for traced records; the
+  stricter first-run condition; no recovery offer for a diamond-only session). OD-79.18 (N2) accepted, with one live
+  capture run on the owner's plan. OD-79.19 accepted (a pack names only a shipped lesson in v1; its own recorded
+  conversations come later, with signing). OD-79.17 (teacher mode) accepted: only the person's own flag solves the quest, on both routes. The third reading rule is held out of
+  the instructions, pending an empirical probe (the owner: *test it*). Key questions decided: interpreted
+  Fluxtion also needs the key, so there are no keyless runs and the keyless authoring option is withdrawn; the
+  analogy legend stays because it runs nothing; *Make the diamond yours* needs a key; a teaching-scoped hosted key is
+  the preferred entry to paid usage, a commercial follow-on. §17 gives relative sizes (S/M/L) instead of days; the
+  7 PRs and their order are unchanged.
