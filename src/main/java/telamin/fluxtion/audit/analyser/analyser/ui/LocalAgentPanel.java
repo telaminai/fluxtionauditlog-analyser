@@ -946,8 +946,9 @@ public final class LocalAgentPanel extends JPanel {
         for (LocalAgentState.Entry e : s.entries()) {
             String key = s.conversation() + ":" + i++ + ":" + e.kind() + ":" + e.id() + ":" + e.ticket();
             switch (e.kind()) {
+                // owner, 2026-10-18: each turn's time is the session's record of it (Entry.atMillis), rendered by the view
                 case LocalAgentState.USER -> out.add(new TranscriptView.Item(key, TranscriptStyle.Role.YOU,
-                        store.text(e.id()), e.status(), 0, 0, false));
+                        store.text(e.id()), e.status(), 0, 0, false).at(e.atMillis(), false));
                 case LocalAgentState.ANSWER -> {
                     boolean stopped = "CANCELLED".equals(e.status()) || "PROCESS_EXIT".equals(e.status());
                     // M78 D1 (OD-Q.8): the turn's time (and an API key's cost) is the answer's tooltip, not a line
@@ -957,7 +958,8 @@ public final class LocalAgentPanel extends JPanel {
                             && LocalAgentState.Guide.CHIP_NEEDS_YOU.equals(s.extra().guide().chipWord());
                     out.add(new TranscriptView.Item(key, stopped ? TranscriptStyle.Role.STOPPED : TranscriptStyle.Role.CLAUDE,
                             store.text(e.id()), asks ? TranscriptView.AWAITING_APPROVAL : e.status(), e.revision(),
-                            e.logGeneration(), "STREAMING".equals(e.status()), turn == null ? null : TURN_TIP + turn));
+                            e.logGeneration(), "STREAMING".equals(e.status()), turn == null ? null : TURN_TIP + turn)
+                            .at(e.atMillis(), false));
                 }
                 case LocalAgentState.NOTE -> out.add(new TranscriptView.Item(key, TranscriptStyle.Role.NOTE,
                         noteLabel(e.status()) + e.detail(), e.status(), 0, 0, false));

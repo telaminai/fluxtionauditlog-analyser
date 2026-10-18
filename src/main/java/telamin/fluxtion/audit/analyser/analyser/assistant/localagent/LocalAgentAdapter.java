@@ -534,7 +534,7 @@ public final class LocalAgentAdapter {
                 Long ticket = run.ticketByUuid.get(l.commandUuid());
                 if (ticket == null) return;               // not a line this generation sent
                 switch (l.state() == null ? "" : l.state()) {
-                    case "started" -> env.post(new SessionEvents.LocalAgentTurnStarted(gen, ticket));
+                    case "started" -> env.post(new SessionEvents.LocalAgentTurnStarted(gen, ticket, clock.nowMillis()));
                     case "completed" -> endTurn(run, ticket, SessionEvents.TurnOutcome.COMPLETED);
                     case "cancelled" -> endTurn(run, ticket, SessionEvents.TurnOutcome.CANCELLED);
                     default -> { }
@@ -899,7 +899,7 @@ public final class LocalAgentAdapter {
             ref = run.answerRef;
             revision = ++run.revision;
         }
-        env.post(new SessionEvents.LocalAgentTextUpdated(run.generation, ticket, ref, revision));
+        env.post(new SessionEvents.LocalAgentTextUpdated(run.generation, ticket, ref, revision, clock.nowMillis()));
     }
 
     private void onExit(Run run, int code) {

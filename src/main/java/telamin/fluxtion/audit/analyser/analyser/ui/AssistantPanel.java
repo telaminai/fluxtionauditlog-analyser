@@ -948,9 +948,17 @@ public final class AssistantPanel extends JPanel {
     }
 
     /** A demonstration's projection, built by the frame from walkPlayback's frozen definition (OA-4). */
-    public record Demo(String mode, String walkTitle, String status, List<String> lines) {
+    public record Demo(String mode, String walkTitle, String status, List<String> lines, long recordedAtMillis) {
         public Demo {
             lines = List.copyOf(lines);
+        }
+
+        /**
+         * No recorded time. Owner, 2026-10-18: {@code recordedAtMillis} is when the walk's dialogue was recorded (its saved
+         * {@code createdAt}; 0: unknown) — shown on the first line, labelled "recorded".
+         */
+        public Demo(String mode, String walkTitle, String status, List<String> lines) {
+            this(mode, walkTitle, status, lines, 0);
         }
     }
 
@@ -964,8 +972,10 @@ public final class AssistantPanel extends JPanel {
         }
         int i = 0;
         for (String line : demo.lines()) {
-            out.add(new TranscriptView.Item("demo:" + i++ + ":" + line.hashCode(), TranscriptStyle.Role.PLAIN, line, "", 0, 0,
-                    false));
+            TranscriptView.Item item = new TranscriptView.Item("demo:" + i + ":" + line.hashCode(), TranscriptStyle.Role.PLAIN,
+                    line, "", 0, 0, false);
+            // owner, 2026-10-18: a recorded conversation shows its recorded time, labelled as such, on its first line
+            out.add(i++ == 0 && demo.recordedAtMillis() > 0 ? item.at(demo.recordedAtMillis(), true) : item);
         }
         return out;
     }
@@ -981,10 +991,11 @@ public final class AssistantPanel extends JPanel {
         for (AssistantState.Entry e : state.visibleEntries()) {
             String key = state.conversation() + ":" + i++ + ":" + e.kind() + ":" + e.id();
             switch (e.kind()) {
+                // owner, 2026-10-18: each turn's time is the session's record of it (Entry.atMillis), rendered by the view
                 case AssistantState.USER -> out.add(new TranscriptView.Item(key, TranscriptStyle.Role.YOU,
-                        transcript.text(e.id()), "", 0, 0, false));
+                        transcript.text(e.id()), "", 0, 0, false).at(e.atMillis(), false));
                 case AssistantState.ANSWER -> out.add(new TranscriptView.Item(key, TranscriptStyle.Role.CLAUDE,
-                        withoutActionBlocks(transcript.text(e.id())), e.status(), 0, 0, false));
+                        withoutActionBlocks(transcript.text(e.id())), e.status(), 0, 0, false).at(e.atMillis(), false));
                 case AssistantState.ACTION -> out.add(new TranscriptView.Item(key + ":" + e.status(),
                         TranscriptStyle.Role.TOOL, toolLine(e, e.result() == 0 ? null : transcript.text(e.result())),
                         e.status(), 0, 0, false));

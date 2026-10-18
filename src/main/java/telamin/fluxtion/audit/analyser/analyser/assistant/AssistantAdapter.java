@@ -155,7 +155,7 @@ public final class AssistantAdapter {
                 String content = context.isEmpty() ? question : "Context follows.\n\n" + context + "\n\nQuestion: " + question;
                 if (e.includeManifest()) content = PromptBuilder.inProcessActionManifest(e.maxActionsPerReply()) + "\n\n" + content;
                 long prompt = transcript.add(AssistantTranscript.Kind.PROMPT, content);
-                env.post(new SessionEvents.AssistantContextPrepared(ticket, prompt));
+                env.post(new SessionEvents.AssistantContextPrepared(ticket, prompt, System.currentTimeMillis()));
             } catch (RuntimeException ex) {
                 env.post(new SessionEvents.AssistantContextFailed(ticket, safeFailure(ex)));
             }
@@ -180,7 +180,7 @@ public final class AssistantAdapter {
                 long replyId = transcript.add(AssistantTranscript.Kind.ANSWER, reply);
                 List<Long> blocks = new ArrayList<>();
                 for (String block : ActionParser.extract(reply)) blocks.add(transcript.add(AssistantTranscript.Kind.ACTION, block));
-                env.post(new SessionEvents.AssistantCompletionReceived(ticket, round, replyId, blocks));
+                env.post(new SessionEvents.AssistantCompletionReceived(ticket, round, replyId, blocks, System.currentTimeMillis()));
             } catch (InterruptedException ex) {
                 Thread.currentThread().interrupt();
                 env.post(new SessionEvents.AssistantCompletionFailed(ticket, round, "the request was stopped"));

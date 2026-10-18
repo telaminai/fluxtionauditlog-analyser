@@ -264,6 +264,58 @@ class TranscriptViewTest {
         assertFalse(shown.contains("from   through"), "the onboard transcript's gap");
     }
 
+    /**
+     * ★ Owner, 2026-10-18: each turn shows its time, quietly — HH:mm, muted, right-aligned on its header line; the day on
+     * the first turn of a day; the full local date and time in its tooltip and accessible description; a recorded
+     * conversation's time labelled "recorded". The time is the item's (the session's record), never a clock read here.
+     * Witness (run 2026-10-18): make {@code turnTime} return at once — no time is shown and this fails.
+     */
+    @Test
+    @DisplayName("★ a turn shows its time; the first turn of a day shows the day; the tooltip has the full date; recorded is labelled")
+    void turnsShowTheirTimes() throws Exception {
+        java.time.ZoneId zone = java.time.ZoneId.systemDefault();
+        long day1 = java.time.LocalDateTime.of(2026, 10, 17, 23, 58).atZone(zone).toInstant().toEpochMilli();
+        long day1b = day1 + 60_000;                                       // 23:59, the same day
+        long day2 = java.time.LocalDateTime.of(2026, 10, 18, 9, 5).atZone(zone).toInstant().toEpochMilli();
+        List<javax.swing.JLabel> labels = new ArrayList<>();
+        String shown = onEdt(() -> {
+            TranscriptView v = new TranscriptView();
+            v.render(List.of(you("u1", "First question").at(day1, false), answer("a1", "First answer.").at(day1b, false),
+                    you("u2", "Next morning").at(day2, false), answer("a2", "No time recorded.")));
+            paint(v);                                                      // laid out 900 px wide
+            v.setSize(900, 2000);
+            v.doLayout();
+            paint(v);
+            labels.addAll(v.timeLabels());
+            for (javax.swing.JLabel l : labels) {
+                int right = javax.swing.SwingUtilities.convertPoint(l, l.getWidth(), 0, v).x;
+                assertTrue(right > v.getWidth() - 60, "right-aligned on its header line: ends at " + right + " of "
+                        + v.getWidth());
+            }
+            return all(v);
+        });
+        java.time.format.DateTimeFormatter day = TranscriptView.DAY;
+        String first = day.format(java.time.Instant.ofEpochMilli(day1).atZone(zone)) + " · 23:58";
+        String morning = day.format(java.time.Instant.ofEpochMilli(day2).atZone(zone)) + " · 09:05";
+        assertEquals(List.of(first, "23:59", morning), labels.stream().map(javax.swing.JLabel::getText).toList(),
+                "a time per stamped turn; the day only on the first turn of a day; none for a turn without one");
+        assertTrue(shown.contains(first) && shown.contains("\t23:59") && shown.contains(morning),
+                "the time is the document's own text too: " + shown);
+        String full = TranscriptView.FULL.format(java.time.Instant.ofEpochMilli(day2).atZone(zone));
+        assertEquals(full, labels.get(2).getAccessibleContext().getAccessibleDescription());
+        assertTrue(labels.get(2).getToolTipText().contains(full), labels.get(2).getToolTipText());
+        assertEquals(TranscriptStyle.palette(false).muted(), labels.get(1).getForeground(), "muted");
+
+        String recorded = onEdt(() -> {
+            TranscriptView v = new TranscriptView();
+            v.render(List.of(new TranscriptView.Item("d0", TranscriptStyle.Role.PLAIN, "Tutor:\nThis is the graph.", "", 0,
+                    0, false).at(day2, true)));
+            javax.swing.JLabel l = v.timeLabels().get(0);
+            return l.getText() + " | " + l.getAccessibleContext().getAccessibleDescription();
+        });
+        assertEquals("recorded " + morning + " | Recorded " + full, recorded, "a recorded conversation says so");
+    }
+
     /** ★ r8 F20. Witness: chip whole words that equal a node id — the prose word "risk" becomes a chip. */
     @Test
     @DisplayName("★ chips need code formatting or the word node; prose never becomes navigation")

@@ -58,16 +58,30 @@ public final class TranscriptView extends JTextPane {
 
     /** One entry as the panel hands it over: words from the store, state from the snapshot. */
     public record Item(String key, TranscriptStyle.Role role, String text, String status, long revision,
-                       long logGeneration, boolean streaming, String tip) {
+                       long logGeneration, boolean streaming, String tip, long atMillis, boolean recorded) {
         public Item {
             text = text == null ? "" : text;
             status = status == null ? "" : status;
+        }
+
+        /** An entry with no time of its own. */
+        public Item(String key, TranscriptStyle.Role role, String text, String status, long revision, long logGeneration,
+                    boolean streaming, String tip) {
+            this(key, role, text, status, revision, logGeneration, streaming, tip, 0, false);
         }
 
         /** An entry with no tooltip of its own. */
         public Item(String key, TranscriptStyle.Role role, String text, String status, long revision, long logGeneration,
                     boolean streaming) {
             this(key, role, text, status, revision, logGeneration, streaming, null);
+        }
+
+        /**
+         * Owner, 2026-10-18: this entry at {@code atMillis} — the epoch millis the SESSION recorded for the turn (0: none,
+         * no time is shown). {@code recorded}: a recorded conversation's time (a walk's dialogue), labelled as such.
+         */
+        public Item at(long atMillis, boolean recorded) {
+            return new Item(key, role, text, status, revision, logGeneration, streaming, tip, atMillis, recorded);
         }
     }
 
@@ -257,6 +271,7 @@ public final class TranscriptView extends JTextPane {
                 }
                 rendered.clear();
                 hoverCopies.clear();
+                timeLines.clear();
                 renderedDark = dark;
                 setBackground(TranscriptStyle.palette(dark).background());
             }
@@ -265,6 +280,7 @@ public final class TranscriptView extends JTextPane {
                 Rendered last = rendered.get(rendered.size() - 1);
                 Item now = items.get(rendered.size() - 1);
                 if (!last.item().equals(now)) {
+                    timeLines.removeIf(at -> at.getOffset() >= last.start());
                     doc.remove(last.start(), last.length());
                     lastEdits++;
                     rendered.remove(rendered.size() - 1);
@@ -273,6 +289,8 @@ public final class TranscriptView extends JTextPane {
             }
             for (int i = from; i < items.size(); i++) {
                 int start = doc.getLength();
+                previousAt = 0;
+                for (int j = i - 1; j >= 0 && previousAt == 0; j--) previousAt = items.get(j).atMillis();
                 renderItem(doc, items.get(i), dark);
                 lastEdits++;
                 rendered.add(new Rendered(items.get(i), start, doc.getLength() - start));
@@ -298,7 +316,9 @@ public final class TranscriptView extends JTextPane {
                 StyleConstants.setBackground(band, p.youBand());
                 SimpleAttributeSet who = bold(band);
                 StyleConstants.setForeground(who, p.link());
+                int line = doc.getLength();
                 put(doc, " " + TranscriptStyle.marker(TranscriptStyle.Role.YOU) + " ", who, item);
+                turnTime(doc, item, band, line);
                 put(doc, "\n", band, item);
                 put(doc, VisibleMarks.show(item.text()), band, item);      // as typed: plain, never Markdown
                 put(doc, "\n\n", base(p.body(), dark), item);
@@ -321,9 +341,15 @@ public final class TranscriptView extends JTextPane {
             case PLAIN -> {
                 String text = item.text();
                 int nl = text.indexOf('\n');
+                int line = doc.getLength();
                 if (nl > 0 && text.substring(0, nl).endsWith(":")) {
-                    put(doc, VisibleMarks.show(text.substring(0, nl + 1)), bold(base(p.body(), dark)), item);
+                    put(doc, VisibleMarks.show(text.substring(0, nl)), bold(base(p.body(), dark)), item);
+                    turnTime(doc, item, base(p.body(), dark), line);
+                    put(doc, "\n", bold(base(p.body(), dark)), item);
                     text = text.substring(nl + 1);
+                } else if (item.atMillis() > 0) {
+                    turnTime(doc, item, base(p.body(), dark), line);   // a recorded line with no speaker: the time alone
+                    put(doc, "\n", base(p.body(), dark), item);
                 }
                 put(doc, VisibleMarks.show(text) + "\n", base(p.body(), dark), item);
             }
@@ -336,10 +362,12 @@ public final class TranscriptView extends JTextPane {
         SimpleAttributeSet head = bold(base(p.link(), dark));
         // M78 D1 (OD-Q.4): "Claude · unverified" on every answer — the full sentence is the word's tooltip and its
         // accessible description, so the signal stays on screen in two words and is read whole when asked for
+        int headLine = doc.getLength();
         put(doc, TranscriptStyle.answerName(speaker), head, item);
         SimpleAttributeSet note = smaller(base(p.muted(), dark));
         put(doc, " · ", note, item);
         insertComponent(doc, unverifiedMark(p), item);
+        turnTime(doc, item, note, headLine);
         put(doc, "\n", note, item);
         Color ink = stopped ? p.muted() : p.body();
         boolean stale = item.logGeneration() != 0 && chips.generation() != 0 && item.logGeneration() != chips.generation();
@@ -714,6 +742,113 @@ public final class TranscriptView extends JTextPane {
         b.addActionListener(e -> action.run());
         insertComponent(doc, b, item);
         return b;
+    }
+
+    // ---- owner, 2026-10-18: each turn's time, from the session's record of it ------------------------------------------
+
+    /** The client property marking a turn's time label. */
+    static final String TURN_TIME = "transcript.turnTime";
+    /** The time on a turn's header line. */
+    static final java.time.format.DateTimeFormatter CLOCK = java.time.format.DateTimeFormatter.ofPattern("HH:mm");
+    /** The day, shown on the first turn of a day. */
+    static final java.time.format.DateTimeFormatter DAY = java.time.format.DateTimeFormatter.ofPattern("EEE d MMM",
+            Locale.getDefault(Locale.Category.FORMAT));
+    /** The full local date and time: the label's tooltip and accessible description. */
+    static final java.time.format.DateTimeFormatter FULL = java.time.format.DateTimeFormatter.ofPattern(
+            "EEEE d MMMM yyyy, HH:mm:ss", Locale.getDefault(Locale.Category.FORMAT));
+
+    /** The time zone the times are shown in: the machine's own. */
+    static java.time.ZoneId zone() {
+        return java.time.ZoneId.systemDefault();
+    }
+
+    /** The newest time among the entries before the one being rendered (0: none), for the day's first turn. */
+    private long previousAt;
+    /** The header lines that carry a time, so their right-aligned tab follows the view's width. */
+    private final List<javax.swing.text.Position> timeLines = new ArrayList<>();
+    private int tabWidth = -1;
+
+    /** What a turn's time label says: HH:mm, with the day on the first turn of a day; "recorded" for a recorded one. */
+    static String timeWords(long atMillis, long previousAtMillis, boolean recorded) {
+        var at = java.time.Instant.ofEpochMilli(atMillis).atZone(zone());
+        boolean newDay = previousAtMillis <= 0
+                || !java.time.Instant.ofEpochMilli(previousAtMillis).atZone(zone()).toLocalDate().equals(at.toLocalDate());
+        String shown = (newDay ? DAY.format(at) + " · " : "") + CLOCK.format(at);
+        return recorded ? "recorded " + shown : shown;
+    }
+
+    /** The full local date and time of a turn — its label's tooltip and accessible description. */
+    static String timeFull(long atMillis, boolean recorded) {
+        String full = FULL.format(java.time.Instant.ofEpochMilli(atMillis).atZone(zone()));
+        return recorded ? "Recorded " + full : full;
+    }
+
+    /**
+     * A turn's time, right-aligned on its header line (the line starting at {@code line}), muted and small: a label whose
+     * text is also the document's own. The session recorded the time; nothing here reads a clock. No time, nothing shown.
+     */
+    private void turnTime(StyledDocument doc, Item item, AttributeSet around, int line) throws BadLocationException {
+        if (item.atMillis() <= 0) return;
+        TranscriptStyle.Palette p = TranscriptStyle.palette(renderedDark);
+        String shown = timeWords(item.atMillis(), previousAt, item.recorded());
+        String full = timeFull(item.atMillis(), item.recorded());
+        javax.swing.JLabel l = UiText.label(shown);
+        l.setForeground(p.muted());
+        l.setFont(getFont().deriveFont((float) Math.max(9, fontSize() - 2)));
+        l.setToolTipText(UiText.tooltip(full));
+        l.getAccessibleContext().setAccessibleName(shown);
+        l.getAccessibleContext().setAccessibleDescription(full);
+        l.putClientProperty(TURN_TIME, Boolean.TRUE);
+        put(doc, "\t", around, item);
+        insertComponent(doc, l, item, shown);
+        timeLines.add(doc.createPosition(line));
+        rightTab(doc, line);
+    }
+
+    /** The header line at {@code offset} gets one right-aligned tab stop at the view's text width. */
+    private void rightTab(StyledDocument doc, int offset) {
+        SimpleAttributeSet tab = new SimpleAttributeSet();
+        StyleConstants.setTabSet(tab, new javax.swing.text.TabSet(new javax.swing.text.TabStop[]{
+                new javax.swing.text.TabStop(textWidth(), javax.swing.text.TabStop.ALIGN_RIGHT,
+                        javax.swing.text.TabStop.LEAD_NONE)}));
+        doc.setParagraphAttributes(offset, 1, tab, false);
+    }
+
+    private float textWidth() {
+        Insets in = getInsets();
+        int w = getWidth() - in.left - in.right - 6;
+        return Math.max(160, w);
+    }
+
+    /** Owner, 2026-10-18: a turn's time stays right-aligned as the view's width changes. */
+    @Override
+    @SuppressWarnings("deprecation")
+    public void reshape(int x, int y, int w, int h) {
+        super.reshape(x, y, w, h);
+        retab();
+    }
+
+    /** The view was resized: every time stays at the right edge. */
+    private void retab() {
+        if (timeLines == null) return;                    // during construction
+        int w = (int) textWidth();
+        if (w == tabWidth) return;
+        tabWidth = w;
+        StyledDocument doc = getStyledDocument();
+        for (javax.swing.text.Position at : timeLines) {
+            if (at.getOffset() < doc.getLength()) rightTab(doc, at.getOffset());
+        }
+    }
+
+    /** For the tests: the time labels in the document, in order. */
+    List<javax.swing.JLabel> timeLabels() {
+        List<javax.swing.JLabel> out = new ArrayList<>();
+        StyledDocument doc = getStyledDocument();
+        for (int i = 0; i < doc.getLength(); i++) {
+            Object c = StyleConstants.getComponent(doc.getCharacterElement(i).getAttributes());
+            if (c instanceof javax.swing.JLabel l && l.getClientProperty(TURN_TIME) != null && !out.contains(l)) out.add(l);
+        }
+        return out;
     }
 
     // ---- M78 D1: the quiet answer — "Claude · unverified", Copy on hover or focus, the turn time as a tooltip ---------

@@ -237,10 +237,24 @@ public record LocalAgentState(AssistantMode mode, long conversation, long genera
      * its text reference and revision), or the node's own note ({@link #NOTE}, its words in {@code detail}).
      */
     public record Entry(long id, String kind, long ticket, String status, String detail, long revision,
-                        long logGeneration) {
+                        long logGeneration, long atMillis) {
         public Entry {
             status = status == null ? "" : status;
             detail = detail == null ? "" : detail;
+        }
+
+        /**
+         * No time recorded. Owner, 2026-10-18: a turn carries {@code atMillis}, the epoch millis the adapter observed it
+         * at — a USER entry when Claude Code started the turn, an ANSWER when its first text arrived (0: not known) — so
+         * the transcript shows each turn's time from the snapshot, never from a clock of its own.
+         */
+        public Entry(long id, String kind, long ticket, String status, String detail, long revision, long logGeneration) {
+            this(id, kind, ticket, status, detail, revision, logGeneration, 0);
+        }
+
+        /** This entry at {@code atMillis}. */
+        public Entry at(long atMillis) {
+            return new Entry(id, kind, ticket, status, detail, revision, logGeneration, atMillis);
         }
 
         /**

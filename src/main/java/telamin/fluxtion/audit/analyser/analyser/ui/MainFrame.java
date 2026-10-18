@@ -5770,6 +5770,22 @@ public final class MainFrame extends JFrame {
     private java.awt.Component javaSpotlightTabBefore;
 
     /**
+     * Owner, 2026-10-18: when a walk's dialogue was recorded — its saved {@code createdAt} (else {@code updatedAt}), an
+     * ISO instant in the frozen definition; 0 when neither reads as one. Read from the definition, never a clock.
+     */
+    static long recordedAt(telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec walk) {
+        for (String at : new String[]{walk.createdAt(), walk.updatedAt()}) {
+            if (at == null || at.isBlank()) continue;
+            try {
+                return java.time.Instant.parse(at.trim()).toEpochMilli();
+            } catch (java.time.format.DateTimeParseException ignored) {
+                // not an instant: try the next
+            }
+        }
+        return 0;
+    }
+
+    /**
      * OA-4 (§6): while a walk with dialogue shows, the assistant host shows its conversation — a PROJECTION of walkPlayback's
      * frozen definition and step, deciding nothing. Two things side by side: the saved narrative, attributed and labelled,
      * up to the last step that was actually shown; and what this analyser actually showed for the requested step.
@@ -5815,7 +5831,7 @@ public final class MainFrame extends JFrame {
             }
         }
         String status = preparing ? "Preparing evidence…" : refused ? "Not shown" : "SHOWN".equals(w.phase()) ? "Shown" : "Partly shown";
-        return new AssistantPanel.Demo(c.label(), title, status, lines);
+        return new AssistantPanel.Demo(c.label(), title, status, lines, recordedAt(walk));
     }
 
 

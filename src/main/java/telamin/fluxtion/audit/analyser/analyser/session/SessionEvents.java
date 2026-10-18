@@ -766,7 +766,11 @@ public final class SessionEvents {
     }
 
     /** The first-turn content was composed as transcript entry {@code prompt} (hidden), for {@code ticket}. */
-    public record AssistantContextPrepared(long ticket, long prompt) {
+    public record AssistantContextPrepared(long ticket, long prompt, long atMillis) {
+        /** No time observed. Owner, 2026-10-18: {@code atMillis} is when the adapter prepared the question (0: unknown). */
+        public AssistantContextPrepared(long ticket, long prompt) {
+            this(ticket, prompt, 0);
+        }
     }
 
     /** The context could not be assembled; nothing was sent. */
@@ -777,9 +781,15 @@ public final class SessionEvents {
      * The provider replied in {@code round}: the reply is transcript entry {@code reply}, and the {@code analyser-action}
      * blocks found in it are entries {@code actions}, in order. The node decides which of them run.
      */
-    public record AssistantCompletionReceived(long ticket, int round, long reply, java.util.List<Long> actions) {
+    public record AssistantCompletionReceived(long ticket, int round, long reply, java.util.List<Long> actions,
+                                              long atMillis) {
         public AssistantCompletionReceived {
             actions = java.util.List.copyOf(actions == null ? java.util.List.of() : actions);
+        }
+
+        /** No time observed. Owner, 2026-10-18: {@code atMillis} is when the reply arrived (0: unknown). */
+        public AssistantCompletionReceived(long ticket, int round, long reply, java.util.List<Long> actions) {
+            this(ticket, round, reply, actions, 0);
         }
     }
 
@@ -1354,11 +1364,21 @@ public final class SessionEvents {
     }
 
     /** The CLI's lifecycle for the turn's own uuid reached {@code started}. */
-    public record LocalAgentTurnStarted(long generation, long ticket) {
+    public record LocalAgentTurnStarted(long generation, long ticket, long atMillis) {
+        /** No time observed. Owner, 2026-10-18: {@code atMillis} is when the adapter saw the turn start (0: unknown). */
+        public LocalAgentTurnStarted(long generation, long ticket) {
+            this(generation, ticket, 0);
+        }
     }
 
-    /** The answer text of {@code ticket} is transcript entry {@code textRef}, now at {@code revision} (coalesced). */
-    public record LocalAgentTextUpdated(long generation, long ticket, long textRef, long revision) {
+    /**
+     * The answer text of {@code ticket} is transcript entry {@code textRef}, now at {@code revision} (coalesced);
+     * {@code atMillis} is when the adapter observed this revision (0: unknown) — the first one is the answer's time.
+     */
+    public record LocalAgentTextUpdated(long generation, long ticket, long textRef, long revision, long atMillis) {
+        public LocalAgentTextUpdated(long generation, long ticket, long textRef, long revision) {
+            this(generation, ticket, textRef, revision, 0);
+        }
     }
 
     /** What a turn's end was. */

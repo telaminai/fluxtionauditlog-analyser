@@ -345,6 +345,16 @@ public class AssistantLoop implements EventLogSource {
         if (stale(e.ticket(), "PREPARING", "AssistantContextPrepared")) return false;
         if (manifestInFlight) manifestSent = true;
         manifestInFlight = false;
+        // owner, 2026-10-18: the person's question is stamped with the time the adapter prepared it — the transcript renders it
+        if (e.atMillis() > 0) {
+            for (int i = entries.size() - 1; i >= 0; i--) {
+                AssistantState.Entry x = entries.get(i);
+                if (AssistantState.USER.equals(x.kind()) && x.turn() == turn) {
+                    if (x.atMillis() == 0) entries.set(i, x.at(e.atMillis()));
+                    break;
+                }
+            }
+        }
         entries.add(new AssistantState.Entry(e.prompt(), AssistantState.PROMPT, turn, "", "", "", 0));
         history.add(new SessionEffects.HistoryMessage("user", "TEXT", List.of(e.prompt())));
         nextRound();
@@ -365,7 +375,7 @@ public class AssistantLoop implements EventLogSource {
             auditLog.info("staleFact", "AssistantCompletionReceived").info("round", e.round()).info("current", round);
             return false;
         }
-        entries.add(new AssistantState.Entry(e.reply(), AssistantState.ANSWER, turn, "ACCEPTED", "", "", 0));
+        entries.add(new AssistantState.Entry(e.reply(), AssistantState.ANSWER, turn, "ACCEPTED", "", "", 0, e.atMillis()));
         history.add(new SessionEffects.HistoryMessage("assistant", "TEXT", List.of(e.reply())));
         pending = new ArrayDeque<>(e.actions());
         roundResults = new ArrayList<>();

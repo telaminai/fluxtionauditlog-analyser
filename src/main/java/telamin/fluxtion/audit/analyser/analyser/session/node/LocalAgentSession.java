@@ -924,9 +924,23 @@ public class LocalAgentSession implements EventLogSource {
     public boolean onTurnStarted(SessionEvents.LocalAgentTurnStarted e) {
         if (stale(e.generation(), "LocalAgentTurnStarted") || staleTicket(e.ticket(), "LocalAgentTurnStarted")) return false;
         auditLog.info("localAgentTurnStarted", e.ticket());
+        // owner, 2026-10-18: the person's turn is stamped with the time the adapter saw it start — the transcript renders it
+        boolean stamped = false;
+        if (e.atMillis() > 0) {
+            for (int i = entries.size() - 1; i >= 0; i--) {
+                LocalAgentState.Entry x = entries.get(i);
+                if (LocalAgentState.USER.equals(x.kind()) && x.ticket() == e.ticket()) {
+                    if (x.atMillis() == 0) {
+                        entries.set(i, x.at(e.atMillis()));
+                        stamped = true;
+                    }
+                    break;
+                }
+            }
+        }
         // review M2: a conversation is resumable only once the CLI has started one of its turns — before that it has no
         // transcript, and --resume on it would fail
-        if (resumable) return false;
+        if (resumable) return stamped && changed();
         resumable = true;
         return changed();
     }
@@ -938,14 +952,15 @@ public class LocalAgentSession implements EventLogSource {
             LocalAgentState.Entry x = entries.get(i);
             if (LocalAgentState.ANSWER.equals(x.kind()) && x.ticket() == e.ticket()) {
                 entries.set(i, new LocalAgentState.Entry(e.textRef(), LocalAgentState.ANSWER, e.ticket(), "STREAMING", "",
-                        e.revision(), x.logGeneration()));
+                        e.revision(), x.logGeneration(), x.atMillis() != 0 ? x.atMillis() : e.atMillis()));
                 return changed();
             }
         }
         // P2 (§5.9): the answer is stamped with the log generation it was written under — its chips go muted when the
         // log moves, decided here rather than remembered by the panel
+        // owner, 2026-10-18: …and with the time its first text arrived, as the adapter observed it
         entries.add(new LocalAgentState.Entry(e.textRef(), LocalAgentState.ANSWER, e.ticket(), "STREAMING", "",
-                e.revision(), openLog != null && openLog.isOpen() ? openLog.generation() : 0));
+                e.revision(), openLog != null && openLog.isOpen() ? openLog.generation() : 0, e.atMillis()));
         return changed();
     }
 
@@ -1491,7 +1506,7 @@ public class LocalAgentSession implements EventLogSource {
             LocalAgentState.Entry x = entries.get(i);
             if (LocalAgentState.ANSWER.equals(x.kind()) && x.ticket() == was) {
                 entries.set(i, new LocalAgentState.Entry(x.id(), x.kind(), x.ticket(), outcome.name(), "", x.revision(),
-                        x.logGeneration()));
+                        x.logGeneration(), x.atMillis()));
                 break;
             }
         }

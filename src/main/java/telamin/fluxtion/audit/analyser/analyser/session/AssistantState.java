@@ -74,11 +74,25 @@ public record AssistantState(long conversation, long ticket, String phase, int r
      * @param detail for a NOTE, the node's own words (a limit, a cancel, a failure) — never model or user text
      * @param result for an ACTION that ran, the transcript key of its actual result JSON; 0 otherwise
      */
-    public record Entry(long id, String kind, long turn, String status, String verb, String detail, long result) {
+    public record Entry(long id, String kind, long turn, String status, String verb, String detail, long result,
+                        long atMillis) {
         public Entry {
             status = status == null ? "" : status;
             verb = verb == null ? "" : verb;
             detail = detail == null ? "" : detail;
+        }
+
+        /**
+         * No time recorded. Owner, 2026-10-18: a USER entry is stamped when its question was prepared, an ANSWER when the
+         * reply arrived — the epoch millis the adapter observed (0: not known); the transcript renders it.
+         */
+        public Entry(long id, String kind, long turn, String status, String verb, String detail, long result) {
+            this(id, kind, turn, status, verb, detail, result, 0);
+        }
+
+        /** This entry at {@code atMillis}. */
+        public Entry at(long atMillis) {
+            return new Entry(id, kind, turn, status, verb, detail, result, atMillis);
         }
 
         public boolean visible() {
