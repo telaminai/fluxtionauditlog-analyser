@@ -74,7 +74,8 @@ One filter scopes **every** view at once — table, summary and graphs all honou
 - **Time range** (top slider) — drag the two thumbs to bound `logTime`; drag the middle to pan the
   selection keeping its width; double-click to reset. Shrink the visible window with the **Window**
   control (All / week / day / hours / minutes) and pan it across the whole log.
-- **Event types** (the toggle on the Records row, beside Search) — tick the dimensions to keep (an
+- **Event types** (the toggle on the Records row, beside Search) — the checklist starts hidden, so the
+  table keeps its rows, and stays as you last left it; tick the dimensions to keep (an
   **OR**). The list is split into **Event types** and **Callbacks**; use **Select all / Select none**,
   (beside the list) or right-click an entry for *Only this / Add / Remove*. **Select none** clears the view; leaving
   everything ticked means "all". Each entry counts its records **under the other filters**: `Tick (7)`
