@@ -239,6 +239,11 @@ class LocalAgentPermissionTest {
         d.post(new SessionEvents.LocalAgentPermissionDeadline(g, 62));
         assertEquals(PermissionBy.TIMEOUT, lastAnswer(a).by());
         assertEquals(LocalAgentPermission.DENIED_TIMEOUT, lastAnswer(a).message());
+        // ★ owner hands-on test (2026-10-18): Claude retried an unseen request three times. The words it receives say not
+        // to, and to ask in its reply. Witness: put back "Not answered in the analyser within 120 s" alone — red here
+        assertTrue(lastAnswer(a).message().startsWith("Not answered in the analyser within 120 s"), lastAnswer(a).message());
+        assertTrue(lastAnswer(a).message().contains("Do not retry the same request"), lastAnswer(a).message());
+        assertTrue(lastAnswer(a).message().contains("ask the person in your reply"), lastAnswer(a).message());
         d.post(new SessionEvents.LocalAgentPermissionDeadline(g, 62));
         assertEquals(2, a.permissionAnswers.size(), "a second deadline for an answered request does nothing");
 

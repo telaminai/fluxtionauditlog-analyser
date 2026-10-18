@@ -11593,6 +11593,9 @@ public final class MainFrame extends JFrame {
     private final java.util.Set<Long> permissionClosed = new java.util.HashSet<>();
     /** One modal, owned by the analyser window (§5.7); a frame test may show it modeless so its thread stays free. */
     boolean permissionDialogsModal = true;
+    /** For the frame test: the window last brought forward for a permission dialog, and what was asked of the platform. */
+    Window permissionAttentionOwner;
+    java.util.List<String> permissionAttention = java.util.List.of();
 
     /**
      * M74 P3 (§5.7): show the one permission dialog the node asked for — outside the dispatch, owned by the window the
@@ -11621,6 +11624,9 @@ public final class MainFrame extends JFrame {
             permissionDialogs.put(ref, d);
             var now = sessionSnapshot().permission();
             if (now.pendingRef() == ref) d.setWaiting(now.queued());
+            // owner hands-on test (2026-10-18): a popped-out assistant's window may be behind another — bring it forward
+            permissionAttentionOwner = owner == null ? this : owner;
+            permissionAttention = LocalAgentPermissionDialog.bringForward(permissionAttentionOwner);
             d.setVisible(true);                         // modal: returns when the node's close effect disposes it
         });
         return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LocalAgentEffectStarted(e.opId(),

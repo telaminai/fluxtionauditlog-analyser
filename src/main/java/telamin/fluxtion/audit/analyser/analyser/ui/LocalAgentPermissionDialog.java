@@ -179,9 +179,46 @@ public final class LocalAgentPermissionDialog extends JDialog {
             @Override public void windowOpened(WindowEvent e) {
                 enable.start();
                 tick.start();
+                toFront();
                 deny.requestFocusInWindow();
             }
         });
+    }
+
+    /**
+     * Owner hands-on test (2026-10-18): four approvals timed out unseen while the assistant was popped out — its window
+     * owns the dialog and sat behind another. When a dialog opens, its owner is restored if minimised, brought to the
+     * front and asked for focus, and the platform is asked for the person's attention (on macOS the Dock icon bounces).
+     * Rendering only: it decides nothing about the request.
+     *
+     * @return what was asked of the platform, in order (for the frame test; the platform may refuse any of it)
+     */
+    static java.util.List<String> bringForward(Window owner) {
+        java.util.List<String> asked = new java.util.ArrayList<>();
+        if (owner == null) return asked;
+        if (owner instanceof java.awt.Frame f && (f.getExtendedState() & java.awt.Frame.ICONIFIED) != 0) {
+            f.setExtendedState(f.getExtendedState() & ~java.awt.Frame.ICONIFIED);
+            asked.add("deiconify");
+        }
+        owner.toFront();
+        asked.add("toFront");
+        owner.requestFocus();
+        asked.add("requestFocus");
+        try {
+            if (java.awt.Taskbar.isTaskbarSupported()) {
+                java.awt.Taskbar taskbar = java.awt.Taskbar.getTaskbar();
+                if (taskbar.isSupported(java.awt.Taskbar.Feature.USER_ATTENTION_WINDOW)) {
+                    taskbar.requestWindowUserAttention(owner);
+                    asked.add("attention");
+                } else if (taskbar.isSupported(java.awt.Taskbar.Feature.USER_ATTENTION)) {
+                    taskbar.requestUserAttention(true, false);
+                    asked.add("attention");
+                }
+            }
+        } catch (RuntimeException unsupported) {
+            // a platform without a taskbar, or one that refuses: the window is still in front
+        }
+        return asked;
     }
 
     /** The countdown's words: what the node will do at the deadline. */

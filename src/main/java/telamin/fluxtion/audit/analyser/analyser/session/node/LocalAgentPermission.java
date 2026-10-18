@@ -60,7 +60,14 @@ public class LocalAgentPermission implements EventLogSource {
     public static final long GRANT_MS = 60_000;
 
     public static final String DENIED_BY_PERSON = "Denied by the person in the analyser";
-    public static final String DENIED_TIMEOUT = "Not answered in the analyser within 120 s";
+    /**
+     * Owner hands-on test (2026-10-18): the person may not have SEEN the dialog (the popped-out assistant's window was
+     * behind another), and Claude retried the same {@code mkdir} three times, each a fresh 120 s wait. Fixed text: it
+     * tells the model not to ask the same thing again and to ask the person in its reply instead.
+     */
+    public static final String DENIED_TIMEOUT = "Not answered in the analyser within 120 s — the person may not have seen "
+            + "the approval. Do not retry the same request: ask the person in your reply whether to go ahead, and wait for "
+            + "their answer";
     public static final String DENIED_STOP = "Denied: the person pressed Stop in the analyser";
     public static final String DENIED_BUSY = "Denied: another approval is waiting for the person — ask again after it";
     public static final String DENIED_TOO_LARGE = "Denied: the request was too large to show the person in full";

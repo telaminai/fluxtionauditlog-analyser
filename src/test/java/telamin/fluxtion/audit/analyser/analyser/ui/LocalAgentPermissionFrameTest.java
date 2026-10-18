@@ -125,6 +125,39 @@ class LocalAgentPermissionFrameTest {
     }
 
     /**
+     * ★ Owner hands-on test (2026-10-18): a minimised owner is restored, brought to the front and asked for focus before
+     * the dialog shows. Witness: drop the ICONIFIED branch in {@code LocalAgentPermissionDialog.bringForward} — no
+     * "deiconify" is asked.
+     */
+    @Test
+    @DisplayName("★ bringForward restores a minimised owner and brings it to the front")
+    void bringForwardRestoresAMinimisedOwner() throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless(), "a real display is required");
+        AtomicReference<javax.swing.JFrame> owner = new AtomicReference<>();
+        onEdt(() -> {
+            javax.swing.JFrame w = new javax.swing.JFrame("popped-out assistant");
+            w.setSize(300, 200);
+            w.setVisible(true);
+            w.setExtendedState(java.awt.Frame.ICONIFIED);
+            owner.set(w);
+        });
+        try {
+            long until = System.currentTimeMillis() + 3000;
+            while ((owner.get().getExtendedState() & java.awt.Frame.ICONIFIED) == 0 && System.currentTimeMillis() < until) {
+                Thread.sleep(50);
+            }
+            org.junit.jupiter.api.Assumptions.assumeTrue((owner.get().getExtendedState() & java.awt.Frame.ICONIFIED) != 0,
+                    "this window manager did not minimise the frame");
+            AtomicReference<List<String>> asked = new AtomicReference<>();
+            onEdt(() -> asked.set(LocalAgentPermissionDialog.bringForward(owner.get())));
+            assertEquals(List.of("deiconify", "toFront", "requestFocus"), asked.get().subList(0, 3), asked.get().toString());
+            assertTrue(LocalAgentPermissionDialog.bringForward(null).isEmpty(), "no owner: nothing asked");
+        } finally {
+            onEdt(() -> owner.get().dispose());
+        }
+    }
+
+    /**
      * ★ Review PR151 F1 (2026-10-18): a dialog whose request's words are not held never enables Allow, after the delay
      * and on a click. Witness: enable Allow on the delay regardless of {@code held} — Allow becomes active.
      */
@@ -239,6 +272,14 @@ class LocalAgentPermissionFrameTest {
             // turn 1: Escape denies
             send(panel, "Write the DEMO report");
             LocalAgentPermissionDialog d1 = awaitPermission();
+            // ★ owner hands-on test (2026-10-18): the dialog's owner — the window the assistant is in — is brought
+            // forward when it opens (witness: drop the bringForward call in showPermissionDialog — nothing recorded)
+            onEdt(() -> {
+                assertSame(SwingUtilities.getWindowAncestor(panel), f.permissionAttentionOwner,
+                        "the window the assistant is in, which owns the dialog");
+                assertTrue(f.permissionAttention.containsAll(List.of("toFront", "requestFocus")),
+                        f.permissionAttention.toString());
+            });
             onEdt(() -> {
                 assertTrue(labels(d1).stream().anyMatch(l -> l.startsWith("Claude Code asks to ")
                         && !l.contains("run analyser_report")), "this call's own sentence: " + labels(d1));

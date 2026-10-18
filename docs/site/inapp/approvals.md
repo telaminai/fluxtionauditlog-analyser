@@ -36,8 +36,10 @@ cut — the box scrolls.
   closing the dialog. **Allow once** has no keyboard shortcut and is active only half a second after the dialog appears,
   so a key meant for the composer cannot approve. There is no *Always allow*, and no "allow for this turn": the analyser
   never writes a permission rule for you.
-- **It waits 120 s**, with a countdown; unanswered, the call is denied (*"Not answered in the analyser within 120 s"*).
-  Claude Code itself would wait for ever, so this is the analyser's own limit.
+- **It waits 120 s**, with a countdown; unanswered, the call is denied (*"Not answered in the analyser within 120 s"*,
+  and Claude is told not to retry the same request but to ask you in its reply). Claude Code itself would wait for
+  ever, so this is the analyser's own limit. When the dialog opens, the window it belongs to is brought to the front
+  (on macOS the Dock icon also bounces), so a popped-out assistant behind another window still gets your attention.
 - **One at a time.** Claude Code asks one call at a time; should a second arrive while a dialog is open, it **waits**
   — the dialog says *"1 more request is waiting"* — and is shown when you have answered the first. A waiting request is
   still denied if its turn ends, or you press Stop or New chat, before it is shown. A waiting request keeps its own
