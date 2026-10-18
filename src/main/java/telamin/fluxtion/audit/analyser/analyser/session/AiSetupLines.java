@@ -41,8 +41,9 @@ public final class AiSetupLines {
             + "reports, walks and the tour. You can set AI up later from Assistant ▾ ▸ Set up AI…";
     public static final String CLIENT_TITLE = "Your own AI client connects to " + PRODUCT;
     public static final String CLIENT_SHORT = "Your own AI client connects";
-    public static final String CLIENT_TEXT = "Claude Code, Codex or another MCP client in your terminal reads records, "
-            + "draws charts and points at evidence here. You keep using it in your terminal.";
+    /** OD-77.18 (r4): "another AI app that can connect to {Product}", not "another MCP client". */
+    public static final String CLIENT_TEXT = "Claude Code, Codex or another AI app that can connect to " + PRODUCT
+            + " reads records, draws charts and points at evidence here. You keep using it in your terminal.";
     public static final String CLIENT_TURNS_OFF_INSIDE = "This turns off Claude in the panel — choose Both to keep it.";
     public static final String INSIDE_TITLE = "Claude inside " + PRODUCT;
     public static final String INSIDE_TEXT = "The same Claude Code, run by " + PRODUCT + " in its assistant panel. Ask "
@@ -67,6 +68,119 @@ public final class AiSetupLines {
             case BOTH -> BOTH_TEXT;
             case IN_APP, NONE -> "";
         };
+    }
+
+    // ---- Where data goes: the option diagram (§6.1a, M77-5) ---------------------------------------------------------
+    // Every word FlowDiagram draws or speaks. No drawn string says MCP, REST or CLI (★ T28); the four sent lines are
+    // pinned verbatim in FaqSecurityContractTest, because each one fixes an overclaim the prototype made.
+
+    /** The picture's accessible name. */
+    public static final String DIAGRAM_NAME = "Where data goes";
+    /** The machine boundary's caption. */
+    public static final String DIAGRAM_THIS_COMPUTER = "This computer";
+    /** The product node's label; below 400 px the short one. */
+    public static final String DIAGRAM_PRODUCT = productCapitalised();
+    public static final String DIAGRAM_PRODUCT_SHORT = shortName(PRODUCT);
+    public static final String DIAGRAM_CLAUDE = "Claude";
+    public static final String DIAGRAM_CLAUDE_SAFE = "in the panel · Safe";
+    public static final String DIAGRAM_CLAUDE_FULL = "in the panel · Full";
+    public static final String DIAGRAM_CLAUDE_SAFE_SHORT = "Safe";
+    public static final String DIAGRAM_CLAUDE_FULL_SHORT = "Full";
+    /** The tag on the Claude pair when Full is drawn (amber, caution). */
+    public static final String DIAGRAM_FULL_TAG = "Full";
+    public static final String DIAGRAM_CLIENT = "Your AI client";
+    public static final String DIAGRAM_CLIENT_SHORT = "AI client";
+    public static final String DIAGRAM_CLAUDE_SERVICE = "Anthropic";
+    public static final String DIAGRAM_CLIENT_SERVICE = "Its AI service";
+    public static final String DIAGRAM_CLIENT_SERVICE_SHORT = "AI service";
+    public static final String DIAGRAM_NO_AI = "No AI";
+
+    /** The chips on the arrows (§6.1a): mouse, target, clipboard, toggle, padlock, window, page. */
+    public static final String DIAGRAM_ASK = "Ask";
+    public static final String DIAGRAM_POINTS = "points";
+    public static final String DIAGRAM_YOU_COPY = "you copy";
+    public static final String DIAGRAM_OFF = "off";
+    public static final String DIAGRAM_CLOSED = "closed";
+    public static final String DIAGRAM_ANOTHER_WINDOW = "another window";
+    public static final String DIAGRAM_ANOTHER_WINDOW_SHORT = "elsewhere";
+    public static final String DIAGRAM_WHAT_IT_READS = "what it reads";
+    public static final String DIAGRAM_WHAT_IT_READS_SHORT = "reads";
+    public static final String DIAGRAM_OWN_TOOLS = "+ your own tools";
+    public static final String DIAGRAM_OWN_TOOLS_SHORT = "+ tools";
+
+    /** The four sent lines, verbatim (§6.1a), and Full's suffix to the Claude-inside line. */
+    public static final String DIAGRAM_SENT_NO_AI = "Nothing is sent to an AI.";
+    public static final String DIAGRAM_SENT_CLIENT = "Sent to AI: what your client reads, sent by your client.";
+    public static final String DIAGRAM_SENT_INSIDE = "Sent to AI: your question + what Claude reads, to Anthropic.";
+    public static final String DIAGRAM_SENT_FULL_SUFFIX = "; your own tools may send more.";
+    public static final String DIAGRAM_SENT_BOTH = "Sent to AI: Claude to Anthropic; your client to its own service.";
+
+    /** Claude-inside's sent line: Full replaces the closing full stop with its suffix. */
+    public static String diagramSentInside(boolean full) {
+        return full ? DIAGRAM_SENT_INSIDE.substring(0, DIAGRAM_SENT_INSIDE.length() - 1) + DIAGRAM_SENT_FULL_SUFFIX
+                : DIAGRAM_SENT_INSIDE;
+    }
+
+    /** The summary the text equivalent starts with: who drives whom. */
+    public static final String DIAGRAM_SUMMARY_NO_AI = "No AI. " + productCapitalised() + " works on its own.";
+    public static final String DIAGRAM_SUMMARY_CLIENT = "One way: your AI client works " + PRODUCT + "; " + PRODUCT
+            + " cannot reach your client.";
+    public static final String DIAGRAM_SUMMARY_INSIDE = "Two way: " + PRODUCT + " sends your right-click questions to "
+            + "Claude, and Claude works " + PRODUCT + " back.";
+    public static final String DIAGRAM_SUMMARY_BOTH = "Two way with Claude in the panel; one way from your AI client.";
+
+    /** Each arrow's spoken sentence (the text equivalent, ★ T26). */
+    public static final String DIAGRAM_SAY_ASK = "A right-click Ask on a record, node or chart goes straight to Claude in "
+            + "the panel.";
+    public static final String DIAGRAM_SAY_CLAUDE_POINTS = "Claude reads the open log and points at things on the "
+            + "screen; " + PRODUCT + " asks you before it changes what is open.";
+    public static final String DIAGRAM_SAY_CLAUDE_POINTS_FULL = "Claude reads the open log and points at things on the "
+            + "screen, with your own Claude Code settings.";
+    public static final String DIAGRAM_SAY_CLAUDE_SENDS = "Claude sends your question and what it reads to Anthropic.";
+    public static final String DIAGRAM_SAY_CLAUDE_SENDS_FULL = "Claude sends your question and what it reads to "
+            + "Anthropic. In Full, your own tools and servers can send data elsewhere too.";
+    public static final String DIAGRAM_SAY_CLIENT_POINTS = "Your AI client reads the open log and points at things on "
+            + "the screen.";
+    public static final String DIAGRAM_SAY_CLIENT_OFF = "Your AI client cannot reach " + PRODUCT + " until you allow "
+            + "it.";
+    public static final String DIAGRAM_SAY_CLIENT_CLOSED = "Your AI client cannot reach " + PRODUCT + " while the Full "
+            + "Claude session in the panel runs.";
+    public static final String DIAGRAM_SAY_CLIENT_OTHER_WINDOW = "Another " + PRODUCT.replaceFirst("^the ", "")
+            + " window holds the connection, so your AI client reaches that window, not this one.";
+    public static final String DIAGRAM_SAY_YOU_COPY = "A right-click does not reach your AI client: you copy the "
+            + "question and paste it there yourself.";
+    public static final String DIAGRAM_SAY_CLIENT_SENDS = "Your AI client sends what it reads, with your questions, to "
+            + "its own AI service.";
+
+    /**
+     * OD-77.16: where Claude is billed, from the sign-in check's method — or null, naming nothing, when the check has not
+     * said how Claude Code signs in.
+     */
+    public static String diagramBill(Auth a) {
+        if (a == null) return null;
+        if (a.verdict() != AiSetupState.SignedIn.SIGNED_IN && a.verdict() != AiSetupState.SignedIn.KEY) return null;
+        return switch (a.method()) {
+            case CLAUDE_AI -> "your Claude plan";
+            case API_KEY, API_KEY_HELPER -> "your API key";
+            case OTHER -> "your cloud provider";
+            case NONE -> null;
+        };
+    }
+
+    /** The spoken half of the bill: "Claude is billed to your Claude plan." */
+    public static String diagramSayBill(String bill) {
+        return "Claude is billed to " + bill + ".";
+    }
+
+    /** OD-77.17: Claude Code's own usage data is a link to the FAQ, not words on the picture. */
+    public static final String DIAGRAM_USAGE_LINK = "What Claude Code itself sends…";
+    /** The FAQ entry the link opens, relative to the docs site (FaqSecurityContractTest pins the heading). */
+    public static final String DIAGRAM_USAGE_PAGE = "faq/#what-does-claude-code-itself-send-to-anthropic";
+
+    /** "the analyser" → "Analyser": the product's short label, from {@link #PRODUCT}. */
+    private static String shortName(String product) {
+        String s = product.startsWith("the ") ? product.substring(4) : product;
+        return Character.toUpperCase(s.charAt(0)) + s.substring(1);
     }
 
     // ---- Screen 2a (§6.2) --------------------------------------------------------------------------------------------

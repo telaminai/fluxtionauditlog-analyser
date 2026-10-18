@@ -43,6 +43,27 @@ copy-prompt mode). Claude Code in the Assistant tab contacts Anthropic when you 
 check and the bridge connection), before your first Send; with the assistant **Off**, nothing in the analyser
 goes on the network.
 
+## What does Claude Code itself send to Anthropic?
+
+Besides your question and the evidence Claude reads, Claude Code has usage data of its own, the same in the
+analyser's panel as in your terminal. The *Where data goes* picture in **Set up AI** does not draw it; it links
+here. Anthropic's [Claude Code data usage](https://code.claude.com/docs/en/data-usage) page is the authority. In
+short, as that page stated it in October 2026:
+
+- **Metrics**: latency, reliability and usage patterns, never your code, prompts or file paths. `DISABLE_TELEMETRY=1`
+  turns them off.
+- **Error reports**: Claude Code's own error messages and stack traces, with known secrets, paths and e-mail
+  addresses redacted first; on for Pro and Max sign-ins. `DISABLE_ERROR_REPORTING=1` turns them off.
+- **Feedback you choose to send**: `/feedback` (and `/bug`, `/share`) sends a copy of the conversation; a session
+  survey's follow-up uploads the transcript only if you answer **Yes**.
+- `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1` turns all of these off at once. On Amazon Bedrock, Google Cloud and
+  Microsoft Foundry, metrics, error reports and feedback reports are off by default.
+
+The analyser turns none of these on or off. It runs your own installed `claude`, and the environment variables the
+analyser itself was started with reach it. Full Claude Code also reads your Claude Code settings, as in your
+terminal; Safe analysis does not load them. How long Anthropic keeps your conversations, and whether they train
+models, depends on your account; the same page says so for each plan.
+
 ## Can I follow a growing log?
 
 Yes — **Audit log ▸ Follow (tail)** polls an open local file and appends newly-completed records live,

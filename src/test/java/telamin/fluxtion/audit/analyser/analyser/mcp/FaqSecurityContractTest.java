@@ -1,10 +1,20 @@
 package telamin.fluxtion.audit.analyser.analyser.mcp;
 
 import org.junit.jupiter.api.Test;
+import telamin.fluxtion.audit.analyser.analyser.session.AiSetupLines;
+import telamin.fluxtion.audit.analyser.analyser.session.AiSetupState;
+import telamin.fluxtion.audit.analyser.analyser.ui.setup.FlowDiagram;
+
+import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.regex.Pattern;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -192,5 +202,65 @@ class FaqSecurityContractTest {
                         .contains(untrue), f + " claims \"" + untrue + "\"");
             }
         }
+    }
+    /**
+     * ★ M77-5 T28 (spec-ai-setup-wizard.md §6.1a, OD-77.17): <i>Where data goes</i> says no more than is true. The four
+     * sent lines and Full's suffix are pinned verbatim — each fixes an overclaim the prototype made (No AI does not say
+     * "nothing leaves this computer": the analyser fetches the starter catalogue; the external line says the CLIENT
+     * sends, and nothing about the analyser) — and no drawn or spoken diagram string says MCP, REST or CLI. Claude Code's
+     * own usage data is a link to the FAQ entry, which says what it is. Witness: restore "not the analyser's" in the
+     * external line — the verbatim assertion and the overclaim scan both fail.
+     */
+    @Test
+    void theOptionDiagramSaysNoMoreThanIsTrue() throws Exception {
+        assertEquals("Nothing is sent to an AI.", AiSetupLines.DIAGRAM_SENT_NO_AI);
+        assertEquals("Sent to AI: what your client reads, sent by your client.", AiSetupLines.DIAGRAM_SENT_CLIENT);
+        assertEquals("Sent to AI: your question + what Claude reads, to Anthropic.", AiSetupLines.DIAGRAM_SENT_INSIDE);
+        assertEquals("; your own tools may send more.", AiSetupLines.DIAGRAM_SENT_FULL_SUFFIX);
+        assertEquals("Sent to AI: your question + what Claude reads, to Anthropic; your own tools may send more.",
+                AiSetupLines.diagramSentInside(true));
+        assertEquals("Sent to AI: Claude to Anthropic; your client to its own service.", AiSetupLines.DIAGRAM_SENT_BOTH);
+        // OD-77.18: the card sentence says what a person knows, not a protocol
+        assertTrue(AiSetupLines.CLIENT_TEXT.startsWith("Claude Code, Codex or another AI app that can connect to "
+                + AiSetupLines.PRODUCT + " reads records"), AiSetupLines.CLIENT_TEXT);
+        Pattern jargon = Pattern.compile("\\b(MCP|REST|CLI)\\b", Pattern.CASE_INSENSITIVE);
+        List<String> words = new ArrayList<>();
+        for (Field f : AiSetupLines.class.getFields()) {
+            if (f.getName().startsWith("DIAGRAM_") && f.getType() == String.class) words.add((String) f.get(null));
+        }
+        for (FlowDiagram.Option o : FlowDiagram.Option.values()) {
+            for (AiSetupState.Posture p : AiSetupState.Posture.values()) {
+                for (FlowDiagram.Access a : FlowDiagram.Access.values()) {
+                    FlowDiagram.Model m = FlowDiagram.model(o, p, a, new AiSetupState.Auth(AiSetupState.SignedIn.SIGNED_IN,
+                            AiSetupState.Method.CLAUDE_AI, AiSetupState.Plan.PRO, AiSetupState.KeySource.NONE));
+                    words.addAll(m.drawnWords());
+                    words.addAll(m.text());
+                }
+            }
+        }
+        assertTrue(words.size() > 100, "the scan sees the diagram's words: " + words.size());
+        words.add(AiSetupLines.CLIENT_TEXT);
+        for (String w : words) {
+            assertFalse(jargon.matcher(w).find(), "a diagram string names a protocol: " + w);
+            String lower = w.toLowerCase(Locale.ROOT);
+            for (String overclaim : new String[]{"not the analyser", "nothing leaves", "never leaves", "stays on",
+                    "local-only", "never sends"}) {
+                assertFalse(lower.contains(overclaim), "a diagram string overclaims (\"" + overclaim + "\"): " + w);
+            }
+        }
+        // OD-77.17: the link and the entry it opens
+        String faq = Files.readString(Path.of("docs/site/faq.md"));
+        String heading = "## What does Claude Code itself send to Anthropic?";
+        assertTrue(faq.contains(heading), "the FAQ entry the diagram links to");
+        assertEquals("faq/#what-does-claude-code-itself-send-to-anthropic", AiSetupLines.DIAGRAM_USAGE_PAGE,
+                "the link's anchor is the heading's slug");
+        int start = faq.indexOf(heading);
+        String entry = faq.substring(start, faq.indexOf("\n## ", start + 1)).replaceAll("\\s+", " ");
+        for (String claim : new String[]{"https://code.claude.com/docs/en/data-usage", "never your code, prompts or file paths",
+                "`DISABLE_TELEMETRY=1`", "`DISABLE_ERROR_REPORTING=1`", "`CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1`",
+                "`/feedback`", "The analyser turns none of these on or off", "Safe analysis does not load them"}) {
+            assertTrue(entry.contains(claim), "the FAQ entry on Claude Code's own data must say: " + claim);
+        }
+        assertTrue(AiSetupLines.DIAGRAM_USAGE_LINK.startsWith("What Claude Code itself sends"), "the link's words");
     }
 }

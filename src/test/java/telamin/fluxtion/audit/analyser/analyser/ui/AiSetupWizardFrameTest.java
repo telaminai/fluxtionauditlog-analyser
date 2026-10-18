@@ -490,7 +490,7 @@ class AiSetupWizardFrameTest {
                     r.await(s -> s.choice() == Choice.INSIDE, "Claude inside chosen");
                     checkScreen(w, "Screen 1 " + tag);
                     onEdt(() -> {
-                        // M77-5's slot: under the selected card's title row, above its sentence; empty, no size
+                        // M77-5's slot: under the selected card's title row, above its sentence; it holds the picture
                         JComponent slot = w.selectedOptionExtra();
                         Container card = slot.getParent();
                         assertNotNull(card, "the slot is on the selected card");
@@ -498,7 +498,8 @@ class AiSetupWizardFrameTest {
                                 "on the selected option's card");
                         int at = java.util.Arrays.asList(card.getComponents()).indexOf(slot);
                         assertEquals(1, at, "between the title row and the sentence");
-                        assertEquals(0, slot.getHeight(), "empty: no visible size");
+                        assertTrue(SwingUtilities.isDescendingFrom(w.diagram, slot) && w.diagram.isShowing()
+                                && slot.getHeight() > 0, "M77-5: the slot shows the selected option's picture");
                         assertTrue(card.getComponent(at + 1) instanceof WrapLine, "the sentence follows it");
                         long sentences = all(w.contentPanel(), WrapLine.class).stream()
                                 .filter(t -> t.isShowing() && !t.getText().isBlank()).count();
