@@ -212,7 +212,7 @@ public final class GraphmlDiscovery {
         Set<Path> seen = new LinkedHashSet<>();
         boolean truncated = false;
 
-        for (String root : roots == null ? List.<String>of() : roots) {
+        for (String root : withResources(roots)) {
             Path dir;
             try {
                 dir = Path.of(root);
@@ -250,6 +250,31 @@ public final class GraphmlDiscovery {
         }
         out.sort(Candidate.RANK);
         return new Result(out, truncated, notes);
+    }
+
+    /**
+     * Authoring walk (2026-10-18, shot 12): a generated processor's {@code .graphml} is a Maven RESOURCE — the playground
+     * bundle commits it under {@code src/main/resources} — while the source roots name {@code src/main/java}. So each
+     * {@code …/java} or {@code …/kotlin} root brings its sibling {@code resources} folder, when one exists, after the
+     * roots themselves. A folder named twice is walked once.
+     */
+    static List<String> withResources(List<String> roots) {
+        Set<String> out = new LinkedHashSet<>();
+        if (roots == null) return List.of();
+        out.addAll(roots);
+        for (String root : roots) {
+            try {
+                Path dir = Path.of(root);
+                String name = dir.getFileName() == null ? "" : dir.getFileName().toString();
+                if (!name.equals("java") && !name.equals("kotlin")) continue;
+                if (dir.getParent() == null) continue;
+                Path resources = dir.getParent().resolve("resources");
+                if (Files.isDirectory(resources)) out.add(resources.toString());
+            } catch (RuntimeException e) {
+                // not a path: the walk below says so for the root itself
+            }
+        }
+        return List.copyOf(out);
     }
 
     private static boolean inside(Path p, Path fence) {
