@@ -9595,6 +9595,23 @@ public final class MainFrame extends JFrame {
     }
 
     /**
+     * Owner hands-on test (2026-10-18): {@code source {bean}} with no design open, for a bean the GRAPH has — the call
+     * meant the node's Java class, so the refusal names the call that opens it. The class comes from the processor's
+     * source (its field's declared type) or else the loaded GraphML; nothing is opened here.
+     */
+    private String graphNodeHint(Map<String, Object> params) {
+        if (params == null || !params.keySet().equals(java.util.Set.of("bean"))
+                || session().processor().designSession.path() != null) return "";
+        String bean = String.valueOf(params.get("bean"));
+        String fqn = sourceService.fqnForInstance(bean);
+        if (fqn == null || fqn.isBlank()) {
+            var node = topologyPanel.hasNode(bean) ? topologyPanel.nodeInfo(bean) : null;
+            fqn = node == null ? null : node.className();
+        }
+        return telamin.fluxtion.audit.analyser.analyser.design.DesignWorkspace.graphNodeHint(bean, fqn);
+    }
+
+    /**
      * {@link telamin.fluxtion.audit.analyser.analyser.llm.AppControl} over this frame — the verbs that
      * open files and configure source roots.
      *
@@ -9635,7 +9652,8 @@ public final class MainFrame extends JFrame {
             return readDesign("source", workspace -> workspace.source(params), prepared -> {
                 clearSpotlightHere();
                 if (!prepared.error().isEmpty()) {
-                    String reason = prepared.error() + "; roots: " + designFiles().roots() + "; accepted selectors: " + telamin.fluxtion.audit.analyser.analyser.design.DesignWorkspace.SHAPES;
+                    String reason = prepared.error() + graphNodeHint(params) + "; roots: " + designFiles().roots()
+                            + "; accepted selectors: " + telamin.fluxtion.audit.analyser.analyser.design.DesignWorkspace.SHAPES;
                     sourcePanel.navigationFailed();
                     status.setText(reason);
                     return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(reason);
@@ -10822,8 +10840,8 @@ public final class MainFrame extends JFrame {
                     one.put("class", fqn);
                     one.put("selected", fqn.equals(config.selectedEventProcessor));
                     one.put("source", sourceService.resolver().find(fqn).isPresent() ? "found" : "not found");
-                    one.put("from", configured.contains(fqn) ? (project.hasProject() ? "project" : "own settings")
-                            : "discovered under a root");
+                    one.put("from", telamin.fluxtion.audit.analyser.analyser.llm.SessionFacts.processorFrom(fqn,
+                            configured, config.selectedEventProcessor, project.hasProject()));
                     procs.add(one);
                 }
                 if (!procs.isEmpty()) out.put("processors", procs);
