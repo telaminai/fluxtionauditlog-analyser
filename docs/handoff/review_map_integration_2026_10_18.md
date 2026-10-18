@@ -53,7 +53,10 @@ PR links: `#N` means `https://github.com/telaminai/fluxtionauditlog-analyser/pul
 | [#155](https://github.com/telaminai/fluxtionauditlog-analyser/pull/155) `docs/m74-virgin-onboarding-pack` | `d1e38e2b` | `main` | virgin-LLM protocol, scorecard, runner, teaching packs |
 
 The four tracker-editing spec branches (`docs/m77-ai-setup-wizard`, #158, #164, #154) insert at the same place in
-`tracker.md`; this branch's tracker holds their lines verbatim, so resolve those conflicts by taking it.
+`tracker.md`; this branch's tracker (`docs/tracker-review-2026-10-18`) holds their lines verbatim, so resolve those
+conflicts by taking it. **One merge is silent:** #158 merged after `docs/m77-ai-setup-wizard` or #164 appends a second
+M78 block just above *Session and dispatch* with no conflict (rehearsed 2026-10-18) — delete the duplicate. With the
+four spec branches merged, `SpecLinksResolveTest` passes; on this branch alone it reports their seven spec links.
 
 ### Other repositories
 
